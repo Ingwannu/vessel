@@ -1,5 +1,38 @@
 # N3 current checkpoint
 
+## Current staged project-listing checkpoint
+
+This checkpoint supersedes the older fake-forge delivery instructions
+below, which remain historical evidence. The seeded fixture and its
+explicit gate coverage were delivered as `ba6702b3`/`4660f784` and
+`fba50eb0`. ADR 0061's value source `1bdc66e7` and staging contract
+`973659fa` were reviewed separately; neither introduced a callable method.
+
+Provider/service source is committed as `04d32734`. It extends the real
+GitHub and FakeForge providers and stages the bounded node owner under
+`cfg(test)`. Its local whole run remained red (2,019 passed, three safety
+timeouts, twelve ignores); the three names and all limits are retained in
+`backend-m12-project-pulls-service-results.md`. Selected node/Forge tests
+passed 24/52 before that run. No shared test was edited or failure waived.
+
+The additional builder's whole gate on that exact clean source then passed
+all eighteen steps: workspace 2,022/0/12, TypeScript two, web unit tests
+417, E2E 62 and fixture-feature four. Every earlier local timeout case
+passed there. Raw logs and both executions accompany source review to V1;
+this note does not claim reviewer approval or a diagnosed local cause.
+Local test storage is empty, UID/GID 1000 and mode 0700; no local test
+fleet or display is running. The remote gate follower has finished.
+
+Next: obtain review of this staged source; retain it on the track branch
+until wiring removes `cfg(test)`. Consume the announced, gated shared
+protocol accessor and connection request budget at a clean boundary,
+merge rather than rebase, and gate that merged baseline before adding
+the actual project-list request, authority/older-peer tests and
+client/CLI/fleet consumers. No protocol number has been assigned here.
+`pr.list` is still watched-session derived, so the waiting PR screen has
+no project-wide call to consume yet. Row 6 and webhook row 7 remain
+unbuilt; read-only ACP/registry inventory is not a contract or code slice.
+
 ## Committed and reviewed
 
 - Row 1, machine zone and scheduler-backed preview: `f81798c3`, integrated

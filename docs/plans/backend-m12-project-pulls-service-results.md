@@ -1,8 +1,8 @@
 # Project pull-request provider/service candidate
 
-Status: candidate for validation on the additional builder. The complete
-local workspace run is red; this is not a passed node slice or a callable
-project-listing feature.
+Status: provider/service candidate `04d32734` passed the additional
+builder's whole gate. Source review is pending. The earlier local workspace
+run remains red; project listing is not callable.
 
 ## Implemented boundary
 
@@ -51,10 +51,39 @@ storage retained mode 0700 and was emptied after checking for remaining
 processes. No production process, permission, real agent or real forge was
 changed or used by the new fixtures.
 
-## Next validation
+## Additional-builder validation
 
-The additional builder must validate the clean committed candidate before
-source review is requested. Preserve the local red run, its selected passes
-and load observations. Product wiring, authority/forwarding/older-peer
-fixtures, client/CLI/fleet consumers and their complete gate remain later
-work. No UI, capture, real-forge, Windows or macOS execution is claimed.
+The clean committed candidate passed all eighteen steps of the complete
+Linux gate: page dependency installation, format, size, boundaries, default
+and TypeScript/fixture-feature Clippy, TypeScript regeneration with no
+declaration diff, binaries, both nested-build prebuilds, workspace tests,
+web lint/typecheck/unit/fonts/E2E and the explicit fixture-feature tests.
+The workspace reported 113 summaries: 2,022 passed, zero failed and twelve
+existing ignores. Each of the three local timeout cases passed in this
+whole run. TypeScript passed two tests, web unit tests 417, web E2E 62 and
+the fixture launcher four. No case was replayed or excluded.
+
+The actual gate ran from 02:53:38 to 03:06:45 UTC on 2026-11-15, after its
+ordinary queue wait. Start/end one-minute load was 14.60/9.80; the workspace
+test step started/ended at 9.38/7.11. It used eight build jobs and eight test
+threads. The checkout record resolves exactly to the candidate, and all
+eighteen step-log hashes match their recorded digests. Changed crates were
+actually compiled. These are execution and selected-source records, not
+an attestation of every dependency, toolchain or runtime property.
+
+The builder regenerates its page bundle from the commit and uses its own
+isolated temporary storage. Local selected-source pins excluded the local
+prebuilt page bundle and ignored configuration. This changed-environment
+pass does not establish a cause for the retained local failures. No
+deadline, assertion, shared test or product behavior was changed between
+the two runs.
+
+## Review and following work
+
+Submit the candidate and both executions to source review as a staged
+provider/service slice. It remains on the track branch: product wiring,
+authority/forwarding/older-peer fixtures, client/CLI/fleet consumers and
+their complete product-configuration gate remain later work. Shared
+protocol admission and the connection request budget are prerequisites.
+The existing `pr.list` remains watched-session derived. No UI, capture,
+real-forge, Windows or macOS execution is claimed.

@@ -1,6 +1,7 @@
 # Project pull requests without a session
 
-Status: value stage validated; provider/service implementation staged. ADR 0061 records
+Status: value stage validated; provider/service staged and whole-gated,
+awaiting source review. ADR 0061 records
 the decision before code. Project listing is not callable; `pr.list` still
 lists watched sessions.
 
