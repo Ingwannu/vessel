@@ -25,7 +25,12 @@ async fn recreated_base_file_is_compared_once_and_the_real_index_is_unchanged() 
     Sandbox::write(&repo, "README.md", "hello\nchanged\n");
     let before = std::fs::read(repo.join(".git/index")).unwrap();
     let prepared = git
-        .prepare_comparison(&repo, &GitComparison::All { base: None }, Some(&base()))
+        .prepare_comparison(
+            &repo,
+            &GitComparison::All { base: None },
+            Some(&base()),
+            sandbox.path(),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -66,7 +71,12 @@ async fn identically_recreated_file_is_unchanged_in_summary_and_body() {
     sandbox.run(&repo, &["commit", "-q", "-m", "remove"]);
     Sandbox::write(&repo, "README.md", "hello\n");
     let prepared = git
-        .prepare_comparison(&repo, &GitComparison::All { base: None }, Some(&base()))
+        .prepare_comparison(
+            &repo,
+            &GitComparison::All { base: None },
+            Some(&base()),
+            sandbox.path(),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -108,7 +118,12 @@ async fn restored_paths_are_literal_and_preserve_other_staged_renames() {
     sandbox.run(&repo, &["mv", "README.md", "renamed.md"]);
     let before = std::fs::read(repo.join(".git/index")).unwrap();
     let prepared = git
-        .prepare_comparison(&repo, &GitComparison::All { base: None }, Some(&base()))
+        .prepare_comparison(
+            &repo,
+            &GitComparison::All { base: None },
+            Some(&base()),
+            sandbox.path(),
+        )
         .await
         .unwrap()
         .unwrap();
@@ -207,9 +222,9 @@ fn private_index_copy_enforces_its_byte_budget_and_private_mode() {
     let sandbox = Sandbox::new();
     let source = sandbox.path().join("index-source");
     std::fs::write(&source, b"0123456789abcdefg").unwrap();
-    let refused = copy_index(&source, IndexCopyLimit(16)).unwrap_err();
+    let refused = copy_index(&source, IndexCopyLimit(16), sandbox.path()).unwrap_err();
     assert_eq!(refused.kind(), std::io::ErrorKind::FileTooLarge);
-    let private = copy_index(&source, IndexCopyLimit(32)).unwrap();
+    let private = copy_index(&source, IndexCopyLimit(32), sandbox.path()).unwrap();
     assert_eq!(
         std::fs::read(private.path().join("index")).unwrap(),
         b"0123456789abcdefg"
@@ -245,6 +260,25 @@ fn private_index_copy_does_not_follow_a_source_symlink() {
     std::fs::write(&source, b"index bytes").unwrap();
     let link = sandbox.path().join("index-link");
     std::os::unix::fs::symlink(&source, &link).unwrap();
-    assert!(copy_index(&link, IndexCopyLimit(32)).is_err());
+    assert!(copy_index(&link, IndexCopyLimit(32), sandbox.path()).is_err());
     assert_eq!(std::fs::read(source).unwrap(), b"index bytes");
+}
+
+#[tokio::test]
+async fn a_relative_scratch_parent_is_refused_before_reading_a_comparison() {
+    let sandbox = Sandbox::new();
+    let repo = sandbox.repo("scratch");
+    let git = sandbox.git().await;
+    let result = git
+        .prepare_comparison(
+            &repo,
+            &GitComparison::Uncommitted,
+            None,
+            Path::new("relative"),
+        )
+        .await;
+    let Err(IndexError::Io(error)) = result else {
+        panic!("relative scratch parent was accepted");
+    };
+    assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
 }

@@ -1,54 +1,61 @@
 # C3 git runtime
 
-Status: staged implementation, no new method admitted. ADR 0087 is the contract.
+Status: staged implementation. No new method has an assigned protocol number.
+ADR 0087 defines the contract; the Quality B base 29eebb8b is merged.
 
-## Current structure
+## Structure and decisions
 
-`vessel-proto::workspace::panel` adds comparison/whitespace/page identity without
-changing legacy DiffScope or its admitted calls. `git::diff::scope` stages the
-committed-only resolver behind the existing Quality B test boundary. It shares
-the protected runner, merge-base resolution and typed summary/file parsers.
-No node dispatch, scope table, transport, dependency or permission changes.
+`vessel-proto::workspace::panel` defines comparison/whitespace/page identity
+without changing legacy DiffScope or its admitted calls. `git::diff::scope`
+stages committed-only resolution; `git::diff::all_index` stages All through a
+private index. Both reuse the protected runner and typed summary/file parsers.
+The shared readers accept a node-owned optional index; legacy scopes leave it
+absent. File explorer state and workspace registry identity are separate.
 
-Reference: `utils/checkout-git.ts:3508–3530,3580–3609` distinguishes base..HEAD
-from base..working files, returns no diff without a base, and falls back to the
-resolved base when there is no merge base. Requested bases are never replaced
-by a default after a resolution failure. Tests exercise actual isolated git
-repositories, including mixed changes, index bytes and unborn HEAD.
+Reference: `utils/checkout-git.ts:3508–3609` distinguishes base..HEAD from
+base..working files and returns no comparison without a base. All restores
+untracked paths present in the comparison tree into a private copy of the
+current index, avoiding a false deletion plus a second added entry. Summary
+and file reads use the same private index. Repeated cacheinfo arguments avoid
+extending the runner with stdin; its literal-path environment already protects
+path arguments. Requested invalid bases never fall back to the default.
+
+The scratch parent is supplied by the node and must be absolute. The library
+must not read environment/home to choose one. It reuses the existing regular
+file opener (no final symlink or FIFO), an exclusive 0600 destination in a
+0700 private directory, and a 64 MiB streaming copy budget. This budget is an
+explicit safety difference from the reference's unbounded index copy. Argv is
+bounded by 128 paths and 16 KiB of conservatively escaped arguments. Clipped
+ls-files output or an incomplete restoration set is a typed failure, never
+false completeness. UTF-8/object/path decoding preserves its original source.
+
+Current service staging uses the existing test-only tempfile dependency. Before
+normal admission, resource ownership must include cancellation/shutdown cleanup,
+and any dependency promotion needs the matching ADR/architecture update. There
+is no production tempfile dependency, permission change or new transport yet.
+
+## Verification boundaries
+
+- Initial contract and committed resolver at 3611a6b4: protocol/workspace narrow
+  clippy green; library tests 382 passed, 0 failed, 1 ignored.
+- All/private-index additions have not passed tests yet. At 77ef00b4 narrow
+  clippy returned discarded parse causes; corrected at 3353c2d4 with typed
+  source variants and source-chain tests. That check remains queued.
+- The later explicit scratch-parent change is not included in that queued
+  source. It requires its own changed-source narrow check.
+- Post-base submissions of 4331b5b2/ea58824d ended before registration during a
+  build-helper lock fault. They have no step evidence and were not rerun as
+  successes. Registered earlier red/green runs remain unchanged.
+- No RPC, live node, UI, real forge, OS cleanup or complete parity claim.
 
 ## Resume point
 
-The first narrow clippy stopped on documentation markup; the correction passed
-protocol/workspace clippy. Library tests passed 382, failed 0, ignored 1.
-This proves the staged resolver and contract cases, not node RPC/UI parity.
-
-The staged All private-index case from `checkout-git.ts:3533–3577` is implemented
-(a path present in the comparison tree but absent from the current index must
-not appear as a spurious deletion plus a duplicate untracked addition). The
-shared diff/summary/file readers accept a node-owned optional index; legacy
-scopes leave it absent. Restoration uses repeated `--cacheinfo` arguments,
-avoiding a stdin runner extension. Path batches bound both count and escaped
-argv size; the runner's existing literal-path environment is reused. Scoped
-summary and file reads both use the same private index. It reuses the existing
-snapshot pattern and test-only tempfile dependency; no manifest/edge change.
-Restoration errors retain cleanup errors as well. Explicit blocking-worker
-close is covered; active cancellation/shutdown lease ownership remains a
-Quality B blocker before this module can leave test staging. New All cases
-await narrow checks. Next: merge the announced Quality B node base, then add
-revision/cache/watch ownership, classified history, branch stash metadata,
-merge-to/from-base and bounded commit generation before Quality B wiring.
-No TypeScript output changes yet: the pending types are not request roots.
-Root whole gate and V3 review occur once the node package is complete.
-
-The Quality B base 29eebb8b is merged. Its post-merge narrow submit ended with
-no execution id or step log; server status lists neither own label as live.
-No check result is inferred from that lost submission. The next source also
-uses the existing regular-file opener for index copies (no FIFO or final
-symlink), an exclusive 0600 destination in the 0700 temporary directory, and
-a 64 MiB streaming byte cap. This cap is a stated safety difference from the
-reference's unbounded index copy. Tests use a small injected typed copy budget
-to prove over-limit rejection and actual modes. Clipped ls-files output or more
-than the bounded restoration set is a typed failure, never false completeness.
-The next narrow clippy found discarded parse causes in base-index decoding.
-UTF-8, object-id and path errors now have separate source-carrying variants;
-whole typed-shape and source-chain tests replace the generic error assertion.
+Finish current narrow checks and run comparison/private-index library tests.
+Tests cover mixed staged/unstaged/untracked files, unborn HEAD, base errors,
+index bytes, recreated base files (identical/modified), literal path names,
+staged rename preservation, argument/copy budgets, modes and no-follow access.
+Then implement the owned runtime/cancellation boundary and register pending
+Quality B rows in the single method table. Complete revision/cache/watch,
+classified history, branch stash metadata, merge-to/from-base and generated
+commit behaviour. Root whole gate and V3 review occur once the node package is
+complete; app package verification remains separate.

@@ -108,12 +108,22 @@ impl Git {
         dir: &Path,
         comparison: &GitComparison,
         base: Option<&WorktreeBase>,
+        scratch: &Path,
     ) -> Result<Option<Prepared>, IndexError> {
+        if !scratch.is_absolute() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "comparison scratch directory must be absolute",
+            )
+            .into());
+        }
         let Some(scope) = self.resolve_comparison(dir, comparison, base).await? else {
             return Ok(None);
         };
         match comparison {
-            GitComparison::All { .. } => self.prepare_all_index(dir, scope).await.map(Some),
+            GitComparison::All { .. } => {
+                self.prepare_all_index(dir, scope, scratch).await.map(Some)
+            }
             GitComparison::Uncommitted
             | GitComparison::Committed { .. }
             | GitComparison::Commit { .. } => Ok(Some(Prepared {
@@ -128,6 +138,7 @@ impl Git {
         &self,
         dir: &Path,
         mut scope: Resolved,
+        scratch: &Path,
     ) -> Result<Prepared, IndexError> {
         let Some(base) = &scope.from else {
             return Ok(Prepared {
@@ -154,8 +165,10 @@ impl Git {
             .checked()?;
         let text = String::from_utf8_lossy(&index.stdout);
         let source = dir.join(text.trim_end_matches(['\r', '\n']));
+        let scratch = scratch.to_owned();
         let directory =
-            tokio::task::spawn_blocking(move || copy_index(&source, IndexCopyLimit::MAX)).await??;
+            tokio::task::spawn_blocking(move || copy_index(&source, IndexCopyLimit::MAX, &scratch))
+                .await??;
         let destination = directory.path().join("index");
         let installed = self.restore_entries(dir, &destination, &entries).await;
         if let Err(error) = installed {
@@ -235,7 +248,11 @@ impl IndexCopyLimit {
     const MAX: Self = Self(64 * 1024 * 1024);
 }
 
-fn copy_index(source: &Path, limit: IndexCopyLimit) -> Result<tempfile::TempDir, std::io::Error> {
+fn copy_index(
+    source: &Path,
+    limit: IndexCopyLimit,
+    scratch: &Path,
+) -> Result<tempfile::TempDir, std::io::Error> {
     let source = match crate::regular::open(source) {
         Ok(Some(file)) => Some(file),
         Ok(None) => {
@@ -249,7 +266,7 @@ fn copy_index(source: &Path, limit: IndexCopyLimit) -> Result<tempfile::TempDir,
     };
     let directory = tempfile::Builder::new()
         .prefix("vessel-git-comparison-")
-        .tempdir()?;
+        .tempdir_in(scratch)?;
     if let Some(source) = source {
         let mut options = std::fs::OpenOptions::new();
         let _write = options.write(true).create_new(true);
