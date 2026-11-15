@@ -43,7 +43,7 @@ impl Relation {
         info: &vessel_proto::SessionInfo,
         peer: vessel_proto::ProtocolVersion,
     ) -> Self {
-        if !vessel_proto::subagents::SUBAGENT_RELATIONS.is_some_and(|since| since <= peer) {
+        if vessel_proto::subagents::SUBAGENT_RELATIONS.is_none_or(|since| since > peer) {
             return Self::Unknown;
         }
         info.parentage()
