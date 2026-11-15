@@ -32,7 +32,7 @@ fn wrapped(cx: &mut TestAppContext) -> (AnyWindowHandle, Entity<Shell>) {
 
 fn mark(cx: &mut App) -> Delivery {
     with_focused_shell(cx, |shell, _, _| {
-        shell.notice = Some("generic inbox".to_owned())
+        shell.notice = Some("generic inbox".to_owned());
     })
 }
 
@@ -113,7 +113,7 @@ fn closed_handle_and_dead_shell_do_not_rebind_to_a_successor_window(cx: &mut Tes
     cx.update(|cx| {
         original
             .update(cx, |_, window, _| window.remove_window())
-            .unwrap()
+            .unwrap();
     });
     cx.run_until_parked();
     cx.update(|cx| {
@@ -153,7 +153,7 @@ fn active_then_visible_then_hidden_live_fallback_uses_only_current_root_records(
     cx.update(|cx| {
         unrelated
             .update(cx, |_, window, _| window.activate_window())
-            .unwrap()
+            .unwrap();
     });
     cx.simulate_window_visibility_change(first_window, WindowVisibility::Hidden);
     cx.update(|cx| {

@@ -52,3 +52,9 @@ They have not executed yet. Root identity is not caller source/context authority
 W7 separately checks its opaque notice route and original source before actions.
 No OS notification delivery/permission, native capture, IME/a11y, E3 parity or
 historical Linux focused-field F5 claim is made by this control producer.
+
+First selected run328b8bba passed fonts/fmt/quality, then strict Clippy stopped at
+four style diagnostics: one missing documentation backtick and three unit-return
+callback semicolons. No tests ran. Correcting only those diagnostics does not
+constitute a runtime result; the continuation uses the ordinary lane, with the
+first priority record retained. No suppression or assertion change is added.

@@ -13,7 +13,7 @@ pub(crate) enum Delivery {
 pub(super) type Factory = fn(&mut App) -> Delivery;
 
 /// Only the desktop owner installs a factory; it creates a window directly,
-/// never recursively calls this module's open_additional entry.
+/// never recursively calls this module's `open_additional` entry.
 pub(crate) fn set_factory(factory: Factory, cx: &mut App) {
     init(cx);
     cx.global_mut::<Registry>().factory = Some(factory);
