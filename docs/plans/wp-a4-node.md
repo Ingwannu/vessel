@@ -99,3 +99,5 @@ ChildDescriptors validates count, actual escaped JSON bytes, unique ids and nest
 ## Collection check correction
 
 Exacta511 collection check failed at the test vector's ambiguous collect type and two strict map_err_ignore lints, before product/shared-consumer completion. The vector now explicitly collects Vec<_>; intentionally sanitized bound/encoding failures use named ignored errors. No bound or assertion is weakened. No test execution is claimed from that red run.
+
+The3530 strict proto check then found a test-only unreachable macro, a single-match fallback and a wildcard compatibility arm. The all-variant fixture now explicitly tests the real pending ProviderChild variant as Option(None), retaining all old assigned fixtures; page fallback uses if-let; compatibility uses explicit family/envelope tests without an enum wildcard. None of the limits or behavioral assertions are weakened. This local completed red result is retained; all subsequent compilation follows the operator's build-VM-only rule.

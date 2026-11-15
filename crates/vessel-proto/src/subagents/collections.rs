@@ -154,20 +154,19 @@ impl ProviderChildPage {
                     .unwrap_or_else(|| record.clone())
             })
             .collect::<Vec<_>>();
-        let (records, history) = match ChildRecords::try_from(projected) {
-            Ok(records) => (records, self.history),
-            Err(_) => {
-                // An attachment stand-in may grow. Withhold that page rather
-                // than leak an unmasked field or silently claim completeness.
-                let first = self.records.as_slice().first()?;
-                (
-                    ChildRecords(Vec::new()),
-                    ChildHistory::Partial {
-                        reason: super::ChildGap::ScanBudget,
-                        from: first.seq,
-                    },
-                )
-            }
+        let (records, history) = if let Ok(records) = ChildRecords::try_from(projected) {
+            (records, self.history)
+        } else {
+            // An attachment stand-in may grow. Withhold that page rather
+            // than leak an unmasked field or silently claim completeness.
+            let first = self.records.as_slice().first()?;
+            (
+                ChildRecords(Vec::new()),
+                ChildHistory::Partial {
+                    reason: super::ChildGap::ScanBudget,
+                    from: first.seq,
+                },
+            )
         };
         Some(Self {
             records,

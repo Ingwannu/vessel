@@ -94,11 +94,9 @@ fn newer_events() -> Vec<AgentEvent> {
 
 // This exhaustive match makes a new variant choose a test fixture/requirement
 // deliberately instead of silently missing the all-variant contract test.
-fn expected(event: &AgentEvent) -> ProtocolVersion {
+fn expected(event: &AgentEvent) -> Option<ProtocolVersion> {
     match event {
-        AgentEvent::ProviderChild(_) => {
-            unreachable!("pending variants have separate projection fixtures")
-        }
+        AgentEvent::ProviderChild(_) => crate::subagents::SUBAGENT_RELATIONS,
         AgentEvent::Ready { .. }
         | AgentEvent::TurnStarted { .. }
         | AgentEvent::UserMessageChunk { .. }
@@ -111,10 +109,10 @@ fn expected(event: &AgentEvent) -> ProtocolVersion {
         | AgentEvent::PermissionResolved { .. }
         | AgentEvent::TurnEnded { .. }
         | AgentEvent::TurnFailed { .. }
-        | AgentEvent::HarnessLog { .. } => ProtocolVersion::new(2),
+        | AgentEvent::HarnessLog { .. } => Some(ProtocolVersion::new(2)),
         AgentEvent::Steered { .. }
         | AgentEvent::QuestionAsked(_)
-        | AgentEvent::QuestionResolved { .. } => ProtocolVersion::new(10),
+        | AgentEvent::QuestionResolved { .. } => Some(ProtocolVersion::new(10)),
     }
 }
 
@@ -124,19 +122,26 @@ fn every_agent_variant_propagates_its_assigned_requirement() {
         .into_iter()
         .chain(tool_events())
         .chain(newer_events())
+        .chain(std::iter::once(AgentEvent::ProviderChild(
+            crate::subagents::ProviderObservation::Supported,
+        )))
     {
         let requirement = expected(&event);
-        assert_eq!(event.required_protocol(), Some(requirement), "{event:?}");
-        assert_eq!(event.for_protocol(requirement), None);
+        assert_eq!(event.required_protocol(), requirement, "{event:?}");
         let enclosing = SessionEvent::Agent {
             event: event.clone(),
         };
-        assert_eq!(enclosing.required_protocol(), Some(requirement));
-        assert_eq!(enclosing.for_protocol(requirement), None);
+        assert_eq!(enclosing.required_protocol(), requirement);
         let encoded = serde_json::to_string(&event).unwrap();
         assert_eq!(serde_json::from_str::<AgentEvent>(&encoded).unwrap(), event);
-        if requirement > crate::MIN_PROTOCOL_VERSION {
-            assert_record_projection(enclosing, crate::MIN_PROTOCOL_VERSION);
+        if let Some(assigned) = requirement {
+            assert_eq!(event.for_protocol(assigned), None);
+            assert_eq!(enclosing.for_protocol(assigned), None);
+            if assigned > crate::MIN_PROTOCOL_VERSION {
+                assert_record_projection(enclosing, crate::MIN_PROTOCOL_VERSION);
+            }
+        } else {
+            assert_record_projection(enclosing, crate::PROTOCOL_VERSION);
         }
     }
 }

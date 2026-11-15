@@ -3,21 +3,20 @@
 use crate::{ErrorCode, ProtocolVersion, Reply, WireError};
 
 pub(crate) fn withheld(reply: &Reply, protocol: ProtocolVersion) -> Option<WireError> {
-    match reply {
+    if matches!(
+        reply,
         Reply::DetachSession(_) | Reply::ListProviderChildren(_) | Reply::ReadProviderChild(_)
-            if reply.method().since().is_none_or(|since| since > protocol) =>
-        {
-            Some(WireError::new(
-                ErrorCode::Unsupported,
-                "this client cannot read the subagent relationship protocol",
-            ))
-        }
-        Reply::Forward(forwarded) | Reply::Relay(forwarded) | Reply::Deliver(forwarded) => {
-            withheld(&forwarded.reply, protocol)
-        }
-        // Other domains retain their existing central projection policy.
-        _ => None,
+    ) && reply.method().since().is_none_or(|since| since > protocol)
+    {
+        return Some(WireError::new(
+            ErrorCode::Unsupported,
+            "this client cannot read the subagent relationship protocol",
+        ));
     }
+    if let Reply::Forward(forwarded) | Reply::Relay(forwarded) | Reply::Deliver(forwarded) = reply {
+        return withheld(&forwarded.reply, protocol);
+    }
+    None
 }
 
 #[cfg(test)]
