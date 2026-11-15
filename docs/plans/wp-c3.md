@@ -349,3 +349,38 @@ neutral base mismatch and must-use command API before the074/8158 integration;
 it does not cover the new shared-menu consumer. The adapter's pure execution
 cases are still unexecuted. W12 withdrew1720 pending a self-contained successor
 and changed-source check; G1 has NOT adopted it or any plugin framework.
+
+
+## Shared dependency union and readonly diff profile
+
+The exact W12 producer9480d4d0 is adopted as9dddd5021 after its exact canonical
+values e46 ancestry. The isolated G4 range074ade16..95c256bc is merged as75fbce0df;
+no moving devices branch is used. Later the announced package base6(9e18cf0d)
+is merged as c7234f229, preserving own split/menu/models and G4's extracted test
+peer. The size list keeps slider711 and takes the reduced demo515, never raises
+an allowance. These are source-adoption facts, not combined runtime approval.
+
+The optional Base line-presentation proposal received same-row V1 external
+revision3 source-precheck after closing one static unresolved-index return; the
+lead authorized installation as vendor patch7. It is installed on this package
+branch with the notices and patch README. The initial kit DiffEditor shares
+CodeEditor construction and colour projection, disables editing, and admits
+immutable text/metadata together. The seven syntax kinds and ordinary editor
+engine stay unchanged; no file buffer or pane controller is added.
+
+The source reference is diff-document/paint.web.ts267–310 (one mapped number per
+cell, two independent cells in split) and palette.ts (success15%/error10%). Real
+label measurement replaces the web's approximate0.62 glyph-width multiplier.
+The initial profile retains Base's six-point gutter gap; exact gutter divider/
+consumer geometry is incomplete and must not be called complete Paseo parity.
+Actual-window tests for None, mapped widths/right alignment, per-frame provider
+coherence, wrapping/tints/fixed horizontal gutter, selection/copy and read-only
+input are added, NOT executed yet. Consumer first-use UI and the whole C3 gate
+remain owed. The optional provider is drawing only and confers no review authority.
+
+The prior a7fd77c1 View/Kit/App all-target Clippy passed, fonts0/cargo0, actual
+changed crates checked. Its queued library run and the node40b9 library run
+both ended cancelled143 before any step at10:35:42; G1 issued no cancellation.
+The build-tools owner was asked to inspect that exact event before any retry.
+No tests are recorded as passed from either cancelled run. The new vendor/profile
+and current dependency union need their own exact checks and execution.

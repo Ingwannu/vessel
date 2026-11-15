@@ -1256,3 +1256,12 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+The additive kit code_editor::DiffEditor is the readonly profile of the same
+Base editor, not a second engine. DiffText validates exact buffer-row coverage;
+DiffLine maps source numbers and semantic tones without application identities.
+Only the diff opts into optional vendor patch7; ordinary CodeEditor keeps its
+existing syntax/style path. Details and pending actual-window checks are in
+spikes/release/patches/README.md change7. Selection/copy/wrap/input proof and
+actual Git first-use/reference geometry remain unverified until those checks.

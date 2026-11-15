@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional line presentation (spikes/release/patches/README.md, "gpui-base", change 7)
 use std::{ops::Range, rc::Rc, sync::Arc};
 
 use gpui::{AnyElement, Context, HighlightStyle, Hsla, SharedString, Window};
@@ -104,6 +105,40 @@ pub struct DiagnosticColors {
     pub hint: Hsla,
 }
 
+// Vessel patch: applications map immutable diff rows without a second editor.
+/// A zero-based buffer row, independent of soft-wrap/display row positions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BufferRow(usize);
+impl BufferRow {
+    pub(crate) const fn new(index: usize) -> Self {
+        Self(index)
+    }
+    /// Address the caller's immutable row map without a displayed-number guess.
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+/// Drawing facts only; none changes the editor buffer or clipboard contents.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct InputLinePaint {
+    /// None draws an empty gutter (a split-side filler or a hunk header).
+    pub number: Option<SharedString>,
+    /// Optional semantic number ink, independently of syntax highlighting.
+    pub number_color: Option<Hsla>,
+    /// Whole row, including wrapped fragments and the fixed gutter.
+    pub background: Option<Hsla>,
+}
+/// Pure, O(1), immutable mapping for a fixed buffer version. Unified has one
+/// mapped gutter, split has one
+/// independently mapped editor per side. Selection and copy stay in Base.
+pub trait InputLinePresentation {
+    /// Widest label for measurement with the actual font, without scanning
+    /// every row each frame. The kit includes its reference's minimum width.
+    fn gutter_sample(&self) -> SharedString;
+    /// Called for visible buffer rows, never for wrapped continuation indices.
+    fn line(&self, row: BufferRow) -> InputLinePaint;
+}
+
 /// Application-owned colors and highlight resolver consumed by editor painting.
 #[derive(Clone)]
 pub struct InputEditorStyle {
@@ -119,6 +154,8 @@ pub struct InputEditorStyle {
     pub editor_active_line: Option<Hsla>,
     pub editor_gutter_background: Option<Hsla>,
     pub fold_icon_renderer: Option<FoldIconRenderer>,
+    // Vessel patch: None retains the original number/paint path.
+    pub line_presentation: Option<Rc<dyn InputLinePresentation>>,
 }
 
 impl InputEditorStyle {
@@ -174,6 +211,7 @@ impl Default for InputEditorStyle {
             editor_active_line: None,
             editor_gutter_background: None,
             fold_icon_renderer: None,
+            line_presentation: None, // Vessel patch: unchanged ordinary inputs/editors.
         }
     }
 }

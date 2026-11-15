@@ -1,0 +1,227 @@
+//! A mapped read-only diff over the existing Base editor, not a second engine.
+//!
+//! [Decision Log]
+//! - Purpose: cross-row selection/copy/wrap must remain the source editor's.
+//! - Constraint: ordinary line numbers do not identify old/new source rows;
+//!   a list of styled text rows has no shared input or clipboard semantics.
+//! - Choice: reuse CodeEditor construction/highlighter and the optional drawing
+//!   mapping. Immutable text and row metadata are admitted together, once.
+//! - Effect: editing is disabled, selection/copy retained; theme projection is
+//!   shared and no parser, file controller, palette or syntax kind is added.
+//! - Difference: native gutters measure real labels in the selected code face,
+//!   instead of Paseo code-insets.ts's approximate 0.62 font-size multiplier.
+//!   The engine's existing six-point gutter gap is retained in this first
+//!   control; consumer/reference geometry and border parity remain unverified.
+use std::num::NonZeroU32;
+use std::rc::Rc;
+use std::sync::Arc;
+
+use gpui::prelude::*;
+use gpui::{AnyElement, App, Context, Window, div};
+use gpui_base::input::{BufferRow, Editor, InputLinePaint, InputLinePresentation};
+
+use super::{CodeEditor, LineSyntax};
+use crate::{Tokens, Type, TypeExt as _};
+
+/// A semantic diff row; no application identity or review authority is stored.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiffTone {
+    /// Context uses the ordinary source editor surface.
+    Context,
+    /// Added code and its line number use the success signal.
+    Added,
+    /// Removed code and its line number use the error signal.
+    Removed,
+    /// A missing split-side cell keeps an empty surface and number.
+    Empty,
+}
+
+/// A displayed source number may differ from the engine's buffer row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiffLine {
+    /// The old/new source line, absent for a filler or unnumbered line.
+    pub number: Option<NonZeroU32>,
+    /// Selection/copy contain only buffer text, never these presentation facts.
+    pub tone: DiffTone,
+}
+
+/// Wrapping is presentation, not an edit or a different syntax engine.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiffWrapping {
+    /// Keep horizontal scrolling for long code.
+    Scroll,
+    /// Let the same editor wrap at its viewport width.
+    Wrap,
+}
+
+/// Text and metadata must identify exactly the same buffer rows.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum DiffTextError {
+    /// Refuse misaligned metadata rather than tinting another source line.
+    #[error("the diff has {lines} buffer lines but {rows} presentation rows")]
+    RowCount {
+        /// A trailing line break creates a final empty buffer row.
+        lines: usize,
+        /// Metadata supplied by the owner.
+        rows: usize,
+    },
+}
+
+/// Immutable validated input; replace the whole editor for another generation.
+#[derive(Debug, Clone)]
+pub struct DiffText {
+    text: Arc<str>,
+    rows: Arc<[DiffLine]>,
+    sample: gpui::SharedString,
+}
+impl DiffText {
+    /// Preserve the exact buffer text, including a final empty line.
+    ///
+    /// # Errors
+    /// Refuses metadata not covering every buffer row.
+    pub fn new(text: Arc<str>, rows: Arc<[DiffLine]>) -> Result<Self, DiffTextError> {
+        let lines = text.split('\n').count();
+        if lines != rows.len() {
+            return Err(DiffTextError::RowCount {
+                lines,
+                rows: rows.len(),
+            });
+        }
+        let maximum = rows.iter().filter_map(|row| row.number).max();
+        let sample = maximum.map_or_else(|| "00".to_owned(), |number| format!("{number:02}"));
+        Ok(Self {
+            text,
+            rows,
+            sample: sample.into(),
+        })
+    }
+}
+
+/// One fixed-generation editor. A clone shares its buffer and selection.
+#[derive(Debug, Clone)]
+pub struct DiffEditor {
+    editor: CodeEditor,
+    rows: Arc<[DiffLine]>,
+    sample: gpui::SharedString,
+}
+impl DiffEditor {
+    /// Reuse the normal editor's construction and highlighter, then make it
+    /// read-only. No mutation callback or replacement buffer escapes this type.
+    pub fn new<V: 'static, S: LineSyntax>(
+        text: DiffText,
+        syntax: S,
+        wrapping: DiffWrapping,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        let editor = CodeEditor::new(&text.text, syntax, unchanged::<V>, window, cx);
+        editor.set_read_only(true, cx);
+        let result = Self {
+            editor,
+            rows: text.rows,
+            sample: text.sample,
+        };
+        result.set_wrapping(wrapping, window, cx);
+        result
+    }
+
+    /// Reflow the same buffer/selection rather than replacing its engine.
+    pub fn set_wrapping(&self, wrapping: DiffWrapping, window: &mut Window, cx: &mut App) {
+        self.editor
+            .set_wrapping(matches!(wrapping, DiffWrapping::Wrap), window, cx);
+    }
+
+    /// Keep keyboard selection and copy available in a read-only surface.
+    pub fn focus(&self, window: &mut Window, cx: &mut App) {
+        self.editor.focus(window, cx);
+    }
+
+    /// Paint using the shared syntax projection and current semantic colours.
+    pub fn element(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
+        let mut style = super::style(tokens);
+        style.line_presentation = Some(Rc::new(Presentation {
+            rows: Arc::clone(&self.rows),
+            sample: self.sample.clone(),
+            added: tokens.status.success.foreground,
+            removed: tokens.status.error.foreground,
+        }));
+        self.editor
+            .state
+            .update(cx, |state, _cx| state.set_editor_style(style));
+        div()
+            .size_full()
+            .type_(Type::Mono)
+            .child(Editor::new(&self.editor.state))
+            .into_any_element()
+    }
+}
+
+fn unchanged<V>(_owner: &mut V, _window: &mut Window, _cx: &mut Context<'_, V>) {}
+
+struct Presentation {
+    rows: Arc<[DiffLine]>,
+    sample: gpui::SharedString,
+    added: gpui::Hsla,
+    removed: gpui::Hsla,
+}
+impl InputLinePresentation for Presentation {
+    fn gutter_sample(&self) -> gpui::SharedString {
+        self.sample.clone()
+    }
+    fn line(&self, row: BufferRow) -> InputLinePaint {
+        let Some(row) = self.rows.get(row.index()) else {
+            return InputLinePaint::default();
+        };
+        let (number_color, background) = match row.tone {
+            DiffTone::Added => (Some(self.added), Some(self.added.opacity(0.15))),
+            DiffTone::Removed => (Some(self.removed), Some(self.removed.opacity(0.1))),
+            DiffTone::Context | DiffTone::Empty => (None, None),
+        };
+        InputLinePaint {
+            number: row.number.map(|number| number.to_string().into()),
+            number_color,
+            background,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn metadata_must_cover_trailing_empty_buffer_rows() {
+        let rows: Arc<[DiffLine]> = Arc::from([DiffLine {
+            number: NonZeroU32::new(9),
+            tone: DiffTone::Added,
+        }]);
+        assert_eq!(
+            DiffText::new(Arc::from("x\n"), rows).unwrap_err(),
+            DiffTextError::RowCount { lines: 2, rows: 1 }
+        );
+        let admitted = DiffText::new(
+            Arc::from(""),
+            Arc::from([DiffLine {
+                number: None,
+                tone: DiffTone::Empty,
+            }]),
+        )
+        .unwrap();
+        assert_eq!(admitted.text.as_ref(), "");
+        assert_eq!(admitted.sample.as_ref(), "00");
+    }
+    #[test]
+    fn sample_uses_actual_mapped_numbers_with_a_two_digit_minimum() {
+        let rows = Arc::from([
+            DiffLine {
+                number: NonZeroU32::new(3),
+                tone: DiffTone::Context,
+            },
+            DiffLine {
+                number: NonZeroU32::new(999_999),
+                tone: DiffTone::Removed,
+            },
+        ]);
+        let admitted = DiffText::new(Arc::from("a\nb"), rows).unwrap();
+        assert_eq!(admitted.sample.as_ref(), "999999");
+    }
+}

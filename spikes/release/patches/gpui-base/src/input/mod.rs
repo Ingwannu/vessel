@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: optional line presentation (spikes/release/patches/README.md, "gpui-base", change 7)
 //! Text input: the shared editing engine and the three states built on it.
 //!
 //! Nothing here should be `pub` unless it is reachable from outside the crate.
@@ -97,6 +98,7 @@ pub use diagnostics::{
 pub use display_map::{BufferPoint, DisplayMap, DisplayPoint, FoldRange, WrappingIndent};
 pub use editor::{Editor, EditorState};
 pub use highlighting::{
+    BufferRow, InputLinePaint, InputLinePresentation, // Vessel patch: drawing-only optional mapping.
     DiagnosticColors, FoldIconRenderer, HighlightStyleResolver, InputEditorStyle, InputHighlighter,
     InputHighlighterFactory, SharedHighlightStyleResolver, SyntaxContext, SyntaxContextProvider,
 };

@@ -218,6 +218,37 @@ at the top and `Vessel patch` at the change.
   before and after are in `docs/plans/backend-m12-effort-slider.md`,
   "Known costs".
 
+### 7. Optional mapped line presentation on the existing editor
+
+- Purpose: readonly diff cells keep source-editor selection, clipboard and
+  wrapping while showing old/new source numbers and semantic row backgrounds.
+- Constraint: automatic buffer line numbers and an opaque fixed gutter cannot
+  be changed by an outer list/overlay. Styled list rows have no shared editor
+  selection; K's stateless preview is not an input engine.
+- Alternatives: a second diff text engine or selection controller (duplicates
+  editing behaviour), a vendor fork (duplicates the pinned source), or a
+  drawing-only optional provider in the existing vendored editor.
+- Choice/why: one optional InputEditorStyle line_presentation provider, with a
+  typed buffer-row index, measured widest-label sample and per-row number/ink/
+  background. Prepaint captures each visible row once for all paint passes.
+  None retains the old number and painting branches. Editing, selection, copy,
+  folding, display map, syntax engine and ordinary inputs are unchanged.
+- Cost: a seventh patch to carry at the GPUI pin; optional visible-row metadata
+  and an O(1) immutable provider. Unified uses one mapped gutter; split uses
+  independently mapped editors, as diff-document/paint.web.ts267–310 does.
+  Native labels are measured with the real selected font rather than the web
+  approximate digit-width formula. The initial kit profile retains the existing
+  six-point gap; final reference geometry/consumer captures remain unverified.
+- Changed: src/input/editor/highlighting.rs, src/input/base/element.rs and its
+  additive tests/line_presentation.rs, src/input/mod.rs. File notices and every
+  changed block are marked Vessel patch. No other vendored crate is changed.
+- Checked: source precheck of external revision3 passed; the installed source
+  adds named paint geometry plus actual-window tests for None invariance,
+  mapped width/right alignment, one projection per visible row, wrapped tint,
+  horizontal bounds/fixed scrolling gutter, selection/copy and read-only input.
+  These tests and remote narrow checks have NOT yet run. A later result records
+  their exact source and outcomes; this is not a runtime/visual approval claim.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
