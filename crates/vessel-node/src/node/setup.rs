@@ -8,7 +8,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
+use tokio_util::sync::CancellationToken;
 use vessel_proto::NodeId;
+use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
+use vessel_store::{Opened, Store};
 
 use crate::config::Config;
 use crate::fleet::FleetMcp;
@@ -137,6 +140,7 @@ pub(super) struct Startup {
     pub(super) models: Arc<Models>,
     pub(super) proxy: TcpListener,
     pub(super) session_setup: SessionSetup,
+    pub(super) settings_opening: crate::settings::Opening,
     pub(super) clients: vessel_relay::address::ClientAddress,
     pub(super) relaying: Option<(vessel_proto::RelayToken, vessel_relay::TlsConfig)>,
 }
@@ -146,16 +150,19 @@ impl Startup {
         // relay/proxy must still fail before any node state starts.
         let clients = super::client_address(config)?;
         let relaying = super::relaying(config)?;
-        let super::Prepared {
-            id,
-            token,
-            keypair,
-            lock,
-            profiles,
-            models,
-            dirs,
-        } = super::prepare_off_thread(config).await?;
-        let store = super::open_store(config).await?;
+        let (
+            super::Prepared {
+                id,
+                token,
+                keypair,
+                lock,
+                profiles,
+                models,
+                dirs,
+            },
+            settings_opening,
+        ) = prepare_off_thread(config).await?;
+        let store = open_store(config, &settings_opening.recovery_policy()).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
         Ok(Self {
@@ -167,8 +174,84 @@ impl Startup {
             models,
             proxy,
             session_setup,
+            settings_opening,
             clients,
             relaying,
         })
     }
+}
+
+/// The directory lock precedes the one settings read; Store opens only after
+/// this returns both the prepared identity and its original settings snapshot.
+async fn prepare_off_thread(
+    config: &Config,
+) -> Result<(super::Prepared, crate::settings::Opening), NodeError> {
+    let config = config.clone();
+    tokio::task::spawn_blocking(move || {
+        let prepared = super::prepare(&config.data_dir, config.harness_env.clone())?;
+        let opening = crate::settings::Opening::read(&config);
+        Ok((prepared, opening))
+    })
+    .await
+    .map_err(NodeError::Task)?
+}
+
+/// Open the event log, closing sessions a previous run left live.
+async fn open_store(
+    config: &Config,
+    policy: &vessel_proto::restart::RestartRecovery,
+) -> Result<Store, NodeError> {
+    let Opened { store, interrupted } =
+        Store::open_with_restart_policy(&config.data_dir, config.store, policy.enabled)
+            .await
+            .map_err(NodeError::Store)?;
+    if !interrupted.is_empty() {
+        tracing::info!(
+            sessions = interrupted.len(),
+            "sessions from the previous run are now interrupted"
+        );
+    }
+    Ok(store)
+}
+
+/// The session runtime, whose structured sessions load their prompts'
+/// attachments through `loader` and whose direct drivers write a launch's
+/// private files only in `private_dir`.
+pub(super) fn runtime(
+    config: &Config,
+    loader: AttachmentLoader,
+    private_dir: PathBuf,
+    admission: CancellationToken,
+) -> Arc<SessionRuntime> {
+    Arc::new(
+        SessionRuntime::new(
+            RuntimeConfig {
+                harness_lookup: config.harness_lookup.clone(),
+                harness_env: config.harness_env.clone(),
+                ring_capacity: config.ring_capacity,
+                durable_capacity: config.durable_capacity,
+                agent_handshake_timeout: config.agent_handshake_timeout,
+                park_after: config.park_after,
+                private_dir: Some(private_dir),
+            },
+            CancellationToken::new(),
+        )
+        .with_attachments(loader)
+        .with_restart_journal()
+        .with_admission(admission),
+    )
+}
+
+/// OS identity and timezone reads stay off async workers, preserving startup
+/// diagnostics while the settings lane is composed before serving.
+pub(super) async fn node_info(
+    config: &Config,
+    id: NodeId,
+    keypair: &Arc<vessel_secure::NodeKeypair>,
+) -> Result<vessel_proto::NodeInfo, NodeError> {
+    let name = config.name.clone();
+    let public_key = *keypair.public();
+    tokio::task::spawn_blocking(move || crate::identity::node_info(id, name, public_key))
+        .await
+        .map_err(NodeError::Task)
 }

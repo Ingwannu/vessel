@@ -32,16 +32,18 @@ pub(crate) struct Teardown {
 impl Teardown {
     /// Called once the listener stopped accepting.
     ///
-    /// 1. End every session. Each publishes a final `Interrupted` status,
+    /// 1. Seal and settle every accepted settings operation while runtime and
+    ///    Store remain available.
+    /// 2. End every session. Each publishes a final `Interrupted` status,
     ///    which live subscribers still receive.
-    /// 2. Wait until every record is committed.
-    /// 3. Give subscription forwarders a moment to queue the final records
+    /// 3. Wait until every record is committed.
+    /// 4. Give subscription forwarders a moment to queue the final records
     ///    and `SubscriptionEnded` (bounded by [`FORWARDER_GRACE`]).
-    /// 4. Close connections; each flushes what it already queued (bounded by
+    /// 5. Close connections; each flushes what it already queued (bounded by
     ///    the RPC close timeout).
-    /// 5. Join settings writers after every RPC caller has finished.
     /// 6. Close the store, folding its WAL into the database file.
     pub(crate) async fn run(self) {
+        self.settings.shutdown().await;
         tracing::info!("stopping sessions");
         self.runtime.shutdown().await;
         let _first_close = self.tasks.close();
@@ -57,7 +59,6 @@ impl Teardown {
         self.closing.cancel();
         let _first_close = self.connections.close();
         self.connections.wait().await;
-        self.settings.shutdown().await;
         self.store.close().await;
         tracing::info!("node stopped");
     }

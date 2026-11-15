@@ -1,63 +1,77 @@
 //! Cancellation-safe ownership of a settings write through runtime publication.
 //! Caller cancellation drops a waiter, never the serialization guard or writer.
 
+use std::fmt;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use tokio::sync::OwnedMutexGuard;
-use vessel_proto::settings::{NodeSettings, SetNodeSettings};
-use vessel_store::SetAside;
+use vessel_proto::settings::NodeSettings;
+use vessel_store::{SavedNodeSettings, SetAside};
 
-use super::{Settings, SettingsError};
+use super::{SettingsError, State};
 
-impl Settings {
-    /// Keep the already-acquired guard through I/O and application, even when
-    /// the caller stops awaiting the result.
-    ///
-    /// # Errors
-    /// Closed admission, preservation/write failures and task failure refuse.
-    /// A tracker token precedes the admission check, so a concurrent close
-    /// either sees this writer or causes refusal before I/O starts.
-    pub(super) async fn persist(
-        self: &Arc<Self>,
-        saved: OwnedMutexGuard<SetNodeSettings>,
-        next: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        let writer = self.writers.token();
-        if self.writers.is_closed() {
-            return Err(SettingsError::Stopping);
+/// Keep the concrete join cause without publishing a task's panic payload.
+/// The public error chain ends here; this does not sanitize the panic hook.
+pub(crate) struct TaskFailure(tokio::task::JoinError);
+
+impl From<tokio::task::JoinError> for TaskFailure {
+    fn from(cause: tokio::task::JoinError) -> Self {
+        Self(cause)
+    }
+}
+
+impl fmt::Debug for TaskFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, formatter)
+    }
+}
+
+impl fmt::Display for TaskFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.is_cancelled() {
+            formatter.write_str("settings task was cancelled")
+        } else {
+            formatter.write_str("settings task panicked")
         }
+    }
+}
+
+impl std::error::Error for TaskFailure {}
+
+impl State {
+    /// The consumer owns the accepted intent before this guard is acquired.
+    /// Keep both across real I/O and publication, independent of the caller.
+    pub(super) async fn persist(
+        &self,
+        saved: OwnedMutexGuard<SavedNodeSettings>,
+        next: SavedNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            let current = self.in_force(&saved.public_settings());
+            self.recovery
+                .settle_saved(&current.restart_recovery)
+                .await?;
+            return Ok(current);
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
-        let settings = Arc::clone(self);
-        // Tokio detaches this task when the RPC drops its JoinHandle. The owned
-        // guard and tracker token remain with it until both write and apply end.
-        tokio::spawn(async move {
-            let _writer = writer;
-            let result = settings.write_and_apply(saved, next).await;
-            if let Err(error) = &result {
-                tracing::warn!(%error, "node settings writer failed");
-            }
-            result
-        })
-        .await
-        .map_err(SettingsError::Lost)?
+        self.recovery
+            .begin_write(&self.in_force(&next.public_settings()).restart_recovery);
+        self.write_and_apply(saved, next).await
     }
 
     async fn write_and_apply(
         &self,
-        mut saved: OwnedMutexGuard<SetNodeSettings>,
-        next: SetNodeSettings,
+        mut saved: OwnedMutexGuard<SavedNodeSettings>,
+        next: SavedNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
         #[cfg(test)]
         let gate = self.gate.take();
-        let aside = tokio::task::spawn_blocking(move || {
+        let written = tokio::task::spawn_blocking(move || {
             #[cfg(test)]
             if let Some(gate) = gate {
                 gate.pause();
@@ -65,25 +79,35 @@ impl Settings {
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings(&next).map(|()| (next, aside))
         })
         .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
+        .map_err(TaskFailure::from)
+        .map_err(SettingsError::Lost)
+        .and_then(|result| result.map_err(SettingsError::Write));
+        let (next, aside) = match written {
+            Ok(written) => written,
+            Err(error) => {
+                self.recovery.write_failed();
+                return Err(error);
+            }
+        };
         if let Some(aside) = aside {
             tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(&saved.public_settings());
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
+        self.recovery.saved(in_force.restart_recovery.clone());
+        #[cfg(test)]
+        if let Some(gate) = self.cleanup_gate.take() {
+            gate.wait().await;
+        }
+        self.recovery
+            .settle_saved(&in_force.restart_recovery)
+            .await?;
         Ok(in_force)
-    }
-
-    /// After RPC callers finish, close admission and join every retained writer.
-    pub(crate) async fn shutdown(&self) {
-        let _first_close = self.writers.close();
-        self.writers.wait().await;
     }
 }

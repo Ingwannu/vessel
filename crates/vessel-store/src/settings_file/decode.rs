@@ -85,5 +85,13 @@ pub(super) fn settings<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, SettingsD
     Ok(value)
 }
 
+/// Encoding failure also stays behind the value-free diagnostic boundary.
+pub(super) fn encoding(cause: serde_json::Error) -> SettingsDecodeFailure {
+    SettingsDecodeFailure {
+        cause,
+        path: FieldPath::root(),
+    }
+}
+
 #[cfg(test)]
 mod tests;

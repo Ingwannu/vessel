@@ -36,6 +36,14 @@ impl RecoveryApply {
     pub(crate) fn new(policy: Arc<Policy>, store: Store) -> Self {
         Self { policy, store }
     }
+    #[cfg(test)]
+    pub(super) fn store(&self) -> Store {
+        self.store.clone()
+    }
+    /// The service runtime and settings hook must share this exact arbiter.
+    pub(super) fn policy(&self) -> Arc<Policy> {
+        Arc::clone(&self.policy)
+    }
     /// Seal before settings drain, under the same mutex as final effect enqueue.
     pub(crate) fn seal_effect_admission(&self) {
         self.policy.seal_effect_admission();

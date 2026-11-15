@@ -7,9 +7,9 @@
 //!   next start.
 //! - Choice: only what a person changed is kept (every field optional),
 //!   laid over the flags' values when the node starts; a setting nobody
-//!   changed keeps following its flag. The same type as the wire's
-//!   change (`SetNodeSettings`), so a later setting is one more optional
-//!   field here too.
+//!   changed keeps following its flag. A private SavedNodeSettings envelope
+//!   reuses the wire patch's typed generic fields without making the disk
+//!   document itself serializable as a Read/wire reply.
 //! - It is written owner-only and atomically, as `agents.toml` is, so a
 //!   reader sees the old file or the new one.
 //! - A file from a later build parses here: the type never refuses fields
@@ -31,6 +31,8 @@
 //!   unable to change any setting from the app.
 
 mod decode;
+mod snapshot;
+pub use snapshot::{SettingsDisposition, SettingsFileSnapshot};
 
 pub use decode::SettingsDecodeFailure;
 
@@ -38,7 +40,8 @@ use std::io;
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
-use vessel_proto::settings::SetNodeSettings;
+mod saved;
+pub use saved::SavedNodeSettings;
 
 use crate::data_dir::DataDir;
 use crate::error::StoreError;
@@ -89,14 +92,14 @@ impl DataDir {
     ///
     /// # Errors
     /// The file exists but cannot be read, or does not parse.
-    pub fn read_settings(&self) -> Result<Option<SetNodeSettings>, SettingsFileError> {
+    pub fn read_settings(&self) -> Result<Option<SavedNodeSettings>, SettingsFileError> {
         let path = self.settings_path();
         let text = match std::fs::read(&path) {
             Ok(text) => text,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
-        decode::settings(&text)
+        SavedNodeSettings::decode(&text)
             .map(Some)
             .map_err(|source| SettingsFileError::Parse { path, source })
     }
@@ -159,26 +162,29 @@ impl DataDir {
     ///
     /// # Errors
     /// The file exists but cannot be read, or is not JSON.
-    pub fn settings_hold_more_than(&self, known: &SetNodeSettings) -> Result<bool, StoreError> {
+    pub fn settings_hold_more_than(&self, known: &SavedNodeSettings) -> Result<bool, StoreError> {
         let path = self.settings_path();
         let text = match std::fs::read(&path) {
             Ok(text) => text,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
             Err(error) => return Err(StoreError::io(&path)(error)),
         };
-        let invalid = |error| StoreError::io(&path)(io::Error::other(error));
-        let file: serde_json::Value = serde_json::from_slice(&text).map_err(invalid)?;
-        let known = serde_json::to_value(known).map_err(invalid)?;
-        Ok(!covered(&file, &known))
+        snapshot::coverage(&text, known)
+            .map(|disposition| match disposition {
+                SettingsDisposition::Current => false,
+                SettingsDisposition::PreserveBeforeWrite => true,
+            })
+            .map_err(|error| StoreError::io(&path)(io::Error::other(error)))
     }
 
     /// Replace the saved settings, owner-only and atomically.
     ///
     /// # Errors
     /// The file cannot be written.
-    pub fn write_settings(&self, settings: &SetNodeSettings) -> Result<(), StoreError> {
+    pub fn write_settings(&self, settings: &SavedNodeSettings) -> Result<(), StoreError> {
         let path = self.settings_path();
-        let text = serde_json::to_vec_pretty(settings)
+        let text = settings
+            .encode()
             .map_err(|error| StoreError::io(&path)(io::Error::other(error)))?;
         files::replace(&path, &text).map_err(StoreError::io(&path))
     }
@@ -198,7 +204,7 @@ fn covered(file: &serde_json::Value, known: &serde_json::Value) -> bool {
 #[cfg(test)]
 mod tests {
     use vessel_proto::parking::{IdleMinutes, ParkAfter};
-    use vessel_proto::settings::AgentDriver;
+    use vessel_proto::settings::{AgentDriver, SetNodeSettings};
 
     use super::*;
 
@@ -207,12 +213,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let data = DataDir::new(dir.path());
         assert!(data.read_settings().unwrap().is_none());
-        let saved = SetNodeSettings {
+        let saved = SavedNodeSettings::default().with_public_settings(SetNodeSettings {
             park_after: Some(ParkAfter::Idle {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
             drivers: None,
-        };
+            ..SetNodeSettings::default()
+        });
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));
         std::fs::write(data.settings_path(), b"{ not json").unwrap();
@@ -237,7 +244,8 @@ mod tests {
             }"#,
         )
         .unwrap();
-        let read = data.read_settings().unwrap().unwrap();
+        let stored = data.read_settings().unwrap().unwrap();
+        let read = stored.public_settings();
         assert_eq!(
             read.park_after,
             Some(ParkAfter::Idle {
@@ -296,7 +304,7 @@ mod tests {
         std::fs::remove_file(data.settings_path()).unwrap();
         assert!(
             !data
-                .settings_hold_more_than(&SetNodeSettings::default())
+                .settings_hold_more_than(&SavedNodeSettings::default())
                 .unwrap()
         );
     }

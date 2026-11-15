@@ -12,9 +12,13 @@ impl NodeService {
     pub(crate) async fn node_settings(
         &self,
         _: &Connection,
-        _: GetNodeSettings,
+        request: GetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        Ok(self.settings.current().await)
+        let mut settings = self.settings.current().await;
+        if !request.include_restart_recovery {
+            settings.restart_recovery = Default::default();
+        }
+        Ok(settings)
     }
 
     /// `node.set_settings`: change, keep and apply what the request names.
@@ -30,8 +34,13 @@ impl NodeService {
                 }
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 // The node's own file needs a person's hand first.
-                SettingsError::Kept(_) | SettingsError::Stopping => ErrorCode::Conflict,
-                SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
+                SettingsError::Kept(_) | SettingsError::Stopping | SettingsError::Full => {
+                    ErrorCode::Conflict
+                }
+                SettingsError::Write(_)
+                | SettingsError::Lost(_)
+                | SettingsError::Consumer(_)
+                | SettingsError::Recovery(_) => ErrorCode::Internal,
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
                 tracing::warn!(%error, "node settings not kept");

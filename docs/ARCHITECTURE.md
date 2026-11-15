@@ -1790,6 +1790,37 @@ edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
 
 
+The saved settings disk API and Node's saved mutex carry Store's opaque
+`SavedNodeSettings` (ADR 0064). Disk serialization remains internal to Store;
+only the typed generic saved projection and an owned candidate update cross the
+boundary. Generic wire requests and Read replies keep their existing types.
+The retained settings task still owns validation/persistence/publication order,
+and a non-Copy candidate returns from blocking I/O before publication. No
+private payload, extra writer, file or crate edge is added by this separation.
+
+
+The settings admission lane transfers an accepted typed patch to its sole
+consumer before saved-guard waiting. The worker state holds the disk/runtime
+parts without its sender; accepted work drains even when callers or the last
+handle disappear. Its bounded waiting capacity and typed overflow belong to
+`settings::admission`. Recovery settlement and pre-Store startup composition
+remain a separate joint implementation (shared-settings-operation-owner plan).
+
+
+Startup settings content and its future-field disposition now travel together
+from one Store file read, under the directory lock and before Store startup,
+through Node's Opening into the mutation owner. Coverage trees and concrete
+serde causes stay at the Store boundary. This snapshot is not a recovery
+activation or a new settings writer; policy assembly remains the joint package.
+
+
+The shared accepted settings lane spans file persistence, publication and the
+concrete RecoveryApply SQL obligation. The service's Recovery and this hook
+share one Policy Arc. Stop/drain seals its final enqueue arbiter and settings
+admission before settlement; accepted work drains while runtime and Store are
+available, then runtime closes and Store closes last. A saved desired On cannot
+reopen stopping effects or certify that a helper/session actually started.
+
 ## Restart recovery ownership join (ADR 0098)
 
 The recovery package extends the existing Session-to-Node-to-Store ordered

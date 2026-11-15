@@ -24,11 +24,10 @@ not claims that Paseo provides this resource bound or these teardown phases.
 ## Admission and ownership shape
 
 One `settings::admission` owns a bounded Tokio mpsc channel and one consumer.
-Its waiting capacity is `SettingsAdmission::MAX_WAITING = 8` operations. This is
-the single documentary numeric definition; the implementation moves it beside
-the type and removes this numeric copy. The running consumer is structurally
-single: pending capacity is additional to the active operation. Error messages
-and boundary tests derive from the same named waiting-capacity owner.
+Its waiting capacity is `SettingsAdmission::MAX_WAITING`, defined once beside
+the implementation type. The running consumer is structurally single: pending
+capacity is additional to the active operation. Error messages and boundary
+tests derive from the same named waiting-capacity owner.
 
 - Protocol, scope and field authority, and pure typed input validation, precede
   admission. No new RPC method, scope or protocol number is introduced here.
@@ -195,3 +194,83 @@ nodectl implements the common owner/record/boot join, and the union gets changed
 strict/tests and one joint enclosing gate. A prior branch's green gate or a
 source-only verdict does not qualify the new producer. Existing source-returned
 recovery behavior stays out until its independent findings are corrected.
+
+## Implementation resume point
+
+The opaque model is now composed with the canonical private-cause decoder.
+The initial operation lane is implemented for the existing generic patch: one
+consumer prepares candidates after earlier publications, owns the saved guard
+through the existing atomic replacement and applies before attempting a reply.
+Its state does not own the sender. A closed tracker and receiver seal refuse
+late work while draining accepted intents; dropping a shutdown waiter cannot
+abort the consumer. A full waiting lane is a typed Conflict at the service edge.
+
+Fixtures hold the real blocking writer to pin overflow, cancelled queued
+replies, ordered preparation, shutdown-waiter cancellation and last-handle
+drain without a sender cycle. The original cancellation regressions retain
+their assertions and budget, with only the private state path adapted. A sealed
+concrete task failure reuses the separately reviewed diagnostic policy. These
+fixtures have not yet compiled or executed on this source.
+
+This is not the completed joint producer: RecoveryApply, the typed recovery
+field, same-value cleanup, one-read Opening and the changed effect/shutdown
+order remain to be joined and checked. The initial lane does not authorize any
+recovery, MCP or plugin activation and does not replace a consumer's temporary
+quota until the qualified joint head is announced. Explicit reset/reload intents
+join this same lane with their actual callers rather than unused variants here.
+
+The boot snapshot adapter is now drafted as Store's `SettingsFileSnapshot`
+and Node's `settings::Opening`. Store derives typed content and conservative
+future-field disposition from the same physical bytes. Both the normal parse
+and compatibility coverage path use the canonical sealed diagnostic wrapper.
+Node reads the snapshot under its directory lock, before Store opens, and
+passes it into `Settings::from_opening`; that constructor performs no file I/O.
+The existing Store-opening helper moves beside startup assembly without changing
+its operations. The node file's size allowance shrinks with that move.
+
+New fixtures replace the file between snapshot admission and owner construction
+and check that the original typed settings/preservation decision still apply,
+without a second read or set-aside. Missing/null/current/future and complete
+diagnostic-chain cases exercise the shared disk edge. These tests remain
+uncompiled and unexecuted. Recovery projection/candidate capture, the actual
+Policy/Store hook and the shutdown/effect seal are not yet wired. The existing
+startup read has no newly claimed universal byte or filesystem-time boundary.
+
+The recovery field/settlement join is in progress on the named portable hook
+and Store projection leaves, without the returned package's old saved model
+or queue. The disk Document now owns each typed field explicitly; its safe
+generic projection is exhaustive, and canonical field order/bytes when recovery
+is absent remain pinned. Recovery omission preserves the stored partial patch.
+A changed save marks the Off barrier, restores admission on file failure,
+publishes before Policy.apply and awaits real SQL settlement. The unchanged
+path settles existing debt without another replacement. Full assembly, lifecycle
+sealing and execution remain owed; this checkpoint has not compiled.
+
+Shared request literals are mechanically completed with defaults for the new
+optional recovery field. Ordinary Get uses its default capability selection.
+No existing assertion or budget is weakened. Isolated settings fixtures keep
+a separate real Store directory with worker state, preserving the original
+file-layout/no-op assertions while retaining SQL resources through final drain.
+
+The active assembly now shares the same Policy Arc between the settings hook
+and Recovery. Node startup opens Store with the original Opening policy before
+interruption/retention. The runtime uses the node admission token separately
+from its final shutdown token and enables its one restart journal. Recovery
+starts once after the scheduler is installed. Ordinary Get clears the optional
+policy unless explicitly requested; both reply paths retain peer projection.
+
+Now and draining requests synchronously close settings admission and seal the
+Policy arbiter. Settings closes before the final effect seal linearizes; an
+accepted racing intent remains owned and drains, and later saved On cannot
+reopen sealed effects. Node::stop routes through that lifecycle path. Teardown
+settles accepted writes/publication/SQL before runtime shutdown and closes Store
+last. Existing lifecycle fact fixtures retain their constructor; live nodes bind
+the canonical owner by a weak reference without an ownership cycle.
+
+New fixtures hold post-save/pre-SQL cleanup after caller abort, queue On behind
+it, and drive actual Teardown while checking that runtime and Store remain
+available until release. Synchronous Now/drain seal, canonical recovery private
+cause and actual Opening startup-log cases are authored. Original head privacy
+cases remain intact. All of this joined code is still uncompiled/unexecuted;
+the portable runtime's own fixture adapters and qualified physical preparation
+prerequisite remain separate obligations before the joint checks and gate.

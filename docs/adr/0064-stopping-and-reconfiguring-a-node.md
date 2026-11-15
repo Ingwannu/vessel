@@ -1100,3 +1100,57 @@ unverified by Linux fixtures.
   fences/order and recovery policy behavior require their joint tests/gate; this
   proposal approves no activation by itself. The named bound, concrete seam,
   diagnostics and required tests are in shared-settings-operation-owner.md.
+
+## Proposed private saved settings envelope
+
+[Decision Log]
+- Purpose and intent: separate the saved disk model from the generic settings
+  wire patch before adding private service consent. Sharing a file must not
+  grant a generic patch or a Read reply authority over that private state.
+- Existing implementation and constraints: Store owns settings.json's atomic,
+  owner-only and set-aside rules; Node Settings owns saved state and publication.
+  The prerequisite repair retains its mutation guard/tracker through I/O and
+  publication despite caller drop. The disk API and saved
+  mutex currently hold SetNodeSettings directly.
+- Alternatives considered: a second private file/writer, service consent in the
+  generic patch, or an untyped placeholder. These duplicate lifetime policy,
+  expose the wrong mutation surface, or invent an unreviewed authority schema.
+- Selected approach: introduce a private-field SavedNodeSettings envelope for
+  the same Store/Node boundary, with a generic projection/replacement that
+  preserves today's typed fields. Keep serialization at the disk edge and Read
+  replies as NodeSettings. The initial model separation preserves current
+  canonical file bytes and unknown/default/set-aside/no-op behavior.
+- Why this approach: one settings owner keeps concurrent generic and later
+  dedicated mutations serialized without a second writer. Shared typed generic
+  fields avoid an independent complete CLI key list. This is Vessel authority
+  separation, not an assertion of Paseo's file schema; Paseo's mutation queue
+  reference and the required compatibility tests are in the saved settings plan.
+- Advantages, costs and effects: disk and wire models can evolve separately,
+  at the cost of explicit projection and compatibility fixtures. A later private
+  services slot requires its own qualified canonical schema/bounds and dedicated
+  Admin setter; generic set/reset/reload cannot become a route to that setter,
+  and Read cannot expose it. No slot payload or service activation is introduced
+  by this proposal. Implementation builds on the reviewed retained writer and the
+  announced base; changed-tree checks and review still gate publication. See docs/plans/saved-node-settings.md for the dependency
+  boundary and remaining proof.
+
+
+A namespace with both public choices and private metadata has one disk owner,
+not two flattened fields with the same key. Its generic projection/merge must
+preserve the private record; future namespaces are introduced under their own
+reviewed ADRs. This separation does not freeze a wire-patch flattening strategy,
+an opaque JSON placeholder or a public callback API. The saved settings plan
+records why same-key flattening is insufficient before those schemas join.
+
+
+The initial implementation keeps a non-Copy opaque Store envelope, with no
+public serde/TypeScript implementation, and an internal transparent document
+that delegates to today's generic codec. A complete generic projection and a
+consuming candidate update are the only cross-crate data accessors. Node's same
+owned saved guard/task now carries that envelope. The blocking writer returns
+the owned candidate after successful persistence, rather than relying on Copy
+or cloning the complete document again for the blocking thread. File path,
+set-aside behavior, no-op ordering and write-before-apply are unchanged.
+Canonical-byte/semantic fixtures and a no-op original-byte fixture are added;
+source/compile/runtime evidence remains pending. No private schema or setter is
+introduced, and this model separation is not service activation qualification.

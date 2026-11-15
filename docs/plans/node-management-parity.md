@@ -6,6 +6,30 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Portable recovery leaves are composed with the canonical owner, without their
+  former saved record/FIFO. Opaque recovery field, actual SQL settlement/no-op
+  debt retry, shared Policy, one-read boot and early lifecycle/shutdown seal are
+  wired. New physical writer/cleanup/teardown/privacy fixtures remain unexecuted.
+  Recovery fixture adapters, qualified preparation and joint strict/tests/whole
+  are still owed; no consumer-ready or activation claim follows from source.
+
+
+- Drafted the one-read startup handoff: canonical Store snapshot computes
+  preservation from the same bytes, Opening carries it across Store startup,
+  and Settings consumes it without file I/O. Compatibility coverage diagnostics
+  now reuse the sealed decoder. Replacement/no-second-read and safe-chain
+  fixtures are authored, not executed; recovery hook/shutdown wiring still owed.
+
+
+- The accepted common Settings contract now has its initial finite lane over
+  the opaque model and canonical private-cause decoder. Candidate construction
+  happens in the consumer, so queued intents survive caller loss without stale
+  snapshots. Real-writer capacity/order/drop regressions are authored; this
+  source has not compiled or run. Recovery hook/field, one-read boot and changed
+  effect/shutdown order remain the joint package's next step. Existing green
+  writer checks do not qualify these changes.
+
+
 - The shared writer's first strict check refused a wildcard product import.
   Replace it with explicit owner imports; write/application behavior and both
   regression assertions stay unchanged. The original failure is retained;
