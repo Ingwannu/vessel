@@ -119,3 +119,57 @@ fn retirement_reports_changed_only_for_the_original_admission() {
         "duplicate retirement needs no second redraw"
     );
 }
+
+#[test]
+fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() {
+    use super::comparison::ComparisonChange;
+    let mut epochs = ConnectionEpochs::default();
+    let context = epochs
+        .admit(MachineKey::from_book("fixture"), NodeId::random())
+        .unwrap();
+    let repository = RepositoryKey {
+        node: context.node(),
+        root: WorkspaceRoot::Project {
+            project: ProjectId::random(),
+        },
+    };
+    let comparison = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Show);
+    let captured = ComparisonChange {
+        address: PanelAddress {
+            workspace: LayoutKey::Session {
+                machine: HostAlias::parse("fixture").unwrap(),
+                session: SessionId::random(),
+            },
+            tab: serde_json::from_str("1").unwrap(),
+        },
+        context: context.clone(),
+        repository,
+        comparison: comparison.clone(),
+    };
+    let mut entry = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
+    entry.reads = Some(PanelReads::new(repository, comparison.clone()));
+    assert!(captured.is_current(&entry, Some(&context)));
+    assert!(!captured.is_current(&entry, None));
+    let newer = epochs
+        .admit(context.machine().clone(), context.node())
+        .unwrap();
+    assert!(!captured.is_current(&entry, Some(&newer)));
+    entry.context = Some(newer);
+    assert!(!captured.is_current(&entry, Some(&context)));
+    entry.context = Some(context.clone());
+    entry.reads = Some(PanelReads::new(
+        RepositoryKey {
+            root: WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+            ..repository
+        },
+        comparison.clone(),
+    ));
+    assert!(!captured.is_current(&entry, Some(&context)));
+    entry.reads = Some(PanelReads::new(repository, Comparison::default()));
+    assert!(!captured.is_current(&entry, Some(&context)));
+    entry.reads = Some(PanelReads::new(repository, comparison));
+    entry.target = super::PanelTarget::CommitDiff("a".repeat(40).parse().unwrap());
+    assert!(!captured.is_current(&entry, Some(&context)));
+}

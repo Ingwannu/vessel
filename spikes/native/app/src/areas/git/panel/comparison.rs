@@ -14,6 +14,24 @@ pub(super) struct ComparisonChange {
     pub(super) comparison: Comparison,
 }
 
+impl ComparisonChange {
+    pub(super) fn is_current(
+        &self,
+        entry: &super::Entry,
+        current: Option<&vessel_app_view::connection::ConnectionContext>,
+    ) -> bool {
+        current == Some(&self.context)
+            && entry.context.as_ref() == Some(&self.context)
+            && matches!(
+                entry.target,
+                PanelTarget::WorkingDiff | PanelTarget::Changes
+            )
+            && entry.reads.as_ref().is_some_and(|reads| {
+                reads.repository() == self.repository && reads.comparison() == &self.comparison
+            })
+    }
+}
+
 impl Shell {
     pub(super) fn git_panel_compare(
         &mut self,
@@ -31,21 +49,12 @@ impl Shell {
         let Some(entry) = git.panels.entries.get_mut(address) else {
             return;
         };
-        if current.as_ref() != Some(&captured.context)
-            || entry.context.as_ref() != Some(&captured.context)
-            || !matches!(
-                entry.target,
-                PanelTarget::WorkingDiff | PanelTarget::Changes
-            )
-        {
+        if !captured.is_current(entry, current.as_ref()) {
             return;
         }
         let Some(reads) = &mut entry.reads else {
             return;
         };
-        if reads.comparison() != &captured.comparison || reads.repository() != captured.repository {
-            return;
-        }
         let Ok(key) = git.keys.issue() else {
             entry.problem = Some(ReadFailure::KeysExhausted);
             cx.notify();

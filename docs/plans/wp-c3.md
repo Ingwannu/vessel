@@ -663,3 +663,8 @@ shared selected getter already adopted as an exact leaf remains identical;
 no staged resource implementation or moving owner branch was imported. Prior
 narrow jobs stay tied to their earlier source. This merge is not a C3 gate or
 UI pass; the staged comparison values still await their own V3 review.
+
+The empty-navigation callback's production guard now has direct fixtures for
+no/current/replaced admission, another root, another full comparison and an
+immutable commit target. The captured action carries the original context and
+repository; it never recaptures a replacement route when activated.
