@@ -46,6 +46,20 @@ struct Editor {
     field: TextField,
 }
 impl Editor {
+    fn edited(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        let LayoutKey::Workspace { node, workspace } = &self.workspace else {
+            return;
+        };
+        let target = DraftKey::Workspace {
+            node: *node,
+            workspace: *workspace,
+            draft: self.draft,
+        };
+        let text = self.field.text(cx);
+        let _closed = self.shell.update(cx, |shell, cx| {
+            shell.composer_keep_workspace_text(target, &text, cx);
+        });
+    }
     fn submitted(&mut self, text: String, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let _closed = self.shell.update(cx, |shell, cx| {
             shell.submit_workspace_draft(&self.workspace, self.draft, text, cx);
@@ -143,6 +157,7 @@ impl Shell {
         // address in its model owner, rather than inferring a global field.
         let editor = cx.new(|cx| {
             let field = TextField::composer("", Editor::submitted, window, cx);
+            field.on_edit(Editor::edited, window, cx);
             Editor {
                 workspace: target,
                 draft,
@@ -180,6 +195,9 @@ impl Shell {
         if let Some(field) = self.workspace_draft_field(&key, draft) {
             field.set_text(seed.text.as_str(), window, cx);
         }
+        // Programmatic writes do not emit the field's edit event. Keep this
+        // accepted seed through the same bounded policy as subsequent typing.
+        self.composer_keep_workspace_text(source, seed.text.as_str(), cx);
         cx.notify();
         Ok(())
     }
