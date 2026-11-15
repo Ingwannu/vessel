@@ -65,6 +65,7 @@ pub mod settings;
 pub mod side_questions;
 pub mod subagents;
 mod terminal;
+pub mod terminal_profiles;
 pub mod terminals;
 mod title;
 mod transfer;
