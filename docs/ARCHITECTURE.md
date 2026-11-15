@@ -1328,10 +1328,18 @@ keep, set and reset, validate provider options against the merged choice, and
 redact reference diagnostics. Their read view reports only key presence. They
 resolve no credential and provide no file codec or callable settings field.
 
-The next staged node helpers own provider PCM conversion, bounded segments,
+The staged node helpers own provider PCM conversion, bounded segments,
 in-memory WAV encoding and opaque connection ownership. Their tests are compiled
 under a test-only module until the RPC wiring removes staging; helper tests do
 not establish a live service or the transport-close path.
+
+The planned endpoint layers keep a TLS-only root cache and fixed multipart
+encoding independent of the HTTP client. Their typed errors flow up to the
+client once; they do not depend on its destination or credential. The client
+owns redirect/proxy/time policies and response bounds; a bounded foreign JSON
+edge produces only typed transcript or fixed failures. Root configuration is
+shared per node, HTTP pools and credentials per stream. None of these layers
+adds a second secret reader or an HTTP policy to http_tls.
 
 The node's `http_tls` module builds the operating-system root, explicit
 ring and ALPN configuration once per client constructor. `catalogue::fetch`

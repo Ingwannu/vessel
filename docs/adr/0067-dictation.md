@@ -329,6 +329,71 @@ implementation. Tests use a fake provider behind the same enum's test
 constructor, not the network. The endpoint's tests speak HTTP to a
 listener on loopback started by the test.
 
+### Endpoint implementation amendment (proposed)
+
+Purpose and intent: reuse the node's existing TLS construction and secret
+reader while bounding one stream's authenticated transcription requests, without
+sending audio to redirects, environment proxies or temporary files.
+
+Existing implementation and constraints: openai/stt.ts55-61 supplies API key and
+optional base to its SDK without an explicit timeout in that constructor; its
+SDK defaults were not read. Lines196-211 write a temporary WAV and request the
+model, language, optional dictation prompt and JSON response. The dictation
+manager814-816 classifies "buffer too small" case-insensitively. The workspace
+already has reqwest but no multipart feature; catalogue's extracted http_tls
+function owns OS roots, explicit ring and ALPN. The node has an existing fresh
+disk secret lookup and a separate fleet snapshot used by MCP headers.
+
+Alternatives considered: a global HTTP client retains pools for old destinations;
+rebuilding native roots on every cancelled start creates unbounded non-abortable
+work; enabling a multipart feature or importing an SDK adds dependencies for a
+fixed small request shape; reusing the MCP snapshot can keep a just-edited secret
+out of the immediately following dictation start.
+
+Choice: one independent TLS-only initializer per dictation service loads the
+existing http_tls config on a blocking worker. Cancellation drops only a waiter;
+no second loader starts. OS trust-store changes take effect when this service
+is recreated, normally on node restart; live trust-store watching is not added.
+Each stream builds its own HTTP client after its URL and
+sensitive authorization header validate. Connect has a ten-second deadline;
+the entire request, including response body, has a sixty-second deadline. The
+response is capped at 512 KiB before every append, even for chunked responses.
+These are security resource floors, not claims about SDK defaults. Redirects and
+environment proxies are disabled. The per-host idle pool follows the existing
+in-flight commit cap; no past-host global pool survives a stream.
+
+Resolve through FleetFiles::resolved_secret on a blocking worker at start and
+when reporting key presence, so an immediately preceding secret edit is visible.
+Do not add another secret reader or cache the credential at settings selection.
+Keep the preparation quota lease alive until an unabortable disk read finishes,
+even if its caller cancels. A reference deleted after selection reads absent;
+start fails KeyAbsent. The selected key is trimmed and used only in a sensitive
+Bearer header and an existing Redactor. Empty or invalid header data refuses
+before loading roots or making a request. No URL/body/error/log contains it.
+
+The fixed multipart encoder uses only the existing random-byte source and the
+standard integer formatter for its boundary. It checks collisions against every
+variable field and PCM before allocating the body, retries at most the named
+attempt bound, and retains entropy failure as a typed cause. WAV is appended into
+the same in-memory body. It is not a general form encoder or another HTTP client.
+
+The bounded foreign JSON decoding edge may inspect a local Value. Only typed
+Transcript or fixed typed failures escape it. Decode JSON escapes once, then
+use Redactor::finds on decoded text: holds would attempt a second JSON parse and
+falsely refuse ordinary speech containing a backslash. Refuse credential echoes;
+never quote a provider body. Only error.message classifies TooSmall; an unrelated
+field or a non-JSON body cannot. This structured classification is a security
+floor over matching arbitrary SDK error text. Non-success HTTP statuses and
+JSON syntax errors retain typed causes and no response payload. Transport
+errors discard their request URL with reqwest::Error::without_url while keeping
+the typed cause; diagnostics need not retain admin-selected URL path text.
+
+Advantages, costs and effects: credentials and audio remain bounded in-memory
+stream resources; cancellation cannot multiply root loaders or release blocked
+secret-read quotas early. Real HTTPS trust stores, external ASR authentication,
+Windows/macOS and recognition quality remain unverified by loopback tests. A10
+staging proves source behaviour only; wiring owes the real product build gate.
+
 ### URI parsing dependency (implementation amendment)
 
 Purpose and intent: parse the endpoint URI once at the protocol boundary,

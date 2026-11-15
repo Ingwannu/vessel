@@ -314,32 +314,48 @@ chunking invariance, source fixture counts/samples, silence, WAV metadata,
 pre-mutation segment overflow, opaque owner identity and lifetime cancellation.
 The actual transport-close test belongs to wiring, not to the identity helper.
 
+## Endpoint implementation sequence
+
+Decision: extend the node's extracted http_tls and resolved_secret paths,
+with new fixed-form and JSON edge codecs where the existing HTTP clients have
+other policies. Reuse reqwest, getrandom, rustls and serde_json already declared
+by the node; no package, feature or dependency is added. A global HTTP pool,
+a second TLS block, a secret loader and a multipart library are unnecessary.
+
+First stage the independent TLS-only cache and fixed multipart encoder. Each
+owns its typed error; neither depends on the HTTP client's error or destination.
+The cache test cancels its first waiter while one initializer continues. Form
+tests check independent framing, UTF-8 fields, one binary WAV, bounded delimiter
+collisions and an entropy failure that keeps its cause. Then stage the HTTP
+client and foreign JSON decoder, whose errors wrap those lower causes once.
+
+The client tests use only loopback, covering the fixed header/body, redirect
+refusal, a chunked response over its cap, invalid/empty credentials before work,
+request timeout through the response body and safe transport diagnostics.
+Decoder tests cover missing/wrong shapes, escaped credential echoes, structured
+TooSmall classification, empty text, syntax causes and ordinary backslash speech.
+These tests are owed until those staged implementations run.
+
 ## Resume point
 
-Done: audio values, provider metadata, TLS and resolved-secret extraction, and
-unregistered settings values. The named node head was merged; keep/set/reset,
-provider switching, inactive-field refusal and reference privacy are implemented.
-No call, NodeSettings field, file codec, stream or HTTP provider is registered.
+Done: audio values, provider metadata, TLS and resolved-secret extraction,
+unregistered settings values, and staged audio/owner helpers. The eight audio/
+owner tests and whole Rust gate pass. The helper source is compiled only for
+tests; it is not a live service. No call, NodeSettings field, file codec, actor
+or HTTP provider is registered.
 
-Settings wiring still owes the four file/race/atomicity tests in ADR0067. Use the
+Settings wiring owes the four file/race/atomicity tests in ADR0067. Use the
 integrator's common file policy when that head is merged; do not add a parallel
-loader. Preserve unknown fields if the common policy preserves them. The
-selection check is not a secret-store transaction and caches no credential.
+loader. Preserve unknown fields if the common policy preserves them. Selection
+is not a secret-store transaction and caches no credential. Read/start errors
+must not expose a secret name through an existing store error's diagnostic.
 
-Half-done: the real audio/owner helpers are staged under the test-only dictation
-module. They contain integer-phase conversion, bounded whole-chunk segments,
-silence detection, in-memory WAV and opaque owner lifetime; boundary fixtures use
-SampleRate's decoder-derived typed constants. Narrow clippy and all eight helper
-tests pass; the commit's whole Rust gate is next. Owner keys carry an immutable
-Arc marker, with cancellation kept separately in connection lifetime so the key
-never contains mutable lifecycle state. No endpoint, actor or registered caller
-exists yet.
-
-Next: endpoint and actor slices. These establish
-staged source behaviour, not a product path. Wiring waits for the shared protocol
-accessor and call-table refactor, removes staging, and gets a whole product gate.
+Next: stage the independent root cache and multipart code, then HTTP/JSON, then
+the actor. Wiring waits for the shared protocol accessor and call-table refactor,
+removes staging, and gets a whole product gate with actual transport close and
+scope tests. Name the one-second input-chunk duration beside the segment bound
+when wiring it; the segment limit must keep following the proto chunk rule.
 Existing settings literals gain default completion only in the optional-field
 commit, without changing any old value or assertion. Do not split the shared
-guard; the common plumbing refactor owns its structure. Local engines and
-microphone capture remain deferred. The CLI file client follows the node service
-and still needs its file-format contract amendment.
+guard. Local engines and microphone capture remain deferred. The CLI file client
+follows the node service and still needs its file-format contract amendment.
