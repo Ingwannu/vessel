@@ -4,15 +4,21 @@ use super::Lines;
 
 pub(super) fn extract(value: &str) -> Option<(&str, Option<Lines>)> {
     if let Some((path, fragment)) = value.rsplit_once('#') {
-        let fragment = fragment
-            .strip_prefix('L')
-            .or_else(|| fragment.strip_prefix('l'))?;
+        if !fragment.starts_with(['L', 'l']) {
+            return None;
+        }
         let (start, end) = fragment
             .split_once('-')
             .map_or((fragment, None), |(start, end)| (start, Some(end)));
         return Some((
             path,
-            Some(Lines::parse(fragment_line(start), end.map(fragment_line))?),
+            Some(Lines::parse(
+                fragment_line(start)?,
+                match end {
+                    Some(end) => Some(fragment_line(end)?),
+                    None => None,
+                },
+            )?),
         ));
     }
     if let Some((path, location)) = value
@@ -55,7 +61,9 @@ fn line_without_column(value: &str, separator: char) -> Option<&str> {
     let mut parts = value.split(separator);
     let line = parts.next()?;
     if let Some(column) = parts.next() {
-        let _column = column.parse::<u32>().ok()?;
+        if !super::digits(column) {
+            return None;
+        }
     }
     if parts.next().is_some() {
         return None;
@@ -63,10 +71,20 @@ fn line_without_column(value: &str, separator: char) -> Option<&str> {
     Some(line)
 }
 
-fn fragment_line(value: &str) -> &str {
-    value
-        .trim_start_matches(['L', 'l'])
-        .split(['C', 'c'])
-        .next()
-        .unwrap_or(value)
+fn fragment_line(value: &str) -> Option<&str> {
+    let value = value
+        .strip_prefix('L')
+        .or_else(|| value.strip_prefix('l'))
+        .unwrap_or(value);
+    let mut parts = value.split(['C', 'c']);
+    let line = parts.next()?;
+    if let Some(column) = parts.next() {
+        if !super::digits(column) {
+            return None;
+        }
+    }
+    if parts.next().is_some() || !super::digits(line) {
+        return None;
+    }
+    Some(line)
 }

@@ -67,3 +67,5 @@ Messaging identity is owned by the timeline protocol package (ADR 0084). Attachm
 App state skeleton now registers `areas::composer_shell` by existing DraftKey and gates the existing slash menu through its surface policy. No alternate submit listener, fullscreen button or node RPC has been exposed yet. The editor split and lifecycle callbacks remain pending. Markdown callback/copy adapter remains unverified until its narrow kit check.
 
 The first remote view Clippy on `9e8e2164` compiled the models and returned only missing field documentation on provider catalog entries. Those comments are fixed; a new narrow run is required. Earlier independent tests were 10/10; expanded catalog/sending/private-controller tests have not run yet. Package base `8d5513e4` merged without conflicts at `9e8e2164`; the editor split is still held until its owner reports narrow-green.
+
+Strict file-fragment parsing now rejects repeated markers, signed line numbers and malformed column markers. The earlier view-test submission did not receive a run id during the shared submit-tool incident; it is not test evidence. New checks use an explicit commit hash after the tool repair.

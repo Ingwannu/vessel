@@ -41,6 +41,9 @@ impl Lines {
     }
 
     fn parse(start: &str, end: Option<&str>) -> Option<Self> {
+        if !digits(start) || end.is_some_and(|end| !digits(end)) {
+            return None;
+        }
         let start = start.parse::<NonZeroU32>().ok()?;
         let end = end.map_or(Some(start), |end| end.parse::<NonZeroU32>().ok())?;
         (start <= end).then_some(Self { start, end })
@@ -173,3 +176,7 @@ const EXTENSIONS: &[&str] = &[
 
 #[cfg(test)]
 mod tests;
+
+fn digits(value: &str) -> bool {
+    !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit())
+}

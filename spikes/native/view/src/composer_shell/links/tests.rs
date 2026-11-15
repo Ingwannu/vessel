@@ -118,3 +118,18 @@ fn arbitrary_schemes_controls_and_reversed_or_zero_fragment_ranges_do_not_open()
         );
     }
 }
+
+#[test]
+fn fragment_grammar_requires_digits_and_at_most_one_line_or_column_marker() {
+    for value in [
+        "/a.rs#LL3",
+        "/a.rs#L3Cbad",
+        "/a.rs#L+3",
+        "/a.rs#L3-L+4",
+        "/a.rs#L3C4C5",
+        "/a.rs#L3C",
+        "/a.rs#L3-LL4",
+    ] {
+        assert!(parse_file(value, Origin::Href).is_none(), "{value}");
+    }
+}
