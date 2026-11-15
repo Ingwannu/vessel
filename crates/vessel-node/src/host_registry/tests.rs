@@ -53,7 +53,11 @@ async fn source_identity_revision_and_persistence_are_independent_of_transport_a
         Err(RegistryError::Forbidden)
     ));
     let disabled = registry
-        .update(HostSource::Owner, change.clone(), trusted.clone())
+        .update(
+            HostSource::Owner,
+            change.clone(),
+            TrustedDestinations(Vec::new()),
+        )
         .await
         .unwrap();
     assert_eq!(disabled.enabled, HostEnabled::Disabled);

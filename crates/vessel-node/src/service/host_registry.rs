@@ -51,8 +51,15 @@ impl NodeService {
         request: UpdateHostRegistration,
     ) -> Result<HostRegistration, WireError> {
         let source = source(connection.principal())?;
+        // Annotation/enablement edits remain possible when a destination is offline
+        // or its authority has disappeared. Only rebinding needs a new trust proof.
+        let trusted = if request.destination.is_some() {
+            self.trusted_hosts(connection).await?
+        } else {
+            TrustedDestinations(Vec::new())
+        };
         self.host_registry()?
-            .update(source, request, self.trusted_hosts(connection).await?)
+            .update(source, request, trusted)
             .await
             .map_err(|error| wire(&error))
     }

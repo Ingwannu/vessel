@@ -371,3 +371,9 @@ Creation mode conflicts are checked before connecting. They remain explicit pend
 W11 registry/ownership consumers: a legacy WorktreeId is not substituted for a WorkspaceId,
 and removing an owned worktree cannot bypass workspace reference archival. Existing
 project-ID based worktree list/new/remove remain available with their native contract.
+
+Registry source review found that metadata-only update/disable unnecessarily queried the
+destination trust provider. Those edits now bypass destination discovery when no replacement
+ref is supplied, so an offline or removed destination can still be disabled/annotated. A
+replacement still requires the existing authority proof, explicit identity-change consent
+and revision comparison. The actor test disables with an empty trusted-destination set.
