@@ -45,9 +45,13 @@ use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
 mod form;
+mod style;
+use style::{Geometry, PRESSED_OPACITY, Paint, Radius, geometry, opacity, paint};
+mod readonly;
 pub use form::{
     Activity as FormActivity, Content as FormContent, Value as FormValue, trigger as form_trigger,
 };
+pub use readonly::readonly_value;
 
 /// Paseo's select list is 220 wide.
 pub const WIDTH: f32 = 220.0;
@@ -173,7 +177,7 @@ fn render(
 ) -> Stateful<Div> {
     let g = geometry(content.presentation, content.sizing);
     let paint = paint(content.presentation, tokens);
-    let mut trigger = interactions(frame(id, g, paint), &content, paint, tokens);
+    let mut trigger = interactions(frame(g, paint).id(id), &content, paint, tokens);
     let field = content.presentation == Presentation::Form;
     if field {
         trigger = trigger.w_full().min_w_0();
@@ -183,11 +187,7 @@ fn render(
     } else {
         crate::theme::icon::SM
     };
-    let mut label = div()
-        .min_w_0()
-        .overflow_hidden()
-        .whitespace_nowrap()
-        .text_ellipsis();
+    let mut label = label_frame();
     if field {
         label = label.flex_1().text_color(form_foreground(form, tokens));
     }
@@ -241,9 +241,15 @@ fn form_foreground(form: Option<form::Look>, tokens: &Tokens) -> gpui::Hsla {
     }
 }
 
-fn frame(id: impl Into<ElementId>, g: Geometry, paint: Paint) -> Stateful<Div> {
+fn label_frame() -> Div {
+    div()
+        .min_w_0()
+        .overflow_hidden()
+        .whitespace_nowrap()
+        .text_ellipsis()
+}
+fn frame(g: Geometry, paint: Paint) -> Div {
     let mut trigger = div()
-        .id(id)
         .relative()
         .flex()
         .flex_row()
@@ -313,135 +319,6 @@ fn interactions(
     }
     trigger
 }
-fn opacity(
-    presentation: Presentation,
-    availability: crate::ButtonState,
-    visibility: Visibility,
-) -> Option<f32> {
-    // Legacy disabled wins even while open; the HostFilter source has no
-    // disabled/open opacity. A caller never attaches a disabled handler.
-    match (presentation, availability, visibility) {
-        (
-            Presentation::HostFilter,
-            crate::ButtonState::Enabled | crate::ButtonState::Disabled,
-            Visibility::Closed | Visibility::Open,
-        )
-        | (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
-        (
-            Presentation::Settings,
-            crate::ButtonState::Disabled,
-            Visibility::Closed | Visibility::Open,
-        ) => Some(DISABLED_OPACITY),
-        (
-            Presentation::Form,
-            crate::ButtonState::Enabled,
-            Visibility::Closed | Visibility::Open,
-        ) => None,
-        (
-            Presentation::Form,
-            crate::ButtonState::Disabled,
-            Visibility::Closed | Visibility::Open,
-        ) => Some(DISABLED_OPACITY),
-        (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Open) => {
-            Some(PRESSED_OPACITY)
-        }
-    }
-}
-const POINTER_HEIGHT: f32 = 32.0;
-const PRESSED_OPACITY: f32 = 0.85;
-const DISABLED_OPACITY: f32 = 0.5;
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Radius {
-    Full,
-    Points(f32),
-}
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct Geometry {
-    minimum: Option<f32>,
-    horizontal: f32,
-    vertical: Option<f32>,
-    gap: f32,
-    radius: Radius,
-    type_: Type,
-}
-fn geometry(presentation: Presentation, sizing: crate::ControlSizing) -> Geometry {
-    use crate::{
-        ControlSizing,
-        theme::{radius, spacing},
-    };
-    match presentation {
-        Presentation::Settings => Geometry {
-            minimum: Some(match sizing {
-                ControlSizing::Pointer => POINTER_HEIGHT,
-                ControlSizing::Touch => crate::breakpoint::TOUCH_TARGET,
-            }),
-            horizontal: match sizing {
-                ControlSizing::Pointer => spacing::S4,
-                ControlSizing::Touch => spacing::S6,
-            },
-            vertical: None,
-            gap: spacing::S2,
-            radius: Radius::Full,
-            type_: Type::Body,
-        },
-        Presentation::Form => Geometry {
-            minimum: Some(match sizing {
-                ControlSizing::Pointer => POINTER_HEIGHT,
-                ControlSizing::Touch => crate::breakpoint::TOUCH_TARGET,
-            }),
-            horizontal: spacing::S3,
-            vertical: Some(match sizing {
-                ControlSizing::Pointer => FORM_VERTICAL_POINTER,
-                ControlSizing::Touch => FORM_VERTICAL_TOUCH,
-            }),
-            gap: spacing::S2,
-            radius: Radius::Points(radius::R2),
-            type_: Type::Body,
-        },
-        Presentation::HostFilter => Geometry {
-            minimum: None,
-            horizontal: spacing::S3,
-            vertical: Some(spacing::S1_5),
-            gap: spacing::S1_5,
-            radius: Radius::Points(radius::MD),
-            type_: Type::Label,
-        },
-    }
-}
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct Paint {
-    background: gpui::Hsla,
-    border: gpui::Hsla,
-    hover: Option<gpui::Hsla>,
-    pressed: Option<gpui::Hsla>,
-    foreground: gpui::Hsla,
-}
-fn paint(presentation: Presentation, tokens: &Tokens) -> Paint {
-    match presentation {
-        Presentation::Settings => Paint {
-            background: gpui::transparent_black(),
-            border: tokens.neutral.border_accent,
-            hover: None,
-            pressed: None,
-            foreground: tokens.neutral.foreground,
-        },
-        Presentation::Form => Paint {
-            background: tokens.neutral.surface2,
-            border: gpui::transparent_black(),
-            hover: None,
-            pressed: None,
-            foreground: tokens.neutral.foreground,
-        },
-        Presentation::HostFilter => Paint {
-            background: tokens.neutral.surface1,
-            border: tokens.neutral.border,
-            hover: Some(tokens.neutral.surface2),
-            pressed: Some(tokens.neutral.surface3),
-            foreground: tokens.neutral.foreground,
-        },
-    }
-}
-
 /// The bounds to open a list `width` wide from, for a trigger drawn at
 /// `bounds`: Paseo's `align="end"`, the list's right edge on the
 /// trigger's (the picker list opens at its anchor's left edge; it keeps

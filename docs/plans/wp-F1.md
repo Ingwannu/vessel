@@ -1014,3 +1014,20 @@ the shared notice fallback. A render will read this comparable cache instead
 of preparing a definition, formatting preview dates or translating diagnostics
 inside paint. No new UI opener is exposed by this plumbing; the future mounted
 editor still owns actual source/visit guards and actual-close acknowledgment.
+
+
+### Immutable form target — approved shared select extension
+
+Coordinator3c406523 assigned minimal ReadOnlyForm to the one select frame,
+not G3's field engine. The new readonly_value(label,ControlSizing,tokens)
+accepts no anchor, input or action. The private typed FramePresentation keeps
+this static form profile separate from public interactive TriggerContent, so
+unrelated leading/open/disabled fields cannot be accepted then ignored.
+Geometry/paint live in select/style.rs; one pure frame and label path are
+shared. The static profile pins surface2/neutral border1/r8/px12,32–44 and
+14/20, with no chevron/hover/fade. Existing public select signatures and old
+Settings/HostFilter/Form test bodies are unchanged. New literal assertions
+cover both themes/layouts; their execution and real heartbeat target field
+remain part of final F1 proof, not an extra whole control gate or an existing
+isolated-field pass. G3 still owns shared field files until its SearchField
+handoff; no such file is touched here.

@@ -1515,3 +1515,15 @@ field path after its move with the multiline constructors. Field's root now
 fits the normal product budget and is removed from the size record. The
 caller still owns form-visit, source-id, current connection and authority checks;
 FieldId alone is not a stale-form or backend admission capability.
+
+
+The select's static `readonly_value(label, ControlSizing, tokens)` uses the
+same frame and one-line text as the interactive entries. Its private typed
+ReadOnlyForm profile follows Paseo schedule-form-sheet889–919/1042–1058:
+surface2, neutral border1/r8/px12, MD32/44 and text14/20, without an anchor,
+input engine, chevron, hover, interaction or disabled fade. Why: Paseo shows an
+immutable form value without the select affordances. Existing constructors,
+Settings/HostFilter/Form presentations and their tests retain their defaults.
+Style data moved into select/style.rs to keep responsibility and the ordinary
+file budget; no record is raised. The new literal both-theme assertions are
+source-only until the final F1 package check and actual heartbeat first use.
