@@ -407,6 +407,9 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     };
     let env = HarnessEnv::from_vars(user_home, |name| std::env::var_os(name));
     let mut config = Config::new(dir, env);
+    config.limits = vessel_harness::LimitProbe::Local;
+    config.limit_environment =
+        vessel_harness::LimitEnvironment::from_vars(|name| std::env::var_os(name));
     // Terminals (protocol 11): the shell and the credentials, from this
     // binary's own environment.
     config.terminals = vessel_node::TerminalsConfig::detect(

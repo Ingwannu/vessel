@@ -78,6 +78,7 @@ mod identity;
 mod install;
 mod ipc;
 mod lifecycle;
+mod limits;
 mod lsp;
 mod lsp_config;
 mod models;

@@ -30,6 +30,52 @@ A new alias is classified in that table, by this rule, in the change
 that adds it: the generator's test fails on an alias in no class, and on
 an entry neither generated file declares any more.
 
+## Version 23 (2026-11-14, milestone 12): saved-sign-in limits (N2, ADR 0042)
+
+N2 proposed 19 for these together with `usage.query`; `usage.query` took
+21 and the inbox 22 at the merges, so these two calls are 23 and
+`usage.query` keeps 21. The minimum protocol remains 2.
+
+Protocol 23 introduces `usage.limits(GetUsageLimits) -> UsageLimits`
+and `usage.lookup(SetUsageLookup) -> ExternalLookup`. These are separate from
+retained `usage.query` history. For `LimitsScope::Account`, omitted profile
+selects the configured default, and the reply names the selected profile.
+For `LimitsScope::Session`, the node uses the nonsecret binding of the actual
+live launch, including successful profile moves. Reloading profiles does not
+retarget it. Stored sessions without a live binding return `unassociated`.
+
+Cached reads require read and perform no credential/vendor I/O; `refresh`
+additionally requires operate and observes admission and Retry-After. Only
+admin can change the machine-wide policy, saved before acknowledgement.
+Agents may read only their own local session. Forwarded calls retain the
+existing destination/intersected-origin authorization. All three envelopes
+require the maximum of envelope and inner method/field versions, so a pre-23
+hop refuses both methods before sending or dispatching them.
+
+`UsageLimits` carries `policy`, canonical `account`, typed source disclosure,
+`AccountLimitState`, `cost_visibility` and optional `LimitNotice`. Off clears
+external observations; enabling does not poll. State distinguishes not yet
+requested, in progress with a retained observation, ready, and safe failure
+with optional same-login retained observation and actual cooldown. The
+snapshot's timestamp remains its observation time after a failed refresh.
+No credential, credential path, account fingerprint, email, raw API body or
+vendor error is serialized. Credit balances require operate; eligibility
+booleans remain visible without claiming a monetary unit.
+
+Each window has a bounded stable id, explicitly reported period (unknown when
+absent), provider slot, independent account/model/surface/feature/review scope,
+optional finite reported percentage, and optional reported reset time. Zero
+and missing are distinct; consumers clamp only for drawing. No duration is
+inferred from the plan or primary/secondary slot. `incomplete` prevents a
+partial response being presented as a complete set. Additional paid-use and
+credits/allowed flags remain distinct from subscription fullness.
+
+A notice names reported full general windows and gives their latest future
+reset only when all selected full windows have one. Explicit paid/credit/
+allowed permission suppresses the notice. It is not a stopped-turn diagnosis
+or an automatic recovery action. Screens localize and format these facts,
+show retained observations as stale, and offer only implemented operations.
+
 ## Version 22 (2026-11-14, milestone 12): the inbox and push (N1, ADRs 0040 and 0041)
 
 N1 proposed 19; side questions took 19, `device.self` 20 and `usage.query`
