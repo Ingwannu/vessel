@@ -12,8 +12,8 @@ changing authentication policy. New node calls require their owner and
 the shared protocol registration process.
 
 The current rename package is a prerequisite, not completion of E1. Its
-parent-release control has source/gate approval; its final consumer
-visual review is pending. The field split and select-all follow the
+parent-release control and final consumer have bounded source/gate/
+inspected-visual approval; selection remains a separate package. The field split and select-all follow the
 lead's announced validated package base. An unannounced base under
 validation is not consumed.
 
@@ -148,3 +148,8 @@ for a test using `NodeId::new` instead of the existing `NodeId::random`,
 and a missing backtick around the type in its API documentation. The
 follow-up changes only that fixture constructor and documentation; it
 changes no label behavior or test assertion. New narrow checks are owed.
+
+ADR 0097 proposes the one multi-route client-book format and mutation
+contract, including explicit identity conflicts and partial credential
+outcomes. Its status is proposed and V3 review is required before any
+persisted-format implementation. No callable upsert API is claimed.

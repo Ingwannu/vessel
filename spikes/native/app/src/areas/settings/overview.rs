@@ -18,8 +18,8 @@
 //!   rows (the app keeps no machine appearance), "Restart daemon" and
 //!   "Update daemon" (no such call; the node-control track brings them).
 //! - The name action uses the kit's shared `host_rename_button` unchanged.
-//!   The editor remains here. Its text is focused but not selected on open;
-//!   select-all waits on the kit field module's split.
+//!   The editor remains here. Opening selects its initial value through the
+//!   same engine; pending writes use the kit's shared Editability contract.
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
