@@ -283,3 +283,22 @@ then waits for actual preparation completion. Its caller deadline can report an
 uncertain shutdown but does not release worker admission early. Barrier fixtures
 cover held work/caller abort, caller timeout, profile close, saturation and eventual
 release. Those common-owner fixtures do not pretend to induce a hung OS resolver.
+
+
+## Pending node plumbing on the announced table head
+
+Merged ba45a6e3; shared changes win, browser ADR/map additions retained in the
+two documentation conflicts. Four rows are appended only to rpc/table.rs with
+the same BROWSER_PROTOCOL=None: call/control Operate unary, watch Operate stream,
+clear_profile Admin unary. No number selected and no browser library consumer
+added. Generated guard/envelope/unary policy follows the common table. Explicit
+agent, target, forwardability, older-reply, version and sample arms are updated.
+Handlers are concretely wired to typed Disabled/NoEngine refusals: browser.call
+requires an own local Agent principal; human methods require direct Owner/Device
+and their own scopes, rejecting Delegated even when its origin was human. No
+workspace selector, session id or service hint can start an engine or grant reach.
+Client unary methods preserve those failures. Watch is a pending stream row; its
+new frame/stream consumer path and functional engine producer are still owed.
+No saved setting/session-start offering, active engine or native entry is enabled
+by this plumbing. Tests cover None/scope/shape/no-forward projection and direct
+human/agent/delegated admission before any future actor can inspect content.

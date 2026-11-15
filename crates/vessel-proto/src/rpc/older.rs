@@ -293,6 +293,10 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
+            | Self::BrowserCall(_)
+            | Self::BrowserControl(_)
+            | Self::WatchBrowser(_)
+            | Self::ClearBrowserProfile(_)
             | Self::GetAgentHistory(_) => None,
         }
     }

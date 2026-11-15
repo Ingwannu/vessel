@@ -73,6 +73,7 @@ mod scheduled;
 mod schedules;
 mod usage;
 // Protocol 12 (track A2): the conversation, further.
+mod browser;
 mod forking;
 mod history;
 mod parking;

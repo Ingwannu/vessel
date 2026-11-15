@@ -39,6 +39,7 @@
 
 mod address;
 pub mod book;
+mod browser;
 mod chunks;
 mod client;
 pub mod comparison;

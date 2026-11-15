@@ -72,6 +72,11 @@ pub enum ErrorDetail {
         /// The stable pairing setup reason.
         reason: crate::DeviceInviteError,
     },
+    /// A browser command's refusal includes delivery/replay semantics.
+    Browser {
+        /// Fixed typed reason, never a page exception or credential.
+        reason: crate::browser::BrowserFailure,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,

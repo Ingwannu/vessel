@@ -181,6 +181,11 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    // Browser ownership is a workspace/profile rule, not a SessionId field.
+    vessel_proto::browser::BrowserCall,
+    vessel_proto::browser::BrowserControl,
+    vessel_proto::browser::WatchBrowser,
+    vessel_proto::browser::ClearBrowserProfile,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,

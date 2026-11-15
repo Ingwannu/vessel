@@ -264,6 +264,10 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
+            | Self::BrowserCall(_)
+            | Self::BrowserControl(_)
+            | Self::WatchBrowser(_)
+            | Self::ClearBrowserProfile(_)
             | Self::GetAgentHistory(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));

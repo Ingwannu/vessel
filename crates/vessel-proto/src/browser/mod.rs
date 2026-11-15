@@ -4,6 +4,8 @@
 //! The protocol constant remains unassigned until the common method-table
 //! integration. Page execution and network policy do not belong in this crate.
 
+#[cfg(test)]
+mod admission_tests;
 mod arguments;
 mod bounds;
 mod content;

@@ -468,6 +468,10 @@ impl Method {
             // Each machine is read over its own connection (ADR 0056).
             | Self::GetPublished
             | Self::Subscribe
+            | Self::BrowserCall
+            | Self::BrowserControl
+            | Self::WatchBrowser
+            | Self::ClearBrowserProfile
             | Self::SubscribeTerminal
             | Self::Unsubscribe => false,
         }

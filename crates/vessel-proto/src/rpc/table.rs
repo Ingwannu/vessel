@@ -378,6 +378,15 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            // Browser rows remain unassigned and unavailable on current peers (ADR 0078).
+            /// Drive only this node's authenticated agent session browser context.
+            BrowserCall / browser_call / "browser.call" [Operate, (pending $crate::browser::BROWSER_PROTOCOL), unary]: $crate::browser::BrowserCall => $crate::browser::BrowserResult;
+            /// Direct-human-only panel control, independent of agent tool offering.
+            BrowserControl / browser_control / "browser.control" [Operate, (pending $crate::browser::BROWSER_PROTOCOL), unary]: $crate::browser::BrowserControl => $crate::browser::BrowserResult;
+            /// Direct-human-only watch; page frames require Operate, never Read alone.
+            WatchBrowser / watch_browser / "browser.watch" [Operate, (pending $crate::browser::BROWSER_PROTOCOL), stream]: $crate::browser::WatchBrowser => $crate::browser::BrowserWatched;
+            /// Clear only node-owned profile paths on a direct human Admin connection.
+            ClearBrowserProfile / clear_browser_profile / "browser.clear_profile" [Admin, (pending $crate::browser::BROWSER_PROTOCOL), unary]: $crate::browser::ClearBrowserProfile => $crate::Ack;
         }
     };
 }
