@@ -66,6 +66,7 @@ mod overlays;
 mod permission;
 mod place;
 mod plan;
+pub(crate) mod plan_card;
 mod question;
 mod queue;
 mod read;

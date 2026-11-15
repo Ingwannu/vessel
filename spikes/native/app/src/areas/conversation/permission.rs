@@ -24,8 +24,7 @@
 //!   same footer.
 //! - Differences, kept: the detail's box is the kit's (GOAT's cap of 192,
 //!   where Paseo's is 200); the agent gives no description over ACP, so
-//!   none shows; a plan scrolls inside the card past 320 (200 on a
-//!   phone), and the card itself past 520 (440 on a phone), where Paseo's
+//!   none shows; the card scrolls past 520 (440 on a phone), where Paseo's
 //!   card scrolls with the conversation.
 
 use vessel_app_kit::assets::Glyph;
@@ -35,19 +34,20 @@ use vessel_app_kit::ui::{
     div, px,
 };
 use vessel_app_kit::{
-    CardLook, CardState, Start, Tokens, Type, TypeExt as _, breakpoint, card_button, chat_markdown,
-    output_box, version_of,
+    CardLook, CardState, Start, Tokens, Type, TypeExt as _, breakpoint, card_button, output_box,
 };
 use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
-    AnswerMark, CardTitle, Permission, PermissionCard, ToolView, permission_card,
+    AnswerMark, CardTitle, Permission, PermissionCard, PlanExpansion, PlanOutcome, ToolView,
+    permission_card,
 };
 use vessel_proto::{PermissionId, PermissionOptionId};
 
 use super::entries::Paint;
 use super::look::Look;
-use super::{Answer, ConversationArea, Place, Seat};
+use super::plan_card::{PlanCard, card as plan_card};
+use super::{Answer, Place, Seat};
 use crate::shell::Shell;
 
 /// The tallest the card stands over the composer before its content
@@ -55,11 +55,6 @@ use crate::shell::Shell;
 /// a phone's, and any wider window's.
 const CARD_PHONE: f32 = 440.0;
 const CARD: f32 = 520.0;
-
-/// The tallest a plan stands in the card before it scrolls: a phone's,
-/// and any wider window's.
-const PLAN_PHONE: f32 = 200.0;
-const PLAN: f32 = 320.0;
 
 /// An answer being sent: its request and the option chosen.
 pub(crate) type Sending = (PermissionId, PermissionOptionId);
@@ -169,7 +164,6 @@ pub(crate) fn card<P: Place>(
         CardTitle::Plan => words.permission_plan().to_owned(),
         CardTitle::Required => words.permission_required().to_owned(),
     };
-    let head = head(title, card.count, *words, tokens);
     let holding = P::busy(shell);
     let answers = answers::<P>(
         &card,
@@ -181,15 +175,41 @@ pub(crate) fn card<P: Place>(
         cx,
     );
     let footer = footer(answers, refused, *words, tokens);
-    let body = body(
-        (shell, area, seat, id),
-        &card,
-        tool,
-        head,
-        tokens,
-        window,
-        cx,
-    );
+    if let Some(plan) = card.plan.as_deref() {
+        let shown = area.shown.as_ref()?;
+        let key =
+            ElementId::Name(format!("permit-plan:{}:{}:{id}", shown.machine, shown.session).into());
+        let plan = plan_card(
+            PlanCard {
+                id: key,
+                text: plan,
+                title: Some(&title),
+                description: None,
+                outcome: PlanOutcome::Pending,
+                expansion: if area.plan_folded == Some(id) {
+                    PlanExpansion::Collapsed
+                } else {
+                    PlanExpansion::Expanded
+                },
+                footer: Some(footer.into_any_element()),
+            },
+            move |shell, _window, cx| shell.permit_plan_toggle(seat, id, cx),
+            shell.words.timeline_plan(),
+            tokens,
+            window,
+            cx,
+        );
+        return Some(
+            div()
+                .id("permit-card")
+                .max_h(px(if narrow { CARD_PHONE } else { CARD }))
+                .overflow_y_scroll()
+                .child(plan)
+                .into_any_element(),
+        );
+    }
+    let head = head(title, card.count, *words, tokens);
+    let body = body((shell, seat), &card, tool, head, tokens, window, cx);
     Some(frame(body, footer, narrow, tokens))
 }
 
@@ -323,10 +343,9 @@ fn answers<P: Place>(
     row
 }
 
-/// The card's body: a plan's head and Markdown, or the head and the
-/// tool's detail (a shell call's `$ command`, an edit's diff).
+/// An ordinary card's head and tool detail; plans use the shared renderer.
 fn body(
-    (shell, area, seat, id): (&Shell, &ConversationArea, Seat, PermissionId),
+    (shell, seat): (&Shell, Seat),
     card: &PermissionCard<'_>,
     tool: Option<&ToolView>,
     head: Div,
@@ -335,37 +354,6 @@ fn body(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let column = div().flex().flex_col().gap(px(8.0));
-    if let Some(plan) = &card.plan {
-        let folded = area.plan_folded == Some(id);
-        return column
-            .child(head_with_chevron(head, (seat, id, folded), tokens, cx))
-            .when(!folded, |body| {
-                // Paseo's plan card scrolls with the conversation; over the
-                // composer the plan scrolls inside the card instead, so the
-                // card never stands taller than the window.
-                let tall = if breakpoint::phone(window) {
-                    PLAN_PHONE
-                } else {
-                    PLAN
-                };
-                body.child(
-                    div()
-                        .id("permit-plan-body")
-                        .max_h(px(tall))
-                        .overflow_y_scroll()
-                        .child(chat_markdown(
-                            "permit-plan",
-                            plan,
-                            version_of(plan),
-                            None,
-                            tokens,
-                            window,
-                            cx,
-                        )),
-                )
-            })
-            .into_any_element();
-    }
     let paint = Paint {
         catalog: shell.words,
         words: shell.t.lang.conversation(),
@@ -399,38 +387,6 @@ fn body(
         (None, None) => None,
     };
     column.child(head).children(detail).into_any_element()
-}
-
-/// A plan request's head: Paseo's chevron (16, turned down while open)
-/// before the title, folding the plan.
-fn head_with_chevron(
-    head: Div,
-    (seat, id, folded): (Seat, PermissionId, bool),
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let chevron = if folded {
-        Glyph::ChevronRight
-    } else {
-        Glyph::ChevronDown
-    };
-    div()
-        .id("permit-plan-head")
-        .flex()
-        .items_center()
-        .gap(px(8.0))
-        .min_h(px(24.0))
-        .cursor_pointer()
-        .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.permit_plan_toggle(seat, id, cx);
-        }))
-        .child(vessel_app_kit::glyph(
-            chevron,
-            16.0,
-            tokens.neutral.foreground_muted,
-        ))
-        .child(head.flex_1())
-        .into_any_element()
 }
 
 #[cfg(test)]

@@ -279,3 +279,17 @@ visible-plan slot retains only its folded request id, so no second disclosure
 manager or unbounded map is needed. The GPUI controller regression covers repeat
 toggle, successor and stale chevron order. Shared W10 Plan rendering stays the
 consumer seam; its final typed outcome/renderer integration is still pending.
+
+
+## Shared Plan first caller
+
+Consumed W10's isolated renderer prerequisite9e53f43f as221885a6e; renderer
+source is byte-identical to its previously strict-green A7 file, while the
+standalone split and this new actual caller still require narrow checks. A8
+registers conversation::plan_card and supplies the exact permission-keyed local
+disclosure, Pending outcome and its existing action footer. The renderer owns
+one Plan Markdown body and surface; A8 owns answer admission and no plan text
+can authorize an action. The dock's whole-card height cap remains because it
+shares vertical space with the composer; duplicate private Markdown/chevron
+rendering and the old inner-plan cap are removed. Approved/rejected/canceled
+stream outcomes remain A7-owned and no receipt is fabricated as a timeline log.
