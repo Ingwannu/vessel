@@ -2,7 +2,7 @@
 mod bound;
 mod peer;
 use crate::{Connected, Event, State};
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 use tokio::sync::mpsc;
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::sessions::{
@@ -10,31 +10,33 @@ use vessel_app_view::sessions::{
 };
 use vessel_proto::{Call, NodeId, SessionId};
 const TEST_WAIT: Duration = super::navigation::LOOKUP_DEADLINE.saturating_mul(2);
+fn connected(state: &mut State, host: &str, client: vessel_client::NodeClient) -> Connected {
+    state
+        .admit_connection(
+            host,
+            &vessel_client::book::BookEntry {
+                address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+                token: None,
+                credential: None,
+                id: Some(client.node().id),
+            },
+            client,
+            Vec::new(),
+        )
+        .unwrap()
+}
 fn state(client: vessel_client::NodeClient) -> (State, mpsc::Receiver<Event>) {
-    let (events, receiving) = mpsc::channel(8);
-    (
-        State {
-            label: "tests".to_owned(),
-            events,
-            clients: HashMap::from([(
-                "renamed".to_owned(),
-                Connected {
-                    client,
-                    agents: Vec::new(),
-                },
-            )]),
-            follow: None,
-            follow_machine: None,
-            book_path: crate::machines::BookPath::NoConfiguration,
-            workspace: crate::workspace::Hub::default(),
-            agents: crate::agents::Hub::default(),
-            device_calls: crate::devices::Hub::default(),
-            sync_calls: crate::sync::Hub::default(),
-            session_navigation: crate::sessions::Hub::default(),
-            offers: std::sync::Arc::default(),
-        },
-        receiving,
-    )
+    let home = crate::testing::Home::new();
+    let (mut state, receiving) = crate::testing::state(&home);
+    state.book_path = crate::machines::BookPath::NoConfiguration;
+    let connection = connected(&mut state, "renamed", client);
+    assert!(
+        state
+            .clients
+            .insert("renamed".to_owned(), connection)
+            .is_none()
+    );
+    (state, receiving)
 }
 async fn next(events: &mut mpsc::Receiver<Event>) -> Event {
     tokio::time::timeout(TEST_WAIT, events.recv())
@@ -170,13 +172,8 @@ async fn same_request_waits_for_matching_connection_ready_without_provider_actio
         target: NavigationTarget::Address(SessionAddress { node, session }),
     });
     assert!(events.try_recv().is_err());
-    let previous = state.clients.insert(
-        "reconnected".to_owned(),
-        Connected {
-            client: peer.client.clone(),
-            agents: Vec::new(),
-        },
-    );
+    let connection = connected(&mut state, "reconnected", peer.client.clone());
+    let previous = state.clients.insert("reconnected".to_owned(), connection);
     assert!(previous.is_none());
     state.session_connections_changed();
     let Event::Sessions(answer) = next(&mut events).await else {
@@ -239,13 +236,10 @@ async fn metadata_transport_loss_retries_same_address_on_authenticated_reconnect
     );
     let mut second = peer::connect_as(peer::Behavior::Accept, node).await;
     state.clients.clear();
-    let previous = state.clients.insert(
-        "after-reconnect".to_owned(),
-        Connected {
-            client: second.client.clone(),
-            agents: Vec::new(),
-        },
-    );
+    let connection = connected(&mut state, "after-reconnect", second.client.clone());
+    let previous = state
+        .clients
+        .insert("after-reconnect".to_owned(), connection);
     assert!(previous.is_none());
     state.session_connections_changed();
     let Event::Sessions(answer) = next(&mut events).await else {

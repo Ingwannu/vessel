@@ -227,3 +227,12 @@ needs W23/W6 canonical reconciliation; no manual resend or second pipeline added
 All of this remains literal cfg(test), including its SessionView field, until W12
 coordinates product cutover. Canonical-ticket and real-field fixtures are prepared
 not passed. IME constructor/retirement/real-wire integration remains unverified.
+
+Exactc1514crateClippy failed on old lifecycle/base6 union constructors: Machine
+connection_epoch, refused ActAnswer.terminal, shared State.mentions, and session
+tests constructing private Connected records. OwnerW21's exact4af session fixture
+adaptation is consumed: shared testing::state and canonical admit_connection,
+preserving B1 mentions in shared state. Refused metadata reads use terminalNone;
+the passive access enum is otherwise unchanged. c151 kit tests stopped compiling
+on a missing App argument to FocusHandle::focus; corrected without weakening any
+assertion. Current combined source needs a new narrow run.

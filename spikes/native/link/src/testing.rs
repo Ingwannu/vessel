@@ -44,6 +44,7 @@ pub(crate) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
             book_path: crate::machines::BookPath::File(home.book()),
             workspace: crate::workspace::Hub::default(),
             agents: crate::agents::Hub::default(),
+            mentions: crate::mentions::Hub::default(),
             admissions: vessel_app_view::connection::ConnectionEpochs::default(),
             device_calls: crate::devices::Hub::default(),
             sync_calls: crate::sync::Hub::default(),

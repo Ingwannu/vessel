@@ -51,6 +51,7 @@ impl Access {
     pub fn refused(self, failure: ActFailed) -> Event {
         match self {
             Self::Read { binding, read } => Event::Acted(ActAnswer {
+                terminal: None,
                 machine: binding.host.as_str().to_owned(),
                 session: binding.address.session,
                 kind: read.act().kind(),

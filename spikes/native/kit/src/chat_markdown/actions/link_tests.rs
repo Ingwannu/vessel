@@ -190,7 +190,7 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
         });
         window.update(|window, cx| {
             let focus = state.read(cx).focus_handle().clone();
-            focus.focus(window);
+            focus.focus(window, cx);
             let _paint = window.draw(cx);
             focus.dispatch_action(&gpui_base::input::Copy, window, cx);
             assert_eq!(

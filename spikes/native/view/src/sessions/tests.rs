@@ -63,6 +63,7 @@ fn machine(name: &str, when: &str, title: &str, archived: bool) -> crate::Machin
     }
     crate::Machine {
         node: None,
+        connection_epoch: None,
         name: name.to_owned(),
         reach: crate::Reach::Online,
         sessions: vec![crate::Card::from_session(name, &info)],
@@ -153,6 +154,7 @@ fn lifecycle_busy_and_stale_ack_preserve_the_real_pending_action() {
         host: crate::machine_book::Name::parse("work").unwrap(),
         session: SessionId::random(),
         node: None,
+        connection_epoch: None,
     };
     let mut state = Lifecycle::default();
     let first = state.begin(target.clone(), LifecycleAction::Exit).unwrap();
