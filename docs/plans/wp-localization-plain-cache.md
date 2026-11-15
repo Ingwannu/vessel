@@ -36,4 +36,8 @@ and introduce no shipped dependency. Run the localization contract test and
 the native strict Clippy step through the prescribed remote gate. The W5
 package's final gate also checks its actual Usage catalog and callers.
 
-Source prepared; remote narrow suite and W5 integration results are pending.
+The first narrow run, `i18n-narrow-20261115T142509Z-af9f7c87`, passed fonts
+and failed Clippy on two discarded projection-map insertion results; tests
+did not run. The insertion results are now explicitly retained, including the
+same pattern in the fixture. Corrected narrow and W5 integration results are
+pending; no compiler or runtime pass is claimed yet.
