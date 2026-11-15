@@ -6,11 +6,15 @@
 // line that becomes the outcome (data/approval.ts).
 
 import "./permission-dock.css";
+import { useState } from "react";
 
 import { Markdown } from "../../data/markdown";
 import { useFleet } from "../../context";
 import { answersOf } from "../../data/approval";
-import { answerPermission } from "../../data/calls";
+import {
+  permissionReceipt,
+  respondApproval,
+} from "../../data/response-receipts";
 import type { Entry } from "../../data/timeline-model";
 import {
   Button,
@@ -38,19 +42,38 @@ export function PermissionDock({
 }) {
   const fleet = useFleet();
   const answers = answersOf(entry.request.options);
+  const [sending, setSending] = useState(false);
   const blocked =
-    entry.request.delivery_state !== undefined &&
-    entry.request.delivery_state !== "pending";
+    sending ||
+    (entry.request.delivery_state !== undefined &&
+      entry.request.delivery_state !== "pending");
   const answer = (option: PermissionOptionId) => {
     if (blocked) return;
-    void answerPermission(fleet, node, session, entry.request.id, option).then(
+    setSending(true);
+    void respondApproval(fleet, node, session, entry.request, option).then(
       (outcome) => {
         if (!outcome.ok) {
+          const notSent =
+            outcome.problem.from === "call" &&
+            outcome.problem.failure.kind === "not_in_protocol";
+          if (notSent) setSending(false);
           toast(outcome.problem.message, "error");
+          return;
+        }
+        const state = permissionReceipt(entry.request, option, outcome.value);
+        if (state === "refused") setSending(false);
+        if (state !== "applied" && state !== "legacy_sent") {
+          toast(
+            state === "uncertain"
+              ? "The response outcome is uncertain. Reconcile before trying again."
+              : "The request was refused or changed. Reconcile its current state.",
+            "error",
+          );
         }
       },
     );
   };
+
   return (
     <div
       className="permission-dock"

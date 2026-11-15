@@ -42,6 +42,7 @@ export function ComposerDocks({
       />
       {pending !== null ? (
         <PermissionDock
+          key={pending.request.id}
           node={node}
           session={session}
           entry={pending}

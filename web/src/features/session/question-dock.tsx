@@ -11,7 +11,7 @@ import "./question-dock.css";
 import { useState } from "react";
 
 import { useFleet } from "../../context";
-import { answerQuestion } from "../../data/conversation-calls";
+import { questionReceipt, respondQuestion } from "../../data/response-receipts";
 import { errorCode } from "../../data/outcome";
 import {
   answerable,
@@ -58,39 +58,53 @@ export function QuestionDock({
   };
   const send = (answer: "accept" | "decline") => {
     if (
-      question.delivery_state !== undefined &&
-      question.delivery_state !== "pending"
+      sending ||
+      (question.delivery_state !== undefined &&
+        question.delivery_state !== "pending")
     )
       return;
     setSending(true);
-    void answerQuestion(
-      fleet,
-      node,
-      session,
-      question.id,
-      answer === "accept" ? answerOf(question, drafts) : { answer: "decline" },
-    ).then((outcome) => {
-      setSending(false);
-      if (outcome.ok) {
-        return;
-      }
-      const code = errorCode(outcome.problem);
-      if (code === "invalid_request") {
-        const field = refusedField(question, outcome.problem.message);
-        const at = steps.findIndex(
-          (candidate) =>
-            candidate.field.name === field || candidate.other?.name === field,
-        );
-        if (at >= 0) {
-          setIndex(at);
+    const submitted =
+      answer === "accept"
+        ? answerOf(question, drafts)
+        : { answer: "decline" as const };
+    void respondQuestion(fleet, node, session, question, submitted).then(
+      (outcome) => {
+        if (outcome.ok) {
+          const state = questionReceipt(question, submitted, outcome.value);
+          if (state === "refused") setSending(false);
+          if (state !== "applied" && state !== "legacy_sent") {
+            setProblem(
+              state === "uncertain" || state === "answering"
+                ? "An answer may be in flight. Reconcile before trying again."
+                : "The question was refused or changed. Reconcile its current state.",
+            );
+          }
+          return;
         }
-        setProblem(outcome.problem.message);
-      } else if (code === "conflict" || code === "not_found") {
-        toast("This question was already answered elsewhere.");
-      } else {
-        toast(outcome.problem.message, "error");
-      }
-    });
+        const notSent =
+          outcome.problem.from === "call" &&
+          outcome.problem.failure.kind === "not_in_protocol";
+        if (notSent) setSending(false);
+        const code = errorCode(outcome.problem);
+        if (code === "invalid_request") {
+          setSending(false);
+          const field = refusedField(question, outcome.problem.message);
+          const at = steps.findIndex(
+            (candidate) =>
+              candidate.field.name === field || candidate.other?.name === field,
+          );
+          if (at >= 0) {
+            setIndex(at);
+          }
+          setProblem(outcome.problem.message);
+        } else if (code === "conflict" || code === "not_found") {
+          toast("This question was already answered elsewhere.");
+        } else {
+          toast(outcome.problem.message, "error");
+        }
+      },
+    );
   };
   const next = () => {
     if (step === undefined || sending) {
