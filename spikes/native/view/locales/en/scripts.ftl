@@ -132,3 +132,5 @@ scripts-remote-loopback = This listener is loopback-only on the remote machine. 
 scripts-stale = Refresh this listener before opening a preview.
 # Keep old supervised processes accessible after their configuration is removed.
 scripts-retained = Runs no longer in the project file
+# Never treat an unrecognized newer-node setup state as successful completion.
+scripts-setup-unknown = This app cannot interpret the setup state. No session was started; update the app and inspect the worktree.

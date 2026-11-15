@@ -105,6 +105,15 @@ impl Shell {
                 if let Step::Refused(refusal) = &start.step {
                     self.areas.draft.error = Some(self.words().start_refusal(refusal));
                 }
+                if matches!(
+                    start.step,
+                    Step::Setup {
+                        setup: SetupState::Unknown,
+                        ..
+                    }
+                ) {
+                    self.areas.draft.error = Some(self.words.scripts().setup_unknown().to_owned());
+                }
                 self.start_failed();
             }
             StartEnded::Failed(problem) => {

@@ -31,7 +31,8 @@ use vessel_app_view::workspace::place::{Place, ProjectPlace, place_spec, worktre
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::setup_log::OutputDecoder;
 use vessel_app_view::workspace::start::{
-    ApprovalAnswer, FailedAnswer, Refusal, Step, TRIES, branch_of, setup_ended,
+    ApprovalAnswer, FailedAnswer, Refusal, Step, TRIES, branch_of, setup_allows_session,
+    setup_ended,
 };
 use vessel_client::NodeClient;
 use vessel_proto::workspace::{
@@ -283,8 +284,16 @@ async fn set_up(walk: &mut Walk<'_>, mut info: WorktreeInfo, commands: Vec<Strin
             }
             Followed::Ended(setup) => setup,
         };
-        if !matches!(ended, SetupState::Failed { .. }) {
+        if setup_allows_session(&ended) {
             return Made::Ready(info.id);
+        }
+        match ended {
+            SetupState::Unknown => return Made::Stopped,
+            SetupState::Running { .. } => continue,
+            SetupState::None
+            | SetupState::Skipped
+            | SetupState::Succeeded { .. }
+            | SetupState::Failed { .. } => {}
         }
         match walk.failed().await {
             None => return Made::Stopped,

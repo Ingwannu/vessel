@@ -60,3 +60,23 @@ add workspace-scoped entry point and terminal reveal using the terminal package'
 existing API, audit setup observation against the current start card, and consume
 only reviewed node runtime contracts. One whole native gate and one package review
 follow completion. Missing env/allocator/proxy/health remain explicitly unverified.
+
+## Existing setup audit
+
+The existing start card already has making, exact-command approval, setup running,
+failed actions and streamed combined output. The link follows `worktree.output` and
+retains the created worktree on cancellation. The old code treated `SetupState::Unknown`
+as successful completion; this package refuses automatic session creation for that
+state and shows a complete translated explanation. A regression enumerates all known
+setup states. No new wire call is involved.
+
+The current protocol has a combined setup log and one overall state, rather than
+Paseo's per-command duration/result rows and persisted blocked-source observation.
+Those facts cannot be reconstructed reliably from terminal text. Workspace registry
+identity is the shared registry contract; setup's passive pane will use the layout
+package's `Target::Setup`, and scripts its `Target::Scripts`. Terminal reveal uses
+`Target::Terminal(TerminalId)`. No competing local workspace identifier is introduced.
+
+Missing runtime/registry contracts are dependencies, not accepted parity differences.
+The tracker must not mark service allocation, env, proxy, health, route preference or
+workspace status delivery passed on the strength of the existing script/port card.

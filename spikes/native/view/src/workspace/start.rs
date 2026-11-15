@@ -132,3 +132,44 @@ pub fn branch_of(info: &WorktreeInfo) -> Option<String> {
 pub const fn setup_ended(setup: &SetupState, page_empty: bool) -> bool {
     page_empty && !matches!(setup, SetupState::Running { .. })
 }
+
+/// Only a known terminal setup state authorizes automatic session creation.
+/// A newer state must not be silently presented as successful setup.
+#[must_use]
+pub const fn setup_allows_session(setup: &SetupState) -> bool {
+    match setup {
+        SetupState::None | SetupState::Skipped | SetupState::Succeeded { .. } => true,
+        SetupState::Running { .. } | SetupState::Failed { .. } | SetupState::Unknown => false,
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+    use chrono::DateTime;
+    use vessel_proto::workspace::SetupFailure;
+    #[test]
+    fn only_known_completed_or_explicitly_skipped_setup_allows_automatic_creation() {
+        for state in [
+            SetupState::None,
+            SetupState::Skipped,
+            SetupState::Succeeded {
+                finished_at: DateTime::UNIX_EPOCH,
+            },
+        ] {
+            assert!(setup_allows_session(&state));
+        }
+        for state in [
+            SetupState::Running {
+                started_at: DateTime::UNIX_EPOCH,
+            },
+            SetupState::Failed {
+                failure: SetupFailure::Spawn,
+                finished_at: DateTime::UNIX_EPOCH,
+            },
+            SetupState::Unknown,
+        ] {
+            assert!(!setup_allows_session(&state));
+        }
+    }
+}

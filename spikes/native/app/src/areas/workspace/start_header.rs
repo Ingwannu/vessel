@@ -53,7 +53,11 @@ fn headline(shell: &Shell, start: &Starting) -> (String, Tone) {
                     ),
                     Tone::Done,
                 ),
-                SetupState::None | SetupState::Succeeded { .. } | SetupState::Unknown => (
+                SetupState::Unknown => (
+                    shell.words.scripts().setup_unknown().to_owned(),
+                    Tone::Failed,
+                ),
+                SetupState::None | SetupState::Succeeded { .. } => (
                     format!(
                         "{} \u{b7} {}",
                         labels.setup_finished, labels.starting_session
