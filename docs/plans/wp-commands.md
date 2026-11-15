@@ -825,3 +825,11 @@ from launch-only/refused/failed. Canonical rebase invalidates shortcut caches
 without discarding a newer recorder. Existing actor/queue failure notices remain
 central; local validation wording is not a disk acknowledgement. No speculative
 receipt writer/state machine was introduced before the checked owner handoff.
+
+Exactad852 union runs R16/R8 both stopped at App compilation before tests.
+Two old file-tree SavePrefs callers needed the shared Box<Prefs> argument;
+adopted ONLY that mechanical adaptation, matching W13 fb0f05295's two hunks,
+without its unrelated staged close routing. Automatic merge also retained two
+identical language_tests::with_commands definitions; kept one unchanged helper.
+These are integration errors, not passing tests or infrastructure failures.
+The shared field/multiline/composition code is unchanged by this correction.
