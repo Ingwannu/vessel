@@ -383,13 +383,13 @@ printf '\357\273\2773210\n'
 #[cfg(unix)]
 #[tokio::test]
 async fn unsuccessful_exit_and_overflow_are_refused_without_output_in_diagnostics() {
-    let sandbox = Sandbox::new();
     enum Expected {
         Exit,
         Stdout,
         Stderr,
         Exact,
     }
+    let sandbox = Sandbox::new();
     for (name, script, expected) in [
         (
             "failed",
