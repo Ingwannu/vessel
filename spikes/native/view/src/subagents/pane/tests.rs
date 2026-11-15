@@ -102,3 +102,22 @@ fn individually_valid_pages_cannot_grow_retained_history_past_its_byte_budget() 
     assert_eq!(pane.timeline().entries().len(), 1);
     assert_eq!(pane.after(), ChildCursor::After(EventSeq::new(2)));
 }
+
+#[test]
+fn projection_moves_once_and_a_prepend_rebuilds_from_retained_source_records() {
+    let mut pane = ChildPane::new(query("child"));
+    assert!(pane.take_projection().is_none());
+    let first = pane.read(None).unwrap();
+    pane.received(&first, Ok(page(vec![record(8, "recent")], 20)));
+    let owned = pane.take_projection().unwrap();
+    assert_eq!(owned.entries().len(), 1);
+    assert!(pane.take_projection().is_none());
+    assert_eq!(pane.records().count(), 1);
+    let earlier = pane.read(pane.before()).unwrap();
+    pane.received(&earlier, Ok(page(vec![record(2, "older")], 9)));
+    let owned = pane.take_projection().unwrap();
+    assert!(
+        matches!(&owned.entries()[0].kind, EntryKind::Message { text } if text == "olderrecent")
+    );
+    assert_eq!(pane.after(), ChildCursor::After(EventSeq::new(20)));
+}

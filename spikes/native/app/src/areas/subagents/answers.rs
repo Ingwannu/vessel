@@ -47,9 +47,11 @@ impl Shell {
             && pane.failure().is_none()
         {
             let source = pane.identity();
-            let records = pane.records().cloned().collect::<Vec<_>>();
+            let Some(timeline) = pane.take_projection() else {
+                return;
+            };
             let mut readonly = crate::areas::conversation::ConversationArea::new(cx);
-            readonly.timeline.apply(&records);
+            readonly.timeline = timeline;
             readonly.logs = vessel_app_view::timeline::Logs::of(readonly.timeline.entries());
             if readonly.folds.is_some() {
                 readonly.folds = Some(vessel_app_view::timeline::Folds::of(

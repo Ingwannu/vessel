@@ -37,6 +37,7 @@ pub struct ChildPane {
     pending: Option<ChildRead>,
     records: BTreeMap<EventSeq, EventRecord>,
     timeline: Timeline,
+    projection_ready: bool,
     next: EventSeq,
     history: ChildHistory,
     failure: Option<TrackProblem>,
@@ -51,6 +52,7 @@ impl ChildPane {
             pending: None,
             records: BTreeMap::new(),
             timeline: Timeline::default(),
+            projection_ready: false,
             next: EventSeq::ZERO,
             history: ChildHistory::Missing,
             failure: None,
@@ -77,6 +79,16 @@ impl ChildPane {
     #[must_use]
     pub fn timeline(&self) -> &Timeline {
         &self.timeline
+    }
+    /// Move the accepted projection once; retained source records permit later prepends.
+    /// The receiver owns rendering state and must validate source/generation first.
+    #[must_use]
+    pub fn take_projection(&mut self) -> Option<Timeline> {
+        if !self.projection_ready {
+            return None;
+        }
+        self.projection_ready = false;
+        Some(std::mem::take(&mut self.timeline))
     }
     /// Coverage is separate from an empty or populated pane.
     #[must_use]
@@ -176,6 +188,7 @@ impl ChildPane {
         timeline.apply(&proposed.values().cloned().collect::<Vec<_>>());
         self.records = proposed;
         self.timeline = timeline;
+        self.projection_ready = true;
         self.next = self.next.max(page.next);
         self.history = page.history;
         self.failure = None;
