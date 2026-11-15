@@ -27,6 +27,9 @@ mod log;
 mod node_ctl;
 mod nodes;
 mod pair;
+// Staged until ADR 0084's acknowledged permission responses and shared output land.
+#[cfg(test)]
+mod permit;
 mod project_commands;
 mod remote;
 mod render;

@@ -1,0 +1,88 @@
+//! Exercise the actual clap command edge before any node connector exists.
+use super::*;
+use clap::Parser;
+
+#[derive(Debug, Parser)]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+fn parse(arguments: &[&str]) -> Command {
+    Cli::try_parse_from(arguments).unwrap().command
+}
+const SESSION: &str = "00000000-0000-4000-8000-000000000001";
+
+#[test]
+fn allow_defaults_to_all_but_deny_requires_explicit_scope() {
+    assert!(parse(&["permit", "allow", SESSION]).validate().is_ok());
+    assert_eq!(
+        parse(&["permit", "deny", SESSION]).validate(),
+        Err(SelectionError)
+    );
+    assert!(
+        parse(&["permit", "deny", SESSION, "--all"])
+            .validate()
+            .is_ok()
+    );
+    assert!(
+        parse(&["permit", "deny", SESSION, "abcd"])
+            .validate()
+            .is_ok()
+    );
+    let Command::Allow { requests, .. } = parse(&["permit", "allow", SESSION]) else {
+        panic!("allow")
+    };
+    assert_eq!(requests.scope(Direction::Allow), Ok(Scope::All));
+    assert_eq!(requests.session, SESSION.parse().unwrap());
+}
+
+#[test]
+fn explicit_all_takes_precedence_over_a_request_for_both_directions() {
+    for name in ["allow", "deny"] {
+        let command = parse(&["permit", name, SESSION, "abcd", "--all"]);
+        let (requests, direction) = match command {
+            Command::Allow { requests, .. } => (requests, Direction::Allow),
+            Command::Deny { requests, .. } => (requests, Direction::Deny),
+            Command::Ls => panic!("write"),
+        };
+        assert_eq!(requests.scope(direction), Ok(Scope::All));
+    }
+}
+
+#[test]
+fn invalid_input_is_refused_during_parse_and_valid_input_remains_opaque() {
+    assert!(Cli::try_parse_from(["permit", "allow", SESSION, "--input", "{broken"]).is_err());
+    let marker = r#"{"answers":{"Question 1":"private-test-text"}}"#;
+    let command = parse(&["permit", "allow", SESSION, "--input", marker]);
+    assert!(!format!("{command:?}").contains("private-test-text"));
+    let Command::Allow {
+        input: Some(input), ..
+    } = command
+    else {
+        panic!("input")
+    };
+    assert_eq!(input.raw().as_text(), marker);
+}
+
+#[test]
+fn denial_message_and_interrupt_are_distinct_and_preserved() {
+    let command = parse(&[
+        "permit",
+        "deny",
+        SESSION,
+        "abcd",
+        "--message",
+        "Try another approach",
+        "--interrupt",
+    ]);
+    assert_eq!(command.interruption(), Interruption::Interrupt);
+    let Command::Deny { message, .. } = command else {
+        panic!("deny")
+    };
+    assert_eq!(message.as_deref(), Some("Try another approach"));
+    assert_eq!(
+        parse(&["permit", "ls"]).interruption(),
+        Interruption::KeepRunning
+    );
+}
