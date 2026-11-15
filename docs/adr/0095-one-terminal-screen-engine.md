@@ -1,6 +1,6 @@
 # ADR 0095: one maintained terminal screen engine
 
-Status: source reviewed; whole package gate owed.
+Status: source reviewed; gate accepted with the named base defect below.
 Separate prerequisite package before the terminal UI.
 
 ## Decision log
@@ -108,11 +108,22 @@ is reconstructed from a pruned event ring. The native parser stays only until
 D1 switches to the passed engine; this prerequisite does not claim retirement,
 full D1 UI, physical input, platform runtime or renderer parity.
 
-## Verification owed
+## Verification record and limits
 
-Golden fixture checkpoints execute actual recorded output, independently
-captured raw cell hashes and text/cursor/history expectations. Add primary
-shrink/grow/soft-wrap/CJK, capacity change/eviction, query and final-snapshot
-cases; strict changed-crate checks; one whole root gate; V3 prerequisite
-review. No whole native gate is owed by this root-only package before a
-native dependency edge exists. Actual D1 captures remain its later package.
+Exact pre-format e792 passes strict changed-package checking and11 tests,
+including31 raw-cell checkpoints and7 server-handler query cases. Independent
+review audited the expected artifacts and the formatting-only0d7 extension.
+The first whole run failed formatting; the pinned official configuration fixed
+that without behavioral or expected-value changes.
+
+The corrected whole0d7 run is RED only at the named LimitPercent base alias
+classification defect, fixed separately by9dfdf0a1. Seven actual whole steps
+passed, including all three Clippy variants; protocol TS tests3/0 and web TS
+1/1 stopped execution. Ten remaining planned whole steps did not run. The
+explicit gate exception accepts this named base defect; it does not turn
+unexecuted tests into evidence or justify another unchanged whole run.
+
+No native gate is owed before a native dependency exists. Node actor ordering,
+transport, native parser retirement/rendering, actual input, UI captures and OS
+runtime remain outside this prerequisite. Upstream Cell has finite22-byte
+content; the bounded corpus is not arbitrary-grapheme losslessness proof.

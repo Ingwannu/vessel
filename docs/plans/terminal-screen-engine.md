@@ -11,11 +11,31 @@ rerun all eight real-output checkpoints plus primary resize cases; run narrow
 strict checks, one whole root gate and one V3 review; hand W17 the reviewed
 API/hash. D1 retires its native parser only after switching to this engine.
 
-Current source passed the bounded golden tests and V3 source review, with the
-whole package gate still owed. No consumer-ready head or full D1 parity is
-claimed. The evidence below distinguishes prior failures from exact passes.
+## Current disposition
 
-The next correction candidate retains alternate-buffer right columns directly
+Product/formatted source is0d7cf46e; exact pre-format e792 passed strict checks
+and11/0/0 tests with31 cell checkpoints plus7 server query oracle cases.
+Independent source review covers both e792 and the entire formatting-only
+extension. The corrected whole gate is RED at one named base defect: stale
+LimitPercent alias classification, fixed separately by9dfdf0a1. The package's
+frozen range changes no web, protocol or generated-wire file.
+
+Seven executed whole steps passed: web install, format, size, boundaries and
+three Clippy variants. TS execution passed protocol3/0 and stopped at web1/1.
+The remaining ten planned whole steps DID NOT RUN; this is not a whole-green
+claim. The explicit gate disposition accepts this named base defect without
+another unchanged run. Final independent review closure is recorded externally
+on the existing package row before a consumer-ready handoff.
+
+No native parser retirement, actor/transport integration, UI, operating-system
+or universal Unicode/grapheme-losslessness claim follows. Upstream cells have
+finite22-byte content; the corpus proves only its stated inputs. Next: hand
+this prerequisite to the node capture consumer after final review disposition;
+continue modes/markers/frame/query presentation and native consumers separately.
+
+## Historical implementation record (past checkpoints, not current debt)
+
+The correction candidate retained alternate-buffer right columns directly
 in vt100's grid and reflows only the primary buffer, preserving the cursor's
 logical run and using the original engine cells/modes. No ANSI is replayed.
 The facade inherits lead-cell attributes for continuations and bounds each
