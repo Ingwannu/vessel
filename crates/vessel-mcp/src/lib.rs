@@ -30,7 +30,9 @@
 mod env;
 mod tools;
 
-pub use env::{AgentEnv, EnvError, SECRET_VARIABLE, SESSION_VARIABLE, SOCKET_VARIABLE};
+pub use env::{
+    AgentEnv, EnvError, POLICY_VARIABLE, SECRET_VARIABLE, SESSION_VARIABLE, SOCKET_VARIABLE,
+};
 pub use tools::VesselTools;
 
 use rmcp::ServiceExt as _;
@@ -101,6 +103,8 @@ pub async fn run_stdio() -> Result<(), McpError> {
     let env = AgentEnv::from_env()?;
     let client = connect(&env).await?;
     let (read, write) = rmcp::transport::stdio();
-    let tools = VesselTools::new(client).with_own_session(env.auth.session);
+    let tools = VesselTools::new(client)
+        .with_own_session(env.auth.session)
+        .with_policy(env.policy);
     serve(tools, read, write).await
 }
