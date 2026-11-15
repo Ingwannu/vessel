@@ -274,6 +274,12 @@ impl Reply {
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
+            // Browser content holds no harness selector, and its pending/new
+            // method version is refused before dispatch on an older peer.
+            | Self::BrowserCall(_)
+            | Self::BrowserControl(_)
+            | Self::WatchBrowser(_)
+            | Self::ClearBrowserProfile(_)
             // A hit names a session; the session itself comes from a list.
             | Self::SearchMessages(_) => None,
         }
