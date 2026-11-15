@@ -1681,6 +1681,12 @@ file format or storage limit behavior. E1 retains the native compatibility
 re-exports and consumer tests on its consuming branch; base6 itself never
 contained that unreleased hosts module.
 
+ManagedLocalAlias is the one pure reserved-name syntax in book_values.
+Client book destinations and native local-name wrappers use it without
+depending on each other. Only new mutation destinations are reserved;
+parsing this syntax grants no provenance or effect authority and changes
+no existing legacy book behavior. No writer/admission is added here.
+
 ### Checked owned group cleanup
 
 Proc's additive Child::wait_checked distinguishes leader exit from the first
