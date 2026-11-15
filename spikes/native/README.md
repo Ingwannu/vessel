@@ -1413,3 +1413,17 @@ generates the existing Glyph, ALL and const path match in their original
 module. Append future declarations there and keep the separate exhaustive
 drawing match. The frozen pre-refactor order/path snapshot guards this
 mechanical registry change; it does not approve new glyphs or consumer ink.
+
+The additive kit `code_editor::DiffEditor` and `DiffDocumentEditor` are readonly
+profiles of the existing source editor, with validated source-row metadata,
+independent old/new states of the same caller lexer, optional mapped gutter/row
+paint, full-height parent scrolling and owner caret reveal. They add no token
+kind, syntax parser, palette, transport, repository authority or second engine.
+Ordinary CodeEditor shares the same style factory and retains its existing
+behavior. The diff-only style uses terminal blue at0.45 alpha, after Paseo
+paint.web.ts paintSelection; the ordinary style stays unchanged. Both-theme
+policy tests cover that value; actual selection-path readability remains a
+capture obligation. Vendor patch7 and its precise source/runtime/paint limitations are in
+spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
+control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
+isolated producer does not include C3 View/Link/app or any root-runtime changes.
