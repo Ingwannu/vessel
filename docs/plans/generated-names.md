@@ -400,3 +400,17 @@ Narrow all-targets Clippy and all model API library tests pass, including
 the new synthetic whole-response cases. HTTP, node routing, settings and
 automatic application remain unconnected. The exact-commit whole gate is
 still owed; other APIs are a subsequent decoder slice.
+
+### Remaining complete-response APIs contract and resume point
+
+Extend the same bounded decoder for OpenAI Chat and Responses. Reuse the
+Responses whole-response model and Chat's existing assistant-message body;
+add only the missing whole-choice wrapper in the API owner. RawJson already
+supports serde's buffered nesting, so the wrapper can reuse that body with
+flattening rather than duplicate its content/tool grammar. One named output
+count defines the single-answer rule. Explicit normal endings, tool/refusal
+checks, redaction and accounting follow the existing complete decoder's
+contract. Stream accounting conversions move unchanged to their shared
+owner; proxy ending behavior does not change. Synthetic fixtures and edge
+cases extend the adjacent tests. This contract comes before the extension;
+no HTTP client, settings field or node arming is part of this library slice.
