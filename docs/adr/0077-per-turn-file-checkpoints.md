@@ -108,10 +108,47 @@ after point. Empty changes may share blobs, never an invented anchor.
 
 The session actor awaits a typed capture acknowledgement from node orchestration;
 it gains no dependency on `vessel-workspace` or `vessel-store`. A capture
-failure is recorded as `Unavailable { reason }` and the prompt/turn continues.
-The UI then shows no restorable checkpoint at that boundary. Capture timeout
-cancels/joins its worker before releasing the actor, so a late snapshot cannot
-be mislabeled as a different turn. Crash before durable publish means unavailable.
+failure yields `Unavailable { reason }` and the prompt/turn continues. The UI
+then shows no restorable checkpoint at that boundary. The deadline bounds the
+actor's wait, including admission/queue time, not arbitrary kernel I/O.
+
+Each request carries a fresh `CaptureId`, immutable session/root/boundary
+identity and `CaptureGeneration`. A nonblocking coordinator owns its lease:
+`Waiting -> Ready` or `Waiting -> Unavailable`, exactly once. At the deadline
+it invalidates the generation, requests cooperative cancellation, and sends
+`Unavailable { CaptureTimedOut }` without joining the worker or waiting for
+filesystem cleanup, fsync or storage acknowledgement. The actor can deliver
+the prompt/next turn at that point. A persisted unavailable record may follow;
+absence of a ready record is already non-restorable. The coordinator checks
+the clock on completion too, so timer/completion scheduling cannot admit a
+result whose deadline has elapsed. Duplicate or superseded completions cannot
+change the terminal lease state.
+
+The worker may only enumerate/read and write its private candidate staging;
+it cannot publish ready metadata, mutate project files, or transfer its result
+to a later turn. Only the coordinator's publication path may accept a fully
+durable candidate for its still-live matching lease before deadline. A pending
+publication is fenced by that lease as well: an expired lease stays unavailable
+in reads even if a storage completion arrives later; such rows/artifacts remain
+unaccepted candidates for reconciliation, never independently readable ready
+records. Startup treats unfinished publication leases as unavailable, not as
+permission to promote candidates. Publication/timeout races are a required
+storage integration test, not an assumption about interrupting a commit.
+
+A timed-out worker retains its bounded worker permit, quota reservation, root
+capture-admission guard and private staging until it actually exits and cleanup
+finishes. That guard excludes another capture of the same root, not prompt
+execution or other workspace mutations: after timeout this read-only worker
+has no workspace mutation lock. Further captures there return `Busy` rather
+than accumulating waiters. Other roots share the fixed worker pool and bounded
+queue. A stuck worker can exhaust capacity; capture becomes unavailable while
+sessions continue. No replacement worker or unbounded detached task is spawned
+for it. Completed obsolete work is discarded under its original identity;
+cleanup cannot delete a newer job's data or release another job's reservation.
+No claim is made that cancellation forcibly stops regular-file I/O, or that
+worker cleanup/shutdown has bounded latency. Crash before accepted durable
+publication means unavailable; orphan reconciliation keeps quota accounting
+until the old process is gone and its private staging can be reclaimed safely.
 
 Each ready manifest covers raw bytes and ordinary permission bits of regular
 files from hardened Git enumeration: tracked paths plus nonignored untracked
@@ -173,12 +210,13 @@ tests derive their bounds from it, with checked arithmetic and quota reservation
 | `CHECKPOINT_PATH_BYTES` | 1,024 | Maximum UTF-8 bytes in a relative path |
 | `CHECKPOINTS_PER_SESSION` | 40 | Retained ready boundary images per session |
 | `CHECKPOINT_NODE_BYTES` | 2 GiB | Total blobs, manifests, staging and journals |
-| `CHECKPOINT_CAPTURE_DEADLINE` | 30 seconds | Bounded capture work |
+| `CHECKPOINT_CAPTURE_DEADLINE` | 30 seconds | Maximum actor wait for capture acknowledgement |
 | `CHECKPOINT_IO_CHUNK` | 64 KiB | Streaming buffer; not a file-sized allocation |
 | `CHECKPOINT_PAGE_ENTRIES` | 100 | Maximum list/preview page entries |
 | `CHECKPOINT_PREVIEWS_PER_DEVICE` | 4 | Concurrent pinned preview plans |
 | `CHECKPOINT_PREVIEW_LIFETIME` | 5 minutes | Preview validity and pin duration |
 | `CHECKPOINT_RESTORE_DEADLINE` | 60 seconds | Deadline before entering recovery |
+| `CHECKPOINT_WORKERS` | 2 | Running workers per node, including timed-out workers awaiting cleanup |
 | `CHECKPOINT_QUEUE` | 8 | Pending capture/restore jobs per node |
 
 A full queue returns `Busy`; no unbounded sender task is spawned. Admission
@@ -216,8 +254,9 @@ edits will also be replaced. Cancel makes no project write.
 
 The server plan binds principal/device, session, root identity, checkpoint,
 manifest and ignore digests, current covered tree digest, file identities,
-permissions, change list and expiry. The client cannot submit an arbitrary
-path, destination, script, force flag or edited change list. A plan belonging
+permissions, effective desired image/fingerprint, change list and expiry. The
+client cannot submit an arbitrary path, destination, script, force flag or
+edited change list. A plan belonging
 to another caller/session is forbidden. Replay cannot transplant it.
 
 Restore reauthenticates, then serializes against all node-mediated mutations
@@ -235,15 +274,40 @@ bytes on the destination filesystem, verify their hashes and metadata, and
 keep staging outside the enumerated worktree in private node storage on the
 same filesystem, then replace regular files by atomic per-file rename; deletes move the original
 into a private same-filesystem recovery directory. Refuse cross-device moves.
-Restore modes/ownership preserve the node account's access: existing file
-owner/group and ordinary bits are retained; a replacement uses the checkpoint's
-executable bits only, without broadening its current read/write permissions.
-New/restored absent files belong to the node account with private read/write
-bits plus checkpoint executable bits. No setuid/setgid bits, ACL, xattr,
-Windows stream or ownership replay. Unsupported ownership/ACL state is a
-preflight refusal. Do not recursively chmod/chown or rewrite the Git index.
+The selected manifest is capture evidence; it is not the verification image.
+Preview computes one `EffectiveDesiredImage` by applying the metadata policy to
+that manifest and the validated current tree. Each `DesiredEntry` is `Absent`
+or a regular file with checkpoint content digest/size and effective owner,
+group and mode. Existing files keep their current owner/group and read/write
+bits; only executable bits come from the checkpoint. Absent restored files
+receive the node account's owner/group, private owner read/write bits and the
+checkpoint executable bits. Captured read/write bits, owner/group, setuid/setgid,
+ACLs, xattrs and Windows streams are deliberately not replayed. Existing unsafe
+special bits/ACL/ownership or a mode that would make verification impossible
+are `UnsupportedMetadata` before any write; no recursive chmod/chown or index
+rewrite. All covered present files receive the same effective-mode calculation,
+so an executable-only change is a real approved permission operation.
+
+Preview persists the effective entries and their fingerprint, then derives
+its complete change list from current versus effective entries. The dialog
+states which permissions are retained/private rather than restored verbatim.
+Admission revalidates that current tree; a change requires `StalePreview`, not
+recomputing a different target under an old confirmation. Journal desired
+fingerprints, staged permissions, final verification and no-op classification
+all use this exact frozen effective image. Captured metadata differences that
+policy intentionally does not replay cannot themselves force a write or a
+failure. A current tree already matching that image yields verified `Unchanged`;
+otherwise verified content or executable-bit changes yield `Restored`.
+
+For example, checkpoint mode `0644` and a current `0600` file produce desired
+mode `0600`: restore different content as `Restored`, or report `Unchanged` if
+content/executable bits already match. A now-absent checkpoint `0644` file is
+recreated privately at `0600` and may truthfully return `Restored`. If executable
+bits differ, replay them with the retained current read/write bits and verify
+that resulting mode. These examples describe Unix modes, not extra constants.
 Create needed ordinary parent directories privately; never delete directories
-recursively. Preexisting and unrelated empty directories are left alone.
+recursively. Preexisting and unrelated empty directories are left alone and
+are not part of file-image equality.
 
 Before each path mutation, recheck containment, parent identity and regular-file
 identity. Reject links/hard links, special files and unsupported names, including
@@ -255,9 +319,10 @@ that boundary in the confirmation, and never claim atomic whole-tree restore
 or universal protection from external writers. A detected race stops work.
 
 Journal `Prepared -> Applying -> Verifying -> Complete` with each path's before
-and desired fingerprint. Success requires a final scan equal to the selected
-manifest over the entire covered scope, the durable result committed, and a
-`FilesRestored` metadata event appended. Replacements/deletions only apply to
+and effective desired fingerprint. Success requires a final scan equal to the
+approved effective image over the entire covered scope, the durable result
+committed, and a `FilesRestored` metadata event appended. Replacements/deletions
+only apply to
 the approved scope union; a later nonignored created file is deleted only when
 it appeared in the approved plan. Ignored files stay outside the operation.
 `Unchanged` is a distinct verified no-op result, not a made-up changed count.
@@ -290,7 +355,8 @@ and its conversation action remain separate.
 ## Typed failures and compatibility
 
 `vessel-proto::checkpoint` owns validated CheckpointId, RestorePlanId, RestoreId,
-CheckpointCursor, ChangeCursor, ImageBytes, FileBytes, PathCount, ContentDigest,
+CheckpointCursor, ChangeCursor, CaptureId, CaptureGeneration, ImageBytes,
+FileBytes, PathCount, ContentDigest, EffectiveDesiredImage, DesiredEntry,
 WorkspaceGeneration, CheckpointBoundary, CheckpointState, ChangeKind and
 RestoreOutcome. Reuse SessionId, EventSeq, RelPath and permission/scopes types.
 No String/boolean/numeric sentinel carries a closed kind or domain value.
@@ -368,7 +434,8 @@ SDK's skip behavior. No implication of full Paseo parity is made: initial
 scope/platform support is narrower, combined mode is absent, quotas may make
 a point unavailable, and external filesystem writers remain a stated boundary.
 
-The costs are bounded capture latency at boundaries, private historical copies,
+The costs are a bounded actor wait at capture boundaries, potentially stalled
+but admission-bounded I/O workers, private historical copies,
 extra disk reservations for safe recovery, and a per-file journal rather than
 instant atomic tree replacement. Retention can expire old points. File restore
 can make conversation assumptions stale; the UI states this and the agent is
@@ -379,6 +446,13 @@ needed for checkpoint operation.
 
 - Fakes prove before/after timing, queued/steered distinctions, missing ACP
   ids, aborted turns and crashes never publishing a wrong ready boundary.
+  Hold read/metadata/fsync and publication with barriers, advance an injected
+  clock past the capture deadline and observe prompt delivery before releasing
+  I/O. Late completion must leave that exact boundary unavailable, never publish
+  into a later generation, and clean up only its own staging. Saturate all
+  retained worker permits/reservations, issue more prompts and prove bounded
+  jobs, queue, memory and reserved bytes; new captures are unavailable/Busy,
+  prompts continue, and no capacity is returned before actual cleanup.
 - Dirty tracked and untracked bytes, deletions, binary/mode changes, files
   created later, changed ignore policy and ignored outputs preserve the
   promised scope; HEAD/index/refs and conversation/draft stay unchanged.
@@ -389,7 +463,12 @@ needed for checkpoint operation.
   non-UTF-8 paths and unsupported permissions fail as typed outcomes.
 - A non-root account proves existing owner/group/read-write bits remain valid,
   restored/new files are readable, private archives are not world-readable,
-  and later captures/restarts preserve those properties.
+  and later captures/restarts preserve those properties. Cover checkpoint
+  `0644` versus current `0600` with both changed and equal content, executable
+  bit changes with retained read/write bits, and an absent file recreated
+  privately. Assert preview effective mode, journal target, exact final mode
+  and `Restored`/`Unchanged` together; never relax modes to make raw-manifest
+  equality pass, or return RolledBack solely for an intentionally unreplayed bit.
 - Barriers/fault injection cover each journal stage, ENOSPC, cancellation,
   reconnect/restart, duplicate RestoreId, concurrent node writers and external
   edit conflicts. Recovery never deletes the last before image or claims all
@@ -401,5 +480,9 @@ needed for checkpoint operation.
 ## Resume point
 
 Draft only. No storage schema, RPC registration, checkpoint filesystem or UI
-exists from this ADR. Next: contract review, resolve findings, then centrally
-assign implementation/baseline/schema/protocol work. Product code remains held.
+exists from this ADR. The first review returned two defects; the revised
+contract freezes an effective metadata-policy target and separates actor
+capture timeout from retained I/O-worker cleanup. Required evidence above is
+still future work, including the permission and held-I/O cases. Next: revised
+contract review, then central implementation/baseline/schema/protocol assignment.
+Product code remains held.

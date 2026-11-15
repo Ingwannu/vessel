@@ -35,6 +35,14 @@ Kit dialog, alert and toast already exist; no new general control is needed.
 
 ## Resume point
 
-Completed: reference/source research and proposed ADR 0077. No product edits,
-merge, runtime test, fake fleet, capture or compiled gate. Contract review is
-next; no package UI or node implementation is authorized before it passes.
+Completed: reference/source research and proposed ADR 0077. First review
+returned two contract defects. The revision makes preview/journal/verification
+share the frozen effective permission-policy image, and bounds the actor's
+capture wait without pretending blocked I/O is cancellable. Timed-out workers
+retain their bounded slot/reservation until cleanup; expired generations cannot
+publish ready checkpoints. Non-root metadata and held-I/O barrier tests remain
+required evidence for later implementation, not results of this document.
+
+No product edits, merge, runtime test, fake fleet, capture or compiled gate.
+Revised contract review is next; no package UI or node implementation is
+authorized before it passes.
