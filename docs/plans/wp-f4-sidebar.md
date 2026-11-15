@@ -271,3 +271,32 @@ prepend. A visible drag reorder puts those rows first and retains hidden/stale
 keys afterward, unlike navigation inventory's interleaving rewrite. Unchanged
 orders produce no write. Before/after intent moves only a captured visible group;
 a same-row or stale-key drop does nothing. Tests cover these exact differences.
+
+### Shared workspace row checkpoint
+
+The approved `kit::sidebar_workspace_row::SidebarWorkspaceRow` owns one frame
+for pinned/project/status placement, following
+`sidebar-workspace-row.tsx:467–521`, `sidebar-workspace-row-content.tsx:87–548`,
+`sidebar-row-backdrop.ts` and `density.ts:23–32`. Min36/44, bottom4, vertical8,
+left8/grouped16, right12 and radius8 keep full-width highlights on one rail.
+Leading16/20 centers on the title's20 line; title14 normal uses.76 idle,1 hover,
+or.92 creating. Selected backgrounds win over hover, and press/drag surface2
+wins over both. Metadata stays a caller-owned shared-control slot.
+
+Trailing data preserves width while a temporary number hint hides it. Compact
+permanent menu replaces the data; desktop hover overlays its action over a48
+wide same-RGB alpha scrim that becomes solid at55percent. The numeric badge is
+18 high, top1/right0. No private button is added; action slots consume the shared
+button/menu controls and stop parent navigation even for a disabled child.
+Literal geometry covers both themes/densities, grouped/flush and metadata;
+policy tests cover slot reservation, hints, open menus and source paint order.
+The renderer has no app type, provider request or local gesture engine.
+
+The coordinator approved existing GPUI drag activation2 as an explicit interim
+difference from Paseo desktop6. The lead will add a per-element threshold with
+legacy default2; the sidebar switches to6 when that seam lands. No global
+threshold or custom controller changes here. Source native hold180/slop4 is
+not claimed by desktop pointer probes. Source drag scale1.02 remains unresolved
+in this first control checkpoint because GPUI exposes transforms for SVG but
+not a general Div transform; border/surface/shared shadow are present. This
+is not a final drag-visual or full F4 pass.
