@@ -13,6 +13,8 @@ use super::{
 /// Why an answer does not fit its question.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InvalidAnswer {
+    /// The form declares an invalid custom-answer relationship.
+    Presentation(super::InvalidQuestionPresentation),
     /// A field the question does not have.
     UnknownField(FieldName),
     /// A required field left out.
@@ -32,6 +34,7 @@ pub enum InvalidAnswer {
 impl fmt::Display for InvalidAnswer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Presentation(error) => error.fmt(f),
             Self::UnknownField(field) => write!(f, "the question has no field `{field}`"),
             Self::Missing(field) => write!(f, "field `{field}` needs an answer"),
             Self::Wrong { field, why } => write!(f, "field `{field}`: {why}"),
@@ -55,6 +58,8 @@ impl Question {
         let QuestionAnswer::Accept { values } = answer else {
             return Ok(());
         };
+        self.validate_presentation()
+            .map_err(InvalidAnswer::Presentation)?;
         if let Some(unknown) = values
             .keys()
             .find(|name| !self.fields.iter().any(|field| &field.name == *name))
@@ -64,7 +69,9 @@ impl Question {
         for field in &self.fields {
             match values.get(&field.name) {
                 Some(value) => field.check(value)?,
-                None if field.required => return Err(InvalidAnswer::Missing(field.name.clone())),
+                None if field.required && !super::presentation::custom_satisfies(field, values) => {
+                    return Err(InvalidAnswer::Missing(field.name.clone()));
+                }
                 None => {}
             }
         }
@@ -83,7 +90,13 @@ impl QuestionField {
                     ..
                 },
                 AnswerValue::Text(text),
-            ) => text_fits(text, *min_length, *max_length),
+            ) => {
+                if !super::presentation::text_is_allowed(self, text) {
+                    Err("the text must contain non-whitespace content")
+                } else {
+                    text_fits(text, *min_length, *max_length)
+                }
+            }
             (
                 FieldKind::Number {
                     minimum, maximum, ..

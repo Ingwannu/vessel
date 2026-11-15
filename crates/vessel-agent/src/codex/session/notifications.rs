@@ -3,9 +3,9 @@
 use super::{
     AgentEvent, AgentOutput, Asking, CommandApproval, ContentBlock, DeltaNotification,
     ErrorNotification, FileChangeApproval, INVALID_PARAMS, ItemNotification, METHOD_NOT_FOUND,
-    PermissionsApproval, PlanNotification, QuestionOutcome, RequestResolved, Session, Settled,
-    ToolCallUpdate, ToolKind, TurnNotification, TurnState, UsageNotification, UserInputRequest,
-    Value, answer, asks, mapper, read,
+    PermissionOutcome, PermissionsApproval, PlanNotification, QuestionOutcome, RequestResolved,
+    Session, Settled, ToolCallUpdate, ToolKind, TurnNotification, TurnState, UsageNotification,
+    UserInputRequest, Value, asks, mapper, read,
 };
 
 impl Session {

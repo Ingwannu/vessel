@@ -29,8 +29,10 @@ use crate::id::{QuestionId, ToolCallId};
 use crate::timeline::{QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime};
 
 mod check;
+mod presentation;
 
 pub use check::InvalidAnswer;
+pub use presentation::{InvalidQuestionPresentation, QuestionPresentationError};
 
 /// A question waiting for an answer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -254,3 +256,6 @@ impl Question {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod presentation_tests;
