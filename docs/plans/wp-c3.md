@@ -538,3 +538,15 @@ new fixtures are unexecuted source. Existing queued111 checks exclude this chang
 This projection is not the final split header renderer or cross-file selection.
 The consumer must still enforce a bounded editor cache and display cut notices;
 no UI parity, native interaction or body-cache proof is claimed by the values.
+
+## Base lock correction and exact failed run
+
+The11113b32 combined narrow stopped after native-fonts0 and native-cargo101
+because the remote runner enforced --locked against the stale base6 native
+lock. No crate was compiled or tested in that attempt. The package-base's
+dd13ce378 correction (vessel-rpc's existing serde_path_to_error dependency) is
+merged as84fa8b8c8. The already integrated G2 producer source stayed unchanged;
+its result-note additions were retained and its duplicate README block removed.
+The queued111 Base-window attempt keeps its original source/result; it is not
+cancelled or relabelled. A changed-source replacement covers the fixed lock plus
+the buffer projection once the remote queue permits it.
