@@ -88,3 +88,13 @@ under the test runner account, without changing an account or service. Generic
 Windows refusal is not a Windows ACL or runtime pass. Existing declaration-only
 inspection and the actual saved-owner/lifecycle integration retain their own
 separate evidence obligations.
+
+The observation budget is30s, checked between64KiB regular-file reads and tree
+entries. Expiry is a typed refusal; it never turns a partial observation into
+identity. A blocking filesystem syscall cannot be forcibly interrupted by that
+check: its owned task and admission remain tracked until it actually settles.
+Entry device identity must agree with the candidate root, so this observer does
+not descend into another mounted filesystem. Acquisition must prepare an owned
+package tree without VCS control metadata before this package-path observation;
+it must never strip metadata from the user's directory. Pinned source revision
+is recorded by that separate owner, not reconstructed from an artifact digest.
