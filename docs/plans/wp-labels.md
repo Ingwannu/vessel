@@ -358,3 +358,23 @@ and the shared dispatcher has one registration line. Request::refused centralize
 native/browser/queue local refusal into the original Event shape. No allowance
 or shared behavior was changed. The initial failure log is retained; current
 app compilation and added GPUI execution are still owed.
+
+Merged announced package base 8 (91407173) cleanly. Its shared FieldId API now
+fences both manager and staged create input callbacks by actual input-engine
+identity. A new manager edit target gets a new field; the same field survives
+pending operations and language changes. Replaced fields' delayed events cannot
+change their successors. Two GPUI regressions queue the actual feature callback
+with an old engine id, replace the field, then deliver it; the manager test also
+proves a current id still edits. This intentionally does not use set_text as an
+event injector, because the component's programmatic setter does not emit Change.
+The kit producer separately verifies real keyboard events report the engine id.
+These new regressions are not executed yet; existing queued 480534 checks its
+older immutable source and will be recovered before another submission.
+
+Registry adapter preparation now exists outside the active trees under
+/tmp/work/wp-labels/registry-adapter-prep with an unapplied patch and SHA256SUMS.
+It targets the corrected types-only carrier 65180ea8 (295 unused), and the
+reviewed transaction/watch contract. Neither the carrier nor Store helpers have
+been merged here: the lead's type adoption and announced gate47 node helpers
+are distinct required boundaries. The draft reuses the writer/savepoint/read
+pool and same-transaction labels projection; no physical lifecycle authority.

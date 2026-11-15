@@ -267,3 +267,35 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
         shell.labels_picker_close(opening, window, cx);
     });
 }
+
+#[gpui::test]
+fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let target = install(shell);
+        shell.labels_picker_open(target.clone(), Vec::new(), EditAccess::Editable, window, cx);
+        let first = shell.areas.labels.picker.as_ref().unwrap().opening;
+        shell.labels_picker_create(first, window, cx);
+        let source = shell.areas.labels.picker.as_ref().unwrap().name.id();
+        cx.defer_in(window, move |shell, _window, cx| {
+            super::field_changed(shell, source, "stale editor text".to_owned(), cx)
+        });
+        shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
+        let next = shell.areas.labels.picker.as_ref().unwrap().opening;
+        shell.labels_picker_create(next, window, cx);
+        assert_ne!(
+            source,
+            shell.areas.labels.picker.as_ref().unwrap().name.id()
+        );
+    });
+    cx.run_until_parked();
+    shell.update(cx, |shell, _cx| {
+        let PickerPage::Creating(draft) = &shell.areas.labels.picker.as_ref().unwrap().page else {
+            panic!("the new create draft remains idle");
+        };
+        assert_eq!(draft.text(), "");
+    });
+}

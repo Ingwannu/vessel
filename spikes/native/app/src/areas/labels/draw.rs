@@ -151,6 +151,9 @@ fn list(
                 }
                 match state.manager.edit(label.clone()) {
                     Ok(()) => {
+                        state.name =
+                            super::fields::manager(shell.words.labels().name(), window, cx);
+                        state.applied_editability = None;
                         state.name.set_text(label.name.as_str(), window, cx);
                         state.name.focus(window, cx);
                     }

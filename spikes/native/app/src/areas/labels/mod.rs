@@ -4,6 +4,7 @@
 mod actions;
 mod colors;
 mod draw;
+mod fields;
 mod form;
 mod hosts;
 // No authoritative workspace caller has landed: enable with that owner only.
@@ -64,18 +65,7 @@ impl Labels {
                 window,
                 cx,
             ),
-            name: TextField::with_change(
-                "",
-                |_shell: &mut Shell, _text, _window, _cx| {},
-                |shell, text, cx| {
-                    if let Some(draft) = shell.areas.labels.manager.draft_mut() {
-                        draft.set_text(&text);
-                    }
-                    cx.notify();
-                },
-                window,
-                cx,
-            ),
+            name: fields::manager("", window, cx),
             dialog: DialogState::new(cx),
             error: None,
             color_turn: colors::ColorTurn::default(),

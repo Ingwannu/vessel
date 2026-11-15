@@ -13,7 +13,7 @@ mod draw;
 mod tests;
 
 use vessel_app_kit::ui::{AnyElement, Context, Window};
-use vessel_app_kit::{DialogState, TextField};
+use vessel_app_kit::{DialogState, FieldId, TextField};
 use vessel_app_link::labels::{Answer, Command, Event};
 use vessel_app_view::labels::{
     Assignment, EditAccess, Failure, HostState, Label, Name, Picker, PickerPage, WorkspaceTarget,
@@ -64,27 +64,7 @@ impl Shell {
         state
             .picker_combo
             .open(Some(self.words.labels().search()), window, cx);
-        let name = TextField::with_change(
-            "",
-            |shell: &mut Shell, _text, window, cx| {
-                if let Some(picker) = &shell.areas.labels.picker
-                    && picker.name.focus_handle(cx).is_focused(window)
-                {
-                    let opening = picker.opening;
-                    shell.labels_picker_submit(opening, cx);
-                }
-            },
-            |shell, text, cx| {
-                if let Some(picker) = &mut shell.areas.labels.picker
-                    && let Some(draft) = picker.page.draft_mut()
-                {
-                    draft.set_text(&text);
-                    cx.notify();
-                }
-            },
-            window,
-            cx,
-        );
+        let name = TextField::with_source("", field_submitted, field_changed, window, cx);
         state.picker = Some(WorkspacePicker {
             visible: true,
             return_to_list: std::cell::Cell::new(false),
@@ -227,6 +207,32 @@ impl Shell {
             cx.notify();
         }
         accepted
+    }
+}
+
+fn field_submitted(
+    shell: &mut Shell,
+    source: FieldId,
+    _text: String,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
+    if let Some(picker) = &shell.areas.labels.picker
+        && picker.name.id() == source
+        && picker.name.focus_handle(cx).is_focused(window)
+    {
+        let opening = picker.opening;
+        shell.labels_picker_submit(opening, cx);
+    }
+}
+
+fn field_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
+    if let Some(picker) = &mut shell.areas.labels.picker
+        && picker.name.id() == source
+        && let Some(draft) = picker.page.draft_mut()
+    {
+        draft.set_text(&text);
+        cx.notify();
     }
 }
 
