@@ -1,6 +1,6 @@
 use super::*;
 fn source(text: &str) -> MarkdownSource {
-    Arc::from(text).try_into().unwrap()
+    Arc::<str>::from(text).try_into().unwrap()
 }
 
 #[test]

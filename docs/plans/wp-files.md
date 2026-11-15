@@ -256,3 +256,18 @@ this reuses both existing packages rather than introducing a second version. Par
 scalar/list/nested display, invalid/non-map/duplicate/deep headers, alias
 amplification, literal property syntax and the source budget. UI wiring and
 this parser's narrow compile/test result are still pending.
+
+
+## Shared Markdown interaction producer
+
+Only the relevant link parser and kit Markdown/action files from W12b's
+independently checked `8403be97` are adopted (kit/view strict all-target
+Clippy, composer-shell23 tests). The composer-shell module registration
+exposes only links here; unrelated producer models are not copied. Base4's
+kit Palette/Editability/terminal exports are preserved. The old renderer
+entry point remains source-compatible; file preview will use the new
+Options/Actions path with host-owned link and all-image resolution. No
+relative/file URI is handed to an OS opener or a default filesystem image
+loader. C5 still authorizes file roots and controls actual acquisitions;
+the parser grants no authority. Producer's later staged extension is not
+consumed until checked.
