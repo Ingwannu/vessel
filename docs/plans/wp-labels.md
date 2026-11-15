@@ -180,3 +180,9 @@ remain writable, while Failed still means the cache is not deletion evidence
 for destructive filter reconciliation. Valid contiguous updates recover that
 load error without losing the cursor; gaps still require a snapshot. Added
 regressions distinguish connection, load authority and mutation permission.
+
+Mutation results settle their correlated form only. Catalog data must come
+from the ordered observation, as the reference controller does; a unary reply
+has no catalog cursor and patching it into the cache could race an earlier
+list response. This keeps one replica owner and avoids a second local update
+path before the background observer is connected.

@@ -78,35 +78,15 @@ impl Shell {
                 if !matches!(state.manager.state(), ManagerState::Saving { .. }) {
                     return;
                 }
-                let original = state
-                    .manager
-                    .state()
-                    .draft()
-                    .map(|draft| draft.original().name.clone());
-                let settled = result.as_ref().map(|_| ()).map_err(|failure| *failure);
-                if state.manager.completed(event.ticket, settled)
-                    && let Ok(label) = result
-                    && let Some(host) = state.hosts.iter_mut().find(|host| host.key == event.host)
-                {
-                    host.catalog.upsert(original.as_ref(), label);
-                }
+                // The owned observation orders catalog changes. A unary reply
+                // has no cursor and must not race a list into that replica.
+                let _accepted = state.manager.completed(event.ticket, result.map(|_| ()));
             }
             Answer::Deleted(result) => {
                 if !matches!(state.manager.state(), ManagerState::Deleting { .. }) {
                     return;
                 }
-                let original = state
-                    .manager
-                    .state()
-                    .draft()
-                    .map(|draft| draft.original().name.clone());
-                if state.manager.completed(event.ticket, result.map(|_| ()))
-                    && result.is_ok()
-                    && let Some(name) = original
-                    && let Some(host) = state.hosts.iter_mut().find(|host| host.key == event.host)
-                {
-                    host.catalog.remove(&name);
-                }
+                let _accepted = state.manager.completed(event.ticket, result.map(|_| ()));
             }
         }
         self.settle_labels(cx);
