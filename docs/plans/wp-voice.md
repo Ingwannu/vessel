@@ -557,3 +557,10 @@ closed Failure enum no longer retains a native error at all. The actual failing-
 regression now checks the source chain as well as Display/Debug and retained
 sample cleanup. No native loader or detector execution is introduced; its new
 assertion awaits the next VM voice-runtime suite.
+
+
+Loopback fixture shutdown has a named five-second deadline and retains its
+JoinHandle in the fixture until completion. A stalled graceful close therefore
+fails the test finitely and leaves Drop able to abort its own server, rather
+than hanging a build lane or detaching the only owned handle. This is fixture
+cleanup only, not a product listener or a real endpoint check.

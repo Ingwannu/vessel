@@ -1,8 +1,11 @@
 //! Shared isolated loopback fixture; no product listener or real credentials.
 use axum::Router;
+use std::time::Duration;
 use tokio::{net::TcpListener, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::dictation::EndpointBase;
+
+const CLEANUP_DEADLINE: Duration = Duration::from_secs(5);
 
 pub(super) const SYNTHETIC_KEY: &str = "voice-fixture-credential";
 
@@ -31,7 +34,13 @@ impl Server {
     }
     pub(super) async fn finish(mut self) {
         self.stop.cancel();
-        self.task.take().unwrap().await.unwrap();
+        // Keep ownership in self while waiting: if the finite wait panics,
+        // Drop still aborts this fixture rather than detaching the server.
+        tokio::time::timeout(CLEANUP_DEADLINE, self.task.as_mut().unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+        self.task.take();
     }
 }
 impl Drop for Server {
