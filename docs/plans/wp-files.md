@@ -1098,3 +1098,14 @@ The rejection fixture creates/removes a real pane through Layout, then asserts
 MissingPane plus unchanged active owner and binding count. No product host
 policy or original restoration assertion is weakened. New readiness work and
 base9b have separate current-union checks pending.
+
+## Original toolbar intent
+
+The existing New file/New folder controls now capture FileOpenContext while
+drawing, then validate that same session/root receipt and visible Files host
+before allocating an entry-form ticket. Previously the click handler acquired
+the current root, which could reinterpret a delayed old click after refresh.
+This reuses the existing owner and actor preflight; the receipt is not a live
+delivery guard. The regression preserves the original stale receipt across a
+same-root refresh, refuses both old actions, permits a fresh action, and refuses
+an action after hiding the host. It is authored but not yet executed.

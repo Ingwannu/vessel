@@ -9,10 +9,21 @@ use vessel_app_view::workspace::explorer::{ExplorerSort, HiddenFiles};
 use vessel_proto::workspace::RelPath;
 
 use super::actions::{Action, Target};
+use super::file_open::FileOpenContext;
 use crate::shell::Shell;
 
 impl Shell {
-    fn tree_new(&mut self, action: Action, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn tree_new(
+        &mut self,
+        origin: &FileOpenContext,
+        action: Action,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        // A delayed toolbar click cannot acquire a successor root's identity.
+        if !self.file_tree_scope_is_current(origin) {
+            return;
+        }
         let Some(opening) = self.entry_opening() else {
             return;
         };
@@ -63,6 +74,8 @@ impl Shell {
 pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let labels = shell.words().labels();
     let files = &shell.areas.workspace.code.files;
+    let new_file = shell.file_open_context();
+    let new_folder = new_file.clone();
     let sort = match files.options.sort {
         ExplorerSort::Name => labels.by_name,
         ExplorerSort::Modified => labels.file_sort_modified,
@@ -95,13 +108,24 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
                 .on_click(cx.listener(|shell, _, _, cx| shell.tree_hidden_changed(cx))),
         )
         .child(
-            button("files-new-file", labels.new_file, false, tokens).on_click(
-                cx.listener(|shell, _, window, cx| shell.tree_new(Action::NewFile, window, cx)),
-            ),
+            button("files-new-file", labels.new_file, false, tokens).on_click(cx.listener(
+                move |shell, _, window, cx| {
+                    if let Some(origin) = &new_file {
+                        shell.tree_new(origin, Action::NewFile, window, cx);
+                    }
+                },
+            )),
         )
         .child(
-            button("files-new-folder", labels.new_folder, false, tokens).on_click(
-                cx.listener(|shell, _, window, cx| shell.tree_new(Action::NewFolder, window, cx)),
-            ),
+            button("files-new-folder", labels.new_folder, false, tokens).on_click(cx.listener(
+                move |shell, _, window, cx| {
+                    if let Some(origin) = &new_folder {
+                        shell.tree_new(origin, Action::NewFolder, window, cx);
+                    }
+                },
+            )),
         )
 }
+
+#[cfg(test)]
+mod tests;
