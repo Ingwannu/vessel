@@ -12,16 +12,13 @@ struct Owner {
     reveals: usize,
 }
 impl Render for Owner {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
         let editor = self.editor.clone();
-        let files = self.files.clone();
+        // This fixture's list fills the root window. Snapshot its actual width
+        // before List holds its RefCell while invoking this row renderer.
+        let width = window.viewport_size().width;
         self.files.element(move |_, window, cx| {
-            editor.element(
-                &Tokens::of(crate::theme::Scheme::Dark),
-                files.width(),
-                window,
-                cx,
-            )
+            editor.element(&Tokens::of(crate::theme::Scheme::Dark), width, window, cx)
         })
     }
 }
@@ -87,7 +84,7 @@ fn document_owner(
             .split('\n')
             .enumerate()
             .map(|(index, _)| super::super::DiffLine {
-                number: NonZeroU32::new(u32::try_from(index + 1).unwrap()),
+                number: NonZeroU32::new(u32::try_from(index.saturating_add(1)).unwrap()),
                 tone: super::super::DiffTone::Context,
             })
             .collect::<Vec<_>>()

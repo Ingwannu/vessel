@@ -61,20 +61,6 @@ redundant Render qualification and two fixture API spellings. The exact same
 three corrected source blobs are installed here. This does not relabel fa1 as
 a pass or execute any window test; the isolated producer still needs its gate.
 
-## Header foreground correction
-
-Paseo diff-document/palette.ts codeTextColor uses foregroundMuted for hunk
-headers. Reuse the existing Base TextDecorationCollection over UTF-8 header
-ranges, preserving the complete buffer and existing two-sided LineSyntax.
-Only nonempty Header rows receive a foreground override; notices and source
-syntax are unchanged. A shared colour cache prevents identical redraws or
-clones from repeatedly setting the collection and notifying its owner. Theme
-changes replace that one existing collection. No new syntax kind, palette,
-parser or vendor API is needed. Tests exercise byte ranges with Hangul and
-actual engine notifications across unchanged/changed themes and clones.
-This correction is newer than the exact27194 queued tests and remains
-uncompiled/unexecuted until its own immutable source is checked.
-
 ## Source-copy consumer gap (not covered by engine-preservation tests)
 
 Paseo diff-document/hit-testing.test.ts119–170 expects unified copy to retain
@@ -111,6 +97,16 @@ renderer/virtual-row/copy seam is implemented or approved by this ruling.
 The current bounded control packet may proceed with this explicit exclusion;
 this does not make full C3/split/copy parity passed.
 
+## Historical27194 producer selection
+
+This handoff branch retains exact27194 Rust source. The later header foreground
+TextDecorationCollection correction (fb8a98cf2, d7fee2bff in the app) is preserved
+on the separate development branch but deliberately excluded: its own tests
+have not compiled or run. It must not silently enter a27194 evidence packet.
+All14 Kit/vendor production and test blobs selected here equal those in the
+queued b011 consumer all-target check. The27194 public test run and b011 Clippy
+are still queued; there is no pass or integration-ready handoff yet.
+
 ## Actual b011 compilation return
 
 The b011 four-crate consumer Clippy returned cargo101: two new View fixtures
@@ -121,3 +117,60 @@ Context lifetimes and converts Editor to AnyElement at that test boundary.
 No production mapping, geometry, assertion or lint policy changes. The running
 27194 test retains its old source and is not cancelled or assumed passed.
 The next meaningful checked union must carry these public API corrections.
+
+## Coherent correction union after the actual b011 return
+
+The next producer now includes the previously prepared fb8 header foreground
+correction through the SAME existing TextDecorationCollection (not a new vendor
+or syntax API), together with explicit public fixture lifetimes/Element conversion.
+Its Rust blobs equal the corrected app's control blobs. The old27194 queue and
+b011 Clippy remain on their original source, excluding this colour correction.
+No old pass or current test execution is inferred. The same native selected
+byte-range/copy contract remains unchanged; split parity is still excluded.
+
+Header ranges are computed once in UTF-8 byte coordinates from admitted immutable
+rows. Only nonempty Header rows receive foregroundMuted, after palette.ts
+codeTextColor. A shared colour cache prevents repeated notifications on unchanged
+redraws or clones; an actual semantic theme change replaces that one collection.
+The regression uses public input state/collection observation, Hangul byte ranges,
+unchanged buffer text and clone/theme updates. It is newly included, unexecuted
+source until the next immutable producer selection runs.
+
+
+Execution update: original27194 public test completed native-fonts0/native-cargo101
+on the known Editor-to-Element helper error and three lifetime warnings; zero
+window tests executed. The corrected public selection is now queued on exact
+08b1f5bbc (wp-git-consumer-tests-20261115T145527Z-08b1f5bb). The matching current
+app source's four-crate all-target Clippy is queued on bdeed2a1. All16 owned
+Kit/vendor source/test blobs match. Earlier b011/27194 returns stay red; there is
+no current producer pass or V1 submission. Local preflight is standalone
+rustfmt5 files, pure size656/14, token ratchet no new and import/doc checks;
+boundary invokes Cargo metadata and belongs on the VM, not local preflight.
+
+
+## First actual window run:13 passed,3 failed
+
+Exact08b1 public tests executed16 cases:13/3/0. Successful cases include UTF-8
+header ranges and real theme notification behavior, old resolver literals/clear,
+actual gutter origin, wrapped tint/readonly copy, cached2500 parent scroll and
+ordinaryNone coordinate preservation. The three failures remain recorded:
+empty-mask row projection assertion and two document keyboard/wheel fixtures
+panicking in ListState::viewport_bounds due to recursive list borrowing.
+
+The fixture and audit list fill their root window, so capture that actual
+viewport width BEFORE their row callback; calling list.width inside that callback
+tries to borrow the already borrowed list. This fixes the consumers, not the
+vendor. Narrow-pane production code must use its actual pane width rather than
+assuming a window-wide list. The first empty-mask fixture used cx.draw, whose
+helper refreshes the original visible owner; that is an unproven contamination
+hypothesis, not a declared hook cause. Replace it with an actual clipped parent
+which remains outside on every redraw, keep zero-projection/IME assertions, and
+add positive visible-control plus actual outside-coordinate assertions. No
+vendor or assertion relaxation is made; only a rerun can establish the result.
+
+The exact08b1 all-target Clippy also returned test/example-only lints: explicit
+example Context lifetimes/unit pattern/semicolons, checked source offsets/counts
+and pixel arithmetic. Offsets/counts use saturation; the three finite test-only
+pixel operations use smallest-item expects with reasons, matching existing kit
+pixel geometry policy, not file-wide allows or a production lint waiver. Current
+corrections need their own exact source test/lint selections. No pass/handoff.
