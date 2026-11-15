@@ -21,6 +21,7 @@ async fn until(outputs: &mut AgentOutputs, done: impl Fn(&AgentEvent) -> bool) -
 
 fn setup() -> AgentSetup {
     AgentSetup {
+        system_prompt: None,
         cwd: std::env::temp_dir(),
         model: None,
         resume: None,
