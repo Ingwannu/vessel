@@ -1242,3 +1242,22 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+## Conversation projection ownership
+
+`view::timeline` folds canonical records once into stable-key entries. An entry's
+`seq` is its creating record, `through` is a conservative exclusive last-change
+bound, and `extra_sources` records exact later contributions. Search/reveal must
+use `entry_at_source`; overlapping late tool bounds do not prove membership.
+User-message continuity crosses diagnostic/metadata rows, but content, terminal,
+status and rewind boundaries end it. The complete followed log stays authoritative.
+
+`app::areas::conversation` draws those entries through the same Seat rows for
+normal chat and read-only projections. A history rebuild moves its Timeline and
+rebases disclosure/reading state by key; it does not create a child session or
+copy a transcript. Scoped residents, follow authority and callback admission stay
+with the single layout owner. `kit::plain_text` keeps notices literal/selectable
+through the existing text engine; canonical tools share output/diff/Plan controls.
+The exact protocol, optimistic-send and scoped-resident handoff limits are recorded
+in `docs/plans/wp-timeline.md`; staged DTO renderers do not activate node events.

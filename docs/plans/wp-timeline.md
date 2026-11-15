@@ -669,3 +669,12 @@ there is no approval dock to host them; their body has no action footer.
 Source cross-check: Paseo `types/stream.ts:1551-1562` projects canonical error as
 an error-level Notification. Future W23 AgentEvent::Error wiring will use that
 same alert path; it must not synthesize TurnFailed or a completion footer.
+
+
+Validation update: the VM restart canceled both queued source0e and merged325
+jobs with rc143 before compilation. Their replacements on6df reached real
+compilation: view all-target tests found two missing exhaustive fixture helper
+arms, fixed97db0fd6; strict Clippy found the equivalent-body Steer text arm,
+merged with the Message/Thought arm in07bd40d3. These are scoped failed checks,
+not passing gates. Replacement checks retain immutable source and separate logs.
+No new local Cargo/Rustc process was started after the VM-only rule.
