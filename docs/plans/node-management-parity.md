@@ -6,6 +6,11 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The shared writer's first strict check refused a wildcard product import.
+  Replace it with explicit owner imports; write/application behavior and both
+  regression assertions stay unchanged. The original failure is retained;
+  focused execution and negative-control evidence are still owed.
+
 - Shared writer repair: a cancelled settings RPC must leave the owned write/
   apply task serialized and joined at shutdown. The isolated prerequisite uses
   the existing node-head settings fields only; config reload/reset will consume
