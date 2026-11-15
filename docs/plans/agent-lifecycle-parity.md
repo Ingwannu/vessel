@@ -1009,3 +1009,15 @@ net are unchanged. The successful close acknowledgement is explicitly consumed.
 The callback fixture uses distinct explicit node names rather than host-derived
 names, and names its invitation lifetime once. This avoids a fixture name
 collision and makes its temporary identity independent of the test machine.
+
+### Deferred actor capture authority
+
+The later creation/reload capture must bind the actual run's ProcessLifetime,
+HarnessRef, resolved profile and immutable launch association in one actor
+snapshot, with the existing native-options fence and same-run checks before and
+after it. A provider identity is an explicitly resolved launch binding, never a
+kind/family/account inference. Sign-in state is an attested observation bound to
+that same run and provider association; absence of such observation is Unknown,
+not inferred success from a credential or identifier. Provider binding types and
+registry projection stay with the provider module. This records the authority
+boundary only: no actor capture API or consumer-ready implementation exists yet.
