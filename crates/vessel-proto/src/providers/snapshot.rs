@@ -13,7 +13,8 @@ use std::{
 /// Workspace catalogue path, never implicitly relative to a daemon's cwd.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "PathBuf", into = "PathBuf")]
-pub struct CatalogueDirectory(PathBuf);
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct CatalogueDirectory(#[cfg_attr(feature = "ts", ts(type = "string"))] PathBuf);
 
 impl CatalogueDirectory {
     /// Validate lexical input; the producer separately validates allowed access.
@@ -59,6 +60,7 @@ impl From<CatalogueDirectory> for PathBuf {
 /// Target is independent from provider identity and implementation family.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(tag = "scope", content = "directory", rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum CatalogueScope {
     /// Host settings catalogue.
     Global,
@@ -69,6 +71,7 @@ pub enum CatalogueScope {
 /// Public origin, without private plugin runtime registration details.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum SnapshotSource {
     /// Manifest identity.
     Builtin,
@@ -79,6 +82,7 @@ pub enum SnapshotSource {
 /// Pending discovery stage, without raw error text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum DiscoveryPhase {
     /// Executable/support availability.
     Availability,
@@ -91,6 +95,7 @@ pub enum DiscoveryPhase {
 /// Safe failures; upstream logs, commands and endpoints stay in the producer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum DiscoveryFailure {
     /// A finite deadline interrupted an upstream activity.
     TimedOut {
@@ -110,6 +115,7 @@ pub enum DiscoveryFailure {
 /// Opt-in, implementation support and installation are separate facts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum UnavailableReason {
     /// Explicit opt-out, including OMP's reference default.
     Disabled,
@@ -124,6 +130,7 @@ pub enum UnavailableReason {
 /// State carries exactly the values meaningful for that observation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum ProviderState {
     /// Refresh was admitted before its observation completed.
     Loading,
@@ -148,6 +155,7 @@ pub enum ProviderState {
 
 /// Reader-safe record, structurally unable to serialize launch secrets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ProviderSnapshotEntry {
     /// Effective provider identity.
     pub provider: ProviderId,
@@ -166,6 +174,7 @@ pub struct ProviderSnapshotEntry {
 /// Read authorization and side-effect intent are explicit at every call site.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum DiagnosticRead {
     /// Read permission, no process/filesystem/network discovery.
     Cached,
@@ -175,15 +184,19 @@ pub enum DiagnosticRead {
 
 /// Unregistered provider diagnostic request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetProviderDiagnostic {
     /// Effective identity.
     pub provider: ProviderId,
+    /// Target for providers whose catalogue depends on a workspace.
+    pub scope: CatalogueScope,
     /// A cache miss never silently upgrades this intent.
     pub read: DiagnosticRead,
 }
 
 /// Same cache projection as snapshots; shareable reports normalize names/version.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ProviderDiagnostic {
     /// Reader-safe metadata and observation.
     pub entry: ProviderSnapshotEntry,
@@ -193,6 +206,7 @@ pub struct ProviderDiagnostic {
 
 /// Unregistered snapshot request; active discovery needs Operate authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetProviders {
     /// Explicit target scope.
     pub scope: CatalogueScope,
@@ -203,6 +217,7 @@ pub struct GetProviders {
 /// Unregistered pure preflight; the node must derive parent authority from the
 /// authenticated caller instead of treating client-supplied values as a grant.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ResolveProviderCreate {
     /// Policy parameters, not execution authority or session mutation.
     pub input: CreateInput,
@@ -216,6 +231,7 @@ mod tests {
         assert!(serde_json::from_str::<CatalogueDirectory>(r#""relative""#).is_err());
         let request = GetProviderDiagnostic {
             provider: "claude".parse().unwrap(),
+            scope: CatalogueScope::Global,
             read: DiagnosticRead::Cached,
         };
         assert_eq!(

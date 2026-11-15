@@ -76,7 +76,7 @@ fn launch_inheritance_overlays_variables_and_concatenates_denied_tools() {
             .disallowed_tools
             .patterns()
             .iter()
-            .map(|pattern| pattern.as_str())
+            .map(vessel_proto::providers::ToolPattern::as_str)
             .collect::<Vec<_>>(),
         ["base-tool", "child-tool"]
     );

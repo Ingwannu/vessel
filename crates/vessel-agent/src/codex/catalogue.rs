@@ -75,8 +75,8 @@ pub(crate) async fn probe(
     // JoinSet aborts both I/O tasks if the caller cancels. The child guard then
     // kills its entire group; a cancelled probe cannot detach readers/processes.
     let mut readers = JoinSet::new();
-    readers.spawn(wire::read(stdout, send));
-    readers.spawn(async move {
+    let _stdout_task = readers.spawn(wire::read(stdout, send));
+    let _stderr_task = readers.spawn(async move {
         let _discarded = tokio::io::copy(&mut stderr, &mut tokio::io::sink()).await;
     });
     let transaction = Transaction {

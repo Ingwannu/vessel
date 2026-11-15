@@ -173,6 +173,13 @@ vessel-proc ProcessLifetime. No second reaper or parallel process ledger is
 introduced. Runtime implementation waits for that typed seam, while the provider
 registry, discovery and native transport work proceeds independently.
 
+The subsequent durable-identity ruling assigns vessel-proc's serializable
+pid/kernel-start-time/boot-id/executable proof to nodectl. Its verify operation
+returns Same/Gone/Reused, with explicit Unsupported outside Linux. This package
+owns only the provider-helper ledger in the node data directory and restart
+reap policy: signal solely after Same verification. A name or bare PID never
+authorizes a signal. ProcessLifetime remains the separate in-process observer.
+
 ## Cache subscription boundary
 
 The owner now projects passive snapshots without discovery and publishes typed

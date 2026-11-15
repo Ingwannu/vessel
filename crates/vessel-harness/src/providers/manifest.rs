@@ -163,7 +163,10 @@ mod tests {
         );
         assert_eq!(
             rows.iter()
-                .map(|r| r.modes.default_mode().map(|m| m.as_str()))
+                .map(|r| r
+                    .modes
+                    .default_mode()
+                    .map(vessel_proto::providers::ModeId::as_str))
                 .collect::<Vec<_>>(),
             [
                 Some("auto"),

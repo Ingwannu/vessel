@@ -33,6 +33,7 @@ macro_rules! identifier {
     ($(#[$doc:meta])* $name:ident, $error:ident, $valid:expr) => {
         $(#[$doc])*
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
         pub struct $name(Arc<str>);
 
         impl $name {

@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 /// Built-in implementation family; custom identities remain open `ProviderIds`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub enum ProviderKind {
     /// Claude's native permission policy.
     Claude,
@@ -32,6 +33,8 @@ pub enum ProviderKind {
 /// Approval semantics must not be inferred from a colour or mode name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderApprovalFlow"))]
 pub enum ApprovalFlow {
     /// Provider may prompt a person.
     Interactive,
@@ -42,6 +45,8 @@ pub enum ApprovalFlow {
 /// Explicit feature choice; absence differs from a user selecting off.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderAutoAccept"))]
 pub enum AutoAccept {
     /// Permission prompts stay with their normal recipient.
     Off,
@@ -52,6 +57,8 @@ pub enum AutoAccept {
 /// Visual meaning, independent of actual approval enforcement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModeRisk"))]
 pub enum ModeRisk {
     /// Always ask.
     Safe,
@@ -65,6 +72,8 @@ pub enum ModeRisk {
 
 /// A discovered or manifest mode, kept separate from supported driver state.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderMode"))]
 pub struct Mode {
     /// Native identifier sent only to a compatible driver.
     pub id: ModeId,
@@ -79,6 +88,8 @@ pub struct Mode {
 /// Validated mode list. `None` around this type means discovery is unknown;
 /// an empty list explicitly means that the provider has no modes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModes"))]
 pub struct ModeCatalogue {
     modes: Vec<Mode>,
     default: Option<ModeId>,
@@ -161,6 +172,7 @@ fn read_modes<'de, D: serde::Deserializer<'de>>(de: D) -> Result<Vec<Mode>, D::E
 
 /// Parent configuration used only for inheritance, never as launch authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CreateParent {
     /// Compare effective identities, not implementation families.
     pub provider: ProviderId,
@@ -172,6 +184,7 @@ pub struct CreateParent {
 
 /// Complete pure input before any process is started or settings are mutated.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CreateInput {
     /// Effective provider identity, including a configured alias.
     pub provider: ProviderId,
@@ -200,6 +213,7 @@ pub enum CreatePolicy {
 
 /// Resolved values; absent mode means use the provider's current native default.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CreateConfig {
     /// Mode selected or inherited, without fabricated fallback names.
     pub mode: Option<ModeId>,

@@ -176,7 +176,7 @@ mod tests {
     }
     #[test]
     fn malformed_catalogue_never_becomes_successful_empty_discovery() {
-        assert!(serde_json::from_str::<ModelPage>(r#"{}"#).is_err());
+        assert!(serde_json::from_str::<ModelPage>("{}").is_err());
         assert!(
             serde_json::from_str::<ModelPage>(r#"{"data":[{"displayName":"missing id"}]}"#)
                 .is_err()

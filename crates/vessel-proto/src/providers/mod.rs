@@ -36,6 +36,8 @@ pub const PROVIDERS: Option<ProtocolVersion> = None;
 
 /// Whether a configured provider participates in discovery and creation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderEnabled"))]
 #[serde(rename_all = "snake_case")]
 pub enum Enabled {
     /// Discovery and creation may be attempted, subject to driver support.

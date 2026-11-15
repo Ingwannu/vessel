@@ -33,6 +33,8 @@ pub enum CatalogueError {
 /// An optional marker is needed because additions may leave a flag unchanged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderDefaultChoice"))]
 pub enum DefaultChoice {
     /// Provider explicitly marks this as a default.
     Yes,
@@ -43,6 +45,8 @@ pub enum DefaultChoice {
 /// Compatibility aliases may be recognized but hidden from selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModelVisibility"))]
 pub enum ModelVisibility {
     /// Available to a person choosing a model.
     Selectable,
@@ -52,6 +56,8 @@ pub enum ModelVisibility {
 
 /// Thinking choice identifiers remain the provider's, without a fixed effort enum.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderThinkingChoice"))]
 pub struct ThinkingChoice {
     /// Native choice ID.
     pub id: OptionValueId,
@@ -64,6 +70,11 @@ pub struct ThinkingChoice {
 /// Validated thinking choices shared by every model in one native observation.
 /// The index avoids rescanning a long common list for each model's default.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(rename = "ProviderThinkingChoices", as = "Vec<ThinkingChoice>")
+)]
 pub struct ThinkingChoices(Arc<ThinkingSet>);
 
 #[derive(Debug, PartialEq, Eq)]
@@ -119,6 +130,8 @@ impl<'de> Deserialize<'de> for ThinkingChoices {
 
 /// Untrusted fields are validated together by `Model::new` or deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModelSpec"))]
 pub struct ModelSpec {
     /// Native identifier; never interpreted as a provider id.
     pub id: ModelId,
@@ -138,6 +151,8 @@ pub struct ModelSpec {
 /// A model whose native identifiers and thinking choices were checked once.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "ModelSpec", into = "ModelSpec")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModel", as = "ModelSpec"))]
 pub struct Model(ModelSpec);
 
 impl Model {
@@ -183,6 +198,8 @@ impl From<Model> for ModelSpec {
 /// A bounded model list retains first-definition ordering for deterministic merges.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(try_from = "RawModels", into = "Vec<Model>")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderModels", as = "Vec<Model>"))]
 pub struct Models(Vec<Model>);
 
 impl Models {
@@ -224,6 +241,8 @@ impl From<Models> for Vec<Model> {
 
 /// Models and modes are observed in one transport call, never separate probes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(rename = "ProviderCatalogue"))]
 pub struct Catalogue {
     /// Bounded native model/effort definitions.
     pub models: Models,
