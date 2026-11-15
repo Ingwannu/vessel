@@ -992,8 +992,12 @@ uncopied — then confirm.
 
 ### 6.10 Toasts
 
-Bottom-right, 320px, stack up. 4s for success, stay for error until
-dismissed. `--bg-elevated` + hairline + 3px status bar on the left.
+Centred below the header, as Paseo's app-shell host, so feedback stays
+clear of the lower composer and question actions. Cards retain 320px on a
+wide screen; below 768px they use 92vw up to 480px. The existing multi-toast
+host occupies at most a quarter of the viewport height; accumulated or long
+messages remain reachable by scrolling, and words wrap. Padding preserves
+room for the card's shadow. 4s for success, stay for error until dismissed. `--bg-elevated` + hairline + 3px status bar on the left.
 `role="status"` for success, `role="alert"` for error.
 
 ### 6.11 Empty, loading, error

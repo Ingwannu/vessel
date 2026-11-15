@@ -1,5 +1,5 @@
-// Toasts (DESIGN.md §6.10): bottom right, success leaves after 4 s, an
-// error stays until dismissed.
+// Toasts (DESIGN.md §6.10): below the header, clear of the lower composer
+// and dock. Success leaves after 4 s; errors are dismissed.
 
 import { Store, useStore } from "../data/store";
 import { IconButton } from "./kit";

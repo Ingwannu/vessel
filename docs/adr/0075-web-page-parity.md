@@ -142,3 +142,29 @@ increment is the existing Settings select for a reported ledger scope;
 account-window cards and their lookup policy remain the separate limits
 slice. Long scope names wrap using this feature's existing control style;
 the shared select implementation is not replaced or changed.
+
+
+## Feedback: modal ownership and toast clearance
+
+Paseo's `hooks/use-keyboard-shortcuts.ts:315–346` gives the top overlay
+first refusal before app shortcuts; `lib/overlay-root.ts:175–224` manages
+focus/IME/keys for that painted layer. Vessel retains Base UI for those
+behaviors and adds a small guard at background producers. Its public popup
+role and open attribute are checked at the time of a page focus request or
+a recorder key, rather than caching focus at mount. A second overlay stack
+or Escape listener was rejected: it would compete with the kit's nested
+controls and composition handling. The draft's mounted lifetime remains
+independent of its optional focus; the recorder pauses while a modal is
+open and can resume its pending choice after that modal closes.
+
+Paseo's `components/toast-host.tsx` places the app-shell viewport under the
+header, centred, including on narrow screens. Vessel uses its own safe
+inset/header/spacing tokens, retaining its 320px wide card and using the
+reference's responsive 92%/480px boundary on narrow screens. Positioning at
+the top across sizes avoids moving the same overlap to a wider composer.
+Existing success-four-seconds/error-until-dismissed and multi-toast semantics
+are deliberately retained here rather than changing unrelated notification
+lifetimes. Unlike the reference's single active message, Vessel bounds its
+existing stack to a scrolling quarter-viewport, so accumulated feedback does
+not keep extending down the page. This is a layout rule; it does not claim
+that every notification or OS/device behavior has parity.

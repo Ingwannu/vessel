@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: A1 and paired page corrections accepted; A2a round-trip correction passes its whole gate, review pending, 2026-11-15. ADR 0075.
+Status: A1, paired page corrections and A2a accepted; feedback package narrow checks pass, whole/browser/captures pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -128,7 +128,7 @@ new wire number or native modification.
 | F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Ended default, stored off and archive exclusion covered by the paired follow-up; broader grouping/pinning/nesting parity remains unverified. |
 | F81 / m11:213 / A notification inbox that survives a reload | inbox.list/get/mark22 with durable shared read state | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | Implement B1 durable list/read cursor, loading/offline/partial/refusal states; no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
-| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a round-trip whole run passes and prior bounded captures are retained; review pending; A2b session reports and A3/A4 limit controls/notices remain. |
+| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a agent/profile selection is accepted after its round-trip correction; A2b session reports and A3/A4 limit controls/notices remain. |
 | F84 / m11:216 / Pull requests page | pr.list/get | No dedicated pull-requests route | pulls/mod.rs session dialogs only | [P21](#reference-p21) | Add project-aware list and facts after schedules; do not claim all-PR coverage from watched sessions only. |
 | F85 / m11:222 / Light, dark, system | Bridge preference theme | settings/appearance.tsx; data/theme.ts | settings/appearance.rs | [P38](#reference-p38) | Existing three schemes; preserve system/reduced-motion and tokens. |
 | F86 / m11:223 / More themes | Client themes; no node RPC required | Only light/dark/system tokens | settings/appearance.rs three choices; extra theme branch not integrated | [P38](#reference-p38) | Wait for shared theme decision/data; do not invent new purple/gradient theme. |
@@ -160,7 +160,7 @@ assignments as current implementation proof.
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
 | m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; staged diagnostics, no assigned report/update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics and remote update still need callable assigned contracts. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
-| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a scope round-trip whole gate passes pending review, then A3/A4 consent/windows/factual notices on assigned limits calls. |
+| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a agent/profile selection is accepted; next A3/A4 consent/windows/factual notices on assigned limits calls. |
 | m12:373 / Phone/push (F71–F72) | Shared node transport; push.key/subscribe/unsubscribe/presence22 | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
 | m12:374 / Browser as surface | Local bridge serves page; GPUI browser is separate spike | app.tsx; routes/; loopback bridge | Wasm experiment is not connected-client parity proof | [P13](#reference-p13) [P23](#reference-p23) [P24](#reference-p24) | This track maintains the existing page; no new native/Wasm/browser engine. |
 
@@ -1146,3 +1146,25 @@ there is no reason to add another Escape listener to the dialog. Temporary
 frame control fixes the event order; these are controlled regressions rather
 than a claim that every historical occurrence was naturally reproduced.
 The three fixes, changed-package gate and affected captures remain pending.
+
+
+### Feedback implementation checkpoint
+
+`ui/page-focus` guards background draft focus and shortcut recording against
+the kit's current modal. `use-draft-presence` preserves the draft lifetime
+while moving the mount focus into that policy; the new-session file remains
+within its budget. Base UI still owns dismissal, composition, nested controls
+and focus return. The recorder's pending edit pauses instead of consuming
+keys from a modal, including before initial focus. No new control or second
+overlay stack was added.
+
+The toast viewport is top-centred below the header across sizes, because a
+wide lower-right toast can also reach the composer. Existing wide card width
+is preserved; narrow width follows Paseo. The scrolling stack is bounded,
+text wraps and shadow padding is retained. The browser cases cover 390,
+800 and 1280 widths in both themes, individual clearance and eight actual
+UI-generated messages with access to the last message by scrolling. Color,
+status roles and notification lifetimes remain unchanged. Both typechecks, full lint/fonts/controls/size and the bundle pass. The first
+frontend run also passes all 451 pure units; later edits only share browser
+fixtures and hide the empty toast host. Corrected browser behavior, affected
+captures and the complete package gate remain pending at this checkpoint.
