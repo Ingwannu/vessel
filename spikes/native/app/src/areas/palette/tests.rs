@@ -467,32 +467,36 @@ fn nested_backspace_uses_reference_blank_query_semantics(cx: &mut TestAppContext
     update(&view, cx, |shell, window, cx| {
         crate::areas::shortcuts::listen(shell, window, cx);
     });
-    for (query, should_leave) in [
-        ("", true),
-        ("\u{feff}", true),
-        ("\u{85}", false),
-        ("needle", false),
-    ] {
-        update(&view, cx, |shell, window, cx| {
-            shell.palette_page(
-                vessel_app_view::palette::pages::ChoiceLocation::group(
-                    "native-Theme".parse().unwrap(),
-                ),
-                window,
-                cx,
-            );
-        });
+    for width in [800.0, 390.0] {
+        cx.simulate_resize(gpui::size(px(width), px(844.0)));
         cx.run_until_parked();
-        cx.simulate_input(query);
-        cx.run_until_parked();
-        update(&view, cx, |shell, _, _| {
-            assert_eq!(shell.areas.palette.query, query);
-        });
-        cx.simulate_keystrokes("backspace");
-        cx.run_until_parked();
-        update(&view, cx, |shell, _, _| {
-            assert_eq!(shell.areas.palette.page.is_none(), should_leave);
-        });
+        for (query, should_leave) in [
+            ("", true),
+            ("\u{feff}", true),
+            ("\u{85}", false),
+            ("needle", false),
+        ] {
+            update(&view, cx, |shell, window, cx| {
+                shell.palette_page(
+                    vessel_app_view::palette::pages::ChoiceLocation::group(
+                        "native-Theme".parse().unwrap(),
+                    ),
+                    window,
+                    cx,
+                );
+            });
+            cx.run_until_parked();
+            cx.simulate_input(query);
+            cx.run_until_parked();
+            update(&view, cx, |shell, _, _| {
+                assert_eq!(shell.areas.palette.query, query);
+            });
+            cx.simulate_keystrokes("backspace");
+            cx.run_until_parked();
+            update(&view, cx, |shell, _, _| {
+                assert_eq!(shell.areas.palette.page.is_none(), should_leave);
+            });
+        }
     }
     let page = update(&view, cx, |shell, window, cx| {
         shell.palette_page(

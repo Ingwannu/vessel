@@ -736,3 +736,11 @@ navigate a Commands page while Messages owns input. A real keyboard regression
 switches to Messages and checks that Backspace preserves its mode/page state.
 Only F4 navigation projection/tests changed; W1's messages.rs/controller and
 query-retention policy remain untouched.
+
+Local Back remains available inside a pointer-opened compact palette even though
+global shortcuts/help/capture remain unavailable below600. Availability clears
+capture/prefix state, then the actual overlay check precedes only that existing
+local Back operation; global matching still stands down. The same regression
+runs at800 and390. Extracted the unchanged matching phase into a private method
+to keep admission/local-control ordering readable and within function budgets;
+both methods share the one engine/cache/dispatcher and listener.

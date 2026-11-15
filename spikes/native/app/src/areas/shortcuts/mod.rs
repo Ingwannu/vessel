@@ -192,17 +192,23 @@ impl Shell {
             badges::clear(&mut self.areas.shortcuts);
             return;
         }
-        if !available(window) {
+        let keyboard_available = available(window);
+        if !keyboard_available {
             self.areas.shortcuts.engine.reset();
             badges::clear(&mut self.areas.shortcuts);
             self.areas.shortcuts.page.leave();
-            return;
         }
         let context = self.shortcut_context(event, window, cx);
         if context.admission == Admission::Overlay {
             self.areas.shortcuts.engine.reset();
             self.areas.shortcuts.held.release();
             badges::clear(&mut self.areas.shortcuts);
+            return;
+        }
+        if !keyboard_available {
+            if self.command_center_backspace(event, window, cx) {
+                cx.stop_propagation();
+            }
             return;
         }
         let press = press_of(event);
@@ -231,6 +237,18 @@ impl Shell {
             }
             return;
         }
+        self.resolve_shortcut(press, context, window, cx);
+    }
+
+    /// Admission and local controls have already kept their input. This is
+    /// still the same engine/cache/dispatcher, with no second event listener.
+    fn resolve_shortcut(
+        &mut self,
+        press: KeyPress,
+        context: ShortcutContext,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let listener = &mut self.areas.shortcuts;
         match listener.compiled.refresh(&self.prefs.settings.shortcuts) {
             Ok(true) => {
