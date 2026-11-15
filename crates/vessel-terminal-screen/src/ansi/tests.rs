@@ -2,6 +2,7 @@
 use super::*;
 use crate::{FrameRows, Screen, ScrollbackLines, ViewportRequest};
 use base64::Engine as _;
+use std::io::Write as _;
 
 fn ink() -> Attributes {
     Attributes::new(Color::Default, Color::Default, [])
@@ -23,6 +24,10 @@ fn readonly_cells_refuse_control_injection_and_invalid_spans() {
     }
     assert_eq!(
         Cell::from_parts("AB", Width::One, ink()),
+        Err(ScreenError::CellContents)
+    );
+    assert_eq!(
+        Cell::from_parts("AB", Width::Two, ink()),
         Err(ScreenError::CellContents)
     );
     assert_eq!(
@@ -180,8 +185,10 @@ fn physical_display_fixture_export() {
     }
     // This is a data-fixture export, not a claim of renderer/terminal parity.
     // The separate pinned headless oracle compares original input vs display bytes.
-    println!(
+    writeln!(
+        std::io::stdout().lock(),
         "TERMINAL_DISPLAY_ORACLE {}",
         serde_json::to_string(&probes).unwrap()
-    );
+    )
+    .unwrap();
 }

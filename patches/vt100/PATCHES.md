@@ -54,5 +54,6 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
 
 9. Expose the existing cell-content capacity and Unicode width measurement as
    readonly facade metadata. Why: validated wire/display cells must use the
-   same table and ceiling without another dependency, parser or mutable grid
-   restoration. No terminal interpretation or stored cell layout changes.
+   same table, one positive-width base plus combining marks invariant and
+   ceiling without another dependency, parser or mutable grid restoration.
+   No terminal interpretation or stored cell layout changes.

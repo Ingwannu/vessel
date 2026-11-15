@@ -33,10 +33,17 @@ impl Cell {
     /// Published cell storage ceiling for readonly frame decoding at the facade edge.
     pub const MAX_CONTENT_BYTES: usize = CONTENT_BYTES;
 
-    /// Readonly display-cell validation uses the engine's existing width table.
+    /// Readonly cells must keep the engine's one base plus combining marks rule.
     #[must_use]
-    pub fn text_width(text: &str) -> usize {
-        text.width()
+    pub fn text_width(text: &str) -> Option<usize> {
+        let mut chars = text.chars();
+        let Some(first) = chars.next() else {
+            return Some(0);
+        };
+        if first.width()? == 0 || !chars.all(|ch| ch.width() == Some(0)) {
+            return None;
+        }
+        Some(text.width())
     }
 
     pub(crate) const DEFAULT: Self = Self::new();

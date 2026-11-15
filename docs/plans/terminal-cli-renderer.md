@@ -73,3 +73,17 @@ the fixture now checks every selected cell with scene/coordinate context before
 encoding, so a projection defect cannot hide behind a generic display refusal.
 The original failure and all expectations remain; a corrected runtime result
 and the independent display oracle are still owed.
+
+Readonly cell admission also follows the engine's documented one positive-width
+base plus zero-width combining marks invariant. A string such as two ASCII
+letters cannot masquerade as one wide lead/continuation pair merely because
+its summed string width is two. The small existing vendor width-table accessor
+checks that representation without another parser, normalization or grapheme
+implementation. The finite upstream cell/grapheme limitation remains unchanged.
+
+The strengthened d7dd fixture failed at history row1, column1: upstream trims
+default trailing cells before storing history, so the frame facade must project
+implicit blanks. Its old tests read only the first glyph and did not catch this.
+The strict d7dd check separately rejected the fixture's println macro; the
+stdout-only data export now writes through a locked stdout handle. No fixture
+expectation is removed and no terminal-parity result is inferred.

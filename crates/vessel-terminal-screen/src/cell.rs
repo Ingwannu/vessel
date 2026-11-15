@@ -203,11 +203,11 @@ pub(crate) fn validate_display_text(text: &str, width: Width) -> Result<(), crat
     }
     let measured = vt100::Cell::text_width(text);
     let valid = match width {
-        Width::One => text.is_empty() || measured == 1,
-        Width::Two => !text.is_empty() && measured == 2,
+        Width::One => text.is_empty() || measured == Some(1),
+        Width::Two => !text.is_empty() && measured == Some(2),
         Width::Continuation => text.is_empty(),
     };
-    if !valid || text.len() > vt100::Cell::MAX_CONTENT_BYTES || text.chars().any(char::is_control) {
+    if !valid || text.chars().any(char::is_control) {
         return Err(crate::ScreenError::CellContents);
     }
     Ok(())
