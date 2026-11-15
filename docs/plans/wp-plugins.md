@@ -217,3 +217,15 @@ expiration is a typed failure, not a successful complete-log claim. The real
 fake helper emits its long/truncated line and final diagnostic only on shutdown,
 so the retained-tail fixture covers this ordering instead of relying on startup
 output. The actor still permanently withdraws all live capabilities first.
+
+The canonical ClientCatalog/ClientInstallation value boundary now admits a
+complete owning-node snapshot, exact generation, required client protocol and
+immutable documents only. No private source path, registry credential, raw log
+or preparation argv enters it. Named proto bounds are128 installations,
+256 aggregate themes per node and4MiB complete canonical encoded catalog,
+additional to individual document limits. A cached encoded size permits later
+client-wide admission without formatting/serializing during paint. The existing
+counting sink is factored once for graph and catalog typed construction; no
+second oversized serialization is allocated. Nested generic serde errors are
+sealed, and invalid owner/duplicate/zero-floor snapshots refuse atomically.
+No public method or app network call is added by this value-only checkpoint.

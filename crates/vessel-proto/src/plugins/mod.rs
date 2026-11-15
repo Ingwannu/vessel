@@ -5,6 +5,8 @@
 
 mod address;
 mod attachment;
+mod budget;
+mod catalog;
 mod declarations;
 mod document;
 mod hook;
@@ -58,3 +60,8 @@ pub use process::{
 #[cfg(test)]
 #[path = "process_tests.rs"]
 mod process_tests;
+
+pub use catalog::{
+    CatalogError, ClientCatalog, ClientInstallation, MAX_CATALOG_BYTES, MAX_CATALOG_INSTALLATIONS,
+    MAX_CATALOG_THEMES,
+};
