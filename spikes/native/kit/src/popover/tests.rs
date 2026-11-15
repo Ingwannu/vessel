@@ -284,3 +284,37 @@ fn nested_popover_outside_and_escape_close_only_the_options_surface(cx: &mut Tes
         }
     }
 }
+
+#[gpui::test]
+fn deferred_owner_retirement_from_immutable_window_cannot_close_a_replacement(
+    cx: &mut TestAppContext,
+) {
+    let (probe, cx) = mount(cx, false, false);
+    probe.update_in(cx, |probe, window, cx| {
+        let retired = probe.state.open(anchor(), Alignment::Start, window, cx);
+        let immutable: &Window = window;
+        cx.defer_in(immutable, move |probe, window, cx| {
+            let _closed = probe.state.close(&retired, window, cx);
+            cx.notify();
+        });
+        let _replacement = probe.state.open(anchor(), Alignment::End, window, cx);
+    });
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        assert!(probe.state.is_open());
+        assert!(probe.state.dialog.focus_handle().is_focused(window));
+        assert_eq!(probe.admissions, 0);
+        let retired = probe.state.opening.as_ref().unwrap().lease.clone();
+        let immutable: &Window = window;
+        cx.defer_in(immutable, move |probe, window, cx| {
+            assert!(probe.state.close(&retired, window, cx));
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        assert!(!probe.state.is_open());
+        assert!(probe.outside.focus_handle(cx).is_focused(window));
+        assert_eq!(probe.admissions, 0);
+    });
+}

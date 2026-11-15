@@ -45,6 +45,17 @@ a newer surface. Only actual close acknowledges DialogState::dismissed. Callers
 must not implement another return-focus path. Replacing an opening finishes its
 old focus/snap cycle, preventing retained old gestures from changing new motion.
 
+Automatic owner retirement is separate from user-dismiss admission. When a host
+ConnectionContext retires or the area closes, take its captured context/Lease once
+so the feature stops drawing the obsolete body immediately. A settle hook with
+only &Window can use the existing GPUI Context::defer_in(&Window, closure) to obtain
+the mutable Window at the admitted event boundary. That closure calls
+state.close(&retired_lease, window, cx) and notifies, without another generation or
+state-only close. If a new opening replaced it meanwhile, close rejects the old
+lease before any focus/snap acknowledgment. The owner handles new-route focus;
+G4's shared policy preserves focus already taken by that route. No mutation is
+performed during drawing. This follows vendor app/context.rs:301-313.
+
 Desktop is content-sized, viewport-capped, end/start aligned, offset4, popup
 surface/radius/shadow and QUICK motion. Compact calls the existing dialog with the
 same DialogState; no duplicate compact layout or gesture engine exists. This is
