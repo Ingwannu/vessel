@@ -1035,3 +1035,7 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Shared button extension: see `docs/plans/backend-m12-g2-button-content.md`.
+Existing label APIs delegate to typed Label/Icon/IconAndLabel content;
+MD pointer32/touch44, icon14, explicit muted vectors remain muted.
