@@ -6,7 +6,7 @@ use crate::codex::protocol::UserInputRequest;
 use crate::{MAX_WAITING, error::InputError, mapper, recent::Recent};
 use serde_json::{Value, json};
 use vessel_proto::conversation::{AnswerValue, ChoiceOption, FieldKind, FieldName, QuestionField};
-use vessel_proto::{Question, QuestionAnswer, QuestionId, QuestionOutcome};
+use vessel_proto::{Question, QuestionAnswer, QuestionId, QuestionOutcome, ToolCallId};
 
 /// How a question's answer goes back to Codex.
 #[derive(Debug, Clone, Copy)]

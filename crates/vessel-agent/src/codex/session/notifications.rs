@@ -5,8 +5,9 @@ use super::{
     ErrorNotification, FileChangeApproval, INVALID_PARAMS, ItemNotification, METHOD_NOT_FOUND,
     PermissionsApproval, PlanNotification, QuestionOutcome, RequestResolved, Session, Settled,
     ToolCallUpdate, ToolKind, TurnNotification, TurnState, UsageNotification, UserInputRequest,
-    Value, answer, asks, mapper, read,
+    Value, asks, mapper, read,
 };
+use vessel_proto::PermissionOutcome;
 
 impl Session {
     pub(super) async fn notification(&mut self, method: &str, params: Value) {

@@ -102,7 +102,7 @@ fn background_shell_and_unknown_task_kinds_are_not_fabricated_children() {
             json!({"type":"system","subtype":"task_started","task_id":"shell","tool_use_id":"shell-tool","task_type":kind}),
         );
         assert!(
-            let _observed = feed(
+            feed(
                 &mut children,
                 assistant("shell-tool", "shell-message", "shell text")
             )

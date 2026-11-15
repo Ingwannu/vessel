@@ -1,7 +1,7 @@
 //! One responsibility of the Codex session actor, using its private typed state.
 
 use super::{
-    AgentEvent, AgentOutput, Command, ContentBlock, InputError, Pending, Reply, Session,
+    AgentEvent, AgentOutput, Command, ContentBlock, InputError, Mode, Pending, Reply, Session,
     SteerOutcome, SteerReply, TurnInterruptParams, TurnStartParams, TurnState, TurnSteerParams,
     answer, mapper,
 };

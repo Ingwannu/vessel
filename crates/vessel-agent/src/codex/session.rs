@@ -41,8 +41,8 @@ use serde_json::Value;
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::{
-    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, PermissionOutcome,
-    QuestionOutcome, ToolCallUpdate, ToolKind,
+    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, QuestionOutcome,
+    ToolCallUpdate, ToolKind,
 };
 
 use super::asks::{self, Approvals, Asking, Questions, Settled};

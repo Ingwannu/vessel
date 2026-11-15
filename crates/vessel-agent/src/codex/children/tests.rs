@@ -6,11 +6,11 @@ fn feed(children: &mut Children, method: &str, params: Value) -> Vec<AgentEvent>
     children.observe("root", method, &params)
 }
 fn spawn(sender: &str, child: &str, status: Option<&str>) -> Value {
-    let states = status.map_or_else(
+    let observations = status.map_or_else(
         || json!({}),
         |status| json!({child:{"status":status,"message":null}}),
     );
-    json!({"threadId":sender,"item":{"type":"collabAgentToolCall","id":format!("spawn-{child}"),"tool":"spawnAgent","status":"completed","senderThreadId":sender,"receiverThreadIds":[child],"agentsStates":states,"prompt":"Find the configuration"}})
+    json!({"threadId":sender,"item":{"type":"collabAgentToolCall","id":format!("spawn-{child}"),"tool":"spawnAgent","status":"completed","senderThreadId":sender,"receiverThreadIds":[child],"agentsStates":observations,"prompt":"Find the configuration"}})
 }
 fn messages(events: &[AgentEvent], child: &str) -> Vec<String> {
     events
