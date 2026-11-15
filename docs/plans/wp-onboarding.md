@@ -34,7 +34,7 @@ Paseo source observations (package-relative paths, inspected 2026-11-15):
 - Why: node info contains names, routes and a public key; agent status can spawn
   discovery even with refresh=false. Neither is a safe diagnostic substitute.
 - Consequences: the current node-info read may report identity/protocol/lifecycle
-  only. Full daemon/provider/process/log producers remain explicitly unavailable
+  only. Full daemon/process/log producers remain explicitly unavailable
   until their reviewed contracts exist. Test fakes are cfg(test) only.
 
 ## Structure and data flow
@@ -55,202 +55,89 @@ observations, and excludes paths/environment/agent output. It has no public
 node.diagnostics request at this base. Provider diagnostics, OS process lists
 and daemon tails likewise have no current callable safe producer. Screens
 state this; they never display a fixture result as a live successful report.
-Local app renderer and preference/log-location facts stay available, with home
-redaction and a bounded final output. Every unsupported section is named.
+Local app renderer and preference persistence facts stay available. No log path
+is collected. Every unsupported section is named and final output is bounded.
 
-## Validation and resume point
+## Shared base and ownership
 
-Done: pure run/host state, bounded safe text, per-host progress and the existing
-sheet extended, explicit unavailable daemon/provider/process/log source rows,
-node.info projection and framed in-memory peer tests; EN/KO Fluent framing.
-Narrow checks pending. Shared registration-only additions exceed the old shell
-and link ratchets; waiting for the announced package base/shared extraction.
-No size record is raised. Native lead has the exact registration footprint.
-Next: compile narrow checks, consume the announced base and L framing, then
-capture once and run one full native gate. The whole node diagnostic producer
-remains unavailable; do not claim an integrated wire success.
+The consumer merges announced app bases 8d5513e4 and 6036eeb8, accepted L/G4/G1
+integration f2cb8cb6, and the isolated connection-ready producer 1af642c6.
+Unrelated shared-head behaviour and assertions remain intact. Registration
+uses link command/event/dispatch and shell/events. No size allowance is raised:
+the demo/catalog extraction from the accepted integration keeps demo at 517
+product lines after the union, below the incoming base's old record.
 
-### Narrow compilation record
+The existing shared `connection_ready` hook delivers kept offers first, then
+one bounded typed fanout including Diagnostics. It runs after the connection's
+existing harness reads and before sessions/client insertion/final Fleet. It
+proves neither retained-client health nor Read authority. The consumer pins
+`Machine.node` before dispatch and refuses another admitted identity. A new
+Connected notice retires even a same-node observation; shared fleet identity
+replacement, disappearance or offline state also retires old facts. No second
+connection hook, identity registry or generation counter is introduced. Usage
+may append its own fanout entry; integration must preserve the union.
 
-The first narrow check found incorrect test enum names (`NodeInfo`, not
-`GetNode`) and an unnecessary Result helper. The next found the kit calls
-for `Type::Meta`, not Caption, and an unchecked test read length. These
-were corrected without changing any existing test expectation. Typed source
-fixtures now also reject a mismatched admitted node id. Compilation of the
-corrected package is pending; no full gate or capture has run.
+Provider-specific diagnostics is A9 (G3/W22), not this package. Its placeholder
+and three unused words were handed off and removed. The host report's safe
+cached Agents source remains ADR 0074 data, with no provider discovery call.
+Onboarding belongs to W15. No onboarding code is changed.
 
-Collection now schedules four hosts at once instead of making every later
-host fail busy. A failed refresh supersedes its predecessor even before a
-replacement report is available. A removed selected host remains explicitly
-offline. A source cap or the combined text cap refuses the whole result; it
-never truncates a supposedly complete support report. New Korean framing was
-reviewed against the existing machine terminology and complete recovery text.
+## Safe report consumer
 
-The third narrow run compiled the changed view and link crates and found two
-formatting-only app closure lints, now corrected. The exact current compile
-check and diagnostic tests still need a green result. Unchanged offline rows
-now keep their existing report allocation instead of rebuilding it per frame.
+`DaemonSnapshot` retains the approved immutable DiagnosticReport root. Its
+identity must match the admitted connection independently of node.info. A
+partial report preserves successful sources, observation times, unavailable
+reasons, saturation and omission. Missing values do not become zero. The
+technical format uses English headings and canonical JSON for nested safe DTO
+rows, avoiding a second schema. Exhaustive field destructuring forces future
+source additions to be integrated deliberately. Fixed home redaction is `~`.
 
-### Announced base integration
+Only cfg(test) fixtures populate full/partial daemon reports at this base.
+The product uses node.info only, projecting NodeId, negotiated protocol and
+closed lifecycle. It neither calls agent.status (refresh=false can execute
+builtin discovery) nor borrows session/terminal/git logs as daemon logs.
+N1's proposed process/pending RPC additions are not consumed before their gated
+handoff. No remote daemon-success claim follows from DTO fixture tests.
 
-Merged the announced package base `8d5513e4`. Conflicts were limited to
-`app/src/shell.rs` and `link/src/lib.rs`: the announced head won both files,
-then this package's registration lines were reapplied. Command/Event variants
-now register in `link/src/command.rs` and `event.rs`; dispatch in `dispatch.rs`;
-app events in `shell/events.rs`. No base behaviour or expectation was changed.
-The new unassigned-protocol client error maps to explicit unavailability.
-Native format, size, boundary and token checks pass after the merge. The prior
-package compile check passed on `6f6dac4f`; the merged code still needs its
-updated narrow check and diagnostics tests. Shared file budget blocker resolved.
+A run admits at most 64 hosts, with four nonqueued link permits and a named
+10-second node.info deadline. Combined UTF-8 output is limited to 128 KiB,
+checked before and after redaction and after every host. Overflow refuses the
+whole report, rather than silently truncating it. Host book labels stay in UI
+rows; the copied report uses ordinals and states requested host count separately
+from the saved book count. Run tickets reject duplicate/stale/closed results.
+Only settled bounded ReportText crosses the clipboard boundary. Refusal clears
+the local report too, so the screen cannot claim that the client was collected.
 
-### Approved typed daemon report consumer
+## Localization and copy contract
 
-The announced base makes ADR 0074's immutable DiagnosticReport root available.
-`DaemonSnapshot` now retains that root independently of the basic node-info
-read. A partial typed report preserves successful sources and observation
-times; unavailable sections stay explicit. Both the basic result and report
-identity are checked against the admitted node. Combined report bounds apply
-after every host. The product link still returns Unavailable for the unregistered
-full report; only cfg(test) fixtures populate typed report values.
+Existing Diagnostics framing uses L's accepted cached `diagnostics` catalog.
+New framing is `diagnostic-flow.ftl` in EN/KO, with typed getters; there is no
+parsing or formatting during draw. L accepted wording and key shape on c2000083:
+EN SHA256 26910921b34440bb10aae10b119b159b09c932066126abe6ef25d92d1f406f2e;
+KO SHA256 d41995ab1268eda265debfd33e8f79fccdab1c6c17dee961922da13f156d0b0f.
+That review is wording/data shape only, not app, runtime or privacy approval.
+Golden tests cover every Problem variant and every Progress status in both
+languages. L's copied-notice ownership check and exact report/clipboard/input
+retention assertions remain; only fixture initialization/access changed to the
+new typed Collection and ReportText. Technical report data is not retranslated.
 
-The technical renderer uses English section labels and canonical JSON for
-nested allowlisted DTO rows, rather than flattening each scalar into a separate
-English label. This deliberate formatting difference preserves saturation,
-omission and cached/stale/unknown distinctions without a second wire schema.
-Monotonic uptime, normalized version, closed OS/architecture and redacted home
-are rendered directly. Recent failures are explicitly scoped local node-call
-observations, never described as a daemon log or absence of errors. Extended
-process metrics, provider diagnostics and raw daemon logs remain unavailable.
+## Validation and current limits
 
-Resume: shared ratchets now pass, independent approved DTO consumer and typed
-partial fixtures are written. Run updated changed-crate Clippy and diagnostics
-tests, then connect L's accepted framing when its head is announced. Captures
-and the one full native gate remain owed.
+On the previous base, narrow-7 Clippy passed for view/link/app and 28 diagnostic
+tests passed (5 link, 23 view). The new base's first narrow found three redundant
+type paths and a shared sidebar test missing the new node field; both corrected
+without weakening its assertions. The current source needs its own final narrow,
+scoped tests, exact-source captures and one whole native gate before handover.
+Format, native size/boundaries and token checks passed after the base merge.
 
-### Connection lifecycle and provider ownership
+The isolated two-node capture fleet uses immutable hash-verified reference
+binaries and the matching archived helper, never real agents. Its protocol-15
+node.info exchange proves backward-compatible basic collection only. Captures
+and local builds use a private target, XDG/HOME/config, authenticated Xvfb and
+UID 1000. An interrupted pre-base capture rebuild is not final evidence. No
+production files, permissions or service state are changed.
 
-A connected notice is a new observation generation even when the book name and
-NodeId are identical. The feature message now has Answered and Connected forms;
-a Connected notice invalidates the previous row and rejects its old result.
-The existing shared connection_ready seam remains the one producer; its owner
-is supplying a standalone seam rather than importing another feature stack.
-A test covers same-node reconnect before and after completion, then a fresh run.
-
-Provider-specific diagnostics belongs to the providers package (catalogue row
-568). Its unused source placeholder/words were handed to that owner and removed
-from this package's final UI and copyable sections. The host report's approved
-allowlisted cached Agents section remains part of ADR 0074, with no provider
-discovery or agent.status call.
-
-Resume: typed consumer compile check is queued. Connection message contract is
-written/tested in source; shared lifecycle producer is pending its owner's seam.
-The lead line now includes accepted Diagnostics localization at f2cb8cb6; merge
-that accepted integration and preserve its copy-notice/language contract.
-
-### Accepted localization integration
-
-Merged the lead's accepted localization integration `f2cb8cb6` (including
-Diagnostics 205f1e01). README append blocks both remain. In the owned view
-module, the expanded scanner/collection remain and L's words_tests registration
-is retained. The owned app State keeps the new collection plus L's copied_notice,
-copy handler and owner-checked language refresh. The copy boundary now accepts
-ReportText, so arbitrary raw text cannot bypass its limit/redaction.
-
-L's language tests keep every exact report/clipboard/notice/input assertion.
-Only fixture initialization and the moved report-field access use the typed
-collection API; the copy call wraps the same fixture in ReportText. Existing
-settings framing now reads the accepted cached diagnostics catalog, while new
-collection framing remains diagnostic-flow. All unrelated merged head logic
-and tests remain unchanged.
-
-### Actual connection-ready producer
-
-Merged the isolated connection-ready producer 1af642c6 directly based on the
-announced app base. It changes only nodes/refresh plus its plan, and keeps
-kept-offer delivery before lifecycle notices. The diagnostics entry is the
-sole addition to its typed notice array; no second lifecycle hook or generation
-registry is introduced. Its author's dependency source precheck is pending;
-this package owns actual correlation tests and the combined native gate.
-
-The source-only producer dependency received V1's no-source-blocker precheck
-for provisional consumer reuse. The consumer regression now opens two real
-framed in-memory NodeClients with identical node identity, runs the actual
-connection_ready fanout, observes Connected before an equal Fleet, and checks
-that a delayed old response cannot restore its copyable facts. This does not
-claim the notice proves Read authority or a retained healthy connection; the
-actual read still owns refusal and timeout outcomes.
-
-### Validation resume
-
-L accepted the final EN/KO wording and catalog shape (no app/security/gate
-approval implied). Golden tests now cover every Problem recovery in both
-languages and every progress status, including partial coverage. A canonical
-complete typed fixture also exercises successful full coverage independently
-from the existing partial-source fixtures.
-
-The typed-consumer narrow submit b7a9d390 was never registered due to the build
-service's global cleanup-lock stall. Its owner confirmed the exact absent SHA
-and authorized one fixed-SHA resubmission after repair. That infrastructure
-interruption is not a compilation/test failure. Current source still owes
-updated narrow Clippy, scoped diagnostics tests, captures and the final gate.
-
-The renderer destructures every DiagnosticReportFields member exhaustively:
-adding a future safe source must trigger a consumer integration, rather than
-silently omitting it. The app log-location line says not collected; it does
-not claim that no app log exists when paths are deliberately omitted.
-No unreviewed diagnostics producer or process-metrics WIP was consumed.
-
-Resume: final consumer/source coverage is written; semantic metadata omits
-paths explicitly. Product source is frozen for scoped tests and capture build.
-The sole fixed-SHA retry of the interrupted prior narrow is registered and
-queued; no duplicate is running. Current code needs its own changed-crate
-Clippy/test evidence after that prior snapshot finishes.
-
-The existing screen composition is split into host/source cards, report body
-and actions so no long renderer owns unrelated page and dialog composition.
-This changes no labels, controls, layout values or data decisions. The compact
-settings registration converts its existing boolean into a local layout enum
-for the extracted card helpers; no second control renderer is introduced.
-
-The authorized retry of b7a9d390 completed compilation and found only two
-redundant type qualifications in the collection tests; those are corrected.
-The current head additionally includes the accepted localization and actual
-connection-ready producer, so its own narrow check/test outcomes remain owed.
-The capture fleet uses the immutable, hash-verified reference binaries and
-matching baseline helper; it exercises backward-compatible node.info only.
-It cannot prove a new daemon diagnostic RPC, which is still not consumed.
-
-The first visual probe verified a working basic report on two isolated paired
-fake nodes (negotiated protocol 15) and the adaptive viewer at 390x844. A saved
-64-byte book label wraps within the compact viewer; Copy/Refresh stay visible.
-This is a development probe, not final exact-head capture evidence. The report
-now states its requested host count explicitly, independently of the saved-book
-count, so a one-host retry cannot look like a missing host in an all-host report.
-A scope-count regression preserves private label exclusion and zero-host
-report/clipboard identity.
-
-The next changed-crate narrow compiled the updated typed consumer/UI and found
-one redundant Hub qualification in the new in-memory lifecycle test. Corrected
-without changing that test's assertions or protocol. No functional runtime
-failure is implied by that lint result; scoped execution is still queued.
-
-### Shared package base 2
-
-Merged announced 6036eeb8, including the shared optional Machine.node welcome
-identity and kit editing/event seams. Only the size-list line conflicted: the
-already accepted Diagnostics/Chat integration had extracted demo/catalog and
-shrunk demo below its former base record, so the existing lower record remains;
-no allowance was raised. The actual file is checked after the union. The
-connection-ready hook remains the single fanout and the new node field remains
-the sole fleet identity; no feature-owned parallel identity registry is added.
-
-Before dispatch, this consumer pins a row to Machine.node when available. A
-reply admitted by another node cannot override that expected identity. An
-active request cannot be retargeted by a second expectation. A replaced fleet
-identity also retires prior facts; same-id reconnect still uses the lifecycle
-notice. A regression proves the cross-client reply is refused.
-
-The capture rebuild began just before this base merge, so only its verified
-private process group was interrupted; that artifact is not final evidence.
-The earlier 28 scoped tests and narrow-7 Clippy passed on the prior base; the
-new base/identity consumer still require their own narrow tests and final gate.
+Current functional difference: full daemon and desktop diagnostics, extended
+process metrics and daemon raw-log viewing remain explicit Unavailable. The
+screen does not substitute fake producer success. Native watchdog/mobile shims
+and bundled web hosting are outside this assigned app diagnostic sheet scope.

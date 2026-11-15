@@ -194,7 +194,12 @@ fn report_actions(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -
 fn report_body(run: &Collection, catalog: &'static Translator, tokens: &Tokens) -> Div {
     let labels = catalog.diagnostic_flow();
     let mut body = div().flex().flex_col().gap(px(spacing::S3)).min_w_0();
-    body = body.child(status_row(labels.client(), labels.done(), tokens));
+    let client_status = if run.has_client_report() {
+        labels.done()
+    } else {
+        labels.unavailable()
+    };
+    body = body.child(status_row(labels.client(), client_status, tokens));
     body = body.child(status_row(labels.desktop(), labels.unavailable(), tokens));
     for row in run.rows() {
         body = body.child(status_row(

@@ -338,6 +338,11 @@ impl Collection {
     pub fn rows(&self) -> &[HostRow] {
         &self.rows
     }
+    /// Whether this run actually admitted the local client report.
+    #[must_use]
+    pub const fn has_client_report(&self) -> bool {
+        self.client.is_some()
+    }
     /// Only a fully settled, bounded report can be copied.
     #[must_use]
     pub const fn report(&self) -> Option<&ReportText> {

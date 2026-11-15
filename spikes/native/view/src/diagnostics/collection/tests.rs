@@ -221,6 +221,7 @@ fn a_failed_refresh_invalidates_its_predecessor_and_cannot_copy_the_old_report()
     run.refuse(Problem::Exhausted);
     run.answer(t, &host, Ok(result(NodeId::random())));
     assert_eq!(run.phase(), &Phase::Failed(Problem::Exhausted));
+    assert!(!run.has_client_report());
     assert!(run.report().is_none());
 }
 
@@ -318,16 +319,15 @@ fn the_shared_fleet_retires_changed_removed_and_offline_identity_without_raw_err
     run.expect_node(&host, first);
     run.running(ticket, &host);
     run.answer(ticket, &host, Ok(result(first)));
-    let mut machine =
-        crate::Machine::unreachable("host".to_owned(), "PRIVATE-FAILURE-MUST-NOT-COPY");
-    machine.reach = crate::Reach::Online;
+    let mut machine = Machine::unreachable("host".to_owned(), "PRIVATE-FAILURE-MUST-NOT-COPY");
+    machine.reach = Reach::Online;
     machine.node = Some(replacement);
     run.reconcile(&[machine.clone()]);
     assert!(matches!(
         run.rows().first().unwrap().progress,
         Progress::Failed(Problem::ConnectionChanged)
     ));
-    machine.reach = crate::Reach::Unreachable("PRIVATE-FAILURE-MUST-NOT-COPY".to_owned());
+    machine.reach = Reach::Unreachable("PRIVATE-FAILURE-MUST-NOT-COPY".to_owned());
     run.reconcile(&[machine]);
     assert!(matches!(
         run.rows().first().unwrap().progress,
