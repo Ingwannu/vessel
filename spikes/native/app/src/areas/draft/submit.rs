@@ -21,6 +21,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !self.areas.draft.creation.flow.may_submit()
+            || self.composer_attachments_blocked(vessel_app_view::composer::drafts::DraftKey::New)
+        {
+            return;
+        }
         if (text.trim().is_empty() && !self.draft_has_files())
             || !self.areas.draft.creation.flow.may_submit()
         {
@@ -31,22 +36,25 @@ impl Shell {
             cx.notify();
             return;
         };
-        let Some(expected_node) = self
+        let Some(context) = self
             .fleet
             .machines
             .iter()
             .find(|entry| entry.name == machine.as_str())
-            .and_then(|entry| entry.node)
+            .and_then(vessel_app_view::Machine::connection_context)
         else {
             self.areas.draft.error = Some(self.words.creation().offline().to_owned());
             cx.notify();
             return;
         };
-        let Some((ticket, target)) = self.draft_creation_target(&machine, &harness) else {
+        let expected_node = context.node();
+        let Some((ticket, target)) = self.draft_creation_target(&machine, &context, &harness)
+        else {
             cx.notify();
             return;
         };
-        let Some(input) = self.prepare_creation_input(ticket, expected_node, &machine, &text, cx)
+        let message = self.areas.draft.creation.message(ticket);
+        let Some(input) = self.prepare_creation_input(ticket, message.clone(), &context, &text, cx)
         else {
             return;
         };
@@ -67,7 +75,10 @@ impl Shell {
             return;
         }
         let ask = Ask {
+            source: vessel_app_view::composer::drafts::DraftKey::New,
+            context,
             ticket,
+            message,
             machine: machine.clone(),
             expected_node,
             target,
@@ -110,12 +121,12 @@ impl Shell {
     fn prepare_creation_input(
         &mut self,
         ticket: Ticket,
-        expected_node: vessel_proto::NodeId,
-        machine: &Name,
+        message: vessel_proto::timeline::ClientMessageId,
+        connection: &vessel_app_view::connection::ConnectionContext,
         text: &str,
         cx: &mut Context<'_, Self>,
     ) -> Option<FirstInput> {
-        match self.prepare_draft_files_on(ticket, expected_node, machine.as_str(), text) {
+        match self.prepare_draft_input_on(ticket, message, connection.clone(), text) {
             Ok(Some(prepared)) => {
                 if prepared.ticket() == ticket {
                     Some(FirstInput::Deferred)
@@ -131,9 +142,9 @@ impl Shell {
                         PrepareProblem::Busy | PrepareProblem::Capacity => {
                             self.words.creation().queue_full()
                         }
-                        PrepareProblem::Machine(_) | PrepareProblem::Target(_) => {
-                            self.words.creation().refused()
-                        }
+                        PrepareProblem::Machine(_)
+                        | PrepareProblem::Target(_)
+                        | PrepareProblem::Context(_) => self.words.creation().refused(),
                     }
                     .to_owned(),
                 );
@@ -154,17 +165,17 @@ impl Shell {
             self.areas.draft.error = Some(why);
             return None;
         }
-        match Name::parse(&machine) {
-            Ok(machine) => Some((machine, harness)),
-            Err(_) => {
-                self.areas.draft.error = Some(self.words.creation().refused().to_owned());
-                None
-            }
+        if let Ok(machine) = Name::parse(&machine) {
+            Some((machine, harness))
+        } else {
+            self.areas.draft.error = Some(self.words.creation().refused().to_owned());
+            None
         }
     }
     fn draft_creation_target(
         &mut self,
         machine: &Name,
+        context: &vessel_app_view::connection::ConnectionContext,
         harness: &HarnessRef,
     ) -> Option<(Ticket, Target)> {
         if let Flow::Failed {
@@ -175,7 +186,10 @@ impl Shell {
             && let Some(card) = &self.areas.draft.creation.registered
         {
             // A rejected first message never makes another agent.
-            if card.machine != machine.as_str() {
+            if card.machine != machine.as_str()
+                || self.areas.draft.creation.node != Some(context.node())
+                || self.areas.draft.creation.context.as_ref() != Some(context)
+            {
                 self.areas.draft.error = Some(self.words.creation().refused().to_owned());
                 return None;
             }
@@ -197,7 +211,7 @@ impl Shell {
                 .folders
                 .insert(machine.as_str().to_owned(), folder.clone());
         }
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         let mut spec = SessionSpec::new(
             harness.clone(),
             SessionMode::Structured {
@@ -213,5 +227,108 @@ impl Shell {
             .creation
             .allocate()
             .map(|ticket| (ticket, Target::New(spec)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shell::language_tests;
+    use gpui::TestAppContext;
+    use vessel_app_view::Card;
+    use vessel_app_view::creation::Failure;
+    use vessel_proto::{HarnessKind, NodeId, SessionId, SessionInfo};
+
+    #[gpui::test]
+    fn first_input_retry_retains_original_admission_and_cannot_follow_a_reused_alias(
+        cx: &mut TestAppContext,
+    ) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, _window, _cx| {
+            let machine = Name::parse("fixture").unwrap();
+            let harness = HarnessRef::from(HarnessKind::Codex);
+            let node = NodeId::random();
+            let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+            let context = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    node,
+                )
+                .unwrap();
+            let session = SessionId::random();
+            let ticket = Ticket::new(1);
+            let spec = SessionSpec::new(
+                harness.clone(),
+                SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
+            );
+            let card = Card::from_session(
+                machine.as_str(),
+                &SessionInfo::new(session, spec, chrono::DateTime::UNIX_EPOCH),
+            );
+            let creation = &mut shell.areas.draft.creation;
+            creation.node = Some(node);
+            creation.context = Some(context.clone());
+            creation.registered = Some(card);
+            assert_eq!(
+                creation.flow.begin(ticket, Stage::Resource),
+                Transition::Applied
+            );
+            assert_eq!(
+                creation.flow.progress(ticket, Stage::InitialInput),
+                Transition::Applied
+            );
+            assert_eq!(
+                creation
+                    .flow
+                    .fail(ticket, Failure::Refused(vessel_proto::ErrorCode::Conflict)),
+                Transition::Applied
+            );
+            let message = creation.message(ticket);
+            let replaced = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    NodeId::random(),
+                )
+                .unwrap();
+            assert!(
+                shell
+                    .draft_creation_target(&machine, &replaced, &harness)
+                    .is_none()
+            );
+            let reconnected = admissions
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    node,
+                )
+                .unwrap();
+            assert!(
+                shell
+                    .draft_creation_target(&machine, &reconnected, &harness)
+                    .is_none()
+            );
+            assert_eq!(shell.areas.draft.creation.node, Some(node));
+            assert_eq!(
+                shell
+                    .areas
+                    .draft
+                    .creation
+                    .registered
+                    .as_ref()
+                    .unwrap()
+                    .session,
+                session
+            );
+            let (same, target) = shell
+                .draft_creation_target(&machine, &context, &harness)
+                .unwrap();
+            assert_eq!(same, ticket);
+            assert!(matches!(target, Target::Registered(id) if id == session));
+            assert_eq!(shell.areas.draft.creation.message(ticket), message);
+        });
     }
 }

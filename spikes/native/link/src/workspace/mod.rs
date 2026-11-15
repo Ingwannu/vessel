@@ -32,6 +32,8 @@
 mod answer;
 mod ask;
 mod calls;
+#[cfg(not(target_arch = "wasm32"))]
+mod entry;
 mod follow;
 pub mod layout;
 mod pulls;

@@ -2,6 +2,31 @@
 
 use super::*;
 
+#[test]
+fn a_failed_placement_walk_cannot_prove_that_its_prior_steps_had_no_effect() {
+    use crate::workspace::problem::Problem;
+    for problem in [
+        Problem::Gone("disconnected after dispatch".to_owned()),
+        Problem::Node {
+            code: ErrorCode::Conflict,
+            message: "later setup refusal".to_owned(),
+        },
+        Problem::Node {
+            code: ErrorCode::Internal,
+            message: "lost placement result".to_owned(),
+        },
+    ] {
+        let failure = Failure::placement(&problem);
+        assert_eq!(failure, Failure::OutcomeUnknown);
+        let mut flow = Flow::default();
+        assert_eq!(flow.begin(FIRST, Stage::Workspace), Transition::Applied);
+        assert_eq!(flow.fail(FIRST, failure), Transition::Applied);
+        assert!(!flow.may_submit());
+    }
+    assert_eq!(Failure::placement(&Problem::Unsent), Failure::QueueFull);
+    assert_eq!(Failure::placement(&Problem::Older), Failure::Unsupported);
+}
+
 const FIRST: Ticket = Ticket::new(0);
 const SECOND: Ticket = Ticket::new(1);
 
