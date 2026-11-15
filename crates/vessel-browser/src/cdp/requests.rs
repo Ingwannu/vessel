@@ -229,7 +229,8 @@ impl Evaluate {
             expression,
             return_by_value: true,
             await_promise: true,
-            user_gesture: true,
+            // Evaluation must not mint a trusted browser user gesture.
+            user_gesture: false,
         }
     }
 }

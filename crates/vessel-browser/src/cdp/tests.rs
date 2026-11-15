@@ -15,6 +15,121 @@ use super::{Client, Endpoint, Error};
 const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 const EXCESS_EVENT_COUNT: usize = 33;
 
+#[test]
+fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
+    use super::requests::*;
+    use vessel_proto::browser::{RequiredInput, ViewportSide, ViewportSize};
+    fn method<R: Request>(request: R, expected: &str) {
+        assert_eq!(
+            serde_json::to_string(&R::METHOD).unwrap(),
+            format!("\"{expected}\"")
+        );
+        assert!(serde_json::to_string(&request).is_ok());
+    }
+    method(CloseBrowser {}, "Browser.close");
+    method(EnablePage {}, "Page.enable");
+    method(EnableRuntime {}, "Runtime.enable");
+    method(EnableNetwork {}, "Network.enable");
+    method(Stop {}, "Page.stopLoading");
+    method(Reload {}, "Page.reload");
+    method(History {}, "Page.getNavigationHistory");
+    method(Capture {}, "Page.captureScreenshot");
+    method(ClearViewport {}, "Emulation.clearDeviceMetricsOverride");
+    let created: Created =
+        serde_json::from_str(r#"{"targetId":"private-target-fixture"}"#).unwrap();
+    method(
+        CloseTarget {
+            target_id: created.target_id,
+        },
+        "Target.closeTarget",
+    );
+    let closed: Closed = serde_json::from_str(r#"{"success":false}"#).unwrap();
+    assert!(!closed.success);
+    method(
+        CreateTarget {
+            url: "https://example.test/".parse().unwrap(),
+            background: true,
+        },
+        "Target.createTarget",
+    );
+    method(
+        Navigate {
+            url: "https://example.test/path".parse().unwrap(),
+        },
+        "Page.navigate",
+    );
+    let navigation: Navigated = serde_json::from_str(r#"{"errorText":"fixture-refusal"}"#).unwrap();
+    assert!(navigation.error_text.is_some());
+    let history: NavigationHistory =
+        serde_json::from_str(r#"{"currentIndex":0,"entries":[{"id":7,"url":"about:blank"}]}"#)
+            .unwrap();
+    assert_eq!(history.current_index.position(), Some(0));
+    let entry = history.entries.into_iter().next().unwrap();
+    assert_eq!(entry.url.as_str(), "about:blank");
+    method(
+        NavigateHistory { entry_id: entry.id },
+        "Page.navigateToHistoryEntry",
+    );
+    let negative: HistoryIndex = serde_json::from_str("-1").unwrap();
+    assert_eq!(negative.position(), None);
+    let evaluate = Evaluate::new(RequiredInput::try_from("1+1".to_owned()).unwrap());
+    assert_eq!(
+        serde_json::to_value(&evaluate).unwrap(),
+        serde_json::json!({"expression":"1+1","returnByValue":true,"awaitPromise":true,"userGesture":false})
+    );
+    method(evaluate, "Runtime.evaluate");
+    let evaluated: Evaluated = serde_json::from_str(r#"{"result":{"value":2}}"#).unwrap();
+    #[derive(Deserialize)]
+    struct NumberResult {
+        value: u8,
+    }
+    assert_eq!(evaluated.remote_object::<NumberResult>().unwrap().value, 2);
+    let exception: Evaluated =
+        serde_json::from_str(r#"{"result":{},"exceptionDetails":{"text":"private exception"}}"#)
+            .unwrap();
+    assert!(matches!(
+        exception.remote_object::<NumberResult>(),
+        Err(EvaluationError::Exception)
+    ));
+    assert!(!format!("{exception:?}").contains("private exception"));
+    // Invalid bytes must fail before becoming any frame or image fixture.
+    assert!(
+        serde_json::from_str::<Captured>(r#"{"data":"bm90LXBuZw=="}"#)
+            .map(|capture| capture.data.bytes().len())
+            .is_err()
+    );
+    let viewport = SetViewport::new(ViewportSize {
+        width: ViewportSide::try_from(390).unwrap(),
+        height: ViewportSide::try_from(844).unwrap(),
+    });
+    assert_eq!(
+        serde_json::to_value(&viewport).unwrap(),
+        serde_json::json!({"width":390,"height":844,"deviceScaleFactor":1,"mobile":false})
+    );
+    method(viewport, "Emulation.setDeviceMetricsOverride");
+}
+
+#[tokio::test]
+async fn essential_events_keep_private_session_identity_without_raw_payload_access() {
+    use super::wire::EventKind;
+    tokio::time::timeout(FIXTURE_DEADLINE,async {
+        let (listener,endpoint)=listener().await;
+        let peer=tokio::spawn(async move {
+            let (socket,_)=listener.accept().await.unwrap();
+            let mut socket=tokio_tungstenite::accept_async(socket).await.unwrap();
+            socket.send(Message::Text(r#"{"method":"Page.loadEventFired","sessionId":"private-session-canary","params":{"timestamp":1}}"#.into())).await.unwrap();
+            while let Some(Ok(message))=socket.next().await {if message.is_close(){break;}}
+        });
+        let (client,mut events)=Client::connect(&endpoint).await.unwrap();
+        let event=events.next().await.unwrap();
+        assert_eq!(event.kind(),EventKind::Loaded);
+        assert!(event.session().is_some());
+        assert!(!format!("{event:?}").contains("private-session-canary"));
+        client.shutdown().await.unwrap();
+        peer.await.unwrap();
+    }).await.unwrap();
+}
+
 #[derive(Deserialize)]
 struct Call {
     id: CommandId,
@@ -68,7 +183,11 @@ async fn out_of_order_responses_are_correlated_to_their_own_typed_requests() {
         let (client,_events)=Client::connect(&endpoint).await.unwrap();
         let target=TargetId::try_from("private-target-fixture".to_owned()).unwrap();
         let (version,attached)=tokio::join!(client.execute(None,Version{}),client.execute(None,Attach::new(target)));
-        assert_eq!(version.unwrap().product.as_str(),"not-a-qualified-browser");
+        let version=version.unwrap();
+        assert_eq!(version.product.as_str(),"not-a-qualified-browser");
+        for report in [version.protocol_version,version.revision,version.user_agent,version.js_version] {
+            assert_eq!(report.as_str(),"fixture");
+        }
         assert!(!format!("{:?}",attached.unwrap().session_id).contains("private-session-fixture"));
         client.shutdown().await.unwrap();
         peer.await.unwrap();

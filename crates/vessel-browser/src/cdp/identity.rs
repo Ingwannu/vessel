@@ -61,7 +61,3 @@ opaque_id!(
     SessionId,
     "A flattened CDP session id, unrelated to a Vessel SessionId."
 );
-opaque_id!(
-    RemoteObjectId,
-    "A remote JavaScript object handle, valid only in its runtime context."
-);

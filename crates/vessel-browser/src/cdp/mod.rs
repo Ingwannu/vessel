@@ -13,7 +13,5 @@ pub(crate) mod requests;
 mod tests;
 mod wire;
 
-pub(crate) use client::{Client, Error, Events};
-pub(crate) use endpoint::{Endpoint, InvalidEndpoint};
-pub(crate) use identity::{InvalidCdpIdentity, RemoteObjectId, SessionId, TargetId};
-pub(crate) use wire::{DecodeError, Event, EventKind, RemoteError};
+pub(crate) use client::{Client, Error};
+pub(crate) use endpoint::Endpoint;
