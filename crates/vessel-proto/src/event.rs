@@ -62,6 +62,11 @@ use crate::title::SessionTitle;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SessionEvent {
+    /// Pending ADR 0077 metadata. Older peers receive a harmless log line.
+    Checkpoint {
+        /// No provider content or raw filesystem data is carried here.
+        event: crate::checkpoint::CheckpointEvent,
+    },
     /// The process changed state. A final `Status` is the last event of
     /// every run of a session: `session.resume` (protocol 10) starts
     /// another run, which continues the same log after it.
@@ -170,6 +175,7 @@ impl SessionEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
+            Self::Checkpoint { .. } => crate::checkpoint::FILE_CHECKPOINTS,
             Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
             Self::Agent { event } => Some(event.since()),
             Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
@@ -205,6 +211,7 @@ impl SessionEvent {
             })
         };
         match self {
+            Self::Checkpoint { event } => log(event.log_line().to_owned()),
             Self::Status { .. } | Self::Terminal(_) => None,
             Self::Agent { event } => event
                 .for_protocol(protocol)

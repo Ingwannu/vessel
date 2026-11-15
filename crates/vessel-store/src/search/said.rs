@@ -57,6 +57,7 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
+        | SessionEvent::Checkpoint { .. }
         | SessionEvent::Rewound { .. } => Said::Nothing,
     }
 }

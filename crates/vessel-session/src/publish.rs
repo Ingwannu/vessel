@@ -296,7 +296,8 @@ impl InfoChange {
             | SessionEvent::QueueChanged { .. }
             | SessionEvent::CommandsChanged { .. }
             | SessionEvent::UsageChanged { .. }
-            | SessionEvent::Forked { .. } => Self::None,
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Checkpoint { .. } => Self::None,
         }
     }
 

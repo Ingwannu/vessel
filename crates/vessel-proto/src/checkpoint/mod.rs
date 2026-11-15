@@ -5,6 +5,7 @@
 
 mod bounds;
 mod changes;
+mod event;
 mod evidence;
 mod image;
 mod metadata;
@@ -23,6 +24,7 @@ pub use bounds::{
     FileBytes, ImageBytes, PathCount,
 };
 pub use changes::{Change, ChangeKind};
+pub use event::CheckpointEvent;
 pub use evidence::{
     FileFingerprint, IgnoreFingerprint, ObjectFingerprint, ObservedEntry, ObservedPresence,
     ObservedSnapshot, PhysicalRoot, RootFingerprint, SnapshotEvidence,

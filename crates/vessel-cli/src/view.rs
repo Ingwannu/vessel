@@ -124,6 +124,7 @@ impl Conversation {
                 ),
                 None => format!("[a fork of session {from} (vessel log {from})]"),
             }),
+            SessionEvent::Checkpoint { event } => self.line(format!("[{}]", event.log_line())),
             SessionEvent::Rewound {
                 after,
                 files_changed,

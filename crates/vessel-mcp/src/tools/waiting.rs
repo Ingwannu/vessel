@@ -196,6 +196,7 @@ pub(super) fn turn_outcome(
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
+            | SessionEvent::Checkpoint { .. }
             | SessionEvent::Rewound { .. } => {}
         }
     }

@@ -143,6 +143,7 @@ impl Tracker {
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
+            | SessionEvent::Checkpoint { .. }
             | SessionEvent::Rewound { .. } => {}
         }
     }

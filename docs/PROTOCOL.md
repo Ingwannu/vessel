@@ -1884,3 +1884,15 @@ slots with the canonical range and approved literal program. A current or
 prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
+
+### Pending files-only checkpoint metadata (ADR 0077)
+
+`SessionEvent::Checkpoint` carries a closed metadata family:
+`prompt_accepted` establishes a durable before-turn anchor; `turn_associated`
+links that anchor to the actual provider `turn_started` sequence; and
+`files_restored` identifies a durably completed, verified file restore. It carries
+no raw file bytes, paths or provider content, and never rewinds conversation.
+The event requirement is `FILE_CHECKPOINTS`, currently `None`; every current
+peer receives its harmless HarnessLog representation. No protocol number is
+assigned here. Producer hooks and restore-controller publication remain separate
+activation requirements, alongside regenerated TypeScript and native consumers.

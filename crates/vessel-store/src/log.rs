@@ -163,7 +163,8 @@ impl Projection {
             | SessionEvent::CommandsChanged { .. }
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
-            | SessionEvent::Forked { .. } => {}
+            | SessionEvent::Forked { .. }
+            | SessionEvent::Checkpoint { .. } => {}
             // The agent's conversation from a rewind on (protocol 14, ADR
             // 0052): a restarted agent's `ready` is not logged, so a move,
             // a resume or an export after it reads the id from here.

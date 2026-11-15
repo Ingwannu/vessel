@@ -686,3 +686,13 @@ Busy admission unwinds the logical claim. An already missing folder permits
 metadata-only retirement and performs no physical mutation. These connections
 do not replace physical live-occupant checks or durable workspace lifecycle
 claims; those remain required before checkpoint controller activation.
+
+Durable anchor refinement: a real new prompt receives its own typed
+`CheckpointEvent::PromptAccepted` log record before capture. Its durable sequence
+is the immutable BeforeTurn anchor. Once the provider's TurnStarted is actually
+published, a typed TurnAssociated record binds those two positions. This avoids
+predicting sequence numbers while agent outputs can arrive and avoids duplicating
+provider prompt events. FilesRestored carries only operation/checkpoint identities
+and a bounded path count after durable verification. This closed SessionEvent
+family uses FILE_CHECKPOINTS (None until assignment), downgrades for all existing
+peers, and does not affect conversation projection, attention or cost accounting.

@@ -488,7 +488,8 @@ async fn the_scrollback_drops_its_oldest_output() {
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
-                | SessionEvent::Rewound { .. } => 0,
+                | SessionEvent::Checkpoint { .. }
+            | SessionEvent::Rewound { .. } => 0,
             })
             .sum();
         assert!(kept <= 16 * 1024 + 64 * 4, "kept {kept} bytes");

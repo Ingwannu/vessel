@@ -336,3 +336,17 @@ setup cannot run and removal cannot delete during that hold, then repeats both
 after release. Its remote run is still owed. The session failed-store fixture
 now waits for its first, successful process's handover before closing the store,
 so that assertion does not depend on unrelated pending persistence output.
+
+### Durable checkpoint event foundation
+
+A before-turn capture needs an already committed anchor; guessing the next
+provider `turn_started` sequence is unsafe because incidental agent output can
+arrive while the capture runs. `CheckpointEvent::PromptAccepted` supplies that
+metadata anchor. `TurnAssociated` later binds it to the actual provider turn
+without changing provider events. `FilesRestored` is reserved for a verified,
+durably completed restoration. These are typed, bounded metadata and downgrade
+to harmless logs while FILE_CHECKPOINTS is None. No producer is connected yet.
+Conversation, attention, cost, search and CLI/MCP projections now explicitly
+handle this event family. Regression fixtures preserve conversation identity,
+the retained plan and existing inbox branch attention, including reopen. These
+new fixtures, TypeScript regeneration and native consumers are not yet verified.

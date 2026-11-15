@@ -1702,3 +1702,10 @@ through teardown, Git removal and final path absence; teardown borrows that
 hold instead of reacquiring. Metadata-only removal of an already missing folder
 preserves its earlier behavior. Full physical live-occupant checks and the
 workspace archive adapters still remain separate integration obligations.
+
+`vessel-proto::checkpoint::CheckpointEvent` separates the durable accepted-prompt
+anchor from the later provider TurnStarted position, and reserves FilesRestored
+for verified durable completion. The family is pending and all current peers get
+harmless log projections. Metadata consumers explicitly preserve conversation,
+attention and cost state; actual actor hooks/controller publication and generated
+TypeScript/native integration remain required before activation.

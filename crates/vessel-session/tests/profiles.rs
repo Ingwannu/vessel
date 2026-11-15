@@ -403,6 +403,7 @@ mod support {
                 | SessionEvent::Parked { .. }
                 | SessionEvent::Woken
                 | SessionEvent::Forked { .. }
+                | SessionEvent::Checkpoint { .. }
                 | SessionEvent::Rewound { .. } => {}
             }
             Some(record)

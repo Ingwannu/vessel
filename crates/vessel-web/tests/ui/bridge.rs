@@ -221,6 +221,7 @@ fn printed(record: &EventRecord) -> String {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
+        | SessionEvent::Checkpoint { .. }
         | SessionEvent::Rewound { .. } => String::new(),
     }
 }

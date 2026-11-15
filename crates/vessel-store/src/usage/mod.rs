@@ -77,7 +77,8 @@ pub(crate) fn observe(
             };
             kind
         }
-        SessionEvent::Agent { .. }
+        SessionEvent::Checkpoint { .. }
+        | SessionEvent::Agent { .. }
         | SessionEvent::Terminal(_)
         | SessionEvent::ModelCall(_)
         | SessionEvent::Status { .. }

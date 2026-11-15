@@ -241,6 +241,7 @@ const fn status(event: &SessionEvent) -> Option<&SessionStatus> {
         | SessionEvent::Parked { .. }
         | SessionEvent::Woken
         | SessionEvent::Forked { .. }
+        | SessionEvent::Checkpoint { .. }
         | SessionEvent::Rewound { .. } => None,
     }
 }

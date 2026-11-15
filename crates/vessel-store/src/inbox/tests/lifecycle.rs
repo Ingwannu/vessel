@@ -234,3 +234,52 @@ fn backfill_never_revives_attention_before_a_new_turn_or_rewind() {
         );
     }
 }
+
+#[test]
+fn checkpoint_metadata_keeps_branch_attention_instead_of_rewinding_it() {
+    use vessel_proto::checkpoint::{CheckpointEvent, CheckpointId, PathCount, RestoreId};
+    let db = database();
+    let id = session(&db);
+    append(
+        &db,
+        id,
+        0,
+        AgentEvent::TurnEnded {
+            reason: StopReason::MaxTokens,
+            usage: None,
+            point: None,
+        },
+    );
+    let before = super::super::list(&db, ListInbox::default())
+        .unwrap()
+        .entries;
+    assert_eq!(before.len(), 1);
+    for (index, event) in [
+        CheckpointEvent::PromptAccepted,
+        CheckpointEvent::TurnAssociated {
+            prompt: EventSeq::new(1),
+            turn: EventSeq::ZERO,
+        },
+        CheckpointEvent::FilesRestored {
+            restore: RestoreId::random(),
+            checkpoint: CheckpointId::random(),
+            paths: PathCount::new(1).unwrap(),
+        },
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let record = EventRecord {
+            seq: EventSeq::new(u64::try_from(index).unwrap().checked_add(1).unwrap()),
+            at: now(),
+            event: SessionEvent::Checkpoint { event },
+        };
+        crate::log::append(&db, id, [&record]).unwrap();
+    }
+    assert_eq!(
+        super::super::list(&db, ListInbox::default())
+            .unwrap()
+            .entries,
+        before
+    );
+}

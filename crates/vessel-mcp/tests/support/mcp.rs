@@ -253,6 +253,7 @@ pub(super) async fn agent_env_with(
             | SessionEvent::Parked { .. }
             | SessionEvent::Woken
             | SessionEvent::Forked { .. }
+            | SessionEvent::Checkpoint { .. }
             | SessionEvent::Rewound { .. } => {}
         }
     }
