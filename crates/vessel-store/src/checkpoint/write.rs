@@ -17,6 +17,11 @@ use vessel_proto::checkpoint::{
 /// This API is not an authorization boundary: the node authenticates principals,
 /// owns physical admission and validates actual I/O/postconditions before calling.
 pub enum CheckpointWrite {
+    /// Retire a bounded batch of old unpinned images without releasing GC bytes.
+    Collect {
+        /// Coordinator observation time for preview pin/retention policy.
+        at: DateTime<Utc>,
+    },
     /// Append a successful result outside a run; repeat reads the stored event marker.
     EndedMetadata {
         /// Exact owned durable operation snapshot.
@@ -163,6 +168,7 @@ pub(crate) fn apply(
     write: CheckpointWrite,
 ) -> Result<(), crate::StoreError> {
     let result = match write {
+        CheckpointWrite::Collect { at } => super::rotation::collect(connection, at),
         CheckpointWrite::EndedMetadata { operation, at } => {
             return super::metadata::append_ended(connection, &operation, at);
         }

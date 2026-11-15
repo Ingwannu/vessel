@@ -33,6 +33,7 @@ pub enum Allocation {
 #[serde(rename_all = "snake_case")]
 enum Phase {
     Reserved,
+    Orphaned,
     Attached,
     Cleaned,
 }
@@ -40,6 +41,7 @@ impl Phase {
     const fn label(self) -> &'static str {
         match self {
             Self::Reserved => "reserved",
+            Self::Orphaned => "orphaned",
             Self::Attached => "attached",
             Self::Cleaned => "cleaned",
         }
@@ -126,7 +128,7 @@ pub(crate) fn attach(
     if !referenced {
         return Err(CheckpointError::RecoveryPending.into());
     }
-    let changed = connection.execute("UPDATE checkpoint_allocations SET phase='attached' WHERE object=?1 AND phase=?2 AND phase IN ('reserved','attached')",params![encode(&allocation)?,phase.label()])?;
+    let changed = connection.execute("UPDATE checkpoint_allocations SET phase='attached' WHERE object=?1 AND phase=?2 AND phase IN ('reserved','orphaned','attached')",params![encode(&allocation)?,phase.label()])?;
     if changed != 1 {
         return Err(CheckpointError::RestoreIdConflict.into());
     }
@@ -157,7 +159,7 @@ pub(crate) fn cleaned(
         return Err(CheckpointError::RecoveryPending.into());
     }
     let bytes = i64::try_from(TOMBSTONE_BYTES).map_err(|_large| CheckpointError::StorageFull)?;
-    let changed = connection.execute("UPDATE checkpoint_allocations SET phase='cleaned',reserved_bytes=?1 WHERE object=?2 AND phase=?3 AND phase IN ('reserved','cleaned')",params![bytes,encode(&allocation)?,phase.label()])?;
+    let changed = connection.execute("UPDATE checkpoint_allocations SET phase='cleaned',reserved_bytes=?1 WHERE object=?2 AND phase=?3 AND phase IN ('reserved','orphaned','cleaned')",params![bytes,encode(&allocation)?,phase.label()])?;
     if changed != 1 {
         return Err(CheckpointError::RestoreIdConflict.into());
     }
@@ -173,6 +175,8 @@ pub(super) fn preview_reserved(connection: &Connection, plan: &super::Plan) -> R
         plan.owner,
     )? {
         Phase::Reserved => Ok(()),
-        Phase::Attached | Phase::Cleaned => Err(CheckpointError::RestoreIdConflict.into()),
+        Phase::Orphaned | Phase::Attached | Phase::Cleaned => {
+            Err(CheckpointError::RestoreIdConflict.into())
+        }
     }
 }

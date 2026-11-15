@@ -32,12 +32,12 @@ pub struct OperationPage {
 }
 
 #[derive(Clone, Copy)]
-enum Scan {
+pub(super) enum Scan {
     Recovery,
     Unpublished,
 }
 
-fn operation_page(
+pub(super) fn operation_page(
     connection: &Connection,
     after: Option<RestoreId>,
     scan: Scan,

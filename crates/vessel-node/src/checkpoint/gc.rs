@@ -23,6 +23,16 @@ enum Object {
     Garbage(GarbageObject),
 }
 enum Work {
+    Restore {
+        worktree: WorktreeId,
+        capture: CaptureId,
+        restore: vessel_proto::checkpoint::RestoreId,
+    },
+    Preview {
+        worktree: WorktreeId,
+        capture: CaptureId,
+        plan: vessel_proto::checkpoint::RestorePlanId,
+    },
     Clean {
         worktree: WorktreeId,
         capture: CaptureId,
@@ -55,6 +65,12 @@ impl Collector {
         workspaces: &Arc<Workspaces>,
         stop: &CancellationToken,
     ) -> Result<(), CheckpointError> {
+        store
+            .checkpoint_write(CheckpointWrite::Collect {
+                at: chrono::Utc::now(),
+            })
+            .await
+            .map_err(reason)?;
         let page = store
             .checkpoint_orphaned_page(self.after)
             .await
@@ -104,6 +120,24 @@ impl Collector {
             }
             let work = match garbage.object {
                 GarbageObject::Capture { worktree, capture } => Work::Clean { worktree, capture },
+                GarbageObject::Restore {
+                    worktree,
+                    capture,
+                    restore,
+                } => Work::Restore {
+                    worktree,
+                    capture,
+                    restore,
+                },
+                GarbageObject::Preview {
+                    worktree,
+                    capture,
+                    plan,
+                } => Work::Preview {
+                    worktree,
+                    capture,
+                    plan,
+                },
             };
             self.execute(
                 store,
@@ -136,6 +170,16 @@ impl Collector {
         let result = tokio::task::spawn_blocking(move || {
             let _lease = actual;
             match work {
+                Work::Restore {
+                    worktree,
+                    capture,
+                    restore,
+                } => workspaces.clean_checkpoint_restore_storage(worktree, capture, restore),
+                Work::Preview {
+                    worktree,
+                    capture,
+                    plan,
+                } => workspaces.clean_checkpoint_preview_storage(worktree, capture, plan),
                 Work::Clean { worktree, capture } => {
                     workspaces.clean_checkpoint_storage(worktree, capture)
                 }

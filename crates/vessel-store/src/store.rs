@@ -84,6 +84,7 @@ impl Store {
             schema::migrate(&mut connection)?;
             crate::checkpoint::retention::startup(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
+            crate::checkpoint::replay_metadata(&mut connection, Utc::now())?;
             // Checkpoint garbage transfer and its parent session deletion must
             // commit together, including this startup path before the writer.
             let pruned = {

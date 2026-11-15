@@ -50,7 +50,7 @@ async fn checkpoint_restart_reconstructs_staged_objects_and_rolls_back_without_f
     let stage = Stage::open(&stage_path).unwrap();
     let root = Root::open(&dir).unwrap();
     let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
-    let encoded = serde_json::to_string(&prepared.evidence().unwrap()).unwrap();
+    let saved = prepared.evidence().unwrap();
     let index = PathCount::new(0).unwrap();
     assert_eq!(
         prepared.recovery_state(&root, index, &cancel).unwrap(),
@@ -62,8 +62,7 @@ async fn checkpoint_restart_reconstructs_staged_objects_and_rolls_back_without_f
     drop(root);
     let stage = Stage::open(&stage_path).unwrap();
     let root = Root::open(&dir).unwrap();
-    let recovered =
-        Prepared::recovering(&before, &target, &serde_json::from_str(&encoded).unwrap()).unwrap();
+    let recovered = Prepared::recovering(&before, &target, &saved).unwrap();
     assert_eq!(
         recovered.recovery_state(&root, index, &cancel).unwrap(),
         RecoveryState::Desired
@@ -98,7 +97,7 @@ async fn checkpoint_restart_keeps_an_equal_content_external_replacement_as_a_con
     let stage = Stage::open(&private_dir(&sandbox, "journal")).unwrap();
     let root = Root::open(&dir).unwrap();
     let prepared = Prepared::new(&root, &archive, &stage, &before, &target, &cancel).unwrap();
-    let encoded = serde_json::to_string(&prepared.evidence().unwrap()).unwrap();
+    let saved = prepared.evidence().unwrap();
     let index = PathCount::new(0).unwrap();
     prepared.apply(&root, &stage, index, &cancel).unwrap();
     let current_mode = fs::metadata(dir.join("README.md")).unwrap().permissions();
@@ -110,8 +109,7 @@ async fn checkpoint_restart_keeps_an_equal_content_external_replacement_as_a_con
     fs::set_permissions(dir.join("outside"), current_mode).unwrap();
     fs::rename(dir.join("outside"), dir.join("README.md")).unwrap();
     drop(prepared);
-    let recovered =
-        Prepared::recovering(&before, &target, &serde_json::from_str(&encoded).unwrap()).unwrap();
+    let recovered = Prepared::recovering(&before, &target, &saved).unwrap();
     assert_eq!(
         recovered.recovery_state(&root, index, &cancel).unwrap(),
         RecoveryState::Conflict

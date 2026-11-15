@@ -6,6 +6,17 @@ pub(super) fn available(
     connection: &Connection,
     additional: crate::ByteCount,
 ) -> Result<(), Error> {
+    let used = used(connection)?.get();
+    let total = used
+        .checked_add(additional.get())
+        .ok_or(CheckpointError::StorageFull)?;
+    if total > CHECKPOINT_NODE_BYTES {
+        return Err(CheckpointError::StorageFull.into());
+    }
+    Ok(())
+}
+
+pub(super) fn used(connection: &Connection) -> Result<crate::ByteCount, Error> {
     let used: i64 = connection.query_row(
         "SELECT COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_captures),0)
         + COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_allocations),0)
@@ -14,13 +25,7 @@ pub(super) fn available(
         |row| row.get(0),
     )?;
     let used = u64::try_from(used).map_err(|_negative| CheckpointError::StorageFull)?;
-    let total = used
-        .checked_add(additional.get())
-        .ok_or(CheckpointError::StorageFull)?;
-    if total > CHECKPOINT_NODE_BYTES {
-        return Err(CheckpointError::StorageFull.into());
-    }
-    Ok(())
+    Ok(crate::ByteCount::new(used))
 }
 
 /// Escrow before the first read: raw image, candidate, metadata and file overhead.
@@ -37,6 +42,7 @@ enum State {
     Candidate,
     Ready,
     Unavailable,
+    Expired,
 }
 fn decode_state(raw: &str) -> Result<State, Error> {
     Ok(serde_json::from_str(&serde_json::to_string(raw)?)?)
@@ -62,6 +68,7 @@ pub(crate) fn capture_settled(
         return Err(CheckpointError::StorageFull.into());
     }
     let charged = match decode_state(&state)? {
+        State::Expired => return Err(CheckpointError::StaleCapture.into()),
         State::Candidate => return Err(CheckpointError::Busy.into()),
         State::Unavailable => METADATA_BYTES,
         State::Ready => ready_charge(connection, key.capture, metadata)?,

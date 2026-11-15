@@ -125,7 +125,7 @@ mod tests {
             fs::remove_file(root.join("lost")).unwrap();
             let archive=private(&sandbox.path().join("current"));
             let current=Tree::open(&root,physical).unwrap().capture_preview(&runtime,&git,&archive,&defaults,selected.image(),&cancel).unwrap();
-            let path=serde_json::from_str("\"lost\"").unwrap();
+            let path=vessel_proto::checkpoint::CheckpointPath::try_from("lost".parse::<vessel_proto::workspace::RelPath>().unwrap()).unwrap();
             assert_eq!(current.image().get(&path),Some(&FileState::Absent));
             assert!(current.evidence().entries().iter().any(|entry| entry.path==path && entry.presence==ObservedPresence::Absent));
             let names_before=fs::read_dir(sandbox.path().join("current")).unwrap().map(|entry|entry.unwrap().file_name()).collect::<std::collections::BTreeSet<_>>();

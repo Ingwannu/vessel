@@ -272,15 +272,10 @@ async fn failed_event_marker_update_rolls_back_the_event_and_allows_one_retry() 
         .unwrap()
         .store;
     let operation = completed(&store).await;
-    ended(&store, &operation).await;
-    store.close().await;
+    let _ended_at = ended(&store, &operation).await;
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection.execute_batch("CREATE TRIGGER deny_checkpoint_marker BEFORE UPDATE OF event_seq ON checkpoint_restores BEGIN SELECT RAISE(ABORT,'fixture marker failure'); END;").unwrap();
     drop(connection);
-    let store = Store::open(&dir, StoreConfig::default())
-        .await
-        .unwrap()
-        .store;
     assert!(
         store
             .checkpoint_write(CheckpointWrite::EndedMetadata {
@@ -301,7 +296,30 @@ async fn failed_event_marker_update_rolls_back_the_event_and_allows_one_retry() 
         3
     );
     store.close().await;
+    assert!(
+        Store::open(&dir, StoreConfig::default()).await.is_err(),
+        "startup metadata failure must not admit a partially projected node"
+    );
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    let count: i64 = connection
+        .query_row(
+            "SELECT count(*) FROM events WHERE session_id=?1",
+            [operation.session.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        count, 3,
+        "failed FULL-sync startup replay rolled back its event too"
+    );
+    let marker: Option<i64> = connection
+        .query_row(
+            "SELECT event_seq FROM checkpoint_restores WHERE id=?1",
+            [operation.id.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(marker.is_none());
     connection
         .execute_batch("DROP TRIGGER deny_checkpoint_marker")
         .unwrap();

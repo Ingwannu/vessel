@@ -14,13 +14,19 @@ pub(crate) mod metadata;
 mod orphans;
 mod paths;
 mod plans;
+mod private_orphans;
 mod publication;
 mod query;
 mod quota;
 mod records;
 mod recovery;
 pub(crate) mod retention;
+mod rotation;
+#[cfg(test)]
+mod rotation_tests;
 mod staging;
+mod startup;
+pub(crate) use startup::replay_metadata;
 mod write;
 
 pub use allocation::Allocation;

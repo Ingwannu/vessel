@@ -21,7 +21,7 @@ fn database() -> Connection {
 
 fn capture(db: &Connection) -> super::super::records::Plan {
     let info = info();
-    crate::log::create_session(db, &info).unwrap();
+    log::create_session(db, &info).unwrap();
     let plan = make_plan(info.id);
     journal::candidate(db, plan.key, ByteCount::new(1), DateTime::UNIX_EPOCH).unwrap();
     journal::keep_candidate(
@@ -36,7 +36,7 @@ fn capture(db: &Connection) -> super::super::records::Plan {
 }
 
 fn end(db: &Connection, id: SessionId) {
-    crate::log::append(
+    let _appended = log::append(
         db,
         id,
         [&EventRecord {
@@ -102,7 +102,7 @@ fn checkpoint_startup_fences_candidates_and_pins_prepared_restores_before_retent
     paths::prepare(&db, &operation).unwrap();
     end(&db, plan.key.session);
     let other = info();
-    crate::log::create_session(&db, &other).unwrap();
+    log::create_session(&db, &other).unwrap();
     let candidate = make_plan(other.id);
     journal::candidate(&db, candidate.key, ByteCount::new(9), DateTime::UNIX_EPOCH).unwrap();
     end(&db, other.id);
@@ -183,7 +183,7 @@ fn checkpoint_startup_orphan_scan_excludes_current_workers_and_preserves_ready_i
     };
     let mut db = database();
     let session = info();
-    crate::log::create_session(&db, &session).unwrap();
+    log::create_session(&db, &session).unwrap();
     let retained = make_plan(session.id);
     journal::candidate(
         &db,

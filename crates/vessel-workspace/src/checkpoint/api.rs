@@ -245,19 +245,14 @@ mod tests {
                 .prepare(&selected_archive, &stage, before.image(), &desired, &cancel)
                 .unwrap();
             // This fixture models the persisted evidence, not a real store commit.
-            let saved = serde_json::to_string(&restore.evidence().unwrap()).unwrap();
+            let saved = restore.evidence().unwrap();
             let index = PathCount::new(0).unwrap();
             restore.apply(index, &cancel).unwrap();
             assert_eq!(fs::read(dir.join("README.md")).unwrap(), b"hello\n");
             drop(restore);
             let recovered = Tree::open(&dir, physical)
                 .unwrap()
-                .recovering(
-                    &stage,
-                    before.image(),
-                    &desired,
-                    &serde_json::from_str(&saved).unwrap(),
-                )
+                .recovering(&stage, before.image(), &desired, &saved)
                 .unwrap();
             assert_eq!(
                 recovered.recovery_state(index, &cancel).unwrap(),

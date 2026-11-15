@@ -26,6 +26,24 @@ pub enum Object {
         /// Capture storage namespace.
         capture: CaptureId,
     },
+    /// An expired unconsumed preview, after its actual worker settled.
+    Preview {
+        /// Worktree storage namespace.
+        worktree: WorktreeId,
+        /// Capture storage namespace.
+        capture: CaptureId,
+        /// Non-reusable preview namespace.
+        plan: vessel_proto::checkpoint::RestorePlanId,
+    },
+    /// An unpublished previous-process restore allocation, with no operation row.
+    Restore {
+        /// Worktree storage namespace.
+        worktree: WorktreeId,
+        /// Capture storage namespace.
+        capture: CaptureId,
+        /// Non-reusable restore namespace.
+        restore: vessel_proto::checkpoint::RestoreId,
+    },
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Accounted bytes cannot be released until this object's physical cleanup ends.
@@ -64,7 +82,8 @@ pub(crate) fn retire_session(
     let pinned:bool=connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_plans p JOIN checkpoint_captures c ON c.id=p.capture WHERE c.session=?1 AND p.expires_at>?2 AND p.consumed_by IS NULL)
          OR EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1 AND (state='candidate' OR worker!='settled'))
-         OR EXISTS(SELECT 1 FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE c.session=?1 AND a.phase='reserved')",
+         OR EXISTS(SELECT 1 FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE c.session=?1 AND a.phase IN ('reserved','orphaned'))
+         OR EXISTS(SELECT 1 FROM checkpoint_garbage g JOIN checkpoint_captures c ON json_extract(g.object,'$.capture')=c.id WHERE c.session=?1 AND json_extract(g.object,'$.kind') IN ('preview','restore'))",
         params![session,at.timestamp_millis()],|row|row.get(0),
     )?;
     if pinned {
@@ -83,7 +102,7 @@ pub(crate) fn retire_session(
             capture: id(&capture)?,
         };
         let _changed = connection.execute(
-            "INSERT INTO checkpoint_garbage(object,reserved_bytes,created_at) VALUES (?1,?2,?3)",
+            "INSERT INTO checkpoint_garbage(object,reserved_bytes,created_at) VALUES (?1,?2,?3) ON CONFLICT(object) DO UPDATE SET reserved_bytes=reserved_bytes+excluded.reserved_bytes",
             params![
                 serde_json::to_string(&object)?,
                 reserved,

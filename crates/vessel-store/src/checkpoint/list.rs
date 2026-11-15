@@ -16,6 +16,7 @@ enum State {
     Candidate,
     Ready,
     Unavailable,
+    Expired,
 }
 struct Stored {
     capture: String,
@@ -30,6 +31,7 @@ fn decode<T: serde::de::DeserializeOwned>(text: &str) -> Result<T, Error> {
 }
 fn mark(raw: &Stored) -> Result<CheckpointMark, Error> {
     let state = match decode::<State>(&raw.state)? {
+        State::Expired => CheckpointState::Expired,
         State::Candidate => CheckpointState::Unavailable {
             reason: CheckpointError::Busy,
         },

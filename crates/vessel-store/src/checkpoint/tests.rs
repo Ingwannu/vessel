@@ -93,7 +93,7 @@ pub(super) fn observed(
     ObservedSnapshot::new(image, evidence).unwrap()
 }
 
-pub(super) fn staged(plan: &super::records::Plan) -> vessel_proto::checkpoint::StagedPaths {
+pub(super) fn staged(plan: &Plan) -> vessel_proto::checkpoint::StagedPaths {
     use sha2::Digest as _;
     use vessel_proto::checkpoint::{
         FileState, ObjectFingerprint, ObservedPresence, StagedPath, StagedPaths,

@@ -156,13 +156,41 @@ impl Workspaces {
         key: CaptureKey,
         plan: vessel_proto::checkpoint::RestorePlanId,
     ) -> Result<(), CheckpointError> {
+        self.clean_checkpoint_preview_storage(key.worktree, key.capture, plan)
+    }
+    pub(crate) fn clean_checkpoint_preview_storage(
+        &self,
+        worktree: vessel_proto::WorktreeId,
+        capture: vessel_proto::checkpoint::CaptureId,
+        plan: vessel_proto::checkpoint::RestorePlanId,
+    ) -> Result<(), CheckpointError> {
         let capture = Storage::open(&self.places.data)
             .map_err(|error| error.reason())?
-            .open_capture(key)
+            .open_namespace(worktree, capture)
             .map_err(|error| error.reason())?;
         loop {
             match capture
                 .clean_preview(plan)
+                .map_err(|error| error.reason())?
+            {
+                vessel_workspace::checkpoint::Cleanup::Pending => {}
+                vessel_workspace::checkpoint::Cleanup::Complete => return Ok(()),
+            }
+        }
+    }
+    pub(crate) fn clean_checkpoint_restore_storage(
+        &self,
+        worktree: vessel_proto::WorktreeId,
+        capture: vessel_proto::checkpoint::CaptureId,
+        restore: vessel_proto::checkpoint::RestoreId,
+    ) -> Result<(), CheckpointError> {
+        let capture = Storage::open(&self.places.data)
+            .map_err(|error| error.reason())?
+            .open_namespace(worktree, capture)
+            .map_err(|error| error.reason())?;
+        loop {
+            match capture
+                .clean_restore(restore)
                 .map_err(|error| error.reason())?
             {
                 vessel_workspace::checkpoint::Cleanup::Pending => {}

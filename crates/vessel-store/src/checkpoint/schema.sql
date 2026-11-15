@@ -4,7 +4,7 @@ CREATE TABLE checkpoint_captures (
     worktree TEXT NOT NULL,
     generation INTEGER NOT NULL CHECK(generation > 0),
     boundary TEXT NOT NULL,
-    state TEXT NOT NULL CHECK(state IN ('candidate','ready','unavailable')),
+    state TEXT NOT NULL CHECK(state IN ('candidate','ready','unavailable','expired')),
     worker TEXT NOT NULL DEFAULT 'active' CHECK(worker IN ('active','orphaned','settled')),
     image TEXT,
     evidence TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE checkpoint_allocations (
     capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,
     owner TEXT NOT NULL,
     reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes > 0),
-    phase TEXT NOT NULL CHECK(phase IN ('reserved','attached','cleaned')),
+    phase TEXT NOT NULL CHECK(phase IN ('reserved','orphaned','attached','cleaned')),
     created_at INTEGER NOT NULL
 ) STRICT;
 CREATE INDEX checkpoint_allocation_capture ON checkpoint_allocations(capture);

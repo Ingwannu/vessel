@@ -130,7 +130,7 @@ fn checkpoint_storage_cleanup_is_bounded_repeatable_and_never_removes_sibling_ca
     };
     let _sibling = storage.create_capture(sibling).unwrap();
     let blobs = capture.folder.path.join("blobs");
-    for index in 0..super::cleanup::test_pass_limit().saturating_add(1) {
+    for index in 0..cleanup::test_pass_limit().saturating_add(1) {
         let mut bytes = [0_u8; 32];
         bytes
             .get_mut(..8)

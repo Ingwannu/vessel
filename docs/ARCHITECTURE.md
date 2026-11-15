@@ -1862,3 +1862,14 @@ Ended-target completion uses the storage-only atomic metadata marker. These
 connections remain unverified source, with runtime restore admission deliberately
 Busy until canonical terminal quiescence and replacement-start/lifecycle consumers
 are ready. Private no-terminal fixtures do not establish a production capability.
+
+Checkpoint collection now rotates old unpinned ready images and retires expired
+unconsumed previews through durable garbage transfers; the shared serial worker
+acknowledges only actual synced namespace absence. Expired marks retain boundary
+and cursor identity. Global pressure plans reclamation while quota still counts
+pending garbage. Startup fences old private reservations independently from live
+workers, preserving referenced data and collecting only unpublished allocations.
+Completed restore metadata replays atomically under FULL sync after interrupting
+previous live sessions and before retention/admission. Terminal restore journals
+remain pinned pending their own completed-stage retirement; source tests remain
+unverified and production restore admission remains closed.

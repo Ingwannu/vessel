@@ -54,6 +54,7 @@ enum State {
     Candidate,
     Ready,
     Unavailable,
+    Expired,
 }
 fn decode(raw: Raw) -> Result<OrphanedCapture, Error> {
     let key = CaptureKey {
@@ -69,7 +70,7 @@ fn decode(raw: Raw) -> Result<OrphanedCapture, Error> {
             key,
             checkpoint: text(&raw.checkpoint.ok_or(CheckpointError::StaleCapture)?)?,
         }),
-        State::Candidate => Err(CheckpointError::StaleCapture.into()),
+        State::Candidate | State::Expired => Err(CheckpointError::StaleCapture.into()),
     }
 }
 pub(super) fn page(

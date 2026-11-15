@@ -1086,3 +1086,45 @@ followup fixes the remaining diagnostics without new lint suppressions. Root
 launch evidence now uses an explicit conversion from the whole held Admission,
 retaining the placement guard through registration. No test/runtime pass follows
 from this lint correction.
+
+### Rotation, private expiry and restart projection (source; unverified)
+
+The existing single checkpoint migration now permits Expired capture marks and
+Orphaned private reservations. No migration-runner or schema-number change is
+introduced. Collect is a bounded command on the sole writer: it retains 40 ready
+unpinned images per session, active worker/preview/restore pins remain additional,
+and older payload charges move atomically into durable garbage while boundary
+and cursor tombstones survive. Capacity pressure plans enough safe reclamation
+for the fixed capture envelope; already pending garbage prevents over-pruning.
+Actual quota admission still counts that garbage until physical cleanup completes.
+
+Expired, unconsumed, Attached preview plans can retire independently. The plan
+loses authority before GC, its allocation id retains a metadata charge, and its
+payload charge stays in typed preview garbage. Pending child garbage pins whole
+capture/session retirement, avoiding concurrent parent/child namespace cleanup.
+Session deletion merges an existing whole-capture garbage charge atomically.
+All restore journals remain pinned in this slice; terminal journal/stage payload
+retirement is still unfinished, and StorageFull remains truthful meanwhile.
+
+Startup fences prior-process Reserved allocations as Orphaned; current new
+workers remain Reserved and cannot enter that scan. The node data lock establishes
+that the old private worker ended, independently of publication. Referenced
+orphans retain their full charge and become Attached; unpublished private ids
+move to typed preview/restore garbage without freeing bytes. Restore verifies
+its referenced current-image archive before staging. This reconciliation neither
+promotes a capture nor treats elapsed time as I/O completion.
+
+After the existing interrupt-live startup pass, pending completed restore metadata
+is replayed through the existing store transaction before retention/admission.
+FilesRestored and its restore-row EventSeq commit under FULL sync together;
+startup failure rolls back both. Added SQL regressions cover pins, the 40-image
+boundary, pressure accounting, old versus current private workers, no late plan
+publication, atomic session deletion and failed startup marker replay. These
+checks have not run. Runtime restore admission stays Busy awaiting W17's reviewed
+terminal quiescence producer and the canonical startup consumers.
+
+Run wp-checkpoints-node-20261115T150311Z-4d997fe4 completed rc1 at 15:31 UTC.
+Nested vesseld compiled, but the selected tests did not run: workspace test code
+referenced undeclared serde_json. This followup uses saved typed evidence instead;
+codec roundtrip tests stay in proto/store, which own JSON, with no new dependency.
+The reported test-only qualification/unused-result warnings are also corrected.

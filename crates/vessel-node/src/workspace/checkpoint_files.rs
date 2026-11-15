@@ -70,6 +70,11 @@ impl CheckpointFiles {
         restore: RestoreId,
         cancel: &CancellationToken,
     ) -> Result<Restore, CheckpointError> {
+        self.capture
+            .open_preview(plan.id)
+            .map_err(|error| error.reason())?
+            .verify_image(&plan.current, cancel)
+            .map_err(|error| error.reason())?;
         let archive = self.capture.archive().map_err(|error| error.reason())?;
         let stage = self
             .capture

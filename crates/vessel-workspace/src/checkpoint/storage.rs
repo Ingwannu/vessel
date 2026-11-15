@@ -66,11 +66,21 @@ impl Storage {
     /// # Errors
     /// Missing identity, unsafe metadata/mount or filesystem I/O failure.
     pub fn open_capture(&self, key: CaptureKey) -> Result<CaptureStorage, Error> {
+        self.open_namespace(key.worktree, key.capture)
+    }
+    /// Reopen a retired private namespace from the collector's typed ids.
+    /// # Errors
+    /// Missing identity, unsafe metadata/mount or filesystem I/O failure.
+    pub fn open_namespace(
+        &self,
+        worktree: vessel_proto::WorktreeId,
+        capture: vessel_proto::checkpoint::CaptureId,
+    ) -> Result<CaptureStorage, Error> {
         Ok(CaptureStorage {
             folder: self
                 .folder
-                .child(&name(key.worktree)?)?
-                .child(&name(key.capture)?)?,
+                .child(&name(worktree)?)?
+                .child(&name(capture)?)?,
         })
     }
 }

@@ -54,6 +54,10 @@ pub(crate) fn startup(connection: &mut Connection) -> Result<(), StoreError> {
             "UPDATE checkpoint_captures SET worker='orphaned' WHERE worker='active'",
             [],
         )?;
+        let _fenced = transaction.execute(
+            "UPDATE checkpoint_allocations SET phase='orphaned' WHERE phase='reserved'",
+            [],
+        )?;
         while super::recovery::pending(&transaction)?
             == vessel_proto::checkpoint::CHECKPOINT_PAGE_ENTRIES
         {}
