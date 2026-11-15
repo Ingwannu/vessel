@@ -212,6 +212,14 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
                 };
             let end = point(bounds.right() - px(2.0), start.y);
             window.simulate_mouse_down(start, MouseButton::Left, Modifiers::default());
+            // A real drag crosses glyphs between the padded endpoints. The
+            // window controller correctly discards a padding-only teleport
+            // whose down/move/up events never hit text at all.
+            window.simulate_mouse_move(
+                point(bounds.left() + px(24.0), start.y),
+                MouseButton::Left,
+                Modifiers::default(),
+            );
             window.simulate_mouse_move(end, MouseButton::Left, Modifiers::default());
             window.simulate_mouse_up(end, MouseButton::Left, Modifiers::default());
             window.update(|window, cx| {
