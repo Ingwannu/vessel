@@ -57,6 +57,29 @@ pub enum Reveal {
     Nearest,
 }
 
+/// A reading position without owning a view, callbacks or measured rows.
+/// The caller may rebase the row by stable item identity before restoring it.
+#[derive(Debug, Clone, Copy)]
+pub struct ListBookmark {
+    row: usize,
+    offset: Pixels,
+    following: bool,
+}
+
+impl ListBookmark {
+    /// The captured row; screens map this to their stable entry identity.
+    #[must_use]
+    pub const fn row(self) -> usize {
+        self.row
+    }
+
+    /// Preserve the exact pixel offset while rebasing a filtered row.
+    #[must_use]
+    pub const fn at_row(self, row: usize) -> Self {
+        Self { row, ..self }
+    }
+}
+
 /// A long list's state, kept by the screen that shows it. Cheap to clone:
 /// the clones share one list.
 #[derive(Clone)]
@@ -178,11 +201,71 @@ impl VirtualList {
         (offset.item_ix, offset.offset_in_item)
     }
 
+    /// Capture scroll data without cloning the underlying list or its views.
+    #[must_use]
+    pub fn bookmark(&self) -> ListBookmark {
+        let (row, offset) = self.top();
+        ListBookmark {
+            row,
+            offset,
+            following: self.following(),
+        }
+    }
+
+    /// Restore after rows are rebuilt. Reading stays detached, including an
+    /// empty list; following explicitly re-engages the existing tail mode.
+    pub fn restore(&self, bookmark: ListBookmark) {
+        if bookmark.following {
+            self.state.set_follow_mode(FollowMode::Tail);
+        } else {
+            self.state.pause_following_tail();
+            self.state.scroll_to(ListOffset {
+                item_ix: bookmark.row,
+                offset_in_item: bookmark.offset,
+            });
+        }
+    }
+
     /// The list, drawing row `index` with `row`. It fills its parent.
     pub fn element(
         &self,
         row: impl FnMut(usize, &mut Window, &mut App) -> AnyElement + 'static,
     ) -> List {
         list(self.state.clone(), row).size_full()
+    }
+}
+
+#[cfg(test)]
+mod bookmark_tests {
+    use super::{Reveal, VirtualList};
+
+    #[test]
+    fn reading_keeps_exact_offset_while_an_entry_moves_between_filtered_rows() {
+        let list = VirtualList::new(true);
+        list.reset(10);
+        list.reveal(4, Reveal::Top);
+        let before = list.top();
+        let bookmark = list.bookmark();
+        let restored = VirtualList::new(true);
+        restored.reset(20);
+        restored.restore(bookmark.at_row(7));
+        assert_eq!(restored.top(), (7, before.1));
+        assert!(!restored.following());
+        restored.reset(0);
+        restored.restore(bookmark);
+        assert_eq!(restored.top().0, 0);
+        assert!(!restored.following());
+    }
+
+    #[test]
+    fn a_following_bookmark_resumes_at_the_new_end() {
+        let list = VirtualList::new(true);
+        list.reset(3);
+        let bookmark = list.bookmark();
+        let restored = VirtualList::new(false);
+        restored.reset(7);
+        restored.restore(bookmark);
+        assert!(restored.following());
+        assert_eq!(restored.top().0, 7);
     }
 }

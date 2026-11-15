@@ -56,6 +56,7 @@ impl ConversationArea {
         if self.reasoning == expansion {
             return;
         }
+        let bookmark = self.reading_bookmark();
         self.reasoning = expansion;
         self.folds = self
             .collapse
@@ -64,6 +65,7 @@ impl ConversationArea {
         self.rows_again();
         self.list.reset(self.at(self.rows.len()));
         self.tail_dropped();
+        self.restore_reading(bookmark);
     }
 }
 
@@ -73,6 +75,7 @@ impl Shell {
         if self.areas.conversation.reasoning == expansion {
             return;
         }
+        let bookmark = self.areas.conversation.reading_bookmark();
         self.areas.conversation.set_reasoning(expansion);
         if let super::origin::Origin::Shown(origin) = &mut self.areas.conversation.origin {
             origin.set_reasoning(expansion);
@@ -80,5 +83,6 @@ impl Shell {
         let area = &self.areas.conversation;
         area.list.reset(area.at(area.rows.len()));
         area.tail_dropped();
+        area.restore_reading(bookmark);
     }
 }

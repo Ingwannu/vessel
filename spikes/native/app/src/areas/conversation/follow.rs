@@ -46,6 +46,7 @@ impl Shell {
         if area.collapse == collapse && area.turns.is_some() == turn_collapse {
             return;
         }
+        let bookmark = area.reading_bookmark();
         area.collapse = collapse;
         area.turns = turn_collapse.then(super::turns::Turns::default);
         area.folds = collapse
@@ -56,6 +57,7 @@ impl Shell {
         let area = &mut self.areas.conversation;
         area.list.reset(area.at(area.rows.len()));
         area.tail_dropped();
+        area.restore_reading(bookmark);
     }
 
     /// Records of the session followed.

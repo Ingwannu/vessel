@@ -46,6 +46,7 @@ mod actions;
 mod area;
 mod bar;
 mod bench;
+mod bookmark;
 mod bubbles;
 mod disclosures;
 /// The slot over the composer, and the requests' cards for other areas

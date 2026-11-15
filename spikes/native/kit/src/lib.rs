@@ -96,7 +96,7 @@ pub use toast::{
     toast_with, toasts,
 };
 pub use tooltip::Tooltips;
-pub use virtual_list::{Reveal, VirtualList};
+pub use virtual_list::{ListBookmark, Reveal, VirtualList};
 pub use widgets::{
     ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
     mark_mono, markdown, outline_button,

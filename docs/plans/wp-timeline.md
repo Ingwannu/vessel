@@ -383,3 +383,15 @@ u128 cross multiplication, leaving exact90% warning and detecting90.001% as
 danger even when the displayed whole percent still reads90. This reuses the
 existing context model; no quota meter or second store is added. Boundary tests
 cover70%, exact90%, just above90% and maximum-width token counts without floats.
+
+### Stable reading bookmark
+
+Existing VirtualList exposes its logical top row and exact pixel offset, but
+only reset/reveal methods; changing Chat display/defaults reset the reader to
+the end. `ListBookmark` now captures value data only, preserving detached versus
+following state and fractional offsets. Native rebases its row using EntryKey
+(including origin entries and folded hosts) after rebuilding rows, then restores
+that bookmark. This reuses GPUI's existing follow/scroll APIs and retains no view
+or transcript clone. It is also the exact scroll-value seam needed by W12's
+resident snapshot contract. Kit regressions cover remapped rows, empty lists and
+resuming at the new end; owner context still controls when restoring is allowed.
