@@ -2,10 +2,11 @@
 
 use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::theme::spacing::{S1, S2, S3, S4, S11};
+use vessel_app_kit::theme::spacing::{S1, S2, S3, S4};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
+    div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::history::{Entry, Selection};
@@ -22,7 +23,7 @@ pub(super) fn list(
     let height = f32::from(window.viewport_size().height).mul_add(VIEWPORT_SHARE, 0.0);
     div()
         .h(px(height))
-        .min_h(px(S11))
+        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
         .w_full()
         .min_w_0()
         .overflow_hidden()
@@ -57,7 +58,7 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         ))
         .flex()
         .items_start()
-        .min_h(px(S11))
+        .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
         .gap(px(S3))
         .px(px(S2))
         .py(px(S3))

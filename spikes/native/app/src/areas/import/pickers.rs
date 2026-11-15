@@ -83,7 +83,7 @@ pub(super) fn render(
         &vessel_app_kit::select::header(),
         &rows,
         &ComboHandlers {
-            state: |shell| &mut shell.areas.import.picker,
+            state: |shell: &mut Shell| &mut shell.areas.import.picker,
             chose: |shell, index, window, cx| {
                 let Some(which) = shell.areas.import.choosing else {
                     return;
@@ -203,7 +203,7 @@ fn field(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> vessel_app_kit::ui::Div {
-    use vessel_app_kit::theme::spacing::{S2, S11};
+    use vessel_app_kit::theme::spacing::S2;
     use vessel_app_kit::ui::{
         ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
     };
@@ -236,7 +236,7 @@ fn field(
                 crate::areas::draft::compact(window),
                 tokens,
             )
-            .min_h(px(S11))
+            .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
             .on_click(
                 cx.listener(move |shell, _, window, cx| shell.history_picker(which, window, cx)),
             ),

@@ -7,8 +7,9 @@ mod rows;
 pub(crate) use draw::{entry, render};
 
 use crate::shell::Shell;
+use gpui::FocusHandle;
 use vessel_app_kit::dialog::DialogState;
-use vessel_app_kit::ui::{Context, FocusHandle, Window};
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, TextField, VirtualList};
 use vessel_app_view::devices::{Ticket, Tickets};
 use vessel_app_view::history::{History, Problem, Scope};
