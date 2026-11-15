@@ -585,3 +585,15 @@ text. The role/name coverage, same-origin frame traversal, hostile-page isolatio
 replacement fingerprints and actionability are not yet parity-qualified. No live
 snapshot/tool/frame is offered by these outer cfg(test) modules. All changed-source
 Rust execution evidence is still owed; static graph tests are not an engine.
+
+The first real149 diagnostic of our own script (SHA256ff2d6208d221a2906504dfbafbf6e1bee678788fb8ae7e40dedf6a5879795625)
+passed on2026-11-15 12:57 UTC. Fresh sandbox/profile/private pipes, service UID/GID1000,
+normal close exit0 and private inspected entries. It observed semantic form labels,
+a same-origin iframe button, opaque cross-origin frame content, hidden-button
+exclusion, main-world Map/DOM-prototype poisoning isolation and exact refs starting
+above2^53. Frame+loader stayed equal. Source/results under
+/tmp/work/wp-browser/own-dom-snapshot-diagnostic. Config mirrors inspected Rust
+constants; this was not execution of the Rust CDP/graph adapter and proves none
+of the product proxy/Preview/Windows/paint/host actor obligations. New Rust
+fixtures cover nonempty graph refusal, isolated context0 rejection, fixed source
+and disabled universal access, and loader replacement clearing previous refs.

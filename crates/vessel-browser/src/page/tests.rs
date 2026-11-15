@@ -45,6 +45,18 @@ async fn actual_target_requests_check_history_surface_and_uncertain_delivery() {
             .await
             .unwrap();
         assert_eq!(page.revision(), BrowserRevision::ZERO);
+        let snapshot = page.snapshot().await.unwrap();
+        assert!(
+            snapshot
+                .content
+                .text
+                .as_str()
+                .contains("button \"Own protocol fixture\"")
+        );
+        let old: vessel_proto::browser::ElementRef = "@e1".parse().unwrap();
+        assert!(page.references.resolve(&old).is_ok());
+        assert!(matches!(page.snapshot().await, Err(PageError::Navigation)));
+        assert!(page.references.resolve(&old).is_err());
         assert_eq!(page.history().await.unwrap(), BrowserHistory::Both);
         page.traverse(HistoryDirection::Back).await.unwrap();
         page.traverse(HistoryDirection::Forward).await.unwrap();
@@ -86,6 +98,7 @@ async fn peer(listener: TcpListener) {
     let (socket, _) = listener.accept().await.unwrap();
     let mut socket = tokio_tungstenite::accept_async(socket).await.unwrap();
     let mut histories = 0_u8;
+    let mut frame_queries = 0_u8;
     while let Some(Ok(frame)) = socket.next().await {
         if frame.is_close() {
             break;
@@ -100,6 +113,20 @@ async fn peer(listener: TcpListener) {
                 histories = histories.checked_add(1).unwrap();
                 history(histories)
             }
+            "Page.getFrameTree" => {
+                frame_queries += 1;
+                let loader = if frame_queries == 4 {
+                    "changed-loader"
+                } else {
+                    "first-loader"
+                };
+                serde_json::json!({"frameTree":{"frame":{"id":"own-frame","loaderId":loader}}})
+            }
+            "Page.createIsolatedWorld" => {
+                assert_eq!(call["params"]["grantUniveralAccess"], false);
+                serde_json::json!({"executionContextId":7})
+            }
+            "Runtime.callFunctionOn" => snapshot_result(&call),
             "Runtime.evaluate" => serde_json::json!({"result":{"value":3}}),
             "Page.captureScreenshot" => serde_json::json!({"data":"bm90LXBuZw=="}),
             "Input.dispatchMouseEvent"
@@ -168,4 +195,23 @@ async fn human_input(page: &mut Page) {
         page.human_input(key).await,
         Err(PageError::Unsupported)
     ));
+}
+
+fn snapshot_result(call: &serde_json::Value) -> serde_json::Value {
+    use serde_json::json;
+    assert_eq!(call["params"]["executionContextId"], 7);
+    assert_eq!(
+        call["params"]["functionDeclaration"],
+        crate::snapshot::SOURCE
+    );
+    assert_eq!(call["params"]["userGesture"], false);
+    let first = call["params"]["arguments"][0]["value"]["firstRef"]
+        .as_str()
+        .unwrap();
+    json!({"result":{"value":{"nodes":[{
+        "kind":"element","depth":0,"role":"button","name":"Own protocol fixture",
+        "reference":format!("@e{first}"),
+        "fingerprint":{"tag":"button","id":"","input_type":"","name":"","value":""},
+        "state":{"checked":null,"expanded":null,"selected":null,"disabled":false,"readonly":false,"level":null}
+    }],"visited":1,"frames":0,"truncated":false}}})
 }

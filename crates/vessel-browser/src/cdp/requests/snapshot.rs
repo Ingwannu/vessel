@@ -82,3 +82,30 @@ impl std::fmt::Debug for SnapshotTraversal {
     }
 }
 request!(SnapshotTraversal, Evaluated, SnapshotTraversal);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn no_caller_selects_source_or_universal_access_and_context_zero_refuses() {
+        let frame = FrameId::try_from("own-fixture-frame".to_owned()).unwrap();
+        let encoded = serde_json::to_value(IsolatedWorld::new(frame)).unwrap();
+        assert_eq!(encoded["grantUniveralAccess"], false);
+        assert!(encoded.get("grantUniversalAccess").is_none());
+        assert!(serde_json::from_str::<World>(r#"{"executionContextId":0}"#).is_err());
+        assert!(serde_json::from_str::<World>(r#"{"executionContextId":-1}"#).is_err());
+        let world: World = serde_json::from_str(r#"{"executionContextId":7}"#).unwrap();
+        let mut refs = crate::references::References::<()>::default();
+        let config = Config::new(refs.begin_snapshot().unwrap());
+        let command = SnapshotTraversal::new(world.execution_context_id, config);
+        assert!(!format!("{command:?}").contains("function"));
+        let encoded = serde_json::to_value(command).unwrap();
+        assert_eq!(encoded["functionDeclaration"], crate::snapshot::SOURCE);
+        assert_eq!(encoded["arguments"][0]["value"]["firstRef"], "1");
+        assert_eq!(
+            encoded["arguments"][0]["value"]["limits"]["nodes"],
+            crate::snapshot::MAX_SNAPSHOT_NODES
+        );
+        assert_eq!(encoded["userGesture"], false);
+    }
+}

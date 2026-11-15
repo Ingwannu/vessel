@@ -136,7 +136,8 @@ roles! {
 impl Graph {
     pub(super) fn validate(&self) -> Result<(), SnapshotError> {
         let visited = usize::try_from(self.visited).map_err(|_overflow| SnapshotError::Graph)?;
-        if visited > MAX_SNAPSHOT_NODES
+        if self.nodes.0.is_empty()
+            || visited > MAX_SNAPSHOT_NODES
             || visited < self.nodes.0.len()
             || self.frames > self.visited
         {
