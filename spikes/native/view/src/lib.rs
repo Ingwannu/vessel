@@ -19,6 +19,7 @@ pub mod board;
 pub mod brand;
 pub mod browser;
 pub mod composer;
+pub mod connection;
 pub mod connections;
 mod conversation;
 pub mod devices;

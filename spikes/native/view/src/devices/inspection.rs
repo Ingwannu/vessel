@@ -23,6 +23,12 @@ pub enum SelectionError {
     /// The page no longer has an online target.
     #[error("the selected machine is unavailable")]
     TargetUnavailable,
+    /// Safe confirmation identities are exhausted.
+    #[error("confirmation identities exhausted")]
+    IdentitiesExhausted,
+    /// The row was drawn for a retired connection.
+    #[error("the selected connection changed")]
+    ConnectionChanged,
     /// No successful list is available for this target.
     #[error("the device list is not ready")]
     ListUnavailable,
@@ -38,6 +44,33 @@ pub enum SelectionError {
 }
 
 impl Page {
+    /// Select only a row drawn for the current authenticated admission.
+    ///
+    /// # Errors
+    /// The context or active-list selection is stale.
+    pub fn inspect_bound(
+        &mut self,
+        context: &super::ConnectionContext,
+        id: DeviceId,
+    ) -> Result<(), SelectionError> {
+        self.check_context(context)
+            .map_err(|_changed| SelectionError::ConnectionChanged)?;
+        self.inspect_device(id)
+    }
+    /// Open one uniquely identified confirmation on this admitted connection.
+    ///
+    /// # Errors
+    /// The context, list or selection is stale, or request identities exhausted.
+    pub fn choose_bound(
+        &mut self,
+        context: &super::ConnectionContext,
+        id: DeviceId,
+    ) -> Result<(), SelectionError> {
+        self.check_context(context)
+            .map_err(|_changed| SelectionError::ConnectionChanged)?;
+        self.choose_revoke(id)
+    }
+
     fn selectable(&self, id: DeviceId) -> Result<&DeviceInfo, SelectionError> {
         if !matches!(self.target, Target::Online(_)) {
             return Err(SelectionError::TargetUnavailable);
@@ -60,7 +93,7 @@ impl Page {
     ///
     /// # Errors
     /// The row is stale, its target is unavailable, or a revoke is pending.
-    pub fn inspect_device(&mut self, id: DeviceId) -> Result<(), SelectionError> {
+    pub(super) fn inspect_device(&mut self, id: DeviceId) -> Result<(), SelectionError> {
         self.inspection = Some(self.selectable(id)?.clone());
         Ok(())
     }
@@ -95,10 +128,25 @@ impl Page {
     ///
     /// # Errors
     /// The row is stale, its target is unavailable, or a revoke is pending.
-    pub fn choose_revoke(&mut self, id: DeviceId) -> Result<(), SelectionError> {
+    pub(super) fn choose_revoke(&mut self, id: DeviceId) -> Result<(), SelectionError> {
         let device = self.selectable(id)?.clone();
+        let context = self
+            .context()
+            .cloned()
+            .ok_or(SelectionError::ConnectionChanged)?;
+        let intent = match self.tickets.next_ticket() {
+            Ok(ticket) => super::RevokeIntent(ticket),
+            Err(why) => {
+                self.revoking = Revoking::Failed(why);
+                return Err(SelectionError::IdentitiesExhausted);
+            }
+        };
         self.inspection = None;
-        self.revoking = Revoking::Confirm(device);
+        self.revoking = Revoking::Confirm(super::Confirmation {
+            context,
+            intent,
+            device,
+        });
         Ok(())
     }
 }

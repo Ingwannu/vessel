@@ -1,6 +1,6 @@
 //! Process primitives: what to run, and how to stop all of it.
 //!
-//! This crate owns three things and nothing else:
+//! This crate owns these OS mechanisms and nothing else:
 //!
 //! - [`CommandSpec`]: a plain-data description of a command (program, args,
 //!   environment changes, working directory). `vessel-harness` builds them;
@@ -15,6 +15,9 @@
 //!   terminal's session once its shell has exited ([`kill_session`]); and
 //!   the account's login shell a terminal falls back to
 //!   ([`account_shell`]).
+//!
+//! - Generic selected-file kernel observations ([`lock`], ADR 0001), without
+//!   node data-directory layouts or authority to signal a snapshot's PID.
 //!
 //! It must not know about sessions, harnesses or the wire protocol, so it
 //! depends on nothing from Vessel.
@@ -48,7 +51,10 @@ mod child;
 mod error;
 #[cfg(unix)]
 mod group;
+mod lifetime;
 pub mod listening;
+pub mod lock;
+mod process_id;
 mod session;
 mod signal;
 mod spec;
@@ -58,6 +64,8 @@ pub use child::{Child, Spawned, spawn};
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 pub use group::{ProcessGroup, REAP_GRACE};
+pub use lifetime::{ProcessLifetime, ProcessLifetimeGuard};
+pub use process_id::{InvalidProcessId, ProcessId};
 pub use session::kill_session;
 pub use signal::Signal;
 pub use spec::{CommandSpec, EnvValue, Environment};

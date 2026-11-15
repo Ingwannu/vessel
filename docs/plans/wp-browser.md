@@ -165,3 +165,24 @@ renderer shows the localized NoEngine state; it does not expose a creation entry
 or substitute a page. The existing lifecycle guard continues to refuse closing
 a live resource without owner settlement; there is no fabricated close ACK.
 Actual resource state, stream/control and keyed close handler remain owed.
+
+
+## Announced package base6 merge
+
+Merged18eedad4 after the previous narrow run ended; no whole-gate freeze was
+active. Its reviewed shared pane successor wins the nine producer add/content
+conflicts, preserving W14's sole Browser renderer arm in the registry:
+- docs/plans/wp-layout.md: canonical shared plan and successor evidence.
+- areas/layout/actions.rs: canonical contextual action/close handling.
+- areas/layout/draw.rs: canonical visible/max/compact/sheet behavior.
+- areas/layout/header.rs: canonical shared tab header/action capture.
+- areas/layout/mod.rs: canonical shared pane area and query module ownership.
+- areas/layout/registry.rs: canonical visibility guard plus W14 Browser arm.
+- areas/layout/rename.rs: canonical owner/ticket rename behavior.
+- link/machines/native/tests/mod.rs: canonical shared regression inventory.
+- view/layout/mod.rs: canonical LayoutActionContext/query value exports.
+The first seven abbreviated native area paths are under spikes/native/app/src;
+the last two are under spikes/native. No new independent panes/focus listener
+or W19 staged preferences consumer is enabled. Base6's lock is announced stale;
+await the lead's lock correction before any locked build. Changed-union native
+verification is owed; previous376674c93 view/app strict0 proves its prior source.
