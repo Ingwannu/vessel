@@ -120,9 +120,10 @@ impl CodePanel {
         .then_some(diff)
     }
 }
+#[cfg(test)]
 impl Shell {
     /// Original drawn source, available only from the actual legacy Changes host.
-    /// A typed Explorer caller must also validate its real PanelContext. Logical
+    /// A typed Explorer caller must also validate its real `PanelContext`. Logical
     /// Workspace roots remain unavailable until their canonical runtime producer.
     #[cfg(test)]
     pub(crate) fn shown_changes_context(&self) -> Option<ShownChangesContext> {

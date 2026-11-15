@@ -59,6 +59,8 @@ use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
+#[cfg(test)]
+pub(crate) use shown_source::{ShownChangesContext, ShownDiffContext};
 
 use crate::shell::Shell;
 use vessel_app_link::workspace::Ask;

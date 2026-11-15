@@ -1,5 +1,6 @@
 //! Actual framed root/summary/diff replies enter the real `CodePanel` owner.
 use super::*;
+use crate::areas::workspace::{ShownChangesContext, ShownDiffContext};
 use gpui::TestAppContext;
 use vessel_app_link::{
     Event,
@@ -98,7 +99,7 @@ fn ready(scene: &mut Scenario, shell: &mut Shell) {
         )
         .unwrap();
     shell.code_source_answer(answer(scene, shell));
-    let shown = shell.shown_changes_context().unwrap();
+    let shown: ShownChangesContext = shell.shown_changes_context().unwrap();
     assert_eq!(shown.connection(), &scene.context());
     assert_eq!(shown.comparison(), ScopeKind::Uncommitted);
     assert_eq!(shown.root(), *shell.areas.workspace.code.root().unwrap().1);
@@ -197,7 +198,7 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
         let page = answer(&mut scene, shell);
         let request = page.request().clone();
         shell.code_source_answer(page);
-        let shown = shell.shown_diff_context(&path).unwrap();
+        let shown: ShownDiffContext = shell.shown_diff_context(&path).unwrap();
         assert_eq!(shown.connection(), &scene.context());
         assert_eq!(shown.path(), &path);
         assert!(shell.shown_diff_is_current(&shown));

@@ -104,3 +104,12 @@ the closed Link Answer exposes only read-only request facts, currentness and
 consuming decomposition; callers cannot manufacture a successful envelope by
 attaching a guard. The actual guard still comes only from G4's selected client.
 No original assertion, correlation fence or G4 export was changed.
+
+
+A second static pass found that the getter impl also needed the literal test
+attribute matching its test-only Shell import. The impl and opaque workspace
+type facade are now consistently staged. The source tests consume that facade
+with explicit types, so the eventual G1 adapter can store the opaque snapshot
+without exposing constructors or private code-module paths. A missed doc type
+backtick is corrected in the same batch. The still-queued preparation check is
+replaced once after terminal cancellation; no executed result is inferred.
