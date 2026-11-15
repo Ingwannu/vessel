@@ -625,3 +625,14 @@ the actual existing Settings entry. These tests are installed, NOT executed yet.
 Combined F4 Kit/View/Link/App strict narrow check and first-use captures are
 still owed. Other builtin openers, plugin groups, workspace projection and the
 final hierarchy remain pending their owner contracts; no full F4 pass.
+
+
+## Announced line c5263270 adopted before combined checks
+
+The lead reports native1431/0/2 on spike-20261115T130341Z-c5263270.
+Merge the exact announced app line (not a node branch), retaining the Sidebar
+consumer and all100 union glyphs. Only conflicts: README additive prose (every
+lead paragraph independently retained, one duplicate approval block removed),
+glyph registry count/sidebar tests, and size records615 field/828 picker.
+The checked standalone menu173 result remains bounded; this combined F4 source
+still needs its own narrow check. Latest base8 node merge remains separate.

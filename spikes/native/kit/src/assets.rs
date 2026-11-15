@@ -68,6 +68,8 @@ pub enum Glyph {
     Search,
     /// Send.
     ArrowUp,
+    /// Outward link arrow, consumed at12 by `ExternalLink`.
+    ArrowUpRight,
     /// Stop.
     Stop,
     /// The permissions mode.
@@ -251,7 +253,7 @@ pub enum Glyph {
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 99] = [
+const ALL: [Glyph; 100] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -266,6 +268,7 @@ const ALL: [Glyph; 99] = [
     Glyph::Check,
     Glyph::Search,
     Glyph::ArrowUp,
+    Glyph::ArrowUpRight,
     Glyph::Stop,
     Glyph::Shield,
     Glyph::ShieldPlus,
@@ -372,6 +375,7 @@ impl Glyph {
             Self::Check => "kit/check.svg",
             Self::Search => "kit/search.svg",
             Self::ArrowUp => "kit/arrow-up.svg",
+            Self::ArrowUpRight => "kit/arrow-up-right.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
             Self::ShieldPlus => "kit/shield-plus.svg",

@@ -53,6 +53,9 @@ impl Glyph {
                 line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
             }
             Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            // AppShell's LucideProvider supplies1.5; ExternalLink does not
+            // override it. Keep the canonical line glyph's inherited stroke.
+            Self::ArrowUpRight => line_glyph!(r#"<path d="M7 17 17 7M7 7h10v10"/>"#),
             Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
             Self::Shield => {
                 line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
