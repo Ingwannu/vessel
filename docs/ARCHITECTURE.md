@@ -1658,6 +1658,15 @@ idle state itself. The existing session.mark scope/target ownership rule also
 applies to agent callers and forwarded requests. The feature threshold remains None until
 complete A2 lifecycle wiring is reviewed and integration assigns it.
 
+`session.archive_child` is its pending person-only finished-child operation.
+It retains full parent/child SessionRef, validates this node owns the child,
+and reuses W2's committed-parent lookup under the same marking mutex through
+actor IfIdle admission and archive completion. Detach or an active turn cannot
+be bypassed by a UI snapshot. The typed outcome distinguishes an acknowledged
+archive timestamp from parent-changed/already-archived/not-finished skips. Call
+admission requires both the A2 threshold and W2 SUBAGENT_RELATIONS; neither is
+assigned here. The concrete workspace registry/backing workflow remains staged.
+
 
 The staged node `speech_audio` module is shared by dictation and spoken
 conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
