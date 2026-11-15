@@ -96,3 +96,22 @@ in addition to the already captured observation ticket, so an old modal row cann
 edit pins after a parent replacement with the same account observation. This is
 source/typing work only; platform accessibility and keyboard traversal remain
 unverified and are not implied by adding the accessibility metadata.
+
+### Query errors and report-attempt failures stay distinct
+
+Paseo model.ts:107–150 hides usage values after a failed query. Native previously
+kept a complete old transport snapshot visible, and the session popover could
+omit the query error while rendering old quota. A pure visible_observation
+projection now permits ready/pending snapshots but hides failed-query values;
+accounts, sidebar summaries, session cards and limit notices consume it. The
+reader still retains the original complete observation and timestamp internally
+for a same-selection cache retry. Account-level failed/unavailable reports inside
+a successful query continue to show their explicitly retained successful values.
+
+The session error body now exposes its safe error and a Retry that sends Cached,
+not an external Refresh. Its existing actual-session/connection/binding admission
+check is unchanged. Options also treat a failed-query policy as unknown rather
+than presenting a working-looking cached toggle. Pure reader regressions cover
+both transport timeout and Forbidden, old timestamp preservation during retry,
+and replacement by the next actual successful response. Current combined runtime
+proof remains owed; the already queued f80 consumer run predates this delta.

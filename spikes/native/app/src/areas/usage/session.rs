@@ -106,7 +106,7 @@ impl Shell {
             self.areas.usage.session.close();
         }
     }
-    fn usage_refresh_session(&mut self, expected: SessionSelection) {
+    fn usage_read_session(&mut self, expected: SessionSelection, refresh: LimitRefresh) {
         if !self.usage_session_current(&expected) {
             return;
         }
@@ -115,10 +115,7 @@ impl Shell {
             return;
         };
         if let Some(request) = reader.request(selected) {
-            self.command(Command::Usage(Ask::Session {
-                request,
-                refresh: LimitRefresh::Refresh,
-            }));
+            self.command(Command::Usage(Ask::Session { request, refresh }));
         }
     }
     fn usage_session_current(&self, expected: &SessionSelection) -> bool {
@@ -153,17 +150,30 @@ pub(crate) fn session_card(
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
     let text = shell.words.usage();
-    if state.session.phase().observation().is_none() {
-        let _selected = state.session.selection()?;
+    if state.session.phase().visible_observation().is_none() {
+        let selected = state.session.selection()?.clone();
+        let failed = matches!(state.session.phase(), Phase::Failed { .. });
         return Some(
             div()
                 .min_w_0()
                 .max_w(px(SESSION_CARD_MAX_WIDTH))
-                .children(draw::read_status(state.session.phase(), shell, tokens))
+                .children(draw::read_query_status(
+                    state.session.phase(),
+                    shell,
+                    tokens,
+                ))
+                .children(failed.then(|| {
+                    outline_button("usage-session-retry", text.retry(), true, tokens).on_click(
+                        cx.listener(move |shell, _, _, cx| {
+                            shell.usage_read_session(selected.clone(), LimitRefresh::Cached);
+                            cx.notify();
+                        }),
+                    )
+                }))
                 .into_any_element(),
         );
     }
-    let limits = state.session.phase().observation()?;
+    let limits = state.session.phase().visible_observation()?;
     let view = limit_view(limits);
     let mut card = div()
         .min_w_0()
@@ -211,7 +221,7 @@ pub(crate) fn session_card(
                 |button| {
                     button.on_click(cx.listener(move |shell, _, _, cx| {
                         if let Some(selection) = &selection {
-                            shell.usage_refresh_session(selection.clone());
+                            shell.usage_read_session(selection.clone(), LimitRefresh::Refresh);
                         }
                         cx.notify();
                     }))
@@ -228,7 +238,7 @@ pub(crate) fn limit_notice(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
-    let limits = state.session.phase().observation()?;
+    let limits = state.session.phase().visible_observation()?;
     let reported = limits.notice.as_ref()?;
     let expected = state.session.selection()?.clone();
     let text = shell.words.usage();

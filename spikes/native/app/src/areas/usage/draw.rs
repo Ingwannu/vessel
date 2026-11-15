@@ -118,6 +118,22 @@ fn controls(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, 
     ))
 }
 
+pub(super) fn read_query_status<T>(
+    phase: &Phase<T>,
+    shell: &Shell,
+    tokens: &Tokens,
+) -> Option<AnyElement> {
+    if let Phase::Failed { reason, .. } = phase {
+        Some(notice(
+            reason.message(shell.words),
+            vessel_app_kit::alert::Variant::Error,
+            tokens,
+        ))
+    } else {
+        read_status(phase, shell, tokens)
+    }
+}
+
 pub(super) fn read_status<T>(
     phase: &Phase<T>,
     shell: &Shell,

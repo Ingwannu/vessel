@@ -31,7 +31,11 @@ pub(super) fn render(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .children(draw::read_status(state.inventory.phase(), shell, tokens))
+        .children(draw::read_query_status(
+            state.inventory.phase(),
+            shell,
+            tokens,
+        ))
         .children(super::read_states::retry(shell, tokens, cx));
     if let Some(error) = state.policy_error {
         body = body.child(notice(
@@ -40,7 +44,7 @@ pub(super) fn render(
             tokens,
         ));
     }
-    let Some(inventory) = state.inventory.phase().observation() else {
+    let Some(inventory) = state.inventory.phase().visible_observation() else {
         return body.into_any_element();
     };
     if let Some(error) = inventory.refresh_problem() {

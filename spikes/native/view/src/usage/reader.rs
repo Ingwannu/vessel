@@ -87,6 +87,16 @@ impl<T> Phase<T> {
             Self::Ready(value) => Some(value),
         }
     }
+    /// Query errors hide values; an in-flight reread may keep a complete prior snapshot.
+    /// This is independent from an account report's retained-success attempt state.
+    #[must_use]
+    pub fn visible_observation(&self) -> Option<&T> {
+        match self {
+            Self::Idle | Self::Failed { .. } => None,
+            Self::Loading { retained } => retained.as_deref(),
+            Self::Ready(value) => Some(value),
+        }
+    }
     fn retained(&self) -> Option<Arc<T>> {
         match self {
             Self::Idle => None,

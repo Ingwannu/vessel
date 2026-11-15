@@ -119,3 +119,24 @@ fn render_edits_follow_the_observation_identity_not_only_its_connection() {
     assert!(reader.answer(reopened.ticket, Ok(value(3))).is_none());
     assert_ne!(reader.observation_ticket(), Some(replacement.ticket));
 }
+
+#[test]
+fn query_failures_hide_values_but_keep_the_original_complete_snapshot_for_cached_retry() {
+    for reason in [
+        RequestFailure::TimedOut,
+        RequestFailure::Refused(ErrorCode::Forbidden),
+    ] {
+        let mut reader = UsageReader::default();
+        let first = reader.request(Account::First).unwrap();
+        assert!(reader.answer(first.ticket, Ok(value(7))).is_none());
+        let refresh = reader.request(Account::First).unwrap();
+        assert_eq!(reader.phase().visible_observation().unwrap().at, 7);
+        assert!(reader.answer(refresh.ticket, Err(reason)).is_none());
+        assert!(reader.phase().visible_observation().is_none());
+        assert_eq!(reader.phase().observation().unwrap().at, 7);
+        let retry = reader.request(Account::First).unwrap();
+        assert_eq!(reader.phase().visible_observation().unwrap().at, 7);
+        assert!(reader.answer(retry.ticket, Ok(value(9))).is_none());
+        assert_eq!(reader.phase().visible_observation().unwrap().at, 9);
+    }
+}
