@@ -764,6 +764,10 @@ file-fault sentence still belongs to its table, including when pairing shows it.
 About's licence and bundled-software labels use `about.ftl`; inventory roles
 map exhaustively to cached plain getters in `view/src/about/words.rs`.
 The Fluent libraries have the Translations role; UUID has the Identifiers role.
+About's inventory test covers normal external declarations in both the shared
+manifest and each native member, including target-only and inline declarations.
+Member-local names not in the shared manifest follow its entries alphabetically;
+fonts follow crates. Build/development-only dependencies are not inventory rows.
 The connected-machine section and trademark section still belong
 to their existing areas and have not moved with the licence vocabulary.
 Title-bar/update-card labels use `update.ftl`. `view::updates::PreparedUpdate`

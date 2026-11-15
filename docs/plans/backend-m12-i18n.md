@@ -1,5 +1,39 @@
 # Track L: the app's words as translation data
 
+## About inventory: member-local declarations
+
+The self-review found a pre-existing gap in the inventory guard: its normal
+dependency traversal was correct, but its final ordered comparison considered
+only declarations in the shared workspace manifest. Four already-shipped
+member-local dependencies escaped it: `ashpd` 0.13.13 (MIT), `futures-lite`
+2.6.1 (Apache-2.0 OR MIT), `image` 0.25.10 (MIT OR Apache-2.0), and `resvg`
+0.46.0 (Apache-2.0 OR MIT). Their declarations and licences were checked
+against the pinned lockfile and each downloaded package's own manifest.
+No dependency, version, feature or lockfile is changed.
+
+The strengthened test retains the former shared-manifest ordering and normal
+transitive traversal without changing either helper. It additionally requires
+every native member's direct external normal declaration, on every target.
+Previously unlisted member-local names follow the shared names alphabetically;
+fonts still follow the crates. Development/build-only declarations stay
+excluded; a declaration used both normally and for development stays required.
+The original fixtures remain, with two additional fixtures proving inline
+normal/both membership, dev-only exclusion and a browser-only inline normal
+dependency. The old comparison's passing-but-incomplete list is explicitly
+compared with the strengthened required list. This adds coverage; it does not
+narrow the original comparison or its runtime set.
+
+The list grows from 28 to 32 entries. It is a borrowed static slice instead
+of carrying a manually repeated array length. New Desktop, Tasks and Images
+roles describe desktop-setting reads, following setting changes, and drawing
+the app's images respectively. The complete vocabulary is now 27 messages
+per language, with whole-sentence checks. The role fixture is moved outside
+the assertion function to keep the function short; no expected sentence is
+removed. Native source checks and all-target view Clippy pass; 823 library
+tests and ten catalog-contract tests pass. Whole native gate and captures
+remain owed for this follow-up. The earlier whole About run on `73fd0c49`
+does not include this strengthened guard and cannot prove its coverage.
+
 ## Source ready: title-bar and update vocabulary
 
 The About move and role fix are committed as `7c99ae1f` and `73fd0c49`.
