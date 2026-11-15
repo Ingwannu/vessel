@@ -30,8 +30,8 @@ Quiet precedes --json, which precedes -o; --no-headers affects only tables.
 Terminal control characters in table cells are escaped. Structured strings retain
 serializer escaping. Runtime errors and connection selection remain owner policy.
 
-Validation pending: narrow CLI clippy and shared presentation/formatter tests.
-No consumer-ready claim, full package gate or production account test yet.
+Validation results are recorded below. Full W17 integration/package proof and
+production account flows are separate from this early shared slice.
 
 V3 return 1 correction: global presentation selection is tracked independently
 from its default. Dispatch refuses unsupported explicit selections before even
@@ -45,3 +45,22 @@ admission used SessionCommand::Compare instead of the actual nested
 SessionCommand::Conversation(ConversationCommand::Compare). Corrected both
 product and test patterns, preserving the real `session compare` CLI spelling.
 Evidence: /tmp/work/wp-cli/output-seam-tests. No runtime pass from that run.
+
+## Executed shared-slice evidence
+
+Exact product/test source: 5305e47a7f24c968141ca032f12107c428145e11.
+- Targeted root/parser/admission/formatter/model tests plus actual fake-node CLI
+  process regression: 6 passed / 0 failed / 0 ignored; run
+  wp-cli-narrow-20261115T100125Z-5305e47a, /tmp/work/wp-cli/output-seam-tests2.
+- Strict CLI all-target Clippy with proto/web TS features: exit0; run
+  wp-cli-narrow-20261115T104604Z-5305e47a, /tmp/work/wp-cli/output-seam-clippy3.
+- Its prior queued strict run101545 was interrupted143 by the operator-approved
+  VM resize/restart; logs in output-seam-clippy2 remain distinct, not a source
+  failure or pass. T/coordinator authorized the single same-source replacement.
+- Original872 compile failure is retained in output-seam-tests; no test ran at
+  that source. The corrected nested enum path is in5305.
+
+This evidence commit changes this document only. V3 final review and integrator
+merge remain required for consumer readiness. No full package or live-service
+validation is claimed. No service ownership/mode change was made; only private
+fake fixtures ran, as the build account.
