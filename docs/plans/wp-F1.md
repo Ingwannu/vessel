@@ -1300,3 +1300,10 @@ checks actual rendered style font14/line20 rather than asserting an incorrect
 global Body metric. No expectation is relaxed to21 or suppression added.
 Corrected source receives one ordinary short Kit suite under schedules, no
 priority or extra label. Prior99 shared-picker186 proof remains distinct.
+
+
+The form now opts into the shared FormGlyph slot for the two original source
+consumers only: Folder project rows and Brain thinking rows. Both retain the
+registered16-point drawing in the source18-point slot. Model provider marks,
+mode rows and all other picker defaults are unchanged. This is source wiring;
+the queued66735 control suite and final combined F1 first-use remain distinct.
