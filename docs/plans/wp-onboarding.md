@@ -141,3 +141,19 @@ Current functional difference: full daemon and desktop diagnostics, extended
 process metrics and daemon raw-log viewing remain explicit Unavailable. The
 screen does not substitute fake producer success. Native watchdog/mobile shims
 and bundled web hosting are outside this assigned app diagnostic sheet scope.
+
+## Mandatory base rolls during package validation
+
+The first whole native gate on 54478e20 passed 1250/0/1. The announced base3
+6c782cb6 merged cleanly as43679f8d, with an empty native-source diff. The
+coordinator explicitly ruled (message395a7209) that this whole stands with
+base3's own green root/native gates and merged narrow Clippy/30 diagnostic
+tests; no second whole was needed for that root-only union.
+
+Before its local capture rebuild finished, announced base4 3cd0d3fc added the
+accepted .19/.20 native packages. Its only conflict was the shell render
+registration: both settle_diagnostics and terminal_present remain, in that
+order after settle_settings. No private terminal logic is changed. The
+obsolete base3 build was stopped only by its verified private process group.
+The base3 ruling is not claimed as approval of this later native-source union;
+its merged checks, capture artifact and closeout ruling remain to be recorded.

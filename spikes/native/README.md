@@ -135,6 +135,9 @@ app/src/
                    features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
+    terminal/      terminal-session lifecycle, background replay, appearance and
+                   cursor presentation, and the bounded scroll viewport; adapts
+                   view's parser/grid to the kit's single terminal_grid renderer
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
                    the `/` menu (slash.rs), drafts and recall (drafts.rs)
@@ -459,6 +462,38 @@ Enabled actions consume the left-button release after the generated caller
 click, without a capture handler. Later transparent sibling overlap remains
 an open kit hit-test policy; this is parent isolation, not global occlusion.
 
+### Theme cycling
+
+Settings > Shortcuts > General lists **Cycle theme**. Its default is
+Command+Option+T on Mac and Control+Alt+T elsewhere, through the same
+registry used for rebinding and conflicts. It calls `Theme::next` and the
+existing appearance preference setter. The command center suppresses this
+action, including a rebound key; character-preferred input and focused
+composition stand down before shortcut matching. Non-Mac terminal focus is
+excluded by policy, but its actual focus query awaits the terminal surface;
+this integration still has a placeholder there.
+
+### Named colour palettes (ADR 0070, staged)
+
+The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
+Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
+light or dark: status and syntax retain their existing scheme-specific
+sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+unchanged. The new dark variants share one tint-to-token mapping; their
+authored values and deliberate brand-accent substitution are in ADR 0070.
+
+The existing stored `view::prefs::Theme` now includes all seven concrete
+palettes and System. Appearance keeps its existing tiles, with System
+first. One app adapter supplies both their previews and the applied tokens;
+it compares actual tokens so two dark palettes do not collapse to Dark.
+`set_palette` updates the component layer and refreshes the windows too.
+The run override still pins light/dark as before. The plan and current
+verification limits are in `docs/plans/app-themes.md` at the repository root.
+
+`theme::palette::GREEN_500` remains the fixed success colour used by the
+typed menu. It has one definition, shared with the named palette module;
+it is not replaced by the theme's accent or semantic status signal.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -517,6 +552,13 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   leave the region showing old content. Measured on 2026-11-14 (release,
   composer focused on an open session, the caret blinking): the app's
   own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
+  A region is drawn again when its size changes, but layout comes after
+  drawing: a decision taken from a size measured at the last layout (a
+  list's viewport width) is a frame late, and with nothing else marking
+  the region it stays late. Such a decision checks itself with a canvas
+  that measures this frame and marks the region dirty only when the
+  answer changes (`conversation::outline::width_probe`, the chat outline
+  rail that stayed at 800 x 600 in 0.0.0.0.19).
 
 ### The brand's drawing (ADR 0059)
 
@@ -583,6 +625,28 @@ cd spikes/native
 scripts/fonts.sh                  # the faces into assets/fonts (not committed)
 cargo run -p vessel-app
 ```
+
+When the kit's list of faces grows, run `scripts/fonts.sh` again in every
+worktree: the build embeds each listed file and fails on a missing one
+(2026-11-15: Geist Mono's bold, italic and bold italic, for the
+terminal's SGR 1 and 3; CI runs the script on every gate).
+
+Terminal history reads carry a process-local opening identity through the
+link, including refused commands. Reopening the same machine/session cannot
+take an earlier read or replay completion. Live bytes also replay on the
+background executor, so a burst of small records never resets a UI parsing
+budget. The retained frame includes appearance, measured metrics and viewport;
+a quiet terminal follows theme/code-size changes even with motion held.
+Wheel and recognized touch pans expose view's bounded history. Cursor work
+stops on blur, navigation, hidden presentation and held motion.
+
+Linux's ignored `terminal_states_capture` test draws the real shell against
+a disposable fleet with `VESSEL_CONFIG_DIR`, `VESSEL_TEST_TERMINAL_SESSION`
+and `VESSEL_TEST_TERMINAL_STATE=ready|loading|unread`. Ready reads normally;
+Loading holds a receipt and Unread passes a typed failure while the real
+follow continues. These two fixtures prove display states, not transport
+failure. They cannot be enabled in an installed build. Use a private display
+and the fake-fleet procedure below, and inspect each resulting image.
 
 A `.cargo/config.toml` beside this file (untracked, one per worktree)
 sends build output to a directory of your own on the data disk with six
@@ -799,10 +863,15 @@ borrow retained fields, while messages with values are formatted when those
 values change. The allocation-counting test covers warmed plain access.
 
 `LANGUAGES` exposes each embedded tag, own name and completeness; the
-checking locale `en-XA` is excluded. `resolve_language` applies an override,
-a typed preference, or the system tag, with exact/base/English fallback.
-The source API is English, Korean must be complete with the same variables,
-and a contributed folder may be partial. Run the shared validator/report:
+checking locale `en-XA` is excluded. `resolve_languages` applies the checking
+override, a typed preference, or the host provider's preferred system tags in
+order. Each tag tries exact then base; English is the final fallback after the
+list is exhausted. `resolve_language` remains the single-tag adapter. The app
+uses sys-locale's existing native/browser list at startup or preference events,
+with no locale I/O during drawing. English/Korean are the shipped languages;
+a partial candidate stays outside the shipped directory. The source API is
+English and Korean must be complete with the same variables. Run the shared
+validator/report:
 
 ```bash
 scripts/locale-coverage.sh
