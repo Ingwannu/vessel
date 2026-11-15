@@ -172,11 +172,18 @@ shown and a partial comparison cannot claim the commands are unchanged.
   texts preserved. Its root and web gates passed with no waiver or retry;
   the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
   unassigned.
+- Integration update: node baseline `f453ec2e` is merged after the
+  declaration-boundary gate. Its protocol/store constants, method tables,
+  shared tests and documents remain intact. The shared `required_protocol`
+  accessor is available; `PROJECT_FILE_KEYS` stays unassigned. The combined
+  gate now covers this baseline and the TOML port parser. Native view/card
+  adaptation remains an integration prerequisite.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.
-- Half-done: automatic terminal execution is absent; port keys remain ignored
-  as before. `paseo.json` is not read.
+- Half-done: automatic terminal execution and port allocation are absent;
+  only declared service ports are parsed into approval data. The allocation
+  block remains ignored. `paseo.json` is not read.
 - Next: keep `PROJECT_FILE_KEYS` unassigned until the web approval dialog
   displays terminals, web `command-changes` compares them, and the native
   approval card displays them. The current web refusal is a deliberate
@@ -224,20 +231,30 @@ shown and a partial comparison cannot claim the commands are unchanged.
   every borrowed view field, the web names every nested field and refuses
   current, previous or folder snapshots with declarations. The port is
   covered by the reserved version-three digest slot; old vectors stay fixed.
-  File parsing still supplies no port. Native constructor/getter/card
-  adaptation remains the native lead's integration condition. No allocator
+  The TOML decoder now reads a service's integer port through `ServicePort`;
+  invalid numbers and a plain script's port refuse the whole file. Boundary,
+  source-chain and digest tests cover this input edge. `service_ports` stays
+  ignored. Native constructor/getter/card adaptation remains the native
+  lead's integration condition. No allocator
   or health execution path is present.
 - Before port fields: ADR 0066 now defines the `ScriptEntry` construction
   invariant and complete borrowed display view. The native lead owns its
   constructor/getter and exhaustive-card adaptation; web coverage and
   comparison name nested entry fields too. The declaration boundary above
   implements this part; the native adaptation remains owed.
-- Then: add the file parser, digest and approval fields. A relative bare
+- Then: add the allocation-block parser, digest and approval fields. A relative bare
   program is checkout-rooted, using a worktree's own copy in its own folder,
   unlike Paseo's PATH lookup; the execution test proving that selection
   and relative-link containment remain owed. Add
   approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
+- Allocation projection contract: reuse the private `ServicePorts` owner
+  with a complete borrowed view before adding its optional block to the
+  file and approval snapshots. Keep block presence and both digest slots
+  even without services. CLI and the native lead's card must name every
+  view field; web names every nested field by type and refuses current,
+  prior and folder snapshots until full display exists. The contract and
+  owed tests are in ADR 0066; no field or allocator is implemented here.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.
