@@ -15,22 +15,21 @@ fn service_environment_collisions_refuse_the_whole_file_before_setup_can_run() {
             "[worktree]\nsetup = 'must not run'\n[services.\"{first}\"]\ncommand = 'a'\n[services.\"{second}\"]\ncommand = 'b'\n"
         );
         let error = ProjectFile::parse(text.as_bytes()).unwrap_err();
-        match error {
-            ProjectFileError::Scripts(ScriptsError::Environment {
-                first: a,
-                second: b,
-                environment,
-            }) => {
-                let mut actual = [a.as_str(), b.as_str()];
-                actual.sort();
-                let mut expected = [first, second];
-                expected.sort();
-                assert_eq!(actual, expected);
-                assert_eq!(environment, ServiceEnvName::of(&a));
-                assert_eq!(environment, ServiceEnvName::of(&b));
-            }
-            other => panic!("expected environment collision, got {other:?}"),
-        }
+        let ProjectFileError::Scripts(ScriptsError::Environment {
+            first: a,
+            second: b,
+            environment,
+        }) = error
+        else {
+            panic!("expected environment collision, got {error:?}");
+        };
+        let mut actual = [a.as_str(), b.as_str()];
+        actual.sort_unstable();
+        let mut expected = [first, second];
+        expected.sort_unstable();
+        assert_eq!(actual, expected);
+        assert_eq!(environment, ServiceEnvName::of(&a));
+        assert_eq!(environment, ServiceEnvName::of(&b));
     }
 }
 
