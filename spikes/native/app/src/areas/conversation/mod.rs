@@ -70,6 +70,11 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+// Owner preparation only; W12 removes this with its coordinated product cutover.
+#[cfg(test)]
+mod resident;
+#[cfg(test)]
+pub(crate) use resident::{ResidentSeat, TimelineSnapshot};
 mod rewind;
 pub(crate) mod search;
 mod tail;
