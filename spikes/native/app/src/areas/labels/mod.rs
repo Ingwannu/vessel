@@ -81,6 +81,17 @@ pub(crate) fn entry(
 use vessel_app_kit::ui::StatefulInteractiveElement as _;
 
 impl Shell {
+    /// Refresh retained controls without replacing a person's text or selection.
+    pub(crate) fn refresh_label_words(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.labels;
+        state
+            .search
+            .set_placeholder(self.words.labels().search(), window, cx);
+        state
+            .name
+            .set_placeholder(self.words.labels().name(), window, cx);
+    }
+
     fn labels_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
         if state.manager.state().busy() {
