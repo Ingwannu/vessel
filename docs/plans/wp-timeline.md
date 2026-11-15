@@ -1,8 +1,8 @@
 # Conversation stream parity
 
-Status: A7 native rendering is being filled in on package base2 `6036eeb8`;
+Status: A7 native rendering is being filled in on package base4 `3cd0d3fc`;
 canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:14Z.
+verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:45Z.
 
 ## Reference and asset check
 
@@ -133,10 +133,12 @@ combined source-consumable hash; resident adapters await W12's producer API.
 
 Scoped evidence: native view library880tests passed (the subsequently added
 precise context-boundary and distinct-file summary tests were not in that run);
-kit asset/raster/notice tests3passed. Earlier Plan renderer narrow clippy passed;
-later narrow runs caught fixture/import/context-comment issues and their fixes
-are being checked. The latest compact/bookmark adapter has no final green gate
-claim. No whole package gate, captures or V4 review yet. Real providers and new
+kit asset/raster/notice tests3passed. Compact/bookmark adapter at `f8aaaa1d`
+passed strict all-target native app/view/kit Clippy in remote run
+`wp-timeline-narrow-20261115T081535Z-f8aaaa1d`; this excludes subsequent base
+merges and Chat controls. Those controls at `a6a6dfe48` have a queued narrow run
+`wp-timeline-narrow-20261115T084001Z-a6a6dfe4`. No whole package gate, captures
+or V4 review yet. Real providers and new
 wire activation remain unverified; no real agent was run.
 
 Next: finish source-green narrow/model checks; consume the shared Chat, canonical
