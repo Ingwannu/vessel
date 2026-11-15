@@ -336,3 +336,11 @@ Startup exit reporting retains failure until kit, canonical desktop state and th
 first window actually initialize. A failed first-window open quits Explicit mode
 rather than leaving an invisible primary holding the instance lock. CLI child
 exit handling and second-instance forwarding retain their existing status paths.
+
+Login-shell process regressions now use a checked-in /bin/sh fixture with a
+cleared environment and nonexistent fixture HOME, never a real login rc file.
+They exercise interactive failure/noninteractive fallback, child-only/redacted
+values, stale runtime-directory exclusion, bounded output and hung-shell timeout.
+The existing vessel-proc group/job guard owns cancellation cleanup; no duplicate
+process primitive or root fake-binary build is added. Execution is pending the
+next immutable remote test suite.

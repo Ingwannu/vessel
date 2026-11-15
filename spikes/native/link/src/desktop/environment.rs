@@ -65,12 +65,16 @@ pub async fn resolve(
     shell: LoginShell,
     timeout: Duration,
 ) -> Result<ShellEnvironment, DesktopError> {
-    let mark = format!("vessel-env-{}", SessionId::random());
-    let command = format!("printf '\\0{mark}\\0'; /usr/bin/env -0; printf '\\0{mark}\\0'");
     let spec = CommandSpec::new(shell.0)
         .env_remove("PASEO_NODE_ENV")
         .env_remove("PASEO_DESKTOP_MANAGED")
         .env_remove("PASEO_SUPERVISED");
+    capture(spec, timeout).await
+}
+
+async fn capture(spec: CommandSpec, timeout: Duration) -> Result<ShellEnvironment, DesktopError> {
+    let mark = format!("vessel-env-{}", SessionId::random());
+    let command = format!("printf '\\0{mark}\\0'; /usr/bin/env -0; printf '\\0{mark}\\0'");
     let first = timeout
         .checked_div(2)
         .ok_or(DesktopError::ShellEnvironment)?;
@@ -166,5 +170,55 @@ mod tests {
         assert!(!format!("{environment:?}").contains("hidden-value"));
         assert!(decode(b"missing markers", "mark").is_err());
         assert!(decode(b"\0mark\0BROKEN\0\0mark\0", "mark").is_err());
+    }
+
+    #[cfg(unix)]
+    fn fixture(mode: &str) -> CommandSpec {
+        CommandSpec::new("/bin/sh")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/fixtures/desktop-login-shell.sh"
+            ))
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", "/nonexistent-vessel-shell-fixture")
+            .env("VESSEL_SHELL_FIXTURE", mode)
+            .env("VESSEL_ENV_PROBE", "captured-child-value")
+            .env("XDG_RUNTIME_DIR", "/stale-fixture-session")
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn interactive_failure_falls_back_and_captured_values_apply_only_to_children() {
+        const FIXTURE_TIMEOUT: Duration = Duration::from_secs(5);
+        let environment = capture(fixture("fallback"), FIXTURE_TIMEOUT).await.unwrap();
+        let command = environment.apply(CommandSpec::new("/unused"));
+        assert_eq!(
+            command.env_change("VESSEL_ENV_PROBE"),
+            Some(&EnvValue::Set("captured-child-value".into()))
+        );
+        assert_eq!(command.env_change("XDG_RUNTIME_DIR"), None);
+        assert!(!format!("{environment:?}").contains("captured-child-value"));
+        assert_eq!(
+            ShellEnvironment::inherited()
+                .apply(CommandSpec::new("/unused"))
+                .env_change("VESSEL_ENV_PROBE"),
+            None
+        );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn noisy_output_and_a_hung_shell_are_bounded_refusals() {
+        const OUTPUT_TIMEOUT: Duration = Duration::from_secs(5);
+        const HUNG_TIMEOUT: Duration = Duration::from_millis(100);
+        assert!(matches!(
+            capture(fixture("overflow"), OUTPUT_TIMEOUT).await,
+            Err(DesktopError::ShellEnvironment)
+        ));
+        assert!(matches!(
+            capture(fixture("hang"), HUNG_TIMEOUT).await,
+            Err(DesktopError::ShellEnvironment)
+        ));
     }
 }
