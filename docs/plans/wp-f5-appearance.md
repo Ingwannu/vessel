@@ -147,3 +147,20 @@ Neither is a compile result for current source. The new preference changes
 are preparation only: their renderer and typography/syntax application are
 not complete. Plugin scalar staging and the shared field split are likewise
 not imported before their owners send narrow-green handoffs.
+
+### Syntax and family data preparation
+
+`kit::theme::syntax` (also reexported as `kit::syntax`) owns the eight
+syntax palettes and complete twenty-role source values. A single ten-role
+expansion serves the compact tables; GitHub keeps its hand-tuned twenty-role
+exceptions. These data do not add a highlighter or renderer. The actual
+`resolveSyntaxColors` implementation pairs Nord light/dark even though an
+introductory comment calls it dark-only; the implementation wins. Dracula
+alone uses one palette on both schemes. The existing code frame/diff colours
+remain outside this palette; syntax consumption/preview are still pending.
+
+The family input now retains decoded ordered names at the validation edge,
+including quoted commas, CSS hexadecimal escapes and generic intent. Native
+resolution must query installed/embedded names only; it never loads a file
+or a network address from this input. Generic categories use readable
+embedded fallbacks. Raw spelling remains the saved/editable value.

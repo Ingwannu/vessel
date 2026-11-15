@@ -17,7 +17,7 @@ pub enum SyntaxTheme {
     /// The source default: One Light/Dark.
     #[default]
     One,
-    /// Nord's single dark palette.
+    /// Nord's paired Snow Storm/Polar Night palettes (the actual resolver).
     Nord,
     /// Gruvbox light/dark.
     Gruvbox,

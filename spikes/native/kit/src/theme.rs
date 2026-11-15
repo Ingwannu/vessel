@@ -9,6 +9,7 @@
 
 pub mod palette;
 pub mod spacing;
+pub mod syntax;
 pub use palette::Palette;
 
 /// The desktop command panel's scrim: black at 50 % (track S3's, after

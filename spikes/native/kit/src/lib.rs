@@ -59,6 +59,7 @@ pub mod sheet;
 pub mod skeleton;
 pub mod slider;
 pub mod split_button;
+pub use theme::syntax;
 pub mod tabs;
 pub mod theme;
 pub mod theme_tile;
