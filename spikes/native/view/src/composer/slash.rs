@@ -124,10 +124,8 @@ pub fn ranked<'a>(commands: &'a [AgentCommand], query: &str) -> Vec<&'a AgentCom
         })
         .collect();
     scored.sort_by(|(one, a), (other, b)| {
-        one.cmp(other).then_with(|| {
-            let (a, b) = (a.name.as_str(), b.name.as_str());
-            a.to_lowercase().cmp(&b.to_lowercase()).then(a.cmp(b))
-        })
+        one.cmp(other)
+            .then_with(|| crate::alphabetical::compare(a.name.as_str(), b.name.as_str()))
     });
     scored.into_iter().map(|(_, command)| command).collect()
 }

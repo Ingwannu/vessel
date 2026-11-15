@@ -123,6 +123,13 @@ fn ties_are_broken_by_name_and_descriptions_are_not_searched() {
 }
 
 #[test]
+fn equal_command_scores_use_the_shared_original_case_tie_without_sorting_empty_queries() {
+    let commands = [command("run"), command("Run"), command("RUN")];
+    assert_eq!(names(&ranked(&commands, "r")), ["RUN", "Run", "run"]);
+    assert_eq!(names(&ranked(&commands, "")), ["run", "Run", "RUN"]);
+}
+
+#[test]
 fn the_best_row_is_drawn_nearest_the_text() {
     assert_eq!(
         drawn(vec!["alpha", "beta", "gamma"]),

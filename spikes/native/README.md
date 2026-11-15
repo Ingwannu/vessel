@@ -108,7 +108,10 @@ does that reaches a node is a `link::Command`.
 The command palette's matching lives in the shared pure `view::matcher`
 module; its cursor and result bands stay in `view::palette`. Provider
 catalogs reuse the same parsed `Query` and opaque ordered `Score` with
-their visible name/id fields. Each query token must match a visible label/subtitle or hidden
+their visible name/id fields. Display-name alphabetical ties use the shared
+`view::alphabetical::compare`: Unicode lowercase, then original code points,
+independent of the platform locale. Command menus retain source order when
+the query is empty. Each query token must match a visible label/subtitle or hidden
 keyword; subsequences stay within a word. Visible matches rank first,
 command groups rank by relevance, and session navigation follows below
 them by match tier and last activity. Before searching, only five recent
