@@ -128,3 +128,16 @@ fn non_source_rows_cannot_acquire_source_numbers_and_split_side_is_explicit() {
     assert_eq!(text.side, DiffSide::Modified);
     assert_eq!(text.with_side(DiffSide::Original).side, DiffSide::Original);
 }
+
+#[test]
+fn the_diff_selection_keeps_terminal_blue_translucent_in_both_themes() {
+    for scheme in [crate::theme::Scheme::Dark, crate::theme::Scheme::Light] {
+        let tokens = Tokens::of(scheme);
+        let ordinary = super::super::style(&tokens).selection;
+        let [_, _, _, _, blue, ..] = tokens.terminal.ansi;
+        let blue = gpui::Hsla::from(gpui::rgb(blue));
+        let diff = style(&tokens);
+        assert_eq!(diff.selection, gpui::Hsla { a: 0.45, ..blue });
+        assert_eq!(super::super::style(&tokens).selection, ordinary);
+    }
+}

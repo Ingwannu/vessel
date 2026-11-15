@@ -198,3 +198,19 @@ returns101 solely for the now-unused size import, removed by this successor.
 Original0813 remains RED and is not relabeled. Both remote runs were terminal
 before this production correction was installed. No whole gate, split-header/
 filtered-copy parity, fake-node C3 mount, authority, UI or OS pass is claimed.
+
+## Selection ink is a separate Kit policy correction
+
+[Decision Log]
+- Existing asset: the normal projected CodeEditor style and same Base selection
+  paths. Do not change selection, hit testing or copy to change its ink.
+- Reference: palette.ts chooses terminal.blue; paint.web.ts paintSelection uses
+  globalAlpha0.45. The earlier opaque profile could cover source glyphs.
+- Choice: a private diff-style projection sets that one ink to blue at0.45;
+  ordinary source style remains unchanged. Test that production style in both
+  themes against the whole expected color. No engine or palette API is added.
+- Limits: exact successor compilation/tests and real selection-path visibility
+  captures remain owed. This policy test is not a path-z-order or OS UI proof.
+
+The lead requested this correction in its own commit, separate from wheel
+routing. Both enter one changed-source narrow batch; no unchanged whole gate.
