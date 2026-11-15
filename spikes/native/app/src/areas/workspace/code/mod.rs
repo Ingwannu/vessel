@@ -35,6 +35,7 @@ mod editing;
 mod editing_view;
 mod editor_find;
 mod editor_io;
+mod editor_mirror;
 mod editor_status;
 mod elsewhere;
 mod entry_forms;

@@ -277,3 +277,70 @@ fn destructive_admission_observes_accepted_text_before_its_mirror(cx: &mut TestA
         });
     });
 }
+
+#[gpui::test]
+fn accepted_text_before_pending_projection_survives_delete_and_late_frame(cx: &mut TestAppContext) {
+    use vessel_app_kit::code_editor::FindCase;
+    use vessel_app_link::workspace::PathChange;
+    use vessel_app_view::workspace::editor::{ConflictKind, Step};
+    use vessel_proto::workspace::DeletePath;
+
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let scope = shell.areas.workspace.code.scope().unwrap();
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            let step = shell.editing_for(&key).unwrap().model.reconcile();
+            assert!(matches!(step, Step::Read { .. }));
+            shell.send_step_for(&key, step);
+            let ticket = shell.editing_for(&key).unwrap().reading.unwrap().0;
+            shell.editor_read_answered_for(
+                &key,
+                ticket,
+                &super::super::editing::whole_read(key.root, key.path.clone()),
+                Ok(io_tests::text("newer disk")),
+                cx,
+            );
+            assert_eq!(editing(shell).model.content(), "newer disk");
+            assert_eq!(editor.text(cx), "alpha beta alpha");
+            assert!(editing(shell).stale);
+            shell.mirror_editor_for(&key, cx);
+            assert_eq!(
+                editing(shell).model.content(),
+                "newer disk",
+                "unchanged old display cannot undo the new model"
+            );
+            editor.open_find(cx);
+            editor.find_query("alpha", FindCase::Sensitive, cx);
+            assert_eq!(
+                editor.find_replace("accepted", ReplaceScope::All, window, cx),
+                MatchCount(2)
+            );
+            // Its owner notification is still withheld at destructive admission.
+            shell.begin_file_mutation_for(
+                scope,
+                PathChange::Delete(DeletePath {
+                    root: key.root,
+                    path: key.path.clone(),
+                    recursive: false,
+                }),
+                cx,
+            );
+            assert!(shell.areas.workspace.code.mutation.is_none());
+            assert_eq!(editing(shell).model.content(), "accepted beta accepted");
+            assert_eq!(
+                editing(shell).model.conflict(),
+                Some((ConflictKind::Changed, true))
+            );
+            assert!(!editing(shell).stale);
+            assert!(editing(shell).writing.is_none());
+            shell.editor_changed_for(&key, window, cx);
+            shell.editor_frame_for(&key, window, cx);
+            assert_eq!(editor.text(cx), "accepted beta accepted");
+            assert_eq!(editing(shell).model.content(), editor.text(cx));
+            assert_eq!(shell.editing_for(&key).unwrap().model.save(), Step::None);
+        });
+    });
+}

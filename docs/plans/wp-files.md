@@ -983,3 +983,28 @@ older import/privacy diagnostics already corrected in the current source; no
 unit execution is claimed. Its failed record remains separate from strict24
 and from the next source batch. New viewer-host/Find fixtures and refactors
 require their own combined run; a green earlier dependency is not this result.
+
+
+### Accepted input while a disk projection is pending
+
+[Decision Log]
+- Purpose: preserve input accepted by the existing editor between a newer disk
+  response and its deferred model-to-control projection, including before Delete.
+- Constraint: a stale flag alone cannot distinguish unchanged old display text
+  from new input whose owner notification is queued. Blindly skipping both loses
+  text; copying both overwrites a newer model with an unchanged old display.
+- Reuse: the engine has an internal document revision but no public accessor.
+  The owner retains the already allocated last projected/published text as
+  comparison evidence; no vendor getter, edit engine, queue or lease is added.
+- Choice: before read/save settlement, projection and destructive admission,
+  synchronize actual engine text. Unchanged old display waits for projection;
+  different accepted text stays in the original model. If it was entered over an
+  unseen disk replacement, explicit conflict review is required. Later equal
+  observations cannot silently re-arm autosave over that unseen replacement.
+- Consequences: the comparison snapshot adds one retained control string, not a
+  whole-process memory bound. It is never a writable buffer or source version.
+  Projection readiness accumulates until actually applied; original pending or
+  uncertain write obligations remain independent. Explicit reload/overwrite use
+  existing guarded paths. Pure model and real-engine silent-replacement barriers
+  pin preservation, no automatic overwrite and late-frame behavior. They do not
+  prove every OS input-method event ordering; execution on this union is owed.

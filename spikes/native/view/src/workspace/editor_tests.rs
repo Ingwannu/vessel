@@ -506,3 +506,45 @@ fn ended_confirmation_never_replays_later_draft_and_nontext_or_deletion_preserve
         assert!(model.writing().is_none());
     }
 }
+
+#[test]
+fn input_before_disk_projection_is_preserved_without_automatic_overwrite() {
+    let mut model = loaded("shown baseline");
+    let read = read_of(&model.reconcile());
+    let _step = model.read(read, Read::Text("unseen disk".into(), version(2)));
+    assert_eq!(model.content(), "unseen disk");
+    assert_eq!(
+        model.edit_before_projection("accepted on old display"),
+        Step::StopAutosave
+    );
+    assert_eq!(model.content(), "accepted on old display");
+    assert_eq!(model.conflict(), Some((ConflictKind::Changed, true)));
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+    let _step = model.edit("later local edit");
+    let read = read_of(&model.reconcile());
+    assert_eq!(
+        model.read(read, Read::Text("unseen disk".into(), version(2))),
+        Step::StopAutosave
+    );
+    assert_eq!(model.conflict(), Some((ConflictKind::Changed, true)));
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+    let read = read_of(&model.reload());
+    let _step = model.read(read, Read::Text("unseen disk".into(), version(2)));
+    assert_eq!(model.status(), EditorStatus::Clean);
+}
+
+#[test]
+fn input_before_projection_does_not_settle_an_original_unknown_write() {
+    let mut model = loaded("baseline");
+    let _step = model.edit("original attempt");
+    let (sequence, _, _) = write_of(&model.save());
+    let _step = model.saved(sequence, Written::Uncertain("lost reply".into()));
+    let _step = model.edit_before_projection("accepted local input");
+    assert_eq!(model.writing(), Some(sequence));
+    assert_eq!(model.write_state(), Some(super::WriteState::Uncertain));
+    assert_eq!(model.content(), "accepted local input");
+    assert_eq!(model.save(), Step::None);
+    assert_eq!(model.flush(), Step::None);
+}

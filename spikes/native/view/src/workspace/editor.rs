@@ -24,6 +24,7 @@
 //!   can admit observation, disk changes require a save or explicit reread.
 
 mod reading;
+use reading::ConflictRecovery;
 mod settled;
 mod write_attempt;
 pub use write_attempt::WriteState;
@@ -130,6 +131,7 @@ pub struct EditorModel {
     format: TextFormat,
     version: Option<FileVersion>,
     conflict: Option<ConflictKind>,
+    conflict_recovery: ConflictRecovery,
     error: Option<String>,
     write_sequence: u64,
     read_sequence: u64,
@@ -177,6 +179,7 @@ impl EditorModel {
             format: TextFormat::DEFAULT,
             version: None,
             conflict: None,
+            conflict_recovery: ConflictRecovery::Automatic,
             error: None,
             write_sequence: 0,
             read_sequence: 1,
@@ -302,6 +305,19 @@ impl EditorModel {
         }
     }
 
+    /// Preserve accepted input from a control that has not received the model's
+    /// newer disk text. The person must resolve that unseen replacement before
+    /// another write; an original write obligation remains independently held.
+    pub fn edit_before_projection(&mut self, content: &str) -> Step {
+        let step = self.edit(content);
+        if self.writing.is_none() && self.modified() {
+            self.conflict_recovery = ConflictRecovery::Explicit;
+            self.enter_conflict(ConflictKind::Changed)
+        } else {
+            step
+        }
+    }
+
     /// The autosave came due, or the person saved.
     pub fn save(&mut self) -> Step {
         if self.writing.is_some()
@@ -368,6 +384,7 @@ impl EditorModel {
     }
 
     fn write(&mut self, base: Option<FileVersion>) -> Step {
+        self.conflict_recovery = ConflictRecovery::Automatic;
         self.flush_after_recovery = FlushAfterRecovery::Automatic;
         self.write_sequence = self.write_sequence.saturating_add(1);
         let sequence = self.write_sequence;

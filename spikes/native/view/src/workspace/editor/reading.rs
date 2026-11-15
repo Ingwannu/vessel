@@ -2,6 +2,14 @@
 use super::{ConflictKind, EditorModel, EditorStatus, Read, Step};
 use crate::workspace::text_format::TextFormat;
 use vessel_proto::workspace::FileVersion;
+/// Unseen model-to-control replacement needs explicit review, independently
+/// from original remote-write termination and its retry policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ConflictRecovery {
+    Automatic,
+    Explicit,
+}
+
 impl EditorModel {
     /// A read's answer: the first read, a reload, or the panel reading the
     /// file again (a git write). A clean buffer follows the disk; a
@@ -52,6 +60,9 @@ impl EditorModel {
                     self.format = format;
                     self.version = Some(version);
                     if self.status == EditorStatus::Conflict {
+                        if self.conflict_recovery == ConflictRecovery::Explicit {
+                            return Step::StopAutosave;
+                        }
                         self.conflict = None;
                         self.status = if self.modified() {
                             EditorStatus::Dirty
@@ -76,6 +87,7 @@ impl EditorModel {
     pub(super) fn apply(&mut self, text: &str, version: FileVersion) -> Step {
         let (format, text) = TextFormat::decode(text);
         self.format = format;
+        self.conflict_recovery = ConflictRecovery::Automatic;
         self.flush_after_recovery = super::FlushAfterRecovery::Automatic;
         self.write_sequence = self.write_sequence.saturating_add(1);
         self.writing = None;

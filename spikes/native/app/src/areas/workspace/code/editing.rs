@@ -43,6 +43,8 @@ pub(super) struct Editing {
     pub(super) status: Option<vessel_app_kit::ui::Entity<super::editor_status::Status>>,
     /// The model's text is newer than the control's (a reload).
     pub(super) stale: bool,
+    /// Last text actually projected into or published from the existing control.
+    pub(super) mirrored: Option<String>,
     /// Bumped by every autosave set or stopped; a timer checks it.
     pub(super) autosave: u64,
     /// Reload's question, made when first asked.
@@ -80,6 +82,7 @@ impl Editing {
             editor: None,
             status: None,
             stale: false,
+            mirrored: None,
             autosave: 0,
             reload: None,
             reading: None,
@@ -116,48 +119,6 @@ impl Shell {
         self.run_step_for(key, step, cx);
     }
 
-    /// The person typed in the editor.
-    pub(super) fn editor_changed_for(
-        &mut self,
-        key: &super::buffers::FileKey,
-        _window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.mirror_editor_for(key, cx);
-    }
-
-    // Already accepted engine text must reach the owner even when a path hold
-    // has begun; a hold rejects new effects, never publication of prior input.
-    pub(super) fn mirror_editor_for(
-        &mut self,
-        key: &super::buffers::FileKey,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let held = self.areas.workspace.code.file_effect_held(key);
-        let Some(editing) = self.editing_for(key) else {
-            return;
-        };
-        let Some(text) = editing.editor.as_ref().map(|editor| editor.text(cx)) else {
-            return;
-        };
-        if editing.stale || editing.model.content() == text {
-            return;
-        }
-        let step = editing.model.edit(&text);
-        let step = if held && matches!(&step, Step::Autosave) {
-            Step::StopAutosave
-        } else {
-            step
-        };
-        if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
-            viewer.intelligence = super::intelligence::State::Idle;
-            if let Some(preview) = &mut viewer.markdown {
-                preview.invalidate();
-            }
-        }
-        self.run_step_for(key, step, cx);
-    }
-
     /// A read of the file being edited came back. `false` when the file
     /// cannot be edited (binary, or larger than a page): the caller shows
     /// it read-only.
@@ -168,6 +129,7 @@ impl Shell {
         result: &Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) -> bool {
+        self.mirror_editor_for(key, cx);
         let words = self.words();
         let Some(editing) = self.editing_for(key) else {
             // No matching editor owns this response anymore; only a
@@ -210,7 +172,7 @@ impl Shell {
         {
             editing.writing = None;
         }
-        editing.stale = editing.editor.is_some() && editing.model.content() != before;
+        editing.stale |= editing.editor.is_some() && editing.model.content() != before;
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key)
             && let Some(preview) = &mut viewer.markdown
         {
@@ -231,6 +193,7 @@ impl Shell {
         saved: Saved,
         cx: &mut Context<'_, Self>,
     ) {
+        self.mirror_editor_for(key, cx);
         let words = self.words();
         let Some(editing) = self.editing_for(key) else {
             return;
@@ -260,7 +223,9 @@ impl Shell {
             }
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
+        let before = editing.model.content().to_owned();
         let step = editing.model.saved(sequence, written);
+        editing.stale |= editing.editor.is_some() && editing.model.content() != before;
         if editing.model.write_state()
             == Some(vessel_app_view::workspace::editor::WriteState::Ended)
         {
@@ -413,6 +378,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.mirror_editor_for(key, cx);
         let mutation_held = self.areas.workspace.code.file_effect_held(key);
         let labels = self.words().labels();
         let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
@@ -433,6 +399,7 @@ impl Shell {
             if editing.stale {
                 editing.stale = false;
                 editor.set_text(editing.model.content(), window, cx);
+                editing.mirrored = Some(editor.text(cx));
             }
             return;
         }
@@ -467,6 +434,7 @@ impl Shell {
         let Some(editing) = viewer.edit.as_mut() else {
             return;
         };
+        editing.mirrored = Some(editor.text(cx));
         editing.editor = Some(editor);
         editing.status = Some(status);
         editing.find = Some(find);
