@@ -20,6 +20,8 @@
 //!   consumes the shared metrics/family and retains its fallback list.
 //! - Cost: one additional public type step; no font asset or editing engine.
 
+mod size;
+pub use size::{FontSize, TextSizes};
 mod stack;
 pub use stack::{FontStack, Typeface, active};
 
@@ -96,6 +98,10 @@ static INTERFACE: AtomicU8 = AtomicU8::new(INTERFACE_BASE);
 /// The code size the scale is drawn at (the page's `data-code-size`).
 static CODE: AtomicU8 = AtomicU8::new(CODE_BASE);
 
+// Standalone kit views inherit the normal body size; the app sets its
+// independently validated content default before drawing its first frame.
+static CONTENT: AtomicU8 = AtomicU8::new(INTERFACE_BASE);
+
 /// The interface size the steps are written for.
 const INTERFACE_BASE: u8 = 14;
 
@@ -110,8 +116,40 @@ pub(crate) fn set_sizes(interface: u8, code: u8) -> bool {
     before != interface || before_code != code
 }
 
+/// Update the resolved stack snapshot, without I/O or window refresh.
 pub(crate) fn set_stacks(interface: FontStack, code: FontStack) -> bool {
     stack::set(interface, code)
+}
+
+/// Apply all axes from their canonical units, never a previously scaled value.
+pub(crate) fn set_axes(sizes: TextSizes) -> bool {
+    let changed = set_sizes(sizes.interface.get(), sizes.code.get());
+    let before_content = CONTENT.swap(sizes.content.get(), Ordering::Relaxed);
+    changed || before_content != sizes.content.get()
+}
+
+/// The absolute content size; independent of UI and code preferences.
+#[must_use]
+pub fn content_size() -> f32 {
+    f32::from(CONTENT.load(Ordering::Relaxed))
+}
+
+/// The absolute code size; independent of the interface scale.
+#[must_use]
+pub fn code_size() -> f32 {
+    f32::from(CODE.load(Ordering::Relaxed))
+}
+
+/// Code/diff lines follow the source's rounded 1.5x coupling.
+#[must_use]
+pub fn code_line_height() -> f32 {
+    code_size().mul_add(1.5, 0.0).round()
+}
+
+/// Content lines follow the source's rounded 1.4x coupling.
+#[must_use]
+pub fn content_line_height() -> f32 {
+    content_size().mul_add(1.4, 0.0).round()
 }
 
 /// `points` of interface text (written for 14) at the chosen size.

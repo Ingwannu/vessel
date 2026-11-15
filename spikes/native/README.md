@@ -456,7 +456,8 @@ Paseo's it has no accessible name (the kit has no accessibility tree yet).
 `State::Chosen/Idle` controls the border/hover treatment;
 `Preview::Single(&Tokens)` or `Split { light, dark }` supplies the picture.
 The caller supplies an opaque UI id and attaches its action, then uses `cell`
-and `grid` for the reference's half-gap layout. No view preference, plugin
+and `grid` for the reference's half-gap layout. `Columns::at` follows the
+600-point viewport breakpoint independently of navigation compactness. No view preference, plugin
 or host identity reaches the kit. Labels use the reference's small12 step.
 The F5 plan records the consumer migration and the independent numeric/
 family field presentation over the existing editing engine.
@@ -481,6 +482,27 @@ verification limits are in `docs/plans/app-themes.md` at the repository root.
 `theme::palette::GREEN_500` remains the fixed success colour used by the
 typed menu. It has one definition, shared with the named palette module;
 it is not replaced by the theme's accent or semantic status signal.
+
+### Appearance override APIs (F5, staged)
+
+`fonts::FontStack` holds resolved available face names and shared fallback
+lists. `set_font_stacks` updates semantic type styling and shaping-based
+measurement together, preserving Pretendard; the kit never parses a family
+preference or loads a font path. `fonts::{FontSize,TextSizes}` and
+`set_typography_sizes` carry independent UI/content/code units. The app's
+sole adapter is `areas/settings/typography.rs`; view owns safe family
+parsing, committed ranges and pure form filtering/commit/restore rules.
+The text engine remains the only owner of caret, history and IME state.
+
+`theme::syntax` (also `kit::syntax`) owns eight syntax palettes and all twenty
+source roles without a renderer. Its catalogue resolves by light/dark only;
+Dracula is dark-only and Nord follows its actual paired source resolver.
+Syntax consumption and the Appearance preview remain separate pending work.
+`Tokens::contributed(Scheme, theme::palette::ContributedColors)` preserves
+validated supplied colour alpha through the named tints' one token mapper.
+It accepts no plugin ids, host ids, file paths or unparsed colour strings.
+The plugin runtime owns decoding/catalog transport; its app consumer and the
+remaining field/component projections are still pending in the F5 plan.
 
 ### Rules every screen follows
 

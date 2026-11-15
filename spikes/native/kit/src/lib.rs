@@ -197,11 +197,23 @@ pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
     }
 }
 
+/// Apply all three independent committed text axes. The app owns defaults
+/// and validation; component text is projected with the existing token path.
+pub fn set_typography_sizes(cx: &mut App, sizes: fonts::TextSizes) {
+    if fonts::set_axes(sizes) {
+        let tokens = tokens(cx);
+        field::apply_tokens(cx, &tokens);
+        cx.refresh_windows();
+    }
+}
+
 /// Change the resolved faces used by the kit's semantic type steps.
 /// Names have already been resolved by the app's platform font edge;
 /// this does no font loading or preference parsing.
 pub fn set_font_stacks(cx: &mut App, interface: fonts::FontStack, code: fonts::FontStack) {
     if fonts::set_stacks(interface, code) {
+        let tokens = tokens(cx);
+        field::apply_tokens(cx, &tokens);
         cx.refresh_windows();
     }
 }
