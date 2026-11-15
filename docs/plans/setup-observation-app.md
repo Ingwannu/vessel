@@ -55,3 +55,9 @@ network adapter and cannot establish live setup or workspace authority.
 - Choice: one passive registered renderer and a typed unavailable product state.
 - Impact: structured rendering can be tested now; live reads, pending cancellation
   retention, retirement and negotiated authorization remain the future controller.
+
+
+The unavailable notice intentionally makes no claim about the host's capability:
+the missing boundary may also be canonical workspace/backing admission. Neither
+a cached protocol number nor a successful old worktree is used to choose a more
+optimistic message or enable an effect.

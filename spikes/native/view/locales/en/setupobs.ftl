@@ -1,8 +1,8 @@
 ## Read-only observations of one backing setup attempt, not workspace admission.
 # A missing structured snapshot does not mean setup succeeded.
 setupobs-absent = No structured setup observation is available.
-# Old/pending nodes have no negotiated observation/cancellation backend.
-setupobs-unsupported = This host does not support structured setup observations yet.
+# Missing capability or canonical admission cannot enable the observation backend.
+setupobs-unsupported = Structured setup observations are not available here yet.
 # Safe failure label; raw peer diagnostics are never shown here.
 setupobs-read-failed = Setup observation could not be refreshed.
 # Overall and per-command structured status, independent from output text.
