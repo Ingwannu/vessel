@@ -63,6 +63,18 @@ impl Drop for Following {
     }
 }
 
+fn following(fixture: &Fixture, session: SessionId) -> (Following, Captured, Captured) {
+    let id = session.to_string();
+    let mut child = Following(fixture.spawn_vessel_at(
+        &fixture.node_address(),
+        &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
+    ));
+    drop(child.0.stdin.take());
+    let stdout = Captured::start(child.0.stdout.take().unwrap());
+    let stderr = Captured::start(child.0.stderr.take().unwrap());
+    (child, stdout, stderr)
+}
+
 async fn create(fixture: &Fixture, owner: &NodeClient) -> SessionId {
     let mut spec = SessionSpec::new(
         HarnessKind::ClaudeCode,
@@ -174,14 +186,7 @@ async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
         let owner = fixture.owner().await;
         let session = create(&fixture, &owner).await;
         let _history_from = turn(&owner, session, "plain").await;
-        let id = session.to_string();
-        let mut child = Following(fixture.spawn_vessel_at(
-            &fixture.node_address(),
-            &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
-        ));
-        drop(child.0.stdin.take());
-        let mut stdout = Captured::start(child.0.stdout.take().unwrap());
-        let stderr = Captured::start(child.0.stderr.take().unwrap());
+        let (mut child, mut stdout, stderr) = following(&fixture, session);
         stdout.wait_for("echo: plain", 1).await;
         // This can arrive between history and subscription: the saved cursor must catch it.
         let _live_from = turn(&owner, session, "loaded").await;

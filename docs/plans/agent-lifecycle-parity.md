@@ -340,6 +340,11 @@ No row of the crate table changes.
   banner is fabricated.
   The inherited stream-end wait and the new turn-end wait share one named
   event budget; their expected records and output remain unchanged.
+- Follow review found that recreating a Ctrl-C future for each iteration
+  drops its receiver during output. The corrective slice first shares the
+  test child/capture setup without changing any expectation; it will then
+  retain one interrupt future across writes and add an actual signal case.
+  The earlier gate does not verify that correction.
 - Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. The CLI edge owns the execution
