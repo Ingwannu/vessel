@@ -242,6 +242,26 @@ impl Fixture {
             .unwrap()
     }
 
+    /// A closed stderr peer proves a warning failure precedes any shutdown RPC.
+    #[cfg(target_os = "linux")]
+    pub(super) fn spawn_vessel_with_closed_stderr(&self, args: &[&str]) -> tokio::process::Child {
+        let (read, write) = std::os::unix::net::UnixStream::pair().unwrap();
+        drop(read);
+        let error = std::os::fd::OwnedFd::from(write);
+        command(
+            &self.node_address(),
+            self.data.path(),
+            self.data.path(),
+            args,
+        )
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::from(error))
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap()
+    }
+
     /// Start `vessel --node <node> <args>` with piped stdio.
     pub(super) fn spawn_vessel_at(&self, node: &str, args: &[&str]) -> tokio::process::Child {
         command(node, self.data.path(), self.data.path(), args)
@@ -401,6 +421,9 @@ fn book_command(data: &Path, dir: &Path, args: &[&str]) -> Command {
         .args(args)
         .current_dir(dir)
         .env("VESSEL_CONFIG_DIR", data.join("config"))
+        .env("HOME", data)
+        .env("VESSEL_HOME", data)
+        .env("XDG_CONFIG_HOME", data.join("config"))
         .env_remove("VESSEL_TOKEN")
         .env_remove("VESSEL_NODE")
         .env_remove("VESSEL_SSH");
