@@ -491,3 +491,15 @@ fresh process/socket/scheme proof are prerequisites; the current registry
 source has no incarnation guarantee across physical restoration, so no
 local generation or cwd heuristic substitutes for it. Resume: source
 contract recorded before front-door code; focused checks/review are owed.
+
+
+## Canonical helper workspace input
+
+The designated head now exports the reviewed WorkspaceId value. The staged
+helper and allocator will require that identifier explicitly, with
+VESSEL_WORKSPACE_ID matching the literal workspace argument. The former
+project/worktree fallback was staging-only and is withdrawn before any
+caller. This does not adopt the unreviewed registry or establish permission:
+its checked start/restart/root boundary remains a caller prerequisite.
+Resume: contract first, then input plumbing and same-checkout/different-id
+regressions; narrow checks owed.

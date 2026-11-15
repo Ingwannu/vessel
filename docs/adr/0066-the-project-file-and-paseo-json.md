@@ -233,9 +233,9 @@ other control character,
 at most 4096 bytes, no empty, `.` or `..` component, and that text is
 what the approval shows and what is executed (no symlink resolution
 before the digest, so the digest does not depend on the machine). The
-arguments are fixed: the service's name, the place's id, the branch name
+arguments are fixed: the service's name, the exact `WorkspaceId`, the branch name
 or empty, and the absolute folder. The environment names the same four
-as `VESSEL_SCRIPT_NAME`, `VESSEL_PLACE_ID`, `VESSEL_BRANCH` and
+as `VESSEL_SCRIPT_NAME`, `VESSEL_WORKSPACE_ID`, `VESSEL_BRANCH` and
 `VESSEL_WORKTREE`. Ten seconds, and at most 1024 bytes in each of standard output and
 standard error, matching the allocator's `execFile` `maxBuffer`. Standard
 output is decoded as UTF-8, trimmed with the shared JavaScript rule, and
@@ -509,11 +509,15 @@ the earlier one. Withdrawal is explicit.
   refusal also applies in verbatim namespaces; it avoids relying on a
   normalization distinction to keep an interpreter out. Symlink races after
   this check remain the same-user race documented by `Root` (ADR 0027).
-- Arguments and environment: service name, typed place id (worktree id
-  when present, otherwise project id), branch or empty, and absolute
-  checkout folder. The four `VESSEL_*` names above mirror those values.
-  This place-id mapping is a stated difference: Vessel has no Paseo
-  workspace id. Reuse `TerminalsConfig.removed`, without adding terminal
+- Arguments and environment: service name, the canonical typed
+  `WorkspaceId`, branch or empty, and absolute checkout folder. The four
+  `VESSEL_*` names above mirror those values. The identifier is an explicit
+  required input; neither project/worktree id nor cwd supplies a fallback.
+  The shared identity now exists, so the earlier staging-only place-id
+  mapping is withdrawn before any helper caller is enabled. This follows
+  Paseo's `workspace-service-port-allocator.ts:58–66` workspace argument and
+  environment value, with the documented Vessel environment-name prefix.
+  Reuse `TerminalsConfig.removed`, without adding terminal
   color variables; the binary owns the credential-name inventory. Other
   inherited user variables and filesystem/network permissions remain those
   of the node user. The helper is not a sandbox.
@@ -908,3 +912,12 @@ has no release operation; those joint tests remain with that integration.
   binding rejection, private/public ingress separation, no control-host
   fallback, credential stripping and cancellation of in-flight HTTP/WS.
   This document enables no listener, setting, route or network request.
+
+
+The helper's WorkspaceId input is a value, not a registry admission token.
+The future approval-checked caller must obtain the matching checkout and
+start/restart permission from the canonical registry; passing a UUID alone
+cannot establish that relationship. Preparation tests must show that two
+workspaces using the same checkout keep distinct literal identifiers, and
+that switching local/worktree placement never substitutes either legacy id.
+No helper is launched and no registry API is adopted by this contract change.
