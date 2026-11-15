@@ -95,3 +95,18 @@ projection of the same selected byte range through immutable row metadata has
 been sent to the lead/V1 before any implementation. No competing selection
 engine, vendor API widening, failing/blessed reference fixture or fabricated UI
 proof is introduced by this note.
+
+Lead ruling after tracing paint.web.ts270: that one header cell spans the full
+viewport (columnWidth = viewportWidth / cells.length). The proposed native
+split has two independently clipped half-width engines; merely blanking its
+new-side header would clip the remaining header to half width. The split body
+is not mounted, so this source-model gap is not reachable in the current
+summary-only registry. Keep the duplicated model unchanged in this packet.
+
+Follow-up is one renderer-mount packet with a plan first to lead+V1: a full-width
+header over the two immutable engines (display-only virtual rows, synchronized
+scroll/row height, no second selection engine), shared action-capture copy
+projection and the four actual hit-testing source-copy fixtures. No such
+renderer/virtual-row/copy seam is implemented or approved by this ruling.
+The current bounded control packet may proceed with this explicit exclusion;
+this does not make full C3/split/copy parity passed.
