@@ -70,7 +70,10 @@ const FIELDS: &[(&str, &[&str])] = &[
     ),
     ("ThreadStartResponse", &["thread"]),
     ("ThreadResumeResponse", &["thread"]),
-    ("Thread", &["id"]),
+    (
+        "Thread",
+        &["id", "cwd", "name", "preview", "createdAt", "updatedAt"],
+    ),
     (
         "TurnStartParams",
         &[
