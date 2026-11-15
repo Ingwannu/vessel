@@ -237,14 +237,14 @@ impl Shell {
             }
             return;
         }
-        self.resolve_shortcut(press, context, window, cx);
+        self.resolve_shortcut(&press, context, window, cx);
     }
 
     /// Admission and local controls have already kept their input. This is
     /// still the same engine/cache/dispatcher, with no second event listener.
     fn resolve_shortcut(
         &mut self,
-        press: KeyPress,
+        press: &KeyPress,
         context: ShortcutContext,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
@@ -263,15 +263,14 @@ impl Shell {
                 return;
             }
         }
-        let repeat = if chord_of(&press, context.platform)
-            .is_some_and(|chord| listener.held.press(&chord))
-        {
-            KeyRepeat::Repeated
-        } else {
-            KeyRepeat::Initial
-        };
+        let repeat =
+            if chord_of(press, context.platform).is_some_and(|chord| listener.held.press(&chord)) {
+                KeyRepeat::Repeated
+            } else {
+                KeyRepeat::Initial
+            };
         let found = listener.engine.resolve_keypress(
-            &press,
+            press,
             repeat,
             listener.since.elapsed(),
             context,
