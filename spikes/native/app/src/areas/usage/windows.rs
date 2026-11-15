@@ -95,7 +95,26 @@ pub(super) fn draw(
         account.profile(),
         window.id
     ));
+    let receipt = super::read_states::context(shell);
+    let label = format!(
+        "{} · {}",
+        vessel_app_view::agent_name(account.harness()),
+        window_label(window, shell.words)
+    );
+    let description = if selected {
+        shell.words.usage().unpin()
+    } else {
+        shell.words.usage().pin()
+    };
     body.id(id)
+        .role(gpui::Role::CheckBox)
+        .aria_toggled(if selected {
+            gpui::Toggled::True
+        } else {
+            gpui::Toggled::False
+        })
+        .aria_label(label)
+        .aria_description(description)
         .cursor_pointer()
         .child(vessel_app_kit::glyph(
             vessel_app_kit::assets::Glyph::Pin,
@@ -107,7 +126,11 @@ pub(super) fn draw(
             },
         ))
         .on_click(cx.listener(move |shell, _, window, cx| {
-            shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx)
+            if let Some(receipt) = &receipt
+                && super::read_states::current(shell, receipt)
+            {
+                shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx);
+            }
         }))
         .into_any_element()
 }

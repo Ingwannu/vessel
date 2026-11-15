@@ -87,3 +87,12 @@ failure is retained. L's e893 correction already supplied direct comments for al
 ten keys plus numeric arguments; the old run did not execute any card tests and
 is not credited as runtime evidence. The merged consumer's actual narrowed check
 must cover these fixes, the landed header and the shared typed refresh control.
+
+Pin rows now expose the existing whole-row interaction as a checkbox with its
+actual toggled state and source/window identity. The existing whole Pin/Unpin
+words describe the action; no prose fragments or new translation API are added.
+Both legacy and generic rows retain the current connection/parent-modal receipt
+in addition to the already captured observation ticket, so an old modal row cannot
+edit pins after a parent replacement with the same account observation. This is
+source/typing work only; platform accessibility and keyboard traversal remain
+unverified and are not implied by adding the accessibility metadata.

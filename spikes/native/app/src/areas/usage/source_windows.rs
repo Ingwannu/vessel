@@ -47,11 +47,26 @@ pub(super) fn render(
         .map(|inventory| default_pins(&super::sidebar::candidates(inventory, shell.words)))
         .unwrap_or_default();
     let pinned = shell.prefs.settings.usage.pins.contains(&pin, &defaults);
+    let receipt = super::read_states::context(shell);
+    let label = format!("{} · {}", entry.source_label, window.label);
+    let description = if pinned {
+        shell.words.usage().unpin()
+    } else {
+        shell.words.usage().pin()
+    };
     body.id(vessel_app_kit::ui::SharedString::from(format!(
         "usage-source-pin-{}-{}",
         entry.id(),
         window.id
     )))
+    .role(gpui::Role::CheckBox)
+    .aria_toggled(if pinned {
+        gpui::Toggled::True
+    } else {
+        gpui::Toggled::False
+    })
+    .aria_label(label)
+    .aria_description(description)
     .cursor_pointer()
     .child(vessel_app_kit::glyph(
         vessel_app_kit::assets::Glyph::Pin,
@@ -63,7 +78,11 @@ pub(super) fn render(
         },
     ))
     .on_click(cx.listener(move |shell, _, window, cx| {
-        shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx)
+        if let Some(receipt) = &receipt
+            && super::read_states::current(shell, receipt)
+        {
+            shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx);
+        }
     }))
     .into_any_element()
 }
