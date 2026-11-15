@@ -264,3 +264,11 @@ mod tick_tests {
         );
     }
 }
+
+// Owner snapshot preparation; no staged exemption in the product path.
+#[cfg(test)]
+impl Tail {
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.pending.is_some() || self.ticking.get()
+    }
+}
