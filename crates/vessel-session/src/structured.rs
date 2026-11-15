@@ -139,7 +139,7 @@ impl StructuredActor {
                         #[cfg(test)]
                         Some(Control::RefuseNextStop { source, ready }) => {
                             self.stop_signal_error = Some(source);
-                            drop(ready.send(()));
+                            let _gone = ready.send(());
                         }
                         None => control_open = false,
                     }

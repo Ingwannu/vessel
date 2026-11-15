@@ -99,6 +99,15 @@ pub enum MoveError {
     /// profile's agent.
     #[error("the agent did not start under the new profile: {0}")]
     Restart(Restart),
+    /// The current process could not be signalled; no replacement starts.
+    #[error("cannot stop the current agent ({signal:?})")]
+    Signal {
+        /// The requested stop action.
+        signal: Signal,
+        /// The OS refusal, kept for diagnostics without request contents.
+        #[source]
+        source: vessel_proc::SignalError,
+    },
     /// The session was stopped during the move.
     #[error("the session was stopped during the move")]
     Stopped,
@@ -339,7 +348,7 @@ impl StructuredActor {
     }
 
     // Keep the fault local to the actor: another session cannot consume it.
-    fn signal_stop(&mut self, signal: Signal) {
+    fn signal_stop(&mut self, signal: Signal) -> Result<(), MoveError> {
         #[cfg(test)]
         let delivered = match self.stop_signal_error.take() {
             Some(error) => Err(error),
@@ -347,15 +356,15 @@ impl StructuredActor {
         };
         #[cfg(not(test))]
         let delivered = self.agent.signal(signal);
-        if let Err(error) = delivered {
-            tracing::warn!(pid = self.agent.pid(), %error, ?signal, "cannot signal the agent during a move");
-        }
+        delivered.map_err(|source| MoveError::Signal { signal, source })
     }
 
     /// Stop the current agent (`SIGTERM`, then `SIGKILL` after
-    /// [`STOP_GRACE`]) and publish what it still had to say.
+    /// [`STOP_GRACE`]) and publish what it still had to say. A signal refusal
+    /// returns before replacement can start; waiting for a later kill would
+    /// turn that refusal into a restart the caller never approved.
     pub(crate) async fn stop_agent(&mut self) -> Result<(), MoveError> {
-        self.signal_stop(Signal::Terminate);
+        self.signal_stop(Signal::Terminate)?;
         let grace = tokio::time::sleep(STOP_GRACE);
         let mut grace = std::pin::pin!(grace);
         let mut forced = false;
@@ -373,7 +382,7 @@ impl StructuredActor {
                 },
                 () = &mut grace, if !forced => {
                     forced = true;
-                    self.signal_stop(Signal::Kill);
+                    self.signal_stop(Signal::Kill)?;
                 }
             }
         }

@@ -379,8 +379,13 @@ No row of the crate table changes.
   together. This is one prerequisite package, not a working reload command.
 - Resume: the event accessor's corrective clippy and all 262 protocol units
   passed. Its first narrow compile failure (remaining old test accessor calls)
-  is retained. The isolated stop-refusal regression is now committed against
-  the unchanged log-and-continue policy; its expected failing run is next.
+  is retained. The isolated stop-refusal regression failed against the old
+  log-and-continue policy: after the unchanged kill grace it incorrectly
+  completed the move. The corrective commit returns `MoveError::Signal`
+  before replacement, preserving the requested signal and typed OS source.
+  Both polite and forced stop delivery use that refusal boundary. The test
+  now asserts the specific source/action, Internal code and original process,
+  profile, conversation and responsiveness. Corrective narrow checks are next.
 
 ## Resume point
 

@@ -71,10 +71,13 @@ async fn refuses_restart_after_a_signal_failure() {
         // Cleanup also happens in the old, incorrectly successful path.
         handle.kill();
         let _ended = handle.ended().await;
-        assert!(
-            outcome.is_err(),
-            "a refused stop must not reach replacement startup"
-        );
+        let error = outcome.unwrap_err();
+        assert_eq!(error.code(), vessel_proto::ErrorCode::Internal);
+        let crate::SessionError::Move(crate::MoveError::Signal { signal, source }) = error else {
+            panic!("expected the typed stop-signal refusal");
+        };
+        assert_eq!(signal, vessel_agent::Signal::Terminate);
+        assert!(source.is_refused());
         assert_eq!(after_pid, pid, "the original process must remain");
         assert_eq!(after.profile, before.profile);
         assert_eq!(after.harness_session, before.harness_session);
