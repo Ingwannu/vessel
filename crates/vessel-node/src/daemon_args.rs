@@ -27,6 +27,9 @@ pub(super) struct Args {
 /// Running the node (the default).
 #[derive(Debug, clap::Args)]
 pub(super) struct Run {
+    /// Additional managed launch mode; existing attach flags remain unchanged.
+    #[command(flatten)]
+    pub(super) launch: crate::local_launch::Mode,
     /// Operator-owned LSP roots and trusted executable overrides (JSON).
     #[arg(long)]
     pub(super) lsp_config: Option<PathBuf>,

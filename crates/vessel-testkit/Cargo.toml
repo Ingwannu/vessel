@@ -13,6 +13,10 @@ name = "fake-tui"
 path = "src/bin/fake_tui.rs"
 
 [[bin]]
+name = "fake-local-node"
+path = "src/bin/fake_local_node.rs"
+
+[[bin]]
 name = "fake-acp"
 path = "src/bin/fake_acp.rs"
 

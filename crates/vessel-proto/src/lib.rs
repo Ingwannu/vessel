@@ -39,6 +39,7 @@ mod key;
 pub mod labels;
 pub mod lifecycle_version;
 pub mod limits;
+pub mod local_launch;
 pub mod lsp;
 mod model;
 mod name;

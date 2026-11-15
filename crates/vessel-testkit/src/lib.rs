@@ -114,6 +114,9 @@ pub use vesseld::vesseld;
 /// A fake harness binary built from this crate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Fake {
+    /// `fake-local-node`: emits a caller-authored readiness fixture and holds a
+    /// private control socket until process cleanup; never runs an agent.
+    LocalNode,
     /// `fake-lsp`: deterministic saved-file language server, no real toolchain.
     Lsp,
     /// `fake-tui`: echoes stdin, prints `size COLSxROWS` on start and on
@@ -145,6 +148,7 @@ impl Fake {
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
+            Self::LocalNode => "fake-local-node",
             Self::Lsp => "fake-lsp",
             Self::Tui => "fake-tui",
             Self::Acp => "fake-acp",

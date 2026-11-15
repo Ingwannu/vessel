@@ -68,15 +68,15 @@ impl Endpoint {
     /// The local endpoint of the node of `dir`, whose id is `node`.
     #[cfg(unix)]
     #[must_use]
-    pub(crate) fn of(dir: &DataDir, _node: NodeId) -> Self {
-        Self(dir.socket_path())
+    pub(crate) fn of(dir: &DataDir, node: NodeId) -> Self {
+        Self(dir.local_endpoint(node))
     }
 
     /// The local endpoint of the node of `dir`, whose id is `node`.
     #[cfg(windows)]
     #[must_use]
-    pub(crate) fn of(_dir: &DataDir, node: NodeId) -> Self {
-        Self(PathBuf::from(format!(r"\\.\pipe\vessel-node-{node}")))
+    pub(crate) fn of(dir: &DataDir, node: NodeId) -> Self {
+        Self(dir.local_endpoint(node))
     }
 
     /// The local endpoint of whatever node serves `dir`, for a client of

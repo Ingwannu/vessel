@@ -28,6 +28,13 @@ impl fmt::Display for Stream {
 /// A command could not be started.
 #[derive(Debug, thiserror::Error)]
 pub enum SpawnError {
+    /// Spawning needs a live runtime which will also reap released children.
+    #[error("process launch requires a Tokio runtime")]
+    Runtime {
+        /// The caller did not enter its launch runtime.
+        #[source]
+        source: tokio::runtime::TryCurrentError,
+    },
     /// The OS refused to start the program.
     #[error("cannot start {}", program.display())]
     Start {

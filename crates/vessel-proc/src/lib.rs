@@ -49,6 +49,7 @@ compile_error!("vessel-proc supports Unix process groups and Windows job objects
 mod account;
 mod checked;
 mod child;
+mod detached;
 mod error;
 #[cfg(unix)]
 mod group;
@@ -63,7 +64,8 @@ mod spec;
 
 pub use account::account_shell;
 pub use checked::{CheckedWaitError, OwnedGroupExit};
-pub use child::{Child, Spawned, spawn};
+pub use child::{Child, Spawned, spawn, spawn_releasable};
+pub use detached::{DetachRefused, Detached, DetachedError};
 pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 #[cfg(unix)]
 pub use group::{ProcessGroup, REAP_GRACE};

@@ -19,6 +19,11 @@ use tokio_util::sync::CancellationToken;
 use vessel_harness::HarnessEnv;
 use vessel_node::{Config, DataDir, Node, VesselMcp};
 
+#[path = "bin_support/desktop_logging.rs"]
+mod desktop_logging;
+#[path = "bin_support/local_launch.rs"]
+mod local_launch;
+
 mod daemon_args;
 use daemon_args::{Args, Bind, Command, RelayArgs, Run};
 
@@ -26,14 +31,11 @@ use daemon_args::{Args, Bind, Command, RelayArgs, Run};
 async fn main() -> ExitCode {
     let args = Args::parse();
     let attaching = matches!(args.command, Some(Command::Attach));
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_unset| if attaching { "warn" } else { "info" }.into()),
-        )
-        .with_writer(std::io::stderr)
-        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-        .init();
+    desktop_logging::init(
+        attaching,
+        args.command.is_none() && args.run.launch.desktop_managed(),
+        args.data_dir.as_deref(),
+    );
 
     // A relay keeps nothing on disk: it needs no data directory (nor a home).
     let command = match args.command {
@@ -218,7 +220,11 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
     // Before the node starts (and says it listens), so neither a hang-up
     // nor a stop sent once it is ready can kill it.
     #[cfg(unix)]
-    let _hangups = args.detached.then(ignore_hangups).flatten();
+    let _hangups = args
+        .launch
+        .survives_hangup(args.detached)
+        .then(ignore_hangups)
+        .flatten();
     let stop = vessel_node::StopSignals::listen();
     let node = match Node::start(config).await {
         Ok(node) => node,
@@ -227,12 +233,10 @@ async fn run(dir: DataDir, args: Run) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if args.detached {
-        let _written = print(&format!(
-            "{} {}\n",
-            vessel_node::attach::READY,
-            std::process::id()
-        ));
+    if let Err(error) = args.launch.announce(args.detached, node.info().id) {
+        tracing::error!(%error, "cannot announce local node readiness");
+        let _stopped = node.stop().await;
+        return ExitCode::FAILURE;
     }
     tokio::select! {
         () = stop.stopped() => {}

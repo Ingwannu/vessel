@@ -24,7 +24,6 @@ crates/vessel-node/src/node.rs 672
 crates/vessel-node/src/transfers/mod.rs 515
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907
-crates/vessel-store/src/data_dir.rs 524
 crates/vessel-web/src/registry.rs 501
 crates/vessel-web/src/wire.rs 678
 crates/vessel-workspace/src/git/worktree.rs 589

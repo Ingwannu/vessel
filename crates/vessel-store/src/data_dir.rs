@@ -51,12 +51,9 @@ const NODE_KEY_FILE: &str = "node.key";
 const DATABASE_FILE: &str = "vessel.db";
 const LOCK_FILE: &str = "vesseld.lock";
 const START_LOCK_FILE: &str = "vesseld.start.lock";
-const NODE_LOG_FILE: &str = "vesseld.log";
-/// A node log above this size is rotated (to `vesseld.log.1`) when the
-/// next background node starts, so the log stays bounded.
-const NODE_LOG_ROTATE: u64 = 10 * 1024 * 1024;
 const OWNER_FILE: &str = "vesseld.owner";
-const SOCKET_FILE: &str = "vesseld.sock";
+mod local_endpoint;
+mod node_log;
 const BIN_DIR: &str = "bin";
 const LOG_DIR: &str = "logs";
 const PROFILES_FILE: &str = "profiles.toml";
@@ -148,13 +145,6 @@ impl DataDir {
     #[must_use]
     pub fn owner_path(&self) -> PathBuf {
         self.root.join(OWNER_FILE)
-    }
-
-    /// The node's local socket on Unix (ADR 0007). Windows uses a named
-    /// pipe instead, named after the node id by `vessel-node`.
-    #[must_use]
-    pub fn socket_path(&self) -> PathBuf {
-        self.root.join(SOCKET_FILE)
     }
 
     /// Installed `vesseld` binaries, side by side by version (ADR 0008).
@@ -403,24 +393,6 @@ impl DataDir {
             return Ok(fresh);
         }
         self.read_token()
-    }
-
-    /// The log file for a node started in the background, opened for
-    /// appending (owner-only), after rotating a log that grew too large.
-    /// Blocking.
-    ///
-    /// # Errors
-    /// The log directory or file cannot be created or opened.
-    pub fn open_node_log(&self) -> Result<(PathBuf, std::fs::File), StoreError> {
-        let dir = self.log_dir();
-        files::create_private_dir(&dir).map_err(StoreError::io(&dir))?;
-        let path = dir.join(NODE_LOG_FILE);
-        if std::fs::metadata(&path).is_ok_and(|metadata| metadata.len() > NODE_LOG_ROTATE) {
-            let rotated = dir.join(format!("{NODE_LOG_FILE}.1"));
-            std::fs::rename(&path, &rotated).map_err(StoreError::io(&rotated))?;
-        }
-        let file = files::open_append_private(&path).map_err(StoreError::io(&path))?;
-        Ok((path, file))
     }
 
     /// The node id, without creating one; `None` if no node has run here.

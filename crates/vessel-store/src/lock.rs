@@ -153,6 +153,21 @@ pub struct StartLock {
 }
 
 impl StartLock {
+    /// Try once without an unbounded blocking-pool waiter. A busy launcher
+    /// retains its own start; callers may report Busy and explicitly retry.
+    ///
+    /// # Errors
+    /// The private lock file cannot be opened or inspected.
+    pub fn try_acquire(dir: &DataDir) -> Result<Option<Self>, StoreError> {
+        let path = dir.start_lock_path();
+        let file = files::open_private(&path).map_err(StoreError::io(&path))?;
+        match file.try_lock() {
+            Ok(()) => Ok(Some(Self { file })),
+            Err(TryLockError::WouldBlock) => Ok(None),
+            Err(TryLockError::Error(error)) => Err(StoreError::io(&path)(error)),
+        }
+    }
+
     /// Wait for the start lock (blocking: call it off the async threads).
     ///
     /// # Errors

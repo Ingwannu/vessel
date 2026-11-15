@@ -354,6 +354,38 @@ view can share invariants without depending on each other's I/O/UI layer.
 There is no new crate edge or runtime. Locality policy and colors' paint
 tokens stay outside proto.
 
+## Desktop-owned node controller (2026-11-15)
+
+The library contract in `docs/plans/desktop-local-node.md` introduces
+`vessel-local-node -> client, proto, store, proc`. It owns local launch orchestration,
+not service files, arbitrary process signals or node runtime. Store is used only
+through its private-node-files facade, never SQLite. Proc remains independent of
+all Vessel crates. The implementation commit adds the manifest, architecture row
+and a name rule restricting Proc and detach in the new crate to `src/launch/`.
+
+The vessel-node dev dependency on vessel-local-node exists only so its integration
+tests can drive the real vesseld through the controller's public API; there is no
+production graph edge or controller test hook, and vessel-local-node must never
+depend on vessel-node, including through a dev dependency.
+
+`Child::detach(self)` consumes cleanup authority into an opaque Detached handle.
+It retains group/job and unreaped-child generation facts, offers only observation
+and wait, and cannot signal or become an owned Child again. A dropped detached
+handle has an explicit reaper while the launch runtime lives. Unix reparents the
+child after launcher exit; Windows release closes a job without kill-on-close.
+Launcher-exit behavior is qualified separately on each OS. Ordinary Child drop
+still kills its group/job.
+These conditions and adversarial tests are reviewed before implementation.
+
+The release-capable launch is explicit: standard Proc spawn retains Windows
+KillOnDrop/kill-on-close; only spawn_releasable creates a job that can survive a
+hard launcher crash even before detach. Its owned Child still performs RAII error
+and drop cleanup while the launcher lives. Detach refuses a bound child and
+returns it still owned. No equivalence to kernel cleanup after hard process death
+is claimed for releasable jobs. Shared readiness is in proto::local_launch, so
+there is no reverse node-to-launcher edge.
+
+
 ## Checked owned process cleanup (W16 shared prerequisite)
 
 The additive proc-owned Child::wait_checked retains the first group/job sweep
