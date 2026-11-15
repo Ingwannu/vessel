@@ -98,6 +98,10 @@ feed.
     - Writes the address into copies of the executables. The compile
       step's files are never changed.
     - Checks the Windows imports and resources.
+    - Sets the modes the published sets have always had: directories
+      0775, files 0664, programs 0775, and the Linux update file 0755.
+      DIR's files arrive with whatever mode the transfer gave them (the
+      remote gate exports 0500).
     - Packages, gzips, verifies every shipped app, and runs the shipped
       Linux app against the real feed.
     - Signs the sums and checks them with the compiled-in key.
