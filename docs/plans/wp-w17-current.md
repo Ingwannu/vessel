@@ -79,7 +79,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `agent mode <id> [mode]` | agent mode | Source | session.options + session.set_option | Advertised mode choices and exact option/value acknowledgement; ambiguous choices refuse before mutation. |
 | `agent archive <id>` | agent archive | Source Force / pending IfIdle | explicit Force: session.mark(Archive) | ALL no-force effects withheld until W21 actor+stored/reopen admission; no ended-snapshot force fallback. |
 | `agent reload <id>` | node reload | Other owner | lifecycle (labels/logs/reload); W17 only non-label update fields | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
-| `agent detach <id>` | agent detach | Pending | none activated | W2 attachment contract awaited; Creator provenance never becomes parentage. |
+| `agent detach <id>` | agent detach | Pending | session.detach source on9c, SUBAGENT_RELATIONS=None | Existing W2 contract is still unassigned/unactivated; Creator provenance never becomes parentage. |
 | `agent update <id>` | agent update | Source non-label fields | session.rename / session.set_option | W17 name/thinking; combined metadata+thinking refused as reference. Labels lifecycle-owned; native result/notice differences remain. |
 | `daemon set-password` | none | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `daemon pair` | node pair | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
@@ -105,8 +105,8 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `project delete <project-id>` | project delete | Pending | none activated | W11 title/reset/cascade operation awaited; project.remove alone is insufficient. |
 | `workspace setup <workspace-id>` | workspace setup | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace create` | workspace create | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
-| `workspace ls` | workspace ls | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
-| `workspace rename <workspace-id> [title]` | workspace rename | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
+| `workspace ls` | workspace ls | Pending | workspace.list source on9c, registry feature None | Await announced assignment and canonical project/derived workspace names; no cwd/branch naming heuristics. |
+| `workspace rename <workspace-id> [title]` | workspace rename | Pending | workspace.rename source on9c, registry feature None | None resets title in the actual node DTO; CLI activation/consumer proof still owed. |
 | `workspace archive <workspace-id>` | workspace archive | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `worktree ls` | worktree ls | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |
 | `worktree create` | worktree create | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |

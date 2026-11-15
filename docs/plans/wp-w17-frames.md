@@ -129,3 +129,13 @@ include final status publication. Latest actual execution is still owed.
 Normal-query responder admission/failure is specified separately in ADR0095.
 Frame-only clients never answer UnansweredReplies overlap candidates. No source
 review or scoped test is treated as live frame, quiescence or delivery proof.
+
+## Subsequent pure-producer finding
+
+C2 reports an actual full-grid regression at d7ddbb0a: history rows trimmed of
+trailing default cells make FrameView::cell return None inside advertised frame
+geometry (41 passed/1 failed). Frozen2807 is unchanged and its whole continues;
+Silent text capture is unaffected. Even a green frozen whole does not qualify a
+frame consumer until the pure owner's minimal projection correction and full-grid
+regressions are reviewed/executed. The node will not synthesize default cells to
+hide this gap or copy physical-row interpretation. No frame API is adopted here.

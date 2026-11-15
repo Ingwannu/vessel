@@ -1477,3 +1477,23 @@ real enqueue/cancellation conditions only: it does not exercise a not-yet-writte
 Silent latch or prove writer delivery/cleanup/quiescence. The test fixture window
 is not a second production policy constant. Remote fixture execution and later
 node composition remain owed before responder implementation/activation.
+
+### Reviewed contract disposition and newly observed producer boundaries
+
+V3 source-passed docs-onlyec096b0f: finite responder admission/race and canonical
+pending-frame-read accounting settle the earlier contract return. Runtime gates,
+sealed EOF source review, actual real-queue/Silent-latch and combined checks remain
+owed; that verdict qualifies no executable producer or frame API.
+
+C2's actual d7ddbb0a full-grid case found trimmed history default-cell holes
+(41/1, author-reported). Record this in the frame proposal: frozen2807 whole remains
+unchanged, and frame consumer qualification additionally requires the pure fix.
+Current frozen Silent text capture is unaffected. No missing cell is fabricated.
+
+Announced9c includes W11 list/rename and W2 detach typed node sources, still feature
+None. Correct current-map wording from missing DTO to pending assignment/CLI
+activation. Pinned workspace/shared.ts additionally requires canonical project
+name and derived workspace name; current WorkspaceDescriptor supplies projectId,
+path and optional title only. Exact projection need sent to W11 once; do not invent
+cwd/branch display-name heuristics. Lifecycle c88066f2 background producer is V3+
+whole closed as reported by its owner but still unannounced; do not adopt it yet.
