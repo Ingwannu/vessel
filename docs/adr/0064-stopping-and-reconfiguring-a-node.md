@@ -1139,3 +1139,32 @@ The tests owe strict byte boundaries, unknown/nested/null input, safe Display/
 Debug/source chains, per-key version admission, live CLI output and persisted
 mutation. Existing settings cases remain unchanged. Real agents, remote service
 accounts and loaded service managers are outside these config fixtures.
+
+## Proposed reload mutation lifetime
+
+[Decision Log]
+- Purpose and intent: the new explicit reload must join the existing mutation
+  owner, including cancellation and shutdown admission, rather than publish
+  runtime state after that owner has drained.
+- Existing implementation and constraints: the shared writer owns its guard
+  and tracker token independently of an RPC waiter. Reload reads before it
+  publishes saved/runtime state; a caller-owned read guard alone does not make
+  that publication part of shutdown's admitted-work accounting.
+- Alternatives considered: a second tracker/task wrapper, keeping reload outside
+  mutation admission, or aborting its already-started blocking read. These split
+  one lifetime policy, admit a late mutation, or cannot stop filesystem I/O.
+- Selected approach: extend the existing admitted-task runner to both actual
+  operations. Reload transfers its owned saved-value guard through the bounded
+  read, validation, report construction and publication. Only a complete valid
+  snapshot can publish. Closing admission refuses reload before file access.
+- Why this approach: cancellation before admission changes nothing; after
+  admission the mutation can complete even when its caller leaves. Shutdown
+  joins it. Paseo daemon-config-store.ts 484–485 also places reload on the same
+  serialized queue as patch; the Rust ownership/join mechanism remains Vessel's
+  stated implementation choice, with no extra shutdown parity claim.
+- Advantages, costs and effects: a blocked reload can delay other settings
+  requests and shutdown, just as a blocked admitted write can. No deadline or
+  forcible I/O cancellation is promised. The pending Admin call's wire contract,
+  validation, byte cap and all-or-nothing report are unchanged. Deterministic
+  one-shot reader cancellation and post-close refusal tests are owed. This is
+  an integration plan until its changed-source checks and package gate pass.

@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Internal config composition now reuses the scoped-approved shared writer
+  for set/unset, without adopting an unqualified integration batch. The source
+  tree checked for earlier narrow/TS generation remains separate and pinned.
+  Next extend the same admitted task lifetime to reload publication and test
+  cancellation/closed admission. This composition and its consumers are not
+  qualified by the shared writer's earlier scoped pass or by a draft node head.
+
 - The shared writer's first strict check refused a wildcard product import.
   Replace it with explicit owner imports; write/application behavior and both
   regression assertions stay unchanged. The original failure is retained;
