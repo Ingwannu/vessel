@@ -259,6 +259,11 @@ impl Shell {
         };
         self.areas.settings.list.close();
         if list == List::Machine {
+            #[cfg(not(target_arch = "wasm32"))]
+            if index == self.fleet.machines.len() && crate::areas::local_node::enable_option(self) {
+                self.manage_local_node(true, cx);
+                return;
+            }
             match self.fleet.machines.get(index) {
                 Some(machine) => self.areas.settings.machine = Some(machine.name.clone()),
                 // The row after the machines: adding one.

@@ -45,6 +45,21 @@ enum Logs {
     Failed,
 }
 
+/// The host picker can resume a bundled node without choosing a remote alias.
+pub(crate) fn enable_option(shell: &Shell) -> bool {
+    shell
+        .areas
+        .local_node
+        .snapshot
+        .as_ref()
+        .is_some_and(|snapshot| {
+            matches!(
+                snapshot.status,
+                Status::Paused | Status::Stopped | Status::Failed | Status::Disconnected
+            )
+        })
+}
+
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     crate::local_node::ensure(&shell.prefs, cx);
     let Some(controller) = cx
@@ -154,7 +169,7 @@ impl Shell {
         cx.notify();
     }
 
-    fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {
+    pub(crate) fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {
         self.prefs.local_node.management = if enabled {
             Management::Enabled
         } else {
@@ -163,8 +178,12 @@ impl Shell {
         self.command(Command::SavePrefs(self.prefs.clone()));
         if enabled {
             self.local_node_action(Action::Start, cx);
+        } else {
+            // Protect refuses live work; changing automatic intent never grants
+            // interruption authority and a reused process always remains alone.
+            self.local_node_action(Action::Stop, cx);
         }
-        // Disabling automatic launch never silently interrupts an active child.
+        // A refused stop leaves the node running with a visible typed failure.
         cx.notify();
     }
 

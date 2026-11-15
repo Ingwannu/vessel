@@ -71,6 +71,41 @@ impl Ask {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
+    pub(crate) fn onboarding_client(
+        &self,
+        machine: &str,
+    ) -> Result<&vessel_client::NodeClient, crate::LinkError> {
+        let client = self.client(machine)?;
+        self.onboarding_scope
+            .check_control(&MachineKey::from_book(machine), client.node().id)
+            .map_err(crate::LinkError::Onboarding)?;
+        Ok(client)
+    }
+
+    pub(crate) fn onboarding_project_client(
+        &self,
+        machine: &str,
+        ask: &crate::workspace::Ask,
+    ) -> Result<&vessel_client::NodeClient, crate::LinkError> {
+        use crate::workspace::{Ask, ProjectAsk};
+        match ask {
+            Ask::Project(
+                ProjectAsk::Add(_)
+                | ProjectAsk::Clone(_)
+                | ProjectAsk::Init(_)
+                | ProjectAsk::Remove(_)
+                | ProjectAsk::Approve(_),
+            ) => self.onboarding_client(machine),
+            Ask::Project(ProjectAsk::List | ProjectAsk::Commands(_))
+            | Ask::Worktree(_)
+            | Ask::Git(_)
+            | Ask::File(_)
+            | Ask::Start(_)
+            | Ask::Session(_)
+            | Ask::Pull(_) => self.client(machine),
+        }
+    }
+
     pub(crate) async fn onboarding_agents(
         &self,
         machine: crate::agents::MachineKey,
@@ -84,7 +119,7 @@ impl crate::State {
         if let Some(client) = &client
             && let Err(problem) = self
                 .onboarding_scope
-                .check(&MachineKey::from_book(machine.as_str()), client.node().id)
+                .check_control(&MachineKey::from_book(machine.as_str()), client.node().id)
         {
             if let Some((target, visit)) = self.onboarding_scope.binding() {
                 self.emit(crate::Event::Onboarding(Answer::Bound {

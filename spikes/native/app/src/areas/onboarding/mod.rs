@@ -56,6 +56,11 @@ pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
     if cfg!(any(target_os = "android", target_os = "ios")) {
         return;
     }
+    if let State::Open(open) = shell.areas.onboarding.model.state() {
+        // A keyboard-accessible background picker cannot redirect the reused
+        // settings widgets while this walkthrough owns the selected host.
+        shell.areas.settings.machine = Some(open.host().machine().as_str().to_owned());
+    }
     scope::prepare(shell, cx);
     let completion = if shell.prefs.onboarding.is_some()
         || matches!(shell.prefs.kept, Kept::ThisLaunch { .. })

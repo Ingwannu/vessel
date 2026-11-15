@@ -52,3 +52,6 @@ local-node-logs = 로컬 노드 로그
 local-node-refresh-logs = 새로 고침
 # Explicit local-node log viewer: logs-unavailable; never interpolate credentials.
 local-node-logs-unavailable = 이 실행에 보관된 로컬 노드 로그가 없습니다.
+
+# Settings host picker: start or resume the bundled managed-local node.
+local-node-enable = 로컬 노드 켜기

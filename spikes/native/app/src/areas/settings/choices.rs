@@ -109,6 +109,10 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
                     ..ComboRow::new(machine.name.clone())
                 })
                 .collect();
+            #[cfg(not(target_arch = "wasm32"))]
+            if crate::areas::local_node::enable_option(shell) {
+                rows.push(ComboRow::new(shell.words.local_node().enable()));
+            }
             rows.push(ComboRow {
                 leading: Some(Leading::Glyph(Glyph::Plus)),
                 ..ComboRow::new(shell.t.add_machine)

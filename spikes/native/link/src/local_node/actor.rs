@@ -96,32 +96,41 @@ pub(super) async fn run(
                 confirmation,
                 reply,
             } => {
-                if confirmation
-                    .as_ref()
-                    .is_some_and(|confirmation| !valid_confirmation(&published, confirmation))
-                {
-                    let _closed = reply.send(Err(ManagerError::StaleConfirmation));
-                    continue;
-                }
-                let result = match &mut node {
-                    Some(current) => current
-                        .quit(policy)
-                        .await
-                        .map(|_status| ())
-                        .map_err(Arc::new),
-                    None => Ok(()),
-                };
-                publish(
-                    &published,
-                    node.as_ref(),
-                    result.as_ref().err().map(Arc::clone),
-                );
-                let _receiver_gone = reply.send(result.map_err(ManagerError::Control));
+                let result = finalize(&mut node, policy, confirmation, &published).await;
+                let _receiver_gone = reply.send(result);
             }
         }
     }
     // The last UI sender should finalize first. If all senders disappear during
     // startup or a crash-like UI teardown, ordinary Owned RAII still cleans up.
+}
+
+async fn finalize(
+    node: &mut Option<LocalNode>,
+    policy: QuitPolicy,
+    confirmation: Option<Confirmation>,
+    published: &watch::Sender<Snapshot>,
+) -> Result<(), ManagerError> {
+    if confirmation
+        .as_ref()
+        .is_some_and(|confirmation| !valid_confirmation(published, confirmation))
+    {
+        return Err(ManagerError::StaleConfirmation);
+    }
+    let result = match node {
+        Some(current) => current
+            .quit(policy)
+            .await
+            .map(|_status| ())
+            .map_err(Arc::new),
+        None => Ok(()),
+    };
+    publish(
+        published,
+        node.as_ref(),
+        result.as_ref().err().map(Arc::clone),
+    );
+    result.map_err(ManagerError::Control)
 }
 
 async fn start(

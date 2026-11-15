@@ -362,7 +362,7 @@ impl State {
     /// Hand a workspace ask to its own task, with the machine's connection.
     fn workspace(&self, machine: String, ask: workspace::Ask) {
         let events = self.events.clone();
-        match self.client(&machine) {
+        match self.onboarding_project_client(&machine, &ask) {
             Ok(client) => self.workspace.ask(client.clone(), machine, ask, events),
             Err(error) => {
                 let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());

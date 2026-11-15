@@ -52,3 +52,6 @@ local-node-logs = Local node logs
 local-node-refresh-logs = Refresh
 # Explicit local-node log viewer: logs-unavailable; never interpolate credentials.
 local-node-logs-unavailable = No retained local-node logs are available for this launch.
+
+# Settings host picker: start or resume the bundled managed-local node.
+local-node-enable = Enable local node

@@ -55,7 +55,7 @@ impl crate::State {
     /// Ask the machine on a task of its own; the answer comes back as an
     /// event.
     pub(crate) async fn node_settings(&self, ask: Ask) {
-        let Ok(client) = self.client(ask.machine.as_str()).cloned() else {
+        let Ok(client) = self.onboarding_client(ask.machine.as_str()).cloned() else {
             self.emit(crate::Event::NodeSettings(ask.refused(Problem::Offline)))
                 .await;
             return;

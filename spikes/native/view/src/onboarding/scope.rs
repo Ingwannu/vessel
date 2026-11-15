@@ -71,6 +71,19 @@ impl Scope {
             self.0 = None;
         }
     }
+    /// Reused setup controls may act only on the pinned target. Ordinary
+    /// session traffic uses check(), so unrelated conversations keep running.
+    ///
+    /// # Errors
+    /// A settings control tried another alias or another authenticated identity.
+    pub fn check_control(&self, machine: &MachineKey, node: NodeId) -> Result<(), Problem> {
+        if let Some((target, _)) = &self.0
+            && (target.machine() != machine || target.node() != node)
+        {
+            return Err(Problem::Changed);
+        }
+        Ok(())
+    }
     /// This host must retain its identity; other hosts keep their existing policy.
     ///
     /// # Errors
@@ -103,6 +116,11 @@ mod tests {
             scope.check(&MachineKey::from_book("other-node"), NodeId::random()),
             Ok(())
         );
+        assert_eq!(
+            scope.check_control(&MachineKey::from_book("other-node"), NodeId::random()),
+            Err(Problem::Changed)
+        );
+        assert_eq!(scope.check_control(&name, node), Ok(()));
         scope.release(Visit(2));
         assert_eq!(scope.check(&name, NodeId::random()), Ok(()));
     }

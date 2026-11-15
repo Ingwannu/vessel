@@ -124,7 +124,7 @@ impl Default for Hub {
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn devices(&self, machine: &MachineKey, ticket: Ticket, ask: Ask) {
-        let client = match self.client(machine.as_str()) {
+        let client = match self.onboarding_client(machine.as_str()) {
             Ok(client) => client.clone(),
             Err(_not_connected) => {
                 self.emit(crate::Event::Devices(ask.refused(ticket, Problem::Offline)))
