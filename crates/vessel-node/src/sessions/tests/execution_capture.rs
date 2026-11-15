@@ -17,29 +17,34 @@ fn principal(node: NodeId, session: SessionId, scopes: Vec<Scope>) -> Principal 
     }
 }
 
+async fn live(fixture: &Fixture) -> (SessionId, vessel_session::SessionHandle) {
+    let info = fixture
+        .sessions
+        .create(fixture.structured(), LaunchOptions::default(), None)
+        .await
+        .unwrap();
+    let Found::Live { handle, .. } = fixture.sessions.find(info.id).await.unwrap() else {
+        panic!("live fake");
+    };
+    let _running = ready(&handle).await.unwrap();
+    (info.id, handle)
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ceiling() {
     vessel_testkit::within(CAPTURE_TEST_BOUND, async {
         let fixture = Fixture::new().await;
-        let info = fixture
-            .sessions
-            .create(fixture.structured(), LaunchOptions::default(), None)
-            .await
-            .unwrap();
-        let Found::Live { handle, .. } = fixture.sessions.find(info.id).await.unwrap() else {
-            panic!("live fake");
-        };
-        let _running = ready(&handle).await.unwrap();
+        let (session, handle) = live(&fixture).await;
         let node = NodeId::random();
         let agents = Arc::new(Agents::new(node));
         let both = vec![Scope::Read, Scope::Operate];
-        let local = principal(node, info.id, both.clone());
-        let _secret = agents.reserve(info.id, &Principal::Owner, false).unwrap();
+        let local = principal(node, session, both.clone());
+        let _secret = agents.reserve(session, &Principal::Owner, false).unwrap();
         assert!(matches!(
             agents.capture_execution(&local),
             Err(CaptureRefusal::Unavailable)
         ));
-        agents.started(info.id, handle.clone());
+        agents.started(session, handle.clone());
         for unsupported in [
             Principal::Owner,
             Principal::Device {
@@ -51,10 +56,7 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
                 &both,
                 Origin {
                     node,
-                    by: OriginBy::Agent {
-                        session: info.id,
-                        depth: 0,
-                    },
+                    by: OriginBy::Agent { session, depth: 0 },
                     scopes: both.clone(),
                 },
                 NodeId::random(),
@@ -66,17 +68,17 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
             ));
         }
         assert!(matches!(
-            agents.capture_execution(&principal(NodeId::random(), info.id, both.clone())),
+            agents.capture_execution(&principal(NodeId::random(), session, both.clone())),
             Err(CaptureRefusal::ForeignNode)
         ));
         assert!(matches!(
-            agents.capture_execution(&principal(node, info.id, vec![Scope::Read])),
+            agents.capture_execution(&principal(node, session, vec![Scope::Read])),
             Err(CaptureRefusal::Grant)
         ));
         let limited = Arc::new(Agents::new(node));
         let _reserved = limited
             .reserve(
-                info.id,
+                session,
                 &Principal::Device {
                     id: DeviceId::random(),
                     scopes: vec![Scope::Read],
@@ -84,17 +86,17 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
                 false,
             )
             .unwrap();
-        limited.started(info.id, handle.clone());
+        limited.started(session, handle.clone());
         assert!(matches!(
             limited.capture_execution(&local),
             Err(CaptureRefusal::Grant)
         ));
         let captured = agents.capture_execution(&local).unwrap();
         assert_eq!(captured.stamp().node, node);
-        assert_eq!(captured.stamp().session, info.id);
+        assert_eq!(captured.stamp().session, session);
         assert_eq!(captured.ceiling(), FinishGrantCeiling::ReadOperate);
         assert_eq!(captured.observation(), ExecutionObservation::Current);
-        agents.invalidate_execution(info.id, ExecutionInvalidation::PersonStop);
+        agents.invalidate_execution(session, ExecutionInvalidation::PersonStop);
         assert_eq!(
             captured.observation(),
             ExecutionObservation::Invalidated(Some(ExecutionInvalidation::PersonStop))
@@ -107,9 +109,14 @@ async fn only_direct_local_agent_capture_keeps_the_original_runtime_and_grant_ce
             captured.observation(),
             ExecutionObservation::Invalidated(Some(ExecutionInvalidation::PersonStop))
         );
-        agents.retire(info.id);
+        agents.retire(session);
         assert_eq!(fresh.observation(), ExecutionObservation::Unavailable);
         fixture.runtime.shutdown().await;
+        // Ended is refused even while another registry still retains its entry.
+        assert!(matches!(
+            limited.capture_execution(&local),
+            Err(CaptureRefusal::Unavailable)
+        ));
         fixture.settle().await;
         fixture.store.close().await;
     })
