@@ -1,8 +1,9 @@
-// Toasts (DESIGN.md §6.10): bottom right, success leaves after 4 s, an
-// error stays until dismissed.
+// Toasts (DESIGN.md §6.10): below the header, clear of the lower composer
+// and dock. Success leaves after 4 s; errors are dismissed.
 
 import { Store, useStore } from "../data/store";
 import { IconButton } from "./kit";
+import { useToastClearance } from "./use-toast-clearance";
 
 interface Toast {
   id: number;
@@ -30,8 +31,9 @@ function dismiss(id: number): void {
 
 export function Toasts() {
   const list = useStore(toasts, (value) => value);
+  const host = useToastClearance(list.length > 0);
   return (
-    <div className="toast-stack">
+    <div ref={host} className="toast-stack">
       {list.map((item) => (
         <div
           key={item.id}
