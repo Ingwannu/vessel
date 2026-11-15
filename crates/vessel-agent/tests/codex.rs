@@ -327,6 +327,25 @@ async fn items_plans_and_reasoning_become_events() {
     .await;
 }
 
+/// Async delivery is not itself a question; absent/empty forms keep their text.
+#[tokio::test]
+async fn ordinary_async_messages_keep_their_text_without_creating_questions() {
+    within(async {
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _handshake = ready(&mut outputs).await;
+        for scenario in ["async-message", "async-empty"] {
+            input.prompt(text(scenario)).await.unwrap();
+            let seen = turn(&mut outputs).await;
+            assert_eq!(said(&seen), "ordinary asynchronous body");
+            assert!(!seen.iter().any(|event| matches!(
+                event,
+                AgentEvent::QuestionAsked(_) | AgentEvent::Error { .. }
+            )));
+        }
+    })
+    .await;
+}
+
 /// An approval is asked with Codex's own choices, on its tool call
 /// (announced from the request, then updated by the item); the answer goes
 /// back as the decision chosen, a rule and all, and only once.
@@ -574,6 +593,14 @@ async fn with_nobody_watching_questions_are_not_asked() {
         assert_eq!(said(&events), "answers {}");
         input.prompt(text("form")).await.unwrap();
         assert_eq!(said(&turn(&mut outputs).await), "action decline null");
+        input.prompt(text("async-question")).await.unwrap();
+        let asynchronous = turn(&mut outputs).await;
+        assert_eq!(said(&asynchronous), "Choose a route");
+        assert!(
+            !asynchronous
+                .iter()
+                .any(|event| matches!(event, AgentEvent::QuestionAsked(_)))
+        );
     })
     .await;
 }

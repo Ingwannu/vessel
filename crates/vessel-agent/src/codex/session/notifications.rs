@@ -106,7 +106,7 @@ impl Session {
             });
         let item = notification.item;
         match super::super::async_questions::question(&item) {
-            Ok(Some(mut question)) => {
+            Ok(Some(mut question)) if self.setup.questions => {
                 if !started {
                     let Some(scope) = scope.clone() else {
                         self.emit(AgentEvent::Error {
@@ -126,9 +126,10 @@ impl Session {
                     message: message.to_owned(),
                 })
                 .await;
-                return;
+                // Keep a malformed form non-actionable, but do not discard an
+                // ordinary assistant text body carried by the same native item.
             }
-            Ok(None) => {}
+            Ok(Some(_) | None) => {}
         }
         if started {
             if let Some(mut call) = mapper::tool_call(&item) {

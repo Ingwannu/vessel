@@ -34,9 +34,12 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
     else {
         return Ok(None);
     };
-    let questions = questions.as_ref().ok_or("async message has no questions")?;
+    // Delivery=async also describes ordinary assistant messages. Only a real
+    // nonempty question collection enters this lifecycle (Paseo ItemSchema).
+    let Some(questions) = questions.as_ref().filter(|questions| !questions.is_empty()) else {
+        return Ok(None);
+    };
     if id.is_empty()
-        || questions.is_empty()
         || questions
             .len()
             .checked_mul(2)
@@ -46,7 +49,8 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
     }
     let mut fields = Vec::new();
     for (index, asked) in questions.iter().enumerate() {
-        if asked.title.trim().is_empty() {
+        let title = vessel_proto::trim_ecmascript(&asked.title);
+        if title.is_empty() {
             return Err("async question title is empty");
         }
         let name: FieldName = format!("question-{index}")
@@ -81,7 +85,7 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
         fields.push(QuestionField {
             name,
             title: Some(format!("Question {}", index.saturating_add(1))),
-            description: Some(crate::mapper::cut(asked.title.clone(), Question::MAX_LABEL)),
+            description: Some(crate::mapper::cut(title.to_owned(), Question::MAX_LABEL)),
             required: true,
             kind,
             presentation: Some(QuestionFieldPresentation {
@@ -108,7 +112,7 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
         message: crate::mapper::cut(
             questions
                 .iter()
-                .map(|question| question.title.trim())
+                .map(|question| vessel_proto::trim_ecmascript(&question.title))
                 .collect::<Vec<_>>()
                 .join("\n\n"),
             Question::MAX_MESSAGE,
@@ -173,5 +177,23 @@ mod tests {
             serde_json::from_value(json!({"type":"agentMessage","id":"normal","text":"hello"}))
                 .unwrap();
         assert!(question(&ordinary).unwrap().is_none());
+    }
+
+    #[test]
+    fn asynchronous_delivery_without_a_form_remains_an_ordinary_message() {
+        for questions in [serde_json::Value::Null, json!([])] {
+            let item: ThreadItem = serde_json::from_value(json!({"type":"agentMessage","id":"ordinary-async","delivery":"async","text":"Keep this body","questions":questions})).unwrap();
+            assert!(question(&item).unwrap().is_none());
+        }
+    }
+
+    #[test]
+    fn native_question_title_uses_ecmascript_trim_without_losing_nel_content() {
+        let item: ThreadItem = serde_json::from_value(json!({"type":"agentMessage","id":"async","delivery":"async","questions":[{"title":"\u{feff}Where?\u{feff}"},{"title":"\u{85}"}]})).unwrap();
+        let form = question(&item).unwrap().unwrap();
+        assert_eq!(form.fields[0].description.as_deref(), Some("Where?"));
+        assert_eq!(form.fields[1].description.as_deref(), Some("\u{85}"));
+        let blank: ThreadItem = serde_json::from_value(json!({"type":"agentMessage","id":"async","delivery":"async","questions":[{"title":"\u{feff}"}]})).unwrap();
+        assert!(question(&blank).is_err());
     }
 }

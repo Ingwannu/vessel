@@ -33,6 +33,15 @@ impl Server {
                 self.message(&turn, "msg-quiet", "said all at once", false)?;
                 self.completed(&turn, "completed", None)
             }
+            "async-message" | "async-empty" => {
+                let questions = if scenario == "async-empty" {
+                    json!([])
+                } else {
+                    Value::Null
+                };
+                self.notify("item/completed", &json!({"threadId":self.thread(),"turnId":turn,"item":{"type":"agentMessage","id":"ordinary-async","delivery":"async","text":"ordinary asynchronous body","questions":questions}}))?;
+                self.completed(&turn, "completed", None)
+            }
             "tool" => {
                 let started = command("cmd-1", "inProgress", None);
                 self.notify(

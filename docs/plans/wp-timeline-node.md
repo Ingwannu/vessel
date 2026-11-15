@@ -489,3 +489,22 @@ current equality proof. Previous immutable checks remain scoped to their own
 heads, and current root compilation/tests/generation are owed. No final package
 whole gate was running during this A8 merge. No recovery/notice implementation
 has started before joint contract row251's verdict.
+
+### Native asynchronous messages without questions
+
+The pinned native 0.169 schema permits AgentMessage.delivery=async with null or
+absent questions, and an empty array still fails Paseo's question ItemSchema.
+Such items now keep their ordinary assistant text instead of becoming a form
+error that discards the body. Invalid explicit forms stay non-actionable while
+safe ordinary text still falls through the normal item mapper. The existing
+AgentSetup.questions policy also gates asynchronous actionable forms, as it
+already gates blocking user-input/elicitation requests. No version/launch offer
+or provider capability is inferred from a delivery label.
+
+Question titles now use the shared ECMAScript trim at this native decoding edge,
+matching Paseo async-questions.ts:8-18: FEFF is blank, NEL remains content. Choice
+labels/values retain their raw spelling. Pure fixtures cover null/empty forms and
+these title cases. Two private fake scenarios and a driver regression cover
+ordinary async text, and the existing no-watcher case now also refuses an async
+form without losing its text. These authored fixtures are not actual native
+transport/version or real-provider proof; exact new execution remains owed.
