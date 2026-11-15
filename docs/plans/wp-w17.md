@@ -1497,3 +1497,26 @@ name and derived workspace name; current WorkspaceDescriptor supplies projectId,
 path and optional title only. Exact projection need sent to W11 once; do not invent
 cwd/branch display-name heuristics. Lifecycle c88066f2 background producer is V3+
 whole closed as reported by its owner but still unannounced; do not adopt it yet.
+
+### Consume W11's landed rename contract without inventing presentation
+
+[Decision Log]
+- Purpose: wire a complete existing request/receipt while broader workspace naming remains unavailable.
+- Existing assets: announced9c contains registry::RenameWorkspace and its real node handler,
+  plus the generic typed NodeClient::call and shared pending protocol gate. Pinned
+  workspace/rename.ts returns workspaceId plus raw applied title override (null after reset).
+- Alternatives: wait for unrelated derived names, keep a local title, or fake a success from input.
+- Choice: the CLI sends the existing typed request, preserves feature-None/older refusal,
+  and emits a receipt only after verifying acknowledged workspace id and title against the request.
+- Reason/impact: resetting a manual override does not require guessing its derived display name.
+  Use the common table/JSON/YAML/quiet helpers. Require a full canonical WorkspaceId UUID;
+  prefix selection is a declared difference. SessionTitle's existing trim/one-line/120-character
+  bounds apply; no duplicate validator or persisted name. No new method, transport or authority.
+
+Other workspace operations stay typed refusals pending their complete contracts.
+W11 confirms no reviewed canonical derived workspace name exists; ProjectInfo.name
+can be joined by exact same-node ProjectId, but it is not a missing workspace name.
+The actual fake CLI regression covers pending refusal/no success stdout and invalid-id
+admission before malformed connection parsing; receipt tests reject wrong id/title and
+retain null reset semantics. These are drafted, not executed; queued exactece8 strict
+predates this consumer and all newer fixtures. No live protocol25 claim is made.

@@ -106,7 +106,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `workspace setup <workspace-id>` | workspace setup | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace create` | workspace create | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace ls` | workspace ls | Pending | workspace.list source on9c, registry feature None | Await announced assignment and canonical project/derived workspace names; no cwd/branch naming heuristics. |
-| `workspace rename <workspace-id> [title]` | workspace rename | Pending | workspace.rename source on9c, registry feature None | None resets title in the actual node DTO; CLI activation/consumer proof still owed. |
+| `workspace rename <workspace-id> [title]` | workspace rename | Source + pending feature | existing workspace.rename on9c, registry feature None | Full WorkspaceId only; actual ack ID/title checked; raw override resets to null. Shared gate still refuses; latest runtime proof owed. |
 | `workspace archive <workspace-id>` | workspace archive | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `worktree ls` | worktree ls | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |
 | `worktree create` | worktree create | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |

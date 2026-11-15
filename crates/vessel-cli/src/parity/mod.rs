@@ -13,6 +13,7 @@ pub(crate) mod schedule_output;
 #[cfg(test)]
 mod structured_output;
 mod terminals;
+mod workspaces;
 
 use crate::{
     args::{
@@ -33,10 +34,7 @@ pub(crate) async fn run(
         ParityCommand::Provider { command } => return Err(command.pending()),
         ParityCommand::Clone(args) => return projects::clone(target, output, args).await,
         ParityCommand::Workspace { command } => {
-            command.validate()?;
-            return Err(CliError::ParityBlocked(
-                "workspace CLI awaits W11's reviewed workspace registry contract; legacy project/worktree IDs are not substitutes",
-            ));
+            return workspaces::run(target, output, command).await;
         }
         ParityCommand::Heartbeat { command } => {
             return heartbeat::run(target, output, command).await;

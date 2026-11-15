@@ -571,3 +571,43 @@ async fn assert_started_content(
         }
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn workspace_rename_keeps_pending_or_missing_targets_as_errors_without_an_ack() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let id = vessel_proto::WorkspaceId::random().to_string();
+        let result = fixture
+            .vessel(&["workspace", "rename", &id, "--reset", "--json"], b"")
+            .await;
+        assert_eq!(result.status.code(), Some(1));
+        assert!(result.stdout.is_empty());
+        let refused: FailureEnvelope = serde_json::from_str(&result.stderr).unwrap();
+        let expected = if vessel_proto::registry::PROJECT_WORKSPACE_REGISTRY.is_none() {
+            vessel_proto::ErrorCode::Unsupported
+        } else {
+            // Once assigned, this real node must still refuse the nonexistent target.
+            vessel_proto::ErrorCode::NotFound
+        };
+        assert_eq!(refused.error.code, expected);
+        let invalid = fixture
+            .vessel(
+                &[
+                    "--node",
+                    "ws://[",
+                    "workspace",
+                    "rename",
+                    "bad-id",
+                    "title",
+                    "--json",
+                ],
+                b"",
+            )
+            .await;
+        assert_eq!(invalid.status.code(), Some(1));
+        assert!(invalid.stdout.is_empty());
+        assert!(invalid.stderr.contains("complete workspace UUID"));
+        fixture.stop().await;
+    })
+    .await;
+}
