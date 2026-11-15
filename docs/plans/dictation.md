@@ -334,6 +334,11 @@ refusal, a chunked response over its cap, invalid/empty credentials before work,
 request timeout through the response body and safe transport diagnostics.
 Decoder tests cover missing/wrong shapes, escaped credential echoes, structured
 TooSmall classification, empty text, syntax causes and ordinary backslash speech.
+The client makes one attempt, explicitly disabling reqwest protocol retries.
+Loopback503-then200 and429 with retry hints must fail after one request; a closed
+connection and body deadline must not resend. This differs from OpenAI SDK6.44.0
+(client.js149/159/360-383/516-566: ten minutes, two retries). A failed segment
+becomes Upstream with no Final; the file client never automatically retries.
 These tests are owed until those staged implementations run.
 
 ## Resume point
@@ -350,7 +355,8 @@ loader. Preserve unknown fields if the common policy preserves them. Selection
 is not a secret-store transaction and caches no credential. Read/start errors
 must not expose a secret name through an existing store error's diagnostic.
 
-Next: stage the independent root cache and multipart code, then HTTP/JSON, then
+Next: finish the returned no-retry contract correction, then stage the independent
+root cache and multipart code, HTTP/JSON, and
 the actor. Wiring waits for the shared protocol accessor and call-table refactor,
 removes staging, and gets a whole product gate with actual transport close and
 scope tests. Name the one-second input-chunk duration beside the segment bound

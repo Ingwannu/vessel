@@ -336,9 +336,13 @@ reader while bounding one stream's authenticated transcription requests, without
 sending audio to redirects, environment proxies or temporary files.
 
 Existing implementation and constraints: openai/stt.ts55-61 supplies API key and
-optional base to its SDK without an explicit timeout in that constructor; its
-SDK defaults were not read. Lines196-211 write a temporary WAV and request the
-model, language, optional dictation prompt and JSON response. The dictation
+optional base without overriding OpenAI SDK 6.44.0 defaults. Its client.js149
+sets a ten-minute timeout and159 sets two retries, allowing up to three upload
+attempts. Lines516-536 obey x-should-retry, otherwise retry408/409/429 and every
+status at least500;360-383 also retry connection failures and timeouts. Its
+retryRequest538-566 honours retry-after-ms and retry-after. Lines196-211 of
+stt.ts write a temporary WAV and request the model, language, optional dictation
+prompt and JSON response. The dictation
 manager814-816 classifies "buffer too small" case-insensitively. The workspace
 already has reqwest but no multipart feature; catalogue's extracted http_tls
 function owns OS roots, explicit ring and ALPN. The node has an existing fresh
@@ -358,9 +362,28 @@ Each stream builds its own HTTP client after its URL and
 sensitive authorization header validate. Connect has a ten-second deadline;
 the entire request, including response body, has a sixty-second deadline. The
 response is capped at 512 KiB before every append, even for chunked responses.
-These are security resource floors, not claims about SDK defaults. Redirects and
+These are security resource floors against the SDK's ten-minute timeout. Redirects and
 environment proxies are disabled. The per-host idle pool follows the existing
 in-flight commit cap; no past-host global pool survives a stream.
+
+There is no automatic retry: each committed segment has one upload attempt.
+This is a deliberate difference from the SDK's two retries. An ambiguous failure
+does not prove that the compatible server rejected the audio; resending can
+repeat an accepted upload and its work without the person choosing to send it
+again. The request budget is also bounded independently of the finish budget.
+The client explicitly disables reqwest's default protocol-NACK retries with
+retry::never, not merely HTTP-status retries. It does not retry408/409/429/5xx,
+connection failures or timeouts, and retry hints or Retry-After headers cannot
+schedule another attempt or extend the budget. A transient failure ends an open
+stream with Failed { Upstream }, no Final; a client may explicitly start a new
+id. The file CLI reports failure and does not automatically resend the file.
+
+The HTTP slice owes loopback tests that return503 and would return200 on a
+second upload, and429 with x-should-retry/retry-after hints: the result is a
+failure and the request count remains one. A connection closed before response
+headers and a body deadline must also fail without another attempt. The first
+response's payload is never printed as the reason. These tests establish the
+chosen no-retry policy, not the reference's retry behaviour.
 
 Resolve through FleetFiles::resolved_secret on a blocking worker at start and
 when reporting key presence, so an immediately preceding secret edit is visible.
