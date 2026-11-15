@@ -338,3 +338,9 @@ collision checks and future injection. The decoder refuses two services
 with the same derived name before returning any usable file, as ADR 0066
 already requires; plain-script names do not participate. Runtime injection
 still follows in the package, without a product caller in this step.
+
+Windows execution guard preparation also exercises real Unix symlink
+resolution under the explicit Windows naming policy: an approved `.exe`
+alias resolving to a mixed-case batch file is refused before any spawn.
+This portable filesystem model supplements the Windows-compiled refusal
+test and does not certify Windows native path resolution or execution.

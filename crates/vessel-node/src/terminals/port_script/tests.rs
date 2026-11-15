@@ -557,3 +557,29 @@ async fn cancelling_or_timing_out_live_capture_kills_the_child_and_its_inherited
     .await
     .unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn windows_command_scripts_are_refused_before_spawn() {
+    use std::os::unix::fs::symlink;
+
+    let sandbox = Sandbox::new();
+    let marker = sandbox.root.root.join("started");
+    // Real filesystem resolution plus the Windows policy models an alias
+    // whose approved .exe name resolves to a batch file. It runs no shell.
+    Sandbox::executable(
+        &sandbox.root.root.join("batch.CmD"),
+        "#!/bin/sh\nprintf unsafe > started\n",
+    );
+    symlink("batch.CmD", sandbox.root.root.join("port.exe")).unwrap();
+    for text in ["batch.CmD", "port.exe", "port.BaT. "] {
+        let owner: PortScript = text.parse().unwrap();
+        let result = program::resolve_on(program::Platform::Windows, &sandbox.root.root, &owner);
+        assert!(matches!(result, Err(PortScriptError::WindowsCommandScript)));
+        assert!(!marker.exists());
+    }
+    assert_eq!(
+        sandbox.root.branch.as_ref().unwrap().as_str(),
+        "topic/$(untrusted)&branch"
+    );
+}
