@@ -415,3 +415,18 @@ qualification and use if-let for the ready prefetch branch. Generic provider
 traits now say recognize/generate, distinct from endpoint transcribe/synthesize
 methods; endpoint behavior and wire values are unchanged. No lint exception
 is added. Latest source still owes strict/runtime on the announced merged base.
+
+### Phase A acquisition result and bounded continuation proposal
+
+V3 row221 explicitly accepted only six fixed downloads/non-extracting inventory.
+All six exact size/SHA checks passed with private task ownership and no network
+retry, native/model load or manifest change. Five inventories completed; Linux
+symlinks are rejected layout entries and Windows stopped before its408244224B
+PDB at the original256MiB cap. All inspected archive notices match the retained
+source notice bytes. Public exact inventories are in docs/evidence/voice-vad-phase-a.
+
+ADR0080 now proposes an explicit metadata-only exception for that one existing
+PDB, with a bounded512MiB declared metadata total and the original256MiB actual
+inflation/notice limits for all other members. It has NOT been executed. Return
+the findings and proposed continuation to V3 before any exception. Runtime
+loading/distribution/final layout and real VAD compatibility remain unapproved.

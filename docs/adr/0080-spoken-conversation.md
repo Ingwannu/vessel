@@ -488,3 +488,41 @@ request is intentionally narrower than runtime or distribution approval.
   Existing local-Stop, cancellation, own-session and prompt/MCP prerequisites
   remain mandatory. Neither this proposal nor successful endpoint HTTP turns
   on voice or local ASR/TTS readiness.
+
+
+### Proposed Phase A Windows continuation after the enforced refusal
+
+Status: **not approved; do not execute the exception yet**. The first
+[Phase A inventory](../plans/wp-voice-vad-inventory.md) stopped before
+Windows member26, the408244224-byte `lib/onnxruntime.pdb`; the existing256MiB
+expanded-member cap was enforced without inflating that member. Linux links
+were rejected and remain unextracted. This finding does not broaden row221.
+
+Propose a second bounded inspection of the **same already-verified** Windows
+archive (asset542003886, SHA256c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35),
+with no new download or fallback. Its purpose is to finish metadata/library/
+notice correspondence while excluding debug symbols from every product plan.
+
+The proposed exception is metadata-only for exactly
+`onnxruntime-win-x64-1.28.2/lib/onnxruntime.pdb`, with declared expanded
+size exactly408244224. Do not inflate, extract, hash or load its payload.
+Reject any additional oversized member or changed PDB identity/size/type.
+An explicitly skipped payload has no per-member digest and must never appear
+in a loadable-file allowlist. Full archive SHA256 still authenticates its bytes.
+
+Before allocating directory entries, enforce4096 members, a central-directory
+byte limit1MiB, UTF8 paths512bytes/depth16 and a declared metadata-only total
+size limit512MiB. This **new metadata declared-size limit** needs explicit
+V3 approval; it is not silently substituted for the original expanded cap.
+Every path, type, duplicate, local-header bounds and method is still checked.
+Links/devices/encryption/ZIP64 remain rejected.
+
+All other payloads retain the original256MiB aggregate actual-inflation budget,
+1MiB individual/8MiB aggregate notice budget, bounded decompression chunks and
+CRC/SHA validation before accepting a member. Record complete member metadata
+with the PDB labelled skipped/not-hashed; hash every other regular member.
+No container extraction, Cargo/build-script/installer execution, dynamic
+library/model load, manifest, distribution or activation is authorized by
+this request. A final reviewed file/layout amendment remains mandatory after
+notice correspondence; Linux aliases and all debug/test DLL assets remain
+excluded unless separately reviewed.

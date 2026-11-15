@@ -1,0 +1,68 @@
+[
+  {
+    "asset": "silero-v4.onnx",
+    "status": "verified",
+    "bytes": 643854,
+    "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+    "initial_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+    "final_host": "release-assets.githubusercontent.com",
+    "redirects": 1,
+    "elapsed_seconds": 0.892,
+    "parent_elapsed_seconds": 1.017
+  },
+  {
+    "asset": "onnxruntime-linux-x64-1.28.2.tgz",
+    "status": "verified",
+    "bytes": 9128991,
+    "sha256": "d7209b8751b27b862b0c76332c2e20e203396edb5dab700ecf4bb485cf147415",
+    "initial_url": "https://github.com/microsoft/onnxruntime/releases/download/v1.28.2/onnxruntime-linux-x64-1.28.2.tgz",
+    "final_host": "release-assets.githubusercontent.com",
+    "redirects": 1,
+    "elapsed_seconds": 1.51,
+    "parent_elapsed_seconds": 1.646
+  },
+  {
+    "asset": "onnxruntime-win-x64-1.28.2.zip",
+    "status": "verified",
+    "bytes": 78620837,
+    "sha256": "c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35",
+    "initial_url": "https://github.com/microsoft/onnxruntime/releases/download/v1.28.2/onnxruntime-win-x64-1.28.2.zip",
+    "final_host": "release-assets.githubusercontent.com",
+    "redirects": 1,
+    "elapsed_seconds": 3.741,
+    "parent_elapsed_seconds": 3.862
+  },
+  {
+    "asset": "ort-2.0.0-rc.15.crate",
+    "status": "verified",
+    "bytes": 168000,
+    "sha256": "37c87aa7a90b7ff3e0fe36cccd475df8d67f15f07f4d6c370c4b38464232813c",
+    "initial_url": "https://crates.io/api/v1/crates/ort/2.0.0-rc.15/download",
+    "final_host": "static.crates.io",
+    "redirects": 1,
+    "elapsed_seconds": 5.403,
+    "parent_elapsed_seconds": 5.528
+  },
+  {
+    "asset": "ort-sys-2.0.0-rc.15.crate",
+    "status": "verified",
+    "bytes": 59054,
+    "sha256": "8d22b0417f1838db5a3ac0b3f98dfe39f6fb73624aa0a27c6bbb5040b9c7db2b",
+    "initial_url": "https://crates.io/api/v1/crates/ort-sys/2.0.0-rc.15/download",
+    "final_host": "static.crates.io",
+    "redirects": 1,
+    "elapsed_seconds": 0.733,
+    "parent_elapsed_seconds": 0.852
+  },
+  {
+    "asset": "libloading-0.9.0.crate",
+    "status": "verified",
+    "bytes": 33816,
+    "sha256": "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60",
+    "initial_url": "https://crates.io/api/v1/crates/libloading/0.9.0/download",
+    "final_host": "static.crates.io",
+    "redirects": 1,
+    "elapsed_seconds": 5.707,
+    "parent_elapsed_seconds": 5.83
+  }
+]

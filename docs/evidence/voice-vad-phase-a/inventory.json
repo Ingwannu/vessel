@@ -1,0 +1,1270 @@
+[
+  {
+    "opaque_model": true,
+    "bytes": 643854,
+    "sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6",
+    "asset": "silero-v4.onnx",
+    "archive_sha256": "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"
+  },
+  {
+    "members": 41,
+    "expanded_member_bytes": 25678250,
+    "entries": [
+      {
+        "path": "onnxruntime-linux-x64-1.28.2",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/Privacy.md",
+        "kind": "file",
+        "bytes": 2469,
+        "sha256": "9a15f9fd9d4c7b6dfc35f237f461863f84f8f73cf6189e330818a674d3828871"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/README.md",
+        "kind": "file",
+        "bytes": 3112,
+        "sha256": "8ba52c692082f38b30549875486986f9d8cc00875dd689468fb61db2cd84961d"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/VERSION_NUMBER",
+        "kind": "file",
+        "bytes": 7,
+        "sha256": "2bde8d4531ecc681097f1e355cdfa8790c0dabb3c62d2ab54083d94f8629f2c1"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/LICENSE",
+        "kind": "file",
+        "bytes": 1073,
+        "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/GIT_COMMIT_ID",
+        "kind": "file",
+        "bytes": 41,
+        "sha256": "ef2aff9f0f5296a8ccb99cb86285a3ce258f5c2eda83da5f63ba69f98ee724f3"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so.1.28.2",
+        "kind": "file",
+        "bytes": 24277040,
+        "sha256": "088f24b1fc56714d3efaaeb3ac2ee486a5d7b50ccfbb3dd26fd1a612534a05fb"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/pkgconfig",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/pkgconfig/libonnxruntime.pc",
+        "kind": "file",
+        "bytes": 332,
+        "sha256": "d666bf07bd129ad054385e771a86be9cc5b30161365410c6f9b2583d04d5ac97"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so",
+        "kind": "symlink",
+        "bytes": 0,
+        "target": "libonnxruntime.so.1",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake/onnxruntime",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake/onnxruntime/onnxruntimeTargets.cmake",
+        "kind": "file",
+        "bytes": 4173,
+        "sha256": "0b84a062f97cfdb408a8eb17e5a2cc72df2bb171521785ff2f67aae39310da2a"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake/onnxruntime/onnxruntimeConfigVersion.cmake",
+        "kind": "file",
+        "bytes": 2765,
+        "sha256": "bca5423468b047f1fbe4439447bd10ffd03a306ed65ae6de703de1f174a3ccdb"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake/onnxruntime/onnxruntimeConfig.cmake",
+        "kind": "file",
+        "bytes": 939,
+        "sha256": "880b8c3ceae1ac013b7442b852ae4f7674a439803a2f8dcb875f5043913e62bc"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/cmake/onnxruntime/onnxruntimeTargets-release.cmake",
+        "kind": "file",
+        "bytes": 921,
+        "sha256": "14c83dc0488f803541c478ca1deff39286996c8ee10c92c6bb8703a03855bc6c"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so.1",
+        "kind": "symlink",
+        "bytes": 0,
+        "target": "libonnxruntime.so.1.28.2",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime_providers_shared.so",
+        "kind": "file",
+        "bytes": 14632,
+        "sha256": "086ec1d5388f64153d9c63470d126693db9a182c8ce236d3a1119068471b8a0d"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/ThirdPartyNotices.txt",
+        "kind": "file",
+        "bytes": 325054,
+        "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/cpu_provider_factory.h",
+        "kind": "file",
+        "bytes": 397,
+        "sha256": "0de52d129c718c07ee71a16b4953d8d483df019746a11caad77a0650a2f4ed47"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_c_api.h",
+        "kind": "file",
+        "bytes": 394991,
+        "sha256": "b69a133143c0da61782b2b02cc8a620d21ac139231fd211719776d10385135c1"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_experimental_c_api.inc",
+        "kind": "file",
+        "bytes": 22975,
+        "sha256": "0fe7a1b9ca9df68c7f9ca9bf9654c52c63434b70d16c0cb7ba9f80c5386d0529"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_cxx_inline.h",
+        "kind": "file",
+        "bytes": 157610,
+        "sha256": "97f960b1bc4a372918893ef4c77102dee725ccfce0d76607f4570b03e7e28325"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_float16.h",
+        "kind": "file",
+        "bytes": 17991,
+        "sha256": "88b242845d25981633a0bbd1c148e273cf8bfb016ea3f57c4af41a06530f72b0"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_cxx_api.h",
+        "kind": "file",
+        "bytes": 168928,
+        "sha256": "c6bf005e4063b7db911d0a6b030452bcb9d4fc5e87530a39d94c4a5fcd311b61"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_lite_custom_op.h",
+        "kind": "file",
+        "bytes": 62296,
+        "sha256": "5ac84897a95ee5fa5b5bbbeb84dd51f0768e83b293716b147f114e63b28fdf85"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_experimental_c_api.h",
+        "kind": "file",
+        "bytes": 7680,
+        "sha256": "8eba5f79972508e19ed9c2c0f5b78491ac4a34bf00c023f6b2adf5505bab3bfa"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_ep_device_ep_metadata_keys.h",
+        "kind": "file",
+        "bytes": 1875,
+        "sha256": "855ce482f28f6e10d6c364b7e7c39bc79ded58d2d12a6fe04d0a63fee5249a20"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_session_options_config_keys.h",
+        "kind": "file",
+        "bytes": 41738,
+        "sha256": "f3a80fcec7fa9e38de3191fc48714231892bc9c5dc8a06adecebf946a1937a29"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_env_config_keys.h",
+        "kind": "file",
+        "bytes": 1315,
+        "sha256": "2d531fef7dd4ffd22f35d219e1a795dbaa1c94a4a7fd29397c0982232e4ca332"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_run_options_config_keys.h",
+        "kind": "file",
+        "bytes": 2952,
+        "sha256": "973037c14b0f1af0854ae25cd676776f79dbcfd2a6791f6ee17a5374c2a62550"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_error_code.h",
+        "kind": "file",
+        "bytes": 2775,
+        "sha256": "5ce3b054e798eced8d14f5b86e98692fd33470463f96194ce0700a2d53dd8721"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/core",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/core/providers",
+        "kind": "directory",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/core/providers/custom_op_context.h",
+        "kind": "file",
+        "bytes": 296,
+        "sha256": "c1f2a96c0de1978b0f2fbf60bf1b2d50c6412d487c1f5d68ac5ffa8e01b46ee4"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/core/providers/resource.h",
+        "kind": "file",
+        "bytes": 365,
+        "sha256": "65480b7886a180f09f40999aaead120e41cb872b2efa187938d610bfe1977473"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_ep_c_api.h",
+        "kind": "file",
+        "bytes": 152985,
+        "sha256": "db86df0f846b8d3bdbf429a5c76c5805293196575ca3c475878612591cd18e51"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/provider_options.h",
+        "kind": "file",
+        "bytes": 480,
+        "sha256": "cb7206ffd06ba31b9f7e5f6089a6206f0c720c10c3adcc61db7f829c86691cfc"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/include/onnxruntime_experimental_cxx_api.h",
+        "kind": "file",
+        "bytes": 8043,
+        "sha256": "f7a36d1547d85def0761c94fccb0f7d1afce7ad719c81df4c89a954f890ef3d4"
+      }
+    ],
+    "metadata": [],
+    "notices": [
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/LICENSE",
+        "bytes": 1073,
+        "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+        "matches": [
+          "ONNXRuntime-MIT.txt"
+        ],
+        "first_line": "MIT License"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/ThirdPartyNotices.txt",
+        "bytes": 325054,
+        "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+        "matches": [
+          "ONNXRuntime-ThirdPartyNotices.txt"
+        ],
+        "first_line": "THIRD PARTY SOFTWARE NOTICES AND INFORMATION"
+      }
+    ],
+    "notice_bytes": 326127,
+    "layout_blockers": [
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so",
+        "reason": "rejected-symlink"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so.1",
+        "reason": "rejected-symlink"
+      }
+    ],
+    "libraries": [
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime.so.1.28.2",
+        "kind": "file",
+        "bytes": 24277040,
+        "sha256": "088f24b1fc56714d3efaaeb3ac2ee486a5d7b50ccfbb3dd26fd1a612534a05fb"
+      },
+      {
+        "path": "onnxruntime-linux-x64-1.28.2/lib/libonnxruntime_providers_shared.so",
+        "kind": "file",
+        "bytes": 14632,
+        "sha256": "086ec1d5388f64153d9c63470d126693db9a182c8ce236d3a1119068471b8a0d"
+      }
+    ],
+    "asset": "onnxruntime-linux-x64-1.28.2.tgz",
+    "archive_sha256": "d7209b8751b27b862b0c76332c2e20e203396edb5dab700ecf4bb485cf147415"
+  },
+  {
+    "status": "inventory-refused",
+    "reason": "expanded-size",
+    "details": {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.pdb",
+      "declared_member_bytes": 408244224,
+      "prior_expanded_bytes": 16958054,
+      "cap_bytes": 268435456,
+      "count": 26
+    },
+    "asset": "onnxruntime-win-x64-1.28.2.zip",
+    "archive_sha256": "c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35"
+  },
+  {
+    "members": 89,
+    "expanded_member_bytes": 720995,
+    "entries": [
+      {
+        "path": "ort-2.0.0-rc.15/.cargo_vcs_info.json",
+        "kind": "file",
+        "bytes": 94,
+        "sha256": "16cc2ccbb90a3382276bb8eda453faa1c7ecb0ca499501b35bce9c95bc6e4cb8"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/Cargo.lock",
+        "kind": "file",
+        "bytes": 32574,
+        "sha256": "6713cb47a4f571a888d153353d90a5e3453dc98f4c6f3009bcc4c05014892858"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/Cargo.toml",
+        "kind": "file",
+        "bytes": 5559,
+        "sha256": "d6ffac4669dfcfaf8742559f5d6ca0e5334dd1999a661aa03232a1aaf42406d9"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/Cargo.toml.orig",
+        "kind": "file",
+        "bytes": 4897,
+        "sha256": "3f999fca7d43d799d89955f67f74c4d59ebb972286361654f8a79aa1ccb75214"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/LICENSE-APACHE",
+        "kind": "file",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/LICENSE-MIT",
+        "kind": "file",
+        "bytes": 1107,
+        "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/README.md",
+        "kind": "file",
+        "bytes": 4774,
+        "sha256": "e78ba394ed0826094084ae06d378670b2ea4f5bb07530328b5a13164d648e929"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/compiler.rs",
+        "kind": "file",
+        "bytes": 8018,
+        "sha256": "cddd3dd5280fdd7276a324033f5b34098d02c912d63b47606f3149cf6e10ae49"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/device.rs",
+        "kind": "file",
+        "bytes": 8558,
+        "sha256": "f65882e8c25ee975d26c116c91e8beb6c88a9cff010f6f1fef986c6d59c40bfc"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/editor/mod.rs",
+        "kind": "file",
+        "bytes": 10299,
+        "sha256": "1c3e934baf5c0665fe677b8023605d411ea9925c14cac6a1264511262b9fd968"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/editor/tests.rs",
+        "kind": "file",
+        "bytes": 2402,
+        "sha256": "c12f403b11a2796a1993f5f90e569cf83db8df56482fbfa731e2185ba5ae188e"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/environment.rs",
+        "kind": "file",
+        "bytes": 22542,
+        "sha256": "f3981bcddc584c6437c43a3303df2145c963c2be8a3ac918487d434ad60c755c"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/acl.rs",
+        "kind": "file",
+        "bytes": 1316,
+        "sha256": "504dfe2020b82f660df5dd3d6938b7cf65e7f67246f4dce5762ca60916062c81"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/armnn.rs",
+        "kind": "file",
+        "bytes": 1379,
+        "sha256": "9035fecc2dc49ed58ebcb148dc179cee59b9ffa808323c2afda74d8c21574dcd"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/azure.rs",
+        "kind": "file",
+        "bytes": 2952,
+        "sha256": "a500b91d6f011ff6d772c4b09c833effdda94c4a18fe0a9268910c7c267b8914"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/cann.rs",
+        "kind": "file",
+        "bytes": 6109,
+        "sha256": "7f5ee31b1aa3d5a001e70c673410820a53bf55b618c736c9d827c6c4eaf999ec"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/coreml.rs",
+        "kind": "file",
+        "bytes": 7560,
+        "sha256": "479256bf9e126868e445214fe64c955a03b087751698a86738f177ca01d0579f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/cpu.rs",
+        "kind": "file",
+        "bytes": 1084,
+        "sha256": "18be686b570e5f2927028b9e2018bb147e268914a4a4c2b25109cf909f6cb3f4"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/cuda.rs",
+        "kind": "file",
+        "bytes": 18682,
+        "sha256": "cea8f27ab5681a0ebacb06e42386f50760c790386862a7065134aa16ee78f3f3"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/directml.rs",
+        "kind": "file",
+        "bytes": 6940,
+        "sha256": "e8ee31bab818c49d120e7c11f8d4b999c30b59381a6746c4509be5e62815f813"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/migraphx.rs",
+        "kind": "file",
+        "bytes": 6435,
+        "sha256": "6b98391c63353dc9401ae0b9aaa8fd0b653accf2735485871d6133127d90b582"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/mod.rs",
+        "kind": "file",
+        "bytes": 17370,
+        "sha256": "6f3a5a8649350045011df04ec976532a71021211a358e395156838afbc13ffd0"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/nnapi.rs",
+        "kind": "file",
+        "bytes": 2531,
+        "sha256": "a332e89553ffb19509d14a19d3d68a093316902f131659f1d73bc5a0cb076e54"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/nvrtx.rs",
+        "kind": "file",
+        "bytes": 1714,
+        "sha256": "f4201ff7480836a52637ab87934a7bc3559d04051dcad7095a3f5b8390c69c95"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/onednn.rs",
+        "kind": "file",
+        "bytes": 1222,
+        "sha256": "9ac8e6cd681a0dffb0055d3f866942c0320f6e06c513a45a913fe7bfcfa30626"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/openvino.rs",
+        "kind": "file",
+        "bytes": 2732,
+        "sha256": "eab213eaf2031e010f39a63fe7c3ff8d07c607f4dab062f25c7a967a5d981d58"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/qnn.rs",
+        "kind": "file",
+        "bytes": 3760,
+        "sha256": "018c233f141b3a30c2be8a50e5f044e46d37d1780bbe513c626f24e516840d1f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/rknpu.rs",
+        "kind": "file",
+        "bytes": 625,
+        "sha256": "d324a849cb698602120bdfd337904303a5189244b5d8d15a1fc68894d9b7133b"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/rocm.rs",
+        "kind": "file",
+        "bytes": 1904,
+        "sha256": "d51c99301760e379f69a568dc929f4be10f6622e95688ad958e75e85d76cadb5"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/tensorrt.rs",
+        "kind": "file",
+        "bytes": 4988,
+        "sha256": "6886e373ed17bdcbb0630de9997dec2b28504b7e4429a8d3d57ccc9cb2f23e5d"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/tvm.rs",
+        "kind": "file",
+        "bytes": 3834,
+        "sha256": "da6d1210020c2ce45d78b4e1d84be5ac4f1192927904cbe2094d4d1974baa49c"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/vitis.rs",
+        "kind": "file",
+        "bytes": 2556,
+        "sha256": "5e40d58aff8650393a1b59bfd58021ae9aaab4b00104e085e3897951eb797647"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/vsinpu.rs",
+        "kind": "file",
+        "bytes": 652,
+        "sha256": "3c6f6a5a65bae2e481b2a3981c2ba09c2f06ba465ee96170737d158b1c3bc30d"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/wasm.rs",
+        "kind": "file",
+        "bytes": 388,
+        "sha256": "2ff24e3b54773f7eed091521228496d87d7ba143ce75bef86ec6db5e72d94701"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/webgpu.rs",
+        "kind": "file",
+        "bytes": 3083,
+        "sha256": "9f804c9462048a5522a735dab3b138f836349feaf6a7c5cfc6ff15dd4678ea4b"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/webnn.rs",
+        "kind": "file",
+        "bytes": 1427,
+        "sha256": "bb91051261a4e2731f65aa7e7b77eb705e339cde294c41ae7bbce08db07e31f4"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/ep/xnnpack.rs",
+        "kind": "file",
+        "bytes": 1906,
+        "sha256": "a18d4a52817e2597fc65c987d161cd8b455dc4bac19750fba593dfbb0854a1a5"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/error.rs",
+        "kind": "file",
+        "bytes": 9233,
+        "sha256": "7348d52a2e1b2010833f5eba156849cd1fef6b7d250cdb096af7f972f5b5a1f1"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/lib.rs",
+        "kind": "file",
+        "bytes": 12814,
+        "sha256": "78f9b7892572a68df64d76638328838f12e4083e87fe87a91344a233075b2350"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/logging.rs",
+        "kind": "file",
+        "bytes": 8239,
+        "sha256": "8bd8fdf0f5503445a5d02b7de69475c2c74759f6a2b72bbc82390ca9047e0c1c"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/memory.rs",
+        "kind": "file",
+        "bytes": 23290,
+        "sha256": "074ff45f477bcae629b5af09543f86591b25c03c0f483d2ed60c0d90c5bfb7f0"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/attribute.rs",
+        "kind": "file",
+        "bytes": 13244,
+        "sha256": "3d5785f3346dbbf59e0f1e94bd652c58e330d90aa99c14df7fac73d6198a2e3f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/erased.rs",
+        "kind": "file",
+        "bytes": 15312,
+        "sha256": "6d9e4ae27e8bd716cb9487032182d13cc503ea6cf2395856270681ee2c420183"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/io.rs",
+        "kind": "file",
+        "bytes": 3184,
+        "sha256": "7b27b2f5ed77ee49ded3d6580559b35b708cc32e0a2fbbd50d6df81ac7a05f21"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/kernel.rs",
+        "kind": "file",
+        "bytes": 11400,
+        "sha256": "d63bfe2182b6ce32fd81260676ac3cf40e160cf0f1bccb7381d0348764322579"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/mod.rs",
+        "kind": "file",
+        "bytes": 6820,
+        "sha256": "19a44e0d7f4d774ff44431088b05f565009a90052f55d6567dbfe8cf3e5effd2"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/operator/tests.rs",
+        "kind": "file",
+        "bytes": 14527,
+        "sha256": "f62752fd7e569cf4fdc31aceb583d6c692e6f9d494e30664f4da220ed27eb28d"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/private.rs",
+        "kind": "file",
+        "bytes": 289,
+        "sha256": "1f5f77ee8d41412c18b0da895071841ef9c1c526b3a2b174e004172c8aa91d2b"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/adapter.rs",
+        "kind": "file",
+        "bytes": 8814,
+        "sha256": "84b4df52ef4a36ac7e12b32fdd7afec650f9e70c368a0cf1ab6c9924a7d35294"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/async.rs",
+        "kind": "file",
+        "bytes": 4059,
+        "sha256": "98f8973c6af848caddfae4526ca21ec96b8f48c3b72b8b6befb95524a151795a"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/builder/editable.rs",
+        "kind": "file",
+        "bytes": 1676,
+        "sha256": "e3dd7c339fb6f40e111cfe8ed5d5034d1f57e0e9a2ceaf592c9ec96c3a0a9379"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/builder/impl_commit.rs",
+        "kind": "file",
+        "bytes": 13344,
+        "sha256": "f98465e85612a14faf810d85e87e85445723b53c5ae65d8ca3148acfe39ef4e9"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/builder/impl_config_keys.rs",
+        "kind": "file",
+        "bytes": 11758,
+        "sha256": "a1f45a8498bcbd51f6af81b715880bc119bfbd1ac0ba2a8fa55be35d5363e427"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/builder/impl_options.rs",
+        "kind": "file",
+        "bytes": 28500,
+        "sha256": "823166aa72c13c99d72319eb709a0acf7a4d7181aa6d42f96ae19f935a088caa"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/builder/mod.rs",
+        "kind": "file",
+        "bytes": 9749,
+        "sha256": "04d4b8584c3abc2b2c45a0ee26b84da47dc2379b9c8a7441821c6d20693bb5c4"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/input.rs",
+        "kind": "file",
+        "bytes": 5865,
+        "sha256": "16baace9064cbbe669428391e21e7a0a05565bcd0453555de9945fc2de6c7869"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/io_binding.rs",
+        "kind": "file",
+        "bytes": 14432,
+        "sha256": "752baf8cf9cf1b52e3989500d61ffaf21d3ccaf7cd33ccae901297eabd1a6381"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/metadata.rs",
+        "kind": "file",
+        "bytes": 4822,
+        "sha256": "e5beaaac62fa799daef2f413a848ed50eba6c071717cf7012d464768429bc2e8"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/mod.rs",
+        "kind": "file",
+        "bytes": 16573,
+        "sha256": "d9f44d1cb44d7dd5f1175b1d6ba378da2e8bfaa6ffabd0a255026f3462304510"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/output.rs",
+        "kind": "file",
+        "bytes": 10807,
+        "sha256": "d2b9066d467e8ac7f227d32718f422c695bd5cb4791ca48f15fd849c70ad28c3"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/run.rs",
+        "kind": "file",
+        "bytes": 20553,
+        "sha256": "84deac095c77cb388832dc77a21a1dc948c0e787f4eeeca72b9b70c91ce00293"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/session/run_options.rs",
+        "kind": "file",
+        "bytes": 16650,
+        "sha256": "c855be8aa01ad5979882e3712553e4ce6979b0c13ce1fce00f2a89e303d9fb4f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/test_util.rs",
+        "kind": "file",
+        "bytes": 1304,
+        "sha256": "85e209f8e91b99661357d63375b053c8bff95a71160cdb996c3af77c10f1cc5e"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/mod.rs",
+        "kind": "file",
+        "bytes": 8438,
+        "sha256": "5050bc5cc27533aeba6fd7aa4283db4822e55d3b20e062249f05082dc348423a"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/simple/args.rs",
+        "kind": "file",
+        "bytes": 3708,
+        "sha256": "e85a63bcd649a30f1161cabf24e0a6483ade85b09c1572cb1ffc8c086bb1bdb0"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/simple/callbacks.rs",
+        "kind": "file",
+        "bytes": 3579,
+        "sha256": "90c4ee64bbdcbd33c46e4c5eb9e10fa9660271a5e4a2241eb5355756259e0695"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/simple/dataloader.rs",
+        "kind": "file",
+        "bytes": 1599,
+        "sha256": "97c8de3a400b437ae683eaf4641039e53a8065dd5bb40873e4fa5349dd1cb4e6"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/simple/mod.rs",
+        "kind": "file",
+        "bytes": 4416,
+        "sha256": "0362413db3e304eb71e36eafb72e98f161a1d501dddd087bd23ac6663ea9638f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/training/trainer.rs",
+        "kind": "file",
+        "bytes": 10317,
+        "sha256": "faed1af2544fc93983a7caba4dca34a2e02e0f265a2de6712ca062684c668d15"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/map.rs",
+        "kind": "file",
+        "bytes": 1778,
+        "sha256": "2990105e43612d15e9bd239e52f65e48643d97da49b041287e43c957915d31c7"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/mod.rs",
+        "kind": "file",
+        "bytes": 10640,
+        "sha256": "bc49dcadfa137d54385303fafdeebc8368ab467ec062fd0aea9fc59188e08217"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/mutex_spin.rs",
+        "kind": "file",
+        "bytes": 1893,
+        "sha256": "301b4803779d3d12c0f7b25d2699e381256043cce4fa421b10c65a38c39f7a08"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/mutex_std.rs",
+        "kind": "file",
+        "bytes": 917,
+        "sha256": "6f858f5d098ac4d6e0759aca9dcb7f6425008c8b76903017b1f773d239a6dc69"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/ndarray.rs",
+        "kind": "file",
+        "bytes": 3524,
+        "sha256": "d904e3d7bb4fb4915789e7b9d19877cbc7dc3cbad65dbffc04e4c1cf6e8256e4"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/once_lock.rs",
+        "kind": "file",
+        "bytes": 3438,
+        "sha256": "48e29bfe1b88a914a019175b1de02a2e695ac41f95afbaf45b0eea304b7a517a"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/util/stack.rs",
+        "kind": "file",
+        "bytes": 3327,
+        "sha256": "3a3a2bf8ef27f75219e582ee8d2324f8b8e73ac68b5eefb8386629524e2f8b8f"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_map.rs",
+        "kind": "file",
+        "bytes": 12965,
+        "sha256": "e07ff070d7e8e98d0baa89273856dd7af6bf6498de1b218c4b468efe9cba5536"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_sequence.rs",
+        "kind": "file",
+        "bytes": 8341,
+        "sha256": "2595fd7d928f9b49b31878cfcc447cacfebb621eeea4ef670ef78053a3160465"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/copy.rs",
+        "kind": "file",
+        "bytes": 19585,
+        "sha256": "5ff84b7071437feb365641949c97ca18acd55ae8f1a745e2492028b301eb1fe2"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/create.rs",
+        "kind": "file",
+        "bytes": 21631,
+        "sha256": "67d725cde7b3505b31d9b13e333b818822fea489d5fdaa18dec4dee3ca3cdc53"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/element.rs",
+        "kind": "file",
+        "bytes": 16805,
+        "sha256": "7a20c8db9ea24bfcdaa8008de1e4b31ef3bd4b006eb1525f2bc57f1a8ce73e06"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/extract.rs",
+        "kind": "file",
+        "bytes": 16879,
+        "sha256": "11ddf66d4a5f3df2166d67650d4e20c0d8ec1760fc7b4a19b736e6eb916bd716"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/identity.ort",
+        "kind": "file",
+        "bytes": 1032,
+        "sha256": "6c136bce41e07c3fbf12401cac717ad3104be01787bc729a202ae343e4d3debc"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/mod.rs",
+        "kind": "file",
+        "bytes": 18758,
+        "sha256": "93ce138d4c654d904557e5367e3790cb5f90dd785f40b6fa0e0754332dd15a76"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/impl_tensor/shape.rs",
+        "kind": "file",
+        "bytes": 3435,
+        "sha256": "5177f09ae961690070ce6a56ef56d78cb69608c5b2048135cc6d928ecc666075"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/mod.rs",
+        "kind": "file",
+        "bytes": 16451,
+        "sha256": "9ccc73d93b55cb0ab0dd51fc68e8c7cf7f0aa2918aab200c1c6338f245f65d47"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/ref.rs",
+        "kind": "file",
+        "bytes": 1757,
+        "sha256": "bb4d6fb26748764342c40f4e004e0ba4c6dd73379e120772a1f94c5caf0ba52d"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/ref_mut.rs",
+        "kind": "file",
+        "bytes": 3474,
+        "sha256": "c3b945678cb58f362b7469b11e949e325fea70a10b88c8a5f9a2ed55e186a4d9"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/src/value/type.rs",
+        "kind": "file",
+        "bytes": 19719,
+        "sha256": "3e2a1d923169243bdb1eeca47d02c9928f16c4bf51c008fd7fad0f32659ea8ba"
+      }
+    ],
+    "metadata": [],
+    "notices": [
+      {
+        "path": "ort-2.0.0-rc.15/LICENSE-APACHE",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "matches": [
+          "Apache-2.0.txt"
+        ],
+        "first_line": "                                 Apache License"
+      },
+      {
+        "path": "ort-2.0.0-rc.15/LICENSE-MIT",
+        "bytes": 1107,
+        "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b",
+        "matches": [
+          "ort-MIT.txt"
+        ],
+        "first_line": "MIT License"
+      }
+    ],
+    "notice_bytes": 12465,
+    "layout_blockers": [],
+    "libraries": [],
+    "asset": "ort-2.0.0-rc.15.crate",
+    "archive_sha256": "37c87aa7a90b7ff3e0fe36cccd475df8d67f15f07f4d6c370c4b38464232813c"
+  },
+  {
+    "members": 25,
+    "expanded_member_bytes": 325653,
+    "entries": [
+      {
+        "path": "ort-sys-2.0.0-rc.15/.cargo_vcs_info.json",
+        "kind": "file",
+        "bytes": 101,
+        "sha256": "54f864a26d559235a026357e22d41afb8d406cd0c9af5946838784cb44ee11f6"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/Cargo.lock",
+        "kind": "file",
+        "bytes": 18923,
+        "sha256": "63e6208539d6067345e6aa802813c515a6d7ab29d4daffd8b4c0f2d72b5cfabc"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/Cargo.toml",
+        "kind": "file",
+        "bytes": 2813,
+        "sha256": "a1be0c4fdaf531803463429b37515ebb6c98c26b2d1309c1761ee4afad87fc3a"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/Cargo.toml.orig",
+        "kind": "file",
+        "bytes": 2210,
+        "sha256": "ade20e9d58259a75b3740e2fbb8aea7779aa9352e9b3f981884c3b488dae9c42"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/LICENSE-APACHE",
+        "kind": "file",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/LICENSE-MIT",
+        "kind": "file",
+        "bytes": 1107,
+        "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/download/dist.tsv",
+        "kind": "file",
+        "bytes": 3761,
+        "sha256": "c97e3c8c098d9c704eb7e98bc568254bedd487fad9a61a7acb088d63e5de9675"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/download/extract.rs",
+        "kind": "file",
+        "bytes": 3700,
+        "sha256": "4540bcc178ab37a8cca097a6f74f9cf37755fd9c06d7de37f2323262fc8c029d"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/download/mod.rs",
+        "kind": "file",
+        "bytes": 3219,
+        "sha256": "4f82c67ab9d66813ed57110f0d2b38a980fc0088002bc02ff505d0d78d971434"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/download/resolve.rs",
+        "kind": "file",
+        "bytes": 4192,
+        "sha256": "84618706efba1b57761aaf94c3ef1add5ba14a2c615ab5b8509a3c50d7ce2d36"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/download/verify.rs",
+        "kind": "file",
+        "bytes": 1256,
+        "sha256": "78ae7133b8abb9f033bd441bbaff0155d9467bb95fd6c36e3af3d960d37071d4"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/dynamic_link.rs",
+        "kind": "file",
+        "bytes": 2084,
+        "sha256": "48cd9dae50b2de2fa71d98ac5700f58cc0e7066771d097fe314d0687a2e9491f"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/error.rs",
+        "kind": "file",
+        "bytes": 751,
+        "sha256": "4d3707b666f3530822cdf75004461a92d36ea1f7d989a5509085cf5346e8f99d"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/log.rs",
+        "kind": "file",
+        "bytes": 664,
+        "sha256": "32ae55dbb874629f05b1a939868e7a52daefbd726bbe3f8ef8e9a944588e7fdb"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/main.rs",
+        "kind": "file",
+        "bytes": 6108,
+        "sha256": "9d4af3dc20d1462964e80e7829446012acd4effa262d82cd3a11640341f07dc3"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/pkg_config.rs",
+        "kind": "file",
+        "bytes": 1039,
+        "sha256": "635335b2235d7c08980222509e239ebb0213d188c464fb9344d8df83580ed21a"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/static_link/apple.rs",
+        "kind": "file",
+        "bytes": 2210,
+        "sha256": "e218becf7c242614a9d49aee36109327f3198ec02784ab090bf8747b842baed0"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/static_link/mod.rs",
+        "kind": "file",
+        "bytes": 17865,
+        "sha256": "f092aded228afe5d9bb337a1ebdbb184a1e592d2a27520f9f127aba454f4a364"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/build/vars.rs",
+        "kind": "file",
+        "bytes": 1538,
+        "sha256": "7062712aeb818e5c9d4b01043b84ff5ad0375baa14f92c086125a7cc37b57201"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/internal/dirs.rs",
+        "kind": "file",
+        "bytes": 3863,
+        "sha256": "30866fd38ce97db57f9080ceb6c715d62247ae5abac15711de09722b4cc80e35"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/internal/mod.rs",
+        "kind": "file",
+        "bytes": 440,
+        "sha256": "ac6c44a52efa940292cf4bdbaa76c086dd19c73d79f12262a9268002a88fe98a"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/lib.rs",
+        "kind": "file",
+        "bytes": 122255,
+        "sha256": "f4e8236168f137e8543a5295557c58c6f47af83bab99c8e0eee0962feb44159f"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/link_error.rs",
+        "kind": "file",
+        "bytes": 1883,
+        "sha256": "5f1306df04e89c0f41a67b87dfb42bd06514a79cfbaefdf33921102e8398c659"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/stub.rs",
+        "kind": "file",
+        "bytes": 111387,
+        "sha256": "a6a0d3325b73e8a8ffb2795e491c2ab2008d64719ec35050cc9162a23e157169"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/src/version.rs",
+        "kind": "file",
+        "bytes": 926,
+        "sha256": "c84b76055a4b19893e486aa5dae5e14322728ffa9fbfadcb9895983194b73dc4"
+      }
+    ],
+    "metadata": [],
+    "notices": [
+      {
+        "path": "ort-sys-2.0.0-rc.15/LICENSE-APACHE",
+        "bytes": 11358,
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "matches": [
+          "Apache-2.0.txt"
+        ],
+        "first_line": "                                 Apache License"
+      },
+      {
+        "path": "ort-sys-2.0.0-rc.15/LICENSE-MIT",
+        "bytes": 1107,
+        "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b",
+        "matches": [
+          "ort-MIT.txt"
+        ],
+        "first_line": "MIT License"
+      }
+    ],
+    "notice_bytes": 12465,
+    "layout_blockers": [],
+    "libraries": [],
+    "asset": "ort-sys-2.0.0-rc.15.crate",
+    "archive_sha256": "8d22b0417f1838db5a3ac0b3f98dfe39f6fb73624aa0a27c6bbb5040b9c7db2b"
+  },
+  {
+    "members": 27,
+    "expanded_member_bytes": 143648,
+    "entries": [
+      {
+        "path": "libloading-0.9.0/.cargo_vcs_info.json",
+        "kind": "file",
+        "bytes": 94,
+        "sha256": "b6acd17f23f2ac637c0305ac458a393f183ce733970afd51873b1b984492c5e1"
+      },
+      {
+        "path": "libloading-0.9.0/.github/workflows/libloading.yml",
+        "kind": "file",
+        "bytes": 5233,
+        "sha256": "fbfddbb385d86163eaf67835045ea09b2f4a7a1acc19a646d6788457154d7a3e"
+      },
+      {
+        "path": "libloading-0.9.0/.gitignore",
+        "kind": "file",
+        "bytes": 22,
+        "sha256": "d1f04f6e26b032947281447fede322031f61a24a6dc3cf72221f238411393d0c"
+      },
+      {
+        "path": "libloading-0.9.0/Cargo.lock",
+        "kind": "file",
+        "bytes": 1257,
+        "sha256": "4c256adc91bec430276dba79e59e27a832883395e4743d7695d1be5ee34bc0b4"
+      },
+      {
+        "path": "libloading-0.9.0/Cargo.toml",
+        "kind": "file",
+        "bytes": 2024,
+        "sha256": "4419c3b53bcbe50d15ea020c93a828028d4a35c271d74a059601e9f985b7aeee"
+      },
+      {
+        "path": "libloading-0.9.0/Cargo.toml.orig",
+        "kind": "file",
+        "bytes": 1197,
+        "sha256": "314ff537879a9964374ea56bfb7f3c657e407483e71ac1361e50a411541ca17c"
+      },
+      {
+        "path": "libloading-0.9.0/LICENSE",
+        "kind": "file",
+        "bytes": 736,
+        "sha256": "b29f8b01452350c20dd1af16ef83b598fea3053578ccc1c7a0ef40e57be2620f"
+      },
+      {
+        "path": "libloading-0.9.0/README.mkd",
+        "kind": "file",
+        "bytes": 662,
+        "sha256": "707e1cae9fa4b691ce5cb8a3976573158fc60b67cb89948f8f5d51c5908bd0a8"
+      },
+      {
+        "path": "libloading-0.9.0/src/as_filename.rs",
+        "kind": "file",
+        "bytes": 7411,
+        "sha256": "ac735183f2d5ce0332486313e8a1aac808c47d6a88960e7cb74371aaf7033a0e"
+      },
+      {
+        "path": "libloading-0.9.0/src/as_symbol_name.rs",
+        "kind": "file",
+        "bytes": 3205,
+        "sha256": "25f73e87cb2b5af804bcadb07ac32a0df2e6507766aed55381573d5a45bd9053"
+      },
+      {
+        "path": "libloading-0.9.0/src/changelog.rs",
+        "kind": "file",
+        "bytes": 18630,
+        "sha256": "4a58aa79030b88ffc2a74d21f7d2908039acf6f0d8380f2e5501021583cbf44c"
+      },
+      {
+        "path": "libloading-0.9.0/src/error.rs",
+        "kind": "file",
+        "bytes": 5512,
+        "sha256": "f18bd8c175cffbe59d47bd4734254d7ca5e97474e38628b1e3633a4c1a74d86c"
+      },
+      {
+        "path": "libloading-0.9.0/src/lib.rs",
+        "kind": "file",
+        "bytes": 2999,
+        "sha256": "2672c01795cabaf355b921c51ab8fe3f245e07f02666518f9095c5924e49cf62"
+      },
+      {
+        "path": "libloading-0.9.0/src/os/mod.rs",
+        "kind": "file",
+        "bytes": 909,
+        "sha256": "6c59ef8c1120953ae6b6c32f27766c643ca90d85075c49c3545d2fe1ed82cedd"
+      },
+      {
+        "path": "libloading-0.9.0/src/os/unix/consts.rs",
+        "kind": "file",
+        "bytes": 8479,
+        "sha256": "ba4e829cfcb9f6adc7485d4a11b88c8a6fe4d1a3975039686d4e47a2f873ab87"
+      },
+      {
+        "path": "libloading-0.9.0/src/os/unix/mod.rs",
+        "kind": "file",
+        "bytes": 20568,
+        "sha256": "4794cff4f4fbe9ff24d53da4ba3495d13da4ed03ec8cbd1e869d21269b50e960"
+      },
+      {
+        "path": "libloading-0.9.0/src/os/windows/mod.rs",
+        "kind": "file",
+        "bytes": 26138,
+        "sha256": "ebefde1dd25bf701f821760761bc1440726d23d9390d6dc9260bc6e0664ecf71"
+      },
+      {
+        "path": "libloading-0.9.0/src/safe.rs",
+        "kind": "file",
+        "bytes": 11807,
+        "sha256": "a5be7efe1580b0944eada611dabb2f9d21daa852c224afcc13967ddc432c2875"
+      },
+      {
+        "path": "libloading-0.9.0/src/test_helpers.rs",
+        "kind": "file",
+        "bytes": 747,
+        "sha256": "201403e143e5b3204864124cd38067cf8813d5273dc1a9099288a9dc4bdd15b6"
+      },
+      {
+        "path": "libloading-0.9.0/src/util.rs",
+        "kind": "file",
+        "bytes": 1111,
+        "sha256": "b489401c44da68219eee6fd3ced6915aeebfb36569b2d0f2d4298da6199e38bc"
+      },
+      {
+        "path": "libloading-0.9.0/tests/constants.rs",
+        "kind": "file",
+        "bytes": 374,
+        "sha256": "13527a6f6d9e0b3a9ae47bb7278eca142cebec9ecd826aba2e9f15507ba3df18"
+      },
+      {
+        "path": "libloading-0.9.0/tests/functions.rs",
+        "kind": "file",
+        "bytes": 14129,
+        "sha256": "8760cede50700d326ea76c4177f4392ce605f6adfcd7a14c9e4aea8fb2205d06"
+      },
+      {
+        "path": "libloading-0.9.0/tests/library_filename.rs",
+        "kind": "file",
+        "bytes": 588,
+        "sha256": "f176b5287519ce34b22df98f5d36f172691b4e001e1b0c12c1f3522ebd98f527"
+      },
+      {
+        "path": "libloading-0.9.0/tests/markers.rs",
+        "kind": "file",
+        "bytes": 1995,
+        "sha256": "0ebc8f807b92e39452d35732988012cdca7ce96231c57eaac9c3f4217225ad39"
+      },
+      {
+        "path": "libloading-0.9.0/tests/nagisa32.dll",
+        "kind": "file",
+        "bytes": 3072,
+        "sha256": "5c69b2bd9c8a6ad04165c221075fc9fade1dd66ca697399ace528a5a62328e36"
+      },
+      {
+        "path": "libloading-0.9.0/tests/nagisa64.dll",
+        "kind": "file",
+        "bytes": 2560,
+        "sha256": "e20b95e3036f3289421abd100760874d4f455afd33c3b5b64fec56b191f7d477"
+      },
+      {
+        "path": "libloading-0.9.0/tests/windows.rs",
+        "kind": "file",
+        "bytes": 2189,
+        "sha256": "d47752de5ce18b304697a957f430351a91b0188a80a881d6558d601df69f4036"
+      }
+    ],
+    "metadata": [],
+    "notices": [
+      {
+        "path": "libloading-0.9.0/LICENSE",
+        "bytes": 736,
+        "sha256": "b29f8b01452350c20dd1af16ef83b598fea3053578ccc1c7a0ef40e57be2620f",
+        "matches": [
+          "libloading-ISC.txt"
+        ],
+        "first_line": "Copyright \u00a9 2015, Simonas Kazlauskas"
+      }
+    ],
+    "notice_bytes": 736,
+    "layout_blockers": [],
+    "libraries": [
+      {
+        "path": "libloading-0.9.0/tests/nagisa32.dll",
+        "kind": "file",
+        "bytes": 3072,
+        "sha256": "5c69b2bd9c8a6ad04165c221075fc9fade1dd66ca697399ace528a5a62328e36"
+      },
+      {
+        "path": "libloading-0.9.0/tests/nagisa64.dll",
+        "kind": "file",
+        "bytes": 2560,
+        "sha256": "e20b95e3036f3289421abd100760874d4f455afd33c3b5b64fec56b191f7d477"
+      }
+    ],
+    "asset": "libloading-0.9.0.crate",
+    "archive_sha256": "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
+  }
+]
