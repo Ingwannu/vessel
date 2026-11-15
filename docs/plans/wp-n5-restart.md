@@ -181,3 +181,25 @@ the actual stored snapshot before the parent sends SIGKILL. This neither adds
 a product RPC nor bypasses authority for an effect. The fake provider and all
 existing recovery assertions/deadlines retain their behavior. These changes
 are still candidates until the next immutable test and package gate.
+
+## Selected tests passed; final combined source
+
+The repaired node/store test suite passed 723 tests, with zero failures and
+two existing ignored tests. It compiled the changed node tests and passed
+the real-node kill case, Off after admission, both inbox rollback cases and
+the title-origin rollback. No warning was emitted in that execution. Its
+pre/post selected source manifests matched. This remains a selected-crate
+result; it is not a whole-workspace or UI pass.
+
+The final source also consumes announced node `82ae7c91`: staged method rows,
+early stop-signal registration, the shared CLI output seam, provider-child
+identity values and the comparison tests' later-record observation. Recovery
+adds no method row; its field requirement still uses the single unassigned
+feature constant. The existing input ownership and checkpoint shutdown are
+retained around the head's guard/signal changes.
+
+README's conflict kept the incoming output-seam description and updated
+recovery's earlier value-only summary to this package's current scope and
+ADR 0098. No other head document or test assertion was changed by that merge.
+The combined source still awaits its required clean full package gate and
+independent source review.
