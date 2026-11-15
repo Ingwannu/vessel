@@ -478,3 +478,10 @@ R8 reached App and found three phone-parameter references plus one private-field
 test access. The shared Settings phone flag still controls menu/dialog geometry;
 it is ignored ONLY for keyboard availability. Those references are restored,
 and the test uses the public availability boundary rather than a private flag.
+
+
+Shortcuts controls also use desktop menu/dialog presentation whenever the
+section is available. The shared Settings phone-form argument is deliberately
+unused: at700 the source is noncompact despite global PHONE768. Availability
+has already excluded native mobile and below600, so the existing kit controls
+receive noncompact presentation; no shared breakpoint or renderer is changed.
