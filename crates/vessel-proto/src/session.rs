@@ -107,6 +107,10 @@ pub struct SessionSpec {
     #[serde(default, skip_serializing_if = "SessionLabels::is_empty")]
     #[cfg_attr(feature = "ts", ts(as = "Option<SessionLabels>", optional))]
     pub labels: SessionLabels,
+    /// Creation-only discovery override (ADR 0063). Omission can inherit
+    /// the creating agent; reusable templates retain that omission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub listing: Option<crate::SessionListing>,
     /// Where it runs (protocol 10, ADR 0027): a project's folder or a
     /// worktree. With a place, `cwd` is left out by the client and filled
     /// by the node with the folder the place resolves to, so a client that
@@ -135,6 +139,7 @@ impl SessionSpec {
             profile: None,
             title: None,
             labels: SessionLabels::new(),
+            listing: None,
             place: None,
             side_question_of: None,
             mode,
@@ -166,6 +171,13 @@ impl SessionSpec {
     #[must_use]
     pub fn with_title(mut self, title: SessionTitle) -> Self {
         self.title = Some(title);
+        self
+    }
+
+    /// An explicit discovery override, including shown instead of inheritance.
+    #[must_use]
+    pub fn with_listing(mut self, listing: crate::SessionListing) -> Self {
+        self.listing = Some(listing);
         self
     }
 
@@ -249,6 +261,10 @@ pub struct SessionInfo {
     /// only ever had the owner.
     #[serde(default)]
     pub created_by: Creator,
+    /// Durable current-parent boundary (ADR 0090), separate from creation audit.
+    /// Absent on older peers and before a human explicitly detaches the child.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detach_receipt: Option<crate::subagents::DetachReceipt>,
     /// Current process state.
     pub status: SessionStatus,
     /// When the session was created.
@@ -293,6 +309,11 @@ pub struct SessionInfo {
     #[serde(default, skip_serializing_if = "SessionLabels::is_empty")]
     #[cfg_attr(feature = "ts", ts(as = "Option<SessionLabels>", optional))]
     pub labels: SessionLabels,
+    /// Immutable discovery classification, independent of process state and
+    /// archival. Older or unassigned peers receive no listing metadata.
+    #[serde(default, skip_serializing_if = "crate::SessionListing::is_shown")]
+    #[cfg_attr(feature = "ts", ts(as = "Option<crate::SessionListing>", optional))]
+    pub listing: crate::SessionListing,
     /// Who produced [`title`](Self::title) (ADR 0062). Absent means
     /// [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
     /// build does not speak the field yet, or the row was stored before
@@ -376,6 +397,7 @@ impl SessionInfo {
             profile: spec.profile.clone(),
             title: spec.title.clone(),
             labels: spec.labels.clone(),
+            listing: spec.listing.unwrap_or_default(),
             title_origin: if spec.title.is_some() {
                 crate::title::TitleOrigin::Typed
             } else {
@@ -383,6 +405,7 @@ impl SessionInfo {
             },
             spec,
             created_by: Creator::Owner,
+            detach_receipt: None,
             status: SessionStatus::Starting,
             created_at,
             ended_at: None,

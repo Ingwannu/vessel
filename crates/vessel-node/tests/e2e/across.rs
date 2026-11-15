@@ -207,7 +207,7 @@ async fn calls_reach_members_through_the_home_within_every_grant() {
         // A member with `relay` reaches the other member through the home.
         let listed = relaying
             .owner
-            .call_on(plain.id(), ListSessions)
+            .call_on(plain.id(), ListSessions::default())
             .await
             .unwrap();
         assert!(listed.is_empty());
@@ -231,9 +231,15 @@ async fn calls_reach_members_through_the_home_within_every_grant() {
 
         // Without `relay`, the home refuses to pass a member's call on; and
         // the home itself grants its members nothing but `sync` and `relay`.
-        let refused = plain.owner.call_on(relaying.id(), ListSessions).await;
+        let refused = plain
+            .owner
+            .call_on(relaying.id(), ListSessions::default())
+            .await;
         assert_eq!(code(refused), ErrorCode::Forbidden);
-        let on_home = relaying.owner.call_on(home.id(), ListSessions).await;
+        let on_home = relaying
+            .owner
+            .call_on(home.id(), ListSessions::default())
+            .await;
         assert_eq!(code(on_home), ErrorCode::Forbidden);
 
         // A long poll across two hops returns once a record lands.

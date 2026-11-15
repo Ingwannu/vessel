@@ -321,7 +321,7 @@ async fn a_cancelled_connection_starts_no_pull_and_drops_the_cached_home() {
     assert_eq!(
         member
             .links
-            .call_home(vessel_proto::ListSessions)
+            .call_home(vessel_proto::ListSessions::default())
             .await
             .unwrap_err()
             .code,

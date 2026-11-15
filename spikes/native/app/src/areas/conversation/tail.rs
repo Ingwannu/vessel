@@ -237,6 +237,14 @@ impl Shell {
     }
 }
 
+// Owner snapshot preparation; no staged exemption in the product path.
+#[cfg(test)]
+impl Tail {
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.pending.is_some() || self.ticking.get()
+    }
+}
+
 #[cfg(test)]
 mod tick_tests {
     use chrono::{TimeZone as _, Utc};

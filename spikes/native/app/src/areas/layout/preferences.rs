@@ -13,6 +13,8 @@ impl Shell {
         new: &[RememberedLayout],
         cx: &mut Context<'_, Self>,
     ) {
+        #[cfg(test)]
+        let before = super::registry::retirement::Before::book(self);
         let mut held = BTreeSet::new();
         if let Some(form) = &self.areas.layout.rename {
             let _inserted = held.insert(form.workspace().clone());
@@ -32,6 +34,8 @@ impl Shell {
         if let Some(book) = self.areas.layout.book.borrow_mut().as_mut() {
             rebase(book, old, new, &held);
         }
+        #[cfg(test)]
+        self.layout_retired(before, super::registry::retirement::Source::Canonical, cx);
         cx.notify();
     }
 }
