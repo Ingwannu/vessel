@@ -18,7 +18,7 @@ impl SelectedConnection {
             biased;
             _retired = validity.wait_for(|state| *state == Validity::Retired) => Err(SendFailure::Refused(Refusal::Changed)),
             () = self.lease.client.closed() => Err(SendFailure::Refused(Refusal::Closed)),
-            sent = sender.send(event) => sent.map_err(|_| SendFailure::ReceiverClosed),
+            sent = sender.send(event) => sent.map_err(|_closed| SendFailure::ReceiverClosed),
         };
         self.fence(sent).await.map_err(SendFailure::Refused)?
     }

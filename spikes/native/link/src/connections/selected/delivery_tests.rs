@@ -7,6 +7,7 @@ use vessel_app_view::connection::MachineKey;
 use vessel_proto::{ListSessions, Outcome, Reply};
 const VALIDITY_PROBES: usize = 64;
 const QUEUE_CAPACITY: usize = 1;
+const FAILED_JOIN_PROBE: std::time::Duration = std::time::Duration::ZERO;
 
 struct Fixture {
     _home: Home,
@@ -47,6 +48,18 @@ async fn fixture(controlled: bool) -> Fixture {
         context,
     }
 }
+async fn reap(peer: &mut peer::Peer, name: &'static str) -> Result<(), tokio::task::JoinError> {
+    // Keep the abort owner in Peer across the bounded await. A failed phase or
+    // unwind still drops Peer and cancels the task instead of detaching it.
+    let result = phase(name, peer.task.as_mut().unwrap()).await;
+    let _reaped = peer.task.take();
+    result
+}
+async fn failed_join_unwind(mut owned: Fixture) {
+    let failed = tokio::time::timeout(FAILED_JOIN_PROBE, owned.peer.task.as_mut().unwrap()).await;
+    assert!(failed.is_err());
+    panic!("intentional failed-join owner unwind");
+}
 
 #[tokio::test]
 async fn active_unary_guard_survives_task_completion_but_does_not_retain_transport() {
@@ -76,9 +89,9 @@ async fn active_unary_guard_survives_task_completion_but_does_not_retain_transpo
         let connection = state.clients.remove("guard-fixture").unwrap();
         connection.retire();
         drop(connection);
-        phase(
+        reap(
+            &mut peer,
             "weak queued guards allow physical transport drop",
-            peer.task.take().unwrap(),
         )
         .await
         .unwrap();
@@ -104,17 +117,18 @@ async fn dropped_validity_owner_refuses_last_active_value_while_old_work_retains
         assert!(!peer.task.as_ref().unwrap().is_finished());
         assert_eq!(guard.validate(&context), Err(Refusal::Changed));
         assert!(matches!(
-            selected.call(ListSessions).await,
+            phase(
+                "refuse call after validity owner drop",
+                selected.call(ListSessions)
+            )
+            .await,
             Err(RequestFailure::Refused(Refusal::Changed))
         ));
         assert!(peer.calls.lock().unwrap().is_empty());
         drop(selected);
-        phase(
-            "transport drops after final in-flight owner",
-            peer.task.take().unwrap(),
-        )
-        .await
-        .unwrap();
+        reap(&mut peer, "transport drops after final in-flight owner")
+            .await
+            .unwrap();
         assert_eq!(guard.validate(&context), Err(Refusal::Changed));
     })
     .await;
@@ -141,9 +155,8 @@ async fn original_closed_transport_and_wrong_epoch_refuse_without_wire_requests(
             .admit(MachineKey::from_book("another-alias"), context.node())
             .unwrap();
         assert_eq!(guard.validate(&other_alias), Err(Refusal::Changed));
-        let task = peer.task.take().unwrap();
-        task.abort();
-        assert!(phase("close framed peer", task).await.is_err());
+        peer.task.as_ref().unwrap().abort();
+        assert!(reap(&mut peer, "close framed peer").await.is_err());
         phase(
             "observe original physical close",
             selected.lease.client.closed(),
@@ -182,7 +195,7 @@ async fn retired_inflight_unary_keeps_its_original_transport_only_until_work_end
             assert_eq!(guard.validate(&context), Err(Refusal::Changed));
         }
         drop(selected);
-        phase("retired work releases transport despite retained guard", peer.task.take().unwrap()).await.unwrap();
+        reap(&mut peer, "retired work releases transport despite retained guard").await.unwrap();
         assert_eq!(guard.validate(&context), Err(Refusal::Changed));
     }).await;
 }
@@ -201,10 +214,12 @@ async fn queued_item_error_eof_and_unary_envelopes_recheck_after_send_before_ins
             } = fixture(false).await;
             let (send, mut receive) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
             let guard = selected.delivery_guard();
-            selected
-                .send_guarded(&send, (guard, payload))
-                .await
-                .unwrap();
+            phase(
+                "send admitted symbolic envelope",
+                selected.send_guarded(&send, (guard, payload)),
+            )
+            .await
+            .unwrap();
             let (guard, queued) = phase("take accepted queued envelope", receive.recv())
                 .await
                 .unwrap();
@@ -228,15 +243,20 @@ async fn bounded_send_is_cancelled_by_retirement_and_queued_guard_cannot_install
             peer: _peer,
         } = fixture(false).await;
         let (send, mut receive) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
-        selected
-            .send_guarded(&send, selected.delivery_guard())
-            .await
-            .unwrap();
+        phase(
+            "fill bounded event queue",
+            selected.send_guarded(&send, selected.delivery_guard()),
+        )
+        .await
+        .unwrap();
         let sending = selected.send_guarded(&send, selected.delivery_guard());
         tokio::pin!(sending);
-        let pending = std::future::poll_fn(|cx| {
-            std::task::Poll::Ready(sending.as_mut().poll(cx).is_pending())
-        })
+        let pending = phase(
+            "observe backpressured event send",
+            std::future::poll_fn(|cx| {
+                std::task::Poll::Ready(sending.as_mut().poll(cx).is_pending())
+            }),
+        )
         .await;
         assert!(pending);
         state.clients["guard-fixture"].retire();
@@ -267,7 +287,11 @@ async fn closed_app_receiver_does_not_retire_the_original_connection() {
         let (send, receive) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
         drop(receive);
         assert_eq!(
-            selected.send_guarded(&send, guard.clone()).await,
+            phase(
+                "refuse closed app receiver",
+                selected.send_guarded(&send, guard.clone())
+            )
+            .await,
             Err(queue::SendFailure::ReceiverClosed)
         );
         assert_eq!(guard.validate(&context), Ok(()));
@@ -287,9 +311,8 @@ async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
         } = fixture(false).await;
         let (commands, mut receiver) = tokio::sync::mpsc::channel(QUEUE_CAPACITY);
         state.commands = commands.downgrade();
-        let task = peer.task.take().unwrap();
-        task.abort();
-        assert!(phase("stop framed transport", task).await.is_err());
+        peer.task.as_ref().unwrap().abort();
+        assert!(reap(&mut peer, "stop framed transport").await.is_err());
         phase(
             "observe selected transport closed",
             selected.lease.client.closed(),
@@ -297,7 +320,11 @@ async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
         .await;
         let admitted = state.selected_connection(&context).unwrap();
         assert!(matches!(
-            admitted.call(ListSessions).await,
+            phase(
+                "closed request reports actor retirement",
+                admitted.call(ListSessions)
+            )
+            .await,
             Err(RequestFailure::Refused(Refusal::Closed))
         ));
         let command = phase("receive exactly one closed report", receiver.recv())
@@ -306,6 +333,30 @@ async fn closed_identity_still_selects_and_reports_closed_retirement_once() {
         assert!(matches!(command, Command::RetireConnection(tag) if tag == context.tag()));
         assert!(receiver.try_recv().is_err());
         assert!(peer.calls.lock().unwrap().is_empty());
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn failed_bounded_join_and_unwind_still_abort_owned_peer_task() {
+    within(async {
+        let owned = fixture(false).await;
+        let observer = owned.selected.lease.client.clone();
+        let peer_task = owned.peer.task.as_ref().unwrap().abort_handle();
+        let failing = tokio::spawn(failed_join_unwind(owned));
+        let result = phase("catch failed peer-join owner unwind", failing).await;
+        assert!(result.unwrap_err().is_panic());
+        phase(
+            "unwind abort closes retained observer transport",
+            observer.closed(),
+        )
+        .await;
+        phase("owned peer abort finishes", async {
+            while !peer_task.is_finished() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await;
     })
     .await;
 }
