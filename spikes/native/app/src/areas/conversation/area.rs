@@ -97,6 +97,8 @@ pub(crate) struct ConversationArea {
     pub(super) reasoning: ReasoningExpansion,
     /// Each decision owns its plan disclosure; text changes retain the person's choice.
     pub(super) plans: PlanDisclosures,
+    /// Compact detail selection belongs to this conversation and keeps its generation.
+    pub(super) tool_sheet: super::tool_sheet::SheetState,
     /// The rows drawn.
     pub(crate) rows: Rows,
     /// The long list.
@@ -193,6 +195,7 @@ impl ConversationArea {
             disclosures: Disclosures::default(),
             reasoning: ReasoningExpansion::default(),
             plans: PlanDisclosures::default(),
+            tool_sheet: super::tool_sheet::SheetState::default(),
             rows: Rows::All(0),
             list: VirtualList::new(true),
             info: None,
@@ -278,6 +281,7 @@ impl ConversationArea {
         self.agent_log = AgentLog::Hidden;
         self.disclosures.clear();
         self.plans.clear();
+        self.tool_sheet.clear();
         self.rows = Rows::All(0);
         self.list.reset(0);
         self.tail = tail::Tail::default();

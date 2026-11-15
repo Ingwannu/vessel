@@ -103,7 +103,7 @@ pub(super) fn decorate(
         };
         content = content.child(super::timeline::run_header(
             paint,
-            ("turn", turn.host),
+            (super::timeline::RunHeaderKind::Turn, turn.host),
             summary,
             expanded,
             Shell::toggle_turn,

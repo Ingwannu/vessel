@@ -395,3 +395,20 @@ that bookmark. This reuses GPUI's existing follow/scroll APIs and retains no vie
 or transcript clone. It is also the exact scroll-value seam needed by W12's
 resident snapshot contract. Kit regressions cover remapped rows, empty lists and
 resuming at the new end; owner context still controls when restoring is allowed.
+
+### Compact tool details
+
+Paseo `message.tsx:2251`, `tool-call-sheet.tsx` and the surveyC14.5 open a compact
+tool/group in a bottom sheet, leaving forced-expanded reasoning inline. Native
+now uses the existing kit dialog's compact bottom-sheet path, the same tool
+body/output controls, and the same per-entry disclosure state for group members.
+The sheet is mounted outside virtual rows, so newly streamed output cannot
+unmount it. Plan cards remain inline. Empty settled details use the exact EN/KO
+`toolCallDetails.empty` sentence; pending empty bodies use shared skeleton shapes.
+The dialog callback now accepts a clonable typed-context closure on its existing
+render path, preserving every existing function-pointer caller. A local checked
+generation prevents an old Escape/scrim/close callback from closing a reopened
+sheet, and clear preserves that counter. This is UI lifetime fencing, not a
+substitute for W12's resident/transport admission. Its snapshot must move the
+counter along with other retained controller identities. Context adaptation and
+hidden-resource focus rules remain part of the coordinated resident cutover.

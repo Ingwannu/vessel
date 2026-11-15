@@ -1,0 +1,341 @@
+//! Compact details reuse the kit dialog's bottom-sheet path and the same tool
+//! bodies. Local generations fence queued dismissals; no node action lives here.
+
+use super::entries::{Paint, id};
+use super::{ConversationArea, Seat};
+use crate::shell::Shell;
+use vessel_app_kit::theme::spacing;
+use vessel_app_kit::ui::{
+    AnyElement, Context, ElementId, FocusHandle, IntoElement as _, ParentElement as _, Styled as _,
+    Window, div, px, size,
+};
+use vessel_app_kit::{
+    DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, dialog, output_box,
+    skeleton,
+};
+use vessel_app_view::timeline::{EntryKey, EntryKind, plan_text};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Generation(u64);
+
+#[derive(Debug, Clone)]
+enum Selection {
+    Entry { index: usize, key: EntryKey },
+    Run { lead: usize, key: EntryKey },
+}
+
+#[derive(Debug)]
+struct Shown {
+    generation: Generation,
+    selection: Selection,
+    prior: Option<FocusHandle>,
+}
+
+/// Preserve the counter on clear/dehydration, just like other async UI identities.
+#[derive(Debug, Default)]
+pub(super) struct SheetState {
+    next: u64,
+    shown: Option<Shown>,
+}
+
+impl SheetState {
+    pub(super) fn clear(&mut self) {
+        self.shown = None;
+    }
+
+    fn take(&mut self, generation: Generation) -> Option<Shown> {
+        if self.shown.as_ref()?.generation != generation {
+            return None;
+        }
+        self.shown.take()
+    }
+
+    fn show(&mut self, selection: Selection, prior: Option<FocusHandle>) -> bool {
+        let Some(next) = self.next.checked_add(1) else {
+            return false;
+        };
+        self.next = next;
+        self.shown = Some(Shown {
+            generation: Generation(next),
+            selection,
+            prior,
+        });
+        true
+    }
+}
+
+impl Shell {
+    /// Only tools and non-forced reasoning use compact details; plans stay inline.
+    pub(crate) fn entry_sheet(
+        &mut self,
+        seat: Seat,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let Some(area) = (seat.get_mut)(self) else {
+            return false;
+        };
+        let Some(entry) = area.timeline.entries().get(index) else {
+            return false;
+        };
+        let eligible = match &entry.kind {
+            EntryKind::Tool(tool) => plan_text(tool).is_none(),
+            EntryKind::Thought { .. } => !area.reasoning.expanded(),
+            EntryKind::Ready { .. }
+            | EntryKind::Prompt(_)
+            | EntryKind::Steer { .. }
+            | EntryKind::Question { .. }
+            | EntryKind::Message { .. }
+            | EntryKind::Plan { .. }
+            | EntryKind::Permission(_)
+            | EntryKind::TurnEnded { .. }
+            | EntryKind::TurnFailed { .. }
+            | EntryKind::Log { .. }
+            | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
+            | EntryKind::Profile { .. }
+            | EntryKind::Model(_) => false,
+        };
+        if !eligible {
+            return false;
+        }
+        let selection = Selection::Entry {
+            index,
+            key: entry.key.clone(),
+        };
+        if !area.tool_sheet.show(selection, window.focused(cx)) {
+            return false;
+        }
+        area.dialog.focus(window, cx);
+        cx.notify();
+        true
+    }
+
+    pub(crate) fn run_sheet(
+        &mut self,
+        seat: Seat,
+        lead: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let Some(area) = (seat.get_mut)(self) else {
+            return false;
+        };
+        if area
+            .folds
+            .as_ref()
+            .and_then(|folds| folds.run_of(lead))
+            .is_none()
+        {
+            return false;
+        }
+        let Some(entry) = area.timeline.entries().get(lead) else {
+            return false;
+        };
+        if !area.tool_sheet.show(
+            Selection::Run {
+                lead,
+                key: entry.key.clone(),
+            },
+            window.focused(cx),
+        ) {
+            return false;
+        }
+        area.dialog.focus(window, cx);
+        cx.notify();
+        true
+    }
+
+    fn dismiss_tool_sheet(
+        &mut self,
+        seat: Seat,
+        generation: Generation,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(area) = (seat.get_mut)(self) else {
+            return;
+        };
+        let Some(shown) = area.tool_sheet.take(generation) else {
+            return;
+        };
+        if let Some(prior) = shown.prior {
+            prior.focus(window, cx);
+        }
+        cx.notify();
+    }
+}
+
+/// Render outside the virtualized rows so new output cannot unmount an open sheet.
+pub(super) fn overlay(
+    shell: &Shell,
+    seat: Seat,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let area = (seat.get)(shell)?;
+    let shown = area.tool_sheet.shown.as_ref()?;
+    let generation = shown.generation;
+    let mut paint = super::timeline::paint(shell, area, seat, tokens, window);
+    paint.inline_details = true;
+    let Some((title, body)) = content(&paint, area, &shown.selection, window, cx) else {
+        cx.defer_in(window, move |shell, window, cx| {
+            shell.dismiss_tool_sheet(seat, generation, window, cx)
+        });
+        return None;
+    };
+    Some(dialog(
+        &area.dialog,
+        DialogContent {
+            title: title.into(),
+            body,
+            footer: Vec::new(),
+            size: DialogSize::Wide,
+        },
+        tokens,
+        window,
+        breakpoint::phone(window),
+        move |shell: &mut Shell, window, cx| shell.dismiss_tool_sheet(seat, generation, window, cx),
+        cx,
+    ))
+}
+
+fn content(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    selection: &Selection,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<(String, AnyElement)> {
+    match selection {
+        Selection::Entry { index, key } => {
+            let entry = area
+                .timeline
+                .entries()
+                .get(*index)
+                .filter(|entry| &entry.key == key)?;
+            match &entry.kind {
+                EntryKind::Tool(tool) => Some((
+                    if tool.title.is_empty() {
+                        paint.words.tool_call().to_owned()
+                    } else {
+                        tool.title.clone()
+                    },
+                    super::tool::body(paint, *index, tool, window, cx).into_any_element(),
+                )),
+                EntryKind::Thought { text } => Some((
+                    paint.words.thought().to_owned(),
+                    output_box(
+                        ElementId::NamedInteger("thought-sheet".into(), id(*index)),
+                        text,
+                        Start::Top,
+                        paint.tokens,
+                        window,
+                        cx,
+                    ),
+                )),
+                EntryKind::Ready { .. }
+                | EntryKind::Prompt(_)
+                | EntryKind::Steer { .. }
+                | EntryKind::Question { .. }
+                | EntryKind::Message { .. }
+                | EntryKind::Plan { .. }
+                | EntryKind::Permission(_)
+                | EntryKind::TurnEnded { .. }
+                | EntryKind::TurnFailed { .. }
+                | EntryKind::Log { .. }
+                | EntryKind::Status { .. }
+                | EntryKind::Parking(_)
+                | EntryKind::Forked { .. }
+                | EntryKind::Profile { .. }
+                | EntryKind::Model(_) => None,
+            }
+        }
+        Selection::Run { lead, key } => {
+            let _host = area
+                .timeline
+                .entries()
+                .get(*lead)
+                .filter(|entry| &entry.key == key)?;
+            let run = area.folds.as_ref()?.run_of(*lead)?;
+            let mut rows = div().flex().flex_col().gap(px(spacing::S1));
+            for index in run.lead..run.end {
+                let entry = area.timeline.entries().get(index)?;
+                rows = rows.child(super::entries::entry(
+                    paint,
+                    index,
+                    entry,
+                    area.entry_expanded(index),
+                    window,
+                    cx,
+                ));
+            }
+            Some((
+                paint.words.run_summary(&run.summary),
+                rows.into_any_element(),
+            ))
+        }
+    }
+}
+
+/// Empty legacy details follow the same loading/empty contract as canonical bodies.
+pub(super) fn empty(paint: &Paint<'_>, index: usize, working: bool) -> AnyElement {
+    if !working {
+        return div()
+            .type_(Type::Body)
+            .text_color(paint.look.secondary)
+            .child(paint.catalog.timeline_tool().empty())
+            .into_any_element();
+    }
+    let tokens = *paint.tokens;
+    skeleton::pulse(
+        ElementId::NamedInteger("tool-details-loading".into(), id(index)),
+        move |opacity| {
+            div().flex().flex_col().gap(px(spacing::S2)).children(
+                [spacing::S24, spacing::S32, spacing::S16]
+                    .into_iter()
+                    .map(|width| {
+                        skeleton::shape(
+                            skeleton::Shape {
+                                size: size(px(width), px(spacing::S2)),
+                                rounding: skeleton::Rounding::Small,
+                            },
+                            opacity,
+                            &tokens,
+                        )
+                    }),
+            )
+        },
+    )
+}
+
+#[cfg(test)]
+mod generation_tests {
+    use super::{Selection, SheetState};
+    use vessel_app_view::timeline::EntryKey;
+    use vessel_proto::EventSeq;
+
+    fn entry() -> Selection {
+        Selection::Entry {
+            index: 0,
+            key: EntryKey::Record(EventSeq::new(0)),
+        }
+    }
+
+    #[test]
+    fn an_old_dismissal_cannot_close_a_reopened_sheet_even_after_clear() {
+        let mut state = SheetState::default();
+        assert!(state.show(entry(), None));
+        let old = state.shown.as_ref().unwrap().generation;
+        state.clear();
+        assert!(state.show(entry(), None));
+        let current = state.shown.as_ref().unwrap().generation;
+        assert!(state.take(old).is_none());
+        assert_eq!(state.shown.as_ref().unwrap().generation, current);
+        assert!(state.take(current).is_some());
+        assert!(state.take(current).is_none());
+    }
+}

@@ -104,7 +104,8 @@ impl std::fmt::Debug for DialogContent {
 }
 
 /// The dialog, over everything: Escape, the scrim and the close button
-/// call `close`. `narrow`: a phone's width (the lead's breakpoint), where
+/// call `close`. The callback may capture an owning resource context; each
+/// dismissal path keeps that same context. `narrow`: a phone's width, where
 /// it is a sheet from the bottom.
 pub fn dialog<V: 'static>(
     state: &DialogState,
@@ -112,7 +113,7 @@ pub fn dialog<V: 'static>(
     tokens: &Tokens,
     window: &Window,
     narrow: bool,
-    close: fn(&mut V, &mut Window, &mut Context<'_, V>),
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let surfaces = Surfaces::of(tokens);
@@ -134,13 +135,14 @@ pub fn dialog<V: 'static>(
             .border_color(surfaces.surface2)
             .children(content.footer)
     });
+    let keyboard_close = close.clone();
     let card = div()
         .id("dialog")
         .track_focus(&state.focus)
         .on_key_down(
             cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
-                    close(view, window, cx);
+                    keyboard_close(view, window, cx);
                     cx.stop_propagation();
                     cx.notify();
                 }
@@ -167,7 +169,7 @@ pub fn dialog<V: 'static>(
                 .rounded_t(px(popup::SHEET_RADIUS))
                 .child(handle(tokens.neutral.foreground_extra_muted))
         })
-        .child(header(content.title, &surfaces, narrow, close, cx))
+        .child(header(content.title, &surfaces, narrow, close.clone(), cx))
         .child(
             div()
                 .id("dialog-body")
@@ -237,7 +239,7 @@ fn header<V: 'static>(
     title: SharedString,
     surfaces: &Surfaces,
     narrow: bool,
-    close: fn(&mut V, &mut Window, &mut Context<'_, V>),
+    close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     cx: &mut Context<'_, V>,
 ) -> gpui::Div {
     let close_size = if narrow { 44.0 } else { 28.0 };

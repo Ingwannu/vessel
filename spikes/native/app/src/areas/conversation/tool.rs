@@ -68,7 +68,11 @@ pub(super) fn card(
     let head = work_row(paint, index, title, Some((detail, color)), open, cx);
     let mut row = div().flex().flex_col().child(head);
     if open {
-        row = row.child(body(paint, index, tool, window, cx));
+        row = row.child(
+            div()
+                .ml(px(28.0))
+                .child(body(paint, index, tool, window, cx)),
+        );
     }
     row.into_any_element()
 }
@@ -86,7 +90,7 @@ fn tail(path: &str) -> String {
     }
 }
 
-fn body(
+pub(super) fn body(
     paint: &Paint<'_>,
     index: usize,
     tool: &ToolView,
@@ -105,13 +109,10 @@ fn body(
         )
     };
     let words = paint.words;
-    let mut body = div()
-        .ml(px(28.0))
-        .mt(px(4.0))
-        .mb(px(6.0))
-        .flex()
-        .flex_col()
-        .gap(px(6.0));
+    if tool.input.is_none() && tool.output.is_none() && tool.content.is_empty() {
+        return div().child(super::tool_sheet::empty(paint, index, tool.working()));
+    }
+    let mut body = div().mt(px(4.0)).mb(px(6.0)).flex().flex_col().gap(px(6.0));
     if let Some(input) = &tool.input {
         body = body.child(label(paint, words.input())).child(output_box(
             key(0),

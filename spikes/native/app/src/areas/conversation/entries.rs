@@ -37,6 +37,8 @@ pub(super) struct Paint<'a> {
     pub(super) find: Option<Marking<'a>>,
     /// Where the conversation drawn is kept: its rows' toggles change it.
     pub(super) seat: Seat,
+    /// Nested rows in a compact group sheet expand within that same sheet.
+    pub(super) inline_details: bool,
     /// The conversation's entries (a turn's footer reads its turn).
     pub(super) entries: &'a [Entry],
     /// The session's agent: its mark in a reply's avatar.
@@ -206,6 +208,7 @@ pub(super) fn work_row(
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
     let seat = paint.seat;
+    let inline_details = paint.inline_details;
     div()
         .id(ElementId::NamedInteger("work".into(), id(index)))
         .flex()
@@ -220,7 +223,13 @@ pub(super) fn work_row(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| {
+        .on_click(cx.listener(move |shell, _event, window, cx| {
+            if !inline_details
+                && vessel_app_kit::breakpoint::phone(window)
+                && shell.entry_sheet(seat, index, window, cx)
+            {
+                return;
+            }
             shell.toggle_entry(seat, index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))

@@ -21,7 +21,7 @@ use crate::shell::Shell;
 pub(crate) fn timeline(
     shell: &Shell,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     super::read::check(shell, window, cx);
@@ -74,7 +74,7 @@ pub(crate) fn rows(
     shell: &Shell,
     seat: Seat,
     tokens: &Tokens,
-    window: &Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let Some(area) = (seat.get)(shell) else {
@@ -88,7 +88,8 @@ pub(crate) fn rows(
     }
     // A fork's origin's rows come first (`origin`).
     let head = area.head();
-    area.list
+    let list = area
+        .list
         .element(
             cx.processor(move |shell: &mut Shell, row: usize, window, cx| {
                 let tokens = vessel_app_kit::tokens(cx);
@@ -98,11 +99,17 @@ pub(crate) fn rows(
                 }
             }),
         )
+        .into_any_element();
+    div()
+        .size_full()
+        .relative()
+        .child(list)
+        .children(super::tool_sheet::overlay(shell, seat, tokens, window, cx))
         .into_any_element()
 }
 
 /// How the rows of `area` (kept at `seat`) are drawn.
-fn paint<'a>(
+pub(super) fn paint<'a>(
     shell: &'a Shell,
     area: &'a ConversationArea,
     seat: Seat,
@@ -119,6 +126,7 @@ fn paint<'a>(
             .as_ref()
             .and_then(|bar| bar.marking(&area.list, breakpoint::phone(window))),
         seat,
+        inline_details: false,
         entries: area.timeline.entries(),
         agent: area.info.as_deref().map(|info| &info.spec.harness),
         rewinds: rewinds(shell, area).then_some(&area.timeline),
@@ -182,7 +190,7 @@ fn row_element(
     if let Some(run) = run {
         content = content.child(run_header(
             &paint,
-            ("run", run.lead),
+            (RunHeaderKind::Tools, run.lead),
             paint.words.run_summary(&run.summary),
             run_open,
             Shell::toggle_run,
@@ -290,9 +298,15 @@ fn lane(content: AnyElement) -> AnyElement {
 /// summary row (`agent-stream/turn-collapse/summary-line.tsx`, its
 /// `ExpandableBadge`) has none, and a rule under every run read as a rule
 /// between turns.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum RunHeaderKind {
+    Tools,
+    Turn,
+}
+
 pub(super) fn run_header(
     paint: &Paint<'_>,
-    (name, lead): (&'static str, usize),
+    (kind, lead): (RunHeaderKind, usize),
     summary: String,
     open: bool,
     toggle: fn(&mut Shell, Seat, usize, &mut Context<'_, Shell>),
@@ -300,6 +314,10 @@ pub(super) fn run_header(
 ) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
     let seat = paint.seat;
+    let name = match kind {
+        RunHeaderKind::Tools => "run",
+        RunHeaderKind::Turn => "turn",
+    };
     div()
         .id(ElementId::NamedInteger(name.into(), id(lead)))
         .flex()
@@ -312,7 +330,15 @@ pub(super) fn run_header(
         .text_color(paint.look.secondary)
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
-        .on_click(cx.listener(move |shell, _event, _window, cx| toggle(shell, seat, lead, cx)))
+        .on_click(cx.listener(move |shell, _event, window, cx| {
+            if kind == RunHeaderKind::Tools
+                && breakpoint::phone(window)
+                && shell.run_sheet(seat, lead, window, cx)
+            {
+                return;
+            }
+            toggle(shell, seat, lead, cx);
+        }))
         .child(entries::disclosure(open, paint.look.secondary))
         .child(div().min_w(px(0.0)).truncate().child(summary))
         .into_any_element()
