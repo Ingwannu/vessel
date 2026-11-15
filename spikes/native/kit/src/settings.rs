@@ -130,6 +130,29 @@ pub fn section_with_trailing(
     trailing: Option<AnyElement>,
     tokens: &Tokens,
 ) -> Div {
+    section_parts(title.into(), card, None, trailing, tokens)
+}
+
+/// A settings section with an inline title accessory, as Paseo's info tip.
+/// The accessory owns its tooltip interaction; existing section/trailing
+/// callers keep exactly the same frame through one private renderer.
+#[must_use]
+pub fn section_with_info(
+    title: impl Into<SharedString>,
+    card: Div,
+    info: Option<AnyElement>,
+    tokens: &Tokens,
+) -> Div {
+    section_parts(title.into(), card, info, None, tokens)
+}
+
+fn section_parts(
+    title: SharedString,
+    card: Div,
+    info: Option<AnyElement>,
+    trailing: Option<AnyElement>,
+    tokens: &Tokens,
+) -> Div {
     let mut head = div()
         .flex()
         .items_center()
@@ -138,12 +161,17 @@ pub fn section_with_trailing(
         .mb(px(spacing::S3))
         .ml(px(spacing::S1))
         .child(
-            div().flex().items_center().gap(px(spacing::S2)).child(
-                div()
-                    .type_(Type::Meta)
-                    .text_color(tokens.neutral.foreground_muted)
-                    .child(title.into()),
-            ),
+            div()
+                .flex()
+                .items_center()
+                .gap(px(spacing::S2))
+                .child(
+                    div()
+                        .type_(Type::Meta)
+                        .text_color(tokens.neutral.foreground_muted)
+                        .child(title),
+                )
+                .children(info),
         );
     if let Some(trailing) = trailing {
         head = head.child(div().flex_none().child(trailing));
@@ -154,6 +182,47 @@ pub fn section_with_trailing(
         .mb(px(spacing::S6))
         .child(head)
         .child(card)
+}
+
+/// The reference SettingsInfoTip button, including its 8-point hit slop.
+/// It opts into press opening on compact surfaces through the existing
+/// tooltip engine; desktop composer tooltip behavior stays unchanged.
+#[must_use]
+pub fn info_tip(
+    id: impl Into<ElementId>,
+    content: SharedString,
+    tips: &crate::Tooltips,
+    place: &crate::tooltip::Place,
+    density: crate::screen_header::Density,
+    tokens: &Tokens,
+) -> Div {
+    use crate::screen_header::Density;
+    use crate::tooltip::InfoInteraction;
+    const ICON: f32 = 14.0;
+    const BUTTON: f32 = 22.0;
+    const HIT_OUT: f32 = -8.0;
+    const LEADING_BACK: f32 = -4.0;
+    let interaction = match density {
+        Density::Desktop => InfoInteraction::Hover,
+        Density::Compact => InfoInteraction::Press,
+    };
+    let hit = div().id(id).absolute().inset(px(HIT_OUT)).cursor_pointer();
+    let hit = tips.info_at(hit, place, content, interaction);
+    div()
+        .relative()
+        .flex_none()
+        .size(px(BUTTON))
+        .ml(px(LEADING_BACK))
+        .child(
+            crate::glyph(
+                crate::assets::Glyph::Info,
+                ICON,
+                tokens.neutral.foreground_muted,
+            )
+            .m(px(spacing::S1)),
+        )
+        .child(hit)
+        .child(crate::picker::anchor_probe(place))
 }
 
 /// A section's card: its rows go in it, in order.

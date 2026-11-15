@@ -42,6 +42,33 @@ pub type Place = Rc<std::cell::Cell<Option<Bounds<Pixels>>>>;
 struct Tip {
     content: Content,
     place: Place,
+    options: Options,
+}
+
+/// Settings explanations explicitly opt into press opening on compact
+/// surfaces; legacy composer tooltips remain disabled there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InfoInteraction {
+    /// Pointer hover opens, pressing closes.
+    Hover,
+    /// Press opens; an outside press dismisses without changing legacy tips.
+    Press,
+}
+#[derive(Debug, Clone, Copy)]
+enum Alignment {
+    Center,
+    Start,
+}
+#[derive(Debug, Clone, Copy)]
+struct Options {
+    alignment: Alignment,
+    interaction: InfoInteraction,
+    probe: Probe,
+}
+#[derive(Debug, Clone, Copy)]
+enum Probe {
+    Trigger,
+    Retained,
 }
 
 /// Content keeps an exact path/hash in its own code face instead of
@@ -139,6 +166,50 @@ impl Tooltips {
         self.attach(trigger, place, Content::Code(text.into()), touch)
     }
 
+    /// SettingsInfoTip's explicit top-start, zero-delay explanation.
+    /// `Press` opts a compact surface into the same shared rendering engine;
+    /// the existing `on`/`on_code` touch suppression is unchanged.
+    #[must_use]
+    pub fn on_info(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: impl Into<SharedString>,
+        interaction: InfoInteraction,
+    ) -> Stateful<gpui::Div> {
+        self.attach_with(
+            trigger,
+            place,
+            Content::Text(text.into()),
+            Options {
+                alignment: Alignment::Start,
+                interaction,
+                probe: Probe::Trigger,
+            },
+        )
+    }
+
+    /// The shared info button measures its visual bounds separately from
+    /// the expanded hit region; this reuses the same tooltip state/renderer.
+    pub(crate) fn info_at(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: SharedString,
+        interaction: InfoInteraction,
+    ) -> Stateful<gpui::Div> {
+        self.attach_with(
+            trigger,
+            place,
+            Content::Text(text),
+            Options {
+                alignment: Alignment::Start,
+                interaction,
+                probe: Probe::Retained,
+            },
+        )
+    }
+
     fn attach(
         &self,
         trigger: Stateful<gpui::Div>,
@@ -149,17 +220,42 @@ impl Tooltips {
         if touch {
             return trigger;
         }
+        self.attach_with(
+            trigger,
+            place,
+            content,
+            Options {
+                alignment: Alignment::Center,
+                interaction: InfoInteraction::Hover,
+                probe: Probe::Trigger,
+            },
+        )
+    }
+
+    fn attach_with(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        content: Content,
+        options: Options,
+    ) -> Stateful<gpui::Div> {
+        let click_content = content.clone();
+        let click_place = Rc::clone(place);
+        let click_shown = Rc::clone(&self.shown);
         let hover_shown = Rc::clone(&self.shown);
         let hover_place = Rc::clone(place);
         let press_shown = Rc::clone(&self.shown);
-        trigger
-            .child(anchor_probe(place))
+        let trigger = trigger
+            .when(matches!(options.probe, Probe::Trigger), |trigger| {
+                trigger.child(anchor_probe(place))
+            })
             .on_hover(move |hovered, window, _cx| {
                 let mut shown = hover_shown.borrow_mut();
                 if *hovered {
                     *shown = Some(Tip {
                         content: content.clone(),
                         place: Rc::clone(&hover_place),
+                        options,
                     });
                 } else if shown
                     .as_ref()
@@ -172,7 +268,18 @@ impl Tooltips {
             .on_mouse_down(MouseButton::Left, move |_event, window, _cx| {
                 *press_shown.borrow_mut() = None;
                 window.refresh();
-            })
+            });
+        match options.interaction {
+            InfoInteraction::Hover => trigger,
+            InfoInteraction::Press => trigger.on_click(move |_, window, _| {
+                *click_shown.borrow_mut() = Some(Tip {
+                    content: click_content.clone(),
+                    place: Rc::clone(&click_place),
+                    options,
+                });
+                window.refresh();
+            }),
+        }
     }
 
     /// The tooltip shown, over everything.
@@ -185,9 +292,27 @@ impl Tooltips {
             Scheme::Light => neutral.surface0,
             Scheme::Dark => neutral.surface2,
         };
-        let top = point(bounds.center().x, bounds.top());
+        let (top, anchor) = match tip.options.alignment {
+            Alignment::Center => (point(bounds.center().x, bounds.top()), Anchor::BottomCenter),
+            Alignment::Start => (point(bounds.left(), bounds.top()), Anchor::BottomLeft),
+        };
         let metrics = tip.content.metrics();
+        let shown = Rc::clone(&self.shown);
+        let place = Rc::clone(&tip.place);
         let card = div()
+            .id("shared-tooltip-card")
+            .when(tip.options.interaction == InfoInteraction::Press, |card| {
+                card.on_mouse_down_out(move |_, window, _| {
+                    let mut shown = shown.borrow_mut();
+                    if shown
+                        .as_ref()
+                        .is_some_and(|tip| Rc::ptr_eq(&tip.place, &place))
+                    {
+                        *shown = None;
+                        window.refresh();
+                    }
+                })
+            })
             .max_w(px(280.0))
             .py(px(4.0))
             .px(px(8.0))
@@ -215,7 +340,7 @@ impl Tooltips {
             deferred(
                 anchored()
                     .position(top)
-                    .anchor(Anchor::BottomCenter)
+                    .anchor(anchor)
                     .offset(point(px(0.0), px(ABOVE)))
                     .snap_to_window_with_margin(px(8.0))
                     .child(card),
@@ -300,3 +425,6 @@ mod independent_scale_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod sidebar_info_tests;

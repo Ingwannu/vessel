@@ -164,3 +164,15 @@ Workspace sidebar form uses600 immediately, while chrome and other areas keep
 PHONE768. E2 will remove the Settings form guard and the auto-hide exception
 atomically with its shared-budget frame consumer. No second width constant or
 Settings renderer is introduced.
+
+The inline section accessory uses one private settings-section renderer;
+existing sections and far-right trailing controls preserve their geometry.
+The shared Info button retains icon14, padding4, leading margin-4 and hit
+slop8, measuring its visual22 bounds separately from the expanded target.
+An explicit tooltip opt-in opens compact explanations on press, top-start at
+offset8, using the existing engine and outside dismissal. Legacy touch
+suppression and centered composer tips are unchanged. Real GPUI regressions
+cover the expanded click target, compact open/outside dismissal, desktop hover,
+legacy touch suppression and section heading/card bounds. These tests remain
+uncompiled at this checkpoint. Real platform accessibility/OS back is not
+claimed by pointer tests on a virtual window.

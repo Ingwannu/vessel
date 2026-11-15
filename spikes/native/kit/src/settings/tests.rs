@@ -232,3 +232,38 @@ fn custom_and_existing_compact_rows_wrap_with_the_reference_gap(cx: &mut TestApp
         assert_eq!(outer, vec![bounds(0.0, 0.0, 360.0, 93.0)]);
     }
 }
+
+struct SidebarInfoProbe {
+    seen: Seen,
+}
+impl Render for SidebarInfoProbe {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let seen = Rc::clone(&self.seen);
+        section_with_info(
+            "Header",
+            div().h(px(80.0)),
+            Some(div().size(px(22.0)).into_any_element()),
+            &Tokens::of(Scheme::Dark),
+        )
+        .w(px(360.0))
+        .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds)
+    }
+}
+#[gpui::test]
+fn sidebar_info_accessory_changes_only_header_height_in_the_shared_section(
+    cx: &mut TestAppContext,
+) {
+    let seen = Seen::default();
+    let (_, cx) = cx.add_window_view({
+        let seen = Rc::clone(&seen);
+        move |_, _| SidebarInfoProbe { seen }
+    });
+    cx.run_until_parked();
+    assert_eq!(
+        *seen.borrow(),
+        [
+            bounds(4.0, 0.0, 356.0, 22.0),
+            bounds(0.0, 34.0, 360.0, 80.0)
+        ]
+    );
+}
