@@ -210,7 +210,11 @@ per-attempt reply fences. It contains no GPUI state or connection identity cache
 The current SessionView and ConversationArea globals remain the only live product
 owner while concrete owner adapters are prepared; the coordinated cutover must
 remove those globals and the single follow together. Pure core tests do not prove
-multiple agent panes work. Package details and evidence limits are in
+multiple agent panes work. The staged sole `SessionResidents` container validates full
+contexts and binding/ticket ingress. Its single-slot minter plans a real tab before
+the scoped factory, rechecks current membership, and refuses implicit eviction.
+Independent lease retirement still invalidates tickets after a refused switch.
+The literal test gate remains until converted globals and raw ingress are removed. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
 ### Adding a screen (an area)
@@ -799,9 +803,10 @@ Environment:
   frame before the renderer rasterises (on a software renderer the
   process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
-  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
-  `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
-  updates itself; without them it never does.
+  the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_KEY` too and
+  the feed's address written into the built executable afterwards (track
+  R's `build.sh` does both; ADR 0099), the build updates itself; without
+  them it never does.
 
 ## Composed sections in one bounded viewport
 
@@ -1348,3 +1353,15 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+### Identified form textarea
+
+TextField::form_multiline_with_source takes the same checked FieldId callbacks
+as a line, plus FormMinimum::Default (existing GOAT68/80) or Expanded
+(Paseo schedule prompt96). One TextareaState/factory/listen, not another input
+engine. Legacy Plain signatures/Enter/readonly/defaults stay unchanged.
+SendOn remains exported at field::SendOn after moving with the constructor
+family; field.rs now fits the ordinary size budget. Caller still checks original
+form visit, current source id, connection and authority; FieldId alone is none
+of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
+only at this checkpoint; narrow/source review and consumer proof remain owed.

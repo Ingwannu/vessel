@@ -55,10 +55,8 @@ use gpui::prelude::*;
 use gpui::{AnyElement, App, div, px};
 use gpui_base::input::{Input, Textarea};
 
-use super::styles::project;
-use super::{
-    FORM_INSET_X, FORM_INSET_Y, FORM_MAX, FORM_MIN, FORM_MIN_TOUCH, Kind, MultilineStyle, TextField,
-};
+use super::{FORM_INSET_X, FORM_INSET_Y, FORM_MAX, Kind, MultilineStyle, TextField};
+use super::{form_minimum::form_shell, styles::project};
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
@@ -105,7 +103,7 @@ impl TextField {
                     .items_stretch()
                     .px(px(FORM_INSET_X))
                     .py(px(FORM_INSET_Y))
-                    .min_h(px(if narrow { FORM_MIN_TOUCH } else { FORM_MIN }))
+                    .min_h(px(self.form_minimum.height(narrow)))
                     .max_h(px(FORM_MAX))
                     // The engine emits Enter and propagates the action.
                     // This form already inserted a line or submitted in
@@ -146,29 +144,6 @@ impl TextField {
             }
         }
     }
-}
-
-/// Both form editors use the same surface and border-only focus treatment.
-fn form_shell(focused: bool, tokens: &Tokens, narrow: bool) -> gpui::Div {
-    let neutral = tokens.neutral;
-    div()
-        .flex()
-        .items_center()
-        .w_full()
-        .min_h(px(if narrow { 44.0 } else { 32.0 }))
-        .px(px(12.0))
-        .rounded(px(8.0))
-        .bg(neutral.surface2)
-        .border_1()
-        .border_color(if focused {
-            neutral.border_accent
-        } else {
-            gpui::transparent_black()
-        })
-        .hover(move |style| style.border_color(neutral.border_accent))
-        .type_(Type::Body)
-        .line_height(px(fonts::ui(20.0)))
-        .text_color(neutral.foreground)
 }
 
 /// Paseo's composer card (`inputWrapper`): `surface1`, a hairline of

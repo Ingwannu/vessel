@@ -12,7 +12,7 @@ mod queries;
 pub(crate) mod registry;
 mod rename;
 mod resize;
-// Cutover removes this attribute together with legacy global resources/follow.
+// The product cutover removes this gate together with converted global storage.
 #[cfg(test)]
 pub(crate) mod residents;
 mod sheets;
@@ -121,7 +121,9 @@ impl Shell {
                         })
                         .collect();
                 }
-                self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
+                self.command(vessel_app_link::Command::SavePrefs(Box::new(
+                    self.prefs.clone(),
+                )));
             }
             Err(LayoutError::Modified) => {
                 self.notice = Some(self.words.layout().modified().to_owned());

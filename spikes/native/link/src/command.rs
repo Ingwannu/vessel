@@ -157,7 +157,8 @@ pub enum Command {
         option: PermissionOptionId,
     },
     /// Remember the person's choices (machine, agent, folders).
-    SavePrefs(Prefs),
+    // Prefs grew past large_enum_variant; a save is infrequent.
+    SavePrefs(Box<Prefs>),
     /// Act on a session: rename, mark, start again, delete, kill, move,
     /// terminal input (answered by `Event::Acted`).
     Act {

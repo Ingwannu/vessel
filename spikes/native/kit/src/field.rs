@@ -23,9 +23,12 @@ use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
 pub mod composer_layout;
+mod multiline;
+pub use multiline::SendOn;
+mod form_minimum;
+pub use form_minimum::FormMinimum;
 mod send;
 mod submit_press;
-pub use send::SendOn;
 pub use submit_press::SubmitPress;
 mod editability;
 mod events;
@@ -45,9 +48,6 @@ pub(crate) use styles::apply_tokens;
 
 #[cfg(test)]
 use crate::theme::Tokens;
-
-/// The most lines the composer grows to before it scrolls.
-const COMPOSER_LINES: usize = 12;
 
 /// The composer's text's smallest height (Paseo's `MIN_INPUT_HEIGHT`).
 const COMPOSER_MIN: f32 = 46.0;
@@ -84,11 +84,6 @@ enum MultilineStyle {
     Form,
 }
 
-/// GOAT's small textarea grows within its 256-point maximum. At the
-/// kit's 20-point line height twelve complete lines fit within that cap.
-const FORM_LINES: usize = 12;
-/// Three lines plus GOAT's small insets and border fit its desktop minimum.
-const FORM_MIN_LINES: usize = 3;
 /// GOAT's small control: 66 / 78 points inside its one-point border.
 const FORM_MIN: f32 = 68.0;
 const FORM_MIN_TOUCH: f32 = 80.0;
@@ -107,279 +102,9 @@ pub struct TextField {
     /// Which press sends (a composer's; a form field's Enter always
     /// submits).
     send: Rc<Cell<SendOn>>,
+    form_minimum: FormMinimum,
     composer_rows: Rc<Cell<Option<composer_layout::Rows>>>,
     submit_press: Rc<Cell<Option<SubmitPress>>>,
-}
-
-impl TextField {
-    /// A composer's text: lines that grow; the press [`SendOn`] names
-    /// (Enter unless [`Self::set_send_on`] says otherwise) calls
-    /// `on_submit` with the text, Shift+Enter starts a new line.
-    ///
-    /// The engine sends on Enter and Mod+Enter and starts a line on
-    /// Shift+Enter (`submit_on_enter`); in [`SendOn::ModEnter`] a plain
-    /// Enter that reaches here starts a line instead (the engine's own
-    /// Enter-starts-a-line mode would start one on Mod+Enter too, before
-    /// sending).
-    pub fn composer<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
-    }
-
-    /// A multiline form field on the one-line form field's surface.
-    /// Enter starts a line; Mod+Enter submits. It grows from three to
-    /// twelve lines, then the existing text engine scrolls. GOAT's small
-    /// textarea supplies the 68 / 80-point minimum and 256-point cap.
-    pub fn form_multiline<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
-    }
-
-    fn multiline<V: 'static>(
-        style: MultilineStyle,
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        let placeholder = placeholder.to_owned();
-        let minimum = match style {
-            MultilineStyle::Composer => 1,
-            MultilineStyle::Form => FORM_MIN_LINES,
-        };
-        let maximum = match style {
-            MultilineStyle::Composer => COMPOSER_LINES,
-            MultilineStyle::Form => FORM_LINES,
-        };
-        let state = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .auto_grow(minimum, maximum)
-                .submit_on_enter(true)
-                .placeholder(placeholder)
-        });
-        let focused = Rc::new(Cell::new(false));
-        let submit_press = Rc::new(Cell::new(None));
-        let shortcut = match style {
-            MultilineStyle::Composer => SendOn::Enter,
-            MultilineStyle::Form => SendOn::ModEnter,
-        };
-        let send = Rc::new(Cell::new(shortcut));
-        listen(
-            &state,
-            Handlers {
-                callbacks: Callbacks::Plain {
-                    on_submit: Box::new(on_submit),
-                    // Growing forms update layout and submit availability.
-                    on_change: match style {
-                        MultilineStyle::Composer => None,
-                        MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
-                    },
-                },
-                submit_press: Rc::clone(&submit_press),
-                focused: Rc::clone(&focused),
-                send: Some(Rc::clone(&send)),
-            },
-            window,
-            cx,
-        );
-        register(Known::Lines(state.downgrade()));
-        Self {
-            composer_rows: Rc::new(Cell::new(None)),
-            submit_press,
-            kind: Kind::Lines(state, style),
-            focused,
-            send,
-        }
-    }
-
-    fn line<V: 'static>(
-        placeholder: &str,
-        callbacks: Callbacks<V>,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        let placeholder = placeholder.to_owned();
-        let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
-        let focused = Rc::new(Cell::new(false));
-        let submit_press = Rc::new(Cell::new(None));
-        listen(
-            &state,
-            Handlers {
-                callbacks,
-                submit_press: Rc::clone(&submit_press),
-                focused: Rc::clone(&focused),
-                send: None,
-            },
-            window,
-            cx,
-        );
-        register(Known::Line(state.downgrade()));
-        Self {
-            composer_rows: Rc::new(Cell::new(None)),
-            submit_press,
-            kind: Kind::Line(state),
-            focused,
-            send: Rc::new(Cell::new(SendOn::Enter)),
-        }
-    }
-
-    /// What it holds.
-    #[must_use]
-    pub fn text(&self, cx: &App) -> String {
-        match &self.kind {
-            Kind::Line(state) => state.read(cx).value().to_string(),
-            Kind::Lines(state, _) => state.read(cx).value().to_string(),
-        }
-    }
-
-    /// Replace what it holds.
-    pub fn set_text(&self, text: &str, window: &mut Window, cx: &mut App) {
-        let text = text.to_owned();
-        match &self.kind {
-            Kind::Line(state) => state.update(cx, |state, cx| state.set_value(text, window, cx)),
-            Kind::Lines(state, _) => {
-                state.update(cx, |state, cx| state.set_value(text, window, cx));
-            }
-        }
-    }
-
-    /// Change what it shows while empty (the text table's words, chosen
-    /// after the field is made).
-    pub fn set_placeholder(&self, placeholder: &str, window: &mut Window, cx: &mut App) {
-        let placeholder = placeholder.to_owned();
-        match &self.kind {
-            Kind::Line(state) => state.update(cx, |state, cx| {
-                state.set_placeholder(placeholder, window, cx);
-            }),
-            Kind::Lines(state, _) => state.update(cx, |state, cx| {
-                state.set_placeholder(placeholder, window, cx);
-            }),
-        }
-    }
-
-    /// Empty it.
-    pub fn clear(&self, window: &mut Window, cx: &mut App) {
-        self.set_text("", window, cx);
-    }
-
-    /// Its focus handle: to hear it lose the keys (a title edited in
-    /// place saves when the person leaves the field).
-    #[must_use]
-    pub fn focus_handle(&self, cx: &App) -> gpui::FocusHandle {
-        match &self.kind {
-            Kind::Line(state) => state.read(cx).focus_handle(cx),
-            Kind::Lines(state, _) => state.read(cx).focus_handle(cx),
-        }
-    }
-
-    /// Whether this field holds the keys and an input method is composing
-    /// in it (marked text, a Hangul syllable not yet committed): a
-    /// shortcut must leave the keys to the input method then (S2's
-    /// shortcut listener asks this of the focused field). Only the
-    /// focused field answers yes: marked text left in a field without the
-    /// keys says nothing about the keys being typed now.
-    pub fn composing(&self, window: &mut Window, cx: &mut App) -> bool {
-        use gpui::EntityInputHandler as _;
-
-        if !self.focus_handle(cx).is_focused(window) {
-            return false;
-        }
-        match &self.kind {
-            Kind::Line(state) => state.update(cx, |state, cx| {
-                state.marked_text_range(window, cx).is_some()
-            }),
-            Kind::Lines(state, _) => state.update(cx, |state, cx| {
-                state.marked_text_range(window, cx).is_some()
-            }),
-        }
-    }
-
-    /// Whether this field has the keys with its caret at the very start and
-    /// nothing selected (track S2's Alt+Up, Paseo's edit-the-last-queued
-    /// prompt, acts only there, so the key still moves the caret anywhere
-    /// else). A field without the keys answers no.
-    pub fn at_start(&self, window: &Window, cx: &App) -> bool {
-        if !self.focus_handle(cx).is_focused(window) {
-            return false;
-        }
-        let range = match &self.kind {
-            Kind::Line(state) => state.read(cx).selected_range(),
-            Kind::Lines(state, _) => state.read(cx).selected_range(),
-        };
-        range.start == 0 && range.end == 0
-    }
-
-    /// Whether any kit text field in this window has the keys and an input
-    /// method composing in it: what a window-wide shortcut listener asks
-    /// before acting on a key (track S2's registry), since the fields are
-    /// private to the areas that own them.
-    ///
-    /// [Decision Log]
-    /// - Purpose: S2's shortcuts must leave keys to an input method in
-    ///   every field, not only the ones S2 knows about (the pairing form,
-    ///   a conversation's find, queue and rename, Devices, Projects, and
-    ///   whatever G1 and G3 add).
-    /// - Constraint: those fields are private to their areas; a list of
-    ///   them in S2's code would miss the next one.
-    /// - Choice: every field the kit makes registers a weak handle to its
-    ///   text engine (one per field, thread-local: GPUI's entities live on
-    ///   the main thread); this asks each live one, dropping the dead.
-    ///   Only the focused field counts, as in [`Self::composing`].
-    /// - Cost: one weak handle per field ever made, pruned here; a field
-    ///   made outside the kit (none today) is not seen.
-    pub fn focused_composing(window: &mut Window, cx: &mut App) -> bool {
-        use gpui::EntityInputHandler as _;
-
-        let known = KNOWN.with(|known| std::mem::take(&mut *known.borrow_mut()));
-        let mut alive = Vec::with_capacity(known.len());
-        let mut composing = false;
-        for field in known {
-            let marked = match &field {
-                Known::Line(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-                Known::Lines(weak) => weak.upgrade().map(|state| {
-                    !composing
-                        && state.read(cx).focus_handle(cx).is_focused(window)
-                        && state.update(cx, |state, cx| {
-                            state.marked_text_range(window, cx).is_some()
-                        })
-                }),
-            };
-            if let Some(marked) = marked {
-                composing |= marked;
-                alive.push(field);
-            }
-        }
-        KNOWN.with(|known| {
-            // Fields made while asking (none can be, but keep them).
-            let mut known = known.borrow_mut();
-            alive.append(&mut known);
-            *known = alive;
-        });
-        composing
-    }
-
-    /// Give it the keys.
-    pub fn focus(&self, window: &mut Window, cx: &mut App) {
-        let handle = match &self.kind {
-            Kind::Line(state) => state.read(cx).focus_handle(cx),
-            Kind::Lines(state, _) => state.read(cx).focus_handle(cx),
-        };
-        handle.focus(window, cx);
-    }
 }
 
 #[cfg(test)]

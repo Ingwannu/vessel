@@ -1,32 +1,6 @@
-//! One submit listener reads the effective composer gesture policy.
+//! Preference application over the canonical multiline send policy.
 
-use super::{Kind, MultilineStyle, TextField};
-
-/// Which press sends a composer's text (Settings › General › Send
-/// shortcut, the page's `compose-keys.ts`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum SendOn {
-    /// Enter (and Mod+Enter) sends; Shift+Enter starts a line.
-    #[default]
-    Enter,
-    /// Mod+Enter sends; Enter and Shift+Enter start a line.
-    ModEnter,
-    /// Compact layouts submit through a button; every Enter remains text input.
-    ButtonOnly,
-}
-
-impl SendOn {
-    /// Whether an Enter that is not Shift+Enter sends; `with_mod` when
-    /// Command (Control elsewhere) was held.
-    #[must_use]
-    pub const fn sends(self, with_mod: bool) -> bool {
-        match self {
-            Self::Enter => true,
-            Self::ModEnter => with_mod,
-            Self::ButtonOnly => false,
-        }
-    }
-}
+use super::{Kind, MultilineStyle, SendOn, TextField};
 
 impl TextField {
     /// Which press sends a composer's text (a form field ignores it).
