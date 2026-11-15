@@ -2,8 +2,8 @@
 use serde::Deserialize;
 use std::fmt;
 use vessel_proto::{
-    RelPath,
     plugins::{AttachmentError, AttachmentUrl},
+    workspace::RelPath,
 };
 
 #[derive(Clone, PartialEq, Eq, Deserialize)]

@@ -2,7 +2,7 @@
 //! here is canonicalized, opened or granted as a launch capability.
 use super::SourceError;
 use std::{fmt, sync::Arc};
-use vessel_proto::{RelPath, workspace::trim_project_text};
+use vessel_proto::workspace::{RelPath, trim_project_text};
 
 pub(super) const MAX_SOURCE_BYTES: usize = 4096;
 #[derive(Clone, PartialEq, Eq)]

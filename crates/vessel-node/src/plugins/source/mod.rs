@@ -10,7 +10,7 @@ use npm::{NpmSource, npm};
 use reference::{Prefix, Shape, SourceText, reference};
 use registry::{RegistryEndpoint, RegistryId, RegistrySource};
 use std::fmt;
-use vessel_proto::RelPath;
+use vessel_proto::workspace::RelPath;
 
 #[derive(Debug, thiserror::Error)]
 enum SourceError {
@@ -91,13 +91,13 @@ fn parse(raw: &str, configured_registry: Option<&RegistryEndpoint>) -> Result<So
             subpath: parsed.subpath,
         });
     }
-    if parsed.prefix == Prefix::None {
-        if let Ok(input) = npm(parsed.source.as_str()) {
-            return Ok(Source::Npm {
-                input,
-                subpath: parsed.subpath,
-            });
-        }
+    if parsed.prefix == Prefix::None
+        && let Ok(input) = npm(parsed.source.as_str())
+    {
+        return Ok(Source::Npm {
+            input,
+            subpath: parsed.subpath,
+        });
     }
     Ok(Source::Git {
         input: GitInput {

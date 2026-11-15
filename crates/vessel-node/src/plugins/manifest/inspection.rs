@@ -7,9 +7,9 @@ use super::{MAX_MANIFEST_BYTES, Manifest, ManifestError};
 use sha2::{Digest as _, Sha256};
 use std::{error::Error, fmt};
 use vessel_proto::{
-    ProtocolVersion, RelPath,
+    ProtocolVersion,
     plugins::{ClientDocument, DocumentError, MAX_DOCUMENT_BYTES},
-    workspace::{ContentHash, FileContent},
+    workspace::{ContentHash, FileContent, RelPath},
 };
 use vessel_workspace::{files, paths::Root};
 

@@ -85,7 +85,7 @@ impl AsyncRead for RetainedPipe {
             return Poll::Ready(Ok(()));
         }
         if let Some(consumed) = pipe.consumed.take() {
-            drop(consumed.send(()));
+            let _acknowledged = consumed.send(());
         }
         Poll::Pending
     }
