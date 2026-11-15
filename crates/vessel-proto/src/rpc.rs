@@ -128,6 +128,10 @@ macro_rules! method_table {
         $callback! {
             /// Describe the node.
             NodeInfo / node_info / "node.info" [Read, 2, unary]: $crate::GetNode => $crate::NodeInfo;
+            /// Reconcile the original creation key after a lost acknowledgement.
+            ObserveCreation / observe_creation / "creation.observe" [Read, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::creation::ObserveCreation => Option<$crate::creation::Snapshot>;
+            /// Observe the next committed revision with a bounded, shared wait.
+            SubscribeCreation / subscribe_creation / "creation.subscribe" [Read, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::creation::SubscribeCreation => Option<$crate::creation::Snapshot>;
             /// List installed harnesses.
             ListHarnesses / list_harnesses / "harness.list" [Read, 2, unary]: $crate::ListHarnesses => Vec<$crate::Harness>;
             /// List sessions.

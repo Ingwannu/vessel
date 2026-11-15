@@ -171,3 +171,18 @@ failure and blank-shell input. Use fake harnesses and in-memory transport.
 Security-bearing persistence/launch commits receive review individually.
 Node and native package gates run at completion; no runtime, protocol/schema
 number, review result or parity completion is claimed by this proposed ADR.
+
+## Observation transport
+
+`creation.observe` resolves the original kind/key after a lost creation reply;
+absence remains explicit. `creation.subscribe` is a bounded unary long poll
+with an optional committed revision cursor. This differs from Paseo's
+connection observer: it reuses Vessel's per-connection/per-origin waiting
+shares and ordinary typed reply rather than adding a second server-frame
+subscription transport. A saturated share replies immediately. Subscribe
+before the initial SQL snapshot, then re-read after a coalesced post-commit
+wake-up or deadline. An unchanged revision is not completion, and a cursor
+ahead of storage is refused. Notifications hold one unit value, never a
+payload or unbounded history. Read scope and person-only policy apply to both
+calls, including forwarded agents. Their sole protocol constant stays None;
+the method table registers both as pending unary calls, never a dummy version.

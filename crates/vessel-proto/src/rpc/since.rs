@@ -267,7 +267,9 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
-            | Self::GetAgentHistory(_) => None,
+            | Self::GetAgentHistory(_)
+            | Self::ObserveCreation(_)
+            | Self::SubscribeCreation(_) => None,
         };
         Some(fields.map_or(method, |since| method.max(ProtocolVersion::new(since))))
     }

@@ -11,7 +11,7 @@ pub use values::{Profile, Profiles, Resolved};
 /// The reference profile format's literal placeholder, replaced in every entry.
 pub const PROMPT_SENTINEL: &str = "{{{prompt}}}";
 /// Whole-package version; only the integrator assigns it after consumers land.
-pub const CREATION_PROTOCOL: Option<crate::ProtocolVersion> = None;
+pub use crate::creation::CREATION_PROTOCOL;
 /// Maximum configured profiles, keeping settings and picker work bounded.
 pub const MAX_PROFILES: usize = 64;
 /// Maximum argv entries in one profile or resolved launch.

@@ -1,14 +1,20 @@
 //! Durable creation identities, reservations and safe snapshots (ADR 0091).
 //! No prompt, environment, command template or credential enters a snapshot.
 
+mod observe;
 mod receipt;
 mod text;
+
+pub use observe::{ObservationWait, ObserveCreation, SubscribeCreation};
 
 pub use receipt::{
     Advance, Certainty, FirstInput, Kind, Phase, Receipt, Reservation, Resource, Snapshot, Stage,
     WorkspaceClaim,
 };
 pub use text::{Fingerprint, Key, Revision};
+
+/// Whole-package version; the integrator assigns it after all consumers land.
+pub const CREATION_PROTOCOL: Option<crate::ProtocolVersion> = None;
 
 /// Refuse further admission rather than silently expiring an idempotency key.
 pub const MAX_RECEIPTS: usize = 10_000;
@@ -25,6 +31,9 @@ pub enum CreationError {
     /// Idempotency identities must contain at least one character.
     #[error("creation key cannot be empty")]
     EmptyKey,
+    /// A finite observation cannot occupy a call beyond its declared budget.
+    #[error("creation observation wait is too long")]
+    WaitTooLong,
     /// A bounded identity prevents admission/storage resource exhaustion.
     #[error("creation key exceeds {} Unicode scalars", Key::MAX_CHARS)]
     KeyTooLong,
@@ -65,7 +74,7 @@ impl CreationError {
     #[must_use]
     pub const fn code(self) -> crate::ErrorCode {
         match self {
-            Self::EmptyKey | Self::KeyTooLong | Self::KeyControl => {
+            Self::EmptyKey | Self::KeyTooLong | Self::KeyControl | Self::WaitTooLong => {
                 crate::ErrorCode::InvalidRequest
             }
             Self::IntentConflict
