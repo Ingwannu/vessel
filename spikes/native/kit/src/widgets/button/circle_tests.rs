@@ -11,17 +11,12 @@ fn circles_have_fixed_size_tones_and_no_hover_or_pressed_override() {
     ] {
         let tokens = Tokens::of(scheme);
         for (tone, fill, border, text) in [
-            (crate::CircleTone::Surface, surface, border, foreground),
-            (
-                crate::CircleTone::Danger,
-                0x00dc_2626,
-                0x0099_1b1b,
-                0x00ff_ffff,
-            ),
+            (CircleTone::Surface, surface, border, foreground),
+            (CircleTone::Danger, 0x00dc_2626, 0x0099_1b1b, 0x00ff_ffff),
         ] {
             for state in [ButtonState::Enabled, ButtonState::Disabled] {
                 for loading in [false, true] {
-                    let config = crate::CircleConfig::new(tone, state);
+                    let config = CircleConfig::new(tone, state);
                     let config = if loading { config.loading() } else { config };
                     let design = ButtonDesign::from(config);
                     assert_eq!(
