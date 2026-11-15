@@ -300,3 +300,31 @@ does another real wire partial response exhaust the remaining permit and a
 separate connection receive Busy. This covers in-flight wire cancellation,
 not just client-future abort. The one-use bounded signal retains no request
 data; no product hook, method table, scope or collector is added.
+
+
+### Supported-wire execution checkpoint
+
+Focused run `diagnostics-20261115T171719Z-890f202b` completed all four selected
+steps: web preparation, both same-environment A5 builds and the three-crate
+filtered Cargo invocation. Its 13 Rust summaries total 38/0/0: CLI unit three,
+CLI integration three, client five, node library 23 and node e2e four (other
+selected targets have zero matches). One library match is an existing shared
+settings diagnostic case, not a new host-diagnostics test. The new runner's
+private SSD TMPDIR is short and mode 0700; the original privacy/source fixture
+passes unchanged. Execution load was high, but no timeout/failure was waived.
+
+This exact source tests supported 24/current 25 and previous 23; the preserved
+client/raw admission tests also cover the minimum. Genuine paired Read
+readers, revocation, clipped no-Read callers, direct Read agents, fleet refusal,
+raw correlated responses, safe decode rejection, selected text/JSON and old
+CLI no-frame behavior passed. Typed-client timeout uses the named budget with
+Tokio paused time, not measured real network latency.
+
+The later test-only server-side cancellation observer is excluded from that
+run. It needs compilation and execution in the final validation. This follow-up
+changes only Rust tests/registrations and documentation from the announced
+head; wire DTOs and web bytes are unchanged. The next validation runs the full
+Rust half (all applicable strict modes, prebuilds and tests), with the exact
+unchanged web scope kept separate from the integrator's wholly green Gate 52
+(web 464/e2e 80). Do not label a Rust-half run as 18 default steps or claim a new
+web execution. No native adoption or full diagnostic-parity claim follows.
