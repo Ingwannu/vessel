@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use vessel_proc::ProcessId;
 use vessel_proto::NodeId;
 
-pub(super) const FRAME_LIMIT: usize = 1024;
+pub(super) const FRAME_LIMIT: std::num::NonZeroUsize = match std::num::NonZeroUsize::new(1024) {
+    Some(limit) => limit,
+    None => std::num::NonZeroUsize::MIN,
+};
 pub(super) const CONTROL_ENV: &str = "VESSEL_LOCAL_FIXTURE_CONTROL";
 pub(super) const HOME_ENV: &str = "VESSEL_LOCAL_FIXTURE_HOME";
 pub(super) const PROGRAMS_ENV: &str = "VESSEL_LOCAL_FIXTURE_PROGRAMS";
