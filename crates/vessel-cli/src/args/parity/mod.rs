@@ -2,6 +2,7 @@
 
 mod agent;
 mod clone;
+mod connection;
 mod duration;
 mod heartbeat;
 mod hooks;
@@ -18,12 +19,13 @@ mod worktree;
 
 pub(crate) use agent::{AgentCommand, AgentList, AgentRun, AgentSend, Selection, Wait};
 pub(crate) use clone::{Clone, CloneProtocol};
+pub(crate) use connection::ConnectionOptions;
 pub(crate) use duration::WaitBudget;
 pub(crate) use heartbeat::{HeartbeatCommand, ScheduleSelector};
 pub(crate) use hooks::HookInvocation;
 pub(crate) use host::{HostCommand, destination as host_destination, metadata as host_metadata};
 pub(crate) use invocation::normalize;
-pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
+pub(crate) use output::{OutputOptions, Presentation};
 pub(crate) use schedule::ScheduleParityArgs;
 pub(crate) use terminal::{TerminalCommand, TerminalSelector};
 pub(crate) use workspace::WorkspaceCommand;

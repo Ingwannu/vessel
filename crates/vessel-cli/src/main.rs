@@ -164,7 +164,7 @@ async fn cli() -> ExitCode {
     match Box::pin(commands::run(cli)).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            if parity::output::error(presentation, &error).await.is_err() {
+            if parity::failure::error(presentation, &error).await.is_err() {
                 tracing::error!("could not report an error on stderr");
             }
             ExitCode::FAILURE

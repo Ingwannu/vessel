@@ -477,3 +477,25 @@ artifacts are /tmp/work/wp-cli/ts-export/artifacts/ts. Since head40 updates wire
 that older generated file will not overwrite the head's declarations; generation will be
 repeated on the resolved merge. Verified local waiting PID3674024 was terminated before
 submitting the remote ts job; no concurrent duplicate generator was started.
+
+
+### Head40 generated wire and output boundary
+
+The exact cd9bb4bf remote TS generator passed four tests. Its tracked-diff exit
+was 1 because host/capture DTOs changed proto.ts, not because generation failed.
+Applied only the regenerated proto.ts after verifying artifact commit and every
+SHA256SUMS entry; bridge.ts and calls.ts were unchanged. Evidence:
+`/tmp/work/wp-cli/ts-export-head40`.
+
+[Decision Log]
+- Purpose: let permit/plugin owners share one typed formatter without depending
+  on W17 host/provider error variants or connection aliases.
+- Existing asset: args::parity::output and parity::output already own the flags
+  and Row/list/render_list/single surface. Reuse them instead of copying output.
+- Alternatives: waiting for the full CLI package blocks independent consumers;
+  moving formatting into a new crate adds an unnecessary dependency boundary.
+- Choice: separate connection aliases and runtime failure classification into
+  their own leaf modules. The existing output API and presentation precedence
+  remain unchanged. No new RPC, store, transport or dependency is introduced.
+- Impact: a standalone early shared slice can be reviewed independently; its
+  consumer readiness still requires review. The full package is not yet gated.

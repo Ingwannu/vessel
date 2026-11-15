@@ -1,6 +1,7 @@
 //! Typed CLI orchestration over existing calls; no method registration belongs here.
 
 mod agents;
+pub(crate) mod failure;
 mod heartbeat;
 mod hooks;
 mod hosts;
