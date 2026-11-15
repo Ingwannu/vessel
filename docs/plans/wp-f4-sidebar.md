@@ -676,3 +676,17 @@ command variant and ten constructors, no preference representation/JSON/store
 change. The broader ungated line is not pulled for this seam. Combined F4
 source remains unverified; next strict four-crate narrow is ordinary, not a
 second use of the consumed priority authorization.
+
+
+Added a real full Sidebar-settings body InfoTip regression while ordinary strict
+033 remains queued. It passes the frame compact flag deliberately at700: actual
+viewport sidebar density still selects desktop hover, while390 uses press.
+Both themes and EN/KO open the shared explanation via actual pointer input, then
+existing open_settings/settings_section/settings_back each clear it. No new
+tooltip renderer/state or frame API. This additional test is not executed yet.
+
+Coordinator e938beb1 separately reserves sole popup::placement to S2 AFTER the
+current F4 strict finishes. One measured GPUI child, pure captured-trigger /
+child-size / viewport flip-clamp, Start/End and Top/Bottom, caller offset4/edge8;
+no state/focus/lease/action/physics. G1 and W19b notified; no implementation or
+checked API yet. Their point/snap paths are not claimed as measured flip parity.

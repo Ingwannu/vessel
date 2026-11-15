@@ -18,6 +18,7 @@ use vessel_app_view::{
 enum Surface {
     Row(Builtin),
     Search,
+    Page,
 }
 struct Probe {
     shell: Entity<Shell>,
@@ -32,6 +33,7 @@ impl Render for Probe {
         let seen = Rc::clone(&self.seen);
         self.shell.update(cx, |shell, cx| {
             let body = match surface {
+                Surface::Page => div().child(super::render(shell, &tokens, true, window, cx)),
                 Surface::Search => div().children(crate::areas::palette::sidebar_row(
                     shell, &tokens, window, cx,
                 )),
@@ -225,4 +227,87 @@ fn existing_settings_entry_registers_sidebar_page(cx: &mut TestAppContext) {
             vessel_app_view::settings::Section::Sidebar
         );
     });
+}
+
+#[derive(Clone, Copy)]
+enum LeaveInfo {
+    Open,
+    Section,
+    Back,
+}
+#[gpui::test]
+fn actual_title_info_uses_sidebar_density_and_clears_on_each_existing_settings_entry(
+    cx: &mut TestAppContext,
+) {
+    for scheme in [Scheme::Light, Scheme::Dark] {
+        for lang in [Lang::En, Lang::Ko] {
+            for width in [390.0, 700.0] {
+                let (probe, cx) = setup(cx, width, scheme, lang, Builtin::Search);
+                show(&probe, cx, Surface::Page);
+                for leave in [LeaveInfo::Open, LeaveInfo::Section, LeaveInfo::Back] {
+                    let info = probe.read_with(cx, |probe, cx| {
+                        probe
+                            .shell
+                            .read(cx)
+                            .areas
+                            .sidebar
+                            .settings
+                            .header
+                            .get()
+                            .expect("real title info bounds")
+                    });
+                    if width < 600.0 {
+                        cx.simulate_click(info.center(), Modifiers::none());
+                    } else {
+                        cx.simulate_mouse_move(info.center(), None);
+                    }
+                    cx.run_until_parked();
+                    probe.read_with(cx, |probe, cx| {
+                        assert!(
+                            probe
+                                .shell
+                                .read(cx)
+                                .areas
+                                .sidebar
+                                .settings
+                                .tips
+                                .render(&Tokens::of(scheme))
+                                .is_some(),
+                            "real compact press / desktop hover opens the shared info renderer"
+                        );
+                    });
+                    cx.update(|window, cx| {
+                        let shell = probe.read(cx).shell.clone();
+                        shell.update(cx, |shell, cx| {
+                            match leave {
+                                LeaveInfo::Open => shell.open_settings(
+                                    Some(vessel_app_view::settings::Section::Sidebar),
+                                    window,
+                                    cx,
+                                ),
+                                LeaveInfo::Section => shell.settings_section(
+                                    vessel_app_view::settings::Section::General,
+                                    cx,
+                                ),
+                                LeaveInfo::Back => shell.settings_back(true, window, cx),
+                            }
+                            assert!(
+                                shell
+                                    .areas
+                                    .sidebar
+                                    .settings
+                                    .tips
+                                    .render(&Tokens::of(scheme))
+                                    .is_none()
+                            );
+                        });
+                    });
+                    cx.run_until_parked();
+                    // Leaving a hover target makes the next actual enter observable.
+                    cx.simulate_mouse_move(point(px(1.0), px(440.0)), None);
+                    cx.run_until_parked();
+                }
+            }
+        }
+    }
 }
