@@ -4,6 +4,7 @@ use std::rc::Rc;
 use vessel_app_kit::ui::{Context, Pixels};
 use vessel_app_kit::{
     Scheme,
+    fonts::{FontStack, Typeface, active},
     terminal_grid::{CellSize, GridCursor, GridFrame},
 };
 use vessel_app_view::terminal::{
@@ -15,19 +16,65 @@ use vessel_app_view::terminal::{
 use super::{Blink, SETTLE, convert, font_size, replay::refit};
 use crate::shell::Shell;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-/// Every retained visual input, including changes without terminal bytes.
-pub(super) struct DrawKey {
+/// Appearance and viewport inputs that can change painted text or backgrounds.
+#[derive(Debug, Clone, PartialEq)]
+struct RowsKey {
     generation: Generation,
-    blink: Blink,
     scheme: Scheme,
     font: Pixels,
+    stack: FontStack,
     cell: CellSize,
     scroll: Scroll,
 }
 
+/// Cursor phase is deliberately separate from immutable row identity.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct DrawKey {
+    rows: RowsKey,
+    blink: Blink,
+}
+
+/// The unblinked frame keeps the model's cursor authoritative in both phases.
+pub(super) struct Painted {
+    key: RowsKey,
+    frame: GridFrame,
+}
+
+impl Painted {
+    fn new(
+        key: RowsKey,
+        model: &vessel_app_view::terminal::TerminalModel,
+        tokens: &vessel_app_kit::Tokens,
+    ) -> Self {
+        let palette = convert::palette(&tokens.terminal);
+        let snapshot = model.snapshot(key.scroll);
+        let font_size = key.font;
+        Self {
+            key,
+            frame: GridFrame {
+                rows: rows(&snapshot, &palette).iter().map(convert::row).collect(),
+                cursor: snapshot.cursor.map(|cell| GridCursor {
+                    row: cell.row,
+                    col: cell.col,
+                    color: convert::hsla(palette.cursor),
+                }),
+                background: convert::hsla(palette.background),
+                font_size,
+            },
+        }
+    }
+
+    fn frame(&self, blink: Blink) -> GridFrame {
+        let mut frame = self.frame.clone();
+        if blink == Blink::Off {
+            frame.cursor = None;
+        }
+        frame
+    }
+}
+
 impl Shell {
-    /// Rebuild only when bytes, viewport, appearance or cursor phase changed.
+    /// Repaint rows only for their own inputs; cursor-only frames share them.
     pub(super) fn terminal_draw(&mut self, cx: &mut Context<'_, Self>) {
         let tokens = vessel_app_kit::tokens(cx);
         let area = &mut self.areas.terminal;
@@ -35,37 +82,31 @@ impl Shell {
             return;
         };
         area.viewport.refresh(model.grid());
-        let scroll = area.viewport.offset(model.grid());
-        let now = DrawKey {
+        let key = RowsKey {
             generation: model.grid().generation(),
-            blink: area.blink,
             scheme: tokens.scheme,
             font: font_size(),
+            stack: active(Typeface::Code),
             cell: area.grid.read(cx).cell,
-            scroll,
+            scroll: area.viewport.offset(model.grid()),
         };
-        if area.drawn == Some(now) {
+        let now = DrawKey {
+            rows: key.clone(),
+            blink: area.blink,
+        };
+        if area.drawn.as_ref() == Some(&now) {
             return;
         }
+        let painted = area
+            .painted
+            .get_or_insert_with(|| Painted::new(key.clone(), model, &tokens));
+        if painted.key != key {
+            *painted = Painted::new(key, model, &tokens);
+        }
+        let frame = Rc::new(painted.frame(area.blink));
         area.drawn = Some(now);
-        let palette = convert::palette(&tokens.terminal);
-        let snapshot = model.snapshot(scroll);
-        let cursor = snapshot
-            .cursor
-            .filter(|_| area.blink == Blink::On)
-            .map(|cell| GridCursor {
-                row: cell.row,
-                col: cell.col,
-                color: convert::hsla(palette.cursor),
-            });
-        let frame = GridFrame {
-            rows: rows(&snapshot, &palette).iter().map(convert::row).collect(),
-            cursor,
-            background: convert::hsla(palette.background),
-            font_size: font_size(),
-        };
         area.grid.update(cx, |grid, cx| {
-            grid.frame = Rc::new(frame);
+            grid.frame = frame;
             cx.notify();
         });
     }

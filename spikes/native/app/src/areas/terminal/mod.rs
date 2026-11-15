@@ -13,6 +13,8 @@ mod draw;
 mod grid;
 mod presentation;
 mod replay;
+#[cfg(test)]
+mod row_reuse_tests;
 mod scroll;
 #[cfg(test)]
 mod scroll_tests;
@@ -32,7 +34,7 @@ use vessel_app_view::timeline::Until;
 use vessel_proto::{EventRecord, SessionEvent, SessionId, TerminalSize};
 
 pub(crate) use body::body;
-use draw::DrawKey;
+use draw::{DrawKey, Painted};
 use grid::TerminalGrid;
 use presentation::Playback;
 #[cfg(test)]
@@ -83,6 +85,7 @@ pub(crate) struct TerminalArea {
     settling: Option<Task<()>>,
     blink: Blink,
     drawn: Option<DrawKey>,
+    painted: Option<Painted>,
     blinking: Option<Task<()>>,
     focus: FocusHandle,
     observers: Vec<Subscription>,
@@ -106,6 +109,7 @@ impl TerminalArea {
             settling: None,
             blink: Blink::On,
             drawn: None,
+            painted: None,
             blinking: None,
             focus: cx.focus_handle(),
             observers: Vec::new(),
@@ -166,6 +170,7 @@ impl Shell {
         area.held.clear();
         area.pending.clear();
         area.drawn = None;
+        area.painted = None;
         area.blinking = None;
         area.settling = None;
         area.blink = Blink::On;
@@ -188,6 +193,8 @@ impl Shell {
         area.shown = None;
         area.phase = Phase::Idle;
         area.model = None;
+        area.drawn = None;
+        area.painted = None;
         area.held.clear();
         area.pending.clear();
         area.settling = None;

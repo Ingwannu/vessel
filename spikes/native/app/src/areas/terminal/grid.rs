@@ -23,7 +23,7 @@ impl TerminalGrid {
     pub(super) fn empty() -> Self {
         Self {
             frame: Rc::new(GridFrame {
-                rows: Vec::new(),
+                rows: Rc::from([]),
                 cursor: None,
                 background: gpui::transparent_black(),
                 font_size: super::font_size(),
