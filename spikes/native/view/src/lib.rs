@@ -17,6 +17,7 @@ pub mod alert;
 pub mod badge;
 pub mod board;
 pub mod brand;
+pub mod browser;
 pub mod composer;
 pub mod connections;
 mod conversation;

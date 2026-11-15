@@ -114,3 +114,12 @@ Add the missing generation/freshness/revocation boundary as part of this
 package. Do not invent a guarantee that script status or an old PID gives.
 Protocol/schema assignment stays with integration. Node work starts on the
 announced node head in its own worktree.
+
+## Native view skeleton
+
+The pure browser module stages reference device choices and navigation
+eligibility without inventing pane/WorkspaceId types or node RPCs. Fixed
+menu dimensions follow the reference once; a custom agent resize will use
+the wire's validated dimensions, not a nearest-preset fallback. Toolbar
+buttons and keyboard routing consume one history/load eligibility rule.
+Nothing is registered or visible until a real frame/input path exists.
