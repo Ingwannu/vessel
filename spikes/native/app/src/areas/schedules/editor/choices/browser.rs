@@ -115,3 +115,57 @@ fn has_multiple_providers(shell: &Shell) -> bool {
                 > 1
         })
 }
+
+/// The view already prepared localized feedback; only a current read is retried.
+pub(super) fn empty(shell: &Shell, visit: Option<Visit>) -> kit::ComboboxEmpty<Shell> {
+    use vessel_app_view::schedules::editor::presentation::CatalogFeedback;
+    let words = shell.words.schedules();
+    let feedback = shell
+        .areas
+        .schedules
+        .data
+        .editor_cache
+        .as_ref()
+        .ok()
+        .and_then(Option::as_ref)
+        .map(|form| &form.catalog_feedback);
+    match feedback {
+        Some(CatalogFeedback::Loading) => {
+            kit::ComboboxEmpty::Loading(words.form_model_loading().into())
+        }
+        Some(CatalogFeedback::Retrying(notice)) => kit::ComboboxEmpty::Failed {
+            message: super::super::draw::shared(&notice.label),
+            retry: Some(kit::ComboboxRetry::Pending(
+                words.form_model_retrying().into(),
+            )),
+        },
+        Some(CatalogFeedback::Failed { notice, request }) => kit::ComboboxEmpty::Failed {
+            message: super::super::draw::shared(&notice.label),
+            retry: request.as_ref().zip(visit).map(|(expected, visit)| {
+                let expected = expected.clone();
+                kit::ComboboxRetry::Ready {
+                    label: words.form_model_retry().into(),
+                    action: Rc::new(move |shell, _, cx| {
+                        if !super::current(shell, Some(visit), None) {
+                            return;
+                        }
+                        if let Some(request) = shell
+                            .areas
+                            .schedules
+                            .data
+                            .editor
+                            .retry_read(visit, &expected)
+                        {
+                            shell.command(Command::Schedules(request.into()));
+                            let _changed = shell.schedules_changed(cx);
+                            cx.notify();
+                        }
+                    }),
+                }
+            }),
+        },
+        Some(CatalogFeedback::Ready) | None => {
+            kit::ComboboxEmpty::NoMatches(words.form_model_no_matches().into())
+        }
+    }
+}

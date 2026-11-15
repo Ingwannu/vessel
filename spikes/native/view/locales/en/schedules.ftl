@@ -459,3 +459,9 @@ schedules-form-empty-modes = No modes found
 schedules-form-empty-zones = No time zones found
 schedules-form-empty-choices = No matching options
 schedules-form-cron-placeholder = 0 9 * * *
+
+# Source model-browser feedback; short loading/retry/no-matching-model labels.
+schedules-form-model-loading = Loading
+schedules-form-model-retry = Retry
+schedules-form-model-retrying = Retrying...
+schedules-form-model-no-matches = No models match your search

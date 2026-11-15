@@ -1468,3 +1468,24 @@ Coordinator3450f791 assigns this minimal extension within the one picker.
   never raised. Literal profile/frame tests are authored; actual retained Retry
   dispatch/native ink/phase/first-use and all current compiler proof are owed.
   Prior e282 alpha/99 lease/control tests do NOT prove this new code/consumer.
+
+
+### Provider feedback and exact explicit retry wiring
+
+The prepared Form cache now distinguishes Loading, Failed, Retrying and ready
+catalogs. A single retained typed failure keeps the source error/disabled
+Retrying button during explicit read retry, then is cleared only by the exact
+current result or a fresh provider browse. No missing-model result is invented
+while reading. The new retry callback captures the original request and Visit,
+rechecks the mounted/current form, then calls existing retry_read (new ticket,
+same original destination/operation, writes prohibited). The shared picker
+additionally checks its per-open lease before the callback.
+
+ComboboxRetry is closed Ready{label,action}/Pending(label): no dummy pending
+callback and no second spinner signal. Provider error is displayed by its ONE
+source empty presentation, not repeated as a second form Alert below fields.
+Four new labels live in en/ko schedules.ftl; legacy cadence/error tables are
+not copied. Pure retry/pending/stale-response preservation tests are authored,
+not executed. Actual retained Retry/default-focus/consumer first-use and the
+new shared profile still await final F1 checks; queued20c proves prior source
+only when it finishes, not this later code.

@@ -18,7 +18,40 @@ impl Catalog {
             if input.harness == spec.harness && input.profile == spec.profile)
     }
 }
+/// Current catalog feedback; retrying retains its prior failure, not a fake empty list.
+#[derive(Debug, Clone, Copy)]
+pub enum CatalogStatus<'a> {
+    /// No provider catalog has been requested.
+    Unopened,
+    /// Initial read in progress, with no prior failure.
+    Loading,
+    /// Failed current read, not a missing-model result.
+    Failed(&'a super::Failure),
+    /// Explicit retry in progress; preserve the source error and disabled retry.
+    Retrying(&'a super::Failure),
+    /// The exact requested catalog is ready.
+    Ready,
+}
 impl Model {
+    /// View-only feedback from the same options mailbox and retained last failure.
+    #[must_use]
+    pub fn catalog_status(&self) -> CatalogStatus<'_> {
+        let State::Active(active) = &self.state else {
+            return CatalogStatus::Unopened;
+        };
+        if active.options.pending() {
+            active
+                .catalog_failure
+                .as_ref()
+                .map_or(CatalogStatus::Loading, CatalogStatus::Retrying)
+        } else if let Some(failure) = active.options.failure() {
+            CatalogStatus::Failed(failure)
+        } else if active.options.value().is_some() {
+            CatalogStatus::Ready
+        } else {
+            CatalogStatus::Unopened
+        }
+    }
     /// The selected target's catalog receipt, even while another agent is browsed.
     #[must_use]
     pub fn selected_options_request(&self) -> Option<&io::Request> {
@@ -74,6 +107,7 @@ impl Model {
         }
         let request = io::Request::on(self.connection()?.clone(), self.ticket()?, operation);
         if let State::Active(active) = &mut self.state {
+            active.catalog_failure = None;
             active.options.begin(request.clone());
         }
         Some(request)

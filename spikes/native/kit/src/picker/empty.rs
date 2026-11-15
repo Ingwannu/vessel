@@ -8,13 +8,14 @@ use crate::{
 use gpui::prelude::*;
 use gpui::{AnyElement, Context, Div, SharedString, div, px};
 /// Existing callback shape, with a shared primary button and explicit availability.
-pub struct Retry<V> {
-    /// Already localized Retry / Retrying label.
-    pub label: SharedString,
-    /// Pending/blocked callers provide Disabled; no handler is attached.
-    pub availability: ButtonState,
-    /// Caller rechecks the original request/context/visit; the kit checks its lease.
-    pub action: Back<V>,
+pub enum Retry<V> {
+    /// Ready read callback; the owner also rechecks request/context/visit.
+    Ready {
+        label: SharedString,
+        action: Back<V>,
+    },
+    /// Explicit retry is pending; same primary button, disabled, no callback.
+    Pending(SharedString),
 }
 /// Optional source feedback used only when the offered list is empty.
 pub enum Empty<V> {
@@ -91,18 +92,22 @@ fn retry_button<V: 'static>(
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> gpui::Stateful<Div> {
+    let (label, availability) = match retry {
+        Retry::Ready { label, .. } => (label, ButtonState::Enabled),
+        Retry::Pending(label) => (label, ButtonState::Disabled),
+    };
     let mut button = crate::button_with_kind_at(
         "model-browser-retry",
-        retry.label.clone(),
+        label.clone(),
         ButtonKind::Primary,
-        retry.availability,
+        availability,
         ControlSizing::from_compact(compact),
         tokens,
     );
-    if retry.availability == ButtonState::Enabled {
+    if let Retry::Ready { action, .. } = retry {
         let lease = state.render_lease();
         let get = handlers.state;
-        let action = std::rc::Rc::clone(&retry.action);
+        let action = std::rc::Rc::clone(action);
         button = button.on_click(cx.listener(move |view: &mut V, _, window, cx| {
             cx.stop_propagation();
             if !get(view).accepts(&lease) {
@@ -117,10 +122,12 @@ fn retry_button<V: 'static>(
 
 impl<V> std::fmt::Debug for Retry<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Retry")
-            .field("label", &self.label)
-            .field("availability", &self.availability)
-            .finish_non_exhaustive()
+        match self {
+            Self::Ready { label, .. } => {
+                f.debug_tuple("Ready").field(label).finish_non_exhaustive()
+            }
+            Self::Pending(label) => f.debug_tuple("Pending").field(label).finish(),
+        }
     }
 }
 impl<V> std::fmt::Debug for Empty<V> {

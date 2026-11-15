@@ -382,10 +382,9 @@ fn suffix_fields(
     }
     for problem in &form.problems {
         let notice = match problem {
-            OperationProblem::Targets(notice)
-            | OperationProblem::Options(notice)
-            | OperationProblem::Save(notice) => Some(notice),
-            OperationProblem::Preview(_) => None,
+            OperationProblem::Targets(notice) | OperationProblem::Save(notice) => Some(notice),
+            // Model browser owns this feedback and its explicit retry, once.
+            OperationProblem::Options(_) | OperationProblem::Preview(_) => None,
         };
         if let Some(notice) = notice {
             body = body.child(super::super::draw::row_notice(notice, tokens));

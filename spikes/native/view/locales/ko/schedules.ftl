@@ -459,3 +459,9 @@ schedules-form-empty-modes = 모드를 찾을 수 없습니다
 schedules-form-empty-zones = 시간대를 찾을 수 없습니다
 schedules-form-empty-choices = 일치하는 옵션이 없습니다
 schedules-form-cron-placeholder = 0 9 * * *
+
+# Source model-browser feedback; short loading/retry/no-matching-model labels.
+schedules-form-model-loading = 불러오는 중
+schedules-form-model-retry = 다시 시도
+schedules-form-model-retrying = 다시 시도 중...
+schedules-form-model-no-matches = 검색과 일치하는 모델이 없습니다

@@ -44,6 +44,8 @@ pub struct Form {
     pub controls: Option<crate::Controls>,
     /// Current read-only model-browser catalog, separate from the selected target.
     pub catalog_controls: Option<crate::Controls>,
+    /// Source loading/error feedback for the same provider catalog, prepared once.
+    pub catalog_feedback: CatalogFeedback,
     /// Current rule description uses the accepted legacy cadence table once.
     pub cadence: Option<Arc<str>>,
     /// Cached grammar failure, not a raw parser diagnostic.
@@ -62,6 +64,39 @@ pub struct Form {
     pub submission: Submission,
     /// Input engines also become read-only while a save/retirement blocks them.
     pub blocked: bool,
+}
+/// Source model-browser feedback, independent of the selected target controls.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CatalogFeedback {
+    /// No current catalog, or a ready catalog whose rows are rendered separately.
+    Ready,
+    /// Initial loading, without an incorrect no-matches label.
+    Loading,
+    /// Typed failure with an optional exact explicit read-retry receipt.
+    Failed {
+        notice: Notice,
+        request: Option<io::Request>,
+    },
+    /// Retain the failure while explicit retry is pending; no second activation.
+    Retrying(Notice),
+}
+fn catalog_feedback(model: &Model, catalog: &Translator) -> CatalogFeedback {
+    use super::session::CatalogStatus;
+    let notice = |failure: &crate::schedules::load::Failure| Notice {
+        label: crate::schedules::locale::failure(failure, catalog).into(),
+        variant: failure.variant(),
+    };
+    match model.catalog_status() {
+        CatalogStatus::Unopened | CatalogStatus::Ready => CatalogFeedback::Ready,
+        CatalogStatus::Loading => CatalogFeedback::Loading,
+        CatalogStatus::Retrying(failure) => CatalogFeedback::Retrying(notice(failure)),
+        CatalogStatus::Failed(failure) => CatalogFeedback::Failed {
+            notice: notice(failure),
+            request: (failure.retryable() && !model.blocked())
+                .then(|| model.catalog_request().cloned())
+                .flatten(),
+        },
+    }
 }
 /// The submit button cannot simultaneously be ready and already saving.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -169,6 +204,7 @@ pub fn prepare(
             .map(Into::into),
         controls: model.controls(lang),
         catalog_controls: model.catalog_controls(lang),
+        catalog_feedback: catalog_feedback(model, catalog),
         local: model.failure.as_ref().map(|failure| Notice {
             label: crate::schedules::locale::failure(failure, catalog).into(),
             variant: failure.variant(),

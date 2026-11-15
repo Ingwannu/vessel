@@ -18,6 +18,7 @@ mod catalog;
 mod change;
 mod retry;
 mod submit;
+pub use catalog::CatalogStatus;
 pub use change::FieldChange;
 pub use submit::Received;
 #[cfg(test)]
@@ -46,6 +47,7 @@ struct Active {
     targets: io::Mailbox,
     options: io::Mailbox,
     selected_catalog: Option<catalog::Catalog>,
+    catalog_failure: Option<Failure>,
     preview: io::Mailbox,
     saving: io::Mailbox,
 }
@@ -68,6 +70,7 @@ impl Active {
             targets: io::Mailbox::default(),
             options: io::Mailbox::default(),
             selected_catalog: None,
+            catalog_failure: None,
             preview: io::Mailbox::default(),
             saving: io::Mailbox::default(),
         }

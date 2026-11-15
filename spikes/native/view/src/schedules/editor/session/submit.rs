@@ -249,6 +249,9 @@ impl Model {
             self.state = State::Closed;
             return saved;
         }
+        if matches!(request.operation(), io::Operation::Options(_)) {
+            active.catalog_failure = active.options.failure().cloned();
+        }
         if matches!(request.operation(), io::Operation::Options(_))
             && let Some(io::Value::Options(options)) = active.options.value()
         {

@@ -161,19 +161,18 @@ pub(in crate::areas::schedules) fn popup(
         }),
         back,
     };
-    kit::combobox_with(
-        ComboboxContent::new(
-            "schedule-form-picker",
-            &header,
-            &offered.rows,
-            ComboboxWidth::Content,
-        ),
-        &ui.picker,
-        &handlers,
-        tokens,
-        window,
-        cx,
-    )
+    let content = ComboboxContent::new(
+        "schedule-form-picker",
+        &header,
+        &offered.rows,
+        ComboboxWidth::Content,
+    );
+    if picker == Picker::Model && ui.browsing {
+        let empty = browser::empty(shell, visit);
+        kit::combobox_with_empty(content, &ui.picker, &handlers, &empty, tokens, window, cx)
+    } else {
+        kit::combobox_with(content, &ui.picker, &handlers, tokens, window, cx)
+    }
 }
 fn choose(
     shell: &mut Shell,

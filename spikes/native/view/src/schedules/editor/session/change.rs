@@ -133,6 +133,7 @@ impl Model {
             }),
         );
         if let State::Active(active) = &mut self.state {
+            active.catalog_failure = None;
             active.options.begin(request.clone());
         }
         Some(request)
