@@ -787,7 +787,8 @@ is still0 and awaits the offline lock/feature receipt and its V3 acceptance.
 
 ## Dependency decision after the offline-index refusal
 
-Status: **decision proposal before any further dependency fetch/lock change**.
+Status: **A1 selected by the coordinator on 2026-11-15; staged provisioning,
+resolve and compile gates only. Native/model loading remains unapproved.**
 T's exact old-base run wp-voice-resolve-20261115T155318Z-1a3570d4 stopped at
 `cargo update --workspace --offline`: ort was absent from the offline index.
 The feature-tree command did not run. Before/result Cargo.lock are both110992B,
@@ -803,23 +804,31 @@ compiler/build script, native/model API or fixture transfer occurred.
   They establish file/feature provenance, not VAD accuracy or latency.
 - Alternatives: default ort; explicitly dynamic ort; explicitly supplied native
   link assets; self-contained tract-onnx; Sherpa or a different detector.
-- Proposed choice: retain defaults-OFF dynamic ort as the first parity-reference
-  candidate, not an adopted runtime. It has the smallest already-inventoried
-  new closure and keeps the reference ONNX backend. Evaluate tract against the
-  SAME model/fixtures before any final backend selection based on performance.
+- Selected choice: A1, defaults-OFF dynamic ort with ONLY std, load-dynamic
+  and api-28. It has the smallest already-inventoried new closure and keeps the
+  reference ONNX backend. This selects a dependency path, not an adopted runtime.
+  A0, the default downloader, is rejected. B (tract) is a documented fallback
+  and is not provisioned now.
 - Why: the default downloader is rejected. No measured comparison currently
   justifies either a tract speed claim or rejecting it for accuracy. A different
   VAD would change the required probability/boundary behavior.
-- Impact: dependency provisioning remains held for coordinator approval. Actual
-  lock/feature closure and loader source/measurement checkpoints remain gates;
-  no model/native load, automatic download or distribution permission follows.
+- Impact: T is authorized to provision only the three exact new package records
+  and archives below with a checksum-bound receipt. Next comes fixed offline
+  scratch resolve on the current node base and lock/feature-tree review, then a
+  separately reviewed offline compile for Linux and Windows MSVC on the build
+  VM. No model/native load, automatic download or distribution follows.
+- Fallback trigger: reconsider B only if A1 fails a Windows build or load gate,
+  exceeds the 32 ms p99 window budget, or produces an unacceptable installer
+  size. Installer acceptability needs an explicit decision using measured size;
+  no invented numeric size waiver is implied. Loading and any fallback
+  acquisition still require their own reviews.
 
 ### Options and offline Windows consequences
 
 | Option | Build/runtime assets and features | Licence/size evidence | Windows consequence / status |
 | --- | --- | --- | --- |
 | A0 default ort | Defaults include download-binaries, copy-dylibs, TLS/tracing/ndarray and api-31. Not selected. | This expands beyond the reviewed CPU1.28.2 closure. | Network-backed native provisioning is incompatible with our offline build; rejected. |
-| A1 explicit dynamic ort | Exact ort/ort-sys2.0.0-rc.15; defaults false; only std/load-dynamic/api-28. load-dynamic selects preload-dylibs and sys/disable-linking, API17..28 transitively. No downloader/copy/pkg-config/GPU/fetch-models/tracing/ndarray/TLS. | ORT MIT plus full source/archive notices; wrapper MIT OR Apache2; libloading ISC. Selected native payload24291672B Linux /15839856B Windows plus common643854B model. Linked/RSS delta unmeasured. | Rust/sys compilation needs no ORT import library or DLL: disable-linking returns before native lookup. Build x86_64-pc-windows-msvc with the approved VM SDK/toolchain offline; later reviewed loader verifies an absolute DLL path/hash, disables telemetry and drops foreign logs. Actual Windows build/load remains unproved. Proposed first reference candidate. |
+| A1 explicit dynamic ort | Exact ort/ort-sys2.0.0-rc.15; defaults false; only std/load-dynamic/api-28. load-dynamic selects preload-dylibs and sys/disable-linking, API17..28 transitively. No downloader/copy/pkg-config/GPU/fetch-models/tracing/ndarray/TLS. | ORT MIT plus full source/archive notices; wrapper MIT OR Apache2; libloading ISC. Selected native payload24291672B Linux /15839856B Windows plus common643854B model. Linked/RSS delta unmeasured. | Rust/sys compilation needs no ORT import library or DLL: disable-linking returns before native lookup. Build x86_64-pc-windows-msvc with the approved VM SDK/toolchain offline; later reviewed loader verifies an absolute DLL path/hash, disables telemetry and drops foreign logs. Actual Windows build/load remains unproved. Selected dependency path A1. |
 | A2 supplied native link assets | Defaults false with download/copy off, explicit pinned platform library/import-library inputs; no implicit system search or fetch. | Same ORT terms, but Windows import .lib and linker layout require a NEW positive-file amendment; they are excluded from current fixtures. Source-build ORT would add a much larger CMake/third-party source cache and notices. | Native link/loader search and MSVC CRT proof grow; current dynamic-only approval does not cover it. Not selected for this small detector. |
 | B tract-onnx0.23.10 | Evaluation proposal defaults false, transformer/getrandom-js off; no GPU/CLI/backend extras. Same opaque Silero bytes, no ORT DLL. Full normal/build closure still must be resolved, pinned and inventoried. | Original crate work MIT OR Apache2; upstream ONNX/TensorFlow protocol files have separate notices. The full closure and compiled size/RSS are unmeasured/unapproved. Model licence/size unchanged. | Rust MSRV1.91 fits our1.93 floor, but tract-linalg has cc/build templates and generated SIMD assembly. Its Windows-specific assembler path must pass the approved Linux-host MSVC cross-build; self-contained runtime does not eliminate build scripts/native kernels. No support or speed claim before proof. |
 | C existing alternatives | Sherpa wraps more native machinery; energy/RMS or another learned VAD changes the model. NNEF preconversion introduces another model artifact to pin. | Sherpa source candidate Apache2 was inspected earlier, native closure unselected. No new model/archive is acquired here. | Larger dependency/conversion review or different turn semantics; not a substitute for the required Silero parity. |
@@ -834,9 +843,10 @@ facts above are from the exact version tag's [ONNX manifest](https://github.com/
 describes its self-contained runtime/format approach and notice exceptions.
 These are documentation/source inspections, not dependency archive acquisition,
 Windows compilation or proof that this particular Silero graph is supported.
-No tract archive/closure/hash is selected for fetching by this proposal.
+No tract archive/closure/hash is selected for fetching. Its comparison remains
+a fallback study under the triggers recorded above, not a parallel provision.
 
-### What may enter an offline index after explicit approval
+### Authorized offline-index provisioning and ordered gates
 
 For A1, the ONLY candidate new package/version records and matching cached
 crate archives are ort2.0.0-rc.15, ort-sys2.0.0-rc.15 and libloading0.9.0;
@@ -845,9 +855,11 @@ match the already pinned checksum table above. Do not refetch existing caches.
 T must bind sparse-index records, exact registry checksums and archive bytes in
 a receipt, retain provenance, and refuse any extra version/dependency/feature.
 No ambient credentials/config are copied, no build script populates the cache,
-and no runtime archive is fetched by Cargo. Cache provisioning itself is NOT
-authorized yet. Once approved/provisioned, rerun fixed offline scratch resolve,
-review lock diff/feature tree, then allow a separately reviewed offline compile.
+and no runtime archive is fetched by Cargo. Only T owns this authorized cache
+provisioning, preferably reusing the already verified exact archives. After its
+receipt, run fixed offline scratch resolve on the current node base, review
+the lock diff/feature tree, then allow a separately reviewed offline compile
+for Linux and Windows MSVC. Do not fetch or modify a lock in this document step.
 The old82 result cannot qualify a new node-base graph.
 
 For B, offline provisioning would additionally need its complete exact
