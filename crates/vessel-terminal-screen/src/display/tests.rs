@@ -30,6 +30,8 @@ enum ProgramName {
     AlternatePendingWrap,
     RepeatedAlternate,
     SoftResetNegotiation,
+    Alternate47,
+    Alternate1047,
 }
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -270,6 +272,14 @@ fn repeated_alternate_entry_retains_cells_and_primary_saved_cursor_and_ink() {
 #[test]
 fn soft_reset_clears_vt_negotiation_but_preserves_server_keyboard_tracker_stack() {
     check(&program(ProgramName::SoftResetNegotiation));
+}
+#[test]
+fn alternate_47_matches_entry_reentry_exit_and_cursor_carry() {
+    check(&program(ProgramName::Alternate47));
+}
+#[test]
+fn alternate_1047_matches_entry_reentry_exit_and_cursor_carry() {
+    check(&program(ProgramName::Alternate1047));
 }
 #[test]
 fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
