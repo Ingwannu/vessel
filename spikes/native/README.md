@@ -458,6 +458,38 @@ static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
+### Theme cycling
+
+Settings > Shortcuts > General lists **Cycle theme**. Its default is
+Command+Option+T on Mac and Control+Alt+T elsewhere, through the same
+registry used for rebinding and conflicts. It calls `Theme::next` and the
+existing appearance preference setter. The command center suppresses this
+action, including a rebound key; character-preferred input and focused
+composition stand down before shortcut matching. Non-Mac terminal focus is
+excluded by policy, but its actual focus query awaits the terminal surface;
+this integration still has a placeholder there.
+
+### Named colour palettes (ADR 0070, staged)
+
+The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
+Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
+light or dark: status and syntax retain their existing scheme-specific
+sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+unchanged. The new dark variants share one tint-to-token mapping; their
+authored values and deliberate brand-accent substitution are in ADR 0070.
+
+The existing stored `view::prefs::Theme` now includes all seven concrete
+palettes and System. Appearance keeps its existing tiles, with System
+first. One app adapter supplies both their previews and the applied tokens;
+it compares actual tokens so two dark palettes do not collapse to Dark.
+`set_palette` updates the component layer and refreshes the windows too.
+The run override still pins light/dark as before. The plan and current
+verification limits are in `docs/plans/app-themes.md` at the repository root.
+
+`theme::palette::GREEN_500` remains the fixed success colour used by the
+typed menu. It has one definition, shared with the named palette module;
+it is not replaced by the theme's accent or semantic status signal.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -645,6 +677,20 @@ Environment:
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
   updates itself; without them it never does.
+
+## Composed sections in one bounded viewport
+
+`kit::ScrollViewport` is the shared scrolling body for already rendered
+sections. Keep its `ScrollState` across renders and add sections in order;
+they retain natural heights while the viewport fills only available flex
+space with a zero minimum height. Keep fixed header/footer siblings outside
+it. `SectionIndex` queries measured section bounds before the body's own
+scroll offset; `bounds` and `offset` report the viewport and current position.
+The state also supplies a minimal focus/reveal wrapper for an existing focus
+target. It provides no button activation or complete row accessibility.
+Wheel handling and clamping remain GPUI's, with no new scrolling physics.
+`VirtualList` remains for indexed, virtualized row delegates. Existing dialog
+and autocomplete internals are not migrated by this control-only change.
 
 ## Trying it against fake nodes, and capturing a screen
 
@@ -1043,3 +1089,14 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+
+### Sidebar navigation inventory (F4, staged)
+
+The pure `view::sidebar::navigation` model owns independent header/footer
+order and visibility. The existing preference document and writer retain its
+bounded choices, including unavailable plugin keys. `resolve` appends newly
+available defaults, while `moved` and `visibility` preserve disconnected entries
+through the same rewrite rule as Paseo's `sidebar-nav/model.ts`. This first
+model checkpoint does not yet replace the legacy sidebar renderer; see
+`docs/plans/wp-f4-sidebar.md` for the registry/plugin/usage seams and validation.

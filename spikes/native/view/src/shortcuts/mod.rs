@@ -21,4 +21,6 @@ pub use keys::{
 };
 pub use listing::{ShortcutFilter, ShortcutRow, modified_count, shortcut_row, shortcut_rows};
 pub use matching::{Matched, Pending, SEQUENCE_MS, matched};
-pub use registry::{Action, ShortcutGroup, bindings_of, jump_of, jump_shown, modified};
+pub use registry::{
+    Action, ShortcutGroup, ShortcutScope, bindings_of, jump_of, jump_shown, modified,
+};

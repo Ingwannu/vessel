@@ -11,7 +11,7 @@ use super::lenient;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Appearance {
-    /// Light, dark, or the system's.
+    /// A named palette, or the system's light/dark choice.
     #[serde(deserialize_with = "lenient")]
     pub theme: Theme,
     /// The interface's text size.
@@ -65,12 +65,50 @@ pub enum Theme {
     Light,
     /// Dark.
     Dark,
+    /// Paseo's neutral gray palette.
+    Zinc,
+    /// Paseo's blue-tinted palette.
+    Midnight,
+    /// Paseo's warm neutral palette.
+    Claude,
+    /// Paseo's slate-blue palette.
+    Ghostty,
+    /// Paseo's black-background palette.
+    PureBlack,
 }
 
 impl Theme {
     /// Every theme, in the order Settings offers them.
-    pub const ALL: [Self; 3] = [Self::System, Self::Light, Self::Dark];
+    pub const ALL: [Self; 8] = [
+        Self::System,
+        Self::Light,
+        Self::Dark,
+        Self::Zinc,
+        Self::Midnight,
+        Self::Claude,
+        Self::Ghostty,
+        Self::PureBlack,
+    ];
+
+    /// Paseo's shortcut cycles the catalogue, independently of the
+    /// System-first picker (`styles/theme.ts`, `getNextThemePreference`).
+    #[must_use]
+    pub const fn next(self) -> Self {
+        match self {
+            Self::Light => Self::Dark,
+            Self::Dark => Self::System,
+            Self::System => Self::Zinc,
+            Self::Zinc => Self::Midnight,
+            Self::Midnight => Self::Claude,
+            Self::Claude => Self::Ghostty,
+            Self::Ghostty => Self::PureBlack,
+            Self::PureBlack => Self::Light,
+        }
+    }
 }
+
+#[cfg(test)]
+mod theme_tests;
 
 macro_rules! text_size {
     ($(#[$meta:meta])* $name:ident, $min:literal ..= $max:literal, $default:literal) => {

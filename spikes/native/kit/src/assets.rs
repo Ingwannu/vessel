@@ -214,10 +214,20 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// Session history (Paseo's Lucide History alias).
+    History,
+    /// Move a sidebar preference down one row.
+    ArrowDown,
+    /// A plugin contribution without its own icon.
+    Blocks,
+    /// Add a registered project from the fixed footer.
+    FolderPlus,
+    /// Open sidebar help (Paseo's CircleHelp alias).
+    CircleHelp,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 85] = [
+const ALL: [Glyph; 90] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -303,6 +313,11 @@ const ALL: [Glyph; 85] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::History,
+    Glyph::ArrowDown,
+    Glyph::Blocks,
+    Glyph::FolderPlus,
+    Glyph::CircleHelp,
 ];
 
 impl Glyph {
@@ -365,6 +380,11 @@ impl Glyph {
             Self::PanelRight => "kit/panel-right.svg",
             Self::PanelLeft => "kit/panel-left.svg",
             Self::MenuCompact => "kit/menu-compact.svg",
+            Self::History => "kit/history.svg",
+            Self::ArrowDown => "kit/arrow-down.svg",
+            Self::Blocks => "kit/blocks.svg",
+            Self::FolderPlus => "kit/folder-plus.svg",
+            Self::CircleHelp => "kit/circle-help.svg",
             Self::PullRequest => "kit/pull-request.svg",
             Self::PullRequestDraft => "kit/pull-request-draft.svg",
             Self::PullRequestClosed => "kit/pull-request-closed.svg",
@@ -696,6 +716,29 @@ mod settings_nav_glyph_tests {
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod sidebar_glyph_tests {
+    use super::{ALL, Assets, Glyph, view_box};
+    use gpui::AssetSource as _;
+    #[test]
+    fn reserved_sidebar_glyphs_use_one_shared_path_and_paseo_stroke() {
+        for glyph in [
+            Glyph::History,
+            Glyph::ArrowDown,
+            Glyph::Blocks,
+            Glyph::FolderPlus,
+            Glyph::CircleHelp,
+        ] {
+            assert_eq!(ALL.iter().filter(|known| **known == glyph).count(), 1);
+            assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            assert!(glyph.svg().contains(r#"stroke-width="1.5""#));
+            assert!(glyph.svg().contains(r#"stroke-linecap="round""#));
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            assert_eq!(bytes.as_ref(), glyph.svg().as_bytes());
         }
     }
 }

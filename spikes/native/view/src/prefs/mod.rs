@@ -77,7 +77,7 @@ impl<T> Maybe<T> {
 
 /// `T` as the input says, or its default when the input says something
 /// else (a value a newer Vessel wrote, a size out of range).
-fn lenient<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+pub(crate) fn lenient<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de> + Default,
@@ -132,6 +132,12 @@ pub struct Preferences {
     /// How the sidebar lists sessions.
     #[serde(deserialize_with = "lenient")]
     pub sidebar: SidebarView,
+    /// Header/footer order and visibility, independently of plugin availability.
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "crate::sidebar::navigation::Navigation::is_empty"
+    )]
+    pub sidebar_navigation: crate::sidebar::navigation::Navigation,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,

@@ -148,13 +148,7 @@ fn archived_sessions_are_not_navigation_results() {
         "/w/visible",
     );
     let book = fleet(vec![machine("laptop", true, &[archived, visible])]);
-    let all: Vec<Entry> = palette_entries(
-        &book,
-        None,
-        &[],
-        [Theme::System, Theme::Light, Theme::Dark],
-        Lang::En,
-    );
+    let all: Vec<Entry> = palette_entries(&book, None, &[], super::named_themes(), Lang::En);
     let sessions: Vec<_> = all
         .iter()
         .filter(|entry| entry.group == PaletteGroup::Sessions)

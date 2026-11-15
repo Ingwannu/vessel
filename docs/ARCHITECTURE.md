@@ -1177,6 +1177,18 @@ than presented as exact. Account limits remain a separate merged-contract
 dependency (ADR 0075).
 
 
+## Native sidebar presentation (F4, staged)
+
+`view::sidebar::navigation` resolves header/footer inventory order and typed
+visibility. Its bounded keys describe UI preferences, not workspace or plugin
+RPC identity. Unknown and temporarily unavailable keys survive edits, while
+current inventory alone determines rendered rows. `Preferences::sidebar_navigation`
+and `PreferenceChange::SidebarNavigation` use the existing preference writer;
+the two bands change independently. Empty bands add no fields to older default
+documents. Registry ownership/membership/status is C1's responsibility; plugin
+contribution addresses and dispatch remain in the plugin feature. The sidebar
+adapters consume those contracts instead of deriving identity from paths.
+
 ## Native app localization (milestone 12, staged)
 
 The separate `spikes/native` workspace keeps UI and I/O out of
