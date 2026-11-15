@@ -4,15 +4,15 @@
 use serde_json::{Value, json};
 use std::io::Write as _;
 
-pub(super) fn record(method: &str) {
+pub(super) fn record(method: &str) -> std::io::Result<()> {
     if let Some(path) = std::env::var_os("FAKE_CODEX_CATALOGUE_AUDIT") {
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(path)
-            .unwrap();
-        writeln!(file, "{method}").unwrap();
+            .open(path)?;
+        writeln!(file, "{method}")?;
     }
+    Ok(())
 }
 
 pub(super) fn response(method: &str, params: &Value) -> Value {
@@ -27,6 +27,6 @@ pub(super) fn response(method: &str, params: &Value) -> Value {
         }
         ("getUserSavedConfig", _) => json!({"config": {"model": "second"}}),
         ("config/read", _) => json!({"config": {}}),
-        _ => unreachable!(),
+        _ => Value::Null,
     }
 }

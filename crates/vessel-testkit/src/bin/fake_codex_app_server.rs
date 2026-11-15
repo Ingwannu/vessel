@@ -174,7 +174,7 @@ impl Server {
     }
 
     fn request(&mut self, id: &Value, method: &str, params: &Value) -> Result<(), Exit> {
-        catalogue::record(method);
+        catalogue::record(method).map_err(|_failed| Exit::Closed)?;
         match method {
             "model/list" | "config/read" | "getUserSavedConfig" => {
                 self.send(&json!({"id": id, "result": catalogue::response(method, params)}))

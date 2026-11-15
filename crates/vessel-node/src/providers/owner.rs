@@ -208,7 +208,7 @@ async fn run<P, F>(
                         Ok(Admission::Ready(value)) => { let _gone = reply.send(Ok(value)); }
                         Ok(Admission::Joined(ticket)) => join(&mut pending, ticket, reply),
                         Ok(Admission::Start(work)) => {
-                            if let Some(old) = work.supersedes { cancel(&mut pending, old, OwnerError::Superseded); }
+                            if let Some(old) = work.supersedes { cancel(&mut pending, old, &OwnerError::Superseded); }
                             let cancel = CancellationToken::new();
                             let _old = pending.insert(work.ticket, Pending { cancel: cancel.clone(), waiters: vec![reply] });
                             let semaphore = Arc::clone(permits.entry(provider).or_insert_with(|| Arc::new(Semaphore::new(PER_PROVIDER))));
@@ -219,7 +219,7 @@ async fn run<P, F>(
                 }
                 Some(Mail::Replace { registry, reply }) => {
                     permits.retain(|id, _| registry.get(id).is_some());
-                    for ticket in cache.replace(registry) { cancel(&mut pending, ticket, OwnerError::Superseded); }
+                    for ticket in cache.replace(registry) { cancel(&mut pending, ticket, &OwnerError::Superseded); }
                     let _unobserved = changes.send(Change::Registry);
                     let _gone = reply.send(());
                 }
@@ -262,7 +262,7 @@ fn join(pending: &mut BTreeMap<Ticket, Pending>, ticket: Ticket, reply: Answer) 
     }
 }
 
-fn cancel(pending: &mut BTreeMap<Ticket, Pending>, ticket: Ticket, reason: OwnerError) {
+fn cancel(pending: &mut BTreeMap<Ticket, Pending>, ticket: Ticket, reason: &OwnerError) {
     if let Some(old) = pending.remove(&ticket) {
         old.cancel.cancel();
         for reply in old.waiters {
