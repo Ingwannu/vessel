@@ -21,6 +21,7 @@ struct Probe {
     shell: Entity<Shell>,
     focus: FocusHandle,
     raw: Rc<Cell<usize>>,
+    overlay: vessel_app_kit::menu::MenuState,
 }
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
@@ -31,6 +32,18 @@ impl Render for Probe {
             let palette = crate::areas::palette::render(shell, &tokens, window, cx);
             (field, palette)
         });
+        let menu = vessel_app_kit::menu::menu(
+            "shortcut-test-overlay",
+            &self.overlay,
+            &[vessel_app_kit::menu::MenuItem::new("Local menu")],
+            &vessel_app_kit::menu::MenuHandlers {
+                state: |probe: &mut Probe| &mut probe.overlay,
+                chose: Rc::new(|_, _, _, _| {}),
+            },
+            &tokens,
+            false,
+            cx,
+        );
         div()
             .size_full()
             .key_context("ShortcutProbe")
@@ -38,6 +51,7 @@ impl Render for Probe {
             .capture_key_down(move |_, _, _| raw.set(raw.get().saturating_add(1)))
             .child(field)
             .children(palette)
+            .children(menu)
     }
 }
 fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
@@ -52,6 +66,7 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
             shell,
             focus: cx.focus_handle(),
             raw: Rc::default(),
+            overlay: vessel_app_kit::menu::MenuState::new(cx),
         }
     });
     view.update_in(cx, |probe, window, cx| probe.focus.focus(window, cx));
@@ -200,5 +215,68 @@ fn hidden_window_key_events_neither_dispatch_nor_continue_a_prefix(cx: &mut Test
             probe.shell.read(cx).prefs.settings.appearance.theme,
             before.next()
         );
+    });
+}
+
+#[gpui::test]
+fn actual_menu_context_pauses_settings_capture_before_recording(cx: &mut TestAppContext) {
+    use vessel_app_view::settings::Section;
+    use vessel_app_view::shortcuts::sequence_capture::{CaptureRole, SequenceCapture};
+    use vessel_app_view::shortcuts::{Action, binding_id, default_context};
+    let (view, cx) = setup(cx);
+    view.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.open_settings(Some(Section::Shortcuts), window, cx);
+            shell.areas.shortcuts.page.capture = Some(SequenceCapture::new(
+                binding_id(Action::Palette, default_context(Platform::native())).unwrap(),
+                CaptureRole::Ordinary,
+            ));
+        });
+        probe
+            .overlay
+            .open(gpui::point(px(20.0), px(20.0)), window, cx);
+    });
+    cx.run_until_parked();
+    let key = match Platform::native() {
+        Platform::Mac => "cmd-k",
+        Platform::Other => "ctrl-k",
+    };
+    cx.simulate_keystrokes(key);
+    cx.run_until_parked();
+    view.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe
+                .shell
+                .read(cx)
+                .areas
+                .shortcuts
+                .page
+                .capture
+                .as_ref()
+                .unwrap()
+                .chords()
+                .count(),
+            0
+        );
+    });
+    cx.simulate_keystrokes("escape");
+    cx.run_until_parked();
+    cx.simulate_keystrokes(key);
+    cx.run_until_parked();
+    view.read_with(cx, |probe, cx| {
+        let shell = probe.shell.read(cx);
+        assert_eq!(
+            shell
+                .areas
+                .shortcuts
+                .page
+                .capture
+                .as_ref()
+                .unwrap()
+                .chords()
+                .count(),
+            1
+        );
+        assert!(!shell.areas.palette.is_open());
     });
 }

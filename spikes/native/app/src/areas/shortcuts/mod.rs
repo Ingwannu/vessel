@@ -195,6 +195,13 @@ impl Shell {
             self.areas.shortcuts.page.leave();
             return;
         }
+        let context = self.shortcut_context(event, window, cx);
+        if context.admission == Admission::Overlay {
+            self.areas.shortcuts.engine.reset();
+            self.areas.shortcuts.held.release();
+            badges::clear(&mut self.areas.shortcuts);
+            return;
+        }
         let press = press_of(event);
         if self.areas.shortcuts.page.recording() {
             self.areas.shortcuts.engine.reset();
@@ -218,7 +225,6 @@ impl Shell {
             self.areas.shortcuts.held.release();
             return;
         }
-        let context = self.shortcut_context(event, window, cx);
         let listener = &mut self.areas.shortcuts;
         match listener.compiled.refresh(&self.prefs.settings.shortcuts) {
             Ok(true) => {

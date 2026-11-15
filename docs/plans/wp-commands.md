@@ -541,3 +541,12 @@ sentence variables; Fluent values, keys and interpolation contracts are byte
 unchanged apart from comments. No second wording gate was requested. Dispatch,
 transaction/capture retention, App/Kit execution and package acceptance remain
 separate. Existing whole bidi goldens retain FSI/PDI.
+
+
+Actual overlay admission now precedes Settings capture as well as matching.
+The same named rendered kit context pauses the recorder without losing its
+accepted steps; after the menu actually closes, capture resumes. A real kit-menu
+focus/context GPUI regression uses the production interceptor, verifies no key
+is recorded behind the menu, then verifies recording resumes. Existing S2
+CharacterInput/composition guards remain first and unchanged. S2's hierarchy
+owner reuses the exact same marker and adds no Menu scope/cache/listener.
