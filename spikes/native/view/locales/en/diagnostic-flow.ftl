@@ -1,0 +1,59 @@
+# Diagnostics collection framing. No private values are interpolated.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-client = Client
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-desktop = Desktop
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-hosts = Hosts
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-pending = Waiting
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-running = Collecting
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-done = Collected
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-offline = The host is not connected. Reconnect and refresh.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-busy = Diagnostics is busy. Try again when the current read finishes.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-unavailable = This diagnostic source is not available in this build.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-unsupported = This host does not support this diagnostic.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-forbidden = This device cannot read this diagnostic. Check its host access.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-timed-out = The diagnostic timed out. Refresh to try again.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-invalid-reply = The host returned an invalid diagnostic. Refresh after reconnecting.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-failed = The diagnostic could not be collected. Refresh to try again.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-too-large = The combined report is too large. Run a report for one host.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-exhausted = No more diagnostic requests can be issued. Reopen the app.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-daemon = Daemon diagnostics
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-provider = Provider diagnostics
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-process = Process diagnostics
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-logs = Daemon logs
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-daemon-note = Basic host information is collected separately. The full daemon report needs a supported host API.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-provider-note = Automatic diagnostics never starts provider discovery or sign-in.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-process-note = Process details require a supported host API. No local process scan is run.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-logs-note = Daemon log viewing needs a supported host API. Session and terminal logs belong to their own views.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-privacy = Reports contain basic host identity and explicit unavailable sections. Host names, routes, keys and raw errors are excluded.
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-report = Run report
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-providers = Open providers
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-partial = Basic information only
+# Diagnostic sheet status or recovery; keep buttons short.
+diagnostic-flow-no-hosts = No hosts are saved. You can still copy the client report.

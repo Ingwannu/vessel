@@ -997,3 +997,20 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+## Diagnostic collection
+
+Settings > Diagnostics retains the existing app report dialog. Run collects the
+client facts and safe basic node information independently for each saved host;
+a host row runs the same report for one host. Copy becomes available only once
+all rows settle and the combined UTF-8 report passes its bound. Refresh replaces
+the active request identity and preserves the selected host. Closing discards
+late results. Host names, routes, keys and raw errors are excluded from the
+shareable host sections.
+
+The current node does not expose a full diagnostic, provider diagnostic, OS
+process diagnostic or daemon log API. Each source is shown as unavailable;
+no provider executable is started by this page. Session and terminal logs
+remain in their own views. ADR 0074 owns the future safe daemon report, and
+the app collection model lives in `view/src/diagnostics/`; link calls live in
+`link/src/diagnostics/`, drawing in `app/src/areas/settings/diagnostics/`.

@@ -23,6 +23,10 @@
 //! - Cost: an agent's "unavailable" sentence is the node's own words, kept
 //!   whole after redaction; a sentence naming a path keeps the path.
 
+pub mod collection;
+mod format;
+pub mod words;
+
 use crate::board::{Machine, Reach};
 
 /// The app's side of the report.

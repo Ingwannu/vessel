@@ -71,6 +71,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 Rejected::Closed => AgentsError::Disconnected,
             }),
         },
+        Command::Diagnostics(ask) => {
+            Event::Diagnostics(ask.refused(vessel_app_link::diagnostics::rejected(unsent.why)))
+        }
         Command::Machines(ask) => Event::Machines(ask.refused(Failure::Unsent)),
         Command::Sync { ticket, .. } => Event::Sync(vessel_app_link::sync::Answer {
             ticket,

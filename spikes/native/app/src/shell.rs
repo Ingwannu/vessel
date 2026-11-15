@@ -205,6 +205,7 @@ impl Shell {
 
     fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Diagnostics(answer) => self.diagnostic_answer(answer),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -396,6 +397,7 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         self.settle_settings(window);
+        self.settle_diagnostics();
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

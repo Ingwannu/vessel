@@ -1,0 +1,38 @@
+//! The shareable text only renders allowlisted facts and closed failure reasons.
+use super::collection::{HostRow, MAX_REPORT_BYTES, Problem, Progress, ReportText};
+use std::fmt::Write as _;
+use vessel_proto::NodeState;
+
+pub(super) fn combined(
+    client: Option<&ReportText>,
+    rows: &[HostRow],
+) -> Result<ReportText, Problem> {
+    let mut text = client.map_or_else(String::new, |client| client.as_str().to_owned());
+    for (index, row) in rows.iter().enumerate() {
+        // Saturation only guards the ordinal; the row bound keeps it well below usize::MAX.
+        let ordinal = index.saturating_add(1);
+        let _written = write!(text, "\n\nHost {ordinal}\n");
+        match &row.progress {
+            Progress::Done(facts) => {
+                let state = match facts.state {
+                    NodeState::Serving => "serving",
+                    NodeState::Draining => "draining",
+                };
+                let _written = write!(
+                    text,
+                    "  Node ID: {}\n  Protocol: {}\n  Lifecycle: {state}\n",
+                    facts.node, facts.protocol
+                );
+            }
+            Progress::Failed(problem) => {
+                let _written = writeln!(text, "  Node info: {problem}");
+            }
+            Progress::Pending | Progress::Running => return Err(Problem::Failed),
+        }
+        text.push_str("  Daemon diagnostic: API unavailable\n  Provider diagnostic: API unavailable\n  Process diagnostic: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
+        if text.len() > MAX_REPORT_BYTES {
+            return Err(Problem::TooLarge);
+        }
+    }
+    ReportText::new(&text)
+}

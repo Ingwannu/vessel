@@ -50,6 +50,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod diagnostics;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -201,6 +202,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// An explicit safe diagnostics read.
+    Diagnostics(diagnostics::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -362,6 +365,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A safe correlated diagnostics result.
+    Diagnostics(diagnostics::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -522,6 +527,7 @@ impl Link {
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
+            diagnostic_calls: diagnostics::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -586,6 +592,7 @@ struct State {
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
+    diagnostic_calls: diagnostics::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
@@ -630,6 +637,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::Diagnostics(ask) => self.diagnostic(ask).await,
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
