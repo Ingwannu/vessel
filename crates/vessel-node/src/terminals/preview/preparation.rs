@@ -20,8 +20,9 @@ pub(super) struct Attempt {
 
 struct Worker {
     socket: std::net::TcpStream,
-    attempt: Attempt,
+    // A failed/late worker releases physical capacity before announcing drain.
     _preparation: OwnedSemaphorePermit,
+    attempt: Attempt,
 }
 
 struct Prepared {
@@ -85,8 +86,8 @@ impl Worker {
             .source
             .inspect(&self.socket, &self.attempt.lease.binding)?;
         self.attempt.lease.validate()?;
-        // Destruction order on refusal is socket, attempt, preparation. Success
-        // moves the first two owners together; physical inspection is now over.
+        // Refusal drops socket and physical permit before the drain token.
+        // Success keeps socket/attempt together after inspection has ended.
         Ok(Prepared {
             socket: self.socket,
             attempt: self.attempt,

@@ -74,3 +74,9 @@ The control commit separately establishes unavailable admission and lease
 freshness/cancellation. The following connection commit adds registration
 under its existing gate and preserves those control tests. Its fake
 inspection is a transport-ordering model, not an OS peer collector.
+
+A follow-up ownership audit fixed Worker field destruction order: a refused
+or late physical inspection releases socket and preparation permit before
+the attempt's drain token. The existing blocked-worker cancellation and
+deadline cases assert full capacity only after receipt. This is required
+for drain to describe actual owners rather than only logical cancellation.
