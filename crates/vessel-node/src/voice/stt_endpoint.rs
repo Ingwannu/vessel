@@ -25,12 +25,18 @@ pub(super) enum SttError {
     Decode(#[from] transcript::TranscriptError),
 }
 
-#[derive(Debug)]
 pub(super) struct Endpoint {
     http: HttpEndpoint,
     model: EndpointModel,
     language: Language,
 }
+impl std::fmt::Debug for Endpoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Free-form model metadata can also contain an accidentally pasted key.
+        f.debug_struct("VoiceSttEndpoint").finish_non_exhaustive()
+    }
+}
+
 impl Endpoint {
     pub(super) async fn connect(
         base: &EndpointBase,

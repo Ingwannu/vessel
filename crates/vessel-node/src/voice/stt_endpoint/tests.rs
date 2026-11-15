@@ -112,3 +112,11 @@ async fn rejected_and_oversized_foreign_responses_keep_no_diagnostic_payload() {
         server.finish().await;
     }
 }
+
+#[tokio::test]
+async fn endpoint_debug_omits_even_accidentally_sensitive_model_metadata() {
+    let server = Server::start(Router::new()).await;
+    let client = endpoint(&server, SYNTHETIC_KEY).await;
+    assert!(!format!("{client:?}").contains(SYNTHETIC_KEY));
+    server.finish().await;
+}

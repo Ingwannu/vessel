@@ -219,3 +219,9 @@ but returned seven unnecessary fully qualified token names in fixtures; fixed
 by using the parent module's imported type. No operation or diagnostic policy
 was weakened. The new bounded update mechanism still owes its own first narrow
 compile/runtime check.
+
+STT endpoint Debug is now opaque like TTS, including free-form model/language
+metadata. A valid-looking model field can contain an accidentally pasted key;
+there is no diagnostic need to print it. A constructor-only loopback fixture
+uses that sensitive synthetic model and checks the full endpoint Debug remains
+redacted. This does not change persisted model values or the provider request.

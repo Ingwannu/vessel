@@ -2,7 +2,7 @@
 //!
 //! The owning actor calls these synchronous methods before its next await.
 //! A canceled oneshot restores the exact update; successful send is response
-//! readiness, not network delivery or audible playback. PlayedVoice remains
+//! readiness, not network delivery or audible playback. `PlayedVoice` remains
 //! the separate authority for releasing a synthesis receipt.
 
 use std::collections::VecDeque;
