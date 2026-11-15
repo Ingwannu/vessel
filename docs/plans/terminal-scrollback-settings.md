@@ -56,3 +56,10 @@ replacing an opening discards only its pending trim, retaining the preference.
 A second regression checks new-opening history and stale completion rejection.
 These changes are staged on top of the original immutable producer checks;
 neither the new regressions nor this repair has a runtime result yet.
+
+Shrinking retention is irreversible for this model: increasing or restoring the
+preference does not restore evicted history. The consumer must therefore attach
+the live trim to the existing canonical COMMITTED preference receipt, never an
+optimistic preview or a failed-save rollback effect. New openings use the last
+committed applied limit. No new writer/receipt or mutable snapshot restoration
+is introduced, and history rollback after a failed save is not promised.
