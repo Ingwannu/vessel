@@ -124,3 +124,24 @@ markup lint from a translator comment naming a Rust state; the comment now
 uses ordinary language. This is not a view test pass. The compressed-tree
 source requires the next changed-source check and execution of its allocation
 case before any measured-memory claim.
+
+
+## Latest narrow evidence
+
+At a5352cc6, view all-target clippy passed and view library tests passed:
+882 passed, 0 failed, 0 ignored. Runs
+`wp-git-narrow-20261115T072022Z-a5352cc6` and
+`wp-git-narrow-20261115T073212Z-a5352cc6` compiled the changed view crate.
+This includes the compressed-tree allocation bound and all panel model cases;
+it is no screen, node-write, package or complete skeleton approval.
+The package base 2 (6036eeb8) was subsequently merged at 2b7d4138. Those
+immutable remote test results are for a5352cc6, not a combined-tree gate.
+Shared machine node identity and input editability come from that base.
+
+Existing kit split-button ownership is confirmed. Its returned corrections
+(one-line typed density, menu-only shape, named parameters and its own radius)
+will be a control-only change within C3. The current reference compact height
+is CONTROL_HEIGHTS.sm = 28, not the older note's 32; native touch keeps the
+44-point target required by ADR 0036. Shared loaders remain the loader owner's
+producer, with no area spinner. The current integrated menu producer is not
+ready; historical source clears are not a current API handoff.
