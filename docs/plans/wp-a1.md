@@ -327,3 +327,11 @@ classified unknown, retaining the registered child/input instead of offering
 a duplicate prompt. The existing conservative flow and payload owner are
 reused. This closes local retry behavior while W12's guarded delivery/minter
 remains a separate required handoff; it is not a full follow-authority claim.
+
+Shared input strict run wp-composer-shared-input-20261115T133713Z-c71bd770
+reached App and exposed A1 callback-semicolon, documentation and nested-if
+lint findings. The owned delta fixes these directly and scopes validating
+fixture unwrap expectations to the four literal test constructors. Production
+does not gain a panic path or lint exemption; the actual input semantics and
+bounded retention checks stay unchanged. The next exact source check must
+also include the attachment owner's separate corrections from that run.

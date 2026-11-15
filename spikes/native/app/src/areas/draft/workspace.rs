@@ -1,5 +1,5 @@
 //! Workspace draft content is keyed before layout opens; payload ownership stays W6's.
-//! Presentation/focus belongs to W12's (LayoutKey, TabId), never this content map.
+//! Presentation/focus belongs to W12's (`LayoutKey`, `TabId`), never this content map.
 #[cfg(test)]
 mod tests;
 
@@ -109,7 +109,7 @@ impl Shell {
             .get(&(workspace.clone(), draft))
             .and_then(|entry| entry.scope.clone())
     }
-    /// Stage selections/editor before layout_open_target; a failed open retains it.
+    /// Stage selections/editor before `layout_open_target`; a failed open retains it.
     #[cfg_attr(
         not(test),
         expect(
@@ -180,17 +180,17 @@ impl Shell {
         );
         // History intake requires the admitted exact editor to be empty. Only
         // this new entry is rolled back on refusal; other drafts stay intact.
-        if let Some(history) = seed.history {
-            if let Err(problem) = self.composer_seed_history(source, history, window, cx) {
-                drop(
-                    self.areas
-                        .draft
-                        .workspace_drafts
-                        .entries
-                        .remove(&(key, draft)),
-                );
-                return Err(problem.into());
-            }
+        if let Some(history) = seed.history
+            && let Err(problem) = self.composer_seed_history(source, history, window, cx)
+        {
+            drop(
+                self.areas
+                    .draft
+                    .workspace_drafts
+                    .entries
+                    .remove(&(key, draft)),
+            );
+            return Err(problem.into());
         }
         if let Some(field) = self.workspace_draft_field(&key, draft) {
             field.set_text(seed.text.as_str(), window, cx);

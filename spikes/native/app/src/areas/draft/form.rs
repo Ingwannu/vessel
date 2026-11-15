@@ -30,7 +30,7 @@ pub(super) fn launch(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 )
                 .when(enabled, |button| {
                     button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.workspace_launch(Launch::Chat, cx)
+                        shell.workspace_launch(Launch::Chat, cx);
                     }))
                 }),
             )
@@ -45,7 +45,7 @@ pub(super) fn launch(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>
                 )
                 .when(enabled, |button| {
                     button.on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.workspace_launch(Launch::BlankTerminal, cx)
+                        shell.workspace_launch(Launch::BlankTerminal, cx);
                     }))
                 }),
             ),
