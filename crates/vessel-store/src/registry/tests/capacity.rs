@@ -84,10 +84,7 @@ fn resource_capacity_never_evicts_ended_owners_and_existing_lease_still_settles(
         },
     )
     .unwrap();
-    assert_eq!(
-        super::super::resource_owner(&db, resource).unwrap(),
-        Some(id)
-    );
+    assert_eq!(resource_owner(&db, resource).unwrap(), Some(id));
 }
 
 #[test]

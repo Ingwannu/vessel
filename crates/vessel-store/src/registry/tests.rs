@@ -191,10 +191,7 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
         apply(&mut db, &RegistryWrite::Reserve(conflict)),
         Err(StoreError::RegistryConflict)
     ));
-    assert_eq!(
-        super::reservation(&db, workspace).unwrap(),
-        Some(reservation)
-    );
+    assert_eq!(reservation(&db, workspace).unwrap(), Some(reservation));
     apply(
         &mut db,
         &RegistryWrite::Stage {
@@ -259,9 +256,7 @@ fn restart_marks_interrupted_creation_uncertain_without_reallocating_ids() {
     };
     apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
     apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
-    let found = super::reservation(&db, reservation.workspace)
-        .unwrap()
-        .unwrap();
+    let found = reservation(&db, reservation.workspace).unwrap().unwrap();
     assert_eq!(found.workspace, reservation.workspace);
     assert_eq!(found.stage, ReservationStage::Uncertain);
     let before = load(&db).unwrap();
@@ -303,7 +298,7 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
     apply(&mut db, &RegistryWrite::Completed(Box::new(record.clone()))).unwrap();
     assert_eq!(workspace(&db, record.descriptor.id).unwrap(), Some(record));
     assert_eq!(
-        super::reservation(&db, reservation.workspace)
+        reservation(&db, reservation.workspace)
             .unwrap()
             .unwrap()
             .stage,
@@ -366,7 +361,7 @@ fn resource_owner_lookup_does_not_match_a_shared_directory() {
     let resource = WorkspaceResource::Session {
         session: SessionId::random(),
     };
-    assert_eq!(super::resource_owner(&db, resource).unwrap(), None);
+    assert_eq!(resource_owner(&db, resource).unwrap(), None);
     apply(
         &mut db,
         &RegistryWrite::Membership {
@@ -377,7 +372,7 @@ fn resource_owner_lookup_does_not_match_a_shared_directory() {
     )
     .unwrap();
     assert_eq!(
-        super::resource_owner(&db, resource).unwrap(),
+        resource_owner(&db, resource).unwrap(),
         Some(second.descriptor.id)
     );
 }
@@ -418,7 +413,7 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
         put(&mut db, archived, Some(expected)),
         Err(StoreError::RegistryConflict)
     ));
-    assert_eq!(super::pending_starts(&db, id).unwrap().len(), 1);
+    assert_eq!(pending_starts(&db, id).unwrap().len(), 1);
     apply(
         &mut db,
         &RegistryWrite::Settle {
@@ -427,7 +422,7 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
         },
     )
     .unwrap();
-    assert!(super::pending_starts(&db, id).unwrap().is_empty());
+    assert!(pending_starts(&db, id).unwrap().is_empty());
     let mut archived = workspace(&db, id).unwrap().unwrap();
     let expected = archived.descriptor.revision;
     archived.descriptor.revision = expected.next().unwrap();
@@ -485,12 +480,12 @@ fn stale_start_completion_cannot_settle_a_newer_retry_for_the_same_actor_id() {
         ),
         Err(StoreError::RegistryConflict)
     ));
-    let pending = super::pending_starts(&db, id).unwrap();
+    let pending = pending_starts(&db, id).unwrap();
     assert_eq!(pending.len(), 1);
     assert_eq!(pending[0].lease, second);
     apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
     assert_eq!(
-        super::pending_starts(&db, id).unwrap()[0].state,
+        pending_starts(&db, id).unwrap()[0].state,
         RegistryStartState::Uncertain
     );
     apply(
