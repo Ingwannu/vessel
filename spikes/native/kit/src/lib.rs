@@ -204,6 +204,15 @@ pub fn set_text_sizes(cx: &mut App, interface: u8, code: u8) {
     }
 }
 
+/// Change the resolved faces used by the kit's semantic type steps.
+/// Names have already been resolved by the app's platform font edge;
+/// this does no font loading or preference parsing.
+pub fn set_font_stacks(cx: &mut App, interface: fonts::FontStack, code: fonts::FontStack) {
+    if fonts::set_stacks(interface, code) {
+        cx.refresh_windows();
+    }
+}
+
 /// Switch the theme, and the component layer's colours with it.
 pub fn set_scheme(cx: &mut App, scheme: Scheme) {
     set_palette(cx, Palette::from(scheme));
