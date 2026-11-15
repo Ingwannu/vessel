@@ -7824,6 +7824,11 @@ session: SessionId,
  */
 unread: InboxCount, 
 /**
+ * Deliberate whole-session unread mark, including an empty/pruned inbox.
+ * Exact-entry Seen and resolution do not clear this separate flag.
+ */
+explicit_unread: boolean, 
+/**
  * All current requests awaiting a person, including seen ones.
  */
 waiting: InboxCount, 
