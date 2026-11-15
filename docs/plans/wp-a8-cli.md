@@ -260,3 +260,11 @@ incorrectly prevent an explicitly targeted answer. Both paths reuse one bounded
 snapshot-to-row collector and exact typed identities. An in-memory fixture makes
 the node-wide session query fail and requires the selected read to succeed without
 consuming that query. This remains staged source pending VM execution/handlers.
+
+The separate CLI worktree now includes announced node9c150c6e (gate50c all18
+steps0, Rust2549/0/12) through a normal base merge. That is upstream baseline
+proof, not verification of these private permit changes. Canonical standalone
+body/identity vocabulary is now present; rich permission/question carrier fields,
+response RPCs and receipts are still absent from this announced head. Permit
+remains test-only and must not activate merely because body types are available.
+The app tree consumes its own official line; no whole node head is merged there.
