@@ -60,6 +60,8 @@ pub struct Labels {
     pub scripts_and_services: &'static str,
     pub none: &'static str,
     pub start_without_setup: &'static str,
+    /// Why a digest containing unshown terminal commands is refused.
+    pub approval_unseen: &'static str,
     pub approve_and_run: &'static str,
     pub script_warning: &'static str,
     pub badge_new: &'static str,
@@ -102,6 +104,7 @@ pub struct Labels {
     pub tip_isolation: &'static str,
     pub tip_base: &'static str,
     pub all_projects: &'static str,
+    pub fewer_projects: &'static str,
     pub panel_changes: &'static str,
     pub panel_files: &'static str,
     pub panel_toggle: &'static str,

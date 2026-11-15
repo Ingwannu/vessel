@@ -11,6 +11,10 @@ use vessel_app_view::settings::Section;
 use crate::routes::Route;
 use crate::shell::Shell;
 
+/// Out to the sidebar's edges: its padding (`spacing::S2`) taken back. A
+/// negative literal, since the workspace denies arithmetic on sizes.
+const OUT: f32 = -8.0;
+
 /// The sidebar's foot, as Paseo's (`components/left-sidebar.tsx`): a
 /// hairline over one line, its items at the left and Settings, a gear, at
 /// the right end. Here the build and "새로고침" at the left; the gear opens
@@ -19,8 +23,8 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
     let t = shell.t;
     div()
         // Out to the sidebar's edges through its padding (`spacing::S2`).
-        .mx(px(-8.0))
-        .mb(px(-8.0))
+        .mx(px(OUT))
+        .mb(px(OUT))
         .flex()
         .flex_row()
         .items_center()

@@ -60,8 +60,8 @@ async fn reply(log: &mut Log, from: usize) -> String {
         .collect()
 }
 
-/// Idle with nobody following: parked by the timer, its process gone and
-/// the session still running; the next prompt starts the agent again with
+/// Idle: parked by the timer, its process gone and the session still
+/// running; the next prompt starts the agent again with
 /// `session/load` and the options it had, and the turn runs.
 #[tokio::test]
 async fn an_idle_agent_is_parked_and_the_next_prompt_wakes_it() {
@@ -75,7 +75,7 @@ async fn an_idle_agent_is_parked_and_the_next_prompt_wakes_it() {
         let _options = handle.set_option(select("mode", "plan")).await.unwrap();
         let pid = handle.pid();
         assert!(pid.is_some());
-        // Nobody follows it now: the idle timer parks it.
+        // The idle timer parks it.
         drop(log);
         parked(&handle, true).await;
         let info = handle.info();
@@ -223,40 +223,34 @@ async fn parking_by_hand_waits_for_a_quiet_session_and_a_kill_ends_it() {
     .await;
 }
 
-/// Someone following the session live keeps its agent awake (the brief's
-/// "never while a terminal is attached").
+/// Someone following the session live does not keep its agent awake
+/// (Paseo's rule, ADR 0038's amendment of 2026-11-14): the follower sees
+/// `parked` on its own subscription, and its next prompt wakes the agent
+/// and is answered on that same subscription.
 #[tokio::test]
-async fn a_followed_session_is_not_parked() {
+async fn a_followed_session_is_parked_and_its_follower_follows_on() {
     within(Box::pin(async {
         let fixture = Fixture::parking_after(Some(Duration::from_millis(100)));
         let handle = fixture.start(structured(Vec::new())).await;
         let mut log = Log::of(&handle);
         handle.send(prompt("plain")).await.unwrap();
         log.turn_over().await;
-        // Several idle periods pass while `log` follows it: a prompt still
-        // finds the agent as it was (no `woken`).
-        let mut info = handle.watch_info();
-        let parked = tokio::time::timeout(
-            Duration::from_millis(600),
-            info.wait_for(|info| info.parked.is_some()),
-        )
-        .await;
-        assert!(parked.is_err(), "parked while followed");
+        let from = log.records.len();
+        log.since(from, |event| matches!(event, SessionEvent::Parked { .. }))
+            .await;
+        assert_eq!(
+            handle.info().parked.map(|parked| parked.reason),
+            Some(ParkReason::Idle)
+        );
         let from = log.records.len();
         handle.send(prompt("plain")).await.unwrap();
-        log.since(from, |event| {
-            matches!(
-                event,
-                SessionEvent::Agent {
-                    event: AgentEvent::TurnEnded { .. }
-                }
-            )
-        })
-        .await;
+        assert_eq!(reply(&mut log, from).await, "echo: plain");
         assert!(
-            !log.records
+            log.records
+                .get(from..)
+                .unwrap_or_default()
                 .iter()
-                .any(|record| matches!(record.event, SessionEvent::Parked { .. }))
+                .any(|record| matches!(record.event, SessionEvent::Woken))
         );
         handle.kill();
         let _end = handle.ended().await;

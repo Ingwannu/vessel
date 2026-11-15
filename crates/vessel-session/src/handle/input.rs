@@ -193,7 +193,10 @@ impl SessionHandle {
     }
 
     /// The input route of a live structured session.
-    fn structured(&self, what: &'static str) -> Result<&watch::Receiver<Route>, SessionError> {
+    pub(crate) fn structured(
+        &self,
+        what: &'static str,
+    ) -> Result<&watch::Receiver<Route>, SessionError> {
         if !self.0.info.borrow().status.is_live() {
             return Err(SessionError::Ended);
         }
@@ -206,7 +209,7 @@ impl SessionHandle {
     /// Hand an order to the actor and wait for its answer. Refused while
     /// the session moves, as input always was; an order sent as a move
     /// begins waits for it.
-    pub(super) async fn order<T>(
+    pub(crate) async fn order<T>(
         &self,
         route: &watch::Receiver<Route>,
         order: impl FnOnce(oneshot::Sender<Result<T, SessionError>>) -> Control,

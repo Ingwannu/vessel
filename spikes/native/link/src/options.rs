@@ -1,4 +1,4 @@
-//! Existing agent option queries and retained command/option lists.
+//! The existing agent option query and answer cache; no new operation.
 //!
 //! [Decision Log]
 //! - Purpose: keep one query/cache path outside the root command dispatcher.
@@ -9,8 +9,7 @@
 //!   request, persistence rule or dependency changes.
 //! - Cost: one private native module, registered by its immediate follow-up.
 use super::{Event, State, offers};
-use chrono::Utc;
-use vessel_proto::{AgentCommand, HarnessRef};
+use vessel_proto::HarnessRef;
 
 impl State {
     /// Ask `machine` what `harness` offers, beside the other commands (the
@@ -50,21 +49,4 @@ impl State {
                 .await;
         }));
     }
-    /// Keep a session's reported commands for `harness` on `machine`'s
-    /// node (by its id, as its options are); a machine not connected has no
-    /// id to keep them under, and they are dropped (its next session
-    /// reports them again).
-    pub(super) fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
-        let Ok(client) = self.client(machine) else {
-            return;
-        };
-        drop(tokio::spawn(offers::keep_answer(
-            std::sync::Arc::clone(&self.offers),
-            client.node().id,
-            harness,
-            offers::Said::Commands(commands),
-            Utc::now(),
-        )));
-    }
-
 }

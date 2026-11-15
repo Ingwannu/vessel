@@ -123,3 +123,28 @@ New Models words use `locales/en/models.ftl` and `locales/ko/models.ftl`
 through the generated, cached Fluent scope already on this lead baseline.
 The translation owner confirmed that the new domain is not otherwise owned.
 Existing Agents tables and translation-engine code are not changed.
+
+
+## Assigned package-base merge
+
+Merged the coordinator's `8d5513e4` package base before restoring the Models
+checkpoint. The link root is now 387 lines and has no size-list entry.
+Registrations belong to `command.rs`, `event.rs`, `dispatch.rs` and the
+root module/hub declarations. The shared shell event child retains the
+base's fork-header updates; its root has one event-module declaration.
+`State::keep_commands` is already in the lead's cohesive `refresh.rs`, with
+exactly the same body as the separately delegated move. The merge keeps
+that one canonical implementation instead of duplicating it in `options`.
+The options reader is also already on the lead's line.
+
+The uncommitted Models checkpoint was preserved and checked as a patch
+before the merge. Its local runtime test never started: it was cancelled
+while queued (143), as the coordinator's new native-narrow instruction
+allows. Earlier App Clippy completed with an independently observed zero
+exit status; later wording/test additions are not covered by that old
+result. No Models runtime/UI/A9 pass or whole gate is claimed. Source is
+restored onto the new registration seams next, then exact committed native
+narrow checks run remotely. Disposable fixture nodes and the authenticated
+virtual display used for preparation were stopped by verified PID/UID/exe;
+no app capture run was started. Generated wire whitespace inherited from
+the package base is kept unchanged.

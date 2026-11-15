@@ -21,7 +21,7 @@
 //!   start for one line of text).
 //! - Choice: the updater lives on the shell ([`Updates`]), on a one-thread
 //!   runtime of its own, and a GPUI task follows its watch into
-//!   `Shell::update_state`. "Update automatically" is the updater's own
+//!   `UpdateUi::state`. "Update automatically" is the updater's own
 //!   switch (`Updater::set_automatic`, track R's): off, its timer does not
 //!   check, and "Check for updates" still does. An installed build's notes
 //!   go into the app's preferences when it is ready, and the next start of
@@ -136,13 +136,13 @@ pub(crate) fn start(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
     let Some(updates) = Updates::start(!shell.prefs.manual_updates) else {
         return;
     };
-    shell.updates = Some(updates);
+    shell.updates.runtime = Some(updates);
     follow_current(shell, cx);
 }
 
 /// Follow the state of the shell's current updater.
 fn follow_current(shell: &Shell, cx: &mut Context<'_, Shell>) {
-    let Some((state, generation)) = shell.updates.as_ref().and_then(|running| {
+    let Some((state, generation)) = shell.updates.runtime.as_ref().and_then(|running| {
         running
             .updater
             .as_ref()
@@ -178,7 +178,7 @@ async fn follow(
 impl Shell {
     /// The followed updater's state changed.
     fn update_changed(&mut self, generation: u64, state: UpdateState, cx: &mut Context<'_, Self>) {
-        let Some(updates) = &self.updates else {
+        let Some(updates) = &self.updates.runtime else {
             return;
         };
         if updates.generation != generation {
@@ -192,7 +192,8 @@ impl Shell {
             });
             self.command(Command::SavePrefs(self.prefs.clone()));
         }
-        self.update_state = state;
+        self.updates.state = state;
+        self.updates.refresh(self.words);
         cx.notify();
     }
 
@@ -200,13 +201,14 @@ impl Shell {
     pub(crate) fn check_for_updates(&mut self, cx: &mut Context<'_, Self>) {
         let Some(updater) = self
             .updates
+            .runtime
             .as_ref()
             .and_then(|updates| updates.updater.as_ref())
         else {
             return;
         };
         if updater.check_now() {
-            self.update_asked = true;
+            self.updates.asked = true;
             cx.notify();
         }
     }
@@ -219,6 +221,7 @@ impl Shell {
         self.command(Command::SavePrefs(self.prefs.clone()));
         if let Some(updater) = self
             .updates
+            .runtime
             .as_ref()
             .and_then(|updates| updates.updater.as_ref())
         {
@@ -232,6 +235,7 @@ impl Shell {
     pub(crate) fn restart_to_update(&mut self, cx: &mut Context<'_, Self>) {
         let Some(updater) = self
             .updates
+            .runtime
             .as_ref()
             .and_then(|updates| updates.updater.as_ref())
         else {
@@ -245,8 +249,9 @@ impl Shell {
         match updater.restart(std::env::args_os().skip(1)) {
             Ok(()) => cx.quit(),
             Err(ApplyError::NotReady) => {}
-            Err(error) => {
-                self.notice = Some(error.to_string());
+            Err(ApplyError::Restart(error)) => {
+                tracing::warn!(error = %vessel_app_updater::chain(&error), "the updated app did not start");
+                self.notice = Some(self.updates.restart_failed(self.words).to_string());
                 cx.notify();
             }
         }
@@ -254,7 +259,7 @@ impl Shell {
 
     /// Whether this build updates itself.
     pub(crate) const fn updates_on(&self) -> bool {
-        self.updates.is_some()
+        self.updates.runtime.is_some()
     }
 
     /// The running build's release notes, when the feed gave them (kept
@@ -302,11 +307,12 @@ impl Shell {
             .as_ref()
             .map(|kept| kept.notes.clone());
         if restarted || changed {
-            self.updated = Some(Updated {
+            self.updates.announcement = Some(Updated {
                 label: label.to_owned(),
                 notes,
             });
         }
+        self.updates.refresh(self.words);
         self.prefs.last_label = Some(label.to_owned());
         self.command(Command::SavePrefs(self.prefs.clone()));
     }
@@ -317,14 +323,4 @@ impl Shell {
 pub(crate) struct Updated {
     pub(crate) label: String,
     pub(crate) notes: Option<String>,
-}
-
-/// What the title bar shows for `state`, as a percentage when
-/// downloading.
-pub(crate) fn percent(received: u64, total: u64) -> u8 {
-    if total == 0 {
-        return 0;
-    }
-    let percent = received.saturating_mul(100).div_euclid(total);
-    u8::try_from(percent.min(100)).unwrap_or(100)
 }

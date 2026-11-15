@@ -82,10 +82,11 @@ logged.
 trusted, or checked again, everywhere it goes. "Parse, don't validate"
 makes an invalid value impossible to hold.
 **Check.** Review.
-**Today.** Not measurable by a tool. Known cases:
-`vessel-store/src/codec.rs` round-trips a string through a
-`serde_json::Value` three times to reuse serde's validation where a
-`FromStr` would say it directly.
+**Today.** Not measurable by a tool. The former three bare-text adapters in
+`vessel-store/src/codec.rs` now consume SQL strings through serde's string
+deserializer, reusing the validating types without a JSON tree or string
+round trip. Column-specific corruption errors remain; this is not a count
+of other parse-at-the-edge violations.
 
 ### T3. No stringly-typed dispatch
 
@@ -147,9 +148,10 @@ files (clippy's count; the audit counted 149 lines mentioning either:
 Documented edges: `vessel-agent/src/claude/wire.rs`, `codex/protocol.rs`,
 `mapper.rs`, `vessel-mcp/src/tools/conversation.rs`. Not documented:
 `vessel-node/src/catalogue/registry.rs`, `vessel-llm/src/client.rs`,
-`vessel-agent/src/handshake.rs` (builds `_meta` as a `Value`),
-`vessel-store/src/codec.rs`, the MCP tools' `Result<Value, ToolError>`
-returns.
+`vessel-agent/src/handshake.rs` (builds `_meta` as a `Value`), the MCP tools'
+`Result<Value, ToolError>` returns. The former three adapters in
+`vessel-store/src/codec.rs` have since been removed; the audit totals above
+have not been remeasured.
 
 ### T7. Numeric conversions say what they lose
 
@@ -355,8 +357,7 @@ thing belongs to the lowest crate whose job it is.
 readers hold both.
 **Check.** Review; the size budgets as the measurable proxy.
 **Today.** Every one of the 737 product files starts with `//!`; no
-module is named `utils`, `common`, `helpers` or `misc`. Native: all 353
-files have the header; one `common` module (`app/src/areas/common.rs`). Files that hold
+module is named `utils`, `common`, `helpers` or `misc`. Files that hold
 more than one thing are named in the audit (`vessel-node/src/models/
 proxy.rs`, `fleet/links.rs`, `vessel-agent/src/codex/session.rs`).
 
@@ -381,12 +382,8 @@ vessel-proto` (since 2026-11-14); ADR 0001's map also lacked `vessel-agent
 them. Sideways reaching (`super::super::`): 5 sites in the node line.
 `HarnessKind::<variant>` outside `vessel-harness`: 5 uses in
 `vessel-session/src/runtime/drivers.rs`, not yet read for whether they
-decide behaviour. Native: `spikes/native/README.md`'s tables (edges,
-owners of GPUI's crates, Fluent and tokio, and names only some files may
-use) and `spikes/release/README.md`'s are held by the same script
-(`--workspace`); 0 today, after the README named the browser's entry point
-(`app/src/web.rs`) beside `main.rs` as a place `gpui_platform` belongs.
-`super::super::`: 8 sites.
+decide behaviour. Native (its README's table): 2 (`app/src/web.rs` names
+`gpui_platform` outside `main.rs`).
 
 ### M3. File budget: 500 lines of product code
 
@@ -399,10 +396,8 @@ to the list.
 stop them growing (the target in `AGENTS.md` was "about 400").
 **Check.** `scripts/check-rust-size.mjs`.
 **Today.** 33 files listed (7 over 800; the largest
-`vessel-node/src/models/proxy.rs`, 1,592). Native: 22 listed in
-`spikes/native/scripts/rust-size-allow.txt` (6 over 800; the largest
-`app/src/areas/draft/pickers.rs`, 1,190); the release tools: none over
-500.
+`vessel-node/src/models/proxy.rs`, 1,592). Native: 21 over 500 (5 over
+800), not yet under the check.
 
 ### M4. Function budget: 60 lines
 
@@ -461,18 +456,12 @@ has no `tests/` directory, 51.
 ### M8. The native app's screens use the kit's tokens
 
 **Rule.** (`spikes/native`) Colours, type, spacing and radii come from the
-kit's tokens, never a literal in a screen; no crate of the workspace
-writes a hex colour outside the kit's tokens (`kit/src/theme.rs`,
-`kit/src/theme/`).
+kit's tokens, never a literal in a screen.
 **Why.** A literal spacing is a design decision made once per call site;
 the token is the decision made once.
-**Check.** `spikes/native/scripts/check-tokens.mjs`: per file and kind,
-listed in `spikes/native/scripts/tokens-allow.txt`, only falling; review
-for type and radii.
-**Today.** In `app/src`, 443 `px(<number>)` equal to a spacing step (0
-included) and 90 others; 44 hex colours outside the kit's tokens (40 in
-the kit's own files: code highlighting 18, the agents' marks 8; 4 in
-`app`).
+**Check.** Review today; a literal ratchet over `app/src` is planned.
+**Today.** 511 `px(<number>)` literals in `app/src` (382 of them equal a
+spacing step), 4 colour literals.
 
 ## The page's TypeScript (`web/`)
 
@@ -555,6 +544,12 @@ before it is reported; the report pastes the summary.
 **Why.** A red commit in the history breaks bisecting and every branch cut
 from it.
 **Check.** CI on every push; review of the report.
+**Today.** Tests build binaries themselves: the testkit's nested builds
+(`Fake::path`, `vessel_testkit::vesseld`) resolve features apart from
+`cargo test --workspace` and recompiled vessel-node's whole graph under
+the target lock (312 s in gate 19, 2026-11-14). Every gate pre-builds them
+first. The fix to come is for the tests to use what the runner built
+(`CARGO_BIN_EXE_*`, or a pre-build step as an xtask), so no test builds.
 
 ### P2. A refactor changes no behaviour
 
