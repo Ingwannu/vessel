@@ -2,6 +2,7 @@
 //! calls; who may open one where is `place`; the terminal itself is
 //! `vessel_session::terminals`'.
 
+mod open;
 mod place;
 
 pub(super) use place::archived;
@@ -12,14 +13,14 @@ use vessel_proto::terminals::{
     RenameTerminal, SendTerminal, SubscribeTerminal, TerminalInfo, TerminalKind, TerminalList,
     TerminalPlace, TerminalSubscribed,
 };
-use vessel_proto::{Ack, Creator, EventPage, TerminalId, TerminalInput, TerminalSize, WireError};
+use vessel_proto::{Ack, Creator, EventPage, TerminalId, TerminalInput, WireError};
 use vessel_session::FollowError;
-use vessel_session::terminals::{InputError, ShellStart, TerminalHandle, start_shell};
+use vessel_session::terminals::InputError;
 
 use super::{Connection, NodeService};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
-use crate::terminals::{self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, Shell, Start, TerminalsError};
+use crate::terminals::{self, CLOSE_WAIT, Entry, MAX_WAIT_SECS, TerminalsError};
 use crate::waits::Waiter;
 use place::Resolved;
 
@@ -76,19 +77,14 @@ impl NodeService {
             .resolve_terminal_place(principal, &request.place)
             .await
             .map_err(wire)?;
-        // Before the reservation and the spawn, so nothing starts under a
-        // removal's teardown; given back once the terminal is registered.
+        let root = self
+            .workspaces
+            .admit_start(&folder)
+            .await
+            .map_err(|error| error.wire())?;
+        let folder = root.folder().to_path_buf();
         let hold = self.hold_folder(&folder).map_err(wire)?;
         let id = TerminalId::random();
-        let reservation = self
-            .terminals
-            .reserve(Start {
-                owner,
-                id,
-                folder: folder.clone(),
-                run: None,
-            })
-            .map_err(wire)?;
         let size = request.size.unwrap_or_default();
         let info = TerminalInfo::new(
             id,
@@ -101,49 +97,21 @@ impl NodeService {
         )
         .with_creator(creator(principal))
         .with_title(request.title);
-        let handle = self
-            .start_shell(&shell, info, &folder, size)
-            .await
-            .map_err(wire)?;
-        // Registered and watched before anything else is awaited: a caller
-        // that stops waiting now leaves a terminal the node still ends.
-        self.terminals.register(reservation, handle.clone(), None);
-        // Registered, it is one of the live terminals a removal reads.
-        drop(hold);
-        let here = self.links.node();
-        for session in watch {
-            self.terminals.watch_for_agents(here, session);
-        }
-        self.still_placed(&handle, &request.place)
-            .await
-            .map_err(wire)?;
-        Ok(handle.info())
-    }
-
-    async fn start_shell(
-        &self,
-        shell: &Shell,
-        info: TerminalInfo,
-        folder: &std::path::Path,
-        size: TerminalSize,
-    ) -> Result<TerminalHandle, TerminalsError> {
-        let runner = &self.terminals.runner;
-        start_shell(ShellStart {
-            info,
-            spec: terminals::shell_spec(shell, folder, &runner.config.removed),
-            size,
-            scrollback: runner.config.scrollback,
-            shutdown: runner.shutdown.clone(),
-            tasks: runner.tasks.clone(),
-        })
+        open::start(
+            self,
+            open::Opening {
+                shell,
+                info,
+                size,
+                owner,
+                root,
+                placement: hold,
+                here: self.links.node(),
+                watch,
+            },
+        )
         .await
-        .map_err(|error| match error {
-            vessel_session::terminals::TerminalError::ShuttingDown => TerminalsError::ShuttingDown,
-            other @ (vessel_session::terminals::TerminalError::Spawn(_)
-            | vessel_session::terminals::TerminalError::Internal(_)) => {
-                TerminalsError::Spawn(other.to_string())
-            }
-        })
+        .map_err(wire)
     }
 
     /// `terminal.list`.

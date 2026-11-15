@@ -1633,3 +1633,10 @@ retains operations in the existing TaskTracker through actual file I/O and root
 verification, independent of RPC response lifetime. Checkpoint capture/restore
 orchestration remains test-only and unadvertised; wiring the remaining writer
 families and durable startup recovery is still required before activation.
+
+Terminal shell startup also retains physical-root admission through registration
+and placement validation. `workspace::starting` maps nested/aliased CWD ancestry
+through `vessel-workspace::physical`; `workspace::metadata` bounds blocking root
+probes independently and keeps permits until actual I/O completion. Remaining
+session/script start paths and checkpoint restore orchestration are not yet
+connected, so this source does not establish complete root-wide exclusion.

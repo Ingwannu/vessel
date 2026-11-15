@@ -44,6 +44,9 @@ pub(crate) enum WorkspaceError {
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
+    /// A cancelled metadata caller cannot free a still-blocked worker slot.
+    #[error("workspace root metadata admission is busy")]
+    MetadataBusy,
     /// Cooperative cancellation before a mutation begins is an explicit refusal.
     #[error("workspace write was cancelled")]
     WriteCancelled,
@@ -56,7 +59,6 @@ pub(crate) enum WorkspaceError {
     /// A retained blocking operation failed; preserve the executor source.
     #[error("file operation worker stopped")]
     Task(#[from] tokio::task::JoinError),
-    #[cfg(target_os = "linux")]
     #[error("physical root filesystem access failed")]
     Directory(#[source] std::io::Error),
     #[cfg(target_os = "linux")]
@@ -128,7 +130,6 @@ impl WorkspaceError {
     /// The wire's form: a code a client branches on, and a message.
     pub(crate) fn wire(&self) -> WireError {
         let code = match self {
-            #[cfg(target_os = "linux")]
             Self::Directory(_) => ErrorCode::Internal,
             #[cfg(target_os = "linux")]
             Self::RootAdmission(
@@ -143,7 +144,7 @@ impl WorkspaceError {
             Self::RootAdmission(super::exclusion::RootRefusal::NotRecovering) => {
                 ErrorCode::Conflict
             }
-            Self::Stopping | Self::WriteCancelled => ErrorCode::Unavailable,
+            Self::Stopping | Self::WriteCancelled | Self::MetadataBusy => ErrorCode::Unavailable,
             Self::ReplyGone(_) | Self::Task(_) => ErrorCode::Internal,
             Self::NoGit | Self::NotGit => ErrorCode::Unsupported,
             Self::UnknownProject(_)

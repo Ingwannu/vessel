@@ -28,11 +28,13 @@ pub(crate) mod exclusion;
 mod files;
 mod forge;
 mod git;
+mod metadata;
 mod policy;
 mod projects;
 mod roots;
 mod scripts;
 mod setup;
+mod starting;
 mod worktrees;
 mod writing;
 
@@ -59,6 +61,7 @@ pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
 pub(crate) use projects::Occupant;
 pub(crate) use scripts::{DirError, ScriptRoot};
+pub(crate) use starting::StartGuard;
 pub(crate) use worktrees::{Placed, Starting, TidyScope};
 
 /// The most projects, and the most worktrees, one node keeps.
@@ -159,6 +162,7 @@ pub(super) struct State {
 #[derive(Debug)]
 pub(crate) struct Workspaces {
     git: Option<Git>,
+    root_reads: Arc<tokio::sync::Semaphore>,
     #[cfg(target_os = "linux")]
     exclusion: exclusion::RootGate,
     support: GitSupport,
@@ -241,6 +245,7 @@ impl Workspaces {
         });
         let workspaces = Arc::new(Self {
             git: found.git,
+            root_reads: Arc::new(tokio::sync::Semaphore::new(metadata::ROOT_METADATA_WORKERS)),
             #[cfg(target_os = "linux")]
             exclusion,
             support: found.support,

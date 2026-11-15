@@ -44,9 +44,7 @@ impl Workspaces {
         #[cfg(target_os = "linux")]
         let (directory, lease) = {
             let path = resolved.root.path().to_path_buf();
-            let directory = tokio::task::spawn_blocking(move || Directory::open(&path))
-                .await?
-                .map_err(WorkspaceError::Directory)?;
+            let directory = self.root_metadata(move || Directory::open(&path)).await?;
             let deadline = tokio::time::Instant::now()
                 .checked_add(ADMISSION_TIMEOUT)
                 .ok_or(RootRefusal::TimedOut)?;

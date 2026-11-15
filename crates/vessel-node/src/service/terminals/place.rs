@@ -171,24 +171,14 @@ impl NodeService {
         handle: &TerminalHandle,
         place: &TerminalPlace,
     ) -> Result<(), TerminalsError> {
-        let refusal = match place {
-            // Archived meanwhile, it is put away: its archiving ends what
-            // was registered before its mark, this what came after.
-            TerminalPlace::Session { session } => match self.sessions.get(*session).await {
-                Ok(info) if info.marks.archived_at.is_some() => Some(archived()),
-                Ok(_) => None,
-                Err(_gone) => Some(TerminalsError::NotFound(handle.id())),
-            },
-            TerminalPlace::Project { project, .. } => (!self.workspaces.has_project(*project))
-                .then(|| TerminalsError::NotFound(handle.id())),
-        };
-        let Some(refusal) = refusal else {
-            return Ok(());
-        };
-        handle.kill();
-        let _ended = tokio::time::timeout(CLOSE_WAIT, handle.ended()).await;
-        self.terminals.forget(handle.id());
-        Err(refusal)
+        check(
+            &self.sessions,
+            &self.workspaces,
+            &self.terminals,
+            handle,
+            place,
+        )
+        .await
     }
 
     /// Hold the worktree `folder` is in, if any, from removal, setup and
@@ -213,4 +203,33 @@ pub(in crate::service) fn archived() -> TerminalsError {
          beside it"
             .to_owned(),
     )
+}
+
+/// Shared placement validation also runs inside retained startup operations.
+pub(in crate::service) async fn check(
+    sessions: &crate::sessions::Sessions,
+    workspaces: &crate::workspace::Workspaces,
+    terminals: &crate::terminals::Terminals,
+    handle: &TerminalHandle,
+    place: &TerminalPlace,
+) -> Result<(), TerminalsError> {
+    let refusal = match place {
+        // Archived meanwhile, it is put away: its archiving ends what
+        // was registered before its mark, this what came after.
+        TerminalPlace::Session { session } => match sessions.get(*session).await {
+            Ok(info) if info.marks.archived_at.is_some() => Some(archived()),
+            Ok(_) => None,
+            Err(_gone) => Some(TerminalsError::NotFound(handle.id())),
+        },
+        TerminalPlace::Project { project, .. } => {
+            (!workspaces.has_project(*project)).then(|| TerminalsError::NotFound(handle.id()))
+        }
+    };
+    let Some(refusal) = refusal else {
+        return Ok(());
+    };
+    handle.kill();
+    let _ended = tokio::time::timeout(CLOSE_WAIT, handle.ended()).await;
+    terminals.forget(handle.id());
+    Err(refusal)
 }

@@ -627,3 +627,20 @@ operation before releasing admission. Regular blocking file I/O may ignore that
 cancellation and retains its lease until completion. The original Git handle
 and unrelated requests are not cancelled by one scoped clone. Read-only Git
 status/diff/history remain outside writer admission.
+
+### Start admission and metadata-worker lifetime
+
+A nested CWD and a parent-directory alias must use the registered managed root's
+physical admission identity. The filesystem layer therefore walks opened parent
+FDs, with a named ancestry bound, before selecting a known managed root. This
+uses the already-resolved safe OwnedFd API; no dependency or unsafe code is added.
+Root metadata discovery has two worker permits, retained inside the blocking
+closure until it actually finishes. Losing an RPC does not admit replacement
+workers while old kernel I/O remains blocked.
+
+Shell startup is a retained node task through registration, agent watches and
+placement validation. Its root guard and existing worktree starting reservation
+survive caller cancellation until those steps settle. This connection alone does
+not fence script restarts, every session/agent launch or restore; those call sites
+and actual actor quiescence remain required before checkpoint activation. The
+terminal-start slice has not yet received compiled/runtime verification.

@@ -1,4 +1,6 @@
 //! FD-derived identity for the node's physical-root admission, not a workspace id.
+mod ancestry;
+pub use ancestry::Ancestry;
 use sha2::{Digest as _, Sha256};
 use std::{
     fs::{File, Metadata, OpenOptions},

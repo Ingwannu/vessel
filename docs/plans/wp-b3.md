@@ -3,7 +3,7 @@
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes the reviewed integration head `ba45a6e3` (Quality B)
 and the shared `Request`/`UnexpectedReply` extraction `1c8d0b93`; pending rows now live at the end of `rpc/table.rs`. The separate
-app branch consumes package bases `8d5513e4` and `6036eeb8`; no app feature is implemented yet.
+app branch consumes package base 4 `3cd0d3fc`; no app feature is implemented yet.
 
 ## References and existing assets
 
@@ -223,3 +223,29 @@ fixture instead of a dead-code allowance. These corrections need their next
 scoped compiled run. `65b9fcec` checkpoint-filtered tests passed 87 with zero
 failures and six ignored obligations, including actual file denial and retained
 I/O after caller cancellation; this precedes the Git writer connection.
+
+## Resume point: terminal-start admission slice
+
+Terminal creation now acquires the shared physical-root admission and retains it
+in the existing task tracker through shell startup, synchronous registry entry,
+agent watches and placement validation. FD parent ancestry maps a nested or
+parent-alias CWD to a registered managed worktree root rather than treating that
+subdirectory as independent. New root metadata probes use two worker permits;
+the blocking closure retains its permit after caller cancellation. These changes
+are connected source, not compiled or runtime-verified evidence. The unused
+shell-opening import and redundant platform guard were corrected in this slice.
+
+Latest verified behavior remains `65b9fcec`: 87 checkpoint-filtered tests passed,
+zero failed, six ignored obligations. The separate run on `fe0c868b` is already
+in progress and must be collected without resubmission. It precedes this terminal
+slice. The latest Git clippy result was a failure; its reported local corrections
+are committed, but no passing clippy result for them is claimed.
+
+Scripts and services (including automatic restart), session create/resume/wake/
+move start admission, actual per-turn actor hooks, pause/queue behavior and
+restore/controller assembly remain incomplete. Physical quota/garbage/retention,
+startup reconciliation and native checkpoint marks/confirmation/result UI also
+remain owed. No whole gate or code review has run. FILE_CHECKPOINTS remains None;
+the full checkpoint feature is not complete and this producer is not ready for
+consumer adoption. Continue from the retained source and collect the existing
+run before scheduling another meaningful scoped suite.
