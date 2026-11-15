@@ -1788,3 +1788,12 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
+
+
+The saved settings disk API and Node's saved mutex carry Store's opaque
+`SavedNodeSettings` (ADR 0064). Disk serialization remains internal to Store;
+only the typed generic saved projection and an owned candidate update cross the
+boundary. Generic wire requests and Read replies keep their existing types.
+The retained settings task still owns validation/persistence/publication order,
+and a non-Copy candidate returns from blocking I/O before publication. No
+private payload, extra writer, file or crate edge is added by this separation.

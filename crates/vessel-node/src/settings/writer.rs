@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use tokio::sync::OwnedMutexGuard;
-use vessel_proto::settings::{NodeSettings, SetNodeSettings};
-use vessel_store::SetAside;
+use vessel_proto::settings::NodeSettings;
+use vessel_store::{SavedNodeSettings, SetAside};
 
 use super::{Settings, SettingsError};
 
@@ -20,15 +20,15 @@ impl Settings {
     /// either sees this writer or causes refusal before I/O starts.
     pub(super) async fn persist(
         self: &Arc<Self>,
-        saved: OwnedMutexGuard<SetNodeSettings>,
-        next: SetNodeSettings,
+        saved: OwnedMutexGuard<SavedNodeSettings>,
+        next: SavedNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         let writer = self.writers.token();
         if self.writers.is_closed() {
             return Err(SettingsError::Stopping);
         }
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            return Ok(self.in_force(saved.public_settings()));
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
@@ -50,14 +50,14 @@ impl Settings {
 
     async fn write_and_apply(
         &self,
-        mut saved: OwnedMutexGuard<SetNodeSettings>,
-        next: SetNodeSettings,
+        mut saved: OwnedMutexGuard<SavedNodeSettings>,
+        next: SavedNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
         #[cfg(test)]
         let gate = self.gate.take();
-        let aside = tokio::task::spawn_blocking(move || {
+        let (next, aside) = tokio::task::spawn_blocking(move || {
             #[cfg(test)]
             if let Some(gate) = gate {
                 gate.pause();
@@ -65,7 +65,7 @@ impl Settings {
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings(&next).map(|()| (next, aside))
         })
         .await
         .map_err(SettingsError::Lost)?
@@ -75,7 +75,7 @@ impl Settings {
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(saved.public_settings());
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         Ok(in_force)
