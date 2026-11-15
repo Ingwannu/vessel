@@ -2,7 +2,7 @@
 //! This is not a health probe or proxy implementation: only a future reviewed
 //! node report can supply health/routes. Current nodes remain explicitly absent.
 use super::RunState;
-use vessel_proto::fleet::HttpUrl;
+use vessel_proto::HttpUrl;
 use vessel_proto::scripts::ScriptKind;
 
 /// A node report's three health states, separate from process lifecycle.
