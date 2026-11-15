@@ -78,7 +78,7 @@ pub enum UsageReportLookup {
     /// Existing report; monetary fields follow this caller's current scopes.
     Found {
         /// Exact matching account report.
-        report: super::SourceReportEntry,
+        report: Box<super::SourceReportEntry>,
         /// Current caller's monetary visibility.
         cost_visibility: CostVisibility,
     },
@@ -106,7 +106,7 @@ impl UsageReportLookup {
     pub fn for_visibility(self, visibility: CostVisibility) -> Self {
         match self {
             Self::Found { report, .. } => Self::Found {
-                report: report.for_visibility(visibility),
+                report: Box::new((*report).for_visibility(visibility)),
                 cost_visibility: visibility,
             },
             Self::NotFound { id } => Self::NotFound { id },

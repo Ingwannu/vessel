@@ -186,7 +186,7 @@ fn list_and_inspect_use_one_visibility_projection_and_preserve_exact_lookup_id()
         },
     );
     let inspected = UsageReportLookup::Found {
-        report: report.clone(),
+        report: Box::new(report.clone()),
         cost_visibility: CostVisibility::Permitted,
     }
     .for_visibility(CostVisibility::Withheld);
@@ -207,7 +207,7 @@ fn list_and_inspect_use_one_visibility_projection_and_preserve_exact_lookup_id()
     };
     assert_eq!(cost_visibility, CostVisibility::Withheld);
     assert_eq!(listed.cost_visibility, CostVisibility::Withheld);
-    assert_eq!(listed.reports.as_slice(), &[report]);
+    assert_eq!(listed.reports.as_slice(), &[*report]);
     let missing: UsageReportId = "example:missing".parse().unwrap();
     let result = UsageReportLookup::NotFound {
         id: missing.clone(),

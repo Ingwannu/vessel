@@ -5,7 +5,12 @@ use vessel_proto::{
         AccountLimitState, ExtraUsage, LimitName, LimitPeriod, LimitScope, LimitSnapshot,
         LimitWindow, UsageLimits,
     },
-    usage_reports::*,
+    usage_reports::{
+        AvailableUsageReport, BuiltinUsageSource, ReportLoginFailures, SourceReportEntry,
+        SourceReportState, SuccessfulUsageReport, UsageBalance, UsageBalanceUnit,
+        UsageCompleteness, UsageDetail, UsageDetailAccess, UsageProblem, UsageReportId,
+        UsageSummary, UsageWindow,
+    },
 };
 #[derive(Debug, Clone, Copy, thiserror::Error)]
 #[error("the saved account report cannot be represented safely")]

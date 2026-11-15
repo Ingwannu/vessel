@@ -92,7 +92,7 @@ impl NodeService {
             return Err(changed());
         }
         let found = UsageReportLookup::Found {
-            report,
+            report: Box::new(report),
             cost_visibility: visibility(connection),
         }
         .for_visibility(visibility(connection));

@@ -29,7 +29,7 @@ pub enum UsageTone {
 pub enum BuiltinUsageSource {
     /// Claude's subscription usage.
     Claude,
-    /// ChatGPT subscription usage, including supported alternate login stores.
+    /// `ChatGPT` subscription usage, including supported alternate login stores.
     Codex,
     /// GitHub Copilot plan metadata.
     Copilot,
@@ -39,9 +39,9 @@ pub enum BuiltinUsageSource {
     Grok,
     /// Kimi coding allowances.
     Kimi,
-    /// MiniMax coding plans.
+    /// `MiniMax` coding plans.
     MiniMax,
-    /// OpenCode Go allowances.
+    /// `OpenCode` Go allowances.
     OpenCodeGo,
     /// Z.ai subscription metadata.
     Zai,
