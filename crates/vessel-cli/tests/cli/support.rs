@@ -68,6 +68,21 @@ impl Fixture {
 
     /// Start the node with `adjust` applied to its config.
     pub(super) async fn start_with(adjust: impl FnOnce(&mut Config, &Path)) -> Self {
+        Box::pin(Self::starting(adjust, None)).await
+    }
+
+    /// Seed only isolated metadata before node startup, never reopen a live store
+    /// (opening a store reconciles live sessions as interrupted).
+    pub(super) async fn start_with_registry(
+        record: fn(&Path) -> vessel_store::RegistryRecord,
+    ) -> Self {
+        Box::pin(Self::starting(|_, _| {}, Some(record))).await
+    }
+
+    async fn starting(
+        adjust: impl FnOnce(&mut Config, &Path),
+        record: Option<fn(&Path) -> vessel_store::RegistryRecord>,
+    ) -> Self {
         let data = tempfile::tempdir().unwrap();
         let bin = tempfile::tempdir().unwrap();
         let tui = Fake::Tui.path().unwrap();
@@ -76,6 +91,20 @@ impl Fixture {
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
         let mut config = config(data.path(), bin.path());
         adjust(&mut config, data.path());
+        if let Some(record) = record {
+            let opened = vessel_store::Store::open(
+                &DataDir::new(data.path()),
+                vessel_store::StoreConfig::default(),
+            )
+            .await
+            .unwrap();
+            opened
+                .store
+                .put_registry_workspace(record(data.path()), None)
+                .await
+                .unwrap();
+            opened.store.close().await;
+        }
         let node = Node::start(config).await.unwrap();
         Self { data, bin, node }
     }

@@ -1,7 +1,7 @@
 # W17 current invocation map
 
-Product checkpoint: gate-50c merge adaptation on node head
-`9c150c6efbff583762d02e6a8576b3fa66cc7ae9`, with move-only startup seam
+Product checkpoint: announced gate52 node head
+`1c762ccf870162d3c82d8582ea4f96309654e6e6` merged after the gate50c adaptation, with move-only startup seam
 `7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
 and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
 source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer
@@ -107,7 +107,7 @@ JSON-only admission are preserved; all six own pending rows stay at the table en
 | `workspace setup <workspace-id>` | workspace setup | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace create` | workspace create | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `workspace ls` | workspace ls | Pending | workspace.list source on9c, registry feature None | Await announced assignment and canonical project/derived workspace names; no cwd/branch naming heuristics. |
-| `workspace rename <workspace-id> [title]` | workspace rename | Source + pending feature | existing workspace.rename on9c, registry feature None | Full WorkspaceId only; actual ack ID/title checked; raw override resets to null. Shared gate still refuses; latest runtime proof owed. |
+| `workspace rename <workspace-id> [title]` | workspace rename | Source, execution owed | existing workspace.rename, assigned metadata protocol25 | Full WorkspaceId only; actual ack ID/title checked; raw override resets to null. Real table/JSON/YAML/quiet/reset process proof drafted, not executed. |
 | `workspace archive <workspace-id>` | workspace archive | Pending | none activated | W11 canonical WorkspaceId registry/placement/setup/visibility contract awaited. |
 | `worktree ls` | worktree ls | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |
 | `worktree create` | worktree create | Pending | none activated | Repository/ownership contract W11 awaited. ls is distinct from native broad worktree list; no cwd/project alias substitution. |

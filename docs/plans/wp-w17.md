@@ -1538,3 +1538,22 @@ No lint suppression, implementation-mirroring assertion or weakened runtime test
 The moved RuntimeServices body received no reported diagnostic, but this failed
 combined run is not a green shared seam. Newer final-owner/held-queue/rename source
 was outside exactece8; changed-source strict and meaningful actual tests remain owed.
+
+### Announced metadata protocol25 adoption and real rename fixture
+
+Merge1c762ccf (gate52 wholly green as integrator reports: Rust2550/0/12,
+web464, e2e80, forge4, wire diff0). Only W11's six metadata methods receive25;
+W17's own constant remains None. No unannounced lifecycle candidate is adopted.
+The queued exact467 ordinary suite remains frozen on9c and is not evidence for
+this newer combined head or the following positive protocol25 test.
+
+Add a real CLI rename process fixture seeded through the existing typed Store
+API before Node::start, then close that temporary writer before starting the node.
+Never reopen a live Store for seeding: open reconciles live sessions as interrupted.
+The isolated fixture represents a preexisting active local workspace; it proves
+metadata acknowledgements, not workspace provisioning, backing identity or cleanup.
+For table/headerless/JSON/YAML/quiet and null reset, read back the actual node title
+through GetWorkspace and verify the emitted workspaceId/title receipt. No derived
+name is invented. The prior negative process case remains meaningful after feature
+assignment: nonexistent targets are NotFound instead of a fabricated success.
+All newly added positive runtime evidence and latest strict remain unexecuted.

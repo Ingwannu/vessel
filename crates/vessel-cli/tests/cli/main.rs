@@ -372,3 +372,5 @@ async fn sigterm_detaches_cleanly() {
     })
     .await;
 }
+
+mod workspace_rename;
