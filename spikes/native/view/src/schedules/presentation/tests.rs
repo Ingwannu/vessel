@@ -6,7 +6,7 @@ use crate::localization::{ENGLISH, Locale, Translator};
 fn setup() -> Page {
     let mut page = Page::default();
     let key = super::super::load::MachineKey::of("laptop").unwrap();
-    page.machines(&[key]);
+    crate::schedules::page::tests::bound(&mut page, &[key]);
     let request = page.due(DateTime::UNIX_EPOCH).pop().unwrap();
     page.listed(
         &request,

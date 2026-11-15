@@ -215,3 +215,9 @@ schedules-preset-hour = 매시간
 schedules-preset-daily = 매일 09:00
 schedules-preset-weekdays = 평일 09:00
 schedules-preset-mondays = 월요일 09:00
+
+# Original selected physical admission retired before an operation; no retarget/retry.
+schedules-failed-connection-changed = 머신 연결이 변경되었습니다. 새로 고침한 뒤 다시 시도하세요.
+
+# Safe read deadline; a lost write uses the existing unconfirmed whole sentence.
+schedules-failed-timeout = 머신에서 제시간에 응답하지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.

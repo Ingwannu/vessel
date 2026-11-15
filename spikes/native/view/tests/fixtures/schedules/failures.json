@@ -210,11 +210,35 @@
   },
   {
     "id": "local-feature-not-enabled",
-    "input": { "kind": "not-enabled" },
+    "input": {
+      "kind": "not-enabled"
+    },
     "en": "This schedule feature is not available in this build.",
     "ko": "이 버전에서는 해당 예약 기능을 사용할 수 없습니다.",
     "retry": false,
     "explains": true,
     "variant": "warning"
+  },
+  {
+    "id": "selected-connection-changed",
+    "input": {
+      "kind": "connection-changed"
+    },
+    "en": "Connection to this machine changed. Refresh before trying again.",
+    "ko": "머신 연결이 변경되었습니다. 새로 고침한 뒤 다시 시도하세요.",
+    "retry": true,
+    "explains": true,
+    "variant": "warning"
+  },
+  {
+    "id": "read-deadline",
+    "input": {
+      "kind": "timed-out"
+    },
+    "en": "The machine did not answer in time. Check its connection, then try again.",
+    "ko": "머신에서 제시간에 응답하지 않았습니다. 연결을 확인한 뒤 다시 시도하세요.",
+    "retry": true,
+    "explains": true,
+    "variant": "error"
   }
 ]

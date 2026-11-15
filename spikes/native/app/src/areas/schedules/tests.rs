@@ -7,6 +7,13 @@ use vessel_app_view::schedules::{load::MachineKey, page::Body};
 fn initial() -> Option<(Data, vessel_app_view::schedules::page::Request)> {
     let mut area = Data::default();
     area.page.machines(&[MachineKey::of("laptop")?]);
+    let context = vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            vessel_app_view::connection::MachineKey::from_book("laptop"),
+            "00000000-0000-4000-8000-000000000001".parse().ok()?,
+        )
+        .ok()?;
+    let _changed = area.page.admitted(context);
     let request = area
         .page
         .due(chrono::DateTime::<chrono::Utc>::UNIX_EPOCH)
@@ -66,7 +73,7 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
     .unwrap();
     let (mut area, request) = initial().unwrap();
     let row = RowKey {
-        machine: request.machine.clone(),
+        machine: request.machine().clone(),
         schedule: info.id,
     };
     area.page.listed(
@@ -89,6 +96,16 @@ fn a_connected_notice_resets_old_refusal_without_needing_changed_fleet_data() {
     );
     assert!(area.page.row(&row).unwrap().actions().is_empty());
     area.message(Message::Connected(row.machine.clone()));
+    assert!(area.page.row(&row).unwrap().actions().is_empty());
+    let original = request.connection();
+    let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+    let _old = admissions
+        .admit(original.machine().clone(), original.node())
+        .unwrap();
+    let fresh = admissions
+        .admit(original.machine().clone(), original.node())
+        .unwrap();
+    let _changed = area.page.admitted(fresh);
     assert!(!area.page.row(&row).unwrap().actions().is_empty());
     // A delayed error from the old connection must not undo that reset.
     area.message(Message::Replied(Answer {
@@ -136,4 +153,37 @@ fn only_an_accepted_list_can_replace_the_viewer_calendar() {
         area.clock.as_ref().unwrap().name().unwrap().as_str(),
         "America/New_York"
     );
+}
+
+#[test]
+fn a_retired_physical_context_cannot_install_its_calendar_after_rebinding() {
+    use vessel_app_link::schedules::{ListValue, ViewerClockError};
+    use vessel_app_view::schedules::clock::Clock;
+    let (mut area, old) = initial().unwrap();
+    let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+    let previous = old.connection();
+    let _first = admissions
+        .admit(previous.machine().clone(), previous.node())
+        .unwrap();
+    let next = admissions
+        .admit(previous.machine().clone(), previous.node())
+        .unwrap();
+    assert!(area.page.admitted(next));
+    area.answered(Answer {
+        request: old,
+        result: Ok(Value::List(Box::new(ListValue {
+            schedules: vec![],
+            scopes: Ok(vec![
+                vessel_proto::Scope::Read,
+                vessel_proto::Scope::Operate,
+            ]),
+            clock: Ok(Clock::known("Asia/Seoul".parse().unwrap()).unwrap()),
+            projects: Ok(vec![]),
+            worktrees: Ok(vec![]),
+            read_at: chrono::DateTime::UNIX_EPOCH,
+        }))),
+    });
+    assert!(matches!(area.clock, Err(ViewerClockError::Unavailable)));
+    assert_eq!(area.page.body(), Body::Loading);
+    assert_eq!(area.page.due(chrono::DateTime::UNIX_EPOCH).len(), 1);
 }

@@ -21,10 +21,22 @@ impl MachineKey {
             .then(|| Self(Arc::from(name)))
     }
 
+    pub(crate) fn admitted(context: &crate::connection::ConnectionContext) -> Self {
+        // The canonical context already carries the parsed book key. Do not
+        // parse that alias again or derive it from a node display name.
+        Self(Arc::from(context.machine().as_str()))
+    }
+
     /// The key handed back to the link's book lookup.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for MachineKey {
+    fn borrow(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -55,6 +67,10 @@ pub enum Failure {
     NotEnabled,
     /// Machine is not connected.
     Offline,
+    /// The originally selected physical admission was replaced before dispatch.
+    ConnectionChanged,
+    /// A safe read exceeded the operation deadline.
+    TimedOut,
     /// Bounded request pool is full.
     Busy,
     /// A typed response named a resource other than the requested one.
@@ -77,7 +93,12 @@ impl Failure {
             | Self::Exhausted
             | Self::Unconfirmed
             | Self::NoTransport => false,
-            Self::Node(_) | Self::Offline | Self::Busy | Self::Unexpected => true,
+            Self::Node(_)
+            | Self::Offline
+            | Self::ConnectionChanged
+            | Self::TimedOut
+            | Self::Busy
+            | Self::Unexpected => true,
         }
     }
     /// Ordinary offline reads use the reference's load-error sentence. Typed
@@ -86,6 +107,8 @@ impl Failure {
     pub const fn needs_explanation(&self) -> bool {
         match self {
             Self::Node(_)
+            | Self::ConnectionChanged
+            | Self::TimedOut
             | Self::Older
             | Self::NotEnabled
             | Self::Busy
@@ -100,10 +123,13 @@ impl Failure {
     #[must_use]
     pub const fn variant(&self) -> crate::alert::Variant {
         match self {
-            Self::Older | Self::NotEnabled | Self::NoTransport => crate::alert::Variant::Warning,
+            Self::Older | Self::NotEnabled | Self::NoTransport | Self::ConnectionChanged => {
+                crate::alert::Variant::Warning
+            }
             Self::Busy => crate::alert::Variant::Info,
             Self::Node(_)
             | Self::Offline
+            | Self::TimedOut
             | Self::Unexpected
             | Self::Exhausted
             | Self::Unconfirmed => crate::alert::Variant::Error,

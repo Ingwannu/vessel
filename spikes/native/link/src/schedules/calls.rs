@@ -1,13 +1,15 @@
 //! A permit covers the call and its bounded event delivery. It is not released
 //! early when a page invalidates its own ticket or stops drawing the row.
 use super::{Answer, ListValue, Message, ScheduleError, Value};
+use crate::connections::SelectedConnection;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::{Semaphore, mpsc};
 use vessel_app_view::schedules::{
     load::MAX_IN_FLIGHT,
     page::{Ask, Request, WriteValue},
 };
-use vessel_client::NodeClient;
+const REQUEST_DEADLINE: Duration = Duration::from_secs(30);
 use vessel_proto::{
     automation::ScheduleTarget,
     workspace::{ListProjects, ListWorktrees, SessionPlace},
@@ -23,7 +25,7 @@ impl Default for Hub {
 impl Hub {
     pub(crate) async fn ask(
         &self,
-        client: Option<NodeClient>,
+        client: Result<SelectedConnection, ScheduleError>,
         request: Request,
         events: mpsc::Sender<crate::Event>,
     ) {
@@ -38,8 +40,10 @@ impl Hub {
         };
         drop(tokio::spawn(async move {
             let result = match client {
-                Some(client) => run(&client, request.ask).await,
-                None => Err(ScheduleError::Offline),
+                Ok(client) => tokio::time::timeout(REQUEST_DEADLINE, run(&client, request.ask))
+                    .await
+                    .unwrap_or(Err(ScheduleError::Deadline)),
+                Err(error) => Err(error),
             };
             let _closed = events
                 .send(crate::Event::Schedules(Message::Replied(Answer {
@@ -51,16 +55,19 @@ impl Hub {
         }));
     }
 }
-async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
+async fn list(client: &SelectedConnection) -> Result<Value, ScheduleError> {
     let clock = super::clock::viewer_clock().await;
-    let schedules = client.schedules().await?;
+    let schedules = client
+        .call(vessel_proto::automation::ListSchedules {})
+        .await?
+        .schedules;
     // This authenticated self-query needs no device-list permission. Its failure
     // must not turn an otherwise valid list into a read-only screen.
     let scopes = client
-        .device_self()
+        .call(vessel_proto::GetDeviceSelf {})
         .await
         .map(|report| report.scopes)
-        .map_err(ScheduleError::Call);
+        .map_err(ScheduleError::from);
     let needs_projects = schedules.iter().any(|info| match &info.definition.target {
         ScheduleTarget::NewSession { spec, .. } => match spec.place.as_deref() {
             Some(SessionPlace::Project { .. }) => true,
@@ -80,7 +87,7 @@ async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
             .call(ListProjects {})
             .await
             .map(|list| list.projects)
-            .map_err(ScheduleError::Call)
+            .map_err(ScheduleError::from)
     } else {
         Ok(Vec::new())
     };
@@ -89,7 +96,7 @@ async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
             .call(ListWorktrees { project: None })
             .await
             .map(|list| list.worktrees)
-            .map_err(ScheduleError::Call)
+            .map_err(ScheduleError::from)
     } else {
         Ok(Vec::new())
     };
@@ -102,14 +109,28 @@ async fn list(client: &NodeClient) -> Result<Value, ScheduleError> {
         read_at: chrono::Utc::now(),
     })))
 }
-async fn run(client: &NodeClient, ask: Ask) -> Result<Value, ScheduleError> {
+async fn run(client: &SelectedConnection, ask: Ask) -> Result<Value, ScheduleError> {
     let written = match ask {
         Ask::List => return list(client).await,
-        Ask::Pause(id) => WriteValue::Schedule(Box::new(client.pause_schedule(id).await?)),
-        Ask::Resume(id) => WriteValue::Schedule(Box::new(client.resume_schedule(id).await?)),
-        Ask::Run(id) => WriteValue::Run(client.run_schedule(id).await?),
+        Ask::Pause(id) => WriteValue::Schedule(Box::new(
+            client
+                .call(vessel_proto::automation::PauseSchedule { schedule: id })
+                .await?,
+        )),
+        Ask::Resume(id) => WriteValue::Schedule(Box::new(
+            client
+                .call(vessel_proto::automation::ResumeSchedule { schedule: id })
+                .await?,
+        )),
+        Ask::Run(id) => WriteValue::Run(
+            client
+                .call(vessel_proto::automation::RunSchedule { schedule: id })
+                .await?,
+        ),
         Ask::Delete(id) => {
-            client.delete_schedule(id).await?;
+            client
+                .call(vessel_proto::automation::DeleteSchedule { schedule: id })
+                .await?;
             WriteValue::Deleted
         }
     };
@@ -119,9 +140,8 @@ async fn run(client: &NodeClient, ask: Ask) -> Result<Value, ScheduleError> {
 impl crate::State {
     pub(crate) async fn schedule(&self, request: Request) {
         let client = self
-            .clients
-            .get(request.machine.as_str())
-            .map(|connected| connected.client.clone());
+            .selected_connection(request.connection())
+            .map_err(ScheduleError::NotSelected);
         self.schedule_calls
             .ask(client, request, self.events.clone())
             .await;

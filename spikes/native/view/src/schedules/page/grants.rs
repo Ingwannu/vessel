@@ -1,6 +1,6 @@
 //! A grant is accepted only with its read ticket; transport absence never grants
 //! or removes authority, and cannot clear an actual operation refusal.
-use super::tests::{loaded, now, snapshot};
+use super::tests::{loaded, now, rebound, snapshot};
 use super::*;
 use crate::schedules::{Action, tests::info};
 use vessel_proto::{ErrorCode, Scope, WireError};
@@ -65,6 +65,7 @@ fn a_self_grant_cannot_erase_a_resource_refusal_or_cross_a_reconnect() {
     page.refresh();
     let old = page.due(now()).remove(0);
     page.connected(&row.machine);
+    let _changed = page.admitted(rebound(&row.machine));
     assert_eq!(page.row(&row).unwrap().authority, &Authority::Unknown);
     answer.scopes = Ok(vec![Scope::Read]);
     page.listed(&old, Ok(answer));

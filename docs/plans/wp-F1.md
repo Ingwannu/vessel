@@ -314,3 +314,51 @@ producer's outer/named in-memory deadlines and peer cleanup. This combined
 integration has source/format/size inspection only: neither producer's earlier
 narrow result is relabelled as a combined F1 compile/test/UI result. Final
 physical-context binding, security regressions and package checks remain owed.
+
+## Binding schedule intent to the admitted physical connection
+
+[Decision Log]
+- Purpose: a queued Run/Delete must never affect another machine that later
+  occupies the same book alias, nor follow a retired transport to another alias.
+- Existing seam: exact reviewed G4 ConnectionContext/selected_connection/call,
+  not another resolver, counter or registry. Request owns that original context;
+  its book key is privately derived by Request::on and exposed read-only.
+- Choice: per-machine read caches retain their facts' origin context and current
+  canonical admission. Absent/legacy admission dispatches nothing. Another node
+  clears old rows; same-node reconnect keeps display facts but suppresses actions
+  until a new admission, resets permission evidence and preserves uncertain writes.
+- Why: display continuity is safe only for the same authenticated node. A reply
+  must match both the full expected request and the cache's current context before
+  rows, self-scopes or auxiliary calendar can install. Obsolete calls keep their
+  bounded capacity until their actual reply; no new identity allocator is added.
+- Costs: an unadmitted/offline machine shows a typed failure instead of making
+  an alias-only read. Existing portable cases now explicitly supply test contexts.
+
+Every production schedule RPC, including the independent self-scope/target reads,
+uses the shared immutable SelectedConnection::call Unary path. Actor preflight
+refuses unsent old intent; its guard fences before polling and after awaiting.
+Busy/local refusals echo original Request/context/ticket. A single named30-second
+operation deadline bounds work; the existing four permits cover result delivery.
+No raw NodeClient lookup, alias scan, retarget, automatic write replay or second
+connection registry is introduced. An already dispatched write that retires or
+times out remains Unconfirmed. An unsent Changed and a safe read timeout have
+separate generated Fluent sentences (EN/KO), not wire Display diagnostics.
+
+CallFailure retains the original typed CallError privately but redacts automatic
+Debug/Display/source-chain formatting, matching the shared preflight's privacy
+boundary. The closed-code presentation mapper can still use its structured error;
+no arbitrary peer text becomes a label. Existing cadence/editor-error Rust tables
+remain untouched; only the two new connection/deadline phrases are in schedules.ftl.
+
+The existing DeviceRetired event first updates the canonical Machine admission,
+then the one Schedules fleet adapter reconciles it. No second link hook is added;
+fresh notices remain in connection_ready after hand_kept and before final Fleet.
+
+New source regressions cover absent/legacy admission, reused alias/different node,
+same-node/new epoch, forged context echo/capacity, queued and before-poll writes
+with zero replacement calls, retirement after an actual Run frame, preserved
+original ticket/context, and rejected stale calendar/self-scope installation.
+All waits use the shared memory-only outer/named deadlines and peer cleanup.
+No new dependency, real agent, real node, credentials or capture process is used.
+This is a source checkpoint; remote View/Link/App narrow and V1 security review
+are still owed. No actual writes/captures or whole-package pass is claimed.

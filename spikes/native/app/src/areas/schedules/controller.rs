@@ -23,9 +23,10 @@ impl Shell {
                 .filter_map(|machine| MachineKey::of(&machine.name))
                 .collect();
             keys.sort();
-            let changed = !self.areas.schedules.data.page.keys().eq(keys.iter());
+            let book_changed = !self.areas.schedules.data.page.keys().eq(keys.iter());
             self.areas.schedules.data.page.machines(&keys);
-            if changed {
+            let admission_changed = self.areas.schedules.data.page.admissions(&self.fleet);
+            if book_changed || admission_changed {
                 self.schedules_due();
             }
         }

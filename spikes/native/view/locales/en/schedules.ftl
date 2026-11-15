@@ -215,3 +215,9 @@ schedules-preset-hour = Every hour
 schedules-preset-daily = Daily 9:00
 schedules-preset-weekdays = Weekdays 9:00
 schedules-preset-mondays = Mondays 9:00
+
+# Original selected physical admission retired before an operation; no retarget/retry.
+schedules-failed-connection-changed = Connection to this machine changed. Refresh before trying again.
+
+# Safe read deadline; a lost write uses the existing unconfirmed whole sentence.
+schedules-failed-timeout = The machine did not answer in time. Check its connection, then try again.

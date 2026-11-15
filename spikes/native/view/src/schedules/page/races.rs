@@ -1,4 +1,5 @@
 //! No late reply or reconnect may create room for duplicate writes.
+use super::tests::{bound, rebound};
 use super::tests::{key, loaded, now, snapshot};
 use super::*;
 use crate::schedules::{Action, tests::info};
@@ -9,7 +10,7 @@ fn invalidated_calls_keep_their_capacity_until_their_actual_reply() {
     let hosts: Vec<_> = (0..MAX_IN_FLIGHT)
         .map(|n| key(&format!("node{n}")))
         .collect();
-    page.machines(&hosts);
+    bound(&mut page, &hosts);
     let requests = page.due(now());
     assert_eq!(requests.len(), MAX_IN_FLIGHT);
     for _ in 0..MAX_IN_FLIGHT {
@@ -59,6 +60,7 @@ fn a_new_connection_preserves_uncertain_writes_but_refuses_the_old_reply() {
     let (mut page, row) = loaded();
     let run = page.act(&row, Action::RunNow).unwrap();
     page.connected(&row.machine);
+    let _changed = page.admitted(rebound(&row.machine));
     assert!(page.act(&row, Action::RunNow).is_none());
     let refresh = page.due(now()).remove(0);
     page.listed(&refresh, Ok(snapshot(vec![info()])));

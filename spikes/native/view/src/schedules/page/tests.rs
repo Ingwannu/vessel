@@ -19,12 +19,36 @@ pub(super) fn snapshot(schedules: Vec<ScheduleInfo>) -> Snapshot {
         projects: Ok(Vec::new()),
     }
 }
+pub(crate) fn context(key: &MachineKey) -> crate::connection::ConnectionContext {
+    crate::connection::ConnectionEpochs::default()
+        .admit(
+            crate::connection::MachineKey::from_book(key.as_str()),
+            "00000000-0000-4000-8000-000000000001".parse().unwrap(),
+        )
+        .unwrap()
+}
+pub(crate) fn rebound(key: &MachineKey) -> crate::connection::ConnectionContext {
+    let mut epochs = crate::connection::ConnectionEpochs::default();
+    let original = context(key);
+    let _old = epochs
+        .admit(original.machine().clone(), original.node())
+        .unwrap();
+    epochs
+        .admit(original.machine().clone(), original.node())
+        .unwrap()
+}
+pub(crate) fn bound(page: &mut Page, keys: &[MachineKey]) {
+    page.machines(keys);
+    for key in keys {
+        let _changed = page.admitted(context(key));
+    }
+}
 pub(super) fn loaded() -> (Page, RowKey) {
     let mut page = Page::default();
-    page.machines(&[key("laptop")]);
+    bound(&mut page, &[key("laptop")]);
     let request = page.due(now()).remove(0);
     let row = RowKey {
-        machine: request.machine.clone(),
+        machine: request.machine().clone(),
         schedule: info().id,
     };
     page.listed(&request, Ok(snapshot(vec![info()])));
@@ -34,9 +58,9 @@ pub(super) fn loaded() -> (Page, RowKey) {
 fn partial_failures_do_not_replace_rows() {
     let mut page = Page::default();
     assert_eq!(page.body(), Body::Loading);
-    page.machines(&[]);
+    bound(&mut page, &[]);
     assert_eq!(page.body(), Body::Empty);
-    page.machines(&[key("a"), key("b")]);
+    bound(&mut page, &[key("a"), key("b")]);
     let requests = page.due(now());
     assert_eq!(requests.len(), 2);
     page.listed(&requests[0], Err(Failure::Offline));
@@ -54,14 +78,14 @@ fn partial_failures_do_not_replace_rows() {
     assert_eq!(page.body(), Body::Empty);
     page.machine = MachineFilter::One(key("b"));
     assert_eq!(page.body(), Body::Failed);
-    page.machines(&[key("a")]);
+    bound(&mut page, &[key("a")]);
     assert_eq!(page.machine, MachineFilter::All);
     assert_eq!(page.body(), Body::Empty);
 }
 #[test]
 fn refresh_is_bounded_retains_rows_and_does_not_retry_failures() {
     let mut page = Page::default();
-    page.machines(&["a", "b", "c", "d", "e"].map(key));
+    bound(&mut page, &["a", "b", "c", "d", "e"].map(key));
     let requests = page.due(now());
     assert_eq!(requests.len(), 4);
     assert!(page.due(now()).is_empty());
@@ -135,6 +159,8 @@ fn forbidden_is_row_local_evidence_reset_by_a_new_connection() {
             .is_empty()
     );
     page.connected(&row.machine);
+    assert!(page.row(&row).unwrap().actions().is_empty());
+    let _changed = page.admitted(rebound(&row.machine));
     assert!(!page.row(&row).unwrap().actions().is_empty());
     assert_eq!(page.row(&row).unwrap().mutation.failure(), None);
     page.written(
@@ -163,7 +189,7 @@ fn stale_tickets_filters_and_unknown_values_keep_their_identity() {
     page.bucket = Bucket::Unknown;
     assert_eq!(page.body(), Body::Content);
     assert_eq!(page.row(&row).unwrap().actions(), [Action::Delete]);
-    page.machines(&[]);
+    bound(&mut page, &[]);
     page.listed(&current, Ok(snapshot(vec![info()])));
     assert_eq!(page.body(), Body::Empty);
     assert!(page.keys().next().is_none());
@@ -194,7 +220,7 @@ fn read_only_feedback_is_a_single_line_in_both_languages() {
 #[test]
 fn a_full_pool_gives_action_feedback_instead_of_a_dead_click() {
     let (mut page, row) = loaded();
-    page.machines(&["laptop", "a", "b", "c", "d"].map(key));
+    bound(&mut page, &["laptop", "a", "b", "c", "d"].map(key));
     assert_eq!(page.due(now()).len(), 4);
     assert!(page.act(&row, Action::Pause).is_none());
     assert_eq!(

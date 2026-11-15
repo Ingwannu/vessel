@@ -22,6 +22,7 @@ impl Shell {
                 if !self.devices_retired(&context) {
                     return;
                 }
+                self.schedules_fleet(cx);
             }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),

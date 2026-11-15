@@ -62,6 +62,8 @@ pub fn failure<'a>(failure: &super::load::Failure, catalog: &'a Translator) -> &
         Failure::Older => words.failed_older(),
         Failure::NotEnabled => words.failed_not_enabled(),
         Failure::Offline => words.failed_offline(),
+        Failure::ConnectionChanged => words.failed_connection_changed(),
+        Failure::TimedOut => words.failed_timeout(),
         Failure::Busy => words.failed_busy(),
         Failure::Unexpected => words.failed_unexpected(),
         Failure::Unconfirmed => words.write_unconfirmed(),

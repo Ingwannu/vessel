@@ -118,17 +118,14 @@ impl Page {
             Action::Delete => Ask::Delete(key.schedule),
             Action::Edit => return None,
         };
+        let context = self.caches.get(&key.machine)?.connection.clone()?;
         let ticket = self.issue()?;
         self.caches
             .get_mut(&key.machine)?
             .rows
             .get_mut(&key.schedule)?
             .mutation = Mutation::Running { ticket, action };
-        Some(self.track(Request {
-            machine: key.machine.clone(),
-            ticket,
-            ask,
-        }))
+        Some(self.track(Request::on(context, ticket, ask)))
     }
 
     /// Apply only this operation's answer. Invalidate earlier list reads so
@@ -144,6 +141,9 @@ impl Page {
         let Some(cache) = self.caches.get_mut(&request.machine) else {
             return;
         };
+        if cache.connection.as_ref() != Some(request.connection()) {
+            return;
+        }
         let Some(row) = cache.rows.get_mut(&id) else {
             return;
         };
@@ -161,6 +161,8 @@ impl Page {
                 | Failure::Older
                 | Failure::NotEnabled
                 | Failure::Offline
+                | Failure::ConnectionChanged
+                | Failure::TimedOut
                 | Failure::Busy
                 | Failure::Unconfirmed
                 | Failure::Exhausted

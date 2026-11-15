@@ -13,6 +13,9 @@
 //!   histories are later slices; their unwired menu items are not returned.
 
 mod choices;
+mod connection;
+#[cfg(test)]
+mod connection_tests;
 #[cfg(test)]
 mod grants;
 mod mutation;
@@ -73,12 +76,36 @@ pub enum Ask {
 /// Correlated request handed to link without reinterpreting its fields.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
-    /// Machine.
-    pub machine: MachineKey,
+    machine: MachineKey,
+    connection: crate::connection::ConnectionContext,
     /// Local request identity.
     pub ticket: Ticket,
     /// Typed operation.
     pub ask: Ask,
+}
+
+impl Request {
+    /// Bind an operation once to the original authenticated physical admission.
+    /// The machine key is derived here and cannot disagree with that context.
+    #[must_use]
+    pub fn on(connection: crate::connection::ConnectionContext, ticket: Ticket, ask: Ask) -> Self {
+        Self {
+            machine: MachineKey::admitted(&connection),
+            connection,
+            ticket,
+            ask,
+        }
+    }
+    /// Original book key; never a later lookup by the node's display name.
+    #[must_use]
+    pub const fn machine(&self) -> &MachineKey {
+        &self.machine
+    }
+    /// The actor must select/fence this exact context, even after a queued delay.
+    #[must_use]
+    pub const fn connection(&self) -> &crate::connection::ConnectionContext {
+        &self.connection
+    }
 }
 
 /// Body state, after the reference's schedules-screen-state test.
@@ -102,6 +129,8 @@ struct RowState {
 
 #[derive(Debug, Default)]
 struct Cache {
+    connection: Option<crate::connection::ConnectionContext>,
+    origin: Option<crate::connection::ConnectionContext>,
     read: Read,
     rows: BTreeMap<ScheduleId, RowState>,
     scopes: Option<Vec<vessel_proto::Scope>>,
@@ -158,18 +187,6 @@ impl Page {
         }
     }
 
-    /// A fresh connection invalidates row permission evidence and pending reads.
-    pub fn connected(&mut self, machine: &MachineKey) {
-        if let Some(cache) = self.caches.get_mut(machine) {
-            cache.scopes = None;
-            for row in cache.rows.values_mut() {
-                row.authority = Authority::default();
-                row.mutation.reconnected();
-            }
-            cache.read.invalidate();
-        }
-    }
-
     fn pending(&self) -> usize {
         self.in_flight.len()
     }
@@ -201,7 +218,7 @@ impl Page {
         let wanted: Vec<_> = self
             .caches
             .iter()
-            .filter(|(_, cache)| cache.read.due(now))
+            .filter(|(_, cache)| cache.connection.is_some() && cache.read.due(now))
             .map(|(key, _)| key.clone())
             .take(MAX_IN_FLIGHT.saturating_sub(self.pending()))
             .collect();
@@ -212,13 +229,10 @@ impl Page {
     }
 
     fn read(&mut self, machine: MachineKey) -> Option<Request> {
+        let context = self.caches.get(&machine)?.connection.clone()?;
         let ticket = self.issue()?;
         self.caches.get_mut(&machine)?.read.begin(ticket);
-        Some(self.track(Request {
-            machine,
-            ticket,
-            ask: Ask::List,
-        }))
+        Some(self.track(Request::on(context, ticket, Ask::List)))
     }
 
     /// Explicit retry/refresh, preserving node-authored rows in the meantime.
@@ -242,6 +256,9 @@ impl Page {
         let Some(cache) = self.caches.get_mut(&request.machine) else {
             return false;
         };
+        if cache.connection.as_ref() != Some(request.connection()) {
+            return false;
+        }
         let answer = answer.and_then(|snapshot| {
             let mut identities = std::collections::BTreeSet::new();
             if snapshot
@@ -257,6 +274,9 @@ impl Page {
         let succeeded = answer.is_ok();
         if !cache.read.settle(request.ticket, answer) {
             return false;
+        }
+        if succeeded {
+            cache.origin = Some(request.connection().clone());
         }
         if let Some(snapshot) = cache.read.snapshot() {
             if succeeded && let Ok(scopes) = &snapshot.scopes {

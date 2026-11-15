@@ -8,6 +8,8 @@ enum Input {
     Older,
     NotEnabled,
     Offline,
+    ConnectionChanged,
+    TimedOut,
     Busy,
     Unexpected,
     Unconfirmed,
@@ -21,6 +23,8 @@ impl From<Input> for Failure {
             Input::Older => Self::Older,
             Input::NotEnabled => Self::NotEnabled,
             Input::Offline => Self::Offline,
+            Input::ConnectionChanged => Self::ConnectionChanged,
+            Input::TimedOut => Self::TimedOut,
             Input::Busy => Self::Busy,
             Input::Unexpected => Self::Unexpected,
             Input::Unconfirmed => Self::Unconfirmed,
@@ -76,5 +80,5 @@ fn every_failure_has_catalog_words_and_input_policy_in_both_languages() {
         assert_eq!(value.needs_explanation(), case.explains, "{}", case.id);
         assert_eq!(value.variant(), case.variant.into(), "{}", case.id);
     }
-    assert_eq!(ids.len(), 19);
+    assert_eq!(ids.len(), 21);
 }

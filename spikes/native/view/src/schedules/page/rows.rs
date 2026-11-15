@@ -8,6 +8,8 @@ use vessel_proto::automation::ScheduleInfo;
 /// One visible row with its current authority and operation progress.
 #[derive(Debug)]
 pub struct Row<'a> {
+    /// Current admitted connection; cached offline rows cannot offer actions.
+    pub connection: Option<&'a crate::connection::ConnectionContext>,
     /// Stable composite identity.
     pub key: RowKey,
     /// Original typed node data, borrowed without copying the prompt.
@@ -60,7 +62,7 @@ impl Row<'_> {
     /// Only wired actions for the list slice. Editing arrives with its screen.
     #[must_use]
     pub fn actions(&self) -> Vec<Action> {
-        if self.mutation.blocks_actions() {
+        if self.connection.is_none() || self.mutation.blocks_actions() {
             return Vec::new();
         }
         super::super::actions(self.schedule, self.authority)
@@ -82,6 +84,7 @@ impl Page {
             .find(|info| info.id == key.schedule)?;
         let state = cache.rows.get(&key.schedule)?;
         Some(Row {
+            connection: cache.connection.as_ref(),
             key: key.clone(),
             schedule,
             authority: &state.authority,
@@ -166,7 +169,9 @@ impl Row<'_> {
     /// pending in the cadence slot instead of incorrectly saying Resuming.
     #[must_use]
     pub fn menu_entries(&self) -> Vec<MenuEntry> {
-        if !self.authority.allows_actions() || matches!(self.mutation, Mutation::Unconfirmed { .. })
+        if self.connection.is_none()
+            || !self.authority.allows_actions()
+            || matches!(self.mutation, Mutation::Unconfirmed { .. })
         {
             return Vec::new();
         }
