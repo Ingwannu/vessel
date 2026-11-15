@@ -700,3 +700,12 @@ explicit and checks that an old callback opens no replacement file. Current
 strict19/workspace4 predate this correction, so combined execution is owed.
 Upload/intake/lightbox remains the composer owner's source-only connection;
 its bounded image normalizer leaf is separately awaiting its exact Kit check.
+
+
+The same audit found tree row callbacks captured only a path. Both activation
+and context-menu creation now retain the rendered row's FileScope and compare
+the current active receipt before changing folders, opening a file or creating
+a menu. No new resolver or event subscription is introduced. The existing
+same-node rebound GPUI fixture also dispatches an old row activation and checks
+that the current buffer remains unchanged. This correction is newer than the
+queued native runs and remains unexecuted source.

@@ -178,6 +178,12 @@ mod tests {
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
             assert!(!shell.markdown_link_is_current(&key, &old));
             shell.markdown_link(&key, &old, "../other.md", cx);
+            shell.activate_file_row(
+                &old,
+                &"other.txt".parse().unwrap(),
+                vessel_proto::workspace::EntryKind::File,
+                cx,
+            );
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
             assert!(shell.markdown_link_is_current(&key, &new));
             shell.areas.session.open.as_mut().unwrap().session = vessel_proto::SessionId::random();

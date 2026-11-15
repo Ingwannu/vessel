@@ -10,8 +10,29 @@ use vessel_app_kit::ui::{
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
+use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
-use vessel_proto::workspace::EntryKind;
+use vessel_proto::workspace::{EntryKind, RelPath};
+
+impl Shell {
+    /// A rendered row retains its original scope across queued input delivery.
+    pub(super) fn activate_file_row(
+        &mut self,
+        scope: &FileScope,
+        path: &RelPath,
+        kind: EntryKind,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.active_file_scope().as_ref() != Some(scope) {
+            return;
+        }
+        if kind == EntryKind::Dir {
+            self.toggle_folder(path, cx);
+        } else {
+            self.open_file(path.clone(), cx);
+        }
+    }
+}
 
 use crate::shell::Shell;
 
@@ -101,7 +122,9 @@ fn entry_row(
     let Some(entry) = listing.entries.get(*entry) else {
         return div().into_any_element();
     };
-    let folder = entry.kind == EntryKind::Dir;
+    let kind = entry.kind;
+    let folder = kind == EntryKind::Dir;
+    let scope = shell.areas.workspace.code.scope();
     let path = path.clone();
     // Paseo's tree row (`tree-primitives.tsx`, `file-explorer-pane.tsx`):
     // 6 above and below, 8 at the right, one 16 slot (a folder's
@@ -163,18 +186,23 @@ fn entry_row(
             MouseButton::Right,
             cx.listener({
                 let path = path.clone();
+                let scope = scope.clone();
                 let open = *open;
                 move |this, event: &MouseDownEvent, window, cx| {
+                    if scope
+                        .as_ref()
+                        .is_none_or(|original| this.active_file_scope().as_ref() != Some(original))
+                    {
+                        return;
+                    }
                     this.open_file_actions(path.clone(), folder, open, event.position, window, cx);
                     cx.stop_propagation();
                 }
             }),
         )
         .on_click(cx.listener(move |this, _event, _window, cx| {
-            if folder {
-                this.toggle_folder(&path, cx);
-            } else {
-                this.open_file(path.clone(), cx);
+            if let Some(scope) = &scope {
+                this.activate_file_row(scope, &path, kind, cx);
             }
         }))
         .into_any_element()
