@@ -23,8 +23,8 @@
 //!   after it, not the protocol 4 clients that exist); refusing old clients
 //!   (the range `MIN_PROTOCOL_VERSION..` promises they work).
 //! - Choice: every event knows the version it appeared in
-//!   ([`SessionEvent::since`]); for an older connection it has a stand-in
-//!   that version can read ([`SessionEvent::for_protocol`]), with the same
+//!   ([`SessionEvent::required_protocol`]); for an older connection or pending
+//!   assignment it has a stand-in that version can read ([`SessionEvent::for_protocol`]), with the same
 //!   `seq`. `vessel-rpc` applies it where it encodes frames, the one place
 //!   that knows the connection's version.
 //! - Trade-off: an older client sees a stand-in, not the event: for
@@ -158,20 +158,22 @@ pub enum SessionEvent {
 }
 
 impl SessionEvent {
-    /// The first protocol version that has this event.
+    /// The assigned protocol requirement for this event. A future variant
+    /// awaiting assignment returns `None`, so projections must provide its
+    /// older representation to every peer instead of inventing a number.
     #[must_use]
-    pub fn since(&self) -> ProtocolVersion {
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Status { .. } | Self::Terminal(_) => ProtocolVersion::new(2),
-            Self::Agent { event } => event.since(),
-            Self::ProfileChanged { .. } => ProtocolVersion::new(5),
-            Self::ModelCall(_) => ProtocolVersion::new(7),
-            Self::OptionsChanged { .. } | Self::Renamed { .. } => ProtocolVersion::new(9),
+            Self::Status { .. } | Self::Terminal(_) => Some(ProtocolVersion::new(2)),
+            Self::Agent { event } => Some(event.since()),
+            Self::ProfileChanged { .. } => Some(ProtocolVersion::new(5)),
+            Self::ModelCall(_) => Some(ProtocolVersion::new(7)),
+            Self::OptionsChanged { .. } | Self::Renamed { .. } => Some(ProtocolVersion::new(9)),
             Self::QueueChanged { .. }
             | Self::CommandsChanged { .. }
-            | Self::UsageChanged { .. } => ProtocolVersion::new(10),
-            Self::Parked { .. } | Self::Woken => ProtocolVersion::new(12),
-            Self::Forked { .. } | Self::Rewound { .. } => ProtocolVersion::new(14),
+            | Self::UsageChanged { .. } => Some(ProtocolVersion::new(10)),
+            Self::Parked { .. } | Self::Woken => Some(ProtocolVersion::new(12)),
+            Self::Forked { .. } | Self::Rewound { .. } => Some(ProtocolVersion::new(14)),
         }
     }
 
@@ -179,13 +181,16 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        if self.since() <= protocol
+        let readable = self
+            .required_protocol()
+            .is_some_and(|since| since <= protocol);
+        if readable
             && let Self::UsageChanged { usage } = self
             && let Some(usage) = usage.for_protocol(protocol)
         {
             return Some(Self::UsageChanged { usage });
         }
-        if self.since() <= protocol {
+        if readable {
             return None;
         }
         let log = |line: String| {
@@ -448,3 +453,6 @@ impl EventRecord {
         })
     }
 }
+
+#[cfg(test)]
+mod admission_tests;

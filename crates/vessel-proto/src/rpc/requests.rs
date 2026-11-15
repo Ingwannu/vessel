@@ -112,10 +112,12 @@ impl EventPage {
     /// record needs a stand-in (see `SessionEvent::for_protocol`).
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        let changed = self
-            .records
-            .iter()
-            .any(|record| record.event.since() > protocol);
+        let changed = self.records.iter().any(|record| {
+            record
+                .event
+                .required_protocol()
+                .is_none_or(|since| since > protocol)
+        });
         changed.then(|| Self {
             records: self
                 .records
