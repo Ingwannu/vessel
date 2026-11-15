@@ -1131,3 +1131,13 @@ This is a command boundary, not another DTO decoder. Tests must establish an
 early Final cannot finish before the acknowledgement, concurrent partial drain,
 no resend, cancellation/cleanup failure precedence, bounded waits and a marker
 in a retained remote cause absent from every public diagnostic/source.
+
+
+### Connection close projection at wiring
+
+The real connection factory maps Outbound::closed into its one canonical
+ConnectionLife signal. A small observer owns only that outbound and a close-token
+clone, never the lifetime guard; it ends on transport close or last-context drop.
+This lets later resources consume life().closed() without each copying the
+transport mapping. Calls retaining a context through close grace cannot hide
+physical closure. The pure identity primitive and recording quota remain separate.

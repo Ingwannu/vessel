@@ -229,10 +229,9 @@ async fn actual_outlet_close_retires_streams_even_while_the_lifetime_guard_is_re
             }
         }
         entry.finished.cancelled().await;
-        assert!(
-            !link.context.life().closed().is_cancelled(),
-            "test must retain the real guard as a positive control"
-        );
+        // The real context is still retained; physical close must also reach
+        // consumers that know only the canonical life accessor.
+        link.context.life().closed().cancelled().await;
         assert_eq!(
             f.registry
                 .chunk(&other.caller, &sibling, ChunkSeq::new(0), pcm())
@@ -480,6 +479,29 @@ async fn failed_roots_stay_shared_across_starts_and_service_recreation_recovers(
         recreated.shutdown().await;
         link.close().await;
         f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn canonical_life_observes_transport_close_with_retained_contexts_and_aliases() {
+    within(async {
+        let first = Link::new().await;
+        let other = Link::new().await;
+        let alias = first.context.acting_as(crate::principal::Principal::Owner);
+        let owner = first.context.life().owner();
+        let closed = alias.life().closed().child_token();
+        assert_eq!(owner, alias.life().owner());
+        assert!(!closed.is_cancelled());
+        first.close_transport();
+        closed.cancelled().await;
+        assert_eq!(owner, first.context.life().owner());
+        assert_eq!(owner, alias.life().owner());
+        assert!(first.context.life().closed().is_cancelled());
+        assert!(!other.context.life().closed().is_cancelled());
+        drop(alias);
+        first.close().await;
+        other.close().await;
     })
     .await;
 }

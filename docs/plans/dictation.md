@@ -821,3 +821,15 @@ The file command's seven earlier parser cases remain unchanged except exposing
 three fixture builders within this module. Execution is still owed; direct
 rustfmt and the size check are source checks only. Final package validation also
 waits for the common settings writer's cancellation-safe tracked persist owner.
+
+
+### Canonical close accessor at the product boundary
+
+Connection setup creates exactly one ConnectionLife and starts one guard-free
+observer of the existing Outbound::closed signal. It exits on transport close or
+last-context drop and owns no I/O, quota, service or context. Thus consumers that
+retain only life().closed() also observe physical transport close while an RPC
+context remains alive during grace; acting-as contexts share the same signal.
+The pure identity module remains transport-independent. A real memory-RPC test
+retains both contexts, closes one transport, awaits the canonical child observer
+and proves another connection remains open. This new source still owes execution.

@@ -334,13 +334,24 @@ impl Connection {
             ?principal,
             "client connected"
         );
+        let life = crate::connection_life::ConnectionLife::default();
+        let closed = life.closed();
+        let outbound = peer.outbound.clone();
+        // Calls can retain their context through close grace. This observer
+        // holds no guard, does no I/O and exits on transport or context close.
+        drop(tokio::spawn(async move {
+            tokio::select! {
+                () = outbound.closed() => closed.cancel(),
+                () = closed.cancelled() => {},
+            }
+        }));
         Self {
             outbound: peer.outbound,
             principal,
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
             presence_id: crate::push::PresenceId::new(),
-            life: crate::connection_life::ConnectionLife::default(),
+            life,
             dictation: crate::dictation::Resources::default(),
         }
     }
