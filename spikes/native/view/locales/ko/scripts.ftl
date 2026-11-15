@@ -147,6 +147,9 @@ scripts-cancel-creation = 세션 생성 취소
 
 # Exact automatic terminal definitions covered by a project digest.
 scripts-automatic-terminals = 자동 터미널 (파일 순서)
+# Approval: title shown when an automatic terminal has no configured name.
 scripts-terminal-name-absent = 이름 없는 터미널
+# Approval: summary when a terminal name, command or file order changed.
 scripts-terminal-changes = 자동 터미널 변경 사항은 아래에 표시됩니다
+# Approval: complete terminal inspection does not enable pending approval support.
 scripts-terminal-approval-pending = 터미널 정의를 확인할 수 있습니다. 이 설정을 승인하는 기능은 아직 활성화되지 않았습니다.

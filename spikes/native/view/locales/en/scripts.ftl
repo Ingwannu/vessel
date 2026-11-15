@@ -147,6 +147,9 @@ scripts-cancel-creation = Cancel session creation
 
 # Exact automatic terminal definitions covered by a project digest.
 scripts-automatic-terminals = Automatic terminals (file order)
+# Approval: title shown when an automatic terminal has no configured name.
 scripts-terminal-name-absent = Unnamed terminal
+# Approval: summary when a terminal name, command or file order changed.
 scripts-terminal-changes = Automatic terminal changes are shown below
+# Approval: complete terminal inspection does not enable pending approval support.
 scripts-terminal-approval-pending = These terminal definitions are shown for inspection. Approval support for this configuration is not enabled yet.
