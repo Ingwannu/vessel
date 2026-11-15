@@ -388,3 +388,10 @@ also insufficient for a visible background pane. Until the reviewed exact-tab
 and its owner adapter refuses reads/actions. The project-settings card uses its
 independent captured project admission. No target cache or selected-session
 fallback is introduced. The reserved adapter will call the single owner query.
+
+The command renderer is split into scoped read, summary/control and complete
+review builders; the listener renderer returns the same label/action siblings,
+and the panel timer is a separate lifecycle helper. This keeps strict function
+budgets without adding wrappers around approval scope or changing callback
+tickets, widget identities or final dispatch checks. Optional refresh targets
+are borrowed options; a retained/changed owner still refuses exactly as before.

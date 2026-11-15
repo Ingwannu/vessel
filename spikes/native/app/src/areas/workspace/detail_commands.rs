@@ -7,10 +7,20 @@ use vessel_app_kit::ui::{
     Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind, theme::spacing};
+use vessel_app_view::workspace::command_access::{Target, Ticket};
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved};
 use vessel_app_view::workspace::git::Reading;
 use vessel_proto::workspace::{ProjectCommands, ProjectInfo};
 
+// Borrow one render scope through the small builders. Callbacks still own the
+// original Ticket; extracting a row never resolves a later settings selection.
+struct Card<'a> {
+    shell: &'a Shell,
+    machine: &'a str,
+    project: &'a ProjectInfo,
+    detail: &'a Detail,
+    tokens: &'a Tokens,
+}
 pub(super) fn render(
     shell: &Shell,
     machine: &str,
@@ -19,15 +29,37 @@ pub(super) fn render(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    content(
+        &Card {
+            shell,
+            machine,
+            project,
+            detail,
+            tokens,
+        },
+        cx,
+    )
+}
+fn owner<'a>(card: &'a Card<'_>) -> Option<&'a Target> {
+    card.shell
+        .areas
+        .workspace
+        .command_access
+        .target
+        .as_ref()
+        .filter(|target| {
+            target.project == card.project.id && target.context.machine().as_str() == card.machine
+        })
+}
+fn content(card: &Card<'_>, cx: &mut Context<'_, Shell>) -> Div {
+    let shell = card.shell;
+    let tokens = card.tokens;
     let words = shell.words();
     let labels = words.labels();
     let model = &shell.areas.workspace.command_access;
-    let owner = model.target.as_ref().filter(|target| {
-        target.project == project.id && target.context.machine().as_str() == machine
-    });
-    let current = owner.is_some_and(|target| shell.command_owner_is_current(target));
-    let refresh_machine = machine.to_owned();
-    let id = project.id;
+    let current = owner(card).is_some_and(|target| shell.command_owner_is_current(target));
+    let refresh_machine = card.machine.to_owned();
+    let id = card.project.id;
     let refresh = button_with_kind(
         "commands-refresh",
         shell.words.scripts().refresh(),
@@ -40,7 +72,7 @@ pub(super) fn render(
         tokens,
     )
     .on_click(cx.listener(move |shell, _event, window, cx| {
-        shell.refresh_command_card(&refresh_machine, id, window, cx)
+        shell.refresh_command_card(&refresh_machine, id, window, cx);
     }));
     let mut column = div().flex().flex_col().gap(px(spacing::S3)).child(refresh);
     if model.exhausted {
@@ -69,16 +101,24 @@ pub(super) fn render(
             ..
         } => commands,
     };
-    let commands = match commands {
+    match commands {
         ProjectCommands::None => return column.child(empty(labels.no_commands, tokens)),
         ProjectCommands::Invalid { message } => {
             return column.child(empty(words.invalid_commands(message), tokens));
         }
-        ProjectCommands::Listed { .. } => commands,
-    };
+        ProjectCommands::Listed { .. } => {}
+    }
     let Some(listed) = Listed::of(commands) else {
         return column;
     };
+    column.children(listed_parts(card, &listed, cx))
+}
+const SUMMARY_ITEMS: usize = 4;
+
+fn listed_parts(card: &Card<'_>, listed: &Listed<'_>, cx: &mut Context<'_, Shell>) -> Vec<Div> {
+    let shell = card.shell;
+    let words = shell.words();
+    let model = &shell.areas.workspace.command_access;
     let facts: Vec<String> = listed
         .setup
         .iter()
@@ -90,27 +130,53 @@ pub(super) fn render(
                 .iter()
                 .map(|script| script.name.as_str().to_owned()),
         )
-        .take(4)
+        .take(SUMMARY_ITEMS)
         .collect();
     let ticket = model
         .ticket()
         .filter(|ticket| shell.command_ticket_is_current(ticket));
-    let enabled = ticket.is_some();
     let element_key = ticket
         .as_ref()
-        .map_or_else(|| "inert".to_owned(), |ticket| ticket.element_key());
-    let control = if listed.approved {
-        let ticket = ticket.clone();
+        .map_or_else(|| "inert".to_owned(), Ticket::element_key);
+    let control = control(card, ticket.clone(), listed.approved, &element_key, cx);
+    let mut parts = vec![rows(card.tokens).child(row(
+        title(
+            words.commands_title(
+                listed.setup.len(),
+                listed.teardown.len(),
+                listed.scripts.len(),
+            ),
+            card.tokens,
+        ),
+        &facts,
+        Some(control),
+        card.tokens,
+    ))];
+    if card.detail.reviewing && !listed.approved {
+        parts.push(review(card, listed, ticket, &element_key, cx));
+    }
+    parts
+}
+fn control(
+    card: &Card<'_>,
+    ticket: Option<Ticket>,
+    approved: bool,
+    element_key: &str,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let labels = card.shell.words().labels();
+    let state = if ticket.is_some() {
+        ButtonState::Enabled
+    } else {
+        ButtonState::Disabled
+    };
+    if approved {
         let button = button_with_kind(
             format!("commands-withdraw-{element_key}"),
             labels.withdraw,
             ButtonKind::Secondary,
-            if enabled {
-                ButtonState::Enabled
-            } else {
-                ButtonState::Disabled
-            },
-            tokens,
+            state,
+            card.tokens,
         )
         .on_click(cx.listener(move |shell, _event, window, cx| {
             if let Some(ticket) = &ticket {
@@ -118,20 +184,15 @@ pub(super) fn render(
             }
         }));
         div()
-            .child(badge(labels.approved, Tone::Ok, tokens))
+            .child(badge(labels.approved, Tone::Ok, card.tokens))
             .child(button)
     } else {
-        let ticket = ticket.clone();
         let button = button_with_kind(
             format!("commands-review-{element_key}"),
             labels.review,
             ButtonKind::Secondary,
-            if enabled {
-                ButtonState::Enabled
-            } else {
-                ButtonState::Disabled
-            },
-            tokens,
+            state,
+            card.tokens,
         )
         .on_click(cx.listener(move |shell, _event, window, cx| {
             if let Some(ticket) = &ticket {
@@ -139,55 +200,49 @@ pub(super) fn render(
             }
         }));
         div()
-            .child(badge(labels.not_approved, Tone::Warn, tokens))
+            .child(badge(labels.not_approved, Tone::Warn, card.tokens))
             .child(button)
-    };
-    column = column.child(rows(tokens).child(row(
-        title(
-            words.commands_title(
-                listed.setup.len(),
-                listed.teardown.len(),
-                listed.scripts.len(),
-            ),
-            tokens,
-        ),
-        &facts,
-        Some(control),
-        tokens,
-    )));
-    if detail.reviewing && !listed.approved {
-        let place = words.approval_place(project.name.as_str(), machine, true);
-        let compared = compare_approved(&listed, None);
-        let panel_id = format!("settings-approval-{element_key}");
-        let approve = ticket.clone();
-        let cancel = owner.cloned();
-        column = column.child(approval::render(
-            shell,
-            &Panel {
-                id: &panel_id,
-                asked: &listed,
-                compared: &compared,
-                place: &place,
-                busy: model.writing.is_some()
-                    || model.reading.outstanding().is_some()
-                    || ticket.is_none(),
-            },
-            Actions {
-                approve: Box::new(move |shell, window, cx| {
-                    if let Some(ticket) = &approve {
-                        shell.approve_project_commands(ticket, true, window, cx);
-                    }
-                }),
-                skip: None,
-                cancel: Box::new(move |shell, _window, cx| {
-                    if let Some(target) = &cancel {
-                        shell.cancel_command_review(target, cx);
-                    }
-                }),
-            },
-            tokens,
-            cx,
-        ));
     }
-    column
+}
+fn review(
+    card: &Card<'_>,
+    listed: &Listed<'_>,
+    ticket: Option<Ticket>,
+    element_key: &str,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let shell = card.shell;
+    let model = &shell.areas.workspace.command_access;
+    let place = shell
+        .words()
+        .approval_place(card.project.name.as_str(), card.machine, true);
+    let compared = compare_approved(listed, None);
+    let panel_id = format!("settings-approval-{element_key}");
+    let cancel = owner(card).cloned();
+    let busy = model.writing.is_some() || model.reading.outstanding().is_some() || ticket.is_none();
+    approval::render(
+        shell,
+        &Panel {
+            id: &panel_id,
+            asked: listed,
+            compared: &compared,
+            place: &place,
+            busy,
+        },
+        Actions {
+            approve: Box::new(move |shell, window, cx| {
+                if let Some(ticket) = &ticket {
+                    shell.approve_project_commands(ticket, true, window, cx);
+                }
+            }),
+            skip: None,
+            cancel: Box::new(move |shell, _window, cx| {
+                if let Some(target) = &cancel {
+                    shell.cancel_command_review(target, cx);
+                }
+            }),
+        },
+        card.tokens,
+        cx,
+    )
 }

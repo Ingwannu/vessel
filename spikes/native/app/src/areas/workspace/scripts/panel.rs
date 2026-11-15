@@ -108,51 +108,7 @@ pub(crate) fn render(
         controls.surface.clone()
     };
     if inserted {
-        let observed = surface.clone();
-        cx.spawn_in(window, async move |this, cx| {
-            loop {
-                let keep = this
-                    .update_in(cx, |shell, window, cx| {
-                        let Some((workspace, tab)) = key(&observed) else {
-                            return false;
-                        };
-                        let same = shell
-                            .areas
-                            .workspace
-                            .scripts
-                            .panels
-                            .borrow()
-                            .get(&(workspace.clone(), tab))
-                            .is_some_and(|controls| controls.surface == observed);
-                        if !same {
-                            return false;
-                        }
-                        if !shell.layout_tab_exists(workspace, tab) {
-                            let _removed = shell
-                                .areas
-                                .workspace
-                                .scripts
-                                .panels
-                                .borrow_mut()
-                                .remove(&(workspace.clone(), tab));
-                            return false;
-                        }
-                        if window.is_window_active()
-                            && shell.layout_panel_visible(workspace, tab, window)
-                        {
-                            shell.read_script_panel(&observed, window, cx);
-                            cx.notify();
-                        }
-                        true
-                    })
-                    .unwrap_or(false);
-                if !keep {
-                    break;
-                }
-                cx.background_executor().timer(REFRESH_EVERY).await;
-            }
-        })
-        .detach();
+        poll(&surface, window, cx);
     }
     let states = shell.areas.workspace.scripts.panels.borrow();
     let Some(controls) = states.get(&address) else {
@@ -177,6 +133,53 @@ pub(crate) fn render(
             cx,
         ))
         .into_any_element()
+}
+fn poll(surface: &Surface, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let observed = surface.clone();
+    cx.spawn_in(window, async move |this, cx| {
+        loop {
+            let keep = this
+                .update_in(cx, |shell, window, cx| {
+                    let Some((workspace, tab)) = key(&observed) else {
+                        return false;
+                    };
+                    let same = shell
+                        .areas
+                        .workspace
+                        .scripts
+                        .panels
+                        .borrow()
+                        .get(&(workspace.clone(), tab))
+                        .is_some_and(|controls| controls.surface == observed);
+                    if !same {
+                        return false;
+                    }
+                    if !shell.layout_tab_exists(workspace, tab) {
+                        let _removed = shell
+                            .areas
+                            .workspace
+                            .scripts
+                            .panels
+                            .borrow_mut()
+                            .remove(&(workspace.clone(), tab));
+                        return false;
+                    }
+                    if window.is_window_active()
+                        && shell.layout_panel_visible(workspace, tab, window)
+                    {
+                        shell.read_script_panel(&observed, window, cx);
+                        cx.notify();
+                    }
+                    true
+                })
+                .unwrap_or(false);
+            if !keep {
+                break;
+            }
+            cx.background_executor().timer(REFRESH_EVERY).await;
+        }
+    })
+    .detach();
 }
 impl Shell {
     pub(super) fn script_panel_is_current(&self, expected: &Target) -> bool {
@@ -334,7 +337,7 @@ impl Shell {
     pub(super) fn refresh_script_panel(
         &mut self,
         surface: &Surface,
-        expected: &Option<Target>,
+        expected: Option<&Target>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -351,7 +354,7 @@ impl Shell {
             .panels
             .borrow()
             .get(&(workspace.clone(), tab))
-            .is_some_and(|controls| &controls.model.target == expected);
+            .is_some_and(|controls| controls.model.target.as_ref() == expected);
         if same {
             self.read_script_panel(surface, window, cx);
             cx.notify();

@@ -270,11 +270,12 @@ impl Shell {
     }
     pub(super) fn refresh_scripts(
         &mut self,
-        expected: &Option<Target>,
+        expected: Option<&Target>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.scripts_visible() && &self.areas.workspace.scripts.model.target == expected {
+        if self.scripts_visible() && self.areas.workspace.scripts.model.target.as_ref() == expected
+        {
             self.read_scripts(window, cx);
             cx.notify();
         }
@@ -322,7 +323,7 @@ impl Shell {
     fn refresh_scripts_for(
         &mut self,
         surface: &Surface,
-        target: &Option<Target>,
+        target: Option<&Target>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {

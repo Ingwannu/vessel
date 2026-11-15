@@ -153,11 +153,10 @@ impl Shell {
             Answer::Took { form, result } => self.took_project(machine, form, result),
             Answer::Forgot { project, result } => self.forgot_project(machine, project, result),
             Answer::Commands {
-                project,
-                approved,
-                result,
+                project: _,
+                approved: _,
+                result: _,
             } => {
-                let _uncorrelated = (project, approved, result);
                 tracing::debug!("ignored a retired uncorrelated command-set receipt");
             }
             Answer::Worktrees { project, result } => {

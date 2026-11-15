@@ -74,7 +74,7 @@ pub(super) fn content(card: &Card<'_>, tokens: &Tokens, cx: &mut Context<'_, She
         let expected = model.target.clone();
         let surface = card.surface.clone();
         refresh = refresh.on_click(cx.listener(move |shell, _event, window, cx| {
-            shell.refresh_scripts_for(&surface, &expected, window, cx)
+            shell.refresh_scripts_for(&surface, expected.as_ref(), window, cx);
         }));
     }
     let mut body = div().flex().flex_col().gap(px(spacing::S3));
@@ -343,7 +343,7 @@ fn row_actions(
                 card,
                 Action::Restart(run.id),
                 words.restart(),
-                format!("script-restart-{name}"),
+                &format!("script-restart-{name}"),
                 tokens,
                 cx,
             ))
@@ -351,7 +351,7 @@ fn row_actions(
                 card,
                 Action::Stop(run.id),
                 words.stop(),
-                format!("script-stop-{name}"),
+                &format!("script-stop-{name}"),
                 tokens,
                 cx,
             ));
@@ -360,7 +360,7 @@ fn row_actions(
             card,
             Action::Run(name.clone()),
             words.run(),
-            format!("script-run-{name}"),
+            &format!("script-run-{name}"),
             tokens,
             cx,
         ));
@@ -372,7 +372,7 @@ fn action(
     card: &Card<'_>,
     action: Action,
     label: &str,
-    id: String,
+    id: &str,
     tokens: &Tokens,
     cx: &Context<'_, Shell>,
 ) -> Div {
@@ -383,7 +383,7 @@ fn action(
         .is_some_and(|ticket| shell.script_card_is_current(&ticket.target))
         && card.model.permits(&action);
     let id = ticket.as_ref().map_or_else(
-        || id.clone(),
+        || id.to_owned(),
         |ticket| format!("{id}-{}", ticket.element_key()),
     );
     let control = button_with_kind(

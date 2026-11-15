@@ -168,13 +168,13 @@ impl Shell {
             || self.route != Route::Settings
             || self.areas.settings.section != Section::Projects
             || self.projects_machine().as_deref() != Some(machine)
-            || !self
+            || self
                 .areas
                 .workspace
                 .page
                 .detail
                 .as_ref()
-                .is_some_and(|detail| detail.project == project)
+                .is_none_or(|detail| detail.project != project)
         {
             return;
         }
