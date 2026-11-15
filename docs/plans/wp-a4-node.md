@@ -1,5 +1,39 @@
 # Session children: node contract and execution plan
 
+## Current disposition
+
+The node implementation is built, with SUBAGENT_RELATIONS still None. No wire
+number, live-provider readiness or complete A4/native acceptance is implied.
+The sections below retain design and earlier checkpoint context.
+
+- Exact122c7c6dacd7e89b4e7d0fd99df3e00ce29a1a38: strict all-target Clippy for
+  agent/node/proto/client/rpc passed, run
+  wp-transfer-drivers-20261115T152754Z-122c7c6d. Changed agent/node/proto crates
+  actually checked; unchanged consumer artifacts were reused normally.
+- Exact9b93cd75689506b76b6c70aba7fafe703c1a1a75: Proto332 + Store76 library
+  cases passed408/0/0, run
+  wp-transfer-proto-store-tests-20261115T150931Z-9b93cd75. Later122 changes only
+  history test indexing/request-id arithmetic and documentation; no newer test
+  execution is invented from these results.
+- Exactb4ad1de3: agent/node library cases passed393/0/2, including fake-backed
+  provider routing, bounded projection and detach authority/publication. This is
+  predecessor execution, separate from current merged-head validation.
+- Exactbdbd7581 TS run completed proto declaration3/0 and web declaration1/0,
+  but the overall step failed the baseline LimitPercent primitive-alias inventory.
+  The coordinator counts this run with that one named base defect. Canonical
+  correction9dfdf0a1 belongs to the integrator; do not duplicate the edit or rerun
+  unchanged generation for it. The verified generated snapshot is committed.
+- Standalone history test fixtures at13d6dc22b are byte-identical to122's two
+  history test files. Its older typed-peer4/0 and fake-process2/0 executions remain
+  scoped predecessor evidence, not a fresh standalone build.
+
+Before final node handoff: merge the announced checked node head under A8, run
+one whole root gate, then obtain the package review. Existing scoped V3 approvals
+for the durable detach/security contract do not approve the complete provider
+implementation. Native import, keyed resident/child rendering, archive-finished
+and draft seeding have separate integration obligations. No real provider,
+credentials, running service, permissions or deployment changed in these checks.
+
 The package decision is ADR 0090. Native import reuses the existing ADR 0053 contract; account matching needed the
 correctness repair recorded below.
 
