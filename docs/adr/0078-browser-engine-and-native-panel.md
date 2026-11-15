@@ -50,8 +50,10 @@ CDP. The wry vendor documentation describes these platform limits:
 
 ## Choice
 
-Use one **node-owned Chromium in unified headless mode**. Both agents and the
-person operate the same CDP target. The GPUI pane is a view of those targets,
+Use **node-owned Chromium in unified headless mode**, one implementation
+with two profile classes: persistent General and isolated session-bound
+Preview. Both agents and the person operate the same CDP target within its
+class. The Preview capability below is the only private-origin exception. The GPUI pane is a view of those targets,
 not a system webview. A node needs no desktop app connected for automation.
 That is an explicit difference from Paseo's desktop-host broker.
 
@@ -84,7 +86,9 @@ unknown flags. Readiness requires the versioned runtime qualification below.
 ## Process and security boundaries
 
 The node owns a browser actor and its policy proxy, one bounded command queue,
-a child process tree, a profile lock, CDP connection and bounded event decoder.
+owned child process trees, profile locks, CDP connections and bounded event decoders.
+A Preview capability gets a separate ephemeral profile and policy proxy; it
+cannot share Chromium storage/network context with General or another session.
 No raw CDP method, websocket endpoint or arbitrary browser launch argument is
 part of the public API. The node sends typed commands after authorization.
 The browser process has Chromium's normal sandbox and no Node/Electron bridge.
@@ -131,7 +135,7 @@ A mixed DNS answer containing forbidden addresses is refused as a whole.
 
 | Destination | Rule | Enforcement |
 | --- | --- | --- |
-| Loopback, including the node's own listeners and CDP | Refused | Resolve-and-pin proxy; implicit bypass removed. |
+| Loopback, including the node's own listeners and CDP | Refused in General; one exact service origin in a live Preview capability | Resolve-and-pin proxy; implicit bypass removed; node-minted service capability below. |
 | Node's local interface addresses, even public ones | Refused | Snapshot local interface addresses before launch and refresh on changes; fail closed if discovery fails. |
 | Private, CGNAT, unique-local | Refused | Existing reach classification applied at every dial. |
 | Link-local and metadata, including mapped IPv4 | Refused | Existing reach classification; never a workspace-preview exception. |
@@ -160,13 +164,85 @@ Origin; vessel ui checks Host and Origin, and requires Origin on websocket.
 Those are not substitutes for blocking the browser's network path. The page
 must not obtain any of those credentials from the browser environment.
 
-**Service preview consequence:** only a publicly reachable service URL can
-open in this first engine. A loopback/private service URL is Destination,
-with an explanation in the panel and an explicit external-open action. Do
-not invent a public URL, tunnel a private origin through CONNECT, or silently
-open it externally. Full local-service preview parity requires a separately
-reviewed scoped service-origin capability; no global private-network toggle
-is added here. This is a material feature difference, not completed parity.
+### Workspace-service Preview capability
+
+Project dev-server preview is part of the first engine, not deferred. The
+node mints a non-transferable Preview binding only for a service belonging
+to the requesting workspace and opening session. It is not a private-host
+allowlist and it cannot be supplied as a bearer URL/query value.
+
+- The request identifies the opening SessionId and a detected service
+  candidate. The node derives project/worktree identity from its registry,
+  not caller cwd, a hostname, a process name or an arbitrary port. Agents
+  are pinned to their authenticated session; a human names a live session
+  in the selected workspace. A workspace with no opening session refuses
+  until one is selected; it does not create an unbound capability.
+- Eligible candidates come from a complete successful current port scan,
+  joined with live session/terminal ownership and the workspace registry.
+  A script's status/declared port alone is not proof that it owns a socket.
+  Both the owner and the selected session must resolve to the same exact
+  workspace, including worktree. A port from another project/worktree or
+  an ended/archived owner cannot mint a binding. General browser/CDP/proxy,
+  node control, model proxy and management listeners are never candidates.
+- Mint an opaque internal capability id, workspace, opening session,
+  service owner lifetime/generation, exact loopback IP, port and HTTP/HTTPS
+  scheme. Host is a canonical loopback literal, never a DNS alias, wildcard
+  interface, private subnet or metadata address. An unspecified listener
+  can be dialled through loopback only after ownership has been proved.
+  HTTP versus HTTPS is verified by a bounded node probe to that exact
+  candidate; no automatic certificate bypass or fallback to another scheme.
+  port.list currently reports TCP and cannot attest the scheme by itself.
+- General browser_new_tab may recognize a loopback service URL and request
+  this binding, using the agent's own session; the panel's View service
+  uses the same mint path through human control. browser_navigate on a
+  General tab never upgrades its network permission. It explains that a
+  separate Preview tab must be opened. No extra agent tool name is added.
+- The capability is actor state associated with the target, not a secret
+  exposed to the page, MCP arguments or persisted layout. Every command
+  rechecks session/workspace ownership. A different session in the same
+  workspace cannot operate it; humans viewing it must still hold Operate
+  and name its original opening session. Restoring layout never remints it.
+- Its dedicated profile is ephemeral, owner-private and shared only by
+  targets with that same binding. It shares no cookies, storage, HTTP auth,
+  service workers or cached credentials with General, another Preview
+  binding or another session. Popups inherit the original binding/profile.
+  The proxy permits public destinations plus precisely the bound origin.
+  ws/wss upgrades map to that same HTTP/HTTPS origin; all other private
+  origins are Destination. No localhost alias, other loopback IP, new port,
+  changed scheme or redirect grants a new permission. Apply this to every
+  resource/frame/worker and CONNECT, not just the address bar.
+- The entire Preview browsing context can access that one service origin,
+  including a public page it navigates to. This is intentional capability
+  reach, not a CORS exemption; Chromium's normal origin rules still apply.
+  Public navigation does not gain access to General's cookies. A trusted
+  agent that can read both profiles can deliberately copy data; profile
+  isolation does not claim to prevent that authorized agent action.
+- Revoke on service/terminal/session stop, archive, workspace move/removal,
+  owner-generation change, scan failure/truncation/unknown ownership, or
+  device revocation. Lifecycle events revoke immediately when available;
+  while a binding exists, retain the scanner's interest. Define
+  PREVIEW_LEASE as twice the existing scanner PERIOD, renewed only by
+  a successful complete scan; expiry revokes rather than silently extending. Revalidate ownership before
+  each connection and again after connect, before sending request bytes.
+  An existing connection is pinned to its accepted socket, not redialled.
+  Stop closes active tunnels/websockets, cancels queued actions, stops
+  owned Preview children, clears its temporary profile and invalidates refs.
+  A replacement service on the same port requires a fresh explicit open.
+- The existing cached port.list revision and PID alone do not establish
+  an owner lifetime. The implementation must add a typed owner-generation
+  observation and cancellation hook to the scanner/terminal boundary.
+  PID/port reuse between scans is tested. An unsupported or incomplete
+  platform observation is a typed refusal; no mint from stale cached data.
+  Same-OS-user hostile processes remain outside the isolation guarantee,
+  as they already share the CDP/control account trust boundary.
+
+Paseo opens service URLs through public/paseo/direct route selection and
+its desktop browser's shared partition. It has no such node-minted,
+session-bound network capability in the sources inspected. Isolating Preview
+sign-ins, requiring an opening session, refusing unrelated private origins
+and revoking on stop are deliberate security differences caused by moving
+the browser onto the node. The node never creates a service or forwards a
+new public port merely because someone asks to preview it.
 
 ### Credentials and retained content
 
@@ -187,7 +263,8 @@ and evaluate can also expose signed-in data to the agent and its provider.
 Search does not index tool arguments; session export copies harness files,
 whose secret content was not inspected. No claim of export redaction.
 
-One node profile is shared by workspaces, sessions and authorized devices.
+The General node profile is shared by workspaces, sessions and authorized
+devices. Preview profiles follow the separate capability lifetime above.
 A workspace check confines tab ownership, not cookies: opening a new tab for
 a signed-in site may expose that shared sign-in. The enable warning must say
 this. A Read-only device cannot view frames or operate tabs. Profile clear is
@@ -341,7 +418,7 @@ semantics for Linux and Windows. A child system webview adds a separate Linux
 engine and windowing loop; using two engines gives misleading signed-in
 state. The cost is remote frame latency, optional browser installation,
 server-side credential custody, weaker native accessibility/IME/media and
-restricted private service preview. Those are explicit costs, not evidence
+a restricted service-origin capability for private previews. Those are explicit costs, not evidence
 of completed parity. No browser panel is enabled before frames and input
 work against the real qualified engine.
 
@@ -350,12 +427,14 @@ work against the real qualified engine.
 1. Node engine instead of desktop broker: one implementation/profile across
    native platforms, works headless, carries the server credential/reach costs
    documented above. No most-recent-desktop routing.
-2. Public destinations only, and no WebRTC/QUIC: prevent server-local reach;
-   local service preview is refused pending a scoped reviewed capability.
+2. General is public-only; Preview permits one node-minted workspace service
+   origin with session/lifetime checks and a separate ephemeral profile.
+   No WebRTC/QUIC. This enables dev-server preview without broad server reach.
 3. Dedicated operator-installed Chromium, no Electron-bundled runtime: no
    unreviewed runtime download or silently inherited user profile.
-4. One node-wide profile instead of one desktop partition: required by the
-   engine location; warning names all workspaces/devices sharing sign-ins.
+4. One General node-wide profile plus per-capability Preview profiles instead
+   of one desktop partition: prevent a private dev server inheriting general
+   sign-ins; warning distinguishes General sharing from Preview isolation.
 5. GPUI frames/input instead of webview: no native page accessibility tree,
    extension UI, audio/video guarantee or native DevTools in this package.
    Typed refusal and hidden unfinished controls preserve honesty.
@@ -382,7 +461,10 @@ input routing, or generation invalidation. They cover all twenty-two tools,
 old/new protocol directions, switch-off after start, cross-workspace ids,
 agent attempts at human-only calls, stale frames/refs, empty history, close
 while waiting, proxy failure, disconnect, screenshot-before-paint, symlink
-upload and complete clear. Boundaries are tested at each named cap.
+upload and complete clear. Preview tests cover foreign workspace/session/port/scheme, missing
+opening session, stale/truncated scan, PID/port reuse, redirect/subresource
+escape, service stop with an active websocket/CONNECT, and cookie/storage
+isolation in both directions. Boundaries are tested at each named cap.
 
 Real-engine qualification uses only disposable fixtures, an isolated profile
 and no real sign-in. Test actual proxy routing through redirects, rebinding,

@@ -66,7 +66,8 @@ installed. Vendor links and the license/size decision are in ADR 0078.
 4. Qualified engine with policy proxy, actor and typed CDP, then MCP calls,
    then real native frames and input through the pane registration contract.
 5. Inventory/history/viewport/clear, errors, popups and element attachments;
-   local-service URLs remain an explicit security refusal per the ADR.
+   local-service Preview uses node-minted workspace/session/service-origin
+   capabilities and isolated ephemeral profiles, including stop revocation.
 6. Narrow checks per commit. Capture the final layout under an isolated fake
    fleet and qualified disposable browser, both languages/themes and desktop/
    compact sizes. One whole native gate and one root gate for node changes.
@@ -89,3 +90,27 @@ The panel remains hidden until these calls and a working engine exist.
   native tokens all passed. Native size checked 554 files (15 existing size
   records); boundaries checked four crates; token records gained no violation.
   Root compile/size/boundary gates are not claimed: no root code changed.
+
+## Private Preview decision and port evidence
+
+The first engine includes dev-server Preview. General remains public-only;
+only a current owned service socket can mint the isolated capability in
+ADR 0078. Reuse the existing scanner rather than a second port collector.
+The scanner's cached list alone is insufficient for security admission.
+
+Node source read on the node base:
+- crates/vessel-proto/src/ports.rs:102-157: ListeningPort carries address,
+  port, PID and session/terminal owner; PortScan distinguishes pending/error.
+- crates/vessel-node/src/terminals/ports.rs:29-37, 81-115, 132-193: bounded
+  scanner, three-second observation period, cached watch/revision. No
+  process-generation attestation or HTTP scheme is present in that API.
+- crates/vessel-node/src/service/scripts.rs:26-49, 247-280: script place
+  derives project/worktree from the registry; port filtering uses the
+  authenticated agent's session and created_by facts.
+- crates/vessel-proc/src/listening.rs:37-53, 116-128: Listener root/PID,
+  bounded async scan; no stable process/socket-generation token.
+
+Add the missing generation/freshness/revocation boundary as part of this
+package. Do not invent a guarantee that script status or an old PID gives.
+Protocol/schema assignment stays with integration. Node work starts on the
+announced node head in its own worktree.
