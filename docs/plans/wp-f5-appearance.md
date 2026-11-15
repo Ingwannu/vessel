@@ -341,3 +341,13 @@ The two newly added endpoint acceptance assertions are now separate tests
 (interface21 and code9), as the coordinator requested. The inherited cases
 retain only the two approved refused-input corrections (22 and8); every other
 head case remains unchanged. Source: storage.ts:62–73.
+
+### Terminal font seam
+
+C2 approved the existing `terminal_grid::face` helper/import-only correction:
+measurement and drawing both read one configured code FontStack snapshot,
+including its ordered fallbacks. The default is unchanged. No grid/row/input/
+cursor rendering is duplicated, and C2's Rc row-cache changes are untouched.
+FontStack already supplies typed Eq/PartialEq identity for family+fallbacks;
+C2 owns adding that identity to RowsKey and its quiet-grid regression. This
+helper correction alone does not prove retained terminal-frame invalidation.

@@ -16,7 +16,7 @@
 //!   so an unchanged row is not shaped again on the next frame.
 //!   Backgrounds are cell rectangles painted under the text; the cursor is
 //!   Paseo's bar (`cursorStyle: "bar"`), two points wide.
-//! - Face: Geist Mono, then Pretendard (TYPE-07: a real code face before
+//! - Face: the configured code stack (default Geist Mono), then Pretendard (TYPE-07: a real code face before
 //!   any fallback; GPUI resolves families by name, so no generic
 //!   `monospace` is listed). Paseo asks for the system's developer fonts
 //!   (`terminal-font.ts`); the app bundles its code face, a stated
@@ -34,7 +34,7 @@ use gpui::{
     UnderlineStyle, Window, canvas, fill, point, px, size,
 };
 
-use crate::fonts::{MONO, fallbacks};
+use crate::fonts::{Typeface, active};
 
 /// A text run's line under or through its glyphs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -172,10 +172,11 @@ const CURSOR_WIDTH: f32 = 2.0;
 
 /// The code face at `weight` and `style`.
 fn face(weight: FontWeight, style: FontStyle) -> Font {
+    let stack = active(Typeface::Code);
     Font {
-        family: MONO.into(),
+        family: stack.family(),
         features: FontFeatures::default(),
-        fallbacks: Some(fallbacks()),
+        fallbacks: Some(stack.fallbacks()),
         weight,
         style,
     }
