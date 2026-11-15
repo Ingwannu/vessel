@@ -551,8 +551,9 @@ physical-device, Windows, model/provider or user-interface evidence.
 
 The staged Turn failure already used static Display/Debug, but its detector
 variant still exposed the foreign native cause through Error::source. Reuse
-the existing failure boundary and remove that source edge so generic diagnostic
-chains cannot expand future tensor/path messages. The actual failing-detector
+the existing failure boundary and classify/destroy that cause immediately so
+generic diagnostic chains cannot expand future tensor/path messages. The
+closed Failure enum no longer retains a native error at all. The actual failing-detector
 regression now checks the source chain as well as Display/Debug and retained
 sample cleanup. No native loader or detector execution is introduced; its new
 assertion awaits the next VM voice-runtime suite.

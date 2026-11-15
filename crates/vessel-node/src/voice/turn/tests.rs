@@ -172,7 +172,7 @@ fn inference_failure_clears_every_retained_sample_and_never_calls_a_later_window
     let mut request = packet(&turn, 0);
     request.pcm = CapturePcm::new(vec![0; 3_072]).unwrap();
     let error = turn.append(&request).unwrap_err();
-    assert!(matches!(error, Failure::Detector(_)));
+    assert!(matches!(error, Failure::Detector));
     assert!(!format!("{error:?} {error}").contains("tensor"));
     assert!(std::error::Error::source(&error).is_none());
     assert_eq!(calls.load(Ordering::Acquire), 1);

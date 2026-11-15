@@ -35,7 +35,7 @@ pub(super) struct Accepted {
     pub(super) transition: Transition,
 }
 #[derive(thiserror::Error)]
-pub(super) enum Failure<E: Error + 'static> {
+pub(super) enum Failure {
     #[error("voice turn is stopped")]
     Stopped,
     #[error("voice capture generation does not match")]
@@ -55,15 +55,15 @@ pub(super) enum Failure<E: Error + 'static> {
     #[error("voice inference failed")]
     // The native cause can contain paths/tensors. Do not expose it through
     // Error::source either: generic diagnostic chains must stop at this rule.
-    Detector(E),
+    Detector,
     #[error("voice final transcription could not start")]
     Finalization(#[from] super::finalize::Failure),
     #[error("voice detector produced conflicting boundaries")]
     Order,
 }
-// A future runtime may include paths/tensors in its cause. Diagnostics name the
-// rule only; neither Debug nor Display automatically expands a foreign cause.
-impl<E: Error + 'static> fmt::Debug for Failure<E> {
+// The native cause is destroyed at its boundary. Diagnostics name only the
+// rule; other local source errors also have static, payload-free diagnostics.
+impl fmt::Debug for Failure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
     }
@@ -105,7 +105,7 @@ impl<D: Detector> Turn<D> {
             buffer: InputBuffer::default(),
         }
     }
-    pub(super) fn append(&mut self, request: &CaptureVoice) -> Result<Accepted, Failure<D::Error>> {
+    pub(super) fn append(&mut self, request: &CaptureVoice) -> Result<Accepted, Failure> {
         if self.cancel.is_cancelled() {
             self.stop();
             return Err(Failure::Stopped);
@@ -138,7 +138,7 @@ impl<D: Detector> Turn<D> {
             }
         }
     }
-    fn process(&mut self, request: &CaptureVoice) -> Result<Transition, Failure<D::Error>> {
+    fn process(&mut self, request: &CaptureVoice) -> Result<Transition, Failure> {
         self.buffer.append(&request.pcm)?;
         let Self {
             detector,
@@ -152,7 +152,9 @@ impl<D: Detector> Turn<D> {
         } = self;
         let mut transition = Transition::None;
         let result = windows.try_push(&request.pcm, cancel, |window| {
-            let probability = detector.probability(window).map_err(Failure::Detector)?;
+            let probability = detector
+                .probability(window)
+                .map_err(|_private| Failure::Detector)?;
             let event = boundary.observe(gate.observe(probability)?)?;
             match event {
                 BoundaryEvent::NoChange => return Ok(()),
