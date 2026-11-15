@@ -1864,6 +1864,16 @@ approval and script/worktree approval replies. Older nodes omit the field;
 new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
 
+
+The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
+(nonzero TCP port, optional/absent by default). A current or previous approval
+with one is invalid for every peer while unassigned, through every direct and
+nested approval reply. `ScriptEntry` keeps its JSON kind string and validates
+kind and port together; a plain script with a port is refused. The TOML parser
+reads `services.<name>.port` through that validated declaration and includes it
+in the version-three approval. It assigns no number and starts no allocator
+or process; the allocation block is not parsed yet.
+
 ## Pending composer command catalogs (ADR 0085)
 
 `agent.draft_commands` is an Operate-scoped unary method gated by `composer_commands::COMPOSER_COMMANDS` (unassigned). It accepts registered workspace identity, a validated relative directory, provider/profile and selected model/options, and returns an ordered command catalog without a prompt. Agents are refused. Optional command kind is hidden on older/unassigned peer projections; absent/unknown kind cannot enable inline completion. The client must show Unsupported while the protocol remains unassigned and must not fall back to an unkeyed provider launch.

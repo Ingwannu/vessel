@@ -7,9 +7,10 @@
 //! track W; ported in milestone 12, track S)
 //! - Grouping by machine (the default) or by status (Paseo's buckets in
 //!   the board's words: Needs you, Working, Idle, Ended); sorting by
-//!   creation (the default) or by last activity; ended sessions hidden
-//!   unless asked for. An archived session is never listed; a pinned one
-//!   comes first in its group.
+//!   creation (the default) or by last activity; ended sessions listed
+//!   unless the person hides them (Paseo's; the page hid them by default,
+//!   see `prefs::SidebarView::default`). An archived session is never
+//!   listed; a pinned one comes first in its group.
 //! - The flat order the sidebar shows is what "session 1 to 9" and
 //!   "next/previous session" walk (`Fleet::sidebar_order`), so a key goes
 //!   where the eye already is.
@@ -24,6 +25,8 @@ use vessel_proto::SessionId;
 
 use crate::board::{Card, Fleet, Machine, Reach};
 use crate::prefs::{Grouping, SessionSort, SidebarView};
+
+pub mod display;
 
 /// How many of a machine's sessions the sidebar lists before "N more":
 /// the sidebar is a way to switch, not a second board.

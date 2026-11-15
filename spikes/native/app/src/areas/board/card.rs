@@ -19,14 +19,14 @@
 use chrono::{DateTime, Utc};
 use gpui::FontWeight;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::fonts::MONO;
 use vessel_app_kit::slider::spinner;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _,
     IntoElement as _, MouseButton, ParentElement as _, Stateful, StatefulInteractiveElement as _,
     Styled, div, px, rgb,
 };
-use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, glyph, popup};
+use vessel_app_kit::{Scheme, Tokens, Type, TypeExt as _, alert, fonts::MONO, glyph, popup};
 use vessel_app_view::Card;
 use vessel_app_view::board::{CardActions, Origin, Row, Tone};
 
@@ -79,18 +79,24 @@ pub(crate) fn card(
         .py(px(10.0))
         .children(origin(shell, row, tokens, cx))
         .child(title_row(shell, card, place, tokens, cx))
-        .children(lines(card, tokens));
+        .children(lines(card, tokens))
+        .children(crate::areas::pulls::card_items(card, shell.words, tokens));
     let foot = foot(shell, card, place, tone, tokens);
+    // A failed session's error is a failure on screen: the kit's alert.
     let error = card.detail.failure.clone().map(|failure| {
         div()
-            .px(px(14.0))
-            .pt(px(6.0))
-            .pb(px(8.0))
-            .border_t_1()
-            .border_color(neutral.border)
-            .type_(Type::Tiny)
-            .text_color(neutral.destructive)
-            .child(failure)
+            .px(px(spacing::S3_5))
+            .pb(px(spacing::S2))
+            .child(alert::alert(
+                alert::Content {
+                    title: Some(failure.into()),
+                    description: None,
+                    action: None,
+                },
+                alert::Variant::Error,
+                alert::Size::ExtraSmall,
+                tokens,
+            ))
     });
     div()
         .id(ElementId::Name(format!("card-{}", card.session).into()))
@@ -268,21 +274,12 @@ fn title_row(
         .flex_row()
         .items_center()
         .gap(px(10.0))
-        .child(
-            div()
-                .flex()
-                .flex_none()
-                .items_center()
-                .justify_center()
-                .size(px(18.0))
-                .rounded(px(5.0))
-                .bg(neutral.surface3)
-                .text_size(px(11.0))
-                .line_height(px(14.0))
-                .font_weight(FontWeight::SEMIBOLD)
-                .text_color(neutral.foreground_muted)
-                .child(card.letter().to_string()),
-        )
+        .child(crate::agent_mark::mark(
+            card.detail.harness.as_ref(),
+            vessel_app_kit::agent_mark::Size::Fourteen,
+            vessel_app_kit::agent_mark::Space::Compact,
+            tokens,
+        ))
         .child(
             div()
                 .flex_1()
@@ -405,25 +402,14 @@ fn actions(
     let id = |what: &str| ElementId::Name(format!("card-{what}-{}", card.session).into());
     let asking = |ask: Ask| Asking::of(ask, card);
     let words = shell.t.lang.board();
-    let place_touch = place.narrow;
-    // Each icon button says what it does on hover (the kit's tooltip).
-    let tip = |button: Stateful<Div>, what: &str, text: &'static str| -> AnyElement {
-        let key = format!("card-{what}-{}", card.session);
-        let place = std::rc::Rc::clone(
-            shell
-                .areas
-                .board
-                .places
-                .borrow_mut()
-                .entry(key)
-                .or_insert_with(|| std::rc::Rc::new(std::cell::Cell::new(None))),
-        );
-        shell
-            .areas
-            .board
+    // Each button says what it does when pointed at (the page's
+    // `Tooltip`s), by the kit's tooltip; none on a phone, as Paseo's.
+    let tip = |button: Stateful<Div>, what: &str, text: &'static str| {
+        let key = format!("{what}-{}-{}", card.machine, card.session);
+        let board = &shell.areas.board;
+        board
             .tips
-            .on(button.relative(), &place, text, place_touch)
-            .into_any_element()
+            .on(button, &board.place(&key), text, place.narrow)
     };
     let buttons: Vec<AnyElement> =
         match card.actions(shell.fleet.protocol_of(&card.machine), place.archive) {
@@ -443,7 +429,7 @@ fn actions(
                         shell.ask_card(asking.clone(), window, cx);
                     }))
                 });
-                vec![tip(button, "kill", words.kill)]
+                vec![tip(button, "kill", words.kill).into_any_element()]
             }
             CardActions::Archive => {
                 let asking = asking(Ask::Archive);
@@ -456,7 +442,7 @@ fn actions(
                         }))
                     },
                 );
-                vec![tip(button, "archive", words.archive_session)]
+                vec![tip(button, "archive", words.archive_session).into_any_element()]
             }
             CardActions::Restore { again } => {
                 let restore = asking(Ask::Delete);
@@ -475,9 +461,14 @@ fn actions(
                             shell.ask_card(delete.clone(), window, cx);
                         }))
                     });
+                let restore_words = if again {
+                    words.restore_session
+                } else {
+                    words.unarchive_hint
+                };
                 vec![
-                    tip(restore_button, "restore", words.unarchive),
-                    tip(delete_button, "delete", words.delete_permanently),
+                    tip(restore_button, "restore", restore_words).into_any_element(),
+                    tip(delete_button, "delete", words.delete_permanently).into_any_element(),
                 ]
             }
         };

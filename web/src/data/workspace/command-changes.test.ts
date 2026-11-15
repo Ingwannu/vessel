@@ -209,3 +209,39 @@ describe("approval coverage", () => {
     );
   });
 });
+
+describe("declared port coverage", () => {
+  const ported: ScriptEntry = { ...DEV, port: 3210 };
+  it("counts a port-only edit and its removal as script changes", () => {
+    expect(compareScripts([DEV], [ported])).toEqual([
+      { change: "changed", script: ported, was: DEV },
+    ]);
+    expect(compareScripts([ported], [DEV])).toEqual([
+      { change: "changed", script: DEV, was: ported },
+    ]);
+    expect(scriptChangeWords(DEV, ported)).toBe("its port");
+  });
+  it("refuses a partial comparison of a current declaration", () => {
+    const current = listed([], false, "b", { scripts: [ported] });
+    expect(approvalCoverage(current)).toBe("unsupported_ports");
+    expect(compareApproved(current, null)).toEqual({
+      kind: "unsupported_ports",
+    });
+  });
+  it("refuses a declaration removed from the last approved set", () => {
+    const current = listed([], false, "b", {
+      scripts: [DEV],
+      last_approved: approvedSet([], [ported]),
+    });
+    expect(compareApproved(current, null)).toEqual({
+      kind: "unsupported_ports",
+    });
+  });
+  it("refuses a declaration in the approved folder fallback", () => {
+    const current = listed([], false, "b", { scripts: [DEV] });
+    const folder = listed([], true, "a", { scripts: [ported] });
+    expect(compareApproved(current, folder)).toEqual({
+      kind: "unsupported_ports",
+    });
+  });
+});

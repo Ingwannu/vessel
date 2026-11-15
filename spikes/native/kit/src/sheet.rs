@@ -20,8 +20,13 @@
 //! - Must stay true: nothing in a sheet depends on hover; its rows are the
 //!   same as beside the page.
 
+pub mod snap;
+
 use gpui::prelude::*;
-use gpui::{AnyElement, App, Div, MouseButton, MouseDownEvent, Window, div, px, rgba};
+use gpui::{
+    AnimationExt as _, AnyElement, App, Div, ElementId, MouseButton, MouseDownEvent, Window, div,
+    px, rgba,
+};
 
 use crate::theme::Tokens;
 
@@ -85,6 +90,26 @@ pub fn sheet(
             .border_t_1()
             .rounded_t(px(crate::theme::radius::R5)),
     };
+    // Word 39: the panel slides in from its edge and the scrim darkens,
+    // over the kit's surface length on its curve; a bottom sheet rises a
+    // little as it fades (its height is its content's). Held motion draws
+    // the end at once (GPUI's `with_animation`).
+    let panel = panel.with_animation(
+        ElementId::NamedChild(std::sync::Arc::new(ElementId::Name(id.into())), "in".into()),
+        crate::motion::transition(crate::motion::STANDARD),
+        move |panel, done| {
+            // (done - 1) times the side: off the edge at the start.
+            let away = done.mul_add(1.0, -1.0).mul_add(SIDE, 0.0);
+            match edge {
+                Edge::Left => panel.left(px(away)),
+                Edge::Right => panel.right(px(away)),
+                Edge::Bottom => panel
+                    .bottom(px(done.mul_add(1.0, -1.0).mul_add(RISE, 0.0)))
+                    .opacity(done),
+            }
+        },
+    );
+    let shade: gpui::Hsla = rgba(SCRIM).into();
     div()
         .absolute()
         .top_0()
@@ -96,8 +121,18 @@ pub fn sheet(
                 .top_0()
                 .left_0()
                 .size_full()
-                .bg(rgba(SCRIM))
-                .on_mouse_down(MouseButton::Left, on_dismiss),
+                .on_mouse_down(MouseButton::Left, on_dismiss)
+                .with_animation(
+                    ElementId::NamedChild(
+                        std::sync::Arc::new(ElementId::Name(id.into())),
+                        "scrim".into(),
+                    ),
+                    crate::motion::transition(crate::motion::STANDARD),
+                    move |scrim, done| scrim.bg(shade.opacity(done)),
+                ),
         )
         .child(panel)
 }
+
+/// How far a bottom sheet rises as it arrives.
+const RISE: f32 = 24.0;
