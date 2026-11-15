@@ -221,10 +221,16 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// Realtime voice microphone, source 2.5 stroke on the shared 24-unit grid.
+    Mic,
+    /// Realtime voice mute state; distinct from timeline MicVocal.
+    MicOff,
+    /// Filled stop square; the existing outline Stop remains unchanged.
+    SquareFilled,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 88] = [
+const ALL: [Glyph; 91] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -313,6 +319,9 @@ const ALL: [Glyph; 88] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::Mic,
+    Glyph::MicOff,
+    Glyph::SquareFilled,
 ];
 
 impl Glyph {
@@ -408,6 +417,9 @@ impl Glyph {
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
+            Self::Mic => "kit/mic.svg",
+            Self::MicOff => "kit/mic-off.svg",
+            Self::SquareFilled => "kit/square-filled.svg",
         }
     }
 }
@@ -763,3 +775,6 @@ mod activity_indicator_asset_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod voice_tests;

@@ -1,6 +1,6 @@
 //! One collected PCM16 mono segment, decoded in bounded 10 ms pieces.
 
-use std::{fmt, sync::Arc};
+use std::{fmt, sync::Arc, time::Duration};
 
 use bytes::Bytes;
 use cpal::Sample as _;
@@ -13,10 +13,13 @@ use crate::audio::format::RateHz;
 
 const MAX_PACKET_BYTES: usize = 8 * 1024 * 1024;
 const BLOCKS_PER_SECOND: u32 = 100;
+const MAX_PACKET_TIME: Duration = Duration::from_secs(180);
+const NANOS_PER_SECOND: u64 = 1_000_000_000;
 
 pub(in crate::audio) struct Packet {
     pcm: Bytes,
     rate: RateHz,
+    duration: Duration,
 }
 
 impl Packet {
@@ -27,9 +30,28 @@ impl Packet {
         {
             return Err(Refusal::Format);
         }
-        Ok(Self { pcm, rate })
+        let frames = u64::try_from(pcm.len().div_euclid(size_of::<i16>()))
+            .map_err(|_private| Refusal::Format)?;
+        let hz = u64::from(rate.get());
+        let nanos = frames
+            .checked_mul(NANOS_PER_SECOND)
+            .and_then(|count| count.checked_add(hz.saturating_sub(1)))
+            .and_then(|count| count.checked_div(hz))
+            .ok_or(Refusal::Format)?;
+        let duration = Duration::from_nanos(nanos);
+        if duration > MAX_PACKET_TIME {
+            return Err(Refusal::Format);
+        }
+        Ok(Self {
+            pcm,
+            rate,
+            duration,
+        })
     }
 
+    pub(super) fn duration(&self) -> Duration {
+        self.duration
+    }
     pub(super) fn reader(&self, lease: Lease, receipt: Arc<Receipt>) -> Reader {
         Reader {
             lease,
@@ -45,6 +67,7 @@ impl fmt::Debug for Packet {
         f.debug_struct("Packet")
             .field("bytes", &self.pcm.len())
             .field("rate", &self.rate)
+            .field("duration", &self.duration)
             .finish()
     }
 }

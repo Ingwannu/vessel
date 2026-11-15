@@ -282,6 +282,9 @@ impl Glyph {
             Self::Moon => line_glyph!(
                 r#"<path d="M20.25 14.4A8.25 8.25 0 0 1 9.6 3.75a8.25 8.25 0 1 0 10.65 10.65Z"/>"#
             ),
+            Self::Mic => include_str!("voice/mic.svg"),
+            Self::MicOff => include_str!("voice/mic-off.svg"),
+            Self::SquareFilled => include_str!("voice/square.svg"),
             Self::Monitor => line_glyph!(
                 r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
             ),

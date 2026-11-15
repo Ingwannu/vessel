@@ -223,3 +223,26 @@ scanning is bounded, so a racing producer cannot keep a callback busy forever.
 Tests use synthetic CPAL callback timestamps and no output device. Native output
 stream creation, duplex actor wiring, clock/platform/AEC quality checks remain
 owed; this source is still staged and not an advertised audio capability.
+
+### Capture queue byte accounting
+
+The uploader's100-frame queue alone did not enforce the ADR's2-second bound:
+100 maximum100-ms chunks could retain10seconds. Add a64000-byte permit budget
+including the in-flight request; maximum chunks stop at20 and normal20-ms
+chunks at100. Byte overflow fences upload out of band, with explicit Overrun.
+No PCM is truncated and no held send can release its permit early. The existing
+full queue/held stop fakes are retained, plus a maximum-chunk regression.
+
+Speaker packets now reject duration above180s; queued preparation expires after
+10s, rendering after PCM duration+30s (at most210s), and valid final callback
+transitions to its separate at-most3s DAC drain. The owner must await the earliest
+book deadline alongside control/device channels. Missing callback/never-started
+regressions cannot produce Played. These are staged source obligations until the
+duplex actor drives them.
+
+G2's selected shared Button prerequisite82584106 merged atc9d5cc334. Its exact
+voice profile is still G2-owned and pending. V1 reserved W19 Mic/MicOff and
+SquareFilled; the new assets use pinned Lucide1.50.0/9d9418a2 with source2.5
+stroke and intrinsic filled square, preserving existing outline Stop. Full
+ISC/Feather MIT notice and provenance are adjacent to embedded SVGs. Distribution
+notice inclusion and final inspected UI remain owed.

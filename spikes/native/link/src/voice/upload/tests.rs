@@ -161,3 +161,16 @@ async fn supplied_device_fence_wakes_control_even_with_full_data_queues() {
     assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
     assert!(handle.fence.is_closed());
 }
+
+#[test]
+fn maximum_size_chunks_cannot_turn_the_two_second_queue_into_ten_seconds() {
+    let (capture, handle, _actor) = channel();
+    let pcm = Bytes::from(vec![0; MAX_FRAME_BYTES]);
+    for _ in 0..20 {
+        capture.submit(Frame::new(pcm.clone()).unwrap()).unwrap();
+    }
+    assert_eq!(capture.budget.available_permits(), 0);
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Overrun));
+    assert_eq!(capture.submit(frame()), Err(CaptureError::Stopped));
+    handle.stop();
+}

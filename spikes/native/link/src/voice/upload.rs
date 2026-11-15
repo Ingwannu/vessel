@@ -5,11 +5,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::Bytes;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc, watch};
 
 use crate::cancel::Fence;
 
 const CAPTURE_QUEUE_FRAMES: usize = 100;
+// 2 seconds at16kHz mono PCM16, including any in-flight upload.
+const CAPTURE_QUEUE_BYTES: usize = 64_000;
 const MAX_FRAME_BYTES: usize = 3_200;
 const STOP_DEADLINE: Duration = Duration::from_secs(10);
 
@@ -79,6 +81,12 @@ pub(super) struct Status {
     pub(super) upload_failure: Option<Failure>,
 }
 
+#[derive(Debug)]
+struct Queued {
+    frame: Frame,
+    _permit: OwnedSemaphorePermit,
+}
+
 /// Static adapter seam exists before a registered node call; tests never hit a network.
 pub(super) trait Adapter: Send {
     fn upload(&mut self, frame: Frame) -> impl Future<Output = Result<(), Failure>> + Send;
@@ -93,7 +101,8 @@ pub(super) trait Audio: Send {
 #[derive(Debug, Clone)]
 pub(super) struct Capture {
     fence: Arc<Fence>,
-    tx: mpsc::Sender<Frame>,
+    budget: Arc<Semaphore>,
+    tx: mpsc::Sender<Queued>,
 }
 
 impl Capture {
@@ -101,13 +110,25 @@ impl Capture {
         if self.fence.is_closed() {
             return Err(CaptureError::Stopped);
         }
-        self.tx.try_send(frame).map_err(|error| match error {
-            mpsc::error::TrySendError::Full(_) => {
+        let count = u32::try_from(frame.pcm().len()).map_err(|_private| CaptureError::Invalid)?;
+        let permit = Arc::clone(&self.budget)
+            .try_acquire_many_owned(count)
+            .map_err(|_private| {
                 self.fence.close();
                 CaptureError::Overrun
-            }
-            mpsc::error::TrySendError::Closed(_) => CaptureError::Stopped,
-        })
+            })?;
+        self.tx
+            .try_send(Queued {
+                frame,
+                _permit: permit,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => {
+                    self.fence.close();
+                    CaptureError::Overrun
+                }
+                mpsc::error::TrySendError::Closed(_) => CaptureError::Stopped,
+            })
     }
 }
 
@@ -130,7 +151,7 @@ impl Handle {
 #[derive(Debug)]
 pub(super) struct Uploader {
     fence: Arc<Fence>,
-    rx: mpsc::Receiver<Frame>,
+    rx: mpsc::Receiver<Queued>,
     status: watch::Sender<Status>,
 }
 
@@ -148,6 +169,7 @@ pub(super) fn with_fence(fence: Arc<Fence>) -> (Capture, Handle, Uploader) {
     (
         Capture {
             fence: Arc::clone(&fence),
+            budget: Arc::new(Semaphore::new(CAPTURE_QUEUE_BYTES)),
             tx,
         },
         Handle {
@@ -207,6 +229,9 @@ impl Uploader {
                 None => return Ok(Continue::No),
             },
         };
+        let Queued { frame, _permit } = frame;
+        // The permit stays alive across upload, so a held remote cannot enlarge
+        // the retained byte budget by moving PCM out of the channel.
         // Stop may have arrived immediately after selecting ready data.
         if self.fence.is_closed() {
             return Ok(Continue::No);

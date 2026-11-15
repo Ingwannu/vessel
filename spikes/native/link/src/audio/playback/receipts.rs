@@ -14,6 +14,8 @@ use crate::cancel::Fence;
 
 const MAX_SEGMENTS: usize = 2;
 const MAX_DEVICE_DRAIN: Duration = Duration::from_secs(3);
+const PREPARE_TIMEOUT: Duration = Duration::from_secs(10);
+const PLAYBACK_GRACE: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Ticket(u64);
@@ -112,7 +114,7 @@ impl Drop for Handle {
 struct Entry {
     packet: Packet,
     receipt: Arc<Receipt>,
-    deadline: Option<Instant>,
+    deadline: Instant,
 }
 
 #[derive(Debug)]
@@ -144,6 +146,9 @@ impl Book {
         if self.entries.len() >= MAX_SEGMENTS {
             return Err(Refusal::Capacity);
         }
+        let deadline = Instant::now()
+            .checked_add(PREPARE_TIMEOUT)
+            .ok_or(Refusal::Clock)?;
         let next = self.next.checked_add(1).ok_or(Refusal::Exhausted)?;
         let ticket = Ticket(next);
         let (state, _observer) = watch::channel(State::Queued);
@@ -157,7 +162,7 @@ impl Book {
             Entry {
                 packet,
                 receipt: Arc::clone(&receipt),
-                deadline: None,
+                deadline,
             },
         );
         self.next = next;
@@ -179,6 +184,17 @@ impl Book {
         if *entry.receipt.state.borrow() != State::Queued {
             return Err(Refusal::Order);
         }
+        let now = Instant::now();
+        if now >= entry.deadline {
+            entry.receipt.settle(State::Failed);
+            return Err(Refusal::Clock);
+        }
+        entry.deadline = entry
+            .packet
+            .duration()
+            .checked_add(PLAYBACK_GRACE)
+            .and_then(|duration| now.checked_add(duration))
+            .ok_or(Refusal::Clock)?;
         entry.receipt.settle(State::Rendering);
         Ok(Some(entry.packet.reader(lease, Arc::clone(&entry.receipt))))
     }
@@ -206,23 +222,25 @@ impl Book {
             entry.receipt.settle(State::Failed);
             return Err(Refusal::Clock);
         };
-        entry.deadline = Some(deadline);
+        entry.deadline = deadline;
         entry.receipt.settle(State::Draining);
         Ok(())
     }
     /// The device actor sleeps until this deadline, alongside its callback/control channels.
     pub(in crate::audio) fn next_deadline(&self) -> Option<Instant> {
-        self.entries
-            .values()
-            .filter_map(|entry| entry.deadline)
-            .min()
+        self.entries.values().map(|entry| entry.deadline).min()
     }
     pub(in crate::audio) fn advance(&mut self, now: Instant) {
         self.entries.retain(|_ticket, entry| {
             if entry.receipt.stopped() {
                 entry.receipt.settle(State::Interrupted);
-            } else if entry.deadline.is_some_and(|deadline| now >= deadline) {
-                entry.receipt.settle(State::Played);
+            } else if now >= entry.deadline {
+                let result = if *entry.receipt.state.borrow() == State::Draining {
+                    State::Played
+                } else {
+                    State::Failed
+                };
+                entry.receipt.settle(result);
             }
             !entry.receipt.state.borrow().terminal()
         });

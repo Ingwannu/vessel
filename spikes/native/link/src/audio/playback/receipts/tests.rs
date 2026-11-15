@@ -154,3 +154,23 @@ fn invalid_pcm_and_exhausted_ticket_are_refused_before_insertion() {
     ));
     assert!(book.entries.is_empty());
 }
+
+#[test]
+fn a_silent_device_and_never_started_segment_have_finite_failure_deadlines() {
+    let (mut book, _fence) = setup();
+    let queued = book.submit(packet(&[0, 0])).unwrap();
+    let deadline = book.next_deadline().unwrap();
+    book.advance(deadline - Duration::from_nanos(1));
+    assert_eq!(*queued.status().borrow(), State::Queued);
+    book.advance(deadline);
+    assert_eq!(*queued.status().borrow(), State::Failed);
+    let active = book.submit(packet(&[0, 0])).unwrap();
+    book.begin(active.lease()).unwrap();
+    book.advance(book.next_deadline().unwrap());
+    assert_eq!(*active.status().borrow(), State::Failed);
+    let slow_pcm = Bytes::from(vec![0; 8 * 1024 * 1024]);
+    assert!(matches!(
+        Packet::new(slow_pcm, RateHz::new(8_000).unwrap()),
+        Err(Refusal::Format)
+    ));
+}
