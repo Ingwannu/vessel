@@ -972,3 +972,21 @@ the node's unrelated default. Its stored spec remains unchanged until an
 explicit model choice clears the legacy field through the existing transition.
 The source regression now checks both the refusal and honest control state.
 No new provider catalogue or live handshake is executed by this preparation.
+
+
+## V1 bounded disposition and writer transfer
+
+V1 message5f690726 independently verified exact dcb..580 seven immutable
+Git blobs/byte lengths/SHA, five preserved field blobs, completed log hashes
+and step prefixes. Bounded SOURCE/requested KIT NARROW PASS: exact Kit
+Clippy0 +lib171/0/0, fonts/cargo0/no skips, actual Checking/Compiling.
+Audit /tmp/work/m12-review/g2-multiline-580/audit.json. This closes the preceding
+source-disposition-pending checkpoint; it expands none of the listed limits.
+
+The checked exact producer chain/API, optional result docs, and newer-union/
+ratchet caveats were handed to G3 and the lead. G3 is now the sole SearchField
+writer; G2 released the shared field files. No parallel edit or unchanged
+whole/matrix is requested. FieldId remains editor origin only; final consumer
+proves original form visit/context/authority, focused fields, native OS/IME and
+its own full package/UI. G2's moving F1 source and later View/App work are not
+covered by this isolated producer disposition.
