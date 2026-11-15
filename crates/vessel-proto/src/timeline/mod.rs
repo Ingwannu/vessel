@@ -4,6 +4,7 @@
 pub mod admission;
 pub(crate) mod compat;
 mod detail;
+mod execution;
 mod identity;
 mod item;
 mod measure;
@@ -20,6 +21,7 @@ mod scope;
 mod submission;
 
 pub use detail::*;
+pub use execution::{ExecutionInvalidation, FinishGrantCeiling, ParentExecutionStamp};
 pub use identity::{
     ClientMessageId, ExternalAgentId, ExternalHostId, ExternalThreadId, ExternalTurnId,
     MAX_TIMELINE_IDENTITY_BYTES, PlanProposalId, PluginItemId, PluginKind, TimelineIdentityError,

@@ -1888,6 +1888,13 @@ prepared owner and deduplicates only matching identity and displayed payload;
 it creates no EventSeq, turn or second queue and cannot settle/release uncertainty.
 Legacy entries keep their prior shape. Composer activation remains separate.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and
