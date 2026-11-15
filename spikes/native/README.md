@@ -1214,6 +1214,7 @@ available defaults, while `moved` and `visibility` preserve disconnected entries
 through the same rewrite rule as Paseo's `sidebar-nav/model.ts`. This first
 model checkpoint does not yet replace the legacy sidebar renderer; see
 `docs/plans/wp-f4-sidebar.md` for the registry/plugin/usage seams and validation.
+
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
 rename/removal dialogs and delegates actions to that parent. The browser
@@ -1241,7 +1242,6 @@ measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
 for exact source, focus limits and consumer integration. The canonical palette
 GREEN_500 and existing CircleCheck own success ink/art; no second palette.
 
-<<<<<<< HEAD
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1253,8 +1253,6 @@ Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
 
-=======
->>>>>>> dd13ce378
 The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
 surface2+foreground, pressed surface3 background only) through one frame.
 trigger_presented takes typed Closed/Open with ButtonState. Existing entries
@@ -1267,17 +1265,3 @@ AboveDialog/priority3 through the same renderer. Its transparent viewport
 input boundary consumes only the nested menu's outside press, preserving
 its host dialog; no second scrim or area popup is drawn. See
 `docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
-<<<<<<< HEAD
-=======
-
-### Allocation block approval boundary (base 5 adapter)
-
-`command_changes::Listed` projects every `ServicePortsView` field explicitly.
-Until the approval card displays and compares the full allocation block, it
-refuses any current or last-approved block, even with zero named services or
-when the current set removes the old block. The approved-folder comparison
-fallback also retains that refusal. A typed refusal has separate EN/KO
-Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
-This keeps an unseen setting out of an approval digest while the native display
-is implemented. Existing terminal refusal and head test cases remain intact.
->>>>>>> dd13ce378

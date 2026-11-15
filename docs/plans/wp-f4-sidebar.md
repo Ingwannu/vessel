@@ -543,3 +543,12 @@ with default-empty slots. Literal GPUI fixtures in both themes check 28/44/40
 heights, the 13-point content rail, and the 37-point label rail after a reserved
 check. Execution remains pending; this is not a complete hierarchy renderer,
 page input/hover controller, compact sheet, Sidebar first-use or F4 approval.
+
+The follow-up line lock merge `1783b8bd5` accidentally committed README
+conflict markers after a paragraph-comparison assertion failed and later
+commands were still invoked. Restore the prior complete union in a separate
+correction commit. Independent normalized paragraph-content comparison proves
+it contains every lead paragraph plus the F4 staged-inventory text, once each;
+no Rust source or lock correction is reverted. Subsequent dependent commands
+must stop on a failed validation. The final feature range includes this
+correction; the intermediate merge is not a clean review endpoint.
