@@ -498,3 +498,11 @@ adaptive thinking within budget and budgeted thinking refused above it.
 The library introduces no metadata prompt, HTTP call, credential read,
 Node setting or wire field. Node wiring supplies the metadata budget and
 uses this same preparation for validation before saving and after reload.
+
+Complete request implementation checkpoint: the actual typed provider
+request establishes the cap before serialization. All three APIs request
+a whole body; Chat has no stream options. Metadata effort omissions stay
+separate from the unchanged streaming path. Five new adjacent tests cover
+the encoded caps and reasoning cases. Narrow LLM all-targets Clippy and
+108 library tests pass. No HTTP request or settings mutation is connected;
+the whole gate and production Node caller remain owed.
