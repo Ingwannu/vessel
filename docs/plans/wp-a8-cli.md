@@ -78,3 +78,14 @@ option values, reject ambiguity/missing answers and apply Question::check; W23
 owns that helper (intended, not checked yet). CLI never guesses comma splits or
 constructs provider prompt messages. Permission tool --input stays opaque for
 provider-side unsupported-input refusal; a scalar is not silently discarded.
+
+
+Preflight also caps aggregate retained encoded forms at64MiB, in addition to the
+listing's10,000-row/4,096-page limits. Otherwise a valid large form per request
+could make an all-request batch retain many node-frame budgets at once. A private
+checked writer accounts the actual encoded request/question without allocating
+another JSON payload; oversized batches fail before any response effect. Existing
+comparison/report writers are private and have unrelated scopes, so this avoids
+widening their APIs. The cap is an encoded-payload budget, not an exact heap claim.
+Smaller explicit request selections remain available. Tests cover exact cumulative
+boundary and escaped text counting rather than relying on raw string length.

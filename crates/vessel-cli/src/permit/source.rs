@@ -9,6 +9,8 @@ use vessel_client::{CallError, NodeClient};
 use vessel_proto::inbox::{InboxEntry, InboxItem, InboxKey, InboxPage, ListInbox};
 use vessel_proto::{PermissionRequest, Question};
 
+mod budget;
+
 /// The existing node calls, shared by the real client and in-memory tests.
 pub(crate) trait Source {
     async fn page(&mut self, request: ListInbox) -> Result<InboxPage, CallError>;
@@ -26,6 +28,10 @@ impl Source for NodeClient {
 /// Preflight errors occur before the response path has any effects.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SourceError {
+    #[error("selected forms exceed this command's payload budget; select fewer requests")]
+    Budget,
+    #[error("the selected request forms could not be encoded")]
+    Encoding(#[source] serde_json::Error),
     #[error(transparent)]
     Pages(#[from] ReadError),
     #[error(transparent)]
@@ -67,6 +73,7 @@ pub(crate) async fn preflight(
     rows: &[Row],
 ) -> Result<Vec<Ready>, SourceError> {
     let mut ready = Vec::with_capacity(rows.len());
+    let mut budget = budget::Budget::default();
     for row in rows {
         let entry = source.live(row.source).await?.ok_or(SourceError::Gone)?;
         if entry.key != row.source {
@@ -77,6 +84,7 @@ pub(crate) async fn preflight(
                 if row.id != PendingId::Permission(request.id) {
                     return Err(SourceError::Mismatch);
                 }
+                budget.charge(&request)?;
                 Ready::Permission {
                     source: entry.key,
                     request,
@@ -86,6 +94,7 @@ pub(crate) async fn preflight(
                 if row.id != PendingId::Question(question.id) {
                     return Err(SourceError::Mismatch);
                 }
+                budget.charge(&question)?;
                 Ready::Question {
                     source: entry.key,
                     question,
