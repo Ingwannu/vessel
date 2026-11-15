@@ -476,3 +476,23 @@ paragraphs stay additive. Pending F1 narrow will use --locked on this corrected
 head. No local Cargo/rustc or known-stale-lock remote run was started. The old
 prerequisite-waiting wrapper was retired before any remote submission; the two
 already registered isolated Circle/Glyph jobs remain unchanged.
+
+## Shared form select source
+
+Coordinator5f0bf9d0 assigned one Form presentation to the existing select
+renderer. SelectField was read whole at pinned1c00 ui/select-field.tsx; its
+trigger136–193 and styles344–394 use control-geometry.ts235–250/286–306.
+FormContent carries typed Selected/Placeholder and Idle/Loading independently
+from availability/visibility. One common frame renders MD32/44,px12,py5/11,
+r8/surface2/transparent rest border, accent border on hover/open/press, source
+leading18/chevron16 and numeric14 loading in16slot. The new canonical icon MD16
+and validated loading FOURTEEN constants prevent per-area numeric copies.
+
+Old Settings/HostFilter signatures/defaults and exact old test-module bytes
+are preserved (source check at /tmp/work/m12-g2/form-control-preservation.json).
+No parallel trigger/list/focus path or area chrome is introduced. Source's
+outline ring is deliberately omitted under the app's existing container/field
+ring policy; border-only active treatment matches TextField's shared policy.
+Both-theme literal geometry/paint/opacity/placeholder/source-slot regression
+source is added, but not executed yet. Final F1 checks/consumer captures own
+source interaction/actual slot/scale/focus proof; no producer/UI pass is claimed.

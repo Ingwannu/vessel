@@ -44,6 +44,11 @@ use crate::picker::{ComboHeader, Side, anchor_probe, glyph};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
+mod form;
+pub use form::{
+    Activity as FormActivity, Content as FormContent, Value as FormValue, trigger as form_trigger,
+};
+
 /// Paseo's select list is 220 wide.
 pub const WIDTH: f32 = 220.0;
 
@@ -57,6 +62,8 @@ pub enum Presentation {
     Settings,
     /// `HostFilter`: surface1, radius6, natural body height plus 6+6 padding.
     HostFilter,
+    /// `SelectField` MD rectangular form control, independent of loading/value.
+    Form,
 }
 /// Whether an existing select's popover is showing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -155,35 +162,85 @@ pub fn trigger_with(
     anchor: &Anchor,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    render(id.into(), content, None, anchor, tokens)
+}
+fn render(
+    id: ElementId,
+    content: TriggerContent,
+    form: Option<form::Look>,
+    anchor: &Anchor,
+    tokens: &Tokens,
+) -> Stateful<Div> {
     let g = geometry(content.presentation, content.sizing);
     let paint = paint(content.presentation, tokens);
-    let trigger = frame(id, g, paint);
-    let trigger = interactions(trigger, &content, paint);
+    let mut trigger = interactions(frame(id, g, paint), &content, paint, tokens);
+    let field = content.presentation == Presentation::Form;
+    if field {
+        trigger = trigger.w_full().min_w_0();
+    }
+    let leading_size = if field {
+        FORM_LEADING
+    } else {
+        crate::theme::icon::SM
+    };
+    let mut label = div()
+        .min_w_0()
+        .overflow_hidden()
+        .whitespace_nowrap()
+        .text_ellipsis();
+    if field {
+        label = label.flex_1().text_color(form_foreground(form, tokens));
+    }
     trigger
         .child(anchor_probe(anchor))
         .children(content.leading.map(|leading| {
             div()
-                .size(px(crate::theme::icon::SM))
+                .size(px(leading_size))
                 .flex_none()
                 .flex()
                 .items_center()
                 .justify_center()
                 .child(leading)
         }))
-        .child(
-            div()
-                .min_w_0()
-                .overflow_hidden()
-                .whitespace_nowrap()
-                .text_ellipsis()
-                .child(content.label),
+        .child(label.child(content.label))
+        .children(
+            form.filter(|look| look.activity == FormActivity::Loading)
+                .map(|_| {
+                    div()
+                        .w(px(crate::theme::icon::MD))
+                        .flex_none()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(crate::loading::activity_indicator(
+                            "select-field-loading",
+                            crate::loading::Size::Numeric(crate::loading::Points::FOURTEEN),
+                            tokens.neutral.foreground_muted,
+                        ))
+                }),
         )
         .child(glyph(
             Glyph::ChevronDown,
-            crate::theme::icon::SM,
+            if field {
+                crate::theme::icon::MD
+            } else {
+                crate::theme::icon::SM
+            },
             tokens.neutral.foreground_muted,
         ))
 }
+const FORM_LEADING: f32 = 18.0;
+// control-geometry fieldVerticalPadding: (height - line20 - border2)/2.
+const FORM_VERTICAL_POINTER: f32 = 5.0;
+const FORM_VERTICAL_TOUCH: f32 = 11.0;
+fn form_foreground(form: Option<form::Look>, tokens: &Tokens) -> gpui::Hsla {
+    if form.is_some_and(|look| look.placeholder) {
+        tokens.neutral.foreground_muted
+    } else {
+        tokens.neutral.foreground
+    }
+}
+
 fn frame(id: impl Into<ElementId>, g: Geometry, paint: Paint) -> Stateful<Div> {
     let mut trigger = div()
         .id(id)
@@ -216,12 +273,19 @@ fn interactions(
     mut trigger: Stateful<Div>,
     content: &TriggerContent,
     paint: Paint,
+    tokens: &Tokens,
 ) -> Stateful<Div> {
     let enabled = content.availability == crate::ButtonState::Enabled;
     if enabled {
         trigger = trigger.cursor_pointer();
         trigger = match content.presentation {
             Presentation::Settings => trigger.active(|style| style.opacity(PRESSED_OPACITY)),
+            Presentation::Form => {
+                let accent = tokens.neutral.border_accent;
+                trigger
+                    .hover(move |style| style.border_color(accent))
+                    .active(move |style| style.border_color(accent))
+            }
             Presentation::HostFilter => {
                 let mut host = trigger;
                 if let Some(fill) = paint.hover {
@@ -233,6 +297,12 @@ fn interactions(
                 host
             }
         };
+    }
+    if content.presentation == Presentation::Form
+        && enabled
+        && content.visibility == Visibility::Open
+    {
+        trigger = trigger.border_color(tokens.neutral.border_accent);
     }
     if let Some(opacity) = opacity(
         content.presentation,
@@ -259,6 +329,16 @@ fn opacity(
         | (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
         (
             Presentation::Settings,
+            crate::ButtonState::Disabled,
+            Visibility::Closed | Visibility::Open,
+        ) => Some(DISABLED_OPACITY),
+        (
+            Presentation::Form,
+            crate::ButtonState::Enabled,
+            Visibility::Closed | Visibility::Open,
+        ) => None,
+        (
+            Presentation::Form,
             crate::ButtonState::Disabled,
             Visibility::Closed | Visibility::Open,
         ) => Some(DISABLED_OPACITY),
@@ -304,6 +384,20 @@ fn geometry(presentation: Presentation, sizing: crate::ControlSizing) -> Geometr
             radius: Radius::Full,
             type_: Type::Body,
         },
+        Presentation::Form => Geometry {
+            minimum: Some(match sizing {
+                ControlSizing::Pointer => POINTER_HEIGHT,
+                ControlSizing::Touch => crate::breakpoint::TOUCH_TARGET,
+            }),
+            horizontal: spacing::S3,
+            vertical: Some(match sizing {
+                ControlSizing::Pointer => FORM_VERTICAL_POINTER,
+                ControlSizing::Touch => FORM_VERTICAL_TOUCH,
+            }),
+            gap: spacing::S2,
+            radius: Radius::Points(radius::R2),
+            type_: Type::Body,
+        },
         Presentation::HostFilter => Geometry {
             minimum: None,
             horizontal: spacing::S3,
@@ -327,6 +421,13 @@ fn paint(presentation: Presentation, tokens: &Tokens) -> Paint {
         Presentation::Settings => Paint {
             background: gpui::transparent_black(),
             border: tokens.neutral.border_accent,
+            hover: None,
+            pressed: None,
+            foreground: tokens.neutral.foreground,
+        },
+        Presentation::Form => Paint {
+            background: tokens.neutral.surface2,
+            border: gpui::transparent_black(),
             hover: None,
             pressed: None,
             foreground: tokens.neutral.foreground,
@@ -520,3 +621,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod form_tests;

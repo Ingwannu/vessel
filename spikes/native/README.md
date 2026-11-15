@@ -1463,3 +1463,10 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+The shared `select::form_trigger(FormContent)` adds typed Selected/Placeholder
+value and Idle/Loading presentation to the one select renderer. Source MD is
+32/44,px12/r8/surface2,transparent resting border/accent hover/open, leading18,
+chevron16 and numeric14 activity in16slot; loading does not imply Disabled.
+Existing Settings/HostFilter entry signatures and defaults are preserved.
+Border-only active chrome retains the app's no-container-ring policy.
