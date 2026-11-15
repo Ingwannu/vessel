@@ -339,3 +339,61 @@ fn a_retargeted_alias_cannot_admit_the_old_nodes_same_request(cx: &mut TestAppCo
         );
     });
 }
+
+#[gpui::test]
+fn only_an_exact_resolution_record_releases_a_retired_uncertain_effect(cx: &mut TestAppContext) {
+    use vessel_proto::{AgentEvent, EventRecord, EventSeq, QuestionOutcome, SessionEvent};
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let fixture = fixture(shell, window, cx);
+        let residents = &mut shell.areas.session_residents;
+        let old = residents.begin_follow(fixture.token, |_, _| {}).unwrap();
+        let request = Request::Question(fixture.question);
+        let _ticket = residents
+            .request_admit(&fixture.connection, old, request)
+            .unwrap();
+        let fresh = residents
+            .begin_follow(fixture.token, |resources, notice| {
+                resources.conversation.requests_retired(notice)
+            })
+            .unwrap();
+        residents
+            .receive(fresh, |resources| {
+                let area = &mut resources.conversation;
+                let event = |seq, event| EventRecord {
+                    seq: EventSeq::new(seq),
+                    at: chrono::DateTime::UNIX_EPOCH,
+                    event: SessionEvent::Agent { event },
+                };
+                let asked = event(0, AgentEvent::QuestionAsked(area.live.questions[0].clone()));
+                assert!(area.take(&fixture.token.address.session, &[asked]));
+                let unrelated = event(
+                    1,
+                    AgentEvent::QuestionResolved {
+                        id: QuestionId::random(),
+                        outcome: QuestionOutcome::Cancelled,
+                    },
+                );
+                let _changed = area.take(&fixture.token.address.session, &[unrelated]);
+                assert_eq!(
+                    area.requests_readiness(),
+                    OwnerReadiness::Hold(HoldReason::UncertainEffect)
+                );
+                let resolved = event(
+                    2,
+                    AgentEvent::QuestionResolved {
+                        id: fixture.question,
+                        outcome: QuestionOutcome::Cancelled,
+                    },
+                );
+                assert!(area.take(&fixture.token.address.session, &[resolved]));
+                assert_eq!(area.requests_readiness(), OwnerReadiness::Ready);
+                assert!(
+                    area.answering.get(fixture.question).is_some(),
+                    "retained engine not dropped by reconciliation"
+                );
+            })
+            .unwrap();
+    });
+}

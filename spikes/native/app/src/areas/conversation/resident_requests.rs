@@ -87,6 +87,18 @@ impl ConversationArea {
         }
     }
 
+    /// Only actual exact resolution records release an already retired effect.
+    /// Snapshot presence/omission and reply arrival order cannot clear it. The
+    /// caller must admit records through the original checked follow ingress.
+    pub(crate) fn requests_observed(&mut self, records: &[vessel_proto::EventRecord]) {
+        self.request_effects.0.retain(|effect| {
+            effect.stage == Stage::Sending
+                || !records
+                    .iter()
+                    .any(|record| resolves(record, effect.request))
+        });
+    }
+
     /// The sole registry has already invalidated this attempt. Match BOTH its
     /// original binding and opaque request ticket before changing UI state.
     pub(crate) fn requests_retired(&mut self, notice: &FollowRetirement) {
@@ -172,5 +184,21 @@ impl SessionResidents {
             let effect = area.request_effects.0.swap_remove(index);
             Ok(apply(area, effect.request))
         })?
+    }
+}
+
+fn resolves(record: &vessel_proto::EventRecord, request: Request) -> bool {
+    use vessel_proto::{AgentEvent, SessionEvent};
+    match request {
+        Request::Permission(expected) => matches!(
+            &record.event,
+            SessionEvent::Agent { event: AgentEvent::PermissionResolved { id, .. } }
+                if *id == expected
+        ),
+        Request::Question(expected) => matches!(
+            &record.event,
+            SessionEvent::Agent { event: AgentEvent::QuestionResolved { id, .. } }
+                if *id == expected
+        ),
     }
 }

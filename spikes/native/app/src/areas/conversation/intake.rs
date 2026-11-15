@@ -100,6 +100,8 @@ impl ConversationArea {
         self.follow_parking(records);
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
+        #[cfg(test)]
+        self.requests_observed(records);
         self.reconcile_responses();
         if change.is_empty(self.timeline.entries().len()) {
             return false;

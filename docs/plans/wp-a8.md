@@ -598,3 +598,14 @@ requires the original same-lease DeliveryGuard and exact binding on data ingress
 with the sole resident minter/carrier. No source node is inferred from Shown or
 the current alias, no second identity cache is added, and this remains test-only
 adapter source with execution owed.
+
+Retired Requests effects now release their local Uncertain Hold only when actual
+records resolve that exact typed request. Other requests' resolution records,
+ordinary snapshots and late transport replies cannot release it. Sending effects
+retain their outstanding canonical operation until its original settlement; the
+record hook only removes already-retired uncertainty and cannot consume another
+owner's ticket. The hook is test-only alongside the staged resident resources.
+A fixture admits records through the sole registry's fresh binding, retains Hold
+for an unrelated resolution, then accepts the exact resolution and becomes Ready
+while preserving the actual local editor. This is staged source, with execution
+owed; live lease-checked ingress and coordinated product cutover remain required.
