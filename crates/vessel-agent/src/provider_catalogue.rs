@@ -44,10 +44,8 @@ pub async fn probe_provider_with(
     setup: AgentSetup,
     definition: &ProviderDefinition,
 ) -> Result<ProviderObservation, ProviderProbeError> {
-    if driver == Driver::CodexAppServer {
-        return Ok(crate::codex::catalogue::probe(command, &setup, definition).await?);
-    }
     let setup = AgentSetup {
+        system_prompt: None,
         model: None,
         resume: None,
         fork: None,
@@ -57,6 +55,9 @@ pub async fn probe_provider_with(
         private_dir: None,
         ..setup
     };
+    if driver == Driver::CodexAppServer {
+        return Ok(crate::codex::catalogue::probe(command, &setup, definition).await?);
+    }
     let observation = probe_with(driver, command, setup)
         .await
         .map_err(ProviderProbeError::Probe)?;

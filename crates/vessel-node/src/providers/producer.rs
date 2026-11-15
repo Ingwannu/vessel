@@ -88,6 +88,7 @@ impl Producer {
             .clone()
             .unwrap_or_else(|| self.probe_dir.clone());
         let setup = AgentSetup {
+            system_prompt: None,
             cwd,
             model: None,
             resume: None,

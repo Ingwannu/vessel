@@ -25,6 +25,7 @@ async fn native_codex_catalogue_never_creates_a_thread_or_turn() {
         let registry = ProviderRegistry::build(&ProviderOverrides::default(), &[]).unwrap();
         let definition = registry.get(&"codex".parse().unwrap()).unwrap();
         let setup = AgentSetup {
+            system_prompt: None,
             cwd: root.path().to_path_buf(),
             model: None,
             resume: None,
@@ -91,6 +92,7 @@ async fn one_prompt_free_fake_probe_yields_models_modes_effort_and_version() {
         let registry = ProviderRegistry::build(&ProviderOverrides::default(), &[]).unwrap();
         let definition = registry.get(&"claude".parse().unwrap()).unwrap();
         let setup = AgentSetup {
+            system_prompt: None,
             cwd: root.path().to_path_buf(),
             model: None,
             resume: None,

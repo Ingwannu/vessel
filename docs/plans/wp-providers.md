@@ -322,3 +322,25 @@ the three pending provider replies alongside other newer methods; shared protoco
 admission still refuses unassigned calls. Red evidence stays in
 /tmp/work/wp-providers/provider-wiring-tests. The own waiting local626 check was
 cancelled before compilation and is replaced on the changed head.
+
+## Node42 integration checkpoint
+
+Exact f55a2cf3 passed remote provider selection70/0/0 (run
+wp-providers-20261115T095315Z-f55a2cf3; all prerequisite steps0), including
+output-schema bounds/codec, startup preservation, pending envelope refusal,
+service authority and tracked owner shutdown. Agent Pi/catalogue_data modules
+and standalone provider_catalogue integration are not in that filter.
+
+The required d432ef0f merge adopts reviewed ProcessLifetime and the reviewed
+transient system-prompt prerequisite, plus shared lifecycle call preflight.
+Both conflicting public exports are retained. Both architecture appendices
+remain verbatim, designated head first. Own full AgentSetup constructors gain
+only system_prompt:None: producer.rs and the two provider_catalogue integration
+setups; no head assertion or size record changes. The existing no-prompt probe
+normalization additionally clears the new field before dispatching either
+native Codex or ACP, so catalogue observation cannot inherit transient context.
+The native catalogue already ignores other launch-only selections; moving that
+branch after normalization preserves the observation contract. This merge's
+new combined source still needs strict compilation and TS regeneration. The
+own queued f55 local job was cancelled before any compilation, avoiding a false
+exact-head claim after the required base change; its red/queue logs are kept.

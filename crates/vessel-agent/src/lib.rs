@@ -76,7 +76,9 @@ mod process;
 mod provider_catalogue;
 mod questions;
 mod recent;
+mod setup;
 mod stderr;
+mod system_prompt;
 mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
@@ -96,6 +98,7 @@ pub use output::{AgentOutput, AgentOutputs};
 pub use probe::{ProbeError, Probed, probe, probe_with};
 pub use process::AgentProcess;
 pub use provider_catalogue::{ProviderObservation, ProviderProbeError, probe_provider_with};
+pub use system_prompt::SystemPromptOverride;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.
 pub use vessel_proc::{CommandSpec, Signal};
