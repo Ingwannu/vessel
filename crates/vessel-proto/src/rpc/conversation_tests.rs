@@ -62,9 +62,9 @@ fn the_new_calls_need_protocol_ten() {
         notify: true,
         ..prompt.clone()
     };
-    assert_eq!(told.into_call().since(), ProtocolVersion::new(11));
+    assert_eq!(told.into_call().since(), Some(ProtocolVersion::new(11)));
     let prompt = prompt.into_call();
-    assert_eq!(prompt.since(), V10);
+    assert_eq!(prompt.since(), Some(V10));
     // An answer to a question, or a prompt naming an attachment, on the
     // old call: an older node could not decode either.
     let answer = SendInput {
@@ -75,7 +75,7 @@ fn the_new_calls_need_protocol_ten() {
         },
     }
     .into_call();
-    assert_eq!(answer.since(), V10);
+    assert_eq!(answer.since(), Some(V10));
     let attached = SendInput {
         session,
         input: SessionInput::Prompt {
@@ -88,7 +88,7 @@ fn the_new_calls_need_protocol_ten() {
         },
     }
     .into_call();
-    assert_eq!(attached.since(), V10);
+    assert_eq!(attached.since(), Some(V10));
     let plain = SendInput {
         session,
         input: SessionInput::Prompt {
@@ -96,7 +96,7 @@ fn the_new_calls_need_protocol_ten() {
         },
     }
     .into_call();
-    assert_eq!(plain.since(), ProtocolVersion::new(2));
+    assert_eq!(plain.since(), Some(ProtocolVersion::new(2)));
     for method in [
         Method::PromptSession,
         Method::ChangeQueue,
@@ -109,7 +109,7 @@ fn the_new_calls_need_protocol_ten() {
         Method::FinishUpload,
         Method::ReadAttachment,
     ] {
-        assert_eq!(method.since(), V10, "{method:?}");
+        assert_eq!(method.since(), Some(V10), "{method:?}");
         assert!(method.forwardable(), "{method:?}");
     }
     assert_eq!(
