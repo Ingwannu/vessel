@@ -1247,10 +1247,19 @@ to follow the current CLI work. This is an assignment record, not an API proposa
 or implementation. Contract-first work must add an ADR section and typed API,
 obtain V3 review, then implement and verify the producer before W9 adopts it.
 
-The proof must cover every runner belonging to the canonical WorkspaceId, with
-confirmed termination AND reap, including forgotten-but-unconfirmed runner debt.
-Ended status, registry absence, cwd, PID or ProcessLifetime by itself cannot prove
-quiescence. Placement must use W11 identity/ownership rather than cwd aliases.
-Admission fencing/proof lifetime must be agreed with W9 so a new start/restart
-cannot invalidate restore safety after a snapshot. No request/row/number is added;
-no producer or consumer-ready head exists. W9 must keep production restore Busy.
+W9's subsequent requirements correct an insufficient WorkspaceId-only key: proof
+must borrow its canonical opened-FD PhysicalRoot/RootLease from the held StartGuard,
+bound to the exact root plus lease/registry incarnation and retained through restore
+completion/release. No second root lock or free-standing point-in-time boolean.
+Independent workspace identities sharing the physical root must remain distinct,
+while every overlapping launch-bound runner/start/restart, script/service, PTY
+auxiliary I/O/resource cleanup and forgotten debt must be accounted for.
+
+Confirmed termination AND reap/descendant cleanup are required. Ended status,
+registry absence, cwd, PID or ProcessLifetime alone cannot prove quiescence.
+Unknown/lost reports, timeouts, overflow, unexcluded epoch changes and previous-boot
+debt require Busy/RecoveryPending rather than dropping debt. Crash reconciliation
+must be explicit. W9's gate source7fd1a637f is not green/reviewed/adoptable; no
+RootLease API is invented or imported here. W11 workspace identity stays metadata,
+never a substitute physical-root authority. No request/row/number is added; no
+producer or consumer-ready head exists. W9 keeps production restore Busy.
