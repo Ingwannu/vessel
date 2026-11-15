@@ -397,7 +397,40 @@ No row of the crate table changes.
   `cfg(test)` field, control and fault branch. The designated follow/display
   head is merged, and this package now owes its one complete gate.
 
+## Background value staging
+
+- Existing asset check: `DirListing` describes a directory, and `UsageScope`
+  chooses usage aggregation. Neither models session discovery. The existing
+  session listing merges live and stored information; that service and its
+  ordering will be extended through the now-integrated shared admission accessor.
+- Decision: new value types, using the existing serde and TypeScript derives,
+  with no dependency. `SessionListing` separates shown/background discovery
+  from run state; `ListingScope` separates default/inclusive reads. A generic
+  boolean would lose that distinction at a module boundary.
+- Paseo's source remains the reviewed background contract:
+  `docs/agent-lifecycle.md:186-203`, CLI `ls.ts:138-151`, MCP
+  `server/agent/tools/paseo-tools.ts:1396-1401,2133`, and
+  `server/workspace-registry.ts:106,684-687` (durable default false).
+  The stated difference remains session metadata rather than workspace
+  visibility, because a shared project is not one agent workspace.
+- These are values only. No request, reply, event, field, migration, filter
+  service, caller inheritance or CLI/MCP input is added here. A future creation
+  field must be optional; the value's default does not erase an omitted
+  override. Exact-id operations will continue to bypass discovery filtering.
+
+- The initial value-only branch passed TypeScript-enabled narrow clippy and
+  three listing/default/serde tests. Its queued complete gate was cancelled
+  before execution. Under the package workflow, these values now belong to
+  the complete background feature and receive no separate value-only gate.
+
 ## Resume point
+
+Current package boundary: the legacy interrupt repair and existing label
+admission passed review and their whole gates. Event availability plus stop
+refusal passed the complete gate and review too. Earlier per-commit "owed"
+notes below record those checkpoints. Background values are merged into this
+package; request/storage/discovery/inheritance and CLI remain next.
+
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
