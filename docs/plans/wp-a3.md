@@ -340,10 +340,13 @@ a new source integration, not approval inherited from portable producer 5ab's
 V1/narrow pass. Full A3 execution and scoped callback/authority acceptance remain
 pending its own consumer union and gates.
 
-A7 has identified a displayed-prompt policy for complete spoken-input wrappers
-and an exact voice-instruction prefix. Its borrowed presentation helper is not
-yet a checked consumer dependency here. Local outline/find alignment waits for
-that union; global raw-source search and bounded streaming metadata previews
-can still expose instruction terms that the eventual presentation hides. This
-remains an explicit integration difference, not a silently completed policy or
-a second A3 text projection.
+A7 has identified a displayed-body policy for complete spoken-input wrappers
+and an exact voice-instruction prefix. Its borrowed helper is not yet a checked
+consumer dependency here; body/find range alignment waits for that union.
+Direct reference inspection keeps metadata preview separate: Paseo's
+`timeline-prompt-index.ts:16-36` only collapses raw row text, and
+`chat-outline/rail.web.tsx:95,178-179` displays that preview unchanged. The bounded
+metadata preview therefore stays raw as in the reference, without duplicating
+A7's body projection or importing a native-view dependency into the node. Global
+raw-source search may still hit instruction terms hidden by body presentation;
+that remains an explicit search/display integration difference.
