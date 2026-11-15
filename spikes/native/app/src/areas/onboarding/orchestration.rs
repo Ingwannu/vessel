@@ -265,64 +265,15 @@ pub(crate) fn render(
         shell.areas.onboarding.integrations.facts,
         Facts::Ready(snapshot) if cli_choice(snapshot).is_some()
     );
-    let on = shell
-        .areas
-        .onboarding
-        .integrations
-        .model
-        .choice(Integration::Cli)
-        == Choice::On;
-    let enabled = !busy(shell);
-    let switch = settings::switch("setup-cli-choice", on, enabled, busy(shell), 0, tokens)
-        .on_click(cx.listener(move |shell, _event, _window, cx| {
-            if !busy(shell) {
-                let result = shell
-                    .areas
-                    .onboarding
-                    .integrations
-                    .model
-                    .choose(Integration::Cli, if on { Choice::Off } else { Choice::On });
-                if result.is_err() {
-                    shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
-                }
-            }
-            cx.notify();
-        }))
-        .into_any_element();
+    let switch = cli_switch(shell, tokens, cx);
     div()
         .flex()
         .flex_col()
         .child(
             settings::card(tokens)
-                .child(settings::row_at(
-                    words.orchestration(),
-                    Some(words.tools_unavailable().into()),
-                    None,
-                    Some(
-                        settings::switch("setup-tools-unavailable", true, false, false, 0, tokens)
-                            .into_any_element(),
-                    ),
-                    true,
-                    compact,
-                    tokens,
-                ))
+                .child(tools_row(shell, tokens, compact))
                 .when(failed(shell), |card| {
-                    card.child(settings::row(
-                        words.setup_failed(),
-                        None,
-                        Some(
-                            outline_button(
-                                "setup-integration-retry",
-                                words.retry(),
-                                !busy(shell),
-                                tokens,
-                            )
-                            .on_click(cx.listener(|shell, _event, _window, cx| refresh(shell, cx)))
-                            .into_any_element(),
-                        ),
-                        false,
-                        tokens,
-                    ))
+                    card.child(retry_row(shell, tokens, cx))
                 })
                 .when(cli, |card| {
                     card.child(settings::row_at(
@@ -355,6 +306,71 @@ pub(crate) fn render(
                 ),
         )
         .into_any_element()
+}
+
+fn tools_row(shell: &Shell, tokens: &Tokens, compact: bool) -> AnyElement {
+    let words = shell.words.desktop();
+    settings::row_at(
+        words.orchestration(),
+        Some(words.tools_unavailable().into()),
+        None,
+        Some(
+            settings::switch("setup-tools-unavailable", true, false, false, 0, tokens)
+                .into_any_element(),
+        ),
+        true,
+        compact,
+        tokens,
+    )
+    .into_any_element()
+}
+
+fn cli_switch(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
+    let on = shell
+        .areas
+        .onboarding
+        .integrations
+        .model
+        .choice(Integration::Cli)
+        == Choice::On;
+    let enabled = !busy(shell);
+    settings::switch("setup-cli-choice", on, enabled, busy(shell), 0, tokens)
+        .on_click(cx.listener(move |shell, _event, _window, cx| {
+            if !busy(shell) {
+                let result = shell
+                    .areas
+                    .onboarding
+                    .integrations
+                    .model
+                    .choose(Integration::Cli, if on { Choice::Off } else { Choice::On });
+                if result.is_err() {
+                    shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
+                }
+            }
+            cx.notify();
+        }))
+        .into_any_element()
+}
+
+fn retry_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
+    let words = shell.words.desktop();
+    settings::row(
+        words.setup_failed(),
+        None,
+        Some(
+            outline_button(
+                "setup-integration-retry",
+                words.retry(),
+                !busy(shell),
+                tokens,
+            )
+            .on_click(cx.listener(|shell, _event, _window, cx| refresh(shell, cx)))
+            .into_any_element(),
+        ),
+        false,
+        tokens,
+    )
+    .into_any_element()
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]

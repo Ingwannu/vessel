@@ -154,14 +154,14 @@ impl crate::State {
                 let result = self
                     .selected_connection(&context)
                     .map(|_selected| Target::authenticated(context))
-                    .map_err(|_refusal| Problem::Changed);
+                    .map_err(setup_refusal);
                 Answer::Resolved { ticket, result }
             }
             Ask::Bind { target, visit } => {
                 let result = self
                     .selected_connection(target.context())
                     .map(|_selected| ())
-                    .map_err(|_refusal| Problem::Changed);
+                    .map_err(setup_refusal);
                 // Even a refused binding owns this visit's protective fence.
                 // Otherwise closing a failed new visit would leave the old
                 // visit's guard installed, because stale release is refused.
@@ -178,5 +178,25 @@ impl crate::State {
             }
         };
         self.emit(crate::Event::Onboarding(answer)).await;
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn setup_refusal(refusal: vessel_app_view::connection::Refusal) -> Problem {
+    match refusal {
+        vessel_app_view::connection::Refusal::Changed => Problem::Changed,
+        vessel_app_view::connection::Refusal::Closed => Problem::Offline,
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+    use vessel_app_view::connection::Refusal;
+
+    #[test]
+    fn closed_transport_is_not_reported_as_an_alias_replacement() {
+        assert_eq!(setup_refusal(Refusal::Closed), Problem::Offline);
+        assert_eq!(setup_refusal(Refusal::Changed), Problem::Changed);
     }
 }

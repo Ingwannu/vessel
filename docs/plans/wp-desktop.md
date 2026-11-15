@@ -87,6 +87,8 @@ Resolve/Bind success must eventually carry the canonical weak DeliveryGuard;
 queued installation and every subsequent Ready query validate that exact guard,
 Context and Visit with no await before mutation. The current context-only adapter
 is preparatory until the real shared export/consumer union lands.
+The preparatory adapter preserves physical closure as Offline, distinct from
+Changed admission, rather than discarding that canonical refusal distinction.
 
 C1 owns authoritative Existing/Empty/readiness and controlled project forms. Its
 withdrawn values carrier is not an API or runtime handoff; no alternate identity,
