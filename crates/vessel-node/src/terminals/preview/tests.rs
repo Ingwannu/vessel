@@ -263,3 +263,27 @@ async fn capacities_are_shared_by_service_clones_and_errors_keep_the_bound() {
         &rig.service.clone().runtime
     ));
 }
+
+#[test]
+fn exact_ipv6_origin_preserves_scope_and_flow_instead_of_aliasing_metadata() {
+    use std::net::SocketAddrV6;
+    let endpoint = SocketAddrV6::new(Ipv6Addr::LOCALHOST, ServicePort::MIN.get(), 7, 9);
+    let original = PreviewOrigin::new(PreviewScheme::Http, endpoint.into()).unwrap();
+    let SocketAddr::V6(retained) = original.endpoint() else {
+        panic!("IPv6 was replaced")
+    };
+    assert_eq!(retained.scope_id(), endpoint.scope_id());
+    assert_eq!(retained.flowinfo(), endpoint.flowinfo());
+    let plain = PreviewOrigin::new(
+        PreviewScheme::Http,
+        SocketAddr::from((Ipv6Addr::LOCALHOST, ServicePort::MIN.get())),
+    )
+    .unwrap();
+    assert_ne!(original, plain);
+    let mut other_scope = endpoint;
+    other_scope.set_scope_id(endpoint.scope_id().checked_add(1).unwrap());
+    assert_ne!(
+        original,
+        PreviewOrigin::new(PreviewScheme::Http, other_scope.into()).unwrap()
+    );
+}

@@ -80,3 +80,9 @@ or late physical inspection releases socket and preparation permit before
 the attempt's drain token. The existing blocked-worker cancellation and
 deadline cases assert full capacity only after receipt. This is required
 for drain to describe actual owners rather than only logical cancellation.
+
+The exact origin now retains the entire standard SocketAddr after shared
+ServicePort validation. Reconstructing it from only IP and port discarded
+IPv6 scope/flow metadata, potentially aliasing different endpoints. The
+new regression preserves those values and distinguishes another scope.
+This matcher change adds no origin permission or real source backend.

@@ -1,6 +1,6 @@
 //! Exact origin metadata has no ability to authorize a connection.
 
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 
 use vessel_proto::workspace::ServicePort;
 
@@ -17,8 +17,7 @@ pub(crate) enum PreviewScheme {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct PreviewOrigin {
     scheme: PreviewScheme,
-    address: IpAddr,
-    port: ServicePort,
+    endpoint: SocketAddr,
 }
 
 impl PreviewOrigin {
@@ -27,12 +26,10 @@ impl PreviewOrigin {
         if !endpoint.ip().is_loopback() {
             return Err(PreviewError::NotLoopback);
         }
-        let port = ServicePort::try_from(endpoint.port()).map_err(PreviewError::Port)?;
-        Ok(Self {
-            scheme,
-            address: endpoint.ip(),
-            port,
-        })
+        let _validated_port = ServicePort::try_from(endpoint.port()).map_err(PreviewError::Port)?;
+        // Reconstructing from IP/port discards IPv6 routing metadata and can
+        // alias a distinct endpoint. The private owner keeps the checked value.
+        Ok(Self { scheme, endpoint })
     }
 
     /// The exact scheme is part of equality, not a reason to try a fallback.
@@ -42,6 +39,6 @@ impl PreviewOrigin {
 
     /// A node adapter may compare metadata; dialing still requires the lease.
     pub(crate) const fn endpoint(self) -> SocketAddr {
-        SocketAddr::new(self.address, self.port.get())
+        self.endpoint
     }
 }
