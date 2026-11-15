@@ -638,3 +638,13 @@ source strict/tests, the canonical writer union security check, complete wire
 freshness and whole package acceptance remain owed. The successful exact
 0c812 runtime strict and queued 0c812 tests remain prior-source receipts, not
 this merge's execution proof. No row 618 persistence code is included.
+
+
+V3 read the exact gate-50 settings join at `2839abccc` without a new security
+blocker; this is source context only, with current execution and full audit
+still owed. The existing pre-lock cancellation fixture now names its unchanged
+30-second safety budget beside that fixture. It does not reuse the distinct
+canonical real-writer fixture's ten-second budget or change any assertion.
+The skills/remote sealed diagnostic causes do not prove privacy of the inherited
+common SettingsError::Lost source edge; that owner's later task-error/private
+settings join remains separate.

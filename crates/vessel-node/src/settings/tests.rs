@@ -6,6 +6,8 @@ use vessel_session::{
     DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY, RuntimeConfig,
 };
 
+const SETTINGS_ADMISSION_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(30);
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn cancelling_a_settings_rpc_keeps_persistence_and_apply_tracked() {
     let root = tempfile::tempdir().unwrap();
@@ -47,7 +49,7 @@ async fn cancelling_a_settings_rpc_keeps_persistence_and_apply_tracked() {
             })
             .await
     });
-    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+    tokio::time::timeout(SETTINGS_ADMISSION_TEST_BUDGET, async {
         while settings.changes.available_permits() == MAX_SETTINGS_CHANGES {
             tokio::task::yield_now().await;
         }
