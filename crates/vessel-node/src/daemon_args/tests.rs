@@ -5,7 +5,9 @@ use clap::CommandFactory as _;
 #[test]
 fn help_keeps_the_run_options_and_every_subcommand_description() {
     Args::command().debug_assert();
-    let mut command = Args::command().term_width(0).hide_env_values(true);
+    let mut command = Args::command()
+        .term_width(0)
+        .mut_args(|argument| argument.hide_env_values(true));
     let help = command.render_long_help().to_string();
     for sentence in [
         "Vessel node daemon",
@@ -32,7 +34,7 @@ fn help_keeps_the_run_options_and_every_subcommand_description() {
     let relay = command.find_subcommand_mut("relay").unwrap().clone();
     let help = relay
         .term_width(0)
-        .hide_env_values(true)
+        .mut_args(|argument| argument.hide_env_values(true))
         .render_long_help()
         .to_string();
     for flag in [
