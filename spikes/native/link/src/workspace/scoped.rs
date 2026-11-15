@@ -44,6 +44,9 @@ impl Request {
         }
     }
     /// Refuse a root mismatch before the actor or node can observe the request.
+    ///
+    /// # Errors
+    /// Returns `ScopeMismatch` when the request root differs from its scope.
     pub fn file(scope: FileScope, ask: FileAsk) -> Result<Self, ScopeMismatch> {
         if root_of(&ask) != scope.root() {
             return Err(ScopeMismatch);
@@ -150,7 +153,7 @@ impl crate::State {
             }
             Work::Root { .. } | Work::File { .. } => &self.workspace.file_calls.slots,
         };
-        let slot = slots.clone().try_acquire_owned();
+        let slot = Arc::clone(slots).try_acquire_owned();
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             let reply = match (selected, slot) {

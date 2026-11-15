@@ -147,6 +147,18 @@ impl Shell {
             return;
         }
         let node = scope.node();
+        // Read the existing engine before admission: its change notification
+        // may still be queued while its text has already accepted an edit.
+        let panel = &self.areas.workspace.code;
+        let keys: Vec<_> = panel
+            .file_key()
+            .into_iter()
+            .chain(panel.files.retained.keys().cloned())
+            .filter(|key| affected(key, node, &change))
+            .collect();
+        for key in keys {
+            self.mirror_editor_for(&key, cx);
+        }
         let panel = &self.areas.workspace.code;
         // The staged file-tab bridge has not joined guarded path retarget yet.
         // A live presentation must not be silently orphaned by a path mutation.

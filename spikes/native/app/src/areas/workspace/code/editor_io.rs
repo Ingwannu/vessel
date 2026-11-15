@@ -140,6 +140,9 @@ impl Shell {
         let Some(key) = self.areas.workspace.code.file_key() else {
             return;
         };
+        if self.areas.workspace.code.file_mutating(&key) {
+            return;
+        }
         let Some(editing) = self.editing_for(&key) else {
             return;
         };
@@ -158,6 +161,9 @@ impl Shell {
                 .timer(Duration::from_millis(AUTOSAVE_MS))
                 .await;
             let _gone = this.update(cx, |shell, cx| {
+                if shell.areas.workspace.code.file_mutating(&key) {
+                    return;
+                }
                 let Some(editing) = shell
                     .editing_for(&key)
                     .filter(|editing| editing.autosave == wait)

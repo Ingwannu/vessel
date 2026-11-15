@@ -846,3 +846,31 @@ owned until explicit safe release; an exact alias snapshot known to point to
 another node cannot render the old binding as that node's file. A synthetic
 shared-layout regression pins the refusal and retained original unsaved text.
 This is a fail-closed compatibility limit, not a fabricated Workspace identity.
+
+
+### Accepted editor text precedes destructive admission
+
+[Decision Log]
+- Purpose: preserve input already accepted by the existing editor while its
+  document-model notification is still queued.
+- Existing assets: the same CodeEditor text snapshot, retained EditorModel,
+  root-confined mutation admission and readonly hold; no new text engine.
+- Alternatives: trusting only the model permits a clean-looking deletion to
+  overtake accepted text. A second edit queue would duplicate ownership.
+- Choice: synchronize affected original-node/root/path buffers before rename
+  or delete admission. Dirty/pending/uncertain content then follows the existing
+  refusal. During a hold, delayed mirrors remain accepted but cannot arm a new
+  autosave; expired timers and leave-file flush also refuse new writes.
+- Consequence: local text is retained even when publication arrives late. A
+  stale control waiting for a model reload does not overwrite that newer model.
+  The regression uses actual silent engine replacement as a deterministic
+  accepted-edit/mirror barrier; it does not prove OS IME event ordering.
+
+Strict20 on6469e659 failed in Link on command dispatch length, missing Errors
+API documentation and Arc clone notation. The corrected dispatch delegates
+unchanged preference persistence to one helper; no allowances or error mapping
+changes. Announced package base c3429952 is merged with its canonical multiline
+factory, preserved captured Plain callback and one composition registration for
+both line and multiline engines. Its removed field size exception stays removed.
+Existing tests on68d0aaf0 and the node whole retry on954c0bf0 remain separate,
+frozen-source evidence; they cannot validate this later union.

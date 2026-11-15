@@ -123,13 +123,30 @@ impl Shell {
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.mirror_editor_for(key, cx);
+    }
+
+    // Already accepted engine text must reach the owner even when a path hold
+    // has begun; a hold rejects new effects, never publication of prior input.
+    pub(super) fn mirror_editor_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let held = self.areas.workspace.code.file_mutating(key);
         let Some(editing) = self.editing_for(key) else {
             return;
         };
         let Some(text) = editing.editor.as_ref().map(|editor| editor.text(cx)) else {
             return;
         };
-        let step = editing.model.edit(&text);
+        if editing.stale || editing.model.content() == text {
+            return;
+        }
+        let step = match editing.model.edit(&text) {
+            Step::Autosave if held => Step::StopAutosave,
+            step => step,
+        };
         if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.intelligence = super::intelligence::State::Idle;
             if let Some(preview) = &mut viewer.markdown {

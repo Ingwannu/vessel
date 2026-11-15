@@ -230,3 +230,50 @@ fn global_find_yields_to_actual_editor_focus_but_not_its_displayed_path(cx: &mut
         });
     });
 }
+
+// Silent engine replacement supplies a deterministic accepted-edit / queued-
+// mirror barrier. This tests the real engine, not OS IME delivery ordering.
+#[gpui::test]
+fn destructive_admission_observes_accepted_text_before_its_mirror(cx: &mut TestAppContext) {
+    use vessel_app_kit::code_editor::FindCase;
+    use vessel_app_link::workspace::PathChange;
+    use vessel_proto::workspace::DeletePath;
+
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let scope = shell.areas.workspace.code.scope().unwrap();
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            editor.open_find(cx);
+            editor.find_query("alpha", FindCase::Sensitive, cx);
+            assert_eq!(
+                editor.find_replace("updated", ReplaceScope::All, window, cx),
+                MatchCount(2)
+            );
+            assert_eq!(editor.text(cx), "updated beta updated");
+            assert_eq!(editing(shell).model.content(), "alpha beta alpha");
+            assert!(!editing(shell).model.modified());
+
+            shell.begin_file_mutation_for(
+                scope,
+                PathChange::Delete(DeletePath {
+                    root: key.root,
+                    path: key.path.clone(),
+                    recursive: false,
+                }),
+                cx,
+            );
+            assert!(shell.areas.workspace.code.mutation.is_none());
+            assert!(shell.areas.workspace.code.files.actions.refused.is_some());
+            assert_eq!(editing(shell).model.content(), "updated beta updated");
+            assert!(editing(shell).model.modified());
+            assert!(editing(shell).writing.is_none());
+            shell.editor_changed_for(&key, window, cx);
+            assert_eq!(editing(shell).model.content(), editor.text(cx));
+            assert!(editing(shell).model.modified());
+            assert!(editing(shell).writing.is_none());
+        });
+    });
+}
