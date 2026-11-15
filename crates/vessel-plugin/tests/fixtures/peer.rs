@@ -87,6 +87,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             NodeToHelper::Cancel { request } => cancelled(&mut output, request).await?,
             NodeToHelper::Shutdown {} => {
+                if mode == "stderr-tail" {
+                    stderr_long().await?;
+                }
                 if mode != "ignore-shutdown" {
                     break;
                 }

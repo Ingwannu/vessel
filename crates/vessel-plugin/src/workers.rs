@@ -5,7 +5,7 @@ use tokio::{
     io::AsyncReadExt,
     process::{ChildStderr, ChildStdin, ChildStdout},
     sync::mpsc,
-    task::JoinSet,
+    task::{AbortHandle, JoinError, JoinSet},
 };
 use vessel_proto::plugins::{HelperToNode, NodeToHelper};
 
@@ -15,8 +15,67 @@ use crate::{
 };
 
 const STDERR_READ_BYTES: usize = 4096;
+// A surviving/escaped descendant can keep stderr open after leader cleanup.
+// Preserve final output without allowing that pipe to hold shutdown forever.
+const STDERR_DRAIN_BUDGET: std::time::Duration = std::time::Duration::from_secs(2);
 
-pub(crate) type Workers = JoinSet<Result<WorkerExit, RuntimeError>>;
+pub(crate) struct Workers {
+    tasks: JoinSet<Result<WorkerExit, RuntimeError>>,
+    reader: Option<AbortHandle>,
+    writer: Option<AbortHandle>,
+}
+
+impl Workers {
+    pub(crate) fn new() -> Self {
+        Self {
+            tasks: JoinSet::new(),
+            reader: None,
+            writer: None,
+        }
+    }
+
+    pub(crate) async fn join_next(
+        &mut self,
+    ) -> Option<Result<Result<WorkerExit, RuntimeError>, JoinError>> {
+        self.tasks.join_next().await
+    }
+
+    pub(crate) async fn drain(&mut self) -> Result<(), RuntimeError> {
+        if let Some(reader) = self.reader.take() {
+            reader.abort();
+        }
+        if let Some(writer) = self.writer.take() {
+            writer.abort();
+        }
+        let result = tokio::time::timeout(STDERR_DRAIN_BUDGET, self.join_after_abort()).await;
+        if let Ok(result) = result {
+            return result;
+        }
+        self.tasks.abort_all();
+        while self.tasks.join_next().await.is_some() {}
+        Err(RuntimeError::StderrDrainTimeout)
+    }
+
+    async fn join_after_abort(&mut self) -> Result<(), RuntimeError> {
+        let mut failure = None;
+        while let Some(joined) = self.tasks.join_next().await {
+            let error = match joined {
+                Ok(Ok(_exit)) => None,
+                Ok(Err(error)) => Some(error),
+                Err(cause) if cause.is_cancelled() => None,
+                Err(cause) => Some(RuntimeError::Task(crate::TaskFailure::new(cause))),
+            };
+            // Join every task even when a concrete failure already exists.
+            if failure.is_none() {
+                failure = error;
+            }
+        }
+        match failure {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum WorkerExit {
@@ -30,7 +89,7 @@ pub(crate) fn reader(
     mut stdout: ChildStdout,
     messages: mpsc::Sender<Option<HelperToNode>>,
 ) {
-    let _reader = workers.spawn(async move {
+    workers.reader = Some(workers.tasks.spawn(async move {
         loop {
             let message = wire::read_helper(&mut stdout)
                 .await
@@ -40,7 +99,7 @@ pub(crate) fn reader(
                 return Ok(WorkerExit::Reader);
             }
         }
-    });
+    }));
 }
 
 pub(crate) fn writer(
@@ -48,7 +107,7 @@ pub(crate) fn writer(
     mut stdin: ChildStdin,
     mut requests: mpsc::Receiver<NodeToHelper>,
 ) {
-    let _writer = workers.spawn(async move {
+    workers.writer = Some(workers.tasks.spawn(async move {
         while let Some(message) = requests.recv().await {
             tokio::time::timeout(REQUEST_DEADLINE, wire::write_node(&mut stdin, &message))
                 .await
@@ -56,11 +115,11 @@ pub(crate) fn writer(
                 .map_err(RuntimeError::Write)?;
         }
         Ok(WorkerExit::Writer)
-    });
+    }));
 }
 
 pub(crate) fn stderr(workers: &mut Workers, mut stderr: ChildStderr, logs: SharedLogs) {
-    let _stderr = workers.spawn(async move {
+    let _stderr = workers.tasks.spawn(async move {
         let mut buffer = [0; STDERR_READ_BYTES];
         let mut parser = StderrLines::default();
         loop {
