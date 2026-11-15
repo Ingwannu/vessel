@@ -87,3 +87,13 @@ fn failed_responses_keep_their_footer_but_do_not_copy_the_withheld_error_reply()
     let failed_only = entries(vec![json!({"event":"turn_failed","message":"unavailable"})]);
     assert!(TurnFooter::of(failed_only.entries(), 0).is_none());
 }
+
+#[test]
+fn a_withheld_provider_error_alone_does_not_create_a_response_footer() {
+    let timeline = entries(vec![
+        json!({"event":"turn_started","content":[]}),
+        message("service unavailable"),
+        json!({"event":"turn_failed","message":"Internal error: service unavailable"}),
+    ]);
+    assert!(TurnFooter::of(timeline.entries(), 2).is_none());
+}

@@ -18,6 +18,30 @@ pub enum TurnCompletion {
     Failed,
 }
 
+impl TurnCompletion {
+    fn of(kind: &EntryKind) -> Option<Self> {
+        match kind {
+            EntryKind::TurnEnded { reason, .. } => Some(Self::Ended(*reason)),
+            EntryKind::TurnFailed { .. } => Some(Self::Failed),
+            EntryKind::Ready { .. }
+            | EntryKind::Prompt(_)
+            | EntryKind::Steer { .. }
+            | EntryKind::Question { .. }
+            | EntryKind::Message { .. }
+            | EntryKind::Thought { .. }
+            | EntryKind::Tool(_)
+            | EntryKind::Plan { .. }
+            | EntryKind::Permission(_)
+            | EntryKind::Log { .. }
+            | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
+            | EntryKind::Profile { .. }
+            | EntryKind::Model(_) => None,
+        }
+    }
+}
+
 /// Completion time and response content share the same turn boundary.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnFooter {
@@ -36,25 +60,7 @@ impl TurnFooter {
     #[must_use]
     pub fn of(entries: &[Entry], index: usize) -> Option<Self> {
         let end = entries.get(index)?;
-        let completion = match end.kind {
-            EntryKind::TurnEnded { reason, .. } => TurnCompletion::Ended(reason),
-            EntryKind::TurnFailed { .. } => TurnCompletion::Failed,
-            EntryKind::Ready { .. }
-            | EntryKind::Prompt(_)
-            | EntryKind::Steer { .. }
-            | EntryKind::Question { .. }
-            | EntryKind::Message { .. }
-            | EntryKind::Thought { .. }
-            | EntryKind::Tool(_)
-            | EntryKind::Plan { .. }
-            | EntryKind::Permission(_)
-            | EntryKind::Log { .. }
-            | EntryKind::Status { .. }
-            | EntryKind::Parking(_)
-            | EntryKind::Forked { .. }
-            | EntryKind::Profile { .. }
-            | EntryKind::Model(_) => return None,
-        };
+        let completion = TurnCompletion::of(&end.kind)?;
         let before = entries.get(..index)?;
         let boundary = before.iter().rposition(|entry| {
             matches!(
@@ -69,9 +75,11 @@ impl TurnFooter {
         let start = boundary.map_or(0, |at| at.saturating_add(1));
         let response_entries = before.get(start..)?;
         if completion == TurnCompletion::Failed
-            && !response_entries
-                .iter()
-                .any(|entry| matches!(entry.kind, EntryKind::Message { .. } | EntryKind::Tool(_)))
+            && !response_entries.iter().enumerate().any(|(offset, entry)| {
+                matches!(entry.kind, EntryKind::Tool(_))
+                    || (matches!(entry.kind, EntryKind::Message { .. })
+                        && !repeats_failure(entries, start.saturating_add(offset)))
+            })
         {
             return None;
         }
