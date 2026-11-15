@@ -1285,3 +1285,11 @@ AboveDialog/priority3 through the same renderer. Its transparent viewport
 input boundary consumes only the nested menu's outside press, preserving
 its host dialog; no second scrim or area popup is drawn. See
 `docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
+
+The additive `code_editor::DiffDocumentEditor` prototype retains the same
+DiffEditor plus an owner reveal observer. It measures full display-map height,
+uses no per-file vertical source inset or empty bottom rows, and reports changed
+focused caret bounds to the owner's VirtualList. It requires the pending patch7
+parent-viewport correction; no new production pane consumes it yet, and its
+actual keyboard/selection window regression is unexecuted. It does not implement
+cross-file selection or claim the complete Paseo document surface.

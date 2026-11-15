@@ -12,6 +12,9 @@
 //!   instead of Paseo code-insets.ts's approximate 0.62 font-size multiplier.
 //!   The engine's existing six-point gutter gap is retained in this first
 //!   control; consumer/reference geometry and border parity remain unverified.
+mod document;
+pub use document::DiffDocumentEditor;
+
 use std::num::NonZeroU32;
 use std::sync::Arc;
 

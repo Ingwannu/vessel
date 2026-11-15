@@ -490,3 +490,22 @@ remain exact supported reads. Until canonical pending git.compare values and
 its assigned handler land, the default All pane shows a capability recovery
 rather than a success-shaped approximate diff. Old toolbar consumers are not
 rewritten by this correction. New regression expectations remain unexecuted.
+
+## Document owner prototype
+
+`DiffDocumentEditor` is a thin same-engine wrapper retaining a reveal observer.
+It reads the complete existing display map for caret rows and full file height,
+removes ordinary source-panel vertical insets and empty bottom rows, and lets
+the actual parent VirtualList move on focused cursor changes. New actual-window
+source tests drive Ctrl/Cmd-End and Shift-Up on a 2,500-line file; they are not
+executed. No new pane consumes the prototype yet. Cross-file selection is not
+implemented by per-file editors and is not claimed as reference parity.
+
+The external viewport element2921f9ae received direction/source precheck. The
+first external position helper91f1c83e was returned because bounds_for_range
+had its own earlier saturating lookup; e5e657f5 additionally guards both endpoint
+rows there. Lead prechecked it; V1's same-row disposition remains pending.
+Nothing in that external source packet has been installed or compiled yet.
+Prepared Base tests include real owner+cached-child scroll, empty/before/after
+IME bounds, crossclip highlight/visible touch-end/full copy and folded row-order
+checks. These are source drafts, not executed native/OS evidence.

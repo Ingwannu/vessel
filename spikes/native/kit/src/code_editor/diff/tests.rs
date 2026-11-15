@@ -38,7 +38,7 @@ fn sample_uses_actual_mapped_numbers_with_a_two_digit_minimum() {
     assert_eq!(admitted.sample.as_ref(), "999999");
 }
 
-struct Plain;
+pub(super) struct Plain;
 impl LineSyntax for Plain {
     type State = ();
     fn language(&self) -> gpui::SharedString {

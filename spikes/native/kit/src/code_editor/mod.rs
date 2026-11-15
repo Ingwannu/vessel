@@ -25,7 +25,9 @@
 mod diff;
 mod syntax;
 
-pub use diff::{DiffEditor, DiffLine, DiffText, DiffTextError, DiffTone, DiffWrapping};
+pub use diff::{
+    DiffDocumentEditor, DiffEditor, DiffLine, DiffText, DiffTextError, DiffTone, DiffWrapping,
+};
 
 use std::rc::Rc;
 
