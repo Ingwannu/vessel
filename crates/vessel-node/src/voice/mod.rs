@@ -7,5 +7,6 @@
 mod boundary;
 
 mod prompt;
+mod receipts;
 mod segments;
 mod transcript;
