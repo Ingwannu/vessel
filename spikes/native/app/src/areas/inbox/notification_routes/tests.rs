@@ -248,3 +248,45 @@ fn callback_survives_all_windows_closing_and_uses_only_the_desktop_factory(
     });
     old.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
 }
+
+#[gpui::test]
+fn deferred_notice_update_does_not_consume_work_in_a_retained_replaced_shell(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (old, handle) = window(cx);
+    let original_source = source();
+    old.update(cx, |shell, cx| {
+        let request = shell.areas.inbox.store.ticket().unwrap();
+        shell
+            .areas
+            .inbox
+            .granted
+            .push(vessel_app_view::inbox::admission::Pending {
+                key: vessel_app_view::inbox::Key {
+                    node: original_source.node(),
+                    session: vessel_proto::SessionId::random(),
+                    seq: vessel_proto::EventSeq::new(1),
+                },
+                position: vessel_app_view::inbox::Position::new(1),
+                request,
+                source: original_source,
+            });
+        shell.inbox_notice_update(cx);
+    });
+    // Replace before the deferred task can enter the window; retain the old
+    // entity deliberately, as a retained pane/owner may do during teardown.
+    let replacement = handle
+        .update(cx, |_, window, cx| {
+            window.replace_root(cx, Shell::without_io)
+        })
+        .unwrap();
+    cx.run_until_parked();
+    old.read_with(cx, |shell, _| {
+        assert_eq!(shell.areas.inbox.granted.len(), 1)
+    });
+    replacement.read_with(cx, |shell, _| {
+        assert_eq!(shell.route, Route::Draft);
+        assert!(shell.areas.inbox.granted.is_empty());
+    });
+}

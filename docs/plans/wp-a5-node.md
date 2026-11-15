@@ -289,3 +289,11 @@ closed-window generic fallback and consumed/evicted tags. Additional GPUI cases
 cover a registered replacement root with a matching source and all windows
 closed followed by an actual test factory. Own union strict/tests remain owed;
 V1 host/helper verdicts do not grant notification authority or OS delivery proof.
+
+
+Deferred grant replies also re-enter the original handle and check its current
+root before updating the retained Shell. Source/context fencing alone cannot
+prove that a live entity is still window content. The receiving regression
+schedules the real deferred notice task, replaces the root while retaining the
+old Shell, and checks that neither recipient consumes another root's work.
+This adds a UI-lifetime guard, not new node claim authority or delivery proof.
