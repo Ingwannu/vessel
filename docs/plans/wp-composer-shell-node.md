@@ -92,3 +92,8 @@ V3 identified that the native SkillsListResponse decode failure logs the Serde c
 
 
 The exact announced-node union e319902a9d52002ea02cdc80794cadc72cc8cf15 passed strict all-target Clippy for proto/harness/agent/session/node/client/RPC/web with proto TS enabled in run `wp-composer-shell-node-narrow-20261115T161926Z-e319902a` (109 seconds, exit0). The separate full Node library and named TS generation requests are pending. This compilation result does not close the native decode diagnostic finding above, prove receipt/offer activation or supply a whole gate. Generated TS still awaits regeneration from its exact incoming-base bytes.
+
+
+### Proposed retained probe preparation
+
+W22 owns the additive common `agent_command_owned`/`probe_with_choices_owned` producer. Its proposed ownership Arc and the existing runtime task tracker must remain inside each actual blocking launch/lookup closure until settlement, even after caller cancellation or total deadline. B2's current borrowed catalog listing permit cannot cross that static boundary: the agreed narrow conversion uses the same existing listings semaphore through Arc and an owned permit, together with the already-Arc Models retirement guard. No second quota, model registry or cache identity is introduced. This is a proposal awaiting producer verification and consumption, not an implemented cancellation/lifetime guarantee; the probe's total deadline must include preparation, and a late completion must never spawn after its caller retires.
