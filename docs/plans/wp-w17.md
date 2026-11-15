@@ -1280,3 +1280,19 @@ candidate9ed11a34 has author-reported narrow35/0 plus strict0, but no review/who
 consumer handoff; it remains excluded. No D1 request/row is registered until the
 exact pure types are agreed and its handoff is authorized. Full base-core consumer
 qualification still requires the enclosing whole on announced gate49.
+
+### Stream-call error envelope continuity
+
+The existing CLI failure adapter classified only CliError::Call; a fatal
+StreamError::Call from log reading lost the same RPC code and became Internal.
+Reuse CallError::code for both typed wrappers, retaining remote Unsupported/
+Forbidden/NotFound and pending local Unsupported. No string/shape parsing, SDK
+change, retry or new wire error is introduced. Added a regression that distinguishes
+direct and wrapped paths; latest CLI execution is still owed.
+
+W21's actual new UnverifiedIdentity caller arm is prepared separately as source-only
+leaf922471488 atop SDK66bf17e41 plus node-test followup1eac1fe06. The isolated leaf
+contains only that exhaustive attach notice arm, its corrected comment and a scope
+note. rustfmt/diff-check pass; no Cargo or readiness is claimed, and the unreviewed
+SDK has NOT been merged into this main feature tree. W21/integrator received the
+leaf for SDK/caller joint strict verification and review before adoption.

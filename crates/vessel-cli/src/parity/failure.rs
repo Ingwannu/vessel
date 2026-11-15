@@ -65,7 +65,9 @@ fn code(error: &CliError) -> vessel_proto::ErrorCode {
         vessel_proto::ErrorCode::Unavailable
     } else if matches!(error, CliError::NoSuchSession(_)) {
         vessel_proto::ErrorCode::NotFound
-    } else if let CliError::Call(failure) = error {
+    } else if let CliError::Call(failure)
+    | CliError::Stream(vessel_client::StreamError::Call(failure)) = error
+    {
         failure.code().unwrap_or(vessel_proto::ErrorCode::Internal)
     } else {
         vessel_proto::ErrorCode::Internal
@@ -93,5 +95,27 @@ mod tests {
             code(&CliError::Usage("invalid request")),
             ErrorCode::InvalidRequest
         );
+    }
+    #[test]
+    fn stream_rpc_failures_keep_the_same_code_as_direct_calls() {
+        use vessel_client::{CallError, StreamError};
+        use vessel_proto::{ErrorCode, Method, WireError};
+        for expected in [
+            ErrorCode::Unsupported,
+            ErrorCode::Forbidden,
+            ErrorCode::NotFound,
+        ] {
+            let rpc = CallError::Remote(WireError::new(expected, "refused".to_owned()));
+            for error in [
+                CliError::Call(rpc.clone()),
+                CliError::Stream(StreamError::Call(rpc)),
+            ] {
+                assert_eq!(code(&error), expected);
+            }
+        }
+        let pending = CliError::Stream(StreamError::Call(CallError::UnassignedProtocol {
+            method: Method::CaptureTerminal,
+        }));
+        assert_eq!(code(&pending), ErrorCode::Unsupported);
     }
 }
