@@ -75,6 +75,12 @@ use vessel_app_kit::ui::InteractiveElement as _;
 impl Shell {
     fn labels_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
+        if state.manager.state().busy() {
+            state.open = true;
+            state.dialog.focus(window, cx);
+            cx.notify();
+            return;
+        }
         if let Err(failure) = state.manager.reset() {
             state.error = Some(failure);
             return;
@@ -119,12 +125,13 @@ impl Shell {
 
     pub(super) fn labels_close(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
-        match state.manager.reset() {
-            Ok(()) => {
-                state.open = false;
-                state.error = None;
+        state.open = false;
+        // Surface lifetime is independent of a committed/in-flight mutation.
+        if !state.manager.state().busy() {
+            match state.manager.reset() {
+                Ok(()) => state.error = None,
+                Err(failure) => state.error = Some(failure),
             }
-            Err(failure) => state.error = Some(failure),
         }
         cx.notify();
     }

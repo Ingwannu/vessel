@@ -114,7 +114,13 @@ Proto name/color tests (2) and proto clippy passed on the node value commit
 name/color/assignment/count definitions are no longer duplicated in view.
 The new root values make the root gate required at package close as well.
 
-Next: obtain narrow compile/test results, then consume the announced app base
+Follow-up behavior: create failure retains its safe error and exact draft;
+a later successful toggle of a different label cannot erase an earlier
+concurrent failure; hiding/reopening a manager preserves in-flight work.
+Regression assertions cover both error-retention cases. Checks are pending.
+
+Next: merge the announced app base and node Quality B head, then obtain
+narrow compile/test results and consume
 and reviewed registry/session-label contracts. ADR 0086 owns the node catalog
 work in a separate node branch; that branch currently stages values, mutation
 plans and a bounded observer journal, with no registered RPC or persistence. Full native gate and inspected capture

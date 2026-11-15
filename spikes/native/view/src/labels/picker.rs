@@ -65,7 +65,9 @@ impl Picker {
             return false;
         }
         let _settled_ticket = self.pending.remove(&key);
-        self.error = result.err();
+        if let Err(failure) = result {
+            self.error = Some(failure);
+        }
         true
     }
 

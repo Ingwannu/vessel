@@ -58,6 +58,7 @@ fn create_and_assign_is_one_request_and_a_failed_request_keeps_the_form() {
     assert!(!page.completed(ticket(&mut tickets), Ok(())));
     assert!(page.completed(first, Err(Failure::Update)));
     assert_eq!(page.draft_mut().unwrap().text(), "  New  Label ");
+    assert_eq!(page.draft_mut().unwrap().error(), Some(Failure::Update));
     let second = ticket(&mut tickets);
     page.submit(HostState::Online, second).unwrap();
     assert!(page.completed(second, Ok(())));
@@ -135,6 +136,8 @@ fn picker_has_one_pending_ticket_per_name_and_does_not_optimistically_assign() {
     assert_eq!(rows.first().unwrap().pending, Some(first));
     assert!(!picker.finish(&name("ready"), second, Ok(())));
     assert!(picker.finish(&name("ready"), first, Err(Failure::Update)));
+    assert_eq!(picker.error(), Some(Failure::Update));
+    assert!(picker.finish(&name("other"), second, Ok(())));
     assert_eq!(picker.error(), Some(Failure::Update));
     assert_eq!(
         picker

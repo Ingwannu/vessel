@@ -7,6 +7,7 @@ use super::{Color, Failure, HostState, Label, Name, Ticket};
 pub struct CreateDraft {
     text: String,
     color: Color,
+    error: Option<Failure>,
 }
 
 impl CreateDraft {
@@ -19,6 +20,11 @@ impl CreateDraft {
     #[must_use]
     pub const fn color(&self) -> Color {
         self.color
+    }
+    /// A failed create remains visible while its input stays editable.
+    #[must_use]
+    pub const fn error(&self) -> Option<Failure> {
+        self.error
     }
     /// Name input remains a draft until `label` validates it.
     pub fn set_text(&mut self, text: &str) {
@@ -83,6 +89,7 @@ impl PickerPage {
         match self {
             Self::Creating(draft) => {
                 let label = draft.label().ok_or(Failure::NoChange)?;
+                draft.error = None;
                 *self = Self::Submitting {
                     ticket,
                     draft: draft.clone(),
@@ -108,7 +115,11 @@ impl PickerPage {
         }
         *self = match result {
             Ok(()) => Self::Listing,
-            Err(_failure_shown_by_picker) => Self::Creating(draft.clone()),
+            Err(failure) => {
+                let mut draft = draft.clone();
+                draft.error = Some(failure);
+                Self::Creating(draft)
+            }
         };
         true
     }
