@@ -207,7 +207,7 @@ impl AttachmentSearchResult {
     /// Refuse excessive or ambiguous lists before a picker can publish them.
     ///
     /// # Errors
-    /// Returns TooMany or Duplicate without truncating or merging rows.
+    /// Returns `TooMany` or `Duplicate` without truncating or merging rows.
     pub fn new(items: Vec<AttachmentItem>) -> Result<Self, AttachmentError> {
         if items.len() > MAX_ATTACHMENT_ITEMS {
             return Err(AttachmentError::TooMany);
@@ -289,6 +289,64 @@ mod tests {
                 "{{\"items\":[{data},{data}]}}"
             ))
             .is_err()
+        );
+    }
+
+    #[test]
+    fn context_keys_survive_restart_but_a_different_source_kind_never_validates() {
+        use crate::plugins::{PluginAddress, RuntimeGeneration};
+        let mut address = ContributionAddress {
+            installation: PluginAddress {
+                node: NodeId::random(),
+                plugin: "example".parse().expect("id"),
+                generation: RuntimeGeneration::random(),
+            },
+            kind: ContributionKind::AttachmentSource,
+            contribution: "issues".parse().expect("id"),
+        };
+        let first = ContextAttachment {
+            source: address.clone().try_into().expect("source"),
+            item: item(),
+        };
+        address.installation.generation = RuntimeGeneration::random();
+        let next = ContextAttachment {
+            source: address.clone().try_into().expect("source"),
+            item: item(),
+        };
+        assert_eq!(first.key(), next.key());
+        assert_ne!(first.source, next.source);
+        address.kind = ContributionKind::Command;
+        assert_eq!(
+            AttachmentSourceAddress::try_from(address),
+            Err(AttachmentError::NotSource)
+        );
+    }
+
+    #[test]
+    fn context_url_size_and_credentials_are_validated_before_publication() {
+        let text = format!("https://example.invalid/{}", "x".repeat(MAX_ITEM_URL_BYTES));
+        assert_eq!(
+            text.parse::<AttachmentUrl>(),
+            Err(AttachmentError::UrlLength)
+        );
+        assert!(
+            "https://user:private@example.invalid/item"
+                .parse::<AttachmentUrl>()
+                .is_err()
+        );
+        let items = (0..MAX_ATTACHMENT_ITEMS)
+            .map(|number| {
+                let mut entry = item();
+                entry.id = format!("item:{number}").parse().expect("item id");
+                entry
+            })
+            .collect();
+        assert_eq!(
+            AttachmentSearchResult::new(items)
+                .expect("at bound")
+                .items()
+                .len(),
+            MAX_ATTACHMENT_ITEMS
         );
     }
 }
