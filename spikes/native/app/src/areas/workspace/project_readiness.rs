@@ -79,15 +79,10 @@ mod tests {
         shell.update_in(cx, |shell, _, _| {
             let host = Name::parse("laptop").unwrap();
             let node = NodeId::random();
-            shell.fleet.machines.push(Machine {
-                name: host.as_str().to_owned(),
-                reach: Reach::Online,
-                sessions: Vec::new(),
-                agents: Vec::new(),
-                protocol: None,
-                version: None,
-                node: Some(node),
-            });
+            let mut machine = Machine::unreachable(host.as_str().to_owned(), "fixture");
+            machine.reach = Reach::Online;
+            machine.node = Some(node);
+            shell.fleet.machines.push(machine);
             assert_eq!(
                 shell.setup_readiness(&host, node),
                 ProjectSetupReadiness::Pending

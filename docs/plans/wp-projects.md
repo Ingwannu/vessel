@@ -399,3 +399,12 @@ Display implementation. Tests and the new settings route now explicitly obtain
 its validated text with as_str, leaving the shared Name API unchanged. The app
 line's announced base6 (18eedad4) merged cleanly; its stale Cargo.lock is a known
 base issue and no --locked flag is used. Current combined checks remain required.
+
+Base6 exposes the shared connection::ConnectionContext/ConnectionEpoch and
+link State::selected_connection with SelectedConnection::call preflight, physical
+retirement and completion fencing. The real shared registry projection must use
+that one actor-owned admission mechanism; no area-owned epoch allocator or
+first-alias lookup will be added. Current project display tickets cover alias/
+node/read ordering, not this full physical-admission cutover, so they remain a
+prerequisite rather than a ready runtime producer. The readiness fixture now
+uses the shared Machine constructor, retaining new base admission fields.
