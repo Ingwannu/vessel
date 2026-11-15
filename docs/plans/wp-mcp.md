@@ -741,3 +741,31 @@ same 15-second value beside that fixture. No stage, assertion or product
 behavior changes. The already queued prior-source strict and MCP suite are
 retained with their exact source scope; the next changed-source check will
 include this naming correction rather than submitting another duplicate suite.
+
+
+## Actual process-interruption fixture for skill transactions
+
+[Decision Log]
+- Purpose: the prior drop-and-reopen fixture does not prove recovery when a
+  process is killed without destructors. Exercise that missing boundary with
+  temporary roots and the real public SkillManager save/status implementation.
+- Existing assets: save already accepts a typed persistence callback; the
+  fleet atomic private file writer supplies a synthetic preference owner.
+- Alternatives: adding product crash hooks, another binary or dependency would
+  enlarge production behavior just for tests. Reuse the test executable as an
+  isolated child and synchronize at that existing callback instead.
+- Choice: four child kills cross update/delete with before/after preference
+  persistence, always before the journal commit acknowledgement. A pipe marker
+  proves entry into the exact callback; child stdin remains held until kill.
+  The parent owns kill/reap on normal and failed paths, with one named readiness
+  bound. No sleeps, real homes or services are used.
+- Checks: restart reads the actual synthetic durable file, reopens the manager,
+  checks exact restored/committed/obsolete/user/unrelated files, rollback mode
+  preservation, journal/staging cleanup and repeated status idempotence.
+- Limits: this is the fleet filesystem recovery mechanism, not the node's
+  actual Store callback, a power-failure/fsync proof, every journal write edge
+  or row618 durable queue/receipt recovery. It activates no feature or RPC.
+
+The tests are authored only; changed fleet strict and actual child execution
+remain owed. This slice also includes the unchanged notification fixture budget
+name. Earlier source/check receipts are retained with their exact limits.
