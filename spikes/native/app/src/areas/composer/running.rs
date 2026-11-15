@@ -176,6 +176,6 @@ impl Shell {
     fn keep_running_choice(&mut self, machine: &str, agent: &HarnessRef, choice: &OptionChoice) {
         let kept = kept_with(self.prefs.choices(machine, agent), choice);
         self.prefs.keep_choices(machine, agent, &kept);
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
     }
 }

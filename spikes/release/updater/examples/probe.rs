@@ -97,7 +97,7 @@ fn main() {
                     say(&format!("ready: {label} is in place"));
                     return;
                 }
-                UpdateState::Failed { error } => {
+                UpdateState::Failed { error, .. } => {
                     say(&format!("failed: {error}"));
                     return;
                 }
