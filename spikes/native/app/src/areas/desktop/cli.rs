@@ -7,9 +7,10 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
 use vessel_app_link::desktop::{
-    Error,
+    DesktopError,
+    bundle::{BundledTool, bundled_tool_path},
     cli::{
-        Installation, bundled_cli_path,
+        Installation,
         path_setup::{PathSetup, Platform},
     },
 };
@@ -45,9 +46,9 @@ fn platform() -> Platform {
     }
 }
 
-fn prepare() -> Result<(Installation, PathSetup), Error> {
-    let home = dirs::home_dir().ok_or(Error::RelativePath)?;
-    let source = bundled_cli_path(&std::env::current_exe()?, platform())?;
+fn prepare() -> Result<(Installation, PathSetup), DesktopError> {
+    let home = dirs::home_dir().ok_or(DesktopError::RelativePath)?;
+    let source = bundled_tool_path(&std::env::current_exe()?, platform(), BundledTool::Cli)?;
     let target = home.join(".local/bin").join(if cfg!(windows) {
         "vessel.cmd"
     } else {
@@ -63,7 +64,7 @@ fn prepare() -> Result<(Installation, PathSetup), Error> {
     Ok((Installation::new(source, target)?, path))
 }
 
-fn facts(installation: &Installation, path: PathStatus) -> Result<State, Error> {
+fn facts(installation: &Installation, path: PathStatus) -> Result<State, DesktopError> {
     let availability = if installation.has_bundled_cli() {
         Availability::Bundled
     } else {
@@ -85,7 +86,7 @@ impl Shell {
         let work = cx.background_executor().spawn(async move {
             let (installation, path) = prepare()?;
             let state = facts(&installation, PathStatus::Manual)?;
-            Ok::<_, Error>((installation, path, state))
+            Ok::<_, DesktopError>((installation, path, state))
         });
         cx.spawn(async move |this, cx| {
             let result = work.await;

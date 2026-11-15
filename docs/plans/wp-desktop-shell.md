@@ -112,10 +112,23 @@ merge are inherited from the announced base, not desktop wire additions.
   forwarding into the quitting app. Normal launches still forward. This avoids
   a restart race without changing the updater or temporarily releasing the old
   instance's lock. A timeout displays an error-only window with no node/writer.
-- A Windows sibling vessel.exe would be the GUI Vessel.exe on a case-insensitive
-  filesystem. The distinct bundled CLI name is vessel-cli.exe; Unix uses vessel.
-  No CLI binary is bundled on the current base. Installation remains visibly
-  unavailable until the release format supplies that executable.
+- ADR 0094 supersedes the initial sibling CLI naming: both companions use the
+  app executable directory plus `bin/vessel[.exe]` and `bin/vesseld[.exe]`. One
+  typed bundle getter serves CLI passthrough, installation and managed-node
+  startup. It only computes a location; each consumer checks presence. This
+  avoids the Windows case-insensitive app/CLI name collision without guessing
+  a macOS signing layout. macOS returns a typed unsupported-layout refusal
+  until a bundle is published; AppImage has no companions. Installation stays
+  visibly unavailable when a release lacks the CLI.
 - The release owner's initial NSIS check found a command-macro quoting error;
   the two registry-command uses now preserve the macro as one quoted argument.
   Packaging runtime evidence remains separate from app behavior verification.
+
+## Package-base 2 and narrow feedback
+
+Merged 6036eeb8 without changing other owners' feature drafts. Link narrow
+checks exposed strict lint failures in the new desktop modules; the fixes use
+explicit returned-value handling, borrowed worker state and documented public
+fields. The public error type is `DesktopError` to identify its boundary.
+Bundle-path tests cover both tools on Linux/Windows, relative-path refusal and
+unassigned macOS layout; no test executes a companion or assumes it exists.

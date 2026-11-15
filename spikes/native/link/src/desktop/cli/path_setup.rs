@@ -1,6 +1,6 @@
 //! Installing PATH support appends one known line and preserves the user's rc file.
 
-use crate::desktop::Error;
+use crate::desktop::DesktopError;
 use std::ffi::OsString;
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
@@ -13,7 +13,7 @@ const MARKER: &str = "# Added by Vessel";
 /// No rc edit is attempted for platforms or shells whose semantics are unknown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Platform {
-    /// Bash login startup is .bash_profile on macOS.
+    /// Bash login startup is `.bash_profile` on macOS.
     Mac,
     /// Bash's interactive startup is .bashrc on other supported Unix desktops.
     Unix,
@@ -47,9 +47,9 @@ impl PathSetup {
         shell: Option<&Path>,
         platform: Platform,
         path: OsString,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, DesktopError> {
         if !home.is_absolute() {
-            return Err(Error::RelativePath);
+            return Err(DesktopError::RelativePath);
         }
         let rc = if platform == Platform::Windows {
             None
@@ -82,7 +82,7 @@ impl PathSetup {
     ///
     /// # Errors
     /// Bounded read, UTF-8, append and permission failures are explicit.
-    pub fn ensure(&self) -> Result<PathStatus, Error> {
+    pub fn ensure(&self) -> Result<PathStatus, DesktopError> {
         if std::env::split_paths(&self.path)
             .any(|path| path == self.local_bin || path == Path::new("~/.local/bin"))
         {
@@ -101,8 +101,9 @@ impl PathSetup {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
             Err(error) => return Err(error.into()),
         }
-        if u64::try_from(content.len()).map_err(|_overflow| Error::InvalidLaunch)? > RC_LIMIT {
-            return Err(Error::InvalidLaunch);
+        if u64::try_from(content.len()).map_err(|_overflow| DesktopError::InvalidLaunch)? > RC_LIMIT
+        {
+            return Err(DesktopError::InvalidLaunch);
         }
         if content.lines().any(|existing| existing.trim() == *line) {
             return Ok(PathStatus::Configured);

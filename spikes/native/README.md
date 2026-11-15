@@ -1078,7 +1078,10 @@ for capture runs; it is never persisted as a user preference.
 The release contains one compiled signed update channel, so no runtime channel
 selector is offered. An update relaunch uses the updater's existing marker to
 wait for the old instance lock instead of forwarding back into a quitting app.
-The CLI must be bundled separately: `vessel-cli.exe` beside `Vessel.exe` on
-Windows, `vessel` beside `vessel-app` on Unix. A build without it shows an explicit
+ADR 0094 places companions below the app executable directory: `bin/vessel.exe`
+and `bin/vesseld.exe` on Windows, `bin/vessel` and `bin/vesseld` on Linux.
+`link::desktop::bundle::bundled_tool_path` is the single location policy for CLI
+and local-node consumers. macOS has no published companion layout yet; AppImage
+contains no companions. A build without the CLI shows an explicit
 unavailable state. User-local installation refuses unrelated files and preserves
 shell rc contents; removal leaves PATH configuration for other local tools.

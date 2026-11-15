@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use vessel_app_view::desktop::window::WindowState;
 
-use super::Error;
+use super::DesktopError;
 
 const VERSION: u16 = 1;
 const DOCUMENT_LIMIT: u64 = 64 * 1024;
@@ -29,9 +29,9 @@ impl Store {
     ///
     /// # Errors
     /// Relative paths are not stable across desktop launches.
-    pub fn new(directory: PathBuf) -> Result<Self, Error> {
+    pub fn new(directory: PathBuf) -> Result<Self, DesktopError> {
         if !directory.is_absolute() {
-            return Err(Error::RelativePath);
+            return Err(DesktopError::RelativePath);
         }
         Ok(Self { directory })
     }
@@ -46,7 +46,7 @@ impl Store {
     ///
     /// # Errors
     /// Reports I/O, bounded-document, decoding and version failures.
-    pub fn load_window(&self) -> Result<Option<WindowState>, Error> {
+    pub fn load_window(&self) -> Result<Option<WindowState>, DesktopError> {
         let path = self.directory.join("window-state.json");
         let file = match std::fs::File::open(path) {
             Ok(file) => file,
@@ -62,7 +62,7 @@ impl Store {
         }
         let document: Document = serde_json::from_reader(file)?;
         if document.version != VERSION {
-            return Err(Error::NewerDocument);
+            return Err(DesktopError::NewerDocument);
         }
         Ok(Some(document.state))
     }
@@ -71,7 +71,7 @@ impl Store {
     ///
     /// # Errors
     /// Refuses serialization or OS errors and removes only its own temporary file.
-    pub fn save_window(&self, state: WindowState) -> Result<(), Error> {
+    pub fn save_window(&self, state: WindowState) -> Result<(), DesktopError> {
         let _original = self.load_window()?;
         crate::prefs::private_dir(&self.directory)?;
         let path = self.directory.join("window-state.json");

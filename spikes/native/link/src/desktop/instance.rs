@@ -13,7 +13,7 @@ use tokio::sync::{mpsc, oneshot};
 use vessel_app_view::desktop::NavigationTarget;
 use vessel_proto::{NodeId, SessionId};
 
-use super::Error;
+use super::DesktopError;
 
 const QUEUE_CAPACITY: usize = 32;
 const MAX_PACKET_BYTES: u32 = 4096;
@@ -47,9 +47,9 @@ impl ProjectDirectory {
     ///
     /// # Errors
     /// Relative paths and non-Unicode paths cannot cross this launch protocol.
-    pub fn new(path: PathBuf) -> Result<Self, Error> {
+    pub fn new(path: PathBuf) -> Result<Self, DesktopError> {
         if !path.is_absolute() || path.to_str().is_none() {
-            return Err(Error::InvalidLaunch);
+            return Err(DesktopError::InvalidLaunch);
         }
         Ok(Self(path))
     }
@@ -81,7 +81,7 @@ impl From<&Launch> for Packet {
 }
 
 impl TryFrom<Packet> for Launch {
-    type Error = Error;
+    type Error = DesktopError;
     fn try_from(packet: Packet) -> Result<Self, Self::Error> {
         match packet {
             Packet::NewWindow => Ok(Self::NewWindow),
@@ -104,7 +104,7 @@ pub struct Primary {
 impl Drop for Primary {
     fn drop(&mut self) {
         if let Some(stop) = self.stop.take() {
-            drop(stop.send(()));
+            let _ = stop.send(());
         }
         if let Some(worker) = self.worker.take() {
             drop(worker.join());
@@ -117,7 +117,9 @@ impl Drop for Primary {
 pub enum Instance {
     /// Keep the guard alive for the whole application lifetime.
     Primary {
+        /// Holds the exclusive process lock until application exit.
         guard: Primary,
+        /// Bounded validated requests accepted from later invocations.
         launches: mpsc::Receiver<Launch>,
     },
     /// Exit without initializing a renderer or starting a local node.
@@ -128,7 +130,7 @@ pub enum Instance {
 ///
 /// # Errors
 /// Returns lock, IPC, version/packet and acknowledgement failures with no argv text.
-pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
+pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, DesktopError> {
     claim_with(directory, launch, LockMode::Normal)
 }
 
@@ -136,7 +138,7 @@ pub fn claim(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
 ///
 /// # Errors
 /// The bounded startup wait returns an explicit restart deadline or OS error.
-pub fn claim_restart(directory: &Path, launch: &Launch) -> Result<Instance, Error> {
+pub fn claim_restart(directory: &Path, launch: &Launch) -> Result<Instance, DesktopError> {
     claim_with(directory, launch, LockMode::Restart)
 }
 
@@ -145,7 +147,7 @@ struct LockWait {
     waiting: std::sync::mpsc::Receiver<()>,
 }
 
-fn lock_waiter(file: File) -> Result<LockWait, Error> {
+fn lock_waiter(file: File) -> Result<LockWait, DesktopError> {
     let (done, result) = std::sync::mpsc::sync_channel(1);
     let (started, waiting) = std::sync::mpsc::sync_channel(1);
     let _worker = std::thread::Builder::new()
@@ -154,7 +156,7 @@ fn lock_waiter(file: File) -> Result<LockWait, Error> {
             let acquired = match file.try_lock() {
                 Ok(()) => Ok(file),
                 Err(std::fs::TryLockError::WouldBlock) => {
-                    drop(started.send(()));
+                    let _ = started.send(());
                     file.lock().map(|()| file)
                 }
                 Err(std::fs::TryLockError::Error(error)) => Err(error),
@@ -164,7 +166,7 @@ fn lock_waiter(file: File) -> Result<LockWait, Error> {
     Ok(LockWait { result, waiting })
 }
 
-fn wait_for_lock(file: File) -> Result<File, Error> {
+fn wait_for_lock(file: File) -> Result<File, DesktopError> {
     // OS acquisition blocks in the kernel. A bounded startup receiver avoids
     // polling; if the error-only app closes, process exit ends this helper.
     let LockWait { result, waiting } = lock_waiter(file)?;
@@ -172,15 +174,15 @@ fn wait_for_lock(file: File) -> Result<File, Error> {
     result
         .recv_timeout(RESTART_DEADLINE)
         .map_err(|error| match error {
-            std::sync::mpsc::RecvTimeoutError::Timeout => Error::RestartDeadline,
-            std::sync::mpsc::RecvTimeoutError::Disconnected => Error::Closed,
+            std::sync::mpsc::RecvTimeoutError::Timeout => DesktopError::RestartDeadline,
+            std::sync::mpsc::RecvTimeoutError::Disconnected => DesktopError::Closed,
         })?
-        .map_err(Error::from)
+        .map_err(DesktopError::from)
 }
 
-fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Instance, Error> {
+fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Instance, DesktopError> {
     if !directory.is_absolute() {
-        return Err(Error::RelativePath);
+        return Err(DesktopError::RelativePath);
     }
     let directory = directory.join("desktop-instance");
     crate::prefs::private_dir(&directory)?;
@@ -245,19 +247,19 @@ fn claim_with(directory: &Path, launch: &Launch, mode: LockMode) -> Result<Insta
 async fn receive(
     stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
     sender: &mpsc::Sender<Launch>,
-) -> Result<(), Error> {
+) -> Result<(), DesktopError> {
     let length = stream.read_u32().await?;
     if length > MAX_PACKET_BYTES {
-        return Err(Error::InvalidLaunch);
+        return Err(DesktopError::InvalidLaunch);
     }
-    let length = usize::try_from(length).map_err(|_overflow| Error::InvalidLaunch)?;
+    let length = usize::try_from(length).map_err(|_overflow| DesktopError::InvalidLaunch)?;
     let mut bytes = vec![0; length];
     let _read = stream.read_exact(&mut bytes).await?;
     let packet: Packet = serde_json::from_slice(&bytes)?;
     sender
         .send(Launch::try_from(packet)?)
         .await
-        .map_err(|_closed| Error::Closed)?;
+        .map_err(|_closed| DesktopError::Closed)?;
     stream.write_u8(ACCEPTED).await?;
     Ok(())
 }
@@ -265,24 +267,26 @@ async fn receive(
 async fn send(
     stream: &mut (impl AsyncRead + AsyncWrite + Unpin),
     launch: &Launch,
-) -> Result<(), Error> {
+) -> Result<(), DesktopError> {
     let bytes = serde_json::to_vec(&Packet::from(launch))?;
-    let length = u32::try_from(bytes.len()).map_err(|_overflow| Error::InvalidLaunch)?;
+    let length = u32::try_from(bytes.len()).map_err(|_overflow| DesktopError::InvalidLaunch)?;
     if length > MAX_PACKET_BYTES {
-        return Err(Error::InvalidLaunch);
+        return Err(DesktopError::InvalidLaunch);
     }
     stream.write_u32(length).await?;
     stream.write_all(&bytes).await?;
     if stream.read_u8().await? != ACCEPTED {
-        return Err(Error::InvalidLaunch);
+        return Err(DesktopError::InvalidLaunch);
     }
     Ok(())
 }
 
-async fn bounded<T>(future: impl Future<Output = Result<T, Error>>) -> Result<T, Error> {
+async fn bounded<T>(
+    future: impl Future<Output = Result<T, DesktopError>>,
+) -> Result<T, DesktopError> {
     tokio::time::timeout(REQUEST_DEADLINE, future)
         .await
-        .map_err(|_expired| Error::LaunchDeadline)?
+        .map_err(|_expired| DesktopError::LaunchDeadline)?
 }
 
 #[cfg(test)]
@@ -337,7 +341,7 @@ mod tests {
         std::fs::create_dir_all(&directory).unwrap();
         std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert!(
-            matches!(claim(&root,&Launch::NewWindow),Err(Error::Io(error)) if error.kind()==std::io::ErrorKind::PermissionDenied)
+            matches!(claim(&root,&Launch::NewWindow),Err(DesktopError::Io(error)) if error.kind()==std::io::ErrorKind::PermissionDenied)
         );
         assert!(!directory.join("lock").exists());
         std::fs::remove_dir_all(root).unwrap();
@@ -351,10 +355,10 @@ mod tests {
             node: NodeId::random(),
             session: SessionId::random(),
         });
-        let (sent, received) =
+        let (sent, accepted) =
             tokio::join!(send(&mut client, &request), receive(&mut server, &sender));
         sent.unwrap();
-        received.unwrap();
+        accepted.unwrap();
         assert_eq!(receiver.recv().await, Some(request));
         assert!(Launch::try_from(Packet::Project(PathBuf::from("relative"))).is_err());
     }
@@ -369,7 +373,7 @@ mod tests {
             .unwrap();
         assert!(matches!(
             receive(&mut server, &sender).await,
-            Err(Error::InvalidLaunch)
+            Err(DesktopError::InvalidLaunch)
         ));
     }
 }

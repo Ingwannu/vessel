@@ -1,11 +1,11 @@
 //! Filesystem socket access is restricted by an owner-private directory.
 
-use super::{Error, Launch, bounded, receive, send};
+use super::{DesktopError, Launch, bounded, receive, send};
 use std::path::Path;
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::{mpsc, oneshot};
 
-pub(super) fn check_directory(directory: &Path) -> Result<(), Error> {
+pub(super) fn check_directory(directory: &Path) -> Result<(), DesktopError> {
     use std::os::unix::fs::PermissionsExt as _;
     let metadata = std::fs::symlink_metadata(directory)?;
     if !metadata.is_dir() || metadata.permissions().mode() & 0o077 != 0 {
@@ -21,12 +21,12 @@ pub(super) fn check_directory(directory: &Path) -> Result<(), Error> {
 pub(super) fn bind(
     directory: &Path,
     runtime: &tokio::runtime::Runtime,
-) -> Result<UnixListener, Error> {
+) -> Result<UnixListener, DesktopError> {
     use std::os::unix::fs::FileTypeExt as _;
     let path = directory.join("launch.sock");
     match std::fs::symlink_metadata(&path) {
         Ok(metadata) if metadata.file_type().is_socket() => std::fs::remove_file(&path)?,
-        Ok(_) => return Err(Error::InvalidLaunch),
+        Ok(_) => return Err(DesktopError::InvalidLaunch),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
@@ -54,7 +54,7 @@ pub(super) async fn serve(
     }
 }
 
-pub(super) async fn forward(directory: &Path, launch: &Launch) -> Result<(), Error> {
+pub(super) async fn forward(directory: &Path, launch: &Launch) -> Result<(), DesktopError> {
     bounded(async {
         let mut stream = UnixStream::connect(directory.join("launch.sock")).await?;
         send(&mut stream, launch).await

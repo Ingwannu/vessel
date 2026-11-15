@@ -2,7 +2,7 @@
 
 mod merge;
 
-use super::Error;
+use super::DesktopError;
 use crate::Prefs;
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -25,7 +25,7 @@ pub enum Outcome {
     /// The initial file was unreadable; only memory was changed.
     LaunchOnly,
     /// The canonical snapshot is unchanged after a refused edit.
-    Failed(Arc<Error>),
+    Failed(Arc<DesktopError>),
 }
 
 /// The file and every window observe the same canonical successful snapshot.
@@ -118,12 +118,12 @@ impl Coordinator {
     ///
     /// # Errors
     /// Refuses a relative persisted path or a worker that cannot start.
-    pub fn start(initial: Prefs) -> Result<Self, Error> {
+    pub fn start(initial: Prefs) -> Result<Self, DesktopError> {
         let path = match &initial.kept {
             Kept::File { path } => {
                 let path = PathBuf::from(path);
                 if !path.is_absolute() {
-                    return Err(Error::RelativePath);
+                    return Err(DesktopError::RelativePath);
                 }
                 Some(path)
             }
@@ -143,7 +143,7 @@ impl Coordinator {
         let (commands, receiver) = mpsc::sync_channel(QUEUE_CAPACITY);
         let _worker = std::thread::Builder::new()
             .name("vessel-preferences".into())
-            .spawn(move || run(snapshot, path, published, receiver))?;
+            .spawn(move || run(snapshot, path.as_deref(), &published, &receiver))?;
         Ok(Self { commands, current })
     }
 
@@ -182,14 +182,14 @@ impl Coordinator {
     ///
     /// # Errors
     /// Returns worker startup or closure failures; save errors remain in outcomes.
-    pub fn flush(&self) -> impl Future<Output = Result<(), Error>> + 'static {
+    pub fn flush(&self) -> impl Future<Output = Result<(), DesktopError>> + 'static {
         let commands = self.commands.clone();
         async move {
             let (done, wait) = oneshot::channel();
             let _sender = std::thread::Builder::new()
                 .name("vessel-preferences-flush".into())
                 .spawn(move || drop(commands.send(Command::Flush(done))))?;
-            wait.await.map_err(|_closed| Error::Closed)
+            wait.await.map_err(|_closed| DesktopError::Closed)
         }
     }
 }
@@ -266,9 +266,9 @@ impl Client {
 
 fn run(
     mut snapshot: Snapshot,
-    path: Option<PathBuf>,
-    published: watch::Sender<Snapshot>,
-    receiver: mpsc::Receiver<Command>,
+    path: Option<&std::path::Path>,
+    published: &watch::Sender<Snapshot>,
+    receiver: &mpsc::Receiver<Command>,
 ) {
     while let Ok(command) = receiver.recv() {
         match command {
@@ -280,19 +280,19 @@ fn run(
                 acknowledged,
             } => {
                 let Some(revision) = snapshot.revision.0.checked_add(1) else {
-                    snapshot.outcome = Outcome::Failed(Arc::new(Error::Closed));
-                    acknowledged.send_replace(Acknowledged {
+                    snapshot.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
+                    let _previous = acknowledged.send_replace(Acknowledged {
                         sequence,
                         revision: snapshot.revision,
                     });
-                    published.send_replace(snapshot);
+                    let _previous = published.send_replace(snapshot);
                     break;
                 };
                 let next = merge::apply(&snapshot.prefs, &before, &after)
-                    .map_err(Error::from)
+                    .map_err(DesktopError::from)
                     .and_then(|next| {
                         if let Some(path) = &path {
-                            next.save_at(path).map_err(Error::PreferencesWrite)?;
+                            next.save_at(path).map_err(DesktopError::PreferencesWrite)?;
                         }
                         Ok(next)
                     });
@@ -308,11 +308,11 @@ fn run(
                     }
                     Err(error) => Outcome::Failed(Arc::new(error)),
                 };
-                acknowledged.send_replace(Acknowledged {
+                let _previous = acknowledged.send_replace(Acknowledged {
                     sequence,
                     revision: snapshot.revision,
                 });
-                published.send_replace(snapshot.clone());
+                let _previous = published.send_replace(snapshot.clone());
             }
         }
     }
@@ -348,7 +348,7 @@ mod tests {
         };
         assert_eq!(committed.settings.sidebar.group, Grouping::Status);
         let mut old_failure = older;
-        old_failure.outcome = Outcome::Failed(Arc::new(Error::Closed));
+        old_failure.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
         assert!(matches!(client.observe(&old_failure), Observation::Stale));
         assert_eq!(
             client.baseline.borrow().settings.sidebar.group,
@@ -361,9 +361,11 @@ mod tests {
         let root =
             std::env::temp_dir().join(format!("vessel-central-prefs-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
-        let mut initial = Prefs::default();
-        initial.kept = Kept::File {
-            path: root.join("prefs.json").display().to_string(),
+        let initial = Prefs {
+            kept: Kept::File {
+                path: root.join("prefs.json").display().to_string(),
+            },
+            ..Prefs::default()
         };
         let coordinator = Coordinator::start(initial.clone()).unwrap();
         let (first, _updates) = coordinator.client();
@@ -404,16 +406,18 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
         let path = root.join("prefs.json");
         std::fs::write(&path, b"unreadable").unwrap();
-        let mut initial = Prefs::default();
-        initial.kept = Kept::ThisLaunch {
-            why: vessel_app_view::prefs::LaunchOnly::Unreadable {
-                fault: vessel_app_view::files::FileFault {
-                    path: path.display().to_string(),
-                    at: None,
-                    problem: vessel_app_view::files::FileProblem::CannotOpen,
-                    field: None,
+        let initial = Prefs {
+            kept: Kept::ThisLaunch {
+                why: vessel_app_view::prefs::LaunchOnly::Unreadable {
+                    fault: vessel_app_view::files::FileFault {
+                        path: path.display().to_string(),
+                        at: None,
+                        problem: vessel_app_view::files::FileProblem::CannotOpen,
+                        field: None,
+                    },
                 },
             },
+            ..Prefs::default()
         };
         let coordinator = Coordinator::start(initial.clone()).unwrap();
         let (client, updates) = coordinator.client();
