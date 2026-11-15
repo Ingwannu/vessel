@@ -7,6 +7,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
 };
+use std::{str::FromStr, sync::Arc};
 
 /// Resource limit for argv, environment and denied-tool entries.
 pub const MAX_LAUNCH_ITEMS: usize = 256;
@@ -171,10 +172,33 @@ impl<'de> Deserialize<'de> for ProviderEnvironment {
     }
 }
 
+/// A checked native tool pattern, distinct from command arguments and model IDs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolPattern(Arc<str>);
+
+impl ToolPattern {
+    /// Native pattern text for a compatible tool-policy encoder only.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl FromStr for ToolPattern {
+    type Err = LaunchConfigError;
+    fn from_str(pattern: &str) -> Result<Self, Self::Err> {
+        text(pattern)?;
+        if pattern.is_empty() {
+            return Err(LaunchConfigError::Text);
+        }
+        Ok(Self(Arc::from(pattern)))
+    }
+}
+
 /// Bounded literal native tool patterns; omission does not mean enforcement.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(try_from = "RawArguments", into = "Vec<String>")]
-pub struct DisallowedTools(Arguments);
+pub struct DisallowedTools(Vec<ToolPattern>);
 
 impl DisallowedTools {
     /// Retain patterns in order for an adapter that can enforce them.
@@ -182,16 +206,20 @@ impl DisallowedTools {
     /// # Errors
     /// Empty patterns or invalid launch text are refused.
     pub fn new(patterns: Vec<String>) -> Result<Self, LaunchConfigError> {
-        if patterns.iter().any(String::is_empty) {
-            return Err(LaunchConfigError::Text);
+        if patterns.len() > MAX_LAUNCH_ITEMS {
+            return Err(LaunchConfigError::TooMany);
         }
-        Ok(Self(Arguments::new(patterns)?))
+        patterns
+            .iter()
+            .map(|pattern| pattern.parse())
+            .collect::<Result<Vec<_>, _>>()
+            .map(Self)
     }
 
     /// Native patterns, without pretending a transport supports them.
     #[must_use]
-    pub fn patterns(&self) -> &[String] {
-        self.0.all()
+    pub fn patterns(&self) -> &[ToolPattern] {
+        &self.0
     }
 }
 
@@ -204,7 +232,11 @@ impl TryFrom<RawArguments> for DisallowedTools {
 
 impl From<DisallowedTools> for Vec<String> {
     fn from(tools: DisallowedTools) -> Self {
-        tools.0.into()
+        tools
+            .0
+            .iter()
+            .map(|pattern| pattern.as_str().to_owned())
+            .collect()
     }
 }
 

@@ -114,3 +114,18 @@ Unix ownership/modes, nested future fields, malformed/oversized input, symlinks
 and failed preservation leaving the original intact. These tests are pending
 execution. The final broad narrow compile still stopped on an option-variable
 similarity lint before node tests; the identifiers have now been separated.
+
+## Shared thinking-choice storage
+
+Native probes may offer the same thinking choices for every model. The checked
+list and its ID index are now shared behind Arc instead of allocating a list
+per model or rescanning it for every default. Model clones retain this shared
+observation; serialization still emits the same ordered list. A regression
+checks actual sharing and decoder parity. The storage narrow compile reached
+an unused read-count result in the new bounded file read; that result is now
+explicitly retained while the buffer length enforces the read bound.
+
+Native denied-tool patterns now have their own validating type instead of
+crossing the launch-policy boundary as argument strings. The wire/local-file
+shape remains a string array, and an adapter still must explicitly enforce the
+policy before receiving an executable command.

@@ -6,7 +6,7 @@ use vessel_proto::{
     ModelId, OptionCategory, OptionKind, SessionOption,
     providers::{
         ApprovalFlow, Catalogue, CatalogueError, DefaultChoice, Mode, ModeCatalogue, ModeRisk,
-        Model, ModelSpec, Models, ThinkingChoice,
+        Model, ModelSpec, Models, ThinkingChoice, ThinkingChoices,
     },
 };
 
@@ -128,10 +128,7 @@ fn mode_catalogue(
     Ok(ModeCatalogue::new(modes, Some(current.as_str().parse()?))?)
 }
 
-type Thinking = (
-    Option<Vec<ThinkingChoice>>,
-    Option<vessel_proto::OptionValueId>,
-);
+type Thinking = (Option<ThinkingChoices>, Option<vessel_proto::OptionValueId>);
 
 fn thinking_choices(option: Option<&SessionOption>) -> Result<Thinking, CatalogueOptionsError> {
     let Some(option) = option else {
@@ -152,7 +149,7 @@ fn thinking_choices(option: Option<&SessionOption>) -> Result<Thinking, Catalogu
             })
         })
         .collect::<Result<Vec<_>, CatalogueOptionsError>>()?;
-    Ok((Some(choices), Some(current.clone())))
+    Ok((Some(ThinkingChoices::new(choices)?), Some(current.clone())))
 }
 
 #[cfg(test)]

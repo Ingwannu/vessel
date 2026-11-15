@@ -102,7 +102,7 @@ mod tests {
     use super::*;
     use vessel_proto::{
         OptionValueId,
-        providers::{ModelSpec, ThinkingChoice},
+        providers::{ModelSpec, ThinkingChoice, ThinkingChoices},
     };
 
     fn model(id: &str, default: Option<DefaultChoice>) -> Model {
@@ -153,11 +153,14 @@ mod tests {
     fn added_alias_becomes_selectable_and_missing_thinking_metadata_is_preserved() {
         let mut spec = model("alias", None).spec().clone();
         spec.visibility = Some(ModelVisibility::Compatibility);
-        spec.thinking = Some(vec![ThinkingChoice {
-            id: OptionValueId::new("high"),
-            label: "High".parse().unwrap(),
-            default: None,
-        }]);
+        spec.thinking = Some(
+            ThinkingChoices::new(vec![ThinkingChoice {
+                id: OptionValueId::new("high"),
+                label: "High".parse().unwrap(),
+                default: None,
+            }])
+            .unwrap(),
+        );
         spec.default_thinking = Some(OptionValueId::new("high"));
         let runtime = Models::new(vec![Model::new(spec.clone()).unwrap()]).unwrap();
         let result = merge_models(

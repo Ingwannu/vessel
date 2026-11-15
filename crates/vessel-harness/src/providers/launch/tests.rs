@@ -72,7 +72,12 @@ fn launch_inheritance_overlays_variables_and_concatenates_denied_tools() {
         Some(&ConfigValue::Text("new".into()))
     );
     assert_eq!(
-        merged.disallowed_tools.patterns(),
+        merged
+            .disallowed_tools
+            .patterns()
+            .iter()
+            .map(|pattern| pattern.as_str())
+            .collect::<Vec<_>>(),
         ["base-tool", "child-tool"]
     );
 }

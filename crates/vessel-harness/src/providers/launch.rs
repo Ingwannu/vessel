@@ -170,7 +170,7 @@ pub fn merge_launch(
                 .patterns()
                 .iter()
                 .chain(denied.patterns())
-                .cloned()
+                .map(|pattern| pattern.as_str().to_owned())
                 .collect(),
         )?,
     })

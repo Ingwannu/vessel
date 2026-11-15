@@ -50,7 +50,7 @@ async fn one_prompt_free_fake_probe_yields_models_modes_effort_and_version() {
                 .spec()
                 .thinking
                 .as_ref()
-                .is_some_and(|choices| !choices.is_empty())
+                .is_some_and(|choices| !choices.all().is_empty())
         );
     })
     .await

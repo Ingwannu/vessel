@@ -4,7 +4,7 @@
 use super::ModeCatalogue;
 use crate::{ModelId, OptionValueId, agents::AgentLabel};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::Arc};
 
 /// Maximum models or thinking choices retained from one provider result.
 pub const MAX_CATALOGUE_ENTRIES: usize = 4096;
@@ -61,6 +61,62 @@ pub struct ThinkingChoice {
     pub default: Option<DefaultChoice>,
 }
 
+/// Validated thinking choices shared by every model in one native observation.
+/// The index avoids rescanning a long common list for each model's default.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThinkingChoices(Arc<ThinkingSet>);
+
+#[derive(Debug, PartialEq, Eq)]
+struct ThinkingSet {
+    choices: Vec<ThinkingChoice>,
+    ids: BTreeSet<OptionValueId>,
+}
+
+impl ThinkingChoices {
+    /// Check native choices once, before sharing them across offered models.
+    ///
+    /// # Errors
+    /// Invalid IDs, repeated IDs and oversized lists are refused.
+    pub fn new(choices: Vec<ThinkingChoice>) -> Result<Self, CatalogueError> {
+        if choices.len() > MAX_CATALOGUE_ENTRIES {
+            return Err(CatalogueError::TooMany);
+        }
+        let mut ids = BTreeSet::new();
+        for choice in &choices {
+            identifier(choice.id.as_str())?;
+            if !ids.insert(choice.id.clone()) {
+                return Err(CatalogueError::DuplicateThinking);
+            }
+        }
+        Ok(Self(Arc::new(ThinkingSet { choices, ids })))
+    }
+
+    /// Preserve provider ordering without cloning a list per model.
+    #[must_use]
+    pub fn all(&self) -> &[ThinkingChoice] {
+        &self.0.choices
+    }
+
+    /// Indexed native default lookup.
+    #[must_use]
+    pub fn contains(&self, id: &OptionValueId) -> bool {
+        self.0.ids.contains(id)
+    }
+}
+
+impl Serialize for ThinkingChoices {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.0.choices.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ThinkingChoices {
+    fn deserialize<D: serde::Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
+        let choices = read_sequence(de)?;
+        Self::new(choices).map_err(serde::de::Error::custom)
+    }
+}
+
 /// Untrusted fields are validated together by `Model::new` or deserialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModelSpec {
@@ -73,8 +129,8 @@ pub struct ModelSpec {
     /// Missing allows an addition to enable a hidden compatibility row.
     pub visibility: Option<ModelVisibility>,
     /// Missing preserves the base model's thinking options during merge.
-    #[serde(default, deserialize_with = "read_optional_choices")]
-    pub thinking: Option<Vec<ThinkingChoice>>,
+    #[serde(default)]
+    pub thinking: Option<ThinkingChoices>,
     /// Selected native effort, when given.
     pub default_thinking: Option<OptionValueId>,
 }
@@ -91,20 +147,13 @@ impl Model {
     /// `CatalogueError` retains the violated invariant without echoing raw data.
     pub fn new(spec: ModelSpec) -> Result<Self, CatalogueError> {
         identifier(spec.id.as_str())?;
-        let choices = spec.thinking.as_deref().unwrap_or_default();
-        if choices.len() > MAX_CATALOGUE_ENTRIES {
-            return Err(CatalogueError::TooMany);
-        }
-        let mut seen = BTreeSet::new();
-        for choice in choices {
-            identifier(choice.id.as_str())?;
-            if !seen.insert(&choice.id) {
-                return Err(CatalogueError::DuplicateThinking);
-            }
-        }
         if let Some(default) = &spec.default_thinking {
             identifier(default.as_str())?;
-            if spec.thinking.is_some() && !seen.contains(default) {
+            if spec
+                .thinking
+                .as_ref()
+                .is_some_and(|choices| !choices.contains(default))
+            {
                 return Err(CatalogueError::MissingThinkingDefault);
             }
         }
@@ -189,14 +238,6 @@ fn identifier(text: &str) -> Result<(), CatalogueError> {
     Ok(())
 }
 
-fn read_optional_choices<'de, D: serde::Deserializer<'de>>(
-    de: D,
-) -> Result<Option<Vec<ThinkingChoice>>, D::Error> {
-    #[derive(Deserialize)]
-    struct Choices(#[serde(deserialize_with = "read_sequence")] Vec<ThinkingChoice>);
-    Option::<Choices>::deserialize(de).map(|choices| choices.map(|choices| choices.0))
-}
-
 fn read_sequence<'de, D, T>(de: D) -> Result<Vec<T>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -251,7 +292,7 @@ mod tests {
         input.id = ModelId::new("bad\n");
         assert_eq!(Model::new(input), Err(CatalogueError::Identifier));
         let mut input = spec();
-        input.thinking = Some(vec![]);
+        input.thinking = Some(ThinkingChoices::new(vec![]).unwrap());
         input.default_thinking = Some(OptionValueId::new("high"));
         assert_eq!(
             Model::new(input),
@@ -262,9 +303,35 @@ mod tests {
             label: "High".parse().unwrap(),
             default: Some(DefaultChoice::Yes),
         };
+        assert_eq!(
+            ThinkingChoices::new(vec![choice.clone(), choice]),
+            Err(CatalogueError::DuplicateThinking)
+        );
+    }
+
+    #[test]
+    fn thinking_lists_are_validated_once_and_shared_by_model_clones() {
+        let choice = ThinkingChoice {
+            id: OptionValueId::new("high"),
+            label: "High".parse().unwrap(),
+            default: None,
+        };
+        let choices = ThinkingChoices::new(vec![choice]).unwrap();
         let mut input = spec();
-        input.thinking = Some(vec![choice.clone(), choice]);
-        assert_eq!(Model::new(input), Err(CatalogueError::DuplicateThinking));
+        input.thinking = Some(choices.clone());
+        input.default_thinking = Some(OptionValueId::new("high"));
+        let first = Model::new(input).unwrap();
+        let second = first.clone();
+        assert!(Arc::ptr_eq(
+            &first.spec().thinking.as_ref().unwrap().0,
+            &second.spec().thinking.as_ref().unwrap().0
+        ));
+        assert!(choices.contains(&OptionValueId::new("high")));
+        assert_eq!(
+            serde_json::from_str::<ThinkingChoices>(&serde_json::to_string(&choices).unwrap())
+                .unwrap(),
+            choices
+        );
     }
 
     #[test]

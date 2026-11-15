@@ -80,7 +80,7 @@ impl DataDir {
             return Err(ProvidersFileError::Unsafe);
         }
         let mut bytes = Vec::new();
-        fs::File::open(&path)
+        let _bytes_read = fs::File::open(&path)
             .map_err(StoreError::io(&path))?
             .take(MAX_PROVIDER_FILE_BYTES.saturating_add(1))
             .read_to_end(&mut bytes)

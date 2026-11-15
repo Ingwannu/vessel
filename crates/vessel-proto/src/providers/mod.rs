@@ -10,7 +10,7 @@ mod text;
 
 pub use catalogue::{
     Catalogue, CatalogueError, DefaultChoice, MAX_CATALOGUE_ENTRIES, MAX_CHOICE_ID, Model,
-    ModelSpec, ModelVisibility, Models, ThinkingChoice,
+    ModelSpec, ModelVisibility, Models, ThinkingChoice, ThinkingChoices,
 };
 pub use config::{ConfigurationError, MAX_PROVIDERS, ProviderOverride, ProviderOverrides};
 pub use create::{
@@ -19,7 +19,7 @@ pub use create::{
 };
 pub use launch::{
     Arguments, CommandEdit, DisallowedTools, LaunchConfigError, LaunchSettings, MAX_LAUNCH_ITEMS,
-    MAX_LAUNCH_TEXT, ProviderEnvironment,
+    MAX_LAUNCH_TEXT, ProviderEnvironment, ToolPattern,
 };
 pub use snapshot::{
     CatalogueDirectory, CatalogueScope, DiagnosticRead, DiscoveryFailure, DiscoveryPhase,
