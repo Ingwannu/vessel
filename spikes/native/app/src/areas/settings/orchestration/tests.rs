@@ -270,6 +270,26 @@ fn a_retired_snapshot_cannot_reopen_the_page_but_a_new_admission_can(cx: &mut Te
     probe.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
             let scope = seed(shell);
+            shell.orchestration_intent(&scope, Intent::Choose, window, cx);
+            shell.orchestration_intent(&scope, Intent::All, window, cx);
+            shell.orchestration_intent(
+                &scope,
+                Intent::Toggle("vessel-advisor".parse().unwrap()),
+                window,
+                cx,
+            );
+            let state = &mut shell.areas.settings.orchestration;
+            let draft = state
+                .page
+                .as_ref()
+                .unwrap()
+                .picker
+                .as_ref()
+                .unwrap()
+                .draft
+                .clone();
+            let ticket = state.ticket().unwrap();
+            let old_save = state.page.as_mut().unwrap().save_picker(ticket).unwrap();
             let original = scope.target;
             let mut machine =
                 vessel_app_view::Machine::unreachable("isolated".into(), "sessions forbidden");
@@ -283,6 +303,7 @@ fn a_retired_snapshot_cannot_reopen_the_page_but_a_new_admission_can(cx: &mut Te
             assert!(shell.orchestration_retired(&original.tag()));
             shell.settle_orchestration(window, cx);
             assert!(shell.areas.settings.orchestration.page.is_none());
+            assert!(shell.areas.settings.orchestration.retained_draft.is_some());
             let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
             let _old = admissions
                 .admit(original.machine().clone(), original.node())
@@ -296,6 +317,37 @@ fn a_retired_snapshot_cannot_reopen_the_page_but_a_new_admission_can(cx: &mut Te
             assert_eq!(page.scope().target, next);
             assert!(!shell.orchestration_retired(&original.tag()));
             assert!(shell.areas.settings.orchestration.page.is_some());
+            assert!(
+                shell
+                    .orchestration_answer(Answer {
+                        task: old_save,
+                        result: Ok(Output::Saved(SkillsSaved {
+                            snapshot: status(),
+                            confirmation_required: None,
+                        })),
+                    })
+                    .is_none()
+            );
+            let state = &mut shell.areas.settings.orchestration;
+            assert!(state.page.as_ref().unwrap().picker.is_none());
+            assert!(state.retained_draft.is_some());
+            let ticket = state.ticket().unwrap();
+            let fresh = state.page.as_mut().unwrap().read_skills(ticket).unwrap();
+            assert!(
+                shell
+                    .orchestration_answer(Answer {
+                        task: fresh,
+                        result: Ok(Output::Skills(status())),
+                    })
+                    .is_none()
+            );
+            let state = &shell.areas.settings.orchestration;
+            let page = state.page.as_ref().unwrap();
+            assert_eq!(page.scope().target, next);
+            assert_eq!(page.picker.as_ref().unwrap().draft, draft);
+            assert!(page.confirmation.is_none());
+            assert!(!page.skills.pending());
+            assert!(state.retained_draft.is_none());
         });
     });
 }

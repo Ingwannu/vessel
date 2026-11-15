@@ -1,6 +1,7 @@
 //! Host orchestration UI uses one pure owner model and existing kit controls.
 mod draw;
 mod modal;
+mod retained;
 #[cfg(test)]
 mod tests;
 pub(crate) use draw::render;
@@ -24,6 +25,7 @@ pub(crate) struct State {
     tickets: Tickets,
     closed: bool,
     retired: Option<vessel_app_view::connection::ConnectionTag>,
+    retained_draft: Option<retained::Draft>,
     activation: Option<gpui::Subscription>,
     pub(super) turns: u64,
 }
@@ -37,8 +39,14 @@ impl State {
             tickets: Tickets::default(),
             closed: false,
             retired: None,
+            retained_draft: None,
             activation: None,
             turns: 0,
+        }
+    }
+    fn retain_draft(&mut self) {
+        if let Some(draft) = self.page.as_ref().and_then(retained::Draft::capture) {
+            self.retained_draft = Some(draft);
         }
     }
     fn ticket(&mut self) -> Option<Ticket> {
@@ -112,6 +120,11 @@ impl Shell {
         let state = &mut self.areas.settings.orchestration;
         state.settle_focus(window, cx);
         let Some(target) = target else {
+            if shown {
+                state.retain_draft();
+            } else {
+                state.retained_draft = None;
+            }
             state.closed = state.open();
             state.page = None;
             state.settle_focus(window, cx);
@@ -124,6 +137,11 @@ impl Shell {
         {
             return;
         }
+        state.retain_draft();
+        state.retained_draft = state
+            .retained_draft
+            .take()
+            .filter(|draft| draft.matches(&target));
         state.closed = state.open();
         state.page = None;
         state.settle_focus(window, cx);
@@ -150,6 +168,7 @@ impl Shell {
         {
             return false;
         }
+        state.retain_draft();
         state.closed |= state.open();
         state.page = None;
         state.retired = Some(tag.clone());
@@ -192,12 +211,25 @@ impl Shell {
             Consumer::Onboarding => Some(answer),
             Consumer::Settings => {
                 let state = &mut self.areas.settings.orchestration;
+                let refreshed = matches!(
+                    (&answer.task.action, &answer.result),
+                    (
+                        vessel_app_view::orchestration::Action::ReadSkills,
+                        Ok(vessel_app_view::orchestration::Output::Skills(_))
+                    )
+                );
                 let opened = state.open();
                 let accepted = state
                     .page
                     .as_mut()
                     .is_some_and(|page| page.answered(answer));
                 if accepted {
+                    if refreshed
+                        && let Some(draft) = state.retained_draft.take()
+                        && let Some(page) = &mut state.page
+                    {
+                        let _restored = draft.restore(page);
+                    }
                     state.renew_dialog();
                 }
                 state.closed |= opened && !state.open();

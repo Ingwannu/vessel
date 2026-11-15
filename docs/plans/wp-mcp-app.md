@@ -168,3 +168,17 @@ ordering/error handling and all limits unchanged. The helper is test-only and
 the fixture uses an explicit missing-connection failure. The picker footer is
 also a separate pure builder so owned drawing functions stay below the same
 function budget. No size record or lint allowance is raised.
+
+
+## Retired connection input retention correction
+
+Inspection found that retiring an admission removed the whole picker and lost
+its user draft. The controller now retains one volatile typed selection plus
+its original machine/node identity when a connection is lost. This is input
+only: no acknowledgement, pending task, visit, ticket, deletion confirmation or
+installed snapshot crosses the retirement. A new admission gets a fresh visit
+and must accept its own successful Skills read before reopening that input.
+Another host/node or explicit page navigation discards it. Old completion and
+close callbacks retain their old correlation and cannot apply to the new page.
+This uses the existing Page/Picker model and no configuration store. The queued
+9430 checks predate this correction; exact changed-source validation is owed.
