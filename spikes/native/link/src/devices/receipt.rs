@@ -3,6 +3,7 @@
 //! be supplied by an App fixture, and a stale credential is dropped unopened.
 use super::{Ask, ConnectionContext, Kind, Outcome, Problem, Ticket};
 use crate::DeliveryGuard;
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::connection::Refusal;
 
 #[derive(Clone, Copy)]
@@ -49,12 +50,14 @@ impl std::fmt::Debug for Pending {
 }
 #[derive(Debug)]
 enum Body {
+    #[cfg(not(target_arch = "wasm32"))]
     Completed {
         pending: Pending,
         guard: DeliveryGuard,
         outcome: Outcome,
     },
     Refused(Failed),
+    #[cfg(not(target_arch = "wasm32"))]
     Retired(Failed),
 }
 /// An actor-produced, sealed reply; no public constructor can attach a guard.
@@ -91,6 +94,7 @@ pub enum Received {
     },
 }
 impl Answer {
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn completed(
         context: ConnectionContext,
         pending: Pending,
@@ -112,6 +116,7 @@ impl Answer {
             body: Body::Refused(pending.failed(problem)),
         }
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn retired(context: ConnectionContext, pending: Pending, problem: Problem) -> Self {
         Self {
             context,
@@ -129,6 +134,7 @@ impl Answer {
     pub fn receive(self) -> Received {
         let Self { context, body } = self;
         match body {
+            #[cfg(not(target_arch = "wasm32"))]
             Body::Completed {
                 pending,
                 guard,
@@ -148,10 +154,12 @@ impl Answer {
                 }
             },
             Body::Refused(failure) => Received::Refused { context, failure },
+            #[cfg(not(target_arch = "wasm32"))]
             Body::Retired(failure) => Received::Retired { context, failure },
         }
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
 pub(super) const fn problem(why: Refusal) -> Problem {
     match why {
         Refusal::Changed => Problem::TargetChanged,

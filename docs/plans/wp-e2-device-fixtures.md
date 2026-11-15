@@ -215,3 +215,9 @@ The corresponding pure case and a genuine framed synthetic-invitation case
 are authored, not executed: the latter holds the returned credential in memory,
 retires the actor, and verifies that no Pairing/link/QR reaches the page.
 The synthetic invitation is not written, logged, or used in captures.
+
+
+The browser receipt has only the local error body; native-only success/retired
+constructors and their private body variants are target-gated. Public guard
+representation stays uninhabited on wasm, with no demo minting path. This is
+source preparation; the actual Link testing-target check is still required.

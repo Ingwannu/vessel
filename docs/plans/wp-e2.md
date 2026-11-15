@@ -92,7 +92,7 @@ corrected/source-narrow reviewed. Shared dialog captured dismissal is a
 small separately checked producer; its existence does not validate feature
 policy. The admitted-generation producer074ade16..95c256bc received V1 bounded
 SOURCE adoption and exact Link narrow pass (result docs72f081c3); its actual
-shared-line integration remains with the coordinator/lead. It uses the
+shared-line integration is now present in c3429952. It uses the
 canonical Machine.node field with no second NodeId map. Node-reported authority, full offer/method/confirmation
 transitions and the host API consumption still need filling in.
 
@@ -122,7 +122,8 @@ service, production node or runtime configuration has changed.
   default Admin verdict; show a whole recovery sentence and explicit retry.
 
 A new authority read clears any previously owned list, details, invitation
-and confirmation before dispatch. Changing Context clears its grant and
+and confirmation before dispatch, but is unavailable while an invitation or
+revocation is already sent and pending. Changing Context clears its grant and
 caller id; old Context/ticket replies cannot restore either. A known empty
 grant is distinct from unknown. Admin without Read may manage devices; Read,
 Operate, Sync or Relay alone do not imply Admin. The current-device badge
