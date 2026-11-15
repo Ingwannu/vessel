@@ -186,3 +186,97 @@ ahead of storage is refused. Notifications hold one unit value, never a
 payload or unbounded history. Read scope and person-only policy apply to both
 calls, including forwarded agents. Their sole protocol constant stays None;
 the method table registers both as pending unary calls, never a dummy version.
+
+## Amendment: principal-bound agent creation receipts (pending security review)
+
+This amendment extends agent creation for MCP without opening a person's
+workspace/terminal creation or operation history to agents. It is a contract
+proposal only: the current handler still refuses agents, and no namespace or
+agent receipt behavior is implemented until V3 accepts this amendment.
+
+### Authority and identity
+
+The receipt key is `(owner namespace, operation kind, opaque key)`. The node
+constructs the namespace exclusively from the admitted principal:
+
+- Person: the existing person namespace shared by authorized person devices.
+- Agent: the origin `NodeId` and exact parent `SessionId` from
+  `Principal::agent()`, including delegated ingress. A delivering device, book
+  alias, requested child id, raw cwd or request-supplied owner is not identity.
+
+Store lookup hashes a domain-separated canonical encoding of that complete
+namespace/kind/key. Fixed owner metadata fits the existing retained reservation;
+raw keys and prompt/argv are still absent. An agent cannot select the person
+namespace or another parent's namespace. The same opaque key and intent used
+by different namespaces yields independent operations; a different intent
+within one namespace remains a conflict. Existing person keys retain their
+original digest encoding during migration so an upgrade never forgets a key.
+All namespaces share the existing count/retained-byte capacity and permanent
+key/claim retention. No second receipt database, time window or key eviction
+is introduced; exhausted capacity can still refuse new legitimate work.
+
+### Agent entry and admission order
+
+A new typed agent-operation entry accepts a caller key, an existing workspace
+(or the caller's authoritative registry membership), an allowed structured
+session specification and bounded first input. It does not accept a namespace,
+creator, parentage, reserved resource id, arbitrary shell/profile command or
+permission override. An unbound legacy caller receives a typed placement
+refusal for this new workspace-bound entry; its existing authorized legacy
+CreateSession call remains unchanged. No cwd-derived or fabricated workspace
+is supplied as a fallback.
+
+Scope, origin/parentage, descendant/depth policy and requested configuration
+are checked before durable admission. Under one bounded intake gate (not an
+unbounded mutex-per-key map), existing-key lookup/conflict precedes any new
+count reservation. A fresh operation takes the existing agent count/creation
+lease before ledger admission; failure rolls it back. The gate's finite wait
+refuses overload before effects, so identical concurrent requests cannot both
+reserve a child or fail merely because each reserved the last count slot.
+The receipt writer then reserves ids, count/bytes and claims atomically.
+The background driver owns that count lease across startup; it uses the same
+parentage/count/runtime registration path as authorized legacy creation.
+
+Before a new spawn or a known-refusal retry, recheck current parent authority,
+count admission and ADR0082's Active registry start lease. A parent archive,
+revocation or workspace archive cannot be bypassed by an older receipt.
+Only exact reserved child registration settles the lease; a count/refusal or
+proven no-spawn releases it. A restart/in-flight ambiguity remains unknown
+and never grants a replay/count lease. Existing registered or completed keys
+never create another child or consume another child-count slot. First-input
+retry keeps the same reserved child and the canonical message-ledger id; it
+never returns to agent creation. No parallel message-id type is introduced.
+
+Workspace and terminal creation stay person-only, including terminal-mode
+session specifications. Cross-workspace agent placement does not detach or
+change its parent: the admitted origin remains the parent through the existing
+ownership checks. Scheduled/internal callers must carry their validated
+creator and cannot construct an owner namespace from request data.
+
+### Observation and privacy
+
+The existing typed kind/key observation requests need no client-supplied owner.
+A person resolves the person namespace. An agent may resolve only its own
+namespace and agent-operation kind; workspace/terminal kinds are refused
+before lookup, even when the key is absent. Delegated agent calls derive the
+same origin-bound namespace and the effective scope intersection. There is no
+wire lookup by guessed operation UUID that bypasses this binding. Internal
+operation-id reads remain trusted driver APIs and do not confer wire authority.
+Read scope is still required; a read cannot create, retry, release a claim or
+answer a permission. Snapshots remain safe historical lifecycle records, not
+proof that a deleted resource currently exists. Reusable create success must
+separately revalidate the exact reserved registry/resource ownership.
+
+### Required regression obligations
+
+Test person/agent and agent/agent identical keys, distinct origin nodes with
+the same session UUID, same-principal reconnect/delegation, forged owner and
+parent fields, own-kind restrictions, Read/Operate scope intersection and
+revoked/archived parents before spawn. Test simultaneous identical requests
+at the last child-count slot, count/ledger-capacity refusal with no effect or
+leaked lease, restart/unknown non-replay, and completed/deleted child retries
+without count inflation or replacement. Cover first-message failure/retry to
+the same child/message id, retained capacity/growth accounting including owner
+metadata, old person-key migration and failed namespace decoding as corruption
+rather than an absent key. MCP consumes this one typed path only after source
+review and checks; it does not construct a second receipt pipeline.

@@ -57,3 +57,9 @@ prompt/argv and retain only one unit value, so intermediate revisions may
 coalesce. The writer sends them before acknowledgements; a cancelled caller
 cannot suppress notification. A rolled-back savepoint produces no wake-up.
 No new RPC or runtime provisioning is registered by this storage addition.
+
+Coordinator assigned the MCP agent receipt extension to A1 on 2026-11-15.
+ADR0091's pending amendment binds namespaces to the admitted origin principal,
+keeps user workspace/terminal creation person-only, and preserves existing
+parentage/count leases before effects. V3 contract acceptance is required
+before agent namespace/handler code. Current agent refusal remains intact.
