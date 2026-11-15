@@ -363,3 +363,13 @@ and method shape; no parallel method list or feature number is added here.
 The node head's existing protocol, schema, method entries and tests are
 preserved. No conflict resolution was required. The per-package whole gate
 will cover this join after runtime wiring; narrow joined checks come first.
+
+## Runtime preparation on the designated node base
+
+The declaration/parser/allocation approval data are now in the shared node
+head. The preparation branch merges ba45a6e3 without changing its protocol,
+store schema, method rows, boot setup or native sources. Helper and port
+selection modules remain test-only: no service runtime caller, proxy or
+health implementation is claimed by this merge. New method rows, when the
+runtime is ready, use the shared table and its unassigned feature gate.
+The composed preparation still needs its focused checks before new behavior.
