@@ -354,3 +354,137 @@ measured from the ending boundary and including worker queue delay. Timeout
 or cancellation yields no text for a prompt and closes only that job's child
 provider token. Real turn/agent dispatch stays gated on reviewed VAD and
 lifecycle support, rather than claiming that endpoint HTTP alone enables voice.
+
+
+## Proposed amendment: minimal VAD acquisition (2026-11-15)
+
+Status: **not approved**. This amendment requests review of one bounded,
+quarantined acquisition/inventory phase only. It does not authorize a dependency
+manifest, extraction into a product tree, native/model loading, distribution,
+auto-download or voice readiness. The coordinator requires this amendment and
+Vessel notices before any new model/native-runtime download. A PASS must name
+that acquisition scope explicitly before any such download begins.
+
+### Purpose, constraints and alternatives
+
+Endpoint STT/TTS still needs actual turn detection. Windows/Gate/Boundary tests
+prove framing/policy only. The reference uses a629KiB16k-only Silero v4 export
+and Sherpa1.12.28 filtering; replacing it with RMS or a current v5/v6 model
+changes behaviour. Full Sherpa distribution adds unrelated ASR/TTS and
+phonemization concerns. The proposed smaller path is safe Rust ort with an
+explicitly pinned CPU ONNX Runtime. Direct FFI/application unsafe, system-library
+probing, wrapper binary-download defaults and implicit provider fallback are
+rejected. Model/API/operator compatibility remains unproved.
+
+The later local ASR/TTS slice stays separate and `LocalNotBuilt`. Kokoro's
+espeak-ng data is GPL-related and is **excluded**, along with every previously
+quarantined model/native candidate, from this proposal. No asset is obtained
+from or copied out of Paseo. Reference bytes were only hashed to compare the
+official publisher digest; acquisition would use the official release.
+
+### Exact proposed acquisition allowlist
+
+The following are publisher metadata, not downloaded-artifact attestations:
+
+| Artifact | Official release asset id | Bytes | SHA256 |
+| --- | ---: | ---: | --- |
+| [silero_vad.onnx](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx) |271935959|643854|9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6|
+| [onnxruntime-linux-x64-1.28.2.tgz](https://github.com/microsoft/onnxruntime/releases/download/v1.28.2/onnxruntime-linux-x64-1.28.2.tgz) |542003864|9128991|d7209b8751b27b862b0c76332c2e20e203396edb5dab700ecf4bb485cf147415|
+| [onnxruntime-win-x64-1.28.2.zip](https://github.com/microsoft/onnxruntime/releases/download/v1.28.2/onnxruntime-win-x64-1.28.2.zip) |542003886|78620837|c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35|
+
+Only Linux x86_64 and Windows x86_64 CPU candidates are in scope; other
+architectures have no selected artifact and remain explicitly unavailable.
+The [release metadata](https://api.github.com/repos/microsoft/onnxruntime/releases/tags/v1.28.2)
+pins runtime source33ca9628233dc8f002435e868d4c2e9f82766ca1. The
+[model publisher metadata](https://api.github.com/repos/k2-fsa/sherpa-onnx/releases/tags/asr-models)
+agrees with the reference model's existing643854-byte digest.
+
+The possible later Rust closure is also frozen for inspection; nothing is added
+to a manifest or lock here. `ort=2.0.0-rc.15`, defaults off, only
+`std,load-dynamic,api-28`; its exact ort-sys dependency also has defaults off.
+The source feature closure selects only ort-sys/std+disable-linking+API17..28,
+smallvec/const_generics and libloading. No ndarray, tracing, model fetching,
+TLS, binary download/copy, pkg-config, GPU/Web/Azure or training feature.
+Dev dependencies are not product closure. Cargo's actual resolved feature graph
+still requires build-VM proof before any manifest adoption.
+
+| Crate archive | Bytes | SHA256 | Declared licence |
+| --- | ---: | --- | --- |
+| ort2.0.0-rc.15 |168000|37c87aa7a90b7ff3e0fe36cccd475df8d67f15f07f4d6c370c4b38464232813c|MIT OR Apache2|
+| ort-sys2.0.0-rc.15 |59054|8d22b0417f1838db5a3ac0b3f98dfe39f6fb73624aa0a27c6bbb5040b9c7db2b|MIT OR Apache2|
+| libloading0.9.0 |33816|754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60|ISC|
+| existing smallvec1.16.4 |34822|d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8|MIT OR Apache2|
+| existing cfg-if1.0.5, Unix only |9578|4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600|MIT OR Apache2|
+| existing windows-link0.2.1, Windows only |6133|f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5|MIT OR Apache2|
+
+Published [crate records](https://crates.io/api/v1/crates/ort/2.0.0-rc.15)
+and pinned [wrapper manifests](https://github.com/pykeio/ort/blob/5c564c58507f35fa4adc387a79fce1016e73956b/Cargo.toml)
+are the metadata source. Existing cached archives for the final three rows
+were independently size/hash-checked for their notice files. New crate archives
+are not yet inspected. Rust1.92 is the wrapper/sys floor and1.88 libloading's;
+this is metadata, not successful platform compilation.
+
+### Notices and acquisition gate
+
+Vessel-side [NOTICE](../notices/voice-vad/NOTICE.md) retains Silero v4 MIT,
+k2-fsa Apache2 attribution, runtime MIT plus full pinned source third-party
+notices, wrapper/sys MIT+Apache2, libloading ISC and locked dependency MIT
+notices. [source-manifest.json](../notices/voice-vad/source-manifest.json) pins
+each notice's source/bytes/SHA256. Runtime third-party text is325054 bytes,
+SHA2560e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2.
+It is a source-wide set, **not** an attestation of either CPU release archive.
+
+If V3 explicitly accepts acquisition: the scope is the three first-table
+model/native assets plus the first three new Rust crate archives in the second
+table; existing cached dependencies are not downloaded again. Crate URLs use
+https://crates.io/api/v1/crates/{name}/{version}/download with those exact names,
+versions, sizes and digests. Download into isolated scratch, enforce exact
+maximum/published size before retention and verify SHA256 before inspection.
+Use anonymous HTTPS, no proxy/environment credentials, connect10s/read60s and
+at most2 validated HTTPS redirects to official GitHub release-asset or crate
+CDN hosts. Record the initial allowlisted URL, asset id, final host and byte
+count only; never retain a signed redirect URL/query or authentication header.
+
+No archive extraction or loader is run. Inventory at most4096 members,512
+UTF8 path bytes/depth16,256MiB expanded bytes per native archive and8MiB per
+crate. Reject traversal/absolute/duplicate paths, links and device entries;
+an upstream link is recorded as a blocker for the final layout, never extracted.
+Hash member bytes through a streaming reader. Inspect only small licence/notice
+texts (at most1MiB each/8MiB aggregate). The model remains an opaque hashed
+file. Do not execute an installer, Cargo build script, inference or native
+constructor during that phase. Never use wrapper auto-download or environment
+credentials. No change to service accounts, system libraries or permissions.
+
+Return the exact archive member inventory, unpacked sizes, per-library/model
+digests and complete archive/source-notice reconciliation to V3. Any unmatched
+notice/terms, missing conversion attribution or unexpected library blocks
+adoption. A further reviewed amendment must specify the final file allowlist
+and target layout before manifest/load/distribution work. This acquisition
+request is intentionally narrower than runtime or distribution approval.
+
+### Requirements retained for a later implementation review
+
+- One node-owned runtime factory/model byte source; separate recurrent state
+  for each of at most8 active voice leases. Known fixed model/hash/schema only;
+ 512 finite16k samples, exact h/c state schema and probability validation. Never
+  interpret arbitrary uploaded model files or execution-provider options.
+- Absolute installer-owned library path and exact digest/version/architecture
+  checks precede all ort APIs. Explicit init_from must succeed before any
+  Session/Tensor/default environment call; otherwise refuse. Pinned source
+  contains an environment/system fallback and panic path if this ordering is
+  violated. No application unsafe or custom FFI. This ordering and failure
+  behaviour need adversarial subprocess tests before activation.
+- Explicit CPU execution, one inference thread per admitted lease and no
+  background model fetch. Disable telemetry and install a foreign-log-dropping
+  logger before creating sessions. ORT Windows telemetry and wrapper defaults
+  are enabled upstream; CPU execution alone is not an egress guarantee. Prove
+  offline behaviour and captured stdout/stderr privacy on both platforms.
+- Bound model/input/state/actor counts and measure actual native allocations,
+  linked/loaded sizes, CPU/latency and reset/drop behaviour. No hard native heap
+  bound is claimed by the present source/metadata. Inference failure/OOM/invalid
+  outputs must retire the generation without a fabricated transcript.
+- Golden model probabilities/detected boundaries must match the pinned reference
+  filtering/window lookahead; synthetic score tests alone are insufficient.
+  Existing local-Stop, cancellation, own-session and prompt/MCP prerequisites
+  remain mandatory. Neither this proposal nor successful endpoint HTTP turns
+  on voice or local ASR/TTS readiness.

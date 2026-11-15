@@ -378,3 +378,29 @@ called a nonexistent CapturePcm::try_from(Vec) instead of its validated new
 constructor. The counter is renamed retained and the fixture uses the existing
 constructor. No runtime pass follows from that failed strict run. The next
 immutable strict snapshot includes the later probability/turn composition too.
+
+### Minimal VAD amendment prepared for review
+
+Official pinned licence/source metadata and complete ORT source notices are
+now retained under docs/notices/voice-vad with a byte/hash manifest and Vessel
+NOTICE. Existing cached smallvec/cfg-if/windows-link archives were matched to
+published sizes/checksums before reading notices. No new model/native binary
+or inference dependency was downloaded, installed, loaded or shipped.
+
+ADR0080 proposes only a quarantined acquisition/inventory phase for the exact
+model/CPU runtime and wrapper archives. It explicitly requires V3 to accept
+that phase before download and a later inventory/layout review before any
+manifest/load/distribution. Native archive-content correspondence, conversion
+provenance reconciliation, actual feature graph/platform support, AEC/device
+quality, inference/heap bounds and activation remain owed. This prerequisite
+review follows the coordinator's explicit before-download ruling, separate
+from the final package review.
+
+Merged announced node82ae7c91 (A8) cleanly asd152294a7; its gate46g named web
+rows.test timeout is the coordinator's stated load exception, not a W19 pass
+or locally waived test. Current b240 strict run predates this base merge.
+
+Resume: node Turn/finalization/ordered synthesis and native duplex source are
+staged against fakes; no real detector, actor/controller, settings wiring,
+MCP speak or prompt reload activation exists. Root/native latest strict runs
+are queued; full gates, UI captures and final V3/V4 handoff remain owed.

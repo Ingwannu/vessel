@@ -21,7 +21,7 @@ sherpa-onnx2.0.1 remains unselected. No asset is copied from Paseo.
 ## Archive evidence in isolated scratch
 
 GitHub release API metadata was fetched from the official k2-fsa repository;
-full JSON selections and inventories stay in /tmp/work/wp-voice/dependencies.
+full JSON selections and inventories stay in isolated research scratch.
 No weights were extracted or loaded; archive member names/bytes and only small
 README/LICENSE files were read by a traversal-checking audit.
 
@@ -138,3 +138,8 @@ payloads, then prove absence of unintended egress rather than assume CPU means
 offline. The runtime's top-level MIT licence does not replace its full
 ThirdPartyNotices.txt. This comparison is not the required V3 amendment or
 permission to download, ship, load or add either runtime dependency.
+
+A proposed minimal-VAD acquisition amendment and candidate notices now live in
+ADR0080 and docs/notices/voice-vad. They are not approved acquisition/load or
+distribution. Only official text/metadata and already-cached Rust dependency
+notices were read for this preparation; no new model/native artifact was fetched.

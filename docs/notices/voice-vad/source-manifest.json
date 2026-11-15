@@ -1,0 +1,65 @@
+[
+  {
+    "file": "ONNXRuntime-MIT.txt",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/33ca9628233dc8f002435e868d4c2e9f82766ca1/LICENSE",
+    "bytes": 1073,
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+  },
+  {
+    "file": "ONNXRuntime-ThirdPartyNotices.txt",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/33ca9628233dc8f002435e868d4c2e9f82766ca1/ThirdPartyNotices.txt",
+    "bytes": 325054,
+    "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+  },
+  {
+    "file": "Silero-v4-MIT.txt",
+    "source": "https://raw.githubusercontent.com/snakers4/silero-vad/915dd3d639b8333a52e001af095f87c5b7f1e0ac/LICENSE",
+    "bytes": 1075,
+    "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b"
+  },
+  {
+    "file": "ort-MIT.txt",
+    "source": "https://raw.githubusercontent.com/pykeio/ort/5c564c58507f35fa4adc387a79fce1016e73956b/LICENSE-MIT",
+    "bytes": 1107,
+    "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
+  },
+  {
+    "file": "Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/pykeio/ort/5c564c58507f35fa4adc387a79fce1016e73956b/LICENSE-APACHE",
+    "bytes": 11358,
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "libloading-ISC.txt",
+    "source": "https://raw.githubusercontent.com/nagisa/rust_libloading/dab97c569b33bd515e16637b8dedbdc696d9ec9c/LICENSE",
+    "bytes": 736,
+    "sha256": "b29f8b01452350c20dd1af16ef83b598fea3053578ccc1c7a0ef40e57be2620f"
+  },
+  {
+    "file": "smallvec-MIT.txt",
+    "source": "https://crates.io/api/v1/crates/smallvec/1.16.4/download#smallvec-1.16.4/LICENSE-MIT",
+    "bytes": 1072,
+    "sha256": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9",
+    "crate_sha256": "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
+  },
+  {
+    "file": "cfg-if-MIT.txt",
+    "source": "https://crates.io/api/v1/crates/cfg-if/1.0.5/download#cfg-if-1.0.5/LICENSE-MIT",
+    "bytes": 1057,
+    "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+    "crate_sha256": "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
+  },
+  {
+    "file": "windows-link-MIT.txt",
+    "source": "https://crates.io/api/v1/crates/windows-link/0.2.1/download#windows-link-0.2.1/license-mit",
+    "bytes": 1141,
+    "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "crate_sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
+  },
+  {
+    "file": "ort-MIT.txt",
+    "source": "https://raw.githubusercontent.com/pykeio/ort/5c564c58507f35fa4adc387a79fce1016e73956b/ort-sys/LICENSE-MIT",
+    "bytes": 1107,
+    "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
+  }
+]
