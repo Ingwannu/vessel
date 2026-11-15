@@ -517,7 +517,7 @@ this is the requested App narrow result, not an isolated whole Link test run
 or an A9 gate/UI pass. Steps SHA256:
 52f0349323f3f8e1464612436c822a958ba06b6521854a3bb4a533d17df2977c.
 The earlier14-diagnostic App run remains red. The624 View/Link runtime ticket
-remains queued unchanged; new SearchField producer checks are separate.
+completed without being moved or canceled; new SearchField producer checks are separate.
 
 Provider numbering correction from the node owner:24 is now assigned to host
 diagnostics. The provider feature remains None/pending until its actual wiring
@@ -533,3 +533,23 @@ two focused runtime results. Its authorized temporary agents-control label runs
 those sequentially without priority and is retired after handoff. Providers and
 Models consumer changes remain prepared outside the tree until that condition.
 The next shared field writer after the checked handoff is G2 for typed code text.
+
+
+### Completed corrected View/Link runtime
+
+Exact62478a9e locked View/Link tests completed0 at run
+agents-narrow-20261115T131245Z-62478a9e, fonts0/cargo0/no skip. Raw totals:
+Link111, View1019, localization10, matcher3, page117 and View doctests2;
+1260 ordinary tests +2 docs,0 failed/ignored. Both changed View and Link
+actually compiled. Steps SHA256:
+178577e3de4a2389e679fbdf7e38a65f67a63196ac9f9aef861c9a238446eac4.
+The67-byte real-file roundtrip/0600,257-byte visible refusal/prior-file retention,
+corrected choice-bound test and full removal/format-failure sentences explicitly
+passed. This closes the known old runtime red for those sources; it does not
+replace final A9 integration/UI/authority/capture evidence or SearchField tests.
+
+The shared bound producer8fd depends on this package's defaults preflight and
+prepared Fluent domain, which are not on package-base8. Its test correction5845
+retains literal count and byte boundaries. Do not hand8fd to another consumer as
+a standalone patch without those prerequisites or an approved isolated handoff.
+The preference owner received these exact results and the dependency warning.
