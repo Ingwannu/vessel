@@ -937,3 +937,12 @@ before announcement; scoped Plan permission/disclosure isolation; retained sheet
 and source cursor/fork boundary staying on the original entry. This remains
 unimplemented field/scope activation until W23's exact checked source handoff.
 No local copy of ToolCallScope, node association tracker or numeric gate is added.
+
+Final capture dependency: the approved shared root binaries predate ADR0084.
+They remain valid for legacy native screenshots, but cannot prove receipt echoes,
+canonical fields/scopes or new event variants that their decoder does not carry.
+After runtime/gate activation, those scenarios require the matching checked root
+fake/node export (or an explicitly reviewed fixture producer), alongside the
+native app from the final frozen source. No legacy Delivered is presented as a
+canonical receipt, and no direct UI injection/demo route is added to hide that
+dependency. The final fleet/capture run has not started.
