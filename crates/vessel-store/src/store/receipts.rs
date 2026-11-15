@@ -1,8 +1,9 @@
 //! Durable identified-prompt operations, always acknowledged after the writer commits.
 
 use tokio::sync::oneshot;
+use vessel_proto::Creator;
 use vessel_proto::timeline::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
-use vessel_proto::{Creator, Delivered};
+use vessel_proto::timeline::{SubmissionAcceptedKind, SubmissionRefusal};
 
 use super::Store;
 use crate::{
@@ -57,12 +58,30 @@ impl Store {
     pub async fn accept_prompt(
         &self,
         token: ReceiptToken,
-        delivered: Delivered,
+        accepted: SubmissionAcceptedKind,
     ) -> Result<PromptReceipt, StoreError> {
         let (done, committed) = oneshot::channel();
         self.send(Write::Timeline(TimelineWrite::AcceptPrompt {
             token,
-            delivered,
+            accepted,
+            done,
+        }))
+        .await?;
+        committed.await.map_err(|_dropped| StoreError::Closed)?
+    }
+    /// Retain an exact actor-confirmed no-effect refusal under its existing reservation.
+    /// It never releases replay protection or permits automatic redispatch.
+    /// # Errors
+    /// A changed reservation, oversized result or failed transaction refuses acknowledgement.
+    pub async fn refuse_prompt(
+        &self,
+        token: ReceiptToken,
+        reason: SubmissionRefusal,
+    ) -> Result<SubmitPromptReply, StoreError> {
+        let (done, committed) = oneshot::channel();
+        self.send(Write::Timeline(TimelineWrite::RefusePrompt {
+            token,
+            reason,
             done,
         }))
         .await?;

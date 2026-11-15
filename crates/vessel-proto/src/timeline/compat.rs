@@ -264,6 +264,7 @@ pub(crate) fn event_with_reference(
         | AgentEvent::Notification(_)
         | AgentEvent::Compaction(_)
         | AgentEvent::Plugin(_)
+        | AgentEvent::CommandAccepted { .. }
         | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::QuestionResolved { .. } => return None,

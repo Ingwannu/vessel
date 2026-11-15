@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::ClientMessageId;
 use super::admission::AdmissionCapacity;
-use crate::{ContentBlock, Delivered, Delivery, SessionId};
+use super::{SubmissionAcceptedKind, SubmissionDelivery, SubmissionRefusal};
+use crate::{ContentBlock, SessionId};
 
 /// A caller retains this identity across retries of the same validated request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -18,7 +19,11 @@ pub struct SubmitPrompt {
     /// Content is fingerprinted after ordinary input validation.
     pub content: Vec<ContentBlock>,
     /// Retries cannot change the requested delivery behavior under the same identity.
-    pub delivery: Delivery,
+    pub delivery: SubmissionDelivery,
+    /// A producer-advertised native intent, validated against the same original text.
+    /// It uses this same identity/fingerprint and requires Start routing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_command: Option<crate::native_commands::NativeCommandIntent>,
 }
 
 /// Accepted delivery preserves the exact queued entry or direct disposition.
@@ -28,7 +33,7 @@ pub struct PromptReceipt {
     /// The caller's identity, echoed for optimistic row reconciliation.
     pub message: ClientMessageId,
     /// Accepted means delivered or queued, not completed provider work.
-    pub delivered: Delivered,
+    pub accepted: SubmissionAcceptedKind,
 }
 
 /// Replay protection distinguishes accepted delivery from conflict and uncertainty.
@@ -40,6 +45,20 @@ pub enum SubmitPromptReply {
     Accepted {
         /// The original accepted result, unchanged on replay.
         receipt: PromptReceipt,
+    },
+    /// Preflight refused before reserving an identity; no external work happened.
+    NotAdmitted {
+        /// Identity remains available for a later explicitly submitted request.
+        message: ClientMessageId,
+        /// Exact validation/current-run capability refusal.
+        reason: SubmissionRefusal,
+    },
+    /// A stable no-effect refusal, replayed under the same protected identity.
+    Refused {
+        /// Caller identity whose exact request was refused.
+        message: ClientMessageId,
+        /// Closed reason; no provider stderr, raw RPC error or objective output.
+        reason: SubmissionRefusal,
     },
     /// An identity cannot be reused for different content, delivery or creator.
     KeyConflict {
@@ -71,7 +90,9 @@ mod tests {
         let reply = SubmitPromptReply::Accepted {
             receipt: PromptReceipt {
                 message: "caller-message".parse().unwrap(),
-                delivered: Delivered::Queued { entry },
+                accepted: SubmissionAcceptedKind::Prompt {
+                    disposition: super::super::PromptDisposition::Queued { entry },
+                },
             },
         };
         let encoded = serde_json::to_string(&reply).unwrap();
@@ -83,5 +104,50 @@ mod tests {
             serde_json::from_str(r#"{"status":"outcome_unknown","message":"caller-message"}"#)
                 .unwrap();
         assert!(matches!(unknown, SubmitPromptReply::OutcomeUnknown { .. }));
+    }
+}
+
+#[cfg(test)]
+mod unified_tests {
+    use super::*;
+    use crate::native_commands::{NativeCommandIntent, NativeCommandStatus};
+    use crate::{AgentEvent, EventSeq};
+    #[test]
+    fn command_acceptance_echo_is_not_a_turn_and_keeps_one_client_identity() {
+        let message = ClientMessageId::random();
+        let receipt = PromptReceipt {
+            message: message.clone(),
+            accepted: SubmissionAcceptedKind::Command {
+                status: NativeCommandStatus::CompactStarted,
+                echo: EventSeq::new(5),
+            },
+        };
+        let event = AgentEvent::CommandAccepted {
+            client_message_id: message,
+            content: vec![ContentBlock::Text {
+                text: "/compact".to_owned(),
+            }],
+            status: NativeCommandStatus::CompactStarted,
+        };
+        assert_eq!(event.required_protocol(), super::super::TIMELINE_PARITY);
+        assert!(matches!(
+            event.for_protocol(crate::PROTOCOL_VERSION),
+            Some(AgentEvent::HarnessLog { .. })
+        ));
+        let json = serde_json::to_string(&receipt).unwrap();
+        assert_eq!(
+            serde_json::from_str::<PromptReceipt>(&json).unwrap(),
+            receipt
+        );
+        assert!(
+            NativeCommandIntent::Compact.matches_content(&[ContentBlock::Text {
+                text: "/compact".to_owned()
+            }])
+        );
+        assert!(
+            !NativeCommandIntent::Compact.matches_content(&[ContentBlock::Text {
+                text: "/goal pause".to_owned()
+            }])
+        );
     }
 }

@@ -5,7 +5,7 @@ use std::sync::{Arc, Barrier};
 use rusqlite::{Connection, TransactionBehavior};
 use vessel_proto::timeline::{SubmitPrompt, SubmitPromptReply};
 use vessel_proto::{
-    ContentBlock, Creator, Delivery, HarnessKind, RawJson, SessionInfo, SessionMode, SessionSpec,
+    ContentBlock, Creator, HarnessKind, RawJson, SessionInfo, SessionMode, SessionSpec,
 };
 
 use super::*;
@@ -36,12 +36,13 @@ pub(super) fn session(db: &Connection) -> SessionId {
 
 fn prompt(session: SessionId, id: &str, text: &str) -> SubmitPrompt {
     SubmitPrompt {
+        native_command: None,
         session,
         message: id.parse().unwrap(),
         content: vec![ContentBlock::Text {
             text: text.to_owned(),
         }],
-        delivery: Delivery::Start,
+        delivery: vessel_proto::timeline::SubmissionDelivery::Start,
     }
 }
 
@@ -73,8 +74,10 @@ fn a_pending_retry_is_uncertain_and_an_accepted_retry_keeps_the_exact_outcome() 
         admit(&mut db, &prompt),
         ReceiptAdmission::Existing(SubmitPromptReply::OutcomeUnknown { .. })
     ));
-    let delivered = vessel_proto::Delivered::Queued {
-        entry: vessel_proto::QueueEntryId::random(),
+    let delivered = vessel_proto::timeline::SubmissionAcceptedKind::Prompt {
+        disposition: vessel_proto::timeline::PromptDisposition::Queued {
+            entry: vessel_proto::QueueEntryId::random(),
+        },
     };
     let transaction = db.transaction().unwrap();
     let receipt = finish_receipt(&transaction, token, delivered).unwrap();
@@ -115,7 +118,7 @@ fn fingerprints_sort_opaque_object_keys_and_include_authenticated_creator_and_de
         fingerprint,
         ReceiptFingerprint::for_prompt(&second, &Creator::Owner).unwrap()
     );
-    second.delivery = Delivery::Queue;
+    second.delivery = vessel_proto::timeline::SubmissionDelivery::Queue;
     assert_ne!(
         fingerprint,
         ReceiptFingerprint::for_prompt(&second, &Creator::Owner).unwrap()
@@ -145,7 +148,9 @@ fn saturation_keeps_all_replay_keys_and_releases_only_with_session_removal() {
     let accepted_receipt = finish_receipt(
         &transaction,
         accepted_token,
-        vessel_proto::Delivered::Started,
+        vessel_proto::timeline::SubmissionAcceptedKind::Prompt {
+            disposition: vessel_proto::timeline::PromptDisposition::Started,
+        },
     )
     .unwrap();
     transaction.commit().unwrap();

@@ -40,9 +40,14 @@ pub(crate) enum TimelineWrite {
         creator: vessel_proto::Creator,
         done: Done<crate::ReceiptAdmission>,
     },
+    RefusePrompt {
+        token: crate::ReceiptToken,
+        reason: vessel_proto::timeline::SubmissionRefusal,
+        done: Done<vessel_proto::timeline::SubmitPromptReply>,
+    },
     AcceptPrompt {
         token: crate::ReceiptToken,
-        delivered: vessel_proto::Delivered,
+        accepted: vessel_proto::timeline::SubmissionAcceptedKind,
         done: Done<vessel_proto::timeline::PromptReceipt>,
     },
 }
@@ -64,6 +69,10 @@ pub(super) enum TimelineAnswer {
         Done<crate::ReceiptAdmission>,
         Result<crate::ReceiptAdmission, StoreError>,
     ),
+    PromptRefused(
+        Done<vessel_proto::timeline::SubmitPromptReply>,
+        Result<vessel_proto::timeline::SubmitPromptReply, StoreError>,
+    ),
     PromptAccepted(
         Done<vessel_proto::timeline::PromptReceipt>,
         Result<vessel_proto::timeline::PromptReceipt, StoreError>,
@@ -78,6 +87,7 @@ impl TimelineAnswer {
             Self::QuestionClaimed(done, result) => done.send(after(failed, result)).is_ok(),
             Self::QuestionFinished(done, result) => done.send(after(failed, result)).is_ok(),
             Self::PromptAdmitted(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::PromptRefused(done, result) => done.send(after(failed, result)).is_ok(),
             Self::PromptAccepted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
         }
@@ -145,14 +155,24 @@ pub(super) fn apply(transaction: &mut Transaction<'_>, write: TimelineWrite) -> 
                 crate::timeline_admission::admit_input(connection, &request, &creator)
             }),
         ),
+        TimelineWrite::RefusePrompt {
+            token,
+            reason,
+            done,
+        } => TimelineAnswer::PromptRefused(
+            done,
+            isolated(transaction, |connection| {
+                crate::timeline_admission::refuse_input(connection, token, reason)
+            }),
+        ),
         TimelineWrite::AcceptPrompt {
             token,
-            delivered,
+            accepted,
             done,
         } => TimelineAnswer::PromptAccepted(
             done,
             isolated(transaction, |connection| {
-                crate::timeline_admission::accept_input(connection, token, delivered)
+                crate::timeline_admission::accept_input(connection, token, accepted)
             }),
         ),
     }

@@ -2,9 +2,11 @@
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
+use vessel_proto::SessionId;
 use vessel_proto::timeline::admission::AdmissionKind;
-use vessel_proto::timeline::{ClientMessageId, PromptReceipt, SubmitPromptReply};
-use vessel_proto::{Delivered, SessionId};
+use vessel_proto::timeline::{
+    ClientMessageId, PromptReceipt, SubmissionAcceptedKind, SubmissionRefusal, SubmitPromptReply,
+};
 
 use super::{ReceiptFingerprint, reserve};
 use crate::{Column, StoreError, codec};
@@ -13,7 +15,8 @@ use crate::{Column, StoreError, codec};
 #[serde(tag = "state", rename_all = "snake_case")]
 enum ReceiptState {
     Pending,
-    Accepted { delivered: Delivered },
+    Accepted { accepted: SubmissionAcceptedKind },
+    Refused { reason: SubmissionRefusal },
 }
 
 /// A fresh admission is the only result authorizing the caller to dispatch once.
@@ -112,21 +115,40 @@ fn replay(
     }
     Ok(match codec::decode(session, Column::Admission, state)? {
         ReceiptState::Pending => SubmitPromptReply::OutcomeUnknown { message },
-        ReceiptState::Accepted { delivered } => SubmitPromptReply::Accepted {
-            receipt: PromptReceipt { message, delivered },
+        ReceiptState::Accepted { accepted } => SubmitPromptReply::Accepted {
+            receipt: PromptReceipt { message, accepted },
         },
+        ReceiptState::Refused { reason } => SubmitPromptReply::Refused { message, reason },
     })
 }
 
 pub(super) fn finish_receipt(
     connection: &Connection,
     token: ReceiptToken,
-    delivered: Delivered,
+    accepted: SubmissionAcceptedKind,
 ) -> Result<PromptReceipt, StoreError> {
+    let message = settle_receipt(connection, token, &ReceiptState::Accepted { accepted })?;
+    Ok(PromptReceipt { message, accepted })
+}
+
+pub(super) fn refuse_receipt(
+    connection: &Connection,
+    token: ReceiptToken,
+    reason: SubmissionRefusal,
+) -> Result<SubmitPromptReply, StoreError> {
+    let message = settle_receipt(connection, token, &ReceiptState::Refused { reason })?;
+    Ok(SubmitPromptReply::Refused { message, reason })
+}
+
+fn settle_receipt(
+    connection: &Connection,
+    token: ReceiptToken,
+    state: &ReceiptState,
+) -> Result<ClientMessageId, StoreError> {
     if connection.is_autocommit() {
         return Err(StoreError::AdmissionIntegrity);
     }
-    let state = codec::encode(&ReceiptState::Accepted { delivered })?;
+    let state = codec::encode(state)?;
     check_envelope(&token.message, &token.fingerprint, &state)?;
     let pending = codec::encode(&ReceiptState::Pending)?;
     let changed = connection.execute(
@@ -143,10 +165,7 @@ pub(super) fn finish_receipt(
     if changed != 1 {
         return Err(StoreError::AdmissionIntegrity);
     }
-    Ok(PromptReceipt {
-        message: token.message,
-        delivered,
-    })
+    Ok(token.message)
 }
 
 fn check_envelope(

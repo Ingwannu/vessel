@@ -123,6 +123,7 @@ fn expected(event: &AgentEvent) -> Option<ProtocolVersion> {
         AgentEvent::Notification(_)
         | AgentEvent::Compaction(_)
         | AgentEvent::Plugin(_)
+        | AgentEvent::CommandAccepted { .. }
         | AgentEvent::Error { .. } => crate::timeline::TIMELINE_PARITY,
         AgentEvent::Ready { .. }
         | AgentEvent::TurnStarted { .. }

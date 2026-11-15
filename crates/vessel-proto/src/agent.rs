@@ -64,6 +64,15 @@ pub enum AgentEvent {
         /// The prompt.
         content: Vec<ContentBlock>,
     },
+    /// An out-of-band native command was accepted. This never starts a model turn.
+    CommandAccepted {
+        /// Caller identity shared with its durable keyed receipt.
+        client_message_id: crate::timeline::ClientMessageId,
+        /// Exact original submitted content; no provider-built prompt is fabricated.
+        content: Vec<ContentBlock>,
+        /// Closed localizable outcome without raw RPC text or goal output.
+        status: crate::native_commands::NativeCommandStatus,
+    },
     /// A chunk of an earlier user message, replayed by the harness when a
     /// session is resumed. Prompts sent through Vessel appear as
     /// `TurnStarted` instead.

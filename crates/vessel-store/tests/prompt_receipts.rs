@@ -2,7 +2,7 @@
 
 use fixtures::{data_dir, new_session, open};
 use vessel_proto::timeline::{ClientMessageId, SubmitPrompt, SubmitPromptReply};
-use vessel_proto::{ContentBlock, Creator, Delivered, Delivery, QueueEntryId, SessionId};
+use vessel_proto::{ContentBlock, Creator, QueueEntryId, SessionId};
 use vessel_store::{ReceiptAdmission, Store, StoreConfig, StoreError};
 
 #[cfg(test)]
@@ -12,10 +12,11 @@ mod fixtures;
 
 fn prompt(session: SessionId) -> SubmitPrompt {
     SubmitPrompt {
+        native_command: None,
         session,
         message: ClientMessageId::random(),
         content: vec![ContentBlock::Text { text: "run".into() }],
-        delivery: Delivery::Queue,
+        delivery: vessel_proto::timeline::SubmissionDelivery::Queue,
     }
 }
 
@@ -42,8 +43,10 @@ async fn committed_pending_and_accepted_outcomes_survive_restart() {
     else {
         panic!("fresh accepted admission");
     };
-    let delivered = Delivered::Queued {
-        entry: QueueEntryId::random(),
+    let delivered = vessel_proto::timeline::SubmissionAcceptedKind::Prompt {
+        disposition: vessel_proto::timeline::PromptDisposition::Queued {
+            entry: QueueEntryId::random(),
+        },
     };
     let receipt = store.accept_prompt(token, delivered).await.unwrap();
     store.close().await;
@@ -61,7 +64,7 @@ async fn committed_pending_and_accepted_outcomes_survive_restart() {
         matches!(replay, ReceiptAdmission::Existing(SubmitPromptReply::Accepted { receipt: kept }) if kept == receipt)
     );
     let mut changed = accepted;
-    changed.delivery = Delivery::Start;
+    changed.delivery = vessel_proto::timeline::SubmissionDelivery::Start;
     assert!(matches!(
         store.admit_prompt(changed, Creator::Owner).await.unwrap(),
         ReceiptAdmission::Existing(SubmitPromptReply::KeyConflict { .. })
@@ -122,4 +125,38 @@ async fn corrupt_accounting_refuses_open_without_discarding_pending_keys() {
         })
         .unwrap();
     assert_eq!(retained, 1);
+}
+
+#[tokio::test]
+async fn refusal_replays_after_restart_and_changed_native_intent_conflicts() {
+    use vessel_proto::timeline::{SubmissionDelivery, SubmissionRefusal};
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let info = new_session(0);
+    store.create_session(info.clone()).await.unwrap();
+    let mut request = prompt(info.id);
+    request.delivery = SubmissionDelivery::SteerOrInterrupt;
+    let ReceiptAdmission::New(token) = store
+        .admit_prompt(request.clone(), Creator::Owner)
+        .await
+        .unwrap()
+    else {
+        panic!("fresh");
+    };
+    let refused = store
+        .refuse_prompt(token, SubmissionRefusal::TurnRunning)
+        .await
+        .unwrap();
+    store.close().await;
+    drop(store);
+    let store = open(&dir, StoreConfig::default()).await;
+    assert!(
+        matches!(store.admit_prompt(request.clone(), Creator::Owner).await.unwrap(), ReceiptAdmission::Existing(replay) if replay == refused)
+    );
+    request.native_command = Some(vessel_proto::native_commands::NativeCommandIntent::Compact);
+    assert!(matches!(
+        store.admit_prompt(request, Creator::Owner).await.unwrap(),
+        ReceiptAdmission::Existing(SubmitPromptReply::KeyConflict { .. })
+    ));
+    store.close().await;
 }

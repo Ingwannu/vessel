@@ -235,7 +235,16 @@ pub(crate) fn admit_input(
 pub(crate) fn accept_input(
     connection: &Connection,
     token: ReceiptToken,
-    delivered: vessel_proto::Delivered,
+    accepted: vessel_proto::timeline::SubmissionAcceptedKind,
 ) -> Result<vessel_proto::timeline::PromptReceipt, StoreError> {
-    finish_receipt(connection, token, delivered)
+    finish_receipt(connection, token, accepted)
+}
+
+/// Settle only a fresh reservation with an actor-confirmed no-effect refusal.
+pub(crate) fn refuse_input(
+    connection: &Connection,
+    token: ReceiptToken,
+    reason: vessel_proto::timeline::SubmissionRefusal,
+) -> Result<vessel_proto::timeline::SubmitPromptReply, StoreError> {
+    receipt::refuse_receipt(connection, token, reason)
 }

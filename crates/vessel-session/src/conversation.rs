@@ -190,6 +190,7 @@ impl Seen {
             | AgentEvent::Notification(_)
             | AgentEvent::Compaction(_)
             | AgentEvent::Plugin(_)
+            | AgentEvent::CommandAccepted { .. }
             | AgentEvent::Error { .. }
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. } => {}

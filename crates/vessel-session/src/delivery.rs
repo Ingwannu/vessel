@@ -29,6 +29,7 @@
 //! queue's changes and its moving after a turn.
 
 mod moves;
+mod native_command;
 pub(crate) mod submission;
 mod tickets;
 
@@ -155,6 +156,7 @@ impl Desk {
             | AgentEvent::Notification(_)
             | AgentEvent::Compaction(_)
             | AgentEvent::Plugin(_)
+            | AgentEvent::CommandAccepted { .. }
             | AgentEvent::Error { .. }
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. }

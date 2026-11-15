@@ -156,6 +156,7 @@ fn message(event: &AgentEvent) -> Option<(&'static str, &[ContentBlock])> {
         | AgentEvent::Notification(_)
         | AgentEvent::Compaction(_)
         | AgentEvent::Plugin(_)
+        | AgentEvent::CommandAccepted { .. }
         | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. } => None,
     }

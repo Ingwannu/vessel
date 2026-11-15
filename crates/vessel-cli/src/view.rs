@@ -219,6 +219,9 @@ impl Conversation {
             AgentEvent::Compaction(compaction) => {
                 self.line(format!("[context compaction {:?}]", compaction.status))
             }
+            AgentEvent::CommandAccepted { status, .. } => {
+                self.line(format!("[command: {status:?}]"))
+            }
             AgentEvent::Plugin(item) => self.line(format!("[plugin {}: {}]", item.plugin, item.id)),
             AgentEvent::HarnessLog { line } => self.line(format!("[harness] {line}")),
             AgentEvent::Steered { content, .. } => self.line(format!(">> {}", text(content))),

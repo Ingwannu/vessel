@@ -7,8 +7,8 @@ use crate::{SessionError, SessionHandle};
 use tokio::sync::oneshot;
 use vessel_proto::native_commands::NativeCommandIntent;
 use vessel_proto::timeline::{
-    ClientMessageId, NativeCommandRefusal, PromptDisposition, SubmissionAcceptedKind,
-    SubmissionDelivery, SubmissionRefusal,
+    ClientMessageId, PromptDisposition, SubmissionAcceptedKind, SubmissionDelivery,
+    SubmissionRefusal,
 };
 use vessel_proto::{ContentBlock, Creator, Delivered};
 
@@ -62,12 +62,9 @@ impl SessionHandle {
 }
 impl StructuredActor {
     pub(crate) async fn submit_identified(&mut self, order: Submit) {
-        let result = if order.native_command.is_some() {
-            // No current transport advertises a native kind through this seam.
-            // W22 replaces this explicit pre-effect refusal with checked dispatch.
-            SubmissionDispatch::Refused(SubmissionRefusal::NativeCommand {
-                cause: NativeCommandRefusal::Unsupported,
-            })
+        let result = if let Some(intent) = order.native_command {
+            self.submit_native_command(order.content, order.message, order.delivery, intent)
+                .await
         } else if order.content.is_empty()
             || vessel_agent::validate_prompt(
                 self.launch.driver,

@@ -216,6 +216,7 @@ impl StructuredActor {
             AgentEvent::Notification(_)
             | AgentEvent::Compaction(_)
             | AgentEvent::Plugin(_)
+            | AgentEvent::CommandAccepted { .. }
             | AgentEvent::Error { .. }
             | AgentEvent::TurnStarted { .. }
             | AgentEvent::UserMessageChunk { .. }

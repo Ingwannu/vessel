@@ -5,7 +5,7 @@ use vessel_proto::conversation::{AnswerValue, QuestionAnswer};
 use vessel_proto::timeline::{
     ClientMessageId, RespondQuestion, RespondQuestionReply, SubmitPrompt, SubmitPromptReply,
 };
-use vessel_proto::{AgentEvent, ContentBlock, Creator, Delivery, EventSeq, Question, SessionEvent};
+use vessel_proto::{AgentEvent, ContentBlock, Creator, EventSeq, Question, SessionEvent};
 
 async fn create(fixture: &Fixture) -> SessionId {
     let mut spec = fixture.structured();
@@ -59,10 +59,11 @@ async fn until(
 
 fn prompt(session: SessionId, text: &str) -> SubmitPrompt {
     SubmitPrompt {
+        native_command: None,
         session,
         message: ClientMessageId::random(),
         content: vec![ContentBlock::Text { text: text.into() }],
-        delivery: Delivery::Start,
+        delivery: vessel_proto::timeline::SubmissionDelivery::Start,
     }
 }
 
@@ -356,7 +357,7 @@ async fn accepted_queued_receipts_have_a_committed_queue_and_keep_the_exact_entr
     })
     .await;
     let mut queued = prompt(id, "queued follow-up");
-    queued.delivery = Delivery::Queue;
+    queued.delivery = vessel_proto::timeline::SubmissionDelivery::Queue;
     let accepted = fixture
         .sessions
         .submit_prompt(queued.clone(), Creator::Owner)
@@ -365,7 +366,10 @@ async fn accepted_queued_receipts_have_a_committed_queue_and_keep_the_exact_entr
     let SubmitPromptReply::Accepted { receipt } = &accepted else {
         panic!("accepted queue")
     };
-    let vessel_proto::Delivered::Queued { entry } = receipt.delivered else {
+    let vessel_proto::timeline::SubmissionAcceptedKind::Prompt {
+        disposition: vessel_proto::timeline::PromptDisposition::Queued { entry },
+    } = receipt.accepted
+    else {
         panic!("queued")
     };
     let committed = fixture.store.conversation(id).await.unwrap().unwrap();

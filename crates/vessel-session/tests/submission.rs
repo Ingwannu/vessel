@@ -68,7 +68,7 @@ async fn unimplemented_native_transport_refuses_without_a_model_turn() {
         let mut log=Log::of(&handle); ready(&mut log).await;
         let refused=ClientMessageId::random();
         let result=handle.submit_identified(text("/compact"),refused.clone(),SubmissionDelivery::Start,Creator::Owner,Some(vessel_proto::native_commands::NativeCommandIntent::Compact)).await.unwrap();
-        assert!(matches!(result,SubmissionDispatch::Refused(SubmissionRefusal::NativeCommand {cause:NativeCommandRefusal::Unsupported})),"{result:?}");
+        assert!(matches!(result,SubmissionDispatch::Refused(SubmissionRefusal::NativeCommand {cause:NativeCommandRefusal::NotOffered})),"{result:?}");
         let sent=ClientMessageId::random();
         let _started=handle.submit_identified(text("plain"),sent,SubmissionDelivery::Start,Creator::Owner,None).await.unwrap();
         log.until(|event|matches!(event,SessionEvent::Agent {event:AgentEvent::TurnEnded {..}})).await;

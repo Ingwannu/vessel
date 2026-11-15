@@ -337,6 +337,7 @@ fn kind(event: &AgentEvent) -> &'static str {
         AgentEvent::Notification(_) => "notification",
         AgentEvent::Compaction(_) => "compaction",
         AgentEvent::Plugin(_) => "plugin",
+        AgentEvent::CommandAccepted { .. } => "command_accepted",
         AgentEvent::Error { .. } => "error",
         AgentEvent::Steered { .. } => "steered",
         AgentEvent::QuestionAsked(_) => "question_asked",

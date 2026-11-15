@@ -90,6 +90,7 @@ const fn agent_kind(event: &AgentEvent) -> Option<Filter> {
         | AgentEvent::Notification(_)
         | AgentEvent::Compaction(_)
         | AgentEvent::Plugin(_)
+        | AgentEvent::CommandAccepted { .. }
         | AgentEvent::Error { .. }
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::QuestionAsked(_)

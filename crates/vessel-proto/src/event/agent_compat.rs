@@ -9,9 +9,11 @@ impl AgentEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Notification(_) | Self::Compaction(_) | Self::Plugin(_) | Self::Error { .. } => {
-                crate::timeline::TIMELINE_PARITY
-            }
+            Self::Notification(_)
+            | Self::Compaction(_)
+            | Self::Plugin(_)
+            | Self::CommandAccepted { .. }
+            | Self::Error { .. } => crate::timeline::TIMELINE_PARITY,
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 Some(ProtocolVersion::new(10))
             }
@@ -68,6 +70,7 @@ impl AgentEvent {
         }
         let log = |line: String| Some(Self::HarnessLog { line });
         match self {
+            Self::CommandAccepted { .. } => log("vessel: native command accepted".to_owned()),
             Self::Notification(notice) => {
                 log(format!("vessel: {:?}: {}", notice.level, notice.message))
             }

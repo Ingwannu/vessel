@@ -425,3 +425,21 @@ client-supplied field creates a proposal or an action capability.
 This checkpoint attaches values, compatibility and constructor adaptations only;
 positive producer transport, actor decision lifetime, native follow-up acceptance
 and deterministic runtime proof remain pending. It does not enable plan approval.
+
+### Unified command acceptance attachment (staged)
+
+The one keyed SubmitPrompt carries SubmissionDelivery plus optional native_command.
+PromptReceipt.accepted distinguishes Prompt{actual disposition} and
+Command{closed status, committed echo seq}. CommandAccepted echoes the same
+clientMessageId and original content without inventing a turn. NotAdmitted has
+no retained key and precedes reservation; Refused protects a committed no-effect
+actor result and replays it. Intent and original text both enter the canonical
+fingerprint. Actual live input offers are checked before reservation and again
+by the serialized actor, never recovered from Conversation.commands. Native
+command policy is Start only and does not cancel an existing turn. Every current
+provider remains unoffered/Unsupported; provider launch/version/autonomous
+lifecycle proof and positive transport remain separate work. The bounded actor
+pump drains outputs while awaiting provider acknowledgement. All accepted echoes
+and queue state pass the ordinary persistence watermark before receipt settlement;
+uncertain sends retain their reserved key. This extends the reviewed receipt
+contract but is not an activation or runtime verification claim.

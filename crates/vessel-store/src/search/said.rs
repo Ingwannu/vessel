@@ -36,6 +36,7 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
             | AgentEvent::Notification(_)
             | AgentEvent::Compaction(_)
             | AgentEvent::Plugin(_)
+            | AgentEvent::CommandAccepted { .. }
             | AgentEvent::Error { .. } => Said::Nothing,
             AgentEvent::Ready { .. }
             | AgentEvent::ThoughtChunk { .. }

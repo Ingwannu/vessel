@@ -124,3 +124,12 @@ impl NativeCommandStatus {
 
 #[cfg(test)]
 mod tests;
+
+impl NativeCommandIntent {
+    /// Native commands use exactly one original text block, never attachments,
+    /// hidden context or a provider-built prompt substituted by a caller.
+    #[must_use]
+    pub fn matches_content(&self, content: &[crate::ContentBlock]) -> bool {
+        matches!(content, [crate::ContentBlock::Text { text }] if self.matches_text(text))
+    }
+}

@@ -104,3 +104,25 @@ no restored Conversation.commands value is consulted. The node must query this
 before fresh admission and the actual dispatch rechecks the current run again.
 W12b's optional AgentCommand.native_command is UI metadata only. A small queue
 fixture checks live correlation and retirement; execution remains owed.
+
+Attachment checkpoint: SubmitPrompt now directly carries SubmissionDelivery and
+optional NativeCommandIntent; PromptReceipt.accepted is SubmissionAcceptedKind.
+The fingerprint still hashes the complete request and creator, including exact
+original content and native intent. NotAdmitted explicitly denotes preflight
+before identity reservation; Refused is a committed, replayable no-effect actor
+result after a reservation. These meanings are distinct so later provider
+capability changes cannot silently reinterpret a retained refusal.
+
+The node queries the actual live input's offered kinds before reserving native
+work. The serialized actor queries that same run again before dispatch, validates
+Start plus exact shared text parser, and pumps outputs while waiting. Every
+provider still offers None/returns Unsupported. A future positive driver returns
+closed status; the actor publishes one CommandAccepted (same clientMessageId,
+original content, closed status), records its actual seq, and leaves busy/tickets
+alone. The node waits for the ordinary commit watermark before retaining the
+acceptance. Possibly sent failures stay Pending/OutcomeUnknown. Native commands
+never route through interrupt/start and never fabricate TurnStarted or Steered.
+
+Prepared tests cover command receipt/wire echo distinction, no-offer refusal
+without a turn, stable refusal restart replay, and a changed intent conflicting
+with a retained identity. No positive native provider transport is claimed.
