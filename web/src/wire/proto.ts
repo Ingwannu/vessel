@@ -8559,8 +8559,8 @@ state: SetupRunState,
  */
 started_at: string, 
 /**
- * Approved-order rows. A later producer/decoder must validate count, order,
- * unique ordinals and output budgets; this public vector is not validated.
+ * Decoding checks count, ordered ordinals and per-command/aggregate output.
+ * Locally constructed DTOs must call `validate` before renderer admission.
  */
 commands: Array<SetupCommandProgress>, };
 
