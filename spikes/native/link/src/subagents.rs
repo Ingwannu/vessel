@@ -223,3 +223,9 @@ fn mutation_failure(error: crate::connections::RequestFailure) -> TrackProblem {
 #[cfg(not(target_arch = "wasm32"))]
 #[path = "subagents/tests.rs"]
 mod tests;
+
+// Prepared with W12's canonical sixth owner/ticket namespace. The actual parent
+// read/attach minter and resource receiver are not live yet, so no token-only
+// ingress or phantom resident is enabled by this typed envelope preparation.
+#[cfg(test)]
+mod resident;

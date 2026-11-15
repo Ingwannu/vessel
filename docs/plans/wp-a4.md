@@ -321,3 +321,12 @@ the old installed stamp until actual replacement; scoped find/disclosures cannot
 be falsely rebound to a new numeric projection. Current synchronous installation
 sets source/revision after replacing the Area. A7's protected-find refresh hook,
 keyed resident carrier and independent Subagents snapshot remain union work.
+
+The line e1b73c9e now carries W12's canonical sixth Subagents owner/ticket namespace.
+A literal cfg(test) resident envelope preserves FollowBinding, its opaque Subagents
+OperationTicket and the exact installed child projection capture. Delivery is
+validated and settle_operation runs before returning any payload for bundle lookup.
+Tests cover attach ABA, parent eviction/recreation with restarted query tickets,
+wrong Timeline tickets and duplicates. This remains preparation: actual W12 read
+admission, all six concrete snapshots and keyed resource routing are not enabled.
+The independent root-free import/delivery packet excludes this module entirely.

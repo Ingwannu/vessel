@@ -16,7 +16,7 @@ pub(super) fn admit(existing: &[Entry], incoming: &[Entry]) -> Result<(), Proble
         .chain(incoming)
         .fold(0_usize, |bytes, entry| {
             bytes
-                .saturating_add(std::mem::size_of::<Entry>())
+                .saturating_add(size_of::<Entry>())
                 .saturating_add(entry.id.as_str().len())
                 .saturating_add(entry.cwd.as_os_str().len())
                 .saturating_add(entry.title.as_ref().map_or(0, |title| title.as_str().len()))
