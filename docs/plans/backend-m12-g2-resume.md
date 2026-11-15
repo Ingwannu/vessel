@@ -306,3 +306,33 @@ repository rule. No other owner's documentation/source was rewritten.
   history GetSession candidates unopened, never use legacy alias fallback.
 - Historical native Linux F5 HOLD remains open. No F1 native captures/OS/IME/
   permissions/real node effects claimed. No own fleet/display/app runs locally.
+
+
+## Corrected narrow checkpoints (2026-11-15 16:57 UTC)
+
+- ce36 strict ended RED: actual Kit Checking, fonts0/cargo101, five diagnostics
+  (assignment semicolons2, redundant method closure1, float literal comparisons2).
+  Complete batch fixed2a20c26f6; exact literal float bits retain18/16. No tests/
+  View/App steps ran on ce36. Prior20c red remains preserved too.
+- schedules-20261115T165017Z-2a20c26f is queued ordinary SHORT: combined Kit/View/
+  App strict then lib tests. No priority. This includes real ready-rule/actual
+  footer queue regression589+32be and base8e. Later e891 preset-cron Code fix
+  and this comment-only receipt are not covered by its eventual result.
+- Node source audit found two narrow correctness issues before execution: use
+  ORIGINAL Ended state for the no-reason-rewrite guard (Active precedence stays
+  unchanged), and permit a genuinely expired definition's past expiry only in
+  typed CompletedEdit validation. The same settle_for retains all other checks.
+  Corrected source6e1d0ebce+49baa2750+d26b0b775; exact final node headd26b0b775.
+  Four actual bounded actor/store cases + one validator case authored; no jobs,
+  no ordinary execution/wire/schema/number change. Prior265 and6e queued runs
+  cancelled143 before compilation under standing approval, records retained.
+- Exact node replacement root node-ended-d26b0b77-20261115T165717Z, same
+  schedules-node ordinary SHORT: node alltargets strict, then --lib filter
+  automation::schedules (includes check::tests as well as actor tests). Pending.
+- V3 source-precheck requested for complete9c150c6e..d26b0b775 packet; actual
+  checks/disposition/integrator landing remain owed. Do NOT enable App Ended
+  edit yet or merge the whole node branch into App. After checked availability,
+  share one known-state guard across View replacement/row permissions; known
+  Ended Edit/Delete only, unknown state/reason Delete only, original revision
+  and pending/current-context guards retained. Update portable state cases and
+  real form/row regressions. Existing EditError words remain L-owned.

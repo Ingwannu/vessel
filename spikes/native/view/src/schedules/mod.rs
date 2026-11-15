@@ -129,7 +129,7 @@ impl Status {
 }
 
 /// A title borrowed intact: named schedule, new session's title, prompt's first
-/// nonempty line (Paseo's precedence). The renderer must allow it to wrap.
+/// nonempty line (Paseo's precedence). The row truncates the title to one line.
 #[must_use]
 pub fn title(definition: &ScheduleDefinition) -> &str {
     if let Some(name) = &definition.name {
