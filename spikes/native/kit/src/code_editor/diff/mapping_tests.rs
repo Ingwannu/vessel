@@ -4,7 +4,7 @@
 use gpui::prelude::*;
 use gpui::{
     Context, Entity, EntityInputHandler as _, HighlightStyle, Render, SharedString, TestAppContext,
-    Window, div, point, px, size,
+    Window, div, point, px,
 };
 use gpui_base::input::{
     BufferRow, DiagnosticColors, Editor, EditorState, HighlightStyleResolver, InputEditorStyle,

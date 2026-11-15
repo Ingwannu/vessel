@@ -174,3 +174,27 @@ and pixel arithmetic. Offsets/counts use saturation; the three finite test-only
 pixel operations use smallest-item expects with reasons, matching existing kit
 pixel geometry policy, not file-wide allows or a production lint waiver. Current
 corrections need their own exact source test/lint selections. No pass/handoff.
+
+## Actual0813 result and scoped successor
+
+The exact public selection executed16 tests,15 passed/1 failed. Keyboard end/
+selection owner reveal, real outside-parent zero projection/direct IME queries
+and cached2500 parent scrolling now pass. Sole failure: the actual vertical
+wheel test leaves its outer list at0. The loop did not name its drift iteration;
+do not claim precise x-drift attribution from that log. The exact Kit Clippy
+returns101 solely for the now-unused size import, removed by this successor.
+
+[Decision Log]
+- Reuse: same native wheel handler and existing one outer owner; no scroller/API.
+- Source trace: incidental x can change an inner offset and consume a vertically
+  dominant packet even when that editor has no vertical overflow.
+- Choice: the lead/V1 source-prechecked hunk suppresses x only for mapped+readonly
+  +no vertical overflow+vertical-dominant. All ordinaryNone/horizontal-dominant/
+  vertical-overflow paths retain their old delta, with hover/menu cleanup.
+- Evidence: original failing assertions retained, improved case/offset diagnostic;
+  new actual horizontal-dominant and ordinaryNone/overflow fixtures. They are
+  uncompiled/unexecuted at this correction until its own immutable selection.
+
+Original0813 remains RED and is not relabeled. Both remote runs were terminal
+before this production correction was installed. No whole gate, split-header/
+filtered-copy parity, fake-node C3 mount, authority, UI or OS pass is claimed.

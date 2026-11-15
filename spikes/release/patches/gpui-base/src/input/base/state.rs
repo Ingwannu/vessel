@@ -2864,6 +2864,18 @@ impl<M: InputModeKind> InputBaseState<M> {
             .map(|layout| layout.line_height)
             .unwrap_or(window.line_height());
         let delta = event.delta.pixel_delta(line_height);
+        // Vessel patch: a full-height mapped readonly document gives vertical
+        // gestures to its outer owner. Incidental trackpad x drift must not
+        // move this editor horizontally and consume that vertical gesture.
+        let delta = if self.readonly
+            && self.editor_style.line_presentation().is_some()
+            && !self.overflows_vertically()
+            && delta.y.abs() >= delta.x.abs()
+        {
+            point(px(0.), delta.y)
+        } else {
+            delta
+        };
 
         let old_offset = self.scroll_handle.offset();
         let precise = matches!(event.delta, gpui::ScrollDelta::Pixels(_));

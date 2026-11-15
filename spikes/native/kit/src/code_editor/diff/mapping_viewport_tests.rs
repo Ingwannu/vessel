@@ -237,3 +237,57 @@ fn none_preserves_the_existing_offscreen_coordinate_result(cx: &mut TestAppConte
     });
     assert_eq!(before, after);
 }
+
+#[gpui::test]
+fn ordinary_none_and_overflowing_mapped_inputs_keep_their_inner_wheel_route(
+    cx: &mut TestAppContext,
+) {
+    cx.update(gpui_base::init);
+    let text = std::iter::repeat_n("wide source ".repeat(40), 2500)
+        .collect::<Vec<_>>()
+        .join("\n");
+    for mapped in [false, true] {
+        let mapping = Mapping::new("9999");
+        let list_state = ListState::new(1, ListAlignment::Top, px(0.));
+        let (owner, cx) = cx.add_window_view(|window, cx| {
+            let state = cx.new(|cx| {
+                let mut state = EditorState::new(window, cx)
+                    .soft_wrap(false)
+                    .folding(false)
+                    .default_value(&text);
+                state.set_readonly(true, cx);
+                state.set_scroll_beyond_last_line(Some(0), window, cx);
+                state.set_editor_style(if mapped {
+                    mapping.style()
+                } else {
+                    InputEditorStyle::default()
+                });
+                state
+            });
+            Document {
+                state,
+                list: list_state.clone(),
+                height: px(160.),
+                cached: false,
+            }
+        });
+        cx.run_until_parked();
+        let before = list_state.logical_scroll_top();
+        cx.simulate_event(gpui::ScrollEvent {
+            position: point(px(100.), px(100.)),
+            delta: gpui::ScrollDelta::Pixels(point(px(-0.5), px(-80.))),
+            touch_phase: gpui::TouchPhase::Moved,
+            ..Default::default()
+        });
+        cx.run_until_parked();
+        owner.read_with(cx, |owner, cx| {
+            let state = owner.state.read(cx);
+            assert!(state.scroll_offset().x < px(0.));
+            assert!(state.scroll_offset().y < px(0.));
+            assert_eq!(state.value(), text);
+        });
+        let after = list_state.logical_scroll_top();
+        assert_eq!(after.item_ix, before.item_ix);
+        assert_eq!(after.offset_in_item, before.offset_in_item);
+    }
+}
