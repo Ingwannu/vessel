@@ -1,10 +1,12 @@
 //! Principal-bound creation observations reuse the store and shared waiting limits.
 
 #[cfg(test)]
-mod driver;
+pub(crate) mod driver;
+#[cfg(test)]
+pub(crate) mod empty;
+mod failure;
 #[cfg(test)]
 mod intake;
-mod failure;
 
 pub(super) use failure::stored as stored_creation_error;
 

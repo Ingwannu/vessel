@@ -11,16 +11,16 @@ use vessel_store::{Store, StoreError};
 
 const MAX_STEPS: usize = 4; // workspace, resource, first input, final settlement
 #[derive(Clone, Copy)]
-enum StepFailure {
+pub(super) enum StepFailure {
     Refused(ErrorCode),
     Uncertain(ErrorCode),
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum StageReadiness {
+pub(super) enum StageReadiness {
     Ready,
     Deferred,
 }
-trait Runtime {
+pub(super) trait Runtime {
     fn fingerprint(&self) -> Fingerprint;
     /// Preparation/approval may be pending, without admitting an effect. The
     /// real first-input owner supplies this; receipt metadata is not acceptance.
@@ -32,7 +32,7 @@ trait Runtime {
         reserved: &Reservation,
     ) -> impl Future<Output = Result<(), StepFailure>> + Send;
 }
-async fn drive(
+pub(super) async fn drive(
     store: &Store,
     operation: WorkspaceOperationId,
     runtime: &impl Runtime,

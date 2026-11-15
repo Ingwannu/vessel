@@ -1,5 +1,6 @@
 //! Real Store/project primitives, isolated git configuration, no agent or bootstrap.
 use super::*;
+mod receipt;
 use crate::workspace::provisioning::Provisioned;
 use vessel_proto::creation::{
     Advance, Fingerprint, FirstInput, Key, Kind, Receipt, Reservation, Stage, WorkspaceClaim,

@@ -306,3 +306,30 @@ The earlier Snapshot name-clash failure remains preserved separately. The
 freshness rerun wp-create-node-wire-20261115T123918Z-d97f3429 passed; generated
 declarations now match the checked source. That does not assign a protocol
 version or activate the missing creation/launch methods.
+
+
+### Empty-workspace receipt/backing integration (staged)
+
+Modify/reuse: the existing phase driver now has a concrete empty-workspace
+adapter over Workspaces::provision_workspace and the same Store. A prepared
+server-resolved intent hashes the typed local/worktree/visibility/source gate
+with a domain separator; request data cannot supply an unrelated fingerprint.
+Only an empty Workspace/Create reservation with no resource or first input is
+accepted. The actual committed Begin precedes provisioning, descriptor readiness
+precedes Finished/Completed, and completed retry never enters backing again.
+Explicit setup Run is refused by this backing-only adapter rather than being
+reported complete after Skip. The separate setup owner still has to implement it.
+
+The entry-check callback is a staged controller port after Begin, not retained
+connection/project/root authority across provisioning awaits. The production
+controller must still join current authorization/generation, project admission
+and canonical lifecycle/start fences before activation. This module, its driver
+and provisioning remain literal cfg(test); no new RPC or protocol availability
+is claimed. Real Store/project regressions join descriptor publication to receipt
+completion and prove a denied entry has no backing reservation, then continues
+with the same stable ids. Execution of these newly authored cases is owed.
+
+Announced node gate52 head1c762ccf is merged (metadata registry protocol25, schema
+still20). Creation and terminal-profile activation constants remain None. The
+lifecycle listing/schema append is pending its own announced integration; no
+independent listing type or workspace visibility inference was introduced here.
