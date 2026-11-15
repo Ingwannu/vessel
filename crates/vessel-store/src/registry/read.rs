@@ -59,7 +59,7 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
 /// A `WorkspaceId` selects exactly that workspace; `None` is the complete snapshot.
 /// Pending/failed/historical associations remain present, without role/activity
 /// inference. The caller separately owns lifecycle/permission/mutation checks.
-pub(super) fn memberships(
+pub(crate) fn memberships(
     connection: &Connection,
     workspace: impl Into<Option<WorkspaceId>>,
 ) -> Result<Vec<WorkspaceMembership>, StoreError> {
