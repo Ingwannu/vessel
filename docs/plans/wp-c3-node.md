@@ -49,3 +49,6 @@ a 64 MiB streaming byte cap. This cap is a stated safety difference from the
 reference's unbounded index copy. Tests use a small injected typed copy budget
 to prove over-limit rejection and actual modes. Clipped ls-files output or more
 than the bounded restoration set is a typed failure, never false completeness.
+The next narrow clippy found discarded parse causes in base-index decoding.
+UTF-8, object-id and path errors now have separate source-carrying variants;
+whole typed-shape and source-chain tests replace the generic error assertion.

@@ -168,19 +168,38 @@ fn batches_bound_path_count_and_conservatively_escaped_argv() {
 #[test]
 fn malformed_tree_entries_are_errors_instead_of_dropped_paths() {
     let id = "a".repeat(40);
+    assert!(matches!(
+        parse_entries(format!("100644 blob {id}\t../outside\0").as_bytes()),
+        Err(IndexError::Path(InvalidRelPath::Part))
+    ));
     for record in [
-        format!("100644 blob {id}\t../outside\0"),
         format!("100644 commit {id}\tfile\0"),
         format!("777777 blob {id}\tfile\0"),
         format!("100644 blob {id}\t\0"),
     ] {
         assert!(matches!(
             parse_entries(record.as_bytes()),
-            Err(GitError::Unexpected {
+            Err(IndexError::Git(GitError::Unexpected {
                 what: "base index entry"
-            })
+            }))
         ));
     }
+}
+
+#[test]
+fn entry_decode_failures_retain_the_original_error_source() {
+    use std::error::Error as _;
+
+    let utf8 = parse_entries(&[0xff, 0]).unwrap_err();
+    assert!(matches!(utf8, IndexError::Utf8(_)));
+    assert!(utf8.source().is_some());
+    let object = parse_entries(b"100644 blob invalid\tfile\0").unwrap_err();
+    assert!(matches!(object, IndexError::Object(_)));
+    assert!(object.source().is_some());
+    let path = parse_entries(format!("100644 blob {}\t../outside\0", "a".repeat(40)).as_bytes())
+        .unwrap_err();
+    assert!(matches!(path, IndexError::Path(_)));
+    assert!(path.source().is_some());
 }
 
 #[test]

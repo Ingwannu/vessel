@@ -16,8 +16,8 @@ use std::io::{Read as _, Write as _};
 use std::path::Path;
 
 use vessel_proto::workspace::{
-    CommitId, DiffSummary, FileDiff, GitComparison, GitHunkOffset, GitWhitespace, RelPath,
-    WorktreeBase,
+    CommitId, DiffSummary, FileDiff, GitComparison, GitHunkOffset, GitWhitespace, InvalidRelPath,
+    InvalidText, RelPath, WorktreeBase,
 };
 
 use super::{MAX_FILES, Resolved};
@@ -41,6 +41,12 @@ pub(crate) enum IndexError {
     Io(#[from] std::io::Error),
     #[error("the comparison index worker stopped")]
     Task(#[from] tokio::task::JoinError),
+    #[error("git printed a base index entry that is not UTF-8")]
+    Utf8(#[from] std::str::Utf8Error),
+    #[error("git printed an invalid base object id")]
+    Object(#[from] InvalidText),
+    #[error("git printed an invalid base index path")]
+    Path(#[from] InvalidRelPath),
     #[error("the All comparison failed and its private index could not be removed: {cleanup}")]
     Cleanup {
         #[source]
@@ -294,7 +300,7 @@ impl Mode {
     }
 }
 
-fn parse_entries(bytes: &[u8]) -> Result<Vec<Entry>, GitError> {
+fn parse_entries(bytes: &[u8]) -> Result<Vec<Entry>, IndexError> {
     let unexpected = || GitError::Unexpected {
         what: "base index entry",
     };
@@ -302,31 +308,27 @@ fn parse_entries(bytes: &[u8]) -> Result<Vec<Entry>, GitError> {
         .split(|byte| *byte == 0)
         .filter(|record| !record.is_empty())
         .map(|record| {
-            let text = std::str::from_utf8(record).map_err(|_| unexpected())?;
+            let text = std::str::from_utf8(record)?;
             let (metadata, path) = text.split_once('\t').ok_or_else(unexpected)?;
             let mut fields = metadata.split(' ');
             let mode = fields.next().ok_or_else(unexpected)?;
             let kind = fields.next().ok_or_else(unexpected)?;
-            let object = fields
-                .next()
-                .ok_or_else(unexpected)?
-                .parse()
-                .map_err(|_| unexpected())?;
+            let object = fields.next().ok_or_else(unexpected)?.parse()?;
             if fields.next().is_some() {
-                return Err(unexpected());
+                return Err(unexpected().into());
             }
             let mode = match (mode, kind) {
                 ("100644", "blob") => Mode::Regular,
                 ("100755", "blob") => Mode::Executable,
                 ("120000", "blob") => Mode::Link,
                 ("160000", "commit") => Mode::Gitlink,
-                _ => return Err(unexpected()),
+                _ => return Err(unexpected().into()),
             };
-            let path: RelPath = path.parse().map_err(|_| unexpected())?;
+            let path: RelPath = path.parse()?;
             if path.is_root() {
-                return Err(unexpected());
+                return Err(unexpected().into());
             }
-            Ok(Entry { mode, object, path })
+            Ok::<_, IndexError>(Entry { mode, object, path })
         })
         .collect()
 }
