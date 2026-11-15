@@ -1,11 +1,11 @@
-//! Paseo's horizontal three-bar VolumeMeter, with finite transitions only.
+//! Paseo's horizontal three-bar `VolumeMeter`, with finite transitions only.
 //!
 //! [Decision Log]
 //! - Purpose: voice and dictation use one level renderer.
 //! - Constraints: kit has no view dependency; app explicitly maps validated
 //!   voice telemetry into these small drawing values. Mute must be static.
 //! - Choice: reference 8-point bars/gaps, 12+30*level heights and three
-//!   scale factors, foreground tokens, QUICK one-shot changes. No idle pulse.
+//!   scale factors, foreground tokens, `QUICK` one-shot changes. No idle pulse.
 //! - Difference: clamp native alpha to one and use shared motion tokens,
 //!   rather than the reference's separate 70/140 ms animation timings.
 
