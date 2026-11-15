@@ -113,3 +113,49 @@ async fn terminal_approval_survives_restart_and_a_changed_command_asks_again() {
     );
     assert_eq!(last.commands.terminals[0].command.as_str(), "echo first");
 }
+
+#[tokio::test]
+async fn allocation_only_approvals_survive_restart_and_removal_keeps_the_prior_block() {
+    let fixture = Fixture::new().await;
+    let config =
+        "[worktree.service_ports]\nrange = '7000-7009'\nport_script = 'tools/port-approval'\n";
+    let project = fixture.project("allocation-approval", Some(config)).await;
+    let initial = fixture.workspaces.commands(project.id, None).await.unwrap();
+    let ProjectCommands::Listed {
+        digest,
+        service_ports: Some(ports),
+        ..
+    } = initial
+    else {
+        panic!("allocation-only file must remain a described set");
+    };
+    assert_eq!(ports.range().unwrap().to_string(), "7000-7009");
+    assert_eq!(ports.port_script().unwrap().as_str(), "tools/port-approval");
+    let _approved = fixture
+        .workspaces
+        .approve(project.id, digest.clone(), true)
+        .await
+        .unwrap();
+    std::fs::write(project.root.join("vessel.toml"), FIRST).unwrap();
+    let restarted = fixture.restart().await;
+    let current = restarted.commands(project.id, None).await.unwrap();
+    let ProjectCommands::Listed {
+        service_ports,
+        approved,
+        last_approved,
+        digest: changed,
+        ..
+    } = &current
+    else {
+        panic!("changed commands must be described");
+    };
+    assert!(service_ports.is_none() && !approved);
+    assert_ne!(*changed, digest);
+    let previous = last_approved.as_ref().unwrap();
+    assert_eq!(previous.digest, digest);
+    assert_eq!(previous.commands.service_ports.as_ref(), Some(&ports));
+    assert!(matches!(
+        current.for_protocol(vessel_proto::PROTOCOL_VERSION),
+        Some(ProjectCommands::Invalid { .. })
+    ));
+}
