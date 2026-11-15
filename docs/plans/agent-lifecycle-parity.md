@@ -302,6 +302,11 @@ No row of the crate table changes.
   would miss live metadata and duplicate the list's visibility and ordering.
   The existing `SessionLabels::covers` owns the validated AND rule; no new
   dependency or external solution is needed.
+- Paseo's CLI preserves the input order while applying labels
+  (`ls.ts:228-238`), then groups running/idle/other statuses and sorts each
+  group newest-first (`:243-255`). This node helper owns only the predicate
+  and preserves its existing merged-list order. Presentation sorting is a
+  later CLI responsibility; no CLI display parity is claimed for this stage.
 - The node module is `cfg(test)` until the call-wiring commit after the shared
   required-protocol accessor and dispatch plumbing are integrated. Its method
   is visible only to the parent session module and its tests, with no public
@@ -401,7 +406,10 @@ No row of the crate table changes.
 - Background value slice 3a passed narrow TypeScript-enabled clippy and three
   listing/default/serde tests. Its complete gate is still owed. It adds no
   request field, store column or actual discovery filtering yet.
-- Label discovery service 2c is staged, not compiled: its private test-only
+- The staged label service's first narrow clippy refused two unchecked
+  timestamp subtractions in fixture setup. They now use checked subtraction;
+  no expected value or service logic changed. Narrow checks remain owed.
+- Label discovery service 2c is staged, verification pending: its private test-only
   entry point reuses the existing list and AND predicate; real fixture tests
   cover current stored metadata, live visibility, order and exact lookup.
 - Next: finish follow slice 5c's queued complete gate, then run the complete

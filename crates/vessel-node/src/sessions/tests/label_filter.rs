@@ -70,14 +70,18 @@ impl Population {
             fixture,
             &live,
             required.clone(),
-            live.created_at - TimeDelta::seconds(2),
+            live.created_at
+                .checked_sub_signed(TimeDelta::seconds(2))
+                .unwrap(),
         )
         .await;
         let other = stored(
             fixture,
             &live,
             labels(&[("team", "prod"), ("role", "other")]),
-            live.created_at - TimeDelta::seconds(1),
+            live.created_at
+                .checked_sub_signed(TimeDelta::seconds(1))
+                .unwrap(),
         )
         .await;
         Self {
