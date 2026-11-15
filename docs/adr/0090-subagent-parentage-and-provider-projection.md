@@ -96,6 +96,49 @@ unknown timestamps and unavailable history remain distinguishable from empty.
 The native app receives status and timeline from this contract, and local hide
 state remains separate from server/archive state.
 
+## Provider projection bounds and default decision
+
+Paseo's `provider-subagents/store.ts` keeps descriptors in an unbounded map;
+Claude `providers/claude/sidechain-tracker.ts:90-166` uses the actual
+parent_tool_use_id as the provider task id, separate from a managed session.
+The new typed values pin the following proposed bounds before any projector or
+driver state is implemented. These detailed values are awaiting V3 review;
+the earlier architecture PASS did not approve numerical budgets.
+
+| Boundary | Named bound | Reason / behavior at the bound |
+| --- | --- | --- |
+| Child ids | ProviderChildId::MAX_BYTES=512 | UTF-8 byte/control validation; no invented SessionId |
+| Descriptor text field | ProviderText::MAX_BYTES=64KiB | Bounded actual text, no silent truncation |
+| Descriptors per managed parent | MAX_CHILDREN=128 | Refuse further retention and publish IngestionBudget |
+| Serialized descriptor aggregate | MAX_DESCRIPTOR_BYTES=2MiB | Count actual JSON bytes including escaping before retention |
+| Translator message/tool ids across all children of a parent | MAX_TRACKED_IDS=2048 and MAX_TRACKED_ID_BYTES=1MiB | No eviction that could turn an old frame into a new one; explicit ingestion gap |
+| Nested provider depth | MAX_CHILD_DEPTH=8 | Cycles/deeper nesting report Nesting, never fabricate a parent |
+| Parent records per projection | MAX_SCAN_RECORDS=4096 | Bound CPU even when unrelated main events dominate |
+| Parent bytes per projection | MAX_SCAN_BYTES=8MiB | Stop before adding an over-budget record; explicit scan gap |
+| Read deadline | READ_DEADLINE=5seconds | Includes durable reads/scan; no unbounded wait |
+| Returned child timeline items | ChildLimit=1..=MAX_TIMELINE_ITEMS=200, default200 | Zero is refused; no unlimited read sentinel |
+
+Absent cursor means the retained tail. Before/After cursors name the existing
+parent EventSeq; sparse child records intentionally retain the original parent
+seq/time. No independent child cursor/epoch is introduced. List/timeline results
+must distinguish Complete, Partial(reason, first scanned sequence), Unsupported
+and Missing. An empty successful list requires actual provider support evidence;
+absence of observations is never proof of support or of no children. Retained
+history gaps, scan saturation and decoder budget saturation stay visible.
+
+Descriptor observations are complete snapshots after the driver has applied
+provider omit/clear/sticky-status rules. Missing timestamp/status remains unknown;
+no wall-clock timestamp or running status is invented. Provider tasks have only
+local hide/navigation. Canonical child timeline items reuse AgentEvent and the
+central required_protocol/for_protocol seams; provider wrappers themselves are
+never recursively accepted as child content. Actual observation registration
+and bounded collection wrappers remain implementation work.
+
+This deliberately bounds Paseo's after-cursor default0(all), unbounded retained
+maps and scan work. Limits are security/resource boundaries, not silent success
+with dropped children. No additional dependency, mutable runtime config or wire
+number is introduced.
+
 ## Compatibility and verification
 
 The single feature constant starts `None`. New reply fields and events are
