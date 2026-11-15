@@ -1,3 +1,4 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: mapped readonly position lookup (spikes/release/patches/README.md, "gpui-base", change 7)
 //! A text input field that allows the user to enter text.
 //!
 //! Based on the `Input` example from the `gpui` crate.
@@ -1200,8 +1201,20 @@ impl<M: InputModeKind> InputBaseState<M> {
         };
         let line_height = last_layout.line_height;
 
+        // Vessel patch: a clipped document must not project an unshaped row
+        // onto the first visible row through saturating_sub. Ordinary inputs
+        // keep the upstream path byte-for-byte; only mapped readonly buffers
+        // require the requested real buffer row to have a shaped line.
+        let mapped_row = (self.readonly && self.editor_style.line_presentation().is_some())
+            .then(|| self.text.offset_to_point(offset).row);
         let mut y_offset = last_layout.visible_top;
         for (vi, line) in last_layout.lines.iter().enumerate() {
+            // Vessel patch: no geometry is safer than another row's geometry.
+            if mapped_row.is_some_and(|row| last_layout.visible_buffer_lines.get(vi) != Some(&row))
+            {
+                y_offset += line.size(line_height).height;
+                continue;
+            }
             let prev_lines_offset = last_layout.visible_line_byte_offsets[vi];
             let local_offset = offset.saturating_sub(prev_lines_offset);
             if let Some(pos) = line.position_for_index(local_offset, last_layout, false) {
@@ -4861,6 +4874,20 @@ impl<M: InputModeKind> EntityInputHandler for InputBaseState<M> {
         let line_height = last_layout.line_height;
         let line_number_width = last_layout.line_number_width;
         let range = self.range_from_utf16(&range_utf16);
+
+        // Vessel patch: this handler has its own shaping lookup before its
+        // cursor fallback. Refuse either unshaped endpoint up front for mapped
+        // readonly documents; otherwise saturating_sub could invent the first
+        // visible row's local-zero coordinates before the safe helper runs.
+        if self.readonly && self.editor_style.line_presentation().is_some() {
+            let start_row = self.text.offset_to_point(range.start).row;
+            let end_row = self.text.offset_to_point(range.end).row;
+            if !last_layout.visible_buffer_lines.contains(&start_row)
+                || !last_layout.visible_buffer_lines.contains(&end_row)
+            {
+                return None;
+            }
+        }
 
         let mut start_origin = None;
         let mut end_origin = None;

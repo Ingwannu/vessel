@@ -1280,3 +1280,15 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+
+The additive kit `code_editor::DiffEditor` and `DiffDocumentEditor` are readonly
+profiles of the existing source editor, with validated source-row metadata,
+independent old/new states of the same caller lexer, optional mapped gutter/row
+paint, full-height parent scrolling and owner caret reveal. They add no token
+kind, syntax parser, palette, transport, repository authority or second engine.
+Ordinary CodeEditor shares the same style factory and retains its existing
+behavior. Vendor patch7 and its precise source/runtime/paint limitations are in
+spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
+control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
+isolated producer does not include C3 View/Link/app or any root-runtime changes.

@@ -254,6 +254,104 @@ at the top and `Vessel patch` at the change.
   before and after are in `docs/plans/backend-m12-effort-slider.md`,
   "Known costs".
 
+### 7. Optional mapped line presentation on the existing editor
+
+- Purpose: readonly diff cells keep source-editor selection, clipboard and
+  wrapping while showing old/new source numbers and semantic row backgrounds.
+- Constraint: automatic buffer line numbers and an opaque fixed gutter cannot
+  be changed by an outer list/overlay. Styled list rows have no shared editor
+  selection; K's stateless preview is not an input engine.
+- Alternatives: a second diff text engine or selection controller (duplicates
+  editing behaviour), a vendor fork (duplicates the pinned source), or a
+  drawing-only optional provider in the existing vendored editor.
+- Choice/why: one optional drawing provider on the existing shared highlight
+  resolver, with a default None accessor and a transparent style wrapper. The
+  InputEditorStyle public field set stays unchanged for gpui-component's complete
+  literal. The provider has a typed buffer-row index, measured widest-label
+  sample and per-row number/ink/background. Prepaint captures each visible row once for all paint passes.
+  None retains the old number and painting branches. Editing, selection, copy,
+  folding, display map, syntax engine and ordinary inputs are unchanged.
+- Cost: a seventh patch to carry at the GPUI pin; optional visible-row metadata
+  and an O(1) immutable Send+Sync provider. The kit wraps a fresh base style once
+  per render; intentionally nested wrappers use the outer mapping, and None
+  clears it while preserving all delegated syntax lookups. Unified uses one mapped gutter; split uses
+  independently mapped editors, as diff-document/paint.web.ts267–310 does.
+  Native labels are measured with the real selected font rather than the web
+  approximate digit-width formula. The initial kit profile retains the existing
+  six-point gap; final reference geometry/consumer captures remain unverified.
+- Changed: src/input/editor/highlighting.rs, src/input/base/element.rs and its
+  src/input/base/state.rs and src/input/mod.rs. File notices and every
+  changed block are marked Vessel patch. No other vendored crate is changed.
+- Checked: external drawing/resolver and viewport-coordinate source prechecks
+  passed; installed compilation/runtime is still pending. The native workspace
+  cannot execute a dependency's private dev-tests. At the lead's ruling, new
+  private fixtures were removed and behavior moved to public-API kit windows:
+  `code_editor::diff::mapping_tests` (complete-literal/nested-clear/syntax,
+  None gutter/sample/tint/selection/clipboard), its `viewport` child (actual
+  owner scroll including cached child, bounded provider calls, offclip/empty
+  direct IME queries, boundary rows and unchanged None coordinates), and
+  `code_editor::diff::document::tests` (owner keyboard reveal and real wheel
+  packets). These are unexecuted source until their exact remote native test.
+  Mapped label right-alignment, private folded layout-array ordering, visible
+  selection-path z-order and touch-handle paint remain source/consumer-capture
+  obligations: the public scene API exposes quads, not selection paths/handles.
+  The kit profile disables folding. No inaccessible private value is asserted
+  as runtime evidence.
+
+- Document viewport hunk (same change7): mapped **readonly** editors intersect
+  their full bounds with the parent mask when choosing shape/paint rows only.
+  Empty masks project zero source rows. When its width cache is empty, the
+  existing engine measures one longest-line candidate once for horizontal scroll
+  metrics, then caches it; ordinary None paths and gutter/space samples remain
+  unchanged. Full layout height, display map and scroll metrics are retained. This permits one outer scrolling document instead
+  of nested fixed-height cards. The ordinary None branch and token-measure
+  projection keep their old viewport. No notify is issued during paint.
+- Known extent cost: the cold longest-line measurement scales with that line's
+  length (for example a minified file). A stable width-cache key reuses it; no
+  per-frame repeat is claimed or accepted. Its key includes document revision,
+  font/size, wrapping and tabs. This is a documented lead-approved distinction,
+  not a measured performance pass or a total shape-call assertion.
+- Position lookup: only mapped readonly buffers require a requested buffer row
+  to be in the shaped cache. Both line_and_position_for_offset and the separate
+  TextInputHandler::bounds_for_range endpoint loop refuse unshaped positions;
+  the latter never paints a selection. Selection paint clips its own complete
+  range to visible shapes; touch handles use the independent position helper,
+  hiding only an unseen endpoint. Clipboard still reads complete engine text.
+- Known upstream defect intentionally retained: ordinary unmapped inputs in
+  base/state.rs line_and_position_for_offset and bounds_for_range can saturate
+  a preceding offscreen offset to the first visible line's local zero. Fixing
+  ordinary editor behaviour is separate; patch7 changes mapped readonly only.
+- Checked source status: external element2921f9ae + statee5e657f5 received lead
+  and V1 precheck. The first fixed-lock Base test command stopped before tests:
+  Cargo refuses dev-tests for a dependency outside workspace membership.
+  No standalone lock or temporary workspace member is added. The public kit
+  fixtures above replace the removed private test source; their results are
+  pending. No source-precheck result is runtime, consumer or OS approval.
+
+- Capture handoff (not yet built/run): kit example `mapped_diff_audit` is a
+  supplementary control surface using the production DiffDocumentEditor and
+  one VirtualList. It has2500 fixed source rows, an unnumbered hunk header,
+  removed English, added Korean, a7-digit mapped number beside short numbers
+  and a long wrapped line. It creates no node/session/repository. After the
+  change is on the line, the lead's Linux/Xvfb audit can inspect these steps:
+  1. Open at1280x844 then390x844 (`VESSEL_APP_SIZE=390x844` selects the latter),
+     dark and light (`VESSEL_APP_THEME=light`). Row3 number9999999 and nearby
+     short numbers should share the gutter's right edge; ordinary source
+     editor gutters must be captured separately for the unchanged None path.
+  2. Choose Wrap; drag from removed row2 through added Korean row3 into the
+     wrapped row4. Inspect visible selection above the row tints. Copy with
+     the platform shortcut and compare with the exact selected source text,
+     without presentation numbers. Select beyond an offclip boundary and
+     repeat after scrolling; inspect any visible touch handle on a supported
+     touch platform (Linux mouse capture does not prove that platform path).
+  3. Choose Scroll; move horizontally on row4, then vertically into the2500
+     row document and use End/Shift-Up while focused. Inspect fixed gutter,
+     owner scrolling and selection. This is control evidence only; actual
+     fake-fleet C3 first-use still needs the mounted feature surface.
+  Private folded-array order remains source-only; the profile disables folding.
+  No capture exists yet, and this example is not a substitute for an exact
+  changed-source gate. Builds must use the prescribed remote VM path.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
@@ -297,3 +395,7 @@ and `Vessel patch` at each change.
   (5 points: no drag; 7: a drag) and
   `drag::tests::an_element_naming_no_distance_keeps_gpuis_two` (1.5: no
   drag; 3: a drag), through real mouse events in a test window.
+
+The patch7 kit consumer also names Paseo's terminal-blue diff selection and
+muted context-number ink separately from the unchanged ordinary source profile.
+Its real-window readonly/select/reflow fixture is added but not yet executed.
