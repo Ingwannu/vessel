@@ -397,3 +397,10 @@ Window-width placeholder, rather than placing UI words inside numeric data;
 invalid/empty commit retains Full. This native legacy presentation has no
 Paseo counterpart. A real language/input selection regression covers it and
 the family field; no second locale watcher is introduced.
+
+The unused early ContentMaximum prototype is removed. The existing extended
+prefs::ContentWidth is the sole following/legacy/numeric intent model, using
+ContentPixels as its single bound/default owner. Its actual preference-edge
+reset/same-value/roundtrip regressions remain. Width's scalar file-edge test
+checks min/default/max roundtrip and refusal outside either bound; no inherited
+head test or bound is weakened.

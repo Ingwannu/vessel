@@ -1,5 +1,5 @@
-//! Validated numeric content width. Default following is a choice, not a
-//! serialized copy of today's default pixel count.
+//! One numeric width bound/default owner. Following and legacy preference
+//! intent belongs to prefs::ContentWidth, not a second nullable-width model.
 use serde::{Deserialize, Serialize};
 
 /// A concrete content maximum width, in logical pixels.
@@ -47,72 +47,22 @@ impl From<ContentPixels> for u16 {
     }
 }
 
-/// The nullable width preference's intent, used by reset and draft commits.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(from = "Option<ContentPixels>", into = "Option<ContentPixels>")]
-pub enum ContentMaximum {
-    /// Keep following the application's current default.
-    #[default]
-    Default,
-    /// A user's explicit validated width.
-    Pixels(ContentPixels),
-}
-impl ContentMaximum {
-    /// Resolve only when drawing; reset never stores today's default number.
-    #[must_use]
-    pub const fn resolved(self) -> ContentPixels {
-        match self {
-            Self::Default => ContentPixels::DEFAULT,
-            Self::Pixels(value) => value,
-        }
-    }
-
-    /// Committing the value already in effect preserves following semantics.
-    #[must_use]
-    pub fn commit(self, next: ContentPixels) -> Self {
-        if self.resolved() == next {
-            self
-        } else {
-            Self::Pixels(next)
-        }
-    }
-}
-impl From<Option<ContentPixels>> for ContentMaximum {
-    fn from(value: Option<ContentPixels>) -> Self {
-        match value {
-            Some(value) => Self::Pixels(value),
-            None => Self::Default,
-        }
-    }
-}
-impl From<ContentMaximum> for Option<ContentPixels> {
-    fn from(value: ContentMaximum) -> Self {
-        match value {
-            ContentMaximum::Default => None,
-            ContentMaximum::Pixels(value) => Some(value),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn width_is_nullable_bounded_and_same_value_does_not_pin_the_default() {
-        let follow = ContentMaximum::default();
-        assert_eq!(serde_json::to_string(&follow).unwrap(), "null");
-        assert_eq!(follow.commit(follow.resolved()), follow);
-        let wider = ContentPixels::try_from(ContentPixels::DEFAULT.get() + 1).unwrap();
-        assert_eq!(follow.commit(wider), ContentMaximum::Pixels(wider));
-        assert!(ContentPixels::try_from(ContentPixels::MIN - 1).is_err());
-        assert!(ContentPixels::try_from(ContentPixels::MAX + 1).is_err());
-        for width in [ContentPixels::MIN, ContentPixels::MAX] {
-            let choice = ContentMaximum::Pixels(ContentPixels::try_from(width).unwrap());
-            assert_eq!(
-                serde_json::from_str::<ContentMaximum>(&serde_json::to_string(&choice).unwrap())
-                    .unwrap(),
-                choice
-            );
+    fn width_file_edge_keeps_the_same_source_bounds() {
+        for rejected in [ContentPixels::MIN - 1, ContentPixels::MAX + 1] {
+            assert!(serde_json::from_str::<ContentPixels>(&rejected.to_string()).is_err());
+        }
+        for valid in [
+            ContentPixels::MIN,
+            ContentPixels::DEFAULT.get(),
+            ContentPixels::MAX,
+        ] {
+            let parsed: ContentPixels = serde_json::from_str(&valid.to_string()).unwrap();
+            assert_eq!(parsed.get(), valid);
+            assert_eq!(serde_json::to_string(&parsed).unwrap(), valid.to_string());
         }
     }
 }

@@ -21,4 +21,4 @@ pub use family::{FaceName, FamilyError, FamilyFace, FontFamily, GenericFamily, M
 pub use input::DraftText;
 pub use number::Number;
 pub use syntax::SyntaxTheme;
-pub use width::{ContentMaximum, ContentPixels, WidthError};
+pub use width::{ContentPixels, WidthError};
