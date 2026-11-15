@@ -193,7 +193,7 @@ impl Child {
             Ok(status) => status,
             Err(error) => {
                 self.lifetime.revoke();
-                return Err(error);
+                return Err(error.into());
             }
         };
         self.lifetime.revoke();

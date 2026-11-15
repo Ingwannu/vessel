@@ -260,3 +260,9 @@ separately from a standalone shell handle. The issuer guard type itself is
 must-use because dropping it revokes authority; its Self-returning methods
 rely on that one annotation. Narrow evidence for the earlier snapshot is
 kept separately from this pending revision.
+
+The first carrier narrow build found the new explicit wait-error branch
+returning std::io::Error rather than the existing WaitError wrapper. The
+revision keeps revocation first and restores the existing source-preserving
+From conversion. No test or deadline changed; the failed build log is kept,
+and no tests ran in that build.
