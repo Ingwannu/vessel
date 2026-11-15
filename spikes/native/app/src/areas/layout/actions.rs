@@ -4,7 +4,7 @@ use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::layout::{
     AgentRole, CloseApproval, CloseEffect, ClosePlan, LayoutAction, LayoutError, Modified,
-    OpenIntent, PaneId, Placement, Position, TabId, Target,
+    OpenIntent, Pane, PaneId, Placement, Position, TabId, Target,
 };
 
 impl Shell {
@@ -34,7 +34,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> Result<T, LayoutError> {
         let result = super::with_layout_at(self, workspace, change);
-        self.layout_result(result.as_ref().map(|_| ()).map_err(Clone::clone), cx);
+        self.layout_result(result.as_ref().map(|_| ()).map_err(|error| *error), cx);
         result
     }
     /// Only the shared shortcut listener translates key chords into these actions.
@@ -85,7 +85,7 @@ impl Shell {
                         .panes()
                         .into_iter()
                         .find(|pane| pane.id() == layout.focused_pane())
-                        .and_then(|pane| pane.focused());
+                        .and_then(Pane::focused);
                     tab.map_or_else(|| Ok(Vec::new()), |tab| layout.close_plans(tab, scope))
                 });
                 match plans {

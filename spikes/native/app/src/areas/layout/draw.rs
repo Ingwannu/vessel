@@ -266,7 +266,7 @@ fn pane_view(
                 .filter(|(pane, _)| *pane == id)
                 .map_or(Position::Center, |(_, position)| position);
             shell.areas.layout.drop_preview.set(None);
-            shell.layout_drop(dragged.tab, id, position, window, cx)
+            shell.layout_drop(dragged.tab, id, position, window, cx);
         }));
     div().size_full().child(frame)
 }
@@ -279,36 +279,7 @@ fn tab_view(
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
     let id = tab_state.id();
-    let label = match tab_state.target() {
-        Target::Agent(session) => shell
-            .areas
-            .session
-            .open
-            .as_ref()
-            .filter(|open| open.session == *session)
-            .map(|open| {
-                if open.title.trim().is_empty() {
-                    shell.t.untitled.to_owned()
-                } else {
-                    open.title.clone()
-                }
-            })
-            .unwrap_or_else(|| session.to_string()),
-        Target::NewTab => shell.words.layout().new_tab().to_owned(),
-        Target::File { path, .. } => path.as_str().to_owned(),
-        Target::Terminal(id) => id.to_string(),
-        Target::Browser(id) => id.as_str().to_owned(),
-        Target::Draft(id) => id.to_string(),
-        Target::Changes => shell.words.layout().changes().to_owned(),
-        Target::Files => shell.words.layout().files().to_owned(),
-        Target::Scripts
-        | Target::PullRequest
-        | Target::WorkingDiff
-        | Target::ProviderSubagent { .. }
-        | Target::Plugin { .. }
-        | Target::Setup(_)
-        | Target::CommitDiff(_) => shell.words.layout().tabs().to_owned(),
-    };
+    let label = tab_label(shell, tab_state.target());
     let dragged = Dragged {
         tab: id,
         workspace: workspace.clone(),
@@ -388,6 +359,41 @@ fn tab_view(
         },
     )
 }
+fn tab_label(shell: &Shell, target: &Target) -> String {
+    match target {
+        Target::Agent(session) => shell
+            .areas
+            .session
+            .open
+            .as_ref()
+            .filter(|open| open.session == *session)
+            .map_or_else(
+                || session.to_string(),
+                |open| {
+                    if open.title.trim().is_empty() {
+                        shell.t.untitled.to_owned()
+                    } else {
+                        open.title.clone()
+                    }
+                },
+            ),
+        Target::NewTab => shell.words.layout().new_tab().to_owned(),
+        Target::File { path, .. } => path.as_str().to_owned(),
+        Target::Terminal(id) => id.to_string(),
+        Target::Browser(id) => id.as_str().to_owned(),
+        Target::Draft(id) => id.to_string(),
+        Target::Changes => shell.words.layout().changes().to_owned(),
+        Target::Files => shell.words.layout().files().to_owned(),
+        Target::Scripts
+        | Target::PullRequest
+        | Target::WorkingDiff
+        | Target::ProviderSubagent { .. }
+        | Target::Plugin { .. }
+        | Target::Setup(_)
+        | Target::CommitDiff(_) => shell.words.layout().tabs().to_owned(),
+    }
+}
+
 pub(super) fn launcher(
     shell: &Shell,
     tokens: &Tokens,
@@ -416,7 +422,7 @@ pub(super) fn launcher(
                 tokens,
             )
             .on_click(cx.listener(|shell, _event, window, cx| {
-                shell.go(crate::routes::Route::Draft, window, cx)
+                shell.go(crate::routes::Route::Draft, window, cx);
             })),
         )
 }
