@@ -65,7 +65,7 @@ fn conversion_frames_preserve_mono_in_both_speaker_channels() {
             .render(&[0.25; 240], RateHz::new(24_000).unwrap())
             .unwrap();
         assert_eq!(rendered.samples().len(), 960);
-        for pair in rendered.samples().as_chunks::<2>().0.iter() {
+        for pair in rendered.samples().as_chunks::<2>().0 {
             let [left, right] = pair;
             assert_eq!(left.to_bits(), right.to_bits());
         }

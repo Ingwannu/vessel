@@ -3,7 +3,10 @@
 //! ADR 0080 keeps a single app capture owner and fences late completions:
 //! changing a route must never send old audio to a different session.
 
+mod meter;
 mod state;
+
+pub use meter::{DisplayMeter, InvalidLevel, Level, SpeechActivity, Telemetry};
 
 pub use state::{
     Applied, Availability, Generation, Mute, Phase, StartStep, State, Target, TransitionError,

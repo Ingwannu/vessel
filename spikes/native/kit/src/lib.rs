@@ -66,6 +66,7 @@ pub mod toolbar_label;
 pub mod tooltip;
 pub mod vector;
 pub mod virtual_list;
+pub mod voice_meter;
 mod widgets;
 pub mod window_glyph;
 
