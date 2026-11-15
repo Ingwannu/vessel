@@ -1,6 +1,8 @@
-//! Tail selection through the real CLI after a fake terminal's final record.
+//! Log selection through the CLI with fake sessions and event-driven follow transitions.
 
-use crate::support::{Fixture, within};
+#[cfg(target_os = "linux")]
+use crate::support::interrupt;
+use crate::support::{Captured, ChildGuard, Fixture, within};
 use std::time::Duration;
 
 use vessel_client::NodeClient;
@@ -52,6 +54,18 @@ async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_i
         fixture.stop().await;
     })
     .await;
+}
+
+fn following(fixture: &Fixture, session: SessionId) -> (ChildGuard, Captured, Captured) {
+    let id = session.to_string();
+    let mut child = ChildGuard(fixture.spawn_vessel_at(
+        &fixture.node_address(),
+        &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
+    ));
+    drop(child.0.stdin.take());
+    let stdout = Captured::start(child.0.stdout.take().unwrap());
+    let stderr = Captured::start(child.0.stderr.take().unwrap());
+    (child, stdout, stderr)
 }
 
 async fn create(fixture: &Fixture, owner: &NodeClient) -> SessionId {
@@ -152,6 +166,57 @@ async fn log_selects_time_kind_and_tail_without_reporting_filtered_records_as_pr
             empty.stdout,
             empty.stderr
         );
+        owner.kill(session).await.unwrap();
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let session = create(&fixture, &owner).await;
+        let _history_from = turn(&owner, session, "plain").await;
+        let (mut child, mut stdout, stderr) = following(&fixture, session);
+        stdout.wait_for("echo: plain", 1).await;
+        // This can arrive between history and subscription: the saved cursor must catch it.
+        let _live_from = turn(&owner, session, "loaded").await;
+        stdout.wait_for("loaded none", 1).await;
+        owner.kill(session).await.unwrap();
+        assert!(child.0.wait().await.unwrap().success(), "{}", stderr.text());
+        stdout.wait_for("loaded none\n", 1).await;
+        let text = stdout.text();
+        assert_eq!(text.matches("echo: plain").count(), 1, "{text}");
+        assert_eq!(text.matches("loaded none").count(), 1, "{text}");
+        assert!(text.contains("echo: plain\n> loaded"), "{text}");
+        assert!(!stderr.text().contains("pruned"), "{}", stderr.text());
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn interrupting_follow_exits_successfully_and_keeps_the_session_running() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let session = create(&fixture, &owner).await;
+        let _history_from = turn(&owner, session, "plain").await;
+        let (mut child, mut stdout, stderr) = following(&fixture, session);
+        stdout.wait_for("echo: plain", 1).await;
+        let _live_from = turn(&owner, session, "loaded").await;
+        stdout.wait_for("loaded none", 1).await;
+        // A live match acknowledges the loop. The exact signal-during-write
+        // scheduling cannot be forced here; the pinned receiver must retain it.
+        interrupt(&mut child.0).await;
+        assert!(child.0.wait().await.unwrap().success(), "{}", stderr.text());
+        stdout.wait_for("loaded none\n", 1).await;
+        assert!(owner.session(session).await.unwrap().status.is_live());
+        assert!(!stdout.text().contains("--- Following logs"));
+        assert!(stderr.text().is_empty(), "{}", stderr.text());
         owner.kill(session).await.unwrap();
         fixture.stop().await;
     })
