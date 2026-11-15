@@ -1,6 +1,6 @@
 //! The single approved JSON Schema edge: jsonschema owns interpretation.
 //! Value is confined here because its compiler requires that representation.
-//! Only bounded RawJson crosses this module; no field traversal or payload diagnostics.
+//! Only bounded `RawJson` crosses this module; no field traversal or payload diagnostics.
 #![allow(
     clippy::disallowed_types,
     reason = "coordinator-approved CLI JSON Schema compiler edge; no Value escapes"

@@ -113,7 +113,7 @@ pub(super) async fn archive(
         ));
     }
     let archived = client.mark(info.id, Mark::Archive).await?;
-    let result = Archived {
+    let result = ArchiveReceipt {
         agent_id: info.id,
         status: ArchivedStatus::Archived,
         archived_at: archived
@@ -280,7 +280,7 @@ enum ArchivedStatus {
 }
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Archived {
+struct ArchiveReceipt {
     agent_id: vessel_proto::SessionId,
     status: ArchivedStatus,
     archived_at: chrono::DateTime<chrono::Utc>,

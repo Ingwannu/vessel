@@ -1,5 +1,5 @@
 //! Recover a bounded JSON response without a dynamic value tree.
-//! RawValue's streaming decoder handles strings/nesting; candidate scans are bounded.
+//! `RawValue`'s streaming decoder handles strings/nesting; candidate scans are bounded.
 use super::schema::MAX_RESPONSE_BYTES;
 use vessel_proto::RawJson;
 const MAX_SNIPPET_CANDIDATES: usize = 128;

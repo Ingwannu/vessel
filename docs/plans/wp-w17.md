@@ -754,3 +754,10 @@ and thinking changes. Corrected that pre-connect error to Usage/InvalidRequest;
 it is not an absent atomic-update contract. The thinking/mode option-ID decoder
 also trims outer whitespace as the reference does, retaining its bound/control
 checks. No new node call or mutation behavior is added by these edge corrections.
+
+Latest development clippy run111143 (exactcd1a12d7) completed12:02:51 with
+three lint errors: one archive receipt struct/field naming prefix and two missing
+code backticks in schema-decoder docs. No type error or executed test result was
+reported. Renamed the private receipt type (wire field names unchanged) and fixed
+those comments. Retained /tmp/work/wp-cli/main-clippy-head42 evidence; a changed
+source strict run and latest unit/process tests remain required.
