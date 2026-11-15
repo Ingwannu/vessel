@@ -609,3 +609,20 @@ logs remain output-seam-clippy2; one same-source replacement is submitted in a
 new output-seam-clippy3 folder. Cancellation is neither source failure nor PASS.
 All future Cargo/rustc and compilation/checks are VM-only; no new local Cargo job
 is permitted, including metadata (the one earlier metadata exception completed).
+
+
+### Destination path interpretation
+
+[Decision Log]
+- Intent: never interpret a selected destination's project path using the CLI's
+  cwd merely because its address is loopback (it may be a tunnel).
+- Existing asset: book::Origin already distinguishes implicit local Default
+  from Named/Project/User selection. Reuse this type; no new resolver or store.
+- Choice: only implicit-local Default may supply/resolve the CLI cwd. Explicit
+  selected targets require an absolute host path under the current node API.
+- Tradeoff: relative remote paths are a typed refusal until W11's host-root
+  registry contract can resolve them on the destination; no local guess.
+- Validation drafted: actual CLI against a fake node selected through a loopback
+  book default refuses missing/relative paths without adding a project, then
+  succeeds with an explicit absolute host path. Latest execution remains owed.
+Legacy native workspace helpers are not changed by this adapter correction.

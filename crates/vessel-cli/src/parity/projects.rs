@@ -5,7 +5,7 @@ use crate::{
         ProjectCommand, Target,
         parity::{Clone, CloneProtocol, Presentation},
     },
-    connect::{connect, is_here},
+    connect::connect,
     error::CliError,
 };
 use serde::Serialize;
@@ -63,16 +63,21 @@ pub(crate) async fn project(
 }
 fn project_path(target: &Target, path: Option<PathBuf>) -> Result<PathBuf, CliError> {
     let (resolved, _book) = crate::nodes::resolve(target)?;
-    let path = match path {
-        Some(path) => path,
-        None if target.node.is_none() && is_here(&resolved) => std::env::current_dir()?,
-        None => {
-            return Err(CliError::Usage(
-                "project create requires an explicit path with --host/--node or a remote default",
-            ));
-        }
-    };
-    crate::commands::node_cwd(&resolved, path)
+    // A selected destination can be reached through a loopback tunnel. Only
+    // the resolver's implicit-local origin gives CLI cwd its local meaning.
+    let implicit_local =
+        target.node.is_none() && matches!(resolved.origin, vessel_client::book::Origin::Default);
+    match path {
+        Some(path) if path.is_absolute() => Ok(path),
+        Some(path) if implicit_local => Ok(std::path::absolute(path)?),
+        Some(_) => Err(CliError::Usage(
+            "selected node project/clone paths must be absolute on that node",
+        )),
+        None if implicit_local => Ok(std::env::current_dir()?),
+        None => Err(CliError::Usage(
+            "project create requires an explicit absolute path with --host/--node or a selected default",
+        )),
+    }
 }
 
 pub(super) async fn clone(

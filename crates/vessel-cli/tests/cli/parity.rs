@@ -306,3 +306,75 @@ async fn image_send_reuses_chunk_upload_and_delivers_the_acknowledged_attachment
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn selected_loopback_destination_never_borrows_cli_project_cwd() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let repo = fixture.data().join("selected-destination-repo");
+        std::fs::create_dir(&repo).unwrap();
+        let initialized = tokio::process::Command::new("git")
+            .arg("init")
+            .arg(&repo)
+            .output()
+            .await
+            .unwrap();
+        assert!(initialized.status.success());
+        let url = format!("ws://{}", fixture.node_address());
+        let token = fixture.data().join("token");
+        let added = fixture
+            .vessel_book(
+                &repo,
+                &[
+                    "nodes",
+                    "add",
+                    "selected",
+                    &url,
+                    "--token-file",
+                    token.to_str().unwrap(),
+                    "--default",
+                ],
+                &[],
+            )
+            .await;
+        assert!(added.ok, "{}", added.stderr);
+        let owner = fixture.owner().await;
+        let before = owner
+            .call(vessel_proto::workspace::ListProjects {})
+            .await
+            .unwrap();
+        assert!(before.projects.is_empty());
+        for args in [
+            vec!["project", "create", "--json"],
+            vec!["project", "create", ".", "--json"],
+        ] {
+            let refused = fixture.vessel_book(&repo, &args, &[]).await;
+            assert!(!refused.ok);
+            assert!(refused.stdout.is_empty());
+            assert!(
+                refused.stderr.contains("absolute path")
+                    || refused.stderr.contains("must be absolute")
+            );
+        }
+        let after = owner
+            .call(vessel_proto::workspace::ListProjects {})
+            .await
+            .unwrap();
+        assert!(after.projects.is_empty());
+        let explicit = fixture
+            .vessel_book(
+                &repo,
+                &["project", "create", repo.to_str().unwrap(), "--json"],
+                &[],
+            )
+            .await;
+        assert!(explicit.ok, "{}", explicit.stderr);
+        let after = owner
+            .call(vessel_proto::workspace::ListProjects {})
+            .await
+            .unwrap();
+        assert_eq!(after.projects.len(), 1);
+        fixture.stop().await;
+    })
+    .await;
+}
