@@ -30,31 +30,8 @@ use super::common::title_bar;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The session on screen.
-#[derive(Debug, Clone)]
-pub(crate) struct Open {
-    pub(crate) machine: String,
-    pub(crate) session: SessionId,
-    pub(crate) title: String,
-    pub(crate) agent: String,
-    pub(crate) structured: bool,
-    /// Whether it takes prompts (an ended session shows its conversation
-    /// without a composer).
-    pub(crate) live: bool,
-}
-
-impl Open {
-    pub(crate) fn of(card: &Card) -> Self {
-        Self {
-            machine: card.machine.clone(),
-            session: card.session,
-            title: card.title.clone(),
-            agent: card.agent.clone(),
-            structured: card.structured,
-            live: card.live,
-        }
-    }
-}
+mod open;
+pub(crate) use open::Open;
 
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
