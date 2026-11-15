@@ -8,9 +8,9 @@
 - Impact: no RPC row, handler, ErrorDetail, NodeSettings field, Copy conversion, persistence, schema/number, model or runtime. Model identifiers are metadata, not downloads/readiness or approved redistribution.
 
 The source owner of dictation was sent the exact file list before construction.
-The existing 1f805 producer contributes dictation/mod.rs, patch.rs, secret_ref.rs,
-settings.rs and its speech-audio plan; only value/overlay visibility is widened
-further. No mutable dictation main ancestry is imported and no function body,
+The announced939 base already contains accepted1f805: dictation/mod.rs,
+patch.rs, secret_ref.rs, settings.rs and its speech-audio plan need no import
+or duplicate edits. Only value/overlay visibility is widened further. No mutable dictation main ancestry is imported and no function body,
 visitor, validator, key lookup or storage policy changes.
 
 Required exact-head VM qualification: root `cargo build -p vessel-node --bin
