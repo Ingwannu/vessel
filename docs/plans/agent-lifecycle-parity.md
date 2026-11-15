@@ -526,9 +526,13 @@ are refused by the shared accessor while the assignment remains pending.
 Generated declarations preserve unrelated integrated types. Metadata projection
 covers infos, lists, subscriptions, transfers, templates and envelopes. The
 strict check found fixture Arc/SQL-result and helper-reference defects, which
-are corrected. Corrected-source checks and this package's whole gate are still
-owed; source is not yet approved for integration. The typed iterator belongs
-to the same pending package.
+are corrected. The source correction for rejected-transfer cleanup passed review.
+Scoped checks passed on their exact revisions: generated declarations at 58f9d7af
+(four tests and no generated diff), node library tests at e292aa24 (267 passing),
+and actual Forward/Relay cleanup wiring at f0578a20 (one passing regression with
+four cases). These are not one current whole-package result. The corrected strict
+check and the complete package gate remain owed; integration and consumer
+readiness are not claimed. The typed iterator belongs to this pending package.
 
 The independent public call preflight passed its narrow, complete root gate and
 review. Its approved legacy run anchor now checks the creation call after
@@ -1067,3 +1071,20 @@ passing: an expected error unnecessarily passed by value, and a large callback
 fixture Future. Expectations now borrow the same error values; the fixture's
 existing deadline Future is pinned on the heap so the test task does not retain
 that state on its stack. No deadline, outcome or authority assertion changes.
+
+### Validation before the final package gate
+
+Source review includes retained exact-origin cleanup, actual transfer ownership,
+caller cancellation, the independent authenticated callback route and deliberately
+unprojected raw-peer Forward/Relay regression. The latter passed in 2.99 seconds;
+the broader node library passed in 38.97 seconds on its earlier exact revision.
+The generated declaration checks passed without a wire difference. Original
+compile and strict failures remain recorded; the expected-error borrow and large
+fixture Future fixes change neither deadlines nor assertions. The latest strict
+result and one complete package gate are still pending.
+
+No assigned three-node export, bound-workspace creation bridge, consumer UI,
+new label mutation/event, actual reload, actor capture or real-provider/platform
+behavior is inferred from these scopes. The future actor must preserve an explicit
+actual-launch provider/profile association; today's normalized profile name and
+quota-location association cannot supply that authority.
