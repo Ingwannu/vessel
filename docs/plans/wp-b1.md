@@ -177,3 +177,12 @@ The combined creation consumer exposed two further test-only checks: immediate i
 
 
 The first app compilation now has concrete corrections: import GPUI's image and stateful-input traits, type the pointer event, use the current on_scroll API, propagate optional frame instrumentation, constrain the menu renderer to the enclosing composer module, coerce callback function items through explicit types, and name the20-point pointer control instead of referring to a nonexistent spacing step. Tests retain exact clamp values through bit comparisons and explicitly consume transition/peer results. These are build corrections, not runtime proof.
+
+### Pin the admitted attachment destination
+
+[Decision Log]
+- Purpose: a queued creation capability/read/upload must never follow a reused machine-book label to another node.
+- Existing assets: the shared `Machine.node` is the authenticated welcome NodeId; the node client retains that same identity. No alias registry or connection epoch is introduced here.
+- Alternatives: trust the label when dispatching, or silently choose another node after lookup failure. Both can redirect retained bytes.
+- Choice: `prepare_draft_files_on(ticket,expected_node,machine,text)` retains the admitted node beside the typed Name in Starting/Waiting. Capability, upload, resume and final attachment prompt commands carry that same NodeId and check the captured NodeClient before effects. Wrong-node peer tests assert that no request is sent.
+- Why and effects: a missing/rebound address refuses while preserving the retained payload. The old wrapper resolves only the welcome id already in the fleet and returns typed Target failure when none is known. The creation consumer must handle that new PrepareProblem variant and adopt the explicit `_on` seam. Successful rename/release adapters and resident connection-lease fencing remain separate pending integration, so a NodeId check is not claimed to prove a current resident/transport epoch.

@@ -21,13 +21,7 @@ impl PreparedSubmission {
     }
 }
 
-/// No stringly error crosses the create/attachment seam.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum PrepareProblem {
-    Busy,
-    Capacity,
-    Machine(vessel_app_view::machines::NameProblem),
-}
+pub(crate) use vessel_app_view::composer::attach::PrepareProblem;
 
 impl Shell {
     pub(crate) fn prepare_draft_files(
@@ -36,7 +30,25 @@ impl Shell {
         machine: &str,
         text: &str,
     ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
-        let _machine =
+        if !self.composer_has_files(DraftKey::New) {
+            return Ok(None);
+        }
+        let name =
+            vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
+        let node = self
+            .attachment_node(&name)
+            .ok_or(vessel_app_view::composer::attach::TargetProblem::Offline)?;
+        self.prepare_draft_files_on(ticket, node, machine, text)
+    }
+    /// The creation flow supplies the node it admitted before any asynchronous work.
+    pub(crate) fn prepare_draft_files_on(
+        &mut self,
+        ticket: Ticket,
+        expected_node: vessel_proto::NodeId,
+        machine: &str,
+        text: &str,
+    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
         if !self.composer_has_files(DraftKey::New) {
             return Ok(None);
@@ -49,7 +61,8 @@ impl Shell {
             return Err(PrepareProblem::Busy);
         }
         *held = Some(Starting {
-            machine: machine.to_owned(),
+            machine,
+            expected_node,
             text: text.to_owned(),
             ticket: Some(ticket),
             files: self
@@ -75,13 +88,24 @@ impl Shell {
             .starting
             .borrow()
             .as_ref()
-            .is_some_and(|held| held.ticket == Some(ticket) && held.machine == card.machine);
+            .is_some_and(|held| {
+                held.ticket == Some(ticket) && held.machine.as_str() == card.machine
+            });
         if matches {
-            let Ok(machine) = vessel_app_view::machine_book::Name::parse(&card.machine) else {
+            let retained = self
+                .areas
+                .composer
+                .starting
+                .borrow()
+                .as_ref()
+                .map(|held| (held.machine.clone(), held.expected_node));
+            let Some((machine, expected_node)) = retained else {
                 return;
             };
             self.composer_started(card, cx);
-            if let Err(why) = self.read_creation_capabilities(ticket, machine, card.session) {
+            if let Err(why) =
+                self.read_creation_capabilities(ticket, machine, expected_node, card.session)
+            {
                 self.fail_creation_preparation(card.session, &why, cx);
             }
         }

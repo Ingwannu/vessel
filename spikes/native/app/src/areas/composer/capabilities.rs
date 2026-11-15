@@ -14,7 +14,7 @@ use vessel_app_view::{
     creation::Ticket,
     machine_book::Name,
 };
-use vessel_proto::SessionId;
+use vessel_proto::{NodeId, SessionId};
 #[derive(Debug, Clone)]
 enum State {
     Reading(CapabilityAsk),
@@ -40,15 +40,25 @@ impl Capabilities {
     }
 }
 impl Shell {
+    pub(super) fn attachment_node(&self, name: &Name) -> Option<NodeId> {
+        self.fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == name.as_str())
+            .and_then(|machine| machine.node)
+    }
+
     pub(super) fn read_creation_capabilities(
         &mut self,
         ticket: Ticket,
         machine: Name,
+        expected_node: NodeId,
         session: SessionId,
     ) -> Result<(), CapabilityFailure> {
         let ask = CapabilityAsk {
             ticket,
             machine,
+            expected_node,
             session,
         };
         self.areas
@@ -110,7 +120,8 @@ impl Shell {
                 .sends
                 .get(&ask.session)
                 .is_some_and(|waiting| {
-                    waiting.creation == Some(ask.ticket) && waiting.machine == ask.machine.as_str()
+                    waiting.creation == Some(ask.ticket)
+                        && waiting.expected_node == ask.expected_node
                 });
         if !expected {
             return;
@@ -165,17 +176,17 @@ impl Shell {
                 let Some(ticket) = waiting.creation else {
                     return;
                 };
-                let Ok(machine) = Name::parse(&waiting.machine) else {
-                    return;
-                };
                 CapabilityAsk {
-                    machine,
+                    machine: waiting.machine.clone(),
+                    expected_node: waiting.expected_node,
                     session,
                     ticket,
                 }
             }
         };
-        if let Err(why) = self.read_creation_capabilities(ask.ticket, ask.machine, session) {
+        if let Err(why) =
+            self.read_creation_capabilities(ask.ticket, ask.machine, ask.expected_node, session)
+        {
             self.fail_creation_preparation(session, &why, cx);
         }
     }

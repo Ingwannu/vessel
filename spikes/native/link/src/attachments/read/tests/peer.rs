@@ -31,7 +31,9 @@ async fn send(stream: &mut DuplexStream, frame: ServerFrame) {
     stream.write_all(&bytes).await.unwrap();
 }
 
-pub(super) async fn connect(chunks: Vec<BlobChunk>) -> (NodeClient, JoinHandle<Vec<Call>>) {
+pub(in crate::attachments) async fn connect(
+    chunks: Vec<BlobChunk>,
+) -> (NodeClient, JoinHandle<Vec<Call>>) {
     let (local, mut remote) = tokio::io::duplex(FRAME_BOUND);
     let task = tokio::spawn(async move {
         assert!(matches!(

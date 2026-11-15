@@ -80,7 +80,8 @@ pub(super) enum LocalFileProblem {
 /// A prompt waiting for its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Waiting {
-    pub(super) machine: String,
+    pub(super) machine: vessel_app_view::machine_book::Name,
+    pub(super) expected_node: vessel_proto::NodeId,
     text: String,
     delivery: Delivery,
     pub(super) creation: Option<vessel_app_view::creation::Ticket>,
@@ -89,7 +90,8 @@ pub(crate) struct Waiting {
 /// A new chat started for its files, until its session exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Starting {
-    pub(super) machine: String,
+    pub(super) machine: vessel_app_view::machine_book::Name,
+    pub(super) expected_node: vessel_proto::NodeId,
     pub(super) text: String,
     pub(super) ticket: Option<vessel_app_view::creation::Ticket>,
     pub(super) files: vessel_app_view::composer::tray::Tray,
@@ -223,8 +225,21 @@ impl Shell {
         if !self.composer_has_files(DraftKey::Session { session }) {
             return false;
         }
+        let Ok(machine) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
+            return true;
+        };
+        let Some(expected_node) = self.attachment_node(&machine) else {
+            self.conversation_send_failed();
+            self.toast(
+                self.words.composer().file_capabilities_failed(),
+                vessel_app_view::toasts::ToastTone::Error,
+                cx,
+            );
+            return true;
+        };
         let waiting = Waiting {
-            machine: open.machine.clone(),
+            machine,
+            expected_node,
             text: text.to_owned(),
             delivery,
             creation: None,
@@ -256,10 +271,20 @@ impl Shell {
             );
             return;
         };
+        let Some(expected_node) = self.attachment_node(&key) else {
+            self.conversation_send_failed();
+            self.toast(
+                self.words.composer().file_capabilities_failed(),
+                vessel_app_view::toasts::ToastTone::Error,
+                cx,
+            );
+            return;
+        };
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
-                machine,
+                machine: key.clone(),
+                expected_node,
                 text: text.to_owned(),
                 delivery: Delivery::Queue,
                 creation: None,
@@ -270,6 +295,7 @@ impl Shell {
         self.command(Command::Files(Files::Wake(
             vessel_app_link::attachments::Wake {
                 machine: key,
+                expected_node,
                 session,
             },
         )));
@@ -303,7 +329,7 @@ impl Shell {
             .starting
             .borrow()
             .as_ref()
-            .is_some_and(|starting| starting.machine == card.machine);
+            .is_some_and(|starting| starting.machine.as_str() == card.machine);
         if !matches {
             return;
         }
@@ -320,6 +346,7 @@ impl Shell {
         *composer.trays.tray(DraftKey::Session { session }) = starting.files;
         let waiting = Waiting {
             machine: starting.machine,
+            expected_node: starting.expected_node,
             text: starting.text,
             delivery: Delivery::Start,
             creation: starting.ticket,
@@ -382,6 +409,7 @@ impl Shell {
             .map(|(item, resume)| {
                 Command::Files(Files::Send(Attach {
                     machine: waiting.machine.clone(),
+                    expected_node: waiting.expected_node,
                     session,
                     key: item.key,
                     name: item.name,
@@ -393,11 +421,12 @@ impl Shell {
             })
             .collect();
         if let Readiness::Ready(attachments) = tray.readiness() {
-            super::sent::seed(&composer.sent, &waiting.machine, session, tray);
+            super::sent::seed(&composer.sent, waiting.machine.as_str(), session, tray);
             tray.clear();
             drop(composer.sends.remove(&session));
             commands.push(Command::Files(Files::Prompt(WithFiles {
                 machine: waiting.machine,
+                expected_node: waiting.expected_node,
                 session,
                 text: waiting.text,
                 attachments,
