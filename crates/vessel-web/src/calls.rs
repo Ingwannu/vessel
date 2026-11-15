@@ -246,7 +246,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::RewindSession
         // Protocol 17: an agent's own history (ADR 0053).
         | Method::GetAgentHistory
-        | Method::DetachSession => true,
+        | Method::DetachSession
+        // Staged git comparison reads (ADR 0087), like the other git reads.
+        | Method::GitCompare
+        | Method::GitCompareFile => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe
