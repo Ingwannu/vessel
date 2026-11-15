@@ -668,3 +668,11 @@ Rustdoc code names and explicit PromptQueue default construction. The remaining
 fixes preserve the actual Markdown label hit (left+4 pixels inside the glyph,
 not its surrounding whitespace) and all assertions. No runtime pass follows
 from this failed strict run; current source still needs its exact VM checks.
+
+Announced package base c3429952 is merged after its native1450/0/2 gate. Four
+conflicts were earlier adopted W1/W12 source only: connection-epoch field order,
+the literal resource gate comment, resident minter registration/storage and the
+six-owner list. The newly reviewed canonical versions replace those old producer
+blobs; A8 forms, uncertainty and request-owner adapters are retained. Resource
+module/Areas storage remain test-only. This union does not enable product resident
+storage, guarded follow, runtime workspace lookup or durable response receipts.
