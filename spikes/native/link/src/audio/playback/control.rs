@@ -76,10 +76,13 @@ impl Control {
         let permit = Arc::clone(&self.admissions)
             .try_acquire_owned()
             .map_err(|_private| Refusal::Capacity)?;
-        let interval = Arc::clone(&self.interval.lock().map_err(|_private| {
-            self.stopped.close();
-            Refusal::Stopped
-        })?);
+        let interval = {
+            let current = self.interval.lock().map_err(|_private| {
+                self.stopped.close();
+                Refusal::Stopped
+            })?;
+            Arc::clone(&*current)
+        };
         let cancel = Arc::new(Fence::default());
         let access = Access {
             interval,

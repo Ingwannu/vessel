@@ -548,3 +548,11 @@ patch adoption/new voice settings and does not prove their runtime.
 - Choice: add a two-admission command plane whose semaphore permit follows every retained raw-PCM Packet/Reader alias, not merely the data queue. Per-request and speech-interval fences travel into the existing receipt; callbacks only read atomics. No second renderer, capture engine or AEC processor.
 - Why: a queue of two plus a separate Book of two would retain four full segments. Barge-in must fence queued and prepared old speech immediately, even if the device worker is waiting, while a late wake must not interrupt a newer interval.
 - Impact: Pending cancellation and local Stop notify independently of the full command/data queue. The worker prunes closed receipts rather than performing a delayed interrupt-all. Mute retains its independent capture-origin upload policy. This stays staged against fakes; public Conversation acquisition and product routes remain unavailable.
+
+
+The first corrected-package native strict run on f3a74dc4 reached actual Link
+and App compilation and found two own draft borrow errors: cloning the speech
+interval needed the mutex guard dereferenced before the Arc edge, and GPUI's
+Bounds::contains takes borrowed Points. Both are corrected without changing
+control or geometry expectations. The next check includes current base8c;
+prior failed run/compile logs remain evidence, not a runtime or lint pass.
