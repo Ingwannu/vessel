@@ -137,3 +137,11 @@ specify; they do not reuse the menu's Archive/Delete confirmation dialog.
 Vessel deliberately retains the visible session until authoritative archive
 acknowledgement instead of optimistically closing/retargeting before the RPC.
 Busy/refused/uncertain outcomes keep the session available with an inline error.
+
+
+Lifecycle acknowledgements recheck the target's expected NodeId against the
+current shared Machine.node before updating fleet metadata or granting close.
+A replaced/disconnected destination keeps the result uncertain in the UI and
+cannot receive the old session projection. This complements the pre-send link
+identity guard; the resident cutover still needs the shared connection lease and
+FollowBinding so same-node transport retirement also fences stale replies.

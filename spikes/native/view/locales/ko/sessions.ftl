@@ -58,3 +58,5 @@ sessions-outcome-uncertain = 작업 시간이 초과되어 완료 여부를 확�
 sessions-existing-draft = 새 채팅에 작성 중인 초안이 있습니다. 새 대화를 시작하기 전에 해당 초안을 열어 주세요.
 # Preserve explicit profile configuration until the draft profile picker can carry it.
 sessions-profile-unavailable = 이 세션의 프로필은 여기서 새 대화로 이어갈 수 없습니다. 세션은 보관하지 않고 유지했습니다.
+# A late operation may have settled on the old node; never close a replacement destination.
+sessions-destination-changed = 세션 연결이 변경되었습니다. 새로고침하여 작업 결과를 확인해 주세요.

@@ -203,3 +203,16 @@ fn successful_reply_must_prove_the_requested_postcondition_before_closing() {
     assert!(satisfies_lifecycle(LifecycleAction::Resume, &info));
     assert!(!satisfies_lifecycle(LifecycleAction::Delete, &info));
 }
+
+#[test]
+fn late_lifecycle_ack_cannot_update_a_replaced_or_disconnected_destination() {
+    let node = NodeId::random();
+    let target = super::LifecycleTarget {
+        host: crate::machine_book::Name::parse("work").unwrap(),
+        session: SessionId::random(),
+        node: Some(node),
+    };
+    assert!(target.matches_node(Some(node)));
+    assert!(!target.matches_node(Some(NodeId::random())));
+    assert!(!target.matches_node(None));
+}

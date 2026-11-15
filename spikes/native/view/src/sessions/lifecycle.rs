@@ -15,6 +15,13 @@ pub struct LifecycleTarget {
     /// A normal saved-host action has no stable identity before hydration.
     pub node: Option<vessel_proto::NodeId>,
 }
+impl LifecycleTarget {
+    /// A late answer cannot mutate the projection of an alias now bound elsewhere.
+    #[must_use]
+    pub fn matches_node(&self, node: Option<vessel_proto::NodeId>) -> bool {
+        self.node.is_none_or(|expected| node == Some(expected))
+    }
+}
 /// The user's intended effect after the authoritative node result arrives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LifecycleAction {

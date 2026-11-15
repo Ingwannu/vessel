@@ -58,3 +58,5 @@ sessions-outcome-uncertain = The operation timed out and may have completed. Ref
 sessions-existing-draft = New chat already has a draft. Open it before starting a fresh conversation.
 # Preserve explicit profile configuration until the draft profile picker can carry it.
 sessions-profile-unavailable = This session’s profile cannot be carried to a fresh conversation here. The session was kept.
+# A late operation may have settled on the old node; never close a replacement destination.
+sessions-destination-changed = The session connection changed. Refresh to check the operation before continuing.

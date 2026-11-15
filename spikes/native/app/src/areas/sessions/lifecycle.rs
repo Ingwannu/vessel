@@ -32,6 +32,7 @@ enum Problem {
     Uncertain,
     Offline,
     WrongReply,
+    DestinationChanged,
 }
 #[derive(Clone)]
 struct Prepared {
@@ -228,6 +229,9 @@ impl Shell {
         request: &vessel_app_view::sessions::PendingLifecycle,
         result: Result<Acted, Failure>,
     ) -> Result<(), Problem> {
+        if !self.lifecycle_target_current(&request.target) {
+            return Err(Problem::DestinationChanged);
+        }
         match result {
             Ok(Acted::Session(info))
                 if info.id == request.target.session
@@ -243,17 +247,7 @@ impl Shell {
                 Ok(())
             }
             Ok(Acted::Deleted(deleted)) if request.action == LifecycleAction::Delete => {
-                let words = self.t.lang.conversation();
-                self.notice = Some(deleted.worktree.as_ref().map_or_else(
-                    || words.session_deleted().to_owned(),
-                    |worktree| {
-                        format!(
-                            "{}. {}",
-                            words.session_deleted(),
-                            words.deleted_worktree(&worktree.outcome)
-                        )
-                    },
-                ));
+                self.notice = Some(self.lifecycle_deleted_words(&deleted));
                 self.fleet
                     .drop_session(request.target.host.as_str(), request.target.session);
                 Ok(())
@@ -270,9 +264,34 @@ impl Shell {
                 Failure::Refused(failed) => Problem::Refused(failed),
                 Failure::Uncertain => Problem::Uncertain,
                 Failure::Unsent => Problem::Offline,
-                Failure::IdentityChanged => Problem::WrongReply,
+                Failure::IdentityChanged => Problem::DestinationChanged,
             }),
         }
+    }
+    fn lifecycle_target_current(&self, target: &LifecycleTarget) -> bool {
+        let node = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == target.host.as_str())
+            .and_then(|machine| machine.node);
+        target.matches_node(node)
+    }
+    fn lifecycle_deleted_words(
+        &self,
+        deleted: &vessel_proto::conversation::SessionDeleted,
+    ) -> String {
+        let words = self.t.lang.conversation();
+        deleted.worktree.as_ref().map_or_else(
+            || words.session_deleted().to_owned(),
+            |worktree| {
+                format!(
+                    "{}. {}",
+                    words.session_deleted(),
+                    words.deleted_worktree(&worktree.outcome)
+                )
+            },
+        )
     }
     pub(crate) fn settle_session_lifecycle(
         &mut self,
@@ -401,6 +420,7 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
         Problem::Uncertain => words.outcome_uncertain(),
         Problem::Offline => words.navigation_offline(),
         Problem::WrongReply => words.navigation_refused(),
+        Problem::DestinationChanged => words.destination_changed(),
     };
     Some(
         div()
