@@ -132,3 +132,9 @@ is still an area's responsibility.
   labels in the administrative device list. Both can wrongly remove actions.
 - Cost: an auxiliary self-query per list read. Narrow checks for this new delta
   are owed; the queued cb96 run is immutable earlier-source evidence only.
+
+The host choice rows now use the existing SmallGlyph(Server) or status-dot
+control in the shared picker's14-point leading column. The permitted dot6
+fallback is retained; no unlanded Dot8 producer is assumed. The same pure Fleet
+reach rule supplies the selected trigger and every option. This source delta
+is not covered by the earlier queued cb96 check.

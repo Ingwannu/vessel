@@ -23,13 +23,17 @@ fn leading(value: MachineLeading, tokens: &Tokens) -> AnyElement {
             tokens.neutral.foreground_muted,
         )
         .into_any_element(),
-        MachineLeading::Status(variant) => kit::dot(match variant {
-            vessel_app_view::badge::Variant::Success => tokens.status.success.foreground,
-            vessel_app_view::badge::Variant::Warning => tokens.status.warning.foreground,
-            vessel_app_view::badge::Variant::Error => tokens.status.error.foreground,
-            vessel_app_view::badge::Variant::Muted => tokens.neutral.foreground_muted,
-        })
-        .into_any_element(),
+        MachineLeading::Status(variant) => {
+            kit::dot(status_color(variant, tokens)).into_any_element()
+        }
+    }
+}
+fn status_color(variant: vessel_app_view::badge::Variant, tokens: &Tokens) -> kit::ui::Hsla {
+    match variant {
+        vessel_app_view::badge::Variant::Success => tokens.status.success.foreground,
+        vessel_app_view::badge::Variant::Warning => tokens.status.warning.foreground,
+        vessel_app_view::badge::Variant::Error => tokens.status.error.foreground,
+        vessel_app_view::badge::Variant::Muted => tokens.neutral.foreground_muted,
     }
 }
 pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
@@ -95,7 +99,12 @@ pub(super) fn popup(
         .iter()
         .map(|choice| ComboRow {
             checked: choice.checked,
-            leading: Leading::None,
+            leading: Some(
+                match presentation::machine_leading(&choice.filter, &shell.fleet) {
+                    MachineLeading::All => Leading::SmallGlyph(kit::assets::Glyph::Server),
+                    MachineLeading::Status(variant) => Leading::Dot(status_color(variant, tokens)),
+                },
+            ),
             ..ComboRow::new(choice.label.clone())
         })
         .collect();
