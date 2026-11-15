@@ -147,10 +147,15 @@ a fresh read; an older binding cannot alter or retire its successor.
 The link also needs the canonical zero-frame SelectedConnection::check_call
 before even the older node.settings read can run against a peer missing the
 shared MCP feature. That is protocol support, never an authorization verdict.
-W2 currently owns the shared selected.rs/delivery-export edit slot and first
-promotion with its A4 consumer. W18 waits for the lead's integrated line and
-then requests the next slot for check_call plus its real MCP envelope consumer;
-no staging attribute is removed here and no raw client escapes the link.
+The lead currently retains the shared selected.rs/delivery-export slot after
+return of the first A4 candidate. A checked straight consumer packet on the
+announced line is required before slot adoption. W18's actual Skills consumer
+first needs the approved portable Skills carrier through V3, the node batch and
+the next app base. That carrier has no NodeSettings.mcp field: Tools read/patch
+must remain Unsupported in that straight packet. No staging attribute is
+removed here and no raw client escapes the link. The only actor fixture allowed
+for the later delivery regression is the shared import actor's unchanged blob;
+this package must not introduce a second fixture actor.
 Existing UI/model tests do not claim this still-pending transport queue proof.
 
 The exact c0c6 test batch reached the app test module and stopped on an
