@@ -49,6 +49,7 @@ const FIELDS: &[(&str, &[&str])] = &[
     (
         "ThreadStartParams",
         &[
+            "config",
             "cwd",
             "model",
             "approvalPolicy",
@@ -59,6 +60,7 @@ const FIELDS: &[(&str, &[&str])] = &[
     (
         "ThreadResumeParams",
         &[
+            "config",
             "threadId",
             "cwd",
             "model",
@@ -88,6 +90,10 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("Turn", &["id", "status", "error"]),
     ("TurnError", &["message"]),
     ("UserInput", &["type", "text", "name", "path"]),
+    ("SkillsListParams", &["cwds"]),
+    ("SkillsListResponse", &["data"]),
+    ("SkillsListEntry", &["skills"]),
+    ("SkillMetadata", &["name", "description", "path", "enabled"]),
     ("TurnStartedNotification", &["threadId", "turn"]),
     ("TurnCompletedNotification", &["threadId", "turn"]),
     ("ItemStartedNotification", &["threadId", "item"]),
@@ -237,7 +243,7 @@ const VALUES: &[(&str, &[&str])] = &[
             "webSearch",
         ],
     ),
-    ("UserInput", &["text", "mention"]),
+    ("UserInput", &["text", "mention", "skill"]),
 ];
 
 fn definitions(schema: &Value) -> &serde_json::Map<String, Value> {

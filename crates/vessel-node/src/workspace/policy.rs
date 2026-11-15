@@ -151,7 +151,8 @@ const fn refused(method: Method) -> bool {
         // An agent's own history (protocol 17, ADR 0053): an account's
         // other conversations are a person's, not the fleet's sessions.
         | Method::GetAgentHistory
-        | Method::SetProviderEnabled => true,
+        | Method::SetProviderEnabled
+        | Method::GetDraftCommands => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects

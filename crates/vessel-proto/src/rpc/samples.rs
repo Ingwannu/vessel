@@ -50,6 +50,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
             json!({"provider":"codex","scope":{"scope":"global"},"read":"cached"})
         }
         Method::SetProviderEnabled => json!({"provider":"codex","enabled":"off"}),
+        Method::GetDraftCommands => json!({"config":{"harness":"codex","profile":null,
+            "root":root,"directory":null,"model":null,"options":[]}}),
         Method::CreateSession => json!({"spec":{"harness":"codex","mode":"structured"}}),
         Method::PromptSideQuestion => json!({"session":id,"question":"sample"}),
         Method::ResetSideQuestion => json!({"session":id,"side":id}),

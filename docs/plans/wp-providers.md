@@ -344,3 +344,48 @@ branch after normalization preserves the observation contract. This merge's
 new combined source still needs strict compilation and TS regeneration. The
 own queued f55 local job was cancelled before any compilation, avoiding a false
 exact-head claim after the required base change; its red/queue logs are kept.
+## Codex command-owner dependency preparation
+
+W12b supplied checked source bec742aa1 (strict five-crate Clippy0, command unit
+14/0, Codex/options fake integration29/0). Its skill discovery and typed command
+projection are consumed intact in an isolated preparation tree, while the main
+626f12f79 check remains frozen. No native model/config producer arm is removed.
+Merge conflicts preserve both codex catalogue/commands modules, both refusal
+classifications and fixtures, the head SessionEvent optional admission check
+plus W12 command projection, and both documentation appendices. The head's
+single table stays in rpc/table.rs; the W12 pending draft row moves to its end
+without a number. No source budget is raised or existing assertion edited by
+this merge. Combined compilation remains owed before this dependency reaches
+main or any consumer-ready claim.
+
+## Codex native MCP preparation
+
+Paseo codex-app-server-agent.ts:903-925 and5387-5424 put the resolved stdio/HTTP
+MCP map under thread start/resume config.mcp_servers. Reuse Vessel's existing
+ResolvedMcpServers and secret wrapper in a native-only Serialize adapter; do not
+resolve again or flatten into process environment. Empty snapshots omit config,
+preserving native defaults. Native config Debug shows only a count. The positive
+fake audit records exact synthetic start/resume payloads into a private temp
+file, including literal arguments, stdio env and HTTP headers, without executing
+any MCP helper or contacting an endpoint. The native capability is staged here;
+old unsupported assertions stay until that positive test actually passes, then
+will narrow to the still unsupported choices in the same capability commit.
+
+The positive native MCP test actually passed locally on2026-11-15:
+/tmp/work/wp-providers/native-mcp-positive.log,1/0/0, including both start/resume
+with configured stdio+HTTP and empty omission. Cold compilation4m06s and the
+fake preparation inside testkit's pre-deadline setup account for its94.48s test
+summary. Only testkit processes ran, with synthetic environment/header values.
+After that proof the old combined omission assertion is narrowed to its still
+unsupported effort-choice half; its unchanged refusal assertion remains.
+The capability commit explicitly names removal of the old left-out expectation.
+The separate Debug unit test and combined Codex/options/catalogue checks remain
+owed; this single positive test is not a package-wide gate or reviewed handoff.
+
+The native MCP/checked command ingress merge into node42 retains both plan
+appendices and the tighter723-line designated-head client allowance. It keeps
+W12's reduced939-line Codex session allowance and the designated head's removed
+handshake allowance; none is raised. The new MCP integration AgentSetup literal
+gains only system_prompt:None. No further existing assertion changes occur in
+the merge; the real capability commitf6403fa48 contains the authorized omission
+expectation narrowing and positive proof. Combined checks remain pending.

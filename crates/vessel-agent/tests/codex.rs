@@ -787,6 +787,50 @@ async fn a_probe_reads_the_introduction() {
     .await;
 }
 
+/// Catalog discovery waits past Ready without a prompt; invocation uses a native skill block.
+#[tokio::test]
+async fn commands_are_discovered_without_a_turn_and_a_selected_skill_is_native_input() {
+    within(async {
+        let probed =
+            vessel_agent::probe_catalog_with(Driver::CodexAppServer, &command(), setup(None))
+                .await
+                .unwrap();
+        let commands = probed.commands.unwrap();
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].name.as_str(), "review");
+        assert_eq!(
+            commands[0].kind,
+            Some(vessel_proto::composer_commands::CommandKind::Skill)
+        );
+
+        let (_agent, input, mut outputs) = spawn(setup(None));
+        let _handshake = ready(&mut outputs).await;
+        let catalog = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Commands(_))
+        })
+        .await;
+        assert!(
+            catalog.iter().all(|output| !matches!(
+                output,
+                AgentOutput::Event(AgentEvent::TurnStarted { .. })
+            ))
+        );
+        input.prompt(text("/review changes")).await.unwrap();
+        let result = turn(&mut outputs).await;
+        assert_eq!(
+            said(&result),
+            "native skill review /fake/skills/review/SKILL.md $review changes"
+        );
+        assert_eq!(
+            result[0],
+            AgentEvent::TurnStarted {
+                content: text("/review changes")
+            }
+        );
+    })
+    .await;
+}
+
 /// Codex's completions are matched to the running turn: another turn of the
 /// thread does not end it, and one that does not read ends it failed
 /// rather than leave the session busy.
@@ -827,9 +871,9 @@ async fn only_the_running_turns_completion_ends_it() {
 
 /// Until the options slice, a session asked for a choice other than the
 /// mode is not started without it: the handshake fails as for an option
-/// an agent does not offer. Tool servers are said to be left out.
+/// an agent does not offer. Native MCP servers have their own exact transport proof.
 #[tokio::test]
-async fn other_choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_out() {
+async fn unsupported_choices_still_fail_the_handshake() {
     within(async {
         let mut choosing = setup(None);
         choosing.options = vec![OptionChoice {
@@ -850,29 +894,6 @@ async fn other_choices_fail_the_handshake_and_tool_servers_are_said_to_be_left_o
                     if message.contains("effort")
             ),
             "{refused:?}"
-        );
-
-        let mut serving = setup(None);
-        let _none = serving.mcp_servers.insert(
-            "vessel".parse().unwrap(),
-            vessel_proto::McpTransport::Stdio {
-                command: "vessel".into(),
-                args: Vec::new(),
-                env: std::collections::BTreeMap::new(),
-            },
-        );
-        let (_agent, _input, mut outputs) = spawn(serving);
-        let said = until(&mut outputs, |output| {
-            matches!(output, AgentOutput::Event(AgentEvent::HarnessLog { .. }))
-        })
-        .await;
-        assert!(
-            matches!(
-                said.last(),
-                Some(AgentOutput::Event(AgentEvent::HarnessLog { line }))
-                    if line.contains("without vessel")
-            ),
-            "{said:?}"
         );
     })
     .await;

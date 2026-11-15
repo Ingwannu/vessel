@@ -187,6 +187,9 @@ impl SessionEvent {
     /// can read this event as it is.
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        if let Some(projected) = self.composer_commands_for_protocol(protocol) {
+            return Some(projected);
+        }
         let readable = self
             .required_protocol()
             .is_some_and(|since| since <= protocol);

@@ -113,6 +113,7 @@ impl Reply {
             // agent or only one of the four.
             Self::ListSessions(_)
             | Self::ListHarnesses(_)
+            | Self::GetDraftCommands(_)
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
             | Self::NodeInfo(_)

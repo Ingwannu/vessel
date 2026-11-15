@@ -7,6 +7,7 @@
 //! handles and its lifetime.
 
 mod agent;
+pub use agent::ProbeChoices;
 mod claims;
 mod drivers;
 mod launch;

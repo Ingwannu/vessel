@@ -63,12 +63,14 @@ impl NodeService {
                     }),
                     // No adapter: nothing was started to say anything.
                     said: Err(HandshakeFailure::Spawn),
+                    commands: None,
                 }
             }
             StructuredSupport::Available => {
                 let key = ProbeKey {
                     harness: harness.clone(),
                     profile,
+                    draft: None,
                 };
                 self.probes
                     .answer(key, installed.version, async || {
@@ -90,6 +92,7 @@ impl NodeService {
                 return Answer {
                     options: Err(wire(&error)),
                     said: Err(HandshakeFailure::Spawn),
+                    commands: None,
                 };
             }
         };
@@ -104,9 +107,11 @@ impl NodeService {
                     abilities: Some(probed.abilities),
                 }),
                 said: Ok(probed.introduction),
+                commands: probed.commands,
             },
             Err(error) => Answer {
                 said: Err(crate::readiness::failure_of(&error)),
+                commands: None,
                 options: Err(wire(&error)),
             },
         }

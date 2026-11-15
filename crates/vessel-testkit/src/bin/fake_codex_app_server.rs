@@ -69,6 +69,8 @@ use serde_json::{Value, json};
 
 #[path = "fake_codex_app_server/catalogue.rs"]
 mod catalogue;
+#[path = "fake_codex_app_server/launch_audit.rs"]
+mod launch_audit;
 
 /// The version printed when `FAKE_CODEX_VERSION` is unset: the one the
 /// driver's schema was generated from.
@@ -190,6 +192,14 @@ impl Server {
                 let thread = format!("fake-thread-{}", std::process::id());
                 self.opened(id, &thread, params)
             }
+            "skills/list" => self.send(&json!({"id": id, "result": {"data": [{
+                "cwd": params.get("cwds").and_then(|cwds| cwds.get(0)).cloned().unwrap_or(Value::Null),
+                "errors": [],
+                "skills": [
+                    {"name":"review","description":"Review changes","path":"/fake/skills/review/SKILL.md","enabled":true,"scope":"user"},
+                    {"name":"hidden","description":"Disabled","path":"/fake/hidden","enabled":false,"scope":"user"}
+                ]
+            }]}})),
             "thread/resume" => {
                 let thread = text(params, "threadId");
                 if thread.starts_with("missing") {
@@ -309,6 +319,7 @@ impl Server {
     }
 
     fn opened(&mut self, id: &Value, thread: &str, params: &Value) -> Result<(), Exit> {
+        launch_audit::record(params).map_err(|_failed| Exit::Closed)?;
         self.thread = Some(thread.to_owned());
         self.started = format!(
             "{} {} {}",
@@ -347,6 +358,23 @@ impl Server {
         )?;
         let scenario = prompt.split_whitespace().next().unwrap_or("").to_owned();
         match scenario.as_str() {
+            "$review" => {
+                let skill = params["input"]
+                    .as_array()
+                    .and_then(|input| input.iter().find(|item| item["type"] == "skill"));
+                let description = skill.map_or_else(
+                    || "missing native skill".to_owned(),
+                    |skill| {
+                        format!(
+                            "native skill {} {} {prompt}",
+                            text(skill, "name"),
+                            text(skill, "path")
+                        )
+                    },
+                );
+                self.message(&turn, "msg-skill", &description, false)?;
+                self.completed(&turn, "completed", None)
+            }
             "think" => {
                 self.notify(
                     "item/reasoning/summaryTextDelta",
