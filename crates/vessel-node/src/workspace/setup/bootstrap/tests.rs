@@ -55,7 +55,7 @@ impl Backend for Fake {
     async fn claim(&self, scope: Scope) -> Result<usize, Failure> {
         self.events.borrow_mut().push(Event::Claim(scope));
         let index = self.next.get();
-        self.next.set(index + 1);
+        self.next.set(index.checked_add(1).unwrap());
         match self.modes[index] {
             Mode::Refuse(failure) => Err(failure),
             Mode::Output
@@ -87,7 +87,7 @@ impl Backend for Fake {
             Mode::Silent => pending().await,
             Mode::CancelReady => {
                 self.cancel.cancel();
-                pending().await
+                pending::<()>().await;
             }
             Mode::Output
             | Mode::SpawnFailure
