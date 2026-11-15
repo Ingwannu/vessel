@@ -1115,7 +1115,16 @@ impl<M: InputModeKind> TextElement<M> {
         state: &InputBaseState<M>,
         line_height: Pixels,
         input_height: Pixels,
+        // Vessel patch: only mapped readonly documents opt into parent clipping.
+        document_viewport: Option<Range<Pixels>>,
     ) -> (Range<usize>, Vec<usize>, Pixels) {
+        // Vessel patch: clipping never changes the full layout or scroll metrics.
+        if document_viewport
+            .as_ref()
+            .is_some_and(|visible| visible.is_empty())
+        {
+            return (0..0, Vec::new(), px(0.));
+        }
         // Add extra rows to avoid showing empty space when scroll to bottom.
         let extra_rows = 1;
         if state.is_single_line() {
@@ -1150,6 +1159,12 @@ impl<M: InputModeKind> TextElement<M> {
         // directly to a display-row range.
         let viewport_top = (-scroll_top).max(px(0.));
         let viewport_bottom = viewport_top + input_height;
+        // Vessel patch: retain the original viewport above for every ordinary
+        // editor; only the opted-in document narrows which rows get shaped.
+        let (viewport_top, viewport_bottom) = match document_viewport {
+            Some(visible) => (viewport_top + visible.start, viewport_top + visible.end),
+            None => (viewport_top, viewport_bottom),
+        };
         let line_height_f = f32::from(line_height);
         let first_display =
             ((f32::from(viewport_top) / line_height_f).floor() as usize).min(display_count - 1);
@@ -1806,7 +1821,7 @@ impl<M: InputModeKind> TextElement<M> {
                     .iter()
                     .any(|span| !cache.widths.contains_key(span.token()))
         });
-        let (visible, _, _) = self.calculate_visible_range(state, line_height, viewport);
+        let (visible, _, _) = self.calculate_visible_range(state, line_height, viewport, None);
         let start = state.text.line_start_offset(visible.start);
         let end = state.text.line_end_offset(visible.end.saturating_sub(1));
         let spans = state.token_spans();
@@ -2655,6 +2670,20 @@ fn snap_frame_outline(
     )
 }
 
+// Vessel patch: use the intersection in both axes. An offscreen file shapes no
+// rows, even when the parent's vertical mask happens to overlap another column.
+fn mapped_document_viewport(bounds: Bounds<Pixels>, mask: Bounds<Pixels>) -> Range<Pixels> {
+    if bounds.right() <= mask.left() || mask.right() <= bounds.left() {
+        return px(0.)..px(0.);
+    }
+    let top = bounds.top().max(mask.top());
+    let bottom = bounds.bottom().min(mask.bottom());
+    if bottom <= top {
+        return px(0.)..px(0.);
+    }
+    (top - bounds.top())..(bottom - bounds.top())
+}
+
 fn clamp_frame_to_content_mask(
     points: Vec<Point<Pixels>>,
     stroke_width: Pixels,
@@ -2808,8 +2837,24 @@ impl<M: InputModeKind> Element for TextElement<M> {
         );
         let state = self.state.read(cx);
 
-        let (visible_range, visible_buffer_lines, visible_top) =
-            self.calculate_visible_range(&state, line_height, bounds.size.height);
+        // Vessel patch: a mapped readonly editor is one full-height file inside
+        // the owner's scrolling document. The parent mask limits shaping only;
+        // ordinary inputs retain their original full-viewport projection.
+        let document_viewport =
+            if state.readonly && state.editor_style.line_presentation().is_some() {
+                Some(mapped_document_viewport(
+                    bounds,
+                    window.content_mask().bounds,
+                ))
+            } else {
+                None
+            };
+        let (visible_range, visible_buffer_lines, visible_top) = self.calculate_visible_range(
+            &state,
+            line_height,
+            bounds.size.height,
+            document_viewport,
+        );
         let visible_start_offset = state.text.line_start_offset(visible_range.start);
         let visible_end_offset = state
             .text

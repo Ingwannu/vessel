@@ -509,3 +509,9 @@ Nothing in that external source packet has been installed or compiled yet.
 Prepared Base tests include real owner+cached-child scroll, empty/before/after
 IME bounds, crossclip highlight/visible touch-end/full copy and folded row-order
 checks. These are source drafts, not executed native/OS evidence.
+
+The final external element2921f9ae/statee5e657f5 viewport and coordinate
+proposal received V1 same-row SOURCE PRECHECK PASS and lead approval, and is
+now installed in vendor change7 with current timestamps. Earlier paragraphs
+describe earlier source snapshots. New Base/Kit tests remain unexecuted and
+no installed-source, runtime, consumer, UI or OS acceptance is inferred.

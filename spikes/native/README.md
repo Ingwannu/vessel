@@ -1289,7 +1289,8 @@ its host dialog; no second scrim or area popup is drawn. See
 The additive `code_editor::DiffDocumentEditor` prototype retains the same
 DiffEditor plus an owner reveal observer. It measures full display-map height,
 uses no per-file vertical source inset or empty bottom rows, and reports changed
-focused caret bounds to the owner's VirtualList. It requires the pending patch7
-parent-viewport correction; no new production pane consumes it yet, and its
+focused caret bounds to the owner's VirtualList. It uses patch7
+parent-viewport correction, whose changed-source checks are pending; no new
+production pane consumes it yet, and its
 actual keyboard/selection window regression is unexecuted. It does not implement
 cross-file selection or claim the complete Paseo document surface.

@@ -4,8 +4,8 @@
 //! - Existing assets: DiffEditor, the engine's complete display map and owner
 //!   VirtualList::reveal_bounds. No independent cursor/selection/wrap model.
 //! - Choice: keep full file height, remove source-panel vertical insets and the
-//!   editor's empty bottom rows. The proposed patch7 viewport hunk is required
-//!   to bound shaping against the parent; its installed runtime proof is pending.
+//!   editor's empty bottom rows. Patch7 bounds shaping against the parent;
+//!   its installed compilation and runtime proof are pending.
 //! - Why: nested fixed-height cards break reading a multi-file diff as one
 //!   document. The parent also owns keyboard reveal, including offclip rows.
 //! - Cost: a retained observation reports changed focused caret positions;

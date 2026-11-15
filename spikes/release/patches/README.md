@@ -293,6 +293,32 @@ at the top and `Vessel patch` at the change.
   These tests and remote narrow checks have NOT yet run. A later result records
   their exact source and outcomes; this is not a runtime/visual approval claim.
 
+- Document viewport hunk (same change7): mapped **readonly** editors intersect
+  their full bounds with the parent mask when choosing shape/paint rows only.
+  Empty masks shape zero lines; full layout height, display map and scroll
+  metrics remain unchanged. This permits one outer scrolling document instead
+  of nested fixed-height cards. The ordinary None branch and token-measure
+  projection keep their old viewport. No notify is issued during paint.
+- Position lookup: only mapped readonly buffers require a requested buffer row
+  to be in the shaped cache. Both line_and_position_for_offset and the separate
+  TextInputHandler::bounds_for_range endpoint loop refuse unshaped positions;
+  the latter never paints a selection. Selection paint clips its own complete
+  range to visible shapes; touch handles use the independent position helper,
+  hiding only an unseen endpoint. Clipboard still reads complete engine text.
+- Known upstream defect intentionally retained: ordinary unmapped inputs in
+  base/state.rs line_and_position_for_offset and bounds_for_range can saturate
+  a preceding offscreen offset to the first visible line's local zero. Fixing
+  ordinary editor behaviour is separate; patch7 changes mapped readonly only.
+- Checked source status: external element2921f9ae + statee5e657f5 received lead
+  and V1 same-row source precheck after V1 returned the earlier helper-only
+  correction. Installed now with current mtimes; actual changed-source compile
+  and real-window assertions remain **unexecuted**. New test source uses the
+  actual outer ListState and cached child, 2,500-line bounded shaping, empty
+  masks, fractional boundaries, before/after/crossclip IME bounds, selected
+  visible paint/handle/full copy, folded cache order and unchanged None lookup.
+  Kit's real VirtualList keyboard-end/shift-selection reveal fixture is also
+  unexecuted. No source-precheck result is presented as runtime or OS approval.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),

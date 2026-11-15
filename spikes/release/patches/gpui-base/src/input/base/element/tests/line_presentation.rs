@@ -269,3 +269,6 @@ fn mapped_readonly_rows_keep_cross_row_selection_and_copy_without_numbers(cx: &m
     );
     assert!(paint.line_paints.is_some());
 }
+
+// Vessel patch: real external viewport and coordinate regressions.
+mod viewport;
