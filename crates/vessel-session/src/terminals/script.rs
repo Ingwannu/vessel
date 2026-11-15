@@ -10,9 +10,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use bytes::{Bytes, BytesMut};
 use chrono::Utc;
-use tokio::io::{AsyncRead, AsyncReadExt as _};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
@@ -23,10 +21,10 @@ use vessel_proto::SessionStatus;
 use vessel_proto::terminals::{ServiceFailure, ServiceState, TerminalInfo};
 
 use super::backoff::{Backoff, Retry};
+use super::cleanup::{self, Facts};
 use super::handle::{Shared, TerminalHandle};
 use super::log::TermLog;
-use super::{Leftover, SCRIPT_GRACE, Scrollback};
-use crate::lifecycle::drain_deadline;
+use super::{CleanupFact, Leftover, SCRIPT_GRACE, Scrollback};
 use crate::ring::Ring;
 use crate::stop::{Step, Stopper};
 
@@ -34,8 +32,8 @@ use crate::stop::{Step, Stopper};
 /// and the command then waits on its pipe. Nothing is dropped.
 const OUTPUT_QUEUE: usize = 16;
 
-/// The most bytes one read of a pipe takes (a PTY's chunk is as large).
-const CHUNK: usize = 16 * 1024;
+mod output;
+use output::{Drained, Pumps};
 
 /// What a run starts with.
 #[derive(Debug)]
@@ -78,11 +76,13 @@ where
         tasks,
     } = start;
     let id = info.id;
+    let (completion, cleanup) = cleanup::begin(id);
     let ring = Ring::bounded(scrollback.records, scrollback.bytes, info.next_seq);
     let kill = shutdown.child_token();
     // One restart at a time: a second one while the first is taken waits.
     let (restarts, restarting) = mpsc::channel(1);
     let shared = Arc::new(Shared {
+        cleanup,
         info: watch::Sender::new(info),
         ring: Mutex::new(ring),
         input: None,
@@ -99,12 +99,16 @@ where
         service,
         approved,
         restarting,
+        attempted: false,
+        process_cleanup: CleanupFact::Confirmed,
+        io_cleanup: CleanupFact::Confirmed,
     };
     drop(
         tasks.spawn(
-            actor
-                .run()
-                .instrument(tracing::info_span!("terminal", terminal = %id)),
+            async move {
+                completion.finish(actor.run().await);
+            }
+            .instrument(tracing::info_span!("terminal", terminal = %id)),
         ),
     );
     TerminalHandle(shared)
@@ -119,6 +123,10 @@ struct ScriptActor<A> {
     service: bool,
     approved: A,
     restarting: mpsc::Receiver<()>,
+    /// Once a process existed, status alone cannot prove descendant/I/O cleanup.
+    attempted: bool,
+    process_cleanup: CleanupFact,
+    io_cleanup: CleanupFact,
 }
 
 /// How one process's run ended.
@@ -134,7 +142,7 @@ enum Ended {
 }
 
 impl<A: Fn() -> bool> ScriptActor<A> {
-    async fn run(mut self) {
+    async fn run(mut self) -> Facts {
         self.log.status(SessionStatus::Starting);
         let mut backoff = Backoff::default();
         let mut attempt = 1_u32;
@@ -211,11 +219,25 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             }
         };
         self.log.status(status);
-        if let Some(path) = self.leftover.0.take()
-            && let Err(error) = tokio::fs::remove_file(&path).await
-        {
-            tracing::debug!(%error, "could not remove a run's command file");
-        }
+        let auxiliary = match self.leftover.0.take() {
+            Some(path) => match tokio::fs::remove_file(&path).await {
+                Ok(()) => CleanupFact::Confirmed,
+                Err(error) => {
+                    tracing::debug!(%error, "could not remove a run's command file");
+                    CleanupFact::Unconfirmed
+                }
+            },
+            None => CleanupFact::Confirmed,
+        };
+        let mut facts = if self.attempted {
+            Facts::unconfirmed()
+        } else {
+            Facts::not_started()
+        };
+        facts.process = self.process_cleanup;
+        facts.io = self.io_cleanup;
+        facts.auxiliary = auxiliary;
+        facts
     }
 
     /// The final status of a run that was stopped.
@@ -247,6 +269,9 @@ impl<A: Fn() -> bool> ScriptActor<A> {
 
     /// Run the command once, to its end, a stop or a restart.
     async fn once(&mut self, first: &mut bool, attempt: u32) -> Ended {
+        // A spawn error can follow partial child/pipe setup. Only never
+        // attempting a spawn proves that no child or worker could exist.
+        self.attempted = true;
         let Ok(Spawned {
             mut child,
             stdin,
@@ -254,6 +279,8 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             stderr,
         }) = vessel_proc::spawn(&self.spec)
         else {
+            self.process_cleanup = CleanupFact::Unconfirmed;
+            self.io_cleanup = CleanupFact::Unconfirmed;
             // A service backs off and tries again; its state says so.
             self.log
                 .notice("vessel: the command could not be started".to_owned());
@@ -272,7 +299,7 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             });
         }
         let (sender, mut output) = mpsc::channel(OUTPUT_QUEUE);
-        let pumps = tokio::spawn(pump_both(stdout, stderr, sender));
+        let pumps = Pumps::start(stdout, stderr, sender);
         let mut output_open = true;
         // A restart stops the process as a kill does: politely, then its
         // group at the grace.
@@ -290,7 +317,10 @@ impl<A: Fn() -> bool> ScriptActor<A> {
                     signal(&mut child, Step::Ask);
                     force_at = Some(Instant::now().checked_add(SCRIPT_GRACE).unwrap_or_else(Instant::now));
                 }
-                code = child.wait() => break code.ok().flatten(),
+                code = child.wait() => {
+                    if code.is_err() { self.process_cleanup = CleanupFact::Unconfirmed; }
+                    break code.ok().flatten();
+                },
                 chunk = output.recv(), if output_open => match chunk {
                     Some(bytes) => self.log.output(bytes),
                     None => output_open = false,
@@ -302,10 +332,9 @@ impl<A: Fn() -> bool> ScriptActor<A> {
             }
         };
         self.log.running(None);
-        if output_open {
-            drain(&mut self.log, &mut output).await;
+        if pumps.finish(&mut self.log, &mut output, output_open).await == Drained::Incomplete {
+            self.io_cleanup = CleanupFact::Unconfirmed;
         }
-        pumps.abort();
         if !self.stop.is_idle() {
             Ended::Stopped(code)
         } else if restart {
@@ -332,52 +361,5 @@ fn signal(child: &mut Child, step: Step) {
     };
     if let Err(error) = child.signal(signal) {
         tracing::warn!(pid = child.pid(), %error, ?signal, "cannot signal a script");
-    }
-}
-
-/// What the pipes still hold after the exit, for a bounded time.
-async fn drain(log: &mut TermLog, output: &mut mpsc::Receiver<Bytes>) {
-    let deadline = drain_deadline();
-    loop {
-        tokio::select! {
-            chunk = output.recv() => match chunk {
-                Some(bytes) => log.output(bytes),
-                None => return,
-            },
-            () = tokio::time::sleep_until(deadline) => {
-                tracing::debug!("a script's output stays open after its exit");
-                return;
-            }
-        }
-    }
-}
-
-/// Both pipes into one queue, as they arrive.
-async fn pump_both(
-    stdout: impl AsyncRead + Unpin,
-    stderr: impl AsyncRead + Unpin,
-    sender: mpsc::Sender<Bytes>,
-) {
-    let out = pump(stdout, sender.clone());
-    let err = pump(stderr, sender);
-    let ((), ()) = tokio::join!(out, err);
-}
-
-/// One pipe: one buffer, split off per chunk, so a chunk is one allocation
-/// at most.
-async fn pump(mut stream: impl AsyncRead + Unpin, sender: mpsc::Sender<Bytes>) {
-    let mut buffer = BytesMut::with_capacity(CHUNK);
-    loop {
-        if buffer.capacity() < CHUNK {
-            buffer.reserve(CHUNK);
-        }
-        match stream.read_buf(&mut buffer).await {
-            Ok(0) | Err(_) => return,
-            Ok(_) => {
-                if sender.send(buffer.split().freeze()).await.is_err() {
-                    return;
-                }
-            }
-        }
     }
 }

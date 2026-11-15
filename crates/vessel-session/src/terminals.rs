@@ -30,6 +30,7 @@
 //!   with it on every platform.
 
 mod backoff;
+mod cleanup;
 mod handle;
 mod log;
 mod script;
@@ -40,6 +41,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub use backoff::{Backoff, MAX_RESTARTS, Retry, STABLE};
+pub use cleanup::{CleanupFact, CleanupObservation, CleanupReport};
 pub use handle::{InputError, Page, RestartError, TerminalHandle};
 pub use script::{ScriptStart, start_script};
 pub use shell::{ShellStart, start_shell};

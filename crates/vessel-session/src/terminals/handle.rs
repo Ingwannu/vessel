@@ -15,6 +15,8 @@ use crate::ring::{Follow, FollowError, Ring};
 /// What a terminal's actor shares with its handles.
 #[derive(Debug)]
 pub(crate) struct Shared {
+    /// The actor's actual completion; status and `ProcessLifetime` cannot mint it.
+    pub(super) cleanup: super::cleanup::Progress,
     pub(crate) info: watch::Sender<TerminalInfo>,
     pub(crate) ring: Mutex<Ring>,
     /// A shell's input; scripts take none.
@@ -104,6 +106,12 @@ impl TerminalHandle {
         let mut info = self.watch();
         // Fails only if the sender is gone, which `self` holds.
         let _ended = info.wait_for(|info: &TerminalInfo| !info.is_live()).await;
+    }
+
+    /// Observe the actual runner after final cleanup, with unproved facts explicit.
+    /// Waiting may outlive logical status; callers choose their own total deadline.
+    pub async fn cleanup(&self) -> super::CleanupObservation {
+        self.0.cleanup.observe().await
     }
 
     /// The running process's id (the root of its tree), if one runs.
