@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 # The native app's tracks (milestone 12): each a workspace of its own
 # under `spikes/`, so the gate neither builds them nor resolves their trees.
-exclude = ["spikes"]
+exclude = ["spikes", "patches/vt100"]
 
 [workspace.package]
 version = "0.1.0"

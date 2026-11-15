@@ -345,3 +345,17 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+
+## ADR 0095: shared terminal screen interpretation
+
+Add `vessel-terminal-screen` as a pure root leaf with no Vessel dependency,
+Tokio, PTY, harness or toolkit. It alone owns vt100 and translates engine cells
+and bounded capture rows. The exact MIT vt100 0.18.1 archive is vendored with
+its checksum/license and a numbered minimal parity patch list. This follows
+both-candidate measurement against Paseo's actual server engine, not dependency
+preference. `vessel-session` remains actor/channel/PTY ownership; its dependency
+edge lands with W17's consumer. Native view's edge and parser retirement land
+only when D1 switches to the passed facade. The transitional native parser is
+not claimed retired by this prerequisite package. No synthetic ANSI restoration
+may replace engine state: saved cursor, regions and modes must survive reflow.
