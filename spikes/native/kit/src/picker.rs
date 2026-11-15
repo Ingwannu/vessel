@@ -37,7 +37,7 @@ use std::rc::Rc;
 use gpui::prelude::*;
 use gpui::{
     AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, Pixels, SharedString,
-    Stateful, WeakFocusHandle, Window, canvas, div, px, svg,
+    Stateful, Window, canvas, div, px, svg,
 };
 
 use crate::assets::Glyph;
@@ -422,7 +422,7 @@ pub struct ComboboxState {
     /// list refreshed behind it), rather than staying on an index.
     highlighted_label: Option<SharedString>,
     focus: FocusHandle,
-    return_to: Option<WeakFocusHandle>,
+    return_to: crate::focus::ReturnFocus,
     search: TextField,
     header_leading: Option<Leading>,
     /// Where its trigger was last drawn, in the window.
@@ -464,7 +464,7 @@ impl ComboboxState {
             highlighted: None,
             highlighted_label: None,
             focus: cx.focus_handle(),
-            return_to: None,
+            return_to: crate::focus::ReturnFocus::default(),
             search,
             header_leading: None,
             anchor: Rc::new(Cell::new(None)),

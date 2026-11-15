@@ -27,3 +27,9 @@ handle. These are pending native tests, not an assertion that an X11/macOS/
 Windows first-use capture or OS keyboard integration has passed. The old failed
 Linux root-F5 observations remain retained, and the final F1 package must rerun
 that actual input evidence. No area-local focus workaround was introduced.
+
+The current consumer delegates to G4's exact11fba709 shared ReturnFocus after
+adopting only its approved producer commits. No second generic weak-opener
+policy remains. Combobox selects its list/search focus owner and invokes the
+same helper only after final close. Combined-head narrow checks and actual OS
+first-use evidence remain owed; G4's producer pass is not borrowed as those.

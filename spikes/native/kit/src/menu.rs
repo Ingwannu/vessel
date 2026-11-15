@@ -43,7 +43,7 @@ pub use draw::{Content, Width, menu, menu_right, menu_with};
 pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
 pub use trigger::{TriggerProfile, TriggerSizing, trigger, trigger_with};
 
-use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, WeakFocusHandle, Window};
+use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
 use std::rc::Rc;
 
 /// A menu's state, kept by the screen that shows it.
@@ -52,7 +52,7 @@ pub struct MenuState {
     at: Option<Placement>,
     highlighted: Option<usize>,
     focus: FocusHandle,
-    return_to: Option<WeakFocusHandle>,
+    return_to: crate::focus::ReturnFocus,
 }
 
 impl MenuState {
@@ -62,7 +62,7 @@ impl MenuState {
             at: None,
             highlighted: None,
             focus: cx.focus_handle(),
-            return_to: None,
+            return_to: crate::focus::ReturnFocus::default(),
         }
     }
 
@@ -89,19 +89,12 @@ impl MenuState {
         self.restore_focus(window, cx);
     }
     fn capture_return_focus(&mut self, window: &Window, cx: &App) {
-        if !self.is_open() && !self.focus.is_focused(window) {
-            self.return_to = window.focused(cx).map(|focus| focus.downgrade());
+        if !self.is_open() {
+            self.return_to.remember(window, cx);
         }
     }
     fn restore_focus(&mut self, window: &mut Window, cx: &mut App) {
-        let previous = self.return_to.take().and_then(|weak| weak.upgrade());
-        if !self.focus.is_focused(window) {
-            return;
-        }
-        match previous {
-            Some(focus) => focus.focus(window, cx),
-            None => window.blur(cx),
-        }
+        self.return_to.restore_if_owned(&self.focus, window, cx);
     }
     fn restore_after_choice(&mut self, window: &mut Window, cx: &mut App) {
         if !self.is_open() {

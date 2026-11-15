@@ -36,10 +36,12 @@ or parent/neighbor precedence. ProviderRow, modal layer and passive spacer remai
 separate requests and are not implemented by this range.
 
 Weak opener restoration and its actual window-key regressions are included as
-current source, not an assertion that historical Linux F5 HOLD is settled. G4
-owns the forthcoming generic ReturnFocus helper; the private menu implementation
-will consume that reviewed helper instead of creating another generic primitive.
-No dialog renderer is edited. Linux first-use/input captures, new-base UI and
+current source, not an assertion that historical Linux F5 HOLD is settled. G4's exact11fba709 ReturnFocus helper is now consumed instead of retaining a
+private weak-opener implementation. Capture is once per open cycle, and actual
+close consumes that cycle even if a newer field owns focus. Removed, self and
+subtree openers are rejected by the shared helper.
+Only G4's approved captured-dismiss/focus producer commits are adopted; no dialog
+renderer is modified by G2. Linux first-use/input captures, new-base UI and
 all consuming Git/F1 behavior remain unverified until their feature packages.
 
 A rendered headless regression activates KeepOpen by pointer and keyboard,

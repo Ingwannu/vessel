@@ -8,7 +8,7 @@
 //!   restore after final choices only while this list/search still owns focus.
 //! - Alternative: each area manually focuses its root after every dismissal.
 //!   That duplicates policy and steals focus from a newly opened field.
-//! - Cost: one weak handle per list; no renderer or geometry duplication.
+//! - Cost: G4's shared ReturnFocus policy; no renderer or geometry duplication.
 use super::ComboboxState;
 use gpui::{App, Window};
 impl ComboboxState {
@@ -19,25 +19,25 @@ impl ComboboxState {
         self.restore_after_choice(window, cx);
     }
     fn owns_focus(&self, window: &Window, cx: &App) -> bool {
-        self.focus.is_focused(window) || self.search.focus_handle(cx).is_focused(window)
+        self.focus.contains_focused(window, cx)
+            || self.search.focus_handle(cx).contains_focused(window, cx)
     }
     pub(super) fn capture_return_focus(&mut self, window: &Window, cx: &App) {
         if !self.is_open() && !self.owns_focus(window, cx) {
-            self.return_to = window.focused(cx).map(|focus| focus.downgrade());
+            self.return_to.remember(window, cx);
         }
     }
     pub(super) fn restore_after_choice(&mut self, window: &mut Window, cx: &mut App) {
         if self.is_open() {
             return;
         }
-        let previous = self.return_to.take().and_then(|weak| weak.upgrade());
-        if !self.owns_focus(window, cx) {
-            return;
-        }
-        match previous {
-            Some(focus) => focus.focus(window, cx),
-            None => window.blur(cx),
-        }
+        let search = self.search.focus_handle(cx);
+        let owner = if search.contains_focused(window, cx) {
+            search
+        } else {
+            self.focus.clone()
+        };
+        self.return_to.restore_if_owned(&owner, window, cx);
     }
 }
 #[cfg(test)]
