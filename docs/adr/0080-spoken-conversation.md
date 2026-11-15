@@ -917,3 +917,43 @@ hash must accompany results. Capture stdout/stderr with finite time/byte bounds;
 network remains disabled and all privacy/reset/cancellation checks still apply.
 A licensed labelled speech fixture set needs its own source/licence/hashes
 before any precision/recall claim or acceptance of acoustic parity.
+
+### Windows pre-environment telemetry ordering remains a load gate
+
+Source-only investigation after selecting A1 found a qualification gap; it does
+not change the allowed offline dependency preparation/compile sequence.
+The exact retained ort-rc.15 `src/environment.rs` is22542 bytes, SHA256
+f3981bcddc584c6437c43a3303df2145c963c2be8a3ac918487d434ad60c755c.
+Its builder creates the environment (lines529–582), then applies
+`with_telemetry(false)` via DisableTelemetryEvents (586–590). A custom logger
+is installed at environment creation, but does not itself disable platform ETW.
+These source bytes were read into bounded memory from the already verified
+archive; no native code or model was loaded or extracted for this inspection.
+
+At the candidate native source commit33ca9628233dc8f002435e868d4c2e9f82766ca1,
+[Environment::Initialize](https://github.com/microsoft/onnxruntime/blob/33ca9628233dc8f002435e868d4c2e9f82766ca1/onnxruntime/core/session/environment.cc#L352)
+calls startup LogProcessInfo before environment creation returns. The
+[Windows implementation](https://github.com/microsoft/onnxruntime/blob/33ca9628233dc8f002435e868d4c2e9f82766ca1/onnxruntime/core/platform/windows/telemetry.cc#L130)
+starts enabled, registers an ETW provider, and gates process-info emission on
+provider registration and its enabled flag. Thus the builder's later disable
+is not proof that no startup event could precede it. This is a source ordering
+inference, not an observed Windows event, network transmission or binary ABI
+attestation; the actual host's ETW consumer state has not been inspected.
+
+The pinned [C API implementation](https://github.com/microsoft/onnxruntime/blob/33ca9628233dc8f002435e868d4c2e9f82766ca1/onnxruntime/core/session/onnxruntime_c_api.cc#L280)
+currently ignores the environment argument when disabling telemetry, but that
+does not make a null argument a documented safe Rust initialization contract.
+Do not introduce an unsafe/null-pointer call, patch an official binary, depend
+on the operator's ETW settings, or use a network-isolated test as a substitute
+for resolving this ordering. No Vessel-side safe pre-environment disable path
+has been established.
+
+Before native Windows loading, the separate V3 loader checkpoint must settle
+this startup boundary with a supported, reviewed initialization mechanism or
+another explicitly reviewed asset/backend decision. A telemetry-free native
+rebuild would require a new exact asset/build closure, hashes and notices; it
+is not admitted by the current positive manifest. The documented B fallback
+may be reconsidered if this blocks the Windows load gate, under the existing
+coordinator ruling; it is not automatically selected or provisioned. A1's
+compile-only approval, full post-initialization telemetry disable, discard-only
+logger, and later CPU/model/schema/resource/privacy gates remain distinct.
