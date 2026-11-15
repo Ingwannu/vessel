@@ -297,6 +297,40 @@ pub(super) fn add_form(
 /// Reuse the form renderer for a fixed-target onboarding visit, without rendering
 /// Settings' project list or inferring a selected host from it.
 #[must_use]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "onboarding consumes this producer after source review"
+    )
+)]
+pub(crate) fn for_connection(
+    shell: &Shell,
+    context: &vessel_app_view::connection::ConnectionContext,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Option<Div> {
+    if shell
+        .project_connection(context.machine().as_str())
+        .as_ref()
+        != Some(context)
+        || shell.areas.workspace.page.form_context.as_ref() != Some(context)
+    {
+        return None;
+    }
+    let host = Name::parse(context.machine().as_str()).ok()?;
+    for_target(
+        shell,
+        &ProjectTarget::new(host, context.node()),
+        tokens,
+        compact,
+        cx,
+    )
+}
+
+/// Legacy local renderer; cross-area callers retain a full connection context.
+#[must_use]
 pub(crate) fn for_target(
     shell: &Shell,
     target: &ProjectTarget,
@@ -346,7 +380,11 @@ fn draw_form(
         .form_host
         .as_ref()
         .zip(state.form_node)
-        .is_some_and(|(host, node)| shell.project_node(host.as_str()) == Some(node));
+        .is_some_and(|(host, node)| {
+            shell.project_node(host.as_str()) == Some(node)
+                && state.form_context.is_some()
+                && state.form_context == shell.project_connection(host.as_str())
+        });
     let ready = bound
         && state.actions.pending().is_none()
         && !folder.is_empty()

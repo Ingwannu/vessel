@@ -75,6 +75,19 @@ pub enum ProjectSetupReadiness {
     Failed,
 }
 
+/// Onboarding's decision from a current admitted list and settled manual work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectInventory {
+    /// The current list or manual operation has not settled.
+    Pending,
+    /// Admission/read/manual work failed or the empty list is incomplete.
+    Unavailable,
+    /// A complete authoritative list contains no projects.
+    Empty,
+    /// The admitted node has at least one project.
+    Existing,
+}
+
 /// A transport result settles tracking independently of which form is now visible.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectSettlement {

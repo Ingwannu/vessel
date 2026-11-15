@@ -221,6 +221,9 @@ mod tests {
                 shell.setup_readiness(&host, node),
                 vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Ready
             );
+            shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx).unwrap();
+            let tokens = vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark);
+            assert!(super::super::project_form::for_connection(shell, &context, &tokens, false, cx).is_some());
             let next = epochs
                 .admit(
                     vessel_app_view::connection::MachineKey::from_book(host.as_str()),
@@ -228,6 +231,8 @@ mod tests {
                 )
                 .unwrap();
             shell.fleet.machines[0].connection_epoch = Some(next.epoch());
+            assert!(super::super::project_form::for_connection(shell, &context, &tokens, false, cx).is_none());
+            assert!(super::super::project_form::for_connection(shell, &next, &tokens, false, cx).is_none());
             assert_eq!(shell.setup_readiness_on(&context), vessel_app_view::workspace::projects::actions::ProjectSetupReadiness::Failed);
             assert_eq!(shell.open_add_for_connection(vessel_app_view::workspace::words::AddForm::Folder, &context, window, cx), Err(vessel_app_view::workspace::projects::navigation::NavigationRefusal::HostUnavailable));
             assert_eq!(

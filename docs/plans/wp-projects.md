@@ -420,3 +420,12 @@ uses the shared Machine constructor, retaining new base admission fields.
 - Impact: lists are hydrated only by the current admission, forms and removal confirmations retain their opening admission, and a retired in-flight write is OutcomeUnknown rather than a claim of rollback. No automatic replay occurs.
 
 The line lock fix dd13ce37 is merged. The queued stale-lock check023 was cancelled via its verified waiting ticket and replaced once on ad4de37f; this preserves that historical check as cancelled, not a compiler failure. New admission code is later and still requires exact changed-head checks. Clone observation uses the same selected connection and a shared bounded call budget, without introducing another node registry or inferring ownership from paths.
+
+The fixed onboarding renderer is `project_form::for_connection`; it requires
+both the current shared admission and the draft's captured admission. Even a
+same-node replacement cannot display its predecessor's form. The legacy local
+renderer also disables submission when the physical admission no longer matches.
+`Shell::project_inventory_on` returns Pending/Unavailable/Empty/Existing from the
+same admitted cache plus manual-work readiness. An empty pending, failed or
+truncated list never chooses Empty. These are source-only additions until their
+exact remote checks pass; checked-suggestion acknowledgement is still absent.

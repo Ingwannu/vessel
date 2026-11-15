@@ -8,6 +8,41 @@ use vessel_app_view::{
 use vessel_proto::{NodeId, workspace::ProjectState};
 
 impl Shell {
+    /// A stale Ready cache and an empty pending read never choose an onboarding path.
+    #[must_use]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "onboarding consumes this producer after source review"
+        )
+    )]
+    pub(crate) fn project_inventory_on(
+        &self,
+        context: &vessel_app_view::connection::ConnectionContext,
+    ) -> vessel_app_view::workspace::projects::actions::ProjectInventory {
+        use vessel_app_view::workspace::projects::actions::ProjectInventory;
+        match self.setup_readiness_on(context) {
+            ProjectSetupReadiness::Pending => ProjectInventory::Pending,
+            ProjectSetupReadiness::Failed => ProjectInventory::Unavailable,
+            ProjectSetupReadiness::Ready => match self
+                .areas
+                .workspace
+                .projects
+                .get(context.machine().as_str())
+            {
+                Some(ProjectsView::Ready(list)) if !list.projects.is_empty() => {
+                    ProjectInventory::Existing
+                }
+                Some(ProjectsView::Ready(list)) if !list.more => ProjectInventory::Empty,
+                Some(ProjectsView::Loading) | None => ProjectInventory::Pending,
+                Some(ProjectsView::Ready(_) | ProjectsView::Failed(_) | ProjectsView::Older) => {
+                    ProjectInventory::Unavailable
+                }
+            },
+        }
+    }
+
     /// Readiness is scoped to the caller's actual connection, including reconnects.
     #[must_use]
     #[cfg_attr(
@@ -169,7 +204,62 @@ mod tests {
                 shell.setup_readiness(&host, node),
                 ProjectSetupReadiness::Ready
             );
+            use vessel_app_view::workspace::projects::actions::ProjectInventory;
+            assert_eq!(
+                shell.project_inventory_on(&context),
+                ProjectInventory::Existing
+            );
+            let target = vessel_app_view::workspace::projects::navigation::ProjectTarget::new(
+                host.clone(),
+                node,
+            );
+            let key = shell
+                .areas
+                .workspace
+                .project_reads
+                .begin_on(target.clone(), context.clone())
+                .unwrap();
+            assert_eq!(
+                shell.project_inventory_on(&context),
+                ProjectInventory::Pending
+            );
+            shell.projects_read(
+                host.as_str(),
+                &key,
+                Ok(ProjectList {
+                    git: GitSupport::Missing,
+                    projects: Vec::new(),
+                    more: true,
+                }),
+            );
+            assert_eq!(
+                shell.project_inventory_on(&context),
+                ProjectInventory::Unavailable
+            );
+            let key = shell
+                .areas
+                .workspace
+                .project_reads
+                .begin_on(target, context.clone())
+                .unwrap();
+            shell.projects_read(
+                host.as_str(),
+                &key,
+                Ok(ProjectList {
+                    git: GitSupport::Missing,
+                    projects: Vec::new(),
+                    more: false,
+                }),
+            );
+            assert_eq!(
+                shell.project_inventory_on(&context),
+                ProjectInventory::Empty
+            );
             shell.fleet.machines[0].node = Some(NodeId::random());
+            assert_eq!(
+                shell.project_inventory_on(&context),
+                ProjectInventory::Unavailable
+            );
             assert_eq!(
                 shell.setup_readiness(&host, node),
                 ProjectSetupReadiness::Failed
