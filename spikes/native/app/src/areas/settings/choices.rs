@@ -83,7 +83,11 @@ pub(crate) fn label(list: List, shell: &Shell) -> String {
         List::Interface => words.points(appearance.interface_size.get()),
         List::Code => words.points(appearance.code_size.get()),
         List::Width => words.width(appearance.content_width).to_owned(),
-        List::Display => words.display(appearance.conversation).to_owned(),
+        List::Display => shell
+            .words
+            .chat()
+            .display_choice(appearance.conversation)
+            .to_owned(),
     }
 }
 
@@ -154,7 +158,7 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
             .into_iter()
             .map(|display| {
                 row(
-                    words.display(display).to_owned(),
+                    shell.words.chat().display_choice(display).to_owned(),
                     display == appearance.conversation,
                 )
             })
@@ -190,3 +194,7 @@ pub(crate) fn change(list: List, index: usize) -> Option<PreferenceChange> {
             .map(PreferenceChange::Conversation),
     }
 }
+
+#[cfg(test)]
+#[path = "choices/language_tests.rs"]
+mod language_tests;
