@@ -293,6 +293,12 @@ pub struct SessionInfo {
     #[serde(default, skip_serializing_if = "SessionLabels::is_empty")]
     #[cfg_attr(feature = "ts", ts(as = "Option<SessionLabels>", optional))]
     pub labels: SessionLabels,
+    /// Who produced [`title`](Self::title) (ADR 0062). Absent means
+    /// [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
+    /// build does not speak the field yet, or the row was stored before
+    /// it. A `renamed` event carries the same origin.
+    #[serde(default, skip_serializing_if = "crate::title::TitleOrigin::is_unknown")]
+    pub title_origin: crate::title::TitleOrigin,
     /// What a person marked on it: pinned, archived, unread (protocol 10,
     /// ADR 0026). Kept by the node, so every client sees the same; left
     /// out when nothing is marked, and absent from older nodes.
@@ -370,6 +376,11 @@ impl SessionInfo {
             profile: spec.profile.clone(),
             title: spec.title.clone(),
             labels: spec.labels.clone(),
+            title_origin: if spec.title.is_some() {
+                crate::title::TitleOrigin::Typed
+            } else {
+                crate::title::TitleOrigin::Unknown
+            },
             spec,
             created_by: Creator::Owner,
             status: SessionStatus::Starting,

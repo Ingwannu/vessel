@@ -823,8 +823,9 @@ The documents-only contract adds neither an edge nor process-control code.
   plist's comparison; refusing paths narrows valid OS paths; repeated passes
   obscure the invariant.
 - Selected approach: emit comment characters once, inserting a space before
-  a hyphen that would follow another, and after a final hyphen. Already valid
-  hints remain byte-identical. XML text values still use their separate encoder.
+  a hyphen that would follow another, and after a final hyphen. Every normal
+  undo hint remains byte-identical; a raw hint ending in a hyphen gains a
+  separator. XML text values still use their separate encoder.
 - Why this approach: neither adjacency nor a terminal hyphen can survive
   emission, independently of the length or surrounding input. Existing head
   assertions and normal service files need no expectation or format change.
@@ -836,3 +837,17 @@ The documents-only contract adds neither an edge nor process-control code.
   the Python distribution's standard library, not an added package.
   Systemd comments cannot be ended by a hyphen sequence; their line boundary
   is protected by the existing control-character refusal before rendering.
+
+
+## Local observation handoff extraction
+
+The existing lock waiter's dedicated thread and borrowed oneshot receive
+are separated from its file operation before adding another caller. This is
+a behavior-preserving extraction: thread name, dropped-receiver diagnostic,
+lock open/acquire/unlock order, result and source mapping, cancellation and
+all existing tests remain unchanged. The diagnostic stays in its original
+module through the completion callback, preserving its tracing target as
+well as its message. The extracted private helper has only
+the actual lock-release operation; later operation kinds arrive with their
+callers. It reads no environment and owns no file-format or node policy.
+The subsequent deadline fix is separate from this extraction (P2).
