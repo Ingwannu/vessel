@@ -30,36 +30,19 @@ impl Render for Probe {
 }
 
 #[gpui::test]
-fn unsupported_zoom_is_hidden_and_refused_without_changing_native_scale(cx: &mut TestAppContext) {
+fn production_zoom_is_exposed_through_the_shared_desktop_capability(cx: &mut TestAppContext) {
     crate::shell::language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(crate::shell::language_tests::shell_without_io);
-    shell.update_in(cx, |shell, window, cx| {
-        let scale = window.scale_factor();
+    shell.update(cx, |shell, _cx| {
         for action in [
             DesktopAction::ZoomIn,
             DesktopAction::ZoomOut,
             DesktopAction::ActualSize,
         ] {
-            assert!(!Shell::desktop_shortcut_supported(action));
-            assert!(!shell.run_desktop_shortcut(action, window, cx));
-        }
-        assert_eq!(window.scale_factor(), scale);
-        assert!(rows(shell, Group::All).iter().all(|row| match row.item {
-            Item::Desktop(action) => Shell::desktop_shortcut_supported(action),
-            Item::Edit(_)
-            | Item::Reload
-            | Item::ForceReload
-            | Item::Minimize
-            | Item::Maximize
-            | Item::Quit
-            | Item::Help(_) => true,
-        }));
-        for action in [
-            DesktopAction::NewWindow,
-            DesktopAction::CloseWindow,
-            DesktopAction::Fullscreen,
-        ] {
             assert!(Shell::desktop_shortcut_supported(action));
+            assert!(rows(shell, Group::View).iter().any(|row| {
+                matches!(row.item, Item::Desktop(candidate) if candidate == action)
+            }));
         }
     });
 }

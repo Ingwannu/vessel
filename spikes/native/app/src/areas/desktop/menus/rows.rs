@@ -93,6 +93,9 @@ fn view(shell: &Shell) -> Vec<Row> {
     vec![
         Row::new(Item::Reload, w.reload()).grouped(),
         Row::new(Item::ForceReload, w.force_reload()),
+        Row::new(Item::Desktop(DesktopAction::ZoomIn), w.zoom_in()).grouped(),
+        Row::new(Item::Desktop(DesktopAction::ZoomOut), w.zoom_out()),
+        Row::new(Item::Desktop(DesktopAction::ActualSize), w.actual_size()),
         Row::new(Item::Desktop(DesktopAction::Fullscreen), w.fullscreen()).grouped(),
     ]
 }

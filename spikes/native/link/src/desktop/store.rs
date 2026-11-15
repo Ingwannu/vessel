@@ -8,7 +8,8 @@ use vessel_app_view::desktop::window::WindowState;
 
 use super::DesktopError;
 
-const VERSION: u16 = 1;
+const LEGACY_VERSION: u16 = 1;
+const VERSION: u16 = 2;
 const DOCUMENT_LIMIT: u64 = 64 * 1024;
 
 /// Explicit private storage root provided by the host binary.
@@ -61,7 +62,7 @@ impl Store {
             .into());
         }
         let document: Document = serde_json::from_reader(file)?;
-        if document.version != VERSION {
+        if !matches!(document.version, LEGACY_VERSION | VERSION) {
             return Err(DesktopError::NewerDocument);
         }
         Ok(Some(document.state))
@@ -102,6 +103,48 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct Temp(PathBuf);
+    impl Drop for Temp {
+        fn drop(&mut self) {
+            let _cleanup = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn legacy_geometry_gains_validated_zoom_without_losing_bounds_or_replacing_bad_state() {
+        use vessel_app_view::desktop::zoom::{ZoomChange, ZoomLevel};
+        let root = Temp(std::env::temp_dir().join(format!(
+            "vessel-window-zoom-{}",
+            vessel_proto::SessionId::random()
+        )));
+        std::fs::create_dir(&root.0).unwrap();
+        let path = root.0.join("window-state.json");
+        let store = Store::new(root.0.clone()).unwrap();
+        std::fs::write(
+            &path,
+            r#"{"version":1,"state":{"position":null,"width":900,"height":600}}"#,
+        )
+        .unwrap();
+        let original = store.load_window().unwrap().unwrap();
+        assert_eq!(original.zoom(), ZoomLevel::default());
+        assert_eq!(original.dimensions(), (900.0, 600.0));
+        let mut zoom = original.zoom();
+        zoom.adjust(ZoomChange::In);
+        let changed = original.with_zoom(zoom);
+        store.save_window(changed).unwrap();
+        assert_eq!(store.load_window().unwrap(), Some(changed));
+        let document: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(document["version"], 2);
+        assert_eq!(document["state"]["zoom"], 1);
+        let invalid =
+            r#"{"version":2,"state":{"position":null,"width":900,"height":600,"zoom":64}}"#;
+        std::fs::write(&path, invalid).unwrap();
+        assert!(store.load_window().is_err());
+        assert!(store.save_window(changed).is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), invalid);
+    }
 
     #[test]
     fn private_atomic_round_trip_preserves_an_unreadable_document() {

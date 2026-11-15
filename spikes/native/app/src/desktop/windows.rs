@@ -155,6 +155,8 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
     let primary = matches!(placement, Placement::Primary);
     match cx.open_window(options, move |window, cx| {
         window.on_window_should_close(cx, may_close);
+        // No Shell observer exists yet, so restoration cannot reborrow it.
+        window.set_zoom(state.zoom().factor(), cx);
         crate::motion::note_renderer(window, cx);
         let shell = cx.new(|cx| Shell::new(prefs, language, words, window, cx));
         cx.default_global::<Registry>().records.push(WindowRecord {
@@ -163,6 +165,7 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
             close: WindowClose::Idle,
         });
         shell.update(cx, |shell, cx| {
+            shell.areas.desktop.zoom = state.zoom();
             cx.observe_window_activation(window, |shell, window, _cx| {
                 if window.is_window_active() {
                     crate::update::check_on_focus(shell);
@@ -220,13 +223,13 @@ pub(super) fn deliver(launch: Launch, cx: &mut App) {
     }
 }
 
-pub(crate) fn watch_window(_shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
-    remember(window, cx);
-    cx.observe_window_bounds(window, |_shell, window, cx| remember(window, cx))
+pub(crate) fn watch_window(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    remember(shell, window, cx);
+    cx.observe_window_bounds(window, |shell, window, cx| remember(shell, window, cx))
         .detach();
 }
 
-fn remember(window: &Window, cx: &mut App) {
+fn remember(shell: &Shell, window: &Window, cx: &mut App) {
     let native = window.window_bounds();
     let bounds = native.get_bounds();
     let presentation = match native {
@@ -242,5 +245,6 @@ fn remember(window: &Window, cx: &mut App) {
     ) else {
         return;
     };
-    cx.global_mut::<Desktop>().remember(state);
+    cx.global_mut::<Desktop>()
+        .remember(state.with_zoom(shell.areas.desktop.zoom));
 }

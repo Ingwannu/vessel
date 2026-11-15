@@ -33,6 +33,8 @@ pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
     edit_recipient: Option<gpui::WeakFocusHandle>,
     #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) zoom: vessel_app_view::desktop::zoom::ZoomLevel,
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) preferences: Option<vessel_app_link::desktop::preferences::Client>,
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) receipts: std::cell::RefCell<crate::desktop::preferences::ReceiptCapture>,
@@ -59,6 +61,8 @@ impl DesktopArea {
             menu_cycle: std::rc::Rc::new(()),
             #[cfg(not(target_arch = "wasm32"))]
             edit_recipient: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            zoom: vessel_app_view::desktop::zoom::ZoomLevel::default(),
             #[cfg(not(target_arch = "wasm32"))]
             preferences: None,
             #[cfg(not(target_arch = "wasm32"))]

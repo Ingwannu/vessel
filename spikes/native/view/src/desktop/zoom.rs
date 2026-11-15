@@ -1,5 +1,7 @@
 //! Per-window zoom follows Electron's half-level steps, with finite endpoints.
 
+use serde::{Deserialize, Deserializer, Serialize};
+
 const MIN_STEP: i8 = -16;
 const MAX_STEP: i8 = 16;
 const HALF_LEVEL: f32 = 0.5;
@@ -17,8 +19,20 @@ pub enum ZoomChange {
 }
 
 /// The model stores steps instead of accumulating floating-point drift.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
 pub struct ZoomLevel(i8);
+
+impl<'de> Deserialize<'de> for ZoomLevel {
+    fn deserialize<D: Deserializer<'de>>(decoder: D) -> Result<Self, D::Error> {
+        let step = i8::deserialize(decoder)?;
+        if (MIN_STEP..=MAX_STEP).contains(&step) {
+            Ok(Self(step))
+        } else {
+            Err(serde::de::Error::custom("invalid window zoom level"))
+        }
+    }
+}
 
 impl ZoomLevel {
     /// Repeated input saturates at the reference's minimum and maximum levels.
@@ -40,6 +54,18 @@ impl ZoomLevel {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stored_half_steps_are_bounded_and_round_trip_without_float_drift() {
+        let mut zoom = ZoomLevel::default();
+        zoom.adjust(ZoomChange::In);
+        let encoded = serde_json::to_string(&zoom).unwrap();
+        assert_eq!(encoded, "1");
+        assert_eq!(serde_json::from_str::<ZoomLevel>(&encoded).unwrap(), zoom);
+        for invalid in ["17", "-17", "1.5", "null"] {
+            assert!(serde_json::from_str::<ZoomLevel>(invalid).is_err());
+        }
+    }
 
     #[test]
     fn half_steps_reverse_reset_and_saturate_without_accumulated_drift() {

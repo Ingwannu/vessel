@@ -2,6 +2,7 @@
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
+use vessel_app_view::desktop::zoom::ZoomChange;
 use vessel_app_view::shortcuts::desktop::DesktopAction;
 
 impl Shell {
@@ -22,15 +23,18 @@ impl Shell {
         self.areas.desktop.menu_cycle = std::rc::Rc::new(());
     }
 
-    /// GPUI has no production whole-viewport zoom seam yet; never advertise a test helper.
+    /// Capabilities use the fork's production window zoom, preserving native DPI.
     #[must_use]
     pub(crate) fn desktop_shortcut_supported(action: DesktopAction) -> bool {
-        match action {
-            DesktopAction::NewWindow | DesktopAction::CloseWindow | DesktopAction::Fullscreen => {
-                true
-            }
-            DesktopAction::ZoomIn | DesktopAction::ZoomOut | DesktopAction::ActualSize => false,
-        }
+        matches!(
+            action,
+            DesktopAction::NewWindow
+                | DesktopAction::CloseWindow
+                | DesktopAction::Fullscreen
+                | DesktopAction::ZoomIn
+                | DesktopAction::ZoomOut
+                | DesktopAction::ActualSize
+        )
     }
 
     /// Native menu clicks use exactly the same operation as matched shortcuts.
@@ -47,10 +51,38 @@ impl Shell {
             DesktopAction::NewWindow => crate::desktop::open_additional(cx),
             DesktopAction::CloseWindow => vessel_app_kit::chrome::request_close(window, cx),
             DesktopAction::Fullscreen => window.toggle_fullscreen(),
-            DesktopAction::ZoomIn | DesktopAction::ZoomOut | DesktopAction::ActualSize => {
-                return false;
-            }
+            DesktopAction::ZoomIn => Self::queue_desktop_zoom(ZoomChange::In, window, cx),
+            DesktopAction::ZoomOut => Self::queue_desktop_zoom(ZoomChange::Out, window, cx),
+            DesktopAction::ActualSize => Self::queue_desktop_zoom(ZoomChange::Reset, window, cx),
         }
         true
+    }
+
+    fn queue_desktop_zoom(change: ZoomChange, window: &Window, cx: &mut Context<'_, Self>) {
+        let handle = window.window_handle();
+        let recipient = cx.entity().downgrade();
+        // set_zoom synchronously runs bounds observers, which update this Shell.
+        // Apply after its mutable borrow ends, then recheck both root identity
+        // and recorder admission before changing the model or platform window.
+        cx.defer(move |cx| {
+            let _closed = handle.update(cx, |root, window, cx| {
+                let Some(shell) = recipient.upgrade() else {
+                    return;
+                };
+                if !vessel_app_kit::root_contains_view(&root, shell.entity_id(), cx) {
+                    return;
+                }
+                let factor = shell.update(cx, |shell, _cx| {
+                    if !shell.desktop_commands_admitted() {
+                        return None;
+                    }
+                    shell.areas.desktop.zoom.adjust(change);
+                    Some(shell.areas.desktop.zoom.factor())
+                });
+                if let Some(factor) = factor {
+                    window.set_zoom(factor, cx);
+                }
+            });
+        });
     }
 }

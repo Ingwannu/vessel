@@ -29,8 +29,8 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is package line `82ca07a7` (base 8e, native 1484/0/2),
-merged at `e09426e9`. It contains the reviewed shared popover, pane/query seams, attention
+latest application base is package line `db42d9c5` (base 9, native 1510/0/2),
+merged at `08aea5e2`. It contains the reviewed shared popover, pane/query seams, attention
 values and picker admission. The link's existing SavePrefs fallback was extracted
 by its owner; desktop native interception still owns its sole canonical writer.
 No node head was merged directly into this application tree. Existing
@@ -183,12 +183,28 @@ focused-field F5 proof remains open.
 The app action guard is retained but is not claimed to protect dismissal; this
 package does not edit a second menu renderer or work around it by reopening.
 
-Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Pure
-half-level zoom rules remain modeled, but production Zoom is unsupported and
-hidden from menus under the coordinator ruling: set_scale_factor is test-only,
-and set_rem_size cannot scale the kit’s px geometry. The lead owns a future
-per-window viewport zoom seam covering layout, paint, hit testing and native DPI.
-W22 uses desktop_shortcut_supported to avoid advertising these actions and owns the sole
+Shell::run_desktop_shortcut is shared by menu and keyboard consumers. Base9 now
+contains the lead's production Window::set_zoom/zoom API for layout, paint and
+hit testing on top of native DPI. The app uses its existing half-level model;
+the fork clamps the extreme lower step to its0.25 minimum (maximum5). No rem
+or test-only scale substitute is used. Native/window menu zoom entries now use
+the same adapter, with per-window state; additional windows start at actual size.
+The first window remembers its validated integer step in window-state version2;
+version1 loads at actual size and migrates on the existing atomic write path.
+Unreadable, invalid zoom and newer files are preserved under launch-only policy.
+
+The production bounds observers synchronously update Shell. Therefore the zoom
+operation defers until the invoking mutable Shell borrow ends, verifies the same
+root via W7's minimal993 helper, rechecks the one recorder predicate, adjusts the
+model, ends that borrow and then calls set_zoom. This avoids observer reentry and
+refuses an old queued action after root replacement. The root helper is staged
+provisionally in this owner tree; no W7 moving branch or runtime approval is used.
+The new pure/store and actual adapter/independent-window regressions are installed
+but not executed yet. IME candidate position and native window menus at zoom !=1
+remain unverified in a real Linux session, as the lead records.
+
+W22 keeps zoom extension keys withheld until its announced-base/checked-adapter
+union. It uses desktop_shortcut_supported and owns the sole
 matcher/default table; CloseTab falls back to CloseWindow only after layout is
 Unhandled, and opening/refusing a close confirmation counts as handled.
 
@@ -309,6 +325,10 @@ Its first App-only run23 stopped before tests: the App did not declare serde_jso
 for decoding the actual file. Add the existing workspace dependency only under
 dev-dependencies and align its one lockfile edge, with no new package or runtime
 dependency. Do not substitute manual JSON string parsing or a second reader/store.
+Corrected App-only run24 on exact7d70dc15 passed118/0/2, including this actual
+two-window normal receipt path and physical failure/success sequence.13 pending
+owner API warnings remain, so no App strict/full Settings/native OS verdict is
+inferred. The later base9/zoom/source-root-helper union is not covered by run24.
 
 Future sidebar bands are not yet adopted from S2's unchecked source. Header and
 Footer navigation edits must merge independently. Callout dismissal edits are set

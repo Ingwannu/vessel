@@ -1,5 +1,6 @@
 //! Reachability rules keep restored windows usable after a monitor is removed.
 
+use super::zoom::ZoomLevel;
 use serde::{Deserialize, Serialize};
 
 /// Paseo's default width in device-independent pixels.
@@ -62,6 +63,7 @@ pub struct WindowState {
     width: f64,
     height: f64,
     presentation: Presentation,
+    zoom: ZoomLevel,
 }
 
 #[derive(Deserialize)]
@@ -72,12 +74,15 @@ struct StoredState {
     height: f64,
     #[serde(default)]
     presentation: Presentation,
+    #[serde(default)]
+    zoom: ZoomLevel,
 }
 
 impl<'de> Deserialize<'de> for WindowState {
     fn deserialize<D: serde::Deserializer<'de>>(decoder: D) -> Result<Self, D::Error> {
         let raw = StoredState::deserialize(decoder)?;
         Self::new(raw.position, raw.width, raw.height, raw.presentation)
+            .map(|state| state.with_zoom(raw.zoom))
             .ok_or_else(|| serde::de::Error::custom("invalid window geometry"))
     }
 }
@@ -89,6 +94,7 @@ impl Default for WindowState {
             width: DEFAULT_WIDTH,
             height: DEFAULT_HEIGHT,
             presentation: Presentation::Windowed,
+            zoom: ZoomLevel::default(),
         }
     }
 }
@@ -113,6 +119,7 @@ impl WindowState {
             width: width.max(MIN_WIDTH),
             height: height.max(MIN_HEIGHT),
             presentation,
+            zoom: ZoomLevel::default(),
         })
     }
 
@@ -130,6 +137,18 @@ impl WindowState {
     #[must_use]
     pub const fn presentation(self) -> Presentation {
         self.presentation
+    }
+
+    /// Authored half-steps are independent of the platform display's DPI.
+    #[must_use]
+    pub const fn zoom(self) -> ZoomLevel {
+        self.zoom
+    }
+
+    /// Keep the same validated geometry with an admitted per-window zoom.
+    #[must_use]
+    pub const fn with_zoom(self, zoom: ZoomLevel) -> Self {
+        Self { zoom, ..self }
     }
 
     /// Keep the largest sufficiently visible overlap; otherwise ask the OS to place.
