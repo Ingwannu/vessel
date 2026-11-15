@@ -64,3 +64,48 @@ Merge baseline pending verification. Engine and service not implemented in
 this branch. No new client/CLI setting, node boot hook, UI or real-provider
 execution is authorized by a source-only staging verdict. Wiring remains a
 separate reviewed change after the shared admission seam arrives.
+
+## Verified ec5 merge baseline
+
+Source `a1d73d11542f2b0b2e2aabb3ab73585cdad53761` ran as
+`sessionextras-20261115T034024Z-a1d73d11`; all 18 gate steps returned zero.
+Raw workspace totals: 114 summaries, 2,180 passed, 0 failed, 12 existing
+ignored. TypeScript had 3 passes and zero regenerated file differences; web
+unit 436, browser E2E 63 and forge fixture 4 passed. All Clippy variants,
+format/size/boundaries, fresh page/binaries and prebuilds passed. The changed
+proto, node and CLI crates actually compiled. One-minute load was 7.32 at
+start and 10.18 at end; workspace tests 12.43 to 6.47.
+
+The remote input is the immutable commit. A post-run manifest independently
+matched 1,863 selected Git blobs and current files, SHA-256
+`695cf30da42b25707053c9fc4d78412d8bed0337ff15bef502e507d8e05500a8`.
+There was no local pre-run manifest for this merge; the proof must not be
+described as pre/post equality. Selection excludes documentation, native
+code, local configuration, dependencies and output.
+
+This is a merged-baseline result, with no R2 implementation. A newer announced
+head containing the shared accessor arrived while the gate ran; it is taken
+at the next clean boundary. Quality B remains a wiring precondition.
+
+## File and staging decisions before implementation
+
+Keep the legacy DataDir settings APIs and their test expectations. Add a
+store-owned saved-record representation for recovery policy with shared
+private decode/encode/coverage helpers; do not embed a wire patch with serde
+flatten, because that wire patch will later gain the same recovery key. The
+node's ordinary legacy request updates only its named fields and preserves
+the saved policy. Startup file parsing and atomic/private replacement stay
+inside the store. Preserve the head's unreadable/later set-aside rules.
+
+Use one owned settings lane for both ordinary requests and the private staged
+policy operation. No recovery input field or test-only RPC is registered. The
+node coordinator and its bootstrap/operation mounts are test-staged; lower
+store/session APIs follow their actual cross-crate ownership and callers. No
+visibility is widened merely to suppress dead code and no second engine is
+introduced. Product wiring is reviewed separately after removing staging.
+
+Original local Owner and local Device creators may qualify; a missing or
+revoked Device never falls back to Owner. In hard-kill tests, Started is an
+ACK, not a durable prefix: establish the committed start/checkpoint before
+killing. Test re-execution uses the staged unit binary and real fake-provider
+processes; it does not claim regular daemon product-config approval.
