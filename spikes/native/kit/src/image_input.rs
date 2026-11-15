@@ -104,15 +104,14 @@ pub fn normalize(bytes: Vec<u8>, policy: InputLimits) -> Result<Normalized, Imag
     limits.max_alloc = Some(MAX_DECODED);
     reader.limits(limits);
     let decoded = reader.decode()?;
-    let preserved = match format {
-        ImageFormat::Png
-            if !image::codecs::png::PngDecoder::new(Cursor::new(bytes.as_slice()))?
-                .is_apng()? =>
-        {
-            Some(Format::Png)
-        }
-        ImageFormat::Jpeg => Some(Format::Jpeg),
-        _ => None,
+    let preserved = if format == ImageFormat::Png {
+        let animated =
+            image::codecs::png::PngDecoder::new(Cursor::new(bytes.as_slice()))?.is_apng()?;
+        (!animated).then_some(Format::Png)
+    } else if format == ImageFormat::Jpeg {
+        Some(Format::Jpeg)
+    } else {
+        None
     };
     if let Some(format) = preserved {
         if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > policy.result {
