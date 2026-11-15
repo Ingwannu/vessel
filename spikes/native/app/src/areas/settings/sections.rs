@@ -49,9 +49,9 @@ fn page(section: Section) -> Option<Draw> {
         Section::General => {
             Some(|shell, tokens, phone, _, cx| general::render(shell, tokens, phone, cx))
         }
-        Section::Appearance => {
-            Some(|shell, tokens, phone, _, cx| appearance::render(shell, tokens, phone, cx))
-        }
+        Section::Appearance => Some(|shell, tokens, phone, window, cx| {
+            appearance::render(shell, tokens, phone, window, cx)
+        }),
         Section::Chat => Some(|shell, tokens, phone, _, cx| chat::render(shell, tokens, phone, cx)),
         Section::Diagnostics => {
             Some(|shell, tokens, phone, _, cx| diagnostics::render(shell, tokens, phone, cx))
