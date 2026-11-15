@@ -1,0 +1,74 @@
+# E1: hosts and connections
+
+## Scope and boundaries
+
+Specification: the Paseo 0.15.4 area-5 inventory entries 11–36, excluding
+15–20 (pairing, offers, QR, confirmation and device management belong to
+G4). This is the app's machine registry, connection runtime, switching,
+Overview and Connections, direct/SSH addition and routed discovery. The
+generated tracker also associates earlier node lifecycle entries with
+E1; that does not authorize replacing their existing node owners or
+changing authentication policy. New node calls require their owner and
+the shared protocol registration process.
+
+The current rename package is a prerequisite, not completion of E1. Its
+parent-release control has source/gate approval; its final consumer
+visual review is pending. The field split and select-all follow the
+lead's announced validated package base. An unannounced base under
+validation is not consumed.
+
+## Existing assets and first audit
+
+| Responsibility | Existing owner/path | Gap against the survey |
+|---|---|---|
+| Durable machine registry | client `book::BookFile`, native link `machines` | Book is shared with CLI; one address per entry, not Paseo's independent host-profile store. Preserve private atomic edits and identity pinning. |
+| Saved connection projection | view `connections::{Endpoint,Route}` | Safe endpoint labels exist; no per-route probe/latency/removal state. |
+| Admission and physical client | link `nodes`, `Connected` | Reuse the client connector and G4's admitted identity/generation boundary; do not create a second transport or alias-only authority cache. |
+| Machine selection | view `machines`, Settings `choices` and `nav` | Existing pickers and successful rename/forget propagation; audit every entry and stale selection against survey fallback order. |
+| Overview | Settings `overview` and its `dialogs` | Rename/forget exist; color/badge, lifecycle and update need their own actual backing API. |
+| Connections | Settings `connections` | Existing rows are read-only; latency and route removal deliberately absent until implemented. |
+| SSH | client `NodeAddress::Ssh` | Native `nodes::connect` explicitly refuses it; reuse the existing remote/client transport owner, not shell command interpolation in an area. |
+
+## Decision and data flow
+
+[Decision Log]
+- Purpose: complete the host flows without losing the CLI/app shared book,
+  authenticated node identity or successful-edit propagation.
+- Existing constraint: screens only hold safe projections; credentials and
+  connectors belong to the client/link boundary. A label is not authority.
+- Alternatives: another app-only host database/connector, or extending the
+  existing book and client contracts through their owners.
+- Choice: reuse and extend the existing contracts. Pure view state holds
+  connection generations, request tickets and presentation states; link
+  owns I/O and named deadlines; app draws and dispatches; FTL owns words.
+- Why: a second transport/store would make pairing, CLI edits and routed
+  connections disagree and could revive an obsolete authenticated client.
+- Costs: route editing and SSH can require client/node changes before a
+  working app action is exposed; unavailable operations are never fake
+  successful rows.
+
+Inputs enter the existing parser once. Only safe typed metadata crosses
+to view/app. Results are accepted only for the current machine identity,
+connection generation and request ticket. Successful rename moves local
+state and retires old tickets; forget discards local state without remote
+stop/delete; failed edits change neither selection nor clients. G4 owns
+the shared admission retirement and its actor tests.
+
+## Build order and evidence
+
+1. Merge the announced validated package base; finish field move and
+   select-all without changing composer hooks/registration.
+2. Audit the inherited host frame against the survey and its actual
+   components. Commit typed missing states and fixture coverage before
+   wiring new calls. No fixture is presented as a remote success.
+3. Complete direct/SSH inputs, saved routes/runtime and appearance in
+   reviewable subfeature commits, preserving specialist-owned seams.
+4. At package end: 1280×900/390×844 and 800×600 where layout matters,
+   English/Korean, light/dark; errors, auth refusal, empty/many/long names,
+   stale replies and successful/failed edits. Narrow checks per commit;
+   one complete A13 native gate and one E1 review package. Security
+   changes retain per-commit review. No push or live preview mutation.
+
+Current state: audit/preparation; no new E1 skeleton or parity pass is
+claimed by this document. Exact status remains in the package's commits
+and the shared tracker, updated only for rows actually verified.

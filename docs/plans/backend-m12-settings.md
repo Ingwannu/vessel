@@ -778,3 +778,22 @@ Do not register a stub or duplicate the node collector. Wire it only after
 the actual producer handoff, using the existing admitted identity and
 request-generation mechanisms. Node update awaits nodectl's ADR/call;
 Plugins belongs to its separate package owner.
+
+### Final rename disposition (2026-11-15)
+
+V1 passed the consumer `ae6ba8f6`, long-name fix `ad2d4ef3` and parent
+isolation `990da6dc` for bounded source, native gates and inspected
+visuals. The final normal executable is SHA-256
+`a3a7b3729eba6100ee29831da7f2919a645ab4f3429dd49e68a6e6110e49b344`.
+The review recorded all 74 release and eight long-name image hashes and
+dimensions, independently matched 22 idle/hover pairs, and opened all
+26 final dialogs, four phone pages and all eight long-name originals.
+The OCR miss is visually intact. Earlier edge/cursor probes retain their
+original consumer attribution; the final parent/clip audit is separate.
+
+This does not approve the still-failing sibling overlap, select-all,
+inherited Remove-with-glyph control, keyboard accessibility, physical
+input methods, OS integration or the latest combined build. The code hash
+was sent to the lead for the normal selected-package integration route;
+no unchanged gate or capture matrix was rerun. E1 and F5 continuation
+boundaries are now recorded in `wp-e1.md` and `wp-f5.md`.
