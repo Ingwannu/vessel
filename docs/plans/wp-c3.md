@@ -818,3 +818,23 @@ remain local. Earlier boundary output is not labeled workflow compliance.
   on identical root/context/comparison. No test or new source check has run yet;
   current bdeed/08b1 jobs predate this App-only source. Final package tests must
   include this union. No layout source beyond the reviewed leaves is edited.
+
+
+## Exact bdeed Link compilation return and shared writer boundary
+
+The bdeed four-native-crate Clippy returned cargo101 after checking Kit, Link
+and View. Link's command handler became101/100 with the one GitPanel registration;
+one own doc item lacked backticks; seven test-helper unwrap/panic diagnostics
+came from the combined cfg(all(test, not(wasm))) module declaration. No tests or
+full command pass is inferred from those intermediate Checking messages.
+
+Own correction quotes selected_connection and uses separate cfg(test) plus
+cfg(not(wasm)), matching the existing testing module. Rust's inclusion condition
+is identical; Clippy now sees the existing test-only policy. No allow/expect,
+assertion or production bound is changed. A proposed same-file SavePrefs body
+extraction was NOT installed: the lead designated one shared author (W10b),
+whose checked isolated extraction will land on the line first. Its SavePrefs
+parameter is already boxed on that upcoming line. Wait for the announced green
+head and keep only the GitPanel registration arm; no competing helper or raised
+line budget. The next coherent App check includes this union and the current-
+target fixes, rather than replaying the known over-budget old base.

@@ -1,7 +1,7 @@
 //! Correlated readonly panel calls on G4's one selected admission.
 //!
 //! [Decision Log]
-//! - Existing assets: typed workspace calls, G4 selected_connection and pure
+//! - Existing assets: typed workspace calls, G4 `selected_connection` and pure
 //!   panel tickets. No alias resolver, node-id map, parser or transport is added.
 //! - Choice: echo original owner/context/ticket on every result and local
 //!   rejection; a bounded hub owns calls through event delivery.
@@ -129,5 +129,9 @@ impl Ask {
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use calls::Hub;
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+// Keep explicit cfg(test), as the existing testing module does: Clippy's
+// configured test-only assertion policy recognizes this form. Release/wasm
+// inclusion is exactly the same conjunction; no lint or bound is relaxed.
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod tests;
