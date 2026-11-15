@@ -1621,3 +1621,13 @@ Neither PID equality nor the observation alone proves socket ownership or
 authorizes Preview. Fresh complete inspection and workspace/session policy
 remain at the node boundary. This carrier introduces no dependency
 edge or wire type.
+
+
+### Checked owned group cleanup
+
+Proc's additive Child::wait_checked distinguishes leader exit from the first
+owned group/job cleanup result. The immutable receipt or typed retained cause
+never retries a delayed numeric group id. Legacy wait, release capability and
+ProcessLifetime revocation remain compatible; neither an observer nor a stored
+PID supplies this receipt. Its accepted cleanup request does not assert every
+descendant's observed OS death (docs/plans/checked-process-cleanup.md).
