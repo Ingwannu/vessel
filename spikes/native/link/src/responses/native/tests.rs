@@ -14,6 +14,7 @@ use vessel_proto::{
 };
 
 const FRAME_CAP: usize = 65_536;
+const NO_RETRY_PROBE: Duration = Duration::from_secs(1);
 async fn read(stream: &mut DuplexStream) -> ClientFrame {
     let length = usize::try_from(stream.read_u32().await.unwrap()).unwrap();
     assert!(length <= FRAME_CAP);
@@ -145,9 +146,11 @@ async fn deadline_is_uncertain_and_never_sends_a_second_input_or_denial() {
     assert_eq!(answer.result, Err(Problem::Unconfirmed));
     // The only client handle was dropped; any extra frame before EOF would
     // prove a retry/denial was sent after the unconfirmed result.
-    assert!(
-        matches!(remote.read_u32().await, Err(error) if error.kind() == std::io::ErrorKind::UnexpectedEof)
-    );
+    match tokio::time::timeout(NO_RETRY_PROBE, remote.read_u32()).await {
+        Err(_no_more_frames) => {}
+        Ok(Err(error)) if error.kind() == std::io::ErrorKind::UnexpectedEof => {}
+        other => panic!("unexpected frame or read failure after timeout: {other:?}"),
+    }
 }
 
 #[tokio::test]

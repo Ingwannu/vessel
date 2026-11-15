@@ -69,6 +69,9 @@ pub(crate) fn requests<P: Place>(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Vec<AnyElement> {
+    if (P::SEAT.get)(shell).is_none_or(|area| !area.response_online(&shell.fleet)) {
+        return Vec::new();
+    }
     let permission = super::permission::card::<P>(shell, tokens, window, cx);
     let question = super::question::card::<P>(shell, tokens, window, cx);
     permission.into_iter().chain(question).collect()

@@ -56,8 +56,10 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
                 }
             }
             InputEvent::Change => {
-                let text = state.read(cx).value().to_string();
-                callbacks.change(owner, source(state.entity_id()), text, cx);
+                if callbacks.changes() {
+                    let text = state.read(cx).value().to_string();
+                    callbacks.change(owner, source(state.entity_id()), text, cx);
+                }
             }
             InputEvent::Focus => {
                 focused.set(true);
@@ -86,6 +88,13 @@ pub(super) enum Callbacks<V: 'static> {
 }
 
 impl<V: 'static> Callbacks<V> {
+    fn changes(&self) -> bool {
+        match self {
+            Self::Plain { on_change, .. } => on_change.is_some(),
+            Self::Identified { .. } => true,
+        }
+    }
+
     fn submit(
         &self,
         owner: &mut V,

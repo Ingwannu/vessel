@@ -19,6 +19,14 @@ fn permission() -> PermissionRequest {
     }
 }
 fn begin(shell: &mut Shell) -> Pending {
+    shell.fleet.machines = vec![vessel_app_view::Machine {
+        name: "scratch".into(),
+        reach: vessel_app_view::Reach::Online,
+        sessions: Vec::new(),
+        agents: Vec::new(),
+        protocol: Some(vessel_proto::PROTOCOL_VERSION),
+        version: None,
+    }];
     let session = SessionId::random();
     let permission = permission();
     let area = &mut shell.areas.conversation;
@@ -109,5 +117,34 @@ fn an_uncertain_result_preserves_the_card_and_duplicate_replies_cannot_clear_a_r
         });
         assert_eq!(shell.areas.responses.seats.len(), 1);
         assert_eq!(shell.areas.conversation.refused, refusal);
+    });
+}
+
+#[gpui::test]
+fn an_offline_cached_request_is_retained_without_admission_or_replay(
+    cx: &mut gpui::TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, _| {
+        let pending = begin(shell);
+        shell.response_answered(Reply {
+            pending: pending.clone(),
+            result: Err(Problem::Unsent),
+        });
+        let permission = shell.areas.conversation.live.permissions[0].clone();
+        shell.fleet.machines[0].reach = vessel_app_view::Reach::Unreachable("offline".into());
+        assert!(!shell.areas.conversation.response_online(&shell.fleet));
+        shell.response_at(
+            Seat::SESSION,
+            Answer::Permit(permission.id, permission.options[0].id.clone()),
+        );
+        assert!(shell.areas.responses.seats.is_empty());
+        assert!(shell.areas.conversation.response_waiting(pending.request));
+        shell.fleet.machines[0].reach = vessel_app_view::Reach::Online;
+        assert!(shell.areas.conversation.response_online(&shell.fleet));
+        assert!(shell.areas.responses.seats.is_empty());
+        shell.areas.conversation.lost = Some("stream closed".into());
+        assert!(!shell.areas.conversation.response_online(&shell.fleet));
     });
 }

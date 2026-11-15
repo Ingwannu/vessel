@@ -48,6 +48,10 @@ impl Shell {
         if !area.response_waiting(request) {
             return;
         }
+        if !area.response_online(&self.fleet) {
+            self.response_refused(seat, request, Problem::Offline);
+            return;
+        }
         let target = Target {
             machine: MachineKey::from_book(&shown.machine),
             session: shown.session,

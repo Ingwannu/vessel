@@ -136,3 +136,20 @@ retain a request/step cursor, so old option/tab/submit clicks cannot affect a
 successor. A real keyboard test checks source propagation, and the app regression
 proves stale typing/Enter cannot alter or submit a replacement question while
 its own current editor can submit normally. No copied input engine is added.
+
+
+Offline handling retains local drafts while `dock::requests` hides cached cards
+unless the shown machine is connected and its conversation stream is not lost.
+The answer controller repeats this availability check before admission; reconnect
+alone never queues or replays the retained answer. This is the native equivalent
+of Paseo's stripping pendingPermissions from offline replica state, without
+throwing away an unsent editor draft.
+
+Reference clarification from agent-stream/view.tsx:1673 and :1821-1900: only
+`variant === primary` changes action text emphasis. Secondary/danger use the
+same muted bordered button in this snapshot; do not invent a red danger style.
+The exact action identity/behavior/intent still belongs to the provider contract.
+Question option labels and descriptions use compact Markdown (question-form-card
+.tsx:151-163); option previews are plain wrapped text on surface0, shown for all
+options before selection (:163-178). Rich metadata integration must preserve
+those distinctions.
