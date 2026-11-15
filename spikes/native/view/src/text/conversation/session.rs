@@ -338,7 +338,7 @@ impl ConversationWords {
             RemoveWorktreeOutcome::Removed { .. } => self
                 .either("Its worktree was removed.", "워크트리를 지웠습니다.")
                 .to_owned(),
-            RemoveWorktreeOutcome::Kept { reasons } => {
+            RemoveWorktreeOutcome::Kept { reasons, .. } => {
                 let reasons: Vec<String> = reasons
                     .iter()
                     .map(|reason| self.kept_reason(reason))
@@ -542,7 +542,7 @@ fn git_operation(operation: GitOperation) -> &'static str {
 }
 
 /// An amount in its unit: "$0.50" for dollars, "12.5 credits" else.
-fn cost_label(amount: f64, unit: &str) -> String {
+pub(super) fn cost_label(amount: f64, unit: &str) -> String {
     if unit.eq_ignore_ascii_case("usd") {
         format!("${amount:.2}")
     } else {

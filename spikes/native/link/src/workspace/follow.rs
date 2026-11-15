@@ -16,20 +16,22 @@ use super::{Answer, Hub, Reply};
 /// Follow `project` on its own task, unless it is followed already.
 pub(super) fn clone_of(hub: &Hub, client: &NodeClient, reply: &Reply, project: ProjectInfo) {
     let key = (reply.machine.clone(), project.id);
-    let fresh = hub
-        .following
-        .lock()
-        .is_ok_and(|mut following| following.insert(key.clone()));
-    if !fresh {
+    // The registry stays locked while the task is made and recorded, so a
+    // task that ends at once removes itself only after it was recorded.
+    let Ok(mut following) = hub.following.lock() else {
+        return;
+    };
+    if following.contains_key(&key) {
         return;
     }
-    let (hub, client, reply) = (hub.clone(), client.clone(), reply.clone());
-    drop(tokio::spawn(async move {
+    let (owner, client, reply, done) = (hub.clone(), client.clone(), reply.clone(), key.clone());
+    let task = tokio::spawn(async move {
         follow(&client, &reply, project).await;
-        if let Ok(mut following) = hub.following.lock() {
-            let _was = following.remove(&key);
+        if let Ok(mut following) = owner.following.lock() {
+            let _was = following.remove(&done);
         }
-    }));
+    });
+    let _was = following.insert(key, task.abort_handle());
 }
 
 async fn follow(client: &NodeClient, reply: &Reply, project: ProjectInfo) {

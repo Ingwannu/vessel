@@ -115,7 +115,8 @@ Same meaning: the behaviour already matches, under the differences ADR
 refused rather than dropped, `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`
 and `VESSEL_BRANCH` rather than Paseo's `PASEO_*` names). Renamed: the
 fact exists under another name. Missing: runtime parity is not implemented. The terminal decoder and approval
-contract are staged in slice 2a; the remaining keys still are not parsed.
+contract are staged in slice 2a; service ports are also parsed into approved
+snapshots. The allocation block is not parsed and no new runtime is connected.
 Ignored: kept by Paseo, not a command, not approved, not implemented.
 
 | `paseo.json` | What Paseo does | `vessel.toml` | Class |
@@ -127,7 +128,7 @@ Ignored: kept by Paseo, not a command, not approved, not implemented.
 | `worktree.servicePorts.portScript` | A path of an executable, never a shell line. Run with four arguments (script name, workspace id, branch or empty, worktree path) and the same values in the environment. 10 s, at most 1024 bytes of output, which must be one TCP port. It wins over `range` in the same block. A port it returns may already be in use; a port already reserved for another service of this workspace is refused. | `[worktree.service_ports] port_script`. Not parsed yet. | Missing, and renamed (`port_script`). It stays an executable path, not a shell string. |
 | `scripts.<name>.command` | A string. A command that is not a string, or blank, drops that script. | `[scripts.<name>] command` or `[services.<name>] command`, already | Same command role. Paseo trims the command; Vessel retains its existing script text to preserve version 2 approvals. A non-string is a syntax error of the whole file, not a skipped script. |
 | `scripts.<name>.type` | The string `service` marks a supervised long-running process. Anything else, including a missing type, is a one-shot script. | The table: `[scripts.<name>]` or `[services.<name>]` (ADR 0031) | Renamed. The kind is where the name is written, not a field. |
-| `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Not parsed yet. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores a plain script's port but keeps any finite service port, including fractions and out-of-range values (`worktree.ts:348–354`; `workspace-service-port-registry.ts:168–190`). Vessel refuses these declarations before work: a person who wrote the port meant it, and an invalid port cannot be executed as written. |
+| `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Parsed and covered by the version-three approval; allocation is not connected. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores a plain script's port but keeps any finite service port, including fractions and out-of-range values (`worktree.ts:348–354`; `workspace-service-port-registry.ts:168–190`). Vessel refuses these declarations before work: a person who wrote the port meant it, and an invalid port cannot be executed as written. |
 | `scripts.<name>` other keys | Kept (`passthrough`) and not read by the runner. | Unknown keys inside an entry stay ignored, and stay out of the digest, while they start nothing. | Ignored. `dir` is Vessel's own (ADR 0031); Paseo has no `dir`. |
 | `metadataGeneration.title.instructions` | Replaces the default wording of a generated workspace title (`paseo-config-schema.ts` 48-70; `public-docs/metadata-generation.md`, the per-project example). | `[metadata.title] instructions` | ADR 0062, added at merge. Not a command, so outside this digest. This track does not parse it. |
 | `metadataGeneration.branchName.instructions` | The same, for a generated branch name. | `[metadata.branch] instructions` | ADR 0062, added at merge, as above |
@@ -360,8 +361,55 @@ does not add a filesystem probe to either decoding or hashing.
   or refuse approval, including a port-only change and its removal from
   `last_approved`. This does not assign `PROJECT_FILE_KEYS`; the web dialog,
   web command-changes and native card must display all approved terminal
-  and port data before it is assigned. This is a contract for the later
-  field integration; the value preparation has not changed `ScriptEntry`.
+  and port data before it is assigned. The declaration boundary now implements
+  the constructor, serde, digest slot, reply gates and client refusal before
+  the file parser began producing the new field. The parser now reads it;
+  allocation and execution still do not honor it. Native
+  constructor/getter/card adaptation remains an integration prerequisite.
+
+#### Allocation-block approval projection before file integration
+
+- Purpose and intent: a future allocation field must not disappear behind a
+  getter-only display. The approved range and program both matter, even when
+  one takes precedence at execution.
+- Existing constraints: `ServicePorts` already privately owns its nonempty
+  choice. Its getters protect mutation, but adding another approved field
+  would not force a display that calls only those getters to handle it.
+  Paseo's `paseo-config-schema.ts:5–22` permits either or both choices and
+  refuses unknown keys. Its allocator (`workspace-service-port-allocator.ts:25–43`)
+  chooses the program before the range; this does not make the range text
+  disappear from the approval.
+- Alternatives considered: public owner fields (lose the construction
+  invariant); a manually maintained display DTO (can omit a new field); or
+  a complete borrowed projection, as for `ScriptEntry`. Choose the last:
+  `ServicePortsView` borrows `port_script` and carries the optional validated
+  `PortRange`. The owner's `view()` names every field without `..`, and
+  each native or CLI display names every view field. Execution accepts the
+  owner, never a caller-constructed display view. No dependency is needed.
+- Choice at integration: add an absent-by-default allocation block to
+  `ProjectFile`, `CommandSet` and `ProjectCommands::Listed`. The TOML edge
+  reads `[worktree.service_ports]` through the existing strict validated
+  decoder; there is still no `paseo.json` reader. Presence is retained even
+  with no scripts or terminals, counts as a nonempty approval set, and
+  selects version three. Its two already reserved digest slots cover the
+  canonical range and the trimmed literal program path; earlier vectors
+  without a block do not change. Parsing starts no allocator or helper.
+- Why this choice: the CLI shows both choices, with the exact approved
+  program path. The web's `Required<ServicePorts>` projection must name
+  every nested field, in addition to its existing listed/set/entry guards.
+  Until full display lands, any current, last-approved or folder-comparison
+  block yields `unsupported_ports`, never a partial comparison or an
+  approval button. The native lead owns its new listed/set field patterns
+  and exhaustive allocation view. Both old-peer and unassigned-peer reply
+  gates cover the current and prior block on all approval reply paths.
+- Costs and tests owed: file tests for either/both, an empty or unknown
+  block, trim and a block without services; digest changes for either
+  choice and its removal; current/prior/folder web refusal and a new
+  optional nested-field type probe; CLI complete display and all six reply
+  gates. `PROJECT_FILE_KEYS` remains unassigned until the web dialog, web
+  comparison and native card show all terminal, declaration and allocation
+  data. This is a contract only; no allocation field or execution is added
+  by this document.
 
 Relative program resolution is a deliberate difference from Paseo. Its
 allocator passes the trimmed command to the plugin's `execFile` wrapper
