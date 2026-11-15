@@ -53,6 +53,37 @@ fn resizing_retains_geometry_and_oversized_geometry_refuses_explicitly() {
         Err(CaptureError::Geometry)
     );
     assert!(geometry(TerminalSize { rows: 0, cols: 8 }).is_err());
+    assert!(geometry(TerminalSize { rows: 2, cols: 1 }).is_err());
+}
+#[test]
+fn shared_engine_feed_advances_each_prefix_once_even_across_split_utf8() {
+    let (_endpoint, mut authority) =
+        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    let mut bytes = vec![b'a'; vessel_terminal_screen::FEED_BUDGET.saturating_sub(1)];
+    bytes.extend_from_slice("한".as_bytes());
+    bytes.extend_from_slice(b"\r\nend");
+    authority.output(&bytes);
+    let captured = authority.capture(CaptureOptions::default()).unwrap();
+    assert!(captured.lines.iter().any(|line| line.contains('한')));
+    assert!(captured.lines.iter().all(|line| !line.contains('\u{fffd}')));
+    assert_eq!(captured.lines.last().map(String::as_str), Some("end"));
+}
+#[test]
+fn capture_observer_stays_silent_and_preserve_does_not_synthesize_style_bytes() {
+    let (_endpoint, mut authority) =
+        ScreenAuthority::channel(TerminalId::random(), TerminalSize { rows: 2, cols: 8 });
+    authority.output(b"\x1b[31mred\x1b[0m\x1b[6n\x1b[c");
+    let plain = authority.capture(CaptureOptions::default()).unwrap();
+    let preserved = authority
+        .capture(CaptureOptions {
+            style: vessel_proto::terminals::CaptureStyle::Preserve,
+            ..CaptureOptions::default()
+        })
+        .unwrap();
+    // The actor's feed rejects nonempty replies. Success also proves this
+    // observer did not answer queries already visible to legacy raw clients.
+    assert_eq!(plain, preserved);
+    assert_eq!(plain.lines, ["red", ""]);
 }
 #[tokio::test]
 async fn final_screen_survives_actor_shutdown_without_replaying_the_ring() {

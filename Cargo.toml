@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 # The native app's tracks (milestone 12): each a workspace of its own
 # under `spikes/`, so the gate neither builds them nor resolves their trees.
-exclude = ["spikes"]
+exclude = ["spikes", "patches/vt100"]
 
 [workspace.package]
 version = "0.1.0"
@@ -77,8 +77,6 @@ str_to_string = "warn"
 wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
-# Node-side screen capture, owned solely by vessel-session (W17).
-vt100 = "=0.18.1"
 # Exact bounded cost accumulators (ADR 0042); no random/serde features.
 num-bigint = { version = "0.4", default-features = false, features = ["std"] }
 num-traits = "0.2"
@@ -102,6 +100,7 @@ vessel-rpc = { path = "crates/vessel-rpc" }
 vessel-secure = { path = "crates/vessel-secure" }
 vessel-session = { path = "crates/vessel-session" }
 vessel-store = { path = "crates/vessel-store" }
+vessel-terminal-screen = { path = "crates/vessel-terminal-screen" }
 vessel-testkit = { path = "crates/vessel-testkit" }
 vessel-web = { path = "crates/vessel-web" }
 vessel-workspace = { path = "crates/vessel-workspace" }

@@ -8,6 +8,13 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(transparent)]
 pub struct CaptureLine(i64);
+impl CaptureLine {
+    /// Preserve the signed row offset when adapting to the shared pure screen core.
+    #[must_use]
+    pub const fn get(self) -> i64 {
+        self.0
+    }
+}
 impl std::str::FromStr for CaptureLine {
     type Err = std::num::ParseIntError;
     fn from_str(text: &str) -> Result<Self, Self::Err> {

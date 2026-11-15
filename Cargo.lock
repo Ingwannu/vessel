@@ -4315,8 +4315,8 @@ dependencies = [
  "vessel-proc",
  "vessel-proto",
  "vessel-pty",
+ "vessel-terminal-screen",
  "vessel-testkit",
- "vt100",
 ]
 
 [[package]]
@@ -4346,6 +4346,18 @@ dependencies = [
  "vessel-proc",
  "vessel-proto",
  "zeroize",
+]
+
+[[package]]
+name = "vessel-terminal-screen"
+version = "0.1.0"
+dependencies = [
+ "base64 0.23.1",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "thiserror 2.0.21",
+ "vt100",
 ]
 
 [[package]]
@@ -4430,8 +4442,6 @@ checksum = "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64"
 [[package]]
 name = "vt100"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb05cdd19ae8707bf6a0a269972c07e6358103a7079faec749dec318a5b3dc23"
 dependencies = [
  "itoa",
  "unicode-width",

@@ -1,62 +1,28 @@
-//! Capture follows Paseo's translated row contents, including empty lines and clamping.
-use super::{CaptureError, MAX_CAPTURE_BYTES};
+//! Map shared translated rows to wire DTOs; no parser, ANSI renderer or range resolver.
+use super::CaptureError;
 use vessel_proto::{
     TerminalId,
-    terminals::{CaptureLineCount, CaptureOptions, TerminalCapture},
+    terminals::{CaptureLineCount, CaptureOptions, CaptureStyle, TerminalCapture},
 };
+use vessel_terminal_screen::{Capture, CaptureRange, LineOffset, ScreenError};
 
+pub(super) fn range(options: CaptureOptions) -> CaptureRange {
+    // Both reference modes return translateToString/trimEnd rows, not synthesized SGR.
+    match options.style {
+        CaptureStyle::Plain | CaptureStyle::Preserve => CaptureRange {
+            start: options.range.start.map(|line| LineOffset::from(line.get())),
+            end: options.range.end.map(|line| LineOffset::from(line.get())),
+        },
+    }
+}
 pub(super) fn capture(
     terminal: TerminalId,
-    screen: &vt100::Screen,
-    options: CaptureOptions,
+    captured: Result<Capture, ScreenError>,
 ) -> Result<TerminalCapture, CaptureError> {
-    let mut screen = screen.clone();
-    let (rows, cols) = screen.size();
-    let history = screen.scrollback_len();
-    let total = history
-        .checked_add(usize::from(rows.get()))
-        .ok_or(CaptureError::TooLarge)?;
-    let total_lines =
-        CaptureLineCount::new(u32::try_from(total).map_err(|_too_many| CaptureError::TooLarge)?);
-    let Some(range) = options.range.resolve(total_lines) else {
-        return Ok(TerminalCapture {
-            terminal,
-            lines: Vec::new(),
-            total_lines,
-        });
-    };
-    let mut lines = Vec::new();
-    let mut bytes = 0_usize;
-    for index in range {
-        let index = usize::try_from(index).map_err(|_range| CaptureError::TooLarge)?;
-        let row = if index < history {
-            screen.set_scrollback(history.saturating_sub(index));
-            0
-        } else {
-            screen.set_scrollback(0);
-            index.saturating_sub(history)
-        };
-        let row = u16::try_from(row).map_err(|_range| CaptureError::Unavailable)?;
-        // xterm's translateToString(true).trimEnd returns text even when
-        // stripAnsi=false, so style preservation must not invent SGR bytes.
-        let line = screen
-            .rows(0, cols.get())
-            .nth(usize::from(row))
-            .ok_or(CaptureError::Unavailable)?
-            .trim_end()
-            .to_owned();
-        bytes = bytes
-            .checked_add(line.len())
-            .and_then(|count| count.checked_add(1))
-            .ok_or(CaptureError::TooLarge)?;
-        if bytes > MAX_CAPTURE_BYTES {
-            return Err(CaptureError::TooLarge);
-        }
-        lines.push(line);
-    }
+    let captured = captured.map_err(CaptureError::from)?;
     Ok(TerminalCapture {
         terminal,
-        lines,
-        total_lines,
+        lines: captured.lines,
+        total_lines: CaptureLineCount::new(captured.total.get()),
     })
 }

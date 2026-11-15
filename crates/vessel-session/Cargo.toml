@@ -16,7 +16,7 @@ vessel-proc.workspace = true
 vessel-proto.workspace = true
 vessel-pty.workspace = true
 
-vt100.workspace = true
+vessel-terminal-screen.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 # The queue's bound is the JSON its `queue_changed` record carries.

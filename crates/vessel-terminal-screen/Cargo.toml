@@ -1,0 +1,21 @@
+[package]
+name = "vessel-terminal-screen"
+description = "One pure terminal screen authority for capture, restore and native projection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+vt100 = { path = "../../patches/vt100", default-features = false }
+
+[dev-dependencies]
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+
+[lints]
+workspace = true

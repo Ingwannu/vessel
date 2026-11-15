@@ -99,7 +99,7 @@ actual public-host authorization/DTO/client tests, latest CLI processes and A12 
 | `terminal ls` | terminal ls | Source + pending --workspace | terminal.list | Cwd/all filters and real table; structured native TerminalInfo remains. Workspace column unknown, not substituted. |
 | `terminal create` | terminal create | Pending | none activated | W11 genuine workspace placement awaited; legacy project/session IDs not accepted as workspaces. |
 | `terminal kill <terminal-id>` | terminal kill ID | Source | terminal.kill | Ordinary terminal ownership; success only after acknowledgement. |
-| `terminal capture <terminal-id>` | terminal capture ID | Pending | terminal.capture (None) | C2 reviewed/gated pure engine awaited; capture Silent. NodeAuthority separately waits for same-parser presentation suppression. |
+| `terminal capture <terminal-id>` | terminal capture ID | Pending | terminal.capture (None) | C2 pure engine conditionally integrated as source; full consumer qualification requires enclosing W17 whole on gate49 fix. Capture Silent; NodeAuthority OFF. |
 | `terminal send-keys <terminal-id> <keys...>` | terminal send-keys ID KEYS | Source | terminal.send | Exact client CLI key token expansion/literal mode, bounded input, UTF16 keysSent; silent default. |
 | `schedule create <prompt>` | schedule create | Source | schedule.create | Real typed scheduler operations; exact finite cron presets, revision edits and acknowledgements. Some inspect/log fields remain native; no full schema parity claim. |
 | `schedule ls` | schedule ls | Source | schedule.list | Real typed scheduler operations; exact finite cron presets, revision edits and acknowledgements. Some inspect/log fields remain native; no full schema parity claim. |

@@ -1200,3 +1200,35 @@ for inline closing, overlapping triples, non-JSON first fences, greedy blank lin
 BOM/NEL and the explicit work bound; the next remote CLI suite must execute them.
 Schema interpretation remains cfg(test), with W22 runtime transport and Ajv extension
 equivalence still owed. No current host test or earlier134-unit pass covers this delta.
+
+### Host test invocation return and conditional engine integration (2026-11-15 15:10 UTC)
+
+Host run wp-cli-narrow-20261115T143928Z-e4e4ea0a finished15:05 UTC rc1:
+web-ci and nested fake/node builds passed, then Cargo rejected vessel-web/ts because
+vessel-web was not a selected package. No unit test compiled/executed. This is the
+author's invocation error, not a passed host suite or a runtime assertion failure.
+Retain the exact spec/cargo.log/steps.tsv; the next host command selects only the
+proto TS feature needed by its selected packages. No run is duplicated or cancelled.
+
+[Decision Log]
+- Purpose: retire W17's provisional parser and use the one measured screen engine.
+- Existing assets/constraints: C2 product0d7cf46e plus docs6d2a3ef19 has V3 row217
+  source plus partial gate acceptance. The corrected prerequisite whole failed a
+  pre-existing stale web LimitPercent declaration. This is not consumer readiness.
+- Alternatives: keep a second parser or run another unchanged C2 whole (rejected).
+- Choice: coordinator authorized source integration; the next enclosing W17 whole
+  must run on the announced gate49 head carrying9dfdf0a1 and report for row217 too.
+  Merge the frozen core only, replace session's direct vt100 dependency with
+  vessel-terminal-screen, and map its typed capture/snapshot into existing DTOs.
+- Reason/consequences: core/parser/vendor source is unchanged. The actor retains
+  output/resize/capture ordering, bounded queue/deadline and final snapshot storage.
+  Each feed advances only its consumed prefix; unexpected replies/refusal fence
+  capture without replaying applied input. Construction is Screen::new Silent,
+  with NodeAuthority OFF and unchanged legacy raw output. Attach/modes/markers
+  follow-up source is excluded; no D1 DTO or decoder-restore claim is added.
+
+The merge resolves only the shared ADR append and lock's vsimd/path-vt100 overlap,
+retaining the schema dependency closure and switching session to the shared leaf.
+The lock is edited structurally without local Cargo; exact locked VM checks remain
+owed. Added consumer regressions for multi-feed UTF8 progress and Silent/style capture,
+retaining actor-inbox ordering/final-state regressions. They have not executed yet.

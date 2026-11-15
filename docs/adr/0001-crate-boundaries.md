@@ -352,8 +352,11 @@ The CLI package stages a vt100 adapter solely for C2's comparison against the na
 and Paseo's server-side capture. C2 owns the only final pure root vessel-terminal-screen
 crate and its measurements. Node capture, restore/query and the native view must consume
 that one core; vessel-session retains only actor/channel/PTY ordering. Its provisional
-direct vt100 dependency must be removed at consumer integration, with no GPUI dependency
-introduced into the node and no second parser merged.
+direct vt100 dependency is removed by W17 consumer integration, with no GPUI dependency
+introduced into the node and no second parser merged. Session now depends on the shared
+terminal-screen leaf; capture remains Silent until separately approved query ownership.
+C2 row217 source plus partial gate does not yet qualify this combined consumer: its enclosing
+whole must pass on the announced gate49 base carrying9dfdf0a1 before readiness is claimed.
 
 
 ### W17: fenced JSON Schema compiler edge (coordinator 2026-11-15)
@@ -401,3 +404,16 @@ field allowlist, denied private fields, direct/Delegated admission and tests are
 in docs/plans/wp-w17.md, “Host registry local-agent read policy — security ADR
 addendum”. V3 must review that design before handler/DTO/authorization code.
 No store/dependency/source-cache change is proposed; management remains scoped.
+
+## ADR 0095: shared terminal screen interpretation
+
+Add `vessel-terminal-screen` as a pure root leaf with no Vessel dependency,
+Tokio, PTY, harness or toolkit. It alone owns vt100 and translates engine cells
+and bounded capture rows. The exact MIT vt100 0.18.1 archive is vendored with
+its checksum/license and a numbered minimal parity patch list. This follows
+both-candidate measurement against Paseo's actual server engine, not dependency
+preference. `vessel-session` remains actor/channel/PTY ownership; its dependency
+edge lands with W17's consumer. Native view's edge and parser retirement land
+only when D1 switches to the passed facade. The transitional native parser is
+not claimed retired by this prerequisite package. No synthetic ANSI restoration
+may replace engine state: saved cursor, regions and modes must survive reflow.
