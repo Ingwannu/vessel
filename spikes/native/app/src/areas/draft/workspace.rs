@@ -15,7 +15,10 @@ use vessel_app_kit::ui::{
     Window, div,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
-use vessel_app_view::composer::{context::ContextScope, drafts::Drafts};
+use vessel_app_view::composer::{
+    context::ContextScope,
+    drafts::{DraftKey, Drafts},
+};
 use vessel_app_view::composer_shell::surface::Mode;
 use vessel_app_view::creation::{DraftDestination, DraftSeed, Launch, SeedPlace, SeedProblem};
 use vessel_app_view::layout::{DraftId, LayoutKey, Target};
@@ -51,13 +54,6 @@ impl Editor {
 }
 impl Shell {
     /// Display policy follows this retained launch selection, never a global agent.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "B2 supplies the real scoped mode consumer in its union"
-        )
-    )]
     pub(crate) fn workspace_draft_mode(
         &self,
         workspace: &LayoutKey,
@@ -215,14 +211,42 @@ pub(crate) fn render_panel(
     let Some(field) = shell.workspace_draft_field(panel.workspace, *draft) else {
         return unavailable(shell);
     };
+    let LayoutKey::Workspace { node, workspace } = panel.workspace else {
+        return unavailable(shell);
+    };
+    let source = DraftKey::Workspace {
+        node: *node,
+        workspace: *workspace,
+        draft: *draft,
+    };
+    let editable = panel.focus == PanelFocus::Focused
+        && entry.creation.flow.may_submit()
+        && !shell.composer_attachments_blocked(source);
     field.set_editability(
-        if panel.focus == PanelFocus::Focused && entry.creation.flow.may_submit() {
+        if editable {
             vessel_app_kit::Editability::Editable
         } else {
             vessel_app_kit::Editability::ReadOnly
         },
         cx,
     );
+    let Some(mode) = shell.workspace_draft_mode(panel.workspace, *draft) else {
+        return unavailable(shell);
+    };
+    let editor = match mode {
+        Mode::Chat => {
+            let Some(card) =
+                crate::areas::composer::workspace_card(shell, source, editable, tokens, window, cx)
+            else {
+                return unavailable(shell);
+            };
+            card.into_any_element()
+        }
+        // Terminal input uses this retained field without agent affordances.
+        Mode::Terminal => field
+            .element(tokens, vessel_app_kit::breakpoint::phone(window), cx)
+            .into_any_element(),
+    };
     div()
         .size_full()
         .flex()
@@ -237,7 +261,7 @@ pub(crate) fn render_panel(
             }
             .to_owned(),
         )
-        .child(field.element(tokens, vessel_app_kit::breakpoint::phone(window), cx))
+        .child(editor)
         .children(entry.error.iter().cloned().map(|error| div().child(error)))
         .into_any_element()
 }
