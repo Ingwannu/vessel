@@ -899,3 +899,46 @@ name error. A pure transition fixture covers idle blank/unchanged, pending
 and failed-write retry. No input engine, grammar, store or control paint
 changes. This correction is prepared before the first normal capture
 compilation; its new fixture still needs execution with the package gate.
+
+## Selection package: actual native gate and base6 integration
+
+The immutable970563a2 package gate
+settings2-20261115T104023Z-970563a2 completed all nine steps. Web preparation,
+fakes, node, fonts, native format/quality, whole Clippy and normal app build
+returned0. Native tests returned101: raw totals1285 passed/1 failed/2 ignored.
+The only failure was the existing page test
+find::a_find_over_5000_entries_stays_well_under_a_frame_once_folded:
+first find2.267537995s against its unchanged2s assertion. End load was45.78
+on the20-vCPU build VM. This is correlation, not proof of the cause.
+No E2 find implementation, fixture or threshold was changed.
+
+All twenty field engine tests and the new blank/unchanged/pending/refusal
+rename-button fixture passed in that run. Changed view/kit crates actually
+recompiled. The whole gate remains RED; successful build/field tests do not
+upgrade it. Its raw logs/spec/steps remain in
+/tmp/work/m12-settings4/rg-field-export2. Export was correctly withheld by
+the all-success policy, so no new selection UI capture exists yet.
+An exact failed-test narrow rerun at the same970563a2 is registered as
+settings2-narrow-20261115T111540Z-970563a2, with results still owed.
+W1 knows no canonical fix/base exception; V1 has the measured failure.
+
+The earlier settings2-20261115T092959Z-970563a2 never compiled: it ended143
+when the coordinator restarted/resized the build VM at10:35:42. The one
+authorized replacement is the completed104023Z run above;143 is not a
+compiler finding or pass. No local Cargo/rustc is used.
+
+After the whole run ended, announced package base6 (18eedad4) was merged
+as84e44fb287690fffb244423f92675be3756fe556. Only Architecture/README had
+conflicts; both additions were retained. Product sources merged
+automatically, including the selected-connection guard. This combined
+head has NOT been compiled/tested. The lead's fixed native lock head
+dd13ce37 is still gate-pending and must be announced green before use.
+No --locked call is used against the known stale native lock.
+
+Required next: exact timing rerun receipt; announced fixed-lock merge;
+changed-head native gate/normal supported export; actual EN/KO, both
+themes/layouts selection, failed-save/retry captures; one bounded V1
+package review. Do not reuse older rename PNGs or label the timing failure
+as an accepted infrastructure exemption. Physical/OS/IME and latest
+combined behavior remain unverified, and the earlier sibling-occlusion
+policy finding remains open.
