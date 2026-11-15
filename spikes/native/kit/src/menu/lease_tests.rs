@@ -263,3 +263,30 @@ fn in_place_reopen_also_rejects_old_keys(cx: &mut TestAppContext) {
         assert!(this.field.focus_handle(cx).is_focused(window));
     });
 }
+
+#[gpui::test]
+fn state_only_close_invalidates_real_handlers_without_restoring_focus(cx: &mut TestAppContext) {
+    initialize(cx);
+    let (view, cx) = cx.add_window_view(|window, cx| Probe::new(Dismissal::KeepOpen, window, cx));
+    cx.run_until_parked();
+    open_a(&view, cx);
+    cx.update(|window, cx| {
+        let before = view.read(cx).renders.get();
+        view.update(cx, |this, _| this.menu.close());
+        click(window, cx, point(px(120.0), px(62.0)));
+        key(window, cx, "home");
+        key(window, cx, "enter");
+        key(window, cx, "escape");
+        click(window, cx, point(px(500.0), px(350.0)));
+        let this = view.read(cx);
+        assert_eq!(this.renders.get(), before);
+        assert!(!this.menu.is_open());
+        assert_eq!(this.menu.highlighted, None);
+        assert!(
+            this.menu.focus.is_focused(window),
+            "state-only close stays state-only"
+        );
+        assert!(!this.field.focus_handle(cx).is_focused(window));
+        assert!(this.chosen.is_empty());
+    });
+}

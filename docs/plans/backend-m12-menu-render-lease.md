@@ -7,6 +7,12 @@ retained rendered frame A can mutate opening B before the application's
 captured-action guard runs. The renderer, not each area, owns admission.
 This isolated correction preserves the 8158/6ece public menu APIs, placement,
 geometry, QUICK, modal Layer, KeepOpen, menu_right and G4 ReturnFocus policy.
+Direct references read: Paseo `components/ui/menu/menu-context.ts:135–177`
+closes before actions and preserves closeOnSelect=false; `menu-item.tsx:291–296`
+selects through that one context; `menu-root.tsx:34–46` owns one menu state.
+The allocation lease is a native retained-GPUI-frame safety correction, not a
+claim that Paseo exposes this token API.
+
 Measured Start placement and G1's selected/description rows remain subsequent
 hierarchy work, not part of this defect correction.
 
@@ -46,6 +52,8 @@ and valid B action after redraw. Pointer/outside also cover in-place reopening,
 close/reopen and measured open_end; key checks cover close/reopen and in-place
 reopening. A real kit TextField is the return-focus target;
 state replacement exercises old pointer/outside callbacks and allocation identity.
+State-only close also dispatches actual retained pointer/key/outside callbacks
+and verifies its deliberate no-focus-restoration behavior remains unchanged.
 These are headless GPUI regressions, not Linux native F5, OS keyboard or complete
 accessibility proof. The historical focused-field native F5 hold remains open.
 
