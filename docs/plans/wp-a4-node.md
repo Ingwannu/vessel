@@ -165,3 +165,20 @@ forwardable by the canonical table. The list now adds session.detach,
 session.provider_children and session.provider_timeline, preserving every old
 entry and the exact assertion. Runtime forwarding/admission policy is unchanged;
 unassigned protocol methods are still refused before transport polling.
+
+## Generated wire snapshot and named base alias defect
+
+Run wp-transfer-ts-20261115T142826Z-bdbd7581 completed both declaration
+generators: proto3/0 and the web declaration test passed. The separately selected
+web primitive-alias inventory failed on the baseline LimitPercent entry.
+The integrator confirmed canonical correction9dfdf0a1: LimitPercent aliases
+FiniteNumber, not a primitive; removing the unused metadata changes no generated
+TS. The worker does not duplicate it and waits for the announced checked head.
+
+All six exported artifact SHA256 checks passed, and only the generated proto.ts
+patch was applied. Its SHA256 is
+93a3734287407ea54bbde419ae3f7c507307c7b755a9cf6da5b361bb5880ec45.
+The current protocol/generator source differs from that run only in the
+non-generator forwardable-set test's expected strings. Generated declarations
+were not hand-edited. Overall TS step remains RED with the named base defect;
+exact current-head freshness and the final gate remain required after adoption.
