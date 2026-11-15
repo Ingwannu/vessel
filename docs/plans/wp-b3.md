@@ -454,3 +454,11 @@ preservation, FilesRestored after Status in history, replay after store reopen,
 live-path refusal and ordinary append projection/duplicate rejection. They are
 unrun. Store operations and projection remain staged under cfg(test), and node
 controller/live pause event delivery are still unwired; FILE_CHECKPOINTS is None.
+
+
+Wire-generation evidence: immutable 636dbe57044c6ff7cc4f3962017f70e891d0190a,
+wp-checkpoints-node-20261115T112757Z-636dbe57, finished rc0 at 11:48 UTC.
+web-ci, nested-fakes and nested-vesseld prebuilds passed; generator tests 4/0/0.
+The generated proto.ts was copied from that exact verified VM checkout before
+reusing its owned label. No wire declaration was edited manually. This proves
+generation/prebuild for that source, not later store/actor runtime behavior.

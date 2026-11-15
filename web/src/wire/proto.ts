@@ -1086,6 +1086,31 @@ export type CheckpointCursor = string & { readonly __brand: "CheckpointCursor" }
 export type CheckpointError = "feature_unavailable" | "invalid_cursor" | "file_too_large" | "image_too_large" | "too_many_paths" | "invalid_path" | "duplicate_path" | "unsupported_metadata" | "unsupported_platform" | "unsupported_scope" | "unsafe_entry" | "busy" | "capture_timed_out" | "stale_capture" | "generation_exhausted" | "capture_unstable" | "storage_full" | "stale_preview" | "restore_id_conflict" | "recovery_pending" | "not_found" | "forbidden" | "unknown";
 
 /**
+ * Metadata for files-only checkpoints; never conversation content or file bytes.
+ */
+export type CheckpointEvent = { "kind": "prompt_accepted" } | { "kind": "turn_associated", 
+/**
+ * Durable accepted-prompt anchor.
+ */
+prompt: EventSeq, 
+/**
+ * Actual `AgentEvent::TurnStarted` log position.
+ */
+turn: EventSeq, } | { "kind": "files_restored", 
+/**
+ * Durable operation whose reconnect status remains authoritative.
+ */
+restore: RestoreId, 
+/**
+ * The selected file checkpoint; conversation history is unchanged.
+ */
+checkpoint: CheckpointId, 
+/**
+ * Number of paths verified at the effective desired image.
+ */
+paths: PathCount, };
+
+/**
  * A node-owned immutable file checkpoint.
  */
 export type CheckpointId = string & { readonly __brand: "CheckpointId" };
@@ -8025,7 +8050,11 @@ worktree?: TidiedWorktree | null, };
 /**
  * Something that happened in a session.
  */
-export type SessionEvent = { "type": "status", 
+export type SessionEvent = { "type": "checkpoint", 
+/**
+ * No provider content or raw filesystem data is carried here.
+ */
+event: CheckpointEvent, } | { "type": "status", 
 /**
  * New state.
  */
