@@ -1601,3 +1601,36 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Native Appearance (F5, staged; ADR 0070)
+
+The native crate map remains `spikes/native/README.md`. Appearance extends
+those existing edges: view owns safe family/number parsing, committed units,
+per-axis form transitions and the independent syntax choice; link's existing
+Prefs storage owns persistence; app composes Settings and applies the sole
+preference-to-native palette/typography adapters; kit owns token projection,
+resolved font stacks and generic controls. No new dependency is introduced.
+
+An input edit stays in the registered TextField engine (raw text, caret,
+history and IME). Its one event subscription feeds view's pure form rule;
+parsed preview axes resolve against current saved values, then app resolves
+available face names outside paint. The readonly preview accepts prepared
+semantic byte runs from the existing workspace classifier and uses the
+existing CodeStyles resolver. It has no editing state or new highlighter.
+Blur/Enter produces at most one validated PreferenceChange through Prefs;
+only changed saved axes rehydrate their controls. Theme/syntax changes do not
+erase unrelated drafts. Kit projects independent UI/content/code sizes and
+families through existing styling/shaping paths; local preview never mutates
+global typography. Native source differences and validation limits are in
+`docs/plans/wp-f5-appearance.md`.
+
+Plugin transport, validated installation graphs and runtime eligibility stay
+with ADR 0079's plugin owner. Appearance's pure borrowed catalog only chooses
+stable logical keys, preserves first display order, deduplicates hosts and
+resolves an unavailable selection to System without deleting it. Static
+validated offline catalogs remain eligible for palette display, while remote
+actions require the plugin owner's separate online generation check. The
+sole app adapter converts validated RGBA to generic ContributedColors, then
+uses kit's existing global/component token projection. At this staged point
+the plugin runtime's app access/change notification is not yet connected;
+no second registry, loader, RPC listener or synthetic product catalog exists.
