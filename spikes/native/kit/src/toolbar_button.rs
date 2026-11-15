@@ -1,7 +1,7 @@
 //! One small icon chrome for pane toolbars, separate from ordinary Button sizes.
 //!
 //! [Decision Log]
-//! - Intent: port the pinned 0.15.4 ToolbarButton's small icon-button chrome.
+//! - Intent: port the pinned 0.15.4 `ToolbarButton`'s small icon-button chrome.
 //! - Constraint: ordinary Small28 and Medium32/44 have different geometry,
 //!   glyphs and press feedback; changing them would regress their consumers.
 //! - Choice: one named shared toolbar renderer with typed selection/disclosure,
@@ -46,7 +46,6 @@ pub struct ToolbarButton {
 impl ToolbarButton {
     /// Keep the source geometry fixed while the owner supplies its actual layout
     /// and original menu/selection state. An icon adds no empty label child.
-    #[must_use]
     pub fn new(
         id: impl Into<ElementId>,
         label: impl Into<SharedString>,
@@ -85,7 +84,6 @@ impl ToolbarButton {
 
     /// Disabled actions cannot acquire a normal click handler even if a caller
     /// supplies one. The owner still validates its context/ticket on dispatch.
-    #[must_use]
     pub fn on_click(
         mut self,
         listener: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
@@ -98,7 +96,6 @@ impl ToolbarButton {
 
     /// Decorate this same hitbox with the existing screen-owned tooltip. Its
     /// current timing/placement are the kit's, not a new toolbar overlay.
-    #[must_use]
     pub fn tooltip(mut self, tips: &Tooltips, place: &Place) -> Self {
         self.element = tips.on(
             self.element,
