@@ -387,6 +387,7 @@ impl Timeline {
         self.entries.push(Entry {
             key,
             seq: record.seq,
+            through: self.next,
             at: record.at,
             kind,
             rev: 0,
@@ -396,6 +397,7 @@ impl Timeline {
     /// The entry at `index`, to be changed in place: counted as changed.
     pub(super) fn change(&mut self, index: usize) -> Option<&mut Entry> {
         let entry = self.entries.get_mut(index)?;
+        entry.through = self.next;
         // Wrapping: the count only has to differ from the one a cache
         // kept, and four billion changes to one entry between two frames
         // do not happen.
