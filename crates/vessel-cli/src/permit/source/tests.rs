@@ -80,6 +80,11 @@ async fn an_empty_middle_page_is_not_completion() {
 }
 #[tokio::test]
 async fn recheck_recovers_only_the_exact_source_and_refuses_changed_or_gone_requests() {
+    enum Expected {
+        Ready,
+        Mismatch,
+        Gone,
+    }
     let original = entry();
     let rows = vec![Row::of(&original).unwrap().unwrap()];
     let mut changed = original.clone();
@@ -87,11 +92,6 @@ async fn recheck_recovers_only_the_exact_source_and_refuses_changed_or_gone_requ
         panic!("permission")
     };
     request.id = PermissionId::random();
-    enum Expected {
-        Ready,
-        Mismatch,
-        Gone,
-    }
     for (item, expected) in [
         (Some(original.clone()), Expected::Ready),
         (Some(changed), Expected::Mismatch),

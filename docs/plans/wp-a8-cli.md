@@ -115,3 +115,10 @@ while its Debug and user-facing Display redact the answer content. Semantic
 mixed-layout refusal remains a separate cause-free policy category. A regression
 checks both source retention and Debug privacy; the shared output adapter must
 render the safe top-level category rather than expanding untrusted source text.
+
+Exact40d44f71c narrow wp-side-node-narrow-20261115T094531Z-40d44f71 reached
+vessel-cli after rebuilding its current root dependencies, then failed solely
+on a test-local Expected enum declared after statements. The enum is moved to
+the function's item section without changing the fixture cases. This is not a
+passing CLI result; the latest null/source-privacy change is newer than that run
+and still needs strict compilation and execution.
