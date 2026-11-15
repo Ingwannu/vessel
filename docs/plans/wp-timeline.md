@@ -303,3 +303,9 @@ outcome, disclosure and footer ownership are unchanged. An exhaustive adapter
 and EN/KO whole-title test cover all five outcomes. Permission wording remains
 A8's. Existing translator generation supplies these getters without a second
 word table or render-time resource lookup.
+
+Turn summary fallback copies Paseo's `turnSummary.details` whole EN/KO values
+(`summary-line.tsx:23`, `resources/{en,ko}.ts:2105/2090`) through isolated
+`timeline-turns.ftl`. Prose-only folded turns never render a blank button.
+The single timeline post-entry hook delegates summary/rail rendering to
+`conversation/turns.rs`; no duplicate list or work-summary control is added.

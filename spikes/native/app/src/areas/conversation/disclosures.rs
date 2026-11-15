@@ -29,7 +29,24 @@ impl ConversationArea {
             Some(EntryKind::Tool(tool)) => {
                 tool.working() && !self.timeline.asks_permission(&tool.id)
             }
-            _ => false,
+            Some(
+                EntryKind::Ready { .. }
+                | EntryKind::Prompt(_)
+                | EntryKind::Steer { .. }
+                | EntryKind::Question { .. }
+                | EntryKind::Message { .. }
+                | EntryKind::Plan { .. }
+                | EntryKind::Permission(_)
+                | EntryKind::TurnEnded { .. }
+                | EntryKind::TurnFailed { .. }
+                | EntryKind::Log { .. }
+                | EntryKind::Status { .. }
+                | EntryKind::Parking(_)
+                | EntryKind::Forked { .. }
+                | EntryKind::Profile { .. }
+                | EntryKind::Model(_),
+            )
+            | None => false,
         }
     }
 

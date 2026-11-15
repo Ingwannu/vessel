@@ -2,7 +2,12 @@
 
 use std::collections::HashSet;
 
-use vessel_app_kit::ui::Context;
+use super::entries::Paint;
+use vessel_app_kit::theme::spacing;
+use vessel_app_kit::ui::{
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _, Styled as _, div, px,
+};
+use vessel_app_view::timeline::EntryKind;
 use vessel_app_view::timeline::{Rows, TurnFolds};
 
 use super::{ConversationArea, Seat};
@@ -69,5 +74,61 @@ impl Shell {
             self.origin_toggled(seat, before);
             cx.notify();
         }
+    }
+}
+
+/// One post-entry hook adds its hosted summary and the expanded indent rail.
+pub(super) fn decorate(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    index: usize,
+    mut content: Div,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    if let Some(turn) = area
+        .turns
+        .as_ref()
+        .and_then(|turns| turns.folds.at_host(index))
+    {
+        let expanded = area
+            .turns
+            .as_ref()
+            .is_some_and(|turns| turns.open.contains(&index));
+        let summary = paint.words.run_summary(&turn.summary);
+        let summary = if summary.is_empty() {
+            paint.catalog.timeline_turns().details().to_owned()
+        } else {
+            summary
+        };
+        content = content.child(super::timeline::run_header(
+            paint,
+            ("turn", turn.host),
+            summary,
+            expanded,
+            Shell::toggle_turn,
+            cx,
+        ));
+    }
+    let retained = paint
+        .entries
+        .get(index)
+        .is_some_and(|entry| matches!(entry.kind, EntryKind::Steer { .. }));
+    let nested = !retained
+        && area.turns.as_ref().is_some_and(|turns| {
+            turns
+                .folds
+                .containing(index)
+                .is_some_and(|turn| turns.open.contains(&turn.host))
+        });
+    if nested {
+        div()
+            .ml(px(spacing::S2))
+            .pl(px(spacing::S3))
+            .border_l_1()
+            .border_color(paint.tokens.neutral.border)
+            .child(content)
+            .into_any_element()
+    } else {
+        content.into_any_element()
     }
 }
