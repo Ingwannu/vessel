@@ -25,9 +25,14 @@ excluded from this package.
 
 ## Review and resume order
 
-1. Submit the complete implementation and result companion as one package.
+The single implementation package has been submitted to V3: tested source
+`2f1c9f5a` and results companion `33618bd9`. No implementation verdict has
+arrived. This handoff note changes no tested source and is not a second
+review submission.
+
+1. Await that implementation review; do not submit the package again.
    Prior ADR acceptance covers contracts only through `d616e8f9`; current
-   refinements and executable behavior still need implementation review.
+   refinements and executable behavior remain in the submitted review.
 2. Resolve actual review defects with changed-source checks. No unchanged
    whole run or second LSP replay is authorized by this record.
 3. The integrator assigns the protocol, confirms schema numbering and runs
