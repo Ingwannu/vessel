@@ -973,3 +973,13 @@ more attempts than worker slots with no file read; the real managed backend
 also refuses an uncommitted anchor, creates no checkpoint directory, then accepts
 a valid capture. This prevents ordinary quota exhaustion permanently occupying
 both worker slots without weakening ambiguous-commit handling.
+
+### Collected turn-bridge clippy attempt
+
+Run wp-checkpoints-node-narrow-20261115T134727Z-c70c6ca4 finished rc1 at
+14:33 UTC, cargo101 after15s. Earlier public filesystem error/path/import lints
+no longer appeared. Two diagnostics stopped this attempt: a missing unit-result
+semicolon in archive verification, and an unconsumed pause Signal in the lost
+receipt regression. The source now terminates the unit statement and explicitly
+asserts Released for that signal. No runtime tests ran; later dependency graph
+and newer producer/collector/physical-binding source still require checks.

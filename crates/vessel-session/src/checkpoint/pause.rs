@@ -208,9 +208,10 @@ mod tests {
         let (reply, received) = oneshot::channel::<Result<CheckpointPause, SessionError>>();
         drop(received);
         drop(reply.send(Ok(guard)));
-        tokio::time::timeout(std::time::Duration::from_secs(1), state.next())
+        let signal = tokio::time::timeout(std::time::Duration::from_secs(1), state.next())
             .await
             .unwrap();
+        assert!(matches!(signal, Signal::Released));
         assert!(
             matches!(*route.borrow(), Route::FilesPaused),
             "only the actor may restore its route"

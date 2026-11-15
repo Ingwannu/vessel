@@ -113,7 +113,7 @@ impl Archive {
         for entry in image.entries() {
             match entry.state {
                 vessel_proto::checkpoint::FileState::Present { digest, bytes, .. } => {
-                    self.0.verify(digest, bytes, cancel)?
+                    self.0.verify(digest, bytes, cancel)?;
                 }
                 vessel_proto::checkpoint::FileState::Absent => {}
             }
