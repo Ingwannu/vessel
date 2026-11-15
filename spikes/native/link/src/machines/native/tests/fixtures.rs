@@ -73,6 +73,7 @@ impl Fixture {
             let previous = state.clients.insert(
                 name.to_owned(),
                 Connected {
+                    inbox_connection: crate::inbox::connection_id(),
                     client: peer.client.take().unwrap(),
                     agents: vec![Agent {
                         harness: vessel_proto::HarnessKind::ClaudeCode.into(),

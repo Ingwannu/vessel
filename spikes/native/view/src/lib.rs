@@ -26,6 +26,7 @@ pub mod effort;
 pub mod extras;
 pub mod files;
 pub mod idle_release;
+pub mod inbox;
 mod links;
 pub mod machine_book;
 pub mod machines;

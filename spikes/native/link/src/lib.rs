@@ -50,6 +50,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod inbox;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -201,6 +202,8 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Durable attention operations.
+    Inbox(inbox::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -362,6 +365,8 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Durable attention results.
+    Inbox(inbox::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -597,6 +602,7 @@ struct State {
 /// what is installed changes rarely, and a new connection reads it again).
 #[derive(Clone)]
 struct Connected {
+    inbox_connection: vessel_app_view::inbox::ConnectionId,
     client: NodeClient,
     agents: Vec<Agent>,
 }
@@ -630,6 +636,7 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::Inbox(ask) => self.inbox(ask).await,
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
@@ -793,6 +800,7 @@ impl State {
             };
             machines.push(machine);
         }
+        self.inbox_sources(&machines).await;
         self.emit(Event::Fleet(Fleet {
             machines,
             read_at: Some(Utc::now()),
@@ -825,7 +833,11 @@ impl State {
         } else {
             Agent::all(&harnesses)
         };
-        Ok(Connected { client, agents })
+        Ok(Connected {
+            client,
+            agents,
+            inbox_connection: inbox::connection_id(),
+        })
     }
 
     /// A machine just connected: the lists its agents gave last time, if

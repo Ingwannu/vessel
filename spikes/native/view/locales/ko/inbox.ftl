@@ -1,0 +1,77 @@
+# 주의가 필요한 항목을 모아 보는 화면. 버튼 이름은 모바일에서도 짧게 유지한다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-title = 받은 알림
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-empty = 기다리는 일이 없습니다
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-loading = 알림을 불러오는 중…
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-refresh = 새로고침
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-more = 이전 알림 더 보기
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-open = 대화 열기
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-read = 읽음으로 표시
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-unread = 읽지 않음으로 표시
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-select = 알림을 선택하면 자세히 볼 수 있습니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-resolved = 이 알림은 해결되었거나 철회되었습니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-offline = 이 머신은 오프라인입니다. 마지막으로 확인한 알림을 표시합니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-unsupported = 받은 알림을 사용하려면 이 머신을 업데이트하세요.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-forbidden = 이 기기에서는 해당 작업을 할 수 없습니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-unavailable = 요청을 완료하지 못했습니다. 다시 시도하기 전에 새로고침하세요.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-invalid = 머신에서 올바르지 않은 알림 응답을 받았습니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-exhausted = 알림을 다시 요청하려면 앱을 재시작하세요.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-waiting = 응답 대기 중
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-finished = 완료됨
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-failed = 실패함
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-limit = 사용량 한도
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-unknown = 자세한 내용은 대화에서 확인하세요
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-untitled = 제목 없는 대화
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-answering = 답변을 보내는 중…
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-confirming = 현재 요청을 확인하는 중…
+# 알림 설정. 화면 표시와 소리를 각각 선택한다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-notifications = 알림
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-desktop-alerts = 데스크톱 알림
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-desktop-hint = 다른 대화를 보고 있을 때 응답이 필요하거나 작업이 끝나면 알립니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-play-sound = 소리 재생
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-sound-hint = 새 알림이 도착하면 시스템 알림음을 요청합니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-test = 알림 테스트
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-title-count = 창 제목에 읽지 않은 알림 수 표시
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-platform-hint = 알림과 소리는 운영체제의 알림 설정을 따릅니다.
+# Inbox or notification settings: complete short label or explanatory sentence.
+inbox-partial = 이 머신에 이전 알림이 더 있습니다.
+
+# Explanation above disabled permission/question controls.
+inbox-read-only = 이 연결에서는 알림을 읽을 수 있지만 요청에 답할 권한은 없습니다.
+
+# Notification-center body when the bounded delivery queue coalesces.
+inbox-combined = 여러 데스크톱 알림을 하나로 묶었습니다. 받은 알림에서 모든 항목을 확인하세요.
+
+# Generic OS text: no source title, content, path or identifier may be exposed.
+inbox-notification-body = 확인이 필요한 일이 있습니다. Vessel을 열어 받은 알림을 확인하세요.

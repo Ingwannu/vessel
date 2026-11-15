@@ -1,0 +1,157 @@
+//! Current-ticket replies update the one store. A background refresh does not
+//! reset the selected form; only an exact detail response can change it.
+use crate::shell::Shell;
+use vessel_app_kit::ui::Context;
+use vessel_app_link::{
+    Command,
+    inbox::{Answer, Ask, Target},
+};
+use vessel_app_view::inbox::Content;
+use vessel_app_view::timeline::{Live, ToolView};
+
+impl Shell {
+    pub(crate) fn inbox_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        match answer {
+            Answer::Targets(Ok(targets)) => self.inbox_targets(targets, cx),
+            Answer::Targets(Err(problem)) => self.areas.inbox.problem = Some(problem),
+            Answer::Listed(source, request, result) => {
+                let notices = self.areas.inbox.store.receive(source.node, request, result);
+                let area = &mut self.areas.inbox;
+                area.notices.retain(|key| area.store.entry(*key).is_some());
+                area.notices.extend(notices);
+            }
+            Answer::Detail(key, request, result) => {
+                if self.areas.inbox.detail.receive(key, request, result) {
+                    self.inbox_cards();
+                    self.inbox_refresh();
+                }
+            }
+        }
+        cx.notify();
+    }
+
+    fn inbox_targets(&mut self, targets: Vec<Target>, cx: &mut Context<'_, Self>) {
+        let old = self.areas.inbox.store.nodes();
+        let retained: Vec<_> = targets
+            .iter()
+            .filter_map(|target| {
+                target.node().or_else(|| {
+                    old.iter()
+                        .find(|node| node.source.name == *target.route())
+                        .map(|node| node.source.node)
+                })
+            })
+            .collect();
+        self.areas.inbox.store.retain(&retained);
+        if self
+            .areas
+            .inbox
+            .detail
+            .key()
+            .is_some_and(|key| !retained.contains(&key.node))
+        {
+            self.areas.inbox.detail = vessel_app_view::inbox::Detail::default();
+            super::place::clear_cards(&mut self.areas.inbox.conversation);
+        }
+        self.areas.inbox.problem = None;
+        for target in &targets {
+            if let Target::Online(source) = target {
+                let source = source.clone();
+                let id = source.node;
+                let changed = self.areas.inbox.store.nodes().iter().any(|node| {
+                    node.source.node == id && node.source.connection != source.connection
+                });
+                self.areas.inbox.store.connect(source.clone());
+                if changed {
+                    if let Some(key) = self.areas.inbox.detail.key().filter(|key| key.node == id) {
+                        self.areas.inbox.detail = vessel_app_view::inbox::Detail::default();
+                        self.inbox_select(key, cx);
+                    }
+                }
+                match self.areas.inbox.store.begin(id) {
+                    Ok(Some(request)) => {
+                        let pages = self
+                            .areas
+                            .inbox
+                            .store
+                            .nodes()
+                            .iter()
+                            .find(|node| node.source.node == id)
+                            .map(|node| node.pages)
+                            .unwrap_or_default();
+                        self.command(Command::Inbox(Ask::List {
+                            source,
+                            pages,
+                            request,
+                        }))
+                    }
+                    Ok(None) => {}
+                    Err(problem) => self.areas.inbox.problem = Some(problem),
+                }
+            } else if let Some(node) = self
+                .areas
+                .inbox
+                .store
+                .nodes()
+                .iter()
+                .find(|node| node.source.name == *target.route())
+            {
+                let id = node.source.node;
+                self.areas.inbox.store.disconnect(id);
+            }
+        }
+        self.areas.inbox.targets = targets;
+    }
+
+    fn inbox_cards(&mut self) {
+        let area = &mut self.areas.inbox;
+        area.conversation.permit_sending = None;
+        area.conversation.refused = None;
+        area.tool = None;
+        let Some(entry) = area.detail.entry() else {
+            super::place::clear_cards(&mut area.conversation);
+            return;
+        };
+        let Some(source) = area
+            .store
+            .nodes()
+            .iter()
+            .find(|node| node.source.node == entry.key.node)
+        else {
+            return;
+        };
+        area.conversation
+            .open(source.source.name.as_str(), entry.key.session);
+        area.conversation.live = match &entry.content {
+            Content::Permission { request, tool } => {
+                area.tool = tool.as_ref().map(ToolView::announced);
+                Live {
+                    permissions: vec![request.clone()],
+                    questions: Vec::new(),
+                }
+            }
+            Content::Question(question) => Live {
+                permissions: Vec::new(),
+                questions: vec![question.clone()],
+            },
+            Content::InSession
+            | Content::Finished
+            | Content::Failed
+            | Content::Limit
+            | Content::Unknown => Live::default(),
+        };
+        if let Some(problem) = area.detail.problem() {
+            let message = vessel_app_view::inbox::words::problem(problem, self.words).to_owned();
+            let kind = match &entry.content {
+                Content::Question(_) => vessel_app_link::ActKind::Answer,
+                Content::Permission { .. }
+                | Content::InSession
+                | Content::Finished
+                | Content::Failed
+                | Content::Limit
+                | Content::Unknown => vessel_app_link::ActKind::Permit,
+            };
+            area.conversation.refused = Some((kind, message));
+        }
+    }
+}

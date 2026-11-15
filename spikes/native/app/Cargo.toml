@@ -25,6 +25,8 @@ chrono.workspace = true
 tracing.workspace = true
 vessel-proto.workspace = true
 sys-locale.workspace = true
+# Opaque OS notification tags; the same UUID implementation already linked by proto.
+uuid = { workspace = true, features = ["v4"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # The updater (reqwest, rustls, files): the desktop's only; a browser

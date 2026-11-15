@@ -76,6 +76,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ticket,
             result: Err(vessel_app_link::sync::rejected(unsent.why)),
         }),
+        Command::Inbox(ask) => Event::Inbox(ask.refused(match unsent.why {
+            Rejected::Full => vessel_app_view::inbox::Problem::Refused(ErrorCode::Unavailable),
+            Rejected::Closed => vessel_app_view::inbox::Problem::Offline,
+        })),
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
         }

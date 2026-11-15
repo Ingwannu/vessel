@@ -997,3 +997,28 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+
+## Attention and notification flow
+
+`view::inbox` owns exact source identity, whole-node counts, partial-page state,
+non-repeating request tickets and stale-connection rejection. A connection
+incarnation changes even when a reconnect reports the same node id. The node
+persists the inbox and read state; the app never reconstructs either from a
+partial session list. `link::inbox` is the typed discovery/list/detail/answer
+boundary, while `app::areas::inbox` reuses the existing conversation permission
+and question cards. Marking read and resolving a request remain independent.
+
+The same accepted snapshot feeds a bounded OS delivery queue. First hydration
+and reconnect are silent; per-node cursor watermarks prevent replay when old
+pages are loaded or an entry is marked unread. Notification settings use the
+existing atomic app preference writer. OS text is generic under ADR 0041;
+opaque random tags map to source identities only in a bounded process-local
+map. A stale tag opens the inbox without guessing a source. The Linux GPUI
+patch suppresses daemon sound, and the app independently requests the system
+bell when selected. Actual display/audibility remains OS-controlled.
+
+The expanded recipient and terminal-attention contract is ADR 0089. Its pending
+protocol constant does not authorize an unregistered call; the node integrator
+assigns it only at the reviewed wiring merge. Verification status and stated
+reference differences live in the attention package plan.

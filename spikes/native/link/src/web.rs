@@ -92,6 +92,9 @@ impl Link {
                 answer: Err(crate::agents::AgentsError::NoTransport),
             }),
 
+            Command::Inbox(ask) => self.emit(Event::Inbox(ask.refused(
+                vessel_app_view::inbox::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
+            ))),
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
