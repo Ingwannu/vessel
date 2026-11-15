@@ -69,7 +69,13 @@ cargo test -p vessel-session cleanup
 
 The actual actor integration cases distinguish no-attempt cleanup, an attempted
 spawn failure, failed auxiliary cleanup and observed script exit with joined
-I/O but unknown descendants. Unit cases cover sender loss and immutable
-repeatable observation. Previous A2 runtime execution is prior-source evidence;
+I/O but unknown descendants. Unit cases cover sender loss and preservation of each
+reported fact. Previous A2 runtime execution is prior-source evidence;
 this isolated cut requires its own checks and review before adoption. No full
 workspace cleanup, descendant proof or production restore is claimed.
+
+The isolated producer now merges announced node `27502436` (schema 21). Its
+first strict check on older `ec824ddb` found four ignored TaskTracker close
+return values in integration tests; the correction names those results without
+changing runtime facts or assertions. That older run is not a passing check.
+Current strict/runtime review evidence remains owed before adoption.
