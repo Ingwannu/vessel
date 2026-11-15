@@ -168,3 +168,19 @@ are removed. Their assertions, Case budget, process-kill flow and held-write/
 post-save cleanup boundaries remain. The joint code remains uncompiled until
 the coordinated checks and is still pending the qualified preparation API;
 this source merge is not a consumer-ready or runtime verdict.
+
+
+## Producer and consumer qualification separated
+
+The common settings producer is qualified independently with recovery execution
+unwired: opaque document, accepted lane, same snapshot, real Policy/SQL hook,
+cleanup debt and stopping/drain order. Its policy primitive contains no unused
+engine admission facade. This full source branch remains an unqualified
+consumer reference and must not be used as that producer's gate input.
+
+The original engine admission assertions stay here. Actual held-Kill and Off
+cases passed on their isolated repair source; its next strict correction only
+discards a Copy checkpoint marker in non-test code. The observer and runtime
+assertions remain identical. The qualified physical/native-helper producer
+and kept-stage host predicate are still required before consumer activation
+and its own changed-tree checks. No producer result closes those obligations.
