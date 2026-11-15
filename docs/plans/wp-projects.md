@@ -45,11 +45,9 @@ Read source evidence (paths relative to Paseo `packages/app/src`):
 ## Ownership and data flow
 
 `view/workspace/projects/` owns pure navigation and operation state;
-`link/workspace/project_flow.rs` adapts existing project calls and deadlines;
+`link/workspace/project_requests.rs` adapts C1 project calls with the shared physical admission, bounded deadlines and correlated observations; `project_flow.rs` retains the older adapter for isolated legacy tests;
 `app/areas/workspace/project_form.rs` owns registration form interactions.
-Existing host project cache remains authoritative for display. The app submits
-one host-bound operation, link returns its ticket, and view accepts only its
-matching result. Drawing uses kit controls and prepared EN/KO Fluent words.
+The host project cache retains both its read ticket and the shared admission that produced it. The app submits an operation with its original ConnectionContext; link selects that exact physical client and echoes the context. The app accepts hydration only for the current admission and a matching ticket. Drawing uses kit controls and prepared EN/KO Fluent words.
 No new crate dependency edge, local filesystem write, shell command, or node
 configuration parser is introduced.
 
@@ -62,22 +60,21 @@ node-owned. Shared shell and link files receive registration only.
 | Reference feature | Existing node contract | Implementation boundary |
 | --- | --- | --- |
 | Register existing directory; clone | project.add/clone/get/list | Extend host-bound form and preserve progress |
-| New directory without Git | None; project.init creates a Git repository | Hidden pending real directory-create RPC; existing Git-init action retains explicit name |
+| New directory without Git | project.create_directory is staged on the separate C1 node tree; unreviewed/pending | Native flow still hidden; existing Git-init action retains explicit name |
 | Suggested projects | None | Hidden; do not scan user provider homes |
 | Rename and icon | None | Hidden; no client-only override pretending to persist |
 | Remove project | project.remove | Confirm concrete host and project; node refusal remains visible |
-| Project settings | project.commands/approve read approved commands only | Existing read-only vessel.toml command view; revision editing blocked |
+| Project settings | Existing project.commands/approve; project read/write config is staged on the separate C1 node tree | Existing command view; revision editor awaits the reviewed config producer and physical-root exclusion |
 | New workspace, local/branch-off/checkout-branch | session.create place + worktree.create | Existing new-chat flow extended; do not claim independent empty workspace support |
 | Checkout PR | No worktree PR mode | Hidden pending node contract |
 | Setup logs | worktree.output/setup | Reuse paged log and explicit approval; no trust-release equivalence |
-| Workspace trust release | None | Hidden; project digest approval is a different operation |
-| Archive/bulk archive/unarchive/recovery | No WorkspaceId or independent workspace API | Blocked; worktree.remove is never renamed Archive |
+| Workspace trust release | workspace.release_automation is pending in registry candidate1057336b; not yet reviewed/integrated | Hidden until the producer is available; releasing the gate does not approve or run commands |
+| Archive/bulk archive/unarchive/recovery | Canonical WorkspaceId is integrated; registry/store candidate1057336b awaits V3, while W21 owns resource lifecycle | Actual adapter remains blocked on reviewed registry and generation/root safeguards; worktree.remove is never renamed Archive |
 | Auto-archive after merge | No setting/call yet | This package owns the missing node design; hidden until authoritative capability exists |
 | Automatic title and branch names | Pending node feature | Display authoritative names only; no app-generated branch rename |
 | Host projects home | project.list and existing settings host selector | Retain host-specific empty/loading/error/populated states |
 
-Node contract absences were independently checked on the app base and current
-node source. Missing contracts were sent to the coordinator and node owner;
+Contract availability is scoped to the app line versus separate staged node work. Missing runtime contracts were sent to the coordinator and their node owners;
 no fabricated call or protocol number is introduced.
 
 ## Validation and security
