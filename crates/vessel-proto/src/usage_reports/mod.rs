@@ -2,10 +2,12 @@
 //! Pending method rows refuse transport admission until the integrator assigns
 //! the feature and its real source implementations are ready (ADR 0042).
 mod identity;
+mod saved;
 pub use identity::{
     InvalidUsageIdentity, MAX_USAGE_ID_COMPONENT_BYTES, UsageAccountKey, UsageReportId,
     UsageSourceId,
 };
+pub use saved::SavedUsageSource;
 
 /// Assignment waits for native/page/CLI report consumers and the plugin source
 /// value adapter; a cached read must never trigger credential or vendor I/O.
