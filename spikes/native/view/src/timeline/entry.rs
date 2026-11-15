@@ -108,7 +108,8 @@ impl ToolView {
     }
 
     /// The call `existing` (absent when the update came first) with
-    /// `update` applied: each field the update names replaces the old one.
+    /// `update` applied: supplied data replaces the old fields, while a settled
+    /// status survives late progress.
     #[must_use]
     pub fn after(existing: Option<&Self>, update: &ToolCallUpdate) -> Self {
         Self {
