@@ -1137,3 +1137,27 @@ non-compiling evidence only. The old ordinary715 run remains unchanged and
 predates the editor and base8; no green outcome is inferred. Current source,
 real input/focus behavior, consumer UI, live delivery/opening and node isolation
 remain unverified until their stated package/dependency proofs.
+
+
+### Exact715 result, and bounded follow-up
+
+Ordinary schedules-20261115T133515Z-7153d9d8 finished native-fonts0 and
+View Clippy101/no tests after3558 seconds queued. Besides the already repaired
+c79 batch, its full output found four presentation booleans, one long form
+preparation function, and generated Schedules resolve beyond100 lines. Current
+View uses a closed Unavailable/Ready/Pending submit state and separate text /
+immutable-target preparation helpers; no allow or compressed formatting is used.
+The localization owner L is already fixing typed recursive generated storage
+chunks for Usage and Schedules. G2 does not edit that generator or move words.
+
+The first294 editor submit was refused before registration because an older
+scratch output folder already had e86 logs; the source run/log files were not
+replaced. A new unique-output attempt was then refused by the schedules label's
+live715 guard. Neither refusal is a compile result or a new admitted run. Keep
+all existing715 results tied to715; current source remains unchecked.
+
+Coordinator assigned the shared picker R223 P2-2 admission before the Code field
+profile. That delta is isolated on announced914 as a1b1b607, its same-renderer
+source and real GPUI parent/TextField fixtures are with V1, and its sole permitted
+temporary picker-control priority Kit suite is running remotely. F1/main and
+G3's field writer are not changed by that isolated check.

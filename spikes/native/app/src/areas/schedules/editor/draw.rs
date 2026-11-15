@@ -61,8 +61,12 @@ pub(super) fn render(
         || shell.words.schedules().form_new_title().into(),
         |form| shared(&form.title),
     );
-    let saving = cache.is_some_and(|form| form.saving);
-    let can_save = cache.is_some_and(|form| form.can_save);
+    let saving = cache.is_some_and(|form| {
+        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Pending
+    });
+    let can_save = cache.is_some_and(|form| {
+        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Ready
+    });
     let sizing = ControlSizing::from_compact(touch);
     let close_bootstrap = bootstrap.clone();
     let cancel = kit::button_control(

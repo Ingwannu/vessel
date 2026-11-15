@@ -32,7 +32,7 @@ fn new_form_words_and_feedback_are_cached_without_pristine_errors() {
             [Field::Name, Field::Prompt, Field::Limit]
         );
         assert!(form.text.iter().all(|text| text.error.is_none()));
-        assert!(!form.can_save);
+        assert_eq!(form.submission, Submission::Unavailable);
         assert!(!form.viewer_known);
         assert!(form.next_runs.is_empty());
     }
@@ -43,7 +43,7 @@ fn new_form_words_and_feedback_are_cached_without_pristine_errors() {
             .unwrap();
         assert!(form.text[1].error.is_none());
         assert!(form.text[2].error.is_some());
-        assert!(!form.can_save);
+        assert_eq!(form.submission, Submission::Unavailable);
     }
 }
 #[test]
@@ -87,7 +87,7 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
         assert_eq!(&*form.title, catalog.schedules().form_heartbeat_title());
         assert_eq!(form.next_runs.len(), 3);
         assert!(form.viewer_known);
-        assert!(form.can_save);
+        assert_eq!(form.submission, Submission::Ready);
     }
     assert!(model.cadence(opened.visit, |draft| {
         draft.preset(super::super::cadence::Preset::Daily)
@@ -97,7 +97,7 @@ fn heartbeat_has_only_its_rule_and_only_current_node_preview_times() {
             .unwrap()
             .unwrap();
         assert!(form.next_runs.is_empty());
-        assert!(!form.can_save);
+        assert_eq!(form.submission, Submission::Unavailable);
     }
     assert!(model.reported_authority(
         opened.visit,

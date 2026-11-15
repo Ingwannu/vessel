@@ -56,12 +56,20 @@ pub struct Form {
     pub local: Option<Notice>,
     /// Known insufficient authority; unknown grants never imply read-only.
     pub read_only: Option<Arc<str>>,
-    /// Current parsed definition and matching-preview readiness.
-    pub can_save: bool,
+    /// Submit readiness and actual save activity are one closed state.
+    pub submission: Submission,
     /// Input engines also become read-only while a save/retirement blocks them.
     pub blocked: bool,
-    /// Loading content on the submit button is independent of close policy.
-    pub saving: bool,
+}
+/// The submit button cannot simultaneously be ready and already saving.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Submission {
+    /// Missing/invalid inputs, preview or authority; no write can start.
+    Unavailable,
+    /// Exactly this current form can build a save candidate.
+    Ready,
+    /// One authoritative save is pending; no close or repeated submit.
+    Pending,
 }
 /// Error belongs to one real slot/method, not a guessed global transport state.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,76 +104,8 @@ pub fn prepare(
     } else {
         words.form_edit_title()
     };
-    let text = draft.fields().map_or_else(Vec::new, |fields| {
-        [
-            (
-                Field::Name,
-                words.form_name(),
-                fields.name(),
-                words.form_optional(),
-            ),
-            (
-                Field::Prompt,
-                words.form_prompt(),
-                fields.prompt(),
-                words.form_prompt_placeholder(),
-            ),
-            (
-                Field::Limit,
-                words.form_limit(),
-                fields.limit(),
-                words.form_unlimited(),
-            ),
-        ]
-        .into_iter()
-        .map(|(field, label, value, placeholder)| Text {
-            field,
-            label: label.into(),
-            value: value.into(),
-            placeholder: placeholder.into(),
-            error: fields
-                .feedback(field)
-                .map(|error| error.label(catalog).into()),
-        })
-        .collect()
-    });
-    let target = if draft.fields().is_none() {
-        draft
-            .opened()
-            .map(|opened| {
-                let session = match opened.definition.target {
-                    vessel_proto::automation::ScheduleTarget::Session { session } => Some(session),
-                    vessel_proto::automation::ScheduleTarget::NewSession { .. }
-                    | vessel_proto::automation::ScheduleTarget::Unknown => None,
-                };
-                let card = model
-                    .connection()
-                    .and_then(|connection| {
-                        fleet.machines.iter().find(|machine| {
-                            machine.connection_context().as_ref() == Some(connection)
-                        })
-                    })
-                    .and_then(|machine| {
-                        machine
-                            .sessions
-                            .iter()
-                            .find(|card| Some(card.session) == session)
-                    });
-                let target =
-                    crate::schedules::target::resolve(&opened.definition.target, card, None, None);
-                match crate::schedules::presentation::target_line(&target.line, catalog) {
-                    crate::schedules::presentation::TargetLine::Text(label)
-                    | crate::schedules::presentation::TargetLine::Path(label) => Ok(label),
-                    crate::schedules::presentation::TargetLine::Project { name, dir } => words
-                        .form_target_project(&dir, &name)
-                        .map(Into::into)
-                        .map_err(ClockError::from),
-                }
-            })
-            .transpose()?
-    } else {
-        None
-    };
+    let text = text(draft, catalog);
+    let target = target(model, fleet, catalog)?;
     let (cadence, cadence_error) = match draft.cadence.checked() {
         Ok(value) => (Some(lang.schedule_cadence(value).into()), None),
         Err(error) => (None, Some(lang.cadence_error(error).into())),
@@ -230,10 +170,99 @@ pub fn prepare(
             label: crate::schedules::locale::failure(failure, catalog).into(),
             variant: failure.variant(),
         }),
-        can_save: model.prepare_save().ok().flatten().is_some(),
+        submission: if model.pending_save() {
+            Submission::Pending
+        } else if model.prepare_save().ok().flatten().is_some() {
+            Submission::Ready
+        } else {
+            Submission::Unavailable
+        },
         blocked: model.blocked(),
-        saving: model.pending_save(),
     }))
+}
+
+fn text(draft: &super::definition::Draft, catalog: &Translator) -> Vec<Text> {
+    let words = catalog.schedules();
+    draft.fields().map_or_else(Vec::new, |fields| {
+        [
+            (
+                Field::Name,
+                words.form_name(),
+                fields.name(),
+                words.form_optional(),
+            ),
+            (
+                Field::Prompt,
+                words.form_prompt(),
+                fields.prompt(),
+                words.form_prompt_placeholder(),
+            ),
+            (
+                Field::Limit,
+                words.form_limit(),
+                fields.limit(),
+                words.form_unlimited(),
+            ),
+        ]
+        .into_iter()
+        .map(|(field, label, value, placeholder)| Text {
+            field,
+            label: label.into(),
+            value: value.into(),
+            placeholder: placeholder.into(),
+            error: fields
+                .feedback(field)
+                .map(|error| error.label(catalog).into()),
+        })
+        .collect()
+    })
+}
+fn target(
+    model: &Model,
+    fleet: &crate::Fleet,
+    catalog: &Translator,
+) -> Result<Option<Arc<str>>, ClockError> {
+    let Some(draft) = model.draft() else {
+        return Ok(None);
+    };
+    let words = catalog.schedules();
+    if draft.fields().is_none() {
+        draft
+            .opened()
+            .map(|opened| {
+                let session = match opened.definition.target {
+                    vessel_proto::automation::ScheduleTarget::Session { session } => Some(session),
+                    vessel_proto::automation::ScheduleTarget::NewSession { .. }
+                    | vessel_proto::automation::ScheduleTarget::Unknown => None,
+                };
+                let card = model
+                    .connection()
+                    .and_then(|connection| {
+                        fleet.machines.iter().find(|machine| {
+                            machine.connection_context().as_ref() == Some(connection)
+                        })
+                    })
+                    .and_then(|machine| {
+                        machine
+                            .sessions
+                            .iter()
+                            .find(|card| Some(card.session) == session)
+                    });
+                let target =
+                    crate::schedules::target::resolve(&opened.definition.target, card, None, None);
+                match crate::schedules::presentation::target_line(&target.line, catalog) {
+                    crate::schedules::presentation::TargetLine::Text(label)
+                    | crate::schedules::presentation::TargetLine::Path(label) => Ok(label),
+                    crate::schedules::presentation::TargetLine::Project { name, dir } => words
+                        .form_target_project(&dir, &name)
+                        .map(Into::into)
+                        .map_err(ClockError::from),
+                }
+            })
+            .transpose()
+    } else {
+        Ok(None)
+    }
 }
 
 #[cfg(test)]
