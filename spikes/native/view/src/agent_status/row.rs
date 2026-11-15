@@ -40,7 +40,8 @@ impl Activity {
     #[must_use]
     pub fn for_agent(agent: &HarnessRef, operation: Option<&Operation>) -> Self {
         match operation {
-            None => Self::Idle,
+            // Provider removal disables its action, not its readiness verdict.
+            None | Some(Operation::Remove { .. }) => Self::Idle,
             Some(Operation::Discovery) => Self::Loading,
             Some(Operation::Check(target)) => {
                 if target == agent {

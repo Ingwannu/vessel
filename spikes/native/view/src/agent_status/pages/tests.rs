@@ -9,6 +9,7 @@ fn key(name: &'static str) -> MachineKey {
 }
 fn inventory(administration: Administration) -> Inventory {
     Inventory {
+        node: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         command_shell: super::super::command::CommandShell::Unix,
         harnesses: Vec::new(),
         agents: Vec::new(),
