@@ -38,6 +38,7 @@ mod item;
 mod modal_tests;
 #[cfg(test)]
 mod presentation_tests;
+mod row;
 #[cfg(test)]
 mod tests;
 mod trigger;

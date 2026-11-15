@@ -510,3 +510,15 @@ and missing parent; a real GPUI owner regression covers close/open_end cycles.
 The action/focus/flat row engine stays untouched. This is control-only state
 and API, not a page renderer, flyout, hover timer or compact-sheet completion.
 The additive row/page data and renderer are the next step on this same engine.
+
+### Shared row extraction before hierarchy presentation
+
+Move the existing `row_body` and `leading` functions into `menu/row.rs` before
+adding hierarchy content. There is one row renderer for old and new callers;
+`draw::ordinary_glyph` and its published test paths/constants remain in place.
+An independent source comparison confirms both moved bodies are byte-identical
+after only the function rename and helper qualification. This preserves old
+child geometry, input handler, QUICK/fill and layer logic while keeping each
+product file under 500 lines. The existing literal geometry/feedback/focus/
+modal tests remain the regression suite; no mirror implementation test is added.
+Runtime/narrow proof of this extraction is still pending.
