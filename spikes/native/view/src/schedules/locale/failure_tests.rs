@@ -6,6 +6,7 @@ use serde::Deserialize;
 #[serde(tag = "kind", rename_all = "kebab-case")]
 enum Input {
     Older,
+    NotEnabled,
     Offline,
     Busy,
     Unexpected,
@@ -18,6 +19,7 @@ impl From<Input> for Failure {
     fn from(value: Input) -> Self {
         match value {
             Input::Older => Self::Older,
+            Input::NotEnabled => Self::NotEnabled,
             Input::Offline => Self::Offline,
             Input::Busy => Self::Busy,
             Input::Unexpected => Self::Unexpected,
@@ -74,5 +76,5 @@ fn every_failure_has_catalog_words_and_input_policy_in_both_languages() {
         assert_eq!(value.needs_explanation(), case.explains, "{}", case.id);
         assert_eq!(value.variant(), case.variant.into(), "{}", case.id);
     }
-    assert_eq!(ids.len(), 18);
+    assert_eq!(ids.len(), 19);
 }

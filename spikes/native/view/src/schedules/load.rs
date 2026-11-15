@@ -51,6 +51,8 @@ pub enum Failure {
     Node(WireError),
     /// Automation methods are absent from this node's protocol.
     Older,
+    /// This build has not enabled the requested feature; no call was sent.
+    NotEnabled,
     /// Machine is not connected.
     Offline,
     /// Bounded request pool is full.
@@ -70,7 +72,11 @@ impl Failure {
     #[must_use]
     pub const fn retryable(&self) -> bool {
         match self {
-            Self::Older | Self::Exhausted | Self::Unconfirmed | Self::NoTransport => false,
+            Self::Older
+            | Self::NotEnabled
+            | Self::Exhausted
+            | Self::Unconfirmed
+            | Self::NoTransport => false,
             Self::Node(_) | Self::Offline | Self::Busy | Self::Unexpected => true,
         }
     }
@@ -81,6 +87,7 @@ impl Failure {
         match self {
             Self::Node(_)
             | Self::Older
+            | Self::NotEnabled
             | Self::Busy
             | Self::Unexpected
             | Self::Exhausted
@@ -93,7 +100,7 @@ impl Failure {
     #[must_use]
     pub const fn variant(&self) -> crate::alert::Variant {
         match self {
-            Self::Older | Self::NoTransport => crate::alert::Variant::Warning,
+            Self::Older | Self::NotEnabled | Self::NoTransport => crate::alert::Variant::Warning,
             Self::Busy => crate::alert::Variant::Info,
             Self::Node(_)
             | Self::Offline

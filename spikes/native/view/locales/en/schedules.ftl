@@ -205,3 +205,6 @@ schedules-failed-no-transport = Schedules are unavailable in this browser build.
 
 # `HostFilter` picker title; not searchable, as the reference, keep short.
 schedules-filter-by-machine = Filter by machine
+
+# Unassigned local feature: no call sent; updating the machine is not promised as a fix.
+schedules-failed-not-enabled = This schedule feature is not available in this build.

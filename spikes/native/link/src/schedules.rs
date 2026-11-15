@@ -84,6 +84,7 @@ impl ScheduleError {
             Self::Call(error) => match error {
                 vessel_client::CallError::Remote(wire) => Failure::Node(wire.clone()),
                 vessel_client::CallError::NotInProtocol { .. } => Failure::Older,
+                vessel_client::CallError::UnassignedProtocol { .. } => Failure::NotEnabled,
                 vessel_client::CallError::RequestIdsExhausted => Failure::Exhausted,
                 vessel_client::CallError::Disconnected => match ask {
                     Ask::List => Failure::Offline,

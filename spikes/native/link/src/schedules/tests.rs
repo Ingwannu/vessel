@@ -61,3 +61,15 @@ async fn a_missing_client_still_answers_the_exact_ticket_without_a_network_call(
     assert_eq!(answer.request, expected);
     assert!(matches!(answer.result, Err(ScheduleError::Offline)));
 }
+
+#[test]
+fn an_unassigned_feature_is_unsent_and_distinct_from_an_older_peer() {
+    let error = ScheduleError::Call(vessel_client::CallError::UnassignedProtocol {
+        method: vessel_proto::Method::RunSchedule,
+    });
+    let id = "00000000-0000-4000-8000-000000000001".parse().unwrap();
+    for ask in [Ask::List, Ask::Run(id)] {
+        assert_eq!(error.failure(ask), Failure::NotEnabled);
+    }
+    assert!(std::error::Error::source(&error).is_some());
+}

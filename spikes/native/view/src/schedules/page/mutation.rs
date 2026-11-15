@@ -159,6 +159,7 @@ impl Page {
                 Failure::Unexpected => Failure::Unconfirmed,
                 Failure::Node(_)
                 | Failure::Older
+                | Failure::NotEnabled
                 | Failure::Offline
                 | Failure::Busy
                 | Failure::Unconfirmed

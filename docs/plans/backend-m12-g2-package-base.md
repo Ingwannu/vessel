@@ -30,3 +30,22 @@ No later-source result is inferred from earlier green runs or cancelled waits.
 The final complete F1 package still owes its one whole native gate, source
 review and actual first-use captures. Root node code here is inherited from the
 announced base, not a claim about the separate assigned isolation extension.
+
+
+## First actual changed-crate result and repair
+
+The first remote submit was terminated before registration during the build
+helper's submission-lock repair (raw255, no run ID or Cargo output). The tool
+owner verified no matching run was admitted and authorized one exact-SHA
+resubmission. Recovered run schedules-narrow-20261115T065403Z-3b00f225:
+native-fonts0; native-cargo101 (224 seconds), no tests ran. The concrete compiler
+finding was the newly inherited CallError::UnassignedProtocol missing from
+Schedules' exhaustive classification. The queued clippy was never submitted.
+That red result remains tied to3b; it is not later-source evidence.
+
+The repair retains the original source and returns a distinct typed NotEnabled
+failure. It is an unsent feature, not an older peer or an uncertain write; it
+has a complete EN/KO catalog sentence, warning presentation and no safe retry.
+The portable failure fixture grows18→19, and the Link regression covers read
+and write classification/source retention. Changed-source checks follow; no
+whole gate or runtime PASS is inferred from this compiler repair.

@@ -205,3 +205,6 @@ schedules-failed-no-transport = 이 브라우저 버전에서는 예약을 사�
 
 # `HostFilter` picker title; not searchable, as the reference, keep short.
 schedules-filter-by-machine = 머신별로 보기
+
+# Unassigned local feature: no call sent; updating the machine is not promised as a fix.
+schedules-failed-not-enabled = 이 버전에서는 해당 예약 기능을 사용할 수 없습니다.

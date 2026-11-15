@@ -207,5 +207,14 @@
     "retry": true,
     "variant": "error",
     "explains": true
+  },
+  {
+    "id": "local-feature-not-enabled",
+    "input": { "kind": "not-enabled" },
+    "en": "This schedule feature is not available in this build.",
+    "ko": "이 버전에서는 해당 예약 기능을 사용할 수 없습니다.",
+    "retry": false,
+    "explains": true,
+    "variant": "warning"
   }
 ]

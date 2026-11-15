@@ -60,6 +60,7 @@ pub fn failure<'a>(failure: &super::load::Failure, catalog: &'a Translator) -> &
     let words = catalog.schedules();
     match failure {
         Failure::Older => words.failed_older(),
+        Failure::NotEnabled => words.failed_not_enabled(),
         Failure::Offline => words.failed_offline(),
         Failure::Busy => words.failed_busy(),
         Failure::Unexpected => words.failed_unexpected(),
