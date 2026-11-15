@@ -1667,3 +1667,19 @@ a real-git/fake-ACP control must actually create one worktree before metadata at
 can prove no preparatory worktree/session side effects. Future assigned branches
 verify applied classification/labels, not skipped tests. Current tests and strict
 are owed; no assigned/live metadata or preparatory-guard proof is claimed yet.
+
+### Exact8447 consumer suite compile return
+
+wp-cli-narrow-20261115T172916Z-8447cf72 finished rc1/Cargo101 after160s:
+web-ci, nested-fakes and nested-vesseld each completed0, but Cargo stopped before
+any test. Two E0616 diagnostics: the sealed-owner test was in terminal_screen/tests
+and illegally read channel::CaptureEndpoint's private final_screen field. One
+unused read_until usize warning in the held-input fake is retained separately.
+
+Move that test into the existing channel::tui test module, which owns legitimate
+private-field visibility; add no public/test accessors or widened product fields.
+Check the fake's nonzero read count and the Tokio readiness exact byte count.
+Also scope the newer native test's Unix-only SessionId import explicitly for
+cross-platform strict. The original red logs remain; no runtime fairness/queue/EOF,
+rename or CLI unit result is claimed from this invocation. New source awaits strict
+and execution, including changes that were outside8447. No unchanged retry/duplicate.

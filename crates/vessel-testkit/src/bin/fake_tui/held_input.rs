@@ -49,11 +49,11 @@ fn held(ready_port: Option<&str>) -> io::Result<()> {
     // This is the first stdin read. A cancelled queue send must not reappear
     // when the real writer finally regains capacity.
     let mut input = Vec::new();
-    io::stdin()
+    let read = io::stdin()
         .lock()
         .take(MAX_DRAIN)
         .read_until(b'\n', &mut input)?;
-    if !input.ends_with(b"done\n") {
+    if read == 0 || !input.ends_with(b"done\n") {
         return Err(io::Error::other("fixture drain terminator missing"));
     }
     let expired = input.windows(EXPIRED.len()).any(|part| part == EXPIRED);

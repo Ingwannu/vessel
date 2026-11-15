@@ -1,6 +1,7 @@
 //! An actual fake TUI feeds the common screen; its final projection survives ring removal.
 use super::*;
 use crate::handle::Input;
+use crate::terminal_screen::ScreenAuthority;
 use crate::{DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, RuntimeConfig, SessionRuntime};
 use bytes::Bytes;
 use std::{num::NonZeroUsize, path::Path, sync::Arc};
@@ -8,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 use vessel_harness::fakes::{Role, install};
 use vessel_proto::{
     EventRecord, EventSeq, HarnessKind, SessionEvent, SessionInput, SessionMode, SessionSpec,
-    TerminalBytes, TerminalInput,
+    TerminalBytes, TerminalId, TerminalInput,
 };
 
 #[tokio::test]
@@ -167,7 +168,10 @@ async fn a_full_screen_inbox_cannot_run_ahead_of_already_ready_tui_output() {
             // is drained. The child flushes real output before this separate ack.
             let (mut ready, _) = listener.accept().await.unwrap();
             let mut control_port = [0_u8; 2];
-            ready.read_exact(&mut control_port).await.unwrap();
+            assert_eq!(
+                ready.read_exact(&mut control_port).await.unwrap(),
+                control_port.len()
+            );
             assert_ne!(u16::from_be_bytes(control_port), 0);
             for _ in 1..crate::terminal_screen::CAPTURE_QUEUE {
                 endpoint.resize(TerminalSize { rows: 3, cols: 40 }).unwrap();
@@ -200,4 +204,30 @@ async fn a_full_screen_inbox_cannot_run_ahead_of_already_ready_tui_output() {
     )
     .await
     .unwrap();
+}
+
+#[tokio::test]
+async fn final_owner_is_sealed_and_second_finish_does_not_replace_the_retained_cut() {
+    let (endpoint, mut authority) = ScreenAuthority::channel(
+        TerminalAddress::Standalone(TerminalId::random()),
+        TerminalSize { rows: 2, cols: 8 },
+    );
+    authority.output(b"final");
+    authority.finish();
+    let first = endpoint.final_screen.borrow().clone().unwrap();
+    authority.output(b"must not feed after EOF");
+    authority.resize(TerminalSize { rows: 3, cols: 12 });
+    authority.finish();
+    let second = endpoint.final_screen.borrow().clone().unwrap();
+    assert!(Arc::ptr_eq(&first.owner, &second.owner));
+    assert_eq!(
+        endpoint
+            .capture(CaptureOptions::default())
+            .await
+            .unwrap()
+            .lines,
+        ["final", ""]
+    );
+    assert_eq!(second.owner.snapshot().unwrap().size().cols(), 8);
+    assert_eq!(second.owner.snapshot().unwrap().size().rows(), 2);
 }

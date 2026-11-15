@@ -1,6 +1,8 @@
 //! Native metadata requests preserve explicit intent and precede preparatory work.
 use crate::support::{Fixture, within};
-use vessel_proto::{SessionId, lifecycle_version};
+#[cfg(unix)]
+use vessel_proto::SessionId;
+use vessel_proto::lifecycle_version;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn native_discovery_falls_back_only_for_its_implicit_default() {

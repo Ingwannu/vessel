@@ -158,29 +158,3 @@ async fn session_target_cannot_be_reinterpreted_as_a_standalone_capture() {
         Err(CaptureError::WrongTarget)
     );
 }
-
-#[tokio::test]
-async fn final_owner_is_sealed_and_second_finish_does_not_replace_the_retained_cut() {
-    let (endpoint, mut authority) = ScreenAuthority::channel(
-        TerminalAddress::Standalone(TerminalId::random()),
-        TerminalSize { rows: 2, cols: 8 },
-    );
-    authority.output(b"final");
-    authority.finish();
-    let first = endpoint.final_screen.borrow().clone().unwrap();
-    authority.output(b"must not feed after EOF");
-    authority.resize(TerminalSize { rows: 3, cols: 12 });
-    authority.finish();
-    let second = endpoint.final_screen.borrow().clone().unwrap();
-    assert!(Arc::ptr_eq(&first.owner, &second.owner));
-    assert_eq!(
-        endpoint
-            .capture(CaptureOptions::default())
-            .await
-            .unwrap()
-            .lines,
-        ["final", ""]
-    );
-    assert_eq!(second.owner.snapshot().unwrap().size().cols(), 8);
-    assert_eq!(second.owner.snapshot().unwrap().size().rows(), 2);
-}

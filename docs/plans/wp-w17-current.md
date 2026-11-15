@@ -18,7 +18,10 @@ at c3966e380, pending atomic detach consumption and native lifecycle metadata fl
 The latter source is not covered by the queued immutable8447 suite. The queued467 consumer run was cancelled before a slot (terminal143)
 because it predated these changes. Its ONE same-lane latest replacement is
 wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723, queued ordinary.
-Neither queued run supplies compilation/test evidence yet.
+The replacement completed rc1 before tests (two private-field E0616 errors in
+sealed-owner test placement; one unused read count warning). Setup3 steps0 is not
+runtime proof. Those source defects are corrected without exposing private fields;
+changed-source strict and actual execution remain owed.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an
