@@ -93,7 +93,7 @@ pub(crate) struct ConversationArea {
     /// Entries whose disclosure the person toggled (a tool card, a
     /// thought), against its default.
     pub(super) disclosures: Disclosures,
-    /// Kept Chat default, shared with embedded conversations through set_reasoning.
+    /// Kept Chat default, shared with embedded conversations through `set_reasoning`.
     pub(super) reasoning: ReasoningExpansion,
     /// Each decision owns its plan disclosure; text changes retain the person's choice.
     pub(super) plans: PlanDisclosures,
@@ -426,9 +426,8 @@ impl ConversationArea {
 /// app has drawn it since its first build.
 pub(super) fn collapsing(display: Option<ConversationDisplay>) -> bool {
     match std::env::var("VESSEL_APP_CONVERSATION").as_deref() {
-        Ok("full") => false,
+        Ok("full" | "turns") => false,
         Ok("collapse") => true,
-        Ok("turns") => false,
         _ => display.is_none_or(|display| display == ConversationDisplay::CollapseTools),
     }
 }

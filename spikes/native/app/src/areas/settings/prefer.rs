@@ -54,7 +54,7 @@ impl Shell {
                         self.conversation_display(*display);
                     }
                     PreferenceChange::Reasoning(expansion) => {
-                        self.conversation_reasoning(*expansion)
+                        self.conversation_reasoning(*expansion);
                     }
                     PreferenceChange::Animations(animations) => {
                         crate::motion::animations(animations.on(), cx);

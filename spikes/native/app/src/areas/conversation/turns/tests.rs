@@ -4,20 +4,39 @@ use super::{ConversationArea, Turns};
 use vessel_proto::{EventRecord, EventSeq, SessionEvent, SessionId};
 
 fn records() -> Vec<EventRecord> {
+    use vessel_proto::{AgentEvent, ContentBlock, StopReason, ToolCall, ToolCallStatus, ToolKind};
     [
-        r#"{"event":"turn_started","content":[{"type":"text","text":"Go"}]}"#,
-        r#"{"event":"tool_call","id":"read","title":"Read","kind":"read","status":"completed"}"#,
-        r#"{"event":"message_chunk","content":{"type":"text","text":"Done"}}"#,
-        r#"{"event":"turn_ended","reason":"end_turn"}"#,
+        AgentEvent::TurnStarted {
+            content: vec![ContentBlock::Text {
+                text: "Go".to_owned(),
+            }],
+        },
+        AgentEvent::ToolCall(ToolCall {
+            id: "read".parse().unwrap(),
+            title: "Read".to_owned(),
+            kind: ToolKind::Read,
+            status: ToolCallStatus::Completed,
+            content: Vec::new(),
+            locations: Vec::new(),
+            raw_input: None,
+        }),
+        AgentEvent::MessageChunk {
+            content: ContentBlock::Text {
+                text: "Done".to_owned(),
+            },
+        },
+        AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: None,
+        },
     ]
     .into_iter()
     .enumerate()
     .map(|(seq, event)| EventRecord {
         seq: EventSeq::new(u64::try_from(seq).unwrap()),
         at: chrono::DateTime::UNIX_EPOCH,
-        event: SessionEvent::Agent {
-            event: serde_json::from_str(event).unwrap(),
-        },
+        event: SessionEvent::Agent { event },
     })
     .collect()
 }

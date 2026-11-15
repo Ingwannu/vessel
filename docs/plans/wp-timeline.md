@@ -350,3 +350,10 @@ factual timing/copy, suppresses any provider reply already withheld as duplicate
 failure text, and never borrows an earlier response. An error-only partial log
 without a response/tool host gets no synthetic footer. Regression tests pin
 failed response boundaries, explicit failure state and copied content.
+
+Base 2 (`6036eeb8`) merged as `f3ef6446`: Machine.node identity and shared
+field events/editability are consumed unchanged. A narrow check then caught
+missing per-key translator comments, an ambiguous asset-test string type and
+an app test attempting JSON decoding without a dependency. These are corrected:
+every new Fluent key owns context, asset expectations name SharedString, and
+the app fixture constructs typed events without adding a JSON dependency.
