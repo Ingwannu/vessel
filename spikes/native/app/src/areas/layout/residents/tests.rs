@@ -149,24 +149,9 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
                 resources.session.resume_error = Some("uncertain".to_owned());
             })
             .unwrap();
-        assert_eq!(
-            residents
-                .resources(&residents.context(token, &claim).unwrap())
-                .unwrap()
-                .session
-                .resume_error
-                .as_deref(),
-            Some("uncertain")
-        );
-        assert_eq!(
-            residents
-                .resources(&context)
-                .unwrap()
-                .session
-                .composer
-                .text(cx),
-            "protected input"
-        );
+        let resources = residents.resources(&context).unwrap();
+        assert_eq!(resources.session.resume_error.as_deref(), Some("uncertain"));
+        assert_eq!(resources.session.composer.text(cx), "protected input");
         let applied = Cell::new(false);
         assert!(residents.receive(first, |_| applied.set(true)).is_err());
         assert!(
@@ -209,21 +194,9 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
             residents.retire_clean(token),
             Err(ResidentProblem::Held)
         ));
-        assert_eq!(
-            residents
-                .resources(&context)
-                .unwrap()
-                .session
-                .composer
-                .text(cx),
-            "protected input"
-        );
-        residents
-            .resources(&context)
-            .unwrap()
-            .session
-            .composer
-            .clear(window, cx);
+        let resources = residents.resources(&context).unwrap();
+        assert_eq!(resources.session.composer.text(cx), "protected input");
+        resources.session.composer.clear(window, cx);
         for owner in ResourceOwner::ALL {
             residents
                 .readiness(token, owner, OwnerReadiness::Ready)
