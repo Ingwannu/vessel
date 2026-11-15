@@ -142,6 +142,14 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`createFollowTranscriptWriter`). Vessel already joins reply chunks
   in the CLI view; follow uses that, and does not reprint Paseo's
   banners for a replaced timeline. The log has no epoch.
+- Tail's unit differs: the callers `logs.ts:60-71,314,355` pass the
+  limit to `curateAgentActivity`. Under `packages/server/src/server/agent/`,
+  `activity-curator.ts:84-90,135-144,189-194` projects before taking the last
+  items; `timeline-projection.ts:543-554` collapses tool lifecycles and merges
+  assistant/reasoning chunks. Vessel counts raw log records, including
+  terminal and status records, before rendering. This preserves the existing
+  `--from` and retention cursor unit in both modes. Tail can begin inside a
+  streamed message; it does not count visible lines or complete messages.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -287,7 +295,10 @@ No row of the crate table changes.
   its window allocates only for actual records. Zero selects no history;
   omission keeps the unbounded-by-count snapshot behavior. Raw pages prove
   retention gaps; dropping earlier tail records never invents a notice.
-  Parser/window units and a fake-node CLI test remain unrun.
+  Parser/window units and a fake-node CLI test remain unrun. A raw-chunk
+  boundary test makes the projected-item difference explicit: the last record
+  of a split reply renders only its final fragment. Count-overflow tests
+  derive their rejected input from the platform's integer bound.
 - The full time/kind/follow implementation is a protected draft for slice 5b,
   not part of the tail slice. It must reuse the tail type and window rather
   than restating their rules. Existing render test expectations stay unchanged.

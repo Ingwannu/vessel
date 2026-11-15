@@ -39,13 +39,8 @@ mod tests {
             };
             assert_eq!(log.tail, expected);
         }
-        for raw in [
-            "-1",
-            "abc",
-            "2x",
-            "1.5",
-            "9999999999999999999999999999999999999",
-        ] {
+        let overflow = format!("{}0", usize::MAX);
+        for raw in ["-1", "abc", "2x", "1.5", overflow.as_str()] {
             assert!(
                 Cli::try_parse_from(["vessel", "log", "abcd", "--tail", raw]).is_err(),
                 "{raw}"

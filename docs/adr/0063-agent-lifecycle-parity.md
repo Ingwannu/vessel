@@ -217,6 +217,11 @@ person reloads. There is no MCP tool for it.
 - `--tail N`, `N` a non-negative integer. `0` prints nothing. One-shot
   with no `--tail` prints every selected record. Follow with no `--tail`
   prints the last 10.
+  Here a count is log records, including terminal output and status, not
+  rendered lines or complete messages. Paseo counts projected timeline
+  items after merging text chunks and tool lifecycles. Vessel keeps its
+  existing `--from` sequence/retention unit for both terminal and structured
+  logs; applying tail before rendering can therefore start within a message.
 - `--filter tools|text|errors|permissions`. Anything else is a usage
   error, before connecting. `tools` is a tool call and its update;
   `text` is a user turn, a replayed user chunk, a reply chunk, a
