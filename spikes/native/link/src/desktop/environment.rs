@@ -8,7 +8,7 @@ use tokio::io::AsyncReadExt as _;
 use vessel_proc::{CommandSpec, EnvValue};
 use vessel_proto::SessionId;
 
-use super::Error;
+use super::DesktopError;
 
 /// The reference's overall shell-resolution deadline.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -29,7 +29,7 @@ impl ShellEnvironment {
         }
     }
 
-    /// Pass captured values only to an explicitly owned child, without unsafe set_var.
+    /// Pass captured values only to an explicitly owned child, without unsafe `set_var`.
     #[must_use]
     pub fn apply(&self, mut command: CommandSpec) -> CommandSpec {
         command.env.extend(self.overrides.iter().cloned());
@@ -46,13 +46,13 @@ impl LoginShell {
     ///
     /// # Errors
     /// Refuses relative paths and shells whose invocation semantics are unknown.
-    pub fn new(path: PathBuf) -> Result<Self, Error> {
+    pub fn new(path: PathBuf) -> Result<Self, DesktopError> {
         if !path.is_absolute() {
-            return Err(Error::RelativePath);
+            return Err(DesktopError::RelativePath);
         }
         match path.file_name().and_then(|name| name.to_str()) {
             Some("bash" | "zsh" | "sh" | "dash" | "fish") => Ok(Self(path)),
-            Some(_) | None => Err(Error::ShellEnvironment),
+            Some(_) | None => Err(DesktopError::ShellEnvironment),
         }
     }
 }
@@ -61,14 +61,19 @@ impl LoginShell {
 ///
 /// # Errors
 /// Refuses timeout, output overflow, nonzero exit, malformed values and process errors.
-pub async fn resolve(shell: LoginShell, timeout: Duration) -> Result<ShellEnvironment, Error> {
+pub async fn resolve(
+    shell: LoginShell,
+    timeout: Duration,
+) -> Result<ShellEnvironment, DesktopError> {
     let mark = format!("vessel-env-{}", SessionId::random());
     let command = format!("printf '\\0{mark}\\0'; /usr/bin/env -0; printf '\\0{mark}\\0'");
     let spec = CommandSpec::new(shell.0)
         .env_remove("PASEO_NODE_ENV")
         .env_remove("PASEO_DESKTOP_MANAGED")
         .env_remove("PASEO_SUPERVISED");
-    let first = timeout.checked_div(2).ok_or(Error::ShellEnvironment)?;
+    let first = timeout
+        .checked_div(2)
+        .ok_or(DesktopError::ShellEnvironment)?;
     let work = async {
         match tokio::time::timeout(
             first,
@@ -82,10 +87,10 @@ pub async fn resolve(shell: LoginShell, timeout: Duration) -> Result<ShellEnviro
     };
     tokio::time::timeout(timeout, work)
         .await
-        .map_err(|_expired| Error::ShellEnvironment)?
+        .map_err(|_expired| DesktopError::ShellEnvironment)?
 }
 
-async fn attempt(spec: CommandSpec, mark: &str) -> Result<ShellEnvironment, Error> {
+async fn attempt(spec: CommandSpec, mark: &str) -> Result<ShellEnvironment, DesktopError> {
     let vessel_proc::Spawned {
         mut child,
         stdin,
@@ -99,37 +104,42 @@ async fn attempt(spec: CommandSpec, mark: &str) -> Result<ShellEnvironment, Erro
             .take(MAX_ENV_BYTES.saturating_add(1))
             .read_to_end(&mut output)
             .await?;
-        if u64::try_from(output.len()).map_err(|_overflow| Error::ShellEnvironment)? > MAX_ENV_BYTES
+        if u64::try_from(output.len()).map_err(|_overflow| DesktopError::ShellEnvironment)?
+            > MAX_ENV_BYTES
         {
-            return Err(Error::ShellEnvironment);
+            return Err(DesktopError::ShellEnvironment);
         }
-        Ok::<(), Error>(())
+        Ok::<(), DesktopError>(())
     };
     let stderr = async {
         let _discarded =
             tokio::io::copy(&mut stderr.take(MAX_ENV_BYTES), &mut tokio::io::sink()).await?;
-        Ok::<(), Error>(())
+        Ok::<(), DesktopError>(())
     };
     let ((), (), exit) = tokio::try_join!(stdout, stderr, async {
-        child.wait().await.map_err(Error::from)
+        child.wait().await.map_err(DesktopError::from)
     })?;
     if exit != Some(0) {
-        return Err(Error::ShellEnvironment);
+        return Err(DesktopError::ShellEnvironment);
     }
     decode(&output, mark)
 }
 
-fn decode(bytes: &[u8], mark: &str) -> Result<ShellEnvironment, Error> {
+fn decode(bytes: &[u8], mark: &str) -> Result<ShellEnvironment, DesktopError> {
     let marker = format!("\0{mark}\0");
-    let text = std::str::from_utf8(bytes).map_err(|_invalid| Error::ShellEnvironment)?;
-    let (_preamble, rest) = text.split_once(&marker).ok_or(Error::ShellEnvironment)?;
-    let (body, _epilogue) = rest.split_once(&marker).ok_or(Error::ShellEnvironment)?;
+    let text = std::str::from_utf8(bytes).map_err(|_invalid| DesktopError::ShellEnvironment)?;
+    let (_preamble, rest) = text
+        .split_once(&marker)
+        .ok_or(DesktopError::ShellEnvironment)?;
+    let (body, _epilogue) = rest
+        .split_once(&marker)
+        .ok_or(DesktopError::ShellEnvironment)?;
     let mut overrides = Vec::new();
     for pair in body.split('\0').filter(|pair| !pair.is_empty()) {
         let (name, value) = pair
             .split_once('=')
             .filter(|(name, _)| !name.is_empty())
-            .ok_or(Error::ShellEnvironment)?;
+            .ok_or(DesktopError::ShellEnvironment)?;
         // Session/display routing belongs to the actual GUI process, even when a
         // login profile exports a stale value from a previous desktop session.
         if name == "XDG_RUNTIME_DIR" {

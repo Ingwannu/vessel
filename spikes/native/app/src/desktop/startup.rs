@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use tokio::sync::mpsc;
 use vessel_app_kit::SchemeChoice;
 use vessel_app_link::desktop::{
-    Error,
+    DesktopError,
     environment::{self, LoginShell, ShellEnvironment},
     instance::{self, Instance, Launch},
     invocation::{self, Invocation, Mode},
@@ -20,7 +20,7 @@ pub(crate) fn run(choice: SchemeChoice, application: fn() -> gpui::Application) 
     match start(choice, application) {
         Ok(code) => code,
         Err(error) => {
-            let kind = if matches!(&error, Error::RestartDeadline) {
+            let kind = if matches!(&error, DesktopError::RestartDeadline) {
                 super::startup_error::Kind::Restart
             } else {
                 super::startup_error::Kind::Launch
@@ -32,7 +32,10 @@ pub(crate) fn run(choice: SchemeChoice, application: fn() -> gpui::Application) 
     }
 }
 
-fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result<ExitCode, Error> {
+fn start(
+    choice: SchemeChoice,
+    application: fn() -> gpui::Application,
+) -> Result<ExitCode, DesktopError> {
     let mode = if std::env::var_os("VESSEL_DESKTOP_CLI").is_some_and(|value| value == "1") {
         Mode::Cli
     } else {
@@ -53,7 +56,7 @@ fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result
     let directory = std::env::var_os("VESSEL_CONFIG_DIR")
         .map(PathBuf::from)
         .or_else(dirs::config_dir)
-        .ok_or(Error::RelativePath)?
+        .ok_or(DesktopError::RelativePath)?
         .join("vessel")
         .join("desktop");
     let store = Store::new(directory)?;
@@ -108,7 +111,7 @@ fn start(choice: SchemeChoice, application: fn() -> gpui::Application) -> Result
     Ok(ExitCode::SUCCESS)
 }
 
-fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, Error> {
+fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, DesktopError> {
     let platform = if cfg!(windows) {
         vessel_app_link::desktop::cli::path_setup::Platform::Windows
     } else if cfg!(target_os = "macos") {
@@ -116,10 +119,13 @@ fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, Error> {
     } else {
         vessel_app_link::desktop::cli::path_setup::Platform::Unix
     };
-    let binary =
-        vessel_app_link::desktop::cli::bundled_cli_path(&std::env::current_exe()?, platform)?;
+    let binary = vessel_app_link::desktop::bundle::bundled_tool_path(
+        &std::env::current_exe()?,
+        platform,
+        vessel_app_link::desktop::bundle::BundledTool::Cli,
+    )?;
     if !binary.is_file() {
-        return Err(Error::MissingCli);
+        return Err(DesktopError::MissingCli);
     }
     let status = std::process::Command::new(binary)
         .args(arguments)

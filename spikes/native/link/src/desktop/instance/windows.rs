@@ -1,6 +1,6 @@
 //! Windows uses a local named pipe with the account's default DACL, never TCP.
 
-use super::{Error, Launch, bounded, receive, send};
+use super::{DesktopError, Launch, bounded, receive, send};
 use std::hash::{Hash as _, Hasher as _};
 use std::path::Path;
 use tokio::net::windows::named_pipe::{ClientOptions, NamedPipeServer, ServerOptions};
@@ -15,7 +15,7 @@ fn name(directory: &Path) -> String {
 pub(super) fn bind(
     directory: &Path,
     runtime: &tokio::runtime::Runtime,
-) -> Result<(String, NamedPipeServer), Error> {
+) -> Result<(String, NamedPipeServer), DesktopError> {
     let _entered = runtime.enter();
     let name = name(directory);
     let server = ServerOptions::new()
@@ -47,7 +47,7 @@ pub(super) async fn serve(
     }
 }
 
-pub(super) async fn forward(directory: &Path, launch: &Launch) -> Result<(), Error> {
+pub(super) async fn forward(directory: &Path, launch: &Launch) -> Result<(), DesktopError> {
     bounded(async {
         let mut stream = ClientOptions::new().open(name(directory))?;
         send(&mut stream, launch).await

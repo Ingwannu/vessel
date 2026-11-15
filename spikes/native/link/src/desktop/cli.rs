@@ -4,26 +4,9 @@ pub mod path_setup;
 
 use std::path::{Path, PathBuf};
 
-use super::Error;
+use super::DesktopError;
 
 pub use vessel_app_view::desktop::cli::Status;
-
-/// The GUI is Vessel.exe on Windows, so a sibling vessel.exe would recurse.
-///
-/// # Errors
-/// The host executable must have an absolute location.
-pub fn bundled_cli_path(
-    executable: &Path,
-    platform: path_setup::Platform,
-) -> Result<PathBuf, Error> {
-    if !executable.is_absolute() {
-        return Err(Error::RelativePath);
-    }
-    Ok(executable.with_file_name(match platform {
-        path_setup::Platform::Windows => "vessel-cli.exe",
-        path_setup::Platform::Mac | path_setup::Platform::Unix => "vessel",
-    }))
-}
 
 /// Both paths are supplied explicitly so onboarding cannot accidentally use root's home.
 #[derive(Debug, Clone)]
@@ -37,16 +20,16 @@ impl Installation {
     ///
     /// # Errors
     /// Refuses relative paths and Windows command metacharacters in the source.
-    pub fn new(source: PathBuf, target: PathBuf) -> Result<Self, Error> {
+    pub fn new(source: PathBuf, target: PathBuf) -> Result<Self, DesktopError> {
         if !source.is_absolute() || !target.is_absolute() {
-            return Err(Error::RelativePath);
+            return Err(DesktopError::RelativePath);
         }
         #[cfg(windows)]
         if source
             .to_str()
             .is_none_or(|s| s.contains(['"', '%', '\r', '\n']))
         {
-            return Err(Error::RelativePath);
+            return Err(DesktopError::RelativePath);
         }
         Ok(Self { source, target })
     }
@@ -67,7 +50,7 @@ impl Installation {
     ///
     /// # Errors
     /// OS errors are distinct from absence.
-    pub fn status(&self) -> Result<Status, Error> {
+    pub fn status(&self) -> Result<Status, DesktopError> {
         match std::fs::symlink_metadata(&self.target) {
             Ok(metadata) => self.classify(&metadata),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Status::Absent),
@@ -76,7 +59,7 @@ impl Installation {
     }
 
     #[cfg(unix)]
-    fn classify(&self, metadata: &std::fs::Metadata) -> Result<Status, Error> {
+    fn classify(&self, metadata: &std::fs::Metadata) -> Result<Status, DesktopError> {
         Ok(
             if metadata.file_type().is_symlink() && std::fs::read_link(&self.target)? == self.source
             {
@@ -88,7 +71,7 @@ impl Installation {
     }
 
     #[cfg(windows)]
-    fn classify(&self, metadata: &std::fs::Metadata) -> Result<Status, Error> {
+    fn classify(&self, metadata: &std::fs::Metadata) -> Result<Status, DesktopError> {
         const MAX_SHIM_BYTES: u64 = 8192;
         Ok(
             if metadata.is_file()
@@ -107,13 +90,13 @@ impl Installation {
     ///
     /// # Errors
     /// Refuses missing source, foreign ownership and OS errors.
-    pub fn install(&self) -> Result<Status, Error> {
+    pub fn install(&self) -> Result<Status, DesktopError> {
         if !self.source.is_file() {
-            return Err(Error::MissingCli);
+            return Err(DesktopError::MissingCli);
         }
         match self.status()? {
             Status::Installed => return Ok(Status::Installed),
-            Status::Foreign => return Err(Error::ForeignCli),
+            Status::Foreign => return Err(DesktopError::ForeignCli),
             Status::Absent => {}
         }
         if let Some(parent) = self.target.parent() {
@@ -124,13 +107,13 @@ impl Installation {
     }
 
     #[cfg(unix)]
-    fn create(&self) -> Result<(), Error> {
+    fn create(&self) -> Result<(), DesktopError> {
         std::os::unix::fs::symlink(&self.source, &self.target)?;
         Ok(())
     }
 
     #[cfg(windows)]
-    fn create(&self) -> Result<(), Error> {
+    fn create(&self) -> Result<(), DesktopError> {
         use std::io::Write as _;
         let mut file = std::fs::OpenOptions::new()
             .write(true)
@@ -152,10 +135,10 @@ impl Installation {
     ///
     /// # Errors
     /// Foreign ownership and OS failures are reported explicitly.
-    pub fn uninstall(&self) -> Result<Status, Error> {
+    pub fn uninstall(&self) -> Result<Status, DesktopError> {
         match self.status()? {
             Status::Absent => Ok(Status::Absent),
-            Status::Foreign => Err(Error::ForeignCli),
+            Status::Foreign => Err(DesktopError::ForeignCli),
             Status::Installed => {
                 std::fs::remove_file(&self.target)?;
                 Ok(Status::Absent)
@@ -175,13 +158,13 @@ mod tests {
         let source = root.join("bundled-cli");
         let target = root.join("vessel");
         let install = Installation::new(source.clone(), target.clone()).unwrap();
-        assert!(matches!(install.install(), Err(Error::MissingCli)));
+        assert!(matches!(install.install(), Err(DesktopError::MissingCli)));
         std::fs::write(&source, "bundled").unwrap();
         assert_eq!(install.install().unwrap(), Status::Installed);
         assert_eq!(install.uninstall().unwrap(), Status::Absent);
         std::fs::write(&target, "foreign").unwrap();
-        assert!(matches!(install.install(), Err(Error::ForeignCli)));
-        assert!(matches!(install.uninstall(), Err(Error::ForeignCli)));
+        assert!(matches!(install.install(), Err(DesktopError::ForeignCli)));
+        assert!(matches!(install.uninstall(), Err(DesktopError::ForeignCli)));
         assert_eq!(std::fs::read(&target).unwrap(), b"foreign");
         std::fs::remove_dir_all(root).unwrap();
     }

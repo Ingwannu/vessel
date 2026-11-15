@@ -39,7 +39,7 @@ impl Desktop {
     fn new(
         store: Store,
         environment: ShellEnvironment,
-    ) -> Result<Self, vessel_app_link::desktop::Error> {
+    ) -> Result<Self, vessel_app_link::desktop::DesktopError> {
         let preferences = Coordinator::start(vessel_app_link::Prefs::load())?;
         let (saved, writable) = match store.load_window() {
             Ok(saved) => (saved, true),
@@ -152,7 +152,7 @@ fn install(
     store: Store,
     environment: ShellEnvironment,
     cx: &mut App,
-) -> Result<(), vessel_app_link::desktop::Error> {
+) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment)?);
     cx.set_quit_mode(gpui::QuitMode::Explicit);
     crate::areas::desktop::listen(cx);
@@ -190,7 +190,7 @@ fn install(
 /// Update restart and normal quit await the same canonical preferences queue.
 pub(crate) fn flush_preferences(
     cx: &App,
-) -> impl Future<Output = Result<(), vessel_app_link::desktop::Error>> + 'static {
+) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static {
     let flush = cx
         .try_global::<Desktop>()
         .map(|desktop| desktop.preferences.flush());

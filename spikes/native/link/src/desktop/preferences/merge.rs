@@ -87,24 +87,20 @@ fn preferences(current: &mut Preferences, before: &Preferences, after: &Preferen
         defaults: _,
     } = after;
     fields!(current,before,after;language);
-    appearance(
-        &mut current.appearance,
-        &before.appearance,
-        &after.appearance,
-    );
+    appearance(&mut current.appearance, before.appearance, after.appearance);
     layout(&mut current.layout, &before.layout, &after.layout);
-    composer(&mut current.composer, &before.composer, &after.composer);
+    composer(&mut current.composer, before.composer, after.composer);
     notifications(
         &mut current.notifications,
-        &before.notifications,
-        &after.notifications,
+        before.notifications,
+        after.notifications,
     );
-    sidebar(&mut current.sidebar, &before.sidebar, &after.sidebar);
+    sidebar(&mut current.sidebar, before.sidebar, after.sidebar);
     map(&mut current.shortcuts, &before.shortcuts, &after.shortcuts);
     defaults(&mut current.defaults, &before.defaults, &after.defaults);
 }
 
-fn appearance(current: &mut Appearance, before: &Appearance, after: &Appearance) {
+fn appearance(current: &mut Appearance, before: Appearance, after: Appearance) {
     let Appearance {
         theme: _,
         interface_size: _,
@@ -126,7 +122,7 @@ fn layout(current: &mut Layout, before: &Layout, after: &Layout) {
     fields!(current,before,after;sidebar,inspector,sidebar_width,panel_width);
 }
 
-fn composer(current: &mut Composer, before: &Composer, after: &Composer) {
+fn composer(current: &mut Composer, before: Composer, after: Composer) {
     let Composer {
         send: _,
         delivery: _,
@@ -134,7 +130,7 @@ fn composer(current: &mut Composer, before: &Composer, after: &Composer) {
     fields!(current,before,after;send,delivery);
 }
 
-fn notifications(current: &mut Notifications, before: &Notifications, after: &Notifications) {
+fn notifications(current: &mut Notifications, before: Notifications, after: Notifications) {
     let Notifications {
         alerts: _,
         title: _,
@@ -142,7 +138,7 @@ fn notifications(current: &mut Notifications, before: &Notifications, after: &No
     fields!(current,before,after;alerts,title);
 }
 
-fn sidebar(current: &mut SidebarView, before: &SidebarView, after: &SidebarView) {
+fn sidebar(current: &mut SidebarView, before: SidebarView, after: SidebarView) {
     let SidebarView {
         group: _,
         sort: _,

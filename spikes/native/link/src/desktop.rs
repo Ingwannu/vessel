@@ -1,5 +1,6 @@
 //! Desktop-local I/O takes explicit paths from the binary, never node credentials.
 
+pub mod bundle;
 pub mod cli;
 pub mod environment;
 pub mod instance;
@@ -10,10 +11,13 @@ pub mod window_writer;
 
 /// Refusals preserve their source without retaining environment or file contents.
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum DesktopError {
     /// The operation needs a trusted absolute path from the host entry point.
     #[error("desktop paths must be absolute")]
     RelativePath,
+    /// No guessed path may launch an unsigned or incorrectly nested macOS tool.
+    #[error("this platform has no published Vessel companion bundle layout")]
+    UnsupportedBundle,
     /// A bundled tool cannot be invented when the release did not contain one.
     #[error("the bundled Vessel CLI is unavailable in this installation")]
     MissingCli,

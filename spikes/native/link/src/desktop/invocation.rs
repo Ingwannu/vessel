@@ -1,7 +1,7 @@
 //! GUI launch routing is decided before generic CLI argument passthrough.
 
 use super::{
-    Error,
+    DesktopError,
     instance::{Launch, ProjectDirectory},
 };
 use std::ffi::OsString;
@@ -33,7 +33,7 @@ pub enum Invocation {
 pub fn parse(
     arguments: impl IntoIterator<Item = OsString>,
     mode: Mode,
-) -> Result<Invocation, Error> {
+) -> Result<Invocation, DesktopError> {
     let arguments: Vec<_> = arguments
         .into_iter()
         .filter(|argument| {
@@ -57,16 +57,16 @@ pub fn parse(
         .iter()
         .find(|arg| arg.to_str().is_some_and(|s| s.starts_with("vessel:")))
     {
-        let text = argument.to_str().ok_or(Error::InvalidLaunch)?;
+        let text = argument.to_str().ok_or(DesktopError::InvalidLaunch)?;
         return NavigationTarget::parse(text)
             .map(|target| Invocation::Gui(Launch::Session(target)))
-            .map_err(|_invalid| Error::InvalidLaunch);
+            .map_err(|_invalid| DesktopError::InvalidLaunch);
     }
     match arguments.as_slice() {
         [] => Ok(Invocation::Gui(Launch::NewWindow)),
         [flag, path] if flag == "--open-project" => ProjectDirectory::new(PathBuf::from(path))
             .map(|dir| Invocation::Gui(Launch::Project(dir))),
-        [flag] if flag == "--open-project" => Err(Error::InvalidLaunch),
+        [flag] if flag == "--open-project" => Err(DesktopError::InvalidLaunch),
         [path] if PathBuf::from(path).is_absolute() => ProjectDirectory::new(PathBuf::from(path))
             .map(|dir| Invocation::Gui(Launch::Project(dir))),
         _ => Ok(Invocation::Cli(arguments)),

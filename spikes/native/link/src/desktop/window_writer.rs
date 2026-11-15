@@ -5,13 +5,13 @@ use std::sync::mpsc;
 use tokio::sync::oneshot;
 use vessel_app_view::desktop::window::{SAVE_DELAY, WindowState};
 
-use super::{Error, store::Store};
+use super::{DesktopError, store::Store};
 
 const QUEUE_CAPACITY: usize = 64;
 
 enum Command {
     Changed(WindowState),
-    Final(WindowState, oneshot::Sender<Result<(), Error>>),
+    Final(WindowState, oneshot::Sender<Result<(), DesktopError>>),
 }
 
 /// Process-wide handle; only the primary window supplies remembered bounds.
@@ -25,11 +25,11 @@ impl WindowWriter {
     ///
     /// # Errors
     /// Thread startup failures preserve the original OS cause.
-    pub fn start(store: Store) -> Result<Self, Error> {
+    pub fn start(store: Store) -> Result<Self, DesktopError> {
         let (commands, receiver) = mpsc::sync_channel(QUEUE_CAPACITY);
         let _worker = std::thread::Builder::new()
             .name("vessel-window-state".into())
-            .spawn(move || run(store, receiver))?;
+            .spawn(move || run(&store, &receiver))?;
         Ok(Self { commands })
     }
 
@@ -37,12 +37,12 @@ impl WindowWriter {
     ///
     /// # Errors
     /// A full or closed worker requires the caller to report failure.
-    pub fn changed(&self, state: WindowState) -> Result<(), Error> {
+    pub fn changed(&self, state: WindowState) -> Result<(), DesktopError> {
         self.commands
             .try_send(Command::Changed(state))
             .map_err(|error| match error {
-                mpsc::TrySendError::Full(_) => Error::Busy,
-                mpsc::TrySendError::Disconnected(_) => Error::Closed,
+                mpsc::TrySendError::Full(_) => DesktopError::Busy,
+                mpsc::TrySendError::Disconnected(_) => DesktopError::Closed,
             })
     }
 
@@ -53,7 +53,7 @@ impl WindowWriter {
     pub fn finalize(
         &self,
         state: WindowState,
-    ) -> impl Future<Output = Result<(), Error>> + 'static {
+    ) -> impl Future<Output = Result<(), DesktopError>> + 'static {
         let commands = self.commands.clone();
         async move {
             let (done, wait) = oneshot::channel();
@@ -64,12 +64,12 @@ impl WindowWriter {
                 .spawn(move || {
                     drop(commands.send(Command::Final(state, done)));
                 })?;
-            wait.await.map_err(|_closed| Error::Closed)?
+            wait.await.map_err(|_closed| DesktopError::Closed)?
         }
     }
 }
 
-fn run(store: Store, receiver: mpsc::Receiver<Command>) {
+fn run(store: &Store, receiver: &mpsc::Receiver<Command>) {
     let mut pending = None;
     loop {
         let next = if pending.is_some() {
@@ -122,7 +122,7 @@ mod tests {
         assert_eq!(store.load_window().unwrap(), Some(final_state));
         assert!(matches!(
             writer.changed(WindowState::default()),
-            Err(Error::Closed)
+            Err(DesktopError::Closed)
         ));
         std::fs::remove_dir_all(root).unwrap();
     }
