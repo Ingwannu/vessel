@@ -1490,3 +1490,13 @@ Ordinary hint and long labels can wrap. Inputs/selects still own their chrome
 and field lifetime. No existing caller/default constructor is changed. Exact
 source/value tests are part of F1's final package checks; native first-use
 layout/long bilingual captures are not implied by this source addition.
+
+Combobox callbacks also retain a private rendered-open lease. Explicit reopen,
+query-page reset and state replacement retire old callbacks before they can
+select/highlight/close or restore focus over another opening. Stale recognized
+keys remain contained under a parent dialog; stale pointer capture refuses
+GPUI's default focus action. Outside/scrim dismissal is consumed by the popup
+rather than cascading into its parent. No public constructor, width, row,
+geometry or callback signature changes. New rendered-retirement cases are
+source-only until the final changed package checks; no native OS/F5 pass follows
+from this source guard.

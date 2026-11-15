@@ -115,12 +115,15 @@ pub(super) fn note_row(note: SharedString, tokens: &Tokens) -> Div {
 pub(super) fn title_row<V: 'static>(
     title: SharedString,
     back: bool,
-    leading: Option<Leading>,
+    state: &ComboboxState,
     handlers: &ComboHandlers<V>,
     tokens: &Tokens,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
+    let leading = state.header_leading.clone();
+    let lease = state.render_lease();
+    let get = handlers.state;
     let mut row = div()
         .id("combobox-title")
         .flex()
@@ -140,6 +143,10 @@ pub(super) fn title_row<V: 'static>(
                 .cursor_pointer()
                 .hover(move |style| style.bg(neutral.surface1))
                 .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+                    if !get(view).accepts(&lease) {
+                        cx.stop_propagation();
+                        return;
+                    }
                     go_back(view, window, cx);
                     cx.notify();
                 }));
@@ -376,6 +383,7 @@ pub(super) fn combo_row<V: 'static>(
     if !row.disabled {
         let chose = Rc::clone(&handlers.chose);
         let get = handlers.state;
+        let lease = state.render_lease();
         element = element
             .cursor_pointer()
             .hover(move |style| style.bg(wash))
@@ -383,8 +391,12 @@ pub(super) fn combo_row<V: 'static>(
                 cx.stop_propagation();
             })
             .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
+                if !get(view).accepts(&lease) {
+                    cx.stop_propagation();
+                    return;
+                }
                 chose(view, index, window, cx);
-                get(view).restore_after_choice(window, cx);
+                get(view).restore_choice_if_current(&lease, window, cx);
                 cx.notify();
             }));
     }

@@ -737,3 +737,38 @@ exact EN/KO title/outcome/time, each skip/refusal and exhaustive badge cases in
 source; these have not executed. Historical sessions may be archived and absent
 from Fleet; the session owner is being asked for its existing opener seam rather
 than inventing another session renderer or pretending a missing Card is a link.
+
+## Combobox retained-render admission (source only)
+
+[Decision Log]
+- Existing assets: the single shared combobox renderer and G4 weak ReturnFocus.
+  The menu's current writer confirmed there is no exported generic lease helper;
+  this change does not touch the menu engine or create another popup renderer.
+- Source defect: an old rendered list A's pointer/key/back/outside callback can
+  otherwise operate on a newer B after explicit open/reset/state replacement.
+- Choice: private Rc per explicit open and query-page reset, retained Weak lease
+  per render. Weak identity prevents allocation ABA without any global counter.
+  Admission requires open plus exact cycle before action/highlight/close; actual
+  choice-close focus restoration also requires the same (possibly closed) cycle.
+- Focus boundary: stale pointer capture prevents GPUI's implicit track_focus
+  default. Stale outside/scrim and recognized navigation keys remain contained,
+  especially Escape under a parent dialog; they cannot mutate B or dismiss its
+  enclosing dialog. Valid choices can stay open, close, or open a successor.
+- Compatibility: old constructors/widths/geometry/ReturnFocus/row contents stay;
+  private lifecycle methods move together into a child and picker's record drops
+  from644 to615. Existing root test changes only the private key-handler argument.
+  Closing an outside press now consumes that popup dismissal instead of allowing
+  the same press to cascade into an enclosing dialog; this is the intentional
+  safety correction, not a claimed new geometry or original byte-identical move.
+- Cases: real retained GPUI A frames, actual key interceptor after pre-key draw,
+  nested parent dialog, plain/search, in-place/close-open/state replacement/drill,
+  pointer/outside, valid B actions/Escape then parent Escape, and a choice opening
+  its successor. These new fixtures have not executed. They are not native OS
+  input/F5 evidence, and the separate historical native F5 hold remains open.
+
+F1 run-session navigation is also explicitly held: the session owner has no
+checked context-bound admit-before-open path yet. The alias-only legacy
+Shell::open_session/Card fallback is forbidden for these historical links.
+F1 will retain an admitted GetSession candidate and exact identity until that
+shared live opener/delivery-capability seam is checked; no phantom resident or
+second session registry/renderer is added just to make a button appear wired.

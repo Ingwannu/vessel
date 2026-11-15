@@ -10,8 +10,8 @@
 //! - Why and cost: matches combobox-frame-style.ts without estimating text; the
 //!   screen owns labels and header, GPUI performs intrinsic measurement.
 use super::{
-    COMPACT, ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, Side,
-    key_handler, note_row, room, rows_list, search_row, title_row,
+    COMPACT, ComboHandlers, ComboHeader, ComboRow, ComboboxState, EDGE, LIFT, OFFSET, RenderLease,
+    Side, key_handler, note_row, room, rows_list, search_row, title_row,
 };
 use crate::{
     Tokens, Type, TypeExt as _,
@@ -147,15 +147,28 @@ pub fn combobox_with<V: 'static>(
     let surfaces = Surfaces::of(tokens);
     let neutral = tokens.neutral;
     let get = handlers.state;
-    let on_key = key_handler(rows, handlers, cx);
+    let on_key = key_handler(rows, state, handlers, cx);
+    let lease = state.render_lease();
+    let outside_lease = lease.clone();
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
-        get(view).close_and_restore(window, cx);
-        cx.notify();
+        if get(view).accepts(&outside_lease) {
+            get(view).close_and_restore(window, cx);
+            cx.notify();
+        } else {
+            window.prevent_default();
+        }
+        cx.stop_propagation();
     });
 
     let mut panel = div()
         .id(list_id.clone())
         .track_focus(&state.focus)
+        .capture_any_mouse_down(cx.listener(move |view: &mut V, _event, window, cx| {
+            if !get(view).accepts(&lease) {
+                window.prevent_default();
+                cx.stop_propagation();
+            }
+        }))
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
@@ -188,7 +201,7 @@ pub fn combobox_with<V: 'static>(
         panel = panel.child(title_row(
             title.clone(),
             header.back,
-            state.header_leading.clone(),
+            state,
             handlers,
             tokens,
             cx,
@@ -216,7 +229,13 @@ pub fn combobox_with<V: 'static>(
             crate::motion::QUICK
         },
     );
-    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    let placement = Placement {
+        compact,
+        side: header.side,
+        anchor,
+        lease: state.render_lease(),
+    };
+    let element = placed(panel, placement, get, window, cx);
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
     // from a row of the features sheet.
     // A row's tooltip draws over the list (the tooltip's own priority).
@@ -232,21 +251,36 @@ pub fn combobox_with<V: 'static>(
 /// Where the list is drawn: below the compact width a sheet from the
 /// bottom over the dimmed page (a press on the dim closes it); wider, at
 /// its trigger on the caller's side.
-fn placed<V: 'static>(
-    panel: impl IntoElement,
+struct Placement {
     compact: bool,
     side: Side,
     anchor: Option<Bounds<Pixels>>,
+    lease: RenderLease,
+}
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    placement: Placement,
     get: fn(&mut V) -> &mut ComboboxState,
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
+    let Placement {
+        compact,
+        side,
+        anchor,
+        lease,
+    } = placement;
     if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
         let viewport = window.viewport_size();
         let on_scrim = cx.listener(move |view: &mut V, _event, window, cx| {
-            get(view).close_and_restore(window, cx);
-            cx.notify();
+            if get(view).accepts(&lease) {
+                get(view).close_and_restore(window, cx);
+                cx.notify();
+            } else {
+                window.prevent_default();
+            }
+            cx.stop_propagation();
         });
         anchored()
             .position(point(px(0.0), px(0.0)))

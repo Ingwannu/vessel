@@ -50,8 +50,10 @@ use crate::widgets::TypeExt as _;
 mod combobox;
 mod focus;
 mod keys;
+mod lifecycle;
 pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with};
 use keys::key_handler;
+use lifecycle::RenderLease;
 mod rows;
 mod send;
 use rows::{note_row, rows_list, title_row};
@@ -416,6 +418,7 @@ pub enum Side {
 #[derive(Debug)]
 pub struct ComboboxState {
     open: bool,
+    cycle: Rc<()>,
     highlighted: Option<usize>,
     /// The highlighted row's label: the highlight follows its row when rows
     /// are added or removed above it while the list is open (an agent's
@@ -461,6 +464,7 @@ impl ComboboxState {
         );
         Self {
             open: false,
+            cycle: Rc::new(()),
             highlighted: None,
             highlighted_label: None,
             focus: cx.focus_handle(),
@@ -480,29 +484,6 @@ impl ComboboxState {
         self.header_leading = leading;
     }
 
-    /// Open it, its search emptied and holding the keys, showing `search`
-    /// while empty (or the list holding the keys, with no search row).
-    pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
-        self.capture_return_focus(window, cx);
-        self.open = true;
-        self.highlighted = None;
-        self.highlighted_label = None;
-        self.search.clear(window, cx);
-        if let Some(placeholder) = search {
-            self.search.set_placeholder(placeholder, window, cx);
-            self.search.focus(window, cx);
-        } else {
-            self.focus.focus(window, cx);
-        }
-    }
-
-    /// Close it (no longer `const`: it drops the highlighted row's label).
-    pub fn close(&mut self) {
-        self.open = false;
-        self.highlighted = None;
-        self.highlighted_label = None;
-    }
-
     /// Whether it is open.
     #[must_use]
     pub const fn is_open(&self) -> bool {
@@ -513,16 +494,6 @@ impl ComboboxState {
     #[must_use]
     pub fn query(&self, cx: &App) -> String {
         self.search.text(cx)
-    }
-
-    /// Start its search over, showing `placeholder` while empty (a way
-    /// back, a row's own list).
-    pub fn reset_query(&mut self, placeholder: &str, window: &mut Window, cx: &mut App) {
-        self.highlighted = None;
-        self.highlighted_label = None;
-        self.search.clear(window, cx);
-        self.search.set_placeholder(placeholder, window, cx);
-        self.search.focus(window, cx);
     }
 
     /// Put this in the trigger: it notes where the trigger is drawn, for
@@ -692,7 +663,7 @@ mod tests {
                 .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds)
                 .id("picker-probe")
                 .track_focus(&self.state.focus)
-                .capture_key_down(key_handler(&self.rows, &handlers, cx))
+                .capture_key_down(key_handler(&self.rows, &self.state, &handlers, cx))
                 .w(px(360.0))
                 .type_(Type::Body)
                 .flex()
