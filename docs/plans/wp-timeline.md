@@ -636,3 +636,11 @@ as `6e0485987`, preserving all existing glyphs plus the four owned additions
 (96 total). It contains exact W12 producer9480/e46 and no live resident resource
 map/cutover. No W10-authored node implementation is introduced. From this point
 all Rust compilation, tests and gates run on the prescribed build VM.
+
+
+L reviewed the exact0e9085da EN/KO timeline-items and tool-category data with
+complete coverage and no variable mismatch. The one requested correction changes
+Korean Thinking to 추론: it is a state-independent category, so 생각 중 would
+incorrectly imply a completed tool is still running. The exhaustive EN/KO enum
+label regression follows that correction. This is wording/data review only;
+number formatting, renderer behavior, package gates and captures remain separate.

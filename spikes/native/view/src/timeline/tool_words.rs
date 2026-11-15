@@ -48,7 +48,7 @@ mod tests {
             (ToolLabelKind::Setup, "Worktree setup", "워크트리 준비"),
             (ToolLabelKind::Task, "Task", "작업"),
             (ToolLabelKind::Plan, "Plan", "계획"),
-            (ToolLabelKind::Thinking, "Thinking", "생각 중"),
+            (ToolLabelKind::Thinking, "Thinking", "추론"),
             (ToolLabelKind::Tool, "Tool", "도구"),
         ] {
             assert_eq!(en.label(kind), english);

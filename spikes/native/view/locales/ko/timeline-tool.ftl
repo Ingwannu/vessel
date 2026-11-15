@@ -24,6 +24,6 @@ timeline-tool-task = 작업
 # Proposed Markdown plan. Short tool row label; decision title has its own domain.
 timeline-tool-plan = 계획
 # Internal reasoning tool. Short tool row label.
-timeline-tool-thinking = 생각 중
+timeline-tool-thinking = 추론
 # Fallback when a provider supplied no tool name. Short tool row label.
 timeline-tool-tool = 도구
