@@ -24,14 +24,28 @@ const HOST_LIST_WIDTH: f32 = 240.0;
 impl Shell {
     /// Shared callback for the fixed footer icon and the optional summary row.
     pub(crate) fn open_usage(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.usage.modal = true;
+        let state = &mut self.areas.usage;
+        if let Err(reason) = state.modal.show(&mut state.tickets) {
+            state.policy_error = Some(reason);
+            cx.notify();
+            return;
+        }
         self.areas.usage.dialog.focus(window, cx);
         self.settle_usage(window);
         cx.notify();
     }
-    fn close_usage(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.usage.modal = false;
-        self.areas.usage.host_list.close();
+    fn close_usage(
+        &mut self,
+        expected: vessel_app_view::devices::Ticket,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.usage;
+        if !state.modal.dismiss(expected) {
+            return;
+        }
+        state.host_list.close();
+        state.dialog.dismissed(window, cx);
         cx.notify();
     }
     fn open_usage_hosts(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -108,9 +122,7 @@ pub(crate) fn dialogs(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let state = &shell.areas.usage;
-    if !state.modal {
-        return None;
-    }
+    let opening = state.modal.current()?;
     let text = shell.words.usage();
     let compact = vessel_app_kit::breakpoint::phone(window);
     let density = if compact {
@@ -155,7 +167,7 @@ pub(crate) fn dialogs(
                 tokens,
                 window,
                 compact,
-                Shell::close_usage,
+                move |shell: &mut Shell, window, cx| shell.close_usage(opening, window, cx),
                 cx,
             ))
             .children(host_list(shell, &connected, tokens, window, cx))

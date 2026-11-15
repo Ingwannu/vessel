@@ -245,3 +245,14 @@ typed two-argument API and avoiding the singular “1 turns” error. New whole-
 goldens include Fluent isolation, Korean object particles and machine/device terms.
 No number format, credential permission, fetch or wire behavior changes. These
 goldens and the combined catalog still require the package's compiler/runtime gate.
+
+### Admit the usage modal's actual close before focus acknowledgment
+The modal previously hid its body without acknowledging G4's shared dialog focus
+cycle. A later reopen could retain its old opener, and its uncaptured close callback
+could affect a reopened overlay. `ModalCycle` uses the area's existing `Tickets`
+allocator, with no additional counter or control engine. Repeated show is idempotent;
+close/reopen reserves a new identity. Every rendered close captures it, refuses a
+stale receipt before any mutation, then invokes `DialogState::dismissed` only for
+an actual close. A pure lifetime regression checks repeated show and retained old
+close versus reopen. The shared footer `open_usage` signature is unchanged. Native
+compilation and actual focus/capture proof remain owed for this correction.

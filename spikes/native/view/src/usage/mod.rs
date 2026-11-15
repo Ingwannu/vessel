@@ -9,6 +9,8 @@ pub use accounts::{
 };
 mod display;
 pub use display::{DisplayAs, DisplayPercent, timestamp};
+mod modal;
+pub use modal::ModalCycle;
 mod range;
 pub use range::{LedgerSelection, Range};
 mod hosts;

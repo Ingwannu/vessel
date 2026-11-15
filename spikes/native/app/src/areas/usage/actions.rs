@@ -24,7 +24,7 @@ impl Shell {
         let visible = self.route == Route::Settings
             && self.areas.settings.section == Section::Usage
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
-        let target = if self.areas.usage.modal {
+        let target = if self.areas.usage.modal.current().is_some() {
             super::modal::target(self)
         } else if !visible {
             Target::Hidden
