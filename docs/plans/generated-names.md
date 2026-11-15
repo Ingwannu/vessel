@@ -736,3 +736,16 @@ known bad shapes still fail. Proto all-targets Clippy and all 277 library
 tests pass, including three view cases. No settings field, file reader or
 extra keeping mechanism is registered by this value decoder alone.
 The duplicated partial shared-admission sentence is also removed here.
+
+### Common attempt resources: contract and resume point
+
+First move the proxy's usage/stop/failure conversions unchanged into one
+accounting module. Then retain typed key-read/task causes behind safe
+wrappers and map to text only at the proxy response boundary. The actual
+secret value must not occur in Display/Debug/source chains. Pass the
+original SessionHandle to the existing slot function; check live while
+holding its map lock so retirement cannot be followed by insertion for
+that ended handle. Do not call retire from a late naming task or add pools.
+Tests owe missing/plain/malformed keys without echo, ordinary accounting,
+ended/live capacity and one real fake-runtime generation path. No real
+agent, provider or credential is used.

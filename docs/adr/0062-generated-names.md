@@ -863,3 +863,27 @@ apply a title; the later owner must do those operations in that order.
   A typed preflight refusal leaves file and active settings untouched.
   This validates declared local configuration, not remote model availability.
   No setting is registered or saved in this staged preparation slice.
+
+### Shared recording, typed credentials and live admission
+
+[Decision Log]
+- Purpose and intent: share existing model accounting and credential policy
+  while ensuring an ended task cannot recreate its retired permit entry.
+- Existing constraints: the proxy owns neutral usage/stop/failure mappings;
+  Models::key currently turns read/join errors into strings. Permits are
+  keyed by session id and retirement removes that entry.
+- Alternatives considered: copy the record mappings, read credentials in
+  generation, or check liveness outside the permit-map lock. Copies drift;
+  a separate key path can bypass policy; an external check races retirement.
+- Choice: move the existing accounting mappings unchanged to their own
+  owner. Keep one Models key reader with typed, sealed read/task causes,
+  preserving missing/plain-key diagnostics at the proxy boundary. Admit
+  through the original session handle with its live check inside the
+  existing permit-map lock; the same node/session semaphores are reused.
+- Why this choice: no second writer, credential store, pool or lock crosses
+  an await. Existing proxy traffic keeps its policy and known counts.
+- Effects: generation records only actual attempts. Known reported stops
+  and usage survive semantic title refusal; unavailable/invalid preparation
+  makes no ModelCall. Unknown finality uses the existing error/truncation
+  representation, never a fabricated normal ending. Records remain best
+  effort while live, as already stated; a final status stays the last record.
