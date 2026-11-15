@@ -32,6 +32,7 @@
 mod answer;
 mod ask;
 mod calls;
+pub mod code_source;
 mod follow;
 pub mod layout;
 mod pulls;
@@ -62,6 +63,7 @@ pub(crate) struct Hub {
     /// Each clone followed, by machine and project, with its task (each
     /// task holds a clone of the machine's client until it ends).
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
+    source: code_source::Hub,
 }
 
 impl Hub {

@@ -84,6 +84,9 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::CodeSource(request) => self.emit(Event::CodeSource(Box::new(
+                request.refused(vessel_app_view::workspace::problem::Problem::Older),
+            ))),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

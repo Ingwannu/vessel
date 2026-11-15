@@ -57,3 +57,20 @@ reconnect under the same alias never re-stamps old data. Actor evidence must use
 the shared real framed fixture. No fabricated DeliveryGuard, sleeping race, real
 agent, browser, or service operation is part of these tests. All Rust execution
 runs through the build VM. Source preparation alone is not execution evidence.
+
+
+The current getter/accessor entry points remain literally test-only pending the
+real G1 consumer, so this preparation cannot turn an alias-only toolbar into an
+admitted writer. G1 must capture the opaque source while drawing its actual
+action and check that exact source at callback time; looking up a new source
+for an old click would erase the UI-intent boundary. Root/session/path response
+identity is validated before installation. Diff continuation uses the existing
+DiffBody next-page value, with the original parent summary and page ticket; no
+second diff body or snapshot store is introduced. This proves correlation, not
+an atomic repository snapshot across requests.
+
+The isolated preparation currently has four authored real framed App cases;
+they have not run. No G4 export, selected-client method or delivery-module staging
+attribute differs from its exact producer. A typed Explorer getter is still
+unavailable until the real mount/current-target join is included; no synthetic
+Explorer tab or Workspace root is projected here.

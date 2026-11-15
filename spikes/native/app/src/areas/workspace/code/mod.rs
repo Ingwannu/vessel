@@ -37,6 +37,12 @@ mod found;
 mod frame;
 mod line_syntax;
 mod search;
+mod shown_source;
+mod source_acquisition;
+mod source_answer;
+mod source_follow;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod source_tests;
 mod tree;
 mod viewer;
 
@@ -47,9 +53,9 @@ use vessel_app_kit::{ComboboxState, VirtualList};
 use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow, tree_rows};
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::root::session_root;
+
+use vessel_proto::SessionId;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};
-use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use elsewhere::FindRefused;
 pub(crate) use frame::{code_beside, code_toggle, frame_row};
@@ -84,6 +90,7 @@ struct Target {
     place: Place,
     /// The session's folder on the machine, for "Copy path".
     cwd: Option<std::path::PathBuf>,
+    receipt: Option<shown_source::RootReceipt>,
 }
 
 /// A comparison's files.
@@ -103,6 +110,7 @@ struct Changes {
     rows: Vec<ChangeRow>,
     list: VirtualList,
     picker: ComboboxState,
+    sources: shown_source::Sources,
 }
 
 /// A file shown in the Files tab.
@@ -162,6 +170,7 @@ pub(crate) struct CodePanel {
     stale: Stale,
     /// Each session's root for finds from other areas (`code_find_files`).
     finder: elsewhere::Finder,
+    tickets: vessel_app_view::workspace::file_ticket::FileTickets,
 }
 
 /// Which tabs are to be read again when shown.
@@ -185,6 +194,7 @@ impl CodePanel {
                 rows: Vec::new(),
                 list: VirtualList::new(false),
                 picker: ComboboxState::new(window, cx),
+                sources: shown_source::Sources::default(),
             },
             files: Files {
                 listings: HashMap::new(),
@@ -200,6 +210,7 @@ impl CodePanel {
             row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),
             finder: elsewhere::Finder::default(),
+            tickets: vessel_app_view::workspace::file_ticket::FileTickets::default(),
         }
     }
 
@@ -208,6 +219,8 @@ impl CodePanel {
     pub(in crate::areas::workspace) fn machine_renamed(&mut self, from: &str, to: &str) {
         self.finder.machine_gone(from);
         if let Some(target) = self.target.as_mut().filter(|target| target.machine == from) {
+            target.receipt = None;
+            self.changes.sources.invalidate();
             to.clone_into(&mut target.machine);
         }
     }
@@ -220,6 +233,7 @@ impl CodePanel {
             .as_ref()
             .is_some_and(|target| target.machine == name)
         {
+            self.changes.sources.invalidate();
             self.target = None;
             self.changes.summary = Summary::Loading;
             self.changes.states.clear();
@@ -343,72 +357,6 @@ impl Shell {
         cx.notify();
     }
 
-    /// Follow the open session: read where it runs when it is not the one
-    /// shown (the panel open only).
-    pub(crate) fn code_follow(&mut self) {
-        if !self.areas.workspace.code.open {
-            return;
-        }
-        let Some((machine, session)) = self.code_session() else {
-            return;
-        };
-        let same = self
-            .areas
-            .workspace
-            .code
-            .target
-            .as_ref()
-            .is_some_and(|target| target.machine == machine && target.session == session);
-        if same {
-            return;
-        }
-        // The file edited in the session left is written first (Paseo
-        // flushes an editor when its panel goes).
-        self.flush_file();
-        let panel = &mut self.areas.workspace.code;
-        panel.target = Some(Target {
-            machine: machine.clone(),
-            session,
-            place: Place::Reading,
-            cwd: None,
-        });
-        // A new session is read whole: nothing it shows is stale.
-        panel.stale = Stale::default();
-        panel.changes.summary = Summary::Loading;
-        panel.changes.states.clear();
-        panel.changes.closed.clear();
-        panel.changes.relist();
-        panel.files.listings.clear();
-        panel.files.open.clear();
-        panel.files.viewer = None;
-        panel.files.relist();
-        self.ask(&machine, Ask::Session(session));
-    }
-
-    /// Where a session runs arrived.
-    pub(super) fn code_session_read(
-        &mut self,
-        session: SessionId,
-        result: Result<Box<SessionInfo>, Problem>,
-    ) {
-        self.finder_session_read(session, &result);
-        let words = self.words();
-        let panel = &mut self.areas.workspace.code;
-        let Some(target) = panel
-            .target
-            .as_mut()
-            .filter(|target| target.session == session)
-        else {
-            return;
-        };
-        target.place = match &result {
-            Ok(info) => session_root(info).map_or(Place::Outside, Place::Root),
-            Err(problem) => Place::Failed(words.problem(problem)),
-        };
-        target.cwd = result.ok().and_then(|info| info.spec.cwd);
-        self.code_read_tab();
-    }
-
     /// Track G1's call after a git write it made succeeded (a commit, a
     /// switch, a stash, a discard): when the panel shows `root` on
     /// `machine`, the tab shown is read again, what it shows staying until
@@ -425,6 +373,7 @@ impl Shell {
         if panel.root() != Some((machine, root)) {
             return;
         }
+        panel.changes.sources.invalidate();
         panel.stale = Stale {
             changes: true,
             files: true,

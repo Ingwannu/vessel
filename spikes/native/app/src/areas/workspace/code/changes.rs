@@ -45,6 +45,19 @@ pub(crate) fn git_head(
 impl Shell {
     /// Read the comparison's files, unless they are read.
     pub(super) fn read_changes(&mut self) {
+        if self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .is_some_and(|target| target.receipt.is_some())
+        {
+            if !matches!(self.areas.workspace.code.changes.summary, Summary::Ready(_)) {
+                self.source_summary();
+            }
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -70,6 +83,17 @@ impl Shell {
     /// Ask for the comparison again, what is shown kept until it answers
     /// (`code_git_changed`).
     pub(super) fn reread_changes(&mut self) {
+        if self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .is_some_and(|target| target.receipt.is_some())
+        {
+            self.source_summary();
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -90,6 +114,23 @@ impl Shell {
 
     /// The comparison's files arrived.
     pub(in crate::areas::workspace) fn changes_read(
+        &mut self,
+        ask: &GetChanges,
+        result: Result<DiffSummary, Problem>,
+    ) {
+        if self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .is_some_and(|target| target.receipt.is_some())
+        {
+            return;
+        }
+        self.install_changes_read(ask, result);
+    }
+    pub(super) fn install_changes_read(
         &mut self,
         ask: &GetChanges,
         result: Result<DiffSummary, Problem>,
@@ -116,6 +157,23 @@ impl Shell {
         ask: &GetFileDiff,
         result: Result<FileDiff, Problem>,
     ) {
+        if self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .is_some_and(|target| target.receipt.is_some())
+        {
+            return;
+        }
+        self.install_diff_read(ask, result);
+    }
+    pub(super) fn install_diff_read(
+        &mut self,
+        ask: &GetFileDiff,
+        result: Result<FileDiff, Problem>,
+    ) {
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
         if panel.root().map(|(_, root)| root) != Some(&ask.root)
@@ -138,6 +196,17 @@ impl Shell {
 
     /// Read a page of `path`'s diff (`from`: the next page's hunk).
     pub(super) fn read_diff(&mut self, path: &RelPath, from: Option<u32>) {
+        if self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .is_some_and(|target| target.receipt.is_some())
+        {
+            self.source_diff(path, from);
+            return;
+        }
         let panel = &mut self.areas.workspace.code;
         let Some((machine, root)) = panel
             .root()
@@ -180,6 +249,7 @@ impl Shell {
         let changes = &mut self.areas.workspace.code.changes;
         changes.picker.close();
         if changes.scope != kind {
+            changes.sources.invalidate();
             changes.scope = kind;
             changes.summary = Summary::Loading;
             changes.closed.clear();
