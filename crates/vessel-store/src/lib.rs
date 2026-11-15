@@ -69,6 +69,7 @@ mod push_key;
 mod reader;
 mod recovery;
 mod registry;
+mod restart;
 mod schema;
 mod search;
 mod settings_file;
@@ -82,7 +83,7 @@ mod usage_lookup;
 mod workspace;
 mod writer;
 
-pub use again::EndedSession;
+pub use again::{EndedSession, ReopenMode};
 pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
@@ -96,6 +97,7 @@ pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use push::{PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};
+pub use restart::{Eligibility as RestartEligibility, RestartCandidate};
 pub use settings_file::{
     SavedNodeSettings, SetAside, SettingsDecodeFailure, SettingsDisposition, SettingsFileError,
     SettingsFileSnapshot,

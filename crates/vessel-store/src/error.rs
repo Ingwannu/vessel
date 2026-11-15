@@ -52,6 +52,8 @@ pub enum Column {
     Queue,
     /// The bounded latest plan (schema 14, ADR 0045).
     LatestPlan,
+    /// Bounded internal startup projection (ADR 0098).
+    Restart,
     /// `sessions.labels` (a `SessionLabels`, the labels migration, ADR 0063).
     Labels,
     /// `sessions.title_origin` (a `TitleOrigin`, ADR 0062).
@@ -237,6 +239,14 @@ pub enum StoreError {
     /// so it can neither be deleted nor started again.
     #[error("session {0} is still live (its log is not complete)")]
     SessionLive(SessionId),
+    /// A boot attempt may not unarchive or replace a changed session.
+    #[error("session {0} changed while reopening; read it again before resuming")]
+    RestartChanged(SessionId),
+    /// The durable stop generation cannot advance without wrapping.
+    #[error(
+        "session {0} cannot record another recovery stop; disable startup recovery or delete this ended session"
+    )]
+    RestartGenerationExhausted(SessionId),
     /// The session has ended, so it keeps no new attachment (protocol 10).
     #[error("session {0} has ended; it takes no more attachments")]
     SessionEnded(SessionId),
@@ -312,6 +322,7 @@ impl StoreError {
             | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)
+            | Self::RestartChanged(_)
             | Self::DeviceExists(_)
             | Self::SessionEnded(_)
             | Self::Attachment(AttachmentFileError::Changed { .. })
@@ -340,6 +351,7 @@ impl StoreError {
             | Self::CorruptMessage { .. }
             | Self::Attachment(AttachmentFileError::Io { .. })
             | Self::Encode(_)
+            | Self::RestartGenerationExhausted(_)
             | Self::OutOfRange(_)
             | Self::Thread(_)
             | Self::Task(_) => ErrorCode::Internal,

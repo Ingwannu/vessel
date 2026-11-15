@@ -22,6 +22,8 @@
 //! a transaction of its own before looking at the queue again.
 
 mod apply;
+mod restarting;
+pub(crate) use restarting::RestartOp;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -63,9 +65,15 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Policy, consumed startup claims and ordered commit checkpoints.
+    Restart(RestartOp),
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
-    Create { info: Box<SessionInfo>, done: Done },
+    Create {
+        info: Box<SessionInfo>,
+        eligibility: crate::RestartEligibility,
+        done: Done,
+    },
     /// Append records to a session's log. Shared with the session runtime's
     /// ring and subscribers, so persisting them copies nothing.
     Append {
@@ -111,6 +119,8 @@ pub(crate) enum Write {
     Reopen {
         session: SessionId,
         next: EventSeq,
+        mode: crate::ReopenMode,
+        generation: Option<vessel_proto::restart::RestartGeneration>,
         done: Done<KeptMarks>,
     },
     /// Record an attachment whose file is in place and checked (protocol
@@ -179,6 +189,7 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    Checked(Done<bool>, Result<bool, StoreError>),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
     Detached(
@@ -192,6 +203,7 @@ impl Answer {
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Checked(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };
@@ -227,6 +239,17 @@ struct Effects {
     removed: Vec<SessionId>,
     /// How many of them retention pruned.
     pruned: usize,
+}
+
+impl Effects {
+    /// Both ordinary appends and checkpoint batches retain the head's post-commit wakes.
+    fn appended(&mut self, session: SessionId, records: &[Arc<EventRecord>], ended: bool) {
+        let _first = self.touched.insert(session);
+        self.ended |= ended;
+        self.attention |= records
+            .iter()
+            .any(|record| record.event.asks_for_attention());
+    }
 }
 
 /// Start the writer thread on `connection`.

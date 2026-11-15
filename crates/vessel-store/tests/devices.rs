@@ -241,7 +241,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection
-        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
+        .execute_batch("DROP TABLE restart_state; DROP TABLE restart_control; ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
     registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();

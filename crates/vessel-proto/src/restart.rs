@@ -124,3 +124,9 @@ mod tests {
         assert!((prompt.to_string() + "x").parse::<PromptText>().is_err());
     }
 }
+
+mod checkpoint;
+pub use checkpoint::{InvalidRestartGeneration, RestartCheckpoint, RestartGeneration};
+
+#[cfg(test)]
+mod admission_tests;

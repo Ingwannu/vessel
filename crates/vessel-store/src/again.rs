@@ -142,13 +142,41 @@ fn moved_through(
     Ok(profiles)
 }
 
+/// Whether a reopened row is a person's explicit resume or a consumed boot intent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReopenMode {
+    /// The person may explicitly bring an archived session back.
+    Manual,
+    /// Boot recovery may not undo archive or a changed claim.
+    Startup,
+}
+
 /// Reopen `session`'s row for a run whose first record is `next`; its
 /// marks after (out of the archive).
 pub(crate) fn reopen(
     connection: &Connection,
     session: SessionId,
     next: EventSeq,
+    mode: ReopenMode,
+    generation: Option<vessel_proto::restart::RestartGeneration>,
 ) -> Result<KeptMarks, StoreError> {
+    if let Some(expected) = generation
+        && crate::restart::generation(connection, session)? != expected
+    {
+        return Err(StoreError::RestartChanged(session));
+    }
+    if mode == ReopenMode::Startup {
+        let current = select_session(connection, session)?;
+        let claimed = crate::restart::load(connection, session)?
+            .is_some_and(|state| state.claimed && !state.blocked);
+        if !claimed
+            || current.is_none_or(|info| {
+                info.status != SessionStatus::Interrupted || info.marks.archived_at.is_some()
+            })
+        {
+            return Err(StoreError::RestartChanged(session));
+        }
+    }
     let id = session.to_string();
     let reopened = connection
         .prepare_cached(&format!(
@@ -162,6 +190,9 @@ pub(crate) fn reopen(
         )
         .optional()?;
     if let Some(marks) = reopened {
+        if mode == ReopenMode::Manual {
+            crate::restart::manually_reopened(connection, session)?;
+        }
         let _rows = connection.execute("DELETE FROM inbox WHERE session=?1", [&id])?;
         tracing::debug!(%session, next = %next, "reopened a session's row to start it again");
         return marks.kept();
