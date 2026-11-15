@@ -305,14 +305,19 @@ No row of the crate table changes.
 
 - The existing move stop helper (`vessel-session/src/moving.rs::stop_agent`
   and its local `signal`) logs `SignalError` and continues. This is a base
-  defect relative to the reload contract's refusal when stopping fails. It
-  must be corrected by the shared runtime owner before reload can reuse it;
-  copying it would risk starting a replacement while the old process lives.
-- `SessionEvent::since` currently returns a plain protocol version. The shared
-  protocol owner must define how a new event represents unassigned availability
-  before `LabelsChanged` or `Reloaded` is put on the wire. Reuse the existing
-  gap-free redacted stand-ins once that shape exists, with no base-version or
-  maximum-version fallback and no second projection technique.
+  defect relative to the reload contract's refusal when stopping fails. A
+  separate forcing-test-first correction is required before reload can reuse
+  it; copying it would risk starting a replacement while the old process lives.
+- Event availability has one public optional accessor, following call admission.
+  Remove the numeric `SessionEvent::since()` when introducing
+  `required_protocol()`: there is no truthful numeric value for an unassigned
+  event. Existing event thresholds and content-dependent agent thresholds stay.
+  Both the event projection and page precheck use the optional requirement;
+  `None` is unreadable by every peer, with the existing gap-free stand-ins.
+  Introduce this foundation separately, before `LabelsChanged` or `Reloaded`.
+  Its tests cover every currently assigned session variant and retain the
+  existing projection/cursor assertions. Actual pending-variant tests land
+  with those variants; this foundation does not add an event or feature number.
 - The latest merged node head now has the shared request accessor. Future
   call and field admission must use it and the one method table. Work held
   for the shared call-plumbing batch remains staged until that batch; event

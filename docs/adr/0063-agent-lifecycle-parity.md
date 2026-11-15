@@ -105,6 +105,15 @@ embedded spec's labels; forwarding envelopes propagate the same requirement.
 Empty labels retain the existing requirement. Once assigned, nonempty labels
 require the greater of the existing requirement and the assigned threshold.
 This extends the shared admission rule rather than inventing a second gate.
+
+Session events use that same optional availability model through one public
+`required_protocol()` accessor. The old numeric `SessionEvent::since()` is
+removed: it cannot honestly represent an unassigned variant. Existing variants
+retain their assigned thresholds; agent events retain their content-dependent
+requirement. Event and page projections treat `None` as unreadable by every
+peer and preserve the existing stand-in at the same sequence and time. This
+foundation introduces no new event; each later variant must supply its optional
+assignment and an older-peer projection together.
 The node's earlier ingress checks remain as defense before work. A starting
 import must still check its source metadata before export/placement, because
 the caller does not carry those labels. No new method is registered by this
