@@ -209,7 +209,7 @@ web integration and real-source acceptance are still owed.
 ### Recorded real-node UI fixture and managed artifact boundary
 [Decision Log]
 - Purpose: browser/native consumers need available, risk, independent remaining/used, retained-error, consent/off, changed-login and multiple-account cases through the actual node, without reading an operator sign-in or substituting quota JSON in the browser.
-- Existing constraint: the production daemon has no source seed switch. Existing vendor fixtures do not contain every generic source forecast/balance combination. The current managed export whitelist does not include the CLI or this extra executable.
+- Existing constraint: the production daemon has no source seed switch. Existing vendor fixtures do not contain every generic source forecast/balance combination. At introduction the managed export whitelist did not include either the CLI or this executable; the coordinator-approved fixed selection is now installed as described below.
 - Alternatives: browser request mocks would skip the real policy/cache/redaction path; an ambient environment override in vesseld could affect production. Both were rejected.
 - Choice: feature `vessel-node/usage-fixture` builds the separate `vessel-usage-fixture` binary. Its required marked scratch root contains all home, data, executable search and recorded body paths. Listener is loopback and refuses live ports 7077/18220/18221. `RecordedUsageFormat::Report` exists only under harness `fakes`; ordinary adapters still use their actual vendor parser. No real HTTP/certificate/login access occurs in this backend.
 - Tradeoff: this proves the real policy/cache/service projection with a synthetic source, not successful vendor integration. Additional-source session scope and plugin source execution remain Unsupported pending their actual immutable binding/runtime seam.
@@ -227,7 +227,11 @@ Remote required-feature compilation recipe (no local Cargo):
 ```
 vessel-remote-gate run --tree <tree> --commit <immutable SHA> --label wp-usage-fixture --out <new> --cargo build -p vessel-node --features usage-fixture --bin vessel-usage-fixture -p vessel-cli --bin vessel
 ```
-Export remains blocked on the tool/coordinator's explicit bounded recipe for **both** `vessel-usage-fixture` and `vessel` with the source/feature manifest. `attach` for a plain cargo build does not export either custom binary. No manual VM copying, local compilation or another binary's export manifest can stand in for this evidence. No fixture end-to-end result is claimed yet.
+The coordinator-approved managed export is now installed (T, 2026-11-15 12:4x UTC):
+```
+vessel-remote-gate run --tree <tree> --commit <reviewed assigned SHA> --label <own> --out <new> --no-wait --root-binaries vessel-usage-fixture vessel
+```
+Only these fixed names are allowed. The fixture recipe uses `--locked -p vessel-node --features usage-fixture --bin vessel-usage-fixture`; the CLI recipe uses `--locked -p vessel-cli --bin vessel` after web-ci with `VESSEL_WEB_REQUIRE_BUNDLE=1`. Ordinary lane only, no app or unrelated root build. Attach/export returns new files only, binaries0500 and metadata0400, with source commit/features/pinned toolchain/exact recipe/SHA256; builder/recipient UID1000. `attach` for an ordinary cargo build still does not export custom binaries. Verify the source/feature/hash and actual file modes before using the real-node fixture; never manual VM copy, local compilation or another binary's manifest. Tool regression success is not a product build, assigned wire or fixture e2e PASS; all remain owed.
 
 ### Pending refresh presentation retains the previous attempt's meaning
 N2's source check of Paseo `query.ts`/`model.ts:209–236`/`pinned.ts` shows that a pending refresh of an available report leaves that success sidebar-eligible with `retained=false`. A failed/unavailable attempt with an older success remains card-only, including while its next refresh is pending. Snapshot presence alone cannot distinguish those cases.
