@@ -25,7 +25,7 @@ pub use capacity::{
     MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
 };
 
-pub(crate) use lease_read::pending as pending_starts;
+pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
 pub(crate) use read::{load, reservation, resource_owner, workspace};
 pub(crate) use write::apply;
 
@@ -112,6 +112,10 @@ pub struct RegistryReservation {
 /// One writer transaction applies a mutation and bumps the snapshot version.
 #[derive(Debug)]
 pub(crate) enum RegistryWrite {
+    Restart {
+        previous: WorkspaceStartLease,
+        expected: RegistryRevision,
+    },
     Release(vessel_proto::registry::ReleaseWorkspaceAutomation),
     Claim {
         workspace: WorkspaceId,
@@ -211,4 +215,26 @@ pub struct PendingRegistryStart {
 pub(crate) enum RegistryStartSettlement {
     Ready,
     Failed,
+}
+
+/// Durable admission state, not proof that a registered process is still alive or has stopped.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegistryResourceReadiness {
+    /// Admitted but process registration has not settled.
+    Pending,
+    /// Last admitted run was registered; restart still requires an actual wait/join proof.
+    Ready,
+    /// The caller proved its last start did not spawn a resource.
+    Failed,
+    /// Restart interrupted admission; reconcile the exact actor before any replay.
+    Uncertain,
+}
+
+/// Exact retained run token for supervisor recovery; reading it grants no process-liveness proof.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegistryResourceRun {
+    /// Opaque owner/resource/admission identity accepted by lifecycle CAS.
+    pub lease: WorkspaceStartLease,
+    /// Only Ready permits a joined old run to seek a new restart admission.
+    pub readiness: RegistryResourceReadiness,
 }

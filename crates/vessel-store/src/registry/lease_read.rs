@@ -1,8 +1,11 @@
 //! Exact unsettled actor admissions for lifecycle draining and crash reconciliation.
 
-use super::{PendingRegistryStart, RegistryStartState, WorkspaceStartLease, decode};
+use super::{
+    PendingRegistryStart, RegistryResourceReadiness, RegistryResourceRun, RegistryStartState,
+    WorkspaceStartLease, decode,
+};
 use crate::StoreError;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::WorkspaceId;
 use vessel_proto::registry::RegistryRevision;
 
@@ -40,4 +43,31 @@ pub(crate) fn pending(
         });
     }
     Ok(starts)
+}
+
+/// A supervisor rehydrates this only alongside authoritative process/session reconciliation.
+pub(crate) fn current(
+    connection: &Connection,
+    resource: vessel_proto::registry::WorkspaceResource,
+) -> Result<Option<RegistryResourceRun>, StoreError> {
+    let (kind, id) = super::resource_key(resource);
+    let row:Option<(String,i64,String)>=connection.query_row("SELECT workspace,lease_revision,stage FROM workspace_registry_resources WHERE kind=?1 AND resource=?2",params![kind,id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()?;
+    row.map(|(owner, revision, stage)| {
+        let owner = decode(&serde_json::to_string(&owner).map_err(StoreError::Encode)?)?;
+        let revision = RegistryRevision::from(
+            u64::try_from(revision).map_err(StoreError::RegistryRevisionRange)?,
+        );
+        let readiness = match stage.as_str() {
+            "pending" => RegistryResourceReadiness::Pending,
+            "ready" => RegistryResourceReadiness::Ready,
+            "failed" => RegistryResourceReadiness::Failed,
+            "uncertain" => RegistryResourceReadiness::Uncertain,
+            _ => return Err(StoreError::RegistryConflict),
+        };
+        Ok(RegistryResourceRun {
+            lease: WorkspaceStartLease::new(owner, resource, revision),
+            readiness,
+        })
+    })
+    .transpose()
 }

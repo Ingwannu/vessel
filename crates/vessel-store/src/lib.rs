@@ -111,4 +111,7 @@ pub use registry::{
     MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
 };
 /// Pre-spawn resource admission shared by creation, scripts and lifecycle drains.
-pub use registry::{PendingRegistryStart, RegistryStartState, WorkspaceStartLease};
+pub use registry::{
+    PendingRegistryStart, RegistryResourceReadiness, RegistryResourceRun, RegistryStartState,
+    WorkspaceStartLease,
+};

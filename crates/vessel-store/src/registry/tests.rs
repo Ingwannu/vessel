@@ -506,3 +506,5 @@ fn stale_start_completion_cannot_settle_a_newer_retry_for_the_same_actor_id() {
 mod capacity;
 
 mod automation;
+
+mod restart;
