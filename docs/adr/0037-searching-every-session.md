@@ -124,3 +124,13 @@ walk found it, and is what lets a snippet always mark its words.
   written to the log, not the time they were first said.
 - Session titles are not searched: a client matches them in the list it
   has.
+
+## Native palette integration (proposed)
+
+The native client exposes the existing index through a Messages scope of its
+command palette. This extends Paseo's command center using GOAT's message-row
+behaviour; it does not change search semantics or the wire contract. Reusing
+`view::search`, `link::search` and the conversation's reveal/find avoids a second
+index or navigation model. Input changes and closing invalidate earlier replies
+before the debounce; selection captures the validated query before closing.
+The contract, alternatives and validation are in `docs/plans/wp-a1.md`.
