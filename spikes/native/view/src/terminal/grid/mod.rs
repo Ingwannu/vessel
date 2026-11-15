@@ -180,6 +180,14 @@ impl Grid {
         self.generation
     }
 
+    /// Apply a live bound, preserving the addresses of genuinely retained rows.
+    pub fn set_scrollback(&mut self, limit: ScrollbackLines) {
+        if self.history.limit() != limit {
+            self.history.set_limit(limit);
+            self.generation = self.generation.next();
+        }
+    }
+
     /// Lines of history held.
     #[must_use]
     pub fn history_len(&self) -> usize {

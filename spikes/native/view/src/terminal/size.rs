@@ -18,10 +18,10 @@
 
 use std::num::NonZeroU16;
 
-/// Lines of history kept above the screen: Paseo's setting, 0 through
-/// 1,000,000, default 10,000. The grid also caps history by cells
-/// (`grid::history`), whichever bound comes first.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Lines of history kept above the screen, validated against [`Self::MAX`].
+/// The grid also caps history by cells (`grid::history`), whichever bound comes first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "u32", into = "u32")]
 pub struct ScrollbackLines(u32);
 
 impl ScrollbackLines {
@@ -55,6 +55,20 @@ impl ScrollbackLines {
 impl Default for ScrollbackLines {
     fn default() -> Self {
         Self::DEFAULT
+    }
+}
+
+impl TryFrom<u32> for ScrollbackLines {
+    type Error = TerminalError;
+
+    fn try_from(lines: u32) -> Result<Self, Self::Error> {
+        Self::new(lines)
+    }
+}
+
+impl From<ScrollbackLines> for u32 {
+    fn from(lines: ScrollbackLines) -> Self {
+        lines.get()
     }
 }
 

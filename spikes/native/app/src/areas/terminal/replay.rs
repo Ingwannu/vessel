@@ -62,6 +62,7 @@ impl Shell {
         let Some(mut model) = area.model.take() else {
             return true;
         };
+        model.set_scrollback(area.scrollback);
         refit(&mut model, area.fit);
         let mut log = std::mem::take(&mut area.log);
         let records = records.clone();
@@ -94,6 +95,7 @@ impl Shell {
         if !area.owns(opening) || area.phase != Phase::Loading {
             return;
         }
+        model.set_scrollback(area.scrollback);
         refit(&mut model, area.fit);
         area.model = Some(model);
         area.log = log;
@@ -148,6 +150,7 @@ impl Shell {
         if !area.owns(opening) {
             return;
         }
+        model.set_scrollback(area.scrollback);
         refit(&mut model, area.fit);
         area.model = Some(model);
         self.terminal_draw(cx);

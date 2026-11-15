@@ -32,3 +32,13 @@ No settings UI/persistence caller, all-resident cutover, node history mutation,
 new RPC or current shared-engine/native parser retirement is claimed here.
 The checked producer handoff must distinguish product value/model code from
 the test-only app hook. Checks remain owed.
+
+The value/model/history implementation and two view regressions are ported
+from the retained prototype, with invalid persisted counts computed from the
+single named bound. Separate GPUI owner tests cover changes while output and
+history handovers own the model, plus a new opening inheriting the limit.
+The literal cfg(test) on the app settings module must be removed ONLY together
+with the canonical settings startup/apply/rollback caller and actual union
+checks. No dead-code exemption or fake product caller is used. The owner may
+remove that exact guard as part of the coordinated consumer cutover; the
+producer alone is not a live settings UI or all-resident retention proof.

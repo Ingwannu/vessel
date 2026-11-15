@@ -17,6 +17,10 @@ mod scroll;
 #[cfg(test)]
 mod scroll_tests;
 #[cfg(test)]
+mod settings;
+#[cfg(test)]
+mod settings_tests;
+#[cfg(test)]
 mod tests;
 
 use std::cell::Cell;
@@ -75,6 +79,7 @@ pub(crate) struct TerminalArea {
     pub(crate) phase: Phase,
     model: Option<TerminalModel>,
     log: TerminalLog,
+    scrollback: ScrollbackLines,
     held: Vec<EventRecord>,
     pending: Vec<u8>,
     grid: Entity<TerminalGrid>,
@@ -98,6 +103,7 @@ impl TerminalArea {
             phase: Phase::Idle,
             model: None,
             log: TerminalLog::default(),
+            scrollback: ScrollbackLines::default(),
             held: Vec::new(),
             pending: Vec::new(),
             grid: cx.new(|_cx| TerminalGrid::empty()),
@@ -161,7 +167,7 @@ impl Shell {
         let opening = TerminalOpening::new(machine, session);
         area.shown = Some(opening.clone());
         area.phase = Phase::Loading;
-        area.model = Some(TerminalModel::new(size, ScrollbackLines::default()));
+        area.model = Some(TerminalModel::new(size, area.scrollback));
         area.log = TerminalLog::default();
         area.held.clear();
         area.pending.clear();
