@@ -1520,3 +1520,21 @@ The actual fake CLI regression covers pending refusal/no success stdout and inva
 admission before malformed connection parsing; receipt tests reject wrong id/title and
 retain null reset semantics. These are drafted, not executed; queued exactece8 strict
 predates this consumer and all newer fixtures. No live protocol25 claim is made.
+
+### Gate50 startup/common strict source return
+
+Exactece8d0913 run wp-cli-narrow-20261115T163614Z-ece8d091 acquired short2
+and completed rc1/Cargo101 after134 seconds. No test ran. Five diagnostics:
+unnecessary mpsc qualification in session helper tests, nonexistent SessionInfo
+oldest_seq in the actual TUI fixture, and host fixture large future, Arc clone
+spelling and unused tracker-close result. Retain the original red evidence.
+
+Correct the TUI proof through the real public handle.follow(EventSeq::ZERO)
+FollowError::Gap with oldest_cached>ZERO (the ring was actually pruned), rather
+than introducing a field/test accessor. Box the host fixture's async input to the
+existing timeout wrapper; preserve order/cleanup, explicitly clone Arc and assert
+its separately owned tracker was closed. Remove only the redundant qualification.
+No lint suppression, implementation-mirroring assertion or weakened runtime test.
+The moved RuntimeServices body received no reported diagnostic, but this failed
+combined run is not a green shared seam. Newer final-owner/held-queue/rename source
+was outside exactece8; changed-source strict and meaningful actual tests remain owed.

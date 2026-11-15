@@ -41,7 +41,10 @@ async fn tui_screen_has_the_session_identity_and_final_cells_after_the_ring_is_g
         })
         .await
         .expect("fake TUI did not close its durable output");
-        assert!(handle.info().oldest_seq > EventSeq::ZERO);
+        assert!(matches!(
+            handle.follow(EventSeq::ZERO),
+            Err(crate::FollowError::Gap { oldest_cached }) if oldest_cached > EventSeq::ZERO
+        ));
         assert_eq!(
             handle.info().status,
             vessel_proto::SessionStatus::Exited { code: Some(0) }

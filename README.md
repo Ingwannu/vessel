@@ -1457,8 +1457,10 @@ terminates the process. New typed handlers accept `--json`, `--format table|json
 `--quiet`, and `--no-headers`; YAML uses JSON-compatible flow syntax.
 
 This is a staged parity package. Workspace/provider configuration, detach, host registry
-RPCs and terminal screen capture registration have explicit dependency refusals until their
-reviewed node contracts land. The complete 117-path inventory, ownership boundaries,
+RPCs and terminal screen capture retain explicit dependency/protocol refusals. Workspace
+rename consumes the landed typed request, verifies its acknowledged ID/title and preserves
+a raw null title on reset; its shared protocol gate remains pending. Listing does not
+invent a derived workspace name from a path or branch. The complete 117-path inventory, ownership boundaries,
 reference flags/defaults and current differences are in [the W17 plan](docs/plans/wp-w17.md).
 Host annotations are explicitly public to local agents. The pending public inventory
 read exposes only approved display fields; it grants no connection or management

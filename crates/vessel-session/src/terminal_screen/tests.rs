@@ -150,7 +150,7 @@ async fn session_target_cannot_be_reinterpreted_as_a_standalone_capture() {
     );
     assert!(matches!(
         authority.inbox.try_recv(),
-        Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        Err(mpsc::error::TryRecvError::Empty)
     ));
     authority.finish();
     assert_eq!(

@@ -3,7 +3,7 @@
 use crate::{
     Config, Node, host_registry::TrustedDestinations, principal::Principal, service::Connection,
 };
-use std::{num::NonZeroUsize, path::PathBuf, time::Duration};
+use std::{num::NonZeroUsize, path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
     sync::{oneshot, watch},
     task::JoinHandle,
@@ -21,47 +21,50 @@ use vessel_store::DataDir;
 
 #[tokio::test]
 async fn guarded_public_inventory_reads_across_sources_without_widening_private_management() {
-    vessel_testkit::within(Duration::from_secs(60), async {
-        let root = tempfile::tempdir().unwrap();
-        let data = DataDir::new(root.path().join("data"));
-        let registry_tasks = TaskTracker::new();
-        let registry_stop = CancellationToken::new();
-        // A failed assertion must cancel this separately tracked fixture actor too.
-        let _registry_lifetime = registry_stop.clone().drop_guard();
-        let registry = crate::host_registry::HostRegistry::start(
-            data.clone(),
-            registry_stop.clone(),
-            &registry_tasks,
-        )
-        .await
-        .unwrap();
-        let mut config = Config::new(
-            data.clone(),
-            vessel_harness::HarnessEnv::new(root.path().join("user")),
-        );
-        config.bind = None;
-        config.harness_lookup = vessel_harness::Lookup::new(Vec::<PathBuf>::new());
-        config.test_host_registry = Some(registry);
-        let node = Node::start(config).await.unwrap();
-        let device = DeviceId::random();
-        let expected = seed(&node, device).await;
-        let before = data.read_host_registry().unwrap();
-        let (client, context, closing, serving) = context(&node).await;
-        let reader = public_read(&node, &context, &expected).await;
-        private_reads(&node, &context, &reader, device).await;
-        refused_readers(&node, &context).await;
-        assert_eq!(
-            data.read_host_registry().unwrap().entries(),
-            before.entries()
-        );
-        drop(client);
-        closing.cancel();
-        serving.await.unwrap();
-        node.stop().await.unwrap();
-        registry_stop.cancel();
-        registry_tasks.close();
-        registry_tasks.wait().await;
-    })
+    vessel_testkit::within(
+        Duration::from_secs(60),
+        Box::pin(async {
+            let root = tempfile::tempdir().unwrap();
+            let data = DataDir::new(root.path().join("data"));
+            let registry_tasks = TaskTracker::new();
+            let registry_stop = CancellationToken::new();
+            // A failed assertion must cancel this separately tracked fixture actor too.
+            let _registry_lifetime = registry_stop.clone().drop_guard();
+            let registry = crate::host_registry::HostRegistry::start(
+                data.clone(),
+                registry_stop.clone(),
+                &registry_tasks,
+            )
+            .await
+            .unwrap();
+            let mut config = Config::new(
+                data.clone(),
+                vessel_harness::HarnessEnv::new(root.path().join("user")),
+            );
+            config.bind = None;
+            config.harness_lookup = vessel_harness::Lookup::new(Vec::<PathBuf>::new());
+            config.test_host_registry = Some(registry);
+            let node = Node::start(config).await.unwrap();
+            let device = DeviceId::random();
+            let expected = seed(&node, device).await;
+            let before = data.read_host_registry().unwrap();
+            let (client, context, closing, serving) = context(&node).await;
+            let reader = public_read(&node, &context, &expected).await;
+            private_reads(&node, &context, &reader, device).await;
+            refused_readers(&node, &context).await;
+            assert_eq!(
+                data.read_host_registry().unwrap().entries(),
+                before.entries()
+            );
+            drop(client);
+            closing.cancel();
+            serving.await.unwrap();
+            node.stop().await.unwrap();
+            registry_stop.cancel();
+            assert!(registry_tasks.close());
+            registry_tasks.wait().await;
+        }),
+    )
     .await
     .unwrap();
 }
@@ -95,7 +98,7 @@ async fn context(node: &Node) -> (NodeClient, Connection, CancellationToken, Joi
     let closing = CancellationToken::new();
     let (_state, info) = watch::channel(node.secure.lifecycle.info());
     let server = vessel_rpc::Server::new(
-        node.secure.service.clone(),
+        Arc::clone(&node.secure.service),
         info,
         vessel_rpc::ServerConfig::default(),
         closing.clone(),

@@ -34,9 +34,10 @@ node258/0, proto329/1, rpc53/0, session72/0, store77/0, frozen screen11/0.
 Only the pinned forwardable inventory missed terminal.capture; ea9fc2fe adds that
 name without weakening the assertion. These runs predate the shared TUI adapter.
 The cf252 strict run was cancelled while queued before compilation (terminal143)
-for the announced9c base adaptation. One corrected strict is queued on exactece8
-as wp-cli-narrow-20261115T163614Z-ece8d091; it does not cover the later sealed EOF
-owner or real-queue fixture. Their strict/runtime proof is still owed, as are latest
+for the announced9c base adaptation. Corrected strict on exactece8
+wp-cli-narrow-20261115T163614Z-ece8d091 finished rc1 before tests: five
+session/node fixture compile/lint diagnostics, now source-corrected. It does not
+cover the later sealed EOF owner, real-queue fixture or workspace rename. Their strict/runtime proof is still owed, as are latest
 CLI processes, common/TUI actor units, fresh named TypeScript generation,
 full package and A12. Neither scoped library results nor source review qualifies C2
 row217 or activates NodeAuthority. Actual Guarded/actor fixture proof is distinct
