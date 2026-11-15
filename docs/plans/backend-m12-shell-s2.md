@@ -6,9 +6,12 @@ The previous shell worktree belongs to the continuing sidebar slice. This
 continuation uses a separate branch and local Cargo target directories; it
 does not modify that worktree. The sidebar handoff has now been read and
 its completed source integrated at `22025b12`. Width captures are complete,
-with the layout failures below retained. Next is theme cycling through the
-existing action registry, using the theme consumer's typed contract and
-waiting for its whole gate before submitting that integration. Machine
+with the historical release's layout failures below retained. A separate
+sidebar-height package is under review; it is not mixed into this branch.
+This branch now addresses the theme-cycle input-boundary return through the
+existing action registry. The producer's bounded source/native gate passed;
+actual native terminal focus and complete platform input behavior remain
+outside that evidence. Machine
 filtering, notifications and message search follow afterwards.
 
 ## Paired-book fixture verification
@@ -138,11 +141,11 @@ The first capture batch was interrupted with exit 143 after two complete
 combinations; its cause was not established. Those originals and the failure
 record were retained. A detached driver completed only the remaining cases.
 The abandoned display PID was absent before its owned stale markers were
-removed. Later app/display processes ended normally. The disposable fleet
-is retained for the next shortcut integration check and must be stopped by
-its recorded, verified PIDs when that work ends.
+removed. Later app/display processes ended normally. That disposable fleet was stopped after the width run, with its recorded
+PIDs verified. A new isolated fleet is used for subsequent checks and must
+also be stopped by verified PID when the work ends.
 
-## Theme cycle contract (implementation pending)
+## Theme cycle contract and input-boundary return
 
 [Decision Log]
 - Purpose: expose Paseo's theme-cycle action through the native app's single
@@ -169,11 +172,33 @@ its recorded, verified PIDs when that work ends.
   context and matching types were read as well.
 - Dependency contract: theme consumer `fb711444`, including the correction
   above `4f754b4b`. It adds the eight existing preference variants and
-  `Theme::next`; it is a source contract until its owner reports the whole
-  gate green. This shortcut slice must not be submitted before that result.
+  `Theme::next`. Its owner and review confirmed the bounded source/native
+  gate (1181 passed, zero failed, one ignored); that is not a complete theme
+  runtime or visual approval.
 - Verification: match the real default on both conventions; test command
   center and terminal exclusions, Mac terminal allowance, rebinding and
   the complete cycle through `PreferenceChange::Theme`. Native whole gate
   follows narrow compilation. Actual terminal focus needs the terminal
   area's public seam; the current integration still draws a placeholder,
   so a pure context test must not be described as live terminal proof.
+
+### Host input boundary
+
+The initial registration's native gate passed (1187 passed, zero failed,
+one ignored), but review returned its host-input boundary: GPUI still sends
+character-preferred events, including Windows AltGr, to interceptors. The
+listener now clears a pending sequence and returns before matching when
+that preference or focused composition applies. It does not consume the
+event, run an action or save a preference on this path. A real GPUI platform
+key event with a focused kit input tests the interceptor preference, raw
+event propagation, unchanged theme and cleared sequence; separate real key
+events exercise the eight-step cycle and palette exclusion. These new
+checks are not yet compiled at this checkpoint. Actual OS AltGr and Mac
+keyboard behavior are not implied by the GPUI probe.
+
+There is no terminal focus surface in this native integration yet. Its
+named query explicitly returns false until the terminal area's focus seam
+lands, rather than interpreting an invented toolkit context substring. The
+view's non-Mac terminal refusal and Mac allowance remain policy tests only.
+The existing test-only isolated shell constructor becomes crate-visible to
+reuse its no-I/O setup; no production factory or API is added.

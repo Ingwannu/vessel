@@ -24,7 +24,7 @@
 
 use std::time::Instant;
 
-use gpui::KeystrokeEvent;
+use gpui::{InputPreference, KeystrokeEvent};
 use vessel_app_kit::TextField;
 use vessel_app_kit::ui::{App, Context, Subscription, Window};
 use vessel_app_view::prefs::PreferenceChange;
@@ -36,10 +36,19 @@ use vessel_app_view::shortcuts::{
 use vessel_app_view::sidebar::{Step, step_session};
 
 pub(crate) mod page;
+#[cfg(test)]
+mod tests;
 
 use super::session::Open;
 use crate::routes::Route;
 use crate::shell::Shell;
+
+/// C2's T1 terminal surface is not integrated yet: the session area
+/// draws a placeholder, with no terminal that can hold focus. T1 will
+/// replace this seam with its actual focus query when the surface lands.
+fn terminal_focused(_shell: &Shell) -> bool {
+    false
+}
 
 /// What the listener keeps between presses.
 pub(crate) struct ShortcutListener {
@@ -112,7 +121,12 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if TextField::focused_composing(window, cx) {
+        // The toolkit still calls interceptors for AltGr/text-preferred
+        // input. In particular Ctrl+Alt+T must not steal that text.
+        if matches!(event.input_preference, InputPreference::CharacterInput)
+            || TextField::focused_composing(window, cx)
+        {
+            self.areas.shortcuts.pending = None;
             return;
         }
         let platform = Platform::native();
@@ -150,7 +164,7 @@ impl Shell {
             Matched::Wait(pending) => self.areas.shortcuts.pending = Some(pending),
             Matched::None => {}
             Matched::Run { action, index } => {
-                if action.enabled(self.shortcut_scope(event), platform)
+                if action.enabled(self.shortcut_scope(), platform)
                     && self.run_shortcut(action, index, repeat, window, cx)
                 {
                     cx.stop_propagation();
@@ -159,16 +173,11 @@ impl Shell {
         }
     }
 
-    /// The palette's lifetime wins over retained terminal focus. Toolkit
-    /// context names are interpreted only at this input boundary.
-    fn shortcut_scope(&self, event: &KeystrokeEvent) -> ShortcutScope {
+    /// The palette's lifetime wins over retained terminal focus.
+    fn shortcut_scope(&self) -> ShortcutScope {
         if self.areas.palette.is_open() {
             ShortcutScope::CommandCenter
-        } else if event
-            .context_stack
-            .iter()
-            .any(|context| context.contains("Terminal"))
-        {
+        } else if terminal_focused(self) {
             ShortcutScope::Terminal
         } else {
             ShortcutScope::Elsewhere

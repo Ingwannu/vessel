@@ -436,6 +436,17 @@ static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
+### Theme cycling
+
+Settings > Shortcuts > General lists **Cycle theme**. Its default is
+Command+Option+T on Mac and Control+Alt+T elsewhere, through the same
+registry used for rebinding and conflicts. It calls `Theme::next` and the
+existing appearance preference setter. The command center suppresses this
+action, including a rebound key; character-preferred input and focused
+composition stand down before shortcut matching. Non-Mac terminal focus is
+excluded by policy, but its actual focus query awaits the terminal surface;
+this integration still has a placeholder there.
+
 ### Named colour palettes (ADR 0070, staged)
 
 The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,

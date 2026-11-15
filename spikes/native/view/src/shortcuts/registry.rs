@@ -8,7 +8,8 @@
 //!   that works.
 //! - Choice: the page's fourteen actions in its order with its defaults,
 //!   and GOAT's two queue actions (send the first queued message now,
-//!   edit the last one) after the composer's focus;
+//!   edit the last one) after the composer's focus; Paseo's theme cycling
+//!   joins General through the same primary-modifier grammar;
 //!   an action has at most two bindings; "session 1–9" is fixed (Alt and
 //!   a digit, one per session) and cannot be reassigned. An override
 //!   replaces an action's defaults whole (an empty list unbinds it); ids
