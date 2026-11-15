@@ -1,3 +1,20 @@
+## Batch gate correction
+
+The first full native run on `c3ad12fd` passed fonts, format and quality, then
+stopped in native Clippy: the newly one-byte Copy `EmptyFork` was still passed
+by reference to its banner. Pass it by value in that private helper and its one
+caller. There is no message/layout/state change. Native build/test did not run
+in that failed attempt; no full pass is claimed from it. Re-run the full gate
+on this correction. The preceding fork move's native narrow Clippy was green.
+
+The local capture build of `c3ad12fd` passed. Initial inspected About captures
+use an isolated empty config and private authenticated display, proving only
+that normal empty-state page. Shared newer-node fixture binaries failed the
+standard fleet's shape preflight; that fleet was rejected without weakening
+its assertions and all eight verified owned node/fake processes were stopped.
+Those failed fixtures provide no UI/current-node evidence. Before/after,
+remaining language/theme/size combinations and live fork screens remain owed.
+
 ## Fork typed-recovery correction (source ready; full gate/screens owed)
 
 The diagnostic-preserving fork move is `ec544b88`. This independent correction

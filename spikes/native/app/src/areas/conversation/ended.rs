@@ -73,7 +73,7 @@ pub(super) fn banner(
     // records say so before the node's description is read again.
     let status = area.timeline.status().unwrap_or(&info.status);
     if let Some(why) = empty_fork(status) {
-        return Some(empty_fork_banner(shell, &why, tokens, narrow, cx));
+        return Some(empty_fork_banner(shell, why, tokens, narrow, cx));
     }
     // Slice M (the owner, 2026-11-14: as in Paseo, the next message
     // starts an ended agent again): a session that ended and can go on has
@@ -94,7 +94,7 @@ pub(super) fn banner(
 /// refused Remove (the node's words) under it.
 fn empty_fork_banner(
     shell: &Shell,
-    why: &EmptyFork,
+    why: EmptyFork,
     tokens: &Tokens,
     narrow: bool,
     cx: &mut Context<'_, Shell>,
