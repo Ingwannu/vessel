@@ -210,6 +210,28 @@ conflict, fixed backing identity with bootstrap skipped, and uncertain recovery
 without replay. No compile or execution evidence exists for this new adapter
 yet. The provider's physical-root/config/approval limits remain intact.
 
+### Bounded creation intake
+
+Modify/reuse: a single creation intake composes the existing Store receipt
+lookup/admission and the shared count-owner callback. Neither an external
+queue nor a per-key lock table is needed. The finite admission mutex serializes
+lookup, count acquisition and durable admission; a separate bounded active
+book records only drivers still holding their permit. Existing keys are read
+before that gate and rechecked under it, so a duplicate can attach at capacity
+without acquiring another count slot. A permit stays with the driver through
+settlement, including after its original request disappears.
+
+This first intake is literal cfg(test) staging alongside the phase driver.
+Its resource callback may reserve/recheck shared authority but may not launch
+effects. A failed/cancelled durable admission drops only that attempt's opaque
+resource lease. Completed, in-flight and Unknown receipts are observations;
+only Accepted or a known refusal may request continuation. The callback must
+still prove authoritative startup recovery, current principal/workspace state,
+and absence of an already-restored child/count entry. The intake alone cannot
+supply those proofs, spawn a background task, or make a create RPC available.
+Real-writer regressions are owed for simultaneous identical last-slot admission,
+capacity/conflict lookup, finite waiting, lease rollback and retained identity.
+
 The internal refused outcome carries the canonical creation Certainty value
 explicitly. Generic backing refusals currently retain Uncertain reservations
 and return Unknown, so a future caller cannot mistake the typed refusal reason

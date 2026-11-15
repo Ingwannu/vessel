@@ -2,6 +2,8 @@
 
 #[cfg(test)]
 mod driver;
+#[cfg(test)]
+mod intake;
 mod failure;
 
 pub(super) use failure::stored as stored_creation_error;
