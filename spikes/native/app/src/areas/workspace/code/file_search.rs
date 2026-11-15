@@ -7,10 +7,10 @@ use std::num::NonZeroU32;
 
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::FileAsk;
-use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey};
+use vessel_app_view::workspace::{file_query::FileQuery, file_scope::FileScope};
+use vessel_proto::workspace::{FindFiles, FoundFiles, SearchKey};
 
 use crate::shell::Shell;
 
@@ -24,7 +24,7 @@ pub(crate) struct FileSearchRequest {
     /// Exact original connection and physical root; never resolved by name later.
     pub(crate) scope: FileScope,
     /// Bounded protocol query.
-    pub(crate) query: FindQuery,
+    pub(crate) query: FileQuery,
     /// A stable per-field key allocated by `Shell::file_search_key`.
     pub(crate) key: SearchKey,
     /// Requested result count, bounded by `FILE_SEARCH_LIMIT`.
@@ -36,13 +36,13 @@ pub(crate) type FileSearchReceiver =
     fn(&mut Shell, &FileSearchRequest, Result<FoundFiles, Problem>, &mut Context<'_, Shell>);
 
 pub(super) struct RegisteredSearch {
-    ticket: FileTicket,
-    request: FileSearchRequest,
-    receive: FileSearchReceiver,
+    pub(super) ticket: FileTicket,
+    pub(super) request: FileSearchRequest,
+    pub(super) receive: FileSearchReceiver,
 }
 
 #[derive(Default)]
-pub(super) struct Searches(HashMap<SearchKey, RegisteredSearch>);
+pub(super) struct Searches(pub(super) HashMap<SearchKey, RegisteredSearch>);
 
 impl Shell {
     /// Allocate from one window-wide sequence, avoiding cross-field
@@ -71,11 +71,24 @@ impl Shell {
         if searches.len() >= MAX_FILE_SEARCH_OWNERS && !searches.contains_key(&request.key) {
             return Err(FileSearchRefusal::Capacity);
         }
-        let ask = FindFiles {
-            root: request.scope.root(),
-            query: request.query.clone(),
-            key: Some(request.key),
-            limit: Some(request.limit.get()),
+        let ask = match &request.query {
+            FileQuery::Matching(query) => FileAsk::TrackedFind {
+                ask: FindFiles {
+                    root: request.scope.root(),
+                    query: query.clone(),
+                    key: Some(request.key),
+                    limit: Some(request.limit.get()),
+                },
+                ticket,
+            },
+            FileQuery::All => FileAsk::List {
+                ask: vessel_proto::workspace::ListDir {
+                    root: request.scope.root(),
+                    dir: vessel_proto::workspace::RelPath::root(),
+                    ignored: false,
+                },
+                ticket,
+            },
         };
         let scope = request.scope.clone();
         let _replaced = searches.insert(
@@ -86,7 +99,7 @@ impl Shell {
                 receive,
             },
         );
-        self.send_file_scope(scope, FileAsk::TrackedFind { ask, ticket });
+        self.send_file_scope(scope, ask);
         Ok(())
     }
 
@@ -123,7 +136,7 @@ impl Shell {
         if pending.ticket != ticket
             || pending.request.scope != *scope
             || pending.request.scope.root() != ask.root
-            || pending.request.query != ask.query
+            || pending.request.query != FileQuery::Matching(ask.query.clone())
         {
             return None;
         }

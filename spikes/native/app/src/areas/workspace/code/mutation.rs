@@ -252,6 +252,10 @@ impl Shell {
         let Some(prefix) = prefix(change) else {
             return;
         };
+        panel
+            .files
+            .listing_tickets
+            .retain(|path, _| !within(path, prefix));
         let renamed = |path: RelPath| -> Option<RelPath> {
             if !within(&path, prefix) {
                 return Some(path);
@@ -267,7 +271,17 @@ impl Shell {
             .files
             .listings
             .drain()
-            .filter_map(|(path, listing)| renamed(path).map(|path| (path, listing)))
+            .filter_map(|(path, listing)| {
+                if within(&path, prefix)
+                    && matches!(
+                        listing,
+                        vessel_app_view::workspace::file_tree::Listing::Loading
+                    )
+                {
+                    return None;
+                }
+                renamed(path).map(|path| (path, listing))
+            })
             .collect();
         panel.files.relist();
     }

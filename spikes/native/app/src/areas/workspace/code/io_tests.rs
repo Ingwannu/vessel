@@ -354,3 +354,25 @@ impl Shell {
         }
     }
 }
+
+#[gpui::test]
+fn old_same_scope_folder_refresh_cannot_replace_the_latest_listing(cx: &mut TestAppContext) {
+    use vessel_proto::workspace::{DirEntry, DirListing, EntryKind, ListDir, RelPath};
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, _| {
+        let root = root();
+        target(shell, root);
+        let dir = RelPath::root();
+        shell.read_folder(&dir);
+        let old = shell.areas.workspace.code.files.listing_tickets[&dir];
+        shell.reread_files();
+        let current = shell.areas.workspace.code.files.listing_tickets[&dir];
+        assert_ne!(old, current);
+        let ask = ListDir { root, dir: dir.clone(), ignored: true };
+        let listed = |name: &str| DirListing { entries: vec![DirEntry { name: name.into(), kind: EntryKind::File, size: None, ignored: false }], more: false };
+        shell.folder_read("node", &ask, current, Ok(listed("current")));
+        shell.folder_read("node", &ask, old, Ok(listed("stale")));
+        assert!(matches!(&shell.areas.workspace.code.files.listings[&dir], vessel_app_view::workspace::file_tree::Listing::Listed(listing) if listing.entries[0].name == "current"));
+    });
+}

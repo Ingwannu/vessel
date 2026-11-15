@@ -130,9 +130,20 @@ impl Shell {
                 ticket,
                 result,
             } => self.file_mutation_answered_for(scope, &change, ticket, result, dispatched, cx),
-            FileAnswer::Listed { ask, result } => {
-                if shown {
-                    self.folder_read(scope.connection().machine().as_str(), &ask, result);
+            FileAnswer::Listed {
+                ask,
+                ticket,
+                result,
+            } => {
+                if self.file_listing_search_pending(scope, ticket) {
+                    let result = if live {
+                        result
+                    } else {
+                        Err(Problem::Gone("the original connection retired".into()))
+                    };
+                    self.file_listing_search_answered(scope, &ask, ticket, result, cx);
+                } else if shown {
+                    self.folder_read(scope.connection().machine().as_str(), &ask, ticket, result);
                 }
             }
             FileAnswer::Found { ask, result } => {

@@ -24,6 +24,8 @@ pub enum FileAnswer {
     Listed {
         /// What was asked.
         ask: ListDir,
+        /// Original local refresh or picker acquisition.
+        ticket: FileTicket,
         /// The entries.
         result: Result<DirListing, Problem>,
     },
@@ -99,8 +101,9 @@ impl FileAsk {
                 result: super::intelligence::refused(ask.action, problem),
                 ask,
             },
-            FileAsk::List(ask) => FileAnswer::Listed {
+            FileAsk::List { ask, ticket } => FileAnswer::Listed {
                 ask,
+                ticket,
                 result: no(problem),
             },
             FileAsk::Read { ask, ticket } => FileAnswer::Read {

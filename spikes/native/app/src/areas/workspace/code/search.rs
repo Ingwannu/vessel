@@ -159,7 +159,7 @@ impl Shell {
                 };
                 SearchDispatch::Find(crate::areas::workspace::FileSearchRequest {
                     scope: scope.clone(),
-                    query,
+                    query: vessel_app_view::workspace::file_query::FileQuery::Matching(query),
                     key,
                     limit,
                 })
@@ -472,7 +472,7 @@ fn search_received(
     let search = &mut shell.areas.workspace.code.files.search;
     if search.mode != Mode::Name
         || search.key != Some(request.key)
-        || search.asked.as_deref() != Some(request.query.as_str())
+        || search.asked.as_deref() != request.query.text()
     {
         return;
     }

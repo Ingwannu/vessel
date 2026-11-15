@@ -10,9 +10,10 @@ pub(super) async fn run(client: &Client<'_>, ask: FileAsk) -> FileAnswer {
             result: super::intelligence::run(client, &ask).await,
             ask,
         },
-        FileAsk::List(ask) => FileAnswer::Listed {
+        FileAsk::List { ask, ticket } => FileAnswer::Listed {
             result: client.call(ask.clone()).await,
             ask,
+            ticket,
         },
         FileAsk::Read { ask, ticket } => FileAnswer::Read {
             result: client.call(ask.clone()).await,

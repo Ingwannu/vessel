@@ -89,8 +89,13 @@ pub enum GitAsk {
 pub enum FileAsk {
     /// An existing read-only `lsp.*` query for a saved source file.
     Intelligence(super::IntelligenceAsk),
-    /// `file.list`.
-    List(ListDir),
+    /// `file.list`, correlated independently of repeated refreshes.
+    List {
+        /// Existing authorized wire request.
+        ask: ListDir,
+        /// Original local acquisition identity.
+        ticket: FileTicket,
+    },
     /// `file.read`.
     Read {
         /// The bounded wire read.

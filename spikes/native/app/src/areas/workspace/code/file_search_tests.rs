@@ -24,7 +24,7 @@ fn request(key: SearchKey) -> FileSearchRequest {
                 project: ProjectId::random(),
             },
         ),
-        query: "alpha".parse().unwrap(),
+        query: FileQuery::Matching("alpha".parse().unwrap()),
         key,
         limit: NonZeroU32::new(30).unwrap(),
     }
@@ -33,7 +33,10 @@ fn request(key: SearchKey) -> FileSearchRequest {
 fn ask(request: &FileSearchRequest) -> FindFiles {
     FindFiles {
         root: request.scope.root(),
-        query: request.query.clone(),
+        query: match &request.query {
+            FileQuery::Matching(query) => query.clone(),
+            FileQuery::All => panic!("matching query"),
+        },
         key: Some(request.key),
         limit: Some(request.limit.get()),
     }
@@ -52,7 +55,7 @@ fn repeated_query_keeps_new_generation_after_old_reply(cx: &mut TestAppContext) 
             .unwrap();
         let old_ticket = shell.areas.workspace.code.searches.0[&key].ticket;
         let mut middle = first.clone();
-        middle.query = "beta".parse().unwrap();
+        middle.query = FileQuery::Matching("beta".parse().unwrap());
         shell.search_workspace_files(middle, receive).unwrap();
         shell
             .search_workspace_files(first.clone(), receive)
@@ -132,5 +135,37 @@ fn cancellation_and_capacity_preserve_other_fields(cx: &mut TestAppContext) {
             shell.search_workspace_files(huge, receive),
             Err(FileSearchRefusal::Limit)
         );
+    });
+}
+
+#[gpui::test]
+fn initial_listing_keeps_the_latest_ticket_and_never_makes_an_empty_find_query(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let key = shell.file_search_key();
+        let mut request = request(key);
+        request.query = FileQuery::All;
+        shell
+            .search_workspace_files(request.clone(), receive)
+            .unwrap();
+        let old = shell.areas.workspace.code.searches.0[&key].ticket;
+        shell
+            .search_workspace_files(request.clone(), receive)
+            .unwrap();
+        let current = shell.areas.workspace.code.searches.0[&key].ticket;
+        let ask = vessel_proto::workspace::ListDir {
+            root: request.scope.root(),
+            dir: vessel_proto::workspace::RelPath::root(),
+            ignored: false,
+        };
+        assert!(!shell.file_listing_search_pending(&request.scope, old));
+        shell.file_listing_search_answered(&request.scope, &ask, old, Err(Problem::Unsent), cx);
+        assert!(shell.file_listing_search_pending(&request.scope, current));
+        shell.file_listing_search_answered(&request.scope, &ask, current, Err(Problem::Unsent), cx);
+        assert!(!shell.file_listing_search_pending(&request.scope, current));
+        assert!(!shell.areas.workspace.code.searches.0.contains_key(&key));
     });
 }

@@ -32,11 +32,14 @@ fn root_mismatch_is_refused_and_unsent_preserves_original_scope_and_ticket() {
     assert!(
         Request::file(
             scope.clone(),
-            FileAsk::List(ListDir {
-                root: other,
-                dir: RelPath::root(),
-                ignored: true
-            })
+            FileAsk::List {
+                ask: ListDir {
+                    root: other,
+                    dir: RelPath::root(),
+                    ignored: true,
+                },
+                ticket: FileTickets::default().issue().unwrap()
+            }
         )
         .is_err()
     );

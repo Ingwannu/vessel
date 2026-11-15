@@ -23,6 +23,7 @@
 //! - Cost: the panel follows the open session only while it is open;
 //!   reopening it reads the session again (one call).
 
+mod acquisition;
 mod actions;
 mod actions_view;
 mod appear;
@@ -48,6 +49,7 @@ mod intelligence_view;
 mod io_tests;
 mod layout_adapter;
 mod line_syntax;
+mod listing_search;
 mod markdown;
 mod mutation;
 mod receipts;
@@ -164,6 +166,7 @@ struct Files {
     options: vessel_app_view::workspace::explorer::ExplorerOptions,
     retained: HashMap<buffers::FileKey, Viewer>,
     listings: HashMap<RelPath, Listing>,
+    listing_tickets: HashMap<RelPath, vessel_app_view::workspace::file_ticket::FileTicket>,
     open: HashSet<RelPath>,
     rows: Vec<TreeRow>,
     list: VirtualList,
@@ -226,6 +229,7 @@ impl CodePanel {
                 options: vessel_app_view::workspace::explorer::ExplorerOptions::default(),
                 retained: HashMap::new(),
                 listings: HashMap::new(),
+                listing_tickets: HashMap::new(),
                 open: HashSet::new(),
                 rows: Vec::new(),
                 list: VirtualList::new(false),
@@ -267,6 +271,7 @@ impl CodePanel {
             self.changes.states.clear();
             self.changes.relist();
             self.files.listings.clear();
+            self.files.listing_tickets.clear();
             // The active resource remains owned, including dirty/uncertain work.
             self.files.relist();
         }
