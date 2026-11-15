@@ -461,6 +461,9 @@ impl Handler for FakeNode {
         set_session_option: vessel_proto::SetSessionOption => Vec<vessel_proto::SessionOption>;
         rename_session: vessel_proto::RenameSession => SessionInfo;
         prompt_session: vessel_proto::conversation::PromptSession => vessel_proto::Delivered;
+        submit_prompt: vessel_proto::timeline::SubmitPrompt => vessel_proto::timeline::SubmitPromptReply;
+        respond_permission: vessel_proto::timeline::RespondPermission => vessel_proto::timeline::RespondPermissionReply;
+        respond_question: vessel_proto::timeline::RespondQuestion => vessel_proto::timeline::RespondQuestionReply;
         change_queue: vessel_proto::conversation::ChangeQueue => vessel_proto::conversation::QueueChanged;
         get_conversation: vessel_proto::conversation::GetConversation => vessel_proto::Conversation;
         resume_session: vessel_proto::conversation::ResumeSession => SessionInfo;

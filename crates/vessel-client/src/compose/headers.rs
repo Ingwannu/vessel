@@ -6,7 +6,7 @@ use vessel_proto::conversation::{AnswerValue, ChoiceOption, FieldKind, FieldName
 use vessel_proto::{Question, QuestionAnswer};
 
 /// Decode `{answers:{header:text}}` without provider JSON inspection or guessed field ids.
-/// Canonical field-keyed QuestionAnswer remains available for ambiguous multi-select text.
+/// Canonical field-keyed `QuestionAnswer` remains available for ambiguous multi-select text.
 ///
 /// # Errors
 /// Unknown/ambiguous header, repeated field, unreadable value, or an invalid typed answer.

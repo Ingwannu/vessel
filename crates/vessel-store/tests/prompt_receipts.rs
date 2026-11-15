@@ -107,7 +107,7 @@ async fn corrupt_accounting_refuses_open_without_discarding_pending_keys() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection
+    let _setup = connection
         .execute("UPDATE timeline_admission_meta SET records=0", [])
         .unwrap();
     drop(connection);

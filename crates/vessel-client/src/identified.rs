@@ -29,7 +29,7 @@ impl NodeClient {
     }
 
     /// Send the same prepared identity/payload on explicit reconciliation retries.
-    /// OutcomeUnknown forbids automatic resend with a fresh identity.
+    /// `OutcomeUnknown` forbids automatic resend with a fresh identity.
     ///
     /// # Errors
     /// Unsupported/unassigned peers, access refusal, or transport/store failures.

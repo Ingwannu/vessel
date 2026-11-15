@@ -181,13 +181,15 @@ fn saturation_keeps_all_replay_keys_and_releases_only_with_session_removal() {
     ));
     assert_eq!(usage(&db, Some(session)).unwrap(), at_capacity);
     // Log retention is independent of retained replay identities.
-    db.execute(
-        "DELETE FROM events WHERE session_id=?1",
-        [session.to_string()],
-    )
-    .unwrap();
+    let _setup = db
+        .execute(
+            "DELETE FROM events WHERE session_id=?1",
+            [session.to_string()],
+        )
+        .unwrap();
     assert_eq!(usage(&db, Some(session)).unwrap(), at_capacity);
-    db.execute("DELETE FROM sessions WHERE id=?1", [session.to_string()])
+    let _setup = db
+        .execute("DELETE FROM sessions WHERE id=?1", [session.to_string()])
         .unwrap();
     assert_eq!(
         usage(&db, Some(session)).unwrap(),
@@ -262,7 +264,7 @@ fn pending_state_and_full_reservations_survive_a_connection_restart() {
         admit(&mut reopened, &prompt),
         ReceiptAdmission::Existing(SubmitPromptReply::OutcomeUnknown { .. })
     ));
-    reopened
+    let _setup = reopened
         .execute("UPDATE timeline_admissions SET reserved_bytes=1", [])
         .unwrap();
     assert!(matches!(
@@ -288,7 +290,7 @@ fn concurrent_same_identity_has_one_fresh_admission_and_one_uncertain_replay() {
                 let mut db = Connection::open(path).unwrap();
                 crate::schema::configure(&db).unwrap();
                 let prompt = prompt(id, "same", "run");
-                barrier.wait();
+                let _barrier = barrier.wait();
                 matches!(admit(&mut db, &prompt), ReceiptAdmission::New(_))
             })
         })
@@ -328,7 +330,7 @@ fn two_distinct_ids_cannot_overbook_the_final_session_reservation() {
             std::thread::spawn(move || {
                 let mut db = Connection::open(path).unwrap();
                 crate::schema::configure(&db).unwrap();
-                barrier.wait();
+                let _barrier = barrier.wait();
                 admit(&mut db, &prompt(id, &format!("racer-{index}"), "run"))
             })
         })

@@ -63,11 +63,12 @@ fn replay_keeps_the_original_request_id_and_resolution_is_independent_of_a_tool_
     );
     transaction.commit().unwrap();
     // Completing or pruning a tool's ordinary history never deletes its question row.
-    db.execute(
-        "DELETE FROM events WHERE session_id=?1",
-        [session.to_string()],
-    )
-    .unwrap();
+    let _setup = db
+        .execute(
+            "DELETE FROM events WHERE session_id=?1",
+            [session.to_string()],
+        )
+        .unwrap();
     assert!(matches!(
         load(&db, session, &source).unwrap().unwrap().state,
         QuestionState::Pending
@@ -114,7 +115,7 @@ fn invalid_answer_does_not_claim_and_known_not_sent_restores_the_exact_pending_r
     let session = session(&db);
     let question = form();
     let transaction = db.transaction().unwrap();
-    admit_question(
+    let _setup = admit_question(
         &transaction,
         session,
         ToolCallId::new("source"),
@@ -172,7 +173,7 @@ fn restart_marks_admitted_unacknowledged_answers_uncertain_and_keeps_their_reser
     let question = form();
     let source = ToolCallId::new("source");
     let transaction = db.transaction().unwrap();
-    admit_question(&transaction, session, source.clone(), question.clone()).unwrap();
+    let _setup = admit_question(&transaction, session, source.clone(), question.clone()).unwrap();
     assert!(matches!(
         begin_answer(
             &transaction,
@@ -221,7 +222,7 @@ fn dismissal_retains_source_tombstone_and_changed_source_content_conflicts() {
     let question = form();
     let source = ToolCallId::new("source");
     let transaction = db.transaction().unwrap();
-    admit_question(&transaction, session, source.clone(), question.clone()).unwrap();
+    let _setup = admit_question(&transaction, session, source.clone(), question.clone()).unwrap();
     let mut changed = question.clone();
     changed.message = "Different".to_owned();
     assert_eq!(
@@ -260,7 +261,7 @@ fn unsupported_and_pre_send_refusals_never_settle_the_pending_request() {
         let id = session(&db);
         let question = form();
         let transaction = db.transaction().unwrap();
-        admit_question(
+        let _setup = admit_question(
             &transaction,
             id,
             ToolCallId::new("source"),
