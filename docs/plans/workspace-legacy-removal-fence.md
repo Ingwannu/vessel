@@ -50,3 +50,18 @@ automatic retire keeps backing while an unrelated unowned worktree still removes
 64-slot saturation refuses before detached cleanup and recovers after release.
 Three SQLite tests cover descriptor lifecycle, all four reservation stages and
 malformed retained intent. Existing worktree safety tests remain required.
+
+## Why this prerequisite cannot scope the existing hold to one ProjectId
+
+The current ProjectAdmission owns project_registrations: one Arc<Mutex<()>> shared
+by all project registration/removal and the admitted backing creator. ProjectEntry
+has no per-project metadata guard. Taking another independent per-project lock
+only for cleanup would not serialize with those existing publishers and would
+reopen the checked-read/publication gap. Converting the canonical admission,
+registration, unregister and publisher paths together needs a separate bounded
+ownership design and regression set; silently weakening this prerequisite is not
+an equivalent local refactor. The existing shared 64-holder/waiter admission cap
+and five-minute teardown limit remain unchanged. A C1 TRACKER follow-up records
+per-project admission as owed; this prerequisite accepts the global serialization
+cost explicitly under the coordinator's bounded-scope ruling. No caller bypass,
+new registry, timeout or extra unbounded waiter lane is introduced.
