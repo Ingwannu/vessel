@@ -2,8 +2,8 @@
 
 use std::collections::VecDeque;
 use vessel_proto::subagents::{
-    ChildCursor, ChildDescriptor, ChildDescriptors, ChildGap, ChildHistory, ChildRecords,
-    ProviderChildId, ProviderChildPage, ProviderChildren, ProviderObservation, ReadProviderChild,
+    ChildCursor, ChildDescriptor, ChildDescriptors, ChildGap, ChildHistory, ProviderChildId,
+    ProviderChildPage, ProviderChildren, ProviderObservation, ReadProviderChild,
 };
 use vessel_proto::{AgentEvent, EventRecord, EventSeq, SessionEvent};
 
@@ -74,7 +74,7 @@ impl Projection {
                         return false;
                     }
                     while self.activity.len() > limit {
-                        self.activity.pop_front();
+                        let _oldest = self.activity.pop_front();
                     }
                 }
             }
@@ -120,7 +120,7 @@ impl Projection {
     }
     /// A decoded record proves a real boundary even when its bytes exceed the budget.
     pub(super) fn refused_record(&mut self, seq: EventSeq) {
-        self.first.get_or_insert(seq);
+        let _first = self.first.get_or_insert(seq);
         self.truncated();
     }
     fn history(&self, missing: bool) -> ChildHistory {

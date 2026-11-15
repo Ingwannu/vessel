@@ -125,3 +125,25 @@ registration had been appended in addition to the existing A4 module registratio
 Only that duplicate registration is removed; the single canonical identity.rs
 export and full subagents module remain. The exact isolated bridge0560 itself
 passed strict proto Clippy. No runtime or wire behavior is changed by the repair.
+
+## Combined fake-backed execution and TS classification correction
+
+Exact b4ad1de3 combined agent/node library run
+wp-transfer-combined-tests-20261115T124446Z-b4ad1de3 executed393 passed,
+0 failed,2 ignored (agent120/node273). Actual Claude/Codex child routing,
+provider projection and detach publication/authority fixtures ran. This is
+predecessor source execution, not current merged-head or real-provider proof.
+The current123121dd five-crate strict run returned one remaining semicolon
+lint in the Codex collaboration arm. The earlier TS run returned the primitive
+alias inventory before generation, identifying three unclassified values.
+
+[Decision Log]
+- Purpose: retain one protocol-to-TypeScript classification and real generated
+  declarations, rather than hand-writing wire types in consumers.
+- Existing policy: ts/aliases.rs brands provider-minted handles, while content
+  and quantities remain plain; every generator primitive must be classified.
+- Choice: ProviderChildId is a Handle, ProviderText Content, ChildLimit Quantity.
+  Runtime parsing/bounds are unchanged. The method-arm semicolon and explicitly
+  discarded deque/first-boundary return values only correct strict warnings.
+- Impact: generated declarations still require the normal TS step and freshness
+  evidence. No wire feature number or runtime/provider readiness is assigned.

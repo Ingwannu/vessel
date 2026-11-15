@@ -22,7 +22,7 @@ impl Children {
         };
         match envelope.item {
             wire::ChildItem::CollabAgentToolCall(call) => {
-                self.collab(root, parent.as_ref(), &call, out)
+                self.collab(root, parent.as_ref(), &call, out);
             }
             wire::ChildItem::SubAgentActivity(activity) => {
                 self.activity(root, parent, &activity, out);
