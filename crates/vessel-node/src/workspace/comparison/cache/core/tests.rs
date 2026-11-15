@@ -25,6 +25,7 @@ impl Fixture {
 
     fn key(&self, comparison: GitComparison) -> Key {
         Key::new(
+            self.project,
             self.root.clone(),
             CompareGit {
                 root: WorkspaceRoot::Project {
@@ -91,8 +92,15 @@ fn invalidated_reads_cannot_refill_the_cache_and_duplicate_completions_are_inert
     let mut cache = Cache::default();
     let now = Instant::now();
     let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
-    assert_eq!(cache.invalidate(key.query.root, Change::Working), [id]);
-    assert!(cache.invalidate(key.query.root, Change::Working).is_empty());
+    assert_eq!(
+        cache.invalidate(key.query.root, key.project, Change::Working),
+        [id]
+    );
+    assert!(
+        cache
+            .invalidate(key.query.root, key.project, Change::Working)
+            .is_empty()
+    );
     assert!(
         matches!(cache.read(key.clone(), ReadReason::View, now).unwrap().read, Read::After(waiting) if waiting == id)
     );
@@ -160,8 +168,9 @@ fn working_and_history_changes_invalidate_all_for_each_base_but_not_other_roots(
             keys.push(key);
         }
         let mut other = fixture.key(GitComparison::Uncommitted);
+        other.project = ProjectId::random();
         other.query.root = WorkspaceRoot::Project {
-            project: ProjectId::random(),
+            project: other.project,
         };
         let id = start(&cache.read(other.clone(), ReadReason::View, now).unwrap());
         assert!(matches!(
@@ -174,6 +183,7 @@ fn working_and_history_changes_invalidate_all_for_each_base_but_not_other_roots(
                     WorkspaceRoot::Project {
                         project: fixture.project
                     },
+                    fixture.project,
                     change
                 )
                 .is_empty()
@@ -234,6 +244,7 @@ fn key_normalization_uses_defaults_only_for_comparisons_that_need_a_base() {
     });
     assert_eq!(
         Key::new(
+            fixture.project,
             fixture.root.clone(),
             first.query.clone(),
             default.clone(),
@@ -247,6 +258,7 @@ fn key_normalization_uses_defaults_only_for_comparisons_that_need_a_base() {
     };
     assert_eq!(
         Key::new(
+            fixture.project,
             fixture.root.clone(),
             fixture.key(GitComparison::Committed { base: None }).query,
             default,
@@ -270,7 +282,13 @@ fn reasons_are_not_query_identity_and_every_forced_reason_bypasses_freshness() {
         let mut query = key.query.clone();
         query.reason = reason;
         assert_eq!(
-            Key::new(fixture.root.clone(), query, None, Subject::Summary),
+            Key::new(
+                fixture.project,
+                fixture.root.clone(),
+                query,
+                None,
+                Subject::Summary
+            ),
             key
         );
         let mut cache = Cache::default();
@@ -289,9 +307,20 @@ fn repository_invalidation_retires_immutable_bodies_but_working_and_history_do_n
     });
     let mut cache = Cache::<&str>::default();
     let id = start(&cache.read(key.clone(), ReadReason::View, now).unwrap());
-    assert!(cache.invalidate(key.query.root, Change::Working).is_empty());
-    assert!(cache.invalidate(key.query.root, Change::History).is_empty());
-    assert_eq!(cache.invalidate(key.query.root, Change::Repository), [id]);
+    assert!(
+        cache
+            .invalidate(key.query.root, key.project, Change::Working)
+            .is_empty()
+    );
+    assert!(
+        cache
+            .invalidate(key.query.root, key.project, Change::History)
+            .is_empty()
+    );
+    assert_eq!(
+        cache.invalidate(key.query.root, key.project, Change::Repository),
+        [id]
+    );
 }
 
 #[test]
@@ -393,4 +422,85 @@ fn recently_used_completed_payloads_survive_eviction_of_an_older_one() {
         cache.read(second, ReadReason::View, now).unwrap().read,
         Read::Start(_)
     ));
+}
+
+#[test]
+fn shared_ref_changes_retire_sibling_project_caches_but_working_changes_stay_local() {
+    let fixture = Fixture::new();
+    let now = Instant::now();
+    for change in [Change::Working, Change::History, Change::Repository] {
+        for (comparison, history_affects) in [
+            (GitComparison::Uncommitted, false),
+            (GitComparison::Committed { base: None }, true),
+            (GitComparison::All { base: None }, true),
+            (
+                GitComparison::Commit {
+                    id: "a".repeat(40).parse().unwrap(),
+                },
+                false,
+            ),
+        ] {
+            let local = fixture.key(comparison);
+            let mut sibling = local.clone();
+            sibling.query.root = WorkspaceRoot::Worktree {
+                worktree: vessel_proto::WorktreeId::random(),
+            };
+            let mut foreign = sibling.clone();
+            foreign.project = ProjectId::random();
+            foreign.query.root = WorkspaceRoot::Project {
+                project: foreign.project,
+            };
+            let mut cache = Cache::default();
+            let id = start(&cache.read(sibling.clone(), ReadReason::View, now).unwrap());
+            let other = start(&cache.read(foreign.clone(), ReadReason::View, now).unwrap());
+            let expected = match change {
+                Change::Working => false,
+                Change::History => history_affects,
+                Change::Repository => true,
+            };
+            let cancelled = cache.invalidate(local.query.root, local.project, change);
+            assert_eq!(cancelled, if expected { vec![id] } else { Vec::new() });
+            assert_eq!(
+                cache.finish(id, ResultValue::Value(Arc::new("sibling")), now),
+                if expected {
+                    Completion::Retired
+                } else {
+                    Completion::Published
+                }
+            );
+            assert_eq!(
+                cache.finish(other, ResultValue::Value(Arc::new("foreign")), now),
+                Completion::Published
+            );
+            assert!(matches!(
+                cache.read(foreign, ReadReason::View, now).unwrap().read,
+                Read::Hit(_)
+            ));
+            let again = cache.read(sibling.clone(), ReadReason::View, now).unwrap();
+            if expected {
+                let _id = start(&again);
+            } else {
+                assert!(matches!(again.read, Read::Hit(_)));
+            }
+            // Completed sibling payloads obey exactly the same ownership rule.
+            let mut complete = Cache::default();
+            let id = start(
+                &complete
+                    .read(sibling.clone(), ReadReason::View, now)
+                    .unwrap(),
+            );
+            let _published = complete.finish(id, ResultValue::Value(Arc::new("cached")), now);
+            assert!(
+                complete
+                    .invalidate(local.query.root, local.project, change)
+                    .is_empty()
+            );
+            let after = complete.read(sibling, ReadReason::View, now).unwrap();
+            if expected {
+                let _id = start(&after);
+            } else {
+                assert!(matches!(after.read, Read::Hit(_)));
+            }
+        }
+    }
 }

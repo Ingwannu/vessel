@@ -101,6 +101,7 @@ impl Workspaces {
         let mut admitted = request.clone();
         admitted.comparison = comparison.clone();
         let key = Key::new(
+            resolved.project,
             resolved.root.clone(),
             admitted,
             resolved.base(),

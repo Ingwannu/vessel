@@ -423,3 +423,19 @@ No sleeps coordinate any fixture: real mutex futures and Notify still control
 ordering. Only a missing timeout argument/test safety-net behavior changes;
 production reservation and root fencing are unchanged. Already queued21e/3be
 runs retain their earlier source, including this known test-only compile defect.
+
+## Shared-project ref invalidation
+
+Source review found fetch/push/commit invalidation was keyed only by the calling
+WorkspaceRoot, leaving cached Committed/All results of a sibling worktree fresh
+for15s after shared refs changed. Cache keys now retain the ProjectId from the
+SAME resolved authority snapshot. Working/index mutations remain root-local;
+History/Repository invalidation matches that project, including active builds
+which stay owned until cancellation cleanup. No path/alias lookup, second
+registry or authority grant is introduced. Unknown external CLI changes still
+need the pending observation lifecycle; this does not claim watch parity.
+
+The existing before/after mutation guard carries both root and project. Pure
+fixtures cover all three change classes against Uncommitted/Committed/All/fixed
+Commit, active and completed sibling entries and a different project. Actual
+changed-source checks are pending; earlier860/e103 evidence is not relabeled.

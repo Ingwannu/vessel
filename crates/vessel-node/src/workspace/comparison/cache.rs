@@ -21,6 +21,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
+use vessel_proto::ProjectId;
 use vessel_proto::workspace::{DiffSummary, FileDiff, GitCompared};
 
 use super::jobs::Jobs;
@@ -157,9 +158,14 @@ impl Reader {
         }
     }
 
-    fn invalidate(&self, root: vessel_proto::workspace::WorkspaceRoot, change: Change) {
+    fn invalidate(
+        &self,
+        root: vessel_proto::workspace::WorkspaceRoot,
+        project: ProjectId,
+        change: Change,
+    ) {
         let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
-        let cancelled = state.cache.invalidate(root, change);
+        let cancelled = state.cache.invalidate(root, project, change);
         for active in &state.active {
             if cancelled.contains(&active.id) {
                 active.cancel.cancel();
@@ -177,6 +183,7 @@ mod tests;
 pub(in crate::workspace) struct Mutation<'a> {
     reader: &'a Reader,
     root: vessel_proto::workspace::WorkspaceRoot,
+    project: ProjectId,
     change: Change,
 }
 
@@ -184,19 +191,21 @@ impl Reader {
     pub(in crate::workspace) fn mutating(
         &self,
         root: vessel_proto::workspace::WorkspaceRoot,
+        project: ProjectId,
         change: Change,
     ) -> Mutation<'_> {
-        self.invalidate(root, change);
+        self.invalidate(root, project, change);
         Mutation {
             reader: self,
             root,
+            project,
             change,
         }
     }
 }
 impl Drop for Mutation<'_> {
     fn drop(&mut self) {
-        self.reader.invalidate(self.root, self.change);
+        self.reader.invalidate(self.root, self.project, self.change);
     }
 }
 

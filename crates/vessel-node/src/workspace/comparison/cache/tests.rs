@@ -19,16 +19,15 @@ impl Fixture {
     fn new() -> Self {
         let temp = tempfile::tempdir().unwrap();
         let root = Root::open(temp.path()).unwrap();
+        let project = ProjectId::random();
         let query = CompareGit {
-            root: WorkspaceRoot::Project {
-                project: ProjectId::random(),
-            },
+            root: WorkspaceRoot::Project { project },
             comparison: GitComparison::Uncommitted,
             whitespace: GitWhitespace::Show,
             reason: GitReadReason::View,
         };
         Self {
-            key: Key::new(root, query, None, Subject::Summary),
+            key: Key::new(project, root, query, None, Subject::Summary),
             _temp: temp,
             reader: Reader::default(),
             tasks: TaskTracker::new(),
@@ -264,9 +263,10 @@ async fn shared_failures_keep_one_typed_source_and_do_not_poison_a_retry() {
 #[tokio::test]
 async fn the_write_guard_retires_a_read_that_started_between_its_two_boundaries() {
     let fixture = Fixture::new();
-    let guard = fixture
-        .reader
-        .mutating(fixture.key.query.root, Change::Working);
+    let guard =
+        fixture
+            .reader
+            .mutating(fixture.key.query.root, fixture.key.project, Change::Working);
     let (started, start) = tokio::sync::oneshot::channel();
     let mut during = waiting(
         fixture

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::time::Instant;
+use vessel_proto::ProjectId;
 use vessel_proto::workspace::{CompareGit, GitComparison, WorkspaceRoot, WorktreeBase};
 use vessel_proto::workspace::{GitHunkOffset, RelPath};
 use vessel_workspace::paths::Root;
@@ -21,6 +22,8 @@ pub(in crate::workspace::comparison) const MIN_READ_GAP: Duration = Duration::fr
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::workspace::comparison) struct Key {
     pub(in crate::workspace::comparison) canonical: Root,
+    /// Same resolved authority snapshot as canonical/query; never inferred from paths.
+    pub(in crate::workspace::comparison) project: ProjectId,
     pub(in crate::workspace::comparison) query: CompareGit,
     pub(in crate::workspace::comparison) subject: Subject,
 }
@@ -28,6 +31,7 @@ pub(in crate::workspace::comparison) struct Key {
 impl Key {
     #[must_use]
     pub(in crate::workspace::comparison) fn new(
+        project: ProjectId,
         canonical: Root,
         mut query: CompareGit,
         default: Option<WorktreeBase>,
@@ -44,6 +48,7 @@ impl Key {
         query.reason = vessel_proto::workspace::GitReadReason::View;
         Self {
             canonical,
+            project,
             query,
             subject,
         }
@@ -294,18 +299,24 @@ impl<V> Cache<V> {
     pub(in crate::workspace::comparison) fn invalidate(
         &mut self,
         root: WorkspaceRoot,
+        project: ProjectId,
         change: Change,
     ) -> Vec<BuildId> {
-        self.completed.retain(|cached| {
-            cached.key.query.root != root || !change.affects(&cached.key.query.comparison)
-        });
+        // Ref writes affect every registered sibling worktree of this project.
+        // Index/worktree writes remain local. This is cache invalidation only;
+        // it never resolves a repository or grants another root's authority.
+        let affected = |key: &Key| {
+            let owner = match change {
+                Change::Working => key.query.root == root,
+                Change::History | Change::Repository => key.project == project,
+            };
+            owner && change.affects(&key.query.comparison)
+        };
+        self.completed.retain(|cached| !affected(&cached.key));
         self.active
             .iter_mut()
             .filter_map(|active| {
-                if active.key.query.root == root
-                    && change.affects(&active.key.query.comparison)
-                    && active.state == ActiveState::Current
-                {
+                if affected(&active.key) && active.state == ActiveState::Current {
                     active.state = ActiveState::Superseded;
                     Some(active.id)
                 } else {

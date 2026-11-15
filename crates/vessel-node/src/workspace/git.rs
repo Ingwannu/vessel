@@ -182,9 +182,9 @@ impl Workspaces {
     ) -> Result<GitStatus, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Working);
+        let _mutation =
+            self.comparisons
+                .mutating(root, resolved.project, super::comparison::Change::Working);
         let git = self.git()?;
         let dir = resolved.root.path();
         match change {
@@ -207,9 +207,11 @@ impl Workspaces {
     ) -> Result<CommitOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Repository);
+        let _mutation = self.comparisons.mutating(
+            root,
+            resolved.project,
+            super::comparison::Change::Repository,
+        );
         Ok(self
             .git()?
             .commit(resolved.root.path(), message, stage)
@@ -227,9 +229,9 @@ impl Workspaces {
     ) -> Result<FetchOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::History);
+        let _mutation =
+            self.comparisons
+                .mutating(root, resolved.project, super::comparison::Change::History);
         Ok(self.git()?.fetch(resolved.root.path(), remote).await?)
     }
 
@@ -245,9 +247,9 @@ impl Workspaces {
     ) -> Result<PushOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::History);
+        let _mutation =
+            self.comparisons
+                .mutating(root, resolved.project, super::comparison::Change::History);
         Ok(self
             .git()?
             .push(resolved.root.path(), remote, set_upstream)
@@ -264,9 +266,11 @@ impl Workspaces {
     ) -> Result<PullOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Repository);
+        let _mutation = self.comparisons.mutating(
+            root,
+            resolved.project,
+            super::comparison::Change::Repository,
+        );
         Ok(self.git()?.pull(resolved.root.path()).await?)
     }
 
@@ -282,9 +286,11 @@ impl Workspaces {
     ) -> Result<SwitchOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Repository);
+        let _mutation = self.comparisons.mutating(
+            root,
+            resolved.project,
+            super::comparison::Change::Repository,
+        );
         let git = self.git()?;
         let outcome = git.switch(resolved.root.path(), branch, create).await?;
         if let Some(worktree) = resolved.worktree {
@@ -306,9 +312,11 @@ impl Workspaces {
     ) -> Result<RenameOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Repository);
+        let _mutation = self.comparisons.mutating(
+            root,
+            resolved.project,
+            super::comparison::Change::Repository,
+        );
         let git = self.git()?;
         let dir = resolved.root.path();
         let from = match from {
@@ -333,9 +341,9 @@ impl Workspaces {
     ) -> Result<StashOutcome, WorkspaceError> {
         let operation = self.locked_git(root).await?;
         let resolved = &operation.target;
-        let _mutation = self
-            .comparisons
-            .mutating(root, super::comparison::Change::Working);
+        let _mutation =
+            self.comparisons
+                .mutating(root, resolved.project, super::comparison::Change::Working);
         Ok(self.git()?.stash(resolved.root.path(), action).await?)
     }
 }
