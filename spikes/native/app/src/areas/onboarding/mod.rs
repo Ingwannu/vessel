@@ -7,7 +7,6 @@ mod scope;
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_view::Reach;
 use vessel_app_view::devices::MachineKey;
 use vessel_app_view::onboarding::{
     Completion, CompletionRecord, Effect, Layout, Model, SetupHost, State, Step, Visit,

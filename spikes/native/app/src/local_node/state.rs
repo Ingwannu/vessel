@@ -1,7 +1,7 @@
 //! A bounded persistence phase never repeats node finalization on a changed receipt.
 
 use gpui::{App, AsyncApp};
-use std::future::{Future as _, poll_fn};
+use std::future::poll_fn;
 use std::sync::Arc;
 use std::task::Poll;
 use std::time::Duration;
