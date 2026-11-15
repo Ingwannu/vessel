@@ -262,3 +262,40 @@ Only after the actual security checks/review should the new book parser,
 authority-binding projection and transaction path replace existing APIs.
 There is no callable multi-route/upsert, secure evidence receipt, direct
 or SSH addition flow yet. No production permissions or services changed.
+
+## Checked route collection preparation
+
+Reference reread: the complete Paseo `types/host-connection.ts`, including
+the host/connection variants, equality and pinned-key propagation, the
+upsert at lines297–373, and stored-profile normalization. Paseo preserves
+a usable preference while combining matching routes. ADR0097 deliberately
+refuses endpoint-only identity transfer and invalid saved references instead
+of silently repairing/dropping entries. Those differences remain unchanged.
+
+[Decision Log]
+- Purpose: prepare the route-list invariants before any new file decoder or
+  mutation can publish a multi-route profile.
+- Existing assets: `BookRouteId`, `NodeUrl`, `SshTarget`, `secure::Route`,
+  and existing token/credential file references. No external dependency is
+  necessary and no new address parser is introduced.
+- Choice: an additive immutable `book::Connections` value checks nonempty
+  input, the64-route cap, duplicate ids/specifications, the preferred
+  reference, retained allocation counter and shared secure key/credential
+  binding. It preserves file order and retains a saturated counter.
+- Why: one pure boundary keeps later parse/edit paths from repairing or
+  truncating a profile differently. Configuration is never secure-channel
+  proof, live connection authority or permission to fail over to a weaker
+  transport. The future parser still must bound allocation before decoding
+  its input vector and validate the host's NodeId/global book limits.
+- Cost and scope: no file decoder/serializer, allocation/mutation routine,
+  legacy expansion, endpoint probe, upsert or UI is wired by this value.
+  Mixed configured transport classes still require the ADR's explicit
+  selection/evidence/confirmation rules at their owning boundaries.
+
+Four prepared regressions cover exact/one-over route budgets and order,
+duplicate ids/specifications, invalid preferences/counters, retained
+exhaustion, secure key/file disagreements and complete safe diagnostic
+chains. They have NOT been compiled or executed. Direct rustfmt, size and
+whitespace checks are source checks only. The current separate native
+selection gate stays frozen; a later client narrow suite must execute
+these four tests and the nine private-file staging tests before review.
