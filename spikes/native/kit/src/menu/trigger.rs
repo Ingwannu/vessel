@@ -1,7 +1,7 @@
 //! One action-trigger frame: source-specific glyph/paint/geometry and passive slots.
 //!
 //! [Decision Log]
-//! - Purpose: ProviderRow and Git's Some/None header reuse the existing trigger.
+//! - Purpose: `ProviderRow` and Git's `Some`/`None` header reuse the existing trigger.
 //! - Constraints: Schedule/Git defaults, hit extents and inner anchor stay intact.
 //! - Choice: one profile frame, explicit open presentation, and a read-only visual
 //!   extent; a passive slot has no identity, glyph, anchor or input registration.
@@ -223,7 +223,7 @@ fn frame(profile: TriggerProfile, sizing: TriggerSizing) -> Frame {
 pub fn trigger_visual_size(profile: TriggerProfile, sizing: TriggerSizing) -> Pixels {
     frame(profile, sizing).visual
 }
-/// Passive Some/None slot: size only, with no identity, hit region or callbacks.
+/// Passive `Some`/`None` slot: size only, with no identity, hit region or callbacks.
 #[must_use]
 pub fn trigger_space(profile: TriggerProfile, sizing: TriggerSizing) -> Div {
     div().flex_none().size(trigger_visual_size(profile, sizing))
