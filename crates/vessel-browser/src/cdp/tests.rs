@@ -90,7 +90,7 @@ fn sealed_request_shapes_match_the_foreign_protocol_and_bound_decoding() {
             .unwrap();
     assert!(matches!(
         exception.remote_object::<NumberResult>(),
-        Err(EvaluationCdpError::Exception)
+        Err(EvaluationError::Exception)
     ));
     assert!(!format!("{exception:?}").contains("private exception"));
     // Invalid bytes must fail before becoming any frame or image fixture.
