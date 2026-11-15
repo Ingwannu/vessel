@@ -2,7 +2,7 @@
 // `VESSEL_WRITE_TS=1 cargo test --features ts typescript` in the crate that
 // generates this file rewrites it, and CI fails while it differs.
 
-import type { Call, EventRecord, EventSeq, HarnessKind, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, TerminalId, WireError } from "./proto";
+import type { Call, EventRecord, EventSeq, HarnessKind, Method, NodeId, NodeInfo, OptionId, OptionValueId, PairingOffer, ProfileName, ProtocolVersion, Reply, SessionId, SubmitPrompt, TerminalId, WireError } from "./proto";
 
 /**
  * One of the page's actions: 1 to 48 characters of `a-z`, `0-9` and `-`,
@@ -154,7 +154,11 @@ node: NodeKey,
  * `Call`, so that a call this bridge cannot read is still
  * answered, by id.
  */
-call: Call, } | { "type": "follow", 
+call: Call, 
+/**
+ * Prepared calls refuse if the book key now reaches another node.
+ */
+expected_node?: NodeId | null, } | { "type": "follow", 
 /**
  * The browser's id for the stream.
  */
@@ -471,7 +475,19 @@ title: boolean, };
 /**
  * What the browser asks the bridge itself.
  */
-export type Op = { "op": "nodes" } | { "op": "retry", 
+export type Op = { "op": "check_submit", 
+/**
+ * Book key currently selected by the page.
+ */
+node: NodeKey, 
+/**
+ * Captured authenticated node identity; a retarget can only refuse.
+ */
+expected_node: NodeId, 
+/**
+ * Its final policy/identity, before attachment references are available.
+ */
+request: SubmitPrompt, } | { "op": "nodes" } | { "op": "retry", 
 /**
  * The node.
  */
@@ -547,7 +563,11 @@ message: string, } };
 /**
  * An op's result.
  */
-export type OpResult = { "op": "nodes", 
+export type OpResult = { "op": "check_submit", 
+/**
+ * Typed support/refusal, never an inferred acceptance.
+ */
+check: SubmitCheck, } | { "op": "nodes", 
 /**
  * The nodes, in the order to show them.
  */
@@ -900,6 +920,23 @@ reason: StreamStop, };
  * Why a followed session's stream stopped for good.
  */
 export type StreamStop = "removed" | "stopping" | "error";
+
+/**
+ * Local preflight checks support and recipient only; it grants no input authority.
+ */
+export type SubmitCheck = { "status": "ready", 
+/**
+ * Frozen recipient for every prepared upload and submission frame.
+ */
+node: NodeId, } | { "status": "unsupported", 
+/**
+ * The SDK's typed protocol refusal.
+ */
+failure: Failure, } | { "status": "refused", 
+/**
+ * The actual local refusal, not provider output.
+ */
+failure: Failure, };
 
 /**
  * The page's colours.

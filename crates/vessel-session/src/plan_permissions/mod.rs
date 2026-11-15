@@ -53,7 +53,7 @@ impl StructuredActor {
                 self.publish_plan_event(AgentEvent::Error {
                     message: "Plan approval capacity is full for this provider run".to_owned(),
                 })
-                .await
+                .await;
             }
             Offer::New { request, displaced } => {
                 if let Some(id) = displaced {
@@ -113,12 +113,14 @@ impl StructuredActor {
             Ok(Ok(PlanDecisionReply::Refused { proposal, reason })) if proposal == expected => {
                 self.plan_refusal(id, reason).await
             }
-            Ok(Ok(
-                PlanDecisionReply::Accepted { .. }
-                | PlanDecisionReply::Refused { .. }
-                | PlanDecisionReply::OutcomeUnknown { .. },
-            ))
-            | Ok(Err(_))
+            Ok(
+                Ok(
+                    PlanDecisionReply::Accepted { .. }
+                    | PlanDecisionReply::Refused { .. }
+                    | PlanDecisionReply::OutcomeUnknown { .. },
+                )
+                | Err(_),
+            )
             | Err(_) => {
                 self.plan_state(PermissionDeliveryState::OutcomeUnknown)
                     .await;

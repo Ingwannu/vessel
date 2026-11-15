@@ -102,7 +102,7 @@ impl StructuredActor {
         };
         match self.send_as(content, legacy, by, Some(message)).await {
             Ok(delivered) => accepted(disposition(delivered)),
-            Err(error) => known_or_uncertain(error),
+            Err(error) => known_or_uncertain(&error),
         }
     }
 
@@ -113,11 +113,8 @@ impl StructuredActor {
     ) -> SubmissionDispatch {
         // Loading/validating all attachments precedes cancellation. No control
         // order or queue advance can overtake this owner while it pumps outputs.
-        let attachments = match self.load_attachments(&content).await {
-            Ok(attachments) => attachments,
-            Err(_) => {
-                return SubmissionDispatch::Refused(SubmissionRefusal::AttachmentsUnavailable);
-            }
+        let Ok(attachments) = self.load_attachments(&content).await else {
+            return SubmissionDispatch::Refused(SubmissionRefusal::AttachmentsUnavailable);
         };
         let mut interrupted = None;
         let mut cancel_attempted = false;
@@ -142,7 +139,7 @@ impl StructuredActor {
             return if cancel_attempted {
                 SubmissionDispatch::OutcomeUnknown
             } else {
-                known_or_uncertain(error)
+                known_or_uncertain(&error)
             };
         }
         accepted(
@@ -162,7 +159,7 @@ fn disposition(delivered: Delivered) -> PromptDisposition {
         Delivered::Queued { entry } => PromptDisposition::Queued { entry },
     }
 }
-fn known_or_uncertain(error: SessionError) -> SubmissionDispatch {
+fn known_or_uncertain(error: &SessionError) -> SubmissionDispatch {
     let reason = match error {
         SessionError::Input(vessel_agent::InputError::TurnInProgress) => {
             SubmissionRefusal::TurnRunning
@@ -175,7 +172,33 @@ fn known_or_uncertain(error: SessionError) -> SubmissionDispatch {
         ) => SubmissionRefusal::InvalidContent,
         SessionError::Attachment(_) => SubmissionRefusal::AttachmentsUnavailable,
         SessionError::Queue(_) => SubmissionRefusal::QueueFull,
-        _ => return SubmissionDispatch::OutcomeUnknown,
+        SessionError::Launch(_)
+        | SessionError::Spawn(_)
+        | SessionError::McpFile(_)
+        | SessionError::StartAgent(_)
+        | SessionError::NoWorkingDirectory
+        | SessionError::Input(_)
+        | SessionError::Delivery(_)
+        | SessionError::Terminal(_)
+        | SessionError::NoOptions
+        | SessionError::Probe(_)
+        | SessionError::Unsupported { .. }
+        | SessionError::NotFound(_)
+        | SessionError::DuplicateId(_)
+        | SessionError::Moving
+        | SessionError::Move(_)
+        | SessionError::Ended
+        | SessionError::Parked
+        | SessionError::NotParked(_)
+        | SessionError::WakeFailed(_)
+        | SessionError::NotRewound(_)
+        | SessionError::ForkRefused(_)
+        | SessionError::History(_)
+        | SessionError::RewindFailed(_)
+        | SessionError::ConversationTaken(_)
+        | SessionError::NotResumable(_)
+        | SessionError::ShuttingDown
+        | SessionError::Internal(_) => return SubmissionDispatch::OutcomeUnknown,
     };
     SubmissionDispatch::Refused(reason)
 }

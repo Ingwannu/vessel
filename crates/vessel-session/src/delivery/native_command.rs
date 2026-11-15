@@ -55,10 +55,10 @@ impl StructuredActor {
                 SubmissionDispatch::Accepted(SubmissionAcceptedKind::Command { status, echo })
             }
             Ok(Ok(NativeCommandDispatch::Refused { reason })) => refused(reason),
-            Ok(Ok(
-                NativeCommandDispatch::Accepted { .. } | NativeCommandDispatch::OutcomeUnknown,
-            ))
-            | Ok(Err(_))
+            Ok(
+                Ok(NativeCommandDispatch::Accepted { .. } | NativeCommandDispatch::OutcomeUnknown)
+                | Err(_),
+            )
             | Err(_) => SubmissionDispatch::OutcomeUnknown,
         }
     }

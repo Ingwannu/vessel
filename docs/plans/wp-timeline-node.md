@@ -443,3 +443,18 @@ fixture helpers: the two durable-question builders are explicitly test-only,
 matching their integration target, and the snapshot byte-bound fixture uses
 checked division. The existing assertions and boundary values are unchanged;
 no product lint allowance is introduced. That immutable run stays failed.
+
+The next TS run wp-timeline-ts-next-20261115T152922Z-d1ab0843 executed proto3/0
+and generated the bridge declarations, then its registry completeness check
+reported two stale primitive registrations: LimitPercent is an alias of the
+already classified FiniteNumber, and internal-only PlanText is not wire-reachable.
+Their redundant registry rows are removed; no limits type/field changes. The
+complete generated artifact commit, status and SHA256SUMS were verified, and
+only the generated proto/bridge patch was applied. Current generation equality
+and browser typechecks/tests remain required; the original run stays failed.
+
+The same correction checkpoint preserves dispatch semantics while nesting the
+closed provider-result patterns, borrowing classified errors exhaustively,
+using let-else before interruption, and extracting the unchanged live event
+publication branch out of the actor output dispatcher. No lint waiver or new
+provider capability is introduced.

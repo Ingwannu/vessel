@@ -303,51 +303,7 @@ impl StructuredActor {
                 self.move_state.disconnect = Some(disconnect);
             }
             AgentOutput::Event(event) => {
-                self.plan_before_event(&event).await;
-                if matches!(
-                    event,
-                    AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. }
-                ) {
-                    self.move_state.turn_over = true;
-                }
-                let became_ready = !self.ready && matches!(event, AgentEvent::Ready { .. });
-                if let AgentEvent::Ready {
-                    harness_session, ..
-                } = &event
-                {
-                    self.parking.harness_session = Some(harness_session.clone());
-                    // A fork is made once (protocol 14): a later start of
-                    // this agent (a wake, a move's fallback) loads it.
-                    if self.launch.setup.fork.take().is_some() {
-                        self.launch.setup.resume = Some(harness_session.clone());
-                    }
-                }
-                // The agent's timeline is activity; its stderr is not (a
-                // chatty adapter would never be parked).
-                if !matches!(event, AgentEvent::HarnessLog { .. }) {
-                    self.parking.touch();
-                }
-                let title = if let AgentEvent::TurnStarted { content, .. } = &event {
-                    self.life.title_from(content)
-                } else {
-                    None
-                };
-                self.desk.observe(&event, self.life.out.next_seq());
-                self.life
-                    .publish(&mut self.agent, SessionEvent::Agent { event })
-                    .await;
-                if let Some(title) = title {
-                    self.life
-                        .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)
-                        .await;
-                }
-                if became_ready {
-                    self.ready = true;
-                    self.restore_durable_questions().await;
-                    self.life
-                        .status(&mut self.agent, SessionStatus::Running)
-                        .await;
-                }
+                self.publish_agent_output(event).await;
             }
             AgentOutput::Disconnected(disconnect) => {
                 tracing::debug!(%disconnect, "agent connection ended");
@@ -360,6 +316,54 @@ impl StructuredActor {
                 self.disconnect = Some(disconnect);
                 self.life.begin_stop(&mut self.agent);
             }
+        }
+    }
+
+    async fn publish_agent_output(&mut self, event: AgentEvent) {
+        self.plan_before_event(&event).await;
+        if matches!(
+            event,
+            AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. }
+        ) {
+            self.move_state.turn_over = true;
+        }
+        let became_ready = !self.ready && matches!(event, AgentEvent::Ready { .. });
+        if let AgentEvent::Ready {
+            harness_session, ..
+        } = &event
+        {
+            self.parking.harness_session = Some(harness_session.clone());
+            // A fork is made once (protocol 14): a later start of
+            // this agent (a wake, a move's fallback) loads it.
+            if self.launch.setup.fork.take().is_some() {
+                self.launch.setup.resume = Some(harness_session.clone());
+            }
+        }
+        // The agent's timeline is activity; its stderr is not (a
+        // chatty adapter would never be parked).
+        if !matches!(event, AgentEvent::HarnessLog { .. }) {
+            self.parking.touch();
+        }
+        let title = if let AgentEvent::TurnStarted { content, .. } = &event {
+            self.life.title_from(content)
+        } else {
+            None
+        };
+        self.desk.observe(&event, self.life.out.next_seq());
+        self.life
+            .publish(&mut self.agent, SessionEvent::Agent { event })
+            .await;
+        if let Some(title) = title {
+            self.life
+                .rename(&mut self.agent, title, vessel_proto::TitleOrigin::Given)
+                .await;
+        }
+        if became_ready {
+            self.ready = true;
+            self.restore_durable_questions().await;
+            self.life
+                .status(&mut self.agent, SessionStatus::Running)
+                .await;
         }
     }
 
