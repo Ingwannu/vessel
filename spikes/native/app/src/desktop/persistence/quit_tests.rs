@@ -6,9 +6,13 @@ use crate::shell::{Shell, language_tests};
 use gpui::TestAppContext;
 use vessel_app_link::desktop::preferences::Coordinator;
 
-fn assert_document_notice(shell: &Shell, guard: fn(&Shell) -> DocumentReadiness) {
+fn assert_document_notice(
+    shell: &Shell,
+    cx: &gpui::App,
+    guard: fn(&Shell, &gpui::App) -> DocumentReadiness,
+) {
     let words = shell.words.quit();
-    let expected = match guard(shell) {
+    let expected = match guard(shell, cx) {
         DocumentReadiness::Dirty => words.documents_dirty(),
         DocumentReadiness::Pending => words.documents_pending(),
         DocumentReadiness::Failed => words.documents_failed(),
@@ -38,10 +42,10 @@ async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
             close: WindowClose::Idle,
         });
     });
-    let guards: [fn(&Shell) -> DocumentReadiness; 3] = [
-        |_shell| DocumentReadiness::Dirty,
-        |_shell| DocumentReadiness::Pending,
-        |_shell| DocumentReadiness::Failed,
+    let guards: [fn(&Shell, &gpui::App) -> DocumentReadiness; 3] = [
+        |_shell, _cx| DocumentReadiness::Dirty,
+        |_shell, _cx| DocumentReadiness::Pending,
+        |_shell, _cx| DocumentReadiness::Failed,
     ];
     for guard in guards {
         shell.update_in(window, |shell, _window, cx| {
@@ -59,7 +63,7 @@ async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
                 shell.notice.is_some() && !quit::is_finalizing(cx)
             })
             .await;
-        shell.read_with(window, |shell, _cx| assert_document_notice(shell, guard));
+        shell.read_with(window, |shell, cx| assert_document_notice(shell, cx, guard));
         window.update(|_window, cx| {
             assert_eq!(cx.windows().len(), 1);
             assert!(!quit::is_finalizing(cx));

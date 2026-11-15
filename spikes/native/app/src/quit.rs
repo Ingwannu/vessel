@@ -13,8 +13,8 @@ use crate::shell::Shell;
 use gpui::{App, Global};
 pub(crate) use vessel_app_view::desktop::quit::DocumentReadiness;
 
-type DocumentGuard = fn(&Shell) -> DocumentReadiness;
-type NodeDocumentGuard = fn(&Shell, vessel_proto::NodeId) -> DocumentReadiness;
+type DocumentGuard = fn(&Shell, &App) -> DocumentReadiness;
+type NodeDocumentGuard = fn(&Shell, vessel_proto::NodeId, &App) -> DocumentReadiness;
 struct Documents {
     guard: DocumentGuard,
     node_guard: Option<NodeDocumentGuard>,
@@ -31,12 +31,14 @@ impl Global for Documents {}
 /// It never overwrites an already registered owner, including a prior window.
 pub(crate) fn initialize(cx: &mut App) {
     if !cx.has_global::<Documents>() {
-        set_document_guard(|_shell| DocumentReadiness::Ready, cx);
+        set_document_guard(|_shell, _cx| DocumentReadiness::Ready, cx);
     }
 }
 
 /// C5 registers once from `CodePanel::new` before any buffer can become dirty.
-/// The callback observes all active/retained buffers and original write tickets.
+/// The callback observes active/retained buffers, original write tickets and
+/// actual editor text through the same read-only App. A queued mirror may lag
+/// accepted engine input, including silent find replacements.
 pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
     if cx.has_global::<Documents>() {
         cx.global_mut::<Documents>().guard = guard;
@@ -69,7 +71,7 @@ pub(crate) fn readiness_on(
         .try_global::<Documents>()
         .and_then(|documents| documents.node_guard)
     {
-        Some(guard) => guard(shell, node),
+        Some(guard) => guard(shell, node, cx),
         None => readiness(shell, cx),
     }
 }
@@ -105,7 +107,7 @@ pub(crate) fn finish(cx: &mut App) {
 pub(crate) fn readiness(shell: &Shell, cx: &App) -> DocumentReadiness {
     cx.try_global::<Documents>()
         .map_or(DocumentReadiness::Ready, |documents| {
-            (documents.guard)(shell)
+            (documents.guard)(shell, cx)
         })
 }
 

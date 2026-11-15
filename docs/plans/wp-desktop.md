@@ -180,6 +180,12 @@ ends. Finalization is projected temporarily into the existing frame foot without
 replacing retained notices; onboarding hides/disables new host-effect admission
 while this phase is active, and original operation acknowledgements still settle. No second window/document registry or recovery journal exists.
 
+The guard is `fn(&Shell, &App) -> DocumentReadiness`; the node filter is
+`fn(&Shell, NodeId, &App) -> DocumentReadiness`. Both receive the caller's same
+read-only App so C5 can compare actual editor text with its retained model even
+when accepted input or a silent find replacement precedes the queued mirror.
+The earlier Shell-only callback cannot prove this boundary and is superseded.
+
 The existing controller reactor observes POSIX HUP/INT/TERM, or platform
 interrupt on other hosts, and forwards intent to that same desktop quit handler.
 A signal never grants interruption confirmation. Actual OS-signal delivery and
