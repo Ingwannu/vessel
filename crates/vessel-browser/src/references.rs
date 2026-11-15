@@ -198,6 +198,26 @@ mod tests {
     }
 
     #[test]
+    fn reserved_ranges_preserve_large_integer_names_and_exhaust_before_wrap() {
+        let mut refs = References::<()>::default();
+        refs.next = 9_007_199_254_740_993;
+        let namespace = refs.begin_snapshot().unwrap();
+        assert_eq!(namespace.at(0).unwrap().as_str(), "@e9007199254740993");
+        assert_eq!(namespace.at(499).unwrap().as_str(), "@e9007199254741492");
+        let config = crate::snapshot::Config::new(namespace);
+        let value = serde_json::to_value(config).unwrap();
+        assert_eq!(value["firstRef"], "9007199254740993");
+        let next = refs.begin_snapshot().unwrap();
+        assert_eq!(next.at(0).unwrap().as_str(), "@e9007199254741493");
+        assert!(refs.check_namespace(namespace).is_err());
+        refs.next = u64::MAX;
+        assert!(matches!(
+            refs.begin_snapshot(),
+            Err(ReferenceError::Exhausted)
+        ));
+    }
+
+    #[test]
     fn cap_and_overflow_do_not_wrap_or_retain_an_excess_binding() {
         let mut refs = References::default();
         for _ in 0..MAX_REFERENCES {

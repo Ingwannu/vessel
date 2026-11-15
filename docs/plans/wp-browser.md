@@ -597,3 +597,12 @@ constants; this was not execution of the Rust CDP/graph adapter and proves none
 of the product proxy/Preview/Windows/paint/host actor obligations. New Rust
 fixtures cover nonempty graph refusal, isolated context0 rejection, fixed source
 and disabled universal access, and loader replacement clearing previous refs.
+
+A separate unchanged-script boundary diagnostic at13:02 UTC exercised1000 button
+siblings,40 wrapper levels and80000 Korean characters. It stopped at1500 considered
+work items/500 refs, excluded the too-deep button, bounded aggregate graph string
+bytes and reported truncation in all three cases. A replaced private map no longer
+contained the previous snapshot's ref. Service UID/GID1000, normal close0, private
+profile/files and the same script hash are recorded under
+/tmp/work/wp-browser/own-dom-boundaries-diagnostic. This is additional script-only
+boundary evidence, not a changed Rust test receipt or product engine qualification.
