@@ -6,6 +6,12 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Gated: service-file observations now pass on the designated terminal-deletion
+  repair head, without changing their reviewed source. The whole gate reports
+  2,318 Rust tests passed, no failures, 12 ignored; forge 4, web unit 464 and
+  e2e 67. All steps passed. The original red gate remains recorded below;
+  no unchanged replay or waiver was used.
+
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
 - Gated: 2p1 moves only the generic kernel query and opaque snapshots to
@@ -48,7 +54,8 @@ slice order. The docs commit adds both and no command.
   existing tables, documents and tests remain intact.
 - Merged: the designated node head `ba45a6e3` includes the terminal-deletion
   handover repair. The merge was conflict-free, with no manual content changes.
-  Gate service observations once on this tree; the earlier failure stays red.
+  The service observation gate on this tree passed; its earlier failed run
+  remains red in the record.
   Descriptor possession, generation/namespace verification
   and the real force caller remain separate reviewed changes. Config/reload/
   session-restart work and real manager/agent execution remain unverified.
@@ -58,13 +65,14 @@ slice order. The docs commit adds both and no command.
   match gives loaded-manager authority. The first focused clippy found a
   test-doc Markdown issue; final auxiliary clippy, 16 service units and
   18 stop cases passed. The merged-tree clippy and all 170 CLI unit/
-  integration cases also passed. Source review passed. The whole gate remains
+  integration cases also passed. Source review passed. The first whole gate was
   red (2,221 Rust tests passed, one failed, 12 ignored): the unchanged terminal
   deletion case received Conflict while its log was still being written.
   The integrator owns that base race. Do not change its test or node code,
   waive the failure or replay before the designated repair head arrives.
   All other steps passed, including forge 4, web unit 442 and e2e 65.
-  Source approval is separate from the outstanding full-gate evidence.
+  Source approval was separate from that gate debt; the designated repair
+  merge and fully green gate above now settle it.
 
 ## Existing asset check
 
