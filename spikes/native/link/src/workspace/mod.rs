@@ -40,6 +40,7 @@ pub mod layout;
 mod pulls;
 mod run;
 mod scripts;
+pub mod setup_observation;
 mod start;
 
 use std::collections::HashMap;
