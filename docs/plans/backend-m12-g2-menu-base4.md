@@ -68,3 +68,27 @@ caller. A real-window regression keeps both callers alive and requires the new
 one after close. Reopening while already open still keeps its original cycle.
 No generic weak-focus policy is reimplemented; only control lifecycle owns the
 reset at its known closed boundary. Combobox follows the same integration.
+
+## Corrected shared menu narrow result
+
+Code8158be6d5632b2705dc97ec60919e1f5ce3ecd56 passed Kit all-target Clippy
+(schedules-narrow-20261115T090838Z-8158be6d) and Kit160/0/0 tests
+(schedules-narrow-20261115T090949Z-8158be6d), including rendered feedback refusal
+and the new caller-cycle regression. Fonts/cargo0/no skip, actual Kit checking
+and compiling. Steps SHA256: Clippy2335998ed21bdc0e0bbe9acaa18ed6b7c78ce32d6c8ff4fb2f77c828433d3ebe,
+testse92646da64d20798577dbff32c8221b40a0f1dfa19be5111a6f4c55ed1b4cc53.
+App Clippy is registered ordinarily as schedules-narrow-20261115T091044Z-8158be6d
+and still queued; no App compile/pass is claimed until it finishes. V1 is asked
+to review the completed shared Kit source/narrow scope while that integration
+check waits. No full native, Git/F1 product or UI pass is implied. Historical
+F5/actual clip/hit/neighbor/consumer captures remain open. Primary merged074ade16
+with docs-only delta because complete G4 prerequisites were already adopted.
+
+The same exact8158be6d ordinary App Clippy run
+schedules-narrow-20261115T091044Z-8158be6d finished0 (fonts/cargo0/no skip),
+with actual View/Kit/Link/App checking. Steps SHA256
+eefd457ec994075a0ab1ea21b7fdaf690f431d40f546ced5052252c76b2d911c.
+The prior queued statement records the earlier submission state; it is not a
+second source review or an assertion of full native/consumer/runtime/UI approval.
+This completes the planned narrow suite for that immutable producer; no unchanged
+whole gate is added. The existing V1 Kit source disposition remains bounded.

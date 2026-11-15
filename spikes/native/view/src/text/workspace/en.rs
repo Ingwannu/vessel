@@ -11,7 +11,7 @@ use vessel_proto::workspace::{
 use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
-use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
+use crate::workspace::command_changes::{Change, Compared, ComparedWith, ScriptLine};
 use crate::workspace::git_quick::{Blocked, GitAction};
 use crate::workspace::place::PlaceProblem;
 use crate::workspace::problem::Problem;
@@ -76,31 +76,6 @@ fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (Str
             "Update this page's Vessel to read it.",
         ),
     }
-}
-
-/// "setup commands: 1 added and 1 changed", or `None` when the list is the
-/// same.
-fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
-    let count = |wanted: &str| {
-        list.iter()
-            .filter(|line| match line {
-                CommandLine::Line(line) => match line.change {
-                    Change::Added => wanted == "added",
-                    Change::Removed => wanted == "removed",
-                    Change::Same => false,
-                },
-                CommandLine::Changed { .. } => wanted == "changed",
-            })
-            .count()
-    };
-    let said: Vec<String> = ["added", "changed", "removed"]
-        .into_iter()
-        .filter_map(|change| {
-            let count = count(change);
-            (count > 0).then(|| format!("{count} {change}"))
-        })
-        .collect();
-    (!said.is_empty()).then(|| format!("{name} commands: {}", said.join(" and ")))
 }
 
 impl En {
@@ -455,15 +430,19 @@ impl WorkspaceWords for En {
             setup,
             teardown,
             scripts,
+            unshown: _,
         } = compared
         else {
             return "No earlier approval of this project's commands is known, so every command is shown as it is.".to_owned();
         };
-        let parts: Vec<String> = [list_part("setup", setup), list_part("teardown", teardown)]
-            .into_iter()
-            .chain(scripts.iter().map(|line| self.script_part(line)))
-            .flatten()
-            .collect();
+        let parts: Vec<String> = [
+            super::comparison_lists::en("setup", setup),
+            super::comparison_lists::en("teardown", teardown),
+        ]
+        .into_iter()
+        .chain(scripts.iter().map(|line| self.script_part(line)))
+        .flatten()
+        .collect();
         let changed = if parts.is_empty() {
             "nothing that runs reads differently".to_owned()
         } else {

@@ -75,6 +75,9 @@ pub struct Prefs {
     /// The person's settings.
     #[serde(default)]
     pub settings: Preferences,
+    /// Client-local workspace layouts; resource buffers remain feature-owned.
+    #[serde(default, deserialize_with = "vessel_app_view::layout::decode_layouts")]
+    pub layouts: Vec<vessel_app_view::layout::RememberedLayout>,
     /// Where all of this is kept (not in the file: found when it is read).
     #[serde(skip)]
     pub kept: prefs::Kept,

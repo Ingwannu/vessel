@@ -122,3 +122,17 @@ Exactef93023a: Kit Clippy0, tests134/1/0. The120-wide fixture wrapped the longer
 second line again under the test font, measuring62 instead of its intended42.
 The repair uses short A/B lines so the fixture has exactly two lines. Production
 bytes and literal42/34/50 expectations are unchanged; corrected narrow owed.
+
+## Corrected producer narrow result
+
+Isolated code8258410623994773e75dd061fa282c7e09ade8ba passed Kit all-target
+Clippy (schedules-narrow-20261115T090704Z-82584106) and Kit135/0/0 tests
+(schedules-narrow-20261115T090742Z-82584106). Both runs executed native-fonts
+and native-cargo with0/no skip; actual Kit Checking/Compiling is in the logs.
+Steps SHA256: Clippy3c0334b5bbe1aea6a3c7c34a9bbee62341908c536e3b5815ff428090463ba248,
+testsa0e91058807848ce7fb7bf28ee6bf83c48ed2fdea6cb9c287d9489037511e0e5.
+Immutable13-file Rust formatting checks are byte-identical. Earlier failed
+runs remain distinct; no UI/OS/S2/G3 first-use or F1/full-primary pass follows.
+V1 source review is requested next; consumers wait for that bounded disposition.
+The primary app tree merged074ade16; that merge changed only documentation
+because the complete approved G4 prerequisites were already adopted.
