@@ -13,10 +13,10 @@ spikes/native/app/src/areas/draft/pickers.rs 1190
 spikes/native/app/src/areas/session.rs 722
 spikes/native/app/src/areas/workspace/detail.rs 718
 spikes/native/app/src/areas/workspace/projects.rs 613
-spikes/native/kit/src/field.rs 694
+spikes/native/kit/src/field.rs 635
 spikes/native/kit/src/picker.rs 672
 spikes/native/kit/src/slider.rs 711
-spikes/native/link/src/demo.rs 589
+spikes/native/link/src/demo.rs 583
 spikes/native/view/src/text/conversation/session.rs 555
 spikes/native/view/src/text/workspace/en.rs 702
 spikes/native/view/src/text/workspace/ko.rs 677
