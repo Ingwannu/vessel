@@ -93,6 +93,7 @@ fn history_and_initial_text_share_the_exact_admitted_workspace_editor(cx: &mut T
             draft,
         };
         assert!(shell.composer_has_context(target));
+        assert_eq!(shell.areas.composer.drafts.text(target), "new question");
         assert!(!shell.composer_has_context(DraftKey::New));
         assert_eq!(
             shell
@@ -107,6 +108,48 @@ fn history_and_initial_text_share_the_exact_admitted_workspace_editor(cx: &mut T
                 .workspace_draft_context_scope(&LayoutKey::Workspace { node, workspace }, draft)
                 .is_none()
         );
+    });
+}
+#[gpui::test]
+fn scoped_field_edits_keep_their_seed_and_never_overwrite_siblings(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    let node = NodeId::random();
+    let workspace = WorkspaceId::random();
+    let first = DraftId::random();
+    let sibling = DraftId::random();
+    let key = LayoutKey::Workspace { node, workspace };
+    let target = |draft| DraftKey::Workspace {
+        node,
+        workspace,
+        draft,
+    };
+    shell.update_in(cx, |shell, window, cx| {
+        let destination = connect(shell, node);
+        shell.areas.draft.composer.set_text("global", window, cx);
+        shell.new_chat_kept(cx);
+        for (draft, text) in [(first, "first"), (sibling, "sibling")] {
+            shell
+                .seed_draft(
+                    draft,
+                    seed(destination.clone(), workspace, text),
+                    window,
+                    cx,
+                )
+                .unwrap();
+            assert_eq!(shell.areas.composer.drafts.text(target(draft)), text);
+        }
+        shell
+            .workspace_draft_field(&key, first)
+            .unwrap()
+            .replace_all("edited", window, cx);
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, _, cx| {
+        assert_eq!(shell.areas.composer.drafts.text(target(first)), "edited");
+        assert_eq!(shell.areas.composer.drafts.text(target(sibling)), "sibling");
+        assert_eq!(shell.areas.composer.drafts.text(DraftKey::New), "global");
+        assert_eq!(shell.areas.draft.composer.text(cx), "global");
     });
 }
 #[gpui::test]

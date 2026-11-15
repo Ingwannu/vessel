@@ -293,3 +293,15 @@ between payload preparation and child registration. W6 retains this context
 through capability reads, upload/resume and first-input delivery, using the
 same selected-connection guard. The caller keeps one canonical message id and
 one payload ticket; no additional identity cache or allocator is introduced.
+
+Scoped editor persistence reuses W6's exact-key composer_keep_workspace_text
+intake and existing bounded Drafts/save debounce. The retained Editor receives
+edit events from its own field and carries its immutable workspace/draft key;
+accepted seed text is explicitly kept after set_text, which does not emit an
+edit event. A sibling draft or global New field is never used as the source.
+The regression edits one real field and checks all three kept values. This
+does not claim restart restoration: opening persisted drafts still requires
+the authoritative workspace/layout restoration policy. No second persistence
+store or external solution is introduced. The legacy preparation lookup
+wrapper is now literal cfg(test); creation's product caller always passes its
+original captured connection directly. Shared package base8 is merged.
