@@ -65,8 +65,8 @@ fn every_push_method_is_protocol_gated_read_scoped_and_device_identity_is_not_in
     }
     // Push is protocol 22 with the inbox (`rpc.rs`), not the newest number.
     let push = crate::ProtocolVersion::new(22);
-    assert_eq!(GetPushKey.into_call().since(), push);
-    assert_eq!(UnsubscribePush.into_call().since(), push);
+    assert_eq!(GetPushKey.into_call().since(), Some(push));
+    assert_eq!(UnsubscribePush.into_call().since(), Some(push));
 }
 
 #[test]

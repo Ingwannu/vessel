@@ -95,3 +95,20 @@ rest of D1 are not covered by T1's PASS or its static capture matrix.
 Testing/captures use private fake agents only. No live preview, real agent,
 production configuration, public push or shared target is part of this
 package. Each worktree has its own target under `/tmp/build`.
+
+## Shared base integration
+
+A8 integration now includes package base 4 `3cd0d3fc` (base 3 includes
+Quality B and the coordinator's unchanged N2 `c5da5305` race correction).
+The shared event dispatch keeps the base's qualified `areas::Redraw` arm;
+the only merge conflict was its equivalent imported spelling. Terminal-only
+record redraw behavior and the new base's composer reconciliation remain.
+The pre-integration base 2 release is retained as a historical baseline;
+it has no runtime measurement or current-base compatibility claim.
+
+The coordinator's ADR 0095 ruling supersedes the earlier assumption that
+native view remains the parser owner: a new pure `vessel-terminal-screen`
+will own the sole interpretation for native view and node capture. Engine
+selection is pending the frozen actual-program corpus measurement against
+Paseo's exact server factory. W17's staged vt100 adapter is measurement input,
+not a reviewed or merged implementation. No D1/core feature is passed yet.

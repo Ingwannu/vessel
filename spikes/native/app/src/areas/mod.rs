@@ -107,6 +107,8 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> Redraw {
         self.records(session, records, cx);
+        // Track P: a session's reported `/` commands kept for its agent,
+        // and a composer's files waiting on their prompt's records.
         self.offers_commands_seen();
         self.composer_files_seen(cx);
         if self.terminal_output_only(session, records) {

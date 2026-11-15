@@ -8,7 +8,6 @@
 //!   duplicated dispatcher. The existing exhaustive match is deliberately kept
 //!   intact in this move rather than mixing an event-policy refactor into it.
 use super::{Context, Event, Route, Shell};
-use crate::areas::Redraw;
 
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
@@ -53,7 +52,7 @@ impl Shell {
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
-                if self.link_records(&session, &records, cx) == Redraw::GridAlone {
+                if self.link_records(&session, &records, cx) == crate::areas::Redraw::GridAlone {
                     return;
                 }
             }
