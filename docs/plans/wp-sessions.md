@@ -213,3 +213,17 @@ This clears the old weak opener cycle without moving focus away from a newer
 field. A regression switches opener fields between cancelled and new decisions;
 stale dismissal preserves the new dialog, and its own dismissal returns only to
 the new opener. Deferred UI cleanup is distinct from a network mutation ticket.
+
+## Shared resident source adoption
+
+The pane/resident producer is adopted only through W12's four specified commits
+b7f16b6f4, 41d7fd509, 1441e08ef and 1720e0e94, with reviewed WorkspaceId identity
+e45a5d89 and plugin value/address/context subset through e46cd57b. No plugin
+runtime or W12 whole branch is adopted. V1's bounded source adoption approval is
+separate from this package's later union compilation and runtime verification.
+`view::sessions::SessionAddress` now re-exports the canonical
+`view::residents::SessionAddress`, so deep links, receipt bindings and resident
+contexts share one value type. Existing session APIs retain their import path.
+The producer supplies an admission/fence table and panel registry; it has no
+live per-session resource getters or follow cutover yet. A2 does not create a
+parallel resource map or fall back to global selection for a scoped operation.

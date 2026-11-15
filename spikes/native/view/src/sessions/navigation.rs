@@ -1,14 +1,7 @@
 //! Addresses and request identity keep cross-host session navigation unambiguous.
 use crate::machine_book::Name as NodeName;
-use vessel_proto::{NodeId, SessionId};
-/// A session address is stable across saved-host renames.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct SessionAddress {
-    /// Authenticated destination identity.
-    pub node: NodeId,
-    /// Durable session on that node.
-    pub session: SessionId,
-}
+pub use crate::residents::SessionAddress;
+use vessel_proto::SessionId;
 /// Where to resolve a session; a saved name is checked against the live connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NavigationTarget {
