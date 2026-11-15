@@ -14,6 +14,11 @@ wp-files-narrow-20261115T171836Z-4fbbe4d8 and actual four-package tests10 run
 wp-files-query-values-20261115T171843Z-4fbbe4d8 are queued; no result is claimed.
 The older0df7abd9 strict/eight GPUI passes are prior-source evidence only.
 This status-only update changes no native source from the queued head.
+The app tree still carries earlier ADR0083 provisional root sources from its
+own package commits. A native-only check does not qualify that root union or
+make it a values-only carrier. Before final native handoff those copies must
+align with the accepted node package after it reaches the announced app line;
+only the final native owner delta is intended for the app handoff.
 
 The node companion is final source/evidence PASS in V3 row171 on exact
 a2b69afec8669b71cc59f257fba31c7c9fbb959f. Whole run
