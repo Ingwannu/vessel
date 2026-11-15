@@ -137,16 +137,44 @@ pub(super) const CHILD_SEAT: crate::areas::conversation::Seat = crate::areas::co
     get_mut: child_seat_mut,
 };
 fn child_seat(shell: &Shell) -> Option<&ConversationArea> {
-    let pane = shell.areas.subagents.pane.as_ref()?;
-    if shell.areas.subagents.readonly_source.as_ref() != Some(&pane.identity()) {
-        return None;
-    }
-    Some(&shell.areas.subagents.readonly)
+    let area = &shell.areas.subagents;
+    let pane = area.pane.as_ref()?;
+    area.readonly_for(&pane.identity(), pane.projection_revision()?)
 }
 fn child_seat_mut(shell: &mut Shell) -> Option<&mut ConversationArea> {
-    let pane = shell.areas.subagents.pane.as_ref()?;
-    if shell.areas.subagents.readonly_source.as_ref() != Some(&pane.identity()) {
-        return None;
+    let area = &mut shell.areas.subagents;
+    let pane = area.pane.as_ref()?;
+    let source = pane.identity();
+    let revision = pane.projection_revision()?;
+    area.readonly_for_mut(&source, revision)
+}
+impl SubagentArea {
+    /// Parent resources must first validate their full SessionContext. The child
+    /// key and accepted projection revision then fence retargets and prepends.
+    pub(crate) fn readonly_for(
+        &self,
+        expected: &vessel_proto::subagents::ProviderChildRef,
+        revision: Ticket,
+    ) -> Option<&ConversationArea> {
+        self.accepts_readonly(expected, revision)
+            .then_some(&self.readonly)
     }
-    Some(&mut shell.areas.subagents.readonly)
+    pub(crate) fn readonly_for_mut(
+        &mut self,
+        expected: &vessel_proto::subagents::ProviderChildRef,
+        revision: Ticket,
+    ) -> Option<&mut ConversationArea> {
+        self.accepts_readonly(expected, revision)
+            .then_some(&mut self.readonly)
+    }
+    fn accepts_readonly(
+        &self,
+        expected: &vessel_proto::subagents::ProviderChildRef,
+        revision: Ticket,
+    ) -> bool {
+        self.readonly_source.as_ref() == Some(expected)
+            && self.pane.as_ref().is_some_and(|pane| {
+                pane.identity() == *expected && pane.projection_revision() == Some(revision)
+            })
+    }
 }
