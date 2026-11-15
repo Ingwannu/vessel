@@ -15,6 +15,71 @@ pub enum TimelineReferenceOrigin {
     LegacyProjected,
 }
 
+/// One outgoing traversal carries provenance separately from provider-controlled ids.
+#[derive(Clone, Copy)]
+pub(crate) struct ReferenceContext {
+    pub(crate) origin: Option<TimelineReferenceOrigin>,
+    pub(crate) assigned: Option<crate::ProtocolVersion>,
+}
+
+impl ReferenceContext {
+    pub(crate) const CANONICAL: Self = Self {
+        origin: None,
+        assigned: super::TIMELINE_PARITY,
+    };
+
+    pub(crate) fn supports(self, protocol: crate::ProtocolVersion) -> bool {
+        self.assigned.is_some_and(|since| protocol >= since)
+    }
+
+    pub(crate) fn within(self, origin: Option<TimelineReferenceOrigin>) -> Self {
+        Self {
+            origin: self.origin.or(origin),
+            ..self
+        }
+    }
+
+    pub(crate) fn project(
+        self,
+        id: &crate::ToolCallId,
+        scope: Option<&super::ToolCallScope>,
+    ) -> crate::ToolCallId {
+        match self.origin {
+            Some(TimelineReferenceOrigin::LegacyProjected) => id.clone(),
+            None => super::compat::identity::legacy_id(id, scope),
+        }
+    }
+}
+
+impl crate::Forwarded {
+    /// Refuse scope-dependent mutations on display-only or staging fleet data.
+    /// Permission answers use their own PermissionId capability and do not use this resolver.
+    /// # Errors
+    /// Legacy or unassigned references cannot identify a canonical scoped target.
+    pub fn check_scoped_references(&self) -> Result<(), crate::ErrorCode> {
+        if super::TIMELINE_PARITY.is_none() || self.reference_origin.is_some() {
+            return Err(crate::ErrorCode::Unsupported);
+        }
+        Ok(())
+    }
+
+    /// Bind references received from an actual negotiated node connection.
+    /// An older connection can only reduce them to display-only legacy data.
+    pub fn received_from(&mut self, protocol: crate::ProtocolVersion) {
+        self.received_with(protocol, super::TIMELINE_PARITY);
+    }
+
+    pub(crate) fn received_with(
+        &mut self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) {
+        if !assigned.is_some_and(|since| protocol >= since) {
+            self.reference_origin = Some(TimelineReferenceOrigin::LegacyProjected);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

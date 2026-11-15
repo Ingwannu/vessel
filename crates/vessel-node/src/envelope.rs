@@ -121,7 +121,9 @@ impl NodeService {
         if self.links.is_home() {
             self.links.call_member(node, Deliver { call, origin }).await
         } else if self.links.is_member() {
-            self.links.call_home(RelayCall { node, call, origin }).await
+            self.links
+                .forward_home(RelayCall { node, call, origin })
+                .await
         } else {
             Err(WireError::new(
                 ErrorCode::NotFound,

@@ -109,3 +109,24 @@ projection: a route through an older node must not turn display data into a scop
 mutation target or apply a late update to different work. Connection provenance
 solves the ambiguity a stateless text codec cannot solve. This marker is transport
 metadata and is never a user-visible execution choice.
+
+## Implementation checkpoint (gate owed)
+
+The merged node tree now binds `Forwarded` in Links to the exact `NodeClient`
+negotiated protocol. Fresh local/self replies keep canonical origin until their
+first outgoing mask. One `ReferenceContext` traverses nested replies and their
+pages, conversation/inbox forms and records; legacy context suppresses identity
+encoding only, while the other compatibility masks still run. Pages visit each
+record once. Agent optional-field adaptation calls the independent legacy block
+mask without recursively applying identity projection again.
+
+The legacy scoped-reference check returns typed `Unsupported`; current permission
+answers continue using `PermissionId` directly. No request accepts provenance, no
+client header parser or reserved-key scan is added. There is no new mutation call.
+
+New fixtures serialise and decode actual ServerFrame Forward/Relay/Deliver replies
+at each hop, covering local first projection, repeated classified hops, reserved
+native spellings, late A versus B, modern preservation, old ingress and unknown
+origin. These are drafted tests until the exact remote run completes. Existing
+owned/borrowed live regression fixtures remain in place. Whole package/runtime,
+TS freshness and final review remain owed.

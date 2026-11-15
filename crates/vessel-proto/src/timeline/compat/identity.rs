@@ -11,7 +11,7 @@ pub(super) fn needs_escape(id: &ToolCallId) -> bool {
     id.as_str().starts_with(LEGACY_SCOPE_NAMESPACE)
 }
 
-pub(super) fn legacy_id(id: &ToolCallId, scope: Option<&ToolCallScope>) -> ToolCallId {
+pub(in crate::timeline) fn legacy_id(id: &ToolCallId, scope: Option<&ToolCallScope>) -> ToolCallId {
     let encode = |value: &str| URL_SAFE_NO_PAD.encode(value.as_bytes());
     let key = match scope {
         Some(ToolCallScope::ProviderTurn { thread, turn }) => format!(

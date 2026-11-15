@@ -51,3 +51,8 @@ pub use scope::ToolCallScope;
 pub use plan::*;
 
 pub use reference::TimelineReferenceOrigin;
+
+pub(crate) use reference::ReferenceContext;
+
+#[cfg(test)]
+mod reference_tests;

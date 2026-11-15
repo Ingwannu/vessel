@@ -29,6 +29,7 @@ use crate::device::Scope;
 use crate::forward::Forwarded;
 use crate::node::ProtocolVersion;
 use crate::session::SessionInfo;
+use crate::timeline::{ReferenceContext, TimelineReferenceOrigin};
 
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
@@ -39,12 +40,20 @@ impl Reply {
     /// This reply as a peer speaking `protocol` reads it, or `None` when it
     /// needs no change.
     #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        self.for_protocol_with_reference(protocol, ReferenceContext::CANONICAL)
+    }
+
     #[expect(
         clippy::too_many_lines,
         reason = "one arm per reply, so a new reply must decide whether an older peer reads it \
                   differently; the list is the point"
     )]
-    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+    pub(crate) fn for_protocol_with_reference(
+        &self,
+        protocol: ProtocolVersion,
+        context: ReferenceContext,
+    ) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
@@ -55,7 +64,7 @@ impl Reply {
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
-            Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
+            Self::ReadEvents(page) => page.for_protocol_with_reference(protocol, context).map(Self::ReadEvents),
             Self::GetDeviceSelf(authority) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
                 authority.scopes.iter().any(newer).then(|| {
@@ -107,15 +116,15 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
-            Self::GetConversation(conversation) => crate::timeline::compat::conversation(conversation,protocol,crate::timeline::TIMELINE_PARITY).map(Self::GetConversation),
+            Self::GetConversation(conversation) => crate::timeline::compat::conversation_with_reference(conversation,protocol,context).map(Self::GetConversation),
             Self::ListInbox(page) => {
                 let mut adapted=page.clone();
                 for entry in &mut adapted.entries {
-                    if let Some(value)=crate::timeline::compat::inbox(entry,protocol,crate::timeline::TIMELINE_PARITY) {*entry=value;}
+                    if let Some(value)=crate::timeline::compat::inbox_with_reference(entry,protocol,context) {*entry=value;}
                 }
                 (adapted!=*page).then_some(Self::ListInbox(adapted))
             }
-            Self::GetInboxEntry(entry) => entry.as_ref().and_then(|entry|crate::timeline::compat::inbox(entry,protocol,crate::timeline::TIMELINE_PARITY)).map(|entry|Self::GetInboxEntry(Some(entry))),
+            Self::GetInboxEntry(entry) => entry.as_ref().and_then(|entry|crate::timeline::compat::inbox_with_reference(entry,protocol,context)).map(|entry|Self::GetInboxEntry(Some(entry))),
             Self::ChangeQueue(changed)=>crate::timeline::compat::queue(&changed.queue,protocol,crate::timeline::TIMELINE_PARITY).map(|queue| {
                 let mut changed=changed.clone();changed.queue=queue;Self::ChangeQueue(changed)
             }),
@@ -145,9 +154,9 @@ impl Reply {
             }),
             Self::RunScript(outcome) => outcome.for_protocol(protocol).map(Self::RunScript),
             Self::RestartScript(outcome) => outcome.for_protocol(protocol).map(Self::RestartScript),
-            Self::Forward(forwarded) => nested(forwarded, protocol).map(Self::Forward),
-            Self::Relay(forwarded) => nested(forwarded, protocol).map(Self::Relay),
-            Self::Deliver(forwarded) => nested(forwarded, protocol).map(Self::Deliver),
+            Self::Forward(forwarded) => nested(forwarded, protocol, context).map(Self::Forward),
+            Self::Relay(forwarded) => nested(forwarded, protocol, context).map(Self::Relay),
+            Self::Deliver(forwarded) => nested(forwarded, protocol, context).map(Self::Deliver),
             Self::ResumeSession(session) => info(session).map(Self::ResumeSession),
             Self::MarkSession(session) => info(session).map(Self::MarkSession),
             Self::ParkSession(session) => info(session).map(Self::ParkSession),
@@ -302,14 +311,25 @@ impl Reply {
 }
 
 /// The envelope's inner reply, rewritten.
-fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<Forwarded> {
-    forwarded
-        .reply
-        .for_protocol(protocol)
-        .map(|reply| Forwarded {
-            reference_origin: None,
-            reply: Box::new(reply),
-        })
+fn nested(
+    forwarded: &Forwarded,
+    protocol: ProtocolVersion,
+    context: ReferenceContext,
+) -> Option<Forwarded> {
+    let inner = context.within(forwarded.reference_origin);
+    let reply = forwarded.reply.for_protocol_with_reference(protocol, inner);
+    let reference_origin = if context.supports(protocol) {
+        inner.origin
+    } else {
+        None
+    };
+    if reply.is_none() && reference_origin == forwarded.reference_origin {
+        return None;
+    }
+    Some(Forwarded {
+        reference_origin,
+        reply: reply.map_or_else(|| forwarded.reply.clone(), Box::new),
+    })
 }
 
 impl SessionInfo {

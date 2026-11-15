@@ -1,8 +1,9 @@
 //! Peer-specific optional-field masking, including fields on legacy event kinds.
 //! Durable records stay complete; only the outgoing copy is adapted.
 
-mod identity;
-use identity::{legacy_id, needs_escape};
+pub(super) mod identity;
+use super::ReferenceContext;
+use identity::needs_escape;
 
 use crate::inbox::{InboxEntry, InboxItem};
 use crate::{
@@ -16,9 +17,9 @@ fn supported(protocol: ProtocolVersion, assigned: Option<ProtocolVersion>) -> bo
     assigned.is_some_and(|since| protocol >= since)
 }
 
-pub(crate) fn tool(call: &ToolCall) -> ToolCall {
+pub(crate) fn tool(call: &ToolCall, context: ReferenceContext) -> ToolCall {
     let mut adapted = call.clone();
-    adapted.id = legacy_id(&call.id, call.scope.as_deref());
+    adapted.id = context.project(&call.id, call.scope.as_deref());
     adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
@@ -29,9 +30,9 @@ pub(crate) fn tool(call: &ToolCall) -> ToolCall {
     adapted
 }
 
-fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
+fn update(call: &ToolCallUpdate, context: ReferenceContext) -> ToolCallUpdate {
     let mut adapted = call.clone();
-    adapted.id = legacy_id(&call.id, call.scope.as_deref());
+    adapted.id = context.project(&call.id, call.scope.as_deref());
     adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
@@ -42,9 +43,9 @@ fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
     adapted
 }
 
-fn permission(request: &PermissionRequest) -> PermissionRequest {
+fn permission(request: &PermissionRequest, context: ReferenceContext) -> PermissionRequest {
     let mut adapted = request.clone();
-    adapted.tool_call = legacy_id(&request.tool_call, request.tool_scope.as_deref());
+    adapted.tool_call = context.project(&request.tool_call, request.tool_scope.as_deref());
     adapted.tool_scope = None;
     adapted.presentation = None;
     for option in &mut adapted.options {
@@ -54,7 +55,8 @@ fn permission(request: &PermissionRequest) -> PermissionRequest {
 }
 
 fn question_changed(request: &Question) -> bool {
-    request.tool_scope.is_some()
+    request.tool_call.as_ref().is_some_and(needs_escape)
+        || request.tool_scope.is_some()
         || request.lifetime != QuestionLifetime::Turn
         || request.delivery_state != QuestionDeliveryState::Pending
         || request.fields.iter().any(|field| {
@@ -88,7 +90,7 @@ fn tool_changed(call: &ToolCall) -> bool {
         || call.status == ToolCallStatus::Canceled
 }
 
-fn question(request: &Question) -> Option<Question> {
+fn question(request: &Question, context: ReferenceContext) -> Option<Question> {
     if request.lifetime == QuestionLifetime::Session
         || request.delivery_state != QuestionDeliveryState::Pending
     {
@@ -98,7 +100,7 @@ fn question(request: &Question) -> Option<Question> {
     adapted.tool_call = request
         .tool_call
         .as_ref()
-        .map(|id| legacy_id(id, request.tool_scope.as_deref()));
+        .map(|id| context.project(id, request.tool_scope.as_deref()));
     adapted.tool_scope = None;
     for field in &mut adapted.fields {
         field.presentation = None;
@@ -140,11 +142,28 @@ pub(crate) fn queue(
     Some(adapted)
 }
 
+#[cfg(test)]
 pub(crate) fn event(
     event: &AgentEvent,
     protocol: ProtocolVersion,
     assigned: Option<ProtocolVersion>,
 ) -> Option<AgentEvent> {
+    event_with_reference(
+        event,
+        protocol,
+        ReferenceContext {
+            origin: None,
+            assigned,
+        },
+    )
+}
+
+pub(crate) fn event_with_reference(
+    event: &AgentEvent,
+    protocol: ProtocolVersion,
+    context: ReferenceContext,
+) -> Option<AgentEvent> {
+    let assigned = context.assigned;
     if supported(protocol, assigned) {
         return None;
     }
@@ -153,7 +172,7 @@ pub(crate) fn event(
             if !tool_changed(call) {
                 return None;
             }
-            AgentEvent::ToolCall(tool(call))
+            AgentEvent::ToolCall(tool(call, context))
         }
         AgentEvent::ToolCallUpdate(call) => {
             if matches!(
@@ -173,19 +192,19 @@ pub(crate) fn event(
             {
                 return None;
             }
-            AgentEvent::ToolCallUpdate(update(call))
+            AgentEvent::ToolCallUpdate(update(call, context))
         }
         AgentEvent::PermissionRequested(request) => {
             if !permission_changed(request) {
                 return None;
             }
-            AgentEvent::PermissionRequested(permission(request))
+            AgentEvent::PermissionRequested(permission(request, context))
         }
         AgentEvent::QuestionAsked(request) => {
             if !question_changed(request) {
                 return None;
             }
-            match question(request) {
+            match question(request, context) {
                 Some(request) => AgentEvent::QuestionAsked(request),
                 None => AgentEvent::HarnessLog {
                     line: "vessel: this question requires a newer client".to_owned(),
@@ -243,11 +262,28 @@ pub(crate) fn event(
     (adapted != *event).then_some(adapted)
 }
 
+#[cfg(test)]
 pub(crate) fn conversation(
     value: &Conversation,
     protocol: ProtocolVersion,
     assigned: Option<ProtocolVersion>,
 ) -> Option<Conversation> {
+    conversation_with_reference(
+        value,
+        protocol,
+        ReferenceContext {
+            origin: None,
+            assigned,
+        },
+    )
+}
+
+pub(crate) fn conversation_with_reference(
+    value: &Conversation,
+    protocol: ProtocolVersion,
+    context: ReferenceContext,
+) -> Option<Conversation> {
+    let assigned = context.assigned;
     let usage = value
         .usage
         .as_ref()
@@ -270,8 +306,16 @@ pub(crate) fn conversation(
     }
     if !supported(protocol, assigned) {
         adapted.through = None;
-        adapted.permissions = value.permissions.iter().map(permission).collect();
-        adapted.questions = value.questions.iter().filter_map(question).collect();
+        adapted.permissions = value
+            .permissions
+            .iter()
+            .map(|value| permission(value, context))
+            .collect();
+        adapted.questions = value
+            .questions
+            .iter()
+            .filter_map(|value| question(value, context))
+            .collect();
         if let Some(queue) = queue(&value.queue, protocol, assigned) {
             adapted.queue = queue;
         }
@@ -279,11 +323,12 @@ pub(crate) fn conversation(
     (adapted != *value).then_some(adapted)
 }
 
-pub(crate) fn inbox(
+pub(crate) fn inbox_with_reference(
     entry: &InboxEntry,
     protocol: ProtocolVersion,
-    assigned: Option<ProtocolVersion>,
+    context: ReferenceContext,
 ) -> Option<InboxEntry> {
+    let assigned = context.assigned;
     if supported(protocol, assigned) {
         return None;
     }
@@ -311,11 +356,11 @@ pub(crate) fn inbox(
             tool: body,
             detail,
         } => InboxItem::Permission {
-            request: permission(request),
-            tool: body.as_deref().map(|value| Box::new(tool(value))),
+            request: permission(request, context),
+            tool: body.as_deref().map(|value| Box::new(tool(value, context))),
             detail: *detail,
         },
-        InboxItem::Question { question: request } => match question(request) {
+        InboxItem::Question { question: request } => match question(request, context) {
             Some(question) => InboxItem::Question { question },
             None => InboxItem::Unknown,
         },

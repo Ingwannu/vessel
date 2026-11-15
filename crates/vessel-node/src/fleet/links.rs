@@ -96,6 +96,7 @@ use crate::relays::Relays;
 
 mod callback;
 mod error;
+mod forwarding;
 
 use error::hop_error;
 
@@ -524,18 +525,7 @@ impl Links {
 
     /// Call the home over the pull loop's connection.
     pub(crate) async fn call_home<R: Unary>(&self, request: R) -> Result<R::Response, WireError> {
-        let client = self
-            .home
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .clone()
-            .ok_or_else(|| {
-                unavailable(
-                    "this node is not connected to its fleet's home right now \
-                     (`vessel fleet status`)"
-                        .to_owned(),
-                )
-            })?;
+        let client = self.home_client()?;
         let home = client.node().id;
         client
             .call(request)
@@ -1088,20 +1078,6 @@ impl Links {
             }
         }
         grants
-    }
-
-    /// Call member `node` with the home's credential there.
-    pub(crate) async fn call_member<R: Unary>(
-        &self,
-        node: NodeId,
-        request: R,
-    ) -> Result<R::Response, WireError> {
-        let client = self.member_client(node).await?;
-        let called = client.call(request).await;
-        if matches!(called, Err(CallError::Disconnected)) {
-            drop(self.members.lock().await.remove(&node));
-        }
-        called.map_err(|error| hop_error(node, error))
     }
 
     async fn member_client(&self, node: NodeId) -> Result<NodeClient, WireError> {
