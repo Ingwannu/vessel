@@ -552,3 +552,16 @@ it contains every lead paragraph plus the F4 staged-inventory text, once each;
 no Rust source or lock correction is reverted. Subsequent dependent commands
 must stop on a failed validation. The final feature range includes this
 correction; the intermediate merge is not a clean review endpoint.
+
+### Existing overlay admission marker dependency (unpassed)
+
+Adopt only W22's four-path marker packet from exact source
+`5a54c0aca892d29e5aecdc80ed0fed5f3c82272b` against `dd13ce378`, independently
+verified against its Git diff and SHA-256 `098cfd8557652904fa4b54609c012d272f396a9d2998eaf541003764062b6224`.
+This exports `popup::KEY_CONTEXT` and marks the actual focused flat-menu,
+picker/dialog roots and existing popup layer. It changes no geometry, defaults
+or key listener. W22 maps exact KeyContext membership to Admission::Overlay
+through its one host adapter; no invented Menu scope or composition cache.
+The hierarchy will mark one real focused root with this same constant. This is
+an explicitly unpassed source dependency, not app/OS/native-input approval;
+W22's checked producer/package remains a final integration prerequisite.

@@ -219,6 +219,7 @@ fn draw<V: 'static>(
     let mut panel = div()
         .id(id.clone())
         .track_focus(&state.focus)
+        .key_context(popup::KEY_CONTEXT)
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
