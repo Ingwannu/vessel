@@ -451,7 +451,8 @@ Paseo's own pairs, not a correction:
   (5.739; the table shows 5.74), Dark 4.56, Zinc at least 4.74
   (4.745; the table shows 4.75), Midnight 4.72, Claude at least 4.28
   (4.286; the table shows 4.29, under 4.5, kept), Ghostty 4.71,
-  Pure black 4.75.
+  Pure black at least 4.74 (4.745; the table shows 4.75). Zinc and
+  Pure black share the same destructive bytes and the same test floor.
 
 ### How system light and dark are chosen
 

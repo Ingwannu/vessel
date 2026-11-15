@@ -103,10 +103,11 @@ Do not start a second theme type in the app.
   floors in the ADR are the unrounded ratios truncated to two
   decimals, not the rounded table, so the later test can pass on
   Paseo's own bytes.
-- Half-done: nothing.
-- Next: slice 2, the kit palettes and the contrast test, behind the
-  token names ADR 0070 maps. Do not repaint Light or Dark. Do not
-  add a token the ADR lists as absent.
+- Half-done: slice 2's kit-only palette source and tests are written;
+  narrow compilation and the separate full native gate are pending.
+- Next: finish that slice's checks before changing the preference,
+  app adapter or Appearance chooser. Do not repaint Light or Dark,
+  or add a token the ADR lists as absent.
 
 ### Resumption, 2026-11-15
 
@@ -134,3 +135,36 @@ checks in the short lane. The full native gate must run on the separate
 build machine when its command is provided; no local whole gate is queued.
 Captures will use an isolated authenticated display at scales 1, 1.25, 1.5
 and 2. No capture, runtime switch or new palette pass is claimed yet.
+
+The independent authored-byte calculation also caught one inherited floor
+wording error: Pure black's white-on-destructive is 4.745176456907, the
+same pair as Zinc. The table's rounded 4.75 is retained; its test floor
+is the same truncated 4.74 as Zinc. No colour or test tolerance changes.
+
+### Palette source checkpoint
+
+`kit/src/theme/palette.rs` owns the concrete seven-entry `Palette`,
+`Palette::scheme` and `Tokens::palette`. Its private `tint.rs` contains
+the five additional authored tables; one builder maps them to both
+neutral and legacy page tokens. `Scheme` remains two-valued. The kit
+still has no view dependency, and the app is not wired to a new palette.
+
+Four tests beside that builder check both existing entries against their
+full scheme token sets, every authored neutral before contrast is measured,
+the measured contrast floors for all seven palettes, and the variants'
+page mapping/shared alpha and lane colours. The contrast calculation uses
+the authored sRGB bytes after asserting that the built neutral values
+equal those bytes; it does not approximate bytes by converting Hsla back.
+
+An independent source comparison matched five tints times thirteen fields
+to the pinned reference, with only the declared Pure black green-to-BRAND
+substitution. The four existing Light/Dark constructor bodies in
+`theme.rs` remain byte-identical to `56a7cbd3`.
+
+Fast native format, size, boundary and token checks pass: 513 files,
+15 existing size exceptions, four crate edges, seven owned external crates,
+two name rules, and no new token literals. The first narrow Clippy found
+one large-by-value argument; the builder now borrows its baseline scale.
+The changed-source narrow check is queued in the short lane. Filtered tests,
+the separate full native gate, captures and runtime are unverified at this
+checkpoint. This is not a consumer-ready or full-slice approval.

@@ -416,6 +416,20 @@ Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
 
+### Named colour palettes (ADR 0070, staged)
+
+The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
+Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
+light or dark: status and syntax retain their existing scheme-specific
+sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+unchanged. The new dark variants share one tint-to-token mapping; their
+authored values and deliberate brand-accent substitution are in ADR 0070.
+
+This kit API does not select a palette or change a preference. The app's
+stored theme and Appearance chooser remain the original three choices
+until the preference/application slice lands. The plan and current
+verification limits are in `docs/plans/app-themes.md` at the repository root.
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
