@@ -93,7 +93,8 @@ font assets and other owners' pending changes are preserved.
   contributed app adapter are preserved at `2c0ec0594` on
   `backend/m12-f6-appearance-prep`. Unwired plugin preference/API/root values
   are removed from the F5 tree so its final source has no synthetic or
-  partially active runtime choice. Root code again equals package base4.
+  partially active runtime choice. Later announced bases supply canonical
+  shared plugin values without activating a catalog in Appearance.
 - Future seam: F6 owns one Hub and `Shell::plugin_registry()`; it calls K's
   `Shell::appearance_catalog_changed(window,cx)` outside paint after accepted
   replacement/withdrawal/offline retention/unsupported/removal/locale refresh.
@@ -103,9 +104,9 @@ font assets and other owners' pending changes are preserved.
   preview tests, corrected combined Clippy, local captures and the final
   native package gate remain pending. Only the original eight-theme bounded
   package and earlier selected121 kit tests are passed evidence.
-- Sole owned queued check is `themes-20261115T090929Z-5a4fdab5`; later source
-  is not covered by it. No new local cargo starts before12:30UTC per the
-  coordinator's core-package reservation. No partial V1 submission is made.
+- No local Cargo or rustc is started. All compiling checks, final gates and
+  capture builds use the remote build helper; captures run on private local
+  displays. No partial V1 submission is made.
 
 The following sections retain the preparation history. Statements about the
 contributed model/app adapter describe the preserved F6 branch, not code in
@@ -445,3 +446,28 @@ anchors/arms after replacing them with the source numeric fields. The shared
 Settings selector remains for live choices, including syntax; no hidden second
 font/width UI is retained. Public legacy preference presets/readers remain for
 compatibility, and only the dropdown composition is removed.
+
+
+## Resume point: corrected package candidate
+
+The earlier narrow run on `5a4fdab54` ended143 before compilation during the
+build service interruption; it supplies no compiler evidence. The first F5
+whole native run, `themes-20261115T104647Z-b754ac9e`, passed fonts, formatting
+and quality, then failed strict Clippy with two view doc-markdown errors.
+Both comments now quote their type names; no lint or assertion is weakened.
+Build, tests and binary export were not reached, so there are no F5 runtime
+captures or consumer-ready shared API claims from this run.
+
+Announced package base6 (`18eedad47`) is merged at `5698d932f`. Shared source
+and the existing preference behavior are preserved. Native lock correction
+from the lead is the remaining prerequisite for the helper's locked checks.
+The new event/profile tests now initialize the same existing GPUI input key
+bindings as the selection tests. A real Enter regression covers every
+Appearance single-line profile: one current-value submission, unchanged text.
+The source form's propagated-Enter stop is for multiline Textarea fallback;
+these Input profiles retain the existing single-line path. No extra editor
+subscription or shared inset-focus behavior is introduced.
+
+Next: corrected remote narrow Clippy for the three native consumer crates,
+then the corrected package gate with app export, private-display interactions
+and captures, and one combined review. Old failed logs remain separate.

@@ -9,6 +9,7 @@ struct Probe {
     profile: AppearanceProfile,
     scheme: Scheme,
     seen: Seen,
+    submitted: Vec<String>,
 }
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
@@ -28,6 +29,7 @@ impl Render for Probe {
 }
 #[gpui::test]
 fn profiles_keep_their_reference_width_minimum_and_engine_alignment(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
     for scheme in [Scheme::Light, Scheme::Dark] {
         for (profile, width, alignment) in [
             (AppearanceProfile::Family, 280.0, TextAlign::Left),
@@ -42,6 +44,7 @@ fn profiles_keep_their_reference_width_minimum_and_engine_alignment(cx: &mut Tes
                     profile,
                     scheme,
                     seen,
+                    submitted: Vec::new(),
                 }
             });
             probe.update_in(cx, |owner, window, cx| {
@@ -59,5 +62,41 @@ fn profiles_keep_their_reference_width_minimum_and_engine_alignment(cx: &mut Tes
                 assert_eq!(state.read(cx).presentation().text_align(), alignment);
             });
         }
+    }
+}
+
+// A single-line profile must retain the engine's one-submit path. Multiline
+// forms separately stop the propagated Enter action after inserting a line.
+#[gpui::test]
+fn enter_submits_the_current_line_once_without_inserting_text(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    for profile in [
+        AppearanceProfile::Family,
+        AppearanceProfile::Number,
+        AppearanceProfile::Width,
+    ] {
+        let (probe, cx) = cx.add_window_view(move |window, cx| Probe {
+            field: TextField::new(
+                "",
+                |owner: &mut Probe, value, _, _| owner.submitted.push(value),
+                window,
+                cx,
+            ),
+            profile,
+            scheme: Scheme::Dark,
+            seen: Seen::default(),
+            submitted: Vec::new(),
+        });
+        cx.update(|window, _| window.activate_window());
+        probe.update_in(cx, |owner, window, cx| owner.field.focus(window, cx));
+        cx.run_until_parked();
+        cx.simulate_input("14");
+        cx.run_until_parked();
+        cx.simulate_keystrokes("enter");
+        cx.run_until_parked();
+        probe.read_with(cx, |owner, cx| {
+            assert_eq!(owner.submitted, ["14"]);
+            assert_eq!(owner.field.text(cx), "14");
+        });
     }
 }

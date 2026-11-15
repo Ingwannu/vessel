@@ -1,5 +1,5 @@
 //! One numeric width bound/default owner. Following and legacy preference
-//! intent belongs to prefs::ContentWidth, not a second nullable-width model.
+//! intent belongs to `prefs::ContentWidth`, not a second nullable-width model.
 use serde::{Deserialize, Serialize};
 
 /// A concrete content maximum width, in logical pixels.

@@ -31,6 +31,7 @@ impl Render for Probe {
 }
 #[gpui::test]
 fn windowed_events_use_current_text_once_while_legacy_has_no_blur_hook(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
     let (probe, cx) = cx.add_window_view(|window, cx| Probe {
         field: TextField::with_events(
             "",
