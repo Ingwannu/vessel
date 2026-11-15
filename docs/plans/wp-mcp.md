@@ -733,3 +733,11 @@ strict `wp-mcp-runtime-narrow-20261115T165218Z-6e558f13` passed, and the matchin
 Settings run passed all four tests, including the canonical held writer and
 outer operation tracker join. These scoped results do not close the full
 package, current lifecycle union, crash or cross-node obligations.
+
+
+A diff-only bound audit found the new actual notification fixture's stage
+safety net still used an inline duration. `NOTICE_STEP_BUDGET` now owns the
+same 15-second value beside that fixture. No stage, assertion or product
+behavior changes. The already queued prior-source strict and MCP suite are
+retained with their exact source scope; the next changed-source check will
+include this naming correction rather than submitting another duplicate suite.

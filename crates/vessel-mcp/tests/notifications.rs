@@ -13,9 +13,12 @@ use support::{Fixture, as_agent, owner, within};
 #[path = "support/mcp.rs"]
 mod support;
 
+/// One stage may stall without letting this real MCP exchange hang the suite.
+const NOTICE_STEP_BUDGET: Duration = Duration::from_secs(15);
+
 #[cfg(test)]
 async fn step<T>(name: &str, work: impl Future<Output = T>) -> T {
-    tokio::time::timeout(Duration::from_secs(15), work)
+    tokio::time::timeout(NOTICE_STEP_BUDGET, work)
         .await
         .unwrap_or_else(|error| panic!("{name}: {error}"))
 }
