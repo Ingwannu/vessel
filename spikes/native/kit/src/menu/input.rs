@@ -23,23 +23,29 @@ pub(super) fn keyboard<V: 'static>(
         items,
         lease,
     } = input;
+    let Some(key) = MenuKey::of(event) else {
+        return;
+    };
     let menu = (handlers.state)(view);
     if !menu.accepts(lease) {
+        // The dispatch path was captured before interceptors. Letting an old
+        // Escape bubble could dismiss its parent dialog underneath opening B.
+        // Preserve menu-owned key containment without changing B or its focus.
+        cx.stop_propagation();
         return;
     }
-    match event.keystroke.key.as_str() {
-        "escape" => menu.close_and_restore(window, cx),
-        "down" | "tab" => menu.step(items, Direction::Next),
-        "up" => menu.step(items, Direction::Previous),
-        "home" => {
+    match key {
+        MenuKey::Escape => menu.close_and_restore(window, cx),
+        MenuKey::Step(direction) => menu.step(items, direction),
+        MenuKey::First => {
             menu.highlighted = None;
             menu.step(items, Direction::Next);
         }
-        "end" => {
+        MenuKey::Last => {
             menu.highlighted = None;
             menu.step(items, Direction::Previous);
         }
-        "enter" | "space" => {
+        MenuKey::Choose => {
             if let Some(index) = keyboard_choice(menu, items) {
                 if !menu.same_cycle(lease) {
                     return;
@@ -51,8 +57,31 @@ pub(super) fn keyboard<V: 'static>(
                 (handlers.chose)(view, index, window, cx);
             }
         }
-        _other => return,
     }
     cx.stop_propagation();
     cx.notify();
+}
+
+// Parse external key strings once; the closed routing set also defines which
+// events an obsolete frame must contain instead of forwarding to its parent.
+#[derive(Clone, Copy)]
+enum MenuKey {
+    Escape,
+    Step(Direction),
+    First,
+    Last,
+    Choose,
+}
+impl MenuKey {
+    fn of(event: &KeyDownEvent) -> Option<Self> {
+        match event.keystroke.key.as_str() {
+            "escape" => Some(Self::Escape),
+            "down" | "tab" => Some(Self::Step(Direction::Next)),
+            "up" => Some(Self::Step(Direction::Previous)),
+            "home" => Some(Self::First),
+            "end" => Some(Self::Last),
+            "enter" | "space" => Some(Self::Choose),
+            _other => None,
+        }
+    }
 }

@@ -215,11 +215,15 @@ fn draw<V: 'static>(
     let outside_lease = state.render_lease();
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
         if !get(view).accepts(&outside_lease) {
+            if layer == Layer::AboveDialog {
+                // A stale nested menu still contains this press; forwarding
+                // along A's path could dismiss the dialog underneath B.
+                cx.stop_propagation();
+            }
             return;
         }
         get(view).close_and_restore(window, cx);
         if layer == Layer::AboveDialog {
-            // Dismissing a nested menu is one decision, not also a scrim press.
             cx.stop_propagation();
         }
         cx.notify();

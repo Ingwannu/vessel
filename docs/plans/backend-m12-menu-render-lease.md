@@ -88,3 +88,28 @@ No new captures are made for this unchanged menu geometry; headless input
 execution is the correction evidence. No local Cargo/Rustc ran: all compilation
 went through vessel-remote-gate on the build VM. Development files remain owned
 by ubuntu; no service permissions, production data or process was changed.
+
+
+## V1 return: retain nested input containment (2026-11-15)
+
+V1 accepted the direct lease/default-focus reasoning but returned47d for one
+parent-path hole: GPUI captures the dispatch path before its interceptors.
+Opening B there leaves A's parent dialog on that path. A rejected Escape must
+therefore remain contained, or it can close the parent underneath B. This is a
+shared input-routing correction, never an area action workaround.
+
+The corrected router parses the same recognized menu keys into one private
+enum and consumes those keys on a stale lease, without state, focus, action or
+notify changes. Unknown keys still propagate. AboveDialog's obsolete outside
+callback also retains its existing modal containment while refusing dismissal;
+valid callbacks keep their prior close/restore/contain order.
+
+A new nested fixture mounts the actual shared dialog with a real TextField,
+measured menu trigger and AboveDialog layer. Its real interceptor opens B before
+A's real key listener (both themes, Close/KeepOpen, all eight recognized keys).
+Assertions require parent and B/focus to survive, no ancestor key/action, no
+redraw between B and A's listener; valid B Escape closes only B and next Escape
+reaches the parent. Old pointer/outside presses also preserve both layers.
+Latest correction source and these regressions are unverified until the next
+remote narrow results. The earlier47d171/0/0 is prior-source evidence only;
+V1 cycle-safe handoff HOLD and historical native F5 HOLD remain open.

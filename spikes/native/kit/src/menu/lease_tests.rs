@@ -1,4 +1,6 @@
 //! Retained real GPUI frame A must not authorize input against opening B.
+mod nested;
+
 use super::*;
 use crate::{Scheme, TextField, Tokens};
 use gpui::prelude::*;
