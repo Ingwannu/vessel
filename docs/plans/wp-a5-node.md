@@ -154,3 +154,23 @@ Shell with root replacement, exact connection retirement and process cap.
 They do not prove W19 host fallback, real OS delivery, audible bell or full A5.
 The standalone portable helper993 Kit all-target strict also passes; its
 sequential GPUI test and V1 source review remain pending.
+
+## Actual Linux silent visual-notification probe
+
+The VM exported app build wp-inbox-20261115T165338Z-1432bb58 completed the
+fonts/build steps (build217s), source1432bb5854c61b110e2cdcb5a664e92905c3d188,
+app SHA1d2692671f91185af453a65df9dcb8ac8374e7dd926e6f339eb8f164920845ea.
+A fresh empty config/home, authenticated private X11 display and private D-Bus
+notification service exercised the real Settings test button. With sound Off,
+preferences saved alerts=system; with sound On, system_and_sound. Both actual
+Notify requests contained suppress-sound=true. Captured screens were opened:
+permission is OS-managed/uncheckable, and the test stays Requested/check that
+it appeared. No fake permission or delivery success was installed.
+
+The probe ran as UID/GID1000; its preferences were0600 in private0700 folders.
+The test's own app, notification service, runner and X server were verified by
+PID/command before shutdown; its display socket/lock and authority were removed.
+No real node, provider, browser, user config or production permissions changed.
+This is adapter-wire/settings evidence only, not a real desktop notification,
+audibility, recipient claim, paired-device flow or final capture/whole gate.
+The one-line local GPUI patch remains c7d29c2c; R must rebuild it for releases.

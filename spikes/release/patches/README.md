@@ -275,7 +275,13 @@ at the top and `Vessel patch` at the change.
   patched dependency, rather than reuse an upstream platform artifact.
 - Verification: the attention package captures the actual `Notify` call on its
   own private D-Bus notification service and checks `suppress-sound=true`.
-  The package's plan records whether that runtime capture has been completed.
+  Completed on the exported app from1432bb58, run
+  wp-inbox-20261115T165338Z-1432bb58: two actual Notify calls on an isolated
+  authenticated display/private D-Bus service carried suppress-sound=true,
+  with stored visual-only and visual+sound preferences. The UI retained its
+  requested/check-appearance status. This proves the transport hint, not a
+  real desktop banner, permission status, audible bell or attention claim.
+  Only the test's own app/service/display were stopped after verification.
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
