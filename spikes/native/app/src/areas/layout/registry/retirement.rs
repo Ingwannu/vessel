@@ -40,6 +40,7 @@ fn owner(target: &Target) -> Owner {
 pub(crate) enum Reason {
     Retargeted,
     Closed,
+    #[cfg(test)]
     CanonicalReplacement,
     Unavailable,
 }
@@ -87,6 +88,7 @@ impl Owners {
 #[derive(Clone, Copy)]
 pub(crate) enum Source {
     Local,
+    #[cfg(test)]
     Canonical,
     Unavailable,
 }
@@ -144,13 +146,14 @@ impl Before {
                     .as_ref()
                     .and_then(|book| book.get(&key))
                     .and_then(|layout| layout.tab(old.id()));
+                if !matches!(source, Source::Unavailable)
+                    && current.is_some_and(|tab| tab.target() == old.target())
+                {
+                    continue;
+                }
                 let reason = match source {
                     Source::Unavailable => Reason::Unavailable,
-                    Source::Local | Source::Canonical
-                        if current.is_some_and(|tab| tab.target() == old.target()) =>
-                    {
-                        continue;
-                    }
+                    #[cfg(test)]
                     Source::Canonical => Reason::CanonicalReplacement,
                     Source::Local if current.is_some() => Reason::Retargeted,
                     Source::Local => Reason::Closed,
