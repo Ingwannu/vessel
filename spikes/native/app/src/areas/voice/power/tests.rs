@@ -2,8 +2,8 @@
 use super::*;
 use gpui::TestAppContext;
 use std::time::Duration;
+use vessel_app_view::voice::{Availability, State, Target};
 use vessel_proto::{NodeId, SessionId};
-use view::voice::{Availability, State, Target};
 
 fn generations() -> (Generation, Generation) {
     let mut state = State::default();

@@ -5,7 +5,7 @@
 
 use gpui::{ActivityGuard, App, Subscription, Task};
 use std::{cell::RefCell, rc::Rc};
-use view::voice::Generation;
+use vessel_app_view::voice::Generation;
 
 const REASON: &str = "Vessel spoken conversation";
 
