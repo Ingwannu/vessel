@@ -543,3 +543,34 @@ profile policy and exact flags. A changed executable at the same path,
 changed preferences, policy override or launch options invalidates it.
 After the product path exists, repeat its real network/credential/lifetime
 suite with that exact path/configuration. Keep typed NoEngine until then.
+
+
+## Transport allocation and client fetch boundary
+
+[Decision Log]
+- Purpose: a small compressed screenshot must not cause an unbounded raster allocation,
+  and a favicon must not make the native application fetch a page-selected address.
+- Existing constraints: the transport PNG cap is 8 MiB; CSS viewport side cap is 8192.
+  Compressed size and CSS size do not bound physical RGBA memory.
+- Alternatives: trust CDP image dimensions, or fetch a favicon URL in the app.
+- Choice: validate PNG header geometry before retaining transport bytes and independently
+  cap one RGBA surface at 32 MiB. The native codec must enforce its own allocation
+  limit and fully validate the image before display. Header validation is not paint proof.
+  The icon is a bounded PNG obtained in the browser policy context, or a globe;
+  no remote favicon URL is passed to the frontend image loader.
+- Reason and impact: the separate pixel budget supports the 2560x1440 preset while
+  refusing oversized/full-page captures. This is a deliberate limit beyond Paseo's
+  screenshot behavior. A refused screenshot is a typed error, never a fabricated image.
+  Page text is capped at 80000 UTF-8 bytes with an explicit truncation marker;
+  target inventories at 32 and each log ring at 200. Excess collection entries are
+  refused before their payload is decoded rather than silently truncated.
+
+Additional diagnostic evidence, still not product qualification: the isolated IPv6
+HTTP/WS/STUN/TURN canaries also had successful independent TCP/UDP controls, completed
+ICE and zero direct TCP/UDP observations with the corrected Chrome switch. A separate
+local aioquic 1.8.0 H3 fixture observed a real WebTransport CONNECT and handshake in a
+positive direct/QUIC-enabled control. The proxy plus disable-quic configuration observed
+zero datagrams/handshakes/CONNECTs and a browser handshake failure. Two configuration
+settings differ, so this tests that combined diagnostic configuration, not single-flag
+causality. aioquic is scratch tooling only, not a product dependency. These runs do not
+prove the future product proxy, profile isolation, Preview revocation or Windows behavior.

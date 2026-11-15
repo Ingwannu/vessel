@@ -9,7 +9,13 @@ mod bounds;
 mod content;
 mod failure;
 mod identity;
+mod image;
 mod input;
+mod lists;
+mod policy;
+mod requests;
+mod result;
+mod state;
 mod tools;
 mod upload;
 mod url;
@@ -25,12 +31,32 @@ pub use bounds::{
     WaitTimeout,
 };
 pub use content::{
-    CappedText, InvalidBrowserContent, MAX_PAGE_TEXT_BYTES, MAX_SCREENSHOT_BYTES, PageText,
-    ScreenshotPng, TextCompleteness,
+    CappedText, InvalidBrowserContent, MAX_PAGE_TEXT_BYTES, PageText, TextCompleteness,
 };
 pub use failure::{BrowserEffect, BrowserFailure, HistoryDirection};
 pub use identity::{BrowserId, ElementRef, InvalidBrowserIdentity};
+pub use image::{
+    ImagePixels, ImageSize, InvalidBrowserImage, MAX_RGBA_BYTES, MAX_SCREENSHOT_BYTES,
+    ScreenshotPng,
+};
 pub use input::{EmptyBrowserInput, InputText, RequiredInput, WaitFor};
+pub use lists::{
+    BrowserTabs, ConsoleEntries, InvalidBrowserList, MAX_BROWSER_LOGS, MAX_BROWSER_TABS,
+    NetworkEntries,
+};
+pub use policy::BrowserTools;
+pub use requests::{
+    BrowserCall, BrowserControl, BrowserControlCommand, BrowserWatched, ClearBrowserProfile,
+    PreviewServiceHint, ServiceScheme, WatchBrowser,
+};
+pub use result::{
+    BrowserResult, ConsoleEntry, ConsoleLevel, HttpStatus, InvalidHttpStatus, NetworkEntry,
+    NetworkMethod, NetworkOutcome,
+};
+pub use state::{
+    BrowserHistory, BrowserIcon, BrowserLoad, BrowserProfile, BrowserRevision, BrowserTab,
+    BrowserViewport, SnapshotMetric, SnapshotStats, TextByteCount,
+};
 pub use tools::{BROWSER_TOOLS, BrowserCommand, BrowserTool};
 pub use upload::{InvalidUpload, UploadArgs, UploadFiles, UploadPath};
 pub use url::{BrowserUrl, InvalidBrowserUrl};

@@ -172,3 +172,16 @@ Next: merge the reviewed shared workspace identities; implement the pending
 call/response and typed owner/service interfaces, then the real engine path.
 Keep registry ownership behind the agreed typed interface until its package
 is reviewed. Source-only/runtime diagnostics are not whole-package evidence.
+
+
+## Bounded response and authority-selector skeleton
+
+Reuse shared WorkspaceId from reviewed identity-only e45a5d89; no registry/store
+subset is imported. Agent BrowserCall has no workspace selector. Direct-human
+BrowserControl and WatchBrowser name the logical workspace and optional opening
+session; those are selectors, not authority. PreviewServiceHint is explicitly
+untrusted until runtime-owned service observation proves generation and scheme.
+No engine, successful RPC, or native renderer is advertised by these types.
+Responses distinguish snapshots, evaluation, log rings, descriptors and PNGs.
+ADR 0078 records the separate PNG/pixel cap and no-client-favicon-fetch decision.
+The default-off BrowserTools value is staged but is not yet a saved setting.
