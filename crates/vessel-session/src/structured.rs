@@ -24,6 +24,9 @@ use crate::parking::{Parking, Route};
 /// longer be driven.
 pub(crate) struct StructuredActor {
     pub(crate) agent: AgentProcess,
+    /// Isolated stop-boundary fault; it cannot exist in a product actor.
+    #[cfg(test)]
+    pub(crate) stop_signal_error: Option<vessel_proc::SignalError>,
     pub(crate) outputs: AgentOutputs,
     pub(crate) outputs_open: bool,
     /// The current agent's input, and where handles find it (`None` while
@@ -132,6 +135,11 @@ impl StructuredActor {
                         #[cfg(test)]
                         Some(Control::PrivateDir(reply)) => {
                             drop(reply.send(self.launch.setup.private_dir.clone()));
+                        }
+                        #[cfg(test)]
+                        Some(Control::RefuseNextStop { source, ready }) => {
+                            self.stop_signal_error = Some(source);
+                            let _gone = ready.send(());
                         }
                         None => control_open = false,
                     }
@@ -243,7 +251,11 @@ impl StructuredActor {
             }
             // Protocol 10: the driver reports each only when it differs
             // from its last, so each is one record per change.
-            AgentOutput::Commands(commands) => {
+            AgentOutput::Commands(mut commands) => {
+                vessel_harness::classify_commands(
+                    &self.life.out.current().spec.harness,
+                    &mut commands,
+                );
                 self.life
                     .publish(&mut self.agent, SessionEvent::CommandsChanged { commands })
                     .await;

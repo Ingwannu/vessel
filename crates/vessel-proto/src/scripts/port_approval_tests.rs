@@ -9,6 +9,7 @@ fn listed() -> ProjectCommands {
         setup: Vec::new(),
         teardown: Vec::new(),
         terminals: Vec::new(),
+        service_ports: None,
         scripts: vec![
             ScriptEntry::new(
                 "dev".parse().unwrap(),

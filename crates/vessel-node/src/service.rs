@@ -41,6 +41,7 @@ mod profiles;
 mod sessions;
 mod transfers;
 // Protocol 9's calls: what a session runs with, and titles.
+pub(crate) mod composer_commands;
 mod options;
 // Protocol 10's calls: the conversation, and starting an ended session
 // again.

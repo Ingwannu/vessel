@@ -288,10 +288,13 @@ impl SessionError {
                 | AttachmentError::NotTaken { .. }
                 | AttachmentError::NotKept(_),
             ) => ErrorCode::InvalidRequest,
+            Self::Probe(vessel_agent::ProbeError::CatalogUnsupported { .. }) => ErrorCode::Unsupported,
+            Self::Probe(vessel_agent::ProbeError::CatalogTimedOut { .. }) => ErrorCode::Unavailable,
             Self::Spawn(_)
             | Self::StartAgent(_)
             | Self::McpFile(_)
-            | Self::Probe(_)
+            | Self::Probe(vessel_agent::ProbeError::Spawn(_) | vessel_agent::ProbeError::Disconnected { .. }
+                | vessel_agent::ProbeError::TimedOut { .. })
             | Self::History(
                 vessel_agent::HistoryError::Spawn(_)
                 | vessel_agent::HistoryError::Failed { .. }
@@ -381,7 +384,8 @@ const fn move_code(error: &MoveError) -> ErrorCode {
         MoveError::Restart(_) => ErrorCode::SpawnFailed,
         MoveError::Files(SessionFilesError::Io { .. })
         | MoveError::Link(LinkError::Io { .. })
-        | MoveError::Task(_) => ErrorCode::Internal,
+        | MoveError::Task(_)
+        | MoveError::Signal { .. } => ErrorCode::Internal,
     }
 }
 
