@@ -778,3 +778,22 @@ Do not register a stub or duplicate the node collector. Wire it only after
 the actual producer handoff, using the existing admitted identity and
 request-generation mechanisms. Node update awaits nodectl's ADR/call;
 Plugins belongs to its separate package owner.
+
+### Field responsibility split on the validated package base
+
+Merged the announced package base `8d5513e4` as `0671404b`. The field's
+state factories, weak line registry, focus/IME queries and event listener
+remain in `field.rs`; `field/presentation.rs` owns the existing form and
+composer drawing, and `field/styles.rs` owns engine/component color
+projection. Public methods and the original composer-card/theme-apply
+paths are preserved. Only the internal projection helper gains sibling
+visibility. All moved function bodies and existing test expectations are
+unchanged; the composer hooks file is unchanged. The field allowance is
+removed once its measured product size is below 500. This commit adds no
+selection, readonly, composer key mode or layout configuration behavior.
+
+The next separate behavior commit owns rename select-all/Editability.
+K owns the later additive blur factory and Appearance profiles; W12 owns
+the later composer layout/ButtonOnly policy. Neither is folded into this
+move-only change. Narrow compilation and existing field tests are owed
+before reporting the split as usable.

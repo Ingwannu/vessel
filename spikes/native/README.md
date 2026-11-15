@@ -73,6 +73,11 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
+The kit field keeps its editor factories, weak IME registry and events in
+`field.rs`; `field/presentation.rs` draws the existing form/composer shells
+and `field/styles.rs` projects tokens onto the same engines. Original public
+entry points are re-exported unchanged; composer hooks retain their contract.
+
 The existing agent-option query/cache method lives in private native
 `link/src/options.rs`; the root actor still calls it for `Command::Options`.
 Its module split changes no request, cache order or event.
