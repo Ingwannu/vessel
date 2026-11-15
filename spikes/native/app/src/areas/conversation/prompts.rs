@@ -34,7 +34,7 @@ pub(super) struct Prompts {
 }
 
 impl Prompts {
-    pub(super) fn clear(&mut self) {
+    fn clear(&mut self) {
         self.index.clear();
         self.jump = None;
         self.last_edit = None;
@@ -42,6 +42,19 @@ impl Prompts {
 }
 
 impl ConversationArea {
+    /// Cancelling navigation must not leave a delayed scroll owned by its jump.
+    pub(super) fn clear_prompts(&mut self) {
+        if self
+            .prompts
+            .jump
+            .as_ref()
+            .is_some_and(|jump| self.reveal == Some(jump.seq))
+        {
+            self.reveal = None;
+        }
+        self.prompts.clear();
+    }
+
     /// Resident panes hold active UI/work. An inactive snapshot must still move
     /// the pure prompt/hover identity sources intact, never default their counters.
     #[cfg(test)]
@@ -88,7 +101,7 @@ impl Shell {
     }
 
     pub(super) fn prompt_index_opened(&mut self, open: &crate::areas::session::Open) {
-        self.areas.conversation.prompts.clear();
+        self.areas.conversation.clear_prompts();
         if open.structured {
             self.prompt_index_refresh();
         }
@@ -96,7 +109,7 @@ impl Shell {
 
     pub(super) fn prompt_index_refresh(&mut self) {
         if !self.prefs.settings.appearance.chat_outline.on() {
-            self.areas.conversation.prompts.clear();
+            self.areas.conversation.clear_prompts();
             return;
         }
         let area = &self.areas.conversation;

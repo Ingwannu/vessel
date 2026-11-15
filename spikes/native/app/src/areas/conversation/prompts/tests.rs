@@ -172,8 +172,10 @@ fn prompt_navigation_outline_preference_removes_and_restores_the_actual_rail(
     cx.run_until_parked();
     assert!(cx.debug_bounds("outline-rail").is_some());
     update(&probe, cx, |shell, window, cx| {
+        shell.prompt_jump(EventSeq::new(10), cx);
         shell.prefer(&PreferenceChange::ChatOutline(ChatOutline::Off), window, cx);
         assert!(shell.areas.conversation.prompt_target().is_none());
+        assert_eq!(shell.areas.conversation.reveal, None);
     });
     cx.run_until_parked();
     assert!(cx.debug_bounds("outline-rail").is_none());

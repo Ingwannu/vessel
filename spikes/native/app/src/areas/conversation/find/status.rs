@@ -15,6 +15,9 @@ impl Shell {
         if bar.query.trim().is_empty() {
             return;
         }
+        if bar.at.is_some() && self.areas.conversation.reveal == bar.at {
+            self.areas.conversation.reveal = None;
+        }
         bar.phase = FindPhase::Failed(failure);
         bar.finder = None;
         bar.generation = Rc::new(());

@@ -254,6 +254,9 @@ impl Shell {
 
     fn finish_find(&mut self, exit: FindExit, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(bar) = self.areas.conversation.find.take() {
+            if bar.at.is_some() && self.areas.conversation.reveal == bar.at {
+                self.areas.conversation.reveal = None;
+            }
             self.areas.conversation.find_query = bar.query;
             match exit {
                 FindExit::Restore => {
@@ -283,7 +286,7 @@ impl Shell {
         if route != crate::routes::Route::Session {
             self.finish_find(FindExit::Deactivate, window, cx);
             self.areas.conversation.outline_pointer.leave();
-            self.areas.conversation.prompts.clear();
+            self.areas.conversation.clear_prompts();
         }
     }
 

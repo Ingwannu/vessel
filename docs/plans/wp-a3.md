@@ -221,3 +221,10 @@ when another chunk extends its preview; using that address as a revision could
 otherwise leave a completed metadata set with the first chunk's preview. The
 existing view coalesces these edits while a read is in flight. A shell regression
 extends one prompt twice and requires a fresh read after each completed set.
+
+Closing or failing find cancels its outstanding reveal address as well as the
+bar task, matching Paseo `ChatFindModel.cancel` and its reveal abort signal.
+Clearing prompt navigation similarly cancels only its owned pending address.
+An unrelated inbox destination is preserved. Without this boundary a body that
+arrived after cancellation could still scroll the reader. Shell regressions
+cover close, failure, unrelated addresses and disabling the outline mid-jump.

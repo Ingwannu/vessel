@@ -86,7 +86,9 @@ fn reopening_retains_the_query_and_edits_cancel_only_its_pending_destination(
     probe.update_in(cx, |probe, window, cx| {
         probe.shell.update(cx, |shell, cx| {
             shell.find_at("retained needle", EventSeq::new(10), window, cx);
+            shell.areas.conversation.reveal = Some(EventSeq::new(10));
             shell.close_find(window, cx);
+            assert_eq!(shell.areas.conversation.reveal, None);
             assert_eq!(shell.areas.conversation.find_query, "retained needle");
             shell.open_find(window, cx);
             assert_eq!(
@@ -109,6 +111,13 @@ fn reopening_retains_the_query_and_edits_cancel_only_its_pending_destination(
                 Some(EventSeq::new(20)),
                 "an unrelated inbox destination stays"
             );
+            shell.find_target(EventSeq::new(10), cx);
+            shell.close_find(window, cx);
+            assert_eq!(shell.areas.conversation.reveal, Some(EventSeq::new(20)));
+            shell.find_at("failed needle", EventSeq::new(10), window, cx);
+            shell.areas.conversation.reveal = Some(EventSeq::new(10));
+            shell.find_failed(vessel_app_view::timeline::FindFailure::Reveal);
+            assert_eq!(shell.areas.conversation.reveal, None);
         });
     });
     cx.run_until_parked();

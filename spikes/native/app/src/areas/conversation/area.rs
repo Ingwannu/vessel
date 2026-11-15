@@ -283,7 +283,7 @@ impl ConversationArea {
         self.live = Live::default();
         self.reveal = None;
         self.outline_pointer.clear();
-        self.prompts.clear();
+        self.clear_prompts();
     }
 
     /// Bring record `seq` into view (the inbox opening a session at the

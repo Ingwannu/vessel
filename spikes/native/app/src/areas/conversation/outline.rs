@@ -109,7 +109,7 @@ impl Shell {
     /// Changing the preference cancels a preview even while the rail is hidden.
     pub(crate) fn conversation_outline_changed(&mut self) {
         self.areas.conversation.outline_pointer.clear();
-        self.areas.conversation.prompts.clear();
+        self.areas.conversation.clear_prompts();
         if self
             .areas
             .session
