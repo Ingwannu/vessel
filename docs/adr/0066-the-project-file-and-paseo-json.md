@@ -105,8 +105,8 @@ one commit. An earlier approval can become unusable during this staged
 period; no newly parsed command runs. The alternative was one large change
 covering parsing, approval, process startup, ports and health. Small staged
 changes keep each rule reviewable while the unassigned protocol refuses a
-set clients cannot yet fully show. The final encoding and runtime contract
-below are unchanged.
+set clients cannot yet fully show. The final encoding is unchanged. Runtime contracts are refined below
+before their corresponding execution paths are connected.
 
 ### The table
 
@@ -116,7 +116,8 @@ refused rather than dropped, `VESSEL_PROJECT_ROOT`, `VESSEL_WORKTREE`
 and `VESSEL_BRANCH` rather than Paseo's `PASEO_*` names). Renamed: the
 fact exists under another name. Missing: runtime parity is not implemented. The terminal decoder and approval
 contract are staged in slice 2a; service ports are also parsed into approved
-snapshots. The allocation block is not parsed and no new runtime is connected.
+snapshots. The allocation block is also parsed into approval data; no new
+runtime is connected.
 Ignored: kept by Paseo, not a command, not approved, not implemented.
 
 | `paseo.json` | What Paseo does | `vessel.toml` | Class |
@@ -124,8 +125,8 @@ Ignored: kept by Paseo, not a command, not approved, not implemented.
 | `worktree.setup` | A string or a list of strings. Blank entries are dropped. Each remaining string is one shell command, in order, in the worktree; the first failure stops the rest. Read from the worktree's file on disk (`runWorktreeSetupCommands`). A separate check compares setup with `HEAD` and only warns. | `[worktree] setup`, already | Same meaning. Vessel reads the blob at the commit a worktree is created from, and the worktree's file when setup is run again (ADR 0027), which is stricter than the working tree. |
 | `worktree.teardown` | The same shape, run before the worktree directory is removed. | `[worktree] teardown`, already | Same meaning |
 | `worktree.terminals` | A list of `{ name?, command }`. Opened only after setup has succeeded (`worktree-session.ts` runs setup, then `runWorktreeAutoTerminals`). Each is an interactive shell; the command is written to it as input plus a carriage return, after the first output or 1.5 s. A bad entry is skipped. One that fails to open is logged and does not undo the worktree. | `[[worktree.terminals]]` with `command` and optional `name`. Parsing and approval are staged in slice 2a. | Runtime missing: automatic opening follows in another slice. Contract below. |
-| `worktree.servicePorts.range` | Inclusive `"start-end"`, each end from 1 to 65535, start not above end. Used when the service names no port of its own. A project block replaces the daemon-wide `worktrees.servicePorts`; there is no merge. | `[worktree.service_ports] range`. Not parsed yet. | Missing, and renamed (`service_ports`). |
-| `worktree.servicePorts.portScript` | A path of an executable, never a shell line. Run with four arguments (script name, workspace id, branch or empty, worktree path) and the same values in the environment. 10 s, at most 1024 bytes of output, which must be one TCP port. It wins over `range` in the same block. A port it returns may already be in use; a port already reserved for another service of this workspace is refused. | `[worktree.service_ports] port_script`. Not parsed yet. | Missing, and renamed (`port_script`). It stays an executable path, not a shell string. |
+| `worktree.servicePorts.range` | Inclusive `"start-end"`, each end from 1 to 65535, start not above end. Used when the service names no port of its own. A project block replaces the daemon-wide `worktrees.servicePorts`; there is no merge. | `[worktree.service_ports] range`. Parsed into the approved allocation block. | Missing, and renamed (`service_ports`). |
+| `worktree.servicePorts.portScript` | A path of an executable, never a shell line. Run with four arguments (script name, workspace id, branch or empty, worktree path) and the same values in the environment. 10 s, at most 1024 bytes of output, which must be one TCP port. It wins over `range` in the same block. A port it returns may already be in use; a port already reserved for another service of this workspace is refused. | `[worktree.service_ports] port_script`. Parsed into the approved allocation block. | Missing, and renamed (`port_script`). It stays an executable path, not a shell string. |
 | `scripts.<name>.command` | A string. A command that is not a string, or blank, drops that script. | `[scripts.<name>] command` or `[services.<name>] command`, already | Same command role. Paseo trims the command; Vessel retains its existing script text to preserve version 2 approvals. A non-string is a syntax error of the whole file, not a skipped script. |
 | `scripts.<name>.type` | The string `service` marks a supervised long-running process. Anything else, including a missing type, is a one-shot script. | The table: `[scripts.<name>]` or `[services.<name>]` (ADR 0031) | Renamed. The kind is where the name is written, not a field. |
 | `scripts.<name>.port` | A finite number, kept only when the type is `service`. Otherwise ignored. Wins over the allocation block. | `port` on `[services.<name>]` only. Parsed and covered by the version-three approval; allocation is not connected. | Missing. A `port` written on a script, or outside 1 to 65535, refuses the file. Paseo ignores a plain script's port but keeps any finite service port, including fractions and out-of-range values (`worktree.ts:348–354`; `workspace-service-port-registry.ts:168–190`). Vessel refuses these declarations before work: a person who wrote the port meant it, and an invalid port cannot be executed as written. |
@@ -235,8 +236,11 @@ before the digest, so the digest does not depend on the machine). The
 arguments are fixed: the service's name, the place's id, the branch name
 or empty, and the absolute folder. The environment names the same four
 as `VESSEL_SCRIPT_NAME`, `VESSEL_PLACE_ID`, `VESSEL_BRANCH` and
-`VESSEL_WORKTREE`. Ten seconds, and at most 1024 bytes of standard
-output, which must be one integer from 1 to 65535. A port already
+`VESSEL_WORKTREE`. Ten seconds, and at most 1024 bytes in each of standard output and
+standard error, matching the allocator's `execFile` `maxBuffer`. Standard
+output is decoded as UTF-8, trimmed with the shared JavaScript rule, and
+parsed through `ServicePort`; standard error is bounded and discarded,
+never included in diagnostics. A port already
 reserved for another service of this place is a typed error. A port the
 script returns is not checked for being free first (Paseo trusts the
 allocator that far, and a probe would race the bind). A `range` is
@@ -320,9 +324,9 @@ does not add a filesystem probe to either decoding or hashing.
   owns JavaScript trimming for the range, terminal entries and port script,
   so BOM and NEL handling cannot drift between these input edges. No
   dependency or crate edge is added.
-- Costs and effects: these values remain outside wire replies and project
-  file parsing until their later integration slice. Their presence starts
-  no process. Program existence, relative-link containment, native grammar
+- Costs and effects: these values now reach file parsing and wire replies
+  through the optional approved allocation block. Their presence starts no
+  process. Program existence, relative-link containment, native grammar
   compatibility and Windows command-script refusal are execution checks
   still owed; the value slice cannot claim they have run.
 
@@ -397,19 +401,23 @@ does not add a filesystem probe to either decoding or hashing.
 - Why this choice: the CLI shows both choices, with the exact approved
   program path. The web's `Required<ServicePorts>` projection must name
   every nested field, in addition to its existing listed/set/entry guards.
+  The implemented projection takes keys from `Required<ServicePorts>` and
+  values from `ServicePorts[K]`: every key is required while an omitted
+  non-null choice stays `undefined`, without an invented null or sentinel.
   Until full display lands, any current, last-approved or folder-comparison
   block yields `unsupported_ports`, never a partial comparison or an
   approval button. The native lead owns its new listed/set field patterns
   and exhaustive allocation view. Both old-peer and unassigned-peer reply
   gates cover the current and prior block on all approval reply paths.
-- Costs and tests owed: file tests for either/both, an empty or unknown
+- Costs and tests required: file tests for either/both, an empty or unknown
   block, trim and a block without services; digest changes for either
   choice and its removal; current/prior/folder web refusal and a new
   optional nested-field type probe; CLI complete display and all six reply
   gates. `PROJECT_FILE_KEYS` remains unassigned until the web dialog, web
   comparison and native card show all terminal, declaration and allocation
-  data. This is a contract only; no allocation field or execution is added
-  by this document.
+  data. The allocation integration implements these approval boundaries
+  and tests. No allocator, helper invocation or health behavior is connected
+  by carrying the block.
 
 Relative program resolution is a deliberate difference from Paseo. Its
 allocator passes the trimmed command to the plugin's `execFile` wrapper
@@ -452,20 +460,83 @@ no `VESSEL_WORKTREE_PORT`. Paseo's per-worktree legacy port is not a key
 of `paseo.json`.
 
 What an approval covers for `port_script` is the path, not the bytes at
-that path. The program runs at every service start, including each
-restart, not only when a worktree is created. An agent that can write in
-the tree can replace a relative path's file without changing the digest,
-and the next start runs the new bytes. That is the same hole ADR 0027
-already names for a setup command that runs a repository script
-(`./setup.sh`, `npm ci` running package scripts): the approved text does
-not pin the script it invokes. It differs in when. Setup's command list
-is the parsed text whose digest matched, and for a new worktree that
-text is the blob at the start commit; the script it names is still the
-tree's. `port_script` is itself that path, read again at every start, so
-a change takes effect without a new approval. An absolute path is
-outside the repository; the approval still shows the path and still does
-not cover its content. The cost is stated so it is not a new kind of
-trust, and so it is not hidden.
+that path. Paseo does not invoke it at every start. Its registry
+(`workspace-service-port-registry.ts:55–69,160–217`) initially plans all
+configured services, even services not started yet, and reuses entries by
+name. `worktree-bootstrap.ts:412–453` refreshes only the selected service
+when its existing runtime entry is stopped. A changed declaration on an
+unstarted, already planned name can therefore retain its earlier port.
+The helper primitive below owns one invocation only, not the cache or the
+choice of when to invoke it. Before allocator wiring, its contract must
+state cache identity, refresh and release, including this case. There is
+no allocator or helper caller yet.
+
+Whenever a helper is invoked, its bytes are read then. An agent that can
+write in the tree can replace the program without changing the approved
+path or digest. This is the same trust boundary ADR 0027 states for an
+approved setup command invoking a repository script: approval covers the
+text, not the script's bytes. A worktree invokes its own checkout's copy;
+an absolute program may lie outside the checkout. No content pinning is
+claimed. Existing Vessel supervision (ADR 0031) rechecks its captured
+digest's approval on restart; approving another digest does not withdraw
+the earlier one. Withdrawal is explicit.
+
+#### One direct port-helper invocation
+
+[Decision Log]
+
+- Purpose and intent: execute exactly the approved program with four
+  literal arguments, and accept one bounded TCP-port result. This primitive
+  does not allocate a plan, select a service or authorize execution.
+- Existing assets and constraints: `PortScript` already owns validated
+  relative or foreign absolute text. `Root::existing` supplies checkout
+  containment; `vessel-proc::spawn` supplies piped processes and group/job
+  cleanup. Setup's shell/log pipeline has different limits and semantics;
+  the private listener scanner truncates output and is not an input decoder.
+- Alternatives considered: reuse either capture path, invoke a shell,
+  add a subprocess dependency, or compose the existing process API with a
+  small bounded reader. Choose the last: no new dependency or crate edge,
+  no shell reparse, and overflow/read failures remain typed refusals.
+- Choice: resolve paths on the blocking pool. A relative name, including a
+  bare name, goes through `Root::existing` in the checkout supplied by
+  `ScriptRoot`. An absolute program must match the host grammar and is
+  canonicalized at invocation. Both original and resolved Windows names
+  are checked before spawn: `.cmd`/`.bat` ignoring case and Win32 trailing
+  dots/spaces are refused, as are alternate-stream names. This conservative
+  refusal also applies in verbatim namespaces; it avoids relying on a
+  normalization distinction to keep an interpreter out. Symlink races after
+  this check remain the same-user race documented by `Root` (ADR 0027).
+- Arguments and environment: service name, typed place id (worktree id
+  when present, otherwise project id), branch or empty, and absolute
+  checkout folder. The four `VESSEL_*` names above mirror those values.
+  This place-id mapping is a stated difference: Vessel has no Paseo
+  workspace id. Reuse `TerminalsConfig.removed`, without adding terminal
+  color variables; the binary owns the credential-name inventory. Other
+  inherited user variables and filesystem/network permissions remain those
+  of the node user. The helper is not a sandbox.
+- Failure policy: one named time budget covers path resolution, spawn,
+  both pipe readers and child exit; cancellation before spawn starts no
+  child. Each pipe has one named byte cap; read at most cap plus one byte
+  to distinguish exact-cap EOF from overflow. Drain both concurrently with
+  waiting, close stdin, and require a successful exit before decoding stdout.
+  Timeout, cancellation, pipe failure and overflow drop the child owner,
+  which kills the process group/job. Never log stdout/stderr or retain them
+  in an error. Preserve spawn, join, path, I/O, UTF-8 and numeric causes.
+- Costs and effects: canonicalization can reach a Windows network share
+  with the node user's credentials. Cancelling a blocking resolution
+  cannot abort that OS operation, but its result cannot spawn a child.
+  This is stronger cleanup than Paseo's direct `execFile` timeout; no
+  descendant is intentionally kept. Staged node code stays `cfg(test)`
+  until the approval-checked allocator wiring removes it (A10). Its
+  narrow checks prove the primitive only, not product execution.
+- Required tests: literal metacharacter arguments and four matching env
+  values, root selection with a PATH decoy and different worktree copy,
+  relative symlink escape refusal, foreign grammar refusal, Windows
+  command-script refusal before spawn (including normalized/resolved
+  names), strict UTF-8/JS trim/port decoding, independent pipe caps,
+  exact-cap acceptance, nonzero exit, timeout and cancellation cleanup.
+  Unix fake scripts use the existing executable writer through the test
+  sandbox. Actual Windows execution remains unverified on a Unix host.
 
 What those processes can reach. A terminal opened from the file and a
 `port_script` are processes of the node's user. A relative `port_script`
@@ -548,8 +619,12 @@ worktree and pages `worktree.output`.
 Health. For a service that was given a port, a TCP connect to loopback
 on that port (IPv4 and IPv6, as Paseo's local connect does), not an HTTP
 request. The state is an enum, `pending`, `healthy` or `unhealthy`, not
-a string. It stays `pending` for 5 s after the process has been spawned.
-Then a probe every 3 s, each probe at most 500 ms. Two consecutive
+a string. Paseo's grace starts when the monitor first observes a route, not when
+its process spawned (`script-health-monitor.ts:129–163`); one global
+three-second tick probes only after the five-second grace. Vessel has no
+service proxy route. Before health wiring, its contract must name the
+corresponding observation and reset event rather than claim a spawn clock
+is Paseo's. Each probe lasts at most 500 ms. Two consecutive
 failures make it `unhealthy`; a success makes it `healthy` and clears
 the count. The field sits beside `ServiceState` on the terminal's info,
 because `ServiceState` is the process (starting, running, backing off)

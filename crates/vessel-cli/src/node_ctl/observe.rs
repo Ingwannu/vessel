@@ -10,6 +10,7 @@ use crate::args::Target;
 use crate::connect;
 use crate::error::CliError;
 
+use super::local_read::{Kind, Pending};
 use super::lock_wait::Released;
 
 /// Reporting keeps a requested shutdown distinct from observed local completion.
@@ -109,8 +110,15 @@ async fn locality(
     }
     let dir = connect::data_dir(target)?;
     let reading = dir.clone();
-    let id = tokio::task::spawn_blocking(move || reading.read_node_id())
-        .await?
+    let mut pending = Pending::spawn(
+        Kind::Identity,
+        move || reading.read_node_id(),
+        || tracing::debug!("node identity read completed after its command ended"),
+    )?;
+    let id = pending
+        .wait()
+        .await
+        .map_err(CliError::IdentityReader)?
         .map_err(CliError::LocalIdentity)?;
     if id == Some(client.node().id) {
         Ok(Locality::Directory(VerifiedDirectory {
