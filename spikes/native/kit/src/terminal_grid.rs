@@ -116,8 +116,8 @@ pub struct GridCursor {
 /// Everything the control draws.
 #[derive(Debug, Clone, PartialEq)]
 pub struct GridFrame {
-    /// Rows, top first.
-    pub rows: Vec<GridRow>,
+    /// Immutable painted rows, shared across frames that only change the cursor.
+    pub rows: Rc<[GridRow]>,
     /// The cursor, when it is drawn this frame (shown, in view, and in
     /// the visible half of its blink).
     pub cursor: Option<GridCursor>,
@@ -221,7 +221,7 @@ fn shape(
 ) -> Vec<(Point<Pixels>, ShapedLine)> {
     let text = window.text_system();
     let mut lines = Vec::new();
-    for (row, cells) in (0_u16..).zip(&frame.rows) {
+    for (row, cells) in (0_u16..).zip(frame.rows.iter()) {
         let y = at(bounds.origin.y, cell.height, row);
         for run in &cells.runs {
             let x = at(bounds.origin.x, cell.width, run.col);
@@ -278,7 +278,7 @@ fn paint(
     cx: &mut App,
 ) {
     window.paint_quad(fill(bounds, frame.background));
-    for (row, cells) in (0_u16..).zip(&frame.rows) {
+    for (row, cells) in (0_u16..).zip(frame.rows.iter()) {
         let y = at(bounds.origin.y, cell.height, row);
         for run in &cells.fills {
             let x = at(bounds.origin.x, cell.width, run.col);
