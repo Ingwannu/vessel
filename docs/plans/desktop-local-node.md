@@ -87,3 +87,10 @@ The local-node launch module is the only consumer of both the releasable spawn
 and detach capabilities. Its launcher runtime remains until application exit.
 Shared bounded readiness is owned once by `vessel-proto::local_launch`; node main
 emits it for `--desktop-managed`. There is no node-to-launcher dependency.
+
+
+Startup diagnostics use an observation-only callback issued immediately after
+owned spawn and before awaiting readiness. It retains only the bounded stderr
+reader, so cancellation/malformed readiness still drops and cleans up the owned
+child while the UI can explicitly read the failure's log tail. Error values do
+not retain or print log text. Reused nodes have no captured owned stderr source.
