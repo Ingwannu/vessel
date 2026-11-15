@@ -439,7 +439,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
 | Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
 | Files search/open | W13 FileScope + FileLocation | Pure UI state and existing C5 acquisition available; checked actual connection-scoped opener pending |
-| Composer actions and choices | W12b owner setters + resident/W3 getters | Typed action contract exists; actual owner-generation admission and adapter pending |
+| Composer actions and choices | W12b admitted setters + canonical view::options classification | Controls consumes actual owner reports only; choose constructs without validating fresh membership; real target/report/pending/editability validation and adapter pending |
 | Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Recorder admission/helper8c052697 and receipts remain unchecked; no second writer or duplicate failure toast |
@@ -874,3 +874,22 @@ W19 native OS edit-menu wrappers088a6c266 are a source-only follow-up beyond
 ec90's actual unit21 result. Retained popup/recorder UI tests do not establish
 OS native Undo/Redo/Cut/Copy/Paste/SelectAll admission; eventual recorder union
 must use the checked owner routing delta. No E3 moving branch is adopted.
+
+Base8e82ca07a7 is merged without conflicts as3adb96247. New panel-retirement
+hooks remain literally test-only, including registrations/notifications; they
+do not authorize composer effects, backend operations or original-context open.
+The metadata-only layout transaction now commits a clone only on success.
+No resource clone/swap or independent palette lifecycle manager was added.
+The preceding8d green checks do not validate this newer union.
+
+G3/B2 confirmed the provider choice source contract: existing
+view::options::{Controls,controls_with_effort,SelectControl,ToggleControl}
+classifies ONLY actual owner-supplied SessionOptions. SelectControl::choose
+constructs OptionChoice without checking current membership. B2 must refresh
+the EXACT admitted target, actual current report value, pending/editability,
+then invoke its existing owned setter. HarnessKind comes from the owned
+HarnessRef/report. Settings offer caches, startup preferences and modern-provider
+name/id joins are neither session report nor admission. Plan/Fast are reserved
+group ranks, not static invented choices. B2 target/options effect adapter still
+waits on the sole W12 resource cutover/live effect lease. F4 retains its one
+source registry and ChoiceLocation controller; no second selector is added.
