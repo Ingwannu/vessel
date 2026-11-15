@@ -17,6 +17,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod labels;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
@@ -31,6 +32,18 @@ use vessel_app_kit::ui::{Context, Window};
 
 use crate::shell::Shell;
 
+/// Register overlays once without growing the shell past its file budget.
+pub(crate) fn overlays(
+    shell: &mut Shell,
+    tokens: &vessel_app_kit::Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> impl Iterator<Item = vessel_app_kit::ui::AnyElement> {
+    palette::render(shell, tokens, window, cx)
+        .into_iter()
+        .chain(labels::overlay(shell, tokens, window, cx))
+}
+
 /// Every area's state.
 pub(crate) struct Areas {
     pub(crate) about: about::AboutState,
@@ -41,6 +54,7 @@ pub(crate) struct Areas {
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
     pub(crate) git: git::GitArea,
+    pub(crate) labels: labels::Labels,
     pub(crate) pulls: pulls::PullsArea,
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
@@ -65,6 +79,7 @@ impl Areas {
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
+            labels: labels::Labels::new(window, cx),
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),

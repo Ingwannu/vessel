@@ -72,8 +72,9 @@ At node head `d954fa3a`, `crates/vessel-proto/src/labels.rs` exports
 `session.labels` or workspace label calls. `lifecycle_version::SINCE` remains
 unassigned. Schema 17 does not establish RPC availability. Assignment/list,
 atomic rename/recolor, deletion inspection/deletion, catalog subscriptions,
-workspace assignment storage and metadata patch deletion still require the
-node owners. This was reported before implementation. Do not add root RPC
+workspace assignment storage and metadata mutation still require the node owners. The lifecycle owner
+confirmed planned SetLabels merge-only semantics (no clear/delete), which is
+a documented difference from nullable manager-level Paseo patches. This was reported before implementation. Do not add root RPC
 or store code in this package without a routed contract.
 
 ## Differences and limits
@@ -88,8 +89,22 @@ or store code in this package without a routed contract.
 
 ## Validation and resume point
 
-Done: reference and existing-asset analysis, module/contract plan.
-Next: compile skeleton, model transition tests, then fill real calls when the
-node and app base are announced. Full native gate and inspected capture
+Done: reference/asset analysis; manager, picker and create state models;
+EN/KO Fluent resources; adaptive manager skeleton and typed link command/event
+seam. The sidebar registers the manager; online hosts are explicitly shown
+as unsupported until the contract is integrated. No mutation can claim success.
+Registration moved to a small link feature-registration module (existing public
+paths unchanged) and an area overlay-registration function to retain both
+shared-file size ceilings. No kit renderer or dependency was added.
+
+Fast checks: native size, boundaries and token ratchets pass. The first local
+view test could not compile because the new Fluent keys lacked per-key
+translator context comments; comments were added. New view tests and app
+clippy are pending. No successful compile is claimed yet.
+
+Next: obtain narrow compile/test results, then consume the announced app base
+and reviewed registry/session-label contracts. ADR 0086 owns the node catalog
+work in a separate node branch; that branch currently stages values, mutation
+plans and a bounded observer journal, with no registered RPC or persistence. Full native gate and inspected capture
 matrix occur once at package completion. No whole gate, node RPC test,
 service-account/customer flow or UI capture is claimed at this point.

@@ -57,6 +57,7 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 .on_click(cx.listener(|this, _event, _window, _cx| this.reload())),
         )
         .child(div().flex_1())
+        .child(crate::areas::labels::entry(shell, tokens, cx))
         .child(
             vessel_app_kit::pill_parts(
                 "settings",
