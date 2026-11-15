@@ -115,6 +115,9 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
             json!({"session":id,"choice":{"id":"sample","kind":"toggle","on":true}})
         }
         Method::RenameSession | Method::OpenPullRequest => json!({"session":id,"title":"sample"}),
+        Method::RespondQuestion => {
+            json!({"session":id,"question":id,"answer":{"answer":"decline"}})
+        }
         Method::RespondPermission => {
             json!({"session":id,"permission":id,"response":{"outcome":{"outcome":"cancelled"}}})
         }

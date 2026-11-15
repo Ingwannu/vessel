@@ -5,6 +5,17 @@ use vessel_proto::timeline::{SubmitPrompt, SubmitPromptReply};
 use vessel_rpc::CallError;
 
 impl NodeClient {
+    /// Answer a blocking/durable question with a correlated committed acknowledgement.
+    ///
+    /// # Errors
+    /// Unsupported peers, scope/ownership refusal or transport/persistence errors.
+    pub async fn respond_question(
+        &self,
+        request: vessel_proto::timeline::RespondQuestion,
+    ) -> Result<vessel_proto::timeline::RespondQuestionReply, CallError> {
+        self.call(request).await
+    }
+
     /// Apply a supported offered decision and wait for its committed resolution.
     /// Rich-field refusal leaves the request unchanged; uncertainty never implies acceptance.
     ///

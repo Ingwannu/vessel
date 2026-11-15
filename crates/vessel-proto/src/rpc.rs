@@ -51,7 +51,7 @@ pub(crate) mod samples;
 mod shape;
 mod since;
 
-pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
+pub use frames::{ClientFrame, ClientInfo, Hello, Outcome, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
     Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
     ReadEvents, RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
@@ -256,6 +256,8 @@ macro_rules! method_table {
             RenameSession / rename_session / "session.rename" [Operate, 9, unary]: $crate::RenameSession => $crate::SessionInfo;
             /// Send a prompt, delivered as asked (protocol 10).
             PromptSession / prompt_session / "session.prompt" [Operate, 10, unary]: $crate::conversation::PromptSession => $crate::Delivered;
+            /// Typed blocking/durable question response with committed resolution (ADR 0084).
+            RespondQuestion / respond_question / "session.respond_question" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondQuestion => $crate::timeline::RespondQuestionReply;
             /// Rich permission response acknowledged after durable resolution (ADR 0084).
             RespondPermission / respond_permission / "session.respond_permission" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondPermission => $crate::timeline::RespondPermissionReply;
             /// Identified delivery with durable replay protection (ADR 0084).
@@ -482,22 +484,6 @@ macro_rules! method_table {
 }
 
 crate::method_table!(rpc_methods);
-
-/// Result of a call.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(rename_all = "snake_case")]
-#[expect(
-    clippy::large_enum_variant,
-    reason = "one Outcome per call, moved once to the writer and never stored in bulk; \
-              boxing the reply would add an allocation to every call to save a copy"
-)]
-pub enum Outcome {
-    /// Success.
-    Ok(Reply),
-    /// Failure.
-    Err(WireError),
-}
 
 #[cfg(test)]
 mod tests;

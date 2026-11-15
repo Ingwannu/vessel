@@ -104,16 +104,19 @@ impl Reader {
     /// offers no commands.
     pub(crate) fn conversation(&self, id: SessionId) -> Result<Option<Conversation>, StoreError> {
         self.with(|connection| {
-            let row: Option<(Option<String>, Option<String>, Option<String>)> = connection
-                .prepare_cached("SELECT queue, usage, abilities FROM sessions WHERE id = ?1")?
+            let row: Option<(Option<String>, Option<String>, Option<String>, i64)> = connection
+                .prepare_cached(
+                    "SELECT queue, usage, abilities, next_seq FROM sessions WHERE id = ?1",
+                )?
                 .query_row([id.to_string()], |row| {
-                    Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
                 })
                 .optional()?;
-            let Some((queue, usage, abilities)) = row else {
+            let Some((queue, usage, abilities, through)) = row else {
                 return Ok(None);
             };
             Ok(Some(Conversation {
+                through: Some(seq_from_sql(through)?),
                 queue: queue
                     .map(|queue| decode(id, Column::Queue, &queue))
                     .transpose()?

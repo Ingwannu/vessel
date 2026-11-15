@@ -45,6 +45,9 @@ use crate::id::SessionId;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Conversation {
+    /// Exclusive event watermark for this authoritative projection. Absent on old nodes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub through: Option<crate::EventSeq>,
     /// The prompts waiting.
     pub queue: PromptQueue,
     /// The commands the agent offers now (none for an ended session).

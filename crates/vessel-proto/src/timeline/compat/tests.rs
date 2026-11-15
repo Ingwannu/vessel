@@ -99,6 +99,7 @@ fn optional_fields_and_canceled_status_obey_unassigned_and_synthetic_assigned_th
 fn question_snapshots_hide_nonblocking_or_uncertain_requests_instead_of_false_actionability() {
     let protocol = crate::PROTOCOL_VERSION;
     let value = Conversation {
+        through: Some(EventSeq::new(11)),
         queue: queued(),
         commands: vec![],
         usage: None,
@@ -112,6 +113,7 @@ fn question_snapshots_hide_nonblocking_or_uncertain_requests_instead_of_false_ac
     };
     let masked = adapt_conversation(&value, protocol, None).unwrap();
     assert_eq!(masked.questions.len(), 1);
+    assert!(masked.through.is_none());
     assert!(masked.permissions[0].presentation.is_none());
     assert!(masked.permissions[0].options[0].action.is_none());
     assert!(masked.questions[0].fields[0].presentation.is_none());

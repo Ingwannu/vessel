@@ -126,3 +126,45 @@ fn text() -> FieldKind {
         default: None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+    use vessel_proto::QuestionAnswer;
+    use vessel_proto::conversation::AnswerValue;
+
+    #[test]
+    fn completed_async_items_keep_choices_and_custom_pairing_without_a_turn_responder() {
+        let item: ThreadItem = serde_json::from_value(json!({"type":"agentMessage","id":"async","delivery":"async","questions":[{"title":"Where?","options":["Left","Right"]}]})).unwrap();
+        let question = question(&item).unwrap().unwrap();
+        assert_eq!(question.lifetime, QuestionLifetime::Session);
+        assert_eq!(question.tool_call.as_ref().unwrap().as_str(), "async");
+        assert!(matches!(question.fields[0].kind, FieldKind::Choice { .. }));
+        let companion = question.fields[0]
+            .presentation
+            .as_ref()
+            .unwrap()
+            .custom_answer
+            .clone()
+            .unwrap();
+        assert!(
+            question
+                .check(&QuestionAnswer::Accept {
+                    values: BTreeMap::from([(companion, AnswerValue::Text("Elsewhere".into()))])
+                })
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn malformed_async_items_never_become_actionable_questions() {
+        let item: ThreadItem = serde_json::from_value(json!({"type":"agentMessage","id":"async","delivery":"async","questions":[{"title":"  "}]})).unwrap();
+        assert!(question(&item).is_err());
+        let ordinary: ThreadItem =
+            serde_json::from_value(json!({"type":"agentMessage","id":"normal","text":"hello"}))
+                .unwrap();
+        assert!(question(&ordinary).unwrap().is_none());
+    }
+}

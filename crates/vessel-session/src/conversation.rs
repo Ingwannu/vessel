@@ -28,6 +28,7 @@ use vessel_proto::{
 /// What a structured session's log says now.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Seen {
+    through: Option<vessel_proto::EventSeq>,
     queue: PromptQueue,
     commands: Vec<AgentCommand>,
     usage: Option<ContextUsage>,
@@ -50,6 +51,7 @@ impl Seen {
         abilities: Option<AgentAbilities>,
     ) -> Self {
         Self {
+            through: None,
             queue,
             commands: Vec::new(),
             usage,
@@ -97,6 +99,12 @@ impl Seen {
                 .questions
                 .iter()
                 .any(|question| question.lifetime == vessel_proto::timeline::QuestionLifetime::Turn)
+    }
+
+    /// Apply a state-changing record and its exclusive watermark under the same lock.
+    pub(crate) fn observe_at(&mut self, event: &SessionEvent, through: vessel_proto::EventSeq) {
+        self.observe(event);
+        self.through = Some(through);
     }
 
     /// Take in one committed record.
@@ -214,6 +222,7 @@ impl Seen {
     /// The conversation as a client reads it.
     pub(crate) fn conversation(&self) -> Conversation {
         Conversation {
+            through: self.through,
             queue: self.queue.clone(),
             commands: self.commands.clone(),
             usage: self.usage.clone(),

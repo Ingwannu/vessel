@@ -163,6 +163,7 @@ targets!(
     vessel_proto::conversation::PromptSession,
     vessel_proto::timeline::SubmitPrompt,
     vessel_proto::timeline::RespondPermission,
+    vessel_proto::timeline::RespondQuestion,
     vessel_proto::conversation::ChangeQueue,
     vessel_proto::conversation::ResumeSession,
     vessel_proto::conversation::MarkSession,

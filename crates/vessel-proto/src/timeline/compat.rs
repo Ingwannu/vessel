@@ -223,7 +223,8 @@ pub(crate) fn conversation(
         .as_ref()
         .and_then(|usage| usage.for_protocol(protocol));
     let has_timeline_change = !supported(protocol, assigned)
-        && (value.permissions.iter().any(permission_changed)
+        && (value.through.is_some()
+            || value.permissions.iter().any(permission_changed)
             || value.questions.iter().any(question_changed)
             || value
                 .queue
@@ -238,6 +239,7 @@ pub(crate) fn conversation(
         adapted.usage = Some(usage);
     }
     if !supported(protocol, assigned) {
+        adapted.through = None;
         adapted.permissions = value.permissions.iter().map(permission).collect();
         adapted.questions = value.questions.iter().filter_map(question).collect();
         if let Some(queue) = queue(&value.queue, protocol, assigned) {

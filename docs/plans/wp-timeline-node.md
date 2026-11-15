@@ -248,3 +248,30 @@ Claude Task/Agent inputs now share canonical::sub_agent_input, one serde decoder
 returning SubAgentDetail for the canonical launch marker and provider child
 routing. The native opaque wire representation remains unchanged; child routers
 must call this helper rather than inspect or clone another JSON-tree parser.
+
+## Question response and reconciliation seam
+
+The pending session.respond_question call and NodeClient method now take
+RespondQuestion { session, question, answer: QuestionAnswer }. Replies are
+Settled { question, outcome, seq }, Vanished, Conflict, Answering, OutcomeUnknown,
+or Refused { question, reason }. Refusals distinguish InvalidAnswer, TooLarge,
+Unsupported, TurnChanged and Unavailable. Blocking responses share the exact
+committed-resolution wait; durable responses use the retained actor lease.
+
+Conversation.through is an optional exclusive log watermark, applied with its
+state under the publisher's existing lock. Stored snapshots read next_seq with
+the projection columns. Node snapshots replace session-lifetime requests with
+the retained store's authoritative Pending/Answering/OutcomeUnknown set; a claim
+can lead its later timeline event, never permit another dispatch. Older peers
+receive neither the watermark nor actionable unassigned async requests. Clients
+can reconcile snapshot retirement against this watermark instead of inventing
+resolution records from RPC replies or treating a known stale pending card as
+authoritative forever.
+
+vessel_client::compose::fill_headers converts the reference CLI's header/text
+answer object through canonical field title/name, offered labels and declared
+custom companions, then uses Question::check. Ambiguous headers/comma-joined
+multi-select values refuse rather than guessing; callers retain the canonical
+field-keyed QuestionAnswer route for those cases. No provider JSON decoding or
+fabricated prompt message is added to clients. Public-store restart/claim tests
+and pure Codex async parser fixtures are written; actual execution remains owed.

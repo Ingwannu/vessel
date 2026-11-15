@@ -147,7 +147,7 @@ impl Publisher {
                 .seen
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .observe(&event);
+                .observe_at(&event, seq.next().unwrap_or(seq));
         }
         let board = self.activity.board(at);
         // Before the record is anywhere: whoever sees the end finds it.

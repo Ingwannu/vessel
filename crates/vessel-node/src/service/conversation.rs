@@ -18,6 +18,18 @@ use crate::profiles::launch::creator;
 use crate::transfers::Holder;
 
 impl NodeService {
+    /// `session.respond_question`: exact typed outcome acknowledged after persistence.
+    pub(crate) async fn respond_question(
+        &self,
+        _: &Connection,
+        request: vessel_proto::timeline::RespondQuestion,
+    ) -> Result<vessel_proto::timeline::RespondQuestionReply, WireError> {
+        self.sessions
+            .respond_question(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
     /// `session.respond_permission`: exact request resolution, acknowledged durably.
     pub(crate) async fn respond_permission(
         &self,

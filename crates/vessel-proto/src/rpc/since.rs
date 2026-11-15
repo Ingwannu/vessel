@@ -137,7 +137,8 @@ impl Call {
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
             Self::CreateSchedule(request) => target_since(&request.definition.target),
             Self::UpdateSchedule(request) => target_since(&request.definition.target),
-            Self::RespondPermission(_)
+            Self::RespondQuestion(_)
+            | Self::RespondPermission(_)
             | Self::SubmitPrompt(_)
             | Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
