@@ -33,7 +33,7 @@ pub fn empty_hint(bucket: Bucket, catalog: &Translator) -> Option<&str> {
 }
 
 /// A pending label replaces its exact menu action, with no second row signal.
-/// Edit is not wired in the list slice and cannot acquire a pending row here.
+/// Edit opens the form owner and has no row-local pending label.
 #[must_use]
 pub fn pending(action: Action, catalog: &Translator) -> Option<&str> {
     let words = catalog.schedules();
@@ -69,6 +69,7 @@ pub fn failure<'a>(failure: &super::load::Failure, catalog: &'a Translator) -> &
         Failure::Unconfirmed => words.write_unconfirmed(),
         Failure::Exhausted => words.failed_exhausted(),
         Failure::NoTransport => words.failed_no_transport(),
+        Failure::Preferences => words.failed_preferences(),
         Failure::Node(wire) => match wire.code {
             ErrorCode::InvalidRequest => words.failed_invalid(),
             ErrorCode::Unauthorized => words.failed_unauthorized(),

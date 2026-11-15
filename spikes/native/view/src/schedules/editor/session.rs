@@ -92,6 +92,7 @@ impl Active {
                     | Failure::TimedOut
                     | Failure::Busy
                     | Failure::Unexpected
+                    | Failure::Preferences
                     | Failure::NoTransport
                     | Failure::Exhausted => false,
                 })

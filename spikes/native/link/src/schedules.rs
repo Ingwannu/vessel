@@ -14,7 +14,7 @@ mod clock;
 pub use clock::ViewerClockError;
 pub use vessel_app_view::schedules::page::Request as RowRequest;
 mod request;
-pub use request::{FormAnswer, HistoryAnswer, Request, SessionAnswer};
+pub use request::{FormAnswer, HistoryAnswer, RememberedForm, Request, SessionAnswer};
 use vessel_app_view::schedules::page::WriteValue;
 use vessel_proto::{
     automation::ScheduleInfo,

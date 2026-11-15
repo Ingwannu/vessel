@@ -80,6 +80,8 @@ pub enum Failure {
     Unconfirmed,
     /// This browser build has no node transport.
     NoTransport,
+    /// Local selection preferences failed to persist; no schedule RPC was sent.
+    Preferences,
     /// Local identities exhausted; reopening the app gives a fresh model.
     Exhausted,
 }
@@ -93,7 +95,8 @@ impl Failure {
             | Self::NotEnabled
             | Self::Exhausted
             | Self::Unconfirmed
-            | Self::NoTransport => false,
+            | Self::NoTransport
+            | Self::Preferences => false,
             Self::Node(_)
             | Self::Offline
             | Self::ConnectionChanged
@@ -116,7 +119,8 @@ impl Failure {
             | Self::Unexpected
             | Self::Exhausted
             | Self::Unconfirmed
-            | Self::NoTransport => true,
+            | Self::NoTransport
+            | Self::Preferences => true,
             Self::Offline => false,
         }
     }
@@ -133,7 +137,8 @@ impl Failure {
             | Self::TimedOut
             | Self::Unexpected
             | Self::Exhausted
-            | Self::Unconfirmed => crate::alert::Variant::Error,
+            | Self::Unconfirmed
+            | Self::Preferences => crate::alert::Variant::Error,
         }
     }
 }

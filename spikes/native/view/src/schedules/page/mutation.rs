@@ -166,6 +166,7 @@ impl Page {
                 | Failure::Busy
                 | Failure::Unconfirmed
                 | Failure::Exhausted
+                | Failure::Preferences
                 | Failure::NoTransport => failure,
             });
         match answer {

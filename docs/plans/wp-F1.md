@@ -1653,3 +1653,17 @@ FormText/FormTextarea/Minimum plus canonical SearchField once; README retains
 both control notes and canonical glyph-inventory instructions. Search child
 blobs have no diff from the announced line. Source-only combined integration,
 not inherited1510/0/2 as F1 proof. No node branch was merged directly into App.
+
+
+The F1 Link fan-in now has one opaque RememberedForm snapshot, redacted in
+diagnostics. The actor first validates its original selected connection and
+new-session Save shape, then awaits the SAME ordered writer; only Saved enters
+the existing shared Hub with the original request/client. Refused emits an
+ordinary correlated FormReplied with typed local Preferences failure and no RPC.
+No new root command arm, store, resolver, permit pool or preference task is added.
+Calling the Hub directly with this payload refuses, so it cannot bypass the
+ordered path. Unsent/browser paths preserve the original form envelope too.
+The new complete localized preference failure is generated from schedules.ftl;
+it does not claim Operate refusal, uncertain write or node unavailability.
+Caller preference composition/readback and the real framed/file tests are the
+next unverified source steps; no producer or final F1 PASS is claimed here.

@@ -141,8 +141,58 @@ impl crate::State {
         let client = self
             .selected_connection(request.connection())
             .map_err(ScheduleError::NotSelected);
-        self.schedule_calls
-            .ask(client, request, self.events.clone())
+        match request {
+            Request::Remembered(form) => {
+                self.schedule_remembered(
+                    client,
+                    form.request,
+                    crate::dispatch::save_preferences(form.preferences),
+                )
+                .await;
+            }
+            ordinary => {
+                self.schedule_calls
+                    .ask(client, ordinary, self.events.clone())
+                    .await
+            }
+        }
+    }
+    // The same actor awaits persistence before admitting any node operation.
+    // The private future seam gives tests isolated real-file I/O, not a new writer.
+    pub(super) async fn schedule_remembered(
+        &self,
+        client: Result<SelectedConnection, ScheduleError>,
+        request: vessel_app_view::schedules::editor::io::Request,
+        persisted: impl std::future::Future<Output = crate::dispatch::SaveOutcome>,
+    ) {
+        use crate::dispatch::SaveOutcome;
+        let admitted = matches!(request.operation(), vessel_app_view::schedules::editor::io::Operation::Save(save)
+            if matches!(match save.as_ref() {
+                vessel_app_view::schedules::editor::definition::Save::Create(value) => &value.definition.target,
+                vessel_app_view::schedules::editor::definition::Save::Update(value) => &value.definition.target,
+            }, ScheduleTarget::NewSession { .. }));
+        let result = if !admitted {
+            Err(ScheduleError::Preferences)
+        } else {
+            match client {
+                Err(error) => Err(error),
+                Ok(client) => {
+                    if persisted.await == SaveOutcome::Saved {
+                        self.schedule_calls
+                            .ask(Ok(client), request, self.events.clone())
+                            .await;
+                        return;
+                    }
+                    Err(ScheduleError::Preferences)
+                }
+            }
+        };
+        let _closed = self
+            .events
+            .send(crate::Event::Schedules(Message::FormReplied(FormAnswer {
+                request,
+                result,
+            })))
             .await;
     }
 }
@@ -156,6 +206,11 @@ async fn execute(client: &SelectedConnection, request: &Request) -> Message {
         Request::Form(request) => Message::FormReplied(FormAnswer {
             request: request.clone(),
             result: super::form::run(client, request.operation()).await,
+        }),
+        // This payload must go through the ordered actor path, never the Hub directly.
+        Request::Remembered(form) => Message::FormReplied(FormAnswer {
+            request: form.request.clone(),
+            result: Err(ScheduleError::Preferences),
         }),
         Request::History(request) => Message::HistoryReplied(HistoryAnswer {
             request: request.clone(),

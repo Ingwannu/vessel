@@ -11,10 +11,26 @@ pub enum Request {
     Row(RowRequest),
     /// Project/model/preview/create/update from an explicit form visit.
     Form(io::Request),
+    /// Explicit new-session save after the same actor persists its choices.
+    Remembered(RememberedForm),
     /// Read-only run history from the explicitly selected physical machine.
     History(reader::Request),
     /// Metadata for a run's actual session; this does not open a live panel.
     Lookup(reader::Lookup),
+}
+/// A local preference snapshot, never serialized or included in diagnostics.
+#[derive(Clone, PartialEq, Eq)]
+pub struct RememberedForm {
+    pub(super) request: io::Request,
+    pub(super) preferences: Box<crate::Prefs>,
+}
+impl std::fmt::Debug for RememberedForm {
+    fn fmt(&self, out: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        out.debug_struct("RememberedForm")
+            .field("request", &self.request)
+            .field("preferences", &"<redacted>")
+            .finish()
+    }
 }
 impl From<RowRequest> for Request {
     fn from(value: RowRequest) -> Self {
@@ -37,12 +53,22 @@ impl From<reader::Lookup> for Request {
     }
 }
 impl Request {
+    /// Preserve the form envelope while the actor saves local choices first.
+    /// Only a new-session Save is admitted by the actor; other uses refuse.
+    #[must_use]
+    pub fn remembering(request: io::Request, preferences: crate::Prefs) -> Self {
+        Self::Remembered(RememberedForm {
+            request,
+            preferences: Box::new(preferences),
+        })
+    }
     /// Every family is fenced by its original physical admission.
     #[must_use]
     pub const fn connection(&self) -> &ConnectionContext {
         match self {
             Self::Row(request) => request.connection(),
             Self::Form(request) => request.connection(),
+            Self::Remembered(form) => form.request.connection(),
             Self::History(request) => request.connection(),
             Self::Lookup(request) => request.connection(),
         }
@@ -57,6 +83,10 @@ impl Request {
             }),
             Self::Form(request) => Message::FormReplied(FormAnswer {
                 request,
+                result: Err(error),
+            }),
+            Self::Remembered(form) => Message::FormReplied(FormAnswer {
+                request: form.request,
                 result: Err(error),
             }),
             Self::History(request) => Message::HistoryReplied(HistoryAnswer {

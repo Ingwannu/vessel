@@ -33,6 +33,9 @@ pub enum ScheduleError {
     /// No request was dispatched because the local pool is full.
     #[error("schedule request pool is full")]
     Busy,
+    /// Local preference persistence refused before any schedule RPC was polled.
+    #[error("the app could not save schedule choices")]
+    Preferences,
     /// Browser builds have no transport; never invent a schedule result.
     #[error("schedule transport is unavailable in this browser build")]
     NoTransport,
@@ -114,6 +117,7 @@ impl ScheduleError {
             Self::NotSelected(why) => connection(*why),
             Self::Offline => Failure::Offline,
             Self::Busy => Failure::Busy,
+            Self::Preferences => Failure::Preferences,
             Self::NoTransport => Failure::NoTransport,
         }
     }

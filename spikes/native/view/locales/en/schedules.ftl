@@ -480,3 +480,6 @@ schedules-form-model-retry = Retry
 schedules-form-model-retrying = Retrying...
 # Successful model catalog/search with no matching models; not a provider error.
 schedules-form-model-no-matches = No models match your search
+
+# Local preference persistence failed before the schedule RPC; no node action occurred.
+schedules-failed-preferences = Could not save these model choices. No schedule was sent. Check this device’s storage and try again.
