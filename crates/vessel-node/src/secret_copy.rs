@@ -110,6 +110,7 @@ mod tests {
                 .unwrap()
                 .push(serde_json::to_string(&call).unwrap());
             std::future::ready(answer(&call).map(|reply| Forwarded {
+                reference_origin: None,
                 reply: Box::new(reply),
             }))
         };

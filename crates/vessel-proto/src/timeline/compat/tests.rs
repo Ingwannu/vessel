@@ -160,7 +160,9 @@ fn direct_records_pages_and_every_nested_envelope_use_the_same_optional_field_ma
     let wrappers: [fn(Forwarded) -> Reply; 3] = [Reply::Forward, Reply::Relay, Reply::Deliver];
     for wrap in wrappers {
         let nested = wrap(Forwarded {
+            reference_origin: None,
             reply: Box::new(wrap(Forwarded {
+                reference_origin: None,
                 reply: Box::new(Reply::ReadEvents(page.clone())),
             })),
         });
@@ -376,6 +378,7 @@ fn scoped_legacy_identity_is_identical_on_direct_page_and_nested_outgoing_paths(
     assert_eq!(masked_page.records, [masked_record]);
     for wrap in [Reply::Forward, Reply::Relay, Reply::Deliver] {
         let nested = wrap(Forwarded {
+            reference_origin: None,
             reply: Box::new(Reply::ReadEvents(page.clone())),
         })
         .for_protocol(protocol)

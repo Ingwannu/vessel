@@ -307,6 +307,7 @@ fn nested(forwarded: &Forwarded, protocol: ProtocolVersion) -> Option<Forwarded>
         .reply
         .for_protocol(protocol)
         .map(|reply| Forwarded {
+            reference_origin: None,
             reply: Box::new(reply),
         })
 }
@@ -460,10 +461,11 @@ mod tests {
             at_end: true,
         };
         let delivered = Reply::Deliver(Forwarded {
+            reference_origin: None,
             reply: Box::new(Reply::ReadEvents(page)),
         });
         assert_eq!(delivered.for_protocol(V10), None);
-        let Some(Reply::Deliver(Forwarded { reply })) = delivered.for_protocol(V9) else {
+        let Some(Reply::Deliver(Forwarded { reply, .. })) = delivered.for_protocol(V9) else {
             panic!("an envelope stays an envelope");
         };
         let Reply::ReadEvents(older) = *reply else {

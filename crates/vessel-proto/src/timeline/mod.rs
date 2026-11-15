@@ -12,6 +12,7 @@ mod plan;
 mod question;
 mod question_reply;
 mod receipt;
+mod reference;
 mod response;
 mod scope;
 
@@ -48,3 +49,5 @@ pub const TIMELINE_PARITY: Option<ProtocolVersion> = None;
 pub use scope::ToolCallScope;
 
 pub use plan::*;
+
+pub use reference::TimelineReferenceOrigin;

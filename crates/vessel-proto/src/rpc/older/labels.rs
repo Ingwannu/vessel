@@ -246,12 +246,15 @@ mod tests {
         let list = Reply::ListSessions(vec![info()]);
         for reply in [
             Reply::Forward(crate::Forwarded {
+                reference_origin: None,
                 reply: Box::new(list.clone()),
             }),
             Reply::Relay(crate::Forwarded {
+                reference_origin: None,
                 reply: Box::new(list.clone()),
             }),
             Reply::Deliver(crate::Forwarded {
+                reference_origin: None,
                 reply: Box::new(list),
             }),
         ] {

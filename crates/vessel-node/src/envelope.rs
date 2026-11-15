@@ -324,6 +324,7 @@ impl NodeService {
 
 fn forwarded(reply: Result<Reply, WireError>) -> Result<Forwarded, WireError> {
     reply.map(|reply| Forwarded {
+        reference_origin: None,
         reply: Box::new(reply),
     })
 }

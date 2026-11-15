@@ -413,6 +413,7 @@ mod tests {
             None
         );
         let forwarded = Reply::Forward(Forwarded {
+            reference_origin: None,
             reply: Box::new(added),
         });
         assert_eq!(forwarded.withheld(V10), Some(unreadable()));
