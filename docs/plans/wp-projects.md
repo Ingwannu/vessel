@@ -532,3 +532,30 @@ different alias cannot validate another entry's data. This helper never chooses
 a client or action route. The pane's captured action context remains separate.
 An additional pure regression covers higher-revision source selection and
 conflicting equal revisions; it remains uncompiled until module registration.
+
+
+### Editor opening is a local desktop operation
+
+Direct reference reads clarify the execution boundary:
+`packages/app/src/workspace/open-in-editor/button.tsx:100–159` and
+`directory.ts:20–72` gate desktop targets with `useIsLocalDaemon`; remote workspaces
+do not send their paths to the local editor bridge. Desktop
+`features/editor-targets/ipc.ts:13–58` validates the launch payload and dispatches
+locally, while `registry.ts:31–56,66–132` fixes the 25-target order, applies
+workspace-specific availability, expands home paths and requires existing absolute
+local paths. Installation is rechecked at launch. No node editor RPC follows from
+these desktop sources.
+
+[Decision Log]
+- Purpose: an identical-looking remote path must never open an unrelated local directory.
+- Existing assets: authenticated managed-local target provenance, canonical connection admission, existing workspace placement and the desktop intent queue.
+- Alternatives: classify localhost URLs, use the first book alias, compare cwd strings, or launch an editor on the remote node. Those lose the execution boundary or change the desktop behavior.
+- Choice: future native editor discovery/launch stays in a local desktop runtime behind the canonical live managed-local target and the original connection guard; registry ids provide placement only.
+- Reason: local execution is an authenticated controller fact, independent of alias/path spelling; editor support is not a new node capability.
+- Impact: no local-target fallback for remote/unavailable peers. Target selection, positive line/column validation, installation checks, safe argument construction and process launch require a fake-runtime-tested implementation before activation.
+
+This is source analysis only. No real HOME/PATH editor inventory, editor/browser
+launch, node call or desktop runtime implementation was performed. The 25 target
+implementations, platform launch behavior and batch-file quoting still require
+the complete target-specific implementation and review; reading the registry and
+boundary does not establish their parity.
