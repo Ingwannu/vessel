@@ -104,7 +104,12 @@ colors/spelling, unknown unassignment, stable order and atomic collision
 rejection. Their tests are pending. These modules have no product caller until
 the registry/store/method wiring lands, per the staging rule.
 
-Next: proto clippy, then reviewed ADR 0082 registry adoption and single-writer
+Merged reviewed identity-only commit `e45a5d89` after Quality B. The sole
+conflict was the id reexport list: kept every head export and appended the
+two catalog generation/sequence types. Registry/store code was not adopted;
+ownership lookup remains behind a typed staged boundary/fake pending review.
+
+Next: reviewed ADR 0082 registry adoption and single-writer
 persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded
 coverage and generated TypeScript remain owed. The native skeleton lives on
 the separate app branch and must merge the announced app base first. No full
