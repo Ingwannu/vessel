@@ -241,3 +241,15 @@ This does not freeze external edits or prove physical root continuity; root
 exclusion and the independent public ConfigEditError source-chain privacy follow-up
 remain incomplete. Existing config identity/CAS tests require changed-head VM
 execution. No new runtime, wire activation or cancellation proof is claimed here.
+
+## Generated TypeScript recovery
+
+Run wp-projects-c1-ts-20261115T163701Z-13eede0f executed the official generator:
+five selected TS tests passed (3 proto, 2 web); the step correctly remained red
+because the tracked wire declarations were stale for the four pending project
+management methods. The supported TS artifacts pin the exact source commit,
+status, three declaration files and patch with six SHA-256 entries; every hash
+was verified, and all three generated declaration byte streams were installed
+unchanged. No TypeScript was hand-edited. Later directory/config admission changes
+have no wire delta. Freshness and changed-head C1 checks remain owed; this is not
+feature activation, schema assignment or full C1 acceptance.
