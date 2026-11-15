@@ -110,3 +110,11 @@ remain stderr-only. Logging failures never authorize process control, and a
 closed app pipe does not prevent retained file writes. NodeHome reads only the
 last128KiB/100lines through the Store-derived path without opening a database.
 Captured stderr still handles failures before file logging initializes.
+
+
+Carrier join: reviewed a7697906 is merged exactly on integrator approval. A bound
+refusal retains its runner authority; successful detach revokes that observation
+before Released/inner transfer. Detached direct-child wait remains an independent
+OS exit observation. The joined fake echo and separate-launcher fixtures require
+both facts: revoked management authority while the exact released child lives.
+Windows execution remains unverified; combined narrow/full gates are pending.

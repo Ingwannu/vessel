@@ -25,8 +25,14 @@ async fn bound_child_refuses_detach_without_losing_cleanup_authority() {
         } = spawn(&fake_tui()).unwrap();
         let mut lines = BufReader::new(stdout).lines();
         let _ready = read_until(&mut lines, "ready").await;
+        let authority = child.lifetime();
         let refused = child.detach().unwrap_err();
+        assert!(
+            authority.is_live(),
+            "bound refusal revoked the retained owner"
+        );
         drop(refused.into_child());
+        authority.ended().await;
         let _eof = drain(lines).await;
     })
     .await;
@@ -61,7 +67,10 @@ async fn dropping_last_detached_observer_preserves_the_live_group() {
         let cleanup = vessel_proc::ProcessGroup::of_leader(child.pid()).unwrap();
         let mut lines = BufReader::new(stdout).lines();
         let _ready = read_until(&mut lines, "ready").await;
+        let authority = child.lifetime();
         drop(child.detach().unwrap());
+        authority.ended().await;
+        assert!(!authority.is_live());
         stdin.write_all(b"still-alive\n").await.unwrap();
         let _echo = read_until(&mut lines, "echo: still-alive").await;
         cleanup.signal(Signal::Kill).unwrap();
@@ -348,3 +357,6 @@ fn a_refused_group_signal_counts_as_gone_only_after_the_reap() {
         })
         .unwrap();
 }
+
+#[path = "spawn/lifetime.rs"]
+mod lifetime;

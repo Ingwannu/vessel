@@ -40,7 +40,10 @@ fn release_launcher_fixture() {
         let _line = BufReader::new(stdout).read_line(&mut ready).await.unwrap();
         assert_eq!(ready, "lifetime ready\n");
         if mode == "detach" {
+            let authority = child.lifetime();
             drop(child.detach().unwrap());
+            authority.ended().await;
+            assert!(!authority.is_live());
         } else {
             drop(child);
         }
