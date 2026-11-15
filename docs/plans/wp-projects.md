@@ -181,3 +181,13 @@ reconciliation without eviction, and oversized record rollback. These tests and
 new pending handlers still require current narrow and full-package validation.
 Project metadata/config/settings/editor and trust-release runtime work remains
 incomplete. No native integration/capture/parity completion is implied.
+
+External-source automation now has a canonical typed source, persisted in the
+provision intent and descriptor. The pending workspace.release_automation method
+compares exact source+revision and requires Active/person authorization. It does
+no execution. Blocked provisioning forces setup Skip; tests assert skipped state
+and absence of the isolated marker. Wrong source, stale revision and an archive
+claim all refuse release without changing state. These changes await current
+checks. The first registered-call narrow build found three exhaustive mapping
+omissions (agent withholding, old replies, forwarding); all new registry methods
+now explicitly choose those mappings, with no wildcard or head-case rewrite.

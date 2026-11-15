@@ -143,3 +143,21 @@ a complete descriptor/membership snapshot on wake; no polling interval, cwd
 inference, resource payload or project config text is put into notifications.
 Blocked cross-repository source/trust release fields are intentionally not yet in
 this subset; absence must not be interpreted as released approval.
+
+## Retained external source and explicit release
+
+`BlockedSource::ChangeRequest` retains a typed forge repository (kind/host/path)
+and positive PullNumber. WorkspaceAutomation is explicitly Allowed or Blocked;
+there is no serde default that turns an omitted gate into authorization. The
+node-resolved provision intent includes the gate before backing effects. Blocked
+worktrees are created with setup skipped even if the original choice requested
+Run. Normal command-digest approval remains independent.
+
+A person releases one workspace with both its expected descriptor revision and
+exact blocked source. The same writer transaction checks Active, matches both,
+advances the revision and persists Allowed. A stale source/revision or lifecycle
+claim refuses without mutation. A release neither starts setup, retries services,
+approves a command digest nor performs metadata generation. Script and setup
+consumers must enforce the retained gate before automatic execution and offer a
+separate explicit action after release. Historical create intent stays blocked,
+so replay cannot reinterpret the original request as a newly authorized effect.

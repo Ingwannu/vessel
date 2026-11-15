@@ -322,6 +322,12 @@ impl Method {
             | Self::WriteUpload
             | Self::FinishUpload
             | Self::ReadAttachment
+            | Self::GetRegistry
+            | Self::ListWorkspaces
+            | Self::GetWorkspace
+            | Self::RenameWorkspace
+            | Self::PinWorkspace
+            | Self::ReleaseWorkspaceAutomation
             | Self::ListProjects
             | Self::GetProject
             | Self::AddProject
