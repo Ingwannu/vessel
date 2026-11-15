@@ -213,7 +213,10 @@ fn the_real_registry_lists_every_named_theme_in_both_languages() {
         let choices = PreferenceTheme::ALL.map(|theme| (theme, lang.settings().theme(theme)));
         let all: Vec<PaletteEntry<(), PreferenceTheme>> =
             palette_entries(&fleet(Vec::new()), None, &[], choices, lang);
-        let themes: Vec<_> = in_group(&all, PaletteGroup::Theme);
+        let themes: Vec<_> = all
+            .iter()
+            .filter(|entry| entry.group == PaletteGroup::Theme)
+            .collect();
         assert_eq!(themes.len(), PreferenceTheme::ALL.len());
         for (entry, theme) in themes.into_iter().zip(PreferenceTheme::ALL) {
             assert_eq!(entry.target, PaletteTarget::Theme(theme));
