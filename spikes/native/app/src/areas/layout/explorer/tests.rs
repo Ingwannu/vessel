@@ -2,13 +2,13 @@
 use super::*;
 use crate::areas::session::Open;
 use crate::shell::language_tests;
-use gpui::{AppContext as _, TestAppContext};
+use gpui::TestAppContext;
 use vessel_app_view::layout::{
     AgentRole, LayoutKey, LayoutMode, OpenIntent, Placement, TabId, Target,
 };
 use vessel_proto::SessionId;
 
-fn shell(window: &mut gpui::Window, cx: &mut gpui::Context<Shell>) -> Shell {
+fn shell(window: &mut gpui::Window, cx: &mut gpui::Context<'_, Shell>) -> Shell {
     let mut shell = Shell::without_io(window, cx);
     shell.route = crate::routes::Route::Session;
     shell.areas.session.open = Some(Open {
@@ -27,7 +27,7 @@ fn open(
     key: &LayoutKey,
     target: Target,
     window: &mut gpui::Window,
-    cx: &mut gpui::Context<Shell>,
+    cx: &mut gpui::Context<'_, Shell>,
 ) -> TabId {
     shell
         .layout_open_target(
