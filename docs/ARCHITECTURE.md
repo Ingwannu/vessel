@@ -1659,3 +1659,11 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+### Checked owned group cleanup
+
+Proc's additive Child::wait_checked distinguishes leader exit from the first
+owned group/job cleanup result. The immutable receipt or typed retained cause
+never retries a delayed numeric group id. Legacy wait and ProcessLifetime revocation remain compatible; neither an observer nor a stored
+PID supplies this receipt. Its accepted cleanup request does not assert every
+descendant's observed OS death (docs/plans/checked-process-cleanup.md).
