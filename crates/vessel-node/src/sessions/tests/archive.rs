@@ -237,8 +237,10 @@ async fn cancelled_rpc_keeps_admitted_cleanup_and_resume_exclusion_until_complet
                     .await
             });
             waiting.await.unwrap();
+            assert!(fixture.sessions.marking.try_lock().is_err());
             request.abort();
             assert!(request.await.unwrap_err().is_cancelled());
+            assert!(fixture.sessions.marking.try_lock().is_err());
             let mark_sessions = std::sync::Arc::clone(&fixture.sessions);
             let unarchive =
                 async move { mark_sessions.mark(id, vessel_proto::Mark::Unarchive).await };
