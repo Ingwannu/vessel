@@ -6,7 +6,7 @@ use vessel_proto::prompt_index::{
     INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexLimit, PromptIndexPage,
     PromptLocation,
 };
-use vessel_proto::{ErrorCode, EventSeq, NodeId, SessionId};
+use vessel_proto::{ErrorCode, EventSeq, NodeId, ProtocolVersion, SessionId};
 
 mod rows;
 pub use rows::{PromptRow, PromptRows};
@@ -18,6 +18,8 @@ pub struct IndexTarget {
     pub machine: MachineKey,
     /// Welcome identity from the shared fleet projection, when connected.
     pub node: Option<NodeId>,
+    /// Negotiated capabilities can change while the durable node id stays the same.
+    pub protocol: Option<ProtocolVersion>,
     /// The retained log to navigate.
     pub session: SessionId,
 }

@@ -116,14 +116,15 @@ impl Shell {
         let Some(shown) = &area.shown else {
             return;
         };
+        let machine = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == shown.machine);
         let target = IndexTarget {
             machine: MachineKey::from_book(&shown.machine),
-            node: self
-                .fleet
-                .machines
-                .iter()
-                .find(|machine| machine.name == shown.machine)
-                .and_then(|machine| machine.node),
+            node: machine.and_then(|machine| machine.node),
+            protocol: machine.and_then(|machine| machine.protocol),
             session: shown.session,
         };
         let latest = area.prompts.last_edit;

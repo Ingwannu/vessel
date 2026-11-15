@@ -18,6 +18,7 @@ fn ask() -> IndexAsk {
             IndexTarget {
                 machine: MachineKey::from_book("fixture"),
                 node: None,
+                protocol: None,
                 session: SessionId::random(),
             },
             None,
@@ -91,12 +92,27 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
     .unwrap();
     let mut request = ask();
     request.target.node = Some(client.node().id);
+    request.target.protocol = Some(client.protocol());
     let (events, mut answers) = mpsc::channel(1);
     let hub = Hub::default();
     for node in [None, Some(NodeId::random())] {
         let mut wrong = request.clone();
         wrong.target.node = node;
         hub.ask(Some(client.clone()), wrong, events.clone()).await;
+        let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
+            panic!("wrong reply");
+        };
+        assert_eq!(answer.result, Err(IndexProblem::Connection));
+    }
+    for protocol in [
+        None,
+        Some(ProtocolVersion::new(
+            negotiated.get().checked_sub(1).unwrap(),
+        )),
+    ] {
+        let mut stale = request.clone();
+        stale.target.protocol = protocol;
+        hub.ask(Some(client.clone()), stale, events.clone()).await;
         let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
             panic!("wrong reply");
         };

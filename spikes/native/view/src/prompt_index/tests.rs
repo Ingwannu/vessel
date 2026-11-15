@@ -6,6 +6,7 @@ fn target(name: &str) -> IndexTarget {
     IndexTarget {
         machine: MachineKey::from_book(name),
         node: None,
+        protocol: None,
         session: SessionId::random(),
     }
 }

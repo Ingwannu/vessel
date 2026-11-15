@@ -221,3 +221,47 @@ fn prompt_navigation_refreshes_metadata_when_another_chunk_extends_the_same_prom
         assert_eq!(shell.areas.conversation.outline.len(), 1);
     });
 }
+
+#[gpui::test]
+fn prompt_navigation_retries_after_the_same_node_negotiates_new_capabilities(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::prompt_index::{IndexPhase, IndexProblem};
+    use vessel_app_view::{Machine, Reach};
+    use vessel_proto::{NodeId, PROTOCOL_VERSION, ProtocolVersion};
+
+    let (probe, cx) = harness(cx);
+    update(&probe, cx, |shell, _, cx| {
+        shell.route = crate::routes::Route::Session;
+        shell.fleet.machines = vec![Machine {
+            name: "machine".to_owned(),
+            reach: Reach::Online,
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            node: Some(NodeId::random()),
+            protocol: Some(ProtocolVersion::new(
+                PROTOCOL_VERSION.get().checked_sub(1).unwrap(),
+            )),
+            version: None,
+        }];
+        shell.prompt_index_refresh();
+        let ask = shell.areas.conversation.prompts.index.restart().unwrap();
+        shell.prompt_index_answered(
+            IndexAnswer {
+                ask,
+                result: Err(IndexProblem::Unsupported),
+            },
+            cx,
+        );
+        assert_eq!(
+            shell.areas.conversation.prompts.index.phase(),
+            IndexPhase::Failed(IndexProblem::Unsupported)
+        );
+        shell.fleet.machines[0].protocol = Some(PROTOCOL_VERSION);
+        shell.prompt_index_fleet_changed();
+        assert!(matches!(
+            shell.areas.conversation.prompts.index.phase(),
+            IndexPhase::Reading(_)
+        ));
+    });
+}
