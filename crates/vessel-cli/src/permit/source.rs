@@ -168,8 +168,8 @@ pub(crate) async fn preflight(
     if rows.iter().any(|row| row.agent_id != first.agent_id) {
         return Err(SourceError::Mismatch);
     }
-    let mut unique = HashSet::new();
-    if rows.iter().any(|row| !unique.insert(row.id)) {
+    let mut selected_ids = HashSet::new();
+    if rows.iter().any(|row| !selected_ids.insert(row.id)) {
         return Err(SourceError::Duplicate);
     }
     let held = source.conversation(first.agent_id).await?;
