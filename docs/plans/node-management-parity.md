@@ -46,8 +46,10 @@ slice order. The docs commit adds both and no command.
   the first narrow clippy failure is retained, not called green.
 - Merged: node head `242076b5`, conflict-free, before the proc move. Its
   existing tables, documents and tests remain intact.
-- Next: merge the designated terminal-deletion repair head and gate service
-  observations again. Descriptor possession, generation/namespace verification
+- Merged: the designated node head `ba45a6e3` includes the terminal-deletion
+  handover repair. The merge was conflict-free, with no manual content changes.
+  Gate service observations once on this tree; the earlier failure stays red.
+  Descriptor possession, generation/namespace verification
   and the real force caller remain separate reviewed changes. Config/reload/
   session-restart work and real manager/agent execution remain unverified.
 - Reviewed: 2h0's documents-only observation contract passed review.
