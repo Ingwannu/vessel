@@ -40,7 +40,7 @@ impl Server {
             .await
             .unwrap()
             .unwrap();
-        self.task.take();
+        drop(self.task.take());
     }
 }
 impl Drop for Server {
