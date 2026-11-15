@@ -81,7 +81,7 @@ impl Shell {
             return;
         };
         self.prefer(&PreferenceChange::UsageHost(Some(node)), window, cx);
-        self.areas.usage.host_list.close();
+        self.areas.usage.host_list.close_and_restore(window, cx);
         cx.notify();
     }
 }

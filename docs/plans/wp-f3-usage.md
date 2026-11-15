@@ -115,3 +115,10 @@ than presenting a working-looking cached toggle. Pure reader regressions cover
 both transport timeout and Forbidden, old timestamp preservation during retry,
 and replacement by the next actual successful response. Current combined runtime
 proof remains owed; the already queued f80 consumer run predates this delta.
+
+Selecting a host is an actual picker dismissal, so it now uses the landed
+close_and_restore API after the admitted preference update. Plain close remains
+the shared producer's intermediate-navigation operation; leaving it here could
+leave keyboard focus on the retired picker. Parent/NodeId admission is unchanged.
+The parent's close already uses the same actual-dismiss acknowledgment before
+its own dialog focus restoration. Consumer interaction verification remains owed.
