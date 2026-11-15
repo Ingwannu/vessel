@@ -51,7 +51,7 @@ capability; no package UI or node implementation starts before that sequence.
 
 ## Current producer/consumer boundary
 
-The app tree has consumed package base 8 (91407173) through its authorized line merge,
+The app tree has consumed package base 8e (82ca07a7) through its authorized line merge,
 including the fixed native lock and the shared layout/delivery seams.
 The node producer remains on its separate checkpoint branch. Its latest source
 includes physical admission for ordinary writers and retained startup/lifecycle
@@ -105,3 +105,13 @@ RestoreId survives response loss and reconnect; retries query durable status
 before another action. Existing queue, conversation and composer stay untouched.
 Runtime Busy/FeatureUnavailable remains visible until reviewed node activation;
 private fixtures or baseline native gates cannot establish a working app feature.
+
+
+### App line 8e preparation (no feature implementation)
+
+Consumed announced package base 8e (82ca07a7) through app-line merge ff2f20cb.
+No app whole gate was running. Shared owner-retirement and picker admission
+seams remain the canonical controls. This app tree takes no node branch or
+unreviewed values carrier; checkpoint UI remains held for the reviewed producer
+contract. The node producer separately consumes announced node9c150c6e and is
+under narrow validation. Base gates do not validate this package's future UI.
