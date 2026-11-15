@@ -9,8 +9,7 @@ use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, Window, anchored, deferred,
-    div, px,
+    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, anchored, deferred, div, px,
 };
 
 /// The narrowest a menu is (Paseo's `minWidth`).

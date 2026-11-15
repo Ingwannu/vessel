@@ -34,13 +34,12 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    Animation, AnimationExt as _, AnyElement, App, Bounds, BoxShadow, Corners, ElementId,
-    FocusHandle, Hsla, MouseButton, MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta,
-    ScrollEvent, Window, canvas, div, hsla, point, px, white,
+    AnyElement, App, Bounds, BoxShadow, Corners, ElementId, FocusHandle, Hsla, MouseButton,
+    MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta, ScrollEvent, Window, canvas,
+    div, hsla, point, px, white,
 };
 
 use crate::theme::Tokens;

@@ -37,3 +37,12 @@ source-only split, and no runtime approval is inferred from it.
 
 Next: reapply typed feedback, leading glyph size, dismissal and actual-bounds
 placement without removing the published renderer's motion or existing entry.
+
+The first narrow Kit Clippy run compiled the cold dependency tree and failed
+on unused imports: `Window` in the split drawing module and the legacy
+Animation/AnimationExt/Duration imports left after spinner delegation. The
+follow-up removes those imports, with no lint allowance or behaviour change.
+That first failure remains in its log; the changed tree needs a new check.
+The changed tree's short-lane `cargo clippy -p vessel-app-kit --all-targets --
+-D warnings` then passed, with Kit actually checked. This is compilation/lint
+evidence for Kit only, not the still-owed whole native test gate or UI proof.
