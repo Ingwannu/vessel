@@ -27,6 +27,8 @@ use vessel_agent::{HistoryFrom, NotACursor};
 use vessel_proto::history::{AgentHistoryPage, GetAgentHistory, HistoryEntry};
 use vessel_proto::{ErrorCode, HarnessRef, HarnessSessionId, SessionId, SessionTitle, WireError};
 
+mod known;
+
 use super::{Connection, NodeService, wire};
 
 /// Listings running at once, node-wide; more are `unavailable`.
@@ -82,6 +84,12 @@ impl NodeService {
         let resolved = self
             .resolve(&harness, profile.as_ref())
             .map_err(|error| wire(&error))?;
+        let account = resolved.name().clone();
+        let implicit = self
+            .resolve(&harness, None)
+            .map_err(|error| wire(&error))?
+            .name()
+            .clone();
         // A routed profile's agent gets a token of its own while it lists,
         // retired after, as for a probe: no prompt is sent.
         let listing = SessionId::random();
@@ -103,7 +111,9 @@ impl NodeService {
             .await;
         self.models.retire(listing);
         let page = listed.map_err(|error| wire(&error))?;
-        let known = self.known_conversations(&harness).await?;
+        let known = self
+            .known_conversations(&harness, &account, &implicit)
+            .await?;
         Ok(AgentHistoryPage {
             conversations: page
                 .entries
@@ -125,33 +135,15 @@ impl NodeService {
         })
     }
 
-    /// The conversations of `harness` this node's sessions are on, each
-    /// with the newest session on it.
+    /// A transcript copy in another account must not appear already imported.
     async fn known_conversations(
         &self,
         harness: &HarnessRef,
+        account: &vessel_proto::ProfileName,
+        implicit: &vessel_proto::ProfileName,
     ) -> Result<HashMap<HarnessSessionId, SessionId>, WireError> {
         let sessions = self.sessions.list().await.map_err(|error| wire(&error))?;
-        let mut known: HashMap<HarnessSessionId, (chrono::DateTime<chrono::Utc>, SessionId)> =
-            HashMap::new();
-        for info in sessions {
-            if info.spec.harness != *harness {
-                continue;
-            }
-            let Some(conversation) = info.harness_session else {
-                continue;
-            };
-            let newer = known
-                .get(&conversation)
-                .is_none_or(|(created, _)| info.created_at > *created);
-            if newer {
-                let _replaced = known.insert(conversation, (info.created_at, info.id));
-            }
-        }
-        Ok(known
-            .into_iter()
-            .map(|(conversation, (_created, id))| (conversation, id))
-            .collect())
+        Ok(known::in_account(sessions, harness, account, implicit))
     }
 }
 

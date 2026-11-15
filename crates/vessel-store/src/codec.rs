@@ -84,7 +84,7 @@ fn decode_text<T: serde::de::DeserializeOwned>(
 /// (`marks::MARK_COLUMNS`) from [`FIRST_MARK`] on, then attention and labels.
 pub(crate) const SESSION_COLUMNS: &str = "id, spec, status, created_at, ended_at, next_seq, harness_session, profile, created_by, \
      via, origin, model, title, abilities, pinned, archived_at, read_seq, marked_unread, \
-     attention_seq, labels, title_origin";
+     attention_seq, labels, title_origin, detach_receipt";
 
 /// Where the marks' columns start in [`SESSION_COLUMNS`].
 const FIRST_MARK: usize = 14;
@@ -94,6 +94,8 @@ const ATTENTION: usize = 18;
 const LABELS: usize = 19;
 /// Provenance follows the head's current-label projection.
 const TITLE_ORIGIN: usize = LABELS.saturating_add(1);
+/// Detach follows the head migration without changing prior column meanings.
+const DETACH_RECEIPT: usize = TITLE_ORIGIN.saturating_add(1);
 
 pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError> {
     let id = session_id_from_sql(&row.get::<_, String>(0)?)?;
@@ -159,6 +161,13 @@ pub(crate) fn session_from_row(row: &Row<'_>) -> Result<SessionInfo, StoreError>
         .map(|origin| decode::<vessel_proto::TitleOrigin>(id, Column::TitleOrigin, &origin))
         .transpose()?
         .unwrap_or_default();
+    info.detach_receipt = row
+        .get::<_, Option<String>>(DETACH_RECEIPT)?
+        .map(|receipt| decode(id, Column::DetachReceipt, &receipt))
+        .transpose()?;
+    let _validated = info
+        .parentage()
+        .map_err(|_invalid| StoreError::InvalidParentage(id))?;
     Ok(info)
 }
 

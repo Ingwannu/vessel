@@ -559,3 +559,209 @@ launch, node call or desktop runtime implementation was performed. The 25 target
 implementations, platform launch behavior and batch-file quoting still require
 the complete target-specific implementation and review; reading the registry and
 boundary does not establish their parity.
+
+
+## Base 9 integrated registry dependency history
+
+The following producer history is preserved from the node line, not a current
+claim that its old checks remain pending. Registry/admission are now in announced
+node 9c150c6e (all 18 combined stages green) and app base 9 db42d9c5. Metadata
+protocol 25 is separately announced on node 1c762ccf; the app waits for its lead
+base before registering the live projection. Native guard/query proof and the
+remaining C1 effects are still incomplete.
+
+## Final ownership correction
+
+The canonical plan assigns this package project UI plus registry/status/rename/pin
+and ADR 0082 node identity. Create-flow UI/receipts and terminal profiles belong
+to the create package; archive/restore UI belongs to lifecycle. They consume the
+shared registry rather than re-declaring ids. Setup progress UI belongs to scripts.
+Project settings and editor targets remain this package. The registry's first
+staged contract is `vessel_proto::WorkspaceId` and `vessel_proto::registry`,
+including an atomic `RegistrySnapshot { node, revision, workspaces, memberships }`.
+Session/terminal ownership is explicit via WorkspaceResource; no old SessionInfo
+field or cwd-based ownership is introduced. Protocol remains unassigned.
+
+Narrow validation: local proto test cancelled while still queued (no compiler
+ran) to move the dependency-critical contract check to the build machine.
+The contract is staged until its narrow test and Clippy complete; no native or
+root whole-gate/capture/consumer-ready claim yet.
+
+## Registry persistence implementation
+
+The SQLite append follows the base's newest migration through one local constant.
+The public Store handle uses its existing writer savepoints/read pool. Descriptor
+CAS, resource admission and global revision are committed together. Admission also
+advances the descriptor revision, so an archive claim made from an older member
+snapshot fails. Archiving blocks further admission. Creation uses fixed backing
+reservations and a descriptor+reservation completion transaction; these are not
+the create package's user operation/subscribe receipts.
+
+Regression cases: shared cwd stays distinct, stale CAS rollback, unique ownership,
+archive/member race, changed provision intent, corrupt rows and counter exhaustion.
+Existing inbox rollback fixture gains only this migration's DROP statements before
+its original rollback; no production migration runner or head assertion is changed.
+
+Resume: staged contract 702277bd passed 5 proto registry tests; its narrow Clippy
+is queued. Store persistence and Archiving/root adapter are implemented locally,
+awaiting narrow store checks. No node RPC is registered, no app wire integration,
+no full gate or captures yet. Shared registry types are not called reviewed.
+
+The continuation's staged provisioning service reuses worktree creation with a fixed,
+durable backing id. Local provisioning creates only a registry record. Replays
+return the same descriptor; an id with a different intent is refused. Approval
+is returned before a worktree is made. Startup marks interrupted Creating
+reservations Uncertain; no automatic filesystem replay occurs. Descriptor
+publication and reservation Ready are one transaction. The node module remains on that continuation until its real caller wires it.
+This dependency retains the unchanged legacy worktree.create implementation,
+which chooses its own random id.
+
+Contract narrow Clippy on 702277bd returned three documentation-markdown lints
+(no type/runtime error). They are corrected in the next commit and rechecked;
+the failed log remains evidence. Tests on that commit were 5 passed/0 failed.
+
+The first store narrow run (53e835a1) stopped while prebuilding the node because
+SQLite does not decode u64 directly. The registry reader now decodes i64 and
+checks conversion to the typed nonnegative revision; no default or truncation.
+The original failed log is retained.
+
+Store narrow run c620d7c2: 87 passed/0 failed. Local Clippy found unused SQL row
+counts, doc markup and discarded signed-conversion causes. The next change binds
+row counts and retains TryFromIntError as a typed source. Registry invalidation
+uses a coalesced watch emitted only after a successful writer commit; consumers
+re-read authoritative lifecycle/ownership, with no polling or cwd guess. New
+watcher/owner regressions are added and await checks. This is not a runtime port
+allocator or lifecycle drain implementation.
+
+## Dependency split and pending registry calls
+
+The identity-only dependency has its own value-types plan. Registry/store remains
+separate and unreviewed until its whole root gate and source review pass. Quality B
+pending rows now cover workspace.registry/list/get/rename/pin under the single
+unassigned feature constant; no protocol number is selected here. A finite
+long-poll uses the existing waiter shares and the store's committed watch. Empty
+and archived records remain authoritative, with stable NodeId in the snapshot.
+The root Request/UnexpectedReply definitions moved to rpc/request.rs without
+changing their public re-export, to keep the single method table below its budget.
+
+Actor admission uses an opaque pre-spawn lease, exact ownership and an archive
+fence. Restart marks unfinished admissions uncertain; never replay automatically.
+Named lifetime count and worst-case byte reservations are in registry/capacity.rs.
+Tests cover lease/archive interleaving, stale completion after retry, capacity
+reconciliation without eviction, and oversized record rollback. These tests and
+new pending handlers still require current narrow and full-package validation.
+Project metadata/config/settings/editor and trust-release runtime work remains
+incomplete. No native integration/capture/parity completion is implied.
+
+External-source automation now has a canonical typed source, persisted in the
+provision intent and descriptor. The pending workspace.release_automation method
+compares exact source+revision and requires Active/person authorization. It does
+no execution. Blocked provisioning forces setup Skip; tests assert skipped state
+and absence of the isolated marker. Wrong source, stale revision and an archive
+claim all refuse release without changing state. These changes await current
+checks. The first registered-call narrow build found three exhaustive mapping
+omissions (agent withholding, old replies, forwarding); all new registry methods
+now explicitly choose those mappings, with no wildcard or head-case rewrite.
+
+The registry dependency migration contains only its live descriptor/reservation/
+resource/revision tables. Project presentation storage is deferred to the later
+project package's append; no unused project-metadata table is reserved here.
+
+
+Earlier registry dependency checkpoint: local Store suite 96 passed/0 failed,
+node registry provisioning 5/0, TypeScript generation 4/0. Strict all-target
+Clippy then found explicit pin defaults, a borrowed error adapter, one oversized
+existing worktree function after fixed-id admission, and an unused test result.
+These are corrected without changing head test expectations. Stable terminal
+restart now has a distinct exact-predecessor lease API and two new adversarial
+cases plus at-capacity restart coverage; current checks and A12 remain owed.
+Existing Ready admission is not process-exit proof. Its consumer must join the
+old run before restarting; no signal/lifetime heuristic is substituted here.
+
+## Dependency whole-gate findings and correction
+
+The frozen registry dependency at 1958fd7b passed strict root/TS/forge Clippy,
+wire generation and build checks. Its whole Rust run had 2304 passed, 8 failed,
+12 ignored: the explicit forwardable-method expectation lacked the six new
+registry methods; seven legacy migration fixtures left the registry append in
+place before rewinding user_version. The registry admission/restart/watch tests
+passed in that run. Web unit tests passed 449 and forge tests 4; browser e2e
+passed 65 with one unresolved command-list Escape/filter failure at
+conversation.spec.ts:258. This is a failed gate, not acceptance or parity proof.
+
+The correction adds the six methods to the explicit expected set and removes
+only the new registry tables in rollback fixtures. The title-origin fixture now
+targets its preexisting schema checkpoint instead of newest-minus-one, so a
+later append cannot change which migration it tests. Production migration SQL,
+authorization, method scopes and assertions remain intact. Targeted reruns and a
+new whole gate remain owed; the unrelated browser failure must also be checked.
+
+## Dependency boundary: provisioning stays in the continuation
+
+The registry/store dependency excludes the cfg(test) filesystem provisioner and
+its node-only tests. Under A10, an unwired node service stays on its continuation
+branch until its real caller removes staging in a wiring commit. Its source is
+retained in the separate project-management continuation; it has no consumer-
+ready or shipped provisioning API claim. This dependency contains the live
+registry read/mutation handlers, durable metadata/reservations/membership and
+start-admission seams. Creation receipts, actual backing provisioning and actor
+launch remain separate work. No default workspace is synthesized.
+
+The first fixture-correction narrow failed at compile time because devices.rs
+uses its own inline fixture builders rather than support/fixtures.rs. The
+rollback SQL now has one small test-only module used by both fixture families.
+The failed run is retained; a corrected narrow and whole gate remain owed.
+
+
+## Corrected dependency narrow evidence
+
+At exact source 53c13163, proto/store all-target tests passed 465/0/1, including
+the corrected legacy migration fixtures, admission/restart and registry watch
+cases. Store benchmarks also completed. The subsequent Clippy command did not
+execute because local Rust compilation was disabled centrally; this is not a
+compiler failure. Strict proto/store/node Clippy is now submitted to the remote
+build gate. No new Rust work will run on the development host.
+
+The unrelated command-list failure was classified by its web owner as a base
+caret timing defect: a deterministic regression failed 3/3 before its fix and
+passed with the fix. Its combined node gate is still running. This dependency
+will merge the announced complete node head when available, as instructed,
+before retrying the whole gate. No web source was edited here. Source review
+and dependency adoption remain pending.
+
+
+## Announced caret-fix node merge
+
+The complete announced gate44 node head ede20014 is merged under A8, rather than
+taking its web fix alone. Its root gate passed Rust2377/0/12, web464, e2e68 and
+forge4; that is base evidence, not this registry union's gate. The node head owns
+rpc/contract.rs and rpc/table.rs; the registry's redundant request.rs extraction
+is removed, and its six pending rows are appended at the method table's end.
+The head's existing rows, tests, protocol and schema entries remain intact. The
+registry append still follows the unchanged newest head migration. Architecture
+and protocol documents preserve the head's new process/service-port facts and
+append the independent registry section. Changed-head TS/narrow/full checks are
+required next, all on the remote build machine.
+
+The explicit forwardable expectation appends only this package's six names in
+their new method-table order. The head's existing entries and order are unchanged;
+this prevents the table move itself from causing an expected-order regression.
+
+
+## Merged-head strict and generated-wire evidence
+
+Exact c524681c6 on the announced node head passed strict whole-workspace Clippy
+and proto/web TS-feature all-target Clippy remotely. The TS generator's four
+selected tests passed; the named TS step correctly remained red because its
+generated proto.ts differed in three method-union lines after table relocation.
+The build VM's exact generated artifact and wire patch were recovered through
+the supported gate artifact path, source-commit provenance and all SHA256SUMS
+verified, then applied verbatim and compared byte-for-byte. No TypeScript was
+hand-edited. The new final candidate also retains the expected-method-order
+correction; its complete A12 and V3 registry review remain owed.
+
+The first merged-head job was explicitly promoted under a coordinator exception
+because the dependency blocks six core adapters: the safe queued-only endpoint
+verified it held no build slot, terminal cancellation was confirmed, and the
+same immutable c524 commit was submitted once with priority. Its original logs
+remain retained. No running build or unrelated job was canceled.
