@@ -163,3 +163,21 @@ Native runtime mode IDs retain the driver's existing codex-acp-compatible
 dialect. The catalogue metadata boundary ignores unknown additive fields and
 does not introduce SDK/dependency or real-agent schema generation. Execution
 of the added codec and process tests is pending.
+
+## Provider runtime lifetime prerequisite
+
+Tracker row 508 (persistent helper identity and reapStale for OpenCode runtime)
+is owned here under A9 following the coordinator's 07:35 UTC ruling. Its process
+identity and stale-process cleanup must consume the workspace track's forthcoming
+vessel-proc ProcessLifetime. No second reaper or parallel process ledger is
+introduced. Runtime implementation waits for that typed seam, while the provider
+registry, discovery and native transport work proceeds independently.
+
+## Cache subscription boundary
+
+The owner now projects passive snapshots without discovery and publishes typed
+registry invalidations as well as scoped observation notifications. A lagged
+subscriber rereads its own scope. Full execution capacity refuses only new
+work; disabled, ready and coalesced callers still receive the corresponding
+cached observation, with no transient loading slot left after refusal. Tests
+cover those states and configuration changes after passive subscription.

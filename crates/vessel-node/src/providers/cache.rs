@@ -22,6 +22,13 @@ pub(super) enum Refresh {
     Force,
 }
 
+/// Execution capacity affects only new work, never a passive/coalesced answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum WorkBudget {
+    Available,
+    Full,
+}
+
 /// Generation identity is node-minted and cannot silently wrap into old work.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct Ticket(u64);
@@ -75,6 +82,8 @@ pub(super) enum CacheError {
     UnknownProvider,
     #[error("provider catalogue cache exceeds {MAX_CATALOGUES} entries")]
     Capacity,
+    #[error("provider discovery execution capacity is full")]
+    Busy,
     #[error("provider discovery ticket sequence is exhausted")]
     Exhausted,
 }
@@ -124,11 +133,22 @@ impl Cache {
     }
 
     /// Admission snapshots the actual definition before any runtime is touched.
+    #[cfg(test)]
     pub(super) fn begin(
         &mut self,
         id: &ProviderId,
         scope: &CatalogueScope,
         refresh: Refresh,
+    ) -> Result<Admission, CacheError> {
+        self.admit(id, scope, refresh, WorkBudget::Available)
+    }
+
+    pub(super) fn admit(
+        &mut self,
+        id: &ProviderId,
+        scope: &CatalogueScope,
+        refresh: Refresh,
+        budget: WorkBudget,
     ) -> Result<Admission, CacheError> {
         let definition = self.registry.get(id).ok_or(CacheError::UnknownProvider)?;
         if definition.enabled == Enabled::Off {
@@ -142,6 +162,9 @@ impl Cache {
                 return Ok(Admission::Joined(ticket));
             }
             return self.cached(id, scope).map(Admission::Ready);
+        }
+        if budget == WorkBudget::Full {
+            return Err(CacheError::Busy);
         }
         if !self.slots.contains_key(&key) && self.slots.len() == MAX_CATALOGUES {
             return Err(CacheError::Capacity);

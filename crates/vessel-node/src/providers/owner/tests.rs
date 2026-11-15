@@ -95,7 +95,13 @@ async fn passive_miss_runs_no_producer_and_warmups_coalesce_across_host_targets(
     finish.send(observed()).unwrap();
     let first = first_answer.await.unwrap().unwrap();
     assert_eq!(second_answer.await.unwrap().unwrap(), first);
-    assert_eq!(*changes.recv().await.unwrap(), first);
+    assert_eq!(
+        changes.recv().await.unwrap(),
+        Change::Observed {
+            scope: CatalogueScope::Global,
+            diagnostic: Arc::new(first)
+        }
+    );
     owner.stop().await.unwrap();
     task.await.unwrap();
 }
@@ -103,6 +109,7 @@ async fn passive_miss_runs_no_producer_and_warmups_coalesce_across_host_targets(
 #[tokio::test(start_paused = true)]
 async fn changed_definition_cancels_a_producer_and_settles_its_waiters() {
     let (owner, task, mut calls) = controlled();
+    let mut changes = owner.changes();
     let caller = owner.clone();
     let waiting = tokio::spawn(async move {
         caller
@@ -122,6 +129,7 @@ async fn changed_definition_cancels_a_producer_and_settles_its_waiters() {
         .replace(ProviderRegistry::build(&overrides, &[]).unwrap())
         .await
         .unwrap();
+    assert_eq!(changes.recv().await.unwrap(), Change::Registry);
     assert!(matches!(
         waiting.await.unwrap(),
         Err(OwnerError::Superseded)
@@ -140,6 +148,40 @@ async fn changed_definition_cancels_a_producer_and_settles_its_waiters() {
     // Cancellation drops the receiver; even an uncooperative late producer
     // cannot put its old result back into the disabled generation.
     let _late = finish.send(observed());
+    owner.stop().await.unwrap();
+    task.await.unwrap();
+}
+
+#[tokio::test(start_paused = true)]
+async fn snapshots_are_passive_and_registry_notifications_cover_cached_views() {
+    let (owner, task, mut calls) = controlled();
+    let initial = owner.snapshot(CatalogueScope::Global).await.unwrap();
+    assert_eq!(initial.len(), registry().definitions().len());
+    assert!(calls.try_recv().is_err());
+    let mut changes = owner.changes();
+    let overrides = ProviderOverrides::new(BTreeMap::from([(
+        id(),
+        ProviderOverride {
+            enabled: Some(Enabled::Off),
+            ..ProviderOverride::default()
+        },
+    )]))
+    .unwrap();
+    owner
+        .replace(ProviderRegistry::build(&overrides, &[]).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(changes.recv().await.unwrap(), Change::Registry);
+    let current = owner.snapshot(CatalogueScope::Global).await.unwrap();
+    assert_eq!(
+        current
+            .iter()
+            .find(|entry| entry.provider == id())
+            .unwrap()
+            .enabled,
+        Enabled::Off
+    );
+    assert!(calls.try_recv().is_err());
     owner.stop().await.unwrap();
     task.await.unwrap();
 }

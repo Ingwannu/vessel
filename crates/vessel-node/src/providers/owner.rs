@@ -1,7 +1,7 @@
 //! Staged asynchronous catalogue owner. One task owns the cache and waiters;
 //! bounded producer futures support native transports and plugin connections.
 
-use super::cache::{Admission, Cache, CacheError, Observation, Refresh, Ticket, Work};
+use super::cache::{Admission, Cache, CacheError, Observation, Refresh, Ticket, Work, WorkBudget};
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use std::{collections::BTreeMap, future::Future, sync::Arc, time::Duration};
 use tokio::sync::{Semaphore, broadcast, mpsc, oneshot};
@@ -9,6 +9,7 @@ use tokio_util::sync::CancellationToken;
 use vessel_harness::providers::ProviderRegistry;
 use vessel_proto::providers::{
     CatalogueScope, DiscoveryFailure, DiscoveryPhase, ProviderDiagnostic, ProviderId,
+    ProviderSnapshotEntry,
 };
 
 /// Reference discovery budget; queued work shares this finite budget here.
@@ -21,6 +22,17 @@ const MAILBOX: usize = 32;
 const CHANGE_CAPACITY: usize = 32;
 
 type Answer = oneshot::Sender<Result<ProviderDiagnostic, OwnerError>>;
+
+/// Notifications are invalidation hints. Consumers reread after lag and never
+/// confuse an observation for one workspace with another workspace's state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum Change {
+    Observed {
+        scope: CatalogueScope,
+        diagnostic: Arc<ProviderDiagnostic>,
+    },
+    Registry,
+}
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub(super) enum OwnerError {
@@ -36,6 +48,10 @@ pub(super) enum OwnerError {
 
 #[derive(Debug)]
 enum Mail {
+    Snapshot {
+        scope: CatalogueScope,
+        reply: oneshot::Sender<Result<Vec<ProviderSnapshotEntry>, OwnerError>>,
+    },
     Cached {
         provider: ProviderId,
         scope: CatalogueScope,
@@ -64,10 +80,21 @@ struct Pending {
 #[derive(Debug, Clone)]
 pub(super) struct Owner {
     mail: mpsc::Sender<Mail>,
-    changes: broadcast::Sender<Arc<ProviderDiagnostic>>,
+    changes: broadcast::Sender<Change>,
 }
 
 impl Owner {
+    pub(super) async fn snapshot(
+        &self,
+        scope: CatalogueScope,
+    ) -> Result<Vec<ProviderSnapshotEntry>, OwnerError> {
+        let (reply, response) = oneshot::channel();
+        self.mail
+            .send(Mail::Snapshot { scope, reply })
+            .await
+            .map_err(|_closed| OwnerError::Stopped)?;
+        response.await.map_err(|_closed| OwnerError::Stopped)?
+    }
     /// Generic futures are the open provider/plugin producer seam. The actor
     /// does not invent a single-implementation trait merely for its tests.
     pub(super) fn start<P, F>(
@@ -138,7 +165,7 @@ impl Owner {
         response.await.map_err(|_closed| OwnerError::Stopped)
     }
 
-    pub(super) fn changes(&self) -> broadcast::Receiver<Arc<ProviderDiagnostic>> {
+    pub(super) fn changes(&self) -> broadcast::Receiver<Change> {
         self.changes.subscribe()
     }
 
@@ -155,7 +182,7 @@ impl Owner {
 async fn run<P, F>(
     mut cache: Cache,
     mut commands: mpsc::Receiver<Mail>,
-    changes: broadcast::Sender<Arc<ProviderDiagnostic>>,
+    changes: broadcast::Sender<Change>,
     producer: Arc<P>,
 ) where
     P: Fn(Work, CancellationToken) -> F + Send + Sync + 'static,
@@ -167,14 +194,17 @@ async fn run<P, F>(
     loop {
         tokio::select! {
             command = commands.recv() => match command {
+                Some(Mail::Snapshot { scope, reply }) => {
+                    let _gone = reply.send(cache.snapshot(&scope).map_err(OwnerError::from));
+                }
                 Some(Mail::Cached { provider, scope, reply }) => {
                     let _gone = reply.send(cache.cached(&provider, &scope).map_err(OwnerError::from));
                 }
                 Some(Mail::Refresh { provider, scope, refresh, reply }) => {
-                    // Refusal precedes the loading state: every admitted ticket
-                    // must have a future which can settle its waiting callers.
-                    if jobs.len() == MAX_JOBS { let _gone = reply.send(Err(OwnerError::Capacity)); continue; }
-                    match cache.begin(&provider, &scope, refresh) {
+                    // The reducer checks existing/disabled states before work
+                    // admission, so full execution cannot block cached answers.
+                    let budget = if jobs.len() == MAX_JOBS { WorkBudget::Full } else { WorkBudget::Available };
+                    match cache.admit(&provider, &scope, refresh, budget) {
                         Ok(Admission::Ready(value)) => { let _gone = reply.send(Ok(value)); }
                         Ok(Admission::Joined(ticket)) => join(&mut pending, ticket, reply),
                         Ok(Admission::Start(work)) => {
@@ -190,6 +220,7 @@ async fn run<P, F>(
                 Some(Mail::Replace { registry, reply }) => {
                     permits.retain(|id, _| registry.get(id).is_some());
                     for ticket in cache.replace(registry) { cancel(&mut pending, ticket, OwnerError::Superseded); }
+                    let _unobserved = changes.send(Change::Registry);
                     let _gone = reply.send(());
                 }
                 Some(Mail::Stop(reply)) => { let _gone = reply.send(()); break; }
@@ -201,7 +232,7 @@ async fn run<P, F>(
                     if let Some(pending) = waiters {
                         for waiter in pending.waiters { let _gone = waiter.send(Ok(value.clone())); }
                     }
-                    let _unobserved = changes.send(Arc::new(value));
+                    let _unobserved = changes.send(Change::Observed { scope: work.scope, diagnostic: Arc::new(value) });
                 } else if let Some(pending) = waiters {
                     for waiter in pending.waiters { let _gone = waiter.send(Err(OwnerError::Superseded)); }
                 }

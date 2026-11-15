@@ -79,6 +79,39 @@ fn cached_diagnostics_do_not_launch_or_consume_target_capacity() {
 }
 
 #[test]
+fn full_execution_budget_still_serves_disabled_ready_and_joined_reads() {
+    let mut cache = Cache::new(registry());
+    let scope = CatalogueScope::Global;
+    let work = start(&mut cache, "claude", &scope, Refresh::Cached);
+    assert!(
+        matches!(cache.admit(&id("claude"), &scope, Refresh::Cached, WorkBudget::Full), Ok(Admission::Joined(ticket)) if ticket == work.ticket)
+    );
+    assert!(matches!(
+        cache.admit(&id("claude"), &scope, Refresh::Force, WorkBudget::Full),
+        Err(CacheError::Busy)
+    ));
+    assert!(cache.complete(&work, ready(), time()).is_some());
+    assert!(matches!(
+        cache.admit(&id("claude"), &scope, Refresh::Cached, WorkBudget::Full),
+        Ok(Admission::Ready(_))
+    ));
+    assert!(matches!(
+        cache.admit(&id("omp"), &scope, Refresh::Force, WorkBudget::Full),
+        Ok(Admission::Ready(_))
+    ));
+    assert!(matches!(
+        cache.admit(&id("codex"), &scope, Refresh::Cached, WorkBudget::Full),
+        Err(CacheError::Busy)
+    ));
+    assert_eq!(
+        cache.cached(&id("codex"), &scope).unwrap().entry.state,
+        ProviderState::Unavailable {
+            reason: UnavailableReason::NotChecked
+        }
+    );
+}
+
+#[test]
 fn host_catalogues_coalesce_and_target_catalogues_stay_distinct() {
     let mut cache = Cache::new(registry());
     let first = start(&mut cache, "claude", &workspace("first"), Refresh::Cached);
