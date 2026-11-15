@@ -5,15 +5,32 @@
 //! - Constraint: source has no responsive size or hover/pressed palette.
 //! - Alternatives: force a labelled Ghost button's MD geometry/85% press,
 //!   or draw another area-owned pencil and hit target.
-//! - Choice: an original kit Pencil14 on a static22 frame/hit38 shell;
-//!   disabled callers attach no handler, and the kit adds no opacity.
-//! - Why: source `host-appearance-section.tsx` uses padding4/radius6 and
-//!   hitSlop8 in both layouts. The38 touch hit is a source-specific exception.
+//! - Choice: an original kit Pencil at `icon::SM` on a static frame of the
+//!   glyph and `spacing::S1` each side, radius `radius::MD`, and a hit area
+//!   of that frame and `spacing::S2` each side; the frame and the hit are
+//!   computed from those tokens, never restated. Disabled callers attach no
+//!   handler, and the kit adds no opacity.
+//! - Why: source `host-appearance-section.tsx` uses `ICON_SIZE.sm`,
+//!   padding 4, `borderRadius.md` and `hitSlop={8}` in both layouts (a 22
+//!   frame, a 38 touch hit: a source-specific exception to the MD button).
+//! - Difference from the source: Paseo's pencil is a button named for
+//!   assistive technology (`accessibilityRole="button"`, the edit label).
+//!   This one has no accessible name and no keyboard reach: the kit has no
+//!   accessibility tree and no focusable buttons yet, a kit-wide gap with no
+//!   owner named. It takes no label until then, and shows no tooltip,
+//!   because Paseo's pencil shows none.
 //! - Cost: callback/pending state and rename editor remain caller-owned.
 
-use crate::{ButtonState, Tokens, assets::Glyph, theme::spacing};
+use crate::{
+    ButtonState, Tokens,
+    assets::Glyph,
+    theme::{icon as icon_size, radius, spacing},
+};
 use gpui::prelude::*;
 use gpui::{Div, ElementId, MouseButton, Pixels, Stateful, Svg, div, px, svg};
+
+/// Paseo's `hitSlop={8}`: the hit reaches this far past the frame.
+const SLOP: f32 = spacing::S2;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Geometry {
@@ -23,13 +40,19 @@ struct Geometry {
     padding: Pixels,
     radius: Pixels,
 }
-const GEOMETRY: Geometry = Geometry {
-    visual: px(22.0),
-    hit: px(38.0),
-    glyph: px(14.0),
-    padding: px(spacing::S1),
-    radius: px(6.0),
-};
+
+/// The frame is the glyph and its padding; the hit is the frame and the
+/// slop, both on each side.
+fn geometry() -> Geometry {
+    let visual = spacing::S1.mul_add(2.0, icon_size::SM);
+    Geometry {
+        visual: px(visual),
+        hit: px(SLOP.mul_add(2.0, visual)),
+        glyph: px(icon_size::SM),
+        padding: px(spacing::S1),
+        radius: px(radius::MD),
+    }
+}
 
 /// Static Pencil action; the caller wires the editor only when enabled.
 #[must_use]
@@ -38,16 +61,17 @@ pub fn host_rename_button(
     state: ButtonState,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    let geometry = geometry();
     let visual = div()
         .relative()
         .flex()
         .flex_none()
         .items_center()
         .justify_center()
-        .size(GEOMETRY.visual)
-        .p(GEOMETRY.padding)
-        .rounded(GEOMETRY.radius)
-        .child(icon(tokens));
+        .size(geometry.visual)
+        .p(geometry.padding)
+        .rounded(geometry.radius)
+        .child(icon(geometry.glyph, tokens));
     div()
         .id(id)
         .relative()
@@ -55,9 +79,9 @@ pub fn host_rename_button(
         .flex_none()
         .items_center()
         .justify_center()
-        .size(GEOMETRY.hit)
-        .m(px(spacing::S2.copysign(-1.0)))
-        .p(px(spacing::S2))
+        .size(geometry.hit)
+        .m(px(SLOP.copysign(-1.0)))
+        .p(px(SLOP))
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
@@ -67,10 +91,10 @@ pub fn host_rename_button(
         })
         .child(visual)
 }
-fn icon(tokens: &Tokens) -> Svg {
+fn icon(size: Pixels, tokens: &Tokens) -> Svg {
     svg()
         .path(Glyph::Pencil.path())
-        .size(GEOMETRY.glyph)
+        .size(size)
         .text_color(tokens.neutral.foreground_muted)
 }
 
@@ -78,27 +102,30 @@ fn icon(tokens: &Tokens) -> Svg {
 mod tests {
     use super::*;
     use crate::Scheme;
+
+    /// The values are the tokens', and the frame and hit follow from them:
+    /// a padding or slop change moves both, never one of them.
     #[test]
     fn rename_is_static_and_does_not_use_labelled_md_geometry() {
-        assert_eq!(
-            GEOMETRY,
-            Geometry {
-                visual: px(22.0),
-                hit: px(38.0),
-                glyph: px(14.0),
-                padding: px(4.0),
-                radius: px(6.0)
-            }
-        );
-        for (scheme, muted) in [(Scheme::Light, 0x0071_717a), (Scheme::Dark, 0x00a1_a5a4)] {
+        let geometry = geometry();
+        assert_eq!(geometry.glyph, px(icon_size::SM));
+        assert_eq!(geometry.padding, px(spacing::S1));
+        assert_eq!(geometry.radius, px(radius::MD));
+        let visual = spacing::S1.mul_add(2.0, icon_size::SM);
+        assert_eq!(geometry.visual, px(visual));
+        assert_eq!(geometry.hit, px(SLOP.mul_add(2.0, visual)));
+        for scheme in [Scheme::Light, Scheme::Dark] {
             let tokens = Tokens::of(scheme);
-            let mut vector = icon(&tokens);
-            assert_eq!(vector.style().text.color, Some(gpui::rgb(muted).into()));
+            let mut vector = icon(geometry.glyph, &tokens);
+            assert_eq!(
+                vector.style().text.color,
+                Some(tokens.neutral.foreground_muted)
+            );
             for state in [ButtonState::Enabled, ButtonState::Disabled] {
                 let mut button = host_rename_button("rename", state, &tokens);
                 let style = button.style();
-                assert_eq!(style.size.width, Some(px(38.0).into()));
-                assert_eq!(style.size.height, Some(px(38.0).into()));
+                assert_eq!(style.size.width, Some(geometry.hit.into()));
+                assert_eq!(style.size.height, Some(geometry.hit.into()));
                 assert_eq!(style.opacity, None);
             }
         }

@@ -417,8 +417,10 @@ Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
 
 The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
-Pencil14, padding4/radius6, static muted ink, visual22/hit38 in both layouts;
-its caller owns the callback and pending state, with no extra paint.
+Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
+static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
+its caller owns the callback and pending state, with no extra paint. Unlike
+Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
 ### Rules every screen follows
 
