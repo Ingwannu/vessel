@@ -71,6 +71,7 @@ pub use limits::{
 mod mcp;
 mod memory;
 mod profile;
+pub mod providers;
 mod routing;
 mod sessions;
 mod setup;

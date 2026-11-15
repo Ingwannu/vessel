@@ -50,5 +50,9 @@ catalogue and parent configuration, before any process is launched.
 
 Done: inspected the reference and existing harness/probe boundaries; mapped
 provider behaviour above; requested the missing node-call allocation once.
-Next: typed values and skeleton, pure manifest/resolution/launch/registry,
-catalogue owner and fake checks. Wiring waits for the shared method-table head.
+Skeleton: provider identity, bounded mode catalogue, built-in manifest and
+create-config policy are implemented with reference decision tests. Narrow
+compile/tests are pending. Next: launch/registry/catalogue owner and fake checks.
+Wiring waits for the shared method-table head. The integrator approved a
+separate owner-only provider configuration file without a SQLite migration; it
+must reuse the settings file preservation and atomic-write rules.
