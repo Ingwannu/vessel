@@ -33,7 +33,7 @@ use std::time::Duration;
 use gpui::{Anchor, Bounds, PathBuilder, Pixels, Point, anchored, canvas, deferred, point};
 use vessel_app_kit::theme::Scheme;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
+    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
     MouseButton, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, popup};
@@ -222,58 +222,13 @@ fn card(
         Scheme::Light => neutral.surface0,
         Scheme::Dark => neutral.surface2,
     };
-    let detail = |text: String| div().text_color(neutral.foreground_muted).child(text);
-    let mut summary = div().flex().flex_col().gap(px(6.0)).min_w(px(200.0)).child(
-        div()
-            .text_color(neutral.foreground)
-            .child(words.meter_title()),
-    );
-    summary = match meter {
-        Some(meter) => summary
-            .child(
-                div()
-                    .text_color(neutral.foreground)
-                    .child(words.meter_used(&meter)),
-            )
-            .child(detail(words.meter_tokens_line(&meter))),
-        None => summary.child(detail(words.meter_no_data().to_owned())),
-    };
-    if let Some(cost) = facts
-        .context
-        .as_ref()
-        .and_then(|context| context.cost.as_ref())
-    {
-        summary = summary.child(detail(
-            words.meter_cost(cost.amount.get(), cost.unit.as_str()),
-        ));
-    }
+    let summary = summary(shell, meter, tokens);
     let offers_compact = facts.commands.as_ref().is_some_and(|commands| {
         commands
             .iter()
             .any(|command| command.name.as_str() == "compact")
     });
-    // Why `/compact` cannot go now, said under the button (GOAT's
-    // disabled reason): the session has ended (a prompt to it would start
-    // it again, not compact it), or a turn runs. Before the node describes
-    // the session, the session area's word for whether it runs.
-    let ended = shell.areas.conversation.info.as_deref().map_or_else(
-        || {
-            shell
-                .areas
-                .session
-                .open
-                .as_ref()
-                .is_some_and(|open| !open.live)
-        },
-        |info| !is_live(info),
-    );
-    let held = if ended {
-        Some(words.meter_compact_ended())
-    } else if shell.areas.session.conversation.turn_running() {
-        Some(words.meter_compact_busy())
-    } else {
-        None
-    };
+    let held = compact_held(shell);
     div()
         .id("context-meter-card")
         // A press on the card stays on it: without this it reached what
@@ -312,6 +267,67 @@ fn card(
                 }))
         })
         .into_any_element()
+}
+
+/// The card's words: the title, how much of the context is used and in
+/// tokens (or that there is no figure yet), and the cost when the agent
+/// reports one.
+fn summary(shell: &Shell, meter: Option<Meter>, tokens: &Tokens) -> Div {
+    let words = shell.t.lang.conversation();
+    let facts = shell.areas.conversation.timeline.facts();
+    let neutral = tokens.neutral;
+    let detail = |text: String| div().text_color(neutral.foreground_muted).child(text);
+    let mut summary = div().flex().flex_col().gap(px(6.0)).min_w(px(200.0)).child(
+        div()
+            .text_color(neutral.foreground)
+            .child(words.meter_title()),
+    );
+    summary = match meter {
+        Some(meter) => summary
+            .child(
+                div()
+                    .text_color(neutral.foreground)
+                    .child(words.meter_used(&meter)),
+            )
+            .child(detail(words.meter_tokens_line(&meter))),
+        None => summary.child(detail(words.meter_no_data().to_owned())),
+    };
+    if let Some(cost) = facts
+        .context
+        .as_ref()
+        .and_then(|context| context.cost.as_ref())
+    {
+        summary = summary.child(detail(
+            words.meter_cost(cost.amount.get(), cost.unit.as_str()),
+        ));
+    }
+    summary
+}
+
+/// Why `/compact` cannot go now, said under the button (GOAT's disabled
+/// reason): the session has ended (a prompt to it would start it again,
+/// not compact it), or a turn runs. Before the node describes the
+/// session, the session area's word for whether it runs.
+fn compact_held(shell: &Shell) -> Option<&'static str> {
+    let words = shell.t.lang.conversation();
+    let ended = shell.areas.conversation.info.as_deref().map_or_else(
+        || {
+            shell
+                .areas
+                .session
+                .open
+                .as_ref()
+                .is_some_and(|open| !open.live)
+        },
+        |info| !is_live(info),
+    );
+    if ended {
+        Some(words.meter_compact_ended())
+    } else if shell.areas.session.conversation.turn_running() {
+        Some(words.meter_compact_busy())
+    } else {
+        None
+    }
 }
 
 /// GOAT's outline button, the card's width: sends `/compact`.
