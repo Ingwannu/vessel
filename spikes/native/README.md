@@ -1319,7 +1319,6 @@ form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
 
-
 `kit::SearchField` is the shared standalone filter profile over TextField's
 one-line engine and bare renderer. It owns Search14/X14, the source420-point
 maximum,34-point shell and focus palette; areas provide only localized placeholder
