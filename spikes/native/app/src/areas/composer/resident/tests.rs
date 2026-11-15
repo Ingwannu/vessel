@@ -87,9 +87,15 @@ fn clean_snapshot_moves_only_within_its_registry_and_authenticated_address() {
     let SnapshotAttempt::Ready(snapshot) = resources.into_snapshot() else {
         panic!("clean snapshot");
     };
-    let (_, foreign) = fixture();
+    let (_, mut foreign) = fixture();
+    foreign.resident.address = context.resident.address;
     let RestoreAttempt::Refused(snapshot) = snapshot.restore(&foreign) else {
-        panic!("foreign refusal");
+        panic!("another registry cannot claim the same address");
+    };
+    let mut wrong_node = context.clone();
+    wrong_node.resident.address.node = NodeId::random();
+    let RestoreAttempt::Refused(snapshot) = snapshot.restore(&wrong_node) else {
+        panic!("same session on another node is not the same owner");
     };
     let RestoreAttempt::Ready(restored) = snapshot.restore(&context) else {
         panic!("same owner");

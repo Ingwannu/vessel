@@ -129,11 +129,13 @@ impl SessionAttachments {
                     | vessel_app_link::attachments::SubmitFailure::Target(_) => {
                         HoldReason::DirtyInput
                     }
-                    vessel_app_link::attachments::SubmitFailure::TimedOut => {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    vessel_app_link::attachments::SubmitFailure::Uncertain(_)
+                    | vessel_app_link::attachments::SubmitFailure::TimedOut => {
                         HoldReason::UncertainEffect
                     }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    vessel_app_link::attachments::SubmitFailure::Uncertain(_) => {
+                    #[cfg(target_arch = "wasm32")]
+                    vessel_app_link::attachments::SubmitFailure::TimedOut => {
                         HoldReason::UncertainEffect
                     }
                 },
