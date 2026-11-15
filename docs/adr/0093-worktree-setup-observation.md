@@ -99,3 +99,13 @@ Consumed exactly W11's source-reviewed e45a5d89 identity-only commit in
 merge 0d536c6b. Registry/store/trust ownership remains unconsumed. The
 pending node integration is awaiting changed-crate Clippy/tests and wire
 generation; it is not consumer-ready.
+
+W11 has now proposed (source-only adb81d77, not yet adopted) canonical
+registry BlockedSource::ChangeRequest with RepoRef/PullNumber and
+WorkspaceAutomation Allowed/Blocked. The eventual workspace setup view must
+render the current registry gate ahead of old backing-worktree history: a
+blocked workspace must not appear ready because another invocation succeeded.
+Release uses the exact workspace/source/revision CAS and starts nothing by
+itself. D2 then checks Allowed and obtains an authoritative start lease before
+automatic bootstrap; unknown or unavailable registry state cannot authorize it.
+The generation-bound backing-worktree calls do not infer that authority.
