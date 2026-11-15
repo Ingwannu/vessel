@@ -29,7 +29,7 @@ impl Shell {
         }
     }
 
-    pub(crate) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
+    pub(crate) fn composer_shell_field(&self, target: DraftKey) -> Option<&TextField> {
         if self.composer_current_target() != Some(target) {
             return None;
         }
@@ -40,7 +40,7 @@ impl Shell {
     }
 
     pub(crate) fn composer_surface(&self, target: DraftKey, cx: &App) -> Option<Surface> {
-        let field = self.composer_field(target)?;
+        let field = self.composer_shell_field(target)?;
         let mut surface = self.areas.composer_shell.surface(target);
         let editable = field.composer_is_editable(cx)
             && (target != DraftKey::New || self.areas.draft.creation.flow.may_submit());
@@ -83,7 +83,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(field) = self.composer_field(target).cloned() else {
+        let Some(field) = self.composer_shell_field(target).cloned() else {
             return;
         };
         let Some(mut surface) = self.composer_surface(target, cx) else {
@@ -111,7 +111,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(field) = self.composer_field(target).cloned() else {
+        let Some(field) = self.composer_shell_field(target).cloned() else {
             return;
         };
         self.areas.composer_shell.collapse(target);

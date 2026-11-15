@@ -111,7 +111,7 @@ impl Shell {
         tokens: &Tokens,
         cx: &mut Context<'_, Self>,
     ) -> Option<AnyElement> {
-        self.composer_field(target)?;
+        self.composer_shell_field(target)?;
         let over = match target {
             DraftKey::New => Over::Draft,
             DraftKey::Session { .. } => Over::Session,
@@ -138,7 +138,8 @@ fn hooked_text(
         element,
         move |key, window: &mut Window, cx: &mut App| {
             weak.update(cx, |shell, cx| {
-                let Some(target) = target.filter(|target| shell.composer_field(*target).is_some())
+                let Some(target) =
+                    target.filter(|target| shell.composer_shell_field(*target).is_some())
                 else {
                     return KeyAnswer::Pass;
                 };
@@ -162,7 +163,7 @@ fn hooked_text(
         move |pasted, _window, cx: &mut App| {
             pasting
                 .update(cx, |shell, cx| {
-                    if target.is_none_or(|target| shell.composer_field(target).is_none()) {
+                    if target.is_none_or(|target| shell.composer_shell_field(target).is_none()) {
                         return KeyAnswer::Pass;
                     }
                     shell.composer_pasted(new_chat, pasted, cx)

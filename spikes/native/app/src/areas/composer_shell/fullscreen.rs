@@ -114,7 +114,7 @@ pub(crate) fn render(
 
 impl Shell {
     fn composer_may_submit(&self, target: DraftKey, cx: &gpui::App) -> bool {
-        let Some(field) = self.composer_field(target) else {
+        let Some(field) = self.composer_shell_field(target) else {
             return false;
         };
         if self
@@ -143,7 +143,7 @@ impl Shell {
         if !self.composer_may_submit(target, cx) {
             return;
         }
-        let Some(field) = self.composer_field(target) else {
+        let Some(field) = self.composer_shell_field(target) else {
             return;
         };
         let text = field.text(cx);
