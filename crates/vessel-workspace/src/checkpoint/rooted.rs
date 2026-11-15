@@ -20,7 +20,7 @@ const REGULAR: OFlags = OFlags::RDONLY
     .union(OFlags::NOFOLLOW)
     .union(OFlags::NONBLOCK)
     .union(OFlags::CLOEXEC);
-const FILE_TYPE_BITS: u32 = 0o170000;
+const FILE_TYPE_BITS: u32 = 0o170_000;
 const ATTRIBUTE_NAMES_BYTES: usize = 4096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
