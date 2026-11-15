@@ -194,7 +194,8 @@ const fn refused(method: Method) -> bool {
         | Method::CreatePrompt
         | Method::UpdatePrompt
         | Method::DeletePrompt
-        | Method::SearchMessages
+        | Method::ListSessionPrompts
+            | Method::SearchMessages
         | Method::ParkSession
         | Method::WakeSession
         // The node's settings (protocol 12): the read as `node.info`; the

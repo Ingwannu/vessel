@@ -64,6 +64,7 @@ mod lock;
 mod log;
 mod marks;
 mod node_key;
+mod prompt_index;
 mod push;
 mod push_key;
 mod reader;

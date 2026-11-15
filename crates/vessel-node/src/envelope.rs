@@ -39,7 +39,7 @@
 use vessel_proto::{
     Ack, Call, Callback, Deliver, ErrorCode, FleetNode, ForgetNode, Forward, Forwarded,
     GetCallback, GrantHome, ListNodes, ListPeers, Method, NodeForgotten, NodeId, Origin, OriginBy,
-    RelayCall, Reply, Scope, WireError,
+    RelayCall, Reply, Request, Scope, WireError,
 };
 
 use crate::guard::Guarded;
@@ -328,418 +328,48 @@ fn forwarded(reply: Result<Reply, WireError>) -> Result<Forwarded, WireError> {
     })
 }
 
-/// Run a forwardable call here through the guard. Every forwardable method
-/// has its arm; every other is refused (and was refused before any hop).
-#[expect(
-    clippy::too_many_lines,
-    reason = "one exhaustive forwarding match keeps every typed RPC visible to review"
-)]
-async fn run_here(
-    guard: &Guarded,
-    connection: &Connection,
-    call: Call,
-) -> Result<Reply, WireError> {
-    use vessel_proto::Handler as _;
-    Ok(match call {
-        Call::LspWorkspaceSymbols(request) => {
-            Reply::LspWorkspaceSymbols(guard.lsp_workspace_symbols(connection, request).await?)
-        }
-        Call::LspDocumentSymbols(request) => {
-            Reply::LspDocumentSymbols(guard.lsp_document_symbols(connection, request).await?)
-        }
-        Call::LspDefinition(request) => {
-            Reply::LspDefinition(guard.lsp_definition(connection, request).await?)
-        }
-        Call::LspReferences(request) => {
-            Reply::LspReferences(guard.lsp_references(connection, request).await?)
-        }
-        Call::LspHover(request) => Reply::LspHover(guard.lsp_hover(connection, request).await?),
-        Call::LspImplementations(request) => {
-            Reply::LspImplementations(guard.lsp_implementations(connection, request).await?)
-        }
-        Call::LspTypeDefinition(request) => {
-            Reply::LspTypeDefinition(guard.lsp_type_definition(connection, request).await?)
-        }
-        Call::LspIncomingCalls(request) => {
-            Reply::LspIncomingCalls(guard.lsp_incoming_calls(connection, request).await?)
-        }
-        Call::LspOutgoingCalls(request) => {
-            Reply::LspOutgoingCalls(guard.lsp_outgoing_calls(connection, request).await?)
-        }
-        Call::LspDiagnostics(request) => {
-            Reply::LspDiagnostics(guard.lsp_diagnostics(connection, request).await?)
-        }
-        Call::NodeInfo(request) => Reply::NodeInfo(guard.node_info(connection, request).await?),
-        Call::ListHarnesses(request) => {
-            Reply::ListHarnesses(guard.list_harnesses(connection, request).await?)
-        }
-        Call::ListSessions(request) => {
-            Reply::ListSessions(guard.list_sessions(connection, request).await?)
-        }
-        Call::GetSession(request) => {
-            Reply::GetSession(guard.get_session(connection, request).await?)
-        }
-        Call::CreateSession(request) => {
-            Reply::CreateSession(guard.create_session(connection, request).await?)
-        }
-        Call::OpenSideQuestion(request) => {
-            Reply::OpenSideQuestion(guard.open_side_question(connection, request).await?)
-        }
-        Call::PromptSideQuestion(request) => {
-            Reply::PromptSideQuestion(guard.prompt_side_question(connection, request).await?)
-        }
-        Call::ResetSideQuestion(request) => {
-            Reply::ResetSideQuestion(guard.reset_side_question(connection, request).await?)
-        }
-        Call::SendInput(request) => Reply::SendInput(guard.send_input(connection, request).await?),
-        Call::KillSession(request) => {
-            Reply::KillSession(guard.kill_session(connection, request).await?)
-        }
-        Call::ReadEvents(request) => {
-            Reply::ReadEvents(guard.read_events(connection, request).await?)
-        }
-        Call::MoveProfile(request) => {
-            Reply::MoveProfile(guard.move_profile(connection, request).await?)
-        }
-        Call::ListProfiles(request) => {
-            Reply::ListProfiles(guard.list_profiles(connection, request).await?)
-        }
-        Call::ListAgents(request) => {
-            Reply::ListAgents(guard.list_agents(connection, request).await?)
-        }
-        Call::GetAgentStatus(request) => {
-            Reply::GetAgentStatus(guard.agent_status(connection, request).await?)
-        }
-        Call::ExportSession(request) => {
-            Reply::ExportSession(guard.export_session(connection, request).await?)
-        }
-        Call::ImportSession(request) => {
-            Reply::ImportSession(guard.import_session(connection, request).await?)
-        }
-        Call::ExportMemory(request) => {
-            Reply::ExportMemory(guard.export_memory(connection, request).await?)
-        }
-        Call::ImportMemory(request) => {
-            Reply::ImportMemory(guard.import_memory(connection, request).await?)
-        }
-        Call::ReadTransfer(request) => {
-            Reply::ReadTransfer(guard.read_transfer(connection, request).await?)
-        }
-        Call::CloseTransfer(request) => {
-            Reply::CloseTransfer(guard.close_transfer(connection, request).await?)
-        }
-        Call::SetSecret(request) => Reply::SetSecret(guard.set_secret(connection, request).await?),
-        Call::ListSecrets(request) => {
-            Reply::ListSecrets(guard.list_secrets(connection, request).await?)
-        }
-        Call::ListModels(request) => {
-            Reply::ListModels(guard.list_models(connection, request).await?)
-        }
-        Call::HarnessOptions(request) => {
-            Reply::HarnessOptions(guard.harness_options(connection, request).await?)
-        }
-        Call::SessionOptions(request) => {
-            Reply::SessionOptions(guard.session_options(connection, request).await?)
-        }
-        Call::SetSessionOption(request) => {
-            Reply::SetSessionOption(guard.set_session_option(connection, request).await?)
-        }
-        Call::RenameSession(request) => {
-            Reply::RenameSession(guard.rename_session(connection, request).await?)
-        }
-        Call::PromptSession(request) => {
-            Reply::PromptSession(guard.prompt_session(connection, request).await?)
-        }
-        Call::ChangeQueue(request) => {
-            Reply::ChangeQueue(guard.change_queue(connection, request).await?)
-        }
-        Call::GetConversation(request) => {
-            Reply::GetConversation(guard.get_conversation(connection, request).await?)
-        }
-        Call::ResumeSession(request) => {
-            Reply::ResumeSession(guard.resume_session(connection, request).await?)
-        }
-        Call::MarkSession(request) => {
-            Reply::MarkSession(guard.mark_session(connection, request).await?)
-        }
-        Call::DeleteSession(request) => {
-            Reply::DeleteSession(guard.delete_session(connection, request).await?)
-        }
-        Call::BeginUpload(request) => {
-            Reply::BeginUpload(guard.begin_upload(connection, request).await?)
-        }
-        Call::WriteUpload(request) => {
-            Reply::WriteUpload(guard.write_upload(connection, request).await?)
-        }
-        Call::FinishUpload(request) => {
-            Reply::FinishUpload(guard.finish_upload(connection, request).await?)
-        }
-        Call::ReadAttachment(request) => {
-            Reply::ReadAttachment(guard.read_attachment(connection, request).await?)
-        }
-        Call::ListProjects(request) => {
-            Reply::ListProjects(guard.list_projects(connection, request).await?)
-        }
-        Call::GetProject(request) => {
-            Reply::GetProject(guard.get_project(connection, request).await?)
-        }
-        Call::AddProject(request) => {
-            Reply::AddProject(guard.add_project(connection, request).await?)
-        }
-        Call::CloneProject(request) => {
-            Reply::CloneProject(guard.clone_project(connection, request).await?)
-        }
-        Call::InitProject(request) => {
-            Reply::InitProject(guard.init_project(connection, request).await?)
-        }
-        Call::RemoveProject(request) => {
-            Reply::RemoveProject(guard.remove_project(connection, request).await?)
-        }
-        Call::ProjectCommands(request) => {
-            Reply::ProjectCommands(guard.project_commands(connection, request).await?)
-        }
-        Call::ApproveCommands(request) => {
-            Reply::ApproveCommands(guard.approve_commands(connection, request).await?)
-        }
-        Call::ListWorktrees(request) => {
-            Reply::ListWorktrees(guard.list_worktrees(connection, request).await?)
-        }
-        Call::CreateWorktree(request) => {
-            Reply::CreateWorktree(guard.create_worktree(connection, request).await?)
-        }
-        Call::SetupOutput(request) => {
-            Reply::SetupOutput(guard.setup_output(connection, request).await?)
-        }
-        Call::RunSetup(request) => Reply::RunSetup(guard.run_setup(connection, request).await?),
-        Call::RemoveWorktree(request) => {
-            Reply::RemoveWorktree(guard.remove_worktree(connection, request).await?)
-        }
-        Call::ListSnapshots(request) => {
-            Reply::ListSnapshots(guard.list_snapshots(connection, request).await?)
-        }
-        Call::DropSnapshot(request) => {
-            Reply::DropSnapshot(guard.drop_snapshot(connection, request).await?)
-        }
-        Call::GitStatus(request) => Reply::GitStatus(guard.git_status(connection, request).await?),
-        Call::GitChanges(request) => {
-            Reply::GitChanges(guard.git_changes(connection, request).await?)
-        }
-        Call::GitDiff(request) => Reply::GitDiff(guard.git_diff(connection, request).await?),
-        Call::GitShow(request) => Reply::GitShow(guard.git_show(connection, request).await?),
-        Call::GitBranches(request) => {
-            Reply::GitBranches(guard.git_branches(connection, request).await?)
-        }
-        Call::GitLog(request) => Reply::GitLog(guard.git_log(connection, request).await?),
-        Call::GitStashes(request) => {
-            Reply::GitStashes(guard.git_stashes(connection, request).await?)
-        }
-        Call::GitStage(request) => Reply::GitStage(guard.git_stage(connection, request).await?),
-        Call::GitUnstage(request) => {
-            Reply::GitUnstage(guard.git_unstage(connection, request).await?)
-        }
-        Call::GitDiscard(request) => {
-            Reply::GitDiscard(guard.git_discard(connection, request).await?)
-        }
-        Call::GitCommit(request) => Reply::GitCommit(guard.git_commit(connection, request).await?),
-        Call::GitFetch(request) => Reply::GitFetch(guard.git_fetch(connection, request).await?),
-        Call::GitPush(request) => Reply::GitPush(guard.git_push(connection, request).await?),
-        Call::GitPull(request) => Reply::GitPull(guard.git_pull(connection, request).await?),
-        Call::GitSwitch(request) => Reply::GitSwitch(guard.git_switch(connection, request).await?),
-        Call::GitRenameBranch(request) => {
-            Reply::GitRenameBranch(guard.git_rename_branch(connection, request).await?)
-        }
-        Call::GitStash(request) => Reply::GitStash(guard.git_stash(connection, request).await?),
-        Call::ListDir(request) => Reply::ListDir(guard.list_dir(connection, request).await?),
-        Call::ReadFile(request) => Reply::ReadFile(guard.read_file(connection, request).await?),
-        Call::WriteFile(request) => Reply::WriteFile(guard.write_file(connection, request).await?),
-        Call::CreateDir(request) => Reply::CreateDir(guard.create_dir(connection, request).await?),
-        Call::RenamePath(request) => {
-            Reply::RenamePath(guard.rename_path(connection, request).await?)
-        }
-        Call::DeletePath(request) => {
-            Reply::DeletePath(guard.delete_path(connection, request).await?)
-        }
-        Call::FindFiles(request) => Reply::FindFiles(guard.find_files(connection, request).await?),
-        Call::SearchFiles(request) => {
-            Reply::SearchFiles(guard.search_files(connection, request).await?)
-        }
-        Call::ForgeStatus(request) => {
-            Reply::ForgeStatus(guard.forge_status(connection, request).await?)
-        }
-        Call::ListPullRequests(request) => {
-            Reply::ListPullRequests(guard.list_pull_requests(connection, request).await?)
-        }
-        Call::GetPullRequest(request) => {
-            Reply::GetPullRequest(guard.get_pull_request(connection, request).await?)
-        }
-        Call::OpenPullRequest(request) => {
-            Reply::OpenPullRequest(guard.open_pull_request(connection, request).await?)
-        }
-        Call::MergePullRequest(request) => {
-            Reply::MergePullRequest(guard.merge_pull_request(connection, request).await?)
-        }
-        Call::SetFeedback(request) => {
-            Reply::SetFeedback(guard.set_feedback(connection, request).await?)
-        }
-        Call::CreateTerminal(request) => {
-            Reply::CreateTerminal(guard.create_terminal(connection, request).await?)
-        }
-        Call::ListTerminals(request) => {
-            Reply::ListTerminals(guard.list_terminals(connection, request).await?)
-        }
-        Call::GetTerminal(request) => {
-            Reply::GetTerminal(guard.get_terminal(connection, request).await?)
-        }
-        Call::ReadTerminal(request) => {
-            Reply::ReadTerminal(guard.read_terminal(connection, request).await?)
-        }
-        Call::SendTerminal(request) => {
-            Reply::SendTerminal(guard.send_terminal(connection, request).await?)
-        }
-        Call::RenameTerminal(request) => {
-            Reply::RenameTerminal(guard.rename_terminal(connection, request).await?)
-        }
-        Call::KillTerminal(request) => {
-            Reply::KillTerminal(guard.kill_terminal(connection, request).await?)
-        }
-        Call::CloseTerminal(request) => {
-            Reply::CloseTerminal(guard.close_terminal(connection, request).await?)
-        }
-        Call::ListScripts(request) => {
-            Reply::ListScripts(guard.list_scripts(connection, request).await?)
-        }
-        Call::RunScript(request) => Reply::RunScript(guard.run_script(connection, request).await?),
-        Call::RestartScript(request) => {
-            Reply::RestartScript(guard.restart_script(connection, request).await?)
-        }
-        Call::ListPorts(request) => Reply::ListPorts(guard.list_ports(connection, request).await?),
-        Call::JoinFleet(request) => Reply::JoinFleet(guard.join_fleet(connection, request).await?),
-        Call::LeaveFleet(request) => {
-            Reply::LeaveFleet(guard.leave_fleet(connection, request).await?)
-        }
-        Call::SyncFleet(request) => Reply::SyncFleet(guard.sync_fleet(connection, request).await?),
-        Call::GetDeviceSelf(request) => {
-            Reply::GetDeviceSelf(guard.device_self(connection, request).await?)
-        }
-        Call::GetFleetStatus(request) => {
-            Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
-        }
-        Call::GetPublished(request) => {
-            Reply::GetPublished(guard.fleet_published(connection, request).await?)
-        }
-        Call::PreviewSchedule(request) => {
-            Reply::PreviewSchedule(guard.preview_schedule(connection, request).await?)
-        }
-        Call::ListSchedules(request) => {
-            Reply::ListSchedules(guard.list_schedules(connection, request).await?)
-        }
-        Call::GetSchedule(request) => {
-            Reply::GetSchedule(guard.get_schedule(connection, request).await?)
-        }
-        Call::CreateSchedule(request) => {
-            Reply::CreateSchedule(guard.create_schedule(connection, request).await?)
-        }
-        Call::UpdateSchedule(request) => {
-            Reply::UpdateSchedule(guard.update_schedule(connection, request).await?)
-        }
-        Call::PauseSchedule(request) => {
-            Reply::PauseSchedule(guard.pause_schedule(connection, request).await?)
-        }
-        Call::ResumeSchedule(request) => {
-            Reply::ResumeSchedule(guard.resume_schedule(connection, request).await?)
-        }
-        Call::RunSchedule(request) => {
-            Reply::RunSchedule(guard.run_schedule(connection, request).await?)
-        }
-        Call::DeleteSchedule(request) => {
-            Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
-        }
-        Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
-        Call::GetUsageLimits(request) => {
-            Reply::GetUsageLimits(guard.get_usage_limits(connection, request).await?)
-        }
-        Call::SetUsageLookup(request) => {
-            Reply::SetUsageLookup(guard.set_usage_lookup(connection, request).await?)
-        }
-        Call::QueryUsage(request) => {
-            Reply::QueryUsage(guard.query_usage(connection, request).await?)
-        }
-        Call::ListPrompts(request) => {
-            Reply::ListPrompts(guard.list_prompts(connection, request).await?)
-        }
-        Call::CreatePrompt(request) => {
-            Reply::CreatePrompt(guard.create_prompt(connection, request).await?)
-        }
-        Call::UpdatePrompt(request) => {
-            Reply::UpdatePrompt(guard.update_prompt(connection, request).await?)
-        }
-        Call::ListInbox(request) => Reply::ListInbox(guard.list_inbox(connection, request).await?),
-        Call::GetInboxEntry(request) => {
-            Reply::GetInboxEntry(guard.get_inbox_entry(connection, request).await?)
-        }
-        Call::MarkInbox(request) => Reply::MarkInbox(guard.mark_inbox(connection, request).await?),
-        Call::GetPushKey(request) => {
-            Reply::GetPushKey(guard.get_push_key(connection, request).await?)
-        }
-        Call::SubscribePush(request) => {
-            Reply::SubscribePush(guard.subscribe_push(connection, request).await?)
-        }
-        Call::UnsubscribePush(request) => {
-            Reply::UnsubscribePush(guard.unsubscribe_push(connection, request).await?)
-        }
-        Call::ReportPushPresence(request) => {
-            Reply::ReportPushPresence(guard.report_push_presence(connection, request).await?)
-        }
-        Call::DeletePrompt(request) => {
-            Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
-        }
-        Call::SearchMessages(request) => {
-            Reply::SearchMessages(guard.search_messages(connection, request).await?)
-        }
-        Call::ParkSession(request) => {
-            Reply::ParkSession(guard.park_session(connection, request).await?)
-        }
-        Call::WakeSession(request) => {
-            Reply::WakeSession(guard.wake_session(connection, request).await?)
-        }
-        Call::ForkSession(request) => {
-            Reply::ForkSession(guard.fork_session(connection, request).await?)
-        }
-        Call::RewindSession(request) => {
-            Reply::RewindSession(guard.rewind_session(connection, request).await?)
-        }
-        Call::GetAgentHistory(request) => {
-            Reply::GetAgentHistory(guard.agent_history(connection, request).await?)
-        }
-        Call::StopNode(_)
-        | Call::GetNodeSettings(_)
-        | Call::SetNodeSettings(_)
-        | Call::AddAgent(_)
-        | Call::GetCatalogue(_)
-        | Call::InstallAgent(_)
-        | Call::ReadInstall(_)
-        | Call::RemoveAgent(_)
-        | Call::InviteDevice(_)
-        | Call::ListDevices(_)
-        | Call::RevokeDevice(_)
-        | Call::ReloadProfiles(_)
-        | Call::DeleteSecret(_)
-        | Call::CopySecret(_)
-        | Call::Forward(_)
-        | Call::Relay(_)
-        | Call::Deliver(_)
-        | Call::GrantHome(_)
-        | Call::GetCallback(_)
-        | Call::ForgetNode(_)
-        | Call::ListPeers(_)
-        | Call::ListNodes(_)
-        | Call::GetManifest(_)
-        | Call::ReadBlob(_)
-        | Call::WatchFleet(_)
-        | Call::ReportApplied(_)
-        | Call::ListMembers(_)
-        | Call::Subscribe(_)
-        | Call::SubscribeTerminal(_)
-        | Call::Unsubscribe(_) => return Err(not_forwardable(call.method())),
-    })
+// `run_here`: run a forwardable call here through the guard, one arm per
+// method generated from the one method table (`vessel_proto::method_table!`),
+// so a new method needs no arm here (Quality B). A call that may not be
+// forwarded is refused first, as every caller has already checked it
+// before any hop. An envelope is never run here: it is not forwardable, and
+// its own handler runs the call it carries.
+macro_rules! run_here {
+    ($(
+        $(#[$doc:meta])*
+        $variant:ident / $handler:ident / $wire:literal
+            [$scope:ident, $protocol:tt, $shape:ident] : $request:ty => $response:ty;
+    )*) => {
+        async fn run_here(
+            guard: &Guarded,
+            connection: &Connection,
+            call: Call,
+        ) -> Result<Reply, WireError> {
+            use vessel_proto::Handler as _;
+            forwardable(call.method())?;
+            Ok(match call {
+                $(
+                    Call::$variant(request) => {
+                        run_here_arm!($shape, guard, connection, request, $variant, $handler)
+                    }
+                )*
+            })
+        }
+    };
+}
+
+macro_rules! run_here_arm {
+    (envelope, $guard:ident, $connection:ident, $request:ident, $variant:ident, $handler:ident) => {
+        return Err(not_forwardable(method_of(&$request)))
+    };
+    ($shape:ident, $guard:ident, $connection:ident, $request:ident, $variant:ident, $handler:ident) => {
+        Reply::$variant($guard.$handler($connection, $request).await?)
+    };
+}
+
+vessel_proto::method_table!(run_here);
+
+/// The method of a request value, for the arm that refuses an envelope.
+fn method_of<R: Request>(_request: &R) -> Method {
+    R::METHOD
 }

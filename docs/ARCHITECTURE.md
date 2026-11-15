@@ -778,7 +778,9 @@ In the crate table's order.
     `vesseld version` and `cleanup`; `node.stop` (`now`, or drain).
   - Devices (milestone 3): every connection has a principal (`Owner`,
     `Device`, `Agent`, `Delegated`), and every call is checked against its
-    method's scope by `guard::Guarded`, generated from one row per method;
+    method's scope by `guard::Guarded`, generated from the protocol's one
+    method table (`vessel_proto::method_table!`, which also generates the
+    envelope's `run_here` and the client's unary marker, Quality B);
     `NodeService`'s calls are inherent methods, so only `Guarded` can be
     served. `device.invite` (single-use, in memory by hash, at most a day,
     at most 64 waiting), `device.list`, `device.revoke` (closes the
@@ -1588,6 +1590,16 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+## Prompt-index snapshots (pending)
+
+`vessel-proto::prompt_index` owns checked metadata values. The store's
+`prompt_index` reader folds retained user prompts and rewind boundaries in one
+read transaction, and the Store facade retains its reader permit inside the
+blocking closure even if the requesting future is cancelled. No write-side
+projection, schema or crate edge changes. A native outline can page these
+metadata addresses before it has loaded the transcript. Wire admission remains
+pending; the contract and limitations are in `docs/plans/wp-a3-node.md`.
 
 ## Native palette message search
 

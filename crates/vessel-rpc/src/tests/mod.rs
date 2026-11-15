@@ -636,6 +636,7 @@ impl Handler for Fake {
         unsubscribe_push: vessel_proto::push::UnsubscribePush => Ack;
         report_push_presence: vessel_proto::push::ReportPushPresence => Ack;
         search_messages: vessel_proto::search::SearchMessages => vessel_proto::search::SearchPage;
+        list_session_prompts: vessel_proto::prompt_index::ListSessionPrompts => vessel_proto::prompt_index::PromptIndexPage;
         park_session: vessel_proto::parking::ParkSession => SessionInfo;
         wake_session: vessel_proto::parking::WakeSession => SessionInfo;
         node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
