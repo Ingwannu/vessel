@@ -73,9 +73,6 @@ const PAD_TOP: f32 = 39.0;
 /// The language's size (GOAT's `text-2xs`, 0.6875rem).
 const LANGUAGE_SIZE: f32 = 11.0;
 
-/// A table's text size (GOAT's 0.875rem in its new design).
-const TABLE_SIZE: f32 = 14.0;
-
 /// The colours code is drawn in, from the kit's neutral steps: a reply's
 /// code blocks and a tool's text alike (GOAT draws both on its code
 /// tokens).
@@ -230,6 +227,12 @@ pub fn chat_markdown(
     });
     let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
     TextView::new(&state)
+        .type_(Type::Content)
+        .inline_code_style(
+            StyleRefinement::default()
+                .face(Type::Mono)
+                .text_size(px(crate::fonts::code_size())),
+        )
         .on_reveal(move |bounds, _window, _cx| {
             if let Some((list, clear_top)) = &list {
                 list.reveal_bounds(bounds, *clear_top);
@@ -283,6 +286,7 @@ fn mark(
 /// The block's style over the renderer's.
 fn block(look: Look) -> StyleRefinement {
     let mut style = StyleRefinement::default()
+        .face(Type::Mono)
         .bg(look.fill)
         .border_color(look.edge)
         .rounded(px(RADIUS))
@@ -304,8 +308,8 @@ fn block(look: Look) -> StyleRefinement {
     style
 }
 
-/// A table: no frame and no fill, rules under the rows only, at 14
-/// pixels (GOAT's `.chat-markdown table`, one step under the prose).
+/// A table: no frame and no fill, rules under the rows only. Typography
+/// follows the independent content axis (Paseo Markdown styles.ts:16–25/91).
 ///
 /// Narrower than its columns' floors (a phone), it scrolls sideways
 /// instead of breaking words letter by letter: the renderer's adaptive
@@ -316,7 +320,7 @@ fn table() -> StyleRefinement {
         .bg(gpui::transparent_black())
         .border_color(gpui::transparent_black())
         .rounded(px(0.0))
-        .text_size(px(crate::fonts::ui(TABLE_SIZE)));
+        .type_(Type::Content);
     style.overflow.x = Some(Overflow::Scroll);
     style
 }

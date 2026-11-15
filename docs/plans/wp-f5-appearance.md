@@ -423,3 +423,12 @@ content unit owner. A regression passes forbidden UI/code scale functions to
 prove those multipliers are never used. Two consumer calls in conversation
 bubbles are coordinated with the timeline owner (source message.tsx:325–328,
 1247–1248); this is a typography-only seam, not another message renderer.
+
+The existing chat_markdown control now uses Type::Content for prose/tables,
+removing its table-only UI14 override (Paseo Markdown styles.ts:16–25/91–99).
+Code block and inline-code face/fallbacks use the configured code stack, and
+inline code uses absolute code units. This is a typography projection through
+the SAME TextView, not another renderer or highlighter. Existing code frame,
+scrolling, actions and legacy block line ratio remain; body/table defaults
+move from UI14 to source content15 deliberately. Source syntax classification
+limitations already documented remain outside this projection change.
