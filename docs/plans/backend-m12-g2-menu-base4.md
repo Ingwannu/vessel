@@ -102,3 +102,10 @@ The prior queued statement records the earlier submission state; it is not a
 second source review or an assertion of full native/consumer/runtime/UI approval.
 This completes the planned narrow suite for that immutable producer; no unchanged
 whole gate is added. The existing V1 Kit source disposition remains bounded.
+
+V1 independently closed the App compile-pending item on the same8158 packet.
+Reporting correction: earlier "ordinary" meant no priority, but the actual
+remote spec is lane=short, priority=0. View compiled and Kit/Link/App checked;
+App all-target Clippy0 supplements the Kit source/narrow approval. No App tests,
+whole-native, full F1, consuming UI or OS verdict follows. The immutable spec
+and steps digest remain authoritative; no source change or rerun is needed.
