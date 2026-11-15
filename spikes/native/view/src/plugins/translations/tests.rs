@@ -1,6 +1,7 @@
 use super::*;
 use crate::localization::{LanguagePreference, Locale, resolve_language};
 use std::error::Error;
+use std::fmt::Write as _;
 
 fn source(locale: &str, text: &str) -> Resource {
     Resource::new(locale.parse().expect("locale"), text).expect("bounded source")
@@ -271,9 +272,10 @@ fn pseudo_checking_uses_shared_factory_and_output_growth_is_bounded() {
 
 #[test]
 fn total_key_argument_and_date_zone_bounds_are_whole_result_refusals() {
-    let lots = (0..MAX_KEYS.saturating_add(1))
-        .map(|i| format!("key-{i} = Text\n"))
-        .collect::<String>();
+    let mut lots = String::new();
+    for i in 0..MAX_KEYS.saturating_add(1) {
+        writeln!(lots, "key-{i} = Text").expect("string writer");
+    }
     assert!(matches!(
         Resources::new(vec![source("en", &lots)]),
         Err(Problem::Budget(Budget::Keys))

@@ -131,10 +131,10 @@ impl Arguments {
         }
         let mut args = BTreeMap::new();
         for (name, value) in values {
-            if let Argument::Date(Date::Time { zone, .. } | Date::DateTime { zone, .. }) = &value {
-                if zone.len() > MAX_ZONE_BYTES || zone.chars().any(char::is_control) {
-                    return Err(Problem::Arguments);
-                }
+            if let Argument::Date(Date::Time { zone, .. } | Date::DateTime { zone, .. }) = &value
+                && (zone.len() > MAX_ZONE_BYTES || zone.chars().any(char::is_control))
+            {
+                return Err(Problem::Arguments);
             }
             if args.insert(checked_name(name)?, value).is_some() {
                 return Err(Problem::Duplicate);
