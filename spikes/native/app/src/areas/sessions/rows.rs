@@ -1,4 +1,5 @@
 //! Date buckets and session rows keep archived, active and failed sessions visible.
+use super::lifecycle::HistoryAction;
 use crate::shell::Shell;
 use chrono::Local;
 use vessel_app_kit::agent_mark::{Size, Space};
@@ -8,7 +9,9 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button};
-use vessel_app_view::sessions::{DateBucket, HostScope};
+use vessel_app_link::sessions::Binding;
+use vessel_app_view::machine_book::Name;
+use vessel_app_view::sessions::{DateBucket, HostScope, LifecycleTarget, SessionAddress};
 use vessel_app_view::{Card, Reach};
 
 pub(super) fn failures(shell: &Shell, tokens: &Tokens) -> Vec<AnyElement> {
@@ -74,14 +77,17 @@ fn heading(shell: &Shell, bucket: DateBucket) -> &'static str {
     }
 }
 fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyElement {
-    let open = crate::areas::session::Open::of(card);
-    let target = (*card).clone();
-    let archived = card.detail.marks.archived_at.is_some();
-    let action = if archived {
-        shell.words.sessions().unarchive()
-    } else {
-        shell.words.sessions().archive()
-    };
+    let target = lifecycle_target(shell, card);
+    let mut open = crate::areas::session::Open::of(card);
+    open.binding = target.as_ref().and_then(|target| {
+        target.node.map(|node| Binding {
+            host: target.host.clone(),
+            address: SessionAddress {
+                node,
+                session: target.session,
+            },
+        })
+    });
     let id = format!("session-history-{}-{}", card.machine, card.session);
     div()
         .flex()
@@ -102,27 +108,56 @@ fn row(shell: &Shell, card: &Card, tokens: &Tokens, cx: &mut Context<'_, Shell>)
                 .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
                 .child(content(shell, card, tokens)),
         )
-        .child(
-            outline_button(
-                ElementId::Name(format!("{id}-archive").into()),
-                action,
-                true,
-                tokens,
-            )
-            .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
-            .on_click(cx.listener(move |shell, _, window, cx| {
-                if archived {
-                    shell.act_on_card(
-                        &target,
-                        vessel_app_link::Act::Mark(vessel_proto::Mark::Unarchive),
-                    );
-                    cx.notify();
-                } else {
-                    shell.ask_archive(&target, window, cx);
-                }
-            })),
-        )
+        .child(lifecycle_button(shell, card, target, &id, tokens, cx))
         .into_any_element()
+}
+
+fn lifecycle_button(
+    shell: &Shell,
+    card: &Card,
+    target: Option<LifecycleTarget>,
+    id: &str,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let archived = card.detail.marks.archived_at.is_some();
+    let action = if archived {
+        shell.words.sessions().unarchive()
+    } else {
+        shell.words.sessions().archive()
+    };
+    outline_button(
+        ElementId::Name(format!("{id}-archive").into()),
+        action,
+        target.is_some() && !shell.sessions_lifecycle_busy(),
+        tokens,
+    )
+    .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET))
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        if let Some(target) = target.clone() {
+            let action = if archived {
+                HistoryAction::Unarchive
+            } else {
+                HistoryAction::Archive
+            };
+            shell.history_lifecycle(target, action, window, cx);
+        }
+    }))
+    .into_any_element()
+}
+
+fn lifecycle_target(shell: &Shell, card: &Card) -> Option<LifecycleTarget> {
+    let node = shell
+        .fleet
+        .machines
+        .iter()
+        .find(|machine| machine.name == card.machine)?
+        .node?;
+    Some(LifecycleTarget {
+        host: Name::parse(&card.machine).ok()?,
+        session: card.session,
+        node: Some(node),
+    })
 }
 
 fn content(shell: &Shell, card: &Card, tokens: &Tokens) -> vessel_app_kit::ui::Div {

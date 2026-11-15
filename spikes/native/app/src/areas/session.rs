@@ -21,9 +21,9 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 use vessel_app_link::Command;
+use vessel_app_view::Conversation;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
-use vessel_app_view::{Card, Conversation};
 use vessel_proto::{Delivery, EventRecord, SessionId};
 
 use super::common::title_bar;

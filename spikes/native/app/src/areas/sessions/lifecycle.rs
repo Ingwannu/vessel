@@ -29,6 +29,11 @@ enum DialogFocus {
     Settled,
     Return,
 }
+#[derive(Debug, Clone, Copy)]
+pub(super) enum HistoryAction {
+    Archive,
+    Unarchive,
+}
 enum Problem {
     Busy,
     ExistingDraft,
@@ -119,14 +124,7 @@ impl Shell {
         };
         match action {
             LifecycleAction::Archive | LifecycleAction::Delete => {
-                let state = &mut self.areas.sessions.lifecycle;
-                match state.confirming.begin(prepared.target.clone(), action) {
-                    Ok(_) => {
-                        state.asking = Some(prepared);
-                        state.dialog.focus(window, cx);
-                    }
-                    Err(_) => state.error = Some((prepared.target, Problem::Busy)),
-                }
+                self.ask_session_lifecycle(prepared, window, cx);
             }
             LifecycleAction::Unarchive
             | LifecycleAction::Resume
@@ -136,6 +134,57 @@ impl Shell {
             }
         }
         cx.notify();
+    }
+    /// History callbacks retain the rendered node, never a newer alias binding.
+    pub(super) fn history_lifecycle(
+        &mut self,
+        target: LifecycleTarget,
+        action: HistoryAction,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.settle_lifecycle_dialog(window, cx);
+        if self.sessions_lifecycle_busy() {
+            return;
+        }
+        if target.node.is_none() {
+            self.notice = Some(self.words.sessions().identity_unavailable().to_owned());
+            cx.notify();
+            return;
+        }
+        let effect = match action {
+            HistoryAction::Archive => LifecycleAction::Archive,
+            HistoryAction::Unarchive => LifecycleAction::Unarchive,
+        };
+        let prepared = Prepared {
+            target,
+            action: effect,
+            seed: None,
+            choices: Vec::new(),
+        };
+        match action {
+            HistoryAction::Archive => self.ask_session_lifecycle(prepared, window, cx),
+            HistoryAction::Unarchive => self.send_session_lifecycle(prepared, cx),
+        }
+        cx.notify();
+    }
+    fn ask_session_lifecycle(
+        &mut self,
+        prepared: Prepared,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.sessions.lifecycle;
+        match state
+            .confirming
+            .begin(prepared.target.clone(), prepared.action)
+        {
+            Ok(_) => {
+                state.asking = Some(prepared);
+                state.dialog.focus(window, cx);
+            }
+            Err(_) => state.error = Some((prepared.target, Problem::Busy)),
+        }
     }
     fn prepare_current_lifecycle(
         &mut self,
@@ -239,6 +288,9 @@ impl Shell {
         match self.apply_lifecycle_result(&request, answer.result) {
             Ok(()) => self.areas.sessions.lifecycle.ready = after,
             Err(problem) => {
+                if self.route == Route::Sessions {
+                    self.notice = Some(draw::problem_words(self, &problem));
+                }
                 self.areas.sessions.lifecycle.error = Some((request.target, problem));
                 self.reload();
             }

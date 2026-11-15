@@ -213,3 +213,10 @@ This clears the old weak opener cycle without moving focus away from a newer
 field. A regression switches opener fields between cancelled and new decisions;
 stale dismissal preserves the new dialog, and its own dismissal returns only to
 the new opener. Deferred UI cleanup is distinct from a network mutation ticket.
+
+History row reads and archive/unarchive callbacks retain the node identity from
+the rendered Fleet snapshot. Mutation controls are unavailable without that
+identity, and callbacks use the existing correlated lifecycle/confirmation path
+rather than an alias-only board action. The confirmation's live warning reads
+its exact target; a failure on the Sessions route remains visible in the window
+notice. The selected session is not used to decide the history row's target.

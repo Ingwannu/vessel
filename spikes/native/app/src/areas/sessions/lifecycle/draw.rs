@@ -30,11 +30,15 @@ pub(crate) fn overlay(
     } else {
         words.archive_words(
             shell
-                .areas
-                .session
-                .open
-                .as_ref()
-                .is_some_and(|open| open.live),
+                .fleet
+                .machines
+                .iter()
+                .filter(|machine| {
+                    machine.name == asking.target.host.as_str()
+                        && asking.target.matches_node(machine.node)
+                })
+                .flat_map(|machine| &machine.sessions)
+                .any(|card| card.session == asking.target.session && card.live),
             asking.target.host.as_str(),
             shell
                 .fleet
@@ -65,6 +69,17 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
     if open.machine != target.host.as_str() || open.session != target.session {
         return None;
     }
+    let message = problem_words(shell, problem);
+    Some(
+        div()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.destructive)
+            .child(message)
+            .into_any_element(),
+    )
+}
+
+pub(super) fn problem_words(shell: &Shell, problem: &Problem) -> String {
     let words = shell.words.sessions();
     let message = match problem {
         Problem::Busy => words.navigation_busy(),
@@ -77,13 +92,7 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
         Problem::DestinationChanged => words.destination_changed(),
         Problem::IdentityUnavailable => words.identity_unavailable(),
     };
-    Some(
-        div()
-            .type_(Type::Body)
-            .text_color(tokens.neutral.destructive)
-            .child(message.to_owned())
-            .into_any_element(),
-    )
+    message.to_owned()
 }
 
 fn footer(
