@@ -70,3 +70,9 @@ all-target strict Clippy and tests all returned zero. The raw aggregate was
 and all five host-window cases plus the root-owner helper. The logs show the
 changed Kit/App being checked and compiled. This is selected source evidence;
 review, final consumer union and the lead's combined gate remain separate.
+
+V1 row273 independently accepted bounded source and the exact selected suite on
+d8b73397 with docs-only89e2b707. Real registration may be adopted; dispatcher,
+reexports and factory field remain staged until actual checked W7/E3 callers.
+This verdict does not review the separate E3 move0934 or receiving consumer/lead
+unions, and grants no notice/source/context/lease or OS authority.
