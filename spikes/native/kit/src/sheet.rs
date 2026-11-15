@@ -20,6 +20,7 @@
 //! - Must stay true: nothing in a sheet depends on hover; its rows are the
 //!   same as beside the page.
 
+pub mod content_fit;
 pub mod snap;
 
 use gpui::prelude::*;

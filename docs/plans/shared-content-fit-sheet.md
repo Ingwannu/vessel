@@ -56,3 +56,27 @@ scroll/capture, release and its callback. Legacy listener delegates with no
 new token or policy. A host must supply its existing opening admission and
 invalidate it on replacement/actual close; the adapter creates no lease.
 This source is uncompiled and native retained-input tests remain owed.
+
+Frame source checkpoint: content_fit::State contains only the shared motion
+and native ScrollHandle. Its transparent Fitted Element caps one real child,
+measures it during prepaint and translates it with the same sampled spring;
+child paint and input bounds move together. A host resets this geometry on
+explicit reopen, and supplies the existing admission before measurement,
+paint and every native gesture mutation. No focus, key handler, root menu path,
+second opening token, surface paint or Dialog code is installed here.
+
+Caller requirements: pass the validated80-percent source cap, give the panel a
+bounded min-height-zero scroller tracking State::scroll, provide its natural
+handle/header, and paint the backdrop using existing popup::sheet_scrim45.
+State::input attaches only to handle/list regions, never editable fields.
+A pan-down callback retains the same open control until the owner's actual
+close ACK removes it, matching the existing Dialog refusal behavior. Native
+safe-area/breathing-room content remains caller-owned. There is no copied
+Dialog frame paint to extract in this geometry-only adapter.
+
+Installed actual GPUI tests read fractional/capped native bounds and hit them,
+retain render A while the host resets geometry/opening B before redraw, require
+A to leave B motion/scroll/dismissal untouched, then require fresh B pan-down
+and refused-close retention. Pure tests also drive the shared content scroll
+handoff. All remain UNEXECUTED until the serialized remote narrow run; this
+checkpoint is not an approved producer or full menu-sheet/UI claim.

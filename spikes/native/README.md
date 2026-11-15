@@ -1318,3 +1318,11 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+The optional sheet::content_fit adapter reuses sheet::snap for a natural-content
+single-open sheet. It caps and translates one native child and exposes the
+same native scroll/gesture routing with a caller admission predicate. The host
+keeps its existing focus, opening lease, frame/backdrop paint and actual-close
+decision; this adapter creates none. Authored two-stop sheets and Dialog keep
+their APIs and defaults. Menus pass their source80-percent cap and use the
+existing45-percent sheet backdrop; a fixed percentage is not content fitting.
