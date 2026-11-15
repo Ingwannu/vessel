@@ -89,7 +89,8 @@ reader is the barrier proving an event was buffered before retirement.
 
 ## Verification status
 
-Current actor/Page integration is under narrow verification. The historic
+Exact-source actor/Page narrow verification passed as recorded below; V1
+source review and final package verification remain pending. The historic
 normal Devices visual/revoke pass, pure identity review and dialog producer
 checks are separate evidence. This document grants no permission, UI,
 physical-device, stream-product or final-package approval. Logs and exact
@@ -150,3 +151,44 @@ passed; one App no-frame assertion remained. Frame measurement now occurs
 inside the input-dispatch update, before a callback's notify can flush a
 normal post-input redraw. The newer confirmation/context assertions remain
 unchanged. This probe is still red, not a waived runtime result.
+
+
+## Immutable producer result (2026-11-15)
+
+The minimal source line is `backend/m12-shared-device-connection`, based
+exactly on gated `074ade16`, through
+`3f4fc4888f99ac90b10697f017b3fde0599bad3c`. It excludes the unrelated
+HostErrors kit presentation and the moving full Devices branch. Core
+App/Link/View blobs match the authored worktree; only this selected producer
+is proposed for adoption. The gated base already supplies captured dismissal
+and ReturnFocus, with no new kit source changes in this producer.
+
+Exact-source remote all-target Clippy for View/Link/App passed:
+`devices-narrow-20261115T093416Z-3f4fc488`. The same source's test batch
+passed **1187/0/2**: `devices-narrow-20261115T093535Z-3f4fc488`. Both runs
+have native-fonts/cargo zero and no skip. App75/0/2, Link78/0/0 and View
+sections1034/0/0 are separate; no real-node permission claim follows from
+the framed semantic-Forbidden fixture. Actual changed App/Link compilation
+is retained; unchanged View sources reuse valid artifacts and run all tests.
+
+The input regression measures frame identity inside window dispatch; a normal
+notify-driven redraw at update completion is not mistaken for a newer tree
+handling the input. All six intent/connection by Escape/scrim/glyph cases
+pass, retaining the newer confirmation. The earlier red runtime probes remain
+red; no assertion, deadline or failing case was skipped.
+
+Evidence: `/tmp/work/m12-g4/resumed-20261115/preflight-remote-{clippy,test}-07/`
+contains raw logs/steps; `preflight-final-evidence.json` independently sums
+every test section. `preflight-source-3f4f.json` pins2398 tracked Rust,
+Fluent, Cargo and toolchain source files; selection and derivation from the
+prior manifest are explicit, and all changed blob bytes are hashed anew.
+V1 source review is pending. No whole gate was rerun on unchanged source.
+
+Limits: W12's follow wrapper remains literal cfg(test)-staged, requiring
+real resident wiring, attribute removal, visibility checks and source review.
+The guard's synthetic ready-result EOF/error tests are not real server EOF
+or error-frame coverage. Device effective-scope/self UI, pairing, relay
+consent, physical devices, captures and final E2 gate remain unverified.
+No live node, fake fleet or application was started for this checkpoint; no
+real invitation/QR was generated. Synthetic peers only. Builds/tests ran as
+existing ubuntu UID/GID1000; no production service or permission changed.
