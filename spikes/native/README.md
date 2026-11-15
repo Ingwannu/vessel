@@ -1272,6 +1272,21 @@ input boundary consumes only the nested menu's outside press, preserving
 its host dialog; no second scrim or area popup is drawn. See
 `docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
 
+### Adaptive caller-content popover
+
+`kit::popover` is the shared control for arbitrary settings bodies: measured
+start/end anchoring on desktop and the existing dialog/snap renderer on compact
+layouts. `PopoverState::open` returns an opaque lease; `PopoverHandlers::admit`
+must accept that opening before any close or ReturnFocus acknowledgment. The
+control rechecks after admission, so retained old input cannot close a newer
+surface. Domain context and body actions stay with feature owners.
+
+`PopoverContent` uses validated Width, natural compact content capped at80%,
+and optional existing CompactLayout. DialogLayout's typed BodySpacing::Caller
+avoids adding a second inset around forms; legacy dialogs keep Inset24 and all
+existing geometry defaults. See `docs/plans/wp-adaptive-popover.md` for exact
+Paseo references, API, pending remote tests and V1/lead handoff requirements.
+
 ### Allocation block approval boundary (base 5 adapter)
 
 `command_changes::Listed` projects every `ServicePortsView` field explicitly.
@@ -1300,6 +1315,13 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+The shared combobox captures a private identity for each explicit opening.
+Retained frame callbacks admit that opening before keys, outside/scrim, row/back
+or implicit pointer focus; they cannot act on a later opening. Final dismissal
+reuses the shared weak ReturnFocus policy; state replacement acknowledges actual
+close before dropping its opener cycle. Existing signatures, placement and
+geometry remain. Evidence and limits: `docs/plans/shared-picker-admission.md`.
 
 ### Identified form textarea
 

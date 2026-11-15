@@ -2,6 +2,10 @@
 
 Status: implementation in progress.
 
+Close owners route from `ClosePlan::target()`, the immutable original snapshot,
+never a later selected tab. Keyed completion still checks current identity and
+modified state; reading the snapshot grants no close or transport authority.
+
 ## Decision Log
 
 - Purpose and intent: one typed pane contract for files, terminals, browser
@@ -59,6 +63,10 @@ pane. Composer destination capture must match a current explicit Draft/Agent
 target and workspace; a hidden draft is never a global fallback.
 
 Feature polling uses read-only `layout_tab_exists` and `layout_panel_visible`.
+Resource-specific callbacks additionally use `layout_tab_matches(key, tab,
+captured_target)`: a retarget keeps the tab id but revokes the old resource's UI
+actions. The registry uses that same predicate for its actual PanelContext.
+This reads an existing layout only and grants no connection/resource authority.
 They never insert a layout, and visibility requires the displayed workspace,
 selected tab and compact/maximized/top-sheet projection. The window argument is
 required to apply the current breakpoint; OS window visibility remains with the

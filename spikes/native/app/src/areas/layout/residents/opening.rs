@@ -191,6 +191,7 @@ impl Shell {
         // A deferred user intent must not keep authority from an old membership
         // snapshot. Refuse changed placement rather than retargeting its tab.
         opening.validate_placement(lookup)?;
+        let before = super::super::registry::retirement::Before::layout(self, &opening.workspace);
         super::super::initialized(self);
         let mut layout = self
             .areas
@@ -225,6 +226,11 @@ impl Shell {
         {
             self.areas.layout.maximized = None;
         }
+        self.layout_retired(
+            before,
+            super::super::registry::retirement::Source::Local,
+            cx,
+        );
         self.layout_result(Ok(()), cx);
         Ok(admission)
     }
