@@ -1,141 +1,111 @@
 # F6: shared Fluent contracts for installation-owned resources
 
-The plugins package owns per-installation text, lifetime and contributions.
-The words track supplies two reuse seams inside view; neither creates a second
-core translator nor imports installation resources into its static registry.
-Reference behavior is the plugin client translation subscription and cleanup in
-`packages/plugin/src/client/translations.tsx:54` and its message contract in
-`packages/plugin/src/text.ts`. ADR 0079 owns native plugin contribution scope.
-No reference translation assets are imported.
+The plugins package owns installation text, resource bounds, contribution
+lifetimes, refresh and publication. The words track supplies two crate-private
+view seams. Neither extends the static core registry or creates a second core
+translator. The reference is the plugin client translation subscription/cleanup
+in `packages/plugin/src/client/translations.tsx:54` and its message contract in
+`packages/plugin/src/text.ts`; ADR 0079 owns the native contribution scope.
+Reference translation assets are not imported.
 
 ## Bundle configuration
 
 [Decision Log]
-- Purpose: plugin text must use the same number/date/particle functions and
-  pseudo transform as the core while retaining its own resource ownership.
+- Purpose: owned plugin resources need the same NUMBER/DATETIME/PARTICLE and
+  pseudo behavior as the core, with independent resource ownership.
 - Existing assets: concurrent Fluent bundles, embedded numeric/date rules and
-  typed Number/Date argument bridges already implement the app contract.
-- Alternatives: copying configuration drifts; extending the core registry leaks
-  installation state into its process cache and loses generated-key guarantees.
-- Choice: `localization::resources::bundles<R>(Locale)` prepares empty active and
-  English bundles; `R: Borrow<FluentResource>` supports owned core resources and
-  installation-owned `Arc<FluentResource>` without another dependency.
-- Why: a validated Locale selects core-owned formatting data; no plugin message
-  can replace the separate private DATETIME pattern bundle. Each fallback keeps
-  English's own plural rules. Both bundles use the pseudo transform when chosen.
-- Effects: the caller owns resource validation/addition, per-message fallback,
-  value preparation/cache and disposal. Number/Date Fluent bridges are crate
-  private and belong only at that argument boundary. No frame-time parsing,
-  global plugin cache, file access or language RPC is added.
+  checked Number/Date arguments already implement that contract.
+- Alternatives: a copied formatter drifts; loading plugin keys into Translator
+  leaks installations into its process cache and loses generated-key guarantees.
+- Choice: `localization::resources::bundles<R>(Locale)` returns empty localized
+  and English fallback bundles, with `R: Borrow<FluentResource>` for owned core
+  resources and installation-owned `Arc<FluentResource>`.
+- Why: validated Locale chooses core-owned data; plugin lookalike message keys
+  cannot replace the private DATETIME pattern bundle. English fallback retains
+  English plural rules. The pseudo locale transforms both bundles.
+- Effects: callers validate/add their resources, prepare values on data/language
+  events and own cache/disposal. No dependency, I/O, locale RPC or public
+  runtime-string-key API is introduced.
 
-`resolution.rs` owns typed initialization/format errors and generic resolution;
-`formats.rs` depends on that lower layer; `resources.rs` configures the bundles;
-`runtime.rs` uses them for the unchanged core cache/generated API. Installation
-callers retain their own owned-key error type: core FormatError's static keys
-are not widened into a dynamic string API.
+`resolution.rs` owns typed initialization/format diagnostics and generic
+resolution below configuration. `formats.rs` uses that lower layer;
+`resources.rs` configures bundles; `runtime.rs` uses them for the unchanged
+static core cache/API. Number/Date Fluent bridges are crate private and belong
+only at the argument boundary. Core FormatError retains static keys; plugin
+consumers retain their own owned-key error type.
 
-Tests compare Arc-backed NUMBER, DATETIME and Korean PARTICLE results against
-whole core sentences for English/Korean/pseudo, English plural fallback for a
-missing translated message, namespace isolation, an attempted DATETIME pattern
-lookalike and release of the last installation resource Arc.
+## Pure source contract
 
-State: source and narrow checks ready. View all-target Clippy passed; all 21
-localization tests passed, including the two new Arc-resource tests and retained
-plain-getter zero-allocation, fallback, pseudo and language-selection tests.
-Changed view code recompiled. Formatting, size/boundary/token checks passed;
-there are no new size/token exceptions, dependencies or core catalog changes.
-The consumer package's whole native gate and integration review remain owed.
-The earlier preferred-system-language package was gated at exact `8a944a23`;
-its gate/captures do not cover this follow-on. Package base 2 (`6036eeb8`) was
-merged after that gate completed; its root crates remain unchanged.
+`view/fluent_contract/` is shared source for the maintained Fluent AST walk,
+validated Name/Key, opaque Shape, checked Contract and typed ContractError.
+It contains no folders, registry, filesystem, environment or toolkit types.
+Build tooling includes it directly. A test-only view root registration compiles
+it on the target side; F6 promotes that one registration to crate-private when
+its production consumer lands, with no unused-code allowance.
 
-## Pure argument/reference contract
+The flow is parse/index entries → scan Pattern into Shape → expand references
+into Contract → compare English and translated Contracts. Private fields make
+comparison of an unexpanded Shape a type error. Expansion checks missing/cyclic
+references, incompatible types and local bindings. Its named depth limit is 64;
+memoized subtree height preserves that limit on a later deeper path and avoids
+exponential traversal of duplicated DAG edges.
 
-`view/fluent_contract` holds only the maintained Fluent AST walk, validated
-Fluent Name/Key types, Shape/Kind, reference expansion and typed ContractError.
-The host includes that source directly; view tests compile the same source at
-the target side. The plugin consumer promotes that test-only registration to a
-crate-private module when it starts using it; no dead-code allowance or public
-runtime-key API is introduced before there is a consumer.
+Core folder/prefix/context/native-name and released English/Korean completeness
+rules remain host policy. Comparison uses Exact variables for core Korean and
+Subset for partial installation translations; neither permits variables or
+number/date requirements the English caller does not supply. Plugin consumers
+still own parsing, duplicate/entry/attribute rejection, namespace, mandatory
+English and resource byte/key/count bounds. They must publish message keys,
+not expose arbitrary core or term keys as a new app API.
 
-Reference expansion produces a private-field `Contract` distinct from the raw
-scanned `Shape`; comparison requires that checked type, so reference variables
-cannot be skipped by calling the comparator too early.
+## Function operands and Date encoding
 
-The English argument set is compared with Exact coverage for core Korean and
-Subset coverage for partial installation resources. The caller still owns
-resource parsing, duplicate/entry/attribute rejection, key namespace and locale
-presence/coverage policy; a shape scan does not replace those checks. Core
-folder prefixes, context/native-name checks and released EN/KO completeness
-remain in build_support and retain their fixtures. The shared module performs
-no I/O and knows no core registry or plugin RPC/schema.
+A retained pre-extraction checker accepted three intentionally invalid copied
+catalogs: NUMBER with a string operand, a string bound to a numeric term
+parameter, and a string bound to a Date term parameter. Upstream Fluent writes
+custom callback Error as a function placeholder without adding a resolver
+diagnostic (`resolver/inline_expression.rs`). Thus an empty runtime error vector
+cannot validate those operands. No shipped-language defect was observed.
 
-The existing reference depth limit is a named constant. Expansion memoizes a
-completed subtree plus its height: duplicated DAG edges no longer cause
-exponential re-expansion, and a later deeper path cannot use that cache to
-bypass the depth limit. Tests include both depth boundaries, that cached-path
-case, duplicate edges, cycles, missing references, unbound terms, conflicting
-types and the English/translation variable/type contract. API generation uses
-explicit escaped strings from the validated names; a retained pre-change
-artifact is compared byte-for-byte after the host extraction.
+The shared gate requires numeric NUMBER operands, retains named term literal
+kinds and rejects incompatible numeric/Date bindings. A Date stays a typed
+caller value; translation literals never depend on its private encoding.
+Every Date read must pass through DATETIME, including message references.
+Nested PARTICLE(DATETIME(...)) is valid. Expansion removes lexically bound raw
+reads so a local text parameter shadowing a Date name remains independent.
+Numbers retain plain interpolation through the numeric formatter. The standard
+function names and their implementation are unchanged.
 
-The plugin owner retains resource byte/key/count bounds, fallback/cache/error
-mapping, generation ordering, language refresh and subscription disposal.
-Neither this pure seam nor its tests prove those plugin lifecycle flows.
+## Verification and integration boundary
 
-Pure seam state: installed source; its narrow target/host checks and generated
-API byte comparison are owed. The bundle-only checks above do not cover it.
+Exact `7f94630e1237dea19f50362b9667c6a7154b6ffd`, on package base 4 (`3cd0d3fc`)
+merged as `a4157f17`, passes:
 
-## Operand and local-binding gate correction
+- Narrow run `i18n-narrow-20261115T085743Z-7f94630e`: 902 view library tests and
+  22 host example tests, 924 passed, zero failed/ignored. Both steps exited zero.
+- Narrow run `i18n-narrow-20261115T091030Z-7f94630e`: view all-target Clippy with
+  warnings denied; both steps exited zero. Changed view code recompiled in both.
+- Formatting and static quality: 597 Rust files, 14 existing size exceptions;
+  boundaries pass; token counts 417/74/45 in 96 existing entries, none new.
+- Independently identified generated API via executed lib-test dep-info:
+  98,908 bytes, SHA-256
+  `5407f5c425d160b7b1125c4a4eaa97cd70e6e7fc51cd3788f4083d83c645744d`,
+  equal to the retained old generator on the same current corpus. The incoming
+  Korean PR-title value change does not affect generated API definitions.
 
-A retained existing checker accepted three deliberately invalid candidates:
-`NUMBER("text")`, a string bound to a NUMBER term parameter, and a string bound
-to a DATETIME term parameter (all returned zero on explicit copied roots).
-Source inspection of fluent-bundle's `resolver/inline_expression.rs` shows that
-custom callback Error writes a function placeholder without adding a resolver
-diagnostic. Thus an empty runtime diagnostics vector cannot validate operands.
-This is not an observed shipped-language defect; shipped EN/KO uses supported
-operands. It is a gate gap that matters when admitting installation resources.
+Tests cover core whole sentences, zero-allocation warmed plain getters, Arc
+resource release/namespace isolation, independent English plural fallback,
+private date patterns, pseudo, graph depth/DAG/cycles/missing references,
+variable/type mismatches, invalid operands/bindings and safe Date composition.
+The two earlier Clippy failures (terminator/exhaustiveness, then Result-returning
+fixture construction) remain recorded; their fixes use no lint exception.
+Two earlier local waiters were stopped before compilation for source/base
+transitions; they are not compiler results.
 
-The shared AST gate now requires a NUMBER operand capable of remaining numeric
-(a typed variable, bounded numeric literal or nested NUMBER result), including
-correct inference through inline placeables. Named term arguments retain their
-literal kind: a numeric parameter needs a numeric literal; a Date parameter
-cannot be supplied by resource literals. Dates stay typed caller values, so
-translations never depend on their private Fluent-boundary encoding. Standard
-function names/configuration stay unchanged; no parser or dependency is added.
-Negative and positive cases run through both the target contract and host gate.
-These corrections strengthen admission checks; they do not turn runtime
-placeholder text into UI recovery or replace the plugin owner's failure path.
-
-Package base 3 (`6c782cb6`) was merged as `a6c9d0c4`. Incoming node Quality B
-and race corrections are preserved unchanged; this track adds no root/protocol
-work. Current state: coherent source, formatting and static quality checked;
-Clippy, target/host tests, generated API parity and consumer integration owed.
-
-Package base 4 (`3cd0d3fc`, published/candidate app packages) was then merged
-as `a4157f17` before submitting the committed-tree narrow checks. The root
-crates/manifests/lockfile match that incoming base. Its only FTL difference
-from the retained pre-extraction corpus is the already reviewed Korean PR
-form-title wording; English API definitions and numeric/native-name settings
-are unchanged. This merge is outside the earlier exact F5 approval.
-
-The first committed-tree narrow run on `6cd6aa981` passed 900 view and 20 host
-example tests (920/0/0). Its Clippy check reported five terminator/exhaustive-arm
-findings; `90c2c6d32` corrects those. The next Clippy check reached test helpers
-and found Result-returning fixture construction using assertions/unwrap. That
-fixture builder is now separate from the Result-returning scanner; lint levels
-are unchanged and both original failure logs are retained.
-
-A typed Date must be read through DATETIME, including references/compositions;
-otherwise its private encoding could be printed by a translated plain variable.
-The scanner retains raw reads with lexical term bindings removed during
-expansion, and the comparator checks translated reads against English Date
-arguments. Nested PARTICLE(DATETIME(...)) and a locally bound text parameter
-shadowing a Date name remain valid. Numbers may still use plain interpolation
-through the shared numeric formatter. New positive/negative cases cover these
-rules. The generated API at `6cd6aa981` was independently identified through the
-executed lib test's dep-info: 98,908 bytes, SHA-256
-`5407f5c425d160b7b1125c4a4eaa97cd70e6e7fc51cd3788f4083d83c645744d`,
-identical to the retained old generator on the same corpus. Follow-up checks
-remain owed for this final helper/date-read revision.
+Disposition: source and narrow checks ready; the coupled F6 package's ONE whole
+native gate and review remain owed. No current app/UI/plugin lifecycle,
+publication/generation ordering, subscription disposal, installed-size/startup
+benchmark, browser/Windows/real-GPU/accessibility or current wasm execution proof
+is inferred. The earlier exact F5 preferred-language gate/frames are separate.
+The root crates/manifests/lockfile match the incoming package base; this track
+adds no node/protocol work. Contributor steps remain in the locales README.
