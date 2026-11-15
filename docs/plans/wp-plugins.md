@@ -470,3 +470,23 @@ duplicate completion, busy owned retry and an actual weak-owner GPUI field after
 Hub disposal. These are authored controller tests, not current executed proof,
 node authentication, installed runtime or final F6 UI acceptance. Per-opening
 popover entity/subscription/context retirement and real shell/Node wiring remain.
+
+
+## Changed native checks and queued-editor fixture lifetime
+
+The exact5ec renderer run executed95 App tests successfully, one failed and
+two were ignored; it stopped before later crate targets. The canonical receiver
+run executed three App plugin cases and failed that same editor case before
+View/Link tests could run. Neither is a passing current union. Strict runs
+reported callback punctuation, unused ownership and test geometry diagnostics;
+they are retained rather than hidden behind allowances.
+
+The replaced-editor fixture emitted from an entity then dropped its last strong
+handle before GPUI delivered queued effects. GPUI subscribe_in captures the
+emitter weakly and upgrades it at delivery. The corrected fixture retains that
+actual old entity through run_until_parked, then drops it. Its Stale, no request,
+unchanged draft and real successor Enter assertions are unchanged. This makes
+the intended queued-event boundary observable; changed execution is still owed.
+Existing kit bounds.inset supplies the same click point without duplicating
+pixel arithmetic. Required owned String field callbacks borrow text only at
+the plugin adapter and do not change the kit callback contract.

@@ -41,7 +41,7 @@ struct SurfaceView {
     state: SurfaceState,
     registry: Weak<RefCell<Registry>>,
     fields: BTreeMap<ContributionId, Entity<fields::Field>>,
-    _subscriptions: Vec<Subscription>,
+    subscriptions: Vec<Subscription>,
     menu: MenuState,
     shown_menu: Option<menus::Shown>,
     opener: Opener,
@@ -78,7 +78,7 @@ impl SurfaceView {
             state,
             registry: Rc::downgrade(registry),
             fields,
-            _subscriptions: subscriptions,
+            subscriptions,
             menu: MenuState::new(cx),
             shown_menu: None,
             opener,
@@ -132,7 +132,7 @@ impl SurfaceView {
                 (self.fields.get(identity), self.state.value(identity))
             {
                 field.update(cx, |field, cx| {
-                    field.editor.set_text(old.as_str(), window, cx)
+                    field.editor.set_text(old.as_str(), window, cx);
                 });
             }
             cx.emit(SurfaceEvent::Rejected(problem));

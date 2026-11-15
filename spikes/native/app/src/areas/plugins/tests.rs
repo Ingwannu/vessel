@@ -10,7 +10,7 @@ use vessel_proto::plugins::{
 
 #[gpui::test]
 fn markdown_links_use_the_typed_guard_and_recording_fake_opener(cx: &mut TestAppContext) {
-    use gpui::{Modifiers, point, px};
+    use gpui::{Modifiers, px};
     use std::sync::Mutex;
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
@@ -38,7 +38,7 @@ fn markdown_links_use_the_typed_guard_and_recording_fake_opener(cx: &mut TestApp
             )
             .expect("surface");
             cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
-                observed.borrow_mut().push(event.clone())
+                observed.borrow_mut().push(event.clone());
             })
             .detach();
             view
@@ -48,10 +48,7 @@ fn markdown_links_use_the_typed_guard_and_recording_fake_opener(cx: &mut TestApp
             .debug_bounds("plugin-surface-markdown")
             .expect("real Markdown body");
         let inset = px(vessel_app_kit::theme::spacing::S2);
-        cx.simulate_click(
-            point(bounds.left() + inset, bounds.top() + inset),
-            Modifiers::none(),
-        );
+        cx.simulate_click(bounds.inset(inset).origin, Modifiers::none());
         cx.run_until_parked();
         if accepted {
             let urls = opened.lock().expect("recorded opener");
@@ -78,7 +75,7 @@ fn fixture() -> (Rc<RefCell<Registry>>, ContributionAddress) {
 fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
     cx: &mut TestAppContext,
 ) {
-    use gpui::{Modifiers, point, px};
+    use gpui::{Modifiers, px};
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
     });
@@ -97,7 +94,7 @@ fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
         )
         .expect("surface");
         cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
-            events.borrow_mut().push(event.clone())
+            events.borrow_mut().push(event.clone());
         })
         .detach();
         view
@@ -107,7 +104,7 @@ fn presented_button_dispatch_rechecks_offline_owner_before_any_request_event(
         .debug_bounds("plugin-surface-button")
         .expect("real kit button");
     let inset = px(vessel_app_kit::theme::spacing::S2);
-    let press = point(bounds.left() + inset, bounds.top() + inset);
+    let press = bounds.inset(inset).origin;
     cx.simulate_click(press, Modifiers::none());
     cx.run_until_parked();
     assert!(captured.borrow().iter().any(|event| matches!(event, SurfaceEvent::Requested(request) if matches!(request.submission(), Submission::Action(_)))));
@@ -242,7 +239,7 @@ fn real_native_field_captures_bounded_text_and_refuses_submit_after_owner_goes_o
         )
         .expect("surface");
         cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
-            events.borrow_mut().push(event.clone())
+            events.borrow_mut().push(event.clone());
         })
         .detach();
         view
@@ -298,18 +295,18 @@ fn a_replaced_editor_cannot_submit_a_queued_event_to_the_same_control_identity(
         )
         .expect("surface");
         cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
-            observed.borrow_mut().push(event.clone())
+            observed.borrow_mut().push(event.clone());
         })
         .detach();
         view
     });
     let id: ContributionId = "field".parse().expect("control");
-    view.update_in(cx, |view, window, cx| {
+    let old = view.update_in(cx, |view, window, cx| {
         let old = view.fields.get(&id).expect("old actual editor").clone();
         let current = cx.new(|cx| {
             fields::Field::new(id.clone(), "Input".parse().expect("caption"), window, cx)
         });
-        view._subscriptions.push(cx.subscribe_in(
+        view.subscriptions.push(cx.subscribe_in(
             &current,
             window,
             |view, _field, event, window, cx| view.field_event(event, window, cx),
@@ -326,8 +323,12 @@ fn a_replaced_editor_cannot_submit_a_queued_event_to_the_same_control_identity(
             });
         });
         cx.notify();
+        old
     });
+    // subscribe_in upgrades the emitter weakly at delivery, so retain the
+    // replaced real entity until its queued event has actually been handled.
     cx.run_until_parked();
+    drop(old);
     assert!(captured.borrow().iter().any(|event| matches!(
         event,
         SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Stale))
@@ -412,7 +413,7 @@ fn the_single_hub_owns_the_registry_and_a_retained_surface_cannot_keep_it_alive(
             )
             .expect("hub surface");
         cx.subscribe_self(move |_view, event: &SurfaceEvent, _cx| {
-            observed.borrow_mut().push(event.clone())
+            observed.borrow_mut().push(event.clone());
         })
         .detach();
         view

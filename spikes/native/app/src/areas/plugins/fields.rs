@@ -36,7 +36,17 @@ impl Field {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Self {
-        let editor = TextField::with_source(label.as_str(), Self::submit, Self::change, window, cx);
+        let editor = TextField::with_source(
+            label.as_str(),
+            |field, source, text, window, cx| {
+                field.submit(source, &text, window, cx);
+            },
+            |field, source, text, cx| {
+                field.change(source, &text, cx);
+            },
+            window,
+            cx,
+        );
         Self {
             identity,
             label,
@@ -46,7 +56,7 @@ impl Field {
     fn submit(
         &mut self,
         source: FieldId,
-        text: String,
+        text: &str,
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
@@ -56,7 +66,7 @@ impl Field {
             value: text.parse(),
         });
     }
-    fn change(&mut self, source: FieldId, text: String, cx: &mut Context<'_, Self>) {
+    fn change(&mut self, source: FieldId, text: &str, cx: &mut Context<'_, Self>) {
         cx.emit(Event::Edit {
             identity: self.identity.clone(),
             source,
@@ -84,7 +94,7 @@ pub(super) fn collect(surface: &Surface, fields: &mut Vec<(ContributionId, Capti
     for control in &surface.controls {
         match &control.content {
             ControlContent::TextField { label, .. } => {
-                fields.push((control.id.clone(), label.clone()))
+                fields.push((control.id.clone(), label.clone()));
             }
             ControlContent::Stack { surface }
             | ControlContent::Row { surface }

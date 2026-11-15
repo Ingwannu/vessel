@@ -188,7 +188,7 @@ fn choice(
                 look.tokens,
             )
             .on_click(cx.listener(move |view, _event, _window, cx| {
-                view.change(&field, FieldValue::Choice(Some(option_id.clone())), cx)
+                view.change(&field, FieldValue::Choice(Some(option_id.clone())), cx);
             }))
         }));
     div()
@@ -231,7 +231,7 @@ fn toggle(
     );
     let switch = switch.when(look.live, |switch| {
         switch.on_click(cx.listener(move |view, _event, _window, cx| {
-            view.change(&field, FieldValue::Toggle(next), cx)
+            view.change(&field, FieldValue::Toggle(next), cx);
         }))
     });
     vessel_app_kit::settings::row(
@@ -272,7 +272,7 @@ fn draw_button(
         look.tokens,
     )
     .on_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
-        view.press(&field, &behavior, event.position(), window, cx)
+        view.press(&field, &behavior, event.position(), window, cx);
     }))
     .into_any_element();
     Some(

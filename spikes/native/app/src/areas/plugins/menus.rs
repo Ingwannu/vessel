@@ -42,7 +42,7 @@ impl SurfaceView {
                 cx.notify();
             }
             ButtonBehavior::Popover { .. } => {
-                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value))
+                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value));
             }
         }
     }
@@ -93,7 +93,7 @@ impl SurfaceView {
                 }
             }
             ButtonBehavior::Popover { .. } => {
-                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value))
+                cx.emit(SurfaceEvent::Rejected(SurfaceProblem::Value));
             }
         }
         cx.notify();
@@ -151,7 +151,7 @@ pub(super) fn overlay(
         &items,
         &MenuHandlers {
             state: |view: &mut SurfaceView| &mut view.menu,
-            chose: Rc::new(|view, index, window, cx| view.choose(index, window, cx)),
+            chose: Rc::new(SurfaceView::choose),
         },
         tokens,
         draw::narrow(window),
