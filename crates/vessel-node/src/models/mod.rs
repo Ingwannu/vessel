@@ -27,11 +27,16 @@
 //!   limit, which harnesses back off from.
 
 pub(crate) mod config;
+#[cfg(test)]
+mod generation;
 mod listen;
+#[cfg(test)]
+mod metadata;
 pub(crate) mod proxy;
 #[cfg(test)]
 mod tests;
 pub(crate) mod token;
+mod upstream_options;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;

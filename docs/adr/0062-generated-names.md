@@ -195,19 +195,59 @@ be refused before saving. This is a deliberate security and cost bound,
 not a reproduction of Paseo's explicit-model pass-through. An effort that
 the provider's API cannot represent is omitted: Anthropic's wire effort is `low`, `medium`, `high` and
 `max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
-call and the provider's default stands. When the entry omits effort,
+call and the provider's default stands. Chat's `max` is likewise omitted
+rather than downgraded to `high`; a provider configured without reasoning
+fields receives no effort. These omissions apply only to metadata, and do
+not change proxy translation. When the entry omits effort,
 the provider's default stands, except the automatic `gpt-5.4-mini`
 match, which asks for low.
 
 No resolvable route: no call. The fallback below applies, and the node
 logs the class (`no route`), never the prompt.
 
-The model id sent upstream is the route's `small_model` when the entry
-did not name a model and the route has a small model, otherwise the
-route's model. Preferring `small_model` here is a Vessel cost choice.
+For a manual entry without a model, or the session-route fallback,
+the model id sent upstream is the route's `small_model` when it has one,
+otherwise its primary model. Preferring `small_model` here is a Vessel
+cost choice. An automatic model-id substring match instead keeps the
+actual matching model id, primary before small when both match. It must
+not substitute an unrelated small model after matching the primary id.
+A route-name-only alias match uses the same small/primary cost choice.
 Paseo's manual candidate without a model uses the default or first model
 (`selectDefaultModel`, 262–264); its automatic path uses the model that
 matched the substring, not a separate small-model field.
+
+### Route selection and staging
+
+The node reuses its parsed `Routes` snapshot and the bounded metadata
+settings. No provider SDK, discovery request, credential read or model
+request is needed to select a tuple. Paseo scans the supplied provider
+and model arrays (`structured-generation-providers.ts` 232–249). Vessel
+uses the catalog's deterministic route-name order for equal-priority
+matches; the primary/small ids take the place of that model array, and a
+route name remains the stated label substitute. This is a deliberate
+difference for a declared `models.toml` catalog, not a claim to reproduce
+provider discovery ordering. The hint order itself is unchanged.
+
+Manual selection never appends automatic choices. On reload, a vanished
+route may be skipped for the next stored manual entry, but an existing
+selected route with a now-disallowed explicit model or unknown effort is
+refused, not silently repaired or sent to another provider. Stored
+duplicates cannot change the first resolvable tuple and never authorize a
+second request. Selection is not settings validation: saving still needs
+the later all-candidate checks, including the actual encoded API budget.
+The session fallback supplies a route, not harness-specific thinking
+options: absent a metadata preference or automatic hint, its provider
+default stands. Paseo can carry the current selection's thinking id
+(`structured-generation-providers.ts` 95–135). Vessel keeps metadata effort
+explicit at this direct model-route seam; guessing from agent-specific
+option keys in the node would cross the harness ownership boundary.
+
+Before wiring, the node selector module and its borrowed catalog iterator
+are compiled only for tests. The wiring commit after the shared accessor
+removes both attributes and supplies the real caller; no public API or
+lint suppression is added to keep unused product code. Tests use the real
+catalog parser and typed settings with synthetic endpoints, opening no
+socket and reading no credential. The selector alone does not spend.
 
 ### Strict complete-response decoding
 
@@ -655,3 +695,89 @@ still costs a call here, and costs Paseo nothing.
   slice that makes the setting real, not in this commit: a document
   that describes a call the binary does not have would disagree with
   the code.
+
+### Project-file whitespace policy
+
+The project's `vessel.toml` instructions keep Rust `str::trim`, consistent
+with Vessel's own project-file text handling. Paseo uses JavaScript trim;
+their Unicode whitespace sets differ. The shared JavaScript-style trim
+helper, if present, is not applied to this own-format reader. This is a
+stated format choice, not a claim of identical whitespace classification.
+
+
+### Shared request options before complete requests
+
+[Decision Log]
+- Purpose and intent: keep provider quirks identical for proxy traffic and
+  the later bounded metadata request.
+- Existing implementation and constraints: the proxy assembles three
+  public upstream option structs and serializes their typed requests.
+  The complete response decoder already lives in vessel-llm; no second
+  provider grammar belongs in the node.
+- Alternatives considered: duplicate the proxy option match in metadata,
+  or introduce an SDK. Both would create a second configuration policy.
+- Choice: move option assembly to a Provider method and add one closed
+  upstream Options enum whose streamed encoder delegates to the existing
+  encoders. This extraction changes neither flags nor request bytes.
+- Why this choice: the node still owns its catalog; vessel-llm still owns
+  API encoding. Existing serde and Bytes suffice; no dependency is added.
+- Effects: the proxy shrinks. Complete-request policy will be a separate
+  change, with actual encoded-budget checks rather than proxy changes.
+
+
+### Bounded complete request preparation
+
+[Decision Log]
+- Purpose and intent: send a bounded whole-response request through the
+  same typed encoders without inheriting streaming flags or a raised cap.
+- Existing constraints: upstream encoders select streaming and Anthropic's
+  budgeted thinking may raise max_tokens. Checking only the neutral cap
+  would not bound the actual provider request.
+- Alternatives considered: hand-write a second request format, or lower a
+  thinking budget after encoding. Both create a second API policy.
+- Choice: the LLM owner takes an owned neutral request and a positive
+  OutputTokens value, applies the stated metadata effort omissions, sets
+  the cap, delegates to the existing encoder, then verifies the encoded
+  cap before serialization. It switches stream off and removes Chat's
+  stream_options. A raised or missing encoded cap is a typed refusal.
+- Why this choice: the actual request is the cost boundary. Existing
+  encoders, serde and NonZeroU32 suffice; there is no new dependency.
+- Effects: budgeted thinking that cannot fit is refused, without another
+  route or retry. This is a Vessel cost limit; Paseo's structured call
+  (worktree-branch-name-generator.ts 114–135) does not specify this cap.
+  No request is sent and no node setting changes in this library slice.
+
+### Title material and semantic result edge
+
+[Decision Log]
+- Purpose and intent: isolate bounded source material and the generated
+  title JSON from routing, HTTP, credentials and actor mutation.
+- Existing constraints: GeneratedTitle already checks raw UTF-16 units
+  before the ordinary title constructor. CompletionText and JsonFailure
+  already seal provider text and decoder diagnostics. ProjectStyles owns
+  checked replacement instructions. These types are reused.
+- Alternatives considered: accept an unbounded prompt string in the
+  transport, decode into a generic JSON tree, or copy Paseo's prompt.
+- Choice: capture at most MAX_SOURCE_CHARS Unicode scalars in a redacted
+  material type, remember whether it was cut, and construct an original
+  tool-free title-only prompt. Checked project style replaces only the
+  style section. The shared output limit constant formats instructions.
+- Why this choice: the source cap applies before encoding and cannot be
+  bypassed by prompt assembly. A blank captured prefix yields no source;
+  the observer must not substitute a later turn. Paseo's style replacement
+  is preserved (build-metadata-prompt.ts 35–43); the bounded source and
+  direct JSON prompt are Vessel's cost and integration choices.
+- Effects: the node decodes title JSON once with a typed object, seals its
+  serde cause, uses GeneratedTitle, and checks the final title for keys.
+  A nonempty whitespace-only title becomes no title, like Paseo's trim
+  fallback (worktree-branch-name-generator.ts 132). Empty raw text, invalid
+  or oversized text is refused. An escaped lone surrogate is refused by
+  serde before the title constructor. Rust title trimming remains the
+  existing constructor's rule. Unknown result keys are ignored, as the
+  reference object schema does. Branch output is not requested or applied
+  in this title-only slice; the branch slice still owes independent use
+  of a valid branch when a title is blank.
+
+The node material/prompt/result module is staged under cfg(test) until
+shared-accessor wiring supplies the real caller. This edge performs no
+file or socket I/O, discovers no route and mutates no session.

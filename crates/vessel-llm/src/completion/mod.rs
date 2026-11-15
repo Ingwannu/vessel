@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod api_tests;
 mod read;
+mod request;
+pub use request::{OutputTokens, RequestError};
 #[cfg(test)]
 mod tests;
 

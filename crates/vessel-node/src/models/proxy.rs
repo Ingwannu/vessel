@@ -1295,43 +1295,7 @@ fn upstream_body(
     provider: &Provider,
     neutral: &ir::Request,
 ) -> Result<Bytes, vessel_llm::error::TranslateError> {
-    let source = provider.name.to_string();
-    let bytes = match &provider.flavor {
-        Flavor::Anthropic {
-            adaptive_thinking,
-            default_max_tokens,
-        } => serde_json::to_vec(&upstream::anthropic::request(
-            neutral,
-            &upstream::anthropic::Options {
-                provider: source,
-                default_max_tokens: *default_max_tokens,
-                adaptive_thinking: *adaptive_thinking,
-            },
-        )?)?,
-        Flavor::Responses { sampling } => serde_json::to_vec(&upstream::responses::request(
-            neutral,
-            &upstream::responses::Options {
-                provider: source,
-                sampling: *sampling,
-            },
-        )?)?,
-        Flavor::Chat {
-            parallel_tool_calls,
-            max_tokens_field,
-            reasoning,
-            replay_reasoning,
-        } => serde_json::to_vec(&upstream::chat::request(
-            neutral,
-            &upstream::chat::Options {
-                provider: source,
-                parallel_tool_calls: *parallel_tool_calls,
-                max_tokens_field: *max_tokens_field,
-                reasoning: *reasoning,
-                replay_reasoning: *replay_reasoning,
-            },
-        )?)?,
-    };
-    Ok(Bytes::from(bytes))
+    provider.upstream_options().streamed(neutral)
 }
 
 enum Decoder {

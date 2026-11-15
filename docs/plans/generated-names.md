@@ -302,28 +302,6 @@ file bound, safe Debug, command independence and the unchanged digest.
 The helper is not called by the node yet. Narrow all-targets Clippy and
 its project-file tests pass; the exact-commit whole gate remains next.
 
-### Settings compatibility correction and resume point
-
-The bounded values' strict `MetadataSettings`/`RawMetadataSettings` and
-`MetadataProvider` decoders belong to wire patches. Settings wiring must
-add a lenient file view at both nested levels: ignore unknown fields,
-retain known values, reject known bad values and read future effort as
-`MetadataEffort::Unknown`, then use the same bounded constructor. It uses
-the shared store's later-file copy/unreadable-file move, with no separate
-keeping mechanism. Unlike Paseo's strict persisted schema, the file must
-preserve other node settings when a newer candidate adds a field.
-
-Required wiring tests: unknown metadata and candidate keys leave the
-route and unrelated settings intact through read, an unrelated patch and
-reopen; future effort reads Unknown; known bad values remain refused;
-strict wire patches refuse unknown keys before mutation. No file view or
-settings field is implemented by the value-only slice. Its whole gate on
-the documented value commit passed; this correction changes documents
-only and uses the fast gate. The model resolver must also state that a
-lone JSON surrogate is refused by serde before UTF-16 counting and treat
-blank-title refusal independently of a later branch result, or document
-a deliberate difference in that later slice.
-
 ### Atomic generated title application contract
 
 The next library slice extends the existing bounded rename channel; it
@@ -351,23 +329,6 @@ exclusions; real fake-runtime tests cover application, same-word manual
 renames, concurrent requests and ended actors. No model client or node
 arming is connected. Narrow all-targets Clippy, all library tests and the
 fake actor cases pass. The exact-commit whole gate remains next.
-
-### Late generated proposal contract and resume point
-
-A parked session still has a live status, so the actor's current live
-check alone does not protect it from an already queued proposal. Extend
-that same comparison with unparked and non-imported guards, keeping fresh
-Remote creates eligible and manual rename behavior unchanged. Adjacent
-rule tests must cover parked, imported and remote states before porting
-the actor API. No new queue, call, bound or dependency is needed. This
-contract precedes its small code correction; node arming is still absent.
-
-Late-proposal correction checkpoint: the actor now checks unparked state
-and an exhaustive origin match before accepting a generated change. A
-rule test keeps parked/imported sessions and permits a fresh Remote create;
-manual rename is unchanged. Narrow all-targets Clippy and all session
-library/fake generated-title tests pass. No node task is armed yet and the
-actor slice still owes its exact-commit whole gate before port/report.
 
 ### Bounded complete-response contract and resume point
 
@@ -401,6 +362,45 @@ the new synthetic whole-response cases. HTTP, node routing, settings and
 automatic application remain unconnected. The exact-commit whole gate is
 still owed; other APIs are a subsequent decoder slice.
 
+### Settings compatibility correction and resume point
+
+The bounded values' strict `MetadataSettings`/`RawMetadataSettings` and
+`MetadataProvider` decoders belong to wire patches. Settings wiring must
+add a lenient file view at both nested levels: ignore unknown fields,
+retain known values, reject known bad values and read future effort as
+`MetadataEffort::Unknown`, then use the same bounded constructor. It uses
+the shared store's later-file copy/unreadable-file move, with no separate
+keeping mechanism. Unlike Paseo's strict persisted schema, the file must
+preserve other node settings when a newer candidate adds a field.
+
+Required wiring tests: unknown metadata and candidate keys leave the
+route and unrelated settings intact through read, an unrelated patch and
+reopen; future effort reads Unknown; known bad values remain refused;
+strict wire patches refuse unknown keys before mutation. No file view or
+settings field is implemented by the value-only slice. Its whole gate on
+the documented value commit passed; this correction changes documents
+only and uses the fast gate. The model resolver must also state that a
+lone JSON surrogate is refused by serde before UTF-16 counting and treat
+blank-title refusal independently of a later branch result, or document
+a deliberate difference in that later slice.
+
+### Late generated proposal contract and resume point
+
+A parked session still has a live status, so the actor's current live
+check alone does not protect it from an already queued proposal. Extend
+that same comparison with unparked and non-imported guards, keeping fresh
+Remote creates eligible and manual rename behavior unchanged. Adjacent
+rule tests must cover parked, imported and remote states before porting
+the actor API. No new queue, call, bound or dependency is needed. This
+contract precedes its small code correction; node arming is still absent.
+
+Late-proposal correction checkpoint: the actor now checks unparked state
+and an exhaustive origin match before accepting a generated change. A
+rule test keeps parked/imported sessions and permits a fresh Remote create;
+manual rename is unchanged. Narrow all-targets Clippy and all session
+library/fake generated-title tests pass. No node task is armed yet and the
+actor slice still owes its exact-commit whole gate before port/report.
+
 ### Remaining complete-response APIs contract and resume point
 
 Extend the same bounded decoder for OpenAI Chat and Responses. Reuse the
@@ -426,9 +426,120 @@ under the product budget and its ratchet is removed; the Responses ratchet
 is lowered. HTTP, node selection, settings and automatic application are
 still unconnected. The exact-commit whole gate remains owed.
 
+### Staged route selector contract and resume point
+
+Decision: modify the existing parsed Routes catalog and reuse the typed
+metadata values; a small metadata module owns selection separately from
+TOML parsing and the proxy. Standard iterators and Unicode lowercase need
+no new dependency. Preserve the reference hint order, actual matched model
+id, manual-only order and session fallback. Equal-priority routes use the
+existing sorted catalog; route-name aliases and omitted-model small-model
+preference are the stated Vessel differences. Selection reads no secret,
+file or socket and is not the later all-candidate settings validator.
+
+Compile the selector and its borrowed catalog iterator under cfg(test)
+until the shared-accessor wiring provides their caller. Adjacent parser
+fixtures must cover every hint, matching primary versus small, alias-only
+matches, ties, manual isolation/order, catalog reload loss, disallowed
+models, future effort, no route and redacted Debug. Contract first; the
+selector code and its narrow checks are next. No setting field or model
+request is registered. Styles are source/gate PASS at row 74; their own
+TOML text deliberately keeps Rust trim rather than JavaScript's rule.
+
+Staged selector implementation checkpoint: one borrowed catalog selection
+preserves hint order, actual model identity and manual isolation. Its
+private result exposes checked references, and Debug omits provider
+configuration. The selector and iterator remain cfg(test), with no file,
+credential, socket or request access. Narrow node all-targets Clippy and
+eight real-parser rule cases pass. This is not the all-candidate settings
+validator or the encoded API preflight. Its whole gate remains owed, and
+A10 requires production wiring and another whole gate before node merge.
+
 Review correction checkpoint: complete-response stop always retains the
 provider's report, including a normal end paired with tool/refusal content.
 That content remains unusable through the typed text error. Adjacent tests
 assert both facts on all supported APIs. The actor contract also states
 that a session with no given title is left alone. These clarify existing
 contracts; no Node caller or model request is added.
+
+
+### Shared upstream request preparation: contract and resume point
+
+Decision: modify the existing proxy encoding seam. Move its provider flag
+assembly to Provider::upstream_options and delegate encoding to a closed
+vessel-llm upstream Options enum. Byte-equivalence tests compare this
+entry point to each existing typed encoder on both recorded front request
+fixtures. No proxy ending, retry, reasoning, or budget policy changes in
+this extraction. No new library or wire surface is needed. This contract
+precedes the extraction; complete request bounds and Node wiring remain
+next. The complete reply Beta gate is running on its separate committed
+line; actor source and gate are passed.
+
+Shared option extraction checkpoint: Provider now owns its flag assembly;
+the proxy delegates to the same three typed encoders through upstream
+Options. A byte-parity test covers both recorded front requests and all
+combinations of Chat flags, plus both Responses sampling and Anthropic
+thinking choices. Narrow node all-targets Clippy passes and the LLM library
+has 103 passing tests. No existing test expectation changes. The proxy
+ratchet falls from 1592 to 1556. Whole-commit validation remains next.
+
+
+### Complete request policy: contract and resume point
+
+Add complete encoding separately from the byte-preserving extraction.
+Reuse the typed request encoders, an owned neutral request and a positive
+output-token value. Set stream=false on every API and omit Chat's stream
+options. Validate the actual encoded cap against that value, refusing any
+encoder increase before bytes are exposed to the HTTP caller. Keep the
+ADR's unsupported-effort omission rule, explicitly including Chat max and
+providers without reasoning fields; do not change proxy behavior.
+Adjacent tests owe every API, both Chat cap fields, omission/defaults,
+adaptive thinking within budget and budgeted thinking refused above it.
+The library introduces no metadata prompt, HTTP call, credential read,
+Node setting or wire field. Node wiring supplies the metadata budget and
+uses this same preparation for validation before saving and after reload.
+
+Complete request implementation checkpoint: the actual typed provider
+request establishes the cap before serialization. All three APIs request
+a whole body; Chat has no stream options. Metadata effort omissions stay
+separate from the unchanged streaming path. Five new adjacent tests cover
+the encoded caps and reasoning cases. Narrow LLM all-targets Clippy and
+108 library tests pass. No HTTP request or settings mutation is connected;
+the whole gate and production Node caller remain owed.
+
+### Title material and semantic edge: contract and resume point
+
+Decision: modify/reuse GeneratedTitle, CompletionText/JsonFailure and
+checked ProjectStyles. Add only a private staged source/prompt/result
+edge; serde and existing types need no new dependency. Capture the raw
+source prefix once with MAX_SOURCE_CHARS, retain cut state, redact Debug,
+and do not fall through to later input if that prefix is blank. Build an
+original title-only JSON prompt with the shared title-unit constant and
+replacement style. Semantic decoding keeps typed sealed errors, treats a
+nonempty blank title as no title, and checks decoded key forms before
+returning a checked title behind redacted Debug. Tests owe Unicode/source
+cut boundaries, blank-prefix handling, fixed contract with replacement
+style, unknown effort, good/blank/invalid/overlong titles, invalid JSON,
+lone surrogates and escaped keys. No HTTP, settings or actor caller yet.
+
+Title text implementation checkpoint: staged Material, Prompt and Candidate
+all redact Debug. Source capture uses one Unicode-scalar bound; instructions
+use the existing raw title-unit bound. Replacement style leaves the output
+contract fixed. Typed decoding seals JSON errors, preserves the blank-title
+fallback, and refuses final decoded keys. Six adjacent filtered tests pass
+(0 failed) and node all-targets Clippy passes after one test-only formatting
+lint correction. No socket, real credential, settings or actor mutation
+was exercised here. The product caller and whole-commit gate remain owed.
+
+
+### Consolidated title preparation: resume point
+
+Complete reply decoding has a green exact-commit whole gate, including all
+three APIs and preservation of the provider's reported stop. The actor's
+source and gate have passed too. The staged route selector, shared request
+options, bounded complete encoding and title material/semantic edge have
+passed their narrow checks; their whole gate and source reviews remain
+next. They are consolidated here without changing those Rust sources.
+Next merge the announced node head, preserving its existing protocol,
+schema and shared tests. No production HTTP generation, metadata settings
+wiring or first-prompt observer exists yet; branch generation is untouched.
