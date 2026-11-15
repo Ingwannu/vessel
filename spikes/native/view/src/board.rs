@@ -160,6 +160,11 @@ pub struct Machine {
     /// machine's, as Paseo's "Connected hosts").
     #[serde(default)]
     pub version: Option<NodeVersion>,
+    /// The node that answered under this book name, when it answered: the
+    /// stable identity a queued request or a late answer checks against,
+    /// since a book name can be renamed or reused for another node.
+    #[serde(default)]
+    pub node: Option<vessel_proto::NodeId>,
 }
 
 impl Machine {
@@ -167,6 +172,7 @@ impl Machine {
     #[must_use]
     pub fn unreachable(name: String, why: &str) -> Self {
         Self {
+            node: None,
             name,
             reach: Reach::Unreachable(why.to_owned()),
             sessions: Vec::new(),
