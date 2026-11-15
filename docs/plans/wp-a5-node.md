@@ -217,3 +217,9 @@ or sixteen head entries must not silently substitute for that missing evidence.
 W11 keeps selection Unknown until authoritative ordering facts exist. The
 same-transaction membership lookup for workspace Read/Unread is also still a
 planned W11 adapter, not an available runtime API.
+
+Actual scoped Store integration: wp-inbox-store-20261115T125350Z-b4989aa4
+completed rc0, 2 passed/0 failed/0 ignored at 13:42:57 UTC. It executed pending
+veto/delayed append watermark and two read-pool snapshots racing writer-committed
+whole-session Read/Unread. This is neither paired-device UI nor a whole runtime
+gate. The later enum/fixture changes were not present in that immutable source.
