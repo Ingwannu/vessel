@@ -67,7 +67,7 @@ pub use callbacks::Callbacks;
 pub use cell::Cell;
 pub use parser::Parser;
 pub use screen::{
-    Buffer, BufferReset, CursorStyle, MouseProtocolEncoding,
+    Buffer, BufferReset, CursorBlink, CursorStyle, MouseProtocolEncoding,
     MouseProtocolMode, Screen,
 };
 

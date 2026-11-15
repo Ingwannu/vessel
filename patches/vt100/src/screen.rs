@@ -97,6 +97,15 @@ pub enum CursorStyle {
     SteadyVerticalBar,
 }
 
+/// An independent blink override may exist while shape remains renderer-defined.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum CursorBlink {
+    /// Program requested a blinking cursor, subject to renderer motion policy.
+    On,
+    /// Program requested a steady cursor.
+    Off,
+}
+
 /// Represents the overall terminal state.
 #[derive(Clone, Debug)]
 pub struct Screen {
@@ -110,6 +119,7 @@ pub struct Screen {
     mouse_protocol_mode: MouseProtocolMode,
     mouse_protocol_encoding: MouseProtocolEncoding,
     cursor_style: CursorStyle,
+    cursor_blink_override: Option<CursorBlink>,
 
     last_char: Option<char>,
 }
@@ -140,6 +150,7 @@ impl Screen {
             mouse_protocol_mode: MouseProtocolMode::default(),
             mouse_protocol_encoding: MouseProtocolEncoding::default(),
             cursor_style: CursorStyle::default(),
+            cursor_blink_override: None,
 
             last_char: None,
         }
@@ -183,6 +194,12 @@ impl Screen {
     #[must_use]
     pub fn buffer_row_width(&self, index: usize) -> Option<u16> {
         self.grid().buffer_row(index).map(crate::row::Row::cols)
+    }
+
+    /// Preserve outgoing wrap metadata without growing or cloning retained rows.
+    #[must_use]
+    pub fn buffer_row_wrapped(&self, index: usize) -> Option<bool> {
+        self.grid().buffer_row(index).map(crate::row::Row::wrapped)
     }
 
     /// Borrow one cell of the physical retained buffer without changing viewport state.
@@ -822,6 +839,12 @@ impl Screen {
         self.cursor_style
     }
 
+    /// Preserve blink-only program overrides independently from an unset shape.
+    #[must_use]
+    pub fn cursor_blink_override(&self) -> Option<CursorBlink> {
+        self.cursor_blink_override
+    }
+
     /// Returns the currently active foreground color.
     #[must_use]
     pub fn fgcolor(&self) -> crate::Color {
@@ -939,6 +962,15 @@ impl Screen {
 
     fn set_cursor_style(&mut self, style: CursorStyle) {
         self.cursor_style = style;
+        self.cursor_blink_override = match style {
+            CursorStyle::Default => None,
+            CursorStyle::BlinkBlock
+            | CursorStyle::BlinkUnderline
+            | CursorStyle::BlinkVerticalBar => Some(CursorBlink::On),
+            CursorStyle::SteadyBlock
+            | CursorStyle::SteadyUnderline
+            | CursorStyle::SteadyVerticalBar => Some(CursorBlink::Off),
+        };
     }
 
     // determine the width of the character we're about to draw, and whether
@@ -1285,7 +1317,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
     // CSI SP
     pub(crate) fn decscusr(
         &mut self,
-        cursor_style: u16,
+        cursor_style: u32,
         mut unhandled: impl FnMut(&mut Self),
     ) {
         match cursor_style {
@@ -1298,6 +1330,25 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
             6 => self.screen.set_cursor_style(CursorStyle::SteadyVerticalBar),
             _ => unhandled(self),
         }
+        if cursor_style != 0 {
+            // The pinned headless engine preserves shape for unknown values,
+            // but still applies their parity to the independent blink override.
+            self.screen.cursor_blink_override =
+                Some(if cursor_style % 2 == 1 {
+                    CursorBlink::On
+                } else {
+                    CursorBlink::Off
+                });
+        }
+    }
+
+    // CSI ! p: reset presentation/modes without erasing or moving live cells.
+    pub(crate) fn decstr(&mut self) {
+        self.screen.grid_mut().soft_reset_modes();
+        self.screen.attrs = crate::attrs::Attrs::default();
+        self.screen.saved_attrs = crate::attrs::Attrs::default();
+        self.screen.modes &= MODE_ALTERNATE_SCREEN;
+        self.screen.set_cursor_style(CursorStyle::Default);
     }
 
     // CSI @
@@ -1472,9 +1523,11 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                     screen.set_mouse_encoding(MouseProtocolEncoding::Sgr);
                 }
                 [1049] => {
+                    let position = self.screen.grid().pos();
                     self.decsc();
                     self.callbacks.buffer_reset(BufferReset::Alternate);
                     self.screen.alternate_grid.clear();
+                    self.screen.alternate_grid.inherit_cursor(position);
                     self.screen.enter_alternate_grid();
                 }
                 [2004] => screen.set_mode(MODE_BRACKETED_PASTE),

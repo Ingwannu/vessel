@@ -51,3 +51,15 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
    marker mappings while cell construction remains unchanged. Region scrolling
    preserves marker coordinates as the pinned reference does; row contents may
    change. Marker creation/replacement validates before retiring prior state.
+
+9. Expose retained-row outgoing wrap metadata. Why: authoritative frames must
+    preserve hard/soft line boundaries for selection and reflow without a second
+    row tracker, mutable reads or synthesized ANSI restoration.
+
+10. Preserve independent program cursor blink overrides from the same decoded
+    DECSCUSR callback (including explicit u32 parameters), clear overrides on
+    DECSTR, and inherit the primary cursor on1049 alternate entry. Why: the
+    pinned headless metadata oracle exposed lost blink-only state and a wrong
+    alternate starting position. Soft reset resets modes/saved presentation
+    without erasing live cells. Cursor restore clamps pending wrap like the
+    reference's explicit cursor move. No raw scanner or second interpretation added.

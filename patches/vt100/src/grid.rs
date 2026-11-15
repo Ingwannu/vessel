@@ -216,6 +216,23 @@ impl Grid {
         self.pos
     }
 
+    // Alternate entry inherits physical coordinates, including pending wrap;
+    // origin-relative CUP clamping would lose the extra pending-wrap column.
+    pub(crate) fn inherit_cursor(&mut self, position: Pos) {
+        self.pos = Pos {
+            row: position.row.min(self.size.rows() - 1),
+            col: position.col.min(self.size.cols()),
+        };
+    }
+
+    pub(crate) fn soft_reset_modes(&mut self) {
+        self.scroll_top = 0;
+        self.scroll_bottom = self.size.rows() - 1;
+        self.origin_mode = false;
+        self.saved_origin_mode = false;
+        self.saved_pos = Pos::default();
+    }
+
     pub fn set_pos(&mut self, mut pos: Pos) {
         if self.origin_mode {
             pos.row = pos.row.saturating_add(self.scroll_top);
@@ -234,6 +251,11 @@ impl Grid {
     pub fn restore_cursor(&mut self) {
         self.pos = self.saved_pos;
         self.origin_mode = self.saved_origin_mode;
+        // Restore is an explicit cursor move in the reference: pending wrap
+        // clamps to the last physical column instead of surviving ESC 8.
+        self.row_clamp_top(self.origin_mode);
+        self.row_clamp_bottom(self.origin_mode);
+        self.col_clamp();
     }
 
     pub fn visible_rows(&self) -> impl Iterator<Item = &crate::row::Row> {

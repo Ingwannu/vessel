@@ -148,12 +148,15 @@ impl<CB: crate::Callbacks> vte::Perform for crate::screen::WrappedScreen<CB> {
                 }
             },
             Some(b' ') => match c {
-                'q' => {
-                    self.decscusr(
-                        canonicalize_params_1(params, 0),
-                        unhandled,
-                    );
-                }
+                'q' => match params.explicit().next() {
+                    None | Some(vte::DecodedParameter::Omitted) => {
+                        self.decscusr(0, unhandled);
+                    }
+                    Some(vte::DecodedParameter::Explicit(value)) => {
+                        self.decscusr(value, unhandled);
+                    }
+                    Some(vte::DecodedParameter::Overflow) => unhandled(self),
+                },
                 _ => {
                     self.callbacks.unhandled_csi(
                         &mut self.screen,
@@ -164,6 +167,7 @@ impl<CB: crate::Callbacks> vte::Perform for crate::screen::WrappedScreen<CB> {
                     );
                 }
             },
+            Some(b'!') if c == 'p' => self.decstr(),
             Some(b'?') => {
                 match c {
                     'J' => self

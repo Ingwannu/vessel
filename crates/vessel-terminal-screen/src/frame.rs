@@ -143,6 +143,27 @@ impl FrameView<'_> {
     pub const fn cursor(&self) -> FrameCursor {
         self.cursor
     }
+    /// Optional program presentation comes from this same immutable read cut.
+    #[must_use]
+    pub fn cursor_appearance(&self) -> crate::CursorAppearance {
+        crate::CursorAppearance::of(self.source.state)
+    }
+    /// Outgoing soft-wrap metadata preserves selection/reflow line boundaries.
+    #[must_use]
+    pub fn row_break(&self, row: Row) -> Option<crate::RowBreak> {
+        if row.0 >= self.rows.0 {
+            return None;
+        }
+        let line = self.first.0.checked_add(u32::from(row.0))?;
+        let index = usize::try_from(line).ok()?;
+        self.source.state.buffer_row_wrapped(index).map(|soft| {
+            if soft {
+                crate::RowBreak::Soft
+            } else {
+                crate::RowBreak::Hard
+            }
+        })
+    }
     /// The active buffer supplies cells even while a primary anchor is inactive.
     #[must_use]
     pub fn buffer_kind(&self) -> BufferKind {

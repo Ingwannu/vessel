@@ -1,6 +1,7 @@
 //! One pure terminal interpreter. Actors own bytes/PTY ordering; views own drawing.
 //! vt100 is private to this crate. No runtime, filesystem, environment or toolkit.
 mod cell;
+mod display;
 mod frame;
 mod geometry;
 mod markers;
@@ -14,6 +15,7 @@ mod range;
 pub use cell::{
     Attributes, BufferKind, Cell, Color, Column, Cursor, Row, Style, Visibility, Width,
 };
+pub use display::{CursorAppearance, CursorBlink, CursorShape, RowBreak};
 pub use frame::{
     FrameCells, FrameCursor, FrameOrigin, FrameRows, FrameView, ViewportAdjustment, ViewportRequest,
 };
