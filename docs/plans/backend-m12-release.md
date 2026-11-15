@@ -1027,6 +1027,39 @@ never rebuilt.
     unchanged), the four licence texts in both archives, no feed token
     or path in the build log.
 
+- **0.0.0.0.20**:
+  - Built from exactly `01b1e220` (`backend/m12-spike`, native gate
+    1277 passed and 2 ignored; outside `spikes/native` only documents
+    changed since `d28d7551`, so the root gate of `719bbba1` stands),
+    through the priority lane (164 s in line). Windows took 10 min 38 s,
+    Linux 31 min 12 s (the machine was loaded). `fonts.sh` ran first and
+    left all 15 faces and texts byte for byte as they were.
+  - In place at 08:55:06 UTC on 2026-11-15, published to `preview` at
+    09:02:12 UTC after the coordinator's smoke test (the palette in
+    Korean, the eight themes and Ctrl+Alt+T's selection). The notes list
+    a desktop that takes Ctrl+Alt+T first (Ubuntu opens a terminal with
+    it) among what was not checked on screen.
+  - From outside, the feed serves the manifest and all seven files, byte
+    for byte the dist folder's, with matching sums and signature; the
+    published 0.0.0.0.19 Linux build took 0.0.0.0.20 by itself 12 s after
+    its start (ERROR 0); `/dl/` lists 0.0.0.0.20 first.
+  - Sizes, with the change against 0.0.0.0.19: setup 13,951,901
+    (-4,252), exe 51,643,904 (-17,408), zip 20,516,184 (-7,992), linux
+    88,754,616 (-29,424), tar.gz 30,743,390 (-122).
+  - Checks: icons the same as 0.0.0.0.19, the Windows version resource
+    0.0.0.0.20, the debuglink from a copy, the four licence texts in both
+    archives, no feed token or path in the build log.
+  - The same morning the owner's Windows copy of 0.0.0.0.14 took
+    0.0.0.0.19 slowly: the proxy's log shows the 51.7 MB executable
+    started at 08:15:42 and broken off at 31.9 MB at 08:17:39 (about
+    0.27 MB/s), with no retry reaching the feed afterwards; the same file
+    came in 0.87 s from this machine through the public path, so the line
+    to the owner was the limit. The owner took the 14 MB installer from
+    `/dl/` instead. Follow-ups the coordinator approved: the feed answers
+    a byte range since 09:08 UTC (the preview proxy, its README says how),
+    and the updater resumes, downloads a compressed file and shows a
+    broken-off download (ADR 0094's branch).
+
 ## Logs and retries (from the build after 0.0.0.0.5)
 
 - **The log file**: `spikes/release/applog` (`vessel-app-log`). The app
