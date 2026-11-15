@@ -35,7 +35,7 @@ impl Label {
     }
 
     /// A missing/blank legacy label falls back to the machine identity, as
-    /// Paseo's badge selector does. A typed NodeId always prints a nonempty id.
+    /// Paseo's badge selector does. A typed `NodeId` always prints a nonempty id.
     #[must_use]
     pub fn or_node(label: Option<&Self>, node: NodeId) -> Self {
         label.cloned().unwrap_or_else(|| Self(node.to_string()))

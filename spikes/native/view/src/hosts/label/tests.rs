@@ -31,7 +31,7 @@ fn source_outer_whitespace_matches_js_including_bom_and_nel() {
 
 #[test]
 fn missing_legacy_labels_use_identity_and_explicit_labels_remain_distinct() {
-    let node = NodeId::new();
+    let node = NodeId::random();
     assert_eq!(Label::or_node(None, node).as_str(), node.to_string());
     let label = Label::parse("My machine").expect("a display label");
     assert_eq!(Label::or_node(Some(&label), node), label);

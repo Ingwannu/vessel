@@ -142,3 +142,9 @@ JavaScript whitespace set at construction, including BOM and excluding
 NEL, rather than silently substituting Rust's different trim set. A
 missing legacy label can resolve to the typed NodeId for display. These
 values introduce no registry, credential lookup or settings mutation.
+
+Label narrow-check correction: the first all-targets Clippy stayed red
+for a test using `NodeId::new` instead of the existing `NodeId::random`,
+and a missing backtick around the type in its API documentation. The
+follow-up changes only that fixture constructor and documentation; it
+changes no label behavior or test assertion. New narrow checks are owed.
