@@ -173,10 +173,13 @@ fn row_element(
     // messages, thoughts, tools, plans and questions; the session's state
     // is the header's, its usage the context meter's (slice M). What a
     // rewind left behind is no longer the conversation (slice R1).
-    let waiting_plan = entry.kind.as_tool().is_some_and(|tool| {
-        vessel_app_view::timeline::plan_text(tool).is_some()
-            && area.timeline.asks_permission(&tool.id)
-    });
+    // A read-only origin/child has no approval dock; its pending plan remains
+    // readable without introducing permission actions into the embedded stream.
+    let waiting_plan = area.shown.is_some()
+        && entry.kind.as_tool().is_some_and(|tool| {
+            vessel_app_view::timeline::plan_text(tool).is_some()
+                && area.timeline.asks_permission(&tool.id)
+        });
     if quiet(&entry.kind) || area.timeline.rewound(index) || waiting_plan {
         return div().into_any_element();
     }

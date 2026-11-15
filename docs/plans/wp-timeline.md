@@ -644,3 +644,28 @@ Korean Thinking to 추론: it is a state-independent category, so 생각 중 wou
 incorrectly imply a completed tool is still running. The exhaustive EN/KO enum
 label regression follows that correction. This is wording/data review only;
 number formatting, renderer behavior, package gates and captures remain separate.
+
+
+### Moving read-only provider-child projections
+
+W2 retains bounded canonical records and hands off each accepted rebuilt Timeline
+by ownership (`take_projection`); the existing conversation rows own the moved
+projection. No second fold, cloned transcript, managed child SessionId, prompt,
+approval dock or lifecycle action is introduced. The shared installation helper
+is first consumed by the existing fork-origin renderer. Its guarded public
+`replace_readonly_projection` adapter and tests are staged until W2's actual
+caller; remove its two cfg(test) annotations with that integration.
+
+Explicit entry/run/turn choices and the visible reading anchor rebase by EntryKey
+when an earlier sparse parent page shifts indices. Missing choices are dropped,
+default choices stay implicit, and tool-sheet generation is preserved on clear.
+The receiver must have no managed shown/info identity. W12's sole resident owner
+must first validate the parent binding, read generation and UI holds; this helper
+is presentation only and grants no input/network authority. Scoped Seat routing
+and old-callback rejection remain held for that producer. W1's Prompts, Pointer
+and query objects are not replaced. Read-only pending plans remain visible because
+there is no approval dock to host them; their body has no action footer.
+
+Source cross-check: Paseo `types/stream.ts:1551-1562` projects canonical error as
+an error-level Notification. Future W23 AgentEvent::Error wiring will use that
+same alert path; it must not synthesize TurnFailed or a completion footer.

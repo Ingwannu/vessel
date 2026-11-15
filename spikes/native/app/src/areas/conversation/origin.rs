@@ -36,7 +36,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::fork::{Notice, PreparedNotice};
-use vessel_app_view::timeline::{Folds, Logs, Until, empty_fork, origin_of};
+use vessel_app_view::timeline::{Until, empty_fork, origin_of};
 use vessel_proto::{ErrorCode, EventRecord, SessionId};
 
 use super::entries::Paint;
@@ -190,12 +190,10 @@ impl ConversationArea {
     /// The origin's `records` folded as its own conversation, collapsed
     /// as the fork's is.
     fn inherit(&mut self, records: &[EventRecord], collapse: bool) {
-        let _change = self.timeline.apply(records);
+        let mut timeline = vessel_app_view::timeline::Timeline::default();
+        let _change = timeline.apply(records);
         self.collapse = collapse;
-        self.folds = collapse
-            .then(|| Folds::with_reasoning(self.timeline.entries(), self.reasoning.expanded()));
-        self.logs = Logs::of(self.timeline.entries());
-        self.rows_again();
+        self.install_projection(timeline);
     }
 }
 

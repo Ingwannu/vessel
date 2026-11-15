@@ -19,6 +19,18 @@ impl Disclosures {
         let _previous = self.0.insert(entry, next);
     }
 
+    /// Keep explicit choices by stable key when a read-only history prefix grows.
+    /// Missing identities are dropped; defaults are never materialized as choices.
+    pub fn rebase(&mut self, previous: &[super::Entry], next: &super::Timeline) {
+        self.0 = std::mem::take(&mut self.0)
+            .into_iter()
+            .filter_map(|(index, expanded)| {
+                let key = &previous.get(index)?.key;
+                Some((next.index_of(key)?, expanded))
+            })
+            .collect();
+    }
+
     /// A different conversation has different entry identities.
     pub fn clear(&mut self) {
         self.0.clear();

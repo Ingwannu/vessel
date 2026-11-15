@@ -69,6 +69,7 @@ mod overlays;
 mod permission;
 mod place;
 mod plan;
+mod projection;
 /// The Plan body shared with the pending approval package.
 pub(crate) mod plan_card;
 mod question;

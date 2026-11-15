@@ -1,0 +1,89 @@
+//! A prefix rebuild moves one projection without fabricating a managed session.
+use super::*;
+use chrono::DateTime;
+use vessel_app_kit::Reveal;
+use vessel_proto::{
+    AgentEvent, ContentBlock, EventRecord, EventSeq, SessionEvent, SessionId, ToolCall, ToolCallId,
+    ToolCallStatus, ToolKind,
+};
+
+fn record(seq: u64, event: AgentEvent) -> EventRecord {
+    EventRecord {
+        seq: EventSeq::new(seq),
+        at: DateTime::UNIX_EPOCH,
+        event: SessionEvent::Agent { event },
+    }
+}
+fn projection(prefix: bool) -> Timeline {
+    let mut records = Vec::new();
+    if prefix {
+        records.push(record(
+            2,
+            AgentEvent::MessageChunk {
+                content: ContentBlock::Text {
+                    text: "Earlier".to_owned(),
+                },
+            },
+        ));
+    }
+    let tool = ToolCall {
+        id: ToolCallId::new("stable-call"),
+        title: "Read".to_owned(),
+        kind: ToolKind::Read,
+        status: ToolCallStatus::Completed,
+        content: Vec::new(),
+        locations: Vec::new(),
+        raw_input: None,
+    };
+    records.push(record(10, AgentEvent::ToolCall(tool)));
+    records.push(record(
+        11,
+        AgentEvent::ThoughtChunk {
+            content: ContentBlock::Text {
+                text: "Reasoning".to_owned(),
+            },
+        },
+    ));
+    let mut timeline = Timeline::default();
+    let _change = timeline.apply(&records);
+    timeline
+}
+#[gpui::test]
+fn prepend_preserves_explicit_choice_run_host_and_reading_anchor_by_entry_key(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        let mut area = ConversationArea::new(cx);
+        area.turns = None;
+        area.collapse = false;
+        assert!(area.replace_readonly_projection(projection(false)).is_ok());
+        area.toggle_entry(0);
+        assert!(area.entry_expanded(0));
+        assert!(area.open_runs.contains(&0));
+        area.list.reveal(0, Reveal::Top);
+        assert!(area.replace_readonly_projection(projection(true)).is_ok());
+        assert!(area.shown.is_none());
+        assert!(area.info.is_none());
+        assert!(area.entry_expanded(1));
+        assert!(!area.entry_expanded(0));
+        assert!(area.open_runs.contains(&1));
+        assert!(!area.open_runs.contains(&0));
+        assert_eq!(area.list.top().0, 1);
+        assert_eq!(area.timeline.entries().len(), 3);
+    });
+}
+#[gpui::test]
+fn managed_receiver_returns_the_projection_without_mutating_either_side(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        let mut area = ConversationArea::new(cx);
+        area.open("fake", SessionId::random());
+        let Err(unapplied) = area.replace_readonly_projection(projection(false)) else {
+            panic!("managed receiver must refuse")
+        };
+        assert_eq!(unapplied.timeline.entries().len(), 2);
+        assert!(area.timeline.entries().is_empty());
+        assert!(area.shown.is_some());
+    });
+}
