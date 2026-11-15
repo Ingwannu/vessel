@@ -3,6 +3,9 @@ mod action_context;
 mod actions;
 mod book;
 mod draw;
+// The existing Explorer host must adopt this projection with its real renderer.
+#[cfg(test)]
+mod explorer;
 mod file_guard;
 mod header;
 mod menu;
