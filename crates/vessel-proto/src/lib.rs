@@ -10,6 +10,8 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
+pub mod notifications;
+pub mod inbox_attention;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
