@@ -76,7 +76,7 @@ pub(crate) fn render(
             None,
             Some(
                 div()
-                    .type_(Type::Caption)
+                    .type_(Type::Meta)
                     .text_color(tokens.neutral.foreground_muted)
                     .child(labels.unavailable_badge())
                     .into_any_element(),
@@ -186,7 +186,7 @@ fn status_row(label: &str, status: &str, tokens: &Tokens) -> impl vessel_app_kit
         )
         .child(
             div()
-                .type_(Type::Caption)
+                .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
                 .child(status.to_owned()),
         )

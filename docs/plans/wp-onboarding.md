@@ -69,3 +69,19 @@ No size record is raised. Native lead has the exact registration footprint.
 Next: compile narrow checks, consume the announced base and L framing, then
 capture once and run one full native gate. The whole node diagnostic producer
 remains unavailable; do not claim an integrated wire success.
+
+### Narrow compilation record
+
+The first narrow check found incorrect test enum names (`NodeInfo`, not
+`GetNode`) and an unnecessary Result helper. The next found the kit calls
+for `Type::Meta`, not Caption, and an unchecked test read length. These
+were corrected without changing any existing test expectation. Typed source
+fixtures now also reject a mismatched admitted node id. Compilation of the
+corrected package is pending; no full gate or capture has run.
+
+Collection now schedules four hosts at once instead of making every later
+host fail busy. A failed refresh supersedes its predecessor even before a
+replacement report is available. A removed selected host remains explicitly
+offline. A source cap or the combined text cap refuses the whole result; it
+never truncates a supposedly complete support report. New Korean framing was
+reviewed against the existing machine terminology and complete recovery text.

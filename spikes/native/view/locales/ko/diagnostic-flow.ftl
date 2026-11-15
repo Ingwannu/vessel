@@ -12,13 +12,13 @@ diagnostic-flow-running = 수집 중
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-done = 수집 완료
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-offline = 머신가 연결되어 있지 않습니다. 다시 연결한 뒤 새로 고침하세요.
+diagnostic-flow-offline = 머신이 연결되어 있지 않습니다. 다시 연결한 뒤 새로 고침하세요.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-busy = 진단이 진행 중입니다. 현재 조회가 끝나면 다시 시도하세요.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-unavailable = 이 버전에서는 이 진단 정보를 제공하지 않습니다.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-unsupported = 이 머신는 이 진단을 지원하지 않습니다.
+diagnostic-flow-unsupported = 이 머신은 이 진단을 지원하지 않습니다.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-forbidden = 이 기기에서는 이 진단을 조회할 수 없습니다. 머신 접근 권한을 확인하세요.
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -56,7 +56,7 @@ diagnostic-flow-providers = 공급자 열기
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-partial = 기본 정보만 제공
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-no-hosts = 저장된 머신가 없습니다. 클라이언트 보고서는 복사할 수 있습니다.
+diagnostic-flow-no-hosts = 저장된 머신이 없습니다. 클라이언트 보고서는 복사할 수 있습니다.
 
 # Short source availability badge; the row description carries the full explanation.
 diagnostic-flow-unavailable-badge = 제공 안 됨

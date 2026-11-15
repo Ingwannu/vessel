@@ -28,7 +28,7 @@ async fn read(stream: &mut DuplexStream) -> ClientFrame {
     let size = usize::try_from(stream.read_u32().await.unwrap()).unwrap();
     assert!(size <= FRAME_BYTES);
     let mut bytes = vec![0; size];
-    stream.read_exact(&mut bytes).await.unwrap();
+    assert_eq!(stream.read_exact(&mut bytes).await.unwrap(), bytes.len());
     serde_json::from_slice(&bytes).unwrap()
 }
 async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
