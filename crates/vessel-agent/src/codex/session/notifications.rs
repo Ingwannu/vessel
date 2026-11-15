@@ -13,6 +13,12 @@ impl Session {
         let Some(thread) = self.thread.clone() else {
             return;
         };
+        if let Some(events) = self.compactions.observe(&thread, method, &params) {
+            for event in events {
+                self.emit(event).await;
+            }
+            return;
+        }
         let ours = |of: &str| of == thread;
         match method {
             "turn/completed" => self.completed(&thread, params).await,
@@ -185,6 +191,9 @@ impl Session {
                 message: format!("Codex's turn/completed did not read: {error}"),
             },
         };
+        for event in self.compactions.finish(&running) {
+            self.emit(event).await;
+        }
         self.turn = TurnState::Idle;
         self.streamed.clear();
         self.withdraw().await;

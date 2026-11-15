@@ -343,3 +343,18 @@ late-update evidence. Added count/byte/body saturation tests prove no eviction o
 capacity-induced association. These tests remain unexecuted until remote evidence.
 Primary sources: app/src/utils/tool-call-parsers.ts:270-339; Claude agent.ts:4764-4817,
 6247-6273; native Codex error notification schema. No real provider was launched.
+
+Codex root contextCompaction observations now have an isolated typed producer,
+without adding a second root ThreadItem mapper or touching native RPC transport.
+Item started/completed and thread/compacted channels pair completion once; the
+actual owned root turn's terminal notification closes outstanding compression
+rows. Child thread traffic is excluded. Absent trigger/token metadata stays absent;
+W22's future accepted manual RPC may supply an explicit trigger separately.
+The producer retains at most128 observations and bounded1024-byte item ids plus
+validated turn ids, with no eviction. Saturation refuses new extra display markers
+while allowing already opened ones to complete. This is a stated resource floor;
+it does not imply provider command admission or an autonomous turn capability.
+Prepared fixtures cover both channel orders, child exclusion, owned terminal
+closure and saturation; actual execution remains owed. Primary reference:
+Codex provider compaction handling:5790-5829,6280-6349,6408-6425 and native
+schema ContextCompactionItem (`app-server.json` followed by this driver).

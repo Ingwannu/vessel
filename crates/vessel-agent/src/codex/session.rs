@@ -149,6 +149,7 @@ struct Session {
     /// What waits on a person.
     approvals: Approvals,
     questions: Questions,
+    compactions: super::compaction::Compactions,
     /// Tool calls announced this turn, by their item or an approval.
     announced: HashSet<(Option<Box<vessel_proto::timeline::ToolCallScope>>, String)>,
     /// The running turn was cancelled: what Codex asks until it ends is
@@ -173,6 +174,7 @@ impl Session {
             mode: Mode::DEFAULT,
             approvals: Approvals::default(),
             questions: Questions::default(),
+            compactions: super::compaction::Compactions::default(),
             announced: HashSet::new(),
             cancelling: false,
         }

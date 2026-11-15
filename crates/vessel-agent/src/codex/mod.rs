@@ -117,3 +117,5 @@ pub(crate) fn validate_prompt(
 ) -> Result<(), crate::InputError> {
     mapper::user_input(content).map(|_input| ())
 }
+
+mod compaction;
