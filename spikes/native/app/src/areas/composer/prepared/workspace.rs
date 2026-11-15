@@ -188,6 +188,21 @@ mod tests {
     };
     use vessel_proto::NodeId;
 
+    fn connect(shell: &mut Shell) -> NodeId {
+        let node = NodeId::random();
+        shell.fleet.machines.push(Machine {
+            name: "fixture".to_owned(),
+            node: Some(node),
+            connection_epoch: None,
+            reach: Reach::Online,
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        });
+        node
+    }
+
     fn admit(
         shell: &mut Shell,
         node: NodeId,
@@ -220,21 +235,13 @@ mod tests {
         }
     }
     #[gpui::test]
-    fn equal_local_tickets_in_different_drafts_cannot_release_each_other(cx: &mut TestAppContext) {
+    fn scoped_chat_persistence_and_card_do_not_alias_a_terminal_or_sibling(
+        cx: &mut TestAppContext,
+    ) {
         language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update_in(cx, |shell, window, cx| {
-            let node = NodeId::random();
-            shell.fleet.machines.push(Machine {
-                name: "fixture".to_owned(),
-                node: Some(node),
-                connection_epoch: None,
-                reach: Reach::Online,
-                sessions: Vec::new(),
-                agents: Vec::new(),
-                protocol: None,
-                version: None,
-            });
+            let node = connect(shell);
             let workspace = vessel_proto::WorkspaceId::random();
             let a = admit(shell, node, workspace, DraftId::random(), window, cx);
             let b = admit(shell, node, workspace, DraftId::random(), window, cx);
@@ -282,6 +289,17 @@ mod tests {
                 crate::areas::composer::workspace_card(shell, terminal, true, &tokens, window, cx)
                     .is_none()
             );
+        });
+    }
+    #[gpui::test]
+    fn equal_local_tickets_in_different_drafts_cannot_release_each_other(cx: &mut TestAppContext) {
+        language_tests::init(cx);
+        let (shell, cx) = cx.add_window_view(Shell::without_io);
+        shell.update_in(cx, |shell, window, cx| {
+            let node = connect(shell);
+            let workspace = vessel_proto::WorkspaceId::random();
+            let a = admit(shell, node, workspace, DraftId::random(), window, cx);
+            let b = admit(shell, node, workspace, DraftId::random(), window, cx);
             let ticket = Ticket::new(1);
             for target in [a, b] {
                 shell.composer_add(
@@ -339,17 +357,7 @@ mod tests {
         language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update_in(cx, |shell, window, cx| {
-            let node = NodeId::random();
-            shell.fleet.machines.push(Machine {
-                name: "fixture".to_owned(),
-                node: Some(node),
-                connection_epoch: None,
-                reach: Reach::Online,
-                sessions: Vec::new(),
-                agents: Vec::new(),
-                protocol: None,
-                version: None,
-            });
+            let node = connect(shell);
             let workspace = vessel_proto::WorkspaceId::random();
             let mut first = None;
             for index in 0..=vessel_app_view::composer::trays::Trays::MAX {
