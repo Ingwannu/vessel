@@ -33,7 +33,7 @@ limits. No current C3 capture or final whole-package gate/review exists.
   b011 maps canonical queries/outcomes/reasons; GIT_PANEL remainsNone and client
   refuses All/Committed before any peer frame. No runtime admission/parity pass.
 
-## Checks as of 14:28 UTC, 2026-11-15
+## Checks as of 14:29 UTC, 2026-11-15
 
 Only the VM compiles Rust. Runs preserve immutable source; a queue receipt or
 source precheck is never a test pass. External evidence is retained under the
@@ -46,8 +46,13 @@ track's named evidence folders, without internal infrastructure in this repo.
 - fa1 View tests: **45 passed/0 failed/0 ignored**,952 filtered, actual View
   compilation. This is PRIOR-source and excludes later delivery/body/refresh and
   canonical bridge fixtures; it is not current b011 proof.
-- `wp-git-root-fence-tests-20261115T133413Z-e103946f`: running, Node workspace
-  selection. Excludes laterff6 project-scope cache correction andaf78 test lints.
+- `wp-git-root-fence-tests-20261115T133413Z-e103946f`: actual **65/1/0**, all
+  prerequisite stages0, changed crates compiled. The sole test expected moved-root
+  Conflict after shutdown; Closed correctly has admission precedence. Corrected
+  fixture6e927990 tests the moved LIVE root first, then Closed with missing root,
+  without production changes. Current selection
+  `wp-git-root-fence-tests-20261115T142936Z-6e927990` is queued on the same now-terminal
+  warm label; also includes laterff6 sibling-cache scope andaf78 lints. No pass yet.
 - `wp-git-writes-narrow-20261115T135839Z-af78f4ae`: queued, exact current Node
   plus Proto/Client/Workspace strict all-target Clippy.
 - `wp-git-narrow-20261115T141435Z-b0110b04`: queued, exact current App four-crate
@@ -60,7 +65,8 @@ The isolated control is now `backend/wp-c3-diff-control` on announcede1b73c9e;
 9664 source +27194 corrections. A later ownfb8 header-foreground correction
 reuses existing TextDecorationCollection rather than adding vendor/syntax APIs;
 its UTF-8/theme-notification tests are **newer and unexecuted**, and not present
-in queued27194 or b011. Prepared control is not a checked consumer handoff.
+in queued27194 or b011. The app carries identical header source asd7fee2bff;
+its modify/delete plan conflict retained the isolated scope notes as a new file. Prepared control is not a checked consumer handoff.
 
 Actual failures retained:
 
