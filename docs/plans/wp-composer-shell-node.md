@@ -100,3 +100,6 @@ W22 owns the additive common `agent_command_owned`/`probe_with_choices_owned` pr
 
 
 Announced node52 (`1c762ccf`) is merged at the next natural point. It assigns protocol25 to the existing six registry metadata methods; the draft command protocol remains unassigned and native offers remain unavailable. The independent e319 full Node test/TS requests retain their original immutable source, so no node52 combined result is inferred. Incoming wire DTO bytes are unchanged between the two node bases; the pending exact e319 generation artifacts still need their normal hash check and a subsequent current equality gate.
+
+
+The named TS generation on exacte319 completed in run `wp-composer-shell-typescript-20261115T161926Z-e319902a`: proto3 and web2 tests passed; the step returned1 solely because proto.ts differed. All six artifact SHA256SUMS entries and the artifact commit were verified. The generated proto.ts bytes were copied unchanged (SHA-25679229a3519b82b02e039f798b6c9a535437e8481ef4bb499c3a668cd89dc96b7); the patch adds the command metadata/catalog DTOs and pending call/response variant. No TypeScript was hand-edited. Incoming wire DTOs are unchanged between node9c and node52, and the current equality check remains required after this byte application.
