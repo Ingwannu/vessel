@@ -135,6 +135,44 @@ contract and C2's full whole PASS, with tests for suppression, split boundaries,
 replay and absence of duplicate normal responses. The unreviewed engine extension,
 frame/mode/marker API and typed candidate are not adopted by this frozen prerequisite.
 
+
+## Node responder failure disposition (coordinator ruling)
+
+[Decision Log]
+- Purpose: keep one normal-query responder without turning a reply transport fault
+  into an unexpected shell termination or replaying an interpreted prefix.
+- Existing constraint: PtyInput::write acknowledges bounded ordered writer-queue
+  admission. It does not acknowledge OS write_all completion or program receipt;
+  a later I/O failure may have written a prefix. Its success means Admitted, never
+  Delivered. Neither ProcessLifetime nor an open input handle strengthens that fact.
+- Alternatives: retry after uncertain I/O risks duplicates; raw fallback republishes
+  queries already interpreted/suppressed; killing a healthy shell for reply pressure
+  violates the agreed failure policy. All are rejected.
+- Choice: distinguish the downstream responder from presentation health. On reply
+  queue/admission failure with healthy presentation, latch a typed final responder
+  failure, admit no later reply writes and keep the process/presentation running.
+  The same multiplexer still interprets/suppresses normal queries; later generated
+  replies are discarded, never replayed or delegated. This is Silent responder
+  posture, not switching decoders or publishing a raw fallback.
+- Screen failure: publish only complete presentation already produced (including
+  a sequenced empty record), retain a typed final screen failure/unavailable state,
+  and stop only the affected PTY through its existing shutdown path. A pure-engine
+  outcome that fences further feed is presentation failure, distinct from a healthy
+  presentation whose downstream reply admission failed.
+- Consequences: never re-feed any consumed prefix and never retry an admitted or
+  uncertain write. Normal exactly-once proof concerns one ordered writer admission
+  per eligible suppressed query under a healthy writer, not guaranteed delivery.
+  AmbiguousOverlap candidates remain outside the writer in both postures. No stdin
+  filtering, other-terminal mutation or exclusive legacy-client routing is added.
+
+Required node tests separately cover healthy-presentation reply admission refusal
+(shell remains live, later output survives, zero later writes, final responder
+failure retained), presentation failure after progress (complete bytes/empty record
+retained, no re-feed, affected PTY stops, peer PTY unaffected), split normal queries,
+replay without a second normal reply, and uncertain/partial writer failure without
+retry. These are requirements, not executed evidence or implementation in this
+prerequisite. NodeAuthority remains OFF until C2's whole and V3's responder review.
+
 ## Verification record and limits
 
 Exact pre-format e792 passes strict changed-package checking and11 tests,

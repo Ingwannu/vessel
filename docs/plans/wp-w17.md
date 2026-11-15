@@ -1423,3 +1423,14 @@ no compilation ran. One corrected same-lane replacement is authorized after this
 merge adaptation. Common/TUI actor, latest CLI process and named TS proof remain owed.
 C2's newer2807 source-only frame/mode/marker contract is not adopted here; frozen
 Silent capture remains the sole interpretation, with NodeAuthority OFF.
+
+### D1 contract staging and responder failure ruling
+
+The [frame proposal](wp-w17-frames.md) records the actual row246 producer boundary,
+connection/principal-bound view admission, separate screen/view revisions, explicit
+budgets and EOF marker gap. It registers no DTO/call and adopts no unqualified core.
+The coordinator's responder failure disposition is now in ADR0095: healthy
+presentation plus reply-admission fault latches Silent replies while preserving
+the shell; presentation failure retains produced output/failure and stops only
+that PTY. Writer success is Admitted, never Delivered. No fallback or prefix retry.
+Implementation/tests and V3 responder acceptance remain owed after C2 whole.
