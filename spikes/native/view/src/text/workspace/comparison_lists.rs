@@ -1,6 +1,8 @@
 //! Existing list-comparison wording, extracted without changing its cases.
 use crate::workspace::command_changes::{Change, CommandLine};
 
+/// "setup commands: 1 added and 1 changed", or `None` when the list is the
+/// same.
 pub(super) fn en(name: &str, list: &[CommandLine]) -> Option<String> {
     let count = |wanted: &str| {
         list.iter()
