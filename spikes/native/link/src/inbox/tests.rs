@@ -245,3 +245,80 @@ async fn terminal_actions_on_an_older_peer_never_send_a_wire_call() {
     }
     assert_eq!(super::terminals::list(&peer.client).await.unwrap(), None);
 }
+
+#[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the fake rejects every unrelated method from the canonical table"
+)]
+async fn legacy_passive_read_keeps_scope_pending_veto_and_observed_watermark() {
+    for (operate, pending, expected) in [
+        (false, false, Err(Problem::Refused(ErrorCode::Unsupported))),
+        (true, true, Err(Problem::Refused(ErrorCode::Conflict))),
+        (true, false, Ok(())),
+    ] {
+        let session = SessionId::random();
+        let through = EventSeq::new(9);
+        let marked = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let observed = std::sync::Arc::clone(&marked);
+        let peer = peer::connect(move |call| {
+            Outcome::Ok(match call {
+                Call::GetDeviceSelf(_) => Reply::GetDeviceSelf(DeviceSelf {
+                    device: None,
+                    scopes: if operate {
+                        vec![Scope::Read, Scope::Operate]
+                    } else {
+                        vec![Scope::Read]
+                    },
+                }),
+                Call::GetConversation(ask) if operate => {
+                    assert_eq!(ask.session, session);
+                    Reply::GetConversation(vessel_proto::conversation::Conversation {
+                        queue: vessel_proto::conversation::PromptQueue::default(),
+                        commands: Vec::new(),
+                        usage: None,
+                        abilities: None,
+                        permissions: if pending {
+                            vec![PermissionRequest {
+                                id: PermissionId::random(),
+                                tool_call: vessel_proto::ToolCallId::new("pending"),
+                                options: Vec::new(),
+                            }]
+                        } else {
+                            Vec::new()
+                        },
+                        questions: Vec::new(),
+                        limits: vessel_proto::conversation::AttachmentLimits::DEFAULT,
+                    })
+                }
+                Call::MarkSession(ask) if operate && !pending => {
+                    assert_eq!(ask.session, session);
+                    assert_eq!(ask.mark, vessel_proto::Mark::Read { through });
+                    assert!(!observed.swap(true, std::sync::atomic::Ordering::SeqCst));
+                    Reply::MarkSession(vessel_proto::SessionInfo::new(
+                        session,
+                        vessel_proto::SessionSpec::new(
+                            vessel_proto::HarnessKind::Codex,
+                            vessel_proto::SessionMode::Structured {
+                                model: None,
+                                resume: None,
+                                options: Vec::new(),
+                            },
+                        ),
+                        chrono::DateTime::UNIX_EPOCH,
+                    ))
+                }
+                other => panic!("passive read escaped its scope or pending veto: {other:?}"),
+            })
+        })
+        .await;
+        assert_eq!(
+            super::reading::clear(&peer.client, session, through).await,
+            expected
+        );
+        assert_eq!(
+            marked.load(std::sync::atomic::Ordering::SeqCst),
+            operate && !pending
+        );
+    }
+}
