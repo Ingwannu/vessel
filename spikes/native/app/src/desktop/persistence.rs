@@ -135,3 +135,6 @@ mod tests;
 
 #[cfg(test)]
 mod consumer_tests;
+
+#[cfg(test)]
+mod quit_tests;

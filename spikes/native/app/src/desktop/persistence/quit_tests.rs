@@ -1,0 +1,56 @@
+//! The real desktop quit caller must consult documents after its Shell borrow ends.
+
+use crate::desktop::{Desktop, WindowClose, WindowRecord};
+use crate::quit::{self, DocumentReadiness};
+use crate::shell::{Shell, language_tests};
+use gpui::TestAppContext;
+use vessel_app_link::desktop::preferences::Coordinator;
+
+#[gpui::test]
+async fn keep_quit_refusal_preserves_the_window_and_releases_the_shared_phase(
+    cx: &mut TestAppContext,
+) {
+    // The production flush includes the real writer and its foreground watch.
+    cx.executor().allow_parking();
+    language_tests::init(cx);
+    let coordinator = Coordinator::start(vessel_app_link::Prefs::default()).unwrap();
+    cx.update(|cx| {
+        cx.set_global(crate::desktop::testing::desktop(coordinator));
+        crate::desktop::set_quit_handler(crate::local_node::request_keep_quit, cx);
+    });
+    let (shell, window) = cx.add_window_view(Shell::without_io);
+    shell.update_in(window, crate::desktop::preferences::start);
+    window.update(|window, cx| {
+        cx.global_mut::<Desktop>().records.push(WindowRecord {
+            window: window.window_handle(),
+            shell: shell.downgrade(),
+            close: WindowClose::Idle,
+        });
+    });
+    let guards: [fn(&Shell) -> DocumentReadiness; 3] = [
+        |_shell| DocumentReadiness::Dirty,
+        |_shell| DocumentReadiness::Pending,
+        |_shell| DocumentReadiness::Failed,
+    ];
+    for guard in guards {
+        shell.update_in(window, |shell, _window, cx| {
+            shell.notice = None;
+            quit::set_document_guard(guard, cx);
+            // Use the actual menu/last-window dispatch while Shell is borrowed.
+            // Synchronous document traversal here would reborrow and panic.
+            crate::desktop::request_quit(cx);
+            crate::desktop::request_quit(cx);
+            assert!(quit::is_finalizing(cx));
+        });
+        window
+            .cx
+            .condition(&shell, |shell, cx| {
+                shell.notice.is_some() && !quit::is_finalizing(cx)
+            })
+            .await;
+        window.update(|_window, cx| {
+            assert_eq!(cx.windows().len(), 1);
+            assert!(!quit::is_finalizing(cx));
+        });
+    }
+}

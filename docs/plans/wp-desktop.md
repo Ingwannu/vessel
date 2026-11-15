@@ -169,6 +169,13 @@ ends. Finalization is projected temporarily into the existing frame foot without
 replacing retained notices; onboarding hides/disables new host-effect admission
 while this phase is active, and original operation acknowledgements still settle. No second window/document registry or recovery journal exists.
 
+The real Keep-and-quit caller has a separate App fixture from generic guard
+tests: it invokes desktop dispatch twice from inside the Shell borrow, awaits
+the actual persistence phase, and requires every unsettled document outcome to
+preserve the window and restore Idle. It uses an isolated preference owner and
+no node or updater. This fixture does not prove successful process finalization;
+the public controller's real-binary integration tests own that obligation.
+
 Manual Stop/Restart/confirmed interrupts enter this same phase, query every live
 Shell for the sealed intent's node, then enqueue the controller request. NodeId
 is only a facts filter; ControlLease separately grants authority. C5's node-filter
