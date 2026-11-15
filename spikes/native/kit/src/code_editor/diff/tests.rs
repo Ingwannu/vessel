@@ -113,7 +113,7 @@ fn non_source_rows_cannot_acquire_source_numbers_and_split_side_is_explicit() {
             )
             .unwrap_err(),
             DiffTextError::NonSourceNumber {
-                row: BufferRow::new(0)
+                row: DiffRowIndex(0)
             }
         );
     }

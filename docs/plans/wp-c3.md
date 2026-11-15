@@ -585,3 +585,8 @@ New unexecuted fixtures pin side divergence, header reset, notice/filler skippin
 unchanged language forwarding and metadata admission. Existing queued84/5ac
 checks exclude this source. Earlier sparse-hunk syntax context and final header
 paint/cross-file selection remain unresolved; no complete syntax/UI claim.
+
+The malformed metadata diagnostic carries kit's own zero-based DiffRowIndex.
+The vendor BufferRow constructor stays crate-private; no engine API is widened
+just to construct an owner-side diagnostic. This is a static source correction
+to the new syntax/admission slice, not an executed compile result.

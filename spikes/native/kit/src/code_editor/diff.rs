@@ -71,6 +71,17 @@ pub enum DiffWrapping {
     Wrap,
 }
 
+/// An engine-buffer row, distinct from a one-based repository line number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DiffRowIndex(usize);
+impl DiffRowIndex {
+    /// Inspect only at the diagnostic/render boundary; zero is the first row.
+    #[must_use]
+    pub const fn index(self) -> usize {
+        self.0
+    }
+}
+
 /// Text and metadata must identify exactly the same buffer rows.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum DiffTextError {
@@ -86,7 +97,7 @@ pub enum DiffTextError {
     #[error("non-source diff row {row:?} has a source line number")]
     NonSourceNumber {
         /// Zero-based buffer position, not a repository source line.
-        row: BufferRow,
+        row: DiffRowIndex,
     },
 }
 
@@ -120,7 +131,7 @@ impl DiffText {
                 )
             {
                 return Err(DiffTextError::NonSourceNumber {
-                    row: BufferRow::new(index),
+                    row: DiffRowIndex(index),
                 });
             }
         }
