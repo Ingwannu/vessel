@@ -91,7 +91,11 @@ is preparatory until the real shared export/consumer union lands.
 C1 owns authoritative Existing/Empty/readiness and controlled project forms. Its
 withdrawn values carrier is not an API or runtime handoff; no alternate identity,
 wire row or legacy Settings fallback substitutes for its checked producer. A raw
-ProjectsView::Ready cache is not authoritative across physical retirement.
+ProjectsView::Ready cache is not authoritative across physical retirement. Until
+that producer arrives, automatic setup stays Deciding and the manual Projects
+step displays unavailable readiness without form mutations or Continue. Back,
+rail navigation and explicit Skip remain model operations; no idle-list shortcut
+acknowledges projects.
 
 Suggestion settlement is separate from manual-form readiness. Preselection is at
 least three sessions in thirty days with one fixed flow time. Continue captures

@@ -62,3 +62,6 @@ desktop-appearance-note = Let's start by picking a look.
 desktop-providers-note = Vessel runs the agent CLIs installed on this machine.
 # Walkthrough projects step description, above project registration controls.
 desktop-projects-note = Choose where your agents will work.
+
+# First-run project effects await authoritative readiness; an idle list is not an acknowledgement.
+desktop-projects-pending = Project setup is not ready yet.

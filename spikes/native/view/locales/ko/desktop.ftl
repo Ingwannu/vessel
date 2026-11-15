@@ -62,3 +62,6 @@ desktop-appearance-note = 먼저 모양을 골라 보세요.
 desktop-providers-note = Vessel은 이 기기에 설치된 에이전트 CLI를 사용합니다.
 # Walkthrough projects step description, above project registration controls.
 desktop-projects-note = 에이전트가 작업할 프로젝트를 골라 보세요.
+
+# First-run project effects await authoritative readiness; an idle list is not an acknowledgement.
+desktop-projects-pending = 프로젝트 설정이 아직 준비되지 않았습니다.

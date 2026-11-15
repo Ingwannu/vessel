@@ -13,7 +13,6 @@ use vessel_app_view::onboarding::{
     Layout, State as ModelState, Visit,
     scope::{Problem, Target},
 };
-use vessel_app_view::workspace::projects::ProjectsView;
 
 #[derive(Default)]
 enum Resolution {
@@ -21,16 +20,10 @@ enum Resolution {
     Idle,
     Pending {
         ticket: Ticket,
-        intent: Intent,
+        layout: Layout,
     },
-    Ready(Target),
+    Ready,
     Failed,
-}
-
-#[derive(Clone, Copy)]
-enum Intent {
-    Automatic,
-    Manual(Layout),
 }
 
 #[derive(Default)]
@@ -59,51 +52,7 @@ pub(super) fn prepare(shell: &mut Shell) {
     {
         shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
     }
-    if !matches!(shell.areas.onboarding.model.state(), ModelState::Deciding)
-        || shell.prefs.onboarding.is_some()
-        || !shell.loaded
-    {
-        return;
-    }
-    let Some(machine) = super::selected_host(shell) else {
-        return;
-    };
-    if machine.reach != Reach::Online {
-        return;
-    }
-    let hydrated_empty = matches!(shell.areas.workspace.projects.get(&machine.name), Some(ProjectsView::Ready(list)) if list.projects.is_empty());
-    if !hydrated_empty {
-        return;
-    }
-    let request = match &shell.areas.onboarding.scope.resolution {
-        Resolution::Idle => machine.connection_context(),
-        Resolution::Ready(target)
-            if Some(target.context()) != machine.connection_context().as_ref() =>
-        {
-            machine.connection_context()
-        }
-        Resolution::Ready(_) | Resolution::Pending { .. } | Resolution::Failed => None,
-    };
-    if let Some(machine) = request {
-        resolve(shell, machine, Intent::Automatic);
-    }
-}
-
-pub(super) fn target<'a>(shell: &'a Shell, machine: &str) -> Option<&'a Target> {
-    match &shell.areas.onboarding.scope.resolution {
-        Resolution::Ready(target)
-            if target.machine().as_str() == machine
-                && shell.fleet.machines.iter().any(|current| {
-                    current.connection_context().as_ref() == Some(target.context())
-                }) =>
-        {
-            Some(target)
-        }
-        Resolution::Idle
-        | Resolution::Pending { .. }
-        | Resolution::Ready(_)
-        | Resolution::Failed => None,
-    }
+    // Automatic resolution waits for C1's authoritative guarded inventory.
 }
 
 pub(super) fn manual(shell: &mut Shell, window: &Window) {
@@ -111,18 +60,18 @@ pub(super) fn manual(shell: &mut Shell, window: &Window) {
         .filter(|machine| machine.reach == Reach::Online)
         .and_then(vessel_app_view::Machine::connection_context);
     if let Some(machine) = machine {
-        resolve(shell, machine, Intent::Manual(super::layout(window)));
+        resolve(shell, machine, super::layout(window));
     } else {
         shell.notice = Some(shell.words.desktop().connect().to_owned());
     }
 }
 
-fn resolve(shell: &mut Shell, context: ConnectionContext, intent: Intent) {
+fn resolve(shell: &mut Shell, context: ConnectionContext, layout: Layout) {
     let Ok(ticket) = shell.areas.onboarding.scope.tickets.next_ticket() else {
         shell.notice = Some(shell.words.desktop().setup_failed().to_owned());
         return;
     };
-    shell.areas.onboarding.scope.resolution = Resolution::Pending { ticket, intent };
+    shell.areas.onboarding.scope.resolution = Resolution::Pending { ticket, layout };
     shell.command(Command::Onboarding(Ask::Resolve { context, ticket }));
 }
 
@@ -143,6 +92,11 @@ pub(super) fn actionable(shell: &Shell, cx: &gpui::App) -> bool {
     let ModelState::Open(open) = shell.areas.onboarding.model.state() else {
         return false;
     };
+    if open.step() == vessel_app_view::onboarding::Step::Projects {
+        // Manual form readiness and checked-add settlement are separate C1
+        // capabilities. Neither an empty list nor idle UI acknowledges them.
+        return false;
+    }
     matches!(shell.areas.onboarding.scope.binding, Binding::Ready(visit) if visit == open.visit())
         && shell.fleet.machines.iter().any(|machine| {
             machine.name == open.host().machine().as_str()
@@ -152,6 +106,11 @@ pub(super) fn actionable(shell: &Shell, cx: &gpui::App) -> bool {
 }
 
 pub(super) fn hint(shell: &Shell) -> &str {
+    if matches!(shell.areas.onboarding.model.state(), ModelState::Open(open)
+        if open.step() == vessel_app_view::onboarding::Step::Projects)
+    {
+        return shell.words.desktop().projects_pending();
+    }
     match shell.areas.onboarding.scope.binding {
         Binding::Failed { visit, problem } => {
             if matches!(shell.areas.onboarding.model.state(), ModelState::Open(open) if open.visit() == visit)
@@ -188,7 +147,7 @@ impl Shell {
             Answer::Resolved { ticket, result } => {
                 let Resolution::Pending {
                     ticket: current,
-                    intent,
+                    layout,
                 } = self.areas.onboarding.scope.resolution
                 else {
                     return;
@@ -204,10 +163,8 @@ impl Shell {
                             self.areas.onboarding.scope.resolution = Resolution::Failed;
                             return;
                         }
-                        if let Intent::Manual(layout) = intent {
-                            self.areas.onboarding.scope.reopen = Some((target.clone(), layout));
-                        }
-                        self.areas.onboarding.scope.resolution = Resolution::Ready(target);
+                        self.areas.onboarding.scope.reopen = Some((target, layout));
+                        self.areas.onboarding.scope.resolution = Resolution::Ready;
                     }
                     Err(problem) => {
                         self.areas.onboarding.scope.resolution = Resolution::Failed;

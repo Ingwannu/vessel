@@ -14,7 +14,6 @@ use vessel_app_view::onboarding::{
 };
 use vessel_app_view::prefs::Kept;
 use vessel_app_view::settings::Section;
-use vessel_app_view::workspace::projects::ProjectsView;
 
 use crate::{routes::Route, shell::Shell};
 
@@ -69,7 +68,7 @@ pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
     } else {
         Completion::Pending
     };
-    let host = setup_host(shell);
+    let host = SetupHost::Waiting;
     let result = shell
         .areas
         .onboarding
@@ -81,28 +80,8 @@ pub(crate) fn prepare(shell: &mut Shell, window: &mut Window, cx: &mut Context<'
     enter_step(shell, window, cx);
 }
 
-fn setup_host(shell: &Shell) -> SetupHost {
-    if !shell.loaded {
-        return SetupHost::Waiting;
-    }
-    let Some(machine) = selected_host(shell) else {
-        return SetupHost::Waiting;
-    };
-    if machine.reach != Reach::Online {
-        return SetupHost::Waiting;
-    }
-    match shell.areas.workspace.projects.get(&machine.name) {
-        Some(ProjectsView::Ready(list)) if list.projects.is_empty() => {
-            scope::target(shell, &machine.name)
-                .cloned()
-                .map_or(SetupHost::Waiting, SetupHost::Empty)
-        }
-        Some(ProjectsView::Ready(_)) => SetupHost::Existing,
-        Some(ProjectsView::Loading | ProjectsView::Failed(_) | ProjectsView::Older) | None => {
-            SetupHost::Waiting
-        }
-    }
-}
+// C1 must provide the checked guard-on-query Existing/Empty producer before
+// automatic setup decides. A legacy Ready cache cannot substitute for that API.
 
 /// A managed launch gets priority before any remote first-host fallback. Wait
 /// through startup/registration instead of pinning setup to an unrelated host.
