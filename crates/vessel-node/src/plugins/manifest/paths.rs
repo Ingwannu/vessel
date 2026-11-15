@@ -34,6 +34,10 @@ impl TryFrom<String> for PackagePath {
     }
 }
 impl PackagePath {
+    pub(super) fn relative(&self) -> RelPath {
+        self.0.clone()
+    }
+
     pub(super) fn as_str(&self) -> &str {
         self.0.as_str()
     }

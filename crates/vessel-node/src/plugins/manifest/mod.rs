@@ -1,6 +1,7 @@
 //! Decode a bounded native author-port manifest before filesystem preparation.
 //! Package paths remain untrusted until the candidate owner proves canonical
 //! containment. This module does no file/network/process work.
+mod inspection;
 mod paths;
 #[cfg(test)]
 mod tests;

@@ -149,7 +149,8 @@ sweep, but logs a sweep failure and still returns the leader's status. Later
 disable/remove as fully stopped solely from that legacy success. No product
 caller is enabled until an owned checked cleanup result exists.
 
-Coordinator-designated proc-owned seam (source reviewed; execution gate owed):
+Coordinator-designated proc-owned seam (portable b37a3ee8 scoped source/narrow
+PASS; whole F6 integration remains owed):
 `Child::wait_checked() -> Result<OwnedGroupExit, CheckedWaitError>`. Proc retains
 the **first** sweep outcome on the owned Child, including when legacy wait
 already ran. OwnedGroupExit has a private constructor, code accessor and original run observation;

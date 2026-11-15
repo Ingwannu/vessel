@@ -203,7 +203,9 @@ the same select turn. Settlement now checks the captured deadline before
 removing pending admission; its regression sets that private deadline directly,
 without a timing race or sleep. The actor then retires with the timeout class.
 
-Shutdown consumes checked proc622465a9 and returns its actual OwnedGroupExit.
+Shutdown now consumes portable checked proc b37a3ee8 and returns its actual
+OwnedGroupExit. The earlier622 checkpoint is historical only and its desktop
+ancestry is not part of this clean package.
 That receipt proves leader reap plus accepted first group cleanup request,
 not descendant OS death. Cleanup refusal remains a concrete typed error and
 must prevent node replacement/disable acknowledgement. No such node lifecycle
@@ -291,3 +293,32 @@ management snapshots remain separately authorized. The fixture waits on that
 publication instead of filesystem polling/sleeps, then cancels an actually
 received request and verifies owner-drop cleanup. This adds no public node log
 method, broker grant or new private protocol message family.
+
+## Declaration file inspection
+
+[Decision Log]
+- Purpose: connect native manifest/document validation to actual package files
+  without treating a pathname or a parsed graph as installation authority.
+- Existing asset: workspace Root confines relative paths; files::read opens
+  regular files, reads bounded pages on the blocking pool and reports a hash.
+- Choice: reuse those mechanisms, then require a complete UTF-8 page whose size
+  and SHA-256 agree with the bytes decoded. Manifest and document retain their
+  existing64KiB/1MiB bounds. No new filesystem abstraction or dependency.
+- Reason: a new plain read would duplicate path policy and could wait on a FIFO;
+  metadata/time-only revalidation would miss same-size edits.
+- Tradeoff: the workspace same-account path/open race is unchanged. Inspection
+  binds only the two declaration files; it does not pin helper/build/assets or
+  prove private staging, account ownership, source revision or executable trust.
+
+Inspection is still a private test-stage module, without a node method. It reads
+vessel-plugin.json, checks both protocol floors, and optionally decodes its whole
+client document. Recheck re-reads both files and compares exact content hashes;
+even equivalent JSON with different bytes invalidates the prior inspection.
+It never runs build commands or helpers, fetches media or mutates source files.
+The concrete workspace FileError is retained behind fixed safe diagnostics and
+a closed source chain so missing private paths cannot leak through reporters.
+Tests use isolated temporary files, including escaping symlinks, directories,
+malformed/binary/oversized data, changed bytes and diagnostic canaries. These
+new filesystem cases have not yet executed; pending earlier narrow jobs do not
+cover them. Full artifact pinning and a cancellation-safe installer remain
+required before activation.
