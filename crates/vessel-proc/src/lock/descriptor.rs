@@ -1,5 +1,5 @@
 //! Relate a kernel row to a candidate's actual locked file description.
-//! Possession is an observation, not generation/namespace or signal authority.
+//! Generation and namespace checks bracket capture; no signal is authorized.
 
 use std::ffi::OsStr;
 use std::fs::File;
@@ -75,6 +75,13 @@ impl Directory {
 pub(super) struct Proof {
     directory: Arc<Directory>,
     descriptor: Descriptor,
+    generation: super::generation::Proof,
+}
+
+#[derive(Debug)]
+struct Possession {
+    directory: Arc<Directory>,
+    descriptor: Descriptor,
 }
 
 struct DescriptorScan {
@@ -90,7 +97,7 @@ impl DescriptorScan {
         })
     }
 
-    fn find(self, selected: &KernelWriter) -> io::Result<Proof> {
+    fn find(self, selected: &KernelWriter) -> io::Result<Possession> {
         let mut count = 0usize;
         for entry in std::fs::read_dir(self.directory.path().join("fd"))? {
             let entry = entry?;
@@ -118,7 +125,7 @@ impl DescriptorScan {
                     .join(descriptor.0.to_string()),
             )?;
             if matches_selected(&info, selected)? {
-                return Ok(Proof {
+                return Ok(Possession {
                     directory: self.directory,
                     descriptor,
                 });
@@ -134,7 +141,16 @@ impl Proof {
     /// # Errors
     /// The bounded query cannot prove possession; no record or lock is changed.
     pub(super) fn capture(selected: &KernelWriter) -> io::Result<Self> {
-        DescriptorScan::open(Path::new("/proc"), selected.process)?.find(selected)
+        let scan = DescriptorScan::open(Path::new("/proc"), selected.process)?;
+        let generation =
+            super::generation::Proof::capture(&scan.directory.path(), selected.process)?;
+        let possession = scan.find(selected)?;
+        generation.confirm(&possession.directory.path())?;
+        Ok(Self {
+            directory: possession.directory,
+            descriptor: possession.descriptor,
+            generation,
+        })
     }
 }
 
@@ -249,7 +265,7 @@ mod tests {
             .into_bytes()
         }
 
-        fn scan(&self) -> io::Result<Proof> {
+        fn scan(&self) -> io::Result<Possession> {
             DescriptorScan::open(&self.root, self.writer.process)?.find(&self.writer)
         }
     }

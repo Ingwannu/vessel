@@ -11,8 +11,10 @@ slice order. The docs commit adds both and no command.
 - Done: 2p1's query move passed review and its whole gate (2,211 Rust
   tests, no failures, 12 ignored; forge 4, web unit 442 and e2e 65).
 - Source: 2p2a adds candidate descriptor possession to the opaque snapshot.
-  Generation and namespace checks remain a separate required slice before
-  any signal caller. Focused and whole gates are pending.
+  Its focused clippy passed; focused tests are pending.
+- Source: 2p2b brackets descriptor capture with generation and active PID
+  namespace evidence. Focused checks and the proof package whole gate are
+  pending; no signal caller is included.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -489,3 +491,18 @@ edge, manager or signal. Test real held-lock capture, a live unrelated
 candidate without that descriptor, foreign malformed FD contents, missing/
 wrong/duplicate lock blocks, anchoring and named byte/count caps. Namespace
 and process-reuse semantics remain unverified until their following proof.
+
+
+### Slice 2p2b: generation and namespace observation
+
+Modify the private capture path using the bounded record and retained process
+reference already present. The existing listening parser only finds parent
+relations and tolerates missing data; it is unsuitable for this refusing
+generation check. Standard-library namespace handles avoid an extra external
+crate. Keep command-name bytes opaque, decode PID/start ticks into private
+types, and bracket the descriptor evidence with equal captures. The observer
+must have exactly its own NStgid namespace level and the candidate's active
+namespace file must match the retained observer namespace. Refuse ambiguous,
+missing or changed data. Test numeric/opaque-command boundaries, generation
+change and hierarchy/namespace mismatch; actual PID reuse and child namespace
+mutation remain unverified. No signal API or unused future public wrapper.

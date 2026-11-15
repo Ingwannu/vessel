@@ -4,6 +4,8 @@
 #[cfg(target_os = "linux")]
 mod descriptor;
 #[cfg(target_os = "linux")]
+mod generation;
+#[cfg(target_os = "linux")]
 mod kernel;
 #[cfg(target_os = "linux")]
 mod record;
@@ -35,8 +37,8 @@ struct KernelWriter {
 }
 
 /// A kernel writer bound to a lock inode; it is never constructed from the record.
-/// Linux additionally observes descriptor possession. Generation and namespace
-/// checks are not established here; this snapshot never grants signal authority.
+/// Linux also brackets descriptor possession with process-generation and
+/// PID-namespace checks. This snapshot still never grants signal authority.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelLock {
     process: NodeProcess,

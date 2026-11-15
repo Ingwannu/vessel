@@ -930,3 +930,56 @@ do not retarget a reused PID and do not reserve its number. The directory
 replacement fixture tests ordinary descriptor anchoring, not real PID reuse.
 No namespace/platform behavior is inferred from that fixture. Real non-Linux
 and alternative filesystem behavior remains unverified.
+
+
+## Generation and namespace bracketing (slice 2p2b)
+
+[Decision Log]
+- Purpose and intent: relate descriptor possession to one candidate generation
+  and the invoking process's PID namespace before retaining the observation.
+- Existing implementation and constraints: the descriptor query retains a
+  read-only proc-directory reference, shares the selected-file lock decoder
+  and grants no signal authority. The bounded record decoder can also read
+  the generation and namespace hierarchy. An open proc descriptor does not
+  reserve a numeric PID.
+- Alternatives considered: compare numeric PIDs alone, trust start ticks
+  alone, read the namespace of the proc view's init, or add a new dependency.
+  Coincident numbers do not identify namespaces; start ticks alone do not
+  establish lock possession; a normal account may not read the init's
+  namespace link. Existing standard-library handles and metadata suffice.
+- Selected approach: decode only the candidate PID and start ticks from a
+  bounded anchored stat record, leaving command-name bytes opaque. Require
+  the observer's NStgid hierarchy to contain exactly its own identifier,
+  without another namespace level. Open and retain the observer's and the
+  candidate's active PID namespace files; compare device/inode identities.
+  Capture generation/namespace before the descriptor scan and compare again
+  after it. Changed, missing, unreadable or malformed evidence refuses.
+- Why this approach: the kernel emits NStgid from the proc mount namespace
+  level through the task's level, so one level proves the observer's proc
+  view agrees with its active PID namespace. This is stronger than numeric
+  equality alone. Namespace file references retain their identities, while
+  anchored stat reads and repeated capture detect changed observations.
+- Advantages, costs and effects: no dependency, wire field, process signal or
+  public PID getter. The snapshot retains two namespace references as well
+  as the proc-directory reference until its last clone is dropped. A missing
+  hierarchy or namespace facility is a refusal, never permission to signal.
+  Candidate processes in another PID namespace are conservatively refused.
+
+The real held-lock fixture exercises capture on Linux. Tests cover opaque
+command bytes, missing and invalid numbers, changed generation, namespace
+hierarchy ambiguity and actual namespace-file identity disagreement. These
+are not a demonstration of real PID reuse or a child entering a PID namespace;
+those scenarios remain unverified. The later force entry point must repeat
+its proof immediately before each signal. No signal entry point exists in
+this change, and the future final-check-to-numeric-signal race remains open.
+
+Primary sources: Linux [proc status generation](https://github.com/torvalds/linux/blob/master/fs/proc/array.c)
+emits the hierarchy relative to the proc view;
+[PID namespaces](https://github.com/torvalds/linux/blob/master/kernel/pid_namespace.c)
+distinguishes the active namespace from the namespace for future children;
+[namespace files](https://github.com/torvalds/linux/blob/master/fs/nsfs.c)
+retain namespace references. The existing
+[proc descriptor limitation](https://docs.kernel.org/filesystems/proc.html)
+still applies. Paseo's owner-PID/replacement checks and polling remain the
+reference difference already recorded above; these added checks are Vessel's
+explicit conservative floor.
