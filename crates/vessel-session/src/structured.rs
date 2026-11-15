@@ -49,6 +49,7 @@ pub(crate) struct StructuredActor {
     pub(crate) move_state: MoveState,
     /// Deliveries and the queue (protocol 10, `delivery`).
     pub(crate) desk: Desk,
+    pub(crate) plans: crate::plan_permissions::PlanApprovals,
     /// A session started again (protocol 10, `again`) publishes nothing
     /// until its row is reopened: answered then, dropped if it is not.
     pub(crate) gate: Option<oneshot::Receiver<()>>,
@@ -129,6 +130,7 @@ impl StructuredActor {
                         Some(Control::Move(order)) => self.move_profile(*order).await,
                         Some(Control::Deliver(order)) => self.deliver(order).await,
                         Some(Control::Submit(order)) => self.submit_identified(order).await,
+                        Some(Control::Permission(order)) => self.permission_order(order).await,
                         Some(Control::Plugin(order)) => self.append_plugin(order).await,
                         Some(Control::Question(order)) => self.answer_durable_question(order).await,
                         Some(Control::SideQuestion(order)) => self.side_question(order).await,
@@ -172,6 +174,7 @@ impl StructuredActor {
         if self.outputs_open {
             self.drain().await;
         }
+        self.withdraw_plan().await;
         self.life.drain_model_calls(&mut self.agent).await;
         self.queue_at_end().await;
 
@@ -253,22 +256,7 @@ impl StructuredActor {
             self.move_state.replaying = false;
         }
         match output {
-            AgentOutput::PlanProposal(_proposal) => {
-                // The carrier alone cannot create an approval. The typed lifetime,
-                // owner-bound decision state and acknowledgement must land together.
-                self.life
-                    .publish(
-                        &mut self.agent,
-                        SessionEvent::Agent {
-                            event: AgentEvent::Error {
-                                message:
-                                    "Plan approval is unavailable until its session owner is ready"
-                                        .into(),
-                            },
-                        },
-                    )
-                    .await;
-            }
+            AgentOutput::PlanProposal(proposal) => self.offer_plan(*proposal).await,
             // Also from an agent a move restarts: under another profile it
             // may offer other options, and its report is the session's now.
             AgentOutput::Options(options) => {
@@ -315,6 +303,7 @@ impl StructuredActor {
                 self.move_state.disconnect = Some(disconnect);
             }
             AgentOutput::Event(event) => {
+                self.plan_before_event(&event).await;
                 if matches!(
                     event,
                     AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. }
@@ -367,6 +356,7 @@ impl StructuredActor {
                         disconnect,
                         Disconnect::Handshake { .. } | Disconnect::Protocol { .. }
                     );
+                self.withdraw_plan().await;
                 self.disconnect = Some(disconnect);
                 self.life.begin_stop(&mut self.agent);
             }

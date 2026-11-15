@@ -57,6 +57,11 @@ pub enum PermissionResponseRefusal {
     InterruptUnsupported,
     /// The identity was not an option of this request.
     UnknownOption,
+    /// A native plan transition refused before effects; the proposal remains Pending.
+    PlanDecision {
+        /// Exact provider-owned refusal; stale keys are withdrawn separately.
+        reason: super::PlanDecisionRefusal,
+    },
 }
 
 /// Acknowledgement describes the real resolution, including uncertain delivery.

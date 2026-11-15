@@ -138,10 +138,7 @@ impl SessionHandle {
         permission: vessel_proto::PermissionId,
         response: vessel_proto::timeline::PermissionResponse,
     ) -> Result<vessel_agent::PermissionDispatch, SessionError> {
-        let route = self.structured("a permission response")?;
-        Ok(current(route)?
-            .respond_permission(permission, response)
-            .await?)
+        self.permission_order(permission, response).await
     }
 
     /// Read actual current-run native offers; persisted command lists are not authority.

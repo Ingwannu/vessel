@@ -443,3 +443,39 @@ pump drains outputs while awaiting provider acknowledgement. All accepted echoes
 and queue state pass the ordinary persistence watermark before receipt settlement;
 uncertain sends retain their reserved key. This extends the reviewed receipt
 contract but is not an activation or runtime verification claim.
+
+### Synthetic plan owner implementation checkpoint
+
+The session actor now owns synthetic proposal presentation and exact selected
+option-to-PlanDecision mapping through its existing bounded control channel.
+Ordinary rich responses use that same serialized owner and continue to the
+provider's permission input; synthetic responses use the dedicated decide_plan
+carrier. Current-run proposal tombstones have MAX_PLAN_KEYS=128 and
+MAX_PLAN_KEY_BYTES=262144 (actual validated key bytes plus named overhead), never
+evicted on settlement. One current request contains at most MAX_PLAN_TEXT_BYTES
+plus a bounded key and three fixed options. A new driver run retires this finite
+owner and never reconstructs it from logs; duplicates within a run never renew
+permission authority. Capacity failure emits an inert error, not an approval.
+This finite run-local owner is a deliberate resource floor beyond Paseo.
+
+The actor requires an observed root turn (including a fast turn whose initial
+prompt acknowledgement has not arrived), ignores replay/move proposals, retains
+only explicitly tagged requests across successful EndTurn, and withdraws pending
+requests before a new actual turn or driver retirement. An Answering proposal
+stays inert while its provider decides whether an intervening real turn belongs
+to its implementation follow-up. Only an exact matching provider Accepted may
+settle that option and increment the real accepted-follow-up counter; Dismiss
+never increments it. Mismatch, lost acknowledgement and possible effects remain
+OutcomeUnknown and cannot admit another response. Ownership loss cannot resolve
+or mutate a newer proposal accidentally. Resume remains producer-advertised.
+
+No-effects plan refusal is carried as PermissionResponseRefusal::PlanDecision;
+StaleProposal/TurnChanged instead withdraw the expired capability with Cancelled,
+which consumers must not report as an accepted implementation. Other typed
+refusals restore Pending for an explicit corrected/different decision. A process
+restart restores no plan authority from its historical card. The node's existing
+exact-resolution persistence barrier still owns the final settled acknowledgement.
+Prepared state, capacity, option mapping, snapshot and degraded inbox lifetime
+tests are unexecuted. Positive provider producer/transition fakes remain W22's
+proof; current drivers still return Unsupported. This is staged implementation,
+not a package/consumer/provider readiness declaration.

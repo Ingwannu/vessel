@@ -53,6 +53,9 @@ impl Sessions {
             Ok(PermissionDispatch::Refused(reason)) => {
                 return Ok(RespondPermissionReply::Refused { permission, reason });
             }
+            Ok(PermissionDispatch::OutcomeUnknown) => {
+                return Ok(RespondPermissionReply::OutcomeUnknown { permission });
+            }
             Ok(PermissionDispatch::Applied(outcome)) => outcome,
             Err(SessionError::Input(InputError::PermissionNotFound(_))) => {
                 return Ok(RespondPermissionReply::Vanished { permission });

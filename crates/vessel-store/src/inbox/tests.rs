@@ -348,3 +348,66 @@ mod limits;
 mod tool_updates;
 
 mod delayed_marks;
+
+#[test]
+fn synthetic_plan_pointer_survives_success_but_ordinary_plan_kind_does_not() {
+    let db = database();
+    let id = session(&db);
+    let mut synthetic = permission();
+    synthetic.plan_proposal = Some(Box::new(serde_json::from_value(serde_json::json!({"thread":"thread","turn":"turn","source":{"kind":"legacy_turn_plan"}})).unwrap()));
+    // Force the real bounded-form path; its metadata must retain the lifetime.
+    synthetic.options[0].name = "choice".repeat(50_000);
+    append(
+        &db,
+        id,
+        0,
+        AgentEvent::PermissionRequested(synthetic.clone()),
+    );
+    append(
+        &db,
+        id,
+        1,
+        AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: None,
+        },
+    );
+    let page = super::list(&db, ListInbox::default()).unwrap();
+    assert!(page.entries.iter().any(|entry| matches!(&entry.item, InboxItem::InSession { permission: Some(reference), .. } if reference.plan_proposal == synthetic.plan_proposal)));
+    append(
+        &db,
+        id,
+        2,
+        AgentEvent::PermissionResolved {
+            id: synthetic.id,
+            outcome: PermissionOutcome::Cancelled,
+        },
+    );
+    let mut ordinary = permission();
+    ordinary.presentation = Some(vessel_proto::timeline::PermissionPresentation {
+        kind: vessel_proto::timeline::PermissionKind::Plan,
+        title: None,
+        description: None,
+        detail: None,
+        plan_text: Some("Plan".to_owned()),
+    });
+    append(
+        &db,
+        id,
+        3,
+        AgentEvent::PermissionRequested(ordinary.clone()),
+    );
+    append(
+        &db,
+        id,
+        4,
+        AgentEvent::TurnEnded {
+            reason: StopReason::EndTurn,
+            usage: None,
+            point: None,
+        },
+    );
+    let page = super::list(&db, ListInbox::default()).unwrap();
+    assert!(!page.entries.iter().any(|entry| matches!(&entry.item, InboxItem::Permission { request, .. } if request.id == ordinary.id)));
+}

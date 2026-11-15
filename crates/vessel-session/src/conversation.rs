@@ -143,7 +143,24 @@ impl Seen {
                 }
             }
             AgentEvent::PermissionRequested(request) => {
-                push_bounded(&mut self.permissions, request.clone());
+                self.permissions.retain(|pending| pending.id != request.id);
+                if request.plan_proposal.is_some() {
+                    self.permissions
+                        .retain(|pending| pending.plan_proposal.is_none());
+                } else if self
+                    .permissions
+                    .iter()
+                    .filter(|pending| pending.plan_proposal.is_none())
+                    .count()
+                    >= Self::MAX_WAITING
+                    && let Some(oldest) = self
+                        .permissions
+                        .iter()
+                        .position(|pending| pending.plan_proposal.is_none())
+                {
+                    let _oldest = self.permissions.remove(oldest);
+                }
+                self.permissions.push(request.clone());
             }
             AgentEvent::PermissionResolved { id, .. } => {
                 self.permissions.retain(|request| request.id != *id);
@@ -173,8 +190,17 @@ impl Seen {
             AgentEvent::QuestionResolved { id, .. } => {
                 self.questions.retain(|question| question.id != *id);
             }
+            AgentEvent::TurnEnded {
+                reason: vessel_proto::StopReason::EndTurn,
+                ..
+            } => {
+                self.permissions
+                    .retain(|pending| pending.plan_proposal.is_some());
+                self.questions.retain(|question| {
+                    question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
+                });
+            }
             AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. } => {
-                // A turn's requests end with it, answered or not.
                 self.permissions.clear();
                 self.questions.retain(|question| {
                     question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
@@ -233,13 +259,6 @@ impl Seen {
             limits: AttachmentLimits::DEFAULT,
         }
     }
-}
-
-fn push_bounded<T>(waiting: &mut Vec<T>, item: T) {
-    if waiting.len() >= Seen::MAX_WAITING {
-        let _oldest = waiting.remove(0);
-    }
-    waiting.push(item);
 }
 
 #[cfg(test)]
@@ -342,5 +361,42 @@ mod tests {
         assert!(ended.permissions.is_empty());
         assert!(ended.commands.is_empty());
         assert_eq!(ended.abilities, None, "never reported");
+    }
+}
+
+#[cfg(test)]
+mod plan_lifetime_tests {
+    use super::*;
+    use vessel_proto::timeline::{PermissionDeliveryState, PlanProposalKey};
+    #[test]
+    fn only_explicit_proposals_survive_success_and_state_refreshes_do_not_duplicate() {
+        let mut seen = Seen::default();
+        let mut request: PermissionRequest = serde_json::from_value(serde_json::json!({
+            "id":vessel_proto::PermissionId::random(), "options":[],
+            "presentation":{"kind":"plan"}
+        }))
+        .unwrap();
+        let successful = SessionEvent::Agent {
+            event: AgentEvent::TurnEnded {
+                reason: vessel_proto::StopReason::EndTurn,
+                usage: None,
+                point: None,
+            },
+        };
+        seen.observe(&SessionEvent::Agent {
+            event: AgentEvent::PermissionRequested(request.clone()),
+        });
+        seen.observe(&successful);
+        assert!(seen.conversation().permissions.is_empty());
+        request.plan_proposal = Some(Box::new(serde_json::from_value::<PlanProposalKey>(serde_json::json!({"thread":"thread","turn":"turn","source":{"kind":"legacy_turn_plan"}})).unwrap()));
+        seen.observe(&SessionEvent::Agent {
+            event: AgentEvent::PermissionRequested(request.clone()),
+        });
+        seen.observe(&successful);
+        request.delivery_state = PermissionDeliveryState::Answering;
+        seen.observe(&SessionEvent::Agent {
+            event: AgentEvent::PermissionRequested(request.clone()),
+        });
+        assert_eq!(seen.conversation().permissions, vec![request]);
     }
 }

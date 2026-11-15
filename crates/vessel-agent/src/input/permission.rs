@@ -12,6 +12,8 @@ pub enum PermissionDispatch {
     Applied(PermissionOutcome),
     /// No provider/queue/turn effects were attempted.
     Refused(PermissionResponseRefusal),
+    /// A possibly applied action lost its correlated acknowledgement.
+    OutcomeUnknown,
 }
 
 impl AgentInput {
@@ -25,7 +27,7 @@ impl AgentInput {
         permission: PermissionId,
         response: PermissionResponse,
     ) -> Result<PermissionDispatch, InputError> {
-        if let Some(reason) = unsupported(&response) {
+        if let Some(reason) = permission_response_refusal(&response) {
             return Ok(PermissionDispatch::Refused(reason));
         }
         self.answer(permission, response.outcome.clone()).await?;
@@ -33,7 +35,12 @@ impl AgentInput {
     }
 }
 
-fn unsupported(response: &PermissionResponse) -> Option<PermissionResponseRefusal> {
+/// Current response edges refuse extras as a whole before applying an offered option.
+/// The synthetic plan owner reuses this boundary rather than silently dropping fields.
+#[must_use]
+pub fn permission_response_refusal(
+    response: &PermissionResponse,
+) -> Option<PermissionResponseRefusal> {
     if response.modified_input.is_some() {
         return Some(PermissionResponseRefusal::ModifiedInputUnsupported);
     }
@@ -88,7 +95,10 @@ mod tests {
                     response.interrupt = PermissionInterrupt::Interrupt;
                 }
                 PermissionResponseRefusal::InterruptUnsupported => {}
-                PermissionResponseRefusal::UnknownOption => panic!("not a rich-field capability"),
+                PermissionResponseRefusal::UnknownOption
+                | PermissionResponseRefusal::PlanDecision { .. } => {
+                    panic!("not a rich-field capability")
+                }
             }
         }
     }

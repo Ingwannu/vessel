@@ -93,6 +93,7 @@ impl SessionRuntime {
                 ..MoveState::default()
             },
             desk,
+            plans: crate::plan_permissions::PlanApprovals::default(),
             gate,
             loader: self.attachments.clone(),
             questions: self.questions.clone(),

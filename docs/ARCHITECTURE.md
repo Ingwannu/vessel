@@ -1693,3 +1693,12 @@ closed acceptance/refusal/uncertainty. It shares the existing bounded command
 queue; every current provider refuses before RPC. Positive transports stay with
 the provider owner and cannot be enabled by a label/version guess.
 Composer catalog values (ADR0085) live in vessel-proto::composer_commands; native_commands owns closed native intents/status and validated goal objectives. The optional kind/native_command fields project away under an unassigned feature. The standalone carrier registers no call/runtime; provider edges and current-run availability remain separate owners. No dependency edge changes.
+
+Synthetic provider plan proposals are owned by vessel-session::plan_permissions,
+a current-run finite state owner. It synthesizes permission presentation only
+from typed provider proposals, routes exact option decisions through the existing
+actor control channel and dedicated provider carrier, and never reloads action
+capability from log display. Provider transport retains native mode/follow-up
+construction; node permission acknowledgement retains the ordinary commit barrier.
+No new crate edge, store or RPC is introduced. See ADR0084 for bounded keys,
+uncertainty and ownership retirement.

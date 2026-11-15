@@ -123,7 +123,9 @@ pub struct DecidePlan {
 }
 
 /// Refusal before an implementation prompt or mode transition takes effect.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
 pub enum PlanDecisionRefusal {
     /// Superseded, absent or already settled proposal.
     StaleProposal,

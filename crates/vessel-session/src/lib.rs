@@ -162,6 +162,7 @@ pub use vessel_agent::Probed;
 /// same reason.
 pub use vessel_agent::{AttachmentBody, Attachments};
 
+mod plan_permissions;
 mod plugin_timeline;
 
 pub use delivery::submission::SubmissionDispatch;

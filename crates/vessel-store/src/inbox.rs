@@ -136,7 +136,11 @@ fn agent(
         }
         AgentEvent::TurnStarted { .. } => clear_branch(connection, session),
         AgentEvent::TurnEnded { reason, .. } => {
-            clear_waiting(connection, session)?;
+            if *reason == StopReason::EndTurn {
+                clear_completed_turn_waiting(connection, session)?;
+            } else {
+                clear_waiting(connection, session)?;
+            }
             let item = match reason {
                 StopReason::EndTurn => InboxItem::Finished,
                 StopReason::MaxTokens | StopReason::MaxTurnRequests => InboxItem::Limit,
@@ -175,6 +179,21 @@ fn clear_branch(connection: &Connection, session: SessionId) -> Result<(), Store
     Ok(())
 }
 
+// Only explicitly tagged synthetic plans survive a successful root completion.
+// Presentation kind never changes the lifetime of an ordinary native tool request.
+fn clear_completed_turn_waiting(
+    connection: &Connection,
+    session: SessionId,
+) -> Result<(), StoreError> {
+    let _rows = connection.execute(
+        "DELETE FROM inbox WHERE session=?1 AND waiting=1
+         AND coalesce(json_extract(item,'$.question.lifetime'),'turn')<>'session'
+         AND json_extract(item,'$.request.plan_proposal') IS NULL
+         AND json_extract(item,'$.permission.plan_proposal') IS NULL",
+        [session.to_string()],
+    )?;
+    Ok(())
+}
 fn clear_waiting(connection: &Connection, session: SessionId) -> Result<(), StoreError> {
     let _rows = connection.execute(
         "DELETE FROM inbox WHERE session=?1 AND waiting=1 AND coalesce(json_extract(item,'$.question.lifetime'),'turn')<>'session'",

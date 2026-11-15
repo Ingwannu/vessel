@@ -5,7 +5,7 @@ pub(crate) mod native_command;
 mod permission;
 pub(crate) mod plan;
 pub use native_command::{NativeCommandDispatch, NativeCommandOffers};
-pub use permission::PermissionDispatch;
+pub use permission::{PermissionDispatch, permission_response_refusal};
 
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::{

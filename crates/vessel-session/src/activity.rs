@@ -73,6 +73,7 @@ use crate::publish::Publisher;
 #[derive(Debug)]
 pub(crate) struct Tracker {
     activity: Activity,
+    turn_running: bool,
     last_activity_at: DateTime<Utc>,
     /// The agent has been seen doing something since the session started.
     seen: bool,
@@ -101,6 +102,7 @@ impl Tracker {
     pub(crate) fn new(created_at: DateTime<Utc>) -> Self {
         Self {
             activity: Activity::Active,
+            turn_running: false,
             last_activity_at: created_at,
             seen: false,
             interrupted: false,
@@ -154,11 +156,24 @@ impl Tracker {
             // (A prompt sent while starting starts its turn after this.)
             AgentEvent::Ready { .. } => self.set(Activity::Idle, at),
             AgentEvent::TurnStarted { .. } => {
+                self.turn_running = true;
                 self.interrupted = false;
                 self.set(Activity::Active, at);
             }
             AgentEvent::PermissionRequested(request) => {
-                self.waits(Waiting::Permission(request.id), QuestionLifetime::Turn, at);
+                if request.delivery_state.is_pending() {
+                    self.waits(
+                        Waiting::Permission(request.id),
+                        if request.plan_proposal.is_some() {
+                            QuestionLifetime::Session
+                        } else {
+                            QuestionLifetime::Turn
+                        },
+                        at,
+                    );
+                } else {
+                    self.resolved(Waiting::Permission(request.id), at);
+                }
             }
             AgentEvent::QuestionAsked(question) => {
                 if question.delivery_state.is_pending() {
@@ -172,9 +187,12 @@ impl Tracker {
             }
             AgentEvent::QuestionResolved { id, .. } => self.resolved(Waiting::Question(*id), at),
             AgentEvent::TurnEnded { reason, .. } => {
-                // A turn's requests end with it, answered or not.
-                self.pending
-                    .retain(|_request, lifetime| *lifetime == QuestionLifetime::Session);
+                self.turn_running = false;
+                self.pending.retain(|request, lifetime| {
+                    *lifetime == QuestionLifetime::Session
+                        && (*reason == StopReason::EndTurn
+                            || matches!(request, Waiting::Question(_)))
+                });
                 self.interrupted = *reason == StopReason::Cancelled;
                 self.set(
                     if self.pending.is_empty() {
@@ -186,8 +204,11 @@ impl Tracker {
                 );
             }
             AgentEvent::TurnFailed { .. } => {
-                self.pending
-                    .retain(|_request, lifetime| *lifetime == QuestionLifetime::Session);
+                self.turn_running = false;
+                self.pending.retain(|request, lifetime| {
+                    *lifetime == QuestionLifetime::Session
+                        && matches!(request, Waiting::Question(_))
+                });
                 self.interrupted = false;
                 self.set(
                     if self.pending.is_empty() {
@@ -226,12 +247,19 @@ impl Tracker {
         // A resolution after the turn ended (the agent's driver withdraws
         // what a closed turn left open) changes nothing: not the activity,
         // not when the agent was last seen.
-        if self.pending.remove(&waiting).is_none() {
+        let Some(lifetime) = self.pending.remove(&waiting) else {
             return;
-        }
+        };
         // The turn goes on once nothing waits on the owner.
         if self.pending.is_empty() && self.activity == Activity::WaitingInput {
-            self.set(Activity::Active, at);
+            self.set(
+                if self.turn_running || lifetime == QuestionLifetime::Turn {
+                    Activity::Active
+                } else {
+                    Activity::Idle
+                },
+                at,
+            );
         } else {
             self.touch(at);
         }

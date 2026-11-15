@@ -91,6 +91,7 @@ pub use history::{
 };
 pub use input::{
     AgentInput, NativeCommandDispatch, NativeCommandOffers, PermissionDispatch, SteerOutcome,
+    permission_response_refusal,
 };
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};

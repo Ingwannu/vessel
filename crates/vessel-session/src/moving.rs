@@ -144,6 +144,7 @@ pub(crate) enum Control {
     Deliver(Deliver),
     Submit(crate::delivery::submission::Submit),
     Plugin(crate::plugin_timeline::PluginAppend),
+    Permission(crate::plan_permissions::PermissionOrder),
     Question(crate::durable_questions::answer::QuestionOrder),
     SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),
@@ -368,6 +369,7 @@ impl StructuredActor {
     /// turn that refusal into a restart the caller never approved.
     pub(crate) async fn stop_agent(&mut self) -> Result<(), MoveError> {
         self.signal_stop(Signal::Terminate)?;
+        self.withdraw_plan().await;
         let grace = tokio::time::sleep(STOP_GRACE);
         let mut grace = std::pin::pin!(grace);
         let mut forced = false;
@@ -414,6 +416,8 @@ impl StructuredActor {
                 Ok(started) => started,
                 Err(error) => return Ok(Err(Restart::Spawn(error))),
             };
+        self.withdraw_plan().await;
+        self.plans = crate::plan_permissions::PlanApprovals::default();
         self.life.out.running(Some(agent.lifetime()));
         self.agent = agent;
         self.input = input;
