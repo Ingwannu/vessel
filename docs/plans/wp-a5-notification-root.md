@@ -22,3 +22,9 @@ The helper's GPUI regression checks direct and wrapped original content against
 a different retained entity. The A5 consumer separately tests the registered
 platform callback, multiple real windows, close/reopen, root replacement and
 connection replacement; those checks are not implied by this helper test.
+
+The initial exactccb1be75 Kit all-target strict run failed only on the helper's
+manual Result-to-Option predicate lint. It is corrected to Result::is_ok_and;
+no runtime/ownership behavior changes. The sequential wrapper stopped before
+the test. The failed evidence remains recorded; corrected normal-lane checks
+and V1 source review are still required before adoption.

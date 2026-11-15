@@ -10,8 +10,7 @@ pub fn root_contains_view(root: &AnyView, view: EntityId, cx: &App) -> bool {
         || root
             .clone()
             .downcast::<gpui_component::Root>()
-            .ok()
-            .is_some_and(|root| root.read(cx).view().entity_id() == view)
+            .is_ok_and(|root| root.read(cx).view().entity_id() == view)
 }
 
 #[cfg(test)]
