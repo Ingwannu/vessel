@@ -30,31 +30,8 @@ use super::common::title_bar;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The session on screen.
-#[derive(Debug, Clone)]
-pub(crate) struct Open {
-    pub(crate) machine: String,
-    pub(crate) session: SessionId,
-    pub(crate) title: String,
-    pub(crate) agent: String,
-    pub(crate) structured: bool,
-    /// Whether it takes prompts (an ended session shows its conversation
-    /// without a composer).
-    pub(crate) live: bool,
-}
-
-impl Open {
-    pub(crate) fn of(card: &Card) -> Self {
-        Self {
-            machine: card.machine.clone(),
-            session: card.session,
-            title: card.title.clone(),
-            agent: card.agent.clone(),
-            structured: card.structured,
-            live: card.live,
-        }
-    }
-}
+mod open;
+pub(crate) use open::Open;
 
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
@@ -108,10 +85,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.cancel_session_navigation();
         // Track P: the session composer swaps the draft it holds.
         self.composer_switched(open.session, window, cx);
         // An ended session takes prompts too: sending starts it again.
-        let takes_prompts = open.structured;
+        let takes_prompts = open.structured && open.archived_at.is_none();
         self.areas.session.pending = None;
         self.areas.session.resuming = None;
         self.areas.session.resume_error = None;
@@ -463,6 +441,7 @@ pub(crate) fn render(
         ))
         .child(body)
         .children(resume_note(shell, open, tokens))
+        .children(super::sessions::lifecycle_error(shell, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
@@ -484,7 +463,10 @@ pub(crate) fn render(
                 })
                 .children(over.into_iter().flatten())
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx));
+        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::sessions::lifecycle_overlay(
+            shell, tokens, window, cx,
+        ));
     // Track F's slot: the screen, with the code panel beside it when out.
     crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }

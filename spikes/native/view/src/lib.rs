@@ -42,6 +42,7 @@ pub mod panels;
 pub mod prefs;
 pub mod search;
 pub mod session;
+pub mod sessions;
 pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;

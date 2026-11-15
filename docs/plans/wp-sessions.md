@@ -68,11 +68,23 @@ the host with typo tolerance and server cursors. This is a deliberate initial
 compatibility path because the existing node directory lists complete local rows;
 server-side history querying remains a later implementation step, not claimed parity.
 The current host failures are explicit; offline hosts do not contribute invented rows.
+Fresh conversation refuses before archiving when a separate new-chat draft already
+exists or when a named profile cannot be carried by the current draft contract.
+This preserves unsent work and launch identity until the shared tab/profile
+contracts provide an exact destination. Archived sessions hide their composer
+from the fleet snapshot before the session metadata request has completed.
 
 ## Resume point
 
-Done: reference/asset survey and shared-file ownership messages.
-In progress: history screen, deep-link navigation and lifecycle skeleton.
+Done: reference/asset survey; chronological history, host selector and date/page
+models; correlated navigation and lifecycle shapes; initial narrow view check
+passed 20 tests including six package regressions. Fast size/boundary/token checks
+pass. Session identity, link stream forwarding and shell event dispatch were
+mechanically extracted to avoid increasing shared file budgets.
+In progress: native session confirmations and success-only close/fresh navigation;
+framed fake-peer link tests and narrow clippy. The first link clippy exposed helper
+test-cfg lint handling and a dispatcher function at its length boundary; repairs
+retain the original results and do not weaken the lint configuration.
 Ownership: final single-owner table assigns A2 here; subagents/detach, labels
 and OS deep-link delivery remain their respective packages. No node edits exist.
 Next: tests, typed link boundary, history UI, then integration and package evidence.

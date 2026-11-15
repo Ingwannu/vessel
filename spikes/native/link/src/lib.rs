@@ -52,6 +52,7 @@ mod demo;
 pub mod devices;
 pub mod node_settings;
 pub mod search;
+pub mod sessions;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
@@ -201,6 +202,10 @@ pub enum LinkError {
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Resolve a session for a deep link or Copy link without starting it.
+    Sessions(sessions::Ask),
+    /// A correlated lifecycle mutation through existing session RPCs.
+    SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.
@@ -362,6 +367,10 @@ pub enum Command {
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// Session address lookup, correlated to its requesting control.
+    Sessions(sessions::Answer),
+    /// The matching lifecycle mutation result.
+    SessionLifecycle(sessions::lifecycle::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -630,16 +639,15 @@ impl State {
 
     async fn handle(&mut self, command: Command) {
         match command {
+            Command::Sessions(ask) => self.session_navigation(ask),
+            Command::SessionLifecycle(request) => self.session_lifecycle(&request),
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
                 request,
                 ask,
             } => {
-                let client = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| connected.client.clone());
+                let client = self.client(machine.as_str()).ok().cloned();
                 self.agents
                     .ask(client, machine, request, ask, self.events.clone())
                     .await;
@@ -937,7 +945,7 @@ impl State {
         };
         let events = self.events.clone();
         self.follow_machine = Some(machine.to_owned());
-        self.follow = Some(tokio::spawn(follow(client, session, events)));
+        self.follow = Some(tokio::spawn(session::follow(client, session, events)));
     }
 }
 
@@ -951,37 +959,6 @@ impl State {
             Err(error) => {
                 let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
                 workspace::Hub::refuse(machine, ask, problem, events);
-            }
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// A session's records to the events channel, one event per record (the
-/// screen folds whatever has queued up in one update).
-async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {
-    let lost = |why: String| Event::SessionLost { session, why };
-    let mut stream = match client.follow(session, vessel_proto::EventSeq::new(0)).await {
-        Ok(stream) => stream,
-        Err(error) => {
-            let _closed = events.send(lost(error.to_string())).await;
-            return;
-        }
-    };
-    while let Some(item) = stream.next().await {
-        match item {
-            Ok(record) => {
-                let event = Event::Records {
-                    session,
-                    records: vec![record],
-                };
-                if events.send(event).await.is_err() {
-                    return;
-                }
-            }
-            Err(error) => {
-                let _closed = events.send(lost(error.to_string())).await;
-                return;
             }
         }
     }

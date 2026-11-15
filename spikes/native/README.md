@@ -100,6 +100,22 @@ The node remains authoritative; preparation never runs a local git
 command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
 repository root.
 
+## Durable session history and lifecycle
+
+`view::sessions` selects chronological metadata history, date buckets, local page
+windows and correlated lifecycle/navigation requests. `link::sessions` resolves
+an authenticated node ID to a saved connection and reads `session.get` without
+starting an agent. Its lifecycle worker reuses the existing session RPC dispatcher
+and adds a correlation ID and finite outer deadline. An uncertain mutation result
+never causes automatic retry or local tab removal.
+
+`app/areas/sessions` owns the Sessions screen, host selector and lifecycle
+confirmation. Existing board archive and pin actions retain their owner. Manual
+navigation invalidates pending deep-link and post-archive navigation, while a
+successful acknowledgement still updates the target's fleet metadata. Composer
+exit/fresh operations archive before changing screens. The native gate and fake
+fleet below verify these surfaces; no production node is needed.
+
 ## The app's layout
 
 ```

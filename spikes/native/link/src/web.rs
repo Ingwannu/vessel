@@ -84,6 +84,15 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::SessionLifecycle(request) => self.emit(Event::SessionLifecycle(
+                crate::sessions::lifecycle::Answer {
+                    ticket: request.ticket,
+                    result: Err(crate::sessions::lifecycle::Failure::Unsent),
+                },
+            )),
+            Command::Sessions(ask) => self.emit(Event::Sessions(
+                ask.refused(crate::sessions::Failure::Offline),
+            )),
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {
