@@ -54,8 +54,10 @@ pub enum ToolSection<'a> {
         /// The affected file.
         path: &'a Path,
     },
-    /// Readable text, results and annotations remain prose, not JSON trees.
+    /// Search/fetch output keeps the source's code-style text surface.
     Text(Cow<'a, str>),
+    /// Literal readable prose uses the UI face and shared selectable text engine.
+    Prose(Cow<'a, str>),
     /// Arbitrary tool data stays opaque until the existing JSON text decoder.
     Opaque {
         /// Distinguish arguments from the result.
@@ -128,27 +130,43 @@ pub fn tool_sections(detail: &ToolCallDetail) -> Vec<ToolSection<'_>> {
         ToolCallDetail::PlainText(plain) => plain
             .text
             .as_deref()
-            .map(|text| ToolSection::Text(Cow::Borrowed(text)))
+            .filter(|text| !text.is_empty())
+            .map(|text| ToolSection::Prose(Cow::Borrowed(text)))
             .into_iter()
             .collect(),
-        ToolCallDetail::Unknown(unknown) => unknown
-            .input
-            .as_ref()
-            .map(|raw| ToolSection::Opaque {
-                label: ToolSectionLabel::Input,
-                raw,
-            })
-            .into_iter()
-            .chain(unknown.output.as_ref().map(|raw| ToolSection::Opaque {
-                label: ToolSectionLabel::Output,
-                raw,
-            }))
-            .collect(),
+        ToolCallDetail::Unknown(unknown) => unknown_sections(unknown),
         // Plan's separate card also owns its decision title and optional approval footer.
         ToolCallDetail::Plan(_)
         | ToolCallDetail::WorktreeSetup(_)
         | ToolCallDetail::SubAgent(_) => Vec::new(),
     }
+}
+
+/// Formatting edge only: recognize a top-level JSON string/null without reading
+/// provider fields. Strings without an output are prose in Paseo's unknown body.
+fn unknown_sections(unknown: &vessel_proto::timeline::UnknownToolDetail) -> Vec<ToolSection<'_>> {
+    let output_absent = unknown
+        .output
+        .as_ref()
+        .is_none_or(|raw| serde_json::from_str::<()>(raw.as_text()).is_ok());
+    if output_absent
+        && let Some(text) = unknown
+            .input
+            .as_ref()
+            .and_then(|raw| serde_json::from_str::<String>(raw.as_text()).ok())
+    {
+        return vec![ToolSection::Prose(Cow::Owned(text))];
+    }
+    [
+        (ToolSectionLabel::Input, unknown.input.as_ref()),
+        (ToolSectionLabel::Output, unknown.output.as_ref()),
+    ]
+    .into_iter()
+    .filter_map(|(label, raw)| {
+        raw.filter(|raw| super::tool_display::opaque_present(Some(raw)))
+            .map(|raw| ToolSection::Opaque { label, raw })
+    })
+    .collect()
 }
 
 fn search_sections(search: &vessel_proto::timeline::SearchDetail) -> Vec<ToolSection<'_>> {
@@ -236,5 +254,33 @@ mod tests {
         let sections = tool_sections(&search);
         assert_eq!(sections.len(), 2);
         assert!(matches!(&sections[0], ToolSection::Text(text) if text == "a\nb\nc"));
+    }
+    #[test]
+    fn plain_and_unknown_string_bodies_stay_literal_prose_without_json_headers() {
+        let text = "  <b>literal</b> **reasoning**\n한글  ";
+        let plain = detail(json!({"type":"plain_text","text":text}));
+        assert!(
+            matches!(tool_sections(&plain).as_slice(), [ToolSection::Prose(prose)] if prose == text)
+        );
+        let unknown = detail(json!({"type":"unknown","input":text,"output":null}));
+        assert!(
+            matches!(tool_sections(&unknown).as_slice(), [ToolSection::Prose(prose)] if prose == text)
+        );
+        let with_result = detail(json!({"type":"unknown","input":text,"output":0}));
+        assert!(matches!(
+            tool_sections(&with_result).as_slice(),
+            [
+                ToolSection::Opaque {
+                    label: ToolSectionLabel::Input,
+                    ..
+                },
+                ToolSection::Opaque {
+                    label: ToolSectionLabel::Output,
+                    ..
+                }
+            ]
+        ));
+        let empty = detail(json!({"type":"unknown","input":null,"output":null}));
+        assert!(tool_sections(&empty).is_empty());
     }
 }

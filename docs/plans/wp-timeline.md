@@ -686,3 +686,16 @@ and Copy behavior remain compatible while W4 owns its permission/question callsi
 migration. This is a mechanical access boundary, not resident activation: the
 future keyed branch must resolve both methods through W12's same validated
 SessionContext and must never fall back to the selected conversation.
+
+
+### Literal tool and reasoning prose
+
+Paseo `tool-call-details.tsx:277,366,497` renders plain_text and an unknown
+input string without output in the selectable UI face; search/fetch output uses
+its code surface. ToolSection now distinguishes Prose from Text accordingly.
+The existing formatting edge recognizes only top-level JSON string/null values,
+without reading arbitrary provider fields. Empty opaque values add no section.
+Reasoning, these prose details and explicit tool errors now reuse kit::plain_text
+rather than an unselectable Div/string or a console surface. The shared domain
+prose container wraps and scrolls at the source's 300-point default height. The
+existing engine retains selection/copy; no Markdown interpretation is introduced.

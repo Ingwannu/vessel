@@ -120,8 +120,17 @@ pub(super) fn body(
         .children(source.failure().map(|failure| {
             vessel_app_kit::alert::alert(
                 vessel_app_kit::alert::Content {
-                    title: Some(failure.message.clone().into()),
-                    description: None,
+                    title: None,
+                    description: Some(vessel_app_kit::plain_text(
+                        ElementId::NamedInteger(
+                            "canonical-tool-error".into(),
+                            super::entries::id(index),
+                        ),
+                        &failure.message,
+                        version_of(&failure.message),
+                        window,
+                        cx,
+                    )),
                     action: None,
                 },
                 vessel_app_kit::alert::Variant::Error,
@@ -129,6 +138,36 @@ pub(super) fn body(
                 paint.tokens,
             )
         }))
+}
+
+/// Paseo's scrollable plain detail caps its body at 300 logical points.
+const PROSE_MAX_HEIGHT: f32 = 300.0;
+/// The source's UI prose uses a 22-point line, independently of code rows.
+const PROSE_LINE_HEIGHT: f32 = 22.0;
+
+/// Literal reasoning and plain tool bodies share this selectable UI prose.
+pub(super) fn prose(
+    paint: &Paint<'_>,
+    id: ElementId,
+    text: &str,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    div()
+        .id(id.clone())
+        .max_h(px(PROSE_MAX_HEIGHT))
+        .overflow_y_scroll()
+        .type_(Type::Body)
+        .line_height(px(vessel_app_kit::fonts::ui(PROSE_LINE_HEIGHT)))
+        .text_color(paint.tokens.neutral.foreground)
+        .child(vessel_app_kit::plain_text(
+            id,
+            text,
+            version_of(text),
+            window,
+            cx,
+        ))
+        .into_any_element()
 }
 
 fn section_body(
@@ -154,6 +193,7 @@ fn section_body(
             super::tool::diff(paint, id, *old, new, window, cx).into_any_element()
         }
         ToolSection::Text(text) => output_box(id, text, Start::Top, paint.tokens, window, cx),
+        ToolSection::Prose(text) => prose(paint, id, text, window, cx),
         ToolSection::Opaque { label, raw } => div()
             .flex()
             .flex_col()

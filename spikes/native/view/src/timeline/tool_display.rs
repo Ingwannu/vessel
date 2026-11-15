@@ -226,7 +226,7 @@ fn text_present(text: Option<&str>) -> bool {
 }
 
 /// This formatting edge recognizes only empty JSON spellings, never tool fields.
-fn opaque_present(raw: Option<&RawJson>) -> bool {
+pub(super) fn opaque_present(raw: Option<&RawJson>) -> bool {
     raw.is_some_and(|raw| !["null", "{}", "[]", "\"\""].contains(&raw.as_text().trim()))
 }
 

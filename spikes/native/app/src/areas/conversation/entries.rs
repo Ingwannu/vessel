@@ -88,7 +88,7 @@ pub(super) fn entry(
             div().into_any_element()
         }
         EntryKind::Message { text } => bubbles::message(paint, index, text, entry.rev, window, cx),
-        EntryKind::Thought { text } => thought(paint, index, text, open, cx),
+        EntryKind::Thought { text } => thought(paint, index, text, open, window, cx),
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
         EntryKind::Notification(notice) => {
             super::notices::notification(paint, index, notice, window, cx)
@@ -152,6 +152,7 @@ fn thought(
     index: usize,
     text: &str,
     open: bool,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let head = marked_work_row(
@@ -169,9 +170,13 @@ fn thought(
                 div()
                     .ml(px(28.0))
                     .py(px(4.0))
-                    .type_(Type::Body)
-                    .text_color(paint.look.secondary)
-                    .child(text.to_owned()),
+                    .child(super::tool_detail::prose(
+                        paint,
+                        ElementId::NamedInteger("reasoning-prose".into(), id(index)),
+                        text,
+                        window,
+                        cx,
+                    )),
             )
         })
         .into_any_element()
