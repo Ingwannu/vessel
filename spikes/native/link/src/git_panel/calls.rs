@@ -7,7 +7,9 @@ use tokio::sync::Semaphore;
 use vessel_app_view::connection::Refusal;
 use vessel_app_view::layout::LayoutKey;
 use vessel_app_view::workspace::git::panel::ReadFailure;
-use vessel_proto::workspace::{GetChanges, GetFileDiff, GetStatus};
+use vessel_proto::workspace::{
+    CompareGitFile, GetChanges, GetFileDiff, GetStatus, GitCompared, GitHunkOffset,
+};
 
 /// Bound outstanding work including a response held by UI backpressure.
 const MAX_CALLS: usize = 8;
@@ -112,36 +114,64 @@ async fn summary(
     ticket: &vessel_app_view::workspace::git::panel::ComparisonTicket,
 ) -> Result<vessel_proto::workspace::DiffSummary, ReadFailure> {
     let comparison = ticket.comparison();
-    let scope = comparison
-        .legacy_scope()
-        .ok_or(ReadFailure::ComparisonUnavailable)?;
-    client
-        .call(GetChanges {
-            root: ticket.repository().root,
-            scope,
-            ignore_whitespace: comparison.whitespace().ignored(),
-        })
-        .await
-        .map_err(failure)
+    if let Some(scope) = comparison.legacy_scope() {
+        client
+            .call(GetChanges {
+                root: ticket.repository().root,
+                scope,
+                ignore_whitespace: comparison.whitespace().ignored(),
+            })
+            .await
+            .map_err(failure)
+    } else {
+        client
+            .call(comparison.query(ticket.repository().root, ticket.reason()))
+            .await
+            .map_err(failure)
+            .and_then(compared)
+    }
 }
 async fn file(
     client: &SelectedConnection,
     ticket: &vessel_app_view::workspace::git::panel::FileTicket,
 ) -> Result<vessel_proto::workspace::FileDiff, ReadFailure> {
     let comparison = ticket.comparison().comparison();
-    let scope = comparison
-        .legacy_scope()
-        .ok_or(ReadFailure::ComparisonUnavailable)?;
-    client
-        .call(GetFileDiff {
-            root: ticket.comparison().repository().root,
-            scope,
-            path: ticket.path().clone(),
-            ignore_whitespace: comparison.whitespace().ignored(),
-            from_hunk: None,
-        })
-        .await
-        .map_err(failure)
+    if let Some(scope) = comparison.legacy_scope() {
+        client
+            .call(GetFileDiff {
+                root: ticket.comparison().repository().root,
+                scope,
+                path: ticket.path().clone(),
+                ignore_whitespace: comparison.whitespace().ignored(),
+                from_hunk: None,
+            })
+            .await
+            .map_err(failure)
+    } else {
+        client
+            .call(CompareGitFile {
+                query: comparison.query(
+                    ticket.comparison().repository().root,
+                    ticket.comparison().reason(),
+                ),
+                path: ticket.path().clone(),
+                from_hunk: GitHunkOffset::default(),
+            })
+            .await
+            .map_err(failure)
+            .and_then(compared)
+    }
+}
+
+fn compared<T>(reply: GitCompared<T>) -> Result<T, ReadFailure> {
+    match reply {
+        GitCompared::Ready { data } => Ok(data),
+        GitCompared::NoBase => Err(ReadFailure::NoBase),
+        GitCompared::TooLarge => Err(ReadFailure::TooLarge),
+        GitCompared::BaseMismatch { stored, requested } => {
+            Err(ReadFailure::BaseMismatch { stored, requested })
+        }
+    }
 }
 
 fn local(why: Refusal) -> ReadFailure {
@@ -189,5 +219,45 @@ mod capacity_tests {
             assert_eq!(state.git_panel_calls.0.available_permits(), MAX_CALLS);
         })
         .await;
+    }
+}
+
+#[cfg(test)]
+mod compared_tests {
+    use super::*;
+    use vessel_proto::workspace::{ChangeStatus, DiffContent, FileDiff, WorktreeBase};
+    #[test]
+    fn canonical_outcomes_preserve_all_payload_fields_and_distinguish_nondata() {
+        let file = FileDiff {
+            path: "new/file.rs".parse().unwrap(),
+            old_path: Some("old/file.rs".parse().unwrap()),
+            status: ChangeStatus::Renamed,
+            mode: None,
+            content: DiffContent::Unknown,
+            more_from: Some(42),
+        };
+        assert_eq!(
+            compared(GitCompared::Ready { data: file.clone() }),
+            Ok(file)
+        );
+        assert_eq!(
+            compared::<FileDiff>(GitCompared::NoBase),
+            Err(ReadFailure::NoBase)
+        );
+        assert_eq!(
+            compared::<FileDiff>(GitCompared::TooLarge),
+            Err(ReadFailure::TooLarge)
+        );
+        let stored: vessel_proto::workspace::RefName = "refs/remotes/origin/main".parse().unwrap();
+        let requested = WorktreeBase::Commit {
+            id: "a".repeat(40).parse().unwrap(),
+        };
+        assert_eq!(
+            compared::<FileDiff>(GitCompared::BaseMismatch {
+                stored: stored.clone(),
+                requested: requested.clone()
+            }),
+            Err(ReadFailure::BaseMismatch { stored, requested })
+        );
     }
 }

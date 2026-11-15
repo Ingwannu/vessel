@@ -6,7 +6,7 @@ use super::{
 };
 use crate::workspace::git::RequestKey;
 use std::collections::HashMap;
-use vessel_proto::workspace::{DiffSummary, FileDiff, GitStatus, RelPath};
+use vessel_proto::workspace::{DiffSummary, FileDiff, GitReadReason, GitStatus, RelPath};
 
 /// A status belongs to a repository, independently of comparison selection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,6 +28,7 @@ impl StatusTicket {
 pub struct ComparisonTicket {
     repository: RepositoryKey,
     comparison: Comparison,
+    reason: GitReadReason,
     key: RequestKey,
 }
 
@@ -36,6 +37,12 @@ impl ComparisonTicket {
     #[must_use]
     pub const fn repository(&self) -> RepositoryKey {
         self.repository
+    }
+
+    /// A person refresh bypasses cache freshness without changing identity.
+    #[must_use]
+    pub const fn reason(&self) -> GitReadReason {
+        self.reason
     }
 
     /// A legacy node must not substitute All for unsupported Committed.
@@ -156,10 +163,21 @@ impl PanelReads {
     /// Begin a read of exactly the selected comparison.
     #[must_use]
     pub fn begin_summary(&mut self, key: RequestKey) -> ComparisonTicket {
+        self.begin_summary_for(key, GitReadReason::View)
+    }
+
+    /// Force is explicit and typed, never inferred from a repaint or retry.
+    #[must_use]
+    pub fn begin_summary_for(
+        &mut self,
+        key: RequestKey,
+        reason: GitReadReason,
+    ) -> ComparisonTicket {
         self.summary.start(key);
         ComparisonTicket {
             repository: self.repository,
             comparison: self.comparison.clone(),
+            reason,
             key,
         }
     }
@@ -188,6 +206,7 @@ impl PanelReads {
             comparison: ComparisonTicket {
                 repository: self.repository,
                 comparison: self.comparison.clone(),
+                reason: GitReadReason::View,
                 key,
             },
             path,
@@ -245,6 +264,7 @@ impl PanelReads {
             } => RepositoryRead::Ready(status),
         };
         let diff = match &self.summary {
+            PanelRead::Failed(ReadFailure::TooLarge) => DiffRead::TooLarge,
             PanelRead::Failed(why) => DiffRead::Failed(why),
             PanelRead::Empty | PanelRead::Loading { previous: None, .. } => DiffRead::Waiting,
             PanelRead::Ready(summary)

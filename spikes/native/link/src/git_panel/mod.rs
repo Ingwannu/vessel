@@ -7,9 +7,9 @@
 //!   rejection; a bounded hub owns calls through event delivery.
 //! - Effect: closed/full/admission/timeout failures settle the exact request.
 //!   Commit/branch identities remain in the immutable comparison ticket.
-//! - Compatibility: until the new canonical pending values are admitted, only
-//!   exact Uncommitted/Commit scopes can be requested. Neither All nor Committed
-//!   is approximated by legacy Base.
+//! - Compatibility: exact Uncommitted/Commit scopes retain their legacy calls.
+//!   All/Committed use reviewed canonical values; the client refuses their staged
+//!   None admission before a frame. Neither is approximated by legacy Base.
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
 

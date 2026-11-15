@@ -14,6 +14,12 @@ pub type PanelRead<T> = ReadState<T, ReadFailure>;
 /// A recovery is chosen from the typed failure, never a diagnostic substring.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ReadFailure {
+    /// Successful comparison admission found no registered or explicit base.
+    #[error("there is no comparison base")]
+    NoBase,
+    /// The protected reader refused the complete output budget.
+    #[error("the comparison exceeds the preview limit")]
+    TooLarge,
     /// No authoritative root has been provided for this workspace.
     #[error("workspace repository information is unavailable")]
     WorkspaceUnavailable,

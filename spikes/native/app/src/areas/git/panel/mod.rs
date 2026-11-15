@@ -28,6 +28,7 @@ pub(super) struct Panels {
 struct Entry {
     target: PanelTarget,
     comparison: Comparison,
+    reason: vessel_proto::workspace::GitReadReason,
     context: Option<ConnectionContext>,
     binding: PanelBinding,
     reads: Option<PanelReads>,
@@ -47,6 +48,7 @@ impl Entry {
         Self {
             target,
             comparison,
+            reason: vessel_proto::workspace::GitReadReason::View,
             context,
             binding: PanelBinding::default(),
             reads: None,

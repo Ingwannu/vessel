@@ -757,3 +757,21 @@ issues: a partial doc-code span, redundant Render qualification and two test API
 spellings (RopeSlice has no is_empty; readonly is queried through presentation).
 They are corrected in both package and isolated control bytes without lint
 suppression or an engine API change. No window test ran in that Clippy check.
+
+## Reviewed canonical comparison values consumed provisionally
+
+V3 row196 passed exact194 plus Markdown-only3fde on the announced82ae staged
+prerequisite; the integrator has queued it in batch12 and owns the missing TS
+regeneration before gate49. The app merged only that reviewed value leaf as
+fa2dffdf, not a moving node runtime. GIT_PANEL remainsNone, and calls still
+settle unsupported before any peer frame.
+
+Committed/All now construct canonical CompareGit/CompareGitFile through G4's
+same original selected admission and retain exact tickets. Uncommitted/fixed
+Commit keep exact legacy calls. Ready moves the whole payload; NoBase and
+TooLarge retain typed distinct states, and mismatch retains both base facts.
+Refresh rediscovers authority but sends typed Refresh purpose; repaint/file
+reads use View. No fetch, runtime admission or approximate legacyBase fallback
+is introduced. New View/Link fixtures cover whole query/outcome values and
+actual staged summary/file no-frame settlement. These current native changes
+are uncompiled/unexecuted; older fa1/0af jobs are not relabeled as their proof.

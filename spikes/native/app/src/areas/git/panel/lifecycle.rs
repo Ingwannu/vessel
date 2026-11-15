@@ -33,12 +33,46 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.git_panel_restart(
+            address,
+            target,
+            vessel_proto::workspace::GitReadReason::View,
+            window,
+            cx,
+        );
+    }
+
+    pub(super) fn git_panel_refresh(
+        &mut self,
+        address: PanelAddress,
+        target: PanelTarget,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.git_panel_restart(
+            address,
+            target,
+            vessel_proto::workspace::GitReadReason::Refresh,
+            window,
+            cx,
+        );
+    }
+
+    fn git_panel_restart(
+        &mut self,
+        address: PanelAddress,
+        target: PanelTarget,
+        reason: vessel_proto::workspace::GitReadReason,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         if !self.layout_panel_visible(&address.workspace, address.tab, window) {
             return;
         }
         self.git_panels_prune();
         let context = self.git_panel_context(&address);
         let mut entry = Entry::new(target, context);
+        entry.reason = reason;
         if let Some(previous) = self.areas.git.panels.entries.get(&address) {
             entry.retain_comparison(previous);
         }
@@ -132,7 +166,7 @@ impl Shell {
                 Ask::Summary {
                     address: address.clone(),
                     context,
-                    ticket: reads.begin_summary(summary),
+                    ticket: reads.begin_summary_for(summary, entry.reason),
                 },
             ]
         });

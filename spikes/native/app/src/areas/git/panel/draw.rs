@@ -40,7 +40,7 @@ pub(crate) fn render_panel(
         tokens,
     )
     .on_click(cx.listener(move |shell, _event, window, cx| {
-        shell.git_panel_open(retry_address.clone(), retry_target.clone(), window, cx);
+        shell.git_panel_refresh(retry_address.clone(), retry_target.clone(), window, cx);
     }));
     let body = entry.map_or_else(
         || loading(Some(shell.words.git_panel().checking()), tokens),

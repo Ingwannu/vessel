@@ -132,3 +132,61 @@ async fn retirement_after_the_real_request_frame_settles_the_original_ticket() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn staged_comparison_summary_and_file_settle_their_tickets_without_a_peer_frame() {
+    use vessel_app_view::workspace::problem::Problem;
+    within(async {
+        let home = Home::new();
+        let (mut state, mut events) = state(&home);
+        let mut peer = peer::connect("fixture").await;
+        let context = install(&mut state, peer.client.take().unwrap());
+        let Ask::Status {
+            address, ticket, ..
+        } = status(context.clone(), context.node(), "fixture")
+        else {
+            panic!("fixture produces status identity");
+        };
+        let mut keys = RequestKeys::default();
+        for mode in [ComparisonMode::All, ComparisonMode::Committed] {
+            let mut reads = PanelReads::new(
+                ticket.repository(),
+                Comparison::new(mode, None, Whitespace::Show),
+            );
+            let ticket = reads.begin_summary(keys.issue().unwrap());
+            state
+                .git_panel(Ask::Summary {
+                    address: address.clone(),
+                    context: context.clone(),
+                    ticket: ticket.clone(),
+                })
+                .await;
+            let returned = answer(&mut events).await;
+            assert_eq!(returned.address, address);
+            assert_eq!(returned.context, context);
+            let Outcome::Summary(got, result) = returned.outcome else {
+                panic!("summary outcome");
+            };
+            assert_eq!(got, ticket);
+            assert_eq!(result, Err(ReadFailure::Call(Problem::Older)));
+            let ticket = reads.begin_file("source.rs".parse().unwrap(), keys.issue().unwrap());
+            state
+                .git_panel(Ask::File {
+                    address: address.clone(),
+                    context: context.clone(),
+                    ticket: ticket.clone(),
+                })
+                .await;
+            let returned = answer(&mut events).await;
+            assert_eq!(returned.address, address);
+            assert_eq!(returned.context, context);
+            let Outcome::File(got, result) = returned.outcome else {
+                panic!("file outcome");
+            };
+            assert_eq!(got, ticket);
+            assert_eq!(result, Err(ReadFailure::Call(Problem::Older)));
+        }
+        assert!(peer.calls.lock().unwrap().is_empty());
+    })
+    .await;
+}

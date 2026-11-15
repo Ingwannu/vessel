@@ -11,6 +11,10 @@ use crate::workspace::git_quick::GitAction;
 /// Honest recovery after a failed read, independent of diagnostic language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadIssue {
+    /// No comparison base exists; never present it as an empty successful diff.
+    NoBase,
+    /// The complete bounded comparison cannot fit the preview.
+    TooLarge,
     /// Root admission must come from the canonical workspace registry.
     Workspace,
     /// Restart before the lifetime request issuer can safely allocate again.
@@ -70,6 +74,8 @@ impl ReadIssue {
     #[must_use]
     pub fn for_failure(failure: &ReadFailure) -> Self {
         match failure {
+            ReadFailure::NoBase => Self::NoBase,
+            ReadFailure::TooLarge => Self::TooLarge,
             ReadFailure::WorkspaceUnavailable => Self::Workspace,
             ReadFailure::KeysExhausted => Self::Keys,
             ReadFailure::Call(problem) => Self::of(problem),
@@ -90,7 +96,9 @@ impl ReadIssue {
     #[must_use]
     pub const fn variant(self) -> crate::alert::Variant {
         match self {
-            Self::Workspace | Self::Version | Self::Unsupported => crate::alert::Variant::Info,
+            Self::NoBase | Self::TooLarge | Self::Workspace | Self::Version | Self::Unsupported => {
+                crate::alert::Variant::Info
+            }
             Self::Keys
             | Self::Unsent
             | Self::Connection
@@ -111,6 +119,8 @@ impl ReadIssue {
     pub fn words(self, catalog: &Translator) -> &str {
         let words = catalog.git_panel();
         match self {
+            Self::NoBase => words.problem_no_base(),
+            Self::TooLarge => words.problem_too_large(),
             Self::Workspace => words.problem_workspace(),
             Self::Keys => words.problem_keys(),
             Self::Unsent => words.problem_unsent(),
@@ -169,7 +179,9 @@ impl ReadFailure {
                     words.detail_requested_base()
                 ))
             }
-            Self::Call(Problem::Unsent | Problem::Older)
+            Self::NoBase
+            | Self::TooLarge
+            | Self::Call(Problem::Unsent | Problem::Older)
             | Self::WorkspaceUnavailable
             | Self::KeysExhausted
             | Self::DestinationClosed
@@ -228,6 +240,16 @@ mod tests {
         ))
         .unwrap();
         for (issue, english, korean) in [
+            (
+                ReadIssue::TooLarge,
+                "This comparison is too large to preview. Narrow the comparison and try again.",
+                "비교 결과가 너무 커서 미리 볼 수 없습니다. 비교 범위를 줄인 뒤 다시 시도하세요.",
+            ),
+            (
+                ReadIssue::NoBase,
+                "No base branch is available. Choose a base branch before comparing.",
+                "비교할 기준 브랜치가 없습니다. 기준 브랜치를 선택한 뒤 다시 비교하세요.",
+            ),
             (
                 ReadIssue::Workspace,
                 "Workspace repository information is unavailable. Open a registered workspace and try again.",

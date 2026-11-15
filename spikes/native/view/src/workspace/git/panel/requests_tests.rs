@@ -3,7 +3,9 @@
 use super::*;
 use crate::workspace::git::RequestKeys;
 use crate::workspace::problem::Problem;
-use vessel_proto::workspace::{ChangeStatus, DiffContent, DiffSummary, FileDiff, WorkspaceRoot};
+use vessel_proto::workspace::{
+    ChangeStatus, DiffContent, DiffSummary, FileDiff, WorkspaceRoot, WorktreeBase,
+};
 use vessel_proto::{NodeId, ProjectId};
 
 fn repository() -> RepositoryKey {
@@ -169,4 +171,61 @@ fn reader_projection_keeps_status_failure_ahead_of_a_retained_diff() {
     );
     assert_eq!(reads.body(Demand::Inactive), Body::Inactive);
     assert_eq!(reads.body(Demand::Disconnected), Body::Connecting);
+}
+
+#[test]
+fn explicit_refresh_reason_and_nondata_comparison_results_keep_their_meaning() {
+    use vessel_proto::workspace::GitReadReason;
+    let mut keys = RequestKeys::default();
+    let mut reads = PanelReads::new(repository(), Comparison::default());
+    let status = reads.begin_status(keys.issue().unwrap());
+    assert!(reads.finish_status(status, Ok(crate::workspace::git::fixtures::status())));
+    let fresh = reads.begin_summary_for(keys.issue().unwrap(), GitReadReason::Refresh);
+    assert_eq!(fresh.reason(), GitReadReason::Refresh);
+    assert!(reads.finish_summary(&fresh, Err(ReadFailure::NoBase)));
+    assert_eq!(
+        reads.body(Demand::Active),
+        Body::DiffFailed(&ReadFailure::NoBase)
+    );
+    let bounded = reads.begin_summary(keys.issue().unwrap());
+    assert_eq!(bounded.reason(), GitReadReason::View);
+    assert!(reads.finish_summary(&bounded, Err(ReadFailure::TooLarge)));
+    assert_eq!(reads.body(Demand::Active), Body::DiffTooLarge);
+    let file = reads.begin_file("a.rs".parse().unwrap(), keys.issue().unwrap());
+    assert_eq!(file.comparison().reason(), GitReadReason::View);
+}
+
+#[test]
+fn canonical_queries_keep_all_and_committed_distinct_without_legacy_substitution() {
+    use vessel_proto::workspace::{CompareGit, GitComparison, GitReadReason, GitWhitespace};
+    let root = repository().root;
+    let base = WorktreeBase::Ref {
+        name: "refs/remotes/origin/main".parse().unwrap(),
+    };
+    for (mode, wire) in [
+        (
+            ComparisonMode::All,
+            GitComparison::All {
+                base: Some(base.clone()),
+            },
+        ),
+        (
+            ComparisonMode::Committed,
+            GitComparison::Committed {
+                base: Some(base.clone()),
+            },
+        ),
+        (ComparisonMode::Uncommitted, GitComparison::Uncommitted),
+    ] {
+        let comparison = Comparison::new(mode, Some(base.clone()), Whitespace::Ignore);
+        assert_eq!(
+            comparison.query(root, GitReadReason::Refresh),
+            CompareGit {
+                root,
+                comparison: wire,
+                whitespace: GitWhitespace::Ignore,
+                reason: GitReadReason::Refresh,
+            }
+        );
+    }
 }

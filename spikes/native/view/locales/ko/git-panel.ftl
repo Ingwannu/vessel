@@ -126,3 +126,9 @@ git-panel-detail-stored-base = 저장된 기준 브랜치
 
 # Label before the exact requested branch or commit base in a diagnostic code block.
 git-panel-detail-requested-base = 요청한 비교 기준
+
+# Complete recovery when a typed comparison has no registered or explicit base; never claim it is empty.
+git-panel-problem-no-base = 비교할 기준 브랜치가 없습니다. 기준 브랜치를 선택한 뒤 다시 비교하세요.
+
+# Complete recovery when the canonical comparison exceeds its output limit, not an empty successful result.
+git-panel-problem-too-large = 비교 결과가 너무 커서 미리 볼 수 없습니다. 비교 범위를 줄인 뒤 다시 시도하세요.

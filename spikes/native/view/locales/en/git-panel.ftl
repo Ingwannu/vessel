@@ -127,3 +127,9 @@ git-panel-detail-stored-base = Stored base branch
 
 # Label before the exact requested branch or commit base in a diagnostic code block.
 git-panel-detail-requested-base = Requested comparison base
+
+# Complete recovery when a typed comparison has no registered or explicit base; never claim it is empty.
+git-panel-problem-no-base = No base branch is available. Choose a base branch before comparing.
+
+# Complete recovery when the canonical comparison exceeds its output limit, not an empty successful result.
+git-panel-problem-too-large = This comparison is too large to preview. Narrow the comparison and try again.

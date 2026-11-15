@@ -2,7 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 use vessel_proto::NodeId;
-use vessel_proto::workspace::{CommitId, DiffScope, WorkspaceRoot, WorktreeBase};
+use vessel_proto::workspace::{
+    CommitId, CompareGit, DiffScope, GitComparison, GitReadReason, GitWhitespace, WorkspaceRoot,
+    WorktreeBase,
+};
 
 /// A node I/O target, not a replacement for registry `WorkspaceId` or layout keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -114,9 +117,35 @@ impl Comparison {
         self.whitespace
     }
 
+    /// The canonical staged call carries normalized mode/base/whitespace.
+    /// Admission still belongs to the client's negotiated method, not this DTO.
+    #[must_use]
+    pub fn query(&self, root: WorkspaceRoot, reason: GitReadReason) -> CompareGit {
+        let comparison = match &self.kind {
+            ComparisonKind::Branch(ComparisonMode::Uncommitted) => GitComparison::Uncommitted,
+            ComparisonKind::Branch(ComparisonMode::Committed) => GitComparison::Committed {
+                base: self.base.clone(),
+            },
+            ComparisonKind::Branch(ComparisonMode::All) => GitComparison::All {
+                base: self.base.clone(),
+            },
+            ComparisonKind::Commit(id) => GitComparison::Commit { id: id.clone() },
+        };
+        let whitespace = match self.whitespace {
+            Whitespace::Show => GitWhitespace::Show,
+            Whitespace::Ignore => GitWhitespace::Ignore,
+        };
+        CompareGit {
+            root,
+            comparison,
+            whitespace,
+            reason,
+        }
+    }
+
     /// Adapt only exact legacy meanings. All needs ADR 0087's private-index
     /// read (legacy Base can omit restored untracked paths); Committed also
-    /// needs that contract. Neither is approximated by a different scope.
+    /// uses the canonical contract. Neither is approximated by a different scope.
     #[must_use]
     pub fn legacy_scope(&self) -> Option<DiffScope> {
         match &self.kind {
