@@ -87,7 +87,7 @@ pub(super) fn person(
                 .when(!prompt.text.is_empty(), |bubble| {
                     bubble.child(
                         div()
-                            .type_(Type::Body)
+                            .type_(Type::Content)
                             .text_color(paint.tokens.neutral.foreground)
                             .child(marked_text(paint, index, &prompt.text)),
                     )
@@ -134,7 +134,7 @@ pub(super) fn message(
         .bg(paint.look.reply)
         .border_1()
         .border_color(paint.look.border)
-        .type_(Type::Body)
+        .type_(Type::Content)
         .text_color(paint.tokens.neutral.foreground)
         .child(chat_markdown(
             ElementId::NamedInteger("message".into(), id(index)),

@@ -432,3 +432,10 @@ the SAME TextView, not another renderer or highlighter. Existing code frame,
 scrolling, actions and legacy block line ratio remain; body/table defaults
 move from UI14 to source content15 deliberately. Source syntax classification
 limitations already documented remain outside this projection change.
+
+The timeline owner confirmed the two typography calls were idle and approved
+K's own-tree change. Both plain prompt and reply parent now use Type::Content;
+all bubble geometry, actions and find callbacks are byte-identical. The
+existing rich-text control independently projects that same axis. The owner
+will consume the checked tiny seam alongside its separate Markdown callbacks;
+this source commit is not a checked consumer/API handoff yet.
