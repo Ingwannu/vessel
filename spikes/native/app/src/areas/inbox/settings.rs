@@ -2,8 +2,8 @@
 //! The sound and desktop switches independently update the same alert mode.
 use crate::shell::Shell;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Window,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Window,
 };
 use vessel_app_kit::{Tokens, outline_button, settings};
 use vessel_app_view::inbox::delivery::{Channel, Delivery, Toggle};
@@ -73,15 +73,7 @@ pub(crate) fn render(
         }),
     );
     let card = settings::card(tokens)
-        .child(settings::row_at(
-            words.permission(),
-            Some(words.os_managed().into()),
-            None,
-            None,
-            true,
-            compact,
-            tokens,
-        ))
+        .child(permission_row(shell, compact, tokens))
         .child(settings::row_at(
             words.desktop_alerts(),
             Some(words.desktop_hint().into()),
@@ -118,7 +110,13 @@ pub(crate) fn render(
             compact,
             tokens,
         ));
-    let card = match shell.areas.inbox.test_notice {
+    let card = test_status(card, shell, compact, tokens);
+    settings::section(words.notifications(), card, tokens).into_any_element()
+}
+
+fn test_status(card: Div, shell: &Shell, compact: bool, tokens: &Tokens) -> Div {
+    let words = shell.words.inbox();
+    match shell.areas.inbox.test_notice {
         vessel_app_view::inbox::settings::TestNotice::Idle => card,
         vessel_app_view::inbox::settings::TestNotice::Requested => card.child(settings::row_at(
             words.test_requested(),
@@ -129,6 +127,18 @@ pub(crate) fn render(
             compact,
             tokens,
         )),
-    };
-    settings::section(words.notifications(), card, tokens).into_any_element()
+    }
+}
+
+fn permission_row(shell: &Shell, compact: bool, tokens: &Tokens) -> Div {
+    let words = shell.words.inbox();
+    settings::row_at(
+        words.permission(),
+        Some(words.os_managed().into()),
+        None,
+        None,
+        true,
+        compact,
+        tokens,
+    )
 }

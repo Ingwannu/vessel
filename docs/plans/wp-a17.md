@@ -389,3 +389,8 @@ It never sends an unclaimed summary OS notification: each actual OS alert still
 requires its exact node claim. Durable Inbox items and counters are unaffected.
 Terminal manual actions that meet the queue limit get a typed unavailable error
 instead of silently pretending that a clear was queued.
+
+The response dispatcher delegates list and presence settlement to small typed
+helpers; notification settings separate platform permission/test status rows.
+This preserves the same behavior while keeping each function within strict
+Clippy size limits, without lint exceptions or increasing file-size records.

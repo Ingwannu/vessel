@@ -6,7 +6,7 @@ use vessel_app_link::{
     Command,
     inbox::{Answer, Ask, Target},
 };
-use vessel_app_view::inbox::Content;
+use vessel_app_view::inbox::{Content, Problem, Request, Snapshot, Source};
 use vessel_app_view::timeline::{Live, ToolView};
 
 impl Shell {
@@ -69,67 +69,10 @@ impl Shell {
                 }
             }
             Answer::Presence(source, result) => {
-                changed = false;
-                if self
-                    .areas
-                    .inbox
-                    .store
-                    .nodes()
-                    .iter()
-                    .any(|node| node.source == source)
-                {
-                    changed = self
-                        .areas
-                        .inbox
-                        .presence_problems
-                        .iter()
-                        .find(|(id, _)| *id == source.node())
-                        .map(|(_, problem)| *problem)
-                        != result.as_ref().err().copied();
-                    self.areas
-                        .inbox
-                        .presence_problems
-                        .retain(|(id, _)| *id != source.node());
-                    if let Err(problem) = result {
-                        self.areas
-                            .inbox
-                            .presence_problems
-                            .push((source.node(), problem));
-                    }
-                }
+                changed = self.inbox_presence_answer(source, result)
             }
             Answer::Listed(source, request, result) => {
-                if !self
-                    .areas
-                    .inbox
-                    .targets
-                    .iter()
-                    .any(|target| matches!(target, Target::Online(known) if *known == source))
-                {
-                    return false;
-                }
-                let (visible, notices) =
-                    self.areas
-                        .inbox
-                        .store
-                        .receive_visible(source.node(), request, result);
-                changed = visible;
-                let (opportunities, coalescing) = self.areas.inbox.store.take_terminal_notices();
-                let queued = &mut self.areas.inbox.terminals.queued;
-                let remaining = vessel_app_view::inbox::notices::MAX_PENDING_NOTICES
-                    .saturating_sub(queued.len());
-                let overflow = opportunities.len() > remaining;
-                queued.extend(opportunities.into_iter().take(remaining));
-                if overflow || coalescing == vessel_app_view::inbox::notices::Coalescing::Combined {
-                    self.areas.inbox.coalescing =
-                        vessel_app_view::inbox::notices::Coalescing::Combined;
-                }
-                let area = &mut self.areas.inbox;
-                area.notices.retain(|key| area.store.entry(*key).is_some());
-                area.notices.extend(notices);
-                if changed {
-                    self.inbox_notice_update(cx);
-                }
+                changed = self.inbox_listed(source, request, result, cx)
             }
             Answer::Detail(source, key, request, result) => {
                 changed = false;
@@ -147,6 +90,78 @@ impl Shell {
                     self.inbox_refresh();
                 }
             }
+        }
+        changed
+    }
+
+    fn inbox_presence_answer(&mut self, source: Source, result: Result<(), Problem>) -> bool {
+        let mut changed = false;
+        if self
+            .areas
+            .inbox
+            .store
+            .nodes()
+            .iter()
+            .any(|node| node.source == source)
+        {
+            changed = self
+                .areas
+                .inbox
+                .presence_problems
+                .iter()
+                .find(|(id, _)| *id == source.node())
+                .map(|(_, problem)| *problem)
+                != result.as_ref().err().copied();
+            self.areas
+                .inbox
+                .presence_problems
+                .retain(|(id, _)| *id != source.node());
+            if let Err(problem) = result {
+                self.areas
+                    .inbox
+                    .presence_problems
+                    .push((source.node(), problem));
+            }
+        }
+        changed
+    }
+
+    fn inbox_listed(
+        &mut self,
+        source: Source,
+        request: Request,
+        result: Result<Snapshot, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        if !self
+            .areas
+            .inbox
+            .targets
+            .iter()
+            .any(|target| matches!(target, Target::Online(known) if *known == source))
+        {
+            return false;
+        }
+        let (visible, notices) =
+            self.areas
+                .inbox
+                .store
+                .receive_visible(source.node(), request, result);
+        let changed = visible;
+        let (opportunities, coalescing) = self.areas.inbox.store.take_terminal_notices();
+        let queued = &mut self.areas.inbox.terminals.queued;
+        let remaining =
+            vessel_app_view::inbox::notices::MAX_PENDING_NOTICES.saturating_sub(queued.len());
+        let overflow = opportunities.len() > remaining;
+        queued.extend(opportunities.into_iter().take(remaining));
+        if overflow || coalescing == vessel_app_view::inbox::notices::Coalescing::Combined {
+            self.areas.inbox.coalescing = vessel_app_view::inbox::notices::Coalescing::Combined;
+        }
+        let area = &mut self.areas.inbox;
+        area.notices.retain(|key| area.store.entry(*key).is_some());
+        area.notices.extend(notices);
+        if changed {
+            self.inbox_notice_update(cx);
         }
         changed
     }
