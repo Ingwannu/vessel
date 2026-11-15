@@ -66,7 +66,14 @@ owed; an old gate or the earlier partial24-shot probe is not evidence for
 this integration. The previously observed after-close keyboard-focus issue
 remains unverified in production and is not silently claimed fixed here.
 
-Next: run the narrow Kit/App checks and the designated-machine whole gate,
-send the immutable control slice to review, then consume it in the schedules
+The corrected `ef91b954` source passed remote all-targets native Clippy in
+`schedules-narrow-20261115T022908Z-ef91b954`; font setup and Clippy both
+returned zero with no skipped step. View, Kit, Link and App were actually
+checked. The separate whole run `schedules-20261115T024307Z-ef91b954` is
+queued, not a pass. Fresh control captures are being inspected separately;
+no runtime or UI approval is claimed here.
+
+Next: finish the designated-machine whole gate and runtime checks, send the
+immutable control slice to review, then consume it in the schedules
 list. The list's new labels use Fluent; accepted cadence/error words remain
 in their existing table for the separate translation migration.

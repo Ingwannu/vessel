@@ -82,9 +82,14 @@ saturated local machine. This merge carries no new UI captures or approval.
 The earlier partial menu evidence and unresolved focus observation remain
 recorded in the resume note and do not prove this integrated menu.
 
-Next: preserve the published menu in a behaviour-neutral module split if its
-extension exceeds the file budget, then reapply the reviewed typed additions
-with their tests. The schedules list follows, using the current Paseo
+The later `f6674d0e` whole native gate includes this merged tree and passed
+1,060 ordinary tests plus two doc tests, zero failures and one inherited ignore.
+The reviewer's split/import pass is restricted to its seven-path delta; the
+merge conflicts themselves are not implied reviewed by that disposition.
+
+Next: the behaviour-neutral split and typed restoration are now committed
+separately; follow their notes for exact gates and pending runtime evidence.
+The schedules list follows, using the current Paseo
 `packages/app/src/screens/schedules-screen.tsx`,
 `components/schedules/schedules-table.tsx` and `schedule-row.tsx` as the
 reference. The editor, runs and saved prompts are separate later slices.

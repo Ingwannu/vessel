@@ -46,3 +46,23 @@ That first failure remains in its log; the changed tree needs a new check.
 The changed tree's short-lane `cargo clippy -p vessel-app-kit --all-targets --
 -D warnings` then passed, with Kit actually checked. This is compilation/lint
 evidence for Kit only, not the still-owed whole native test gate or UI proof.
+
+## Completed native gate and review
+
+The whole native gate subsequently passed on immutable
+`f6674d0e651ba2975552da01e58fc588bb4f9ef7` in run
+`schedules-20261115T022318Z-f6674d0e`: fonts, fmt, quality, Clippy, app build
+and tests each returned zero, with no skipped step. There were 1,060 ordinary
+test passes and two doc-test passes, zero failures and one inherited ignored
+test. All four native crates were actually checked/compiled. The run waited
+882 seconds before its slot; execution took about three minutes, with load
+18.05 at the start and 17.76 at the end.
+
+The reviewer independently passed the seven-path pure split/import correction
+scope only, including moved-body/constant identity and the gate logs. This is
+neither review of the earlier published-base merge conflicts nor approval of
+the later typed restoration, runtime, Automation screens or other profiles.
+No unchanged Rust gate is repeated for this result note.
+
+Resume: the separate typed restoration is `ef91b954`; its own whole gate and
+fresh first-use evidence are tracked in the restoration note.

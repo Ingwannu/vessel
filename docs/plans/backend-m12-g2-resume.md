@@ -1,6 +1,41 @@
 # G2 resume: schedules and the shared controls
 
-Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read the strict/common/app briefs and current kit ledger before changing anything. The published desktop base `56a7cbd3` is now being integrated; see `backend-m12-g2-published-integration.md` for conflict decisions and verification limits. The schedules list is the next feature slice. Earlier stop-only instructions below are historical, not a ban on the resumed work.
+Resume on `backend/m12-app-schedules`, in this track's existing worktree. Read the strict/common/app briefs and current kit ledger before changing anything. The published desktop base `56a7cbd3` was merged in `29a9834b`; see `backend-m12-g2-published-integration.md` for conflict decisions and verification limits. The schedules list is the next feature slice. Earlier stop-only instructions below are historical, not a ban on the resumed work.
+
+## Resumed published-base checkpoint
+
+- `29a9834b` merged published `56a7cbd3`. The newer desktop line, including
+  `d103ab39`, is intentionally not consumed until its announced gate. Keep the
+  existing rename control rather than redeveloping it.
+- `fe86e090` split the published menu without behavioural changes;
+  `f6674d0e` removed unused imports. The reviewer passed that isolated seven-path
+  source delta and its A13 whole native gate: 1,060 ordinary plus two doc-test
+  passes, zero failures, one inherited ignored test. Run
+  `schedules-20261115T022318Z-f6674d0e`, evidence under
+  `/tmp/work/m12-g2/remote-menu-split-20261115/`. Merge-conflict and UI approval
+  are not implied.
+- `ef91b954` restores typed leading/feedback/muted/dismissal/measured bounds
+  on the published renderer, retaining menu_right and motion. Remote native
+  Clippy passed; its whole run `schedules-20261115T024307Z-ef91b954` is still
+  pending. No ProviderRow/modal/passive/button-content control is added.
+- Current GUI artifacts are uncommitted external probes from that immutable
+  restoration. The corrected probe has a fresh caption and no duplicate
+  desktop toggle. Old pilot images remain excluded; the new matrix still
+  needs personal inspection and review. Shipping fonts and weights are
+  unchanged. Font selection is tested through actual same-platform glyph
+  rasters against proof-only Light aliases with identical outline/weight/
+  metrics tables; this is not Windows or whole-UI proof.
+- New list labels and feedback go into Fluent. Accepted cadence/error/state/
+  action words stay in their existing table; the translation track owns their
+  later separate migration. The external list draft must not copy them.
+- The source's partial-host error banner has no equivalent current Alert
+  geometry/presentation. Ownership lookup found no active extension; wait for
+  assignment, with no area override or parallel notice renderer.
+
+The original list remains outside the tree and unverified. Automation screens
+remain undelivered. Next is the schedules list, followed by its editor, runs
+and saved prompts in separate feature slices. Current source preparation and
+owned-process details are kept in `/tmp/work/m12-g2/STATE.md`.
 
 ## Committed and reviewed
 
