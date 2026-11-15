@@ -1,5 +1,8 @@
 [package]
 name = "vessel-node"
+# Keep ordinary cargo run on the product, including feature-enabled builds.
+default-run = "vesseld"
+autobins = false
 description = "Vessel node daemon (vesseld): runs agent harness sessions on one machine and serves them to clients over the Vessel protocol"
 version.workspace = true
 edition.workspace = true
@@ -10,6 +13,16 @@ repository.workspace = true
 [[bin]]
 name = "vesseld"
 path = "src/main.rs"
+
+# Only the separate fixture executable can read a fake-forge seed. Even
+# with this feature, vesseld's product arguments/environment stay real.
+[features]
+forge-fixture = ["vessel-forge/fake"]
+
+[[bin]]
+name = "vessel-forge-fixture"
+path = "src/bin/forge_fixture.rs"
+required-features = ["forge-fixture"]
 
 [dependencies]
 # A member's calls to its fleet's home (`fleet.*` over the secure channel,
@@ -94,6 +107,8 @@ tracing-subscriber.workspace = true
 # percent-encoded and right for Windows drive letters; already in the
 # workspace (vessel-lsp).
 url.workspace = true
+uuid.workspace = true
+web-push-native.workspace = true
 
 [dev-dependencies]
 # `test-util`: the probes' cache is checked on a paused clock. Without it

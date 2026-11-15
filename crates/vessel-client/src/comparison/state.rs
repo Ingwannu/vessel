@@ -199,7 +199,8 @@ pub enum TargetStatus {
     NeedsApproval(Arc<vessel_proto::workspace::ProjectCommands>),
     /// Can take its one initial prompt.
     Ready,
-    /// The initial prompt was acknowledged once.
+    /// The initial prompt was acknowledged once. Observe its session's
+    /// timeline separately: this is not a durable `TurnStarted` checkpoint.
     Started,
     /// Terminal known failure, retaining partial resources.
     Failed(Failure),

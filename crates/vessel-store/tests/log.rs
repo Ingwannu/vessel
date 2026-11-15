@@ -11,14 +11,15 @@ use vessel_proto::{
 };
 use vessel_store::{ByteCount, Retention, Store, StoreConfig, StoreError};
 
-/// Undoes schemas 15 to 7 (protocols 10 through 21), so a test can take a
-/// database further back: the usage ledger (15), the bounded side plan
+/// Undoes schemas 16 to 7 (protocols 10 through 22), so a test can take a
+/// database further back: the inbox and push subscriptions (16), the usage
+/// ledger (15), the bounded side plan
 /// (14), the search index (13), the schedules', saved prompts' and hooks'
 /// tables (12), pull request feedback (10; 11's column goes with
 /// `approvals`), the workspace's tables (9), retention's index (schema 1's
 /// in its place, 8), the conversation's columns and the attachments table
 /// (7).
-const UNDO_SCHEMAS_7_TO_15: &str = "DROP TABLE usage_samples;
+const UNDO_SCHEMAS_7_TO_16: &str = "DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;
      ALTER TABLE sessions DROP COLUMN latest_plan;
@@ -30,6 +31,10 @@ const UNDO_SCHEMAS_7_TO_15: &str = "DROP TABLE usage_samples;
      DROP INDEX sessions_search_behind;
      ALTER TABLE sessions DROP COLUMN search_open;
      ALTER TABLE sessions DROP COLUMN search_seq;
+DROP TABLE inbox_tools;
+     DROP TABLE inbox;
+     DROP TABLE inbox_meta;
+     DROP TABLE push_subscriptions;
      DROP TABLE hook_keys;
      DROP TABLE hook_deliveries;
      DROP TABLE hooks;
@@ -666,7 +671,10 @@ async fn sessions_from_schema_3_have_no_origin() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_15).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
+        .unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN via;
@@ -696,7 +704,10 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_15).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
+        .unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN profile;
@@ -738,7 +749,10 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     drop(store);
 
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    connection.execute_batch(UNDO_SCHEMAS_7_TO_15).unwrap();
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
+        .unwrap();
+    connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN model;
@@ -838,3 +852,7 @@ async fn a_sessions_title_and_choices_follow_its_records_across_a_reopen() {
         }])
     );
 }
+
+#[cfg(test)]
+#[path = "log/labels.rs"]
+mod labels;

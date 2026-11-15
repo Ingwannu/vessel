@@ -172,6 +172,12 @@ shown and a partial comparison cannot claim the commands are unchanged.
   texts preserved. Its root and web gates passed with no waiver or retry;
   the earlier protocol-test waiver no longer applies. `PROJECT_FILE_KEYS` stays
   unassigned.
+- Integration update: node baseline `f453ec2e` is merged after the
+  declaration-boundary gate. Its protocol/store constants, method tables,
+  shared tests and documents remain intact. The shared `required_protocol`
+  accessor is available; `PROJECT_FILE_KEYS` stays unassigned. The combined
+  gate now covers this baseline and the TOML port parser. Native view/card
+  adaptation remains an integration prerequisite.
 - Implemented: slice 2a's terminal decoder, approval fields, digest vectors,
   compatibility and CLI rendering. The slice's validation results belong in
   its review report; no runtime behaviour is implied by parsing these keys.
