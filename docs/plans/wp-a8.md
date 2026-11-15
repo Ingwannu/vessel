@@ -360,3 +360,22 @@ or raw JSON tree is added. Regression fixtures put a plan argument alongside a
 real execute/edit request and require ordinary tool rendering; the existing
 mode-switch plan fixture remains the positive case. This is display classification,
 not a new global approval policy or a synthesized provider implementation action.
+
+
+Exact1bd native suitewp-side-narrow-20261115T100217Z-1bd7640e compiled current
+dependencies but stopped before test execution because the real option-row Probe
+used IntoElement as a return trait without importing its name (the parent uses
+an anonymous trait import). The test imports the trait explicitly. No additional
+runtime pass is claimed from this compile failure.
+
+## Multiple pending requests
+
+Paseo renders every pending request, while the inherited native dock and
+ConversationArea retained only one question/permission operation. Reuse the
+existing view step reducers, real source-aware TextFields and response port,
+with one local retained form per exact QuestionId and per-request sending/failure
+state. This local draft store is not a second node request/identity registry;
+the timeline/live projection remains authoritative. Main conversation displays
+all pending cards, with bounded scrolling above the composer; an explicit
+request-scoped drawing entry point preserves an Inbox detail's exact selection.
+No provider input parser or wire method is added by this extension.

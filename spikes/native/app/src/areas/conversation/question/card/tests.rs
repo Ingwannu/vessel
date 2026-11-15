@@ -2,7 +2,7 @@
 use super::*;
 use crate::areas::conversation::{SessionPlace, question::language_tests::prepare};
 use crate::shell::language_tests;
-use gpui::{AppContext as _, Entity, Modifiers, Render, TestAppContext, point};
+use gpui::{AppContext as _, Entity, IntoElement, Modifiers, Render, TestAppContext, point};
 use vessel_app_view::timeline::Draft;
 
 struct Probe {
