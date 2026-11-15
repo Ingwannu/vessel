@@ -56,6 +56,8 @@ pub(crate) struct PaletteArea {
     /// The row the keyboard is on, by its entry's id; the first listed
     /// when `None` or no longer listed.
     cursor: PaletteCursor,
+    /// One window search survives replacement of any conversation resident.
+    pub(crate) messages_search: crate::areas::conversation::search::Searching,
     /// The list's scroll, to keep the active row in sight.
     scroll: ScrollHandle,
     /// What held the keys before it opened.
@@ -81,6 +83,7 @@ impl PaletteArea {
             ),
             query: String::new(),
             cursor: PaletteCursor::default(),
+            messages_search: crate::areas::conversation::search::Searching::default(),
             scroll: ScrollHandle::new(),
             prior: None,
         }

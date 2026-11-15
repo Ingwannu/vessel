@@ -215,7 +215,7 @@ impl Shell {
                 label: label.to_string(),
                 notes: notes.as_str().to_owned(),
             });
-            self.command(Command::SavePrefs(self.prefs.clone()));
+            self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         }
         self.updates.state = state;
         self.updates.refresh(self.words);
@@ -243,7 +243,7 @@ impl Shell {
     pub(crate) fn set_update_automatically(&mut self, on: bool, cx: &mut Context<'_, Self>) {
         self.areas.about.automatic_turns = self.areas.about.automatic_turns.saturating_add(1);
         self.prefs.manual_updates = !on;
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         if let Some(updater) = self
             .updates
             .runtime
@@ -406,7 +406,7 @@ impl Shell {
         }
         self.updates.refresh(self.words);
         self.prefs.last_label = Some(label.to_owned());
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
     }
 }
 

@@ -300,7 +300,7 @@ impl Shell {
         } else {
             Management::Paused
         };
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         if enabled {
             self.local_node_action(Action::Start, cx);
         } else if matches!(status, Status::Owned(_)) {
@@ -329,7 +329,7 @@ impl Shell {
         } else {
             AfterQuit::Stop
         };
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         cx.notify();
     }
 }

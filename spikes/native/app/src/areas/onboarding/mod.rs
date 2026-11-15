@@ -253,7 +253,7 @@ impl Shell {
         self.prefs.onboarding = Some(CompletionRecord {
             completed_at: chrono::Utc::now(),
         });
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         self.areas.onboarding.shown = None;
         if let Some(origin) = self.areas.onboarding.from.take() {
             self.areas.settings.machine = origin.machine.map(|machine| machine.as_str().to_owned());
