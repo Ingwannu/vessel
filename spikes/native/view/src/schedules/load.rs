@@ -21,6 +21,7 @@ impl MachineKey {
             .then(|| Self(Arc::from(name)))
     }
 
+    /// Reuse the canonical parsed book key without validating its text twice.
     pub(crate) fn admitted(context: &crate::connection::ConnectionContext) -> Self {
         // The canonical context already carries the parsed book key. Do not
         // parse that alias again or derive it from a node display name.

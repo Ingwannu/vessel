@@ -67,7 +67,7 @@ impl Page {
         }
     }
     /// Admit only the explicitly selected canonical context. This pure edge
-    /// supports alternate renderers; it never searches aliases by NodeId.
+    /// supports alternate renderers; it never searches aliases by `NodeId`.
     #[must_use]
     pub fn admitted(&mut self, context: ConnectionContext) -> bool {
         self.caches
