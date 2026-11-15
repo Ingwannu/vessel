@@ -103,11 +103,14 @@ pub fn sidebar_form(viewport: f32) -> SidebarForm {
     }
 }
 
-/// Minimum content for the named route; code placement remains one policy.
+/// Admission minimum, separate from the width resolver's 400-point target.
+/// Paseo `desktop-sidebar-layout.ts:66–72` admits ordinary content at zero;
+/// an open native code panel keeps its separately documented budget.
 #[must_use]
 pub fn sidebar_minimum(context: SidebarContext) -> f32 {
     match context {
-        SidebarContext::Workspace(code) => sidebar_leaves(code),
+        SidebarContext::Workspace(None) => 0.0,
+        SidebarContext::Workspace(Some(code)) => sidebar_leaves(Some(code)),
         SidebarContext::Settings => SETTINGS_CONTENT_MINIMUM,
     }
 }
@@ -140,7 +143,13 @@ pub fn sidebar_layout(
     if preference == crate::prefs::Panel::Hidden {
         return SidebarLayout::Hidden;
     }
-    let width = SIDEBAR.width_leaving(asked, room, sidebar_minimum(context));
+    // Width targeting must not become the admission test: Paseo keeps 400
+    // when ordinary content admits zero (`desktop-sidebar-layout.ts:40–87`).
+    // Settings retains the lead-approved 720 width exception until E2's frame.
+    let width = match context {
+        SidebarContext::Workspace(_) => SIDEBAR.width(asked, room),
+        SidebarContext::Settings => SIDEBAR.width_leaving(asked, room, SETTINGS_CONTENT_MINIMUM),
+    };
     let sharing = sidebar_share(room, width, context);
     match (context, sharing) {
         (SidebarContext::Workspace(_), Sharing::TooNarrow) => SidebarLayout::Hidden,
@@ -331,11 +340,14 @@ mod sidebar_policy_tests {
         }
     }
     #[test]
-    fn workspace_auto_hides_but_settings_retains_its_only_navigation_until_fallback() {
+    fn ordinary_workspace_admits_zero_while_settings_keeps_its_navigation_exception() {
         let workspace = SidebarContext::Workspace(None);
         assert_eq!(
             sidebar_layout(600.0, 588.0, None, Panel::Shown, workspace),
-            SidebarLayout::Hidden
+            SidebarLayout::Docked {
+                width: 200.0,
+                sharing: Sharing::Fits
+            }
         );
         assert_eq!(
             sidebar_layout(612.0, 600.0, None, Panel::Shown, workspace),
@@ -385,6 +397,36 @@ mod sidebar_policy_tests {
         assert_eq!(
             sidebar_layout(390.0, 378.0, None, Panel::Hidden, workspace),
             SidebarLayout::Sheet
+        );
+    }
+    #[test]
+    fn open_explorer_keeps_four_hundred_width_target_and_separate_native_admission() {
+        let context = SidebarContext::Workspace(Some(Placement::Over));
+        assert_eq!(SIDEBAR.width(None, 588.0).to_bits(), 200.0_f32.to_bits());
+        assert_eq!(
+            sidebar_layout(600.0, 588.0, None, Panel::Shown, context),
+            SidebarLayout::Hidden
+        );
+        // Admission must not silently shrink a requested 600 to 308 to fit:
+        // the source width target is 400, independently of native admission.
+        assert_eq!(
+            SIDEBAR.width(Some(600.0), 788.0).to_bits(),
+            388.0_f32.to_bits()
+        );
+        assert_eq!(
+            sidebar_layout(800.0, 788.0, Some(600.0), Panel::Shown, context),
+            SidebarLayout::Hidden
+        );
+        assert_eq!(
+            sidebar_layout(800.0, 788.0, None, Panel::Shown, context),
+            SidebarLayout::Docked {
+                width: 264.0,
+                sharing: Sharing::Fits,
+            }
+        );
+        assert_eq!(
+            sidebar_minimum(SidebarContext::Workspace(None)).to_bits(),
+            0.0_f32.to_bits()
         );
     }
     #[test]

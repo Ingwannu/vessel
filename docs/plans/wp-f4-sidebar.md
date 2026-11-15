@@ -833,3 +833,15 @@ new sidebar/menu renderer. The merge is clean; preserve the one picker layer
 marker and all owner code. Prior6eb/698 diagnostics and source corrections do
 not establish a pass for this later union. The separate policy run590 remains
 immutable and queued; no second Cargo or unchanged gate is started.
+
+## Ordinary sidebar admission correction (shared portable source)
+
+Keep the exact owning d95..6d00 correction in this union: workspace width
+continues targeting400, ordinary content admission is0, open native code
+admission480/800 remains separate. The real-root fixture is exact600/Sh​​own
+without Explorer or Settings; its isolated source passed View/App strict0 and
+1188/0/2 tests. That bounded source/native PASS and eight inspected original
+states are the portable6d checkpoint, not a new pass for this Main union.
+Settings720 width and PHONE/auto-hide exceptions remain until E2's atomic
+fallback. Default264, frame12 and global PHONE768 are separate native choices.
+No kit control or unrelated area was copied from the portable branch.
