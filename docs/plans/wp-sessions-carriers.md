@@ -35,15 +35,23 @@ The link obtains G4 SelectedConnection from that exact context. Its call guard
 checks actual welcome identity and irreversible validity before polling and after
 awaiting. The staged SelectedFollow guard is enabled only with its real consumer;
 it must remain the one attach/next implementation, without a raw-client escape.
-After channel backpressure, each event still carries original context and binding.
-The app validates both before W12 `receive` can pass concrete resources to the
-owner adapter. An old event cannot refresh visibility or manufacture a new slot.
+After channel backpressure, each event still carries original context and binding,
+plus G4's opaque delivery-validity capability from that same selected admission.
+A context value or a later Fleet comparison alone cannot fence an event already
+queued ahead of its DeviceRetired notice. The app must recheck the actual shared
+delivery capability before W12 `receive` passes concrete resources to an owner
+adapter. That capability remains G4-owned, with no raw client or second validity
+cache. It is a required pending producer, not an API invented in this package.
+An old event cannot refresh visibility or manufacture a new slot.
 
 Lifecycle mutations from an admitted session additionally carry the canonical
 OperationKind::Lifecycle and single-use OperationTicket. W12 settles admission
 before close/retarget or draft release. Retirement converts an already-sent action
 to uncertainty at its owner and keeps protected input/confirmation state; neither
-retry nor late success may clear another draft. Close callbacks retain LayoutKey
+retry nor late success may clear another draft. Refused replacement admission
+cannot postpone independent old-transport retirement: dirty/IME resources remain,
+while old follow/operation authority retires immediately and sent writes become
+uncertain. Close callbacks retain LayoutKey
 and ClosePlan, so reused TabId values in another workspace cannot be closed.
 
 Sessions/history actions on an unopened resource capture the rendered Machine's
