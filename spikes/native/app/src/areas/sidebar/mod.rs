@@ -27,7 +27,8 @@ use std::rc::Rc;
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{Tokens, Tooltips, Type, TypeExt as _, dot, kicker};
 use vessel_app_view::prefs::Grouping;
@@ -314,7 +315,7 @@ fn projects(
 
 fn row(
     id: impl Into<ElementId>,
-    label: &'static str,
+    label: impl Into<SharedString>,
     active: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
@@ -336,12 +337,13 @@ fn row(
 /// not Paseo's compact values; no shortcut on hover.
 pub(crate) fn nav_row(
     id: impl Into<ElementId>,
-    label: &'static str,
+    label: impl Into<SharedString>,
     leading: Option<vessel_app_kit::assets::Glyph>,
     active: bool,
     touch: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
+    let label: SharedString = label.into();
     let color = if active {
         tokens.text_primary
     } else {
