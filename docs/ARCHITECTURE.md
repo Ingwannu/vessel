@@ -1588,3 +1588,10 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+`vessel-proto::BookRouteId` is a client-minted, entry-scoped nonzero u32
+for the shared client-book model (ADR 0097). It is local data, not an RPC
+connection id or wire field; its lower-crate home lets the client and
+native view share it without a dependency between those layers. Checked
+allocation exposes exhaustion. This additive value changes no method,
+protocol version, book format or current consumer.
