@@ -1005,3 +1005,7 @@ harness is introduced; execution remains owed.
 The callback fixture setup is split by relay establishment and authenticated
 member grant so each phase remains reviewable; its assertions, routes and safety
 net are unchanged. The successful close acknowledgement is explicitly consumed.
+
+The callback fixture uses distinct explicit node names rather than host-derived
+names, and names its invitation lifetime once. This avoids a fixture name
+collision and makes its temporary identity independent of the test machine.

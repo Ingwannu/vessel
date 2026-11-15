@@ -20,6 +20,7 @@ use vessel_relay::{LinkState, RelayConfig};
 use vessel_store::DataDir;
 
 const CALLBACK_TEST_BUDGET: Duration = Duration::from_secs(60);
+const INVITE_TTL_SECS: u32 = 600;
 const RELAY_TOKEN: &str = "export-cleanup-fixture";
 
 fn config(root: &Path) -> Config {
@@ -47,6 +48,7 @@ impl CallbackFleet {
         let (relay_url, relay_stop, relay) = start_relay().await;
         let home_root = tempfile::tempdir().unwrap();
         let mut home_config = config(home_root.path());
+        home_config.name = Some("cleanup-home".into());
         let instructions = home_root.path().join("instructions.md");
         std::fs::write(&instructions, "fixture instructions").unwrap();
         let _created = fleet::init(
@@ -74,7 +76,7 @@ impl CallbackFleet {
             .devices
             .invite(&InviteDevice {
                 label: Some("cleanup-member".into()),
-                ttl_secs: 600,
+                ttl_secs: INVITE_TTL_SECS,
                 scopes: Some(vec![Scope::Sync, Scope::Relay]),
             })
             .unwrap()
@@ -121,7 +123,8 @@ async fn start_relay() -> (RouteUrl, CancellationToken, tokio::task::JoinHandle<
 }
 
 async fn callback_member(root: &Path, offer: PairingOffer, home: NodeId) -> Node {
-    let member_config = config(root);
+    let mut member_config = config(root);
+    member_config.name = Some("cleanup-member".into());
     let files = FleetFiles::new(&member_config.data_dir);
     let member = Node::start(member_config).await.unwrap();
     // Own the membership connection explicitly in this fixture. Cancelling
