@@ -89,6 +89,14 @@ pub(super) fn serve(
     (McpClient::new(client_end), server)
 }
 
+// The 2025 schema permits an object here, never an array/scalar. Unknown
+// envelope fields are the SDK's concern; this decoder checks that strict slot.
+#[derive(serde::Deserialize)]
+struct LegacyStructured {
+    #[serde(rename = "structuredContent")]
+    structured_content: Option<serde_json::Map<String, Value>>,
+}
+
 /// The test's end of the MCP pipe: one JSON-RPC message per line.
 pub(super) struct McpClient {
     lines: tokio::io::Lines<BufReader<tokio::io::ReadHalf<DuplexStream>>>,
@@ -146,6 +154,7 @@ impl McpClient {
             )
             .await;
         assert_eq!(initialized["result"]["serverInfo"]["name"], "vessel");
+        assert_eq!(initialized["result"]["protocolVersion"], "2025-06-18");
         self.notify("notifications/initialized").await;
         let listed = self.request("tools/list", json!({})).await;
         listed["result"]["tools"]
@@ -173,11 +182,16 @@ impl McpClient {
             Value::String(text.to_owned())
         } else {
             let value: Value = serde_json::from_str(text).unwrap();
-            assert_eq!(
-                result.get("structuredContent"),
-                Some(&value),
-                "structured result must equal its model-visible text"
-            );
+            // This fixture negotiated object-only structured content. Decode
+            // that actual wire shape instead of accepting any JSON Value.
+            let legacy: LegacyStructured = serde_json::from_value(result.clone()).unwrap();
+            if value.is_object() {
+                assert_eq!(result.get("structuredContent"), Some(&value));
+                assert!(legacy.structured_content.is_some());
+            } else {
+                assert!(result.get("structuredContent").is_none());
+                assert!(legacy.structured_content.is_none());
+            }
             value
         };
         (failed, value)

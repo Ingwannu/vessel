@@ -18,7 +18,10 @@ Reference paths below are relative to the Paseo 0.15.4 tree. `T` means
 `packages/server/src/server/agent/tools/paseo-tools.ts`. These source sections
 were read, including the handlers; the survey is an index, not proof.
 All Paseo outputs are structured content plus model-visible JSON text.
-Vessel baseline tools returned model-visible JSON text; current success responses also carry matching structured content. `?` means optional.
+Vessel baseline tools returned model-visible JSON text. Success responses carry
+matching structured content where the negotiated revision permits that shape;
+legacy array/scalar text is preserved without an illegal structured field.
+`?` means optional.
 
 ## Tool correspondence before implementation
 
@@ -667,3 +670,22 @@ caller may have a ready writer result before its detached operation is polled
 to completion; an unguarded capacity snapshot would race that legitimate owner.
 The existing whole-fixture deadline covers both joins. No sleep, assertion
 relaxation or timeout increase is introduced.
+
+
+## MCP result shape follows negotiated protocol
+
+Inspection found that the latest SDK structured constructor emits arbitrary JSON
+even when the real fixture negotiates the object-only 2025-06-18 revision. The
+fixture had wrongly asserted every root shape was legal. One private response
+adapter now uses the actual RequestContext protocol: old text remains unchanged,
+2025 object-shaped success retains matching structured content, older or
+non-object legacy success omits the optional field, and 2026 retains arbitrary
+matching JSON. The SDK retains ownership of legacy resultType projection.
+
+The actual pipe helper asserts negotiated version and deserializes its
+structured slot as an object; every old array/text/data assertion remains. A
+version/JSON-shape matrix includes absent metadata, every supported revision,
+arrays, objects, strings, numbers, booleans and explicit null. This changes no
+node request, policy, selector, effect or grant. ADR0065 records the official
+versioned references and compatibility reason. Exact strict and actual MCP
+execution remain owed; existing pre-change greens are not expanded to this fix.

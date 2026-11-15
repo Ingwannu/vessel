@@ -28,6 +28,7 @@ mod launch;
 mod lsp;
 mod offer;
 mod permissions;
+mod response;
 mod search;
 mod sessions;
 mod terminals;
@@ -294,11 +295,12 @@ impl ServerHandler for VesselTools {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        let protocol = context.protocol_version();
         let args = request.arguments.unwrap_or_default();
         match self.call(&request.name, &args).await {
-            Ok(value) => Ok(CallToolResult::structured(value).into()),
+            Ok(value) => Ok(response::success(value, protocol.as_ref()).into()),
             Err(ToolError::Arguments(message)) => Err(ErrorData::invalid_params(message, None)),
             Err(ToolError::LspJson(error)) => {
                 Err(ErrorData::invalid_params(error.to_string(), None))

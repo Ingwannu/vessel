@@ -626,3 +626,34 @@ tracks admitted work through cancellation/shutdown, and persists the selection
 last. `MCP_PARITY` now exists as `None`; the integrator assigns its version.
 The earlier "no code in this commit" describes the original ADR proposal;
 current implementation details and remaining gaps are in `plans/wp-mcp.md`.
+
+
+## Negotiated structured-result compatibility (implementation in progress)
+
+The pinned rmcp 3.9 API represents the 2026-07-28 protocol, where structured
+content may be any JSON value. Vessel also serves initialize-based 2025 clients;
+those permit structured objects only. Earlier revisions do not define that
+field. The SDK strips the newer resultType for legacy peers, but its structured
+constructor does not project arrays/scalars to the older structured schema.
+
+Reuse RequestContext::protocol_version for the actual request and one private
+result-serialization adapter. Keep the existing model-visible JSON text byte
+shape. Object-capable legacy peers retain matching structured objects; a legacy
+array/scalar result omits optional structuredContent instead of wrapping/changing
+its old text API. Modern peers retain matching arbitrary structured JSON,
+including explicit null. Missing negotiated metadata is conservative text-only.
+This is representation compatibility, never a grant or a tool-policy fallback.
+
+The alternative of wrapping all results would change existing text consumers;
+always returning the latest SDK shape rejects a valid legacy client's result.
+Paseo's object-shaped tool results naturally retain structured content. Vessel's
+legacy array results deliberately omit it where the negotiated protocol cannot
+represent that shape. No method, transport, output data or authority is added.
+
+Reference: the official
+[2025-11-25 tools specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-11-25/server/tools.mdx)
+and [2026-07-28 tools specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx).
+A revision/shape matrix checks unchanged text plus permitted structured data;
+the actual pipe fixture asserts its negotiated 2025 version and decodes the
+structured slot as a strict object, replacing its invalid any-JSON assumption.
+Exact changed-source strict and real pipe execution remain owed.
