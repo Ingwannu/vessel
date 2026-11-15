@@ -349,30 +349,36 @@ async fn returned_final_budget_and_cleanup_budget_do_not_wait_indefinitely() {
     .await
     .unwrap();
     tokio::time::pause();
-    answer(
-        finish,
-        Reply::FinishDictation(FinishAccepted {
-            within_ms: RETURNED_BUDGET,
-        }),
-    );
-    assert!(futures_util::poll!(running.as_mut()).is_pending());
-    tokio::time::advance(Duration::from_millis(u64::from(RETURNED_BUDGET.get()))).await;
-    let cancel = tokio::select! {
-        result = running.as_mut() => panic!("cleanup was not attempted: {}", result.is_ok()),
-        cancel = frame(&mut requests) => cancel,
-    };
-    assert!(matches!(cancel.call, Call::CancelDictation(_)));
-    assert!(next.reply.is_closed());
-    tokio::time::advance(CANCEL_TIMEOUT).await;
-    let error = running.await.unwrap_err();
-    assert!(cancel.reply.is_closed());
-    assert!(error.to_string().contains("final transcript exceeded"));
-    assert!(
-        error
-            .to_string()
-            .contains("cancellation could not be confirmed")
-    );
-    assert!(requests.try_recv().is_err());
+    let limit = Duration::from_millis(u64::from(RETURNED_BUDGET.get()))
+        .saturating_add(CANCEL_TIMEOUT.saturating_mul(2));
+    vessel_testkit::within(limit, async {
+        answer(
+            finish,
+            Reply::FinishDictation(FinishAccepted {
+                within_ms: RETURNED_BUDGET,
+            }),
+        );
+        assert!(futures_util::poll!(running.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_millis(u64::from(RETURNED_BUDGET.get()))).await;
+        let cancel = tokio::select! {
+            result = running.as_mut() => panic!("cleanup was not attempted: {}", result.is_ok()),
+            cancel = frame(&mut requests) => cancel,
+        };
+        assert!(matches!(cancel.call, Call::CancelDictation(_)));
+        assert!(next.reply.is_closed());
+        tokio::time::advance(CANCEL_TIMEOUT).await;
+        let error = running.await.unwrap_err();
+        assert!(cancel.reply.is_closed());
+        assert!(error.to_string().contains("final transcript exceeded"));
+        assert!(
+            error
+                .to_string()
+                .contains("cancellation could not be confirmed")
+        );
+        assert!(requests.try_recv().is_err());
+    })
+    .await
+    .unwrap();
 }
 
 #[tokio::test]

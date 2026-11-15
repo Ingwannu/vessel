@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::sync::{AcquireError, Semaphore};
 use vessel_proto::{ResolvedValue, SecretName, dictation::KeyPresence};
 
+/// Settings and provider admission retain causes behind their fixed public boundaries.
 #[derive(thiserror::Error)]
 pub(crate) enum ReadError {
     #[error("the dictation secret read gate is closed")]
@@ -74,6 +75,7 @@ impl Reader {
         .await
         .map_err(ReadError::Worker)?
     }
+    /// An absent reference avoids disk work; supported settings share start capacity.
     pub(crate) async fn presence(
         &self,
         name: Option<&SecretName>,

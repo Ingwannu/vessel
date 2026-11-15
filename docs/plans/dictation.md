@@ -842,3 +842,9 @@ through the same binary. A driver case also preserves local pending/old-peer
 admission failures without issuing a needless cancel; no frame was admitted by
 the real client in those cases. No successful real-wire speech is claimed while
 the feature number remains unassigned.
+
+
+The virtual-clock final/cleanup regression also has its own derived outer safety
+net after all file I/O finishes. Removing a product wait deadline therefore fails
+the test instead of leaving a pending scripted reply forever. Existing product
+budgets and the shared test safety net are unchanged.
