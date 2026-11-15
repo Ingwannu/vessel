@@ -5,8 +5,8 @@ mod state;
 mod tests;
 pub(crate) use state::LifecycleResources;
 
-use crate::areas::layout::residents::SessionResidents;
-use vessel_app_view::residents::{ResidentProblem, ResidentToken, SessionContext};
+use crate::areas::layout::residents::{SessionResidents, SessionResources};
+use vessel_app_view::residents::{FollowBinding, ResidentProblem, ResidentToken, SessionContext};
 use vessel_proto::{OptionChoice, SessionInfo};
 
 /// Domain values only; actual fields, selection/undo and forms stay in the bundle.
@@ -31,6 +31,20 @@ impl Snapshot {
         context: &SessionContext,
     ) -> Result<Self, Problem> {
         let resources = residents.resources(context).map_err(Problem::Scope)?;
+        Self::from_resources(resources, context.resident)
+    }
+    /// Invoke inside canonical receive after delivery validity. Hidden metadata
+    /// must not refresh a view context merely to become a clean owner snapshot.
+    pub(crate) fn received(
+        resources: &SessionResources,
+        binding: FollowBinding,
+    ) -> Result<Self, Problem> {
+        Self::from_resources(resources, binding.resident)
+    }
+    fn from_resources(
+        resources: &SessionResources,
+        resident: ResidentToken,
+    ) -> Result<Self, Problem> {
         let open = resources.session.open.as_ref().ok_or(Problem::Loading)?;
         let binding = open.binding.as_ref().ok_or(Problem::Loading)?;
         let shown = resources
@@ -43,9 +57,9 @@ impl Snapshot {
             .info
             .as_ref()
             .ok_or(Problem::Loading)?;
-        if binding.address != context.resident.address
+        if binding.address != resident.address
             || binding.host.as_str() != open.machine
-            || open.session != context.resident.address.session
+            || open.session != resident.address.session
             || shown.machine != open.machine
             || shown.session != open.session
             || info.id != open.session
@@ -62,7 +76,7 @@ impl Snapshot {
             },
         );
         Ok(Self {
-            resident: context.resident,
+            resident,
             info: info.clone(),
             choices,
         })

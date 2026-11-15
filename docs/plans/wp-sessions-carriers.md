@@ -89,6 +89,11 @@ default Ready. Snapshot capture borrows only the exact canonical SessionContext
 getter and checks retained Open binding, shown conversation and SessionInfo agree.
 It copies typed domain configuration/options, never field entities or a Shell.
 Missing metadata or another resource is a typed refusal without global fallback.
+Network hydration uses Snapshot::received only inside canonical receive after
+the original delivery guard check. It validates the same domain identities while
+allowing hidden fresh metadata; it never refreshes a presentation context to
+install a response. The staged regression changes focus to stale a view context,
+then receives its snapshot by the admitted binding without a view refresh.
 
 This owner retains separate UI decision and canonical operation tickets. An old
 confirmation cannot settle a newer decision. Matching retirement keeps an unsent

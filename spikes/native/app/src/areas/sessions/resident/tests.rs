@@ -110,6 +110,21 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
         let clean = owner.take_clean_snapshot().unwrap();
         assert_eq!(clean.resident(), context.resident);
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
+        residents.focus(context.resident, &context.claim).unwrap();
+        assert!(matches!(
+            Snapshot::capture(residents, &context),
+            Err(Problem::Scope(_))
+        ));
+        let binding = residents
+            .begin_follow(context.resident, |_, _| panic!("first attach retired"))
+            .unwrap();
+        let received = residents
+            .receive(binding, |resources| Snapshot::received(resources, binding))
+            .unwrap()
+            .unwrap();
+        assert_eq!(received.resident(), context.resident);
+        // A local caller refreshes its same claim; network hydration above did not.
+        let context = residents.context(context.resident, &context.claim).unwrap();
         residents
             .resources_mut(&context)
             .unwrap()
