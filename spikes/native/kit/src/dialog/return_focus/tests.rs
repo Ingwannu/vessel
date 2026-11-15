@@ -202,3 +202,19 @@ fn a_deleted_opener_is_not_retained_and_no_opener_is_captured_only_once(cx: &mut
         assert!(window.focused(cx).is_none());
     });
 }
+
+
+#[gpui::test]
+fn the_dialog_itself_is_never_restored_as_its_own_opener(cx: &mut TestAppContext) {
+    let (probe, cx) = mount(cx);
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        probe.state.dismissed(window, cx);
+        // Model focus already taken by the rendered owner before a late open
+        // hook. The hook must not turn that into a hidden-owner focus loop.
+        probe.state.focus.focus(window, cx);
+        probe.state.focus(window, cx);
+        probe.state.dismissed(window, cx);
+        assert!(window.focused(cx).is_none());
+    });
+}

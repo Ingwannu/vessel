@@ -54,3 +54,10 @@ The first exact-source remote narrow Clippy run on `fe53a206` stopped on
 two test-only semicolon-format lints; no test ran and no pass is claimed
 from that run. The correction changes those statements only. The failed
 run remains retained as `devices-narrow-20261115T080025Z-fe53a206`.
+
+
+A source follow-up also refuses to restore an opener that is the owner or
+one of its children. Such a handle can be focused before a late open hook;
+returning to it would leave input in the dismissed subtree. The regression
+models an already-focused owner, then opens/closes through the public API;
+focus must be cleared. This changes no signature or geometry.
