@@ -331,6 +331,9 @@ test("the sidebar groups by status from its Display menu", async ({ page }) => {
   await page.getByRole("menuitemradio", { name: "Status" }).click();
   await page.keyboard.press("Escape");
   await expect(sidebar.getByText("Sessions", { exact: true })).toBeVisible();
+  // The menu must have closed before it is opened again: a click while it
+  // is still closing opened nothing (gate 28, 2026-11-15).
+  await expect(page.getByRole("menu")).toBeHidden();
   await sidebar.getByRole("button", { name: "Display" }).click();
   await acknowledgePreference(
     page,

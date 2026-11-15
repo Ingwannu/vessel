@@ -34,6 +34,7 @@ mod identity;
 mod join;
 mod profiles;
 mod service;
+pub(crate) use service::paths::ServiceError;
 
 use std::fmt::Write as _;
 use std::path::PathBuf;

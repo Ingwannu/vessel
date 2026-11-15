@@ -41,25 +41,31 @@ mod address;
 pub mod book;
 mod chunks;
 mod client;
+pub mod comparison;
 pub mod compose;
 mod connector;
 mod conversation;
 mod credential;
+mod device_self;
 mod error;
 pub mod file_fault;
 mod fleet_control;
+mod inbox;
 mod local;
 pub mod pairing;
 mod pinned;
 mod prompts;
+mod push;
 mod resume;
 mod schedules;
 pub mod secure;
+mod side_questions;
 mod stream;
 #[cfg(test)]
 mod tests;
 mod token;
 mod url;
+mod usage;
 mod ws;
 
 pub use address::{
