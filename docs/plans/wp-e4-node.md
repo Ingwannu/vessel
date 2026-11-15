@@ -63,9 +63,10 @@ The feature constant stays `DIAGNOSTICS_PROTOCOL: Option<ProtocolVersion>`.
 Only the integrator assigns its number. After the Quality B head is announced
 and consumed, the sole canonical method row uses the pending feature form in
 `method_table!`. Generated guard/envelope/client registrations are consumed,
-not copied into new hand lists. `Method::protocol()` supplies the nullable
-requirement and `Method::observation()` classifies Call versus Envelope. The
-journal excludes envelopes through that metadata, never a local wrapper list.
+not copied into new hand lists. `Method::since()` supplies the nullable requirement; `Call::required_protocol()`
+includes the inner call and field requirements. `Method::shape()` classifies
+Unary, Stream and Envelope. The journal excludes Envelope through that
+metadata, never a local wrapper list.
 
 An unassigned feature refuses locally before a frame and at server admission
 before collection. Older assigned peers refuse before decoding unsupported
@@ -141,6 +142,9 @@ rules; use narrow checks per commit, one whole root gate and one package
 submission at completion. Security changes retain per-commit review. No
 unchanged whole-gate rerun is needed for this plan.
 
-Current blocker: canonical metadata is not in the announced node head yet.
-Provider cached-diagnostic API is also pending its owner. Do not register a
-call before that head. Do not edit native sources or claim the package passed.
+Quality B head `29eebb8bcc285fb04bf9cb4c7a38a10d0622f6c1` is consumed by
+a conflict-free merge. It preserves protocol 23, minimum 2 and schema 18.
+The canonical pending row and MethodShape now allow wiring; no diagnostic
+call has been registered yet. Provider cached-diagnostic API is still pending
+its owner. No native sources changed and the package remains incomplete.
+Under A14 this merge receives narrow checks; the whole gate is at package end.

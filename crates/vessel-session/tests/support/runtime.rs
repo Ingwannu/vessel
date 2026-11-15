@@ -218,7 +218,7 @@ impl Log {
         self.records
             .iter()
             .filter_map(|record| {
-                if let SessionEvent::Renamed { title } = &record.event {
+                if let SessionEvent::Renamed { title, .. } = &record.event {
                     Some(title.as_str())
                 } else {
                     None
