@@ -169,6 +169,29 @@ that already uses `..` is left alone.
 
 ## Resume point
 
+- **Implemented:** session-title provenance, durable origin projection, the
+  actor's conditional proposal, bounded generated-title/settings values,
+  project-style reading and complete response decoding for all three APIs.
+  The session-title package now also connects route selection, strict settings
+  patches, lenient retained settings, checked preparation, bounded HTTP,
+  first-input observation, cancellation, usage recording and actor application.
+- **Compatibility:** `GENERATED_NAMES` remains unassigned. Automatic calls and
+  metadata patches stay disabled until assignment; unsupported replies omit
+  metadata, while a supported empty provider list means Automatic. No method
+  is added. Existing title constructors and the person's rename remain in force.
+- **Validation:** integrated changed-crate Clippy and TypeScript freshness pass.
+  Full Rust tests and the web unit suite pass. The package's final E2E/forge
+  completion and combined source review are still pending; this is not a
+  package or integration pass.
+- **Next:** finish the frozen package's remaining gate evidence, obtain its
+  source review and hand it over. Real providers, credentials, native execution
+  and other platforms remain unverified. Branch, commit-message and pull-request
+  generation are later slices and have not started.
+
+### Earlier checkpoints
+
+The following notes record earlier states; the resume point above is current.
+
 - **Done:** slice 1, the contract, in ADR 0062 and this file. No code.
   The branch's commits after `backend/m12-quality` are this slice.
 - **Half-done:** nothing.
