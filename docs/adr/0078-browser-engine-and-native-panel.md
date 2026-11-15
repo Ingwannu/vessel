@@ -679,3 +679,70 @@ TCP/UDP and QUIC/WebTransport, no credentials from General/Preview, process and
 profile cleanup, late-reply/ticket rejection, saturation and platform refusal.
 Header/codec fixtures, source review and a Rust gate alone qualify none of this.
 The file owner must receive one checked renderer/API hash before adopting it.
+
+## Proposed Linux child-pipe debugger transport (review before code)
+
+Status: proposed transport refinement; the engine remains NoEngine. The already
+staged loopback WebSocket adapter is not independently qualified by this change.
+
+[Decision Log]
+- Purpose: bind debugger traffic directly to the exact supervised child without
+  a local TCP listener, endpoint discovery, bearer URL or socket-owner scan.
+- Existing constraints: the current WebSocket model needs independently proven
+  child/endpoint ownership. The existing process lifetime observer alone does
+  not attest a listening socket, and legacy port.list is not such proof.
+- Alternatives: wait for a complete socket-generation attester, inherit extra
+  descriptors through new platform process APIs, or use Chrome's documented
+  remote-debugging-pipe with the existing supervised piped child.
+- Choice: first qualify Linux with anonymous child pipes. Retain the typed CDP
+  command/event vocabulary and bounded multiplexing, not a second executor.
+- Reason: the parent's private pipe handles already identify the child transport;
+  no unrelated same-port service can replace it. This also removes the debugger
+  listener from the page's network destination space. It does not replace the
+  service-origin attestation needed by Preview.
+- Tradeoffs: Linux needs one fixed noninteractive shell launcher to duplicate
+  stdio onto the engine's expected descriptors and set a child-only umask. The
+  shell path/content is part of qualification. Windows handle/job/ACL integration
+  is separate and cannot inherit Linux proof. Missing proof remains NoEngine.
+
+Chromium 149's DevTools pipe reader/writer use NUL-terminated JSON messages by
+default. Its public DevToolsAgentHost declares fd3 for incoming control and fd4
+for outgoing replies, and its startup helper checks these descriptors before
+opening unrelated files. Primary sources, pinned to the allowed runtime's tag:
+
+- https://chromium.googlesource.com/chromium/src/+/refs/tags/149.0.7827.55/content/public/browser/devtools_agent_host.h
+- https://chromium.googlesource.com/chromium/src/+/refs/tags/149.0.7827.55/content/browser/devtools/devtools_pipe_handler.cc
+- https://chromium.googlesource.com/chromium/src/+/refs/tags/149.0.7827.55/components/devtools/devtools_pipe/devtools_pipe.cc
+
+The only shell source is a fixed implementation-owned literal:
+`umask 077; exec 3<&0 4>&1; exec "$@"`. The shell's first positional argument is
+an inert label; the executable and each fixed/typed flag are separate positional
+arguments. No URL, page text, uploaded path, credential or caller-supplied shell
+source is interpolated. vessel-proc still creates and owns the process group;
+exec retains that leader identity. Only the operator-approved absolute Chrome
+path and verified fixed shell are eligible, with the Chromium sandbox enabled.
+Environment remains cleared, cwd/home/cache/config/temp remain private node-owned
+locations, and the real user's profile and inherited proxies/keyrings stay absent.
+No parent-process/global umask or host configuration is changed.
+
+The launcher consumes the actual child's stdin/stdout handles and starts Chrome
+with remote-debugging-pipe, never a debugging TCP port. Stderr is separately
+bounded/drained without retaining page/runtime diagnostic text. Unexpected stdout
+or malformed/oversized/unterminated control messages fail the engine; they never
+trigger a TCP or unauthenticated-listener fallback. The existing CDP transport
+message, command, pending, event and write/outer/shutdown bounds remain the single
+owners for the pipe adapter. Read cancellation must preserve already-read bytes;
+EOF settles pending calls with the same delivery uncertainty as socket loss.
+Closing the pipes precedes supervised group cleanup and private-profile release.
+
+Qualification must launch the real approved binary as the actual service user,
+prove Browser.getVersion and a real page/PNG over these exact child pipes, verify
+absence of debugger TCP listeners, and exercise malformed/fragmented/oversized
+frames, blocked reader/writer, child death, cancellation and descendant cleanup.
+The runtime, shell, flags, profile/environment policy and framing implementation
+must all match the qualification fingerprint. Existing WebSocket diagnostic
+results cannot qualify this changed launcher. IPv4/IPv6 TCP/UDP/ICE, QUIC and
+WebTransport, credential isolation and complete Preview revocation remain owed.
+There is no generic public pipe constructor, raw CDP tool or new MCP permission.
+The whole supported feature remains hidden until the complete first-engine gate,
+including Preview authority, passes; this proposal is not an exception.
