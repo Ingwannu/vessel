@@ -1,7 +1,13 @@
 # C3 readonly mapped editor producer
 
-Status: prepared isolated source, **unchecked; not consumer-ready**. Base is the
-announced e1b73c9e line. The source bytes are copied with current timestamps from
+Current status: exact4133964f69ff87edcc6e6af37d3cb47f35ea3019 has V1 bounded
+SOURCE and requested Kit strict Clippy/diff19 NARROW clearance. Adoption is held
+only for the already registered ordinary syntax regression selection163829.
+The19 passing tests comprise11 GPUI window tests and8 ordinary unit tests;
+they are not19 real-window tests or a full Kit/package gate. No consumer/UI/OS
+acceptance is claimed. Earlier unchecked/red sections below retain their
+historical source assignments. Base is the announced e1b73c9e line.
+The source bytes are copied with current timestamps from
 G1's owned C3 control files only; no View/Link/app or root runtime is included.
 No new dependency, lock edit or ratchet exemption is introduced.
 
@@ -237,6 +243,8 @@ legacy editor regressions. The isolated source still has no C3 View/Link/app or
 node runtime. App15a full4crate Clippy is separately RED on own fixture/import/
 semicolon/collapsible-if issues, so this is not App integration acceptance.
 
-V1 source/narrow adoption remains pending. Real header alignment/selection path
+V1 has cleared the exact bounded source and requested Clippy/diff19 selection;
+adoption remains held for the existing ordinary syntax result. No new run is
+requested by that review. Real header alignment/selection path
 visibility/touch/OS and actual C3 fake-fleet first-use captures remain owed; the
 audit example is unbuilt/unrun and the split full-width-header/copy gap remains.
