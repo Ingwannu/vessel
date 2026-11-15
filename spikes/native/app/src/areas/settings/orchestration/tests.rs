@@ -255,3 +255,47 @@ fn language_change_keeps_the_open_selection_draft_and_real_input(cx: &mut TestAp
         },
     );
 }
+
+#[gpui::test]
+fn a_retired_snapshot_cannot_reopen_the_page_but_a_new_admission_can(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| {
+        let shell = cx.new(|cx| Shell::without_io(window, cx));
+        let changed = cx.observe(&shell, |_probe, _shell, cx| cx.notify());
+        Probe {
+            shell,
+            _changed: changed,
+        }
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let scope = seed(shell);
+            let original = scope.target;
+            let mut machine =
+                vessel_app_view::Machine::unreachable("isolated".into(), "sessions forbidden");
+            machine.node = Some(original.node());
+            machine.connection_epoch = Some(original.epoch());
+            machine.protocol = Some(vessel_proto::PROTOCOL_VERSION);
+            shell.fleet.machines = vec![machine];
+            shell.route = Route::Settings;
+            shell.areas.settings.section = Section::Overview;
+            shell.areas.settings.pushed = true;
+            assert!(shell.orchestration_retired(&original.tag()));
+            shell.settle_orchestration(window, cx);
+            assert!(shell.areas.settings.orchestration.page.is_none());
+            let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+            let _old = admissions
+                .admit(original.machine().clone(), original.node())
+                .unwrap();
+            let next = admissions
+                .admit(original.machine().clone(), original.node())
+                .unwrap();
+            shell.fleet.machines.first_mut().unwrap().connection_epoch = Some(next.epoch());
+            shell.settle_orchestration(window, cx);
+            let page = shell.areas.settings.orchestration.page.as_ref().unwrap();
+            assert_eq!(page.scope().target, next);
+            assert!(!shell.orchestration_retired(&original.tag()));
+            assert!(shell.areas.settings.orchestration.page.is_some());
+        });
+    });
+}
