@@ -154,3 +154,16 @@ rejected before owner mutation or ticket consumption, even with a live guard.
 These tests have not executed yet and do not prove App timeline/form/input
 mutation, dirty/IME retention or live scoped admission. Cross-crate guard staging
 remains intact; App tests cannot manufacture a guard through Link::detached.
+
+## Subscription identity before a record source exists
+
+The staged SelectedFollow now refuses a Subscribed metadata id different from
+the requested SessionId before constructing a follow or exposing records. Its
+FollowFailure preserves the original typed request error or WrongSession. The
+latter is only a follow failure: a still-valid shared lease is not retired or
+reported as Changed. A controlled real framed subscribe regression exercises
+that join and checks the same physical guard and actor selection remain valid.
+This tiny native correction changes no Unary/export/delivery API and retains
+the parent's test-only staging. Its new regression has not executed yet.
+The root SDK's generic log identity correction is a separate authorized package,
+not a silent change to the native consumer's root dependency.
