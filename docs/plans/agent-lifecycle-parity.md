@@ -296,22 +296,13 @@ No row of the crate table changes.
   and page were unchanged. Later label filtering, actor patches, CLI and MCP
   remain protected drafts until the shared accessor and call plumbing are
   ready; staged services are not a product build claim.
-- Implementation slice 5a, verification pending: one-shot `--tail` reuses
-  the existing read/render path. The count is parsed before connection and
-  its window allocates only for actual records. Zero selects no history;
-  omission keeps the unbounded-by-count snapshot behavior. Raw pages prove
-  retention gaps; dropping earlier tail records never invents a notice.
-  Parser/window units and a fake-node CLI test remain unrun. A raw-chunk
-  boundary test makes the projected-item difference explicit: the last record
-  of a split reply renders only its final fragment. Count-overflow tests
-  derive their rejected input from the platform's integer bound. The first
-  narrow clippy run found a redundant module qualification in that new test;
-  it is shortened without changing the assertion. Clippy and the tests still
-  need their successful runs before the whole gate. After the path correction,
-  narrow clippy passed, the six log units passed, and the CLI tail case passed.
-  The CLI case now gives its final-stream teardown wait a named sub-deadline;
-  no expected value or product deadline changes. Clippy and the CLI case
-  also passed on that updated head; its first whole gate is now pending.
+- Slice 5a tail passed its complete Rust gate on an independent build runner:
+  1984 passed, none failed, 12 ignored. Format, size, boundaries, clippy,
+  both prebuilds and dependency setup passed. Local narrow checks passed too.
+  Zero, window eviction, raw chunk boundaries and the real CLI tail were
+  covered. The original module-path lint was fixed before the whole run.
+  The count is parsed before connection; retained records allocate on arrival.
+  Tail uses the existing sequence/retention unit and can begin inside a message.
 - Implementation slice 5b, verification pending: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
@@ -324,8 +315,8 @@ No row of the crate table changes.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: finish the tail slice's whole gate, then run narrow checks and the
-  whole gate for selection slice 5b while
+- Next: run narrow checks and the complete Rust gate for selection slice 5b
+  on the independent build runner while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Both slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
