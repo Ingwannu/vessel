@@ -153,6 +153,6 @@ handover apply it before drawing. A new opening uses the retained limit.
 Lowering the bound evicts oldest rows and advances their origin, preserving a
 still-retained viewport anchor and clamping a genuinely evicted one. Increasing
 it never restores evicted output. Zero removes history and follows live output.
-The UI-independent seam is deliberately staged until E2 consumes its checked
-hash; it is not yet proof that the actual Settings page changes a live terminal.
+The UI-independent settings module is `cfg(test)` staged under A10 until
+E2 preference wiring removes that attribute in its consumer commit; it is not yet proof that the actual Settings page changes a live terminal.
 The shared engine migration must preserve these same retention tests/contracts.

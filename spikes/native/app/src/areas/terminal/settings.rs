@@ -1,3 +1,4 @@
+//! Staged under A10: E2 preference wiring removes cfg(test) from this module.
 //! One retained preference applies to both idle models and executor handovers.
 use super::ScrollbackLines;
 use crate::shell::Shell;
@@ -6,13 +7,6 @@ use vessel_app_kit::ui::Context;
 impl Shell {
     /// Settings owns persistence; the terminal owns live eviction and viewport state.
     /// Retain a change while replay owns the model, then apply it before drawing.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "E2 consumes this staged owner seam after its compiled handoff"
-        )
-    )]
     pub(crate) fn terminal_scrollback_changed(
         &mut self,
         limit: ScrollbackLines,

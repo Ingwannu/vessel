@@ -18,6 +18,7 @@ mod row_reuse_tests;
 mod scroll;
 #[cfg(test)]
 mod scroll_tests;
+#[cfg(test)]
 mod settings;
 #[cfg(test)]
 mod tests;
