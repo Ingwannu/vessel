@@ -65,7 +65,10 @@ async fn a_connections_contexts_share_one_life_that_ends_with_its_transport() {
     let (served, kept) = contexts.await.unwrap();
     let owner = kept.life().owner();
     let closed = kept.life().closed();
-    assert_eq!(owner, served, "a context acting for the connection shares its owner");
+    assert_eq!(
+        owner, served,
+        "a context acting for the connection shares its owner"
+    );
     assert!(!closed.is_cancelled(), "the connection is open");
 
     drop(client);

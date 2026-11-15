@@ -135,6 +135,9 @@ mod tests {
         drop(life);
         let transport = CancellationToken::new();
         drop(ConnectionLife::within(transport.child_token()));
-        assert!(!transport.is_cancelled(), "a life never closes its transport");
+        assert!(
+            !transport.is_cancelled(),
+            "a life never closes its transport"
+        );
     }
 }
