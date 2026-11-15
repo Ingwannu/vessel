@@ -203,7 +203,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("QueueEntryId", Alias::Handle),
     ("RefName", Alias::Named),
     ("RegistryId", Alias::Named),
-    ("RegistryRevision", Alias::Quantity),
     ("RegistryVersion", Alias::Named),
     ("RelPath", Alias::Named),
     ("RemoteName", Alias::Named),
@@ -237,8 +236,6 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ToolCallId", Alias::Handle),
     ("TransferId", Alias::Handle),
     ("UploadId", Alias::Handle),
-    ("WorkspaceId", Alias::Handle),
-    ("WorkspaceOperationId", Alias::Handle),
     ("WorktreeId", Alias::Handle),
 ];
 
