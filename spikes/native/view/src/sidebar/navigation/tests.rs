@@ -213,10 +213,18 @@ fn settings_and_navigation_share_complete_prepared_en_ko_labels() {
     }
 }
 
-
 #[test]
 fn malformed_band_does_not_erase_the_other_band() {
     let prefs:Preferences=serde_json::from_str(r#"{"sidebar_navigation":{"header":[{"key":"","visible":true}],"footer":[{"key":"usage","visible":true}]}}"#).unwrap();
-    assert!(prefs.sidebar_navigation.entries(Section::Header).items().is_empty());
-    assert_eq!(prefs.sidebar_navigation.entries(Section::Footer).items(),[item("usage",true)]);
+    assert!(
+        prefs
+            .sidebar_navigation
+            .entries(Section::Header)
+            .items()
+            .is_empty()
+    );
+    assert_eq!(
+        prefs.sidebar_navigation.entries(Section::Footer).items(),
+        [item("usage", true)]
+    );
 }
