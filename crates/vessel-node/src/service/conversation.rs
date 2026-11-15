@@ -18,6 +18,18 @@ use crate::profiles::launch::creator;
 use crate::transfers::Holder;
 
 impl NodeService {
+    /// `session.respond_permission`: exact request resolution, acknowledged durably.
+    pub(crate) async fn respond_permission(
+        &self,
+        _: &Connection,
+        request: vessel_proto::timeline::RespondPermission,
+    ) -> Result<vessel_proto::timeline::RespondPermissionReply, WireError> {
+        self.sessions
+            .respond_permission(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
     /// `session.submit_prompt`: keyed admission never falls back to legacy delivery.
     pub(crate) async fn submit_prompt(
         &self,

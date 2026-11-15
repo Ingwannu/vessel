@@ -36,10 +36,13 @@ impl Session {
             Command::Answer { id, outcome, reply } => {
                 let result = match self.approvals.answer(id, &outcome) {
                     Ok(settled) => {
-                        self.settle(&settled).await;
-                        self.emit(AgentEvent::PermissionResolved { id, outcome })
-                            .await;
-                        Ok(())
+                        if self.out.answer(&settled.request, &settled.response).await {
+                            self.emit(AgentEvent::PermissionResolved { id, outcome })
+                                .await;
+                            Ok(())
+                        } else {
+                            Err(InputError::Closed)
+                        }
                     }
                     Err(error) => Err(error),
                 };
@@ -52,10 +55,13 @@ impl Session {
             } => {
                 let result = match self.questions.answer(id, given) {
                     Ok((outcome, settled)) => {
-                        self.settle(&settled).await;
-                        self.emit(AgentEvent::QuestionResolved { id, outcome })
-                            .await;
-                        Ok(())
+                        if self.out.answer(&settled.request, &settled.response).await {
+                            self.emit(AgentEvent::QuestionResolved { id, outcome })
+                                .await;
+                            Ok(())
+                        } else {
+                            Err(InputError::Closed)
+                        }
                     }
                     Err(error) => Err(error),
                 };

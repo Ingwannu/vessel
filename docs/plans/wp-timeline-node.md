@@ -196,3 +196,22 @@ Generic question presentation now validates unique field identities and optional
 text companions of choice fields, and enforces explicit empty policies while
 retaining legacy form semantics. Provider conversion and async lifecycle work
 are still owed.
+
+## Rich permission acknowledgement
+
+RespondPermission carries session/permission plus PermissionResponse(outcome,
+modified_input?, message?, interrupt Continue/Interrupt). RespondPermissionReply
+is Settled(permission,outcome,seq), Vanished, Conflict, Refused(typed reason), or
+OutcomeUnknown. The existing actual option id remains authoritative. The node
+waits for the matching resolution record and its persistence watermark; reading
+next_seq immediately after the driver answer is insufficient.
+
+The current ACP and Codex decision protocols do not carry arbitrary edited
+input or denial explanations, and the direct Claude driver exposes no permission
+responder. These extra fields and unbound interrupt intent therefore refuse at
+the provider boundary before any decision/turn effects. Selecting an actually
+offered provider action remains supported. This is a documented provider
+capability difference; no rich value is ignored or reported as accepted. ACP
+responder/send failures and Codex closed output now return failure instead of
+emitting a false accepted resolution. Fake rich-field refusal tests are written;
+end-to-end resolution/race/persistence proof remains owed.

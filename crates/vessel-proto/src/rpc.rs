@@ -256,6 +256,8 @@ macro_rules! method_table {
             RenameSession / rename_session / "session.rename" [Operate, 9, unary]: $crate::RenameSession => $crate::SessionInfo;
             /// Send a prompt, delivered as asked (protocol 10).
             PromptSession / prompt_session / "session.prompt" [Operate, 10, unary]: $crate::conversation::PromptSession => $crate::Delivered;
+            /// Rich permission response acknowledged after durable resolution (ADR 0084).
+            RespondPermission / respond_permission / "session.respond_permission" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::RespondPermission => $crate::timeline::RespondPermissionReply;
             /// Identified delivery with durable replay protection (ADR 0084).
             SubmitPrompt / submit_prompt / "session.submit_prompt" [Operate, (pending $crate::timeline::TIMELINE_PARITY), unary]: $crate::timeline::SubmitPrompt => $crate::timeline::SubmitPromptReply;
             /// Change a session's queue (protocol 10).

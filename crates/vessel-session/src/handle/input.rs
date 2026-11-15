@@ -109,6 +109,21 @@ impl SessionHandle {
         self.prompt_identified(content, delivery, by, None).await
     }
 
+    /// Rich responses retain typed provider refusal before any request mutation.
+    ///
+    /// # Errors
+    /// Terminal/ended/moving sessions, stale request or driver connection errors.
+    pub async fn respond_permission(
+        &self,
+        permission: vessel_proto::PermissionId,
+        response: vessel_proto::timeline::PermissionResponse,
+    ) -> Result<vessel_agent::PermissionDispatch, SessionError> {
+        let route = self.structured("a permission response")?;
+        Ok(current(route)?
+            .respond_permission(permission, response)
+            .await?)
+    }
+
     /// Pure provider-owned content validation before durable replay admission.
     ///
     /// # Errors

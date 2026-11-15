@@ -45,7 +45,7 @@ impl Permissions {
     ) -> (PermissionId, Option<PermissionId>) {
         let displaced = (self.pending.len() >= MAX_WAITING).then(|| {
             let oldest = self.pending.remove(0);
-            respond(oldest.responder, &PermissionOutcome::Cancelled);
+            let _closed = respond(oldest.responder, &PermissionOutcome::Cancelled);
             let _new = self.settled.insert(oldest.id);
             oldest.id
         });
@@ -83,9 +83,9 @@ impl Permissions {
             });
         }
         let pending = self.pending.remove(index);
-        respond(pending.responder, outcome);
+        let result = respond(pending.responder, outcome);
         let _ = self.settled.insert(id);
-        Ok(())
+        result
     }
 
     /// Withdraw every pending request (as `Cancelled`); returns their ids in
@@ -95,7 +95,7 @@ impl Permissions {
             .pending
             .drain(..)
             .map(|pending| {
-                respond(pending.responder, &PermissionOutcome::Cancelled);
+                let _closed = respond(pending.responder, &PermissionOutcome::Cancelled);
                 pending.id
             })
             .collect::<Vec<_>>();
@@ -106,10 +106,13 @@ impl Permissions {
     }
 }
 
-fn respond(responder: Responder<acp::RequestPermissionResponse>, outcome: &PermissionOutcome) {
+fn respond(
+    responder: Responder<acp::RequestPermissionResponse>,
+    outcome: &PermissionOutcome,
+) -> Result<(), InputError> {
     let response = acp::RequestPermissionResponse::new(mapper::permission_outcome(outcome));
-    // Fails only when the connection is already gone; the turn ends anyway.
-    if let Err(error) = responder.respond(response) {
+    responder.respond(response).map_err(|error| {
         tracing::debug!(%error, "permission answer not delivered");
-    }
+        InputError::Closed
+    })
 }

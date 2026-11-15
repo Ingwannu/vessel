@@ -5,6 +5,18 @@ use vessel_proto::timeline::{SubmitPrompt, SubmitPromptReply};
 use vessel_rpc::CallError;
 
 impl NodeClient {
+    /// Apply a supported offered decision and wait for its committed resolution.
+    /// Rich-field refusal leaves the request unchanged; uncertainty never implies acceptance.
+    ///
+    /// # Errors
+    /// Unsupported peers, scope/ownership refusal or transport/persistence errors.
+    pub async fn respond_permission(
+        &self,
+        request: vessel_proto::timeline::RespondPermission,
+    ) -> Result<vessel_proto::timeline::RespondPermissionReply, CallError> {
+        self.call(request).await
+    }
+
     /// Send the same prepared identity/payload on explicit reconciliation retries.
     /// OutcomeUnknown forbids automatic resend with a fresh identity.
     ///

@@ -10,6 +10,7 @@ mod measure;
 mod permission;
 mod question;
 mod receipt;
+mod response;
 
 pub use detail::*;
 pub use identity::{
@@ -27,6 +28,10 @@ pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
 };
 pub use receipt::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
+pub use response::{
+    PermissionInterrupt, PermissionResponse, PermissionResponseRefusal, RespondPermission,
+    RespondPermissionReply,
+};
 
 use crate::ProtocolVersion;
 

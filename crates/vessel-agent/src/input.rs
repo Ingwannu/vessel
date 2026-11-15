@@ -1,6 +1,8 @@
 //! [`AgentInput`]: the cloneable command side of an agent session.
 
 mod identified;
+mod permission;
+pub use permission::PermissionDispatch;
 
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::{

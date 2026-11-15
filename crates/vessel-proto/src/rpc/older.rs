@@ -206,6 +206,7 @@ impl Reply {
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
+            | Self::RespondPermission(_)
             | Self::SubmitPrompt(_)
             | Self::PromptSession(_)
             | Self::DeleteSession(_)
