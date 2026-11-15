@@ -69,6 +69,40 @@ fn ink(kind: FeedbackKind, tokens: &Tokens) -> Hsla {
         FeedbackKind::Error => tokens.status().red_300,
     }
 }
+/// Whether an error belongs to one input or the whole submitted form.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ErrorPresentation {
+    /// Source Field error:12/17 and one clamped line, unchanged.
+    Field,
+    /// Source schedule submit error:sm12/red300, wrapping, no notice chrome.
+    Submission,
+}
+fn feedback_line(text: SharedString, kind: FeedbackKind, field: bool, tokens: &Tokens) -> Div {
+    let line = div()
+        .min_w_0()
+        .type_(Type::Meta)
+        .text_color(ink(kind, tokens))
+        .whitespace_normal()
+        .child(text);
+    if field {
+        line.line_height(px(geometry().subtext_line))
+            .when(kind == FeedbackKind::Error, |line| line.line_clamp(1))
+    } else {
+        line
+    }
+}
+/// One error text renderer; callers own localized content and validation.
+/// Submission uses the kit's ordinary Meta line metrics: the pinned source
+/// specifies fontSize12/red300 without an explicit lineHeight (sheet1080–1083).
+#[must_use]
+pub fn error_message(text: SharedString, presentation: ErrorPresentation, tokens: &Tokens) -> Div {
+    feedback_line(
+        text,
+        FeedbackKind::Error,
+        presentation == ErrorPresentation::Field,
+        tokens,
+    )
+}
 /// The source Field frame, around one caller-owned existing control.
 #[must_use]
 pub fn frame(content: Content, tokens: &Tokens) -> Div {
@@ -91,16 +125,8 @@ pub fn frame(content: Content, tokens: &Tokens) -> Div {
     if let Some(trailing) = content.trailing {
         header = header.child(trailing);
     }
-    let line = feedback(content.hint.as_ref(), content.error.as_ref()).map(|(kind, text)| {
-        div()
-            .min_w_0()
-            .type_(Type::Meta)
-            .line_height(px(geometry.subtext_line))
-            .text_color(ink(kind, tokens))
-            .whitespace_normal()
-            .when(kind == FeedbackKind::Error, |line| line.line_clamp(1))
-            .child(text.clone())
-    });
+    let line = feedback(content.hint.as_ref(), content.error.as_ref())
+        .map(|(kind, text)| feedback_line(text.clone(), kind, true, tokens));
     div()
         .flex()
         .flex_col()
@@ -133,6 +159,29 @@ mod tests {
                 ink(FeedbackKind::Error, &tokens),
                 gpui::rgb(0x00fc_a5a5).into()
             );
+        }
+    }
+    #[test]
+    fn submission_error_wraps_without_notice_chrome_and_preserves_field_defaults() {
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            let tokens = Tokens::of(scheme);
+            for (presentation, clamp, line_height) in [
+                (ErrorPresentation::Field, Some(1), fonts::ui(17.0)),
+                (ErrorPresentation::Submission, None, Type::Meta.metrics().1),
+            ] {
+                let mut line = error_message(
+                    "A localized whole submission error".into(),
+                    presentation,
+                    &tokens,
+                );
+                let style = line.style();
+                assert_eq!(style.text.font_size, Some(px(fonts::ui(12.0)).into()));
+                assert_eq!(style.text.color, Some(gpui::rgb(0x00fc_a5a5).into()));
+                assert_eq!(style.text.line_height, Some(px(line_height).into()));
+                assert_eq!(style.text.line_clamp, clamp);
+                assert_eq!(style.background, None);
+                assert_eq!(style.border_color, None);
+            }
         }
     }
     #[test]

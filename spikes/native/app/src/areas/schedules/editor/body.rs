@@ -382,7 +382,15 @@ fn suffix_fields(
     }
     for problem in &form.problems {
         let notice = match problem {
-            OperationProblem::Targets(notice) | OperationProblem::Save(notice) => Some(notice),
+            OperationProblem::Targets(notice) => Some(notice),
+            OperationProblem::Save(notice) => {
+                body = body.child(kit::form_field::error_message(
+                    shared(&notice.label),
+                    kit::form_field::ErrorPresentation::Submission,
+                    tokens,
+                ));
+                None
+            }
             // Model browser owns this feedback and its explicit retry, once.
             OperationProblem::Options(_) | OperationProblem::Preview(_) => None,
         };

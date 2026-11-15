@@ -1718,3 +1718,16 @@ the existing browse_agent request/cache guard avoids a duplicate read when it
 is already the current ready/pending catalog. No selection or shared picker
 engine is changed merely by opening. Actual cancel/reopen first-use proof is
 still owed. This fixes an area-owned source wiring gap, not a new renderer.
+
+
+### Submission error text reuses the form-field renderer
+
+Pinned schedule-form-sheet.tsx548/1080–1083 uses a wrapping Text with sm12 and
+red300 for submission failure, without an Alert icon/background/border. F1 Save
+errors (including local preferences) now use the SAME shared form_field feedback
+line via typed Submission presentation; Field keeps its existing12/17/clamp1.
+Submission retains canonical Meta line metrics because the source specifies no
+lineHeight; this is not a claim that source explicitly declares16. Literal
+both-theme font/ink/no-chrome/wrap tests are authored, actual first-use is owed.
+Targets/read-only/typed local failures retain their separately applicable Alert
+profiles; no area colour/geometry override or input engine was added.
