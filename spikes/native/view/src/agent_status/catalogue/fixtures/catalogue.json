@@ -1,0 +1,20 @@
+{
+  "fetched_at": "2026-11-13T00:00:00Z",
+  "version": "1.0.0",
+  "entries": [
+    {
+      "id": "example-agent",
+      "name": "Example Agent",
+      "version": "1.2.3",
+      "description": "by npx",
+      "runs": {
+        "kind": "command",
+        "program": "npx",
+        "args": ["-y", "@example/acp@1.2.3", "--acp"],
+        "env": [{"name": "EXAMPLE_MODE", "value": "acp"}],
+        "runner_found": true
+      }
+    }
+  ],
+  "skipped": 1
+}

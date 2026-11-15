@@ -18,6 +18,7 @@ use vessel_proto::{Harness, HarnessKind, HarnessRef, StructuredSupport, Terminal
 use crate::ago::Ago;
 use crate::machines::StateTone;
 use crate::{Controls, Lang, SelectControl, agent_name};
+pub mod catalogue;
 pub mod command;
 pub mod install;
 pub mod notices;
