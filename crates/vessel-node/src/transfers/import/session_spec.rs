@@ -33,5 +33,45 @@ pub(super) fn resumed(
     spec.profile.clone_from(profile);
     spec.title.clone_from(&info.title);
     spec.labels.clone_from(&info.labels);
+    spec.listing = Some(info.listing);
     spec
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::DateTime;
+    use vessel_proto::{SessionId, SessionListing};
+
+    #[test]
+    fn imports_copy_effective_listing_explicitly_instead_of_inheriting() {
+        let original = SessionSpec::new(
+            HarnessKind::Codex,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        );
+        let mut info = SessionInfo::new(SessionId::random(), original, DateTime::UNIX_EPOCH);
+        info.labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
+        for listing in [SessionListing::Shown, SessionListing::Background] {
+            info.listing = listing;
+            let session = HarnessSessionId::new("imported-fixture");
+            let spec = resumed(
+                &info,
+                HarnessKind::Codex,
+                session.clone(),
+                Vec::new(),
+                PathBuf::from("/fixture"),
+                &None,
+            );
+            assert_eq!(spec.listing, Some(listing));
+            assert_eq!(spec.labels, info.labels);
+            assert_eq!(info.spec.listing, None);
+            assert!(
+                matches!(spec.mode, SessionMode::Structured { resume: Some(id), .. } if id == session)
+            );
+        }
+    }
 }

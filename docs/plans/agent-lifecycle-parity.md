@@ -713,3 +713,10 @@ within its size budget without raising a record. The extraction takes the same
 validated harness, resume id, ordered choices, target cwd and profile; it copies
 the same model/current title/current labels. No value or test expectation changes.
 The existing import assertions remain the refactor's behavior contract.
+
+The following metadata change copies the import source's effective listing
+explicitly in the extracted spec builder. Both Shown and Background override
+caller inheritance, including a source whose original spec omitted it. A focused
+unit checks this with current labels and the same resume id. The dynamic starting
+manifest guard remains before file fetching; no import deadline or existing
+assertion changes.
