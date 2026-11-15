@@ -454,8 +454,11 @@ services that normalise to one name refuse the file, naming both. Nothing
 in the file runs. Paseo throws the same collision later, when a service
 is started (`assertNoServiceEnvNameCollisions`); refusing the file is
 earlier, and a silent overwrite is not allowed. The environment does not
-gain a proxy URL. ADR 0031 left forwarding to the preview track; a
-hostname and a reverse proxy are not a key of the project file. There is
+gain a proxy URL. The earlier split left forwarding to a preview track. The service runtime
+package now also owns proxy/routes; their authorization, listener and URL
+projection contract must be specified before wiring. A hostname and a
+reverse proxy are still not a project-file key. The current environment
+contract does not enable a proxy or claim that route URLs exist. There is
 no `VESSEL_WORKTREE_PORT`. Paseo's per-worktree legacy port is not a key
 of `paseo.json`.
 
@@ -686,3 +689,19 @@ approval; that send is its own decision.
 - Staged in slice 2a: terminal parsing and its approval snapshot. Not done:
   parsing port keys, opening terminals, allocating a port, probing health,
   archiving a workspace after a merge, and opening an editor.
+
+### Updated implementation ownership
+
+The node service-runtime package includes allocation, environment injection,
+proxy/routes and TCP health/status projection. The project/workspace
+registry package (ADR 0082) owns auto-archive and editor targets, which have
+no implementation in this change. The shared workspace registry supplies
+the eventual identity; the helper primitive's present project/worktree id
+mapping is not a competing registry. Integration must update that mapping
+against the reviewed registry before a caller depends on it.
+
+Browser Preview (ADR 0078) requires complete fresh server-side socket
+ownership, owner lifetime/generation, exact workspace and opening session,
+verified scheme and cancellation on stop/replacement. Declared allocation
+data, a running service status or cached `port.list` alone grants none of
+that authority. No browser capability or collector is introduced here.

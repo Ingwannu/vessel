@@ -106,17 +106,20 @@ crates while writing ADR 0066.
    keys keeps digest version 1 or 2 byte for byte. Wire fields are
    additive; a peer older than the assigned protocol sees a version 3
    set as invalid and cannot approve it.
-3. **Not started.** Auto-archive after a merged pull request, with
+3. **Handed to the project/workspace registry package (ADR 0082).**
+   Auto-archive after a merged pull request, with
    Paseo's safety conditions, default off. Reads the forge's merge
    state; does not change the forge client or the git implementation
    beyond that read. Its own section of ADR 0066 when it is designed,
    not before.
-4. **Not started.** Editor targets: detect on the node's machine, open a
+4. **Handed to the project/workspace registry package (ADR 0082).**
+   Editor targets: detect on the node's machine, open a
    path in one. A validated target enum, never a shell string. Its own
    section of ADR 0066 when it is designed.
 
-Out of this plan: `.worktreeinclude`, a node-wide port range, and a
-service proxy. `metadataGeneration` is ADR 0062's `[metadata.title]`,
+Out of this plan: `.worktreeinclude` and a node-wide port range.
+The service proxy and routes now belong to the service runtime package
+below; the earlier exclusion is superseded. `metadataGeneration` is ADR 0062's `[metadata.title]`,
 `[metadata.branch]`, `[metadata.commit]` and `[metadata.pull]`, not this
 track's parser, and not part of the command digest. A streaming setup
 panel is not a slice: Paseo pushes `workspace_setup_progress`, and Vessel
@@ -283,8 +286,9 @@ A new approval does not implicitly withdraw an earlier digest.
 Resume: allocation approval block is committed and its exact-commit root
 gate passed; native full-view integration remains owed. Next implement and
 narrow-check one direct invocation with the path/cleanup/decoder cases in
-the ADR, then the plan owner and health. Auto terminals, archive and editor
-targets remain unimplemented. No new protocol number is assigned.
+the ADR, then the plan owner and health. Auto terminals remain unimplemented here. Archive and editor targets are
+now the registry package's responsibility (ADR 0082), with no implementation
+handed over from this track. No new protocol number is assigned.
 
 Direct-helper primitive: staged under the node terminal module's test-only
 declaration. One owner resolves the approved program, supplies literal
@@ -297,3 +301,30 @@ The Windows classifier is portable-tested; actual Windows path resolution,
 symlink target checks and execution are not established on a Unix runner.
 The forthcoming workspace registry may replace the current project/worktree
 place-id mapping; that integration waits for its reviewed API.
+
+## Service runtime package scope
+
+The package now owns the node allocator, service environment, service
+proxy/routes and health/status projection together. Its app consumer is the
+workspace scripts area; browser Preview consumes a fresh server-side
+ownership observation, rather than treating a cached detected port as an
+authority. The shared workspace identity/registry is ADR 0082's contract;
+no second workspace identity is introduced here. Before production wiring,
+complete the cache/restart/lifecycle, health observation and route security
+contracts in ADR 0066 against their actual Paseo callers.
+
+Reference inventory: `server/workspace-service-env.ts`,
+`workspace-service-port-registry.ts`, `workspace-service-port-allocator.ts`,
+`service-proxy.ts`, `script-health-monitor.ts` and
+`script-status-projection.ts`; script entry/exit is `worktree-bootstrap.ts`.
+The existing listener scanner is reusable, but its cached PID/port result
+has no owner-generation proof and drops the scan's truncation into a debug
+message. It cannot authorize Preview. Fresh complete ownership, process
+lifetime/generation and immediate revocation need an explicit shared
+contract before browser integration; scheme needs its own bounded probe.
+No route URL, browser capability or health API is promised by this plan.
+
+Current state: the approved data/parser layers are reviewed. The helper
+primitive is committed under the test-only module and is undergoing narrow
+Clippy/test checks. There is no product allocator/proxy/health caller.
+Whole-package gate and integration review remain owed.
