@@ -10,7 +10,7 @@ use vessel_app_link::{Command, prompt_index::IndexAnswer};
 use vessel_app_view::devices::MachineKey;
 use vessel_app_view::prompt_index::{IndexAsk, IndexTarget, PromptIndex, PromptRows};
 use vessel_proto::prompt_index::PromptIndexEpoch;
-use vessel_proto::{EventRecord, EventSeq, SessionEvent};
+use vessel_proto::{AgentEvent, EventRecord, EventSeq, SessionEvent};
 
 #[cfg(test)]
 mod tests;
@@ -29,12 +29,15 @@ struct Jump {
 pub(super) struct Prompts {
     index: PromptIndex,
     jump: Option<Jump>,
+    /// History chunks can extend a prompt without changing its first address.
+    last_edit: Option<EventSeq>,
 }
 
 impl Prompts {
     pub(super) fn clear(&mut self) {
         self.index.clear();
         self.jump = None;
+        self.last_edit = None;
     }
 }
 
@@ -110,11 +113,7 @@ impl Shell {
                 .and_then(|machine| machine.node),
             session: shown.session,
         };
-        let latest = area
-            .outline
-            .last()
-            .and_then(|item| area.timeline.entries().get(item.entry))
-            .map(|entry| entry.seq);
+        let latest = area.prompts.last_edit;
         let ask = self
             .areas
             .conversation
@@ -155,6 +154,18 @@ impl Shell {
                 .is_some_and(|open| !open.structured)
         {
             return;
+        }
+        if let Some(record) = records.iter().rev().find(|record| {
+            matches!(
+                record.event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnStarted { .. }
+                        | AgentEvent::Steered { .. }
+                        | AgentEvent::UserMessageChunk { .. }
+                }
+            )
+        }) {
+            self.areas.conversation.prompts.last_edit = Some(record.seq);
         }
         if self.areas.conversation.prompts.jump.is_some()
             && self.areas.conversation.reveal.is_none()

@@ -214,3 +214,10 @@ Actual-shell prompt navigation tests now cover stale painted node/epoch/address
 rejection, an unloaded destination deadline, a newer jump surviving the older
 deadline, and the actual rail disappearing/reappearing through the existing
 typed preference handler. These tests are source-complete and await execution.
+
+Prompt refresh follows the last user-content record, including history chunks,
+rather than only the prompt's first sequence. The first address remains stable
+when another chunk extends its preview; using that address as a revision could
+otherwise leave a completed metadata set with the first chunk's preview. The
+existing view coalesces these edits while a read is in flight. A shell regression
+extends one prompt twice and requires a fresh read after each completed set.

@@ -184,3 +184,38 @@ fn prompt_navigation_outline_preference_removes_and_restores_the_actual_rail(
     cx.run_until_parked();
     assert!(cx.debug_bounds("outline-rail").is_some());
 }
+
+#[gpui::test]
+fn prompt_navigation_refreshes_metadata_when_another_chunk_extends_the_same_prompt(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::prompt_index::IndexPhase;
+    use vessel_proto::ContentBlock;
+
+    let (probe, cx) = harness(cx);
+    update(&probe, cx, |shell, _, cx| {
+        shell.route = crate::routes::Route::Session;
+        let session = shell.areas.conversation.shown.as_ref().unwrap().session;
+        for seq in [1, 2] {
+            let _metadata = seed(shell, cx);
+            let records = [EventRecord {
+                seq: EventSeq::new(seq),
+                at: chrono::DateTime::UNIX_EPOCH,
+                event: SessionEvent::Agent {
+                    event: AgentEvent::UserMessageChunk {
+                        content: ContentBlock::Text {
+                            text: "continued".to_owned(),
+                        },
+                    },
+                },
+            }];
+            let _changed = shell.areas.conversation.take(&session, &records);
+            shell.prompt_index_records(&records);
+            assert!(matches!(
+                shell.areas.conversation.prompts.index.phase(),
+                IndexPhase::Reading(_)
+            ));
+        }
+        assert_eq!(shell.areas.conversation.outline.len(), 1);
+    });
+}
