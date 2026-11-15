@@ -109,7 +109,7 @@ impl Workspaces {
     /// an absolute folder or no folder name; `conflict` when the target
     /// exists.
     pub(crate) async fn clone_project(
-        self: &std::sync::Arc<Self>,
+        self: &Arc<Self>,
         url: CloneUrl,
         parent: PathBuf,
         folder: Option<FolderName>,
@@ -147,10 +147,10 @@ impl Workspaces {
             entry.clone = Some(cancel.clone());
         }
         let temporary = parent.join(format!(".{folder}.vessel-clone-{}", short(info.id)));
-        let workspaces = std::sync::Arc::clone(self);
+        let workspaces = Arc::clone(self);
         let project = info.id;
         drop(self.tasks.spawn(async move {
-            let progress_to = std::sync::Arc::clone(&workspaces);
+            let progress_to = Arc::clone(&workspaces);
             let result = git
                 .clone_into(&url, &target, &temporary, cancel, move |progress| {
                     let _now = progress_to.update(project, |info| {

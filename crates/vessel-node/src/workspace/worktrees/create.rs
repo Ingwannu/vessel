@@ -177,17 +177,14 @@ impl Workspaces {
             Ok(chosen) => chosen,
             Err(reason) => return refused(reason),
         };
-        let commands = {
-            let file = self
-                .file_at(
-                    &root,
-                    &WorktreeBase::Commit {
-                        id: start.commit.clone(),
-                    },
-                )
-                .await?;
-            self.describe(project, file)
-        };
+        let commands = self
+            .commands(
+                project,
+                Some(&WorktreeBase::Commit {
+                    id: start.commit.clone(),
+                }),
+            )
+            .await?;
         let Some(setup) = plan(request.setup, &commands) else {
             return Ok(CreateWorktreeOutcome::NeedsApproval { commands });
         };
