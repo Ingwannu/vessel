@@ -31,8 +31,8 @@ fn read(root: WorkspaceRoot, path: &str) -> ReadFile {
     }
 }
 
-pub(super) fn text(text: &str) -> Result<FileRead, Problem> {
-    Ok(FileRead {
+pub(super) fn text(text: &str) -> FileRead {
+    FileRead {
         version: FileVersion {
             size: u64::try_from(text.len()).unwrap(),
             modified: 0,
@@ -42,7 +42,7 @@ pub(super) fn text(text: &str) -> Result<FileRead, Problem> {
             text: text.to_owned(),
             next: None,
         },
-    })
+    }
 }
 
 #[gpui::test]
@@ -76,8 +76,8 @@ fn readonly_refresh_ignores_late_reply_for_same_path(cx: &mut TestAppContext) {
             .reading
             .unwrap();
         assert_ne!(old, current);
-        shell.file_read_answered("node", &read(root, "a.txt"), current, text("new"), cx);
-        shell.file_read_answered("node", &read(root, "a.txt"), old, text("old"), cx);
+        shell.file_read_answered("node", &read(root, "a.txt"), current, Ok(text("new")), cx);
+        shell.file_read_answered("node", &read(root, "a.txt"), old, Ok(text("old")), cx);
         let viewer = shell.areas.workspace.code.files.viewer.as_ref().unwrap();
         assert!(matches!(&viewer.text, Shown::Text { lines, .. } if lines == &["new"]));
     });
@@ -96,19 +96,31 @@ fn retained_editor_receives_only_its_original_ticket_and_scope(cx: &mut TestAppC
         shell.open_file_at("b.txt".parse().unwrap(), None, cx);
         let b = shell.areas.workspace.code.file_key().unwrap();
         let current = shell.editing_for(&b).unwrap().reading.unwrap().0;
-        shell.editor_read_answered("node", old, &read(root, "b.txt"), text("wrong"), cx);
+        shell.editor_read_answered("node", old, &read(root, "b.txt"), Ok(text("wrong")), cx);
         assert_eq!(shell.editing_for(&b).unwrap().model.content(), "");
         shell.editor_read_answered(
             "other",
             current,
             &read(root, "b.txt"),
-            text("wrong node"),
+            Ok(text("wrong node")),
             cx,
         );
         assert_eq!(shell.editing_for(&b).unwrap().model.content(), "");
-        shell.editor_read_answered("node", old, &read(root, "a.txt"), text("retained a"), cx);
+        shell.editor_read_answered(
+            "node",
+            old,
+            &read(root, "a.txt"),
+            Ok(text("retained a")),
+            cx,
+        );
         assert_eq!(shell.editing_for(&a).unwrap().model.content(), "retained a");
-        shell.editor_read_answered("node", current, &read(root, "b.txt"), text("active b"), cx);
+        shell.editor_read_answered(
+            "node",
+            current,
+            &read(root, "b.txt"),
+            Ok(text("active b")),
+            cx,
+        );
         assert_eq!(shell.editing_for(&b).unwrap().model.content(), "active b");
         shell.open_file_at("a.txt".parse().unwrap(), None, cx);
         assert_eq!(shell.areas.workspace.code.file_key(), Some(a.clone()));

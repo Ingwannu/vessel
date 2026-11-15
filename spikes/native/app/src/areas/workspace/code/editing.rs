@@ -288,7 +288,14 @@ impl Shell {
             window,
             cx,
         );
-        editor.set_read_only(mutation_held, cx);
+        editor.set_editability(
+            if mutation_held {
+                vessel_app_kit::Editability::ReadOnly
+            } else {
+                vessel_app_kit::Editability::Editable
+            },
+            cx,
+        );
         if wrap {
             editor.set_wrapping(true, window, cx);
         }

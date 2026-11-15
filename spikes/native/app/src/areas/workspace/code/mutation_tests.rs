@@ -19,7 +19,7 @@ fn load(
         "node",
         ticket,
         &super::super::editing::whole_read(root, key.path.clone()),
-        io_tests::text("saved"),
+        Ok(io_tests::text("saved")),
         cx,
     );
     key

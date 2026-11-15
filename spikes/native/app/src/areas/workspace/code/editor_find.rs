@@ -109,6 +109,8 @@ impl Render for FindPanel {
             self.query.focus(window, cx);
         }
         let tokens = vessel_app_kit::tokens(cx);
+        let replacement = (self.editor.editability(cx) == vessel_app_kit::Editability::Editable)
+            .then(|| self.replacement_row(labels, &tokens, cx));
         let count = if total.0 == 0 {
             labels.file_find_no_matches.to_owned()
         } else {
@@ -137,7 +139,7 @@ impl Render for FindPanel {
             .type_(Type::Meta)
             .text_color(tokens.neutral.foreground_muted)
             .child(self.search_row(labels, &tokens, count, cx))
-            .child(self.replacement_row(labels, &tokens, cx))
+            .children(replacement)
     }
 }
 

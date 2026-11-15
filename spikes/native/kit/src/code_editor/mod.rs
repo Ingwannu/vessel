@@ -175,6 +175,22 @@ impl CodeEditor {
             .update(cx, |state, cx| state.set_readonly(read_only, cx));
     }
 
+    /// The same typed edit hold used by form fields; find may remain
+    /// available while replacement controls must disappear.
+    #[must_use]
+    pub fn editability(&self, cx: &App) -> crate::Editability {
+        if self.state.read(cx).is_readonly() {
+            crate::Editability::ReadOnly
+        } else {
+            crate::Editability::Editable
+        }
+    }
+
+    /// Retain caret/selection while a buffer owner settles an operation.
+    pub fn set_editability(&self, editability: crate::Editability, cx: &mut App) {
+        self.set_read_only(editability == crate::Editability::ReadOnly, cx);
+    }
+
     /// Follow every change of the editor, the caret's moves and blinks
     /// included: for a small view of its own (the caret's line and column,
     /// what the selection allows), never for a whole screen, which would

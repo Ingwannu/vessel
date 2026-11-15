@@ -65,7 +65,7 @@ impl CodePanel {
         }
         self.file_key()
             .filter(|key| affected(key, machine, change))
-            .and_then(|_| self.files.viewer.as_ref())
+            .and(self.files.viewer.as_ref())
             .is_some_and(busy)
             || self
                 .files
@@ -96,7 +96,14 @@ impl CodePanel {
                 .as_ref()
                 .and_then(|editing| editing.editor.as_ref())
             {
-                editor.set_read_only(hold, cx);
+                editor.set_editability(
+                    if hold {
+                        vessel_app_kit::Editability::ReadOnly
+                    } else {
+                        vessel_app_kit::Editability::Editable
+                    },
+                    cx,
+                );
             }
         }
     }

@@ -76,9 +76,10 @@ execution or change the node's existing trust policy.
 - Choice: reuse `resvg` for SVG; select `hayro` for PDF after binary file
   parity. Both are maintained pure Rust projects. The upstream READMEs and
   manifests were checked on 2026-11-15: `resvg` current main 0.50 and hayro
-  current main 0.9 use `Apache-2.0 OR MIT`. The locked resvg 0.46 licence
-  must separately be checked before reusing it (licence changes are version
-  specific). Do not claim current-main licensing for an older release.
+  current main 0.9 use `Apache-2.0 OR MIT`. The local locked `resvg 0.46.0`
+  registry manifest was checked separately: it also declares
+  `Apache-2.0 OR MIT`. Hayro release locking and transitive licence review
+  remain pending until its dependency is added.
 - Why: resvg is already present and has a large static SVG regression
   suite. Hayro separates parsing, interpretation and bitmap rendering and
   avoids a C library deployment dependency.
@@ -184,3 +185,11 @@ model; it does not send a parallel unguarded write.
 Narrow clippy on `48e876ed` failed only at an omitted `Div` import and an
 inferred key-event type; both are corrected here. This is compile evidence
 only, not an executed test result or package gate.
+
+The source editor now consumes the shared kit `Editability` seam from base
+2. During a mutation hold the engine rejects edits/replacements and find
+keeps navigation while hiding replacement controls. The integration test
+explicitly attempts a readonly replacement before releasing the hold and
+replacing normally. Narrow clippy on `336f69e5` reached all app targets;
+remaining failures were test helper/line-count lints and one lazy Option
+closure. They are fixed here; no executed test result is claimed yet.

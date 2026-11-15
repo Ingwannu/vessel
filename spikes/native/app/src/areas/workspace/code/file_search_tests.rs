@@ -45,30 +45,14 @@ fn repeated_query_keeps_new_generation_after_old_reply(cx: &mut TestAppContext) 
         shell
             .search_workspace_files(first.clone(), receive)
             .unwrap();
-        let old_ticket = shell
-            .areas
-            .workspace
-            .code
-            .searches
-            .0
-            .get(&key)
-            .unwrap()
-            .ticket;
+        let old_ticket = shell.areas.workspace.code.searches.0[&key].ticket;
         let mut middle = first.clone();
         middle.query = "beta".parse().unwrap();
         shell.search_workspace_files(middle, receive).unwrap();
         shell
             .search_workspace_files(first.clone(), receive)
             .unwrap();
-        let current = shell
-            .areas
-            .workspace
-            .code
-            .searches
-            .0
-            .get(&key)
-            .unwrap()
-            .ticket;
+        let current = shell.areas.workspace.code.searches.0[&key].ticket;
         assert_ne!(old_ticket, current);
         assert!(
             shell
@@ -113,7 +97,7 @@ fn cancellation_and_capacity_preserve_other_fields(cx: &mut TestAppContext) {
         for _ in 0..MAX_FILE_SEARCH_OWNERS {
             let key = shell.file_search_key();
             let request = request(key);
-            first.get_or_insert_with(|| request.clone());
+            let _first = first.get_or_insert_with(|| request.clone());
             shell.search_workspace_files(request, receive).unwrap();
         }
         let first = first.unwrap();
@@ -130,15 +114,7 @@ fn cancellation_and_capacity_preserve_other_fields(cx: &mut TestAppContext) {
         shell
             .search_workspace_files(extra.clone(), receive)
             .unwrap();
-        let ticket = shell
-            .areas
-            .workspace
-            .code
-            .searches
-            .0
-            .get(&key)
-            .unwrap()
-            .ticket;
+        let ticket = shell.areas.workspace.code.searches.0[&key].ticket;
         shell.cancel_file_search(key);
         assert!(
             shell
