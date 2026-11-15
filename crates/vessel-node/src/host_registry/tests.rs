@@ -1,5 +1,7 @@
 use super::*;
-use vessel_proto::host_registry::{HostEnabled, HostLabelChange, HostMetadata, IdentityChange};
+use vessel_proto::host_registry::{
+    HostEnabled, HostLabelChange, HostMetadata, IdentityChange, MetadataKey, MetadataValue,
+};
 use vessel_proto::{DeviceId, NodeId};
 
 #[tokio::test]
@@ -28,8 +30,8 @@ async fn shared_inventory_projects_all_sources_and_retains_disabled_records() {
                     destination,
                     label: Some("public worker".parse().unwrap()),
                     metadata: std::collections::BTreeMap::from([(
-                        "role".parse().unwrap(),
-                        "build".parse().unwrap(),
+                        "role".parse::<MetadataKey>().unwrap(),
+                        "build".parse::<MetadataValue>().unwrap(),
                     )])
                     .try_into()
                     .unwrap(),
