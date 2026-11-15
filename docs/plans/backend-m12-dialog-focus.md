@@ -44,8 +44,8 @@ behavior. This is an input-lifetime adaptation, not a new modal style.
 The producer regression activates all four actual rendered close paths,
 refuses pending and old-decision closes, preserves a newer focus, proves
 reopen captures a fresh cycle, drops a deleted opener, and distinguishes
-captured absence. Narrow verification is pending; no runtime or UI pass
-is claimed. The whole feature package gate and consuming Devices stale
+captured absence. Exact-source narrow verification is recorded below; no
+whole-package or visual pass is claimed. The whole feature package gate and consuming Devices stale
 context/intent proof remain separate. Unadopted callers do not receive
 implicit restoration, and the generic helper makes no domain decision.
 
@@ -61,3 +61,17 @@ one of its children. Such a handle can be focused before a late open hook;
 returning to it would leave input in the dismissed subtree. The regression
 models an already-focused owner, then opens/closes through the public API;
 focus must be cleared. This changes no signature or geometry.
+
+
+## Exact-source narrow result (2026-11-15)
+
+Source `11fba709d76bc34aaec5ae5e8c6ffaf6b1a4b32f` completed remote
+Kit Clippy (`devices-narrow-20261115T081737Z-11fba709`) and Kit tests
+(`devices-narrow-20261115T082554Z-11fba709`): both fonts/cargo steps zero,
+no skip; 118 passed, 0 failed, 0 ignored. Changed Kit compilation is in
+the cargo logs. Evidence under `/tmp/work/m12-g4/resumed-20261115/`:
+`dialog-focus-remote-clippy-03` and `dialog-focus-remote-test-02`.
+Earlier `42bde0bf` tests (117) are old-source evidence, not this run.
+Source review is pending; existing unrelated callers remain unadopted,
+and final E2 feature gate/captures remain owed. No permission or service
+configuration changed; build jobs ran as the existing ubuntu account.
