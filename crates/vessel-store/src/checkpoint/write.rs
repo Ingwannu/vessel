@@ -8,7 +8,8 @@ use super::{
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 use vessel_proto::checkpoint::{
-    CaptureKey, CheckpointError, CheckpointId, CheckpointPath, FileImage, RestoreId, RestoreOutcome,
+    CaptureKey, CheckpointError, CheckpointId, CheckpointPath, ObservedSnapshot, RestoreId,
+    RestoreOutcome,
 };
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub(crate) enum CheckpointWrite {
     },
     Candidate {
         key: CaptureKey,
-        image: FileImage,
+        snapshot: ObservedSnapshot,
     },
     Activate {
         key: CaptureKey,
@@ -61,8 +62,8 @@ pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(
         CheckpointWrite::Reserve { key, bytes, at } => {
             journal::candidate(connection, key, bytes, at)
         }
-        CheckpointWrite::Candidate { key, image } => {
-            journal::keep_candidate(connection, key, &image)
+        CheckpointWrite::Candidate { key, snapshot } => {
+            journal::keep_candidate(connection, key, &snapshot)
         }
         CheckpointWrite::Activate { key, checkpoint } => {
             publication::activate(connection, key, checkpoint)

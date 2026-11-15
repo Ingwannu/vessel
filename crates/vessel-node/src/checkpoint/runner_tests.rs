@@ -46,7 +46,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
                 .unwrap()
                 .recv()
                 .map_err(|_closed| CheckpointError::StaleCapture)?;
-            FileImage::new(Vec::new())
+            empty()
         },
         move |_key, phase| {
             match phase {
@@ -96,7 +96,7 @@ async fn dropping_all_clients_does_not_drop_the_owner_before_held_io_is_cleaned(
         move |_key, _cancel| {
             entered.lock().unwrap().take().unwrap().send(()).unwrap();
             let _closed = held.lock().unwrap().take().unwrap().recv();
-            FileImage::new(Vec::new())
+            empty()
         },
         |_key, _phase| async { Ok(()) },
         |_key, disposition| {
@@ -131,7 +131,7 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, _cancel| empty(),
         move |_key, phase| {
             let release = match phase {
                 Publication::Reserve(bytes) => {
@@ -183,7 +183,7 @@ async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_roo
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, _cancel| empty(),
         move |_key, phase| {
             let held = match phase {
                 Publication::Reserve(bytes) => {
@@ -191,7 +191,7 @@ async fn accepted_candidate_releases_actor_but_activation_retains_worker_and_roo
                     None
                 }
                 Publication::Candidate(image) => {
-                    assert!(image.entries().is_empty());
+                    assert!(image.image().entries().is_empty());
                     None
                 }
                 Publication::Activate => {
@@ -242,7 +242,7 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
     let (cleaned, finished) = oneshot::channel();
     let cleaned = std::sync::Mutex::new(Some(cleaned));
     let (client, owner) = runner::start(
-        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, _cancel| empty(),
         |_key, phase| async move {
             match phase {
                 Publication::Reserve(bytes) => {
@@ -250,7 +250,7 @@ async fn uncertain_ready_activation_keeps_archive_for_reconciliation() {
                     Ok(())
                 }
                 Publication::Candidate(image) => {
-                    assert!(image.entries().is_empty());
+                    assert!(image.image().entries().is_empty());
                     Ok(())
                 }
                 Publication::Activate => Err(CheckpointError::FeatureUnavailable),
@@ -285,7 +285,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
     let (client, owner) = runner::start(
         move |_key, _cancel| {
             let _previous = read_count.fetch_add(1, Ordering::SeqCst);
-            FileImage::new(Vec::new())
+            empty()
         },
         move |_key, phase| {
             let held = match phase {
@@ -331,7 +331,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
 #[tokio::test]
 async fn failed_cleanup_cannot_return_worker_capacity_or_its_root_guard() {
     let (client, owner) = runner::start(
-        |_key, _cancel| FileImage::new(Vec::new()),
+        |_key, _cancel| empty(),
         |_key, _phase| async { Ok(()) },
         |_key, _disposition| Err(CheckpointError::StorageFull),
     );
@@ -359,4 +359,20 @@ async fn failed_cleanup_cannot_return_worker_capacity_or_its_root_guard() {
     // unresolved owner rather than presenting failed cleanup as completion.
     owner.abort();
     assert!(owner.await.unwrap_err().is_cancelled());
+}
+
+fn empty() -> Result<vessel_proto::checkpoint::ObservedSnapshot, CheckpointError> {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{
+            IgnoreFingerprint, ObservedSnapshot, PhysicalRoot, RootFingerprint, SnapshotEvidence,
+        },
+    };
+    let evidence = SnapshotEvidence::new(
+        PhysicalRoot::new(BlobHash::from_bytes([0; 32])),
+        RootFingerprint::new(BlobHash::from_bytes([1; 32])),
+        IgnoreFingerprint::new(BlobHash::from_bytes([2; 32])),
+        Vec::new(),
+    )?;
+    ObservedSnapshot::new(FileImage::new(Vec::new())?, evidence)
 }

@@ -85,7 +85,7 @@ fn checkpoint_ready_and_unavailable_marks_are_durable_metadata_without_blob_read
         }
     );
     let image = FileImage::new(Vec::new()).unwrap();
-    journal::keep_candidate(&connection, key, &image).unwrap();
+    journal::keep_candidate(&connection, key, &crate::checkpoint::tests::observed(image)).unwrap();
     let checkpoint = CheckpointId::random();
     publication::activate(&connection, key, checkpoint).unwrap();
     assert_eq!(

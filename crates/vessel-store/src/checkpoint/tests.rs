@@ -61,3 +61,33 @@ pub(super) fn evidence() -> vessel_proto::checkpoint::SnapshotEvidence {
 fn vessel_proto_physical() -> vessel_proto::checkpoint::PhysicalRoot {
     vessel_proto::checkpoint::PhysicalRoot::new(vessel_proto::BlobHash::from_bytes([0; 32]))
 }
+
+pub(super) fn observed(
+    image: vessel_proto::checkpoint::FileImage,
+) -> vessel_proto::checkpoint::ObservedSnapshot {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{
+            FileFingerprint, FileState, ObjectFingerprint, ObservedEntry, ObservedPresence,
+            ObservedSnapshot, SnapshotEvidence,
+        },
+    };
+    let entries = image
+        .entries()
+        .iter()
+        .map(|entry| ObservedEntry {
+            path: entry.path.clone(),
+            presence: match entry.state {
+                FileState::Absent => ObservedPresence::Absent,
+                FileState::Present { .. } => ObservedPresence::Present {
+                    full: FileFingerprint::new(BlobHash::from_bytes([3; 32])),
+                    object: ObjectFingerprint::new(BlobHash::from_bytes([4; 32])),
+                },
+            },
+        })
+        .collect();
+    let scope = evidence();
+    let evidence =
+        SnapshotEvidence::new(scope.physical(), scope.root(), scope.ignore(), entries).unwrap();
+    ObservedSnapshot::new(image, evidence).unwrap()
+}

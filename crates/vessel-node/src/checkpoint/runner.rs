@@ -9,7 +9,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{
     CHECKPOINT_CAPTURE_DEADLINE, CHECKPOINT_QUEUE, CHECKPOINT_WORKERS, CaptureKey, CheckpointError,
-    FileImage,
+    ObservedSnapshot,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,7 +23,7 @@ pub(super) enum Disposition {
 pub(super) enum Publication {
     /// Durable global admission precedes every filesystem read or allocation.
     Reserve(ReservedBytes),
-    Candidate(FileImage),
+    Candidate(ObservedSnapshot),
     /// Only sent after the coordinator accepted the durable candidate in time.
     Activate,
 }
@@ -132,7 +132,7 @@ pub(super) fn start<Read, Persist, Cleanup, Stored>(
     cleanup: Cleanup,
 ) -> (Client, tokio::task::JoinHandle<()>)
 where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<FileImage, CheckpointError>
+    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -246,7 +246,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
     cleanup: Arc<Cleanup>,
     events: mpsc::Sender<Event>,
 ) where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<FileImage, CheckpointError>
+    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -293,7 +293,7 @@ async fn read_candidate<Read, Persist, Stored>(
     events: &mpsc::Sender<Event>,
 ) -> Disposition
 where
-    Read: Fn(CaptureKey, CancellationToken) -> Result<FileImage, CheckpointError>
+    Read: Fn(CaptureKey, CancellationToken) -> Result<ObservedSnapshot, CheckpointError>
         + Send
         + Sync
         + 'static,
@@ -321,7 +321,7 @@ where
 }
 async fn publish<Persist, Stored>(
     key: CaptureKey,
-    image: FileImage,
+    image: ObservedSnapshot,
     persist: Arc<Persist>,
     events: &mpsc::Sender<Event>,
 ) -> Disposition

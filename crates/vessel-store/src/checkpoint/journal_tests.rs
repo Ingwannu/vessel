@@ -45,7 +45,7 @@ fn fixture() -> (Connection, CaptureKey) {
 }
 fn ready_plan(connection: &Connection, key: CaptureKey) -> Plan {
     let empty = FileImage::new(Vec::new()).unwrap();
-    journal::keep_candidate(connection, key, &empty).unwrap();
+    journal::keep_candidate(connection, key, &super::tests::observed(empty.clone())).unwrap();
     super::publication::activate(
         connection,
         key,
@@ -111,7 +111,11 @@ fn expired_and_restarted_candidates_cannot_be_persisted_as_ready_images() {
     let (connection, key) = fixture();
     journal::unavailable(&connection, key, CheckpointError::CaptureTimedOut).unwrap();
     assert!(matches!(
-        journal::keep_candidate(&connection, key, &FileImage::new(Vec::new()).unwrap()),
+        journal::keep_candidate(
+            &connection,
+            key,
+            &super::tests::observed(FileImage::new(Vec::new()).unwrap())
+        ),
         Err(Error::Refused(CheckpointError::StaleCapture))
     ));
     let mut next = key;
@@ -125,7 +129,11 @@ fn expired_and_restarted_candidates_cannot_be_persisted_as_ready_images() {
     .unwrap();
     journal::invalidate_candidates(&connection).unwrap();
     assert!(matches!(
-        journal::keep_candidate(&connection, next, &FileImage::new(Vec::new()).unwrap()),
+        journal::keep_candidate(
+            &connection,
+            next,
+            &super::tests::observed(FileImage::new(Vec::new()).unwrap())
+        ),
         Err(Error::Refused(CheckpointError::StaleCapture))
     ));
     let reserved: i64 = connection
@@ -469,7 +477,7 @@ fn candidate_persistence_is_not_ready_and_activation_cannot_revive_expired_or_re
         publication::activate(&connection, key, CheckpointId::random()),
         Err(Error::Refused(CheckpointError::StaleCapture))
     ));
-    journal::keep_candidate(&connection, key, &empty).unwrap();
+    journal::keep_candidate(&connection, key, &super::tests::observed(empty.clone())).unwrap();
     let ready: bool = connection
         .query_row(
             "SELECT state='ready' FROM checkpoint_captures WHERE id=?1",
@@ -498,7 +506,7 @@ fn candidate_persistence_is_not_ready_and_activation_cannot_revive_expired_or_re
         DateTime::UNIX_EPOCH,
     )
     .unwrap();
-    journal::keep_candidate(&connection, next, &empty).unwrap();
+    journal::keep_candidate(&connection, next, &super::tests::observed(empty.clone())).unwrap();
     journal::invalidate_candidates(&connection).unwrap();
     assert!(matches!(
         publication::activate(&connection, next, CheckpointId::random()),
@@ -854,4 +862,38 @@ fn equal_contents_cannot_hide_a_changed_root_or_ignore_observation() {
 
 fn vessel_proto_physical() -> vessel_proto::checkpoint::PhysicalRoot {
     vessel_proto::checkpoint::PhysicalRoot::new(vessel_proto::BlobHash::from_bytes([0; 32]))
+}
+
+#[test]
+fn preview_refuses_changed_capture_policy_and_a_different_physical_root() {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{IgnoreFingerprint, PhysicalRoot, SnapshotEvidence},
+    };
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    for evidence in [
+        SnapshotEvidence::new(
+            PhysicalRoot::new(BlobHash::from_bytes([7; 32])),
+            plan.evidence.root(),
+            plan.evidence.ignore(),
+            Vec::new(),
+        )
+        .unwrap(),
+        SnapshotEvidence::new(
+            plan.evidence.physical(),
+            plan.evidence.root(),
+            IgnoreFingerprint::new(BlobHash::from_bytes([8; 32])),
+            Vec::new(),
+        )
+        .unwrap(),
+    ] {
+        let mut changed = plan.clone();
+        changed.evidence = evidence;
+        assert!(matches!(
+            journal::put_plan(&connection, &changed, DateTime::UNIX_EPOCH),
+            Err(Error::Refused(CheckpointError::StalePreview))
+        ));
+    }
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
 }

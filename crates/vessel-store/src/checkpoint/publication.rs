@@ -16,7 +16,7 @@ pub(super) fn activate(
     let boundary = serde_json::to_string(&key.boundary)?;
     let changed = connection.execute(
         "UPDATE checkpoint_captures SET state='ready',checkpoint=?1 WHERE id=?2 AND session=?3 AND worktree=?4
-         AND generation=?5 AND boundary=?6 AND state='candidate' AND image IS NOT NULL",
+         AND generation=?5 AND boundary=?6 AND state='candidate' AND image IS NOT NULL AND evidence IS NOT NULL",
         params![checkpoint.to_string(),key.capture.to_string(),key.session.to_string(),key.worktree.to_string(),generation,boundary],
     )?;
     if changed != 1 {

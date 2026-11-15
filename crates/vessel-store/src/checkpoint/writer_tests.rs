@@ -98,7 +98,7 @@ async fn publish_capture(store: &Store, plan: &Plan) {
     store
         .checkpoint_write(CheckpointWrite::Candidate {
             key: plan.key,
-            image: plan.desired.image().clone(),
+            snapshot: super::tests::observed(plan.desired.image().clone()),
         })
         .await
         .unwrap();
@@ -224,7 +224,12 @@ async fn failed_pending_path_insert_rolls_back_restore_admission_in_the_shared_w
         DateTime::UNIX_EPOCH,
     )
     .unwrap();
-    journal::keep_candidate(&connection, plan.key, plan.desired.image()).unwrap();
+    journal::keep_candidate(
+        &connection,
+        plan.key,
+        &super::tests::observed(plan.desired.image().clone()),
+    )
+    .unwrap();
     super::publication::activate(&connection, plan.key, CheckpointId::random()).unwrap();
     journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
     connection.execute_batch("CREATE TRIGGER checkpoint_deny_path BEFORE INSERT ON checkpoint_paths BEGIN SELECT RAISE(ABORT,'fixture fail'); END;").unwrap();

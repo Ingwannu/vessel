@@ -4,7 +4,7 @@ use super::records::{CheckpointStoreError as Error, Operation, Plan};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::checkpoint::{
-    CaptureKey, CheckpointError, CheckpointOwner, FileImage, RestoreId, RestoreOutcome,
+    CaptureKey, CheckpointError, CheckpointOwner, ObservedSnapshot, RestoreId, RestoreOutcome,
 };
 
 fn encode<T: serde::Serialize>(value: &T) -> Result<String, Error> {
@@ -45,7 +45,7 @@ pub(super) fn unavailable(
     key: CaptureKey,
     reason: CheckpointError,
 ) -> Result<(), Error> {
-    let changed = connection.execute("UPDATE checkpoint_captures SET state='unavailable',image=NULL,reason=?6
+    let changed = connection.execute("UPDATE checkpoint_captures SET state='unavailable',image=NULL,evidence=NULL,reason=?6
         WHERE id=?1 AND session=?2 AND worktree=?3 AND generation=?4 AND boundary=?5 AND state='candidate'",
         params![key.capture.to_string(),key.session.to_string(),key.worktree.to_string(),encode(&key.generation)?,encode(&key.boundary)?,encode(&reason)?])?;
     if changed != 1 {
@@ -58,13 +58,14 @@ pub(super) fn unavailable(
 pub(super) fn keep_candidate(
     connection: &Connection,
     key: CaptureKey,
-    image: &FileImage,
+    snapshot: &ObservedSnapshot,
 ) -> Result<(), Error> {
     let changed = connection.execute(
-        "UPDATE checkpoint_captures SET image=?1 WHERE id=?2 AND session=?3 AND worktree=?4
-        AND generation=?5 AND boundary=?6 AND state='candidate'",
+        "UPDATE checkpoint_captures SET image=?1,evidence=?2 WHERE id=?3 AND session=?4 AND worktree=?5
+        AND generation=?6 AND boundary=?7 AND state='candidate'",
         params![
-            encode(image)?,
+            encode(snapshot.image())?,
+            encode(snapshot.evidence())?,
             key.capture.to_string(),
             key.session.to_string(),
             key.worktree.to_string(),
@@ -81,7 +82,7 @@ pub(super) fn keep_candidate(
 /// Startup never promotes candidates; reservations remain until filesystem cleanup.
 pub(super) fn invalidate_candidates(connection: &Connection) -> Result<(), Error> {
     let _changed = connection.execute(
-        "UPDATE checkpoint_captures SET state='unavailable',image=NULL,reason=?1 WHERE state='candidate'",
+        "UPDATE checkpoint_captures SET state='unavailable',image=NULL,evidence=NULL,reason=?1 WHERE state='candidate'",
         [encode(&CheckpointError::StaleCapture)?],
     )?;
     Ok(())
@@ -120,6 +121,17 @@ pub(super) fn put_plan(
     )?;
     if !ready {
         return Err(CheckpointError::NotFound.into());
+    }
+    let selected: String = connection.query_row(
+        "SELECT evidence FROM checkpoint_captures WHERE id=?1",
+        [plan.key.capture.to_string()],
+        |row| row.get(0),
+    )?;
+    let selected: vessel_proto::checkpoint::SnapshotEvidence = serde_json::from_str(&selected)?;
+    if selected.physical() != plan.evidence.physical()
+        || selected.ignore() != plan.evidence.ignore()
+    {
+        return Err(CheckpointError::StalePreview.into());
     }
     let _changed = connection.execute(
         "INSERT INTO checkpoint_plans(id,capture,owner,current_image,current_evidence,desired_image,expires_at)

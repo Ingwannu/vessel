@@ -162,3 +162,10 @@ On `dad520f2`, checkpoint-filtered tests passed 66, zero failed, six ignored;
 this includes real FULL-sync policy admission/rollback, garbage reservations,
 non-root permissions and full observation association. It precedes metadata
 listing/root admission/full-scope policy discovery and is not product proof.
+
+Capture publication now carries a validated ObservedSnapshot end to end rather
+than dropping its physical and policy evidence after reading bytes. Ready rows
+require both image and evidence. Preview persistence additionally requires the
+selected capture and current preview to have the same PhysicalRoot and ignore
+policy digest; current root/file access observations still freeze separately
+for stale admission. These new storage and runner changes need scoped proof.
