@@ -150,12 +150,14 @@ fn prompt_navigation_deadline_cannot_cancel_a_replacement_destination(cx: &mut T
         shell.prompt_jump(EventSeq::new(10), cx);
     });
     cx.run_until_parked();
-    cx.executor().advance_clock(JUMP_DEADLINE / 2);
+    cx.executor()
+        .advance_clock(JUMP_DEADLINE.checked_div(2).unwrap());
     update(&probe, cx, |shell, _, cx| {
-        shell.prompt_jump(EventSeq::new(20), cx)
+        shell.prompt_jump(EventSeq::new(20), cx);
     });
     cx.run_until_parked();
-    cx.executor().advance_clock(JUMP_DEADLINE / 2);
+    cx.executor()
+        .advance_clock(JUMP_DEADLINE.checked_div(2).unwrap());
     cx.run_until_parked();
     update(&probe, cx, |shell, _, _| {
         assert_eq!(shell.areas.conversation.reveal, Some(EventSeq::new(20)));
