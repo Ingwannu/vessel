@@ -137,3 +137,13 @@ Tests must cover stale authority replies, same-node reconnect, failure versus
 known empty grant, Admin-without-Read and independent non-Admin scopes, caller
 id absence, and clearing an already revealed synthetic invitation on refresh.
 Final package captures/gate remain owed; no authority-flow pass is claimed.
+
+The first authority source checkpoint adds the Page-owned `Authority` model
+and six pure regressions: explicit Admin without Read, independent scopes,
+unknown versus failed versus known empty, caller id/ticket replacement,
+same-node reconnect, malformed duplicate/overlong facts, and clearing every
+owned surface including an actually revealed synthetic invitation. It has
+no screen or RPC wiring yet; therefore existing controls do not yet consume
+this grant and no effective-authority protection is claimed from this step.
+No product output contains the synthetic invitation. Narrow View checks are
+next on the remote builder; final feature review/gate remains pending.

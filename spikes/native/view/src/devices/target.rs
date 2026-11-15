@@ -37,6 +37,8 @@ impl std::fmt::Display for RevokeIntent {
 #[derive(Debug, Default)]
 pub struct Page {
     identity: DeviceIdentity,
+    /// This admitted caller's explicitly reported effective grant.
+    pub authority: super::Authority,
     // A selected public record, never an invitation or a credential. Kept
     // while a read is pending; a successful list reconciles it by id.
     pub(super) inspection: Option<vessel_proto::DeviceInfo>,
@@ -53,7 +55,8 @@ pub struct Page {
 }
 
 impl Page {
-    fn clear_owned(&mut self) {
+    pub(super) fn clear_owned(&mut self) {
+        self.authority = super::Authority::Unchecked;
         self.listing = Listing::Empty;
         self.inviting = Inviting::Empty;
         self.revoking = Revoking::Empty;

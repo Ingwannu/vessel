@@ -185,3 +185,26 @@ fn even_a_retained_old_confirmation_cannot_be_attached_to_another_admission() {
     assert_eq!(page.confirm_revoke(&replacement, intent, request), None);
     assert_eq!(page.revoking.context(), Some(&first));
 }
+
+#[test]
+fn refreshing_authority_drops_a_revealed_link_rows_details_and_confirmation() {
+    let mut epochs = ConnectionEpochs::default();
+    let context = admit(&mut epochs, node(1));
+    let mut page = page(&context);
+    page.inspect_bound(&context, device().id).unwrap();
+    page.choose_bound(&context, device().id).unwrap();
+    let reveal = page.tickets.next_ticket().unwrap();
+    let mut credential = invitation();
+    credential.show(DateTime::UNIX_EPOCH, reveal);
+    assert!(credential.visible_link(DateTime::UNIX_EPOCH).is_some());
+    page.inviting = Inviting::Ready(credential);
+    let query = page.tickets.next_ticket().unwrap();
+    assert!(page.checking_authority(&context, query));
+    assert!(matches!(page.authority, crate::devices::Authority::Loading(t) if t == query));
+    assert!(matches!(page.inviting, Inviting::Empty));
+    assert!(matches!(page.listing, Listing::Empty));
+    assert!(matches!(page.revoking, Revoking::Empty));
+    assert!(page.inspected_device().is_none());
+    assert!(page.revoke_intent().is_none());
+    assert_ne!(page.tickets.next_ticket().unwrap(), query);
+}
