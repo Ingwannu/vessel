@@ -62,13 +62,14 @@ impl NodeService {
             .starting_again(id)
             .await
             .map_err(|_stopped| ServiceError::Draining)?;
+        let tool_policy = self.launcher.tools_for(&ended.info.spec.harness);
         let secret = self
             .agents
-            .reserve(id, &connection.principal, self.launcher.has_tools())?;
+            .reserve(id, &connection.principal, tool_policy.is_some())?;
         let granted = async {
-            if let Some(secret) = &secret {
+            if let (Some(secret), Some(policy)) = (&secret, &tool_policy) {
                 self.launcher
-                    .attach_tools(&mut launch.mcp_servers, id, secret)?;
+                    .attach_tools(&mut launch.mcp_servers, id, secret, policy)?;
             }
             let launched = self.models.launch(launch.profile.as_ref(), id)?;
             let route = launched.as_ref().map(|(model, _proxy)| &model.route);

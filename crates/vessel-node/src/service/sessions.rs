@@ -153,16 +153,17 @@ impl NodeService {
             options.origin = origin;
         }
         let id = SessionId::random();
+        let tool_policy = self.launcher.tools_for(&spec.harness);
         let secret = self
             .agents
-            .reserve(id, principal, self.launcher.has_tools())
+            .reserve(id, principal, tool_policy.is_some())
             .map_err(|error| wire(&error))?;
         options.id = Some(id);
         options.notices.extend(notices);
-        if let Some(secret) = &secret
-            && let Err(error) = self
-                .launcher
-                .attach_tools(&mut options.mcp_servers, id, secret)
+        if let (Some(secret), Some(policy)) = (&secret, &tool_policy)
+            && let Err(error) =
+                self.launcher
+                    .attach_tools(&mut options.mcp_servers, id, secret, policy)
         {
             self.agents.forget(id);
             return Err(wire(&error));

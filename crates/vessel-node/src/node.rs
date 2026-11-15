@@ -4,15 +4,12 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_harness::HarnessEnv;
-use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
@@ -20,7 +17,7 @@ use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -53,7 +50,9 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
+mod preparation;
 mod setup;
+use preparation::prepare;
 
 use self::setup::{SessionSetup, SetupDirs};
 
@@ -318,21 +317,18 @@ async fn core(
     store: &Store,
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
-    setup: SessionSetup,
+    mut setup: SessionSetup,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
+    let tasks = TaskTracker::new();
+    let stop = CancellationToken::new();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     let runtime = runtime(config, loader, setup.private_dir.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(crate::settings::Settings::open(
-        config.data_dir.clone(),
-        Arc::clone(&runtime),
-        ParkAfter::from_duration(config.park_after),
-        config.park_after_given,
-    ));
-    let stop = CancellationToken::new();
+    let settings = setup::settings(config, &runtime, &tasks, &stop).await?;
+    setup.launcher = setup.launcher.with_tool_policy(settings.tool_policy());
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -341,7 +337,6 @@ async fn core(
         .await
         .map_err(NodeError::Task)?;
     let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
-    let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
         Arc::clone(&runtime),
@@ -615,54 +610,6 @@ fn relaying(config: &Config) -> Result<Option<(RelayToken, TlsConfig)>, NodeErro
     }
     let token = token.ok_or(NodeError::NoRelayToken)?;
     Ok(Some((token, relays::relay_tls(&config.relays)?)))
-}
-
-/// The blocking part of start-up: directory, identity, token, key, lock.
-fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
-    dir.prepare().map_err(NodeError::DataDir)?;
-    let id = dir.load_or_create_node_id().map_err(NodeError::DataDir)?;
-    let token = dir.load_or_create_token().map_err(NodeError::DataDir)?;
-    // Created on the first start of every node, new or existing (ADR 0009),
-    // so its identity exists before any device pairs.
-    let key = dir.load_or_create_node_key().map_err(NodeError::DataDir)?;
-    let keypair = NodeKeypair::from_secret(*key.expose());
-    let owner = NodeOwner {
-        pid: std::process::id(),
-        executable: std::env::current_exe().unwrap_or_default(),
-        version: env!("CARGO_PKG_VERSION").to_owned(),
-        started_at: Utc::now(),
-    };
-    let lock = NodeLock::acquire(dir, &owner).map_err(NodeError::AlreadyRunning)?;
-    // After the lock: the MCP directory is emptied, which only the node
-    // owning the data directory may do.
-    let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;
-    let probe_dir = dir.prepare_probe_dir().map_err(NodeError::ProbeDir)?;
-    let workspace_dir = dir
-        .prepare_workspace_dir()
-        .map_err(NodeError::WorkspaceDir)?;
-    // Transfers expire at restart (protocol 6), and so do uploads (protocol
-    // 10); same reason to wait for the lock.
-    transfers::clear(dir);
-    staging::clear(dir);
-    let profiles = NodeProfiles::load(dir.clone(), env).map_err(NodeError::Profiles)?;
-    let models = Models::load(dir.clone(), FleetFiles::new(dir), model_client()?)
-        .map_err(NodeError::Models)?;
-    // A profile naming a route that is not there is not fatal: its
-    // sessions are refused, with the route named, until the file has it.
-    models.check_profiles(&profiles.list(None));
-    Ok(Prepared {
-        id,
-        token,
-        keypair: Arc::new(keypair),
-        lock,
-        profiles,
-        models,
-        dirs: SetupDirs {
-            mcp: mcp_dir,
-            probe: probe_dir,
-            workspace: workspace_dir,
-        },
-    })
 }
 
 /// The client model calls go out with: the operating system's roots, or

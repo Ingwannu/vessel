@@ -40,7 +40,9 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use tokio::sync::watch;
 use vessel_harness::Profile;
+use vessel_proto::mcp::{Injection, McpSettings, TOOL_POLICY_VARIABLE, ToolAccess, ToolPolicy};
 use vessel_proto::{
     AgentSecret, Creator, HarnessRef, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
     ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionInfo, SessionOrigin,
@@ -120,6 +122,7 @@ pub(crate) struct Launcher {
     mcp: Arc<dyn McpSource>,
     /// The `vessel` server, when the node knows how to run it.
     tools: Option<AgentTools>,
+    tool_policy: Option<watch::Receiver<McpSettings>>,
     limit_environment: vessel_harness::LimitEnvironment,
 }
 
@@ -135,6 +138,7 @@ impl Launcher {
             mcp_dir,
             mcp,
             tools,
+            tool_policy: None,
             limit_environment: vessel_harness::LimitEnvironment::new(),
         }
     }
@@ -177,9 +181,25 @@ impl Launcher {
         vessel_harness::limits_binding(&self.limit_environment, profiles.env(), profile)
     }
 
-    /// Whether sessions get the `vessel` server (and so a credential).
-    pub(crate) const fn has_tools(&self) -> bool {
-        self.tools.is_some()
+    /// Subscribe to node choices; each launch below freezes its own exact policy.
+    pub(crate) fn with_tool_policy(mut self, policy: watch::Receiver<McpSettings>) -> Self {
+        self.tool_policy = Some(policy);
+        self
+    }
+
+    /// Freeze before credential creation, so a live settings change cannot mix
+    /// one launch's injection decision with another launch's visibility policy.
+    pub(crate) fn tools_for(&self, harness: &HarnessRef) -> Option<ToolPolicy> {
+        self.tools.as_ref()?;
+        let Some(source) = &self.tool_policy else {
+            return Some(ToolPolicy::default());
+        };
+        let settings = source.borrow();
+        if settings.inject == Injection::Off {
+            return None;
+        }
+        let policy = settings.policy.for_harness(harness);
+        (policy.access() == ToolAccess::Enabled).then_some(policy)
     }
 
     /// Add the `vessel` server for session `session`, holding `secret`.
@@ -188,6 +208,7 @@ impl Launcher {
         servers: &mut ResolvedMcpServers,
         session: SessionId,
         secret: &AgentSecret,
+        policy: &ToolPolicy,
     ) -> Result<(), ServiceError> {
         let Some(tools) = &self.tools else {
             return Ok(());
@@ -198,7 +219,12 @@ impl Launcher {
             .to_str()
             .ok_or(ServiceError::AgentToolsPath)?
             .to_owned();
+        let encoded_policy = serde_json::to_string(policy).map_err(ServiceError::ToolPolicy)?;
         let env = BTreeMap::from([
+            (
+                name(TOOL_POLICY_VARIABLE)?,
+                ResolvedValue::new(encoded_policy),
+            ),
             (name(SOCKET_VARIABLE)?, ResolvedValue::new(socket)),
             (
                 name(SESSION_VARIABLE)?,

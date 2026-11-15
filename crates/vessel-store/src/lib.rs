@@ -63,6 +63,7 @@ mod inbox;
 mod lock;
 mod log;
 mod marks;
+mod mcp_settings;
 mod node_key;
 mod push;
 mod push_key;

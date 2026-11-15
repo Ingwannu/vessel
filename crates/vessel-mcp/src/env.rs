@@ -19,7 +19,7 @@ pub const SESSION_VARIABLE: &str = "VESSEL_AGENT_SESSION";
 pub const SECRET_VARIABLE: &str = "VESSEL_AGENT_SECRET";
 
 /// Nonsecret launch-time visibility snapshot, absent on older nodes.
-pub const POLICY_VARIABLE: &str = "VESSEL_TOOL_POLICY";
+pub const POLICY_VARIABLE: &str = vessel_proto::mcp::TOOL_POLICY_VARIABLE;
 /// A complete serialized launch policy fits below this allocation bound.
 const MAX_POLICY_BYTES: usize = 64 * 1024;
 

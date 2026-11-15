@@ -41,6 +41,9 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
+    /// Exact-provider agent tool injection, hidden while its version is pending.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp: Option<crate::mcp::McpSettings>,
 }
 
 impl NodeSettings {
@@ -48,7 +51,24 @@ impl NodeSettings {
     /// response. Unassigned fields stay hidden even from current peers.
     #[must_use]
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
-        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+        let recovery =
+            self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
+        let hide_mcp = self.mcp.is_some()
+            && !crate::mcp::MCP_PARITY.is_some_and(|required| protocol >= required);
+        match (recovery, hide_mcp) {
+            (Some(mut adapted), _) => {
+                if hide_mcp {
+                    adapted.mcp = None;
+                }
+                Some(adapted)
+            }
+            (None, true) => {
+                let mut adapted = self.clone();
+                adapted.mcp = None;
+                Some(adapted)
+            }
+            (None, false) => None,
+        }
     }
 
     fn for_recovery_protocol(
@@ -173,7 +193,7 @@ pub struct GetNodeSettings {}
 /// build wrote must still parse after a downgrade, keeping what this build
 /// knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
 /// holds the rule.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SetNodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -185,6 +205,9 @@ pub struct SetNodeSettings {
     /// does not offer yet.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
+    /// Partial reloadable tool policy edit; its feature version gates admission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp: Option<crate::mcp::McpSettingsPatch>,
 }
 
 #[cfg(test)]
@@ -194,6 +217,7 @@ mod tests {
     #[test]
     fn recovery_projection_respects_a_synthetic_assigned_boundary() {
         let original = NodeSettings {
+            mcp: None,
             park_after: ParkAfter::Never,
             drivers: AgentDrivers::default(),
             restart_recovery: RestartRecovery {

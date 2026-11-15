@@ -13,6 +13,7 @@ pub const MAX_PROVIDER_POLICIES: usize = 64;
 /// Whether a launch gets the internal tool server; false is fresh-install behavior.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "bool", into = "bool")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "boolean"))]
 pub enum Injection {
     /// No internal server is attached.
     #[default]
@@ -34,6 +35,7 @@ impl From<Injection> for bool {
 /// Provider policy defaults on, independently from the global inject switch.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(from = "bool", into = "bool")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "boolean"))]
 pub enum ToolAccess {
     /// Offer tools except exact denied names.
     #[default]
@@ -55,6 +57,7 @@ impl From<ToolAccess> for bool {
 /// Denylist frozen at launch; unknown stored names survive without disabling a tool here.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "PolicyInput")]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ToolPolicy {
     enabled: ToolAccess,
     disabled: Vec<StoredTool>,
@@ -93,6 +96,12 @@ impl ToolPolicy {
         Ok(Self { enabled, disabled })
     }
 
+    /// Injection omits the whole server when this provider explicitly disables it.
+    #[must_use]
+    pub const fn access(&self) -> ToolAccess {
+        self.enabled
+    }
+
     /// Visibility and invocation must ask the same predicate.
     #[must_use]
     pub fn permits(&self, tool: ToolId) -> bool {
@@ -121,6 +130,7 @@ impl ToolPolicy {
 
 /// Policy for exactly one provider, never inherited from another provider's base.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ProviderPolicy {
     /// Known or configured provider identity.
     pub harness: HarnessRef,
@@ -132,6 +142,7 @@ pub struct ProviderPolicy {
 /// Bounded unique providers; prevents ambiguous policy selection.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
 #[serde(transparent)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ProviderPolicies(Vec<ProviderPolicy>);
 impl ProviderPolicies {
     /// Validate count and uniqueness before constructing a node policy.
@@ -180,6 +191,7 @@ impl<'de> Deserialize<'de> for ProviderPolicies {
 /// Global injection plus exact-provider policies, frozen on the next launch.
 /// No HTTP listener exists in this package; injection uses stdio.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct McpSettings {
     /// Fresh nodes opt in; upgrade migration writes the earlier on behavior.
     #[serde(default)]
@@ -187,4 +199,44 @@ pub struct McpSettings {
     /// Providers without an override offer every tool.
     #[serde(default)]
     pub policy: ProviderPolicies,
+}
+
+/// A partial edit never clears another sub-field when toggling injection.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct McpSettingsPatch {
+    /// Omission keeps the prior decision, including an upgraded node's On.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inject: Option<Injection>,
+    /// Omission keeps the exact provider overrides and future stored names.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy: Option<ProviderPolicies>,
+}
+impl McpSettingsPatch {
+    /// Resolve a stored patch over fresh defaults without guessing upgrade state.
+    #[must_use]
+    pub fn settings(&self) -> McpSettings {
+        McpSettings {
+            inject: self.inject.unwrap_or_default(),
+            policy: self.policy.clone().unwrap_or_default(),
+        }
+    }
+    /// Preserve unmentioned fields, including an explicit false migration marker.
+    #[must_use]
+    pub fn over(self, previous: Self) -> Self {
+        Self {
+            inject: self.inject.or(previous.inject),
+            policy: self.policy.or(previous.policy),
+        }
+    }
+    /// New denylist edits must be enforceable by this node.
+    ///
+    /// # Errors
+    /// Unknown tools in a newly supplied policy are refused before persistence.
+    pub fn validate_edit(&self) -> Result<(), InvalidMcp> {
+        if let Some(policy) = &self.policy {
+            policy.validate_edit()?;
+        }
+        Ok(())
+    }
 }

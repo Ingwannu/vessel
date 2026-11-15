@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: protocol 23. No protocol or schema number is selected here.
+Baseline: protocol 23, with the shared pending method table merged. No protocol or schema number is selected here.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -186,7 +186,14 @@ changes or captures are required by this node-only package.
   empty; update preflights every managed path before changing a declaration.
   User-added files and edited obsolete files are preserved. Tests added, not
   yet executed. Selection transactions and node wiring remain incomplete.
-- Next: fill existing node adapters, stage missing services, narrow checks;
+- Wiring in progress: pending-version `node.settings.mcp` and partial edits,
+  fresh/upgrade migration before identity creation under the node lock,
+  launch snapshots at create/import/resume/profile move, and bounded tracked
+  persistence that completes despite RPC cancellation. Fixture opt-in changes
+  were explicitly approved; old assertions are retained. Protocol tests cover
+  direct get, legacy mutation and forwarded/nested reply hiding.
+- Next: compile this wiring, regenerate TypeScript, finish selection transactions
+  and skill node calls, then remote notifications and the package gate;
   wire only after the shared method-table gate, then package gate/review.
 
 ## Bundled asset decision
@@ -198,3 +205,14 @@ list for all-selection. The bundle ships Vessel, advisor, committee, handoff,
 help and plugin guidance written for Vessel's contracts. Paseo's text is not
 copied. No build script installs files. Asset construction enforces named
 file, count and total byte budgets before any destination writes.
+
+## Cancellation and launch decision
+
+Settings choices are validated before spawning. An admitted change owns a
+bounded permit and a task tracked by node shutdown through file write and
+in-memory apply; cancelling the requesting RPC cannot release either early.
+The session launcher reads one exact-provider snapshot before credential
+creation. A profile move can create or omit the next credential on the
+existing grant, and failure restores its prior credential state, including
+no credential. The node's data lock is acquired before migration and identity
+creation. Startup configuration I/O runs on the blocking worker.

@@ -9,6 +9,7 @@ pub const MAX_TOOL_NAME_BYTES: usize = 128;
 
 /// A validated future tool name, never used as an executable or path.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct ToolName(String);
 
 impl ToolName {
@@ -42,6 +43,7 @@ impl fmt::Display for ToolName {
 
 /// A stored denylist entry: known here or retained for a newer build.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub enum StoredTool {
     /// A tool whose dispatch and policy share one identifier table.
     Known(ToolId),

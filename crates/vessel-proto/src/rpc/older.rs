@@ -496,3 +496,6 @@ mod origins;
 
 #[cfg(test)]
 mod restart_tests;
+
+#[cfg(test)]
+mod mcp_tests;

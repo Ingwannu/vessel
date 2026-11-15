@@ -7,7 +7,7 @@ a credential per session, grants that only shrink) and does not widen
 what that principal may call. The protocol number for the new
 settings fields, and for a read of pending permissions if one is
 added, is given at merge. This document does not choose it.
-`PROTOCOL_VERSION` stays 20, the base of this branch. Those additions
+`PROTOCOL_VERSION` is unchanged from the protocol-23 integration base. Those additions
 are gated on one constant, `MCP_PARITY`, in `vessel-proto`: the
 integrator sets that constant and no other line. The constant is not
 in the code of this commit. `docs/PROTOCOL.md` is updated in the
@@ -598,3 +598,17 @@ and set-aside machinery: malformed input is preserved as unreadable; future
 fields are copied aside before replacement. Whole-file reads are bounded.
 Links and special files are refused, including on write, so preserving a
 malformed file cannot change the permissions of a linked outside target.
+
+
+The implemented settings field is `mcp`, with partial `inject`/`policy` edits.
+It has no HTTP sub-field in this package: the unused listener remains deferred.
+Both direct settings replies and nested fleet replies hide the field while
+`MCP_PARITY` is None and from older peers after assignment; edits require that
+feature at every hop. Fresh and upgrade decisions are persisted before
+identity creation under the data lock. Agent fixtures opt in explicitly, with
+behavior assertions unchanged, while independent tests pin both defaults.
+
+A bounded tracked task owns each admitted settings write through apply, even
+after request cancellation. Shutdown prevents new jobs and drains admitted
+ones. Each new process takes one policy snapshot before credential creation;
+profile-move failure restores the previous credential, including absence.

@@ -76,3 +76,25 @@ impl SessionSetup {
         }
     }
 }
+
+/// Configuration reads and downgrade backups stay off async runtime workers.
+pub(super) async fn settings(
+    config: &Config,
+    runtime: &Arc<vessel_session::SessionRuntime>,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &tokio_util::sync::CancellationToken,
+) -> Result<Arc<crate::settings::Settings>, crate::error::NodeError> {
+    let data = config.data_dir.clone();
+    let runtime = Arc::clone(runtime);
+    let flag = vessel_proto::parking::ParkAfter::from_duration(config.park_after);
+    let flag_given = config.park_after_given;
+    let tasks = tasks.clone();
+    let stop = stop.clone();
+    tokio::task::spawn_blocking(move || {
+        Arc::new(crate::settings::Settings::open(
+            data, runtime, flag, flag_given, tasks, stop,
+        ))
+    })
+    .await
+    .map_err(crate::error::NodeError::Task)
+}

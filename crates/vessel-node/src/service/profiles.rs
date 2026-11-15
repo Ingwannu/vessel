@@ -94,8 +94,14 @@ impl NodeService {
                 // agent a model token of its own, on the same route.
                 let route = info.model.as_ref().map(|model| &model.route);
                 plan.model_proxy = models.begin_move(id, route, &plan.profile)?;
-                if let Some(secret) = agents.begin_move(id)? {
-                    launcher.attach_tools(&mut plan.mcp_servers, id, &secret)?;
+                let policy = launcher.tools_for(&info.spec.harness);
+                let request = if policy.is_some() {
+                    crate::agents::CredentialUse::Mint
+                } else {
+                    crate::agents::CredentialUse::Omit
+                };
+                if let (Some(secret), Some(policy)) = (agents.begin_move(id, request)?, policy) {
+                    launcher.attach_tools(&mut plan.mcp_servers, id, &secret, &policy)?;
                 }
                 Ok(plan)
             })

@@ -45,7 +45,7 @@ use crate::files::{self, Privacy};
 use crate::node_key::NodeKeySecret;
 use crate::token::NodeToken;
 
-const NODE_ID_FILE: &str = "node.id";
+pub(crate) const NODE_ID_FILE: &str = "node.id";
 const TOKEN_FILE: &str = "token";
 const NODE_KEY_FILE: &str = "node.key";
 const DATABASE_FILE: &str = "vessel.db";

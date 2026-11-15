@@ -47,8 +47,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore, watch};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::HarnessKind;
+use vessel_proto::mcp::{InvalidMcp, McpSettings};
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
     AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
@@ -56,12 +58,24 @@ use vessel_proto::settings::{
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
 
+/// Bound detached persistence so cancelling RPCs cannot accumulate writers.
+const MAX_SETTINGS_CHANGES: usize = 8;
+
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SettingsError {
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
+    /// An input policy cannot be enforced by this build.
+    #[error("invalid agent tool policy: {0}")]
+    Policy(#[source] InvalidMcp),
+    /// The global write budget is retained across request cancellation.
+    #[error("too many node settings changes are already admitted")]
+    Busy,
+    /// No new settings job is admitted during shutdown.
+    #[error("the node is stopping")]
+    Stopping,
     /// A driver this node does not know.
     #[error("this node does not know that driver for {0}; send acp or direct")]
     UnknownDriver(HarnessKind),
@@ -97,6 +111,10 @@ pub(crate) struct Settings {
     /// The file holds what only a later build knows: the first change that
     /// writes copies it aside first (`settings.json.later-<UTC time>`).
     later: AtomicBool,
+    tool_policy: watch::Sender<McpSettings>,
+    tasks: TaskTracker,
+    stop: CancellationToken,
+    changes: Arc<Semaphore>,
 }
 
 impl Settings {
@@ -108,6 +126,8 @@ impl Settings {
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
+        tasks: TaskTracker,
+        stop: CancellationToken,
     ) -> Self {
         let (saved, kept, later) = match data_dir.read_settings() {
             Ok(saved) => {
@@ -121,15 +141,25 @@ impl Settings {
                 (SetNodeSettings::default(), kept, false)
             }
         };
+        let initial_policy = saved
+            .mcp
+            .as_ref()
+            .map(|patch| patch.settings())
+            .unwrap_or_default();
+        let (tool_policy, _reader) = watch::channel(initial_policy);
         let settings = Self {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved),
+            saved: Mutex::new(saved.clone()),
             kept,
             later: AtomicBool::new(later),
+            tool_policy,
+            tasks,
+            stop,
+            changes: Arc::new(Semaphore::new(MAX_SETTINGS_CHANGES)),
         };
-        let in_force = settings.in_force(saved);
+        let in_force = settings.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
@@ -145,12 +175,19 @@ impl Settings {
 
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
-    fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
+    fn in_force(&self, saved: &SetNodeSettings) -> NodeSettings {
         let park_after = match saved.park_after {
             Some(after @ (ParkAfter::Never | ParkAfter::Idle { .. })) => after,
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let mcp = Some(
+            saved
+                .mcp
+                .as_ref()
+                .map(|patch| patch.settings())
+                .unwrap_or_default(),
+        );
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -166,6 +203,7 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
+            mcp,
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
@@ -174,49 +212,68 @@ impl Settings {
 
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
-        let saved = *self.saved.lock().await;
-        self.in_force(saved)
+        let saved = self.saved.lock().await;
+        self.in_force(&saved)
+    }
+
+    /// Launches subscribe once and capture a provider policy before minting auth.
+    pub(crate) fn tool_policy(&self) -> watch::Receiver<McpSettings> {
+        self.tool_policy.subscribe()
+    }
+
+    /// The admitted task owns persistence and apply after its RPC is cancelled.
+    pub(crate) async fn change(
+        self: &Arc<Self>,
+        change: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        validate(&change)?;
+        let permit = Arc::clone(&self.changes)
+            .try_acquire_owned()
+            .map_err(|_full| SettingsError::Busy)?;
+        // Register before checking shutdown so teardown cannot pass an empty tracker
+        // while this admitted request is about to install its durable writer.
+        let admitted = self.tasks.token();
+        if self.stop.is_cancelled() {
+            return Err(SettingsError::Stopping);
+        }
+        let settings = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let (_permit, _admitted) = (permit, admitted);
+                settings.apply(change).await
+            })
+            .await
+            .map_err(SettingsError::Lost)?
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is
     /// in force.
-    pub(crate) async fn change(
-        &self,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
+    async fn apply(&self, change: SetNodeSettings) -> Result<NodeSettings, SettingsError> {
         let mut saved = self.saved.lock().await;
-        let mut next = *saved;
+        let mut next = saved.clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
+        if let Some(mcp) = change.mcp {
+            next.mcp = Some(mcp.over(next.mcp.unwrap_or_default()));
+        }
         if next == *saved {
-            return Ok(self.in_force(*saved));
+            return Ok(self.in_force(&saved));
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
+        let persisted = next.clone();
         let aside = tokio::task::spawn_blocking(move || {
             let aside = later
                 .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
                 .transpose()?;
-            data_dir.write_settings(&next).map(|()| aside)
+            data_dir.write_settings(&persisted).map(|()| aside)
         })
         .await
         .map_err(SettingsError::Lost)?
@@ -226,7 +283,10 @@ impl Settings {
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(*saved);
+        let in_force = self.in_force(&saved);
+        if let Some(policy) = &in_force.mcp {
+            let _previous = self.tool_policy.send_replace(policy.clone());
+        }
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         Ok(in_force)
@@ -259,4 +319,24 @@ fn set_aside(data_dir: &DataDir, unusable: &vessel_store::SettingsFileError) -> 
 /// Whether this build offers `kind` over its own protocol.
 fn offered(kind: HarnessKind) -> bool {
     vessel_harness::direct(kind).is_some_and(|direct| direct.selectable)
+}
+
+/// Every external choice is checked before a detached job can be spawned.
+fn validate(change: &SetNodeSettings) -> Result<(), SettingsError> {
+    if let Some(policy) = &change.mcp {
+        policy.validate_edit().map_err(SettingsError::Policy)?;
+    }
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
 }

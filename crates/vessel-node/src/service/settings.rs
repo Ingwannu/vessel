@@ -25,12 +25,14 @@ impl NodeService {
     ) -> Result<NodeSettings, WireError> {
         self.settings.change(request).await.map_err(|error| {
             let code = match error {
-                SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
-                    ErrorCode::InvalidRequest
-                }
+                SettingsError::Unknown
+                | SettingsError::UnknownDriver(_)
+                | SettingsError::Policy(_) => ErrorCode::InvalidRequest,
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 // The node's own file needs a person's hand first.
-                SettingsError::Kept(_) => ErrorCode::Conflict,
+                SettingsError::Kept(_) | SettingsError::Busy | SettingsError::Stopping => {
+                    ErrorCode::Conflict
+                }
                 SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {

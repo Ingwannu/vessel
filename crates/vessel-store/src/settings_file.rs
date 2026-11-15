@@ -214,6 +214,7 @@ mod tests {
         let data = DataDir::new(dir.path());
         assert!(data.read_settings().unwrap().is_none());
         let saved = SetNodeSettings {
+            mcp: None,
             park_after: Some(ParkAfter::Idle {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
