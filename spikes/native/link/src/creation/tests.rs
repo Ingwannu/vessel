@@ -92,6 +92,7 @@ enum Scenario {
     DisconnectPrompt,
     RefuseCreate(ErrorCode),
     Retry(SessionId),
+    WrongRetryReply(SessionId),
     WrongNode,
 }
 
@@ -144,7 +145,9 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
         machine: Name::parse("fake")
             .map_err(|problem| std::io::Error::other(format!("fixture name: {problem:?}")))?,
         target: match scenario {
-            Scenario::Retry(session) => Target::Registered(session),
+            Scenario::Retry(session) | Scenario::WrongRetryReply(session) => {
+                Target::Registered(session)
+            }
             Scenario::Accept
             | Scenario::RefusePrompt(_)
             | Scenario::RefuseCreate(_)
@@ -294,6 +297,29 @@ async fn refused_first_input_retries_only_the_registered_session() {
         matches!(answers.first(), Some(Answer::Registered { session: info, .. }) if info.id == session)
     );
     assert!(matches!(answers.last(), Some(Answer::Complete(_, TICKET))));
+}
+
+#[tokio::test]
+async fn a_retry_read_cannot_replace_the_original_child_identity() {
+    let answers = tokio::time::timeout(
+        TEST_DEADLINE,
+        execute(
+            Scenario::WrongRetryReply(SessionId::random()),
+            FirstInput::Text(Arc::from("retained")),
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(matches!(
+        answers.as_slice(),
+        [Answer::Failed {
+            ticket: TICKET,
+            stage: Stage::InitialInput,
+            failure: Failure::Refused(ErrorCode::Conflict),
+            ..
+        }]
+    ));
 }
 
 #[tokio::test]

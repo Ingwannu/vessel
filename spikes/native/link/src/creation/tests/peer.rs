@@ -74,6 +74,12 @@ async fn register(stream: &mut DuplexStream, scenario: Scenario) -> TestResult<O
             let info = fixture(expected);
             (info.clone(), Reply::GetSession(info))
         }
+        (Call::GetSession(request), Scenario::WrongRetryReply(expected))
+            if request.session == expected =>
+        {
+            let info = fixture(SessionId::random());
+            (info.clone(), Reply::GetSession(info))
+        }
         (
             Call::CreateSession(request),
             Scenario::Accept
@@ -114,7 +120,7 @@ async fn prompt(stream: &mut DuplexStream, id: RequestId, scenario: Scenario) ->
         }
         Scenario::RefusePrompt(code) => Outcome::Err(WireError::new(code, "private diagnostics")),
         Scenario::DisconnectPrompt => return Ok(()),
-        Scenario::RefuseCreate(_) | Scenario::WrongNode => {
+        Scenario::RefuseCreate(_) | Scenario::WrongNode | Scenario::WrongRetryReply(_) => {
             return Err(std::io::Error::other("no prompt allowed").into());
         }
     };
