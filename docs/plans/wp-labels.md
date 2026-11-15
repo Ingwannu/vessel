@@ -187,11 +187,12 @@ has no catalog cursor and patching it into the cache could race an earlier
 list response. This keeps one replica owner and avoids a second local update
 path before the background observer is connected.
 
-Fleet rebinding now retains a loaded catalog's authority only for a connected
-peer advertising the assigned feature version; pending None still refuses
-every peer, and reconnect begins Loading. An unresolved alias cannot duplicate
-or demote an answered route to the same node, regardless of route order. Added
-regressions cover that mixed known/unknown identity case and capability gating.
+Fleet rebinding retains a loaded catalog's authority only for the same admitted
+connection advertising the assigned feature version; pending None refuses every
+peer, and reconnect begins Loading. Distinct book aliases remain distinct choices
+and share cached colors by NodeId. An unresolved alias has no connection context
+and cannot borrow authority from an answered route to the same node. Regressions
+cover both route orders, missing epochs and capability gating.
 
 Merged the current announced line `e5e654b47` (dialog seam `074ade16`) after
 reading WORKER BASES. The label area consumes shared `DialogState::dismissed`
@@ -262,3 +263,9 @@ refuses a mismatched node or legacy session layout and can fence callbacks
 against a changed workspace/admission. This is a values seam, not a second
 workspace registry, connection resolver or label store. The picker renderer
 and caller registration remain unfinished; the new boundary test is pending.
+
+A semantic session-list refusal is independent of the label connection: the
+shared Machine snapshot deliberately retains its authenticated epoch/protocol
+when that read is denied. Label availability now uses admission plus its own
+feature capability, never Reach (a session-read result). The capability
+regression distinguishes denied session reads from a missing/retired epoch.

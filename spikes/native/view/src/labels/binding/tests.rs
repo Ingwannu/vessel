@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::{
-    Machine,
+    Machine, Reach,
     labels::{Color, HostKey, Label},
 };
 
@@ -22,7 +22,7 @@ fn machine(name: &str, node: Option<HostKey>, reach: Reach) -> Machine {
     Machine {
         name: name.to_owned(),
         node,
-        connection_epoch: node.map(|node| {
+        connection_epoch: node.filter(|_| matches!(reach, Reach::Online)).map(|node| {
             crate::connection::ConnectionEpochs::default()
                 .admit(crate::connection::MachineKey::from_book(name), node)
                 .unwrap()
@@ -184,7 +184,13 @@ fn capability_gate_preserves_loaded_authority_only_for_a_capable_connected_peer(
         availability(&peer, Some(HostState::Online), Some(version)),
         HostState::Unsupported
     );
-    peer.reach = Reach::Unreachable("offline".into());
+    peer.protocol = Some(version);
+    peer.reach = Reach::Unreachable("session read refused".into());
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), Some(version)),
+        HostState::Online
+    );
+    peer.connection_epoch = None;
     assert_eq!(
         availability(&peer, Some(HostState::Online), Some(version)),
         HostState::Offline

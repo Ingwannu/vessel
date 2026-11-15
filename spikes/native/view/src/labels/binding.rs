@@ -1,7 +1,7 @@
 //! Welcome identity owns catalogs; a local route alias never manufactures one.
 
 use super::{Catalog, Failure, Host, HostState};
-use crate::{Fleet, Reach, machine_book::Name};
+use crate::{Fleet, machine_book::Name};
 use vessel_proto::{ProtocolVersion, workspace_labels::WORKSPACE_LABELS};
 
 /// A fresh projection retains offline caches without attributing them to a new peer.
@@ -68,7 +68,7 @@ fn availability(
     previous: Option<HostState>,
     since: Option<ProtocolVersion>,
 ) -> HostState {
-    if matches!(machine.reach, Reach::Unreachable(_)) || machine.connection_context().is_none() {
+    if machine.connection_context().is_none() {
         return HostState::Offline;
     }
     if since.is_none_or(|since| machine.protocol.is_none_or(|peer| peer < since)) {
