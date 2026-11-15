@@ -292,3 +292,7 @@ and `Vessel patch` at each change.
   (5 points: no drag; 7: a drag) and
   `drag::tests::an_element_naming_no_distance_keeps_gpuis_two` (1.5: no
   drag; 3: a drag), through real mouse events in a test window.
+
+The patch7 kit consumer also names Paseo's terminal-blue diff selection and
+muted context-number ink separately from the unchanged ordinary source profile.
+Its real-window readonly/select/reflow fixture is added but not yet executed.

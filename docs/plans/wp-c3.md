@@ -384,3 +384,10 @@ both ended cancelled143 before any step at10:35:42; G1 issued no cancellation.
 The build-tools owner was asked to inspect that exact event before any retry.
 No tests are recorded as passed from either cancelled run. The new vendor/profile
 and current dependency union need their own exact checks and execution.
+
+The readonly profile explicitly uses diff-document/palette.ts's terminal-blue
+selection and muted context-number ink; these do not change ordinary CodeEditor.
+The blue comes from the existing terminal palette, not a new colour table.
+A real-window kit fixture constructs DiffEditor, selects across Latin/Hangul
+rows, attempts text replacement and reflows the same buffer. It remains
+unexecuted until the exact remote test run; no live IME claim is made.

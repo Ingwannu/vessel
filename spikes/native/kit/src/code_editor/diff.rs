@@ -127,8 +127,11 @@ impl DiffEditor {
 
     /// Reflow the same buffer/selection rather than replacing its engine.
     pub fn set_wrapping(&self, wrapping: DiffWrapping, window: &mut Window, cx: &mut App) {
-        self.editor
-            .set_wrapping(matches!(wrapping, DiffWrapping::Wrap), window, cx);
+        let wrap = match wrapping {
+            DiffWrapping::Scroll => false,
+            DiffWrapping::Wrap => true,
+        };
+        self.editor.set_wrapping(wrap, window, cx);
     }
 
     /// Keep keyboard selection and copy available in a read-only surface.
@@ -139,11 +142,16 @@ impl DiffEditor {
     /// Paint using the shared syntax projection and current semantic colours.
     pub fn element(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
         let mut style = super::style(tokens);
+        // Paseo diff-document/palette.ts uses terminal.blue for selection,
+        // independently of the ordinary source editor's neutral selection.
+        let [_, _, _, _, blue, ..] = tokens.terminal.ansi;
+        style.selection = gpui::rgb(blue).into();
         style.line_presentation = Some(Rc::new(Presentation {
             rows: Arc::clone(&self.rows),
             sample: self.sample.clone(),
             added: tokens.status.success.foreground,
             removed: tokens.status.error.foreground,
+            muted: tokens.neutral.foreground_muted,
         }));
         self.editor
             .state
@@ -163,6 +171,7 @@ struct Presentation {
     sample: gpui::SharedString,
     added: gpui::Hsla,
     removed: gpui::Hsla,
+    muted: gpui::Hsla,
 }
 impl InputLinePresentation for Presentation {
     fn gutter_sample(&self) -> gpui::SharedString {
@@ -175,7 +184,8 @@ impl InputLinePresentation for Presentation {
         let (number_color, background) = match row.tone {
             DiffTone::Added => (Some(self.added), Some(self.added.opacity(0.15))),
             DiffTone::Removed => (Some(self.removed), Some(self.removed.opacity(0.1))),
-            DiffTone::Context | DiffTone::Empty => (None, None),
+            DiffTone::Context => (Some(self.muted), None),
+            DiffTone::Empty => (None, None),
         };
         InputLinePaint {
             number: row.number.map(|number| number.to_string().into()),
@@ -186,42 +196,4 @@ impl InputLinePresentation for Presentation {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn metadata_must_cover_trailing_empty_buffer_rows() {
-        let rows: Arc<[DiffLine]> = Arc::from([DiffLine {
-            number: NonZeroU32::new(9),
-            tone: DiffTone::Added,
-        }]);
-        assert_eq!(
-            DiffText::new(Arc::from("x\n"), rows).unwrap_err(),
-            DiffTextError::RowCount { lines: 2, rows: 1 }
-        );
-        let admitted = DiffText::new(
-            Arc::from(""),
-            Arc::from([DiffLine {
-                number: None,
-                tone: DiffTone::Empty,
-            }]),
-        )
-        .unwrap();
-        assert_eq!(admitted.text.as_ref(), "");
-        assert_eq!(admitted.sample.as_ref(), "00");
-    }
-    #[test]
-    fn sample_uses_actual_mapped_numbers_with_a_two_digit_minimum() {
-        let rows = Arc::from([
-            DiffLine {
-                number: NonZeroU32::new(3),
-                tone: DiffTone::Context,
-            },
-            DiffLine {
-                number: NonZeroU32::new(999_999),
-                tone: DiffTone::Removed,
-            },
-        ]);
-        let admitted = DiffText::new(Arc::from("a\nb"), rows).unwrap();
-        assert_eq!(admitted.sample.as_ref(), "999999");
-    }
-}
+mod tests;
