@@ -329,11 +329,6 @@ impl Shell {
 }
 
 #[cfg(test)]
-mod language_tests;
-#[cfg(test)]
-mod requests_tests;
-
-#[cfg(test)]
 impl Answering {
     pub(super) fn request_source(&self, id: QuestionId) -> Option<(vessel_app_kit::FieldId, bool)> {
         (self.id == id).then(|| (self.field.id(), self.sent))
@@ -345,3 +340,8 @@ impl Answering {
         self.sent = true;
     }
 }
+
+#[cfg(test)]
+mod language_tests;
+#[cfg(test)]
+mod requests_tests;

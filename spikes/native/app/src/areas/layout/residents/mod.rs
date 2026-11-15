@@ -4,8 +4,6 @@
 //! selected-session composer callback is not a production resource constructor.
 mod access;
 mod opening;
-#[cfg(test)]
-mod requests_owner_tests;
 pub(crate) use opening::{SessionAdmission, SessionOpening, SessionOpeningProblem};
 #[cfg(test)]
 mod tests;
@@ -104,3 +102,6 @@ impl SessionResidents {
         Ok(&mut self.entry_mut(context.resident)?.resources)
     }
 }
+
+#[cfg(test)]
+mod requests_owner_tests;
