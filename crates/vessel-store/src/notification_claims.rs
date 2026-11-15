@@ -5,6 +5,12 @@ use crate::{PushAttention, StoreError};
 use rusqlite::{Connection, params};
 use vessel_proto::DeviceId;
 
+/// Admissions cannot outlive attention. No title, path, device or content is
+/// retained in this once-only cursor index.
+pub(crate) const SCHEMA: &str = "CREATE TABLE notification_claims (
+    cursor INTEGER PRIMARY KEY REFERENCES inbox(cursor) ON DELETE CASCADE
+) STRICT;";
+
 /// Person authority already established by the node's authenticated context.
 /// Agent and delegated origins have no representable admission authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

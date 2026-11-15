@@ -78,6 +78,12 @@ pub(super) fn apply(
         } => marked_answer(transaction, effects, done, |connection| {
             read_attention(connection, session, through, at)
         }),
+        Write::Detach { session, at, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::subagents::detach(connection, session, at)
+            });
+            Answer::Detached(done, applied)
+        }
         Write::Delete { session, done } => {
             let applied = isolated(transaction, |connection| marks::delete(connection, session));
             if applied.is_ok() {
@@ -108,6 +114,7 @@ pub(super) fn apply(
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
+        Write::Registry { mutation, done } => registry(transaction, &mutation, done, effects),
         Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
             crate::workspace::apply(connection, &write)
         }),
@@ -166,6 +173,23 @@ fn write_answer(
     operation: impl FnOnce(&Connection) -> Result<(), StoreError>,
 ) -> Answer {
     Answer::Done(done, isolated(transaction, operation))
+}
+
+/// Apply a registry write in its savepoint; a change wakes the registry's
+/// watchers once the batch commits.
+fn registry(
+    transaction: &mut Transaction<'_>,
+    mutation: &crate::registry::RegistryWrite,
+    done: Done,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        crate::registry::apply(connection, mutation)
+    });
+    if matches!(applied, Ok(crate::registry::RegistryChange::Changed)) {
+        effects.registry = crate::registry::RegistryChange::Changed;
+    }
+    Answer::Done(done, applied.map(drop))
 }
 
 /// Append a session's records and index them, in one savepoint. The
