@@ -459,8 +459,8 @@ Build, tests and binary export were not reached, so there are no F5 runtime
 captures or consumer-ready shared API claims from this run.
 
 Announced package base6 (`18eedad47`) is merged at `5698d932f`. Shared source
-and the existing preference behavior are preserved. Native lock correction
-from the lead is the remaining prerequisite for the helper's locked checks.
+and the existing preference behavior are preserved. Lead lock correction
+`dd13ce378` is adopted at `57d12f69f` for the helper's locked checks.
 The new event/profile tests now initialize the same existing GPUI input key
 bindings as the selection tests. A real Enter regression covers every
 Appearance single-line profile: one current-value submission, unchanged text.
@@ -471,3 +471,27 @@ subscription or shared inset-focus behavior is introduced.
 Next: corrected remote narrow Clippy for the three native consumer crates,
 then the corrected package gate with app export, private-display interactions
 and captures, and one combined review. Old failed logs remain separate.
+
+
+### Corrected narrow check
+
+`themes-narrow-20261115T113626Z-57d12f69` finished FAILED: fonts0,
+selected all-target Clippy101. View checked, but the new field referred to
+projection at its pre-split path, a new event-test literal needed its owner
+type, and the larger inline family values made the existing SavePrefs command
+variant exceed the size lint. No build, tests or runtime proof is inferred.
+The fixes use the private styles path, an explicit test generic, and one
+immutable Arc-backed parsed family value. Public preferences, field callbacks
+and command variants keep their existing shape; no second engine or wrapper
+message API is introduced. Immutable sharing also avoids copying parsed face
+lists through every saved snapshot. Type names in new source docs and one
+unused import are clarified in the same correction, with no lint exemption.
+
+Existing consumer metric limits: semantic Mono12/20 and MonoBody14/20 retain
+their authored metrics. The new readonly preview uses rounded code1.5 and
+content1.4; the existing CodeEditor inherits Mono12/20 while Paseo source
+editor extensions.web.ts:62 uses CSS lineHeight1.45. F5 applies code size and
+family to that existing editor, and does not certify its complete layout.
+The existing Markdown code-block line1.375 also remains. Markdown-file width
+projection and quiet terminal font-stack cache invalidation are coordinated
+with their owners; neither is completed evidence from this package yet.

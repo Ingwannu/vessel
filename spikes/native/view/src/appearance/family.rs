@@ -8,6 +8,7 @@
 //! - Cost: native font-family resolution is a later kit concern, not CSS here.
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 mod faces;
 pub use faces::{FaceName, FamilyFace, GenericFamily};
 
@@ -17,7 +18,13 @@ pub const MAX_FAMILY_UNITS: usize = 200;
 /// A safe, trimmed font-family preference; empty means the default stack.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct FontFamily {
+pub struct FontFamily(Arc<FamilyData>);
+
+// One immutable parsed value travels through saved snapshots and command
+// queues. Sharing keeps those snapshots cheap and prevents family support
+// from inflating every variant of the existing command/event enums.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct FamilyData {
     spelling: String,
     faces: Vec<FamilyFace>,
 }
@@ -53,28 +60,28 @@ impl FontFamily {
             return Err(FamilyError::Forbidden);
         }
         check_constructs(text)?;
-        Ok(Self {
+        Ok(Self(Arc::new(FamilyData {
             spelling: text.to_owned(),
             faces: faces::decode(text),
-        })
+        })))
     }
 
     /// Parsed stack entries; resolution never reparses the saved spelling.
     #[must_use]
     pub fn faces(&self) -> &[FamilyFace] {
-        &self.faces
+        &self.0.faces
     }
 
     /// Whether the embedded default stack is selected; omit it from old files.
     #[must_use]
     pub fn is_default(&self) -> bool {
-        self.spelling.is_empty()
+        self.0.spelling.is_empty()
     }
 
     /// The retained trimmed value; empty uses the normal default stack.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.spelling
+        &self.0.spelling
     }
 }
 
@@ -105,7 +112,7 @@ fn check_constructs(text: &str) -> Result<(), FamilyError> {
 
 impl std::fmt::Display for FontFamily {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.spelling)
+        f.write_str(&self.0.spelling)
     }
 }
 
@@ -119,7 +126,7 @@ impl TryFrom<String> for FontFamily {
 
 impl From<FontFamily> for String {
     fn from(family: FontFamily) -> Self {
-        family.spelling
+        family.0.spelling.clone()
     }
 }
 

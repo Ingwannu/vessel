@@ -1,7 +1,8 @@
 //! Appearance input chrome over the existing registered single-line engine.
 //! Reuses the shared inset-focus bridge; no selection, event subscription or
 //! editing state is duplicated. Parsing and commit/restore remain in view.
-use super::{Kind, TextField, project, settings_frame};
+use super::styles::project;
+use super::{Kind, TextField, settings_frame};
 use crate::{Tokens, Type, TypeExt as _, fonts};
 use gpui::prelude::*;
 use gpui::{AnyElement, App, SharedString, TextAlign, div, px};

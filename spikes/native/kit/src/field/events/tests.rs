@@ -36,7 +36,7 @@ fn windowed_events_use_current_text_once_while_legacy_has_no_blur_hook(cx: &mut 
         field: TextField::with_events(
             "",
             |owner: &mut Probe, text, _, _| owner.events.push(Seen::Submit(text)),
-            FieldEvents {
+            FieldEvents::<Probe> {
                 on_edit: Some(|owner, text, _, _| owner.events.push(Seen::Edit(text))),
                 on_focus: Some(|owner, _, _| owner.events.push(Seen::Focus)),
                 on_blur: Some(|owner, text, _, _| owner.events.push(Seen::Blur(text))),
