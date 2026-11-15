@@ -126,3 +126,7 @@ BOM/space-only queries become blank child listings; interior BOM stays literal.
 These cap/control rules are explicit Vessel resource/one-line differences,
 not Paseo parity claims. Direct and serde fixtures cover Unicode scalars, raw
 length boundaries, BOM-wrapped input and edge/interior prohibited characters.
+
+### Admitted download readers
+
+The SDK's single validated download loop now also accepts a typed per-page reader. The existing `NodeClient::fetch_workspace_file` delegates to it unchanged. This permits the native shared G4 selected-connection adapter to admit every original `ReadFileBytes` request without exposing its raw client or cloning the SDK loop in the app. The closure is a transport boundary, not authority; its caller must keep the original context/root/path. Initial refusal occurs before output construction, continuation refusal drops the unfinished sink, and no read is replayed. The sink still owns complete-manifest hash validation and atomic publication; this extraction adds no generic durability promise. Deadline wording no longer suggests that a refresh proves remote write completion.

@@ -78,3 +78,7 @@ trim helper after explicit raw scalar/control admission; ADR0083 records why
 the 256-scalar and control/line-separator restrictions differ from Paseo. Unit
 and serde fixtures pin the chosen contract. These corrections still await the
 proper changed-source narrow checks and V3 follow-up; no green claim is made.
+
+## Admitted SDK reader prerequisite
+
+The existing transfer loop is reused through `fetch_workspace_file_with(root,path,reader,make_sink)`. The original `NodeClient` API delegates to it; no wire method, protocol number or filesystem authority is added. A native selected-connection reader can fence every original page without raw-client access or a second transfer implementation. Regressions pin first-page refusal before output construction and retirement between pages with the original root/path/expected revision retained and no replay. The sink still owns complete hash validation and atomic publication. New-source narrow evidence is owed; exact100da283's808/0/1 is prior-source evidence for the earlier security correction, not this extraction.

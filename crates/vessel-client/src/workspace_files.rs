@@ -20,8 +20,8 @@ pub enum WorkspaceFileCallError {
     /// Authentication, admission, transport or remote filesystem refusal.
     #[error(transparent)]
     Call(#[from] CallError),
-    /// The remote operation may still finish; refresh before retrying writes.
-    #[error("the file operation timed out; it may still finish, so refresh before retrying")]
+    /// The remote operation may still finish; a new read does not prove it ended.
+    #[error("the file operation timed out; its remote completion is unknown")]
     Deadline,
 }
 
