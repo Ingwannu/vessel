@@ -13,6 +13,52 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Service input and reads must never expose unit environment contents.
+    #[error(transparent)]
+    Service(#[from] crate::init::ServiceError),
+    /// Bounded comparison input or command ownership.
+    #[error(transparent)]
+    ComparisonInput(#[from] vessel_client::comparison::InputError),
+    #[error(transparent)]
+    ComparisonJob(#[from] vessel_client::comparison::JobError),
+    #[error(transparent)]
+    Comparison(#[from] crate::conversation::comparison::CompareError),
+    /// Formatting a usage report failed.
+    #[error("could not format the usage report")]
+    UsageFormat(#[from] std::fmt::Error),
+    /// Directory authority must come from identity equality, not loopback alone.
+    #[error("cannot inspect the local node identity")]
+    LocalIdentity(#[source] vessel_node::StoreError),
+    /// A disappeared waiter must not be reported as completed shutdown.
+    #[error("the node lock waiter ended without a completion")]
+    LockWaiter(#[source] tokio::sync::oneshot::error::RecvError),
+    /// Local lifecycle checks preserve the store's original I/O cause.
+    #[error("cannot inspect the node lock")]
+    NodeLock(#[source] vessel_node::StoreError),
+    /// A stale owner record is never evidence of a running node.
+    #[error("the node is not running")]
+    NodeNotRunning,
+    /// A held lock without a valid owner must not be mistaken for a stale record.
+    #[error("the node lock is held but its owner record is unavailable")]
+    NodeOwnerUnavailable,
+    /// A graceful stop exceeded its complete command deadline.
+    #[error("the node did not finish the graceful stop within {limit} seconds (--timeout)")]
+    StopTimedOut {
+        /// The same parsed budget passed to the command's deadline.
+        limit: crate::args::StopTimeout,
+        /// Keep expiry's typed cause rather than replacing it with text.
+        #[source]
+        source: tokio::time::error::Elapsed,
+    },
+    /// Older peers must refuse before a lifecycle method is sent.
+    #[error("the running node cannot be stopped over the wire; stop it on its machine")]
+    StopUnsupported(#[source] CallError),
+    /// Existing sessions require an explicit interruption or drain choice.
+    #[error("not stopped: live sessions remain; see the list above")]
+    StopHasLiveSessions,
+    /// The interactive interruption confirmation was declined.
+    #[error("not confirmed; nothing was stopped")]
+    StopNotConfirmed,
     /// Explicit operator LSP configuration failed.
     #[error(transparent)]
     LspConfiguration(#[from] vessel_node::LspConfigError),

@@ -426,3 +426,56 @@ async fn a_logged_out_profile_gets_its_login_command_and_no_value_is_shown() {
     })
     .await;
 }
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_relative_init_directory_is_absolute_in_the_new_service() {
+    within(async {
+        let machine = Machine::new();
+        let output = tokio::process::Command::new(VESSEL)
+            .args(["--data-dir", "relative-node", "init", "--yes", "--service"])
+            .current_dir(machine.data.path())
+            .env("HOME", machine.home.path())
+            .env("VESSEL_HOME", machine.home.path())
+            .env("VESSEL_CONFIG_DIR", machine.home.path().join("config"))
+            .env("PATH", machine.search_path())
+            .env("FAKE_TOOL_LOG", &machine.log)
+            .env_remove("XDG_CONFIG_HOME")
+            .env_remove("CLAUDE_CONFIG_DIR")
+            .env_remove("CODEX_HOME")
+            .env_remove("VESSEL_TOKEN")
+            .env_remove("VESSEL_NODE")
+            .stdin(Stdio::null())
+            .output()
+            .await
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let file = if cfg!(target_os = "linux") {
+            machine
+                .home
+                .path()
+                .join(".config/systemd/user/vessel.service")
+        } else {
+            machine
+                .home
+                .path()
+                .join("Library/LaunchAgents/vessel.node.plist")
+        };
+        let contents = std::fs::read_to_string(file).unwrap();
+        let absolute = machine.data.path().join("relative-node");
+        assert!(contents.contains(absolute.to_str().unwrap()), "{contents}");
+        assert!(!contents.contains("--data-dir \"relative-node\""));
+        assert!(!contents.contains("<string>relative-node</string>"));
+        assert!(
+            machine
+                .calls()
+                .iter()
+                .any(|line| line.starts_with("systemctl ") || line.starts_with("launchctl "))
+        );
+    })
+    .await;
+}

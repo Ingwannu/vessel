@@ -50,6 +50,15 @@ about-role-identifiers = 고유 식별자
 # Under a bundled software name: its language role. Keep short.
 about-role-language = 시스템 언어
 
+# Under the desktop-portal client: reading the system's reduce-motion setting. Keep short.
+about-role-desktop = 데스크톱 설정
+
+# Under the async stream library: following desktop setting changes. Keep short.
+about-role-tasks = 비동기 작업
+
+# Under image/resvg: window-icon pixels and the app's vector drawings. Keep short.
+about-role-images = 이미지 그리기
+
 # Under a bundled software name: its errors role. Keep short.
 about-role-errors = 오류
 

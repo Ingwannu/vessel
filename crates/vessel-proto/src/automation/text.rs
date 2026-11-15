@@ -197,6 +197,17 @@ automation_text! {
     DeliveryKey = DeliveryKey;
 }
 
+impl PromptText {
+    /// Reference default shared by construction and default-value projection.
+    pub(crate) const RESUME_DEFAULT: &'static str = "Resume working.";
+
+    /// A trusted nonblank reference literal, within the existing byte bound.
+    /// External input still passes the ordinary validating parser.
+    pub(crate) fn resume_default() -> Self {
+        Self(Arc::from(Self::RESUME_DEFAULT))
+    }
+}
+
 impl TimeZoneName {
     /// Coordinated Universal Time.
     #[must_use]

@@ -66,6 +66,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         instructions: Some("CLAUDE.md"),
         skills: Some("skills"),
     },
+    limits: Some(vessel_proto::limits::LimitLoginStore::ClaudeCode),
     login: Some(&["auth", "status"]),
     install: "npm install -g @anthropic-ai/claude-code",
     login_command: Some(&["auth", "login"]),

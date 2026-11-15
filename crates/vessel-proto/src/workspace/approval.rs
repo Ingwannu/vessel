@@ -27,6 +27,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use super::FileTerminal;
 use super::text::{CommandsDigest, ProjectCommand};
 use crate::scripts::ScriptEntry;
 
@@ -43,6 +44,9 @@ pub struct CommandSet {
     /// Its scripts and services, in name order; left out when none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scripts: Vec<ScriptEntry>,
+    /// Terminal commands covered by this approval (ADR 0066).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub terminals: Vec<FileTerminal>,
 }
 
 /// A set a person approved for a project, and when.
