@@ -104,3 +104,8 @@ and its three vectors are exact434933b3; all prior vectors remain unchanged.
 The only size record change is slider719 to711. Its alias/lint corrections are
 included; the original b094 red check is retained. Narrow checks of this exact
 integrated head are owed, with no consumer/UI/full-feature approval yet.
+
+Base4 narrow schedules-narrow-20261115T083634Z-bfb3a809 failed at Kit lib-test
+Clippy: two missing terminal semicolons in the new input regression. Fonts0,
+cargo101; no tests ran. This test-only correction keeps every assertion and
+production byte unchanged and requires a fresh corrected-head narrow result.

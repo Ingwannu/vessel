@@ -91,7 +91,7 @@ fn disabled_and_loading_callbacks_cannot_fire_and_completion_reenables(cx: &mut 
             cx.run_until_parked();
         }
         view.read_with(cx, |this, _| {
-            assert_eq!((this.ready, this.disabled, this.loading), (1, 0, 0))
+            assert_eq!((this.ready, this.disabled, this.loading), (1, 0, 0));
         });
         view.update(cx, |this, cx| {
             this.pending = false;
@@ -101,7 +101,7 @@ fn disabled_and_loading_callbacks_cannot_fire_and_completion_reenables(cx: &mut 
         cx.simulate_click(point(px(20.0), px(80.0)), Modifiers::none());
         cx.run_until_parked();
         view.read_with(cx, |this, _| {
-            assert_eq!((this.ready, this.disabled, this.loading), (1, 0, 1))
+            assert_eq!((this.ready, this.disabled, this.loading), (1, 0, 1));
         });
     }
 }
