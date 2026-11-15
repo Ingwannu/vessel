@@ -141,3 +141,39 @@ The abandoned display PID was absent before its owned stale markers were
 removed. Later app/display processes ended normally. The disposable fleet
 is retained for the next shortcut integration check and must be stopped by
 its recorded, verified PIDs when that work ends.
+
+## Theme cycle contract (implementation pending)
+
+[Decision Log]
+- Purpose: expose Paseo's theme-cycle action through the native app's single
+  existing shortcut registry, including rebinding, conflict detection and
+  the Settings row that already read that registry.
+- Existing assets: `view::shortcuts` owns the action table, Mod convention,
+  matching and stored overrides. The app's one interceptor owns dispatch,
+  recording and composition suppression. `Theme::next` and the existing
+  `PreferenceChange::Theme` setter own ordering and persistence.
+- Alternatives: a second listener or a copied theme list would drift from
+  the registry and appearance preference. No dependency or wire change is
+  needed; this extends ADR 0036's one-source keys rule.
+- Choice: one General action with default `Mod+Alt+T`, resolved to Command
+  on Mac and Control elsewhere. A pure view rule suppresses this action
+  while the command center is open, and while a terminal has focus off Mac.
+  Existing recording/composition guards still precede matching. Overrides
+  are subject to the same scope rule as the default.
+- Identity: the native action id is `cycle-theme`, following the existing
+  validated preference grammar. Paseo calls it `theme.cycle`; broadening the
+  shared stored-id grammar is unnecessary for this single native action.
+- Reference: Paseo `keyboard/keyboard-shortcuts.ts:1028–1050`, General help
+  label "Cycle theme"; `app/_layout.tsx:388–391` computes the next preference,
+  and `hooks/use-keyboard-shortcuts.ts` routes that callback. The referenced
+  context and matching types were read as well.
+- Dependency contract: theme consumer `fb711444`, including the correction
+  above `4f754b4b`. It adds the eight existing preference variants and
+  `Theme::next`; it is a source contract until its owner reports the whole
+  gate green. This shortcut slice must not be submitted before that result.
+- Verification: match the real default on both conventions; test command
+  center and terminal exclusions, Mac terminal allowance, rebinding and
+  the complete cycle through `PreferenceChange::Theme`. Native whole gate
+  follows narrow compilation. Actual terminal focus needs the terminal
+  area's public seam; the current integration still draws a placeholder,
+  so a pure context test must not be described as live terminal proof.
