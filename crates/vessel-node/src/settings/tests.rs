@@ -96,6 +96,9 @@ async fn invalid_reload_and_failed_reset_publish_nothing() {
         b"{".as_slice(),
         br#"{"future":"private-config-canary"}"#,
         br#"{"park_after":{"kind":"never"},"drivers":{"codex":"private-config-canary"}}"#,
+        br#"{"park_after":null,"park_after":{"kind":"never"}}"#,
+        br#"{"park_after":{"kind":"never"},"drivers":{"codex":"private-config-canary","codex":"acp"}}"#,
+        br#"{"drivers":{"codex":null,"codex":"acp"}}"#,
     ] {
         std::fs::write(&path, bytes).unwrap();
         assert!(matches!(

@@ -1183,3 +1183,32 @@ failure category; the wire mapper uses that same boundary. This intentionally
 seals panic payloads in this settings path, not the process-wide panic hook.
 Tests exercise an actual panicking task and its mapped wire diagnostic. No
 ordinary I/O or strict input cause is flattened by this wrapper.
+
+## Strict JSON member uniqueness
+
+[Decision Log]
+- Purpose and intent: a complete typed input must not silently discard an
+  earlier invalid choice or null when the same object member occurs again.
+- Existing implementation and constraints: serde_json::Value uses last-member
+  insertion. Converting that tree to a shared setting and comparing its canonical
+  tree can no longer see duplicates that were already overwritten.
+- Alternatives considered: parsing the original typed value alone, scanning raw
+  key strings, or rejecting duplicate decoded keys in the recursive JSON visitor.
+  Typed object forms need not all reject duplicates, and raw strings miss escaped
+  aliases and nesting. A separate general parser/dependency is unnecessary.
+- Selected approach: the existing bounded settings decoding edge builds its
+  temporary tree with a recursive serde visitor that refuses a repeated decoded
+  object key before insertion. The same visitor covers objects in arrays. The
+  existing shared typed decode/canonical comparison then checks unknown/null
+  loss; no domain code receives an untyped tree.
+- Why this approach: serde still owns syntax, number validation, trailing-data
+  refusal and its recursion limit. The existing encoded-byte cap is checked
+  before parsing. No independent key catalogue or numeric bound is introduced.
+- Advantages, costs and effects: previously collapsed duplicates now refuse,
+  including earlier invalid/null values followed by a valid choice. Safe error
+  categories/locations never include the key or value. This is a conservative
+  refinement of the strict-JSON difference from Paseo config.ts JSON.parse and
+  its literal-string fallback, not a change to downgrade-tolerant startup reads.
+  Tests cover snapshot/field duplicates, escaped keys, nested array objects,
+  complete diagnostic chains, pre-credential CLI refusal and unchanged runtime
+  state/file bytes after a refused reload. Execution evidence remains owed.

@@ -2,6 +2,8 @@
 //! Temporary trees detect fields tolerated by downgrade-compatible wire/file
 //! types. Neither a tree nor serde's caller-chosen diagnostic text escapes.
 
+mod json;
+
 use std::fmt;
 
 use serde::Serialize;
@@ -88,8 +90,7 @@ pub(super) fn field<T: DeserializeOwned + Serialize>(
     if bytes.len() > SetNodeSettings::MAX_JSON_BYTES {
         return Err(InvalidSettingInput::TooLong);
     }
-    let raw: serde_json::Value =
-        serde_json::from_slice(bytes).map_err(|error| InvalidSettingInput::Decode(error.into()))?;
+    let raw = json::decode(bytes).map_err(|error| InvalidSettingInput::Decode(error.into()))?;
     let typed = T::deserialize(&raw).map_err(|error| InvalidSettingInput::Decode(error.into()))?;
     let encoded =
         serde_json::to_value(&typed).map_err(|error| InvalidSettingInput::Encode(error.into()))?;
@@ -178,5 +179,54 @@ mod tests {
                 source = error.source();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod duplicate_tests {
+    use super::super::NodeSettingKey;
+    use super::*;
+
+    fn safe_refusal(error: &InvalidSettingInput, canary: &str) {
+        assert!(matches!(error, InvalidSettingInput::Decode(_)));
+        let mut source: Option<&dyn std::error::Error> = Some(error);
+        while let Some(error) = source {
+            assert!(!error.to_string().contains(canary));
+            assert!(!format!("{error:?}").contains(canary));
+            source = error.source();
+        }
+    }
+
+    #[test]
+    fn original_document_duplicates_are_refused_before_any_member_is_lost() {
+        let canary = "private-duplicate-setting-canary";
+        for input in [
+            format!(r#"{{"park_after":"{canary}","park_after":{{"kind":"never"}}}}"#),
+            format!(r#"{{"drivers":{{"codex":"{canary}","codex":"acp"}}}}"#),
+            r#"{"drivers":{"codex":null,"codex":"acp"}}"#.to_owned(),
+            format!(r#"{{"park_after":{{"kind":"{canary}","kind":"never"}}}}"#),
+            // Compare decoded keys, including escaped aliases, at every depth.
+            r#"{"drivers":{"co\u0064ex":null,"codex":"acp"}}"#.to_owned(),
+            format!(r#"{{"future":[{{"{canary}":null,"{canary}":true}}]}}"#),
+        ] {
+            let error = SetNodeSettings::from_json(input.as_bytes()).unwrap_err();
+            safe_refusal(&error, canary);
+        }
+    }
+
+    #[test]
+    fn whole_field_duplicates_cannot_hide_a_prior_null_or_invalid_choice() {
+        let canary = "private-duplicate-field-canary";
+        for input in [
+            format!(r#"{{"codex":"{canary}","codex":"acp"}}"#),
+            r#"{"codex":null,"codex":"acp"}"#.to_owned(),
+        ] {
+            let error = NodeSettingKey::Drivers.change(&input).unwrap_err();
+            safe_refusal(&error, canary);
+        }
+        let error = NodeSettingKey::ParkAfter
+            .change(&format!(r#"{{"kind":"{canary}","kind":"never"}}"#))
+            .unwrap_err();
+        safe_refusal(&error, canary);
     }
 }

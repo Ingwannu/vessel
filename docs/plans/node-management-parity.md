@@ -686,3 +686,14 @@ New real-read cancellation/order/drain and panic diagnostic fixtures are written
 remote strict/runtime/package evidence is pending. AA's earlier scoped pass alone
 does not qualify this new reload use. Duplicate-member decoding is the next
 separate correction; no claim that row 200 is closed yet.
+
+
+## Config security correction: original JSON member uniqueness
+
+Row 200's second source finding is addressed before canonical typed comparison:
+a recursive decoding-edge visitor refuses duplicate decoded object keys, also
+inside arrays. No raw diagnostic, extra key catalogue or dependency is added.
+The existing byte-edge/valid/unknown/null/trailing tests are retained, with
+snapshot/field duplicate canaries and actual CLI pre-contact / reload no-publish
+regressions added. Both row 200 corrections now have source fixtures; changed
+strict/TS/runtime evidence and the final package gate/review remain owed.

@@ -142,3 +142,34 @@ async fn config_mutations_follow_the_assignment_and_keep_their_state_contract() 
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn duplicate_members_refuse_before_credentials_or_contact() {
+    within(async {
+        let empty = tempfile::tempdir().unwrap();
+        for (key, input) in [
+            (
+                "drivers",
+                r#"{"codex":"private-duplicate-cli-canary","codex":"acp"}"#,
+            ),
+            ("drivers", r#"{"codex":null,"codex":"acp"}"#),
+            (
+                "park_after",
+                r#"{"kind":"private-duplicate-cli-canary","kind":"never"}"#,
+            ),
+        ] {
+            let ran = crate::support::vessel_in(
+                empty.path(),
+                &["node", "config", "set", key, input],
+                b"",
+            )
+            .await;
+            assert!(!ran.ok);
+            assert!(ran.stderr.contains("setting value"), "{}", ran.stderr);
+            assert!(!ran.stderr.contains("private-duplicate-cli-canary"));
+            assert!(!ran.stderr.contains("no token"));
+            assert!(!empty.path().join("settings.json").exists());
+        }
+    })
+    .await;
+}
