@@ -29,13 +29,20 @@ slice order. The docs commit adds both and no command.
   Its whole gate passed (2,067 Rust tests, no failures, 12 ignored; forge 4,
   web unit 417 and e2e 62). The original return and failed narrow-check logs
   remain available; no failed run was called green.
-- Source: 2g1 extracts the existing lock waiter's thread/oneshot handoff
+- Done: 2g1 extracts the existing lock waiter's thread/oneshot handoff
   without changing behavior or test expectations. Its completion diagnostic
-  remains in the original module to preserve the tracing target. Final
-  focused clippy passed; related tests and the whole gate are pending. The subsequent identity/preflight deadline change is separate.
-- Next: gate 2g1, then deadline-safe local reads, service observations and
-  finalization, force/restart and slices 3/4. Proc implementation still
-  awaits its integration decision. Actual managers and agents are unverified.
+  stays at its original tracing target. Review and the exact final whole
+  gate passed (2,067 Rust tests, no failures, 12 ignored; forge 4,
+  web unit 417 and e2e 62).
+- Merged: node head `f453ec2e`, including the shared protocol accessor,
+  settings preservation and lifecycle labels. The merge was conflict-free;
+  the next slice's whole gate covers the merged tree.
+- Source: 2g2 moves only identity/preflight reads off the runtime's blocking
+  pool. Two Linux FIFO cases test child exit and a still-Serving node;
+  focused checks and the whole gate are pending.
+- Next: gate 2g2, then service observations and finalization, force/restart
+  and slices 3/4. Proc implementation still awaits its integration decision.
+  Actual managers and agents are unverified.
 
 ## Existing asset check
 
@@ -437,3 +444,15 @@ is no new dependency, field, wire call or numeric bound. The actual file
 read deadline fix follows in a separate change; no future operation or
 unused public API is added by this extraction. Paseo's previously stated
 PID-polling difference remains; the CLI still waits on its OS-lock event.
+
+
+### Slice 2g2: deadline-safe identity and preflight reads
+
+Modify only the two real reads and reuse the already-extracted handoff.
+Add their actual operation kinds and typed receiver errors; keep lock-release
+behavior and all existing assertions unchanged. Two isolated Linux FIFO
+cases derive their timeout and diagnostic expectation from one named test
+budget and find the node Serving after the CLI exits. No service manager,
+signal, new wire call or dependency is introduced. Book/credential/pinning
+paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
+This source is not yet compiled or gated.

@@ -10,6 +10,12 @@ use crate::support::{Fixture, within};
 
 const HANDSHAKE_TEST_BUDGET: Duration = Duration::from_millis(50);
 
+#[cfg(target_os = "linux")]
+const LOCAL_READ_TEST_BUDGET: Duration = Duration::from_secs(5);
+
+#[cfg(target_os = "linux")]
+const LOCAL_READ_EXIT_BUDGET: Duration = Duration::from_secs(10);
+
 async fn terminal(fixture: &Fixture) -> vessel_proto::SessionId {
     let started = fixture
         .vessel(&["run", "claude", "--detach", "--cwd", &fixture.cwd()], b"")
@@ -266,4 +272,79 @@ async fn a_book_endpoint_never_waits_for_another_running_local_nodes_lock() {
         client_home.stop().await;
     })
     .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_ends_a_process_with_a_blocked_identity_reader() {
+    within(async {
+        let fixture = Fixture::start().await;
+        // The persisted identity's format is part of the data-directory contract.
+        // A blocked read must not hold the CLI's blocking pool alive after expiry.
+        let file = fixture.data().join("node.id");
+        std::fs::remove_file(&file).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        let seconds = LOCAL_READ_TEST_BUDGET.as_secs_f64().to_string();
+        let stopped = stop_with_blocked_reader(&fixture, &seconds).await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn node_stop_deadline_ends_a_process_with_a_blocked_lock_preflight() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let file = DataDir::new(fixture.data()).lock_path();
+        std::fs::remove_file(&file).unwrap();
+        assert!(
+            tokio::process::Command::new("mkfifo")
+                .arg(&file)
+                .status()
+                .await
+                .unwrap()
+                .success()
+        );
+        let seconds = LOCAL_READ_TEST_BUDGET.as_secs_f64().to_string();
+        let stopped = stop_with_blocked_reader(&fixture, &seconds).await;
+        assert!(!stopped.ok);
+        assert!(stopped.stderr.contains("--timeout"), "{}", stopped.stderr);
+        assert!(stopped.stderr.contains(&seconds), "{}", stopped.stderr);
+        assert_eq!(
+            fixture.owner().await.node_info().await.unwrap().state,
+            NodeState::Serving
+        );
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[cfg(target_os = "linux")]
+async fn stop_with_blocked_reader(fixture: &Fixture, seconds: &str) -> crate::support::Ran {
+    let mut child = fixture.spawn_vessel(&["node", "stop", "--timeout", seconds]);
+    drop(child.stdin.take());
+    // Retain the child so a regression cannot leave its blocked reader running
+    // after the test's own named exit deadline has diagnosed the hang.
+    let waited = tokio::time::timeout(LOCAL_READ_EXIT_BUDGET, child.wait()).await;
+    if waited.is_err() {
+        child.kill().await.unwrap();
+        panic!("blocked-reader CLI did not exit within {LOCAL_READ_EXIT_BUDGET:?}");
+    }
+    waited.unwrap().unwrap();
+    child.wait_with_output().await.unwrap().into()
 }

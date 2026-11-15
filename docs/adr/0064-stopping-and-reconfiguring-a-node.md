@@ -851,3 +851,33 @@ well as its message. The extracted private helper has only
 the actual lock-release operation; later operation kinds arrive with their
 callers. It reads no environment and owns no file-format or node policy.
 The subsequent deadline fix is separate from this extraction (P2).
+
+
+## Deadline-safe identity and preflight reads (slice 2g2)
+
+[Decision Log]
+- Purpose and intent: a blocked local read must not hold Tokio's blocking
+  pool alive after the stop command's timeout has fired.
+- Existing implementation and constraints: OS-lock completion already uses
+  a detached worker and a borrowed oneshot receive; the preflight and stored
+  identity read still use tasks the runtime joins when it exits.
+- Alternatives considered: cancel an already-started blocking-pool task,
+  add a second handoff, or check file type before opening. Cancellation does
+  not interrupt that read; duplication splits one policy; a type check races
+  with a replacement between checking and opening.
+- Selected approach: reuse the extracted Pending policy for the two actual
+  readers, with typed operation names and cause-preserving receiver errors.
+  Each caller retains its own file rule and diagnostic.
+- Why this approach: the command can stop waiting without making runtime
+  shutdown join the blocked read. The OS-lock handoff, result consumption,
+  existing tests and budgets remain unchanged; no replay cache is added.
+- Advantages, costs and effects: no dependency, wire field or signal. Linux
+  child-CLI tests replace node.id or the selected lock path with a FIFO,
+  then check deadline failure and a still-Serving node after the child exits.
+  The shared test budget is named once. This is not a wire capture.
+
+The tests cover these two readers only. Existing book/project resolution,
+connection credential reads and best-effort book pinning are separate paths;
+this slice does not establish deadline-safe process exit for all file inputs.
+Real macOS/Windows blocked-read behavior is unverified. Paseo's previously
+stated PID-polling difference is unchanged.
