@@ -477,3 +477,8 @@ departure preserves the one engine's selection/display map while independent
 split editors lack an equal-height wrapped-row adapter; a later display-only
 height design needs separate review. The setters and restored-state table are
 new unexecuted source tests.
+
+After the announced base6 18eed merge, pane discovery checks the sole owner's
+actual layout_panel_visible query before issuing requests. A closed tab's answer
+is dropped and its entry removed using layout_tab_exists; neither query creates
+a layout. These are source additions, not executed visibility/runtime proof.

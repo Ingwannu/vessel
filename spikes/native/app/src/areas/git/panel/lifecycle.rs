@@ -1,7 +1,7 @@
 //! Pane discovery and exact-ticket settlement, with no drawing or root guessing.
 use super::Entry;
 use crate::shell::Shell;
-use vessel_app_kit::ui::Context;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::git_panel::{Answer, Ask, Outcome};
 use vessel_app_view::connection::{ConnectionContext, ConnectionTag};
 use vessel_app_view::layout::LayoutKey;
@@ -30,8 +30,12 @@ impl Shell {
         &mut self,
         address: PanelAddress,
         target: PanelTarget,
+        window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !self.layout_panel_visible(&address.workspace, address.tab, window) {
+            return;
+        }
         let context = self.git_panel_context(&address);
         let mut entry = Entry::new(target, context.clone());
         let request = match (&address.workspace, context) {
@@ -69,6 +73,10 @@ impl Shell {
     }
 
     pub(crate) fn git_panel_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if !self.layout_tab_exists(&answer.address.workspace, answer.address.tab) {
+            let _removed = self.areas.git.panels.entries.remove(&answer.address);
+            return;
+        }
         let current = self.git_panel_context(&answer.address);
         let Some(entry) = self.areas.git.panels.entries.get_mut(&answer.address) else {
             return;

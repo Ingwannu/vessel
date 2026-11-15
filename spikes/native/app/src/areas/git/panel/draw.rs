@@ -25,8 +25,8 @@ pub(crate) fn render_panel(
     };
     let entry = shell.areas.git.panels.entries.get(&address);
     if entry.is_none_or(|entry| entry.target != target) {
-        cx.defer_in(window, move |shell, _window, cx| {
-            shell.git_panel_open(address, target, cx)
+        cx.defer_in(window, move |shell, window, cx| {
+            shell.git_panel_open(address, target, window, cx)
         });
         return loading(shell, tokens);
     }
@@ -38,8 +38,8 @@ pub(crate) fn render_panel(
         false,
         tokens,
     )
-    .on_click(cx.listener(move |shell, _event, _window, cx| {
-        shell.git_panel_open(retry_address.clone(), retry_target.clone(), cx);
+    .on_click(cx.listener(move |shell, _event, window, cx| {
+        shell.git_panel_open(retry_address.clone(), retry_target.clone(), window, cx);
     }));
     let body = entry.map_or_else(
         || loading(shell, tokens),
