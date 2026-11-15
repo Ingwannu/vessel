@@ -15,7 +15,7 @@ mod detail;
 mod place;
 mod place_rows;
 mod project_actions;
-mod project_form;
+pub(crate) mod project_form;
 mod project_readiness;
 mod projects;
 mod remove;

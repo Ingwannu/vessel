@@ -243,3 +243,23 @@ node-local opaque draft values, never client-side filesystem identity.
 - Effects: navigation and draft tests are added, but query/loading/error rendering,
   keyboard row wiring and all node-backed submission remain to be connected.
   This checkpoint is not the complete Add Project UI or a green consumer API.
+
+## Fixed-target manual project form seam (unverified)
+
+The synchronous readiness query must observe the same captured target as manual
+submission. The old Settings renderer/opener consults Settings' host selection;
+it cannot stand in for a fixed onboarding Target by itself.
+
+`Shell::open_add_for_target(AddForm, &ProjectTarget, window, cx)` checks the exact
+online Name+NodeId before opening and captures that target without consulting
+Settings. `areas::workspace::project_form::for_target` renders only the matching
+current form using the existing renderer, so onboarding does not render a different
+host's project list. Settings delegates through the same renderer when bound.
+The caller still owns its Target/Visit and checked-set acknowledgement. This
+generic display target grants no managed-local OS-path provenance. Legacy form
+methods remain existing supported registration/clone/explicit Git-init calls;
+this seam does not claim the complete new-directory or suggestions flow.
+
+A headless input test puts a remote host first, opens another exact target, and
+checks that rebinding that alias cannot replace the draft. New code awaits strict
+Clippy and project tests; no consumer-ready hash is declared here.

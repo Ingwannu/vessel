@@ -14,6 +14,7 @@ use vessel_app_link::workspace::{Ask, Form, ProjectChange};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::projects::actions::ProjectAction;
+use vessel_app_view::workspace::projects::navigation::{NavigationRefusal, ProjectTarget};
 use vessel_app_view::workspace::projects::repository_name;
 use vessel_app_view::workspace::words::AddForm;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo};
@@ -43,6 +44,48 @@ impl Shell {
         let node = host
             .as_ref()
             .and_then(|name| self.project_node(name.as_str()));
+        if let (Some(host), Some(node)) = (host.as_ref(), node) {
+            let target = ProjectTarget::new(host.clone(), node);
+            if self.open_add_for_target(form, &target, window, cx).is_ok() {
+                return;
+            }
+        }
+        self.prepare_add_form(form, host, node, window, cx);
+    }
+
+    /// Open the existing form on an explicit peer, independently of Settings' selection.
+    /// A display target alone does not prove managed-local OS-path provenance.
+    ///
+    /// # Errors
+    /// A missing, offline or rebound peer refuses without opening/retargeting a draft.
+    pub(crate) fn open_add_for_target(
+        &mut self,
+        form: AddForm,
+        target: &ProjectTarget,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<(), NavigationRefusal> {
+        if self.project_node(target.host().as_str()) != Some(target.node()) {
+            return Err(NavigationRefusal::HostUnavailable);
+        }
+        self.prepare_add_form(
+            form,
+            Some(target.host().clone()),
+            Some(target.node()),
+            window,
+            cx,
+        );
+        Ok(())
+    }
+
+    fn prepare_add_form(
+        &mut self,
+        form: AddForm,
+        host: Option<Name>,
+        node: Option<vessel_proto::NodeId>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
         page.actions.cancel();
@@ -184,6 +227,49 @@ pub(super) fn add_menu(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shel
 /// The add form, in place: a clone's URL, the folder, the help line, the
 /// node's refusal, Cancel and the form's verb.
 pub(super) fn add_form(
+    shell: &Shell,
+    machine: &str,
+    form: AddForm,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let state = &shell.areas.workspace.page;
+    if let Some((host, node)) = state.form_host.as_ref().zip(state.form_node) {
+        let target = ProjectTarget::new(host.clone(), node);
+        if let Some(form) = for_target(shell, &target, tokens, compact, cx) {
+            return form;
+        }
+    }
+    draw_form(shell, machine, form, tokens, compact, cx)
+}
+
+/// Reuse the form renderer for a fixed-target onboarding visit, without rendering
+/// Settings' project list or inferring a selected host from it.
+#[must_use]
+pub(crate) fn for_target(
+    shell: &Shell,
+    target: &ProjectTarget,
+    tokens: &Tokens,
+    compact: bool,
+    cx: &mut Context<'_, Shell>,
+) -> Option<Div> {
+    let state = &shell.areas.workspace.page;
+    if state.form_host.as_ref() != Some(target.host()) || state.form_node != Some(target.node()) {
+        return None;
+    }
+    let form = state.adding?;
+    Some(draw_form(
+        shell,
+        target.host().as_str(),
+        form,
+        tokens,
+        compact,
+        cx,
+    ))
+}
+
+fn draw_form(
     shell: &Shell,
     machine: &str,
     form: AddForm,
