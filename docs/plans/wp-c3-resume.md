@@ -243,3 +243,35 @@ was started. C3 remains skeleton; C4 has not started.
 - The15:00 UTC operator target was missed: C3 remains skeleton and C4 unstarted.
   No package/whole gate/capture/review pass is claimed. Continue existing jobs,
   inspect real errors, and finish the bounded control before another feature.
+
+## 15:40 UTC: actual returns and coherent0813 correction
+
+- Exact08b1 public Kit tests actually executed16:13 passed,3 failed. The two
+  document fixtures recursively borrowed their real ListState while computing
+  width; the empty-mask fixture failed its zero-projection assertion. No pass
+  is inferred for keyboard/wheel paths which stopped at that panic.
+- Isolated0813ac3fa snapshots the actual root-window width before its list
+  callback, replaces the ambiguous draw-helper empty-mask fixture with a retained
+  visible/outside clipped owner and preserves positive/zero/coordinate/IME/text
+  assertions. The example shares the root-window-only correction. Exact08b1
+  Kit Clippy's20 test/example diagnostics are corrected with explicit lifetimes,
+  unit/semicolon use, saturated source offsets and three smallest-item finite
+  test pixel-geometry expects. No vendor production change or weaker assertion.
+- Current exact immutable short/no-priority runs are queued:
+  wp-git-consumer-tests-20261115T153719Z-0813ac3f and
+  wp-git-kit-narrow-20261115T153719Z-0813ac3f. Both have receipts; never resubmit
+  blindly. Their OUTs are real-owner-0813-tests and real-owner-0813-clippy.
+- App ee7629bc9 carries identical owned Kit corrections. App2b091c07f also
+  removes the same nested-list borrow from summary paths using existing GPUI
+  single-line middle ellipsis, keeping the complete typed path in its code
+  tooltip, with an actual narrow-list render regression. This is uncompiled.
+- Actual bdeed App Clippy returned101: shared dispatch handle101/100, own
+  selected_connection doc markdown and combined test cfg policy. Ownf28bc3f95
+  fixes doc backticks and uses the existing separate cfg(test)/cfg(notwasm)
+  pattern; no lint allow. The lead forbids G1's prepared SavePrefs extraction:
+  W10b alone supplies the boxed preference helper on green c3429952, lead lands
+  it, then G1 merges that announced head and retains one GitPanel arm. The
+  external proposal is withdrawn/uninstalled. Do not rerun this known-red base.
+- Node6e workspace tests67/0/0 stay valid for their exact source; values194
+  V3 scoped PASS stays valid. No unchanged rerun, C3 whole gate, captures, body
+  mount or full authority/ABA/OS approval. C3 skeleton/C4 unstarted.
