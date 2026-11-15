@@ -566,3 +566,14 @@ JoinHandle in the fixture until completion. A stalled graceful close therefore
 fails the test finitely and leaves Drop able to abort its own server, rather
 than hanging a build lane or detaching the only owned handle. This is fixture
 cleanup only, not a product listener or a real endpoint check.
+
+
+### Typed STT response edge
+
+[Decision Log]
+- Purpose: obey the repository's typed-boundary rule while preserving Paseo's permissive unspecified-confidence behavior for malformed logprob metadata.
+- Existing assets: bounded HTTP body, closed TranscriptError, SpeechText validation and the existing confidence/overflow tests already own this edge; no shared dictation decoder is suitable because it has different fixed-prompt/confidence policy.
+- Alternatives: a generic JSON tree violates the typed-domain rule; strictly requiring a valid token array would change malformed-score handling into transcript rejection.
+- Choice: deserialize a known response/score-token shape, with a typed tolerant alternative that discards malformed score metadata as IgnoredAny. Unknown provider fields are ignored, errors become only static TranscriptError, and no foreign response struct derives Debug. Keep the same mean, -3.0 strict threshold, empty text and accepted/rejected limits.
+- Difference: duplicate recognized top-level response fields are now refused as ambiguous instead of last-value selection. Malformed nested tokens still yield unspecified confidence, including duplicate recognized token fields rejected by the typed token decoder. This follows the existing malformed-score policy and is not a claim that confidence authenticates the speaker.
+- Validation: existing empty/overflow/size/threshold tests plus wrong scalar/null-byte metadata and unknown/duplicate response cases await the next VM runtime suite. No provider/model/API key or runtime is activated.

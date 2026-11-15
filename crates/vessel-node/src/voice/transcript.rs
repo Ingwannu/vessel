@@ -4,7 +4,8 @@
 //! unspecified confidence; an overflowing mean is a typed provider failure.
 //! Neither rejected text nor JSON errors are retained in diagnostics.
 
-use serde_json::Value;
+mod response;
+use response::{Response, Token, Tolerant};
 use vessel_proto::dictation::EndpointModel;
 use vessel_proto::voice::{Confidence, SpeechText, VoiceTranscript};
 use vessel_proto::workspace::trim_project_text;
@@ -41,16 +42,14 @@ pub(super) fn decode(body: &[u8], scores: Scores) -> Result<VoiceTranscript, Tra
     if body.len() > MAX_RESPONSE_BYTES {
         return Err(TranscriptError::TooLarge);
     }
-    let value: Value = serde_json::from_slice(body).map_err(|_private| TranscriptError::Invalid)?;
-    let text = value
-        .get("text")
-        .and_then(Value::as_str)
-        .ok_or(TranscriptError::Invalid)?;
+    let value: Response<'_> =
+        serde_json::from_slice(body).map_err(|_private| TranscriptError::Invalid)?;
+    let text = value.text.as_ref();
     if trim_project_text(text).is_empty() {
         return Ok(VoiceTranscript::Empty);
     }
     let mean = match scores {
-        Scores::Requested => average(&value)?,
+        Scores::Requested => average(&value.logprobs)?,
         Scores::Unavailable => None,
     };
     if mean.is_some_and(|mean| mean < LOW_CONFIDENCE_THRESHOLD) {
@@ -67,24 +66,20 @@ pub(super) fn decode(body: &[u8], scores: Scores) -> Result<VoiceTranscript, Tra
     clippy::float_arithmetic,
     reason = "provider finite logprob mean, checked after every sum and division"
 )]
-fn average(value: &Value) -> Result<Option<f64>, TranscriptError> {
-    let Some(tokens) = value
-        .get("logprobs")
-        .and_then(Value::as_array)
-        .filter(|tokens| !tokens.is_empty())
-    else {
+fn average(scores: &Tolerant<Vec<Token>>) -> Result<Option<f64>, TranscriptError> {
+    let Some(tokens) = scores.known().filter(|tokens| !tokens.is_empty()) else {
         return Ok(None);
     };
-    if tokens.iter().any(|token| score(token).is_none()) {
+    if tokens
+        .iter()
+        .any(|token| !token.bytes_valid || !token.logprob.is_finite())
+    {
         return Ok(None);
     }
     let mut count = 0_u32;
     let mut sum = 0.0_f64;
     for token in tokens {
-        let Some(score) = score(token) else {
-            return Ok(None);
-        };
-        sum += score;
+        sum += token.logprob;
         if !sum.is_finite() {
             return Err(TranscriptError::Invalid);
         }
@@ -95,20 +90,6 @@ fn average(value: &Value) -> Result<Option<f64>, TranscriptError> {
         return Err(TranscriptError::Invalid);
     }
     Ok(Some(mean))
-}
-
-fn score(token: &Value) -> Option<f64> {
-    let _text = token.get("token").and_then(Value::as_str)?;
-    if let Some(bytes) = token.get("bytes") {
-        let numbers = bytes.as_array()?;
-        if !numbers.iter().all(Value::is_number) {
-            return None;
-        }
-    }
-    token
-        .get("logprob")
-        .and_then(Value::as_f64)
-        .filter(|n| n.is_finite())
 }
 
 #[cfg(test)]

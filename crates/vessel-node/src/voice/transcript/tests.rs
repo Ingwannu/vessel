@@ -34,6 +34,11 @@ fn threshold_is_strict_and_missing_or_malformed_arrays_do_not_invent_confidence(
     ));
     for logprobs in [
         "null",
+        "true",
+        "-17",
+        "\"private metadata\"",
+        "[{\"token\":\"x\",\"logprob\":-8,\"bytes\":null}]",
+        "[{\"token\":false,\"logprob\":-8}]",
         "[]",
         "[{}]",
         "[{\"logprob\":-8}]",
@@ -89,4 +94,23 @@ fn empty_invalid_large_or_overflowing_responses_fail_without_foreign_diagnostics
         decode(&body, Scores::Unavailable),
         Err(TranscriptError::Text)
     );
+}
+
+#[test]
+fn typed_response_ignores_unknown_metadata_and_rejects_duplicate_response_fields() {
+    let body = br#"{"text":"hello\nworld","future":{"private":[true,17]},"logprobs":[{"token":"x","logprob":-1,"bytes":[120],"future":[{}]}]}"#;
+    let VoiceTranscript::Accepted { text, confidence } = decode(body, Scores::Requested).unwrap()
+    else {
+        panic!("accepted known fields")
+    };
+    assert_eq!(text.as_str(), "hello\nworld");
+    assert_eq!(confidence, Confidence::Accepted);
+    for body in [
+        br#"{"text":"private one","text":"private two"}"#.as_slice(),
+        br#"{"text":"private","logprobs":[],"logprobs":null}"#,
+    ] {
+        let error = decode(body, Scores::Requested).unwrap_err();
+        assert_eq!(error, TranscriptError::Invalid);
+        assert!(!format!("{error:?} {error}").contains("private"));
+    }
 }
