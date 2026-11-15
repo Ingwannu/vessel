@@ -3,7 +3,7 @@
 
 use super::*;
 use vessel_proto::{
-    HarnessKind, HarnessSessionId, Request as _, SessionId, SessionListing, SessionMode,
+    HarnessKind, HarnessSessionId, SessionId, SessionListing, SessionMode,
     SessionSpec, TransferId, TransferManifest,
 };
 
@@ -31,7 +31,7 @@ fn versions() -> (ProtocolVersion, ProtocolVersion) {
 
 fn unsupported(result: Result<(), ServiceError>, expected: CallError) {
     let error = result.unwrap_err();
-    assert_eq!(error.code(), vessel_proto::ErrorCode::Unsupported);
+    assert_eq!(error.to_wire().code, vessel_proto::ErrorCode::Unsupported);
     let ServiceError::MetadataProtocol(actual) = error else {
         panic!("expected the shared typed protocol refusal");
     };

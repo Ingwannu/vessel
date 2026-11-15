@@ -935,3 +935,11 @@ three-hop assignment is synthetic because the actual assignment remains None;
 it is not a claim of an assigned feature running across a real fleet. Existing
 ordinary-history transfer tests and their assertions remain unchanged. Corrected
 strict checks, green source regression and the complete package gate are owed.
+
+### Returned export checkpoint: test compilation
+
+The first exact export-policy narrow checks stopped before tests because the new
+fixture called a nonexistent service-error accessor and imported an unused trait.
+The assertion now uses the existing wire mapping, keeping the same Unsupported
+expectation. The returned-transfer cleanup correction and its cancellation proof
+remain in progress; no package gate or completed background feature is claimed.
