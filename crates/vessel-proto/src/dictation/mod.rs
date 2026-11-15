@@ -18,6 +18,7 @@ mod patch;
 mod secret_ref;
 mod settings;
 mod settings_values;
+mod stream_values;
 
 pub use local_model::{LocalModelId, UnknownLocalModelId};
 pub use patch::DictationChange;
@@ -26,6 +27,10 @@ pub use settings::{
     DictationProvider, DictationSettings, DictationSwitch, KeyPresence, SetDictation,
 };
 pub use settings_values::{EndpointBase, EndpointModel, Language};
+pub use stream_values::{
+    CancelDictation, ChunkDictation, DictationAck, DictationReason, DictationUpdate,
+    FinishAccepted, FinishDictation, NextDictation, StartDictation,
+};
 
 pub use error::DictationDecodeError;
 

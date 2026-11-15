@@ -447,3 +447,18 @@ separator limits before join allocation. Budget covers independent terms, the
 whole unacknowledged suffix, fractional rounding, zero floor and saturation at
 the shared wire cap. Narrow node/proto clippy and all 49 staged dictation tests
 pass; the exact commit's whole gate is still owed.
+
+## Unregistered request and update values
+
+Decision: extend the existing dictation value module with request/reply data,
+not a new transport or Request implementation. Chunk audio and transcript text
+keep the existing redacted, validated types through nesting. Ack absence remains
+Option<ChunkSeq>, and finish budgets reuse WithinMs. The tagged reason owns the
+local model only in LocalNotBuilt; no optional model sibling can accompany a
+different reason. Unknown update/reason kinds remain readable as Unknown.
+
+Half-done: four value tests for ack omission/negative refusal, forward decoding,
+redacted parent Debug plus nested PCM validation, and model-bearing refusal.
+No method row, client method, ErrorDetail variant, NodeSettings field or protocol
+assignment is added. Narrow proto clippy and the four value tests pass; TS
+regeneration tests pass with no generated diff. The whole gate remains owed.
