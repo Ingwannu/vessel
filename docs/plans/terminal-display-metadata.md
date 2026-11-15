@@ -70,3 +70,14 @@ including retained snapshot and marker checks. Its strict check found only
 three unused test Replies results; the follow-up strengthens these to explicit
 empty-reply assertions, with no product or golden change. Corrected strict and
 the final enclosing whole remain owed. Original red logs are retained.
+
+Final3de strict passed. Further source inspection of the same BufferSet path
+found47 cursor carry and1047 absent, plus alternate marker disposal delayed
+until re-entry. Twelve actual reference checkpoints supplement the untouched
+earlier43. The first new fixture decode failed because numeric enum names needed
+explicit serde spellings; this harness failure is retained and is not reported
+as a semantic reproduction. Corrected baselineba03bc1f is submitted separately.
+The pending repair shares entry/exit transitions, carries coordinates without
+extra save/restore for47/1047, and disposes alternate markers on actual exit.
+Repeated1049 still performs only its specified cursor save. No other parser,
+reference adaptation or additional foreign merge is introduced.

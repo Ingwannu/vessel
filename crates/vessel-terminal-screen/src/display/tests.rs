@@ -309,7 +309,7 @@ fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
     assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
     assert!(
         engine
-            .feed(b"\x1b[?1049l\x1b[?1049h")
+            .feed(b"\x1b[?1049l")
             .replies
             .unwrap()
             .as_bytes()
@@ -320,6 +320,18 @@ fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
         crate::AnchorState::Reset
     );
     assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
+    assert!(
+        engine
+            .feed(b"\x1b[?1049h")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
+    assert_eq!(
+        engine.resolve_marker(&marker).unwrap().state,
+        crate::AnchorState::Reset
+    );
 }
 fn program(name: ProgramName) -> Program {
     let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();

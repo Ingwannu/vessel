@@ -1510,6 +1510,32 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
         self.screen.grid_mut().row_set(row - 1);
     }
 
+    // BufferSet transitions are shared by47/1047/1049; re-entry is a no-op,
+    // while leaving alternate disposes its rows/markers before reuse.
+    fn activate_alternate(&mut self) {
+        if self.screen.alternate_screen() {
+            return;
+        }
+        let position = self.screen.grid().pos();
+        self.callbacks.buffer_reset(BufferReset::Alternate);
+        self.screen.alternate_grid.clear();
+        self.screen.alternate_saved_attrs = crate::attrs::Attrs::default();
+        self.screen.alternate_grid.inherit_cursor(position);
+        self.screen.enter_alternate_grid();
+    }
+
+    fn activate_primary(&mut self) {
+        if !self.screen.alternate_screen() {
+            return;
+        }
+        let position = self.screen.grid().pos();
+        self.callbacks.buffer_reset(BufferReset::Alternate);
+        self.screen.alternate_grid.clear();
+        self.screen.alternate_saved_attrs = crate::attrs::Attrs::default();
+        self.screen.exit_alternate_grid();
+        self.screen.grid.inherit_cursor(position);
+    }
+
     // CSI ? h
     pub fn decset(
         &mut self,
@@ -1523,7 +1549,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                 [6] => screen.grid_mut().set_origin_mode(true),
                 [9] => screen.set_mouse_mode(MouseProtocolMode::Press),
                 [25] => screen.clear_mode(MODE_HIDE_CURSOR),
-                [47] => screen.enter_alternate_grid(),
+                [47] | [1047] => self.activate_alternate(),
                 [1000] => {
                     screen.set_mouse_mode(MouseProtocolMode::PressRelease);
                 }
@@ -1539,13 +1565,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                 }
                 [1049] => {
                     self.decsc();
-                    if !self.screen.alternate_screen() {
-                        let position = self.screen.grid().pos();
-                        self.callbacks.buffer_reset(BufferReset::Alternate);
-                        self.screen.alternate_grid.clear();
-                        self.screen.alternate_grid.inherit_cursor(position);
-                        self.screen.enter_alternate_grid();
-                    }
+                    self.activate_alternate();
                 }
                 [2004] => screen.set_mode(MODE_BRACKETED_PASTE),
                 _ => unhandled(self),
@@ -1566,9 +1586,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                 [6] => screen.grid_mut().set_origin_mode(false),
                 [9] => screen.clear_mouse_mode(MouseProtocolMode::Press),
                 [25] => screen.set_mode(MODE_HIDE_CURSOR),
-                [47] => {
-                    screen.exit_alternate_grid();
-                }
+                [47] | [1047] => self.activate_primary(),
                 [1000] => {
                     screen.clear_mouse_mode(MouseProtocolMode::PressRelease);
                 }
@@ -1585,7 +1603,7 @@ impl<CB: crate::Callbacks> WrappedScreen<CB> {
                     screen.clear_mouse_encoding(MouseProtocolEncoding::Sgr);
                 }
                 [1049] => {
-                    screen.exit_alternate_grid();
+                    self.activate_primary();
                     self.decrc();
                 }
                 [2004] => screen.clear_mode(MODE_BRACKETED_PASTE),

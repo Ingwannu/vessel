@@ -261,3 +261,11 @@ Cursor attributes are saved independently per buffer, matching the reference's
 buffer-local savedCurAttrData, so an alternate save cannot replace primary ink.
 DECSTR resets the active buffer's saved presentation only. No synthesized Home,
 replay, new parser or authority change is involved.
+
+The same BufferSet80-112 transition owns47/1047/1049. Physical coordinates
+carry on both entry and exit;1049 alone adds save/restore. Actual alternate
+exit clears its rows and disposes its markers immediately, matching the
+reference, while a readonly earlier snapshot keeps its own cut. This replaces
+the previous delayed alternate invalidation at the next entry. Repeated entry
+and exit do not create an extra transition or copy coordinates from an inactive
+buffer. The recorded oracle supplements rather than replaces earlier fixtures.

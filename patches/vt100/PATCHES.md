@@ -70,3 +70,9 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
     BufferSet refuses to clear an already active alternate screen and saves
     cursor attributes per buffer. Re-entry must retain text/markers and cannot
     overwrite the primary's saved ink before its later restore.
+
+12. Share actual buffer transitions for47/1047/1049, carrying physical cursor
+    coordinates in both directions. Only1049 performs cursor save/restore.
+    Why: the reference implements all three through BufferSet transitions;
+   47 lacked cursor carry,1047 was absent, and alternate exit must immediately
+    dispose its markers instead of retaining them until a later re-entry.
