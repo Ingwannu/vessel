@@ -39,3 +39,10 @@ click refusal/re-enable use the common renderer. Their Stop fixture tests frame
 only, not a claim about W19's exact final icon. Old regular/published-outline
 regressions remain unchanged. Narrow/source review and final W19 first-use,
 layout, switching, actual glyph/OS/accessibility evidence are still owed.
+
+The exact isolated5f714 Clippy compiled Kit and found the producer parent
+lacked theme::icon::LG (present in the primary source), plus three redundant
+qualifications in the new tests. The corrected producer explicitly appends the
+canonical LG20 token and removes those test-only qualifications. No geometry,
+paint, guard, old test or expected value changes. The old outcome stays red;
+corrected narrow/source and final first use are still owed.
