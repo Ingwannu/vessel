@@ -430,3 +430,15 @@ stdio attachment. Parser regressions keep the flags out of non-start commands.
 The independent cd25ddd1c binary-parser extraction is on the clean node head
 for early integration, separate from these behavior changes. Its strict/help
 checks and the flags' merged-head checks are pending VM execution.
+
+## Legacy desktop selection difference
+
+Coordinator ruling for tracker598: Vessel has never written a native desktop
+skill-selection file. There is therefore no automatic legacy file migration,
+and the app must never read Paseo's actual Electron profile. Inventing a
+historical Vessel path would not be a compatibility feature. The typed node
+import remains available for an explicitly supplied legacy selection: import
+only if unset, return the durable choice and Imported/AlreadySet acknowledgement,
+and preserve an existing explicit choice across restart. Those behaviors are
+covered in the node manager/store and actual host-command fixtures; their
+narrow results and final whole-gate status remain separately reported.
