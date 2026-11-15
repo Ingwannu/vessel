@@ -361,7 +361,10 @@ No row of the crate table changes.
   banner is fabricated.
   The inherited stream-end wait and the new turn-end wait share one named
   event budget; their expected records and output remain unchanged.
-- Implementation slice 5c, verification pending: follow reuses these predicates,
+- Follow slice 5c passed its complete Rust gate: 1991 passed, none failed,
+  12 ignored, with two TS freshness tests and all applicable checks passing.
+  Both prebuilds ran; forge checks were explicitly skipped because the base
+  lacks that feature. No waiver or rerun was needed. Follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. The CLI edge owns the execution
   mode; the selector module only owns predicates. Follow test turn cursors
@@ -370,7 +373,8 @@ No row of the crate table changes.
   EOF, interruption and stream notices finish an open text line; terminal
   bytes stay untouched. Follow passed narrow clippy, eleven log units and
   three fake-node CLI cases, including history-to-live output exactly once
-  and EOF. Follow's separate complete gate is queued.
+  and EOF. The later timestamp-contract merge changes only documentation and
+  the requested help sentence; its fast checks passed separately.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
@@ -381,8 +385,8 @@ No row of the crate table changes.
 - Background value slice 3a passed narrow TypeScript-enabled clippy and three
   listing/default/serde tests. Its complete gate is still owed. It adds no
   request field, store column or actual discovery filtering yet.
-- Next: finish follow slice 5c's queued complete gate, then run the complete
-  gate for the background values while
+- Next: run the complete gate, including TypeScript and web checks, for the
+  background values while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
