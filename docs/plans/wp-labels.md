@@ -70,16 +70,20 @@ Reference sources read before implementation (relative to the reference source r
 ## Node contract dependency
 
 Session metadata and colored workspace labels have separate owners and contracts.
-The lifecycle owner reports on 2026-11-15 that no consumer-ready PASS head yet
-contains the borrowed ExactSizeIterator `SessionLabels::iter()`. The draft
-iterator returns `(&LabelKey, &LabelValue)`; A6 does not parse summaries or JSON
-as a substitute. `session.labels` / SetLabels is not implemented or registered,
-so the earlier planned merge-only shape is not an adopted request DTO. A6 adds
-no generic session metadata editor or speculative mutation call.
+The lifecycle owner reports reviewed source `c88066f2` with V3 final PASS and
+all 18 whole-gate steps rc 0 (Rust 2404/0/12). It includes borrowed
+ExactSizeIterator `SessionLabels::iter()` returning `(&LabelKey, &LabelValue)`;
+`iter().len()` supplies the count. It is still awaiting an announced integration
+head, so A6 has not adopted it. A6 does not parse summaries or JSON as a substitute.
+`session.labels` / SetLabels, LabelsChanged and the separate LabelPatch draft are
+not included. The earlier planned merge-only shape is not an adopted request DTO.
+A6 adds no generic session metadata editor or speculative mutation call.
 
-The lifecycle owner's staged ListSessions selection preserves null as the legacy
+The reviewed source's ListSessions selection preserves null as the legacy
 full list; an explicit selection has required Shown/All scope and AND labels.
-Its unassigned SINCE gate refuses explicit selections. These are producer status
+Use `ListSessions::selected(SessionSelection::shown()/all().with_labels(...))`
+only after the announced head. Its unassigned SINCE gate refuses explicit
+selections. These are producer status
 facts, not permission to adopt unreviewed query or iterator code. Session labels
 already stored at schema 17 do not establish RPC availability. The owner will
 supply an exact reviewed, whole-gated consumer head.
