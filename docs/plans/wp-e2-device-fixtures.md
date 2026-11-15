@@ -231,3 +231,20 @@ uncertainty for both kinds in one bounded record. It never retries or clears a
 successor. The whole recovery sentences cover retirement and a deadline alike.
 The source tests distinguish write deadlines from read failure and current
 versus wrong/already-consumed tickets; actual timer execution remains owed.
+
+
+## First fixture check, retained red
+
+The351 fixture-source remote strict check ended native-cargo101 after actual
+View/Link checking; App did not reach its own check. Thirteen Link findings:
+large State-dispatch futures propagated through the async phase wrapper, one
+missing semicolon, and four direct reads of the existing underscore-named
+Link keep-alive field. No runtime case ran. Evidence stays fixture-clippy-01;
+it is not a result for this later guarded consumer or the new base.
+
+The correction boxes the typed phase/driver futures with static dispatch,
+adds the semicolon, and privately projects the original Link-owned runtime by
+pattern rather than renaming the product keep-alive field or exporting a
+handle. No second runtime, assertion weakening or lint allowance is introduced.
+The queued fixed graph remains pinned to e284 (identical Cargo/lock edges).
+Changed-source strict checks are next on the corrected straight package head.

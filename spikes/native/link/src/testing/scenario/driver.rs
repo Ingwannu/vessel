@@ -46,7 +46,7 @@ impl Driver {
         }
     }
     pub(super) async fn run(mut self) -> Result<(), FixtureError> {
-        let result = self.drive().await;
+        let result = Box::pin(self.drive()).await;
         let cleanup = self.cleanup().await;
         match result.and(cleanup) {
             Ok(()) => {
@@ -76,11 +76,11 @@ impl Driver {
                 _stopped = self.channels.stopped.changed() => return Ok(()),
                 command = self.channels.commands.recv() => {
                     let Some(command) = command else { return Ok(()); };
-                    self.dispatch(command).await?;
+                    Box::pin(self.dispatch(command)).await?;
                 },
                 control = self.channels.controls.recv() => {
                     let Some(control) = control else { return Ok(()); };
-                    if self.control(control).await? { return Ok(()); }
+                    if Box::pin(self.control(control)).await? { return Ok(()); }
                 },
                 call = async {
                     match self.peer.requests.as_mut() {
@@ -148,18 +148,19 @@ impl Driver {
                 answer(port, result);
             }
             Control::Retire(port) => {
-                let result = self
-                    .dispatch(Command::RetireConnection(self.context.tag()))
+                let result = Box::pin(self.dispatch(Command::RetireConnection(self.context.tag())))
                     .await
                     .map(|()| Response::Done);
                 answer(port, result);
             }
             Control::Reconnect(change, port) => {
-                let result = self.reconnect(change).await.map(Response::Context);
+                let result = Box::pin(self.reconnect(change))
+                    .await
+                    .map(Response::Context);
                 answer(port, result);
             }
             Control::ClosePeer(port) => {
-                answer(port, self.peer.close().await.map(|()| Response::Done))
+                answer(port, self.peer.close().await.map(|()| Response::Done));
             }
             Control::Transcript(port) => {
                 let calls = self
@@ -179,8 +180,7 @@ impl Driver {
     }
     async fn reconnect(&mut self, change: Reconnect) -> Result<ConnectionContext, FixtureError> {
         // Irreversible original retirement precedes every new handshake await.
-        self.dispatch(Command::RetireConnection(self.context.tag()))
-            .await?;
+        Box::pin(self.dispatch(Command::RetireConnection(self.context.tag()))).await?;
         drop(self.pending.take());
         self.peer.close().await?;
         let id = match change {

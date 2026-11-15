@@ -1,5 +1,5 @@
 //! Closed fixture failures; raw framed peer diagnostics never leave the owner.
-use std::{fmt, future::Future, io};
+use std::{fmt, future::Future, io, pin::Pin};
 
 /// The named bounded wait that failed in an isolated regression scenario.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -88,19 +88,24 @@ impl fmt::Debug for FixtureError {
     }
 }
 
-pub(super) async fn phase<T>(
+// Keep bounded driver futures on the heap with static dispatch. State.handle
+// contains every command arm; embedding it through all owner phases multiplies
+// stack size even though this facade runs only one dispatch at a time.
+pub(super) fn phase<T>(
     phase: Phase,
     work: impl Future<Output = T>,
-) -> Result<T, FixtureError> {
-    phase_with_limit(phase, super::DEADLINE, work).await
+) -> Pin<Box<impl Future<Output = Result<T, FixtureError>>>> {
+    phase_with_limit(phase, super::DEADLINE, work)
 }
 
-pub(super) async fn phase_with_limit<T>(
+pub(super) fn phase_with_limit<T>(
     phase: Phase,
     limit: std::time::Duration,
     work: impl Future<Output = T>,
-) -> Result<T, FixtureError> {
-    tokio::time::timeout(limit, Box::pin(work))
-        .await
-        .map_err(|source| FixtureError::Timeout { phase, source })
+) -> Pin<Box<impl Future<Output = Result<T, FixtureError>>>> {
+    Box::pin(async move {
+        tokio::time::timeout(limit, Box::pin(work))
+            .await
+            .map_err(|source| FixtureError::Timeout { phase, source })
+    })
 }
