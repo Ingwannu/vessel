@@ -4,8 +4,7 @@
 use std::sync::Arc;
 
 use gpui::{
-    App, ClickEvent, Img, InteractiveElement as _, SharedUri, StatefulInteractiveElement as _,
-    Styled as _, Window,
+    App, ClickEvent, Img, SharedUri, Stateful, StatefulInteractiveElement as _, Styled as _, Window,
 };
 
 use super::node::LinkMark;
@@ -23,11 +22,11 @@ pub(super) struct ImageActivation {
 /// Attach behavior to the same image element in both wrapping and scrolling layouts.
 /// A host image handler owns activation; otherwise existing linked-image behavior stays.
 pub(super) fn activate(
-    image: Img,
+    image: Stateful<Img>,
     activation: Option<ImageActivation>,
     link: Option<LinkMark>,
     link_handler: Option<Arc<LinkClickHandlerFn>>,
-) -> Img {
+) -> Stateful<Img> {
     if let Some(activation) = activation {
         let auxiliary = activation.clone();
         image
