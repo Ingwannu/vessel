@@ -62,14 +62,17 @@ impl Workspaces {
     /// # Errors
     /// `conflict` when `expect` does not hold.
     pub(crate) async fn write_file(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
         text: String,
         expect: WriteExpect,
     ) -> Result<FileVersion, WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::write(&resolved.root, path, text, expect).await?)
+        let path = path.clone();
+        self.run_file_write(root, move |resolved| async move {
+            Ok(files::write(&resolved.root, &path, text, expect).await?)
+        })
+        .await
     }
 
     /// `file.create_dir`.
@@ -77,12 +80,15 @@ impl Workspaces {
     /// # Errors
     /// `conflict` when the path exists.
     pub(crate) async fn create_dir(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
     ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::create_dir(&resolved.root, path).await?)
+        let path = path.clone();
+        self.run_file_write(root, move |resolved| async move {
+            Ok(files::create_dir(&resolved.root, &path).await?)
+        })
+        .await
     }
 
     /// `file.rename`.
@@ -90,13 +96,17 @@ impl Workspaces {
     /// # Errors
     /// `conflict` when `to` exists.
     pub(crate) async fn rename_path(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         from: &RelPath,
         to: &RelPath,
     ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::rename(&resolved.root, from, to).await?)
+        let from = from.clone();
+        let to = to.clone();
+        self.run_file_write(root, move |resolved| async move {
+            Ok(files::rename(&resolved.root, &from, &to).await?)
+        })
+        .await
     }
 
     /// `file.delete`.
@@ -104,13 +114,16 @@ impl Workspaces {
     /// # Errors
     /// `conflict` for a folder that is not empty without `recursive`.
     pub(crate) async fn delete_path(
-        &self,
+        self: &Arc<Self>,
         root: WorkspaceRoot,
         path: &RelPath,
         recursive: bool,
     ) -> Result<(), WorkspaceError> {
-        let resolved = self.resolve(root).await?;
-        Ok(files::delete(&resolved.root, path, recursive).await?)
+        let path = path.clone();
+        self.run_file_write(root, move |resolved| async move {
+            Ok(files::delete(&resolved.root, &path, recursive).await?)
+        })
+        .await
     }
 
     /// `file.find`: by name, a newer search of the same caller and key

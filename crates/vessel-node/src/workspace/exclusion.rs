@@ -6,6 +6,7 @@
 //! a deadline cannot cancel kernel I/O. Read-only captures may release their
 //! common lease after invalidating publication, while their separate bounded
 //! capture worker/root permit remains occupied until actual cleanup.
+use std::time::Duration;
 use std::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
@@ -16,6 +17,9 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use vessel_proto::checkpoint::{CHECKPOINT_QUEUE, PhysicalRoot};
+
+/// Bound a wedged admission owner without waiting on filesystem work.
+pub(super) const ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Covers registered project and worktree roots, with aliases sharing one slot.
 const ROOT_LEASES: usize = super::MAX_PROJECTS.saturating_add(super::MAX_WORKTREES);
@@ -30,8 +34,21 @@ pub(crate) enum RootRefusal {
     TimedOut,
     #[error("workspace admission owner is closed")]
     Closed,
+    #[cfg(test)]
     #[error("workspace root has no pending recovery")]
     NotRecovering,
+}
+#[derive(Debug, Default)]
+pub(crate) struct RecoveryRoots(BTreeSet<PhysicalRoot>);
+impl TryFrom<BTreeSet<PhysicalRoot>> for RecoveryRoots {
+    type Error = RootRefusal;
+    fn try_from(roots: BTreeSet<PhysicalRoot>) -> Result<Self, Self::Error> {
+        if roots.len() > ROOT_LEASES {
+            Err(RootRefusal::Busy)
+        } else {
+            Ok(Self(roots))
+        }
+    }
 }
 #[derive(Debug)]
 pub(crate) struct RootLease {
@@ -57,6 +74,7 @@ enum Request {
         deadline: Instant,
         reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
     },
+    #[cfg(test)]
     Recovered {
         root: PhysicalRoot,
         deadline: Instant,
@@ -66,36 +84,41 @@ enum Request {
 #[derive(Debug, Clone)]
 pub(crate) struct RootGate {
     requests: mpsc::Sender<Request>,
+    stop: CancellationToken,
 }
 impl RootGate {
     /// Startup supplies every unresolved durable root before admitting any actor.
     pub(crate) fn start(
-        mut recovering: BTreeSet<PhysicalRoot>,
-    ) -> Result<(Self, tokio::task::JoinHandle<()>), RootRefusal> {
-        if recovering.len() > ROOT_LEASES {
-            return Err(RootRefusal::Busy);
-        }
+        recovering: RecoveryRoots,
+        stop: CancellationToken,
+    ) -> (Self, tokio::task::JoinHandle<()>) {
+        let recovering = recovering.0;
+        let shutdown = stop.clone();
         let (requests, mut received) = mpsc::channel::<Request>(CHECKPOINT_QUEUE);
         let task = tokio::spawn(async move {
-            let mut active = BTreeMap::new();
+            let mut state = State {
+                active: BTreeMap::new(),
+                recovering,
+            };
             let released = Arc::new(Notify::new());
             let mut accepting = true;
             loop {
-                prune(&mut active);
-                if !accepting && active.is_empty() {
+                prune(&mut state.active);
+                if !accepting && state.active.is_empty() {
                     break;
                 }
                 tokio::select! {biased;
                     ()=released.notified()=>{},
+                    ()=shutdown.cancelled(), if accepting=> {received.close();accepting=false;},
                     request=received.recv(), if accepting=>match request {
-                        Some(request)=>admit(request,&mut active,&mut recovering,&released),
+                        Some(request)=>admit(request,&mut state,&released),
                         None=>accepting=false,
                     },
                     else=>break,
                 }
             }
         });
-        Ok((Self { requests }, task))
+        (Self { requests, stop }, task)
     }
     pub(crate) async fn claim(
         &self,
@@ -111,6 +134,7 @@ impl RootGate {
     }
     /// Called only after physical rollback and durable journal resolution verify.
     /// This is never an RPC or an unconditional force-unlock operation.
+    #[cfg(test)]
     pub(crate) async fn recovered(
         &self,
         root: PhysicalRoot,
@@ -128,6 +152,9 @@ impl RootGate {
         deadline: Instant,
         make: impl FnOnce(oneshot::Sender<Result<T, RootRefusal>>) -> Request,
     ) -> Result<T, RootRefusal> {
+        if self.stop.is_cancelled() {
+            return Err(RootRefusal::Closed);
+        }
         if Instant::now() >= deadline {
             return Err(RootRefusal::TimedOut);
         }
@@ -144,39 +171,33 @@ impl RootGate {
             .map_err(|_gone| RootRefusal::Closed)?
     }
 }
-fn admit(
-    request: Request,
-    active: &mut BTreeMap<PhysicalRoot, CancellationToken>,
-    recovering: &mut BTreeSet<PhysicalRoot>,
-    notify: &Arc<Notify>,
-) {
-    prune(active);
+#[derive(Debug)]
+struct State {
+    active: BTreeMap<PhysicalRoot, CancellationToken>,
+    recovering: BTreeSet<PhysicalRoot>,
+}
+
+fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
+    prune(&mut state.active);
+    #[cfg(not(test))]
+    {
+        let Request::Claim {
+            root,
+            deadline,
+            reply,
+        } = request;
+        let _gone = reply.send(claim(root, deadline, state, notify));
+    }
+    #[cfg(test)]
     match request {
         Request::Claim {
             root,
             deadline,
             reply,
         } => {
-            let result = if Instant::now() >= deadline {
-                Err(RootRefusal::TimedOut)
-            } else if recovering.contains(&root) {
-                Err(RootRefusal::RecoveryPending)
-            } else if active.contains_key(&root)
-                || active.len().saturating_add(recovering.len()) >= ROOT_LEASES
-            {
-                Err(RootRefusal::Busy)
-            } else {
-                let release = CancellationToken::new();
-                let _previous = active.insert(root, release.clone());
-                Ok(RootLease {
-                    root,
-                    release,
-                    notify: Arc::clone(notify),
-                })
-            };
-            // An undelivered lease drops here, notifying the owner without a fallible release queue.
-            let _gone = reply.send(result);
+            let _gone = reply.send(claim(root, deadline, state, notify));
         }
+        #[cfg(test)]
         Request::Recovered {
             root,
             deadline,
@@ -184,7 +205,7 @@ fn admit(
         } => {
             let result = if Instant::now() >= deadline {
                 Err(RootRefusal::TimedOut)
-            } else if recovering.remove(&root) {
+            } else if state.recovering.remove(&root) {
                 Ok(())
             } else {
                 Err(RootRefusal::NotRecovering)
@@ -193,6 +214,32 @@ fn admit(
         }
     }
 }
+fn claim(
+    root: PhysicalRoot,
+    deadline: Instant,
+    state: &mut State,
+    notify: &Arc<Notify>,
+) -> Result<RootLease, RootRefusal> {
+    if Instant::now() >= deadline {
+        return Err(RootRefusal::TimedOut);
+    }
+    if state.recovering.contains(&root) {
+        return Err(RootRefusal::RecoveryPending);
+    }
+    if state.active.contains_key(&root)
+        || state.active.len().saturating_add(state.recovering.len()) >= ROOT_LEASES
+    {
+        return Err(RootRefusal::Busy);
+    }
+    let release = CancellationToken::new();
+    let _previous = state.active.insert(root, release.clone());
+    Ok(RootLease {
+        root,
+        release,
+        notify: Arc::clone(notify),
+    })
+}
+
 fn prune(active: &mut BTreeMap<PhysicalRoot, CancellationToken>) {
     active.retain(|_root, release| !release.is_cancelled());
 }

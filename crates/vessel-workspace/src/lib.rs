@@ -20,6 +20,8 @@ pub mod files;
 pub mod find;
 pub mod git;
 pub mod paths;
+#[cfg(target_os = "linux")]
+pub mod physical;
 pub mod project_file;
 mod regular;
 #[cfg(test)]

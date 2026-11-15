@@ -23,7 +23,7 @@
 //!   otherwise read the node's token and become its owner).
 
 mod error;
-#[cfg(test)]
+#[cfg(any(test, target_os = "linux"))]
 pub(crate) mod exclusion;
 mod files;
 mod forge;
@@ -34,6 +34,7 @@ mod roots;
 mod scripts;
 mod setup;
 mod worktrees;
+mod writing;
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsString;
@@ -158,6 +159,8 @@ pub(super) struct State {
 #[derive(Debug)]
 pub(crate) struct Workspaces {
     git: Option<Git>,
+    #[cfg(target_os = "linux")]
+    exclusion: exclusion::RootGate,
     support: GitSupport,
     store: Store,
     dirs: Dirs,
@@ -227,8 +230,19 @@ impl Workspaces {
         .await;
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
+        #[cfg(target_os = "linux")]
+        let (exclusion, owner) =
+            exclusion::RootGate::start(exclusion::RecoveryRoots::default(), stop.child_token());
+        #[cfg(target_os = "linux")]
+        let _owner = tasks.spawn(async move {
+            if let Err(error) = owner.await {
+                tracing::error!(%error, "physical root admission owner stopped unexpectedly");
+            }
+        });
         let workspaces = Arc::new(Self {
             git: found.git,
+            #[cfg(target_os = "linux")]
+            exclusion,
             support: found.support,
             store,
             dirs,

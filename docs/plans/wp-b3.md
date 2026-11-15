@@ -133,7 +133,7 @@ never reads blobs to render marks; the node must still enforce session visibilit
 W11 confirms its start/archive lease is not a file-writer lock; lifecycle
 exclusion is being aligned with the archive owner before actual restore wiring.
 
-The canonical staged root admission owner is workspace::exclusion, keyed by the
+The canonical root admission owner is workspace::exclusion, keyed by the
 FD-derived PhysicalRoot independent of WorkspaceId and path aliases. RAII token
 release has a direct notification, not a fallible bounded release message.
 Queue/deadline/lost-reply/drain/recovery-pin tests accompany it. The lifecycle
@@ -183,3 +183,18 @@ The root-admission scoped clippy on `a8a3e67b` found four local lint defects
 (unused qualification, identical writer error arms and two unused results).
 They are corrected without weakening checks; the corrected head still needs
 its compiled run. Its written behavior cases are not passing evidence yet.
+
+First production writer connection: Linux file write/create-directory/rename/
+delete now use the common root gate and retained TaskTracker operation. An FD
+pins root identity; normal file APIs are reused. Caller cancellation does not
+cancel admitted blocking work or release its lease. Root startup/shutdown is
+connected to Workspaces and the node stop token. Recovery clearing remains a
+staged operation until real checkpoint startup/replay wiring; no unresolved
+checkpoint objects are created by the unavailable product service. Remaining
+Git/agent/terminal/script/lifecycle writers are not yet fenced. These changes
+have written actual Workspace fixtures but have not yet passed compilation.
+
+On `fd884246`, checkpoint-filtered tests passed 79, zero failed, six ignored.
+This verifies the staged root admission cases and full Git/ignore capture scope;
+it precedes capture-evidence persistence, recovery resolution and production file
+writer connection. The latest eight-crate clippy is queued on `3fb22a1f`.

@@ -68,6 +68,7 @@ pub(super) struct Root {
     file: File,
     mount: MountId,
     identity: Identity,
+    physical: vessel_proto::checkpoint::PhysicalRoot,
     path: std::path::PathBuf,
 }
 impl Root {
@@ -83,6 +84,7 @@ impl Root {
         let mount = MountId::of(&file)?;
         Ok(Self {
             identity: Identity::of(&metadata),
+            physical: crate::physical::key(&metadata),
             file,
             mount,
             path: path.to_path_buf(),

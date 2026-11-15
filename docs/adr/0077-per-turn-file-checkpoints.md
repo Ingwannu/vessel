@@ -593,3 +593,27 @@ through this acknowledgement, before unpinning root admission or garbage.
 Capture generations are also bounded at the exact JavaScript integer ceiling,
 which fits SQLite's signed INTEGER and prevents a protocol fence being rounded.
 Exhaustion refuses a new generation rather than reusing or wrapping a lease.
+
+### Normal file writers consume the same root authority
+
+[Decision Log]
+- Purpose: a restore lease must exclude ordinary node file mutations too.
+- Existing implementation and constraint: file helpers already use blocking I/O;
+  an RPC future can be dropped while that I/O still runs. Holding a root lease
+  only in that RPC future would release exclusion too early.
+- Alternatives: a lease scoped to the RPC await; a global filesystem mutex; a
+  new worker framework. The first loses authority on disconnect, the second
+  serializes unrelated roots and risks actor stalls, the third duplicates tasks.
+- Choice: reuse the node TaskTracker to own admitted file operations and their
+  lease through actual I/O and root postcondition verification. The caller waits
+  on a separate response channel. Losing that response never aborts the writer.
+- Why: this gives existing file APIs the same physical-root authority while
+  keeping unrelated roots independent and preserving the blocking I/O boundary.
+- Effects: Linux file write/create-directory/rename/delete consume the common
+  gate. The owner acknowledgement has a named five-second deadline; Busy refuses
+  before mutation. Non-Linux ordinary file behavior is retained while checkpoint
+  restoration remains unavailable. A retained directory FD pins the inode and
+  detects root-name replacement. Node shutdown closes new admission and drains
+  admitted leases. Git, agent, terminal, script and lifecycle writers still need
+  connecting before checkpoint restore can be activated; this slice alone does
+  not establish root-wide exclusion.

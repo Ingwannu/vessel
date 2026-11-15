@@ -1624,3 +1624,12 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+The shared physical-root admission mechanism now also serves ordinary Linux file
+mutations. `vessel-workspace::physical::Directory` derives the opaque physical key
+from an opened FD; it knows neither logical workspace identity nor authority.
+The node's `workspace::exclusion` owns bounded leases, and `workspace::writing`
+retains operations in the existing TaskTracker through actual file I/O and root
+verification, independent of RPC response lifetime. Checkpoint capture/restore
+orchestration remains test-only and unadvertised; wiring the remaining writer
+families and durable startup recovery is still required before activation.

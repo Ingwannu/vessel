@@ -44,6 +44,18 @@ pub(crate) enum WorkspaceError {
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
+    /// The retained operation failed to reach its caller; never claim success.
+    #[error("file operation response was lost")]
+    ReplyGone(#[source] tokio::sync::oneshot::error::RecvError),
+    /// A retained blocking operation failed; preserve the executor source.
+    #[error("file operation worker stopped")]
+    Task(#[from] tokio::task::JoinError),
+    #[cfg(target_os = "linux")]
+    #[error("physical root filesystem access failed")]
+    Directory(#[source] std::io::Error),
+    #[cfg(target_os = "linux")]
+    #[error("{0}")]
+    RootAdmission(#[from] super::exclusion::RootRefusal),
     /// The disk refused.
     #[error("the disk refused: {0}")]
     Io(String),
@@ -110,6 +122,22 @@ impl WorkspaceError {
     /// The wire's form: a code a client branches on, and a message.
     pub(crate) fn wire(&self) -> WireError {
         let code = match self {
+            #[cfg(target_os = "linux")]
+            Self::Directory(_) => ErrorCode::Internal,
+            #[cfg(target_os = "linux")]
+            Self::RootAdmission(
+                super::exclusion::RootRefusal::Busy
+                | super::exclusion::RootRefusal::RecoveryPending,
+            ) => ErrorCode::Conflict,
+            #[cfg(target_os = "linux")]
+            Self::RootAdmission(
+                super::exclusion::RootRefusal::TimedOut | super::exclusion::RootRefusal::Closed,
+            ) => ErrorCode::Unavailable,
+            #[cfg(all(test, target_os = "linux"))]
+            Self::RootAdmission(super::exclusion::RootRefusal::NotRecovering) => {
+                ErrorCode::Conflict
+            }
+            Self::ReplyGone(_) | Self::Task(_) => ErrorCode::Internal,
             Self::NoGit | Self::NotGit => ErrorCode::Unsupported,
             Self::UnknownProject(_)
             | Self::UnknownWorktree(_)

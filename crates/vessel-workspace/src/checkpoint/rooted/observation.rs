@@ -38,11 +38,7 @@ impl Identity {
 }
 impl Root {
     pub(in crate::checkpoint) fn physical(&self) -> PhysicalRoot {
-        let mut digest = Sha256::new();
-        digest.update(b"vessel-physical-root-v1\0");
-        digest.update(self.identity.device.to_le_bytes());
-        digest.update(self.identity.inode.to_le_bytes());
-        PhysicalRoot::new(BlobHash::from_bytes(digest.finalize().into()))
+        self.physical
     }
     pub(in crate::checkpoint) fn fingerprint(&self) -> RootFingerprint {
         // Directory mtimes change during our own safe renames. Root authority is
