@@ -18,6 +18,8 @@ pub enum Failure {
     Uncertain,
     /// The local queue accepted no mutation.
     Unsent,
+    /// A saved alias now authenticates a different node; no RPC was issued.
+    IdentityChanged,
 }
 #[cfg(not(target_arch = "wasm32"))]
 mod native {
@@ -38,9 +40,13 @@ mod native {
             let ticket = request.ticket;
             let session = request.target.session;
             let action = request.action;
+            let expected_node = request.target.node;
             drop(tokio::spawn(async move {
                 let result = match client {
                     None => Err(Failure::Unsent),
+                    Some(client) if expected_node.is_some_and(|node| client.node().id != node) => {
+                        Err(Failure::IdentityChanged)
+                    }
                     Some(client) => {
                         let act = match action {
                             LifecycleAction::Archive

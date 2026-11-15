@@ -111,3 +111,21 @@ typos through three UTF-16 units, adjacent swaps only at four, one edit through
 seven, two above seven. ASCII words and leading slices are the typo candidates;
 whole-word highlights identify a typo match. Existing picker defaults and tests
 remain the compatibility contract.
+
+
+## Authenticated passive access
+
+The lookup result retains a `sessions::Binding` (validated host name plus exact
+node/session address). After W10 reserved `conversation_opened` for this seam,
+its metadata/conversation reads and the log follow use `SessionAccess` instead
+of alias-only commands. The link actor validates the live `NodeClient` identity
+and captures it synchronously before dispatch; alias replacement refuses without
+contacting the replacement. Lifecycle requests retain the same optional expected
+node, preventing an archive/delete on an alias that changed after lookup. Normal
+legacy saved-host opens keep their existing path until identity hydration is
+available. Queue/web refusals settle the exact pending read/stream.
+
+Evidence so far: the standalone staged node workflow's first 11 tests pass
+(in-memory ports only), and native view's full 870 tests pass. Node concurrent
+archive exclusion and native scoped-read/follow changes are newer and still
+require their exact-head checks. No full gate, capture or runtime parity claim.

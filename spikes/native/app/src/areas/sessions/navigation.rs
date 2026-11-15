@@ -99,7 +99,12 @@ impl Shell {
     /// Window-dependent focus occurs only after the correlated lookup succeeded.
     pub(crate) fn settle_sessions(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(located) = self.areas.sessions.pending_open.take() {
-            self.open_session(crate::areas::session::Open::of(&located.card), window, cx);
+            let mut open = crate::areas::session::Open::of(&located.card);
+            open.binding = Some(vessel_app_link::sessions::Binding {
+                host: located.host,
+                address: located.address,
+            });
+            self.open_session(open, window, cx);
         }
     }
     /// A manual route/session change revokes any older pending deep link.

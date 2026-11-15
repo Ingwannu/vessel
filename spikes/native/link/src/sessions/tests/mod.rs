@@ -1,4 +1,5 @@
 //! Real typed RPC tests of session resolution and lifecycle acknowledgement.
+mod bound;
 mod peer;
 use crate::{Connected, Event, State};
 use std::{collections::HashMap, time::Duration};
@@ -95,6 +96,7 @@ async fn lifecycle_archive_carries_exact_request_identity_and_authoritative_resu
             LifecycleTarget {
                 host: Name::parse("renamed").unwrap(),
                 session,
+                node: None,
             },
             LifecycleAction::Exit,
         )
@@ -123,6 +125,7 @@ async fn lifecycle_refusal_retains_typed_failure_instead_of_success() {
             LifecycleTarget {
                 host: Name::parse("renamed").unwrap(),
                 session: SessionId::random(),
+                node: None,
             },
             LifecycleAction::Archive,
         )

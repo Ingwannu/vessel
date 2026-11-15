@@ -1,8 +1,8 @@
 //! The visible session identity shared by navigation and session rendering.
-use vessel_app_view::{Card, Conversation};
+use crate::routes::Route;
 use vessel_app_kit::ui::Context;
 use vessel_app_link::Command;
-use crate::routes::Route;
+use vessel_app_view::{Card, Conversation};
 use vessel_proto::SessionId;
 
 /// The session on screen.
@@ -18,6 +18,8 @@ pub(crate) struct Open {
     pub(crate) live: bool,
     /// Fleet metadata hides the archived composer before session.get answers.
     pub(crate) archived_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Deep-link reads retain the authenticated node across alias replacement.
+    pub(crate) binding: Option<vessel_app_link::sessions::Binding>,
 }
 
 impl Open {
@@ -30,6 +32,7 @@ impl Open {
             structured: card.structured,
             live: card.live,
             archived_at: card.detail.marks.archived_at,
+            binding: None,
         }
     }
 }
@@ -37,19 +40,23 @@ impl Open {
 impl crate::shell::Shell {
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, cx);
+        self.conversation_opened(&open.machine, open.session, open.binding.as_ref(), cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
         if open.structured {
-            self.command(Command::Open {
-                machine: open.machine.clone(),
-                session: open.session,
-            });
+            self.command(open.binding.clone().map_or_else(
+                || Command::Open {
+                    machine: open.machine.clone(),
+                    session: open.session,
+                },
+                |binding| {
+                    Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding))
+                },
+            ));
         }
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
     }
-
 }

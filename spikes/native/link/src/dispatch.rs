@@ -17,6 +17,7 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::SessionAccess(access) => self.session_access(access),
             Command::Sessions(ask) => self.session_navigation(ask),
             Command::SessionLifecycle(request) => self.session_lifecycle(&request),
             Command::Reload => self.reload().await,

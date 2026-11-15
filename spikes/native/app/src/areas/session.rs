@@ -120,6 +120,11 @@ impl Shell {
             && open.machine == from
         {
             to.clone_into(&mut open.machine);
+            if let Some(binding) = &mut open.binding
+                && let Ok(host) = vessel_app_view::machine_book::Name::parse(to)
+            {
+                binding.host = host;
+            }
         }
         if let Some(pending) = &mut view.pending
             && pending.machine == from
@@ -204,12 +209,13 @@ impl Shell {
             .machines
             .iter()
             .flat_map(|machine| machine.sessions.iter())
-            .find(|card| card.session == open.session);
+            .find(|card| card.machine == open.machine && card.session == open.session);
         if let Some(card) = card {
             if !card.title.is_empty() {
                 open.title.clone_from(&card.title);
             }
             open.live = card.live;
+            open.archived_at = card.detail.marks.archived_at;
         }
     }
 

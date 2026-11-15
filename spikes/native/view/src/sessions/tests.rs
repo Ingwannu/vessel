@@ -151,6 +151,7 @@ fn lifecycle_busy_and_stale_ack_preserve_the_real_pending_action() {
     let target = LifecycleTarget {
         host: crate::machine_book::Name::parse("work").unwrap(),
         session: SessionId::random(),
+        node: None,
     };
     let mut state = Lifecycle::default();
     let first = state.begin(target.clone(), LifecycleAction::Exit).unwrap();

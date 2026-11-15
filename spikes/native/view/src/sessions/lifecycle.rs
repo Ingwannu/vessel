@@ -11,6 +11,9 @@ pub struct LifecycleTarget {
     pub host: Name,
     /// Durable node-local session ID.
     pub session: SessionId,
+    /// Retained authenticated identity for a deep-link/pane destination.
+    /// A normal saved-host action has no stable identity before hydration.
+    pub node: Option<vessel_proto::NodeId>,
 }
 /// The user's intended effect after the authoritative node result arrives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

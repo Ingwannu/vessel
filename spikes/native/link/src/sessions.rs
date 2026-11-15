@@ -1,7 +1,9 @@
 //! Resolve stable session addresses on authenticated connections, never by title.
 //! A lookup reads session.get only; opening history never resumes a provider.
 
+mod access;
 pub mod lifecycle;
+pub use access::{Access, Binding, Read};
 
 use vessel_app_view::Card;
 use vessel_app_view::machine_book::Name as NodeName;

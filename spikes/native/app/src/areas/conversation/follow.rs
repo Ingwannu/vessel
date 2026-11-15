@@ -22,18 +22,31 @@ impl Shell {
         &mut self,
         machine: &str,
         session: SessionId,
+        binding: Option<&vessel_app_link::sessions::Binding>,
         cx: &mut Context<'_, Self>,
     ) {
         self.hear_find(cx);
         self.areas.conversation.open(machine, session);
         // Opened again: a fork's origin that could not be read is read.
         self.origin_read();
-        for act in [Act::Info, Act::Conversation] {
-            self.command(Command::Act {
-                machine: machine.to_owned(),
-                session,
-                act,
-            });
+        use vessel_app_link::sessions::{Access, Read};
+        for (act, read) in [
+            (Act::Info, Read::Info),
+            (Act::Conversation, Read::Conversation),
+        ] {
+            self.command(binding.map_or_else(
+                || Command::Act {
+                    machine: machine.to_owned(),
+                    session,
+                    act,
+                },
+                |binding| {
+                    Command::SessionAccess(Access::Read {
+                        binding: binding.clone(),
+                        read,
+                    })
+                },
+            ));
         }
     }
 

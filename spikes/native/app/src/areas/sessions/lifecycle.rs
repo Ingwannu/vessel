@@ -145,6 +145,7 @@ impl Shell {
                 LifecycleTarget {
                     host,
                     session: open.session,
+                    node: open.binding.as_ref().map(|binding| binding.address.node),
                 },
                 problem,
             ));
@@ -156,6 +157,7 @@ impl Shell {
             target: LifecycleTarget {
                 host,
                 session: open.session,
+                node: open.binding.as_ref().map(|binding| binding.address.node),
             },
             action,
             seed,
@@ -268,6 +270,7 @@ impl Shell {
                 Failure::Refused(failed) => Problem::Refused(failed),
                 Failure::Uncertain => Problem::Uncertain,
                 Failure::Unsent => Problem::Offline,
+                Failure::IdentityChanged => Problem::WrongReply,
             }),
         }
     }
