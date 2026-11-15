@@ -146,3 +146,54 @@ fn empty_failure_and_oversized_replies_remain_distinct() {
         assert!(menu.rows().is_empty());
     }
 }
+
+#[test]
+fn previous_candidates_never_cross_workspace_scope() {
+    let mut menu = Menu::default();
+    let first = menu
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert!(menu.begin(first.ticket).is_some());
+    assert!(menu.arrived(
+        first.ticket,
+        Ok(vec![row("private-a", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    let mut other = scope();
+    other.root = WorkspaceRoot::Project {
+        project: ProjectId::random(),
+    };
+    let next = menu
+        .observe(Some(other), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert!(
+        menu.rows().is_empty(),
+        "keep-previous-data must retain its workspace authority"
+    );
+    assert_eq!(menu.selected(), None);
+    assert!(menu.begin(next.ticket).is_some());
+    assert!(!menu.arrived(
+        first.ticket,
+        Ok(vec![row("late-a", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+}
+
+#[test]
+fn invalid_query_outside_a_registered_scope_remains_hidden() {
+    let text = format!("@{}", "x".repeat(4096));
+    let mut menu = Menu::default();
+    assert!(
+        menu.observe(Some(scope()), &text, text.len(), Duration::ZERO)
+            .is_err()
+    );
+    assert!(matches!(menu.phase(), Phase::Invalid(_)));
+    assert!(
+        menu.observe(None, &text, text.len(), Duration::ZERO)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(menu.phase(), &Phase::Hidden);
+}
