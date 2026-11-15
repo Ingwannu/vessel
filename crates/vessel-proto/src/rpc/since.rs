@@ -172,6 +172,7 @@ impl Call {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
+            | Self::ReleaseWorkspaceAutomation(_)
             | Self::GetRegistry(_)
             | Self::ListWorkspaces(_)
             | Self::GetWorkspace(_)

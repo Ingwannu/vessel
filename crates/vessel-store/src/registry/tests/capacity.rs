@@ -10,6 +10,7 @@ fn retained_workspace_limit_refuses_fresh_ids_but_reconciles_existing_reservatio
     let intent = WorkspaceProvision {
         project: first.descriptor.project,
         isolation: WorkspaceIsolation::Local,
+        automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
         title: None,
         visibility: WorkspaceVisibility::Foreground,
     };

@@ -1,6 +1,7 @@
 //! Durable independent workspaces; SQL runs only on store writer/read threads.
 //! No filesystem deletion, agent shutdown, or provider launch belongs here.
 
+mod automation;
 mod capacity;
 mod lease_read;
 mod leases;
@@ -63,6 +64,8 @@ pub struct WorkspaceProvision {
     pub project: ProjectId,
     /// Local or the existing typed worktree creation mode.
     pub isolation: WorkspaceIsolation,
+    /// Node-resolved source gate; never derived from a client cwd or a command approval.
+    pub automation: vessel_proto::registry::WorkspaceAutomation,
     /// Explicit user name, if supplied.
     pub title: Option<SessionTitle>,
     /// Resolved caller inheritance; the store never guesses a caller's workspace.
@@ -109,6 +112,7 @@ pub struct RegistryReservation {
 /// One writer transaction applies a mutation and bumps the snapshot version.
 #[derive(Debug)]
 pub(crate) enum RegistryWrite {
+    Release(vessel_proto::registry::ReleaseWorkspaceAutomation),
     Claim {
         workspace: WorkspaceId,
         resource: WorkspaceResource,

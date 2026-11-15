@@ -11,6 +11,7 @@ fn local(project: vessel_proto::ProjectId) -> WorkspaceProvision {
     WorkspaceProvision {
         project,
         isolation: WorkspaceIsolation::Local,
+        automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
         title: None,
         visibility: WorkspaceVisibility::Foreground,
     }
@@ -184,5 +185,59 @@ async fn a_workspace_id_cannot_be_reused_for_another_project() {
             .len(),
         1
     );
+    fixture.stop.cancel();
+}
+
+#[tokio::test]
+async fn blocked_external_source_skips_setup_and_retains_its_exact_identity() {
+    use vessel_proto::forge::{ForgeKind, PullNumber, RepoRef};
+    use vessel_proto::registry::{BlockedSource, WorkspaceAutomation};
+    let fixture = Fixture::new().await;
+    let project = fixture
+        .project(
+            "blocked",
+            Some("[worktree]\nsetup = ['printf ran > blocked-marker']\n"),
+        )
+        .await;
+    let source = BlockedSource::ChangeRequest {
+        number: PullNumber::new(1).unwrap(),
+        head_repository: RepoRef {
+            kind: ForgeKind::Github,
+            host: "github.com".parse().unwrap(),
+            path: "fork/project".parse().unwrap(),
+        },
+    };
+    let intent = WorkspaceProvision {
+        isolation: WorkspaceIsolation::Worktree {
+            branch: WorktreeBranch::New {
+                name: None,
+                base: None,
+            },
+            setup: SetupChoice::Run,
+        },
+        automation: WorkspaceAutomation::Blocked {
+            source: source.clone(),
+        },
+        ..local(project.id)
+    };
+    let result = fixture
+        .workspaces
+        .provision_workspace(Creator::Owner, WorkspaceId::random(), intent)
+        .await
+        .unwrap();
+    let Provisioned::Ready(workspace) = result else {
+        panic!("blocked backing may still be provisioned without automation")
+    };
+    assert_eq!(
+        workspace.automation,
+        WorkspaceAutomation::Blocked { source }
+    );
+    let backing = fixture.workspaces.list_worktrees(Some(project.id), &[]);
+    assert_eq!(backing.worktrees.len(), 1);
+    assert!(matches!(
+        backing.worktrees[0].setup,
+        vessel_proto::workspace::SetupState::Skipped
+    ));
+    assert!(!workspace.path.join("blocked-marker").exists());
     fixture.stop.cancel();
 }

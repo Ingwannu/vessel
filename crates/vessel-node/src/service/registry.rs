@@ -17,6 +17,22 @@ fn wire(error: StoreError) -> WireError {
 }
 
 impl NodeService {
+    pub(crate) async fn release_workspace_automation(
+        &self,
+        _: &Connection,
+        request: vessel_proto::registry::ReleaseWorkspaceAutomation,
+    ) -> Result<WorkspaceDescriptor, WireError> {
+        let id = request.workspace;
+        self.sessions
+            .store()
+            .release_registry_automation(request)
+            .await
+            .map_err(wire)?;
+        self.registry_record(id)
+            .await
+            .map(|record| record.descriptor)
+    }
+
     pub(crate) async fn get_registry(
         &self,
         connection: &Connection,

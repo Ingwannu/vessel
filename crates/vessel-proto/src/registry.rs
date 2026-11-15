@@ -1,11 +1,13 @@
 //! Independent project/workspace registry contracts (ADR 0082).
 //! No IO or inferred cwd identity; calls remain unavailable until integration.
 
+mod automation;
 mod config;
 mod project;
 mod snapshot;
 mod workspace;
 
+pub use automation::{BlockedSource, ReleaseWorkspaceAutomation, WorkspaceAutomation};
 pub use config::{
     ConfigDocument, ConfigRevision, ConfigText, ConfigTextError, ConfigValidity, MAX_CONFIG_BYTES,
     ReadProjectConfig, WriteProjectConfig,
@@ -37,6 +39,19 @@ mod tests {
     #[test]
     fn registry_methods_share_one_feature_gate_and_preserve_typed_response_targets() {
         let requests = [
+            ReleaseWorkspaceAutomation {
+                workspace: WorkspaceId::random(),
+                expected: RegistryRevision::ZERO,
+                source: BlockedSource::ChangeRequest {
+                    number: crate::forge::PullNumber::new(1).unwrap(),
+                    head_repository: crate::forge::RepoRef {
+                        kind: crate::forge::ForgeKind::Github,
+                        host: "github.com".parse().unwrap(),
+                        path: "fork/project".parse().unwrap(),
+                    },
+                },
+            }
+            .into_call(),
             GetRegistry::default().into_call(),
             ListWorkspaces::default().into_call(),
             GetWorkspace {

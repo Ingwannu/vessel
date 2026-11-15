@@ -172,7 +172,12 @@ impl Workspaces {
                         CreateWorktree {
                             project: reservation.intent.project,
                             branch: branch.clone(),
-                            setup: *setup,
+                            setup: match reservation.intent.automation {
+                                vessel_proto::registry::WorkspaceAutomation::Allowed => *setup,
+                                vessel_proto::registry::WorkspaceAutomation::Blocked { .. } => {
+                                    vessel_proto::workspace::SetupChoice::Skip
+                                }
+                            },
                         },
                         None,
                         id,
@@ -199,6 +204,7 @@ impl Workspaces {
                 project: reservation.intent.project,
                 path,
                 title: reservation.intent.title.clone(),
+                automation: reservation.intent.automation.clone(),
                 pin: Default::default(),
                 backing,
                 lifecycle: WorkspaceLifecycle::Active,

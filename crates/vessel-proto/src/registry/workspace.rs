@@ -139,6 +139,8 @@ pub struct WorkspaceDescriptor {
     pub path: PathBuf,
     /// User title or absence; automatic names never replace a manual rename.
     pub title: Option<SessionTitle>,
+    /// Automatic work from external sources needs an explicit retained-source release.
+    pub automation: super::WorkspaceAutomation,
     /// Pin survives clients and reconnects; no second sidebar preference store.
     #[serde(default)]
     pub pin: WorkspacePin,

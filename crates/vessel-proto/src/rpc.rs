@@ -102,6 +102,8 @@ macro_rules! method_table {
             RenameWorkspace / rename_workspace / "workspace.rename" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::RenameWorkspace => $crate::registry::WorkspaceDescriptor;
             /// Persist one workspace pin without changing client-local ordering.
             PinWorkspace / pin_workspace / "workspace.pin" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::PinWorkspace => $crate::registry::WorkspaceDescriptor;
+            /// Release automation for one explicitly inspected external source and revision.
+            ReleaseWorkspaceAutomation / release_workspace_automation / "workspace.release_automation" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ReleaseWorkspaceAutomation => $crate::registry::WorkspaceDescriptor;
             /// List sessions.
             ListSessions / list_sessions / "session.list" [Read, 2, unary]: $crate::ListSessions => Vec<$crate::SessionInfo>;
             /// Get one session.

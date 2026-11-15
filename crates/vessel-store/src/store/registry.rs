@@ -10,6 +10,18 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
 
 impl Store {
+    /// Release only the exact retained source/version after explicit person authorization.
+    /// This does not approve a digest, run setup or retry earlier work.
+    ///
+    /// # Errors
+    /// Changed source/revision, non-Active lifecycle, missing identity or persistence failure.
+    pub async fn release_registry_automation(
+        &self,
+        request: vessel_proto::registry::ReleaseWorkspaceAutomation,
+    ) -> Result<(), StoreError> {
+        self.registry_write(RegistryWrite::Release(request)).await
+    }
+
     /// Admit a preallocated actor id before spawn, with an archive fence in the same transaction.
     ///
     /// # Errors

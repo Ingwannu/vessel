@@ -21,6 +21,7 @@ fn record(id: WorkspaceId) -> RegistryRecord {
             id,
             project: ProjectId::random(),
             path: "/work/project".into(),
+            automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
             title: None,
             pin: Default::default(),
             backing: WorkspaceBacking::Local,
@@ -173,6 +174,7 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
         intent: WorkspaceProvision {
             project: ProjectId::random(),
             isolation: WorkspaceIsolation::Local,
+            automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
             title: None,
             visibility: WorkspaceVisibility::Foreground,
         },
@@ -246,6 +248,7 @@ fn restart_marks_interrupted_creation_uncertain_without_reallocating_ids() {
         intent: WorkspaceProvision {
             project: ProjectId::random(),
             isolation: WorkspaceIsolation::Local,
+            automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
             title: None,
             visibility: WorkspaceVisibility::Foreground,
         },
@@ -273,6 +276,7 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
         intent: WorkspaceProvision {
             project: record.descriptor.project,
             isolation: WorkspaceIsolation::Local,
+            automation: vessel_proto::registry::WorkspaceAutomation::Allowed,
             title: None,
             visibility: WorkspaceVisibility::Foreground,
         },
@@ -498,3 +502,5 @@ fn stale_start_completion_cannot_settle_a_newer_retry_for_the_same_actor_id() {
 }
 
 mod capacity;
+
+mod automation;

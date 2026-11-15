@@ -40,6 +40,7 @@ pub(crate) fn apply(
     mutation: &RegistryWrite,
 ) -> Result<RegistryChange, StoreError> {
     match mutation {
+        RegistryWrite::Release(request) => super::automation::release(connection, request)?,
         RegistryWrite::Claim {
             workspace,
             resource,
