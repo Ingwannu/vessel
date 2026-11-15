@@ -16,6 +16,9 @@ use crate::schedules::{
 };
 use vessel_proto::automation::{ListRuns, RunList, RunNumber, ScheduleRun};
 use vessel_proto::{ScheduleId, SessionId};
+mod lookup;
+use lookup::Opening;
+pub use lookup::{Candidate, Lookup};
 
 /// One history overlay visit, separate from a retry's request identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,6 +85,7 @@ struct Selection {
     visit: Visit,
     title: String,
     outcome: Outcome,
+    opening: Opening,
 }
 /// Read-only history owner; its ticket issuer survives close and reopen.
 #[derive(Debug, Default)]
@@ -115,6 +119,7 @@ impl Reader {
             visit,
             title: crate::schedules::title(&row.schedule.definition).to_owned(),
             outcome: Outcome::Waiting(request.clone()),
+            opening: Opening::default(),
         });
         Some(request)
     }
@@ -127,7 +132,9 @@ impl Reader {
         }
         let mut request = selection.outcome.request().clone();
         request.ticket = self.ticket()?;
-        self.selection.as_mut()?.outcome = Outcome::Waiting(request.clone());
+        let selection = self.selection.as_mut()?;
+        selection.opening.retire();
+        selection.outcome = Outcome::Waiting(request.clone());
         Some(request)
     }
     /// Drawing and dispatch use the same pending/retired/failure retry rule.
@@ -201,6 +208,7 @@ impl Reader {
         ) {
             return false;
         }
+        selection.opening.retire();
         selection.outcome = Outcome::Failed {
             request: selection.outcome.request().clone(),
             failure: Failure::ConnectionChanged,

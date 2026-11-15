@@ -1,7 +1,7 @@
 use super::*;
 use crate::schedules::page::tests::{loaded, rebound};
 use vessel_proto::automation::{RunOutcome, RunTrigger};
-fn run(number: u32, outcome: RunOutcome) -> ScheduleRun {
+pub(super) fn run(number: u32, outcome: RunOutcome) -> ScheduleRun {
     let at = "2026-11-15T00:00:00Z".parse().unwrap();
     ScheduleRun {
         number: RunNumber::new(number).unwrap(),
@@ -11,7 +11,7 @@ fn run(number: u32, outcome: RunOutcome) -> ScheduleRun {
         outcome,
     }
 }
-fn list() -> RunList {
+pub(super) fn list() -> RunList {
     RunList {
         runs: vec![run(2, RunOutcome::Interrupted), run(1, RunOutcome::Making)],
     }

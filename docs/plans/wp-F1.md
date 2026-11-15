@@ -803,3 +803,18 @@ Proof limits: source formatting, native size/token scripts only; no new compile,
 framed tests, UI captures, focus/native OS, read-only authority or package PASS.
 The queued c41d checks predate this UI source. Menu cycle correction is still
 owned by S2 and must land before final F1 interaction/capture proof.
+
+### Historical session metadata candidate (source only)
+
+The session owner requires live admission before allocating layout/resident/
+follow bindings. Reader therefore stages a typed Lookup(original context, visit,
+run, ticket, session) and only exact SessionInfo.id can become a private-created
+Candidate. Candidate is metadata, never permission to open a panel. It preserves
+archived records absent from Fleet and does not create a Card, resident, follow,
+new registry or second opener. Refresh/reconnect/close retire the pending lookup
+and candidate; pending duplicate reads are refused. Full original correlation
+survives wrong id/context/ticket and late replies in new source cases.
+
+Link routing for this candidate is not yet added, and no lookup/Open chat button
+is exposed. The shared opener/delivery capability remains a required dependency;
+this source model is not a session-navigation proof. New cases are unexecuted.
