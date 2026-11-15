@@ -307,3 +307,8 @@ the authoritative workspace/layout restoration policy. No second persistence
 store or external solution is introduced. The legacy preparation lookup
 wrapper is now literal cfg(test); creation's product caller always passes its
 original captured connection directly. Shared package base8 is merged.
+
+The top-level seeded workspace form likewise explicitly keeps its accepted
+text after set_text and before navigation, using new_chat_kept. Both programmatic
+seed paths now follow the same existing text owner as typing; rejected Busy
+seeds still mutate neither the editor nor its kept value.

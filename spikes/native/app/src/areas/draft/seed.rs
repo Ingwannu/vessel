@@ -73,6 +73,9 @@ impl Shell {
             .draft
             .composer
             .set_text(seed.text.as_str(), window, cx);
+        // A seed writes the field without an edit event, just like the scoped
+        // editor. Reuse the existing text owner before opening the screen.
+        self.new_chat_kept(cx);
         self.areas.draft.creation.workspace = Some(WorkspaceForm {
             destination: seed.destination,
             project,

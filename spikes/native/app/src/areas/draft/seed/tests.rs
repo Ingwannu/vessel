@@ -110,6 +110,10 @@ fn accepted_seed_preserves_exact_nested_root_and_canonical_history(cx: &mut Test
         assert_eq!(shell.route, Route::NewWorkspace);
         assert_eq!(shell.areas.draft.folder, "/repo/nested/selected");
         assert_eq!(shell.areas.draft.composer.text(cx), "initial text");
+        assert_eq!(
+            shell.areas.composer.drafts.text(DraftKey::New),
+            "initial text"
+        );
         assert!(shell.composer_has_context(DraftKey::New));
         assert_eq!(
             shell.areas.draft.creation.workspace.as_ref().unwrap(),
