@@ -76,6 +76,7 @@ impl Shell {
         }
         self.words = words;
         self.t = Lang::from_tag(words.locale().tag()).text();
+        self.refresh_general_words();
         crate::areas::settings::apply_composer(self, window, cx);
         for refresh in PLACEHOLDERS {
             refresh(self, window, cx);

@@ -21,7 +21,7 @@
 
 use vessel_app_kit::select;
 use vessel_app_kit::ui::{
-    AnyElement, ClipboardItem, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
@@ -39,7 +39,6 @@ pub(crate) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.general();
-    let legacy = shell.t.lang.settings();
     let composer = &shell.prefs.settings.composer;
     let general = settings::card(tokens).child(super::language::row(shell, tokens, compact, cx));
     // Each row once the composer reads its value (`super::applied`). The
@@ -72,7 +71,7 @@ pub(crate) fn render(
     let kept = &shell.prefs.kept;
     // The file's path under the note, its copy at the right (as About's log
     // file); this launch only, said with why.
-    let (hint, control) = match kept {
+    let control = match kept {
         Kept::File { path } => {
             let copied = path.clone();
             let copy = outline_button(
@@ -82,28 +81,20 @@ pub(crate) fn render(
                 tokens,
             )
             .on_click(cx.listener(move |shell, _event, _window, cx| {
-                cx.write_to_clipboard(ClipboardItem::new_string(copied.clone()));
-                shell.notice = Some(shell.t.lang.settings().path_copied.to_owned());
-                cx.notify();
+                shell.copy_preferences_path(&copied, cx);
             }));
-            (
-                format!("{}\n{path}", legacy.kept_note),
-                copy.into_any_element(),
-            )
+            copy.into_any_element()
         }
-        Kept::ThisLaunch { .. } => (
-            legacy.kept_why(kept).unwrap_or_default(),
-            div()
-                .flex_shrink_0()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.this_launch())
-                .into_any_element(),
-        ),
+        Kept::ThisLaunch { .. } => div()
+            .flex_shrink_0()
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(words.this_launch())
+            .into_any_element(),
     };
     let kept_card = settings::card(tokens).child(settings::row_at(
         words.preferences(),
-        Some(hint.into()),
+        Some(shell.areas.settings.general.hint.clone()),
         None,
         Some(control),
         true,

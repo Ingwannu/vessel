@@ -352,3 +352,6 @@ impl Place {
 }
 
 mod words;
+
+mod general;
+pub use general::StorageError;
