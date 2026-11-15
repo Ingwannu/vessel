@@ -7,6 +7,10 @@ which remains `None` until integration; this branch does not
 change `PROTOCOL_VERSION`. This track adds no `node.settings` key, and
 it does not touch parking, rewind, fork, or `vessel-agent`.
 
+The [Resume point](#resume-point) states the current package boundary. Earlier
+implementation and verification notes retain the checkpoints at which they were
+written; their pending checks are historical unless restated in that section.
+
 ## What Paseo does
 
 Read first, and reproduced except for the differences ADR 0063 lists.
@@ -541,7 +545,8 @@ review. Its approved legacy run anchor now checks the creation call after
 connection but before placement. New CLI metadata/filter options and MCP
 facades are separate consumer integrations. A real-node regression also covers
 hidden durable listing and the dynamic import refusal before target-directory
-work; its execution remains owed.
+work. That integration case belongs to the complete package gate, rather than
+the earlier node-library checks.
 
 Canonical workspace visibility is the authority for bound sessions; creation
 orchestration still owes that mirror/override bridge. Independent listing and
