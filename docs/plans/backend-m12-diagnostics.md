@@ -602,3 +602,36 @@ by this preparation; `DIAGNOSTICS_PROTOCOL` remains `None`, and all staged
 modules remain private under `cfg(test)`. Wait for the Quality B head in the
 shared brief, merge under the existing rules and gate that tree before
 installing the actual product wiring.
+
+
+### Native consumer handoff: values available, producer still pending
+
+The native consumer can use the accepted immutable `DiagnosticReport` and
+its per-source `DiagnosticSection` values. There is still no registered
+request, `NodeClient::diagnostics()` implementation or native link/view
+producer. The staged collector is not such an API. The native owner retains
+the existing local-app report and translated UI text, and must not replace
+the missing node source with another native collector or a successful stub.
+
+The proposed native ticket semantics use the app's existing typed request
+mechanism rather than introduce wire fields: associate results with machine
+identity/book key, connection generation and refresh generation; reject a
+report whose node id differs from the expected connected node. Superseded,
+closed, disconnected or forgotten requests cannot replace newer rows or
+revive removed state. After a successful book rename, move cached local state
+and invalidate the old request ticket; a failed edit changes nothing. Exact
+native types and completion hooks remain the native owner's contract. These
+semantics are a consumer proposal, not an implemented or reviewed native API.
+
+Machine connection/request failures remain distinct from a received report's
+partial source failures. Missing sections never become healthy zeros, an
+empty failed-RPC window never means all errors are absent, and retained old
+reports remain visibly stale. Copy/export uses only validated values, with
+the existing client text bound checked on the complete output. A multi-node
+export must not multiply bounded reports into unbounded output. Raw remote
+error messages and connection details are outside the shareable report.
+
+Resume point: align the existing native typed-ticket/completion seam when its
+owner supplies the concrete type, and hand off the actual client method and
+gated hash only after canonical metadata and real wiring exist. This note
+changes no producer, field, method, protocol number or native source.
