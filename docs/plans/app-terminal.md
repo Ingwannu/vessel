@@ -368,6 +368,39 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
 
 ### T1 review repair contract
 
+V3 row 104 accepted the ownership, appearance, motion, scheduling, notice
+and inspected visual evidence, but returned two dynamic scroll defects.
+The next repair modifies the existing viewport and history, rather than
+adding a second scroll controller. A typed history row address must pin
+the inspected output as live output grows or evicts older rows. The live
+position still follows output. The viewport retains the last presented
+history range so pointer and touch intent can update it while the executor
+owns the model; the current opening alone can apply the returned model.
+An alternate screen has no scrollback and must preserve the primary anchor.
+
+Reference reread for this repair: Paseo's runtime construction at
+`terminal-emulator-runtime.ts` 557–574 and app `package.json` 81; the exact
+installed `@xterm/xterm` 6.1.0-beta.336 at
+`/home/dev/paseo/node_modules/@xterm/xterm/src/common/services/BufferService.ts`
+99–110, 121–124 and 137–149. While user-scrolling, xterm leaves the display
+line still, adjusts for evictions, and resumes following at the bottom.
+Fail-first cases cover growth before the history cap, eviction at the cap,
+alternate-screen output, and pointer/touch gestures in both directions
+inside an outstanding live replay. The unchanged static capture matrix and
+the prior native gate remain valid for their recorded sources; changed
+behavior needs its own narrow checks and final package gate.
+
+The address is a physical row, not a durable logical-cell marker. Width
+reflow still resolves that index in the reflowed history and clamps it;
+it does not adjust the viewport around inserted/deleted reflow rows as
+xterm does (`Buffer.ts` 346–365, 460–485 and 530–539, read). This remains a
+stated difference: the scalar grid's reflow currently returns only the
+cursor mapping, with no persistent line/cell marker mapping. Extending that
+mapping belongs with the resize behavior rather than assuming a physical
+row identifies a logical cell after reflow. The guarantee here covers live output,
+eviction and alternate-screen switching at the existing geometry. A clear
+or RIS invalidates the old history epoch rather than pinning unrelated rows.
+
 The first screen review returned lifecycle, appearance, motion, scrolling,
 scheduling and notice defects. T1 remains unaccepted until these repairs,
 the native gate and the complete visual matrix are reviewed.

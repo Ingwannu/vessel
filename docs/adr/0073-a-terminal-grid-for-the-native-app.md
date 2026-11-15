@@ -207,6 +207,20 @@ Bounds:
   is in flight; output arriving meanwhile waits in order for its return.
   A completion paints once, rather than painting after every queued record.
   The cost is an executor handover even for a small echo.
+- A scrolled viewport pins a typed physical history-row address, including
+  the history epoch and front evictions. Live output leaves that address
+  still until it is evicted; then the viewport clamps to the oldest row.
+  Zero follows output. Alternate output has no history and preserves the
+  primary anchor. This follows the pinned xterm's `BufferService.ts`
+  99–149. The last presented range also accepts bounded wheel/pan intent
+  while the executor owns the model, so parsing cannot drop gestures.
+  Opening replacement discards that range and intent. History clear and
+  RIS change the address epoch. These are changes to the existing history
+  and viewport, with constant-sized metadata and no second renderer or
+  input queue. Width reflow still resolves the physical row index in the
+  resulting history; its logical-position mapping remains a stated
+  difference in the terminal plan, because reflow currently maps only the
+  cursor. This guarantee concerns live output at existing geometry.
 - History is not fed frame by frame. On open, the terminal's ring (a
   shell) or its log (a session that is a terminal, which can be many
   megabytes) is read page by page (`terminal.read` / `session.read`, 512

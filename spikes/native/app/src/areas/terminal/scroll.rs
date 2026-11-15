@@ -60,13 +60,18 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let area = &mut self.areas.terminal;
-        let Some(model) = area.model.as_ref() else {
+        if area.shown.is_none() {
             return;
-        };
+        }
+        // The frame remains on screen while parsing owns the model. Use
+        // its retained range instead of dropping input during that handover.
+        if let Some(model) = area.model.as_ref() {
+            area.viewport.refresh(model.grid());
+        }
         let delta = event.delta.pixel_delta(cell.height).y;
         match area.wheel.step(delta, cell) {
-            Some(Step::Earlier(lines)) => area.viewport.earlier(lines, model.grid()),
-            Some(Step::Later(lines)) => area.viewport.later(lines, model.grid()),
+            Some(Step::Earlier(lines)) => area.viewport.earlier_retained(lines),
+            Some(Step::Later(lines)) => area.viewport.later_retained(lines),
             None => return,
         }
         self.terminal_draw(cx);

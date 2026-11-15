@@ -34,6 +34,7 @@ impl Shell {
         let Some(model) = area.model.as_ref() else {
             return;
         };
+        area.viewport.refresh(model.grid());
         let scroll = area.viewport.offset(model.grid());
         let now = DrawKey {
             generation: model.grid().generation(),

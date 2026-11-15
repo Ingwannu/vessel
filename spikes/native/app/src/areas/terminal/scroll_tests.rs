@@ -87,3 +87,139 @@ fn terminal_body_scrolls_back_and_returns_to_live_for_pointer_and_touch(cx: &mut
         });
     }
 }
+
+#[gpui::test]
+fn replay_keeps_pointer_and_touch_intent_in_both_directions(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    for source in [ScrollSource::Pointer, ScrollSource::Touch] {
+        shell.update(cx, |shell, cx| {
+            shell.terminal_opened(
+                "laptop".parse().unwrap(),
+                SessionId::random(),
+                TerminalSize::default(),
+                cx,
+            );
+            let bytes = (0..300).fold(String::new(), |mut s, n| {
+                writeln!(s, "row-{n:03}\r").unwrap();
+                s
+            });
+            replay_all(
+                shell.areas.terminal.model.as_mut().unwrap(),
+                bytes.as_bytes(),
+            );
+            shell.areas.terminal.phase = Phase::Ready;
+            shell.terminal_draw(cx);
+            shell
+                .areas
+                .terminal
+                .pending
+                .extend_from_slice(b"row-300\r\n");
+            shell.terminal_apply(cx);
+            assert!(shell.areas.terminal.model.is_none());
+            let cell = vessel_app_kit::terminal_grid::CellSize {
+                width: px(8.0),
+                height: px(16.0),
+            };
+            shell.terminal_scroll(
+                &ScrollEvent {
+                    delta: ScrollDelta::Lines(point(0.0, 10000.0)),
+                    source,
+                    ..Default::default()
+                },
+                cell,
+                cx,
+            );
+        });
+        cx.run_until_parked();
+        shell.read_with(cx, |shell, cx| {
+            assert!(words(shell, cx).contains("row-000"))
+        });
+        shell.update(cx, |shell, cx| {
+            shell
+                .areas
+                .terminal
+                .pending
+                .extend_from_slice(b"row-301\r\n");
+            shell.terminal_apply(cx);
+            assert!(shell.areas.terminal.model.is_none());
+            let cell = vessel_app_kit::terminal_grid::CellSize {
+                width: px(8.0),
+                height: px(16.0),
+            };
+            shell.terminal_scroll(
+                &ScrollEvent {
+                    delta: ScrollDelta::Lines(point(0.0, -10000.0)),
+                    source,
+                    ..Default::default()
+                },
+                cell,
+                cx,
+            );
+        });
+        cx.run_until_parked();
+        shell.read_with(cx, |shell, cx| {
+            assert!(!words(shell, cx).contains("row-000"));
+            assert!(words(shell, cx).contains("row-301"));
+        });
+    }
+}
+
+#[gpui::test]
+fn replacing_an_opening_discards_its_inflight_scroll_intent(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        shell.terminal_opened(
+            "laptop".parse().unwrap(),
+            SessionId::random(),
+            TerminalSize::default(),
+            cx,
+        );
+        replay_all(
+            shell.areas.terminal.model.as_mut().unwrap(),
+            b"old\r\n".repeat(300).as_slice(),
+        );
+        shell.areas.terminal.phase = Phase::Ready;
+        shell.terminal_draw(cx);
+        shell
+            .areas
+            .terminal
+            .pending
+            .extend_from_slice(b"old completion\r\n");
+        shell.terminal_apply(cx);
+        assert!(shell.areas.terminal.model.is_none());
+        let cell = vessel_app_kit::terminal_grid::CellSize {
+            width: px(8.0),
+            height: px(16.0),
+        };
+        shell.terminal_scroll(
+            &ScrollEvent {
+                delta: ScrollDelta::Lines(point(0.0, 10000.0)),
+                source: ScrollSource::Touch,
+                ..Default::default()
+            },
+            cell,
+            cx,
+        );
+        shell.terminal_opened(
+            "laptop".parse().unwrap(),
+            SessionId::random(),
+            TerminalSize::default(),
+            cx,
+        );
+        replay_all(shell.areas.terminal.model.as_mut().unwrap(), b"new opening");
+        shell.areas.terminal.phase = Phase::Ready;
+        shell.terminal_draw(cx);
+    });
+    cx.run_until_parked();
+    shell.read_with(cx, |shell, cx| {
+        assert!(words(shell, cx).contains("new opening"));
+        assert!(!words(shell, cx).contains("old"));
+        let area = &shell.areas.terminal;
+        assert_eq!(
+            area.viewport.offset(area.model.as_ref().unwrap().grid()),
+            vessel_app_view::terminal::grid::Scroll(0)
+        );
+    });
+}
