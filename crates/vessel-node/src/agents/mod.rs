@@ -53,6 +53,8 @@ use vessel_store::CredentialHash;
 use crate::error::ServiceError;
 use crate::principal::Principal;
 
+mod execution;
+
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;
 
@@ -73,6 +75,8 @@ pub(crate) struct Agents {
 
 #[derive(Debug)]
 struct Entry {
+    /// The existing registry owns one bounded current execution/watch value.
+    execution: execution::Execution,
     /// Accepted credentials: one, or two while a profile move runs.
     credentials: Vec<CredentialHash>,
     /// What the session's agent may do.
@@ -180,6 +184,7 @@ impl Agents {
         let previous = sessions.insert(
             id,
             Entry {
+                execution: execution::Execution::new(),
                 credentials,
                 scopes,
                 depth,
@@ -235,6 +240,7 @@ impl Agents {
     /// The session ended: its credential is refused from now on, and its
     /// agent's open connections close.
     pub(crate) fn retire(&self, id: SessionId) {
+        self.invalidate_execution(id, vessel_proto::timeline::ExecutionInvalidation::Ended);
         let Some(entry) = self.lock().remove(&id) else {
             return;
         };

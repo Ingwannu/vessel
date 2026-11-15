@@ -1792,6 +1792,13 @@ renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
 
+Execution incarnation/invalidation has one owner in the existing Agents registry.
+Each live entry owns a UUID and latest-change watch; natural retirement invalidates
+then closes it. Transition owners use invalidate_execution before their effects.
+The proto stamp/ceiling are correlation values only. This first producer implements
+no runtime capture, parentage lease, actor queue policy or private notice admission;
+see docs/plans/timeline-execution-invalidation.md. No dependency or wire edge changes.
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and
