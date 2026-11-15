@@ -79,3 +79,37 @@ remote gate. End-of-package fake-fleet captures at 1280x900 and 390x844, plus
 800x600 for layout-sensitive changes, both themes and EN/KO. Never use live
 preview ports or real agents. Review V4 receives one range, gate and captures;
 rows are marked passed only after the corresponding behavior is verified.
+
+## Agreed integration seams (preparation, not verified behavior)
+
+- W1/A3: `PaletteMode::{Commands,Messages}`, `PaletteTarget::Messages`,
+  `palette/messages.rs`; preserve mode invalidation and the extracted
+  `palette/commands.rs`. Skeleton candidate `665d1ff2` is unreviewed.
+- W12/C2: `view::layout::LayoutAction`; app adapter
+  `Shell::run_layout_action(action,window,cx)->bool`. This supersedes the
+  archived duplicate's pane proposal. One keyboard interceptor only.
+- W12b/B2: `shortcuts::composer::ComposerAction`; proposed app adapter
+  `Shell::run_composer_shortcut(action,window,cx)->bool`. No Send default:
+  `sendShortcut` and current queue/steer behavior belong to the composer.
+- W19b/E3: `shortcuts::desktop::DesktopAction`; app adapter
+  `Shell::run_desktop_shortcut(action,window,cx)->bool`. Defaults include
+  new window Mod+Shift+N; fullscreen Ctrl+Meta+F on macOS, F11 elsewhere;
+  zoom Mod+=/Mod+-/Mod+0. Mod+W first addresses the current workspace tab,
+  then falls back to closing the window only if no tab close was handled.
+- W2/A4: `Shell::open_import(window,cx)` opens a modal over the current
+  route; title from `shell.words.history().title()`. Close the palette first.
+  Skeleton `367685a8` is not yet consumer-ready.
+- W11/C1: project/workspace identity and pin/rename operations use
+  `view::registry` and `link::registry`; the project action opens a scoped
+  draft without implicitly registering or trusting a project. No ready hash.
+- W13/C5: existing `Shell::code_find_files(key,query,limit)` in
+  `areas/workspace/code/elsewhere.rs` reuses file.find; a callback independent
+  of the composer is pending. Do not duplicate file I/O. Node suggestions are
+  pending; requested-parent file.list is the approved temporary fallback.
+- W16/F6: plugin targets retain `ContributionAddress` including exact node,
+  plugin and runtime generation; OpenScreen and Invoke actions remain typed.
+  The plugin owner rechecks online status and generation at dispatch.
+
+The desktop action contract alone is committed at `8e9c8674` for W19b's early
+consumer validation, explicitly unverified when handed over. This is not a
+package completion or a passed tracker row.

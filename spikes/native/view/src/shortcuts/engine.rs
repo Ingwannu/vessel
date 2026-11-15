@@ -1,0 +1,253 @@
+//! Stateful chord resolution for the existing shortcut registry. Only admitted
+//! input advances candidates; every step rechecks current focus. The owner
+//! replaces this state on blur, visibility loss, capture and binding changes.
+
+use std::time::Duration;
+
+use super::context::{Admission, FocusScope, ShortcutContext, When};
+use super::sequence::KeySequence;
+use super::{Chord, Platform, same_chord};
+use crate::prefs::ActionId;
+
+/// Paseo's fixed timeout, measured from the most recent accepted chord step.
+pub const CHORD_TIMEOUT: Duration = Duration::from_millis(1500);
+
+/// Keyboard repeat is explicit because sending/voice/mode changes act once.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Repeat {
+    /// Held keys may repeat navigation.
+    Allow,
+    /// Only an initial keydown may perform this action.
+    Deny,
+}
+
+/// The host reports actual repeat separately from a binding's repeat policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyRepeat {
+    /// A new keydown after release.
+    Initial,
+    /// The system repeated a held key.
+    Repeated,
+}
+
+/// Native editing and agent interruption have explicit propagation semantics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Consume {
+    /// Leave the event's default or propagation intact.
+    No,
+    /// Consume the event's default or propagation once actually handled.
+    Yes,
+}
+
+/// Payload shape belongs to the action definition, even after rebinding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Payload {
+    /// Ordinary action with no digit argument.
+    None,
+    /// Extract the pressed 1–9 digit, including a concrete-digit override.
+    Index,
+}
+
+/// A validated effective binding emitted by the one registry.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EffectiveBinding<A> {
+    /// Stable persistence identity, independent of the current combo.
+    pub id: ActionId,
+    /// Typed feature action.
+    pub action: A,
+    /// Original action payload definition, retained when keys change.
+    pub payload: Payload,
+    /// A nonempty validated sequence.
+    pub keys: KeySequence,
+    /// Platform and focus predicate after applying an override.
+    pub when: When,
+    /// Last-step repeat behavior.
+    pub repeat: Repeat,
+    /// Whether a handled action consumes the native default.
+    pub prevent_default: Consume,
+    /// Whether a handled action stops further propagation.
+    pub stop_propagation: Consume,
+}
+
+/// Digits are validated once before becoming navigation payloads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ShortcutIndex(u8);
+
+impl ShortcutIndex {
+    /// A workspace/tab number, restricted to the reference's 1–9 range.
+    #[must_use]
+    pub const fn new(value: u8) -> Option<Self> {
+        if value >= 1 && value <= 9 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
+    /// One-based index; conversion to a collection offset belongs to its owner.
+    #[must_use]
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+/// A press's outcome; waiting consumes the prefix without dispatching an action.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Resolution<A> {
+    /// Leave the press with the focused control.
+    Pass,
+    /// A multi-step candidate owns this prefix.
+    Waiting,
+    /// The feature's dispatcher decides whether it actually performed this.
+    Run {
+        /// Original typed action.
+        action: A,
+        /// Final key's digit, when the binding ends with the Digit wildcard.
+        index: Option<ShortcutIndex>,
+        /// Native default policy.
+        prevent_default: Consume,
+        /// Propagation policy.
+        stop_propagation: Consume,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Candidate {
+    id: ActionId,
+    /// Changes to an override invalidate a pending candidate even if its id stays.
+    keys: KeySequence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Pending {
+    candidates: Vec<Candidate>,
+    step: usize,
+    at: Duration,
+}
+
+/// Pure engine state; the app supplies monotonic elapsed time without I/O here.
+#[derive(Debug, Default)]
+pub struct Engine {
+    pending: Option<Pending>,
+}
+
+impl Engine {
+    /// Blur, binding changes, composition, capture and top overlays cancel prefixes.
+    pub fn reset(&mut self) {
+        self.pending = None;
+    }
+
+    /// Resolve a non-modifier chord. Modifier-only events never call this method,
+    /// so pressing Control between chord steps does not cancel a pending sequence.
+    #[must_use]
+    pub fn resolve<A: Clone>(
+        &mut self,
+        chord: &Chord,
+        repeat: KeyRepeat,
+        now: Duration,
+        context: ShortcutContext,
+        bindings: &[EffectiveBinding<A>],
+    ) -> Resolution<A> {
+        if context.admission != Admission::Available
+            || (matches!(
+                context.focus,
+                FocusScope::MessageInput | FocusScope::Editable
+            ) && super::refusal(chord, context.platform) == Some(super::Refusal::Editing))
+        {
+            self.reset();
+            return Resolution::Pass;
+        }
+        let pending = self
+            .pending
+            .take()
+            .filter(|pending| now.saturating_sub(pending.at) < CHORD_TIMEOUT);
+        let mut advancing = Vec::new();
+        let step = pending.as_ref().map_or(0, |pending| pending.step);
+        let mut completed = None;
+        for binding in bindings {
+            if !binding.when.matches(context) {
+                continue;
+            }
+            if let Some(pending) = &pending
+                && !pending
+                    .candidates
+                    .iter()
+                    .any(|candidate| candidate.id == binding.id && candidate.keys == binding.keys)
+            {
+                continue;
+            }
+            let Some(wanted) = binding.keys.step(step) else {
+                continue;
+            };
+            if !matches_step(wanted, chord, context.platform) {
+                continue;
+            }
+            if step.saturating_add(1) == binding.keys.len() {
+                if repeat == KeyRepeat::Repeated && binding.repeat == Repeat::Deny {
+                    continue;
+                }
+                if completed.is_none() {
+                    completed = Some(binding);
+                }
+            } else {
+                advancing.push(Candidate {
+                    id: binding.id.clone(),
+                    keys: binding.keys.clone(),
+                });
+            }
+        }
+        // A pending mismatch is consumed as a failed sequence, never retried as
+        // a fresh shortcut: Paseo cannot accidentally fire a second-step command.
+        if pending.is_some()
+            && let Some(binding) = completed
+        {
+            return run(binding, chord);
+        }
+        if !advancing.is_empty() {
+            self.pending = Some(Pending {
+                candidates: advancing,
+                step: step.saturating_add(1),
+                at: now,
+            });
+            return Resolution::Waiting;
+        }
+        completed.map_or(Resolution::Pass, |binding| run(binding, chord))
+    }
+}
+
+fn matches_step(wanted: &Chord, pressed: &Chord, platform: Platform) -> bool {
+    if wanted.key != "Digit" {
+        return same_chord(wanted, pressed, platform);
+    }
+    let Some(_) = digit(pressed) else {
+        return false;
+    };
+    let mut wanted = wanted.clone();
+    wanted.key.clone_from(&pressed.key);
+    same_chord(&wanted, pressed, platform)
+}
+
+fn digit(chord: &Chord) -> Option<ShortcutIndex> {
+    let mut characters = chord.key.chars();
+    let digit = characters.next()?.to_digit(10)?;
+    if characters.next().is_some() {
+        return None;
+    }
+    u8::try_from(digit).ok().and_then(ShortcutIndex::new)
+}
+
+fn run<A: Clone>(binding: &EffectiveBinding<A>, chord: &Chord) -> Resolution<A> {
+    let index = match binding.payload {
+        Payload::None => None,
+        Payload::Index => digit(chord),
+    };
+    Resolution::Run {
+        action: binding.action.clone(),
+        index,
+        prevent_default: binding.prevent_default,
+        stop_propagation: binding.stop_propagation,
+    }
+}
+
+#[cfg(test)]
+mod tests;

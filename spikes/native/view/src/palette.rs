@@ -12,7 +12,12 @@
 //!   names and the kit's three choices (system, light, dark), and acts on
 //!   the target it gets back.
 
+mod contribution_projection;
 mod cursor;
+pub mod registration;
+
+pub use contribution_projection::{ContributionResult, ContributionSection, contribution_sections};
+pub mod pages;
 mod ranking;
 mod subtitle;
 
@@ -257,10 +262,7 @@ pub fn marks(query: &str, text: &str) -> Vec<Range<usize>> {
 /// listed, else the first.
 #[must_use]
 pub fn kept<'a>(active: Option<&str>, ids: &[&'a str]) -> Option<&'a str> {
-    ids.iter()
-        .copied()
-        .find(|id| Some(*id) == active)
-        .or_else(|| ids.first().copied())
+    cursor::kept_ref(active, ids)
 }
 
 /// The row an arrow key makes active (Paseo's `moveActiveResultId`): the
@@ -268,14 +270,13 @@ pub fn kept<'a>(active: Option<&str>, ids: &[&'a str]) -> Option<&'a str> {
 /// none, the first going down and the last going up.
 #[must_use]
 pub fn moved<'a>(active: Option<&str>, ids: &[&'a str], forward: bool) -> Option<&'a str> {
-    let last = ids.len().checked_sub(1)?;
-    let current = active.and_then(|active| ids.iter().position(|id| *id == active));
-    let next = match (current, forward) {
-        (None, true) => 0,
-        (None, false) => last,
-        (Some(at), true) if at >= last => 0,
-        (Some(at), true) => at.saturating_add(1),
-        (Some(at), false) => at.checked_sub(1).unwrap_or(last),
-    };
-    ids.get(next).copied()
+    cursor::moved_ref(
+        active,
+        ids,
+        if forward {
+            Direction::Next
+        } else {
+            Direction::Previous
+        },
+    )
 }

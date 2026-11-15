@@ -5,13 +5,19 @@
 //! asks [`matched`].
 
 mod capture;
+pub mod composer;
+pub mod context;
 pub mod desktop;
+pub mod dispatcher;
 mod edit;
+pub mod engine;
 mod held;
+pub mod help;
 mod keys;
 mod listing;
 mod matching;
 mod registry;
+pub mod sequence;
 
 pub use capture::{Capture, Done, Verdict, clear, reset};
 pub use edit::{Clash, Refusal, assign, clash_of, refusal, remove_key, restore};
