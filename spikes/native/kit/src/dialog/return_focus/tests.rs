@@ -49,7 +49,7 @@ impl Render for Probe {
                         outline_button("return-focus-action", "Close", true, &tokens)
                             .debug_selector(|| "dialog-return-action".to_owned())
                             .on_click(cx.listener(move |probe, _, window, cx| {
-                                probe.close(expected, window, cx)
+                                probe.close(expected, window, cx);
                             }))
                             .into_any_element(),
                     ],
@@ -147,7 +147,7 @@ fn every_actual_close_returns_to_the_opener_and_refused_closes_keep_the_dialog(
         });
         activate(path, cx);
         probe.read_with(cx, |probe, _| {
-            assert!(probe.open, "{path:?} cannot close the newer decision")
+            assert!(probe.open, "{path:?} cannot close the newer decision");
         });
         probe.update_in(cx, |_probe, _window, cx| cx.notify());
         cx.run_until_parked();
