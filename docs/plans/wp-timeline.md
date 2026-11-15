@@ -513,3 +513,21 @@ uses the real record ingestion/default boundary to verify that transition.
   invalidation may advance the bound even without changing visible text. Replayed
   overlap does not advance it. Tests cover late tool updates and merged text with
   source gaps. No protocol call or node contract is invented.
+
+### Canonical DTO presentation skeleton
+
+Consumed W23's committed standalone values `96ed8b0b` in development merge
+`057532a5f`. This adds no ToolCall/event fields, call registration or activation;
+the wider runtime checkpoint is still not merged. Pure `tool_display` and
+`tool_sections` now exhaust all eleven canonical variants using those exact DTOs.
+They preserve read offsets (including an explicit zero), distinguish absent
+replacement from deletion, prefer supplied unified patches, and retain opaque
+Input/Output formatting. Setup/child markers do not offer empty details. Core
+does not decode provider-specific JSON or execute reported commands/URLs.
+
+`ToolDetailSource` is the narrow typed renderer seam: the current legacy
+projection reports no canonical body/failure; in-memory fixtures supply the
+canonical DTOs. W23's checked field/scope handoff will replace the compatibility
+implementation directly. This is source-contract work, not activated canonical
+provider rendering. The category labels use one cached Fluent enum adapter;
+the source's hardcoded English categories gain complete EN/KO labels here.
