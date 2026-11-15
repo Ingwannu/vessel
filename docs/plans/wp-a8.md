@@ -617,3 +617,23 @@ SessionPlace import and one old single-form fixture call missing its request id.
 The corrections use the existing GPUI/kit API and explicit-id controller; no
 lint suppression or alternate renderer is introduced. This run has no whole or
 runtime pass and predates base8 plus uncertainty/resident deltas.
+
+## Input source belongs to the displayed question step
+
+Paseo QuestionOtherInput captures qIndex in its onChange callback
+(question-form-card.tsx:324-330). One retained native engine reused across every
+step cannot provide that origin through FieldId alone: an old page's delayed
+Change/Enter would target the replacement page's current step. Reuse the existing
+kit constructor to replace only that page's editor when navigating to a different
+step. Its new actual engine identity rejects callbacks from the previous step;
+no independent id counter, subscription engine or shared-field change is added.
+Drafts remain keyed by the canonical field name and restore when returning.
+The current field survives ordinary repaint, session hiding and follow retirement.
+
+A focused input transfers focus to the replacement. While its input method still
+has marked text, navigation is held until composition completes, rather than
+discarding marked input through a programmatic text replacement. This is an
+explicit native navigation policy; OS IME behavior is unverified. The new source
+regression captures a previous-step FieldId, navigates, sends stale Change/Enter,
+and requires unchanged replacement drafts/no submission before restoring the
+original page's draft. Runtime execution and native IME evidence remain owed.

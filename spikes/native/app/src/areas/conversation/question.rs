@@ -205,15 +205,34 @@ impl Shell {
         let Some(step) = steps.get(index).copied() else {
             return;
         };
+        let changing_step = answering.step != index;
+        if changing_step && answering.field.composing(window, cx) {
+            return;
+        }
+        let transfer_focus = changing_step && answering.field.focus_handle(cx).is_focused(window);
+        let placeholder = field_placeholder(step, *words);
+        if changing_step {
+            // The source belongs to this displayed step. A callback queued by
+            // the previous page must not edit or submit the page replacing it.
+            answering.field = TextField::with_source(
+                placeholder,
+                Self::question_entered::<P>,
+                Self::question_typed::<P>,
+                window,
+                cx,
+            );
+        }
         answering.step = index;
         let target = text_target(step);
         let text = match target.and_then(|field| answering.drafts.get(&field.name)) {
             Some(Draft::Text(text)) => text.clone(),
             Some(Draft::Picked(_) | Draft::Boolean(_)) | None => String::new(),
         };
-        let placeholder = field_placeholder(step, *words);
         answering.field.set_placeholder(placeholder, window, cx);
         answering.field.set_text(&text, window, cx);
+        if transfer_focus {
+            answering.field.focus(window, cx);
+        }
         cx.notify();
     }
 

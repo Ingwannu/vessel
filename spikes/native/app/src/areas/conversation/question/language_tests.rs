@@ -275,3 +275,60 @@ fn an_uncertain_question_keeps_its_original_editor_and_cannot_resubmit(
         assert!(shell.question_editable::<SessionPlace>(id));
     });
 }
+
+#[gpui::test]
+fn a_previous_step_source_cannot_type_or_submit_the_replacement_step(
+    cx: &mut gpui::TestAppContext,
+) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, false, window, cx);
+        let form = shell.areas.conversation.answering.as_ref().unwrap();
+        let id = form.id;
+        let previous = form.field.id();
+        shell.question_typed::<SessionPlace>(previous, "previous page draft".into(), cx);
+        shell.question_show_at::<SessionPlace>(id, 2, window, cx);
+        let current = shell
+            .areas
+            .conversation
+            .answering
+            .get(id)
+            .unwrap()
+            .field
+            .id();
+        assert_ne!(previous, current);
+        shell.question_typed::<SessionPlace>(current, "current page draft".into(), cx);
+        let drafts = shell
+            .areas
+            .conversation
+            .answering
+            .get(id)
+            .unwrap()
+            .drafts
+            .clone();
+        shell.question_typed::<SessionPlace>(previous, "stale prior-page change".into(), cx);
+        shell.question_entered::<SessionPlace>(
+            previous,
+            "stale prior-page Enter".into(),
+            window,
+            cx,
+        );
+        let form = shell.areas.conversation.answering.get(id).unwrap();
+        assert_eq!(form.step, 2);
+        assert_eq!(form.drafts, drafts);
+        assert_eq!(form.sending, None);
+        shell.question_show_at::<SessionPlace>(id, 1, window, cx);
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .answering
+                .get(id)
+                .unwrap()
+                .field
+                .text(cx),
+            "previous page draft"
+        );
+    });
+}
