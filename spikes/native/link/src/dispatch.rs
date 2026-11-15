@@ -107,14 +107,16 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => save_preferences(prefs).await,
+            Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
     }
 }
 
-// The persistence boundary stays independent of command admission as packages
-// add dispatch arms; the same blocking save and error mapping are preserved.
-async fn save_preferences(prefs: Box<super::Prefs>) {
+// [Decision Log]
+// Keep the command match within its function budget so feature registrations
+// remain one-line arms. The same blocking save remains awaited before the
+// actor handles its next command; errors and logging remain unchanged.
+async fn save_prefs(prefs: Box<super::Prefs>) {
     let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
     match saved {
         Ok(Ok(())) => {}
