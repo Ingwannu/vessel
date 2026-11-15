@@ -199,3 +199,9 @@ adding a future safe source must trigger a consumer integration, rather than
 silently omitting it. The app log-location line says not collected; it does
 not claim that no app log exists when paths are deliberately omitted.
 No unreviewed diagnostics producer or process-metrics WIP was consumed.
+
+Resume: final consumer/source coverage is written; semantic metadata omits
+paths explicitly. Product source is frozen for scoped tests and capture build.
+The sole fixed-SHA retry of the interrupted prior narrow is registered and
+queued; no duplicate is running. Current code needs its own changed-crate
+Clippy/test evidence after that prior snapshot finishes.

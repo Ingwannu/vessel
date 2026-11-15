@@ -7,7 +7,9 @@ use serde::Serialize;
 use std::{fmt::Write as _, sync::Arc};
 use vessel_proto::{
     NodeId,
-    diagnostics::{DiagnosticHome, DiagnosticReport, DiagnosticReportFields, DiagnosticSection},
+    diagnostics::{
+        DiagnosticHome, DiagnosticNode, DiagnosticReport, DiagnosticReportFields, DiagnosticSection,
+    },
 };
 
 /// Missing producers remain separate from a successfully collected typed report.
@@ -70,23 +72,7 @@ impl DaemonSnapshot {
             relays,
             recent_failures,
         } = report;
-        let home = match node.home {
-            DiagnosticHome::Redacted => "~",
-        };
-        let mut text = format!(
-            "Daemon process\n  Collected at: {}\n  Node ID: {}\n  Version: {}\n  OS: {:?}\n  Architecture: {:?}\n  Lifecycle: {:?}\n  Monotonic uptime ms: {}\n  Home: {home}",
-            collected_at,
-            node.id,
-            report
-                .node
-                .version
-                .as_ref()
-                .map_or_else(|| "unknown".to_owned(), ToString::to_string),
-            node.os,
-            node.arch,
-            node.state,
-            node.uptime.get()
-        );
+        let mut text = node_section(*collected_at, node);
         source(&mut text, "Store (readability, not integrity)", store)?;
         source(&mut text, "Agents (cached observations)", agents)?;
         source(&mut text, "Runtime sessions", sessions)?;
@@ -100,6 +86,23 @@ impl DaemonSnapshot {
         ReportText::new(&text)
     }
 }
+fn node_section(collected_at: DateTime<Utc>, node: &DiagnosticNode) -> String {
+    let home = match node.home {
+        DiagnosticHome::Redacted => "~",
+    };
+    format!(
+        "Daemon process\n  Collected at: {collected_at}\n  Node ID: {}\n  Version: {}\n  OS: {:?}\n  Architecture: {:?}\n  Lifecycle: {:?}\n  Monotonic uptime ms: {}\n  Home: {home}",
+        node.id,
+        node.version
+            .as_ref()
+            .map_or_else(|| "unknown".to_owned(), ToString::to_string),
+        node.os,
+        node.arch,
+        node.state,
+        node.uptime.get()
+    )
+}
+
 fn available<T>(source: &DiagnosticSection<T>) -> bool {
     match source {
         DiagnosticSection::Available { .. } => true,
