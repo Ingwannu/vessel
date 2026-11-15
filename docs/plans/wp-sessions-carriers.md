@@ -93,15 +93,23 @@ The exact W12 staged getter source is adopted separately from its proposed live
 single-slot admission. `areas::sessions::resident` is literal cfg(test). Its
 LifecycleResources belongs in W12's one SessionResources bundle; W12 registers
 that field only after this adapter is checked. It starts with Loading Hold, never
-default Ready. Snapshot capture borrows only the exact canonical SessionContext
-getter and checks retained Open binding, shown conversation and SessionInfo agree.
-It copies typed domain configuration/options, never field entities or a Shell.
-Missing metadata or another resource is a typed refusal without global fallback.
-Network hydration uses Snapshot::received only inside canonical receive after
-the original delivery guard check. It validates the same domain identities while
-allowing hidden fresh metadata; it never refreshes a presentation context to
-install a response. The staged regression changes focus to stale a view context,
-then receives its snapshot by the admitted binding without a view refresh.
+default Ready. The portable snapshot input is the canonical SessionAdmission,
+retaining its original ConnectionContext and FollowBinding. Only inside actual
+original delivery validation plus canonical receive may Snapshot::received join
+that receipt to the exact resource's open/shown/metadata IDs and host. A legacy
+Open.binding or selected-global lookup is not a prerequisite or a source of
+origin. Domain options are copied; actual fields, selection and undo stay in the
+sole resource bundle. Missing metadata and conflicting receipts refuse locally.
+A stale presentation context cannot be refreshed merely to install metadata:
+network hydration uses the same admitted binding, independent of focus changes.
+
+The GPUI component factory now invokes the actual staged W12 minter, using its
+real book tab and resource claim. Its lookup and connection context are isolated
+typed fixtures, not a transport lease or delivery capability. Component tests
+therefore prove only the owner snapshot/hold rules; the separate framed Link
+ingress tests and eventual product union must prove actual guarded delivery.
+Earlier legacy snapshot source remains in its immutable prior checkpoint, with
+no claim that its unexecuted tests supplied runtime evidence.
 
 This owner retains separate UI decision and canonical operation tickets. An old
 confirmation cannot settle a newer decision. Matching retirement keeps an unsent
@@ -117,7 +125,7 @@ errors, lost replies and deadlines retain UncertainEffect because an error may
 follow a committed mutation. Neither path clears the actual composer or lets a
 late acknowledgement consume a later operation.
 
-The current package-base-6 projection merge retains G4's reconcile/read-refusal
+The current shared-base projection merge retains G4's reconcile/read-refusal
 policy and protects stale Fleet publication. It has not performed this carrier
 conversion. Source review, changed-source tests, whole native gate and inspected
 captures remain separate evidence.

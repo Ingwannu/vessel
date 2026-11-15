@@ -3,7 +3,7 @@ use super::*;
 use crate::{
     areas::{
         conversation::ConversationArea,
-        layout::residents::SessionResources,
+        layout::residents::{SessionAdmission, SessionOpening, SessionResidents, SessionResources},
         session::{Open, SessionView},
     },
     shell::{Shell, language_tests},
@@ -12,13 +12,45 @@ use gpui::TestAppContext;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::{
     Card,
-    layout::{AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target},
-    residents::{HoldReason, OperationKind, OwnerReadiness, PanelClaim},
+    connection::{ConnectionEpochs, MachineKey},
+    layout::{LookupProblem, WorkspaceLocation, WorkspaceLookup},
+    residents::{HoldReason, OperationKind, OwnerReadiness},
     sessions::LifecycleAction,
 };
 use vessel_proto::{HarnessKind, NodeId, SessionId, SessionMode, SessionSpec, WorkspaceId};
 
-fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -> SessionContext {
+struct Registry(WorkspaceId);
+impl WorkspaceLookup for Registry {
+    fn session_workspace(
+        &self,
+        _: NodeId,
+        _: SessionId,
+    ) -> Result<Option<WorkspaceId>, LookupProblem> {
+        Ok(Some(self.0))
+    }
+    fn workspace_location(
+        &self,
+        _: NodeId,
+        _: WorkspaceId,
+    ) -> Result<WorkspaceLocation, LookupProblem> {
+        Err(LookupProblem::Unavailable)
+    }
+}
+fn received_snapshot(
+    residents: &mut SessionResidents,
+    admission: &SessionAdmission,
+) -> Result<Snapshot, Problem> {
+    residents
+        .receive(admission.binding, |resources| {
+            Snapshot::received(resources, admission)
+        })
+        .map_err(Problem::Scope)?
+}
+fn admitted(
+    shell: &mut Shell,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> SessionAdmission {
     let info = SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -38,49 +70,32 @@ fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>)
         node: NodeId::random(),
         session: info.id,
     };
-    let key = LayoutKey::Workspace {
-        node: address.node,
-        workspace: WorkspaceId::random(),
-    };
-    let mut layout = Layout::default();
-    let tab = layout
-        .open(
-            Target::Agent(info.id),
-            OpenIntent::New,
-            Placement::Focused,
-            AgentRole::Unknown,
-            LayoutMode::SplitPanes,
-        )
+    let mut epochs = ConnectionEpochs::default();
+    let connection = epochs
+        .admit(MachineKey::from_book("fixture"), address.node)
         .unwrap();
-    let claim = PanelClaim {
-        workspace: key,
-        tab,
-    };
-    let token = shell
-        .areas
-        .session_residents
-        .claim_session(address, &claim, PaneId::MAIN, |_| {
-            // Existing constructor is an isolated test factory, never scoped input.
-            let mut session = SessionView::new(window, cx);
-            let mut open = Open::of(&Card::from_session("fixture", &info));
-            open.binding = Some(vessel_app_link::sessions::Binding {
-                host: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
-                address,
-            });
-            session.open = Some(open);
-            let mut conversation = ConversationArea::new(cx);
-            conversation.open("fixture", info.id);
-            conversation.info = Some(Box::new(info));
-            SessionResources {
-                session,
-                conversation,
-            }
-        })
-        .unwrap();
+    let registry = Registry(WorkspaceId::random());
+    let opening = SessionOpening::resolve(&registry, connection, info.id).unwrap();
     shell
-        .areas
-        .session_residents
-        .context(token, &claim)
+        .admit_session_open(
+            &opening,
+            &registry,
+            |_, window, cx| {
+                // Existing constructor is an isolated test factory, never scoped input.
+                let mut session = SessionView::new(window, cx);
+                session.open = Some(Open::of(&Card::from_session("fixture", &info)));
+                let mut conversation = ConversationArea::new(cx);
+                conversation.open("fixture", info.id);
+                conversation.info = Some(Box::new(info));
+                SessionResources {
+                    session,
+                    conversation,
+                }
+            },
+            |_, _| panic!("first admission retired"),
+            window,
+            cx,
+        )
         .unwrap()
 }
 
@@ -91,17 +106,24 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let context = admitted(shell, window, cx);
+        let admission = admitted(shell, window, cx);
+        let context = admission.context.clone();
         let residents = &mut shell.areas.session_residents;
         let mut owner = LifecycleResources::staged();
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
         let mut conflicting = context.clone();
         conflicting.resident.address.node = NodeId::random();
+        assert!(residents.resources(&conflicting).is_err());
+        let wrong = SessionAdmission {
+            connection: admission.connection.clone(),
+            context: conflicting,
+            binding: admission.binding,
+        };
         assert!(matches!(
-            Snapshot::capture(residents, &conflicting),
-            Err(Problem::Scope(_))
+            received_snapshot(residents, &wrong),
+            Err(Problem::WrongResource)
         ));
-        let snapshot = Snapshot::capture(residents, &context).unwrap();
+        let snapshot = received_snapshot(residents, &admission).unwrap();
         assert_eq!(snapshot.info().id, context.resident.address.session);
         assert_eq!(snapshot.choices().len(), 1);
         assert_eq!(snapshot.choices(), snapshot.info().spec.mode.options());
@@ -111,17 +133,8 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
         assert_eq!(clean.resident(), context.resident);
         assert_eq!(owner.readiness(), OwnerReadiness::Hold(HoldReason::Loading));
         residents.focus(context.resident, &context.claim).unwrap();
-        assert!(matches!(
-            Snapshot::capture(residents, &context),
-            Err(Problem::Scope(_))
-        ));
-        let binding = residents
-            .begin_follow(context.resident, |_, _| panic!("first attach retired"))
-            .unwrap();
-        let received = residents
-            .receive(binding, |resources| Snapshot::received(resources, binding))
-            .unwrap()
-            .unwrap();
+        assert!(residents.resources(&context).is_err());
+        let received = received_snapshot(residents, &admission).unwrap();
         assert_eq!(received.resident(), context.resident);
         // A local caller refreshes its same claim; network hydration above did not.
         let context = residents.context(context.resident, &context.claim).unwrap();
@@ -134,12 +147,12 @@ fn lifecycle_stays_loading_until_exact_scoped_hydration_and_transfers_only_clean
             .unwrap()
             .id = SessionId::random();
         assert!(matches!(
-            Snapshot::capture(residents, &context),
+            received_snapshot(residents, &admission),
             Err(Problem::WrongResource)
         ));
         residents.resources_mut(&context).unwrap().conversation.info = None;
         assert!(matches!(
-            Snapshot::capture(residents, &context),
+            received_snapshot(residents, &admission),
             Err(Problem::Loading)
         ));
     });
@@ -152,15 +165,14 @@ fn lifecycle_retirement_keeps_input_and_never_restores_acknowledgement_authority
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let context = admitted(shell, window, cx);
+        let admission = admitted(shell, window, cx);
+        let context = admission.context.clone();
         let residents = &mut shell.areas.session_residents;
         let mut owner = LifecycleResources::staged();
         owner
-            .hydrate(Snapshot::capture(residents, &context).unwrap())
+            .hydrate(received_snapshot(residents, &admission).unwrap())
             .unwrap();
-        let binding = residents
-            .begin_follow(context.resident, |_, _| panic!("first attach retired"))
-            .unwrap();
+        let binding = admission.binding;
         let decision = owner.prepare(binding, LifecycleAction::Fresh).unwrap();
         let ticket = residents
             .admit_operation(binding, OperationKind::Lifecycle)
@@ -189,8 +201,8 @@ fn lifecycle_retirement_keeps_input_and_never_restores_acknowledgement_authority
         assert_eq!(uncertain.action, LifecycleAction::Fresh);
         assert!(matches!(owner.take_clean_snapshot(), Err(Problem::Held)));
         assert!(matches!(
-            owner.hydrate(Snapshot::capture(residents, &context).unwrap()),
-            Err(Problem::Held)
+            received_snapshot(residents, &admission),
+            Err(Problem::Scope(_))
         ));
         assert!(
             residents
@@ -216,15 +228,14 @@ fn exact_decision_and_single_use_canonical_settlement_gate_completion(cx: &mut T
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let context = admitted(shell, window, cx);
+        let admission = admitted(shell, window, cx);
+        let context = admission.context.clone();
         let residents = &mut shell.areas.session_residents;
         let mut owner = LifecycleResources::staged();
         owner
-            .hydrate(Snapshot::capture(residents, &context).unwrap())
+            .hydrate(received_snapshot(residents, &admission).unwrap())
             .unwrap();
-        let binding = residents
-            .begin_follow(context.resident, |_, _| panic!("first attach retired"))
-            .unwrap();
+        let binding = admission.binding;
         let old = owner.prepare(binding, LifecycleAction::Archive).unwrap();
         residents
             .retire_follow(binding, |_, notice| owner.retired(notice))
@@ -274,15 +285,14 @@ fn exact_no_send_releases_only_pending_ui_while_peer_error_preserves_uncertainty
     ] {
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update_in(cx, |shell, window, cx| {
-            let context = admitted(shell, window, cx);
+            let admission = admitted(shell, window, cx);
+            let context = admission.context.clone();
             let residents = &mut shell.areas.session_residents;
             let mut owner = LifecycleResources::staged();
             owner
-                .hydrate(Snapshot::capture(residents, &context).unwrap())
+                .hydrate(received_snapshot(residents, &admission).unwrap())
                 .unwrap();
-            let binding = residents
-                .begin_follow(context.resident, |_, _| panic!("first attach retired"))
-                .unwrap();
+            let binding = admission.binding;
             let decision = owner.prepare(binding, LifecycleAction::Fresh).unwrap();
             let ticket = residents
                 .admit_operation(binding, OperationKind::Lifecycle)

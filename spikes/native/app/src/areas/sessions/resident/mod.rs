@@ -5,8 +5,8 @@ mod state;
 mod tests;
 pub(crate) use state::LifecycleResources;
 
-use crate::areas::layout::residents::{SessionResidents, SessionResources};
-use vessel_app_view::residents::{FollowBinding, ResidentProblem, ResidentToken, SessionContext};
+use crate::areas::layout::residents::{SessionAdmission, SessionResources};
+use vessel_app_view::residents::{ResidentProblem, ResidentToken};
 use vessel_proto::{OptionChoice, SessionInfo};
 
 /// Domain values only; actual fields, selection/undo and forms stay in the bundle.
@@ -25,28 +25,20 @@ pub(crate) enum Problem {
     Exhausted,
 }
 impl Snapshot {
-    /// Borrow only through the canonical getter. There is no selected fallback.
-    pub(crate) fn capture(
-        residents: &SessionResidents,
-        context: &SessionContext,
-    ) -> Result<Self, Problem> {
-        let resources = residents.resources(context).map_err(Problem::Scope)?;
-        Self::from_resources(resources, context.resident)
-    }
-    /// Invoke inside canonical receive after delivery validity. Hidden metadata
-    /// must not refresh a view context merely to become a clean owner snapshot.
+    /// Invoke only inside canonical receive after original delivery validity.
+    /// The original minter receipt binds identity; no legacy Open binding or
+    /// selected-global lookup may supply missing origin or refresh visibility.
     pub(crate) fn received(
         resources: &SessionResources,
-        binding: FollowBinding,
+        admission: &SessionAdmission,
     ) -> Result<Self, Problem> {
-        Self::from_resources(resources, binding.resident)
-    }
-    fn from_resources(
-        resources: &SessionResources,
-        resident: ResidentToken,
-    ) -> Result<Self, Problem> {
+        let resident = admission.binding.resident;
+        if admission.context.resident != resident
+            || admission.connection.node() != resident.address.node
+        {
+            return Err(Problem::WrongResource);
+        }
         let open = resources.session.open.as_ref().ok_or(Problem::Loading)?;
-        let binding = open.binding.as_ref().ok_or(Problem::Loading)?;
         let shown = resources
             .conversation
             .shown
@@ -57,8 +49,7 @@ impl Snapshot {
             .info
             .as_ref()
             .ok_or(Problem::Loading)?;
-        if binding.address != resident.address
-            || binding.host.as_str() != open.machine
+        if admission.connection.machine().as_str() != open.machine
             || open.session != resident.address.session
             || shown.machine != open.machine
             || shown.session != open.session
