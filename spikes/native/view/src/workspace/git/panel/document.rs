@@ -13,6 +13,9 @@
 //!   Explicit newline/truncation markers are retained as non-reviewable notices
 //!   rather than disappearing in split mode as unsupported reference kinds.
 
+mod buffers;
+pub use buffers::{BufferColumn, BufferColumns, BufferError, BufferKind, BufferLine};
+
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
@@ -121,6 +124,7 @@ pub enum DisplayRow {
 #[derive(Debug, Clone)]
 pub struct DiffDocument {
     path: RelPath,
+    layout: Layout,
     source: Arc<[DiffRow]>,
     stamp: FileStamp,
     rows: Vec<DisplayRow>,
@@ -137,6 +141,7 @@ impl DiffDocument {
         };
         Self {
             path: ticket.path().clone(),
+            layout,
             source,
             stamp,
             rows,

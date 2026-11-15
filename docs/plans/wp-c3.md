@@ -521,3 +521,20 @@ findings (ConnectionContext and TabId in binding docs). Base was checked but Kit
 and App were not reached; no tests ran. Fixing these in the current source does
 not relabel the old result. Current new Link/App/document changes still need
 one combined changed-source remote Clippy pass and targeted window execution.
+
+## Editor buffer projection
+
+The view now snapshots the existing DiffDocument packing into engine-ready
+unified or split columns, preserving source identity, old/new numbers, empty
+source lines and split fillers. Hunk headers include their section text; missing
+newline and truncated-hunk facts stay explicitly unnumbered and non-reviewable.
+One embedded newline inside a wire line refuses the whole buffer through a typed
+error, leaving the original document intact instead of guessing new source rows.
+Paseo utils/diff-layout.test.ts replacement/unmatched/context fixtures remain the
+packing authority; new whole-buffer fixtures cover copy order, final empty rows,
+section/notice/cut retention, empty split layout and malformed peer text. These
+new fixtures are unexecuted source. Existing queued111 checks exclude this change.
+
+This projection is not the final split header renderer or cross-file selection.
+The consumer must still enforce a bounded editor cache and display cut notices;
+no UI parity, native interaction or body-cache proof is claimed by the values.

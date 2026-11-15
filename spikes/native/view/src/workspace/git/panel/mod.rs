@@ -23,7 +23,8 @@ mod words;
 pub use binding::{LocationRefusal, LocationTicket, PanelAddress, PanelBinding};
 pub use comparison::{Comparison, ComparisonKind, ComparisonMode, RepositoryKey, Whitespace};
 pub use document::{
-    DiffCell, DiffDocument, DisplayRow, ReviewKey, ReviewSide, SourceLine, SourceRow,
+    BufferColumn, BufferColumns, BufferError, BufferKind, BufferLine, DiffCell, DiffDocument,
+    DisplayRow, ReviewKey, ReviewSide, SourceLine, SourceRow,
 };
 pub use failure::{PanelRead, ReadFailure};
 pub use history::{

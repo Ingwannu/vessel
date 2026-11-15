@@ -273,3 +273,146 @@ fn context_flushes_replacement_runs_and_unmatched_removals_stay_on_the_old_side(
         ]
     );
 }
+
+#[test]
+fn selectable_split_buffers_keep_replacements_and_empty_cells_on_their_own_side() {
+    let document = model(
+        &[
+            (LineKind::Context, "same"),
+            (LineKind::Removed, "before"),
+            (LineKind::Added, "after one"),
+            (LineKind::Added, ""),
+        ],
+        Layout::Split,
+    );
+    let BufferColumns::Split { old, new } = document.buffers().unwrap() else {
+        panic!("split")
+    };
+    assert_eq!(old.text.as_ref(), "@@ -10,2 +20,3 @@\nsame\nbefore\n");
+    assert_eq!(new.text.as_ref(), "@@ -10,2 +20,3 @@\nsame\nafter one\n");
+    assert_eq!(old.lines.len(), old.text.split('\n').count());
+    assert_eq!(new.lines.len(), new.text.split('\n').count());
+    assert_eq!(
+        old.lines
+            .iter()
+            .map(|row| (row.kind, row.number.map(SourceLine::get)))
+            .collect::<Vec<_>>(),
+        [
+            (BufferKind::Header, None),
+            (BufferKind::Context, Some(10)),
+            (BufferKind::Removed, Some(11)),
+            (BufferKind::Empty, None)
+        ]
+    );
+    assert_eq!(
+        new.lines
+            .iter()
+            .map(|row| (row.kind, row.number.map(SourceLine::get)))
+            .collect::<Vec<_>>(),
+        [
+            (BufferKind::Header, None),
+            (BufferKind::Context, Some(20)),
+            (BufferKind::Added, Some(21)),
+            (BufferKind::Added, Some(22))
+        ]
+    );
+    assert_eq!(
+        document
+            .review_key(old.lines[2].cell.unwrap())
+            .unwrap()
+            .side,
+        ReviewSide::Old
+    );
+    assert_eq!(
+        document
+            .review_key(new.lines[2].cell.unwrap())
+            .unwrap()
+            .side,
+        ReviewSide::New
+    );
+    assert_eq!(old.lines[3].cell, None);
+}
+
+#[test]
+fn unified_buffer_preserves_headers_markers_cut_facts_and_empty_source_lines() {
+    let mut hunk = hunk(
+        10,
+        20,
+        &[
+            (LineKind::Added, ""),
+            (LineKind::NoNewline, "\\ No newline at end of file"),
+        ],
+    );
+    hunk.section = Some("fn example()".into());
+    hunk.old_lines = 1;
+    hunk.lines[0].cut = true;
+    let document = DiffDocument::new(
+        &ticket("example.rs"),
+        diff_rows(&[hunk], 0).into(),
+        Layout::Unified,
+    );
+    let BufferColumns::Unified(column) = document.buffers().unwrap() else {
+        panic!("unified")
+    };
+    assert_eq!(
+        column.text.as_ref(),
+        "@@ -10,1 +20,1 @@ fn example()\n\n\\ No newline at end of file\n"
+    );
+    assert_eq!(
+        column
+            .lines
+            .iter()
+            .map(|row| (row.kind, row.cut))
+            .collect::<Vec<_>>(),
+        [
+            (BufferKind::Header, false),
+            (BufferKind::Added, true),
+            (BufferKind::Notice, false),
+            (BufferKind::Notice, true)
+        ]
+    );
+    assert_eq!(column.lines.len(), column.text.split('\n').count());
+    assert_eq!(column.lines[2].cell, None);
+    assert_eq!(column.lines[3].cell, None);
+}
+
+#[test]
+fn empty_split_input_keeps_its_layout_and_a_non_source_engine_row() {
+    let document = DiffDocument::new(&ticket("empty.rs"), Arc::from([]), Layout::Split);
+    let BufferColumns::Split { old, new } = document.buffers().unwrap() else {
+        panic!("split")
+    };
+    assert_eq!(old, new);
+    assert_eq!(old.text.as_ref(), "");
+    assert_eq!(
+        old.lines.as_ref(),
+        [BufferLine {
+            cell: None,
+            number: None,
+            kind: BufferKind::Empty,
+            cut: false
+        }]
+    );
+}
+
+#[test]
+fn embedded_newline_refuses_the_whole_buffer_without_inventing_source_numbers() {
+    for layout in [Layout::Unified, Layout::Split] {
+        let document = model(&[(LineKind::Added, "first\nsecond")], layout);
+        assert_eq!(
+            document.buffers(),
+            Err(BufferError::EmbeddedNewline { row: SourceRow(1) })
+        );
+        assert_eq!(
+            document.source(SourceRow(1)),
+            Some(&DiffRow::Line {
+                key: DiffKey::Line { hunk: 0, line: 0 },
+                line: LineKind::Added,
+                text: Arc::from("first\nsecond"),
+                cut: false,
+                old: None,
+                new: Some(20)
+            })
+        );
+    }
+}
