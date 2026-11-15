@@ -230,7 +230,7 @@ fn restart_marks_pending_restores_recovery_without_discarding_before_images() {
     assert_eq!(recovered.before, operation.before);
     assert_eq!(super::recovery::pending(&connection).unwrap(), 0);
     assert!(
-        let _changed = connection
+        connection
             .execute(
                 "DELETE FROM sessions WHERE id=?1",
                 [key.session.to_string()]
