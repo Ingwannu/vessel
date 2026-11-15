@@ -211,7 +211,9 @@ fn install(
     cx: &mut App,
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment, environment_broadcast)?);
-    set_session_handler(Shell::open_session_address, cx);
+    // Keep the latest OS session intent queued until the session owner supplies
+    // its current-context/retirement-safe product adapter. NodeId alone does
+    // not admit a result from an earlier connection to that same node.
     crate::update::install(
         !cx.global::<Desktop>().preferences.current().manual_updates,
         cx,
