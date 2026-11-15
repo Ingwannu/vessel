@@ -592,3 +592,12 @@ captured and the existing deferred focus check/select-all remains identical.
 No product validation, geometry, callback order or test assertion changes.
 Kit/View were checked in this invocation; the selected command as a whole
 is not a pass and no runtime/test/export evidence is inferred.
+
+
+The 798e71165 narrow run themes-narrow-20261115T161214Z-798e7116 ended
+FAILED (fonts0, Cargo101/21s): two test calls could not access fields' private
+commit helper from a sibling test module. The same tests now live under
+appearance/fields, with explicit renderer/theme imports. All test bodies,
+events and assertions remain unchanged. Product helper visibility remains
+private; no public or crate-visible test seam is added. This run does not
+prove test execution, binary export or F5 screen behavior.

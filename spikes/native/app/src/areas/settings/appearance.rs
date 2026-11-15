@@ -170,6 +170,3 @@ fn tile(
     }));
     theme_tile::cell(tile, columns)
 }
-
-#[cfg(test)]
-mod tests;

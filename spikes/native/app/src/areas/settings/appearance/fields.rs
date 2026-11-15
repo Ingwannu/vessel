@@ -179,3 +179,7 @@ binding!(content_size, ContentSize);
 binding!(mono_family, MonoFamily);
 binding!(code_size, CodeSize);
 binding!(width, Width);
+
+// Tests live with the private commit helper; the area exposes no test-only API.
+#[cfg(test)]
+mod tests;

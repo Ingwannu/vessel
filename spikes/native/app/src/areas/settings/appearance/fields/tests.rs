@@ -1,10 +1,15 @@
 //! Actual field events through the existing editor, isolated from link I/O.
+use super::super::sync;
 use super::*;
 use gpui::{AppContext as _, Entity, IntoElement, Render, TestAppContext};
 use vessel_app_kit::field::AppearanceProfile;
+use vessel_app_kit::{
+    Scheme, Tokens,
+    ui::{ParentElement as _, Styled as _, div},
+};
 use vessel_app_view::{
     appearance::{SyntaxTheme, form::Field},
-    prefs::{ContentSize, ContentWidth},
+    prefs::{ContentSize, ContentWidth, Theme},
 };
 
 struct Probe {
