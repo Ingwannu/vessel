@@ -2,6 +2,7 @@
 
 use super::{Catalog, Failure, Host, HostState};
 use crate::{Fleet, Reach, machine_book::Name};
+use vessel_proto::{ProtocolVersion, workspace_labels::WORKSPACE_LABELS};
 
 /// A fresh projection retains offline caches without attributing them to a new peer.
 #[derive(Debug, Default)]
@@ -28,10 +29,9 @@ pub fn bind_hosts(previous: &[Host], fleet: &Fleet) -> Bindings {
         };
         match machine.node {
             Some(key) => {
-                let availability = match machine.reach {
-                    Reach::Online => HostState::Unsupported,
-                    Reach::Unreachable(_) => HostState::Offline,
-                };
+                let previous = previous.iter().find(|host| host.key == key);
+                let availability =
+                    availability(machine, previous.map(|host| host.state), WORKSPACE_LABELS);
                 if let Some(known) = result.hosts.iter_mut().find(|host| host.key == key) {
                     if known.state == HostState::Offline {
                         known.state = availability;
@@ -39,10 +39,7 @@ pub fn bind_hosts(previous: &[Host], fleet: &Fleet) -> Bindings {
                     }
                     continue;
                 }
-                let catalog = previous
-                    .iter()
-                    .find(|host| host.key == key)
-                    .map_or_else(Catalog::default, |host| host.catalog.clone());
+                let catalog = previous.map_or_else(Catalog::default, |host| host.catalog.clone());
                 result.hosts.push(Host {
                     key,
                     route,
@@ -52,9 +49,13 @@ pub fn bind_hosts(previous: &[Host], fleet: &Fleet) -> Bindings {
             }
             None => {
                 if let Some(cached) = previous.iter().find(|host| host.route == route) {
-                    let mut cached = cached.clone();
-                    cached.state = HostState::Offline;
-                    result.hosts.push(cached);
+                    // An unresolved route must not duplicate or demote an
+                    // already answered alias for this same node.
+                    if !result.hosts.iter().any(|host| host.key == cached.key) {
+                        let mut cached = cached.clone();
+                        cached.state = HostState::Offline;
+                        result.hosts.push(cached);
+                    }
                 } else {
                     result.unresolved.push(route);
                 }
@@ -62,6 +63,25 @@ pub fn bind_hosts(previous: &[Host], fleet: &Fleet) -> Bindings {
         }
     }
     result
+}
+
+fn availability(
+    machine: &crate::Machine,
+    previous: Option<HostState>,
+    since: Option<ProtocolVersion>,
+) -> HostState {
+    if matches!(machine.reach, Reach::Unreachable(_)) {
+        return HostState::Offline;
+    }
+    if !since.is_some_and(|since| machine.protocol.is_some_and(|peer| peer >= since)) {
+        return HostState::Unsupported;
+    }
+    match previous {
+        Some(state @ (HostState::Online | HostState::Failed(_))) => state,
+        None | Some(HostState::Offline | HostState::Loading | HostState::Unsupported) => {
+            HostState::Loading
+        }
+    }
 }
 
 #[cfg(test)]

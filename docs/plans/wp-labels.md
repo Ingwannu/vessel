@@ -186,3 +186,9 @@ from the ordered observation, as the reference controller does; a unary reply
 has no catalog cursor and patching it into the cache could race an earlier
 list response. This keeps one replica owner and avoids a second local update
 path before the background observer is connected.
+
+Fleet rebinding now retains a loaded catalog's authority only for a connected
+peer advertising the assigned feature version; pending None still refuses
+every peer, and reconnect begins Loading. An unresolved alias cannot duplicate
+or demote an answered route to the same node, regardless of route order. Added
+regressions cover that mixed known/unknown identity case and capability gating.

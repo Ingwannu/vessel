@@ -106,3 +106,56 @@ fn malformed_legacy_alias_is_reported_without_inventing_catalog_ownership() {
     assert_eq!(bound.error, Some(Failure::Load));
     assert!(bound.hosts.is_empty());
 }
+
+#[test]
+fn unresolved_alias_never_duplicates_an_answered_route_in_either_order() {
+    let key = HostKey::random();
+    for machines in [
+        vec![
+            machine("new-alias", Some(key), Reach::Online),
+            machine("old-alias", None, Reach::Unreachable("offline".into())),
+        ],
+        vec![
+            machine("old-alias", None, Reach::Unreachable("offline".into())),
+            machine("new-alias", Some(key), Reach::Online),
+        ],
+    ] {
+        let bound = bind_hosts(&[previous(key)], &fleet(machines));
+        assert_eq!(bound.hosts.len(), 1);
+        assert_eq!(bound.hosts.first().unwrap().route.as_str(), "new-alias");
+        assert_eq!(bound.hosts.first().unwrap().catalog.labels().count(), 1);
+    }
+}
+
+#[test]
+fn capability_gate_preserves_loaded_authority_only_for_a_capable_connected_peer() {
+    let version = ProtocolVersion::new(23);
+    let mut peer = machine("peer", Some(HostKey::random()), Reach::Online);
+    peer.protocol = Some(version);
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), None),
+        HostState::Unsupported
+    );
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), Some(version)),
+        HostState::Online
+    );
+    assert_eq!(
+        availability(&peer, Some(HostState::Failed(Failure::Load)), Some(version)),
+        HostState::Failed(Failure::Load)
+    );
+    assert_eq!(
+        availability(&peer, Some(HostState::Offline), Some(version)),
+        HostState::Loading
+    );
+    peer.protocol = None;
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), Some(version)),
+        HostState::Unsupported
+    );
+    peer.reach = Reach::Unreachable("offline".into());
+    assert_eq!(
+        availability(&peer, Some(HostState::Online), Some(version)),
+        HostState::Offline
+    );
+}
