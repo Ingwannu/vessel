@@ -39,3 +39,12 @@ WAV metadata and body prefix, alignment, empty codec output, RIFF count refusal
 and allocation refusal before mutation. No OS, audio device, provider, credential
 or recognition test has run here. Next: review this pure dependency, then each
 consumer replaces its existing codec call sites without moving its policy.
+
+## Shared settings decoder visibility
+
+Spoken conversation also needs omission/null/set decoding and the redacted
+selected-secret-name boundary. Reuse the existing visitor through a crate-only
+deserialize_change alias and widen selected_name only to its owning proto crate.
+Existing dictation fields use that alias too; no parser, rule, representation,
+lookup or storage changes. The existing patch/reset/credential-refusal cases
+remain unchanged. Narrow checks for this visibility-only follow-up are pending.

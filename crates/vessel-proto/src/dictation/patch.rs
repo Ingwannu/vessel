@@ -62,7 +62,7 @@ impl<'de, T: Deserialize<'de>> Visitor<'de> for Change<T> {
 }
 
 /// A present null must be decoded as Reset, never swallowed by outer Option.
-pub(super) fn present<'de, D, T>(decoder: D) -> Result<Option<DictationChange<T>>, D::Error>
+pub(crate) fn present<'de, D, T>(decoder: D) -> Result<Option<DictationChange<T>>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de>,
