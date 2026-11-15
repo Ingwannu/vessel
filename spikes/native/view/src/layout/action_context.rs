@@ -1,5 +1,5 @@
 //! Palette commands retain their original presentation instead of following focus.
-use super::{Layout, LayoutKey, PaneId, TabId, Target};
+use super::{Layout, LayoutKey, Pane, PaneId, TabId, Target};
 
 /// A captured UI selection, never permission to issue a node request.
 ///
@@ -30,7 +30,7 @@ impl Layout {
             selected: self
                 .root
                 .pane(self.focused)
-                .and_then(|pane| pane.focused())
+                .and_then(Pane::focused)
                 .and_then(selection),
             sheet: self.sheets.last().and_then(|sheet| selection(sheet.tab)),
         }
