@@ -374,8 +374,12 @@ the final capacity; a later failed outcome must not hide an earlier success.
 New terminal openings must use the last committed applied limit, with no replay
 of predecessor effects into a replacement owner. The implementation belongs to
 this same canonical actor/App consumer, without another writer or receipt/cache.
-The checked producer and exact LaunchOnly/effect-admission contract remain owed;
-no optimistic live trim or lost-history recovery is claimed.
+E2 confirms Saved-only: LaunchOnly and failed writes do not trim history or
+advance a new opening's limit; the row shows the last applied value and refuses
+that irreversible edit while launch-only storage is in effect. A previous Failed
+outcome is not a permanent disable: a later successful retry may apply normally.
+The checked producer and exact effect-delivery implementation remain owed; no
+optimistic live trim or lost-history recovery is claimed.
 
 ## Updates and changelog
 
