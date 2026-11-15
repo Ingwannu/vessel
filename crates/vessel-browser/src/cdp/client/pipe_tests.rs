@@ -63,7 +63,7 @@ async fn withdrawn_queued_command_cannot_write_after_its_not_delivered_timeout()
         release.add_permits(1);
         let response = serde_json::json!({"id":first_wire["id"],"result":{"protocolVersion":"fixture","product":"not-qualified","revision":"fixture","userAgent":"fixture","jsVersion":"fixture"}});
         reply.send(response.to_string()).await.unwrap();
-        first.await.unwrap().unwrap();
+        assert_eq!(first.await.unwrap().unwrap().product.as_str(), "not-qualified");
         client.shutdown().await.unwrap();
         // Joined driver: there is no remaining worker that could publish a late write.
         assert!(writes.try_recv().is_err());

@@ -204,7 +204,10 @@ impl Client {
         request: R,
         budget: Duration,
     ) -> Result<R::Response, CdpError> {
-        let Queued { caller, result } = self.enqueue(session, request)?;
+        let Queued { caller, result } = self.enqueue(session, &request)?;
+        // The queue owns encoded parameters; do not retain a second typed input
+        // (possibly containing page secrets) through the response wait.
+        drop(request);
         let outcome = tokio::time::timeout(budget, result)
             .await
             .map_err(|source| CdpError::TimedOut {
@@ -228,7 +231,7 @@ impl Client {
     fn enqueue<R: Request>(
         &self,
         session: Option<SessionId>,
-        request: R,
+        request: &R,
     ) -> Result<Queued, CdpError> {
         let sequence = self
             .shared
@@ -241,7 +244,7 @@ impl Client {
         let outgoing = Outgoing {
             id,
             method: R::METHOD,
-            params: Payload::encode(&request).map_err(CdpError::Json)?,
+            params: Payload::encode(request).map_err(CdpError::Json)?,
             session_id: session.clone(),
         };
         let text = serde_json::to_string(&outgoing).map_err(CdpError::Json)?;

@@ -176,9 +176,9 @@ fn excess_graph_item_is_refused_before_its_payload_and_bad_depth_is_not_empty_su
 }
 #[test]
 fn escaped_unicode_output_reserves_a_complete_visible_truncation_marker() {
+    const CHUNK: &str = "\0한";
     let mut refs = References::default();
     let namespace = refs.begin_snapshot().unwrap();
-    const CHUNK: &str = "\0한";
     let text = CHUNK.repeat(MAX_PAGE_TEXT_BYTES.checked_div(CHUNK.len()).unwrap());
     let input = encoded(vec![json!({"kind":"text","depth":0,"text":text})], 1, false);
     let snapshot = finish(&input, namespace, &mut refs).unwrap();

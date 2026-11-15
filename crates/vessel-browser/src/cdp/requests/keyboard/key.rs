@@ -3,23 +3,26 @@ use super::KeyboardError;
 use serde::Serialize;
 use vessel_proto::browser::RequiredInput;
 
+// F1 has Windows virtual-key code112; subsequent function keys are consecutive.
+const FUNCTION_KEY_BASE: u16 = 111;
+
 /// The foreign virtual-key unit is not an input length or Unicode code point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(transparent)]
 pub(super) struct VirtualKey(u16);
 /// Only validated finite keys can construct the foreign key/code text.
 #[derive(Clone)]
-pub(super) struct Key {
+pub(super) struct PhysicalKey {
     pub(super) virtual_key: VirtualKey,
     key: String,
     code: String,
 }
-impl std::fmt::Debug for Key {
+impl std::fmt::Debug for PhysicalKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("BrowserKey([redacted])")
     }
 }
-impl Key {
+impl PhysicalKey {
     pub(super) fn parse(input: &RequiredInput) -> Result<Self, KeyboardError> {
         let name = input.as_str();
         if name.len() == 1 {
@@ -56,18 +59,20 @@ impl Key {
             && name == format!("F{number}")
         {
             return Ok(Self {
-                virtual_key: VirtualKey(111 + number),
+                virtual_key: VirtualKey(
+                    FUNCTION_KEY_BASE
+                        .checked_add(number)
+                        .ok_or(KeyboardError::Unsupported)?,
+                ),
                 key: name.to_owned(),
                 code: name.to_owned(),
             });
         }
         Err(KeyboardError::Unsupported)
     }
-    pub(super) fn wire_key(&self) -> &str {
-        &self.key
-    }
-    pub(super) fn wire_code(&self) -> &str {
-        &self.code
+    /// Move already-validated labels into their one outgoing event.
+    pub(super) fn into_parts(self) -> (VirtualKey, String, String) {
+        (self.virtual_key, self.key, self.code)
     }
 }
 fn named(name: &str) -> Option<(&'static str, &'static str, u16)> {

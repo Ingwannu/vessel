@@ -5,7 +5,7 @@ mod tests;
 
 use super::modifiers::Modifiers;
 use super::{Acknowledged, Method, Request, sealed};
-use key::{Key, VirtualKey};
+use key::{PhysicalKey, VirtualKey};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use vessel_proto::browser::{KeyAction, KeyModifiers, RequiredInput};
@@ -20,7 +20,7 @@ pub(crate) enum KeyboardError {
 /// The grammar is finite. An unbounded caller string never becomes a retained key.
 #[derive(Default)]
 pub(crate) struct KeyboardState {
-    held: BTreeMap<VirtualKey, Key>,
+    held: BTreeMap<VirtualKey, PhysicalKey>,
 }
 impl std::fmt::Debug for KeyboardState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,7 +37,7 @@ impl KeyboardState {
         action: KeyAction,
         modifiers: KeyModifiers,
     ) -> Result<KeyEvent, KeyboardError> {
-        let key = Key::parse(input)?;
+        let key = PhysicalKey::parse(input)?;
         let repeat = match action {
             KeyAction::Down => self.held.insert(key.virtual_key, key.clone()).is_some(),
             KeyAction::Up => {
@@ -83,15 +83,21 @@ impl std::fmt::Debug for KeyEvent {
     }
 }
 impl KeyEvent {
-    fn new(key: Key, action: KeyAction, modifiers: KeyModifiers, auto_repeat: bool) -> Self {
+    fn new(
+        key: PhysicalKey,
+        action: KeyAction,
+        modifiers: KeyModifiers,
+        auto_repeat: bool,
+    ) -> Self {
+        let (virtual_key, key, code) = key.into_parts();
         Self {
             kind: match action {
                 KeyAction::Down => Kind::Down,
                 KeyAction::Up => Kind::Up,
             },
-            key: key.wire_key().to_owned(),
-            code: key.wire_code().to_owned(),
-            windows_virtual_key_code: key.virtual_key,
+            key,
+            code,
+            windows_virtual_key_code: virtual_key,
             modifiers: Modifiers::from(modifiers),
             auto_repeat,
         }

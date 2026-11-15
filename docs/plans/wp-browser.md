@@ -1265,3 +1265,25 @@ It keeps private fixture files for inspection rather than deleting uncertain
 process storage. The wrapper places temporary/runtime data on its approved
 artifact volume; no host-specific scratch path is hard-coded in source. It is
 still uncompiled/unexecuted and enables no browser API or product supervisor.
+
+
+## Full execution-module strict analysis followup
+
+Exact888 strict reached vessel-browser and returned seven findings: enqueue
+borrowed its owned request, physical-key fields repeated the old Key type name,
+function-key arithmetic was unchecked, event construction copied rather than
+consumed key labels, a snapshot fixture constant followed bindings, and a held
+reply's BrowserVersion was discarded.
+
+The queue helper now borrows the sealed request. Its async owner explicitly
+drops the second typed input after serialization and before waiting for the
+reply, so private page input is not retained twice through that deadline; the
+encoded command and any harness/session history remain separate copies. The
+PhysicalKey domain type moves its validated labels into the outgoing event and
+checks the unchanged function-key offset rather than allowing wrapped codes.
+Fixture declaration order is corrected and the held version's actual product
+is asserted. Existing bounds, wire data, input-state and cancellation assertions
+are unchanged; no lint allowance or runtime permission was added. New strict
+evidence remains owed; the888 normal functional job is retained as older-source
+evidence because these were Clippy findings, not a demonstrated cargo-test
+compiler failure. It is not receiving-union/current-source acceptance.
