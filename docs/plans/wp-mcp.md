@@ -39,7 +39,7 @@ conflicting selectors. Authorization remains the destination node's.
 | kill_agent (2244) | agentId → success | kill_session: node?, session → killed id; owned sessions only |
 | update_agent (2265) | agentId, name?, labels?, settings? → success | none; session.rename / session.set_option exist; labels ingress is separate node work |
 | set_agent_mode (3190) | agentId, modeId → success, newMode | none; session.set_option exists with provider-reported IDs |
-| list_pending_permissions (3214) | none → permissions(agentId,status,request) | none; no current pending-permission read call |
+| list_pending_permissions (3214) | none → permissions(agentId,status,request) | none initially; existing session.conversation permissions permit a current-state aggregate |
 | respond_to_permission (3248) | agentId, requestId, response → success | answer_permission: node?, session, request, option? → answered; selected option/cancel only, ownership enforced |
 | create_workspace (1381) | isolation, path?, projectId?, title?, background?, mode?, worktreeSlug?, branchName?, baseBranch?, branch?, prNumber?, forge? → workspace descriptor | create_worktree: node?, project, branch?, existing?, base?, setup?, no_wait?, timeout_secs? → worktree/setup result; no local adoption/background/PR placement |
 | list_workspaces (1521) | includeBackground?=false → workspaces | list_projects(node?) / list_worktrees(node?,project?) → typed lists; different registry entities |
@@ -168,5 +168,8 @@ changes or captures are required by this node-only package.
 - Done: private atomic selection persistence using the existing settings file
   backup helper. Synthetic-file tests cover unknown fields, malformed JSON,
   owner-only mode and refusal to read/write through a link (execution pending).
+- Done: bounded pending-permission aggregate over existing current conversation
+  reads. It is explicitly sequential, not an atomic node snapshot. Fake-node
+  regression verifies answered requests disappear while their log remains.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.

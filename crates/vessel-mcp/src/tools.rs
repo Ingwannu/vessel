@@ -32,6 +32,7 @@ mod forking;
 mod id;
 mod lsp;
 mod offer;
+mod permissions;
 mod search;
 mod sessions;
 mod terminals;
@@ -205,6 +206,7 @@ impl VesselTools {
             id::AddedId::ListHarnesses => Ok(json!(self.list_harnesses(args).await?)),
             id::AddedId::ListProfiles => Ok(json!(self.list_profiles(args).await?)),
             id::AddedId::HarnessOptions => Ok(json!(self.harness_options(args).await?)),
+            id::AddedId::ListPendingPermissions => Ok(json!(self.pending_permissions(args).await?)),
         }
     }
 
@@ -325,6 +327,9 @@ enum ToolError {
     /// The tool could not do what it was asked.
     #[error("{0}")]
     Failed(String),
+    /// A partial permission inventory must not look complete.
+    #[error("permission inventory exceeds its bounded session/request limit")]
+    PermissionInventory,
 }
 
 /// `code: message` for a refusal, the error's text otherwise.
@@ -358,6 +363,7 @@ fn tools() -> Vec<Tool> {
         .chain(terminals::tools(&node))
         .chain(automation::tools())
         .chain(offer::tools(&node))
+        .chain(permissions::tools(&node))
         .chain(lsp::tools())
         .collect()
 }

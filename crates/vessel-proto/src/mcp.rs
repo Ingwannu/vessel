@@ -7,7 +7,11 @@ pub use id::{AddedId, ToolId};
 
 pub(crate) mod bounded;
 mod name;
+mod permissions;
 mod policy;
+pub use permissions::{
+    MAX_PENDING_PERMISSIONS, MAX_PERMISSION_SESSIONS, PendingPermission, PendingPermissions,
+};
 
 pub use name::{MAX_TOOL_NAME_BYTES, StoredTool, ToolName};
 pub use policy::{
@@ -40,6 +44,9 @@ pub enum InvalidMcp {
     /// A bounded node configuration is required.
     #[error("policy exceeds {MAX_PROVIDER_POLICIES} providers")]
     ProviderCount,
+    /// A complete request inventory must fit the output budget.
+    #[error("pending permissions exceed {MAX_PENDING_PERMISSIONS} requests")]
+    PermissionCount,
 }
 
 #[cfg(test)]

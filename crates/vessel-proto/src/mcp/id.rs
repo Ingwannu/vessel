@@ -120,6 +120,8 @@ pub enum AddedId {
     ListProfiles,
     /// `harness_options`.
     HarnessOptions,
+    /// `list_pending_permissions`.
+    ListPendingPermissions,
 }
 
 impl AddedId {
@@ -136,6 +138,7 @@ impl AddedId {
             Self::ListHarnesses => "list_harnesses",
             Self::ListProfiles => "list_profiles",
             Self::HarnessOptions => "harness_options",
+            Self::ListPendingPermissions => "list_pending_permissions",
         }
     }
 }
@@ -191,6 +194,7 @@ impl ToolId {
             "list_harnesses" => Self::Added(AddedId::ListHarnesses),
             "list_profiles" => Self::Added(AddedId::ListProfiles),
             "harness_options" => Self::Added(AddedId::HarnessOptions),
+            "list_pending_permissions" => Self::Added(AddedId::ListPendingPermissions),
             "vessel_lsp_workspace_symbols" => Self::LspWorkspaceSymbols,
             "vessel_lsp_document_symbols" => Self::LspDocumentSymbols,
             "vessel_lsp_definition" => Self::LspDefinition,

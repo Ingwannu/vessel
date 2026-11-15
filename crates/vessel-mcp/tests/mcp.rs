@@ -66,6 +66,7 @@ const TOOLS: &[&str] = &[
     "list_harnesses",
     "list_profiles",
     "harness_options",
+    "list_pending_permissions",
 ];
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -89,7 +90,7 @@ async fn an_agent_starts_a_session_reads_its_reply_and_stops_it() {
         // harnesses, profiles and a harness's options; then LSP's.
         let names = mcp.initialize().await;
         assert_eq!(&names[..TOOLS.len()], TOOLS);
-        assert_eq!(names.len(), 54);
+        assert_eq!(names.len(), 55);
         assert!(names.iter().any(|name| name == "vessel_lsp_diagnostics"));
 
         // Not in a fleet: a fleet of one, this node.
