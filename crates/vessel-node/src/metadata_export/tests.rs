@@ -31,13 +31,13 @@ pub(super) fn versions() -> (ProtocolVersion, ProtocolVersion) {
     (old, new)
 }
 
-fn unsupported(result: Result<(), ServiceError>, expected: CallError) {
+fn unsupported(result: Result<(), ServiceError>, expected: &CallError) {
     let error = result.unwrap_err();
     assert_eq!(error.to_wire().code, vessel_proto::ErrorCode::Unsupported);
     let ServiceError::MetadataProtocol(actual) = error else {
         panic!("expected the shared typed protocol refusal");
     };
-    assert_eq!(actual, expected);
+    assert_eq!(&actual, expected);
 }
 
 #[test]
@@ -66,14 +66,14 @@ fn current_labels_and_background_share_the_projection_visibility_rule() {
         for peer in [old, new] {
             unsupported(
                 check_at(&info, None, peer),
-                CallError::UnassignedProtocol {
+                &CallError::UnassignedProtocol {
                     method: ExportSession::METHOD,
                 },
             );
         }
         unsupported(
             check_at(&info, Some(new), old),
-            CallError::NotInProtocol {
+            &CallError::NotInProtocol {
                 method: ExportSession::METHOD,
                 needs: new,
                 negotiated: old,
@@ -124,7 +124,7 @@ fn a_synthetic_three_hop_export_refuses_at_the_old_importer_before_projection() 
     let importing: Forwarded = serde_json::from_str(&home_wire).unwrap();
     unsupported(
         forwarded_at(&importing, Some(new), old),
-        CallError::NotInProtocol {
+        &CallError::NotInProtocol {
             method: ExportSession::METHOD,
             needs: new,
             negotiated: old,

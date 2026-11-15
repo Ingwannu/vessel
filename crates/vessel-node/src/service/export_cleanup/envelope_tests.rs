@@ -67,7 +67,7 @@ async fn finish_call(
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn actual_forward_and_relay_metadata_refusals_settle_after_caller_abort() {
-    vessel_testkit::within(ENVELOPE_TEST_BUDGET, async {
+    Box::pin(vessel_testkit::within(ENVELOPE_TEST_BUDGET, async {
         let fleet = CallbackFleet::start().await;
         let home = &fleet.home().secure.service.0;
         // This fixture owns its cache entries; background membership reconciliation
@@ -101,7 +101,7 @@ async fn actual_forward_and_relay_metadata_refusals_settle_after_caller_abort() 
             }
         }
         fleet.stop().await;
-    })
+    }))
     .await
     .unwrap();
 }

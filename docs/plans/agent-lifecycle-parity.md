@@ -1061,3 +1061,9 @@ The approved connection-cache helper lives inside links.rs's existing cfg(test)
 module. This keeps all helper documentation and spacing classified as test code
 and preserves that file's product-line ratchet; no product code or size exception
 is removed or increased. The helper's behavior and visibility stay unchanged.
+
+The broad strict check found two new-test issues despite the library tests
+passing: an expected error unnecessarily passed by value, and a large callback
+fixture Future. Expectations now borrow the same error values; the fixture's
+existing deadline Future is pinned on the heap so the test task does not retain
+that state on its stack. No deadline, outcome or authority assertion changes.

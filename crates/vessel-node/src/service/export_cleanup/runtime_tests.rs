@@ -203,7 +203,7 @@ async fn callback_member(root: &Path, offer: PairingOffer, home: NodeId) -> Node
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn metadata_refusal_closes_the_exact_holder_through_forward_relay_and_callback() {
-    vessel_testkit::within(CALLBACK_TEST_BUDGET, async {
+    Box::pin(vessel_testkit::within(CALLBACK_TEST_BUDGET, async {
         let fleet = CallbackFleet::start().await;
         let source = &fleet.member.secure.service.0;
         let home_id = fleet.home.info().id;
@@ -264,7 +264,7 @@ async fn metadata_refusal_closes_the_exact_holder_through_forward_relay_and_call
             );
         }
         fleet.stop().await;
-    })
+    }))
     .await
     .unwrap();
 }
