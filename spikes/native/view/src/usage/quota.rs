@@ -52,8 +52,8 @@ fn reset_duration(at: DateTime<Utc>, now: DateTime<Utc>, words: &'static Transla
     const MINUTES_PER_HOUR: i64 = 60;
     const HOURS_PER_DAY: i64 = 24;
     let minutes = at.signed_duration_since(now).num_minutes().max(0);
-    let hours = minutes / MINUTES_PER_HOUR;
-    let days = hours / HOURS_PER_DAY;
+    let hours = minutes.div_euclid(MINUTES_PER_HOUR);
+    let days = hours.div_euclid(HOURS_PER_DAY);
     let text = words.usage();
     let (major, minor) = if days > 0 {
         (
