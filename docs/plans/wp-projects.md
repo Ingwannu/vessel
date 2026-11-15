@@ -72,7 +72,7 @@ node-owned. Shared shell and link files receive registration only.
 | Setup logs | worktree.output/setup | Reuse paged log and explicit approval; no trust-release equivalence |
 | Workspace trust release | None | Hidden; project digest approval is a different operation |
 | Archive/bulk archive/unarchive/recovery | No WorkspaceId or independent workspace API | Blocked; worktree.remove is never renamed Archive |
-| Auto-archive after merge | No setting/call yet | Node track owns design; hidden until authoritative capability exists |
+| Auto-archive after merge | No setting/call yet | This package owns the missing node design; hidden until authoritative capability exists |
 | Automatic title and branch names | Pending node feature | Display authoritative names only; no app-generated branch rename |
 | Host projects home | project.list and existing settings host selector | Retain host-specific empty/loading/error/populated states |
 
@@ -145,3 +145,33 @@ for its current authoritative list instead. Renaming/forgetting closes the old
 host's project mutation drafts without undoing an already submitted node effect.
 A headless GPUI regression combines alias reuse, stale success and a newer pending
 form with actual text input/caret retention. Current native checks remain owed.
+
+
+## Remaining project feature work after registry dependency
+
+The canonical ownership split places create-flow UI/receipts with create,
+archive/recovery orchestration with lifecycle, setup progress with scripts, and
+sidebar rendering with its navigation package. This package continues project
+registration/plain directory creation, metadata/icons, suggestions, settings,
+editor targets and automatic archive. These are incomplete; existing screens and
+pending value declarations are not parity proof.
+
+Fresh source decisions for the next stage:
+
+- Project equivalence is presentation, never workspace identity or authority.
+  Paseo server/project-key.ts:6-38 normalizes forge remotes, GitHub path casing,
+  explicit ports and subdirectories; no-remote roots stay host-specific. The app
+  projects/workspace-structure.ts:161-179 falls back to distinct placements when
+  the same equivalent key appears twice on one host. Reuse existing forge remote
+  parsing and explicit NodeId/ProjectId placements rather than a cwd join key.
+- Editor targets use a local desktop bridge, not the legacy daemon editor RPC.
+  app/workspace/open-in-editor/planner.ts:59-112 requires local execution and a
+  bridge; desktop/editor-targets/registry.ts:31-56 defines target order and
+  registry.ts:66-130 rechecks target availability and absolute existing paths.
+  Require authenticated managed-local target provenance from the desktop node
+  controller before resolving an OS path or launching. Remote projects keep
+  eligible forge/clipboard actions. No editor was launched in this research.
+- Settings preserve raw vessel.toml and unknown fields. The existing project
+  reader has a fixed byte cap and typed schema validation; generic file.write
+  cannot stand in for project registration/revision authority. Saving never
+  releases an external-source gate or approves a command digest.
