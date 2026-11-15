@@ -146,12 +146,12 @@ fn fixture(count: usize, many_areas: bool) -> String {
     super::api(&mut output, &language).unwrap();
     writeln!(
         output,
-        "type Getter = fn(&Translator) -> &str;\nconst GETTERS: [Getter; {}] = [\n{}\n];",
+        "type Getter = fn(&Translator) -> &str;\nstatic GETTERS: [Getter; {}] = [\n{}\n];",
         getters.len(),
         getters.join("\n")
     )
     .unwrap();
-    writeln!(output, "const KEYS: [&str; {}] = {:?};", keys.len(), keys).unwrap();
+    writeln!(output, "static KEYS: [&str; {}] = {:?};", keys.len(), keys).unwrap();
     writeln!(
         output,
         "const FAIL_AT: usize = {};",
@@ -183,7 +183,7 @@ fn main() {
     let bundle = Bundle { calls: Cell::new(0), fail_at: None, prefix: prefix.clone() };
     let translator = Translator { plain: Plain::resolve(&bundle, &bundle).unwrap() };
     assert_eq!(bundle.calls.get(), KEYS.len());
-    for (getter, key) in GETTERS.iter().zip(KEYS) {
+    for (getter, key) in GETTERS.iter().zip(KEYS.iter()) {
         let first = getter(&translator);
         assert_eq!(first, format!("{prefix}:{key}"));
         assert!(std::ptr::eq(first.as_ptr(), getter(&translator).as_ptr()));
