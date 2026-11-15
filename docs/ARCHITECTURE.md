@@ -1726,3 +1726,11 @@ exclusive persisted claim before backing recovery. Filesystem provisioning remai
 create driver wires it; no unwired node service ships in this dependency. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 No protocol number or full package acceptance follows from this architecture.
+
+### Settings writer lifetime
+
+The node settings owner retains an owned serialization guard in a tracked task
+through atomic file replacement and runtime application. RPC cancellation drops
+only the waiter. After connections finish, teardown closes settings mutation
+admission and joins admitted writers before the store closes (ADR 0064). This
+adds no crate edge, setting, format or wire method.
