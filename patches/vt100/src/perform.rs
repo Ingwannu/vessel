@@ -14,6 +14,7 @@ impl<CB: crate::Callbacks> vte::Perform for crate::screen::WrappedScreen<CB> {
     }
 
     fn execute(&mut self, b: u8) {
+        self.callbacks.decoded_control(b);
         match b {
             7 => self.callbacks.audible_bell(&mut self.screen),
             8 => self.bs(),
@@ -30,6 +31,7 @@ impl<CB: crate::Callbacks> vte::Perform for crate::screen::WrappedScreen<CB> {
     }
 
     fn esc_dispatch(&mut self, intermediates: &[u8], _ignore: bool, b: u8) {
+        self.callbacks.decoded_escape(intermediates, b);
         if let Some(i) = intermediates.first() {
             self.callbacks.unhandled_escape(
                 &mut self.screen,
@@ -65,6 +67,13 @@ impl<CB: crate::Callbacks> vte::Perform for crate::screen::WrappedScreen<CB> {
         _ignore: bool,
         c: char,
     ) {
+        self.callbacks.decoded_csi(
+            &mut self.screen,
+            params,
+            intermediates,
+            _ignore,
+            c,
+        );
         let unhandled = |screen: &mut Self| {
             screen.callbacks.unhandled_csi(
                 &mut screen.screen,

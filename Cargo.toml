@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 # The native app's tracks (milestone 12): each a workspace of its own
 # under `spikes/`, so the gate neither builds them nor resolves their trees.
-exclude = ["spikes", "patches/vt100"]
+exclude = ["spikes", "patches/vt100", "patches/vte"]
 
 [workspace.package]
 version = "0.1.0"
@@ -306,3 +306,7 @@ opt-level = 3
 [profile.release]
 lto = "fat"
 codegen-units = 1
+
+# One existing decoder, with presence/boundary metadata for terminal multiplexing.
+[patch.crates-io]
+vte = { path = "patches/vte" }

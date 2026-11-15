@@ -9,7 +9,7 @@ use std::sync::Arc;
 pub const FEED_BUDGET: usize = 16 * 1024;
 /// Bytes consumed from the front of one output slice, never a record sequence or row count.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct BytesTaken(usize);
+pub struct BytesTaken(pub(crate) usize);
 impl BytesTaken {
     /// Prefix length; zero only for empty input.
     #[must_use]
@@ -82,6 +82,17 @@ impl Screen {
         Feed {
             consumed: BytesTaken(consumed),
             replies: self.parser.callbacks_mut().take(),
+        }
+    }
+    pub(crate) fn feed_byte(&mut self, byte: u8) -> crate::presentation::DecodedByte {
+        self.parser.callbacks_mut().begin(1);
+        let step = self.parser.process_byte(byte);
+        let callbacks = self.parser.callbacks_mut();
+        crate::presentation::DecodedByte {
+            step,
+            executed: callbacks.executed,
+            escape: callbacks.escape,
+            replies: callbacks.take(),
         }
     }
     /// Current visible geometry.

@@ -39,11 +39,37 @@ mod params;
 
 #[cfg(feature = "ansi")]
 pub mod ansi;
-pub use params::{Params, ParamsIter};
+pub use params::{ParameterPresence, Params, ParamsIter};
 
 const MAX_INTERMEDIATES: usize = 2;
 const MAX_OSC_PARAMS: usize = 16;
 const MAX_OSC_RAW: usize = 1024;
+
+/// Completion of the current decoded token, without exposing mutable decoder state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DecoderBoundary {
+    /// The next byte begins outside a partial control token or Unicode scalar.
+    Complete,
+    /// More bytes are required before presentation can publish this token.
+    Pending,
+}
+
+/// Whether decoding finished an earlier prefix before consuming the current byte.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum PrefixEnd {
+    /// The current byte continues the pending token.
+    #[default]
+    Retained,
+    /// A cancellation, replacement escape or invalid UTF-8 ended the old prefix.
+    Ended,
+}
+
+/// Metadata from the same decoder pass, for bounded stream presentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DecoderStep {
+    pub boundary: DecoderBoundary,
+    pub prefix: PrefixEnd,
+}
 
 /// Parser for raw _VTE_ protocol which delegates actions to a [`Perform`]
 ///
@@ -58,6 +84,8 @@ pub struct Parser<const OSC_RAW_BUF_SIZE: usize = MAX_OSC_RAW> {
     intermediate_idx: usize,
     params: Params,
     param: u16,
+    param_presence: ParameterPresence,
+    prefix_end: PrefixEnd,
     #[cfg(not(feature = "std"))]
     osc_raw: ArrayVec<u8, OSC_RAW_BUF_SIZE>,
     #[cfg(feature = "std")]
@@ -77,6 +105,23 @@ impl Parser {
 }
 
 impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
+    /// Read-only completion state for output presentation. Partial UTF-8 is
+    /// pending even while the control decoder is otherwise in ground state.
+    pub fn boundary(&self) -> DecoderBoundary {
+        if self.state == State::Ground && self.partial_utf8_len == 0 {
+            DecoderBoundary::Complete
+        } else {
+            DecoderBoundary::Pending
+        }
+    }
+
+    /// Decode one byte with boundary metadata from the original decoder only.
+    pub fn advance_byte<P: Perform>(&mut self, performer: &mut P, byte: u8) -> DecoderStep {
+        self.prefix_end = PrefixEnd::Retained;
+        self.advance(performer, core::slice::from_ref(&byte));
+        DecoderStep { boundary: self.boundary(), prefix: self.prefix_end }
+    }
+
     /// Create a new Parser with a custom size for the Operating System Command
     /// buffer.
     ///
@@ -111,7 +156,11 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
 
         // Handle partial codepoints from previous calls to `advance`.
         if self.partial_utf8_len != 0 {
-            i += self.advance_partial_utf8(performer, bytes);
+            let used = self.advance_partial_utf8(performer, bytes);
+            if used == 0 && self.partial_utf8_len == 0 && !bytes.is_empty() {
+                self.prefix_end = PrefixEnd::Ended;
+            }
+            i += used;
         }
 
         while i != bytes.len() {
@@ -146,7 +195,11 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
 
         // Handle partial codepoints from previous calls to `advance`.
         if self.partial_utf8_len != 0 {
-            i += self.advance_partial_utf8(performer, bytes);
+            let used = self.advance_partial_utf8(performer, bytes);
+            if used == 0 && self.partial_utf8_len == 0 && !bytes.is_empty() {
+                self.prefix_end = PrefixEnd::Ended;
+            }
+            i += used;
         }
 
         while i != bytes.len() && !performer.terminated() {
@@ -323,6 +376,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
                 self.state = State::Ground
             },
             0x1B => {
+                self.prefix_end = PrefixEnd::Ended;
                 performer.unhook();
                 self.reset_params();
                 self.state = State::Escape
@@ -384,7 +438,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
                 performer.execute(byte);
                 self.state = State::Ground
             },
-            0x1B => (),
+            0x1B => self.prefix_end = PrefixEnd::Ended,
             _ => (),
         }
     }
@@ -417,6 +471,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
                 self.state = State::Ground
             },
             0x1B => {
+                self.prefix_end = PrefixEnd::Ended;
                 self.osc_end(performer, byte);
                 self.reset_params();
                 self.state = State::Escape
@@ -442,6 +497,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
                 self.state = State::Ground
             },
             0x1B => {
+                self.prefix_end = PrefixEnd::Ended;
                 self.reset_params();
                 self.state = State::Escape
             },
@@ -454,7 +510,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
-            self.params.push(self.param);
+            self.params.push(self.param, self.param_presence);
         }
         performer.csi_dispatch(self.params(), self.intermediates(), self.ignoring, byte as char);
 
@@ -466,7 +522,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
-            self.params.push(self.param);
+            self.params.push(self.param, self.param_presence);
         }
         performer.hook(self.params(), self.intermediates(), self.ignoring, byte as char);
         self.state = State::DcsPassthrough;
@@ -488,8 +544,9 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
-            self.params.extend(self.param);
+            self.params.extend(self.param, self.param_presence);
             self.param = 0;
+            self.param_presence = ParameterPresence::Omitted;
         }
     }
 
@@ -499,8 +556,9 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
-            self.params.push(self.param);
+            self.params.push(self.param, self.param_presence);
             self.param = 0;
+            self.param_presence = ParameterPresence::Omitted;
         }
     }
 
@@ -510,6 +568,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         if self.params.is_full() {
             self.ignoring = true;
         } else {
+            self.param_presence = ParameterPresence::Explicit;
             // Continue collecting bytes into param.
             self.param = self.param.saturating_mul(10);
             self.param = self.param.saturating_add((byte - b'0') as u16);
@@ -564,6 +623,7 @@ impl<const OSC_RAW_BUF_SIZE: usize> Parser<OSC_RAW_BUF_SIZE> {
         self.intermediate_idx = 0;
         self.ignoring = false;
         self.param = 0;
+        self.param_presence = ParameterPresence::Omitted;
 
         self.params.clear();
     }

@@ -69,3 +69,8 @@ pub use parser::Parser;
 pub use screen::{
     CursorStyle, MouseProtocolEncoding, MouseProtocolMode, Screen,
 };
+
+// Decoder metadata is exposed only to the sole screen facade, never a second parser.
+pub use vte::{
+    DecoderBoundary, DecoderStep, Params as DecodedParams, PrefixEnd,
+};

@@ -108,8 +108,6 @@ is reconstructed from a pruned event ring. The native parser stays only until
 D1 switches to the passed engine; this prerequisite does not claim retirement,
 full D1 UI, physical input, platform runtime or renderer parity.
 
-## Verification owed
-
 ## D1 follow-up: decoder metadata and multiplexed presentation
 
 The same transitive VTE 0.15 decoder may be vendored with exact checksum,
@@ -137,3 +135,19 @@ shrink/grow/soft-wrap/CJK, capacity change/eviction, query and final-snapshot
 cases; strict changed-crate checks; one whole root gate; V3 prerequisite
 review. No whole native gate is owed by this root-only package before a
 native dependency edge exists. Actual D1 captures remain its later package.
+
+## Presentation overlap exception
+
+A canceled prefix can share its final ESC with the beginning of an answered
+query. Removing that ESC would change the preceding non-query OSC or canceled
+CSI at an older raw client. In this rare overlap, preserve the entire span
+unchanged, do not send the candidate reply from the node, and return a typed
+`AmbiguousOverlap` presentation event. The raw client/renderer answers it as
+before. This is an explicit exception to node query authority, not a second
+parser, guessed mode, stdin suppression or CAN normalization. The regression
+`OSC title ESC [6n` must retain every byte and have no node reply.
+
+Executed controls inside a pending query are retained using decoded callback
+positions, not byte pattern matching. Their publication waits for completion
+of the bounded token. A control token exceeding 64 KiB refuses explicitly;
+this resource bound is a stated difference from the reference.

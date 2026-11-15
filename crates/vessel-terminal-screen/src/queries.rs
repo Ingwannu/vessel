@@ -20,7 +20,7 @@ pub const MAX_REPLY_BYTES: usize = (FEED_BUDGET + 1) * MAX_QUERY_REPLY_BYTES;
 
 /// Ordered protocol bytes, with no terminal text or clipboard contents mixed in.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Replies(Vec<u8>);
+pub struct Replies(pub(crate) Vec<u8>);
 impl Replies {
     /// Borrow bytes for the actor's existing ordered writer.
     #[must_use]
@@ -29,11 +29,19 @@ impl Replies {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EscapeEffect {
+    StringTerminator,
+    Other,
+}
+
 pub(crate) struct Queries {
     duty: ReplyDuty,
     bytes: String,
     failure: Option<ScreenError>,
     budget: usize,
+    pub(crate) executed: Option<u8>,
+    pub(crate) escape: Option<EscapeEffect>,
 }
 impl Queries {
     pub(crate) fn new(duty: ReplyDuty) -> Self {
@@ -42,9 +50,13 @@ impl Queries {
             bytes: String::new(),
             failure: None,
             budget: 0,
+            executed: None,
+            escape: None,
         }
     }
     pub(crate) fn begin(&mut self, bytes: usize) {
+        self.executed = None;
+        self.escape = None;
         self.budget = bytes
             .saturating_add(1)
             .saturating_mul(MAX_QUERY_REPLY_BYTES);
@@ -84,22 +96,38 @@ impl std::fmt::Write for Queries {
     }
 }
 impl vt100::Callbacks for Queries {
-    fn unhandled_csi(
+    fn decoded_control(&mut self, byte: u8) {
+        self.executed = Some(byte);
+    }
+    fn decoded_escape(&mut self, intermediates: &[u8], byte: u8) {
+        self.escape = Some(if intermediates.is_empty() && byte == b'\\' {
+            EscapeEffect::StringTerminator
+        } else {
+            EscapeEffect::Other
+        });
+    }
+
+    fn decoded_csi(
         &mut self,
         screen: &mut vt100::Screen,
-        first: Option<u8>,
-        second: Option<u8>,
-        params: &[&[u16]],
+        params: &vt100::DecodedParams,
+        intermediates: &[u8],
+        ignored: bool,
         final_byte: char,
     ) {
-        if self.duty == ReplyDuty::Silent || second.is_some() {
+        if self.duty == ReplyDuty::Silent || ignored || intermediates.len() > 1 {
             return;
         }
-        let parameter = match params {
-            [] => 0,
-            &[&[value]] => value,
-            _ => return,
+        let first = intermediates.first().copied();
+        let mut scalars = params.iter();
+        let parameter = match scalars.next() {
+            None => 0,
+            Some([value]) => *value,
+            Some(_) => return,
         };
+        if scalars.next().is_some() {
+            return;
+        }
         match (first, final_byte, parameter) {
             (None, 'c', 0) => {
                 let _bounded = self.write_str("\x1b[?62;4;22c");

@@ -65,6 +65,11 @@ impl<CB: crate::Callbacks> Parser<CB> {
         self.parser.advance(&mut self.screen, bytes);
     }
 
+    /// Preserve token boundaries from the same parser pass for presentation clients.
+    pub fn process_byte(&mut self, byte: u8) -> crate::DecoderStep {
+        self.parser.advance_byte(&mut self.screen, byte)
+    }
+
     /// Resizes the terminal.
     ///
     /// When the screen height is decreased, this function does the following:

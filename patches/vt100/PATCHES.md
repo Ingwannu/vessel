@@ -40,3 +40,7 @@ Numbered patch list (implementation in progress):
 
 Wide-continuation attributes are corrected by the facade, not another parser.
 No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate.
+
+7. Read-only decoded CSI/control/ESC callbacks and single-byte boundary bridge
+   to the same patched VTE dependency. Why: one pure facade tracks negotiated
+   modes and presentation without a scanner or second terminal parser.

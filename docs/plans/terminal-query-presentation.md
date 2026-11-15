@@ -43,6 +43,13 @@ never fed into an engine. The native renderer remains the sole kit control.
 
 ## Resume point
 
-Published VTE baseline vendored. Next: minimal metadata changes, pure mode and
-presentation regressions, T audit, changed-package checks. No node activation,
+VTE metadata and the vt100 bridge are staged with pure presentation regressions.
+Normal replies are separated from complete presentation; canceled-prefix/query
+sharing preserves the span unchanged, omits the node reply and emits typed
+AmbiguousOverlap offsets. The tested title-overlap exception follows the
+coordinator ruling. Partial tokens and UTF-8 are bounded and retained, executed
+C0 callbacks survive query omission. Parameter-presence callback regression is
+included; negotiated modes/frame/anchors are not implemented yet.
+
+Next: T audit, exact changed-package tests/strict checks, then modes and frames. No node activation,
 transport or renderer acceptance has occurred.
