@@ -92,7 +92,15 @@ fn configured(
 ) -> Div {
     let words = shell.words.scripts();
     let Some(listed) = Listed::of(&snapshot.scripts.commands) else {
-        return empty(words.empty(), tokens);
+        return match &snapshot.scripts.commands {
+            vessel_proto::workspace::ProjectCommands::None => empty(words.empty(), tokens),
+            vessel_proto::workspace::ProjectCommands::Invalid { .. } => {
+                ports::notice(words.invalid_file(), tokens)
+            }
+            vessel_proto::workspace::ProjectCommands::Listed { .. } => {
+                ports::notice(words.unsupported_config(), tokens)
+            }
+        };
     };
     let mut body = div().flex().flex_col().gap(px(spacing::S3));
     if !listed.approved {

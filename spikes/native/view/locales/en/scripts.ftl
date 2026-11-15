@@ -134,3 +134,5 @@ scripts-stale = Refresh this listener before opening a preview.
 scripts-retained = Runs no longer in the project file
 # Never treat an unrecognized newer-node setup state as successful completion.
 scripts-setup-unknown = This app cannot interpret the setup state. No session was started; update the app and inspect the worktree.
+# A listed command set contains approved fields this app cannot fully display.
+scripts-unsupported-config = This command set contains configuration this app cannot fully show. Update the app before approving or running it.

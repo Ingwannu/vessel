@@ -117,6 +117,7 @@ pub fn retained_runs(list: &ScriptList) -> Vec<&TerminalInfo> {
     let configured = Listed::of(&list.commands);
     list.runs
         .iter()
+        .filter(|run| run.status.is_live())
         .filter(|run| {
             run.kind.script().is_some_and(|name| {
                 !configured

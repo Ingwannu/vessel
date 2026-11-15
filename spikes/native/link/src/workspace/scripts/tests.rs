@@ -22,13 +22,17 @@ fn empty() -> ScriptList {
 }
 #[tokio::test]
 async fn discovery_uses_only_existing_script_and_port_calls_and_keeps_partial_error() {
-    let peer = peer::connect(|call| match call {
-        Call::ListScripts(_) => Ok(Reply::ListScripts(empty())),
-        Call::ListPorts(_) => Err(WireError::new(
-            ErrorCode::Unsupported,
-            "scanner not available",
-        )),
-        other => panic!("unexpected call: {other:?}"),
+    let peer = peer::connect(|call| {
+        if matches!(call, Call::ListScripts(_)) {
+            Ok(Reply::ListScripts(empty()))
+        } else if matches!(call, Call::ListPorts(_)) {
+            Err(WireError::new(
+                ErrorCode::Unsupported,
+                "scanner not available",
+            ))
+        } else {
+            panic!("unexpected call: {call:?}")
+        }
     })
     .await;
     let target = target();
@@ -65,15 +69,20 @@ async fn discovery_uses_only_existing_script_and_port_calls_and_keeps_partial_er
 }
 #[tokio::test]
 async fn run_restart_stop_preserve_exact_ids_and_do_not_retry_a_refusal() {
-    let peer = peer::connect(|call| match call {
-        Call::RunScript(_) => Ok(Reply::RunScript(ScriptRunOutcome::NeedsApproval {
-            commands: ProjectCommands::None,
-        })),
-        Call::RestartScript(_) => Ok(Reply::RestartScript(ScriptRunOutcome::Refused {
-            reason: ScriptRefusal::NoSuchScript,
-        })),
-        Call::KillTerminal(_) => Ok(Reply::KillTerminal(Ack {})),
-        other => panic!("unexpected call: {other:?}"),
+    let peer = peer::connect(|call| {
+        if matches!(call, Call::RunScript(_)) {
+            Ok(Reply::RunScript(ScriptRunOutcome::NeedsApproval {
+                commands: ProjectCommands::None,
+            }))
+        } else if matches!(call, Call::RestartScript(_)) {
+            Ok(Reply::RestartScript(ScriptRunOutcome::Refused {
+                reason: ScriptRefusal::NoSuchScript,
+            }))
+        } else if matches!(call, Call::KillTerminal(_)) {
+            Ok(Reply::KillTerminal(Ack {}))
+        } else {
+            panic!("unexpected call: {call:?}")
+        }
     })
     .await;
     let target = target();
@@ -163,15 +172,19 @@ fn offline_and_unsent_keep_the_original_owner_and_key() {
 }
 #[tokio::test]
 async fn a_script_read_failure_still_settles_after_a_successful_scan() {
-    let peer = peer::connect(|call| match call {
-        Call::ListScripts(_) => Err(WireError::new(ErrorCode::NotFound, "gone")),
-        Call::ListPorts(_) => Ok(Reply::ListPorts(PortList {
-            ports: vec![],
-            scan: PortScan::Pending,
-            revision: 0,
-            more: false,
-        })),
-        other => panic!("unexpected call: {other:?}"),
+    let peer = peer::connect(|call| {
+        if matches!(call, Call::ListScripts(_)) {
+            Err(WireError::new(ErrorCode::NotFound, "gone"))
+        } else if matches!(call, Call::ListPorts(_)) {
+            Ok(Reply::ListPorts(PortList {
+                ports: vec![],
+                scan: PortScan::Pending,
+                revision: 0,
+                more: false,
+            }))
+        } else {
+            panic!("unexpected call: {call:?}")
+        }
     })
     .await;
     let answer = run(

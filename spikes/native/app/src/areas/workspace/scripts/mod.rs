@@ -26,7 +26,12 @@ impl Scripts {
     pub(super) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             model: Model::default(),
-            host: super::field(window, cx),
+            host: TextField::new(
+                "",
+                |_shell: &mut Shell, _text, _window, cx| cx.notify(),
+                window,
+                cx,
+            ),
             polling: false,
         }
     }

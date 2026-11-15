@@ -238,4 +238,7 @@ fn removing_a_script_entry_does_not_hide_its_retained_supervised_run() {
     next.scripts.commands = ProjectCommands::None;
     assert_eq!(retained_runs(&next.scripts), vec![&run]);
     assert_eq!(Entry::retained(&run).unwrap().name.as_str(), "dev");
+    next.scripts.runs.first_mut().unwrap().status =
+        vessel_proto::SessionStatus::Exited { code: Some(0) };
+    assert!(retained_runs(&next.scripts).is_empty());
 }
