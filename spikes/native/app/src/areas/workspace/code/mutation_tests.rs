@@ -153,3 +153,61 @@ fn directory_rename_preserves_deep_clean_retained_descendants(cx: &mut TestAppCo
         assert_eq!(shell.areas.workspace.code.file_key(), Some(other));
     });
 }
+
+#[gpui::test]
+fn selected_actor_without_network_dispatch_does_not_leave_a_phantom_path_hold(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update(cx, |shell, cx| {
+        let root = io_tests::root();
+        io_tests::target(shell, root);
+        let key = load(shell, root, "before.txt", cx);
+        let change = PathChange::Rename(RenamePath {
+            root,
+            from: key.path.clone(),
+            to: "after.txt".parse().unwrap(),
+        });
+        for problem in [
+            Problem::Unsent,
+            Problem::Older,
+            Problem::Node {
+                code: vessel_proto::ErrorCode::Forbidden,
+                message: String::new(),
+            },
+        ] {
+            shell.begin_file_mutation("node", change.clone(), cx);
+            let pending = shell.areas.workspace.code.mutation.as_ref().unwrap();
+            let (scope, ticket) = (pending.scope.clone(), pending.ticket);
+            // The actor selected a connection, but local ids/protocol or
+            // pre-handler policy can still prove no filesystem effect.
+            shell.file_mutation_answered_for(&scope, &change, ticket, Err(problem), true, cx);
+            assert!(shell.areas.workspace.code.mutation.is_none());
+            assert!(shell.editing_for(&key).is_some());
+            assert_eq!(shell.editing_for(&key).unwrap().model.content(), "saved");
+        }
+        shell.begin_file_mutation("node", change.clone(), cx);
+        let pending = shell.areas.workspace.code.mutation.as_ref().unwrap();
+        let (scope, ticket) = (pending.scope.clone(), pending.ticket);
+        shell.file_mutation_answered_for(
+            &scope,
+            &change,
+            ticket,
+            Err(Problem::Gone("connection retired after polling".into())),
+            true,
+            cx,
+        );
+        assert!(
+            shell
+                .areas
+                .workspace
+                .code
+                .mutation
+                .as_ref()
+                .unwrap()
+                .uncertain
+        );
+        assert!(shell.editing_for(&key).is_some());
+    });
+}

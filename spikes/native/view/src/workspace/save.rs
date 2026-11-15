@@ -168,10 +168,13 @@ where
     }
 }
 
-// Only authentication/policy refusals are classified here: the node checks
-// these before invoking file.write. Filesystem/post-publication errors are not
-// proven no-effect and remain uncertain, including a trailing version failure.
-fn known_not_written(problem: &Problem) -> bool {
+/// Whether a file mutation was definitively refused before its effects.
+/// Local/protocol admission and node authentication/policy are checked before
+/// invoking filesystem work. An invoked connection refusal or filesystem error
+/// is not proven no-effect, including a trailing result-version failure.
+/// This does not release a different, previously uncertain original attempt.
+#[must_use]
+pub fn known_not_written(problem: &Problem) -> bool {
     matches!(problem, Problem::Older | Problem::Unsent)
         || matches!(
             problem.code(),

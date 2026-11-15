@@ -185,9 +185,10 @@ impl Shell {
             return;
         }
         if dispatched
-            && result
-                .as_ref()
-                .is_err_and(|problem| problem.code() != Some(vessel_proto::ErrorCode::Conflict))
+            && result.as_ref().is_err_and(|problem| {
+                problem.code() != Some(vessel_proto::ErrorCode::Conflict)
+                    && !vessel_app_view::workspace::save::known_not_written(problem)
+            })
         {
             if let Some(pending) = panel.mutation.as_mut() {
                 pending.uncertain = true;

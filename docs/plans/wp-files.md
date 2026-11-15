@@ -581,3 +581,14 @@ boxed Plain submit and unchanged Identified dispatch remain intact. field.rs
 shrinks556→508; no size allowance rises. The older whole field root/ratchet
 patch was not copied. The exact new module/test blobs are preserved while
 constructor callsites are adapted to this worktree's already split factory.
+
+### Path mutation non-dispatch settlement
+
+Selecting the actor's connection is not evidence that a request reached the
+wire: local request-id exhaustion, unassigned protocol or an authentication
+refusal can still precede filesystem work. Path mutation settlement now reuses
+the save owner's same narrowly defined known-not-written predicate, releasing
+those holds while retaining invoked connection failures as uncertain. It does
+not discharge any other original obligation. A GPUI source regression pins
+Unsent/Older/Forbidden release versus post-poll Gone retention, with the original
+source key/text unchanged. This avoids both phantom holds and blind retries.
