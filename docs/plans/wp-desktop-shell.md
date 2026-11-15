@@ -342,6 +342,12 @@ inference diagnosed by the isolated control run; that fix is already in current
 source. No tests ran and no app/runtime pass is inferred from it. The terminal
 logs remain in remote-unit-15; the next meaningful union includes the settled
 persistence receipt/fence and its regressions.
+The first actual Windows MSVC typecheck on36d11faa reached the CLI registry
+module and failed at RegValue.bytes: winreg0.56 requires Cow<[u8]>, while the
+encoder returns Vec<u8>. The owned conversion now uses Into without copying or
+changing UTF-16 policy. Run wp-desktop-shell-win-check-20261115T124451Z-36d11faa
+ended rc1/native-windows-check101; the corrected source needs another typecheck.
+This is not a Windows runtime or root-crate cross-check result.
 The new control producer uses the clean dd13 base separately.
 Current source-size checks passed708 files/14 existing exceptions; no allowance
 increased. Direct rustfmt checks the Rust files changed from dd13ce37; this

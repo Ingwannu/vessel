@@ -66,7 +66,7 @@ pub(in super::super) fn apply(
             "Path",
             &RegValue {
                 vtype: REG_EXPAND_SZ,
-                bytes: next.encode(),
+                bytes: next.encode().into(),
             },
         )?;
         transaction.commit()?;
