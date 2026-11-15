@@ -143,7 +143,7 @@ impl VesselTools {
             id::ToolId::ListNodes => Ok(json!(self.client.call(ListNodes).await?)),
             id::ToolId::ListSessions => {
                 let node = self.target(args).await?;
-                Ok(json!(self.on(node, ListSessions).await?))
+                Ok(json!(self.on(node, ListSessions::default()).await?))
             }
             id::ToolId::ListProjects | id::ToolId::ListWorktrees | id::ToolId::CreateWorktree => {
                 self.workspace(name, args).await
