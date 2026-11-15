@@ -253,3 +253,14 @@ The bounded W6 pixel leaf40ddff88c is adopted over checked prerequisitee1a171623
 Its four Rust blobs match checked703268a01 (Kit strict0 and image tests5/0/0);
 this receiving app union still owes its own compilation/tests. Announced base9
 (db42d9c5) was merged cleanly before starting the next changed-source checks.
+
+
+The exact89add9b11 receiving-union Clippy run reached App/Kit/View analysis and
+returned two map_err_ignore lints in PreparedFrame's device-dimension conversion.
+The corrected mapping retains std::num::TryFromIntError as a typed Dimension
+source instead of discarding it; image/geometry/mismatch behavior and the shared
+decoder are unchanged. No lint suppression or weaker test was introduced. That
+failed run is not a green union. The old89 composition test job remains queued
+on its exact source; its eventual result will retain that scope. Base9b adds
+dialog header actions only and explicitly permits db42d9c5 for non-dialog work,
+so this frame-only correction keeps the already joined base9.

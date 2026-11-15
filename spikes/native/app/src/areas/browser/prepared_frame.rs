@@ -17,6 +17,7 @@ struct PreparedFrame {
 #[derive(Debug)]
 enum PreparationError {
     Image(ImageProblem),
+    Dimension(std::num::TryFromIntError),
     Geometry(InvalidSurface),
     RasterMismatch,
 }
@@ -24,6 +25,7 @@ impl fmt::Display for PreparationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Image(source) => fmt::Display::fmt(source, f),
+            Self::Dimension(_) => f.write_str("browser decoded dimensions are not representable"),
             Self::Geometry(source) => fmt::Display::fmt(source, f),
             Self::RasterMismatch => {
                 f.write_str("browser decoded raster differs from frame metadata")
@@ -35,6 +37,7 @@ impl std::error::Error for PreparationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Image(source) => Some(source),
+            Self::Dimension(source) => Some(source),
             Self::Geometry(source) => Some(source),
             Self::RasterMismatch => None,
         }
@@ -49,10 +52,8 @@ impl PreparedFrame {
     ) -> Result<Self, PreparationError> {
         let decoded = decode_png(bytes).map_err(PreparationError::Image)?;
         let size = decoded.size();
-        let width = u32::try_from(i32::from(size.width))
-            .map_err(|_| PreparationError::Geometry(InvalidSurface))?;
-        let height = u32::try_from(i32::from(size.height))
-            .map_err(|_| PreparationError::Geometry(InvalidSurface))?;
+        let width = u32::try_from(i32::from(size.width)).map_err(PreparationError::Dimension)?;
+        let height = u32::try_from(i32::from(size.height)).map_err(PreparationError::Dimension)?;
         let raster = RasterSize::new(width, height).map_err(PreparationError::Geometry)?;
         if raster != expected {
             return Err(PreparationError::RasterMismatch);
