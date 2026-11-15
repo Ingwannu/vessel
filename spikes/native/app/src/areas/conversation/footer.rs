@@ -26,8 +26,8 @@
 
 use chrono::{DateTime, Local, Utc};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window, div,
+    px,
 };
 use vessel_app_kit::{CopyLook, Type, TypeExt as _, breakpoint, copy_button};
 use vessel_app_view::timeline::{TurnFooter, duration_label};

@@ -212,3 +212,24 @@ Narrow view test run: 846 passed / 1 failed (About dependency inventory omitted
 the newly direct `similar` dependency); the inventory and its English/Korean role
 were then corrected without changing its assertion. Plan tests also passed 3/3
 on an immutable source snapshot. The package whole gate is still pending.
+
+## Resume point after the package-base merge
+
+Merged the published native package base `8d5513e4` as `54a7f739`. Shared link
+registration is now in command.rs/event.rs/dispatch.rs; shell.rs and link/lib.rs
+stay registration-only. About inventory conflicts retain the base's slice and
+role table while including the new diff library. A later footer narrow check
+found test-only DateTime arithmetic and an unused import; both are corrected.
+
+Implemented: item inventory, plan decision/disclosure model and shared Markdown
+card; bounded line/context/unified diff; closed-turn fold model; response-bounded
+copy and partial-history timestamp with compact reveal. Model tests for these
+passed in the narrow view run; the dependency inventory failure is retained and
+its attribution fix still needs a clean run. No full gate or capture is claimed.
+
+Next: finish the canonical tool body/display adapter, consume the reviewed
+canonical event/receipt contract, and connect turn/reasoning preferences once the
+Chat translation base arrives. Pending approval and question forms are owned by
+the approvals package; assistant link/image/copy actions by the composer package.
+Plugin items retain opaque data and show an explicit unavailable-contribution
+fallback until the plugin runtime supplies its validated renderer.

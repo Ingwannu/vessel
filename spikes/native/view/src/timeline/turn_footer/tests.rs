@@ -11,7 +11,7 @@ fn entries(events: Vec<Value>) -> Timeline {
         .enumerate()
         .map(|(seq, event)| EventRecord {
             seq: EventSeq::new(u64::try_from(seq).unwrap()),
-            at: DateTime::UNIX_EPOCH + chrono::Duration::seconds(i64::try_from(seq).unwrap()),
+            at: DateTime::from_timestamp(i64::try_from(seq).unwrap(), 0).unwrap(),
             event: SessionEvent::Agent {
                 event: serde_json::from_value(event).unwrap(),
             },
@@ -34,10 +34,7 @@ fn partial_history_keeps_the_timestamp_without_inventing_a_start() {
     let timeline = entries(vec![message("Answer"), end()]);
     let footer = TurnFooter::of(timeline.entries(), 1).unwrap();
     assert_eq!(footer.started_at, None);
-    assert_eq!(
-        footer.completed_at,
-        DateTime::UNIX_EPOCH + chrono::Duration::seconds(1)
-    );
+    assert_eq!(footer.completed_at, DateTime::from_timestamp(1, 0).unwrap());
     assert_eq!(footer.response, "Answer");
 }
 
@@ -68,7 +65,7 @@ fn duration_thresholds_do_not_drift() {
         (3780, "1h 3m"),
     ] {
         assert_eq!(
-            duration_label(start, start + chrono::Duration::seconds(seconds)),
+            duration_label(start, DateTime::from_timestamp(seconds, 0).unwrap()),
             label
         );
     }
