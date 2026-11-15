@@ -5,8 +5,6 @@
 //! page's preferences and drafts (ADR 0028).
 
 #[cfg(test)]
-mod auth_timeout;
-#[cfg(test)]
 mod book;
 #[cfg(test)]
 mod bridge;

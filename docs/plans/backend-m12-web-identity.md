@@ -67,3 +67,23 @@ Rust compilation, real agent/account, vendor request, live preview or
 service mutation is part of this work. V3 reviews this authentication path;
 source implementation is not execution or security approval. Checks,
 whole-gate evidence and review remain pending at this checkpoint.
+
+## First VM strict result and fixture correction
+
+The first priority strict run, `webparity-20261115T172857Z-a36b0f37`,
+fails while compiling the new integration regressions: the sibling module
+cannot use a private server-test connection helper, and the library's
+random-nonce constructor is private. This is an author test-fixture error,
+not a passed Rust execution or an authentication-policy finding. The
+previous queued ordinary run ends as an authorized cancellation (143),
+not a compiler result.
+
+Keep the connection helper private and move its regression module beneath
+its owner. The malformed-proof peer may choose the public server nonce as
+its own; its correctly shaped wrong-key proof must still be refused. This
+needs no private nonce constructor, new public API or copied connection
+helper. Production bytes stay identical to the source-reviewed correction;
+only test layout and fixture construction change. Original head assertions
+are unchanged except the previously authorized silent-expiry expectation;
+one child-test registration is added after them. Subsequent checks use the
+ordinary lane, as the one-priority-run ruling requires.

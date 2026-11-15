@@ -359,3 +359,5 @@ async fn unauthenticated_and_total_caps_include_upgraded_sockets() {
         Ok(0) | Err(_)
     ));
 }
+
+mod auth_timeout;
