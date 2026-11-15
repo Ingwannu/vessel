@@ -67,14 +67,17 @@ pub(super) struct Receipt {
 }
 impl Receipt {
     pub(super) fn stopped(&self) -> bool {
-        self.stop.is_closed() || self.conversation.is_closed() || self.state.borrow().terminal()
+        self.cancelled() || self.state.borrow().terminal()
+    }
+    fn cancelled(&self) -> bool {
+        self.stop.is_closed() || self.conversation.is_closed()
     }
     fn settle(&self, requested: State) {
         let _changed = self.state.send_if_modified(|state| {
             if state.terminal() {
                 return false;
             }
-            *state = if self.stopped() {
+            *state = if self.cancelled() {
                 State::Interrupted
             } else {
                 requested

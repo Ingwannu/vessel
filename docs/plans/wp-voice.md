@@ -391,3 +391,20 @@ completion, Stop/speech/output cancellation, mute, stale generations and invalid
 clock input. Tests are new and remote execution remains owed. This is policy,
 not an audio asset or running timer; generated cue PCM, shared duplex rendering
 and its actual AEC reference/receipt integration remain unfinished.
+
+### Receipt watch-lock correction before runtime
+
+Source audit found that the terminal-output fencing change in accae1d3 made
+Receipt::stopped read its watch state while settle invoked it under that same
+watch's write lock. This would deadlock receipt transitions. The correction
+splits the atomic cancellation predicate from the terminal-state read and uses
+only atomics inside send_if_modified. A five-second child-process regression
+exercises rendering/draining/Played, Failed and Interrupted, checks that exactly
+one child test ran, and kills/reaps only its own spawned child on failure; a
+reintroduced lock regression cannot indefinitely stall the suite itself.
+
+The accae1d3 remote runtime run was still queued when this was found. Its
+cancellation/replacement was requested under the tool's explicit approval rule;
+no evidence from that immutable source is represented as a pass. Existing e50
+strict evidence precedes this defect and remains bounded to that earlier source.
+New corrected source and the regression still owe remote Clippy/runtime checks.

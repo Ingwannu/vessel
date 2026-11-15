@@ -180,3 +180,5 @@ fn a_silent_device_and_never_started_segment_have_finite_failure_deadlines() {
         Err(Refusal::Format)
     ));
 }
+
+mod lock_probe;
