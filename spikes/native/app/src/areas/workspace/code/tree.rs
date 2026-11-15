@@ -15,6 +15,14 @@ use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
 use vessel_proto::workspace::{EntryKind, RelPath};
 
 impl Shell {
+    /// Visibility of the existing legacy Files host plus its original scope.
+    /// W12 supplies actual typed pane visibility when that host is mounted.
+    pub(super) fn file_tree_scope_is_current(&self, scope: &FileScope) -> bool {
+        self.route == crate::routes::Route::Session
+            && self.areas.workspace.code.open
+            && self.areas.workspace.code.tab == super::Tab::Files
+            && self.active_file_scope().as_ref() == Some(scope)
+    }
     /// A rendered row retains its original scope across queued input delivery.
     pub(super) fn activate_file_row(
         &mut self,
@@ -23,7 +31,7 @@ impl Shell {
         kind: EntryKind,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.active_file_scope().as_ref() != Some(scope) {
+        if !self.file_tree_scope_is_current(scope) {
             return;
         }
         if kind == EntryKind::Dir {
@@ -191,7 +199,7 @@ fn entry_row(
                 move |this, event: &MouseDownEvent, window, cx| {
                     if scope
                         .as_ref()
-                        .is_none_or(|original| this.active_file_scope().as_ref() != Some(original))
+                        .is_none_or(|original| !this.file_tree_scope_is_current(original))
                     {
                         return;
                     }

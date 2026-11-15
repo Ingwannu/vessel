@@ -13,11 +13,8 @@ use vessel_app_view::workspace::file_scope::FileScope;
 impl Shell {
     fn markdown_link_is_current(&self, key: &FileKey, scope: &FileScope) -> bool {
         let panel = &self.areas.workspace.code;
-        self.route == crate::routes::Route::Session
-            && panel.open
-            && panel.tab == super::super::Tab::Files
+        self.file_tree_scope_is_current(scope)
             && panel.file_key().as_ref() == Some(key)
-            && self.active_file_scope().as_ref() == Some(scope)
             && panel.files.viewer.as_ref().is_some_and(|viewer| {
                 viewer.scope == *scope
                     && viewer
@@ -186,6 +183,10 @@ mod tests {
             );
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
             assert!(shell.markdown_link_is_current(&key, &new));
+            shell.areas.workspace.code.open = false;
+            assert!(!shell.markdown_link_is_current(&key, &new));
+            assert!(!shell.file_tree_scope_is_current(&new));
+            shell.areas.workspace.code.open = true;
             shell.areas.session.open.as_mut().unwrap().session = vessel_proto::SessionId::random();
             assert!(!shell.markdown_link_is_current(&key, &new));
             assert!(shell.active_file_scope().is_none());

@@ -709,3 +709,9 @@ a menu. No new resolver or event subscription is introduced. The existing
 same-node rebound GPUI fixture also dispatches an old row activation and checks
 that the current buffer remains unchanged. This correction is newer than the
 queued native runs and remains unexecuted source.
+
+The Markdown and tree checks share the same legacy Files-host visibility
+predicate as well as the original active scope; a closed host cannot act on
+its queued input. This predicate explicitly does not claim typed Explorer
+mounting or multi-pane visibility. The owner fixture also pins closed-host
+refusal, without OS opening or node I/O.
