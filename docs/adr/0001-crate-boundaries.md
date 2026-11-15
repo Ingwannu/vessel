@@ -345,3 +345,12 @@ held-file fixture in proc; store keeps its data-directory, owner-byte and
 damaged-record assertions. That fixture uses standard-library exclusive
 creation, adding no external dependency. No signal, descriptor/generation
 verification or CLI edge is introduced. Those remain separate phases.
+
+
+ADR0080 Phase B preparation uses ort2.0.0-rc.15 as node dev-only code with
+fixed defaults-off std/load-dynamic/api-28 features. The purpose is a reviewed
+safe-wrapper build proof without a system-library search, new internal crate
+edge or product runtime activation. It is isolated from the endpoint package
+until offline lock/feature receipts are accepted. No native/model API runs
+before the later loader/detector source checkpoint; normal builds do not gain
+this dependency. Transitive archive/licence closure is pinned in ADR0080.

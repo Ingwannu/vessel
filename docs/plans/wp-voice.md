@@ -475,3 +475,11 @@ the new named aliases were inserted out of global order, invalidating the
 existing binary-search classifier. Restore sorted positions of only those3
 rows, leaving the classifier and prior aliases unchanged. These initial
 failures remain recorded; a corrected-head result is still owed.
+
+
+Phase B dependency preparation is isolated on a private package branch so its
+pending Cargo.lock cannot invalidate the endpoint/settings narrow checks.
+The coordinator assigned T an offline resolve-only scratch step for the exact
+manifest head: return lock diff and ort feature tree, no compilation or build
+scripts, stop if the network is needed. V3 must accept that receipt before
+any wrapper compilation. No lock output or runtime support is fabricated.

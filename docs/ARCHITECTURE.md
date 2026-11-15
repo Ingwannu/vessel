@@ -80,6 +80,12 @@ they started.
 
 ### External crates with one owner
 
+The ADR0080 preparation branch adds `ort` as a node **dev dependency only**,
+with exact2.0.0-rc.15/defaults-off/std+load-dynamic+api-28. It adds no normal
+crate edge and no runtime calls. Offline lock/feature resolution, its reviewed
+receipt and the fixed external-fixture handoff precede any VM compilation.
+No model/native load or product runtime availability is implied.
+
 A format or a protocol has one crate that speaks it; the others ask that
 crate. `scripts/check-boundaries.mjs` fails when a crate outside the second
 column depends on one of these (normal or build dependencies; a test may
