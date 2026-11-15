@@ -1,7 +1,7 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on package base6 plus official dd13ce378 lock/G2
-correction (merged5a54c0aca; prior18eedad4 merged7e9cc3d09),
+Status: implementation in progress on gated shared base d18bb794 (merged612b26df6;
+prior dd13ce378 merged5a54c0aca and18eedad4 merged7e9cc3d09),
 with exact
 canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
 (adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
@@ -650,3 +650,15 @@ five source/test files is F4's existing one-line VesselOverlay marker on the
 actual focused root; both that marker and S2's new capture focus fence survive.
 README retains both independent additions. This does not import S2's unready
 Main F4 branch or activate ToggleSidebars. Current F4 union checks remain owed.
+
+Lead confirmed d18bb794 is the published package base, locked native gate
+spike-20261115T125314Z-d18bb7941415/0/2. Merged the exact shared line as612b26df6:
+W4 FieldId/source callbacks and the existing composition extraction auto-merged
+through the same central line/multiline factories. All engines still register
+once; no input callback or identity implementation was copied. Shared README
+conflict retains both complete documentation additions. Field's combined product
+size is567, ratcheted down from587; picker remains828, never raised to the incoming
+older829 record. W12 effective target getter now arrives from the official line;
+it grants no authority or global Draft fallback. This base's gate is prerequisite
+evidence only; changed F4 union checks still remain open. Lead's next c526 staged
+delivery/menu union is not consumed while its gate is running.
