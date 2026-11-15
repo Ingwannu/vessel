@@ -13,8 +13,9 @@
   belongs to each resource and does not become mutable identity state.
 - Why: identity remains alive with resource records while the last context drop
   still cancels them. No new wire id, parser, dependency or protocol is needed.
-- Costs: context drop alone can be delayed by an RPC close grace. Wiring must
-  also observe Outbound::closed, without capturing the guard in that observer.
+- Costs: context drop alone can be delayed by an RPC close grace, so the
+  wiring makes the observer a child of the transport's closing token too,
+  without capturing the guard (see Validation).
 
 ## Validation and resume
 
@@ -22,7 +23,14 @@ The add-only source preserves the two existing lifetime/identity cases. The firs
 merged-base narrow check found a documentation-markup lint; the comment is fixed
 without changing behavior. Strict node all-target Clippy and both lifetime
 cases passed on the corrected merged snapshot (alongside eight codec cases).
-It is staged until the connection setup wires its field and accessor; this source does not prove actual transport close, scope checks,
-resource admission or product behavior. Next: initialize in one context setup,
-clone on acting-as, then both speech consumers use that same identity/observer.
+Wired (2026-11-15, node line): `service::Connection::new` makes the life over
+`Outbound::closing_token()` (a child of the transport's closing token, new in
+vessel-rpc), `acting_as` clones it, and `Connection::life()` is the accessor.
+The observer now fires on the transport closing as well as on the last context
+drop, so a resource no longer observes `Outbound::closed` itself. A node test
+serves the real guarded service over an in-memory pair: a context acting for the
+connection shares its owner, and closing the transport ends the life while that
+context is still held. Scope checks, resource admission and product behavior
+remain with the consumers (workspace preview, W14, both speech consumers).
+Until the first one reads the accessor, the non-test build expects it unused.
 No OS, account, permission or running service is changed by this primitive.

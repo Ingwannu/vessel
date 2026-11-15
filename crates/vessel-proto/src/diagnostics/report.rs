@@ -1,8 +1,8 @@
 //! Validated root boundary: no unbounded text and a canonical byte cap.
 use super::{
     DiagnosticAgents, DiagnosticCount, DiagnosticErrorCoverage, DiagnosticListeners,
-    DiagnosticNode, DiagnosticRelays, DiagnosticRuntimeSessions, DiagnosticSection,
-    DiagnosticStore, InvalidDiagnostic, RecentFailures,
+    DiagnosticNode, DiagnosticProcess, DiagnosticRelays, DiagnosticRuntimeSessions,
+    DiagnosticSection, DiagnosticStore, InvalidDiagnostic, RecentFailures,
 };
 use chrono::{DateTime, Utc};
 use serde::de::Error as _;
@@ -21,6 +21,8 @@ pub struct DiagnosticReportFields {
     pub collected_at: DateTime<Utc>,
     /// Safe node identity/platform/lifecycle.
     pub node: DiagnosticNode,
+    /// Numeric metadata about this daemon process only.
+    pub process: DiagnosticSection<DiagnosticProcess>,
     /// Readability/schema and stored session counts, not integrity proof.
     pub store: DiagnosticSection<DiagnosticStore>,
     /// Complete bounded inventory or an explicit reason it is unavailable.
