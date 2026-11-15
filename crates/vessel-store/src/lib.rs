@@ -77,6 +77,8 @@ mod token;
 mod usage;
 mod usage_lookup;
 mod workspace;
+#[cfg(test)]
+mod workspace_labels;
 mod writer;
 
 pub use again::EndedSession;

@@ -107,6 +107,8 @@ mod transfers;
 mod transport;
 mod waits;
 mod workspace;
+#[cfg(test)]
+mod workspace_labels;
 
 pub use config::{Config, DEFAULT_PARK_AFTER, VesselMcp};
 

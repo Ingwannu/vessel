@@ -94,8 +94,15 @@ registration or store migration is part of the value contract.
 
 Narrow validation: `cargo test -p vessel-proto workspace_labels` passed
 2 tests, 0 failed. This proves name/color decoding only, not RPC or durable
-storage. Observer journal and mutation planner drafts remain staged under
-cfg(test) and are not part of the value commit.
+storage. Remote proto clippy on `f767bc91` also passed with warnings denied
+(run `wp-labels-node-narrow-20261115T062639Z-f767bc91`).
+
+Observer journal and mutation planners are now staged under cfg(test): the
+journal checks contiguous cursors, retained-history boundaries, generation
+changes and sequence exhaustion; assignment/update planners cover host-owned
+colors/spelling, unknown unassignment, stable order and atomic collision
+rejection. Their tests are pending. These modules have no product caller until
+the registry/store/method wiring lands, per the staging rule.
 
 Next: proto clippy, then reviewed ADR 0082 registry adoption and single-writer
 persistence. Node journal/planner tests, protocol wiring/old-peer/forwarded

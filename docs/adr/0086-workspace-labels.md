@@ -68,7 +68,7 @@ Planned method rows (not registered by this document):
 
 | Call | Scope | Result |
 | --- | --- | --- |
-| `workspace.label.list` | read | snapshot or retained changes; optional owned subscription |
+| `workspace.label.list` | read | snapshot or retained changes; optional bounded observation |
 | `workspace.label.assign` | operate | host definition and committed assignment names |
 | `workspace.label.update` | operate | atomic definition and affected count |
 | `workspace.label.inspect_delete` | read | advisory affected count |
@@ -87,6 +87,15 @@ cursor returns a snapshot; no consumer applies a gap. Disconnect releases
 the owned subscription; reconnect refreshes authority before writes. Cached
 offline colors remain available to that host's rows but do not contribute to
 merged online catalogs or prove that a failed load deleted a definition.
+
+Use a bounded unary long poll for observation, as existing terminal/port reads
+do, instead of adding unrelated catalog payloads to the session-only event
+frame. Subscribe to a watch cursor before taking the catalog snapshot, wait
+only when the supplied cursor is current, and drop that watch receiver when
+the RPC is cancelled. A changed cursor re-enters the actor for an atomic
+snapshot/catch-up. One actor owns mutation -> durable reply -> journal publish,
+so request cancellation cannot reorder or skip publication. This transport
+difference preserves the reference's user-visible observation semantics.
 
 ## Differences and version behavior
 
