@@ -1098,3 +1098,9 @@ same saving future, so its real asynchronous presence lookup can finish before
 the gate is observed. An unexpected early completion fails immediately. The
 secret deletion, key-presence/refusal assertions and outer deadline are unchanged.
 This fixes test scheduling; no product writer or selection behavior changes.
+
+The next designated files/shared-values head is also adopted before checks.
+Its table and sample entries stay in their original order; the owned dictation
+rows follow skills.import_selection, and its samples follow the added skills
+cases. All feature numbers remain as the head defines them, with dictation
+unassigned. Its generated wire snapshot is retained until combined regeneration.
