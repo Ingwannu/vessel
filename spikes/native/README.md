@@ -96,7 +96,9 @@ named request bound, retaining permits through event delivery. Local rejection
 and browser no-transport replies settle through the same app area boundary;
 no route or fixture data is implied. The one generic `nodes::connection_ready`
 hook hands kept offers first, then typed area notices; identical Fleet snapshots
-cannot hide a fresh connection. The shell's event dispatcher now lives in
+cannot hide a fresh connection. The target-line resolver borrows existing node
+facts, never infers deletion from a cache miss or joins remote platform paths.
+The shell's event dispatcher now lives in
 its ordinary `shell::events` child module with the original effective private
 boundary; the root remains the window/frame and link receiver. LinkError keeps
 its public root path through its separate private error module. See the two

@@ -21,6 +21,7 @@ pub mod history;
 pub mod load;
 pub mod locale;
 pub mod page;
+pub mod target;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::automation::{
