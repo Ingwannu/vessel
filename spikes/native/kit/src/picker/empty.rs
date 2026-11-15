@@ -11,7 +11,9 @@ use gpui::{AnyElement, Context, Div, SharedString, div, px};
 pub enum Retry<V> {
     /// Ready read callback; the owner also rechecks request/context/visit.
     Ready {
+        /// Localized ordinary Retry caption.
         label: SharedString,
+        /// Existing caller callback; the kit admits its captured opening first.
         action: Back<V>,
     },
     /// Explicit retry is pending; same primary button, disabled, no callback.

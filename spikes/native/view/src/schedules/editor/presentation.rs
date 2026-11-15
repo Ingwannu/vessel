@@ -74,7 +74,9 @@ pub enum CatalogFeedback {
     Loading,
     /// Typed failure with an optional exact explicit read-retry receipt.
     Failed {
+        /// Complete localized error from the typed read failure.
         notice: Notice,
+        /// Exact original receipt only when this current read may be retried.
         request: Option<io::Request>,
     },
     /// Retain the failure while explicit retry is pending; no second activation.
