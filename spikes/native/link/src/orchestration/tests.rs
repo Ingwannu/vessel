@@ -2,7 +2,7 @@ use super::{Action, Output, Problem, calls, runner};
 use runner::Node;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use vessel_app_view::devices::{MachineKey, Tickets};
-use vessel_app_view::orchestration::{Consumer, Scope, Target, Task, Visit};
+use vessel_app_view::orchestration::{Consumer, Scope, Task, Visit};
 use vessel_proto::mcp::{Injection, McpSettings};
 use vessel_proto::{ErrorCode, NodeId};
 
@@ -33,10 +33,9 @@ fn task(id: NodeId) -> Task {
     Task {
         scope: Scope {
             consumer: Consumer::Onboarding,
-            target: Target {
-                machine: MachineKey::from_book("host"),
-                node: id,
-            },
+            target: vessel_app_view::connection::ConnectionEpochs::default()
+                .admit(MachineKey::from_book("host"), id)
+                .unwrap(),
             visit: Visit::new(tickets.next_ticket().unwrap()),
         },
         ticket: tickets.next_ticket().unwrap(),
@@ -94,4 +93,36 @@ fn injection_is_a_partial_host_patch_and_errors_carry_no_peer_text() {
     ));
     assert_eq!(safe, Problem::Refused(ErrorCode::Forbidden));
     assert!(!format!("{safe:?}").contains(unsafe_text));
+}
+
+#[tokio::test]
+async fn retired_original_connection_cannot_poll_a_read_or_follow_a_new_alias() {
+    use crate::testing::{Home, peer, state};
+    let home = Home::new();
+    let (mut actor, _events) = state(&home);
+    let mut peer = peer::connect("host").await;
+    let client = peer.client.take().unwrap();
+    let context = actor
+        .admissions
+        .admit(MachineKey::from_book("host"), client.node().id)
+        .unwrap();
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
+        token: None,
+        credential: None,
+        id: None,
+    };
+    let connected = crate::Connected::new(client, Vec::new(), binding, context.clone());
+    let _previous = actor.clients.insert("host".into(), connected);
+    let selected = calls::Selected {
+        connection: actor.selected_connection(&context).unwrap(),
+        context: context.clone(),
+    };
+    // The async method is constructed before retirement and first polled
+    // afterwards, exercising the actual shared guard rather than a mock flag.
+    let pending = selected.execute(Action::ReadTools);
+    actor.clients.get("host").unwrap().retire();
+    assert_eq!(pending.await, Err(Problem::Changed));
+    assert!(peer.calls.lock().unwrap().is_empty());
+    assert!(actor.selected_connection(&context).is_err());
 }

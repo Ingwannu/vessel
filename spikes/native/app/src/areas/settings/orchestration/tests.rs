@@ -26,10 +26,12 @@ fn seed(shell: &mut Shell) -> Scope {
     let state = &mut shell.areas.settings.orchestration;
     let scope = Scope {
         consumer: Consumer::Settings,
-        target: Target {
-            machine: MachineKey::from_book("isolated"),
-            node: NodeId::random(),
-        },
+        target: vessel_app_view::connection::ConnectionEpochs::default()
+            .admit(
+                vessel_app_view::connection::MachineKey::from_book("isolated"),
+                NodeId::random(),
+            )
+            .unwrap(),
         visit: Visit::new(state.ticket().unwrap()),
     };
     let mut page = Page::new(scope.clone());

@@ -14,7 +14,9 @@ impl Shell {
         match event {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
-                if !self.devices_retired(&context) {
+                let orchestration = self.orchestration_retired(&context);
+                let devices = self.devices_retired(&context);
+                if !devices && !orchestration {
                     return;
                 }
             }

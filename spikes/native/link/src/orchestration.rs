@@ -38,8 +38,8 @@ impl Default for Hub {
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn orchestration(&self, task: Task) {
-        let Ok(client) = self.client(task.scope.target.machine.as_str()).cloned() else {
-            self.emit(crate::Event::Orchestration(task.refused(Problem::Offline)))
+        let Ok(connection) = self.selected_connection(&task.scope.target) else {
+            self.emit(crate::Event::Orchestration(task.refused(Problem::Changed)))
                 .await;
             return;
         };
@@ -48,6 +48,10 @@ impl crate::State {
             self.emit(crate::Event::Orchestration(task.refused(Problem::Busy)))
                 .await;
             return;
+        };
+        let client = calls::Selected {
+            connection,
+            context: task.scope.target.clone(),
         };
         let events = self.events.clone();
         drop(tokio::spawn(async move {

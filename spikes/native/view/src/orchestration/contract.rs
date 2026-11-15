@@ -1,17 +1,10 @@
 //! Shared owner task boundary for Settings and onboarding; no storage or I/O.
-use crate::devices::{MachineKey, Ticket};
+pub use crate::connection::ConnectionContext as Target;
+use crate::devices::Ticket;
+use vessel_proto::ErrorCode;
 use vessel_proto::mcp::{Injection, McpSettings};
 use vessel_proto::skills::{SaveSkillsSelection, SkillsSaved, SkillsSnapshot};
-use vessel_proto::{ErrorCode, NodeId};
 
-/// A book name paired with the identity that actually answered it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Target {
-    /// Existing connection registry key.
-    pub machine: MachineKey,
-    /// Reusing a book name must not retarget a pending mutation.
-    pub node: NodeId,
-}
 /// A page visit, distinct from an individual operation attempt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Visit(Ticket);

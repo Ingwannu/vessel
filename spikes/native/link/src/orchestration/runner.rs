@@ -12,7 +12,7 @@ pub(super) trait Node: Sync {
     fn execute(&self, action: Action) -> impl Future<Output = Result<Output, Problem>> + Send;
 }
 pub(super) async fn run(node: &impl Node, task: &Task) -> Result<Output, Problem> {
-    if node.identity() != task.scope.target.node {
+    if node.identity() != task.scope.target.node() {
         return Err(Problem::Changed);
     }
     if !node.supported() {

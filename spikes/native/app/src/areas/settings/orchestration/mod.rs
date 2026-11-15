@@ -11,8 +11,8 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{App, ClickEvent, Context, Window};
 use vessel_app_link::Command;
 use vessel_app_view::Reach;
-use vessel_app_view::devices::{MachineKey, Ticket, Tickets};
-use vessel_app_view::orchestration::{Answer, Consumer, Page, Problem, Scope, Target, Task, Visit};
+use vessel_app_view::devices::{Ticket, Tickets};
+use vessel_app_view::orchestration::{Answer, Consumer, Page, Problem, Scope, Task, Visit};
 use vessel_app_view::settings::Section;
 use vessel_proto::skills::SkillName;
 
@@ -23,6 +23,8 @@ pub(crate) struct State {
     pub(super) dialog: DialogState,
     tickets: Tickets,
     closed: bool,
+    retired: Option<vessel_app_view::connection::ConnectionTag>,
+    activation: Option<gpui::Subscription>,
     pub(super) turns: u64,
 }
 impl State {
@@ -33,6 +35,8 @@ impl State {
             dialog: DialogState::new(cx),
             tickets: Tickets::default(),
             closed: false,
+            retired: None,
+            activation: None,
             turns: 0,
         }
     }
@@ -75,16 +79,25 @@ pub(super) enum Intent {
 impl Shell {
     /// Enter/reenter reads once; leaving or a changed welcome identity drops scope.
     pub(crate) fn settle_orchestration(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.settings.orchestration.activation.is_none() {
+            self.areas.settings.orchestration.activation =
+                Some(cx.observe_window_activation(window, |shell, window, cx| {
+                    if window.is_window_active()
+                        && shell.areas.settings.orchestration.page.is_some()
+                    {
+                        shell.orchestration_refresh(cx);
+                        cx.notify();
+                    }
+                }));
+        }
         let shown = self.route == Route::Settings
             && self.areas.settings.section == Section::Overview
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
         let target = super::choices::chosen_machine(self)
             .filter(|machine| shown && machine.reach == Reach::Online)
-            .and_then(|machine| {
-                machine.node.map(|node| Target {
-                    machine: MachineKey::from_book(&machine.name),
-                    node,
-                })
+            .and_then(vessel_app_view::Machine::connection_context)
+            .filter(|context| {
+                self.areas.settings.orchestration.retired.as_ref() != Some(&context.tag())
             });
         let state = &mut self.areas.settings.orchestration;
         state.settle_focus(window, cx);
@@ -114,6 +127,24 @@ impl Shell {
         }));
         self.orchestration_refresh(cx);
     }
+    /// A retired admission cannot be revived by an older queued Fleet snapshot.
+    pub(crate) fn orchestration_retired(
+        &mut self,
+        tag: &vessel_app_view::connection::ConnectionTag,
+    ) -> bool {
+        let state = &mut self.areas.settings.orchestration;
+        if !state
+            .page
+            .as_ref()
+            .is_some_and(|page| page.scope().target.tag() == *tag)
+        {
+            return false;
+        }
+        state.closed |= state.open();
+        state.page = None;
+        state.retired = Some(tag.clone());
+        true
+    }
     fn orchestration_refresh(&mut self, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.settings.orchestration;
         let (tools, skills) = (state.ticket(), state.ticket());
@@ -133,8 +164,7 @@ impl Shell {
         // repeats this check against its actual negotiated connection.
         let supported = vessel_proto::mcp::MCP_PARITY.is_some_and(|required| {
             self.fleet.machines.iter().any(|machine| {
-                machine.node == Some(task.scope.target.node)
-                    && machine.name == task.scope.target.machine.as_str()
+                machine.connection_context().as_ref() == Some(&task.scope.target)
                     && machine
                         .protocol
                         .is_some_and(|protocol| protocol >= required)

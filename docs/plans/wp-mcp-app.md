@@ -73,3 +73,13 @@ selection across real language dispatch and input caret changes. A typed fake
 answer is used without any node, home directory, or browser opener. These are
 new source fixtures awaiting their exact remote test result; the earlier 9/0
 view/link result does not cover the UI controller.
+
+Base 6 (18eedad4) is merged, retaining the shared connection preflight and
+new common actor fixture. Target now reexports the canonical ConnectionContext,
+including its non-reused admission epoch, instead of duplicating Machine/Node
+identity. The link captures SelectedConnection and every call uses its guarded
+original client; retirement is checked before polling and after results. The
+view rejects same-node reconnect answers as well as alias/node changes. A
+retirement event drops that page and fences older queued snapshots. Window
+reactivation refreshes current state without reseeding an open draft. These
+changed union paths still need their exact narrow/native results.

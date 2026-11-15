@@ -9,13 +9,15 @@ use vessel_proto::{ErrorCode, NodeId};
 fn next(tickets: &mut Tickets) -> Ticket {
     tickets.next_ticket().unwrap()
 }
+fn target(machine: &str, node: NodeId) -> Target {
+    crate::connection::ConnectionEpochs::default()
+        .admit(MachineKey::from_book(machine), node)
+        .unwrap()
+}
 fn page(tickets: &mut Tickets) -> Page {
     Page::new(Scope {
         consumer: Consumer::Settings,
-        target: Target {
-            machine: MachineKey::from_book("host"),
-            node: NodeId::random(),
-        },
+        target: target("host", NodeId::random()),
         visit: Visit::new(next(tickets)),
     })
 }
@@ -43,7 +45,18 @@ fn target_visit_consumer_and_attempt_all_fence_replies() {
     let mut tickets = Tickets::default();
     let mut page = page(&mut tickets);
     let first = page.read_tools(next(&mut tickets)).unwrap();
+    let mut admissions = crate::connection::ConnectionEpochs::default();
+    let _old = admissions
+        .admit(MachineKey::from_book("host"), page.scope().target.node())
+        .unwrap();
+    let reconnected = admissions
+        .admit(MachineKey::from_book("host"), page.scope().target.node())
+        .unwrap();
     for changed in [
+        Scope {
+            target: reconnected,
+            ..page.scope().clone()
+        },
         Scope {
             consumer: Consumer::Onboarding,
             ..page.scope().clone()
@@ -53,17 +66,11 @@ fn target_visit_consumer_and_attempt_all_fence_replies() {
             ..page.scope().clone()
         },
         Scope {
-            target: Target {
-                node: NodeId::random(),
-                ..page.scope().target.clone()
-            },
+            target: target("host", NodeId::random()),
             ..page.scope().clone()
         },
         Scope {
-            target: Target {
-                machine: MachineKey::from_book("other"),
-                ..page.scope().target.clone()
-            },
+            target: target("other", page.scope().target.node()),
             ..page.scope().clone()
         },
     ] {
