@@ -74,3 +74,28 @@ fn fluent_directional_boundaries_are_retained_in_production_distance_text() {
         "in \u{2068}30\u{2069}m"
     );
 }
+
+#[test]
+fn reference_tiers_and_wall_clock_alignment_need_no_static_timer() {
+    assert_eq!(Age::Now.refresh_tier(), Some(RefreshTier::Minute));
+    assert_eq!(Age::Minutes(5).refresh_tier(), Some(RefreshTier::Minute));
+    assert_eq!(Age::Hours(3).refresh_tier(), Some(RefreshTier::HalfHour));
+    assert_eq!(Age::Days(3).refresh_tier(), Some(RefreshTier::Hour));
+    assert_eq!(Age::Date(DateTime::UNIX_EPOCH).refresh_tier(), None);
+    for (at, minute, half_hour, hour) in [
+        ("2026-01-01T00:59:59Z", 1, 1, 1),
+        ("2026-01-01T00:00:00Z", 60, 1800, 3600),
+        ("1969-12-31T23:59:59Z", 1, 1, 1),
+    ] {
+        for (tier, seconds) in [
+            (RefreshTier::Minute, minute),
+            (RefreshTier::HalfHour, half_hour),
+            (RefreshTier::Hour, hour),
+        ] {
+            assert_eq!(
+                tier.after(date(at)),
+                std::time::Duration::from_secs(seconds)
+            );
+        }
+    }
+}

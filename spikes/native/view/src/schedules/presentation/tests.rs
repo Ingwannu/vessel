@@ -143,3 +143,23 @@ fn project_relative_paths_stay_separate_from_the_body_face_identity() {
         }
     );
 }
+
+#[test]
+fn old_paused_rows_and_empty_filters_unsubscribe_but_active_countdowns_keep_a_clock() {
+    use super::super::time::RefreshTier;
+    use vessel_proto::automation::ScheduleState;
+    let mut page = setup();
+    let now = "2026-11-30T00:00:00Z".parse().unwrap();
+    assert_eq!(refresh_tier(&page, now), Some(RefreshTier::Minute));
+    let key = page.visible_rows()[0].key.clone();
+    let request = page.act(&key, Action::Pause).unwrap();
+    let mut info = page.row(&key).unwrap().schedule.clone();
+    info.state = ScheduleState::Paused { since: now };
+    page.written(
+        &request,
+        Ok(super::super::page::WriteValue::Schedule(Box::new(info))),
+    );
+    assert_eq!(refresh_tier(&page, now), None);
+    page.bucket = super::super::Bucket::Ended;
+    assert_eq!(refresh_tier(&page, now), None);
+}

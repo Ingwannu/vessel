@@ -1174,3 +1174,10 @@ hidden until wired. This source checkpoint has not passed F1 UI review; the
 package plan records remaining clock/scopes/idle/focus/producer work and the
 one final gate/capture boundary. The legacy sidebar slot delegates to the
 area's opener; S2 owns the forthcoming canonical sidebar inventory.
+
+Schedules' relative labels use View's minute/half-hour/hour tiers, aligned to
+wall time, with one cancelable weak area task and no timer for static-only or
+empty rows. Active countdowns keep a minute tier. Metadata ticks never query
+the node; Fleet's unrelated session changes do not turn a stale cache into
+periodic schedule/list calls. Changed-source and frame verification remain in
+F1's final evidence boundary.

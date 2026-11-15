@@ -76,7 +76,7 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
             .on_click(cx.listener(move |shell, _, window, cx| {
                 shell.areas.schedules.ui.menu.close_and_restore(window, cx);
                 shell.areas.schedules.data.page.bucket = bucket;
-                let _changed = shell.schedules_rebuild();
+                let _changed = shell.schedules_changed(cx);
                 cx.notify();
             })),
         );
@@ -105,7 +105,7 @@ pub(super) fn popup(
             if let Some(choice) = choices.get(index) {
                 shell.areas.schedules.ui.menu.close_and_restore(window, cx);
                 shell.areas.schedules.data.page.machine = choice.filter.clone();
-                let _changed = shell.schedules_rebuild();
+                let _changed = shell.schedules_changed(cx);
             }
             shell.areas.schedules.ui.picker.close();
             cx.notify();

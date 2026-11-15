@@ -66,7 +66,7 @@ pub(super) fn menu(
                 if *action == Action::Delete {
                     shell.schedule_delete_prompt(&key, window, cx);
                 } else {
-                    shell.schedule_act(&key, *action);
+                    shell.schedule_act(&key, *action, cx);
                 }
             }
             cx.notify();
@@ -125,7 +125,7 @@ pub(super) fn deletion(
         let key = prompt.key.clone();
         delete = delete.on_click(cx.listener(move |shell, _, _, cx| {
             shell.areas.schedules.ui.deleting = None;
-            shell.schedule_act(&key, Action::Delete);
+            shell.schedule_act(&key, Action::Delete, cx);
             cx.notify();
         }));
     }

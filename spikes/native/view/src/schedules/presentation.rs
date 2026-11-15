@@ -215,5 +215,28 @@ pub fn machine_leading(filter: &super::page::MachineFilter, fleet: &Fleet) -> Ma
     }
 }
 
+/// One area clock task at the fastest visible text tier; old absolute-only
+/// rows run no timer. An active countdown needs minute updates even when its
+/// creation and previous-run ages are both static.
+#[must_use]
+pub fn refresh_tier(page: &Page, now: DateTime<Utc>) -> Option<super::time::RefreshTier> {
+    use super::time::{Age, RefreshTier};
+    page.visible_rows()
+        .iter()
+        .flat_map(|row| {
+            let info = row.schedule;
+            [
+                Age::of(info.created_at, now).refresh_tier(),
+                info.last_run
+                    .as_ref()
+                    .and_then(|run| Age::of(run.at, now).refresh_tier()),
+                super::next_due(info).map(|_| RefreshTier::Minute),
+            ]
+            .into_iter()
+            .flatten()
+        })
+        .min()
+}
+
 #[cfg(test)]
 mod tests;

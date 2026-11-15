@@ -13,7 +13,7 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::Schedules(message) => {
-                if !self.schedules_message(message) {
+                if !self.schedules_message(message, cx) {
                     return;
                 }
             }
@@ -46,7 +46,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
-                self.schedules_fleet();
+                self.schedules_fleet(cx);
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);

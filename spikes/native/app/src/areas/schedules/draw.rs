@@ -129,7 +129,7 @@ fn failed(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shel
             .on_click(cx.listener(|shell, _, _, cx| {
                 shell.areas.schedules.data.page.retry_failed();
                 shell.schedules_due();
-                let _changed = shell.schedules_rebuild();
+                let _changed = shell.schedules_changed(cx);
                 cx.notify();
             })),
         );

@@ -27,7 +27,7 @@ use vessel_app_view::schedules::page::RowKey;
 pub(crate) struct Area {
     pub(super) data: Data,
     pub(super) ui: Ui,
-    pub(super) ticking: bool,
+    pub(super) tick: Option<Tick>,
 }
 #[derive(Debug)]
 pub(super) struct Ui {
@@ -63,7 +63,18 @@ impl Area {
                 dialog: DialogState::new(cx),
                 anchors: BTreeMap::new(),
             },
-            ticking: false,
+            tick: None,
         }
+    }
+}
+
+#[derive(Debug)]
+pub(super) struct Tick {
+    tier: vessel_app_view::schedules::time::RefreshTier,
+    task: vessel_app_kit::ui::Task<()>,
+}
+impl Tick {
+    fn cancel(self) {
+        drop(self.task);
     }
 }
