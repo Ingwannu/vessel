@@ -17,6 +17,8 @@ use std::process::ExitCode;
 use std::str::FromStr;
 use std::time::Duration;
 
+#[path = "bin_support/desktop_logging.rs"]
+mod desktop_logging;
 #[path = "bin_support/local_launch.rs"]
 mod local_launch;
 
@@ -273,14 +275,11 @@ fn public_route(text: &str) -> Result<RouteUrl, String> {
 async fn main() -> ExitCode {
     let args = Args::parse();
     let attaching = matches!(args.command, Some(Command::Attach));
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_unset| if attaching { "warn" } else { "info" }.into()),
-        )
-        .with_writer(std::io::stderr)
-        .with_ansi(std::io::IsTerminal::is_terminal(&std::io::stderr()))
-        .init();
+    desktop_logging::init(
+        attaching,
+        args.command.is_none() && args.run.mode.desktop_managed(),
+        args.data_dir.as_ref(),
+    );
 
     // A relay keeps nothing on disk: it needs no data directory (nor a home).
     let command = match args.command {
