@@ -145,3 +145,15 @@ do not prove Windows instance or DACL semantics.
 
 The fixed feature build/test step belongs to T's gate tooling, as test-forge does.
 No current default gate result is claimed to execute this staged feature.
+
+## Windows API probe scope
+
+`managed_local_pipe` prepares Windows-only integration probes against the real
+safe named-pipe API: precreation refusal with redacted errors, second-instance
+refusal before and after connection, authenticated RPC over the retained
+original handle, canonical input unable to settle the private challenge, and
+post-proof namespace replacement unable to receive bytes from the old handle.
+These in-process node probes do not prove the parent/child inherited-stdout
+correlation or the complete Owned controller. Those causal tests remain part of
+the later launcher join. Until executed they are source only; wine results must
+remain explicitly approximate, and actual Windows execution remains unverified.
