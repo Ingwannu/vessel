@@ -80,8 +80,107 @@ pub(super) async fn status(target: &Target) -> Result<(), CliError> {
     Ok(())
 }
 
+/// `vessel fleet published`: what the selected machine shares, by name.
+pub(super) async fn published(target: &Target) -> Result<(), CliError> {
+    let published = connect(target).await?.client.fleet_published().await?;
+    io::out(render_published(&published).as_bytes()).await?;
+    Ok(())
+}
+
+fn render_published(published: &vessel_proto::FleetPublished) -> String {
+    use vessel_proto::FleetPublished;
+    let (mut text, bundle) = match published {
+        FleetPublished::Standalone => {
+            return "role  no fleet; this machine shares nothing\n".to_owned();
+        }
+        FleetPublished::Home { bundle } => ("role  home\n".to_owned(), bundle),
+        FleetPublished::Member {
+            home,
+            bundle,
+            applied,
+        } => {
+            let applied = applied.map_or_else(|| "none".to_owned(), |at| at.get().to_string());
+            (
+                format!("role  member of {home}\nlast applied  {applied}\n"),
+                bundle,
+            )
+        }
+        FleetPublished::Unknown => return "role  unknown; update this client\n".to_owned(),
+    };
+    let Some(bundle) = bundle else {
+        text.push_str("bundle  none yet\n");
+        return text;
+    };
+    let _infallible = writeln!(text, "version  {}", bundle.generation.get());
+    for file in &bundle.files {
+        let kind = match file.kind {
+            vessel_proto::SharedFileKind::Instructions => "instructions",
+            vessel_proto::SharedFileKind::Skill => "skill",
+            vessel_proto::SharedFileKind::Other => "file",
+        };
+        let executable = if file.executable { "  executable" } else { "" };
+        let _infallible = writeln!(
+            text,
+            "{kind}  {}  {} bytes{executable}",
+            file.path, file.size
+        );
+    }
+    for server in &bundle.servers {
+        let _infallible = writeln!(text, "tool server  {server}");
+    }
+    for secret in &bundle.secrets {
+        let _infallible = writeln!(text, "secret named  {secret}");
+    }
+    text
+}
+
 fn local_time(at: chrono::DateTime<chrono::Utc>) -> String {
     at.with_timezone(&chrono::Local)
         .format("%Y-%m-%d %H:%M:%S UTC%:z")
         .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_proto::{
+        FleetPublished, Generation, NodeId, PublishedBundle, SharedFile, SharedFileKind,
+    };
+
+    use super::render_published;
+
+    #[test]
+    fn published_says_the_role_and_names_without_values() {
+        assert_eq!(
+            render_published(&FleetPublished::Standalone),
+            "role  no fleet; this machine shares nothing\n"
+        );
+        assert_eq!(
+            render_published(&FleetPublished::Home { bundle: None }),
+            "role  home\nbundle  none yet\n"
+        );
+        let home = NodeId::random();
+        let member = FleetPublished::Member {
+            home,
+            bundle: Some(PublishedBundle {
+                generation: Generation::new(3),
+                files: vec![SharedFile {
+                    path: "skills/build/run.sh".parse().unwrap(),
+                    kind: SharedFileKind::Skill,
+                    size: 20,
+                    executable: true,
+                }],
+                servers: vec!["github".parse().unwrap()],
+                secrets: vec!["GITHUB_TOKEN".parse().unwrap()],
+            }),
+            applied: Some(Generation::new(2)),
+        };
+        assert_eq!(
+            render_published(&member),
+            format!(
+                "role  member of {home}\nlast applied  2\nversion  3\n\
+                 skill  skills/build/run.sh  20 bytes  executable\n\
+                 tool server  github\nsecret named  GITHUB_TOKEN\n"
+            )
+        );
+    }
 }

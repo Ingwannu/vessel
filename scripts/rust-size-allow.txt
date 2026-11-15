@@ -5,29 +5,39 @@
 # long file is divided, not listed.
 #
 # <path> <lines of product code>, sorted by path. Listed 2026-11-14.
-crates/vessel-agent/src/handshake.rs 511
-crates/vessel-cli/src/workspace.rs 530
-crates/vessel-client/src/client.rs 726
+crates/vessel-agent/src/codex/asks.rs 612
+crates/vessel-agent/src/codex/session.rs 1036
+crates/vessel-agent/src/handshake.rs 522
+crates/vessel-client/src/client.rs 727
 crates/vessel-fleet/src/plan.rs 524
 crates/vessel-llm/src/client.rs 786
 crates/vessel-llm/src/front/anthropic.rs 818
 crates/vessel-llm/src/front/responses.rs 945
 crates/vessel-llm/src/ir.rs 743
-crates/vessel-llm/src/upstream/anthropic.rs 586
-crates/vessel-llm/src/upstream/chat.rs 506
-crates/vessel-llm/src/upstream/responses.rs 522
+crates/vessel-llm/src/upstream/anthropic.rs 575
+crates/vessel-llm/src/upstream/responses.rs 511
 crates/vessel-llm/src/wire/anthropic.rs 646
 crates/vessel-llm/src/wire/responses.rs 882
 crates/vessel-lsp/src/manager.rs 576
-crates/vessel-node/src/envelope.rs 701
-crates/vessel-node/src/fleet/links.rs 1210
+# temporary, removed by Quality B: 722 -> 739 for N1's inbox and push calls (protocol 22),
+# -> 745 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/envelope.rs 745
+crates/vessel-node/src/fleet/links.rs 1192
+# temporary, removed by Quality B: 505 -> 519 for N1's inbox and push calls (protocol 22),
+# -> 523 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/guard.rs 523
 crates/vessel-node/src/main.rs 564
 crates/vessel-node/src/models/proxy.rs 1592
-crates/vessel-node/src/node.rs 757
+# temporary, removed by Quality B: 764 -> 772 for N1's inbox and push calls (protocol 22),
+# -> 782 for N2's usage.limits and usage.lookup (protocol 23).
+crates/vessel-node/src/node.rs 782
 crates/vessel-node/src/transfers/mod.rs 515
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907
-crates/vessel-rpc/src/client/mod.rs 744
+# temporary, removed by Quality B: 758 -> 772 for N1's inbox and push calls (protocol 22),
+# -> 776 for N2's usage.limits and usage.lookup (protocol 23), -> 770 after the
+# unassigned-protocol accessor (A6) moved the admission check out.
+crates/vessel-rpc/src/client/mod.rs 770
 crates/vessel-store/src/data_dir.rs 524
 crates/vessel-web/src/registry.rs 501
 crates/vessel-web/src/wire.rs 678

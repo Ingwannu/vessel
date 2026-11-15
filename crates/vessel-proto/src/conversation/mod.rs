@@ -17,7 +17,9 @@ mod text;
 
 use serde::{Deserialize, Serialize};
 
-pub use agent::{AgentAbilities, AgentCommand, ContextUsage, Cost, FiniteNumber, TurnUsage};
+pub use agent::{
+    AgentAbilities, AgentCommand, ContextUsage, Cost, FiniteNumber, TurnUsage, UsageObservation,
+};
 pub use attachment::{
     AttachmentKind, AttachmentLimits, AttachmentRef, BeginUpload, FinishUpload, ReadAttachment,
     Upload, WriteUpload, Written,

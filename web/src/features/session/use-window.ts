@@ -26,7 +26,7 @@
 //
 // With track W (merged in milestone 11): the rows are data/rows.ts's (a
 // closed run of tool calls is one row); the end is followed only while
-// the reader is within `NEAR_END` of it (window-watch.ts; a reader who scrolled up, or was
+// the reader is within `NEAR_END` of it (data/follow-end.ts; a reader who scrolled up, or was
 // taken up by find or the outline, is not pulled down by new records, as
 // agent-orchestrator's find pauses "follow latest"); and `target` goes to
 // a row by key, drawn or not, and holds it there (window-pin.ts says why

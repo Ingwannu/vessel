@@ -158,7 +158,7 @@ async fn admin_status_refuses_an_incomplete_device_window_without_affecting_read
     .await;
 }
 
-async fn device(owner: &NodeClient, relay: &Relay, scopes: Vec<Scope>) -> NodeClient {
+pub(crate) async fn device(owner: &NodeClient, relay: &Relay, scopes: Vec<Scope>) -> NodeClient {
     let offer = owner
         .invite_with_scopes(None, 600, scopes)
         .await

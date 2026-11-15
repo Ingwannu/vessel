@@ -47,6 +47,15 @@ about-role-identifiers = Unique identifiers
 # Under a bundled software name: its language role. Keep short.
 about-role-language = The system's language
 
+# Under the desktop-portal client: reading the system's reduce-motion setting. Keep short.
+about-role-desktop = Desktop settings
+
+# Under the async stream library: following desktop setting changes. Keep short.
+about-role-tasks = Asynchronous tasks
+
+# Under image/resvg: window-icon pixels and the app's vector drawings. Keep short.
+about-role-images = Drawing images
+
 # Under a bundled software name: its errors role. Keep short.
 about-role-errors = Errors
 

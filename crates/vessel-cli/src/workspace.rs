@@ -6,12 +6,11 @@ use std::fmt::Write as _;
 use std::time::Duration;
 
 use vessel_client::NodeClient;
-use vessel_proto::scripts::ScriptKind;
 use vessel_proto::workspace::{
     AddProject, ApproveCommands, CloneProject, CreateWorktree, CreateWorktreeOutcome, GetProject,
     GetProjectCommands, GitSupport, InitProject, ListProjects, ListSnapshots, ListWorktrees,
-    ProjectCommands, ProjectInfo, ProjectState, ReadSetupOutput, RemoveProject, RemoveWorktree,
-    RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeBase, WorktreeBranch, WorktreeInfo,
+    ProjectInfo, ProjectState, ReadSetupOutput, RemoveProject, RemoveWorktree, RunSetup,
+    SessionPlace, SetupChoice, SetupState, WorktreeBase, WorktreeBranch, WorktreeInfo,
 };
 use vessel_proto::{ProjectId, WorktreeId};
 
@@ -19,6 +18,8 @@ use crate::args::{ProjectCommand, Target, WorktreeCommand};
 use crate::connect::connect;
 use crate::error::CliError;
 use crate::io;
+/// Preserve the shared CLI rendering entry point while its implementation has its own module.
+pub(crate) use crate::project_commands::text as commands_text;
 
 /// One long poll's wait, under common 60 s idle limits.
 const POLL_SECS: u32 = 30;
@@ -465,66 +466,5 @@ fn setup_text(state: &SetupState) -> String {
             format!("failed ({})", crate::render::setup_failure(*failure))
         }
         SetupState::Unknown => "unknown".to_owned(),
-    }
-}
-
-pub(crate) fn commands_text(commands: &ProjectCommands) -> String {
-    match commands {
-        ProjectCommands::None => {
-            "no commands (no vessel.toml, or nothing under [worktree], [scripts] or [services])\n"
-                .to_owned()
-        }
-        ProjectCommands::Invalid { message } => format!("vessel.toml cannot be used: {message}\n"),
-        ProjectCommands::Listed {
-            setup,
-            teardown,
-            scripts,
-            digest,
-            approved,
-            last_approved,
-        } => {
-            let mut text = String::new();
-            for (list, name) in [(setup, "setup"), (teardown, "teardown")] {
-                for command in list {
-                    let _written = writeln!(text, "{name}: {}", command.as_str());
-                }
-            }
-            // Protocol 11: the approval covers the scripts and services
-            // too, so they are shown with the rest (ADR 0031).
-            for script in scripts {
-                let _written = writeln!(
-                    text,
-                    "{} {}: {}{}",
-                    match script.kind {
-                        ScriptKind::Script => "script",
-                        ScriptKind::Service => "service",
-                    },
-                    script.name,
-                    script.command.as_str(),
-                    script
-                        .dir
-                        .as_ref()
-                        .map_or_else(String::new, |dir| format!("  (in {dir})"))
-                );
-            }
-            let _written = writeln!(
-                text,
-                "digest: {digest}\napproved: {}",
-                if *approved { "yes" } else { "no" }
-            );
-            // Protocol 11: what was approved last, when this set is not.
-            if let Some(last) = last_approved {
-                let _written = writeln!(
-                    text,
-                    "last approved: {} ({}), {} setup, {} teardown, {} scripts and services",
-                    last.digest,
-                    last.approved_at.to_rfc3339(),
-                    last.commands.setup.len(),
-                    last.commands.teardown.len(),
-                    last.commands.scripts.len()
-                );
-            }
-            text
-        }
     }
 }
