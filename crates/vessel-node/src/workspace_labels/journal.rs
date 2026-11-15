@@ -16,7 +16,7 @@ pub(super) struct Journal {
     generation: WorkspaceLabelGeneration,
     head: WorkspaceLabelSeq,
     catalog: BTreeMap<LabelKey, Label>,
-    journal: VecDeque<CatalogUpdate>,
+    retained: VecDeque<CatalogUpdate>,
 }
 
 impl Journal {
@@ -29,7 +29,7 @@ impl Journal {
                 .into_iter()
                 .map(|label| (label.name.key(), label))
                 .collect(),
-            journal: VecDeque::new(),
+            retained: VecDeque::new(),
         }
     }
 
@@ -44,13 +44,12 @@ impl Journal {
     pub(super) fn committed(&mut self, delta: CatalogDelta) -> CatalogUpdate {
         // A durable mutation cannot be rolled back because RAM ran out of
         // sequence ids. Rotate generation and force old cursors to snapshot.
-        let next = match self.head.next() {
-            Some(next) => next,
-            None => {
-                self.generation = WorkspaceLabelGeneration::random();
-                self.journal.clear();
-                FIRST_UPDATE
-            }
+        let next = if let Some(next) = self.head.next() {
+            next
+        } else {
+            self.generation = WorkspaceLabelGeneration::random();
+            self.retained.clear();
+            FIRST_UPDATE
         };
         match &delta {
             CatalogDelta::Upsert { label, previous } => {
@@ -68,9 +67,9 @@ impl Journal {
             cursor: self.cursor(),
             delta,
         };
-        self.journal.push_back(update.clone());
-        if self.journal.len() > JOURNAL_ENTRIES {
-            let _expired_update = self.journal.pop_front();
+        self.retained.push_back(update.clone());
+        if self.retained.len() > JOURNAL_ENTRIES {
+            let _expired_update = self.retained.pop_front();
         }
         update
     }
@@ -82,7 +81,7 @@ impl Journal {
             Some(from) => CatalogMode::Changes {
                 from,
                 updates: self
-                    .journal
+                    .retained
                     .iter()
                     .filter(|update| update.cursor.after > from.after)
                     .cloned()
@@ -105,7 +104,7 @@ impl Journal {
         if cursor.after == self.head {
             return true;
         }
-        match self.journal.front() {
+        match self.retained.front() {
             Some(first) => cursor
                 .after
                 .next()
@@ -196,11 +195,11 @@ mod tests {
         assert!(
             matches!(journal.synchronize(Some(initial)).data, CatalogMode::Changes { updates, .. } if updates.len() == JOURNAL_ENTRIES)
         );
-        let earliest_retained = journal.journal.front().unwrap().cursor;
+        let earliest_retained = journal.retained.front().unwrap().cursor;
         let _evicted = journal.committed(CatalogDelta::Remove {
             name: "Label 0".parse().unwrap(),
         });
-        assert_eq!(journal.journal.len(), JOURNAL_ENTRIES);
+        assert_eq!(journal.retained.len(), JOURNAL_ENTRIES);
         assert!(matches!(
             journal.synchronize(Some(initial)).data,
             CatalogMode::Snapshot { .. }

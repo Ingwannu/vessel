@@ -264,7 +264,7 @@ async fn cancelled_observer_releases_its_watch_receiver() {
             _ = &mut pending => panic!("an unchanged catalog waits"),
             () = tokio::task::yield_now() => {}
         }
-        assert_eq!(changed.receiver_count(), baseline + 1);
+        assert_eq!(Some(changed.receiver_count()), baseline.checked_add(1));
     }
     assert_eq!(changed.receiver_count(), baseline);
     drop(service);

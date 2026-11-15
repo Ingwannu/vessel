@@ -1,4 +1,4 @@
-//! Real SQLite atomicity with an explicit fake for the unmerged registry seam.
+//! Real `SQLite` atomicity with an explicit fake for the unmerged registry seam.
 
 use std::collections::BTreeMap;
 

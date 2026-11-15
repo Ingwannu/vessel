@@ -108,13 +108,15 @@ impl Labels {
         }
     }
 
+    // Queue/reply channel errors mean closure only. Do not retain a rejected
+    // command payload as diagnostic text; backend errors keep their own source.
     async fn snapshot(&self, cursor: Option<CatalogCursor>) -> Result<CatalogList, StoreError> {
         let (answer, reply) = oneshot::channel();
         self.commands
             .send(Command::List(cursor, answer))
             .await
-            .map_err(|_| StoreError::Closed)?;
-        reply.await.map_err(|_| StoreError::Closed)
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)
     }
 
     pub(super) async fn assign(
@@ -125,8 +127,8 @@ impl Labels {
         self.commands
             .send(Command::Assign(request, answer))
             .await
-            .map_err(|_| StoreError::Closed)?;
-        reply.await.map_err(|_| StoreError::Closed)?
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
     pub(super) async fn update(
@@ -137,8 +139,8 @@ impl Labels {
         self.commands
             .send(Command::Update(request, answer))
             .await
-            .map_err(|_| StoreError::Closed)?;
-        reply.await.map_err(|_| StoreError::Closed)?
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
     pub(super) async fn inspect(
@@ -149,8 +151,8 @@ impl Labels {
         self.commands
             .send(Command::Inspect(request, answer))
             .await
-            .map_err(|_| StoreError::Closed)?;
-        reply.await.map_err(|_| StoreError::Closed)?
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
     pub(super) async fn delete(
@@ -161,8 +163,8 @@ impl Labels {
         self.commands
             .send(Command::Delete(request, answer))
             .await
-            .map_err(|_| StoreError::Closed)?;
-        reply.await.map_err(|_| StoreError::Closed)?
+            .map_err(|_closed| StoreError::Closed)?;
+        reply.await.map_err(|_closed| StoreError::Closed)?
     }
 }
 
