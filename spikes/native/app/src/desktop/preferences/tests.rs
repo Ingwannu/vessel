@@ -8,6 +8,8 @@ use vessel_app_view::layout::{
 };
 use vessel_proto::{NodeId, WorkspaceId};
 
+mod multiwindow;
+
 fn key() -> LayoutKey {
     LayoutKey::Workspace {
         node: NodeId::random(),

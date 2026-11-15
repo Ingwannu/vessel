@@ -296,6 +296,15 @@ asserts immediate installation, cached-key removal and preservation in the next
 real local publication. Execution remains pending; no extra observer/writer or
 feature resource manager is introduced.
 
+The actual two-window receipt fixture uses the production prefer_with_receipt
+wrapper in both GPUI windows and one real atomic-file writer. It stages stale
+independent edits, same-key last-accepted edits, then a physical save failure
+followed by another window's successful unrelated edit before watch observation.
+Both window projections, canonical memory and disk must converge; exact failure
+acknowledgment must neither replay old preferences nor duplicate the notice.
+This new fixture is not executed yet and does not replace feature-owned cache,
+complete Settings, native OS or accessibility validation.
+
 Future sidebar bands are not yet adopted from S2's unchecked source. Header and
 Footer navigation edits must merge independently. Callout dismissal edits are set
 deltas by logical key, preserving concurrent unrelated additions and removals.
@@ -438,6 +447,13 @@ mode on its own test context; receipts and the non-pumping std waiter still orde
 the observation boundary. No production scheduler, lint, timeout or assertion is
 relaxed. Link141/0, Kit193/0 and the App receipt/cache/menu regressions passed on
 that older source; the newer writer fix and corrected case still need execution.
+Unit21 exactec90c53f completed fonts0/tests0 with1420passed/0failed/2ignored:
+App106/0/2,Kit197/0/0,Link142/0/0,View975/0/0. The delayed checkpoint sender,
+real App receipt/currentness fence, initial subscription/cache and retained edit
+recipient tests all explicitly passed. This closes their older pending execution
+notes, not the newer two-window fixture or later handler-disable/base8d union.
+The12 App warnings are pending real owner APIs, so this is not App strict Clippy,
+V4, a whole native gate or any OS/consumer safety verdict.
 Windows run wp-desktop-shell-win-check-20261115T151309Z-b0cef8c4 completed
 fonts0 and MSVC all-target App check0 on exactb0cef8c4. This compiled the UTF-16
 registry bridge and cross-platform test waiter. The normal/test binaries still
