@@ -4,9 +4,27 @@ use super::*;
 use crate::agents::AgentReservation;
 use vessel_proto::creation::{Advance, CreationError, Receipt, Resource, Stage};
 use vessel_proto::registry::WorkspaceResource;
+use vessel_proto::{SessionListing, registry::WorkspaceVisibility};
 use vessel_store::{RegistryStartState, StoreError, WorkspaceStartLease};
 
 impl Sessions {
+    /// Validate before receipt/count admission; the registration join repeats it
+    /// against the authoritative stored workspace. No caller cwd grants ownership.
+    pub(crate) fn with_workspace_listing(
+        mut spec: SessionSpec,
+        visibility: WorkspaceVisibility,
+    ) -> Result<SessionSpec, CreationError> {
+        let listing = match visibility {
+            WorkspaceVisibility::Foreground => SessionListing::Shown,
+            WorkspaceVisibility::Background => SessionListing::Background,
+        };
+        if spec.listing.is_some_and(|requested| requested != listing) {
+            return Err(CreationError::IntentConflict);
+        }
+        spec.listing = Some(listing);
+        Ok(spec)
+    }
+
     pub(crate) async fn create_receipted(
         self: &Arc<Self>,
         spec: SessionSpec,
@@ -43,6 +61,14 @@ impl Sessions {
         {
             return Err(StoreError::from(CreationError::InvalidTransition).into());
         }
+        let workspace = self
+            .store
+            .registry_workspace(reserved.workspace)
+            .await?
+            .ok_or(CreationError::InvalidTransition)
+            .map_err(StoreError::from)?;
+        let spec = Self::with_workspace_listing(spec, workspace.descriptor.visibility)
+            .map_err(StoreError::from)?;
         match self.find(session).await {
             Err(ServiceError::NotFound(id)) if id == session => {}
             Ok(_) => return Err(StoreError::from(CreationError::ResourceClaimed).into()),

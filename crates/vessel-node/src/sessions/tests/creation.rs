@@ -1,6 +1,7 @@
 //! The real fake actor settles the same count, start lease and creation receipt.
 use super::*;
 use crate::principal::Principal;
+use vessel_proto::SessionListing;
 use vessel_proto::creation::{
     Advance, Fingerprint, FirstInput, Key, Kind, Phase, Receipt, Reservation, Resource, Stage,
     WorkspaceClaim,
@@ -27,7 +28,7 @@ async fn workspace(fixture: &Fixture) -> WorkspaceId {
                     pin: WorkspacePin::Unpinned,
                     backing: WorkspaceBacking::Local,
                     lifecycle: WorkspaceLifecycle::Active,
-                    visibility: WorkspaceVisibility::Foreground,
+                    visibility: WorkspaceVisibility::Background,
                     created_at: chrono::Utc::now(),
                     revision: RegistryRevision::ZERO,
                 },
@@ -110,6 +111,9 @@ async fn resource_ready_requires_real_actor_registration_and_durable_workspace_s
         assert_eq!(ready.snapshot().reserved, admitted.snapshot().reserved);
         assert_eq!(ready.in_flight(), None);
         assert_eq!(fixture.sessions.get(session).await.unwrap().id, session);
+        let stored = fixture.store.session(session).await.unwrap().unwrap();
+        assert_eq!(stored.listing, SessionListing::Background);
+        assert_eq!(stored.spec.listing, Some(SessionListing::Background));
         assert!(fixture.runtime.get(session).is_some());
         assert_eq!(
             fixture
@@ -150,4 +154,48 @@ async fn resource_ready_requires_real_actor_registration_and_durable_workspace_s
     })
     .await
     .unwrap();
+}
+
+#[test]
+fn canonical_workspace_visibility_derives_the_mirror_and_refuses_explicit_conflicts() {
+    let spec = || {
+        SessionSpec::new(
+            HarnessKind::ClaudeCode,
+            SessionMode::Structured {
+                model: None,
+                resume: None,
+                options: Vec::new(),
+            },
+        )
+    };
+    for (visibility, effective, opposite) in [
+        (
+            WorkspaceVisibility::Foreground,
+            SessionListing::Shown,
+            SessionListing::Background,
+        ),
+        (
+            WorkspaceVisibility::Background,
+            SessionListing::Background,
+            SessionListing::Shown,
+        ),
+    ] {
+        assert_eq!(
+            Sessions::with_workspace_listing(spec(), visibility)
+                .unwrap()
+                .listing,
+            Some(effective)
+        );
+        assert_eq!(
+            Sessions::with_workspace_listing(spec().with_listing(effective), visibility)
+                .unwrap()
+                .listing,
+            Some(effective)
+        );
+        assert_eq!(
+            Sessions::with_workspace_listing(spec().with_listing(opposite), visibility)
+                .unwrap_err(),
+            vessel_proto::creation::CreationError::IntentConflict
+        );
+    }
 }

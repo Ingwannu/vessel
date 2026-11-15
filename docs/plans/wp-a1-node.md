@@ -384,3 +384,14 @@ The parent SQL file shrinks to476 lines, and the unchanged historical sequence
 prefix is retained before the two additions. No legacy size record existed for
 that file, so none is added or raised. The intermediate development merge is
 not an adoption candidate without its immediately following registration commit.
+
+The staged bound-session bridge now uses the reviewed canonical SessionListing
+and WorkspaceVisibility types from announced93970acb. Before admission, the pure
+with_workspace_listing validator derives Shown/Background from the workspace and
+refuses a conflicting explicit spec value; it does not inspect cwd or inherit a
+legacy source's listing. The actor join repeats the check against the stored
+workspace before spawn. Its actual fake-actor fixture now requires the same
+Background mirror in both persisted SessionInfo and spec. This proves only the
+staged join when executed; the public controller must still call validation
+before count/receipt work, and legacy/unbound inheritance remains its own owner.
+New source execution is owed; no listing RPC/protocol availability is changed.
