@@ -390,6 +390,20 @@ inside an outstanding live replay. The unchanged static capture matrix and
 the prior native gate remain valid for their recorded sources; changed
 behavior needs its own narrow checks and final package gate.
 
+Dynamic repair `df9a934e` pins history and retains in-flight input; test-only
+`84b96489` makes the new assertions exhaustive under the strict lint set.
+Before repair, `scroll-anchor-red.log` has two actual failures (expected
+row 2, got 3/5), and `scroll-intent-red.log` fails to show requested row 000
+after live replay. After repair, view's terminal tests pass 94 plus eight
+page cases; app's terminal tests pass all 15, including both input sources,
+return-to-live and opening replacement. The exact final source's strict
+clippy passed, then whole native run
+`appconv-20261115T060251Z-84b96489` passed all six steps: 1,155 passed,
+zero failed, two ignored. Logs: `/tmp/work/m12-conv-c2/rgate/dynamic-scroll/`;
+start/end load 11.35/14.87. V3 re-review is still required. The accepted
+static matrix remains at its recorded source; no layout, palette or grid
+renderer changed in this dynamic repair, and no new capture is claimed.
+
 The address is a physical row, not a durable logical-cell marker. Width
 reflow still resolves that index in the reflowed history and clamps it;
 it does not adjust the viewport around inserted/deleted reflow rows as
@@ -478,8 +492,8 @@ The quiet-theme regression explicitly retains equal measured cell geometry.
 
 ### T1 repair evidence (2026-11-15)
 
-The product at `2ce9d83b` is unchanged by the subsequent test-only
-strengthening. Native run `appconv-20261115T041605Z-92be8aa6` passed
+The product at `2ce9d83b` is unchanged through `f7f51e06` by the subsequent
+test-only strengthening. Native run `appconv-20261115T041605Z-92be8aa6` passed
 all six steps: 1,150 passed, zero failed, two ignored (the explicit Linux
 display fixtures). The final geometry/burst assertions also pass their
 13-test area run and strict all-target app clippy. Their exact whole gate,
