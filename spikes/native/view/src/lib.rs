@@ -20,6 +20,7 @@ pub mod brand;
 pub mod composer;
 pub mod connections;
 mod conversation;
+pub mod desktop;
 pub mod devices;
 pub mod diagnostics;
 pub mod effort;
