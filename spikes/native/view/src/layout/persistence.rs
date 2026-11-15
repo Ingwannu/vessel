@@ -217,7 +217,7 @@ mod tests {
         assert!(serde_json::from_str::<Layout>(&encoded).is_err());
         let mut layout = Layout::default();
         layout.root = SplitNode::Group {
-            id: super::super::GroupId(2),
+            id: GroupId(2),
             axis: crate::layout::Axis::Horizontal,
             fraction: super::super::SplitFraction::HALF,
             children: [Box::new(layout.root.clone()), Box::new(layout.root.clone())],
