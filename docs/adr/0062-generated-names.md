@@ -746,3 +746,38 @@ stated format choice, not a claim of identical whitespace classification.
   route or retry. This is a Vessel cost limit; Paseo's structured call
   (worktree-branch-name-generator.ts 114–135) does not specify this cap.
   No request is sent and no node setting changes in this library slice.
+
+### Title material and semantic result edge
+
+[Decision Log]
+- Purpose and intent: isolate bounded source material and the generated
+  title JSON from routing, HTTP, credentials and actor mutation.
+- Existing constraints: GeneratedTitle already checks raw UTF-16 units
+  before the ordinary title constructor. CompletionText and JsonFailure
+  already seal provider text and decoder diagnostics. ProjectStyles owns
+  checked replacement instructions. These types are reused.
+- Alternatives considered: accept an unbounded prompt string in the
+  transport, decode into a generic JSON tree, or copy Paseo's prompt.
+- Choice: capture at most MAX_SOURCE_CHARS Unicode scalars in a redacted
+  material type, remember whether it was cut, and construct an original
+  tool-free title-only prompt. Checked project style replaces only the
+  style section. The shared output limit constant formats instructions.
+- Why this choice: the source cap applies before encoding and cannot be
+  bypassed by prompt assembly. A blank captured prefix yields no source;
+  the observer must not substitute a later turn. Paseo's style replacement
+  is preserved (build-metadata-prompt.ts 35–43); the bounded source and
+  direct JSON prompt are Vessel's cost and integration choices.
+- Effects: the node decodes title JSON once with a typed object, seals its
+  serde cause, uses GeneratedTitle, and checks the final title for keys.
+  A nonempty whitespace-only title becomes no title, like Paseo's trim
+  fallback (worktree-branch-name-generator.ts 132). Empty raw text, invalid
+  or oversized text is refused. An escaped lone surrogate is refused by
+  serde before the title constructor. Rust title trimming remains the
+  existing constructor's rule. Unknown result keys are ignored, as the
+  reference object schema does. Branch output is not requested or applied
+  in this title-only slice; the branch slice still owes independent use
+  of a valid branch when a title is blank.
+
+The node material/prompt/result module is staged under cfg(test) until
+shared-accessor wiring supplies the real caller. This edge performs no
+file or socket I/O, discovers no route and mutates no session.

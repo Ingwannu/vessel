@@ -506,3 +506,18 @@ separate from the unchanged streaming path. Five new adjacent tests cover
 the encoded caps and reasoning cases. Narrow LLM all-targets Clippy and
 108 library tests pass. No HTTP request or settings mutation is connected;
 the whole gate and production Node caller remain owed.
+
+### Title material and semantic edge: contract and resume point
+
+Decision: modify/reuse GeneratedTitle, CompletionText/JsonFailure and
+checked ProjectStyles. Add only a private staged source/prompt/result
+edge; serde and existing types need no new dependency. Capture the raw
+source prefix once with MAX_SOURCE_CHARS, retain cut state, redact Debug,
+and do not fall through to later input if that prefix is blank. Build an
+original title-only JSON prompt with the shared title-unit constant and
+replacement style. Semantic decoding keeps typed sealed errors, treats a
+nonempty blank title as no title, and checks decoded key forms before
+returning a checked title behind redacted Debug. Tests owe Unicode/source
+cut boundaries, blank-prefix handling, fixed contract with replacement
+style, unknown effort, good/blank/invalid/overlong titles, invalid JSON,
+lone surrogates and escaped keys. No HTTP, settings or actor caller yet.
