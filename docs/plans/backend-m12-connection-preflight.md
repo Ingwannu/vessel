@@ -105,3 +105,10 @@ ListSessions request. The correction explicitly discards Ack after success
 and constructs the unit request. Failed run
 `devices-narrow-20261115T084711Z-93aa3fb3` remains retained; no pass is
 claimed from it.
+
+The second candidate `d736c1c56` compiled product types but its test target
+was refused by Clippy: the shared peer bootstrap exceeded the 100-line
+function budget and one barrier ignored a returned session vector. Its node
+metadata construction is extracted as a named fixture helper and the barrier
+now checks the returned empty vector. No lint allowance or size record grew.
+The red run `devices-narrow-20261115T085439Z-d736c1c5` is retained.

@@ -86,7 +86,8 @@ async fn buffered_record_and_metadata_are_refused_after_retirement() {
     .await;
     // The response follows the event on the same framed reader: the item is
     // actually buffered before retirement, not merely scheduled for sending.
-    selected.call(ListSessions).await.unwrap();
+    let sessions = selected.call(ListSessions).await.unwrap();
+    assert!(sessions.is_empty());
     state.clients["fixture"].retire();
     assert_eq!(follow.info().unwrap_err(), Refusal::Changed);
     assert_eq!(follow.next().await.unwrap_err(), Refusal::Changed);

@@ -79,12 +79,8 @@ pub(crate) async fn controlled(name: &str) -> Peer {
     peer
 }
 
-async fn start(name: &str, control: Option<mpsc::Sender<Request>>) -> Peer {
-    let (local, remote) = tokio::io::duplex(FRAME_BYTES);
-    let (mut remote, mut writer) = tokio::io::split(remote);
-    let (frames, mut outgoing) = mpsc::channel::<Frame>(CHANNEL_CAPACITY);
-    let replies = frames.clone();
-    let node = NodeInfo {
+fn node(name: &str) -> NodeInfo {
+    NodeInfo {
         id: NodeId::random(),
         name: name.to_owned(),
         hostname: "test-machine".to_owned(),
@@ -96,7 +92,15 @@ async fn start(name: &str, control: Option<mpsc::Sender<Request>>) -> Peer {
         state: NodeState::Serving,
         public_key: None,
         timezone: None,
-    };
+    }
+}
+
+async fn start(name: &str, control: Option<mpsc::Sender<Request>>) -> Peer {
+    let (local, remote) = tokio::io::duplex(FRAME_BYTES);
+    let (mut remote, mut writer) = tokio::io::split(remote);
+    let (frames, mut outgoing) = mpsc::channel::<Frame>(CHANNEL_CAPACITY);
+    let replies = frames.clone();
+    let node = node(name);
     let calls = Arc::new(Mutex::new(Vec::new()));
     let recording = Arc::clone(&calls);
     let (ready, subscribed) = mpsc::channel(CHANNEL_CAPACITY);
