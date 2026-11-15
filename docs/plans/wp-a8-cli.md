@@ -66,3 +66,15 @@ An ambiguous prefix refuses before form lookup or mutation, including a future
 collision between permission/question UUID text. `allow` omitted scope remains
 all; denial still needs explicit scope. This intentionally follows Vessel's
 existing unambiguous selector contract rather than Paseo's first-match shortcut.
+
+
+Question --input has a typed staged edge: accept either the canonical accepted
+QuestionAnswer or {answers:Record<header,string>}. Reject mixed layouts, extra
+provider-edit fields, non-string header values and declined answers in permit
+allow before mapping or response effects. Payload Debug remains redacted.
+Canonical value decoding reuses QuestionAnswer rather than a parallel value enum.
+The shared client fill_headers helper will resolve header/title/name and actual
+option values, reject ambiguity/missing answers and apply Question::check; W23
+owns that helper (intended, not checked yet). CLI never guesses comma splits or
+constructs provider prompt messages. Permission tool --input stays opaque for
+provider-side unsupported-input refusal; a scalar is not silently discarded.
