@@ -3,8 +3,34 @@
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes the reviewed integration
 head `9c150c6e` (Quality B and gate 50c); pending rows live at the end of
-`rpc/table.rs`. The separate app branch consumes package base 8 `91407173`
-through app-line merge `da48212c`; no app feature is implemented yet.
+`rpc/table.rs`. The separate app branch consumes announced package base 8e `82ca07a7`
+through the app line; no checkpoint UI is implemented yet.
+
+## Current resume point
+
+Implementation source is unverified. The latest code is d437c087: normal-library
+clippy for proto/workspace/node is queued in run
+wp-checkpoints-node-narrow-20261115T171417Z-d437c087. No more priority retry is
+authorized. Only after this passes, run the current four-crate checkpoint suite;
+it includes all six actual root-admission units. Then extract and validate the
+minimal canonical RootLease/StartGuard borrow leaf on announced node9c150c6e
+and send that leaf alone to V3. No leaf exists or is adoptable yet.
+
+The preserved old four-crate run
+wp-checkpoints-node-20261115T162908Z-4f74c616 finished rc1 at nested-vesseld:
+web-ci/fakes passed, but missing production recovery-refusal arms and a recovery
+borrow conflict prevented the test step. Both defects are fixed in current source;
+that failed run proves no runtime behavior. The later writer-variant merge fix,
+truthful result-marker status, test ordering and selected-ancestor FD retention
+also remain unverified. Namespace sets now transfer without partially moving the
+retained opened-directory evidence.
+
+Production restore remains Busy until reviewed terminal quiescence and remaining
+startup/lifecycle consumers. Generated TypeScript still needs VM regeneration
+before the whole root gate. Full node review/integration and then app UI, native
+gate/captures and V4 remain owed. App timeline owners permit only a future agreed
+one-line slot after checked producer and live keyed context; no shared renderer
+or competing menu is implemented here.
 
 ## References and existing assets
 
