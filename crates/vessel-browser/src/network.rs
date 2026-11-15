@@ -108,9 +108,10 @@ fn check(answers: &[SocketAddr], local: &LocalInterfaces) -> Result<(), NetworkE
     if answers.is_empty() || answers.len() > MAX_DNS_ANSWERS {
         return Err(NetworkError::Answers);
     }
-    if answers.iter().any(|address| {
-        !vessel_relay::reach::is_public(address.ip()) || local.contains(address.ip())
-    }) {
+    if answers
+        .iter()
+        .any(|address| !vessel_relay::is_public(address.ip()) || local.contains(address.ip()))
+    {
         return Err(NetworkError::Refused);
     }
     Ok(())
@@ -124,8 +125,14 @@ fn canonical(address: IpAddr) -> IpAddr {
             if let Some(v4) = v6.to_ipv4() {
                 return IpAddr::V4(v4);
             }
-            let [a, b, c, d, e, f, high, low] = v6.segments();
-            if a == 0x0064 && b == 0xff9b && c == 0 && d == 0 && e == 0 && f == 0 {
+            let [prefix, translation, third, fourth, fifth, sixth, high, low] = v6.segments();
+            if prefix == 0x0064
+                && translation == 0xff9b
+                && third == 0
+                && fourth == 0
+                && fifth == 0
+                && sixth == 0
+            {
                 let [h1, h2] = high.to_be_bytes();
                 let [l1, l2] = low.to_be_bytes();
                 IpAddr::V4(std::net::Ipv4Addr::new(h1, h2, l1, l2))
