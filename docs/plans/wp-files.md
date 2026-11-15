@@ -1045,3 +1045,28 @@ PaneId from a query-only test callback. Indexing replaces those fixture lookups;
 the callback now returns unit after the same target assertion. Product code and
 all assertions are unchanged. The still-queued tests9 is superseded once on the
 corrected source so the next actual execution and strict check share a head.
+
+
+### Actual engine readiness and context-free eviction
+
+[Decision Log]
+- Purpose: input already accepted by the existing engine must block quit/node
+  retirement even before its owner notification mirrors it into the model.
+- Constraint: the original Shell-only quit callback cannot read a GPUI entity.
+  Deferred ordering alone also misses a silent engine replacement. W15's new
+  callback supplies the SAME read-only App to the C5 reducer.
+- Choice: preserve original write/mutation obligations first, then compare the
+  existing engine text with the model and its last projected snapshot. New
+  unmirrored text reports Dirty without changing the model or starting effects.
+  Unchanged old display awaiting a model projection is not a new edit.
+- Alternatives: another dirty cache or a new editor revision API would add a
+  publication boundary without proving that a delayed callback has run.
+- Impact: context-free cache eviction cannot verify an instantiated editor;
+  those owners remain retained until an explicit mirrored disposal. Clean
+  model-only/readonly owners may still be evicted. This can exhaust the existing
+  32-owner bound earlier, but never discards text to reclaim space. Mutations
+  reuse the cached settled predicate only after their existing synchronous
+  mirror barrier. Original write tickets and uncertainty remain independent.
+- Limits: the reducer allocates the existing text snapshot, not another buffer
+  manager or a whole-process memory bound. Registration remains test-staged.
+  Its real-engine barrier does not prove the final desktop phase/OS exit union.

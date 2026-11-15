@@ -178,7 +178,8 @@ impl Shell {
     pub(super) fn publish_file_tabs(&mut self, file: &FileKey, cx: &mut Context<'_, Self>) {
         let panel = &self.areas.workspace.code;
         let modified = if panel.viewer_at(file).is_some_and(|viewer| {
-            viewer.document_readiness() == vessel_app_view::desktop::quit::DocumentReadiness::Ready
+            viewer.document_readiness_in(cx)
+                == vessel_app_view::desktop::quit::DocumentReadiness::Ready
         }) {
             Modified::Clean
         } else {

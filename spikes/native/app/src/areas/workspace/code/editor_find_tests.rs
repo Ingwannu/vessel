@@ -344,3 +344,60 @@ fn accepted_text_before_pending_projection_survives_delete_and_late_frame(cx: &m
         });
     });
 }
+
+#[gpui::test]
+fn actual_document_guard_observes_unmirrored_engine_text_and_retains_it(cx: &mut TestAppContext) {
+    use vessel_app_kit::code_editor::FindCase;
+    use vessel_app_view::desktop::quit::DocumentReadiness;
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            let editor = editing(shell).editor.as_ref().unwrap().clone();
+            assert_eq!(
+                super::super::lifecycle::check_documents(shell, cx),
+                DocumentReadiness::Ready
+            );
+            assert!(
+                !shell
+                    .areas
+                    .workspace
+                    .code
+                    .viewer_at(&key)
+                    .unwrap()
+                    .can_evict(),
+                "a context-free cache cannot certify an instantiated editor"
+            );
+            editor.open_find(cx);
+            editor.find_query("alpha", FindCase::Sensitive, cx);
+            assert_eq!(
+                editor.find_replace("accepted", ReplaceScope::All, window, cx),
+                MatchCount(2)
+            );
+            assert!(!editing(shell).model.modified());
+            let before = editing(shell).model.content().to_owned();
+            assert_eq!(
+                super::super::lifecycle::check_documents(shell, cx),
+                DocumentReadiness::Dirty
+            );
+            assert_eq!(
+                shell.file_documents_for_node(key.node, cx),
+                DocumentReadiness::Dirty
+            );
+            assert_eq!(
+                editing(shell).model.content(),
+                before,
+                "readiness never mutates the model"
+            );
+            assert!(editing(shell).writing.is_none());
+            assert!(shell.park_file());
+            assert_eq!(
+                super::super::lifecycle::check_documents(shell, cx),
+                DocumentReadiness::Dirty
+            );
+            assert!(shell.areas.workspace.code.files.retained.contains_key(&key));
+            assert_eq!(editor.text(cx), "accepted beta accepted");
+        });
+    });
+}

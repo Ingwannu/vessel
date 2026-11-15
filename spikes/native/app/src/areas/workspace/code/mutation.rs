@@ -45,7 +45,8 @@ fn affected(key: &FileKey, node: NodeId, change: &PathChange) -> bool {
 }
 
 fn busy(viewer: &Viewer) -> bool {
-    !viewer.can_evict()
+    // The caller mirrors every affected engine synchronously before this query.
+    !viewer.can_release_snapshot()
 }
 
 impl CodePanel {
