@@ -135,6 +135,9 @@ app/src/
                    features as controls or as Paseo's features sheet (features.rs)
     session.rs     a session: the conversation and the composer in Paseo's one chat
                    column (at most 820 wide, 16 from the edges), permissions, stop
+    terminal/      terminal-session lifecycle, background replay, appearance and
+                   cursor presentation, and the bounded scroll viewport; adapts
+                   view's parser/grid to the kit's single terminal_grid renderer
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
                    the `/` menu (slash.rs), drafts and recall (drafts.rs)
@@ -583,6 +586,28 @@ cd spikes/native
 scripts/fonts.sh                  # the faces into assets/fonts (not committed)
 cargo run -p vessel-app
 ```
+
+When the kit's list of faces grows, run `scripts/fonts.sh` again in every
+worktree: the build embeds each listed file and fails on a missing one
+(2026-11-15: Geist Mono's bold, italic and bold italic, for the
+terminal's SGR 1 and 3; CI runs the script on every gate).
+
+Terminal history reads carry a process-local opening identity through the
+link, including refused commands. Reopening the same machine/session cannot
+take an earlier read or replay completion. Live bytes also replay on the
+background executor, so a burst of small records never resets a UI parsing
+budget. The retained frame includes appearance, measured metrics and viewport;
+a quiet terminal follows theme/code-size changes even with motion held.
+Wheel and recognized touch pans expose view's bounded history. Cursor work
+stops on blur, navigation, hidden presentation and held motion.
+
+Linux's ignored `terminal_states_capture` test draws the real shell against
+a disposable fleet with `VESSEL_CONFIG_DIR`, `VESSEL_TEST_TERMINAL_SESSION`
+and `VESSEL_TEST_TERMINAL_STATE=ready|loading|unread`. Ready reads normally;
+Loading holds a receipt and Unread passes a typed failure while the real
+follow continues. These two fixtures prove display states, not transport
+failure. They cannot be enabled in an installed build. Use a private display
+and the fake-fleet procedure below, and inspect each resulting image.
 
 A `.cargo/config.toml` beside this file (untracked, one per worktree)
 sends build output to a directory of your own on the data disk with six
