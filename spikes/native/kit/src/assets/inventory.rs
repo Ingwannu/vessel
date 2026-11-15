@@ -199,6 +199,10 @@ glyph_inventory! {
     PanelLeft => "kit/panel-left.svg",
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact => "kit/menu-compact.svg",
+    /// A usage dial, on the shared24-unit line grid.
+    Gauge => "kit/gauge.svg",
+    /// A catalog package with its add action.
+    PackagePlus => "kit/package-plus.svg",
     /// Session history (Paseo's Lucide History alias).
     History => "kit/history.svg",
     /// Move a sidebar preference down one row.
@@ -209,8 +213,4 @@ glyph_inventory! {
     FolderPlus => "kit/folder-plus.svg",
     /// Open sidebar help (Paseo's `CircleHelp` alias).
     CircleHelp => "kit/circle-help.svg",
-    /// A usage dial, on the shared24-unit line grid.
-    Gauge => "kit/gauge.svg",
-    /// A catalog package with its add action.
-    PackagePlus => "kit/package-plus.svg",
 }

@@ -754,3 +754,17 @@ F4 declarations and its frozen pre-change100 snapshot. The macro bytes are
 identical; all100 paths/order and every prior drawing-source hash independently
 match the before capture. This does not approve the five glyphs, nor claim the
 queued producer Kit check passed. No withdrawn W11 value carrier is adopted.
+
+## Explicit canonical-prefix integration after the mechanical refactor
+
+Coordinator ebf8002a approves this separately from the registry producer.
+The old unlanded F4 list put History/ArrowDown/Blocks/FolderPlus/CircleHelp
+before Gauge/PackagePlus. That conflicts with the now-frozen shared95 prefix.
+Move only those five unpublished declaration/iteration positions to after all95
+shared glyphs, preserving their relative order. Names, paths, vectors, drawing
+and rendering are unchanged; the95 prefix is exact. The current F4 snapshot
+checks this canonical order and append-only growth. Original100-order input
+artifacts remain immutable in glyph-inventory-before-100 and the before-source
+snapshot remains in commit0d8e8b3d1. This is an intentional integration-order
+migration, not a claim that the mechanical refactor changed the old100 order.
+No new glyph or consumer visual approval is inferred.

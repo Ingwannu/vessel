@@ -1,7 +1,10 @@
-//! Frozen before the inventory refactor; do not regenerate from its output.
+//! Canonical shared95 prefix, followed by five still-unpublished F4 glyphs.
+//! Their positions moved only in the explicit integration migration; original
+//! pre-refactor100 order remains frozen in commit0d8e8b3d1 and its input artifact.
+//! Never regenerate this snapshot from inventory output during a test.
 use super::{ALL, Glyph};
 
-const BEFORE: &[(Glyph, &str)] = &[
+const CANONICAL: &[(Glyph, &str)] = &[
     (Glyph::Mark, "kit/mark.svg"),
     (Glyph::Minimize, "kit/minimize.svg"),
     (Glyph::Maximize, "kit/maximize.svg"),
@@ -95,19 +98,19 @@ const BEFORE: &[(Glyph, &str)] = &[
     (Glyph::PanelRight, "kit/panel-right.svg"),
     (Glyph::PanelLeft, "kit/panel-left.svg"),
     (Glyph::MenuCompact, "kit/menu-compact.svg"),
+    (Glyph::Gauge, "kit/gauge.svg"),
+    (Glyph::PackagePlus, "kit/package-plus.svg"),
     (Glyph::History, "kit/history.svg"),
     (Glyph::ArrowDown, "kit/arrow-down.svg"),
     (Glyph::Blocks, "kit/blocks.svg"),
     (Glyph::FolderPlus, "kit/folder-plus.svg"),
     (Glyph::CircleHelp, "kit/circle-help.svg"),
-    (Glyph::Gauge, "kit/gauge.svg"),
-    (Glyph::PackagePlus, "kit/package-plus.svg"),
 ];
 
 #[test]
 fn glyph_inventory_preserves_every_prior_variant_path_and_iteration_position() {
-    assert!(ALL.len() >= BEFORE.len());
-    for (index, (glyph, path)) in BEFORE.iter().enumerate() {
+    assert!(ALL.len() >= CANONICAL.len());
+    for (index, (glyph, path)) in CANONICAL.iter().enumerate() {
         assert_eq!(ALL.get(index), Some(glyph), "variant at {index}");
         assert_eq!(glyph.path(), *path, "path at {index}");
     }
