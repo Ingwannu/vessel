@@ -5,6 +5,8 @@
 
 mod address;
 mod attachment;
+mod budget;
+mod catalog;
 mod declarations;
 mod document;
 mod identity;
@@ -43,4 +45,9 @@ pub use declarations::{
 pub use document::{
     ClientDocument, DocumentError, MAX_ACTION_INPUT_BYTES, MAX_CONTRIBUTIONS, MAX_CONTROLS,
     MAX_DEPTH, MAX_DOCUMENT_BYTES, MAX_METHODS,
+};
+
+pub use catalog::{
+    CatalogError, ClientCatalog, ClientInstallation, MAX_CATALOG_BYTES, MAX_CATALOG_INSTALLATIONS,
+    MAX_CATALOG_THEMES,
 };

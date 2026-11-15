@@ -1,7 +1,6 @@
 //! A client document becomes visible only after its complete graph validates.
 
 use std::collections::BTreeSet;
-use std::io;
 
 use serde::{Deserialize, Serialize};
 
@@ -192,14 +191,12 @@ impl ClientDocument {
     }
 
     fn validate_encoded_budget(&self) -> Result<(), DocumentError> {
-        let mut budget = ByteBudget {
-            used: 0,
-            state: BudgetState::Available,
-        };
-        serde_json::to_writer(&mut budget, self).map_err(|source| match budget.state {
-            BudgetState::Available => DocumentError::Encode(PluginJsonError::new(source)),
-            BudgetState::Exceeded => DocumentError::Bytes,
-        })
+        super::budget::encoded_bytes(self, MAX_DOCUMENT_BYTES)
+            .map(|_encoded_bytes| ())
+            .map_err(|error| match error {
+                super::budget::EncodingError::Exceeded => DocumentError::Bytes,
+                super::budget::EncodingError::Encode(cause) => DocumentError::Encode(cause),
+            })
     }
 }
 
@@ -212,37 +209,6 @@ impl<'de> Deserialize<'de> for ClientDocument {
             serde::de::Error::custom("invalid plugin declaration structure")
         })?;
         Self::try_from(input).map_err(serde::de::Error::custom)
-    }
-}
-
-enum BudgetState {
-    Available,
-    Exceeded,
-}
-
-// This is a counting sink, not file/network I/O. It bounds encoded size without
-// allocating a second potentially oversized serialization of the graph.
-struct ByteBudget {
-    used: usize,
-    state: BudgetState,
-}
-
-impl io::Write for ByteBudget {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        let Some(total) = self
-            .used
-            .checked_add(bytes.len())
-            .filter(|total| *total <= MAX_DOCUMENT_BYTES)
-        else {
-            self.state = BudgetState::Exceeded;
-            return Err(io::ErrorKind::WriteZero.into());
-        };
-        self.used = total;
-        Ok(bytes.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
     }
 }
 

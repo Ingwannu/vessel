@@ -338,3 +338,21 @@ corrections and source-boundary documentation, rather than restoring the older
 scalar-only grammar. No whole-node head entered the app tree. Existing narrow
 evidence remains pinned to its original immutable source; merged-head checks
 remain required.
+
+## Bounded private-development catalog adoption
+
+The coordinator authorized the same bounded development exception as W3/W14:
+this private F6 app tree may consume the exact catalog value files from
+3a8fa24fe, without merging any node head. The catalog, counting sink and document
+sink refactor match that commit byte for byte. The decoder tests additionally
+retain the reviewed ce18372bb precision correction, which changes only the
+required_client JSON member rather than arbitrary digits in a random UUID.
+No authenticated call, row, handler, settings payload or dependency is added.
+
+Before building the real single app Hub, this exact tree must show a root
+vessel-node build and the proto tests. No second catalog schema or parallel
+Vec<Installation> transport path remains when that adapter is implemented.
+Until the integrator carries3a8fa24f and an announced app base includes it,
+none of the dependent F6 implementation is handed to either integrator or lead.
+Current root build/proto execution is pending; this exception is not shared-line
+or final package adoption.
