@@ -158,3 +158,24 @@ uses only bounded iterators; every original assertion and the five-scope
 contract bound remains unchanged. New authority-read result booleans are
 must-use. The next narrow batch proves only the pure View step, before
 installing the separately prepared RPC/screen wiring.
+
+
+### Additional queued-delivery boundary (not covered by source95)
+
+W12 identified that an old result can wait in the App event queue before a
+later retirement/Fleet notice. Context and ticket equality alone cannot
+observe the actor's already-retired private watch during that interval. This
+is an additional consumer requirement, not a demonstrated exploit or a
+rewrite of the bounded95 source disposition. Devices still owes this proof
+for public data, invitation installation/reveal/copy and rendered callbacks.
+No current authority-flow or queued-credential UI pass is claimed.
+
+W12 owns one proposed opaque delivery-validity capability from the SAME
+SelectedConnection/original client and irreversible watch, under the lead's
+shared-file writer order. Actor-only construction, private fields, redacted
+Debug, no serde/raw-client escape/cache/new epoch, and exact Context checking
+at installation are required. The producer is not ready or reviewed yet.
+Devices will consume it rather than make a parallel validity mechanism;
+matching pending work must settle honestly even if no newer snapshot arrived,
+and an older binding cannot retire its successor. Before-effect/post-await
+checks remain required, with no network/filesystem atomicity or replay claim.

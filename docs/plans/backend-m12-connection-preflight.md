@@ -268,3 +268,24 @@ real EOF/error frames, authority UI, captures and package gates are still
 consumer obligations. Remote numeric UID/GID and service flow remain
 unverified. No unchanged gate was rerun. Further compilation and capture
 builds use the approved remote VM only, per the operator's10:3x instruction.
+
+
+### Additional queued-delivery boundary (not covered by source95)
+
+W12 identified that an old result can wait in the App event queue before a
+later retirement/Fleet notice. Context and ticket equality alone cannot
+observe the actor's already-retired private watch during that interval. This
+is an additional consumer requirement, not a demonstrated exploit or a
+rewrite of the bounded95 source disposition. Devices still owes this proof
+for public data, invitation installation/reveal/copy and rendered callbacks.
+No current authority-flow or queued-credential UI pass is claimed.
+
+W12 owns one proposed opaque delivery-validity capability from the SAME
+SelectedConnection/original client and irreversible watch, under the lead's
+shared-file writer order. Actor-only construction, private fields, redacted
+Debug, no serde/raw-client escape/cache/new epoch, and exact Context checking
+at installation are required. The producer is not ready or reviewed yet.
+Devices will consume it rather than make a parallel validity mechanism;
+matching pending work must settle honestly even if no newer snapshot arrived,
+and an older binding cannot retire its successor. Before-effect/post-await
+checks remain required, with no network/filesystem atomicity or replay claim.
