@@ -93,3 +93,33 @@ Cargo metadata internally; they are not VM-only validation and are not promoted
 as fresh VM boundary evidence. No local compilation was performed. Future
 boundary/quality checks run only on the build machine; direct pinned rustfmt,
 size, tokens and text/import/doc scans do not invoke Cargo.
+
+## Source correction before root-policy captures
+
+[Decision Log]
+- Purpose: requested Shown must actually dock at exactly600 with neither
+  Explorer nor Settings open. Comparing the known wrong590 visual state
+  would conceal a source discrepancy rather than validate the correction.
+- Existing constraint: the first portable policy reused one content number
+  for both width targeting and visibility admission; this made the native
+  frame12 inset hide ordinary content at600.
+- Choice: reuse the same Limits resolver with its pinned400 target for all
+  workspace widths, but admit ordinary content at0. An open native code
+  panel keeps its own480 overlay /800 beside admission. Settings retains
+  its existing720 width exception pending E2's atomic list/back fallback.
+- Why: Paseo desktop-sidebar-layout.ts40–64 resolves width against400,
+  while66–72 returns0 absent Explorer/Settings and74–87 compares that
+  separate minimum. app/_layout.tsx431–452 passes the actual Explorer and
+  Settings facts. Lowering the target to0 would incorrectly widen the row.
+- Impact: default264, native frame12, existing code budget480/800 (Paseo
+  Explorer600), and Settings exceptions remain explicit separate choices.
+  Global PHONE768 and code-panel placement are unchanged. No canonical
+  Explorer renderer or workspace identity readiness is inferred.
+
+Regressions: actual shell at600, Shown, no Explorer/Settings must mount the
+scroll body at width200; a pure Explorer-open case retains the400 width
+resolver and separate native admission, including a requested600 at800 (resolved388 and hidden, whereas the old
+coupling shrank to308 and admitted it). Old590
+source/review/test evidence remains scoped to that source. The queued590
+export was cancelled before acquisition at18:19:33 UTC (terminal143);
+corrected-source tests and the one replacement export are still owed.
