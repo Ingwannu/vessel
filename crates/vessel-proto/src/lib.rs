@@ -62,6 +62,7 @@ pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
+mod session_updated_at;
 pub mod settings;
 pub mod side_questions;
 pub mod subagents;
@@ -161,6 +162,7 @@ pub use session::{
     RemoteCreator, SessionInfo, SessionInput, SessionMode, SessionOrigin, SessionSpec,
     SessionStatus,
 };
+pub use session_updated_at::{InvalidSessionUpdatedAt, SessionUpdatedAt};
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
 pub use title::{
     GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,

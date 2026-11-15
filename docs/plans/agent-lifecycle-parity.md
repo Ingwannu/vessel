@@ -1287,3 +1287,15 @@ The SetLabels value now retains both required fields, using LabelPatch's
 existing validating deserializer. Payload tests check exact target/map round
 trip and missing/empty/malformed target or patch refusal. No Request marker,
 method row, handler, send path, event or available mutation is added yet.
+
+
+### Mutation timestamp value foundation
+
+SessionUpdatedAt reuses chrono and the existing signed-nanosecond store range,
+while requiring whole milliseconds at the wire/value edge. Its pure advance
+operation normalizes only the writer sample, chooses a later sample or the
+previous value plus MIN_INCREMENT, and refuses exhaustion instead of saturation.
+One named tick defines the increment. Tests cover serde/value precision refusal,
+Unknown initialization, repeated/backwards time, a later sample and exhaustion.
+This value adds no store column, writer, Info field, clock setter or protocol
+assignment. It is not a producer attestation or a label coverage marker.
