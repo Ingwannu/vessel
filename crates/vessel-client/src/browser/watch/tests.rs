@@ -164,9 +164,9 @@ fn frame(
     revision: BrowserRevision,
     sequence: BrowserUpdateSeq,
 ) -> BrowserUpdate {
-    let image = vessel_proto::browser::ScreenshotPng::try_from(
-        include_bytes!("fixtures/owned-page.png").to_vec(),
-    )
+    let image = vessel_proto::browser::ScreenshotPng::from_png(bytes::Bytes::from_static(
+        include_bytes!("fixtures/owned-page.png"),
+    ))
     .unwrap();
     BrowserUpdate {
         sequence,
@@ -192,10 +192,10 @@ fn real_png_payload_still_needs_the_exact_announced_frame_context() {
         opened.revision,
         BrowserUpdateSeq::FIRST.next().unwrap(),
     );
-    let BrowserChange::Frame { frame } = &mut wrong.change else {
+    let BrowserChange::Frame { frame: candidate } = &mut wrong.change else {
         unreachable!()
     };
-    frame.viewport = viewport(800, 600);
+    candidate.viewport = viewport(800, 600);
     assert_eq!(
         cursor.accept(node, opened.subscription, &wrong),
         Err(WatchError::Viewport)
