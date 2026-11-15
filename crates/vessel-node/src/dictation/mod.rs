@@ -11,9 +11,11 @@ const MAX_CHUNK_SECONDS: usize = 1;
 const MAX_IN_FLIGHT_COMMITS: usize = 2;
 
 mod audio;
+mod budget;
 mod endpoint;
 mod input;
 mod multipart;
 mod owner;
 mod provider_json;
 mod roots;
+mod text;

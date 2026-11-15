@@ -252,6 +252,9 @@ impl ChunkSeq {
 pub struct WithinMs(u32);
 
 impl WithinMs {
+    /// Keep stream budget arithmetic aligned with the decoder's duration cap.
+    pub const MAX: Self = Self(MAX_FINISH_MS);
+
     /// A budget the node computed, capped at five minutes.
     #[must_use]
     pub const fn new(ms: u32) -> Self {
@@ -275,6 +278,9 @@ impl WithinMs {
 pub struct Transcript(String);
 
 impl Transcript {
+    /// Bound aggregate text and separators before allocating a joined transcript.
+    pub const MAX_BYTES: usize = MAX_TRANSCRIPT_BYTES;
+
     /// Expose text to an explicit output or rendering boundary.
     #[must_use]
     pub fn as_str(&self) -> &str {

@@ -430,3 +430,20 @@ unchanged state on bad shape, count/byte reorder bounds, current-chunk admission
 with full holds, duration, finish without audio and filling gaps after finish.
 Narrow clippy and all eleven input tests pass; this commit's whole gate remains
 owed. The pure owner does not test canceled RPC replies or provider backpressure; those remain actor tests.
+
+## Transcript and finish arithmetic implementation
+
+Decision: new pure text and budget owners, reusing Transcript/WithinMs bounds,
+Duration, ChunkSeq and workspace::trim_project_text. The audio owner already
+returns rounded provider-buffer duration; no second byte-duration codec, trim
+policy or dependency is added. Completion storage is separate from joining,
+so an ignored TooSmall can settle a slot without constructing a Partial.
+Budget computation freezes no timer; first/repeated-finish admission remains
+an actor responsibility.
+
+Half-done: staged source, six text and five budget tests. Text covers out-of-order
+results, empty/interior spacing, JS edges, pending counts and aggregate UTF-8/
+separator limits before join allocation. Budget covers independent terms, the
+whole unacknowledged suffix, fractional rounding, zero floor and saturation at
+the shared wire cap. Narrow node/proto clippy and all 49 staged dictation tests
+pass; the exact commit's whole gate is still owed.
