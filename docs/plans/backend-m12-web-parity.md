@@ -1216,3 +1216,16 @@ all incoming changed blobs except the auto-merged architecture document
 remain exact, including the incoming native base. This page correction
 authors no native change or native approval. No earlier failure or normal
 matrix is relabelled as evidence of the new clearance behavior.
+
+### Final contract-base composition
+
+The corrected feedback renderer is carried onto node head `ba45a6e3` in a
+separate checkout while its local capture checkout stays frozen. The only
+merge conflict is the architecture document: the head's process-mechanism
+paragraph and the page-feedback section are both retained unchanged.
+Exact incoming-blob claims apply to code and tests; the architecture, this
+plan and ADR 0075 retain head text plus local page additions. All three
+have additive differences against the head. This clarifies the broader
+exactness wording in the merge commit without changing executable code.
+Captures still identify their original renderer commit; the merged tree
+requires its own whole gate, and no rendered latest-head claim is inferred.
