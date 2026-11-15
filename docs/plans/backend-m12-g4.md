@@ -586,6 +586,19 @@ partial-host-error banner; its first-use UI captures belong to its consumer.
 The separately archived Diagnostics draft remains uncompiled and outside
 the resumed slice.
 
+Review disposition: V1 subsequently passed the bounded Devices slice
+(`eadc3324` / `fe29f8f4` / `a86e0cc9`, docs `0e51fdbe`). It independently
+matched all 666 Git input hashes, six successful gate steps, the raw
+1043/0/1 test total and all 178 PNG hashes/dimensions. V1 personally opened
+40 risk-selected originals, including all eighteen enlarged frames;
+its visual pass covers those inspected states, not all 178 or every
+platform/accessibility case. The author opened all 178. Its exact selection
+is retained in `m12-review/g4-devices-a86-v1-captures.json`. Runtime privacy
+and process cleanup remain the author's retained evidence, not V1's live
+audit. A supplementary private check also parses credential envelopes to
+scan their bearer field separately: twelve secret patterns, 166 logs,
+zero matches. Coordinator screen comparison and merge are still separate.
+
 ## Shared Alert host-errors presentation: contract first
 
 [Decision Log]
@@ -639,3 +652,12 @@ change. README names the additional presentation.
 Resume point: Devices is with V1. The shared profile source is ready for
 its own exact-commit A13 gate, not yet passed or consumer-ready. First-use
 captures remain G2's responsibility; no alert UI/capture pass is claimed.
+
+The first Alert run, `devices-20261115T035609Z-68fac599`, passed fonts/fmt/
+quality, then stopped at Clippy (101): its Decision Log's `HostErrors`
+name lacked Markdown backticks. Build/test did not run, and the failure
+is retained under `alert-native-gate-01`. Pre/post source pins match all
+666 native inputs. The correction changes that comment only, without a
+lint suppression or behavior change. The corrected commit receives a
+short Clippy check first, followed by a new whole A13 gate; no pass is
+claimed before those results exist.

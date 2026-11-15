@@ -21,7 +21,7 @@
 //!   own geometry, not the Error variant with an icon removed by a caller.
 //! - Constraint: ordinary alerts keep their defaults and render tree.
 //! - Alternatives: screen-local paint or an arbitrary style escape hatch.
-//! - Choice: one typed HostErrors presentation of this same frame, with
+//! - Choice: one typed `HostErrors` presentation of this same frame, with
 //!   sibling messages, neutral border and the existing palette red 300.
 //! - Why: the kit owns padding, stack gap and text, including wrapping.
 //! - Cost: a narrow messages-only entry; visibility and words stay in view.
