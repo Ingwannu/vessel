@@ -64,6 +64,9 @@ pub struct UsageReports {
     pub policy: ExternalLookup,
     /// Money and Operate-only details are absent for a Read-only caller.
     pub cost_visibility: CostVisibility,
+    /// Cache-only disclosure and effective permission; never credential discovery.
+    #[serde(default)]
+    pub sources: super::ReportSourceDescriptors,
     /// Every known report in stable source/account order; no silent truncation.
     pub reports: ReportEntries,
     /// Independent failed discoveries, even if no account was previously known.

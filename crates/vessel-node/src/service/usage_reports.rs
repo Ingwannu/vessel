@@ -16,6 +16,17 @@ use vessel_proto::{
 };
 
 impl NodeService {
+    pub(crate) async fn set_usage_source_lookup(
+        &self,
+        _connection: &Connection,
+        _request: vessel_proto::usage_reports::SetUsageSourceLookup,
+    ) -> Result<vessel_proto::usage_reports::UsageSourceDescriptor, WireError> {
+        Err(WireError::new(
+            ErrorCode::Unsupported,
+            "source-specific consent is not available before its real adapter",
+        ))
+    }
+
     pub(crate) async fn list_usage_reports(
         &self,
         connection: &Connection,
@@ -213,6 +224,7 @@ fn complete(
         policy,
         cost_visibility: visibility,
         reports,
+        sources: vessel_proto::usage_reports::ReportSourceDescriptors::default(),
         source_failures: ReportSourceFailures::default(),
     }
     .for_visibility(visibility);

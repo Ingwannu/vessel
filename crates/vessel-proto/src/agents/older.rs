@@ -111,7 +111,7 @@ impl Reply {
             }
             // This newer report family can name added agents in login errors;
             // never hand its shape to a peer predating added-agent identities.
-            Self::ListUsageReports(_) | Self::InspectUsageReport(_) => Some(unreadable()),
+            Self::ListUsageReports(_) | Self::InspectUsageReport(_) | Self::SetUsageSourceLookup(_) => Some(unreadable()),
             // Lists (filtered by `for_protocol`), and replies that name no
             // agent or only one of the four.
             Self::ListSessions(_)

@@ -1,7 +1,7 @@
 //! Collection bounds apply before decoding an excess body and before publication.
 use super::{
-    SourceReportEntry, UsageBalance, UsageDetail, UsageLoginFailure, UsageSourceFailure,
-    UsageWindow,
+    SourceReportEntry, UsageBalance, UsageDetail, UsageLoginFailure, UsageSourceDescriptor,
+    UsageSourceFailure, UsageSourceGrant, UsageWindow,
 };
 use serde::{
     Deserialize, Deserializer, Serialize,
@@ -225,6 +225,20 @@ bounded!(
     Sources,
     "Independent safe discovery failures; a source occurs at most once.",
     source
+);
+bounded!(
+    ReportSourceDescriptors,
+    UsageSourceDescriptor,
+    Sources,
+    "Cache-only source metadata is bounded and refuses duplicate identities.",
+    id
+);
+bounded!(
+    ReportSourceGrants,
+    UsageSourceGrant,
+    Sources,
+    "Only bounded unique source consent revisions are persisted.",
+    id
 );
 
 impl ReportBalances {

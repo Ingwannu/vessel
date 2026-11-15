@@ -195,6 +195,7 @@ fn list_and_inspect_use_one_visibility_projection_and_preserve_exact_lookup_id()
         policy: crate::limits::ExternalLookup::On,
         cost_visibility: CostVisibility::Permitted,
         reports: vec![report].try_into().unwrap(),
+        sources: ReportSourceDescriptors::default(),
         source_failures: ReportSourceFailures::default(),
     }
     .for_visibility(CostVisibility::Withheld);
@@ -261,6 +262,7 @@ fn a_complete_collection_checks_encoded_bytes_without_silently_dropping_accounts
         policy: crate::limits::ExternalLookup::On,
         cost_visibility: CostVisibility::Permitted,
         reports,
+        sources: ReportSourceDescriptors::default(),
         source_failures: ReportSourceFailures::default(),
     };
     assert!(matches!(
@@ -273,6 +275,7 @@ fn a_complete_collection_checks_encoded_bytes_without_silently_dropping_accounts
         policy: crate::limits::ExternalLookup::Off,
         cost_visibility: CostVisibility::Withheld,
         reports: ReportEntries::default(),
+        sources: ReportSourceDescriptors::default(),
         source_failures: ReportSourceFailures::default(),
     };
     assert!(small.validate_budget().unwrap().get() < MAX_USAGE_RESPONSE_BYTES);

@@ -408,6 +408,7 @@ impl Method {
             // destination, whose admin/operate scope intersection is checked.
             | Self::ListUsageReports
             | Self::InspectUsageReport
+            | Self::SetUsageSourceLookup
             | Self::GetUsageLimits
             | Self::SetUsageLookup
             | Self::QueryUsage

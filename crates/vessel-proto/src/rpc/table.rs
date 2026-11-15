@@ -382,6 +382,8 @@ macro_rules! method_table {
             ListUsageReports / list_usage_reports / "usage.reports" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::ListUsageReports => $crate::usage_reports::UsageReports;
             /// Resolve exactly one opaque report id without widening its scope.
             InspectUsageReport / inspect_usage_report / "usage.inspect" [Read, (pending $crate::usage_reports::ACCOUNT_REPORTS_PROTOCOL), unary]: $crate::usage_reports::InspectUsageReport => $crate::usage_reports::UsageReportLookup;
+            /// Accept or revoke exactly the displayed source disclosure; never fetches.
+            SetUsageSourceLookup / set_usage_source_lookup / "usage.source_lookup" [Admin, (pending $crate::usage_reports::USAGE_SOURCE_CONSENT_PROTOCOL), unary]: $crate::usage_reports::SetUsageSourceLookup => $crate::usage_reports::UsageSourceDescriptor;
         }
     };
 }

@@ -17,7 +17,8 @@ mod bounded;
 pub use bounded::{
     InvalidUsageCollection, MAX_USAGE_BALANCES, MAX_USAGE_DETAILS, MAX_USAGE_LOGIN_FAILURES,
     MAX_USAGE_REPORTS, MAX_USAGE_SOURCE_FAILURES, MAX_USAGE_WINDOWS, ReportBalances, ReportDetails,
-    ReportEntries, ReportLoginFailures, ReportSourceFailures, ReportWindows, UsageCollection,
+    ReportEntries, ReportLoginFailures, ReportSourceDescriptors, ReportSourceFailures,
+    ReportSourceGrants, ReportWindows, UsageCollection,
 };
 mod values;
 pub use values::{
@@ -29,7 +30,13 @@ pub use state::{
     NoQuotaReason, SourceReportEntry, SourceReportState, SuccessfulUsageReport,
     UsageAttemptFailure, UsageFetchFailure, UsageLoginFailure, UsageProblem,
 };
+mod disclosure;
 mod requests;
+pub use disclosure::{
+    SetUsageSourceLookup, USAGE_SOURCE_CONSENT_PROTOCOL, UsageCredentialStore,
+    UsageDisclosureVersion, UsageRecipient, UsageSourceAvailability, UsageSourceConsent,
+    UsageSourceDescriptor, UsageSourceDisclosure, UsageSourceGrant,
+};
 pub use requests::{
     InspectUsageReport, ListUsageReports, UsageReportLookup, UsageReportScope, UsageReports,
     UsageSourceFailure,

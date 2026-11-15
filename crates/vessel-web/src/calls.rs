@@ -74,6 +74,7 @@ const fn forwardable(method: Method) -> bool {
     match method {
         Method::ListUsageReports
         | Method::InspectUsageReport
+        | Method::SetUsageSourceLookup
         | Method::GetUsageLimits
         | Method::SetUsageLookup
         | Method::QueryUsage

@@ -189,6 +189,7 @@ const fn refused(method: Method) -> bool {
         // lookup policy needs admin, which no agent holds.
         | Method::ListUsageReports
         | Method::InspectUsageReport
+        | Method::SetUsageSourceLookup
         | Method::GetUsageLimits
         | Method::SetUsageLookup
         | Method::QueryUsage

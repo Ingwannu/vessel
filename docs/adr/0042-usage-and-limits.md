@@ -417,3 +417,29 @@ SourceReportEntry serializes distinct validated source/account fields as well as
 its opaque handle. One constructor derives all three atomically; deserialization
 rejects disagreement. Consumers group by those typed fields and inspect by the
 opaque handle. Labels and client-side handle parsing cannot define identity.
+
+### Additional-source consent does not inherit the legacy grant
+
+[Decision Log]
+- Purpose: the old global lookup choice disclosed three saved-login stores.
+  Reusing On as permission for seven additional stores would exceed that consent.
+- Reuse: preserve the global default-Off Admin floor and its three existing
+  adapters. Add bounded source metadata and explicit revisioned source grants;
+  use the store's existing owner-only atomic replacement rather than a database
+  containing report snapshots or credentials.
+- Choice: known store and fixed-recipient enums provide translated disclosure
+  without actual paths/endpoints. InheritedGlobal is only for the three existing
+  projections. New sources start Off; unsupported adapters cannot appear Enabled.
+  Admin usage.source_lookup accepts an exact registered id/current revision and
+  never fetches. Explicit Refresh still additionally requires Operate and global On.
+- Failure rules: missing/invalid source grants fail Off; duplicate/oversized
+  policies refuse as a whole. Changed disclosure requires fresh consent; source
+  revocation invalidates pending publication and snapshots before acknowledging
+  persisted policy. The plugin runtime must supply its own real disclosure and
+  provenance before any plugin source becomes supported.
+- Costs: a separate consent control for newly supported sources; it avoids silently
+  changing credential-use authority when a node gains a provider adapter.
+
+The new setter's pending protocol remains None. Its skeleton refuses Unsupported
+until the actual owner/adapters are connected; values and persistence tests alone
+are not executable source or consumer parity.

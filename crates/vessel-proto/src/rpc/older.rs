@@ -282,6 +282,7 @@ impl Reply {
             | Self::ListRuns(_)
             | Self::ListUsageReports(_)
             | Self::InspectUsageReport(_)
+            | Self::SetUsageSourceLookup(_)
             | Self::GetUsageLimits(_)
             | Self::SetUsageLookup(_)
             | Self::QueryUsage(_)
