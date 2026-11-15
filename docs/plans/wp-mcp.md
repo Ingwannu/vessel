@@ -148,7 +148,7 @@ changes or captures are required by this node-only package.
 
 ## Current implementation and integration boundary
 
-Gate40 ba45a6e3 is merged. Nine pending rows are at the end of the single
+Gate40 ba45a6e3 and the green gate42 node head d432ef0f are merged. Nine pending rows are at the end of the single
 `rpc/table.rs`: five local Admin skills calls and four forwardable prompt
 tracking calls. `MCP_PARITY=None`; the integrator assigns the number at the
 wiring merge. Skills JSON needs no SQLite schema number. No HTTP listener,
@@ -367,3 +367,11 @@ strict result still need source review. Strict success, generated TS freshness,
 final functional checks, one whole root A12 gate and package review remain
 required before a numbered consumer handover. Source review, scoped test
 success, runtime behavior and integration readiness are reported separately.
+
+The gate42 merge brings ProcessLifetime, RPC check_call and the transient
+AgentSetup.system_prompt carrier. This package adds no AgentSetup literal;
+the shared base supplies its explicit None fields. Unsupported prompt
+overrides stay unsupported and voice is not activated. The only merge
+conflict joined independent architecture sections, preserving both. Wire
+roots are unchanged, so the previously generated MCP artifact remains exact;
+merged-head checks are still owed. No whole gate was running during merge.
