@@ -25,6 +25,11 @@
 pub mod audio;
 mod cancel;
 mod command;
+// Staged shared envelope capability; real callers remove both exact attributes.
+#[cfg(test)]
+mod delivery;
+#[cfg(test)]
+pub use delivery::DeliveryGuard;
 #[cfg(not(target_arch = "wasm32"))]
 mod connections;
 #[cfg(not(target_arch = "wasm32"))]

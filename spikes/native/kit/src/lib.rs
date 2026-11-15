@@ -39,6 +39,7 @@ pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
 pub mod drag;
+pub mod external_link;
 pub mod field;
 pub mod focus;
 pub mod fonts;
