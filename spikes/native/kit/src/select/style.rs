@@ -1,6 +1,6 @@
 //! Geometry/paint of the ONE select frame; existing public presentations retain
 //! their values. Static form values never enter the interaction renderer.
-use super::{FORM_VERTICAL_POINTER, FORM_VERTICAL_TOUCH, Presentation, Tokens, Type, Visibility};
+use super::{Presentation, Tokens, Type, Visibility};
 #[derive(Debug, Clone, Copy)]
 pub(super) enum FramePresentation {
     Select(Presentation),
@@ -90,10 +90,7 @@ pub(super) fn geometry(
                     ControlSizing::Touch => crate::breakpoint::TOUCH_TARGET,
                 }),
                 horizontal: spacing::S3,
-                vertical: Some(match sizing {
-                    ControlSizing::Pointer => FORM_VERTICAL_POINTER,
-                    ControlSizing::Touch => FORM_VERTICAL_TOUCH,
-                }),
+                vertical: Some(crate::control_sizing::md_field_vertical(sizing)),
                 gap: spacing::S2,
                 radius: Radius::Points(radius::R2),
                 type_: Type::Body,

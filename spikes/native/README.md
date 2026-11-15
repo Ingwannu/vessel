@@ -1618,3 +1618,11 @@ feedback to `combobox_with_empty`, through the same leased surface renderer.
 owner must still check original request/context/visit. Old combobox entries
 retain their existing empty/default behavior. The named model-browser loader
 keeps14-point layout, paint0.7, common masks/alpha/motion; final F1 proof is owed.
+
+
+`FormTextareaPresentation` chooses old Compact9/3 or source Md12/5-or11 chrome
+independently from FormMinimum. The additive identified presentation constructor
+delegates to the same TextareaState/listen path. F1 chooses Md+Expanded96; old
+constructors/defaults, Enter/editability and cap remain unchanged. Select Form
+and Md textarea share the same named vertical geometry. New profile proof is
+part of F1's final combined package; old control passes are not its evidence.

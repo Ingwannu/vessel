@@ -1,7 +1,9 @@
 //! Actual engine identity is paired with the current pure form visit. New host,
 //! reopen and explicit rule reset create fresh engines rather than reuse ids.
 use super::{Context, Shell, Visit, Window, kit};
-use kit::field::{Editability, FieldId, FormMinimum, FormText, TextField};
+use kit::field::{
+    Editability, FieldId, FormMinimum, FormText, FormTextareaPresentation, TextField,
+};
 use vessel_app_view::schedules::editor::session::FieldChange;
 #[derive(Debug, Clone, Copy)]
 enum Input {
@@ -33,10 +35,11 @@ impl Inputs {
         let draft = model.draft()?;
         let words = shell.words.schedules();
         let name = TextField::with_source(words.form_optional(), submit, change, window, cx);
-        let prompt = TextField::form_multiline_with_source(
+        let prompt = TextField::form_multiline_with_source_presentation(
             words.form_prompt_placeholder(),
             submit,
             change,
+            FormTextareaPresentation::Md,
             FormMinimum::Expanded,
             window,
             cx,

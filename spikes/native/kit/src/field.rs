@@ -119,6 +119,7 @@ pub struct TextField {
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
     form_text: FormText,
+    form_textarea: FormTextareaPresentation,
 }
 
 mod multiline;
@@ -137,6 +138,8 @@ mod search;
 pub use search::SearchField;
 mod form_text;
 pub use form_text::FormText;
+mod form_textarea;
+pub use form_textarea::FormTextareaPresentation;
 
 impl TextField {
     /// Which press sends a composer's text (a form field ignores it).
@@ -171,6 +174,7 @@ impl TextField {
             focused,
             form_minimum: FormMinimum::Default,
             form_text: FormText::Body,
+            form_textarea: FormTextareaPresentation::Compact,
             send: Rc::new(Cell::new(SendOn::Enter)),
         }
     }
@@ -364,13 +368,7 @@ impl TextField {
             }
             Kind::Lines(state, MultilineStyle::Form) => {
                 project(state, tokens, neutral.foreground_muted, cx);
-                self.form_text.apply(form_shell(self.focused.get(), tokens, narrow))
-                    .flex_col()
-                    .items_stretch()
-                    .px(px(FORM_INSET_X))
-                    .py(px(FORM_INSET_Y))
-                    .min_h(px(self.form_minimum.height(narrow)))
-                    .max_h(px(FORM_MAX))
+                self.form_textarea.frame(self.focused.get(), tokens, narrow, self.form_minimum)
                     // The engine emits Enter and propagates the action.
                     // This form already inserted a line or submitted in
                     // its callback; native fallback must not insert again.

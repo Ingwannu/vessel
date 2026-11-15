@@ -231,8 +231,6 @@ fn render(
 }
 const FORM_LEADING: f32 = 18.0;
 // control-geometry fieldVerticalPadding: (height - line20 - border2)/2.
-const FORM_VERTICAL_POINTER: f32 = 5.0;
-const FORM_VERTICAL_TOUCH: f32 = 11.0;
 fn form_foreground(form: Option<form::Look>, tokens: &Tokens) -> gpui::Hsla {
     if form.is_some_and(|look| look.placeholder) {
         tokens.neutral.foreground_muted

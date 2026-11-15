@@ -1512,3 +1512,22 @@ None and Form expectedSome20. No geometry/palette assertion is weakened, no
 warning suppressed, no test removed. Old approved lifecycle tests change only
 by restoring the explicit import their former root import had provided.
 No20c outcome is claimed for later profiles/base merges.
+
+
+### Assigned MD textarea chrome, minimum remains independent
+
+Coordinator20139d1c approves the measured missing source profile. Pinned
+schedule-form-sheet.tsx508–515/1039–1041 uses ordinary MD FormTextInput
+multiline+min96; form-field.tsx195–235/272–284 delegates fieldControlMd from
+ui/control-geometry.ts235–251: px12/py5 pointer or11 compact, base14/20/r8.
+
+New FormTextareaPresentation::{Compact,Md} belongs to the SAME existing form
+textarea. form_multiline_with_source_presentation delegates to the existing
+identified multiline factory; only its typed chrome data changes. Old factory
+defaults remain Compact9/3. FormMinimum still means ONLY68/80 or96, and the
+existing engine/callback/Enter/editability/cap remains unchanged. The source
+MD vertical values now have one shared named derivation in control_sizing,
+used by both select Form and textarea Md; no copied5/11 area constants.
+F1 explicitly opts its prompt into Md+Expanded; no area style override.
+Literal both-theme/layout/mixed-minimum regressions are authored; current
+compiler/runtime/actual96+longprompt first-use proof remains owed.
