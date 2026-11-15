@@ -18,14 +18,20 @@
 //!   a medium shadow, 14 in the foreground, at most 280 wide, 8 above the
 //!   control and kept 8 from the window's edges.
 //! - Differences: no fade (Paseo's fades in); not on touch, as Paseo's.
+//! - Typed extension: the same controller also supports pane toolbar bottom/8/300ms;
+//!   existing callers keep immediate/top/8. One owned timer cancels on leave/press,
+//!   uses original trigger identity and holds no strong screen/controller reference.
+
+mod config;
+mod pending;
+pub use config::{Configuration, Delay, InvalidOffset, Offset, Side};
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Bounds, MouseButton, Pixels, SharedString, Stateful, anchored, deferred,
-    div, point, px,
+    AnyElement, Bounds, MouseButton, Pixels, SharedString, Stateful, anchored, deferred, div, px,
 };
 
 use crate::fonts::Type;
@@ -42,6 +48,10 @@ pub type Place = Rc<std::cell::Cell<Option<Bounds<Pixels>>>>;
 struct Tip {
     content: Content,
     place: Place,
+    configuration: Configuration,
+    // Weak ownership of the actually installed trigger listener, never a timer
+    // keepalive. Rebuilding the same Place refreshes this existing tip in place.
+    trigger: std::rc::Weak<()>,
 }
 
 /// Content keeps an exact path/hash in its own code face instead of
@@ -101,7 +111,7 @@ impl Content {
 /// A screen's tooltips: at most one shown.
 #[derive(Debug, Clone, Default)]
 pub struct Tooltips {
-    shown: Rc<RefCell<Option<Tip>>>,
+    state: Rc<RefCell<pending::State>>,
 }
 
 impl Tooltips {
@@ -122,7 +132,37 @@ impl Tooltips {
         text: impl Into<SharedString>,
         touch: bool,
     ) -> Stateful<gpui::Div> {
-        self.attach(trigger, place, Content::Text(text.into()), touch)
+        self.attach(
+            trigger,
+            place,
+            Content::Text(text.into()),
+            Configuration::default(),
+            if touch {
+                crate::ControlSizing::Touch
+            } else {
+                crate::ControlSizing::Pointer
+            },
+        )
+    }
+
+    /// Configure this same tooltip/controller using the surface's pinned source
+    /// profile. Existing `on` callers retain the immediate/top default.
+    #[must_use]
+    pub fn on_configured(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: impl Into<SharedString>,
+        configuration: Configuration,
+        sizing: crate::ControlSizing,
+    ) -> Stateful<gpui::Div> {
+        self.attach(
+            trigger,
+            place,
+            Content::Text(text.into()),
+            configuration,
+            sizing,
+        )
     }
 
     /// The same tooltip chrome and placement, with the supplied path/hash
@@ -136,7 +176,17 @@ impl Tooltips {
         text: impl Into<SharedString>,
         touch: bool,
     ) -> Stateful<gpui::Div> {
-        self.attach(trigger, place, Content::Code(text.into()), touch)
+        self.attach(
+            trigger,
+            place,
+            Content::Code(text.into()),
+            Configuration::default(),
+            if touch {
+                crate::ControlSizing::Touch
+            } else {
+                crate::ControlSizing::Pointer
+            },
+        )
     }
 
     fn attach(
@@ -144,33 +194,39 @@ impl Tooltips {
         trigger: Stateful<gpui::Div>,
         place: &Place,
         content: Content,
-        touch: bool,
+        configuration: Configuration,
+        sizing: crate::ControlSizing,
     ) -> Stateful<gpui::Div> {
-        if touch {
+        if sizing == crate::ControlSizing::Touch {
             return trigger;
         }
-        let hover_shown = Rc::clone(&self.shown);
+        let lifetime = Rc::new(());
+        self.state.borrow_mut().keep_trigger(place, &lifetime);
+        let hover_state = Rc::clone(&self.state);
         let hover_place = Rc::clone(place);
-        let press_shown = Rc::clone(&self.shown);
+        let press_state = Rc::clone(&self.state);
         trigger
             .child(anchor_probe(place))
-            .on_hover(move |hovered, window, _cx| {
-                let mut shown = hover_shown.borrow_mut();
+            .on_hover(move |hovered, window, cx| {
                 if *hovered {
-                    *shown = Some(Tip {
-                        content: content.clone(),
-                        place: Rc::clone(&hover_place),
-                    });
-                } else if shown
-                    .as_ref()
-                    .is_some_and(|tip| Rc::ptr_eq(&tip.place, &hover_place))
-                {
-                    *shown = None;
+                    pending::entered(
+                        &hover_state,
+                        Tip {
+                            content: content.clone(),
+                            place: Rc::clone(&hover_place),
+                            configuration,
+                            trigger: Rc::downgrade(&lifetime),
+                        },
+                        window,
+                        cx,
+                    );
+                } else {
+                    hover_state.borrow_mut().leave(&hover_place);
+                    window.refresh();
                 }
-                window.refresh();
             })
             .on_mouse_down(MouseButton::Left, move |_event, window, _cx| {
-                *press_shown.borrow_mut() = None;
+                press_state.borrow_mut().dismiss();
                 window.refresh();
             })
     }
@@ -178,14 +234,15 @@ impl Tooltips {
     /// The tooltip shown, over everything.
     #[must_use]
     pub fn render(&self, tokens: &Tokens) -> Option<AnyElement> {
-        let tip = self.shown.borrow().clone()?;
+        let tip = self.state.borrow().shown.clone()?;
+        let _trigger = tip.trigger.upgrade()?;
         let bounds = tip.place.get()?;
         let neutral = tokens.neutral;
         let surface = match tokens.scheme {
             Scheme::Light => neutral.surface0,
             Scheme::Dark => neutral.surface2,
         };
-        let top = point(bounds.center().x, bounds.top());
+        let (position, anchor, offset) = tip.configuration.placement(bounds);
         let metrics = tip.content.metrics();
         let card = div()
             .max_w(px(280.0))
@@ -214,9 +271,9 @@ impl Tooltips {
         Some(
             deferred(
                 anchored()
-                    .position(top)
-                    .anchor(Anchor::BottomCenter)
-                    .offset(point(px(0.0), px(ABOVE)))
+                    .position(position)
+                    .anchor(anchor)
+                    .offset(offset)
                     .snap_to_window_with_margin(px(8.0))
                     .child(card),
             )
@@ -241,9 +298,6 @@ fn lines(text: &SharedString, ink: gpui::Hsla) -> Vec<gpui::Div> {
 
 /// The second line's opacity (the reference's 65 %).
 const SECOND: f32 = 0.65;
-
-/// 8 above the trigger (upward, so negative).
-const ABOVE: f32 = -8.0;
 
 /// Paseo's `fontSize.base * 1.4`.
 const LINE: f32 = 19.6;
@@ -300,3 +354,6 @@ mod independent_scale_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod profile_tests;
