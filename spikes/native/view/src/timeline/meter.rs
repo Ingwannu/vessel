@@ -81,7 +81,7 @@ pub fn meter_of(usage: Option<&ContextUsage>) -> Option<Meter> {
 #[cfg(test)]
 mod tests {
     use super::{Fullness, meter_of};
-    use vessel_proto::{ContextUsage, TokenCount, UsageObservation};
+    use vessel_proto::{ContextUsage, TokenCount};
 
     #[test]
     fn exact_ninety_is_warning_and_any_fraction_above_is_danger() {
@@ -96,7 +96,7 @@ mod tests {
             let context = ContextUsage {
                 used: TokenCount::new(used),
                 size: TokenCount::new(size),
-                observation: UsageObservation::Current,
+                observation: Default::default(),
                 cost: None,
             };
             assert_eq!(meter_of(Some(&context)).unwrap().fullness, expected);
