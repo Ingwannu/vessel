@@ -53,24 +53,15 @@ pub(super) fn apply(
             device,
             credential,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                devices::insert(connection, &device, &credential)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::DeviceSeen { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::seen(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::RevokeDevice { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::revoke(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
+        } => write_answer(transaction, done, |connection| {
+            devices::insert(connection, &device, &credential)
+        }),
+        Write::DeviceSeen { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::seen(connection, device, at)
+        }),
+        Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
+            devices::revoke(connection, device, at)
+        }),
         Write::Mark {
             session,
             mark,
@@ -98,13 +89,9 @@ pub(super) fn apply(
             session,
             next,
             done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Marked(done, applied)
-        }
+        } => marked_answer(transaction, effects, done, |connection| {
+            again::reopen(connection, session, next)
+        }),
         Write::Attach { kept, at, done } => {
             let applied = isolated(transaction, |connection| {
                 attachments::insert(connection, &kept, time_to_sql(at)?)
