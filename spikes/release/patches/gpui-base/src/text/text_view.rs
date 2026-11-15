@@ -49,7 +49,7 @@ impl TextViewDefaults {
     }
 
     /// The style every text view starts from, when set.
-    pub(crate) fn style(&self) -> Option<&TextViewStyle> {
+    pub fn style(&self) -> Option<&TextViewStyle> {
         self.style.as_ref()
     }
 

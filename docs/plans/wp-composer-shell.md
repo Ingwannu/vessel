@@ -1,6 +1,6 @@
 # Composer shell and commands
 
-Status: skeleton in progress; independent view transitions/parsers tested, integration pending. Package base `8d5513e4` merged at `9e8e2164`.
+Status: implementation in progress; independent models tested, native integration pending. Package base4 `3cd0d3fc` merged at `f6b50dd74`.
 
 ## Existing assets and decision
 
@@ -85,3 +85,13 @@ Recognition grounding: a disposable Node oracle ran the original reference `FILE
 Field handoff: E2's `9a173ca0` is merged (`23bdb8f3`), with its actual field engine tests subsequently reported green20/0. Package base4 `3cd0d3fc` is merged at `f6b50dd74`. This package now owns `field/composer_layout.rs` and `field/send.rs`: one renderer over the same Entity for bounded/full-height chat/terminal, measured wrapped rows via display_map, and ButtonOnly through the existing Enter listener. Readonly stays solely W4's setter; the layout never resets it. Existing call signatures retain their old12-row rendering until a host passes window-aware layout. Row fits use a bounded16-comparison integer search (exact u16-to-f32 conversion) instead of unchecked float casts or another numeric dependency. A retained row request avoids notify loops. New geometry/actual-enter/selection-retention tests are unrun.
 
 W6 explicitly requested a staged consumer to break its standalone @ handler cycle. Commit `1dddb40d6` calls its typed file-key API before slash/recall and preserves paste; this requires B1 and is not standalone app-green. Lifecycle callbacks are narrow-green at W21 `963ca595`, but their consumer guard/fullscreen registration remain to be implemented. Retained context must suppress all client commands.
+
+The expanded native view run passed26 tests and failed uppercase HTTP scheme parsing;
+`4ae17d69e` normalizes only the scheme before the canonical typed URL parser. Rerun pending.
+The next kit compile found that Component's compatibility TextView does not expose
+the new Base callbacks. The kit now uses that same Base renderer and retained state
+directly, refining the Component-installed TextViewDefaults style rather than
+duplicating its theme adapter. Existing selection/find/versioning remain in place.
+Two test-only import/accessor errors are corrected; current narrow checks remain pending.
+Node command unit tests passed14/0 and fake Codex/options integration passed29/0;
+these are scoped checks, not whole-package or UI approval.

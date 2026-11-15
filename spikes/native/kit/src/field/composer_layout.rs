@@ -127,6 +127,15 @@ impl RenderedRows {
 }
 
 impl TextField {
+    /// Editing admission comes from the same engine, including shared readonly/disabled state.
+    #[must_use]
+    pub fn composer_is_editable(&self, cx: &App) -> bool {
+        match &self.kind {
+            Kind::Line(state) => state.read(cx).presentation().is_editable(),
+            Kind::Lines(state, _) => state.read(cx).presentation().is_editable(),
+        }
+    }
+
     /// None before layout or for another field kind; wrapping comes from the same engine.
     #[must_use]
     pub fn rendered_composer_rows(&self, cx: &App) -> Option<RenderedRows> {

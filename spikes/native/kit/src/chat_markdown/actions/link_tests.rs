@@ -3,10 +3,10 @@
 use std::sync::{Arc, Mutex};
 
 use gpui::{
-    Context, Entity, IntoElement, Modifiers, MouseButton, ParentElement as _, Render, Styled as _,
-    TestAppContext, Window, div, point, px,
+    AppContext as _, Context, Entity, IntoElement, Modifiers, MouseButton, ParentElement as _,
+    Render, Styled as _, TestAppContext, Window, div, point, px,
 };
-use gpui_component::text::{TextView, TextViewState};
+use gpui_base::text::{TextView, TextViewState};
 
 use super::{Actions, CopyStyle, InlineLinkKind, RecognizedLink, Source, finish};
 

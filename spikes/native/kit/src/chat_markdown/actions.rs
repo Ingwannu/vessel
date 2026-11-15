@@ -6,9 +6,9 @@ use gpui::{
     AnyElement, App, ClipboardItem, Entity, ImageSource, InteractiveElement as _, IntoElement as _,
     ParentElement as _, SharedString, SharedUri, Window, div,
 };
-pub use gpui_component::text::{InlineLinkKind, RecognizedLink};
-use gpui_component::text::{InlineLinkRecognizer, LinkSource};
-use gpui_component::text::{SelectionFormat, TextView, TextViewState};
+pub use gpui_base::text::{InlineLinkKind, RecognizedLink};
+use gpui_base::text::{InlineLinkRecognizer, LinkSource};
+use gpui_base::text::{SelectionFormat, TextView, TextViewState};
 
 /// An authored href is untrusted text until the host classifies and authorizes it.
 #[derive(Debug, Clone)]

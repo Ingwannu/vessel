@@ -62,10 +62,10 @@ pub struct Options<'a> {
 
 use gpui::{
     AnyElement, App, AppContext as _, ElementId, Entity, Hsla, IntoElement as _, Overflow,
-    ParentElement as _, Pixels, SharedString, StyleRefinement, Styled as _, WhiteSpace, Window,
-    div, px, relative,
+    ParentElement as _, Pixels, Refineable as _, SharedString, StyleRefinement, Styled as _,
+    WhiteSpace, Window, div, px, relative,
 };
-use gpui_component::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
+use gpui_base::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
 
 use crate::copy::{CopyLook, copy_button};
 use crate::fonts::Type;
@@ -278,17 +278,34 @@ pub fn chat_markdown_with(
                 list.reveal_bounds(bounds, *clear_top);
             }
         })
-        .style(
-            TextViewStyle::default()
-                .code_block(block(look))
-                .table(table())
-                .table_head(table_head(look))
-                .table_cell(table_cell()),
-        )
+        .style(presentation(look, cx))
         .code_block_actions(move |code, window, cx| {
             corner(code.code(), code.lang(), look, window, cx)
         });
     actions::finish(view, state, source, options.actions, options.copy)
+}
+
+/// Component installs its theme on the same Base renderer. Refine that installed
+/// style directly so new engine callbacks keep the existing palette and geometry.
+fn presentation(look: Look, cx: &App) -> TextViewStyle {
+    let defaults = gpui_base::TextViewDefaults::global(cx);
+    let themed = defaults
+        .style()
+        .cloned()
+        .unwrap_or_else(|| TextViewStyle::from_theme(&gpui_base::Theme::global(cx)));
+    let refine = |mut base: StyleRefinement, overlay: StyleRefinement| {
+        base.refine(&overlay);
+        base
+    };
+    let code = refine(themed.code_block().clone(), block(look));
+    let table = refine(themed.table().clone(), table());
+    let head = refine(themed.table_head().clone(), table_head(look));
+    let cell = refine(themed.table_cell().clone(), table_cell());
+    themed
+        .with_code_block(code)
+        .with_table(table)
+        .with_table_head(head)
+        .with_table_cell(cell)
 }
 
 /// Mark `marks` in the reply `state` holds and scroll to the current

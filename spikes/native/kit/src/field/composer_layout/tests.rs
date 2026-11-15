@@ -105,7 +105,7 @@ fn compact_preference_reapply_cannot_send_and_fullscreen_retains_the_same_editor
             panic!("composer");
         };
         assert_eq!(state.entity_id(), identity);
-        assert!(state.read(cx).is_readonly());
+        assert!(state.read(cx).presentation().is_readonly());
         assert_eq!(probe.field.text(cx), "한글\n");
         assert_eq!(
             state.read(cx).selected_range(),

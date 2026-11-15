@@ -216,6 +216,11 @@ seam listed below is also marked in each changed file.
   parsing, existing link marks/copy, and existing inline/image activation adapters.
   The native kit tests partial selection across a recognized token, source-to-find
   offsets, authored-link priority, and fenced-code exclusion. Tests are pending.
+- Compatibility: the kit calls the same Base TextView directly because the pinned
+  Component facade does not forward these optional callbacks. The existing
+  `TextViewDefaults::style` accessor is public so kit refinements start from the
+  exact Component-installed theme, preserving its colors and table geometry.
+  This adds no renderer, state owner, theme adapter, or dependency.
 
 ### 4. A steady caret while motion is held
 
