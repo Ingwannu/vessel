@@ -42,7 +42,7 @@ diagnostic-flow-logs = Daemon logs
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-daemon-note = Basic host information is collected separately. The full daemon report needs a supported host API.
 # Diagnostic sheet status or recovery; keep buttons short.
-diagnostic-flow-provider-note = Automatic diagnostics never starts provider discovery or sign-in.
+diagnostic-flow-provider-note = Collecting diagnostics does not start provider discovery or sign-in.
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-process-note = Process details require a supported host API. No local process scan is run.
 # Diagnostic sheet status or recovery; keep buttons short.
@@ -57,3 +57,6 @@ diagnostic-flow-providers = Open providers
 diagnostic-flow-partial = Basic information only
 # Diagnostic sheet status or recovery; keep buttons short.
 diagnostic-flow-no-hosts = No hosts are saved. You can still copy the client report.
+
+# Short source availability badge; the row description carries the full explanation.
+diagnostic-flow-unavailable-badge = Unavailable

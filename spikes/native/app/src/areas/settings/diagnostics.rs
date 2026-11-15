@@ -7,11 +7,13 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::{
     Command,
-    diagnostics::{Answer, Ask},
+    diagnostics::{Answer, Ask, MAX_PARALLEL_HOSTS},
 };
 use vessel_app_view::Reach;
 use vessel_app_view::devices::{MachineKey, Tickets};
-use vessel_app_view::diagnostics::collection::{Collection, Phase, Problem, Progress, ReportText};
+use vessel_app_view::diagnostics::collection::{
+    Collection, HostCount, MAX_REPORT_HOSTS, Phase, Problem, Progress,
+};
 use vessel_app_view::diagnostics::{self, AppFacts, Renderer};
 use vessel_app_view::prefs::Kept;
 
@@ -38,50 +40,69 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.areas.settings.diagnostics.collection.close();
         let facts = app_facts(self, window);
-        let client = ReportText::new(&diagnostics::report(&facts, &[]));
+        let client =
+            diagnostics::client_report(&facts, HostCount::from_book(self.fleet.machines.len()));
         let ticket = self.areas.settings.diagnostics.tickets.next_ticket();
         let (client, ticket) = match (client, ticket) {
             (Ok(client), Ok(ticket)) => (client, ticket),
             (Err(problem), _) => {
-                self.notice = Some(diagnostics::words::problem(problem, self.words).to_owned());
+                self.failed_diagnostic(problem, window, cx);
                 return;
             }
             (Ok(_), Err(_)) => {
-                self.notice =
-                    Some(diagnostics::words::problem(Problem::Exhausted, self.words).to_owned());
+                self.failed_diagnostic(Problem::Exhausted, window, cx);
                 return;
             }
         };
-        let hosts: Vec<_> = self
-            .fleet
-            .machines
-            .iter()
-            .filter(|machine| {
-                target
-                    .as_ref()
-                    .is_none_or(|key| key.as_str() == machine.name)
-            })
-            .map(|machine| {
-                (
-                    MachineKey::from_book(&machine.name),
-                    match machine.reach {
-                        Reach::Online => Ok(()),
-                        Reach::Unreachable(_) => Err(Problem::Offline),
-                    },
-                )
-            })
-            .collect();
+        let hosts = host_requests(self, target.as_ref());
         let state = &mut self.areas.settings.diagnostics;
         state.target = target;
-        state
-            .collection
-            .start(ticket, chrono::Utc::now(), client, hosts);
-        let asks: Vec<_> = state
-            .collection
+        state.collection.start(ticket, client, hosts);
+        self.pump_diagnostics();
+        self.areas.settings.diagnostics.dialog.focus(window, cx);
+        cx.notify();
+    }
+    fn failed_diagnostic(
+        &mut self,
+        problem: Problem,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.settings.diagnostics;
+        state.collection.refuse(problem);
+        state.dialog.focus(window, cx);
+        cx.notify();
+    }
+    pub(crate) fn diagnostic_answer(&mut self, answer: Answer) {
+        self.areas.settings.diagnostics.collection.answer(
+            answer.ticket,
+            &answer.machine,
+            answer.result,
+        );
+        self.pump_diagnostics();
+    }
+    fn pump_diagnostics(&mut self) {
+        let run = &self.areas.settings.diagnostics.collection;
+        let Some(ticket) = run.ticket() else {
+            return;
+        };
+        if run.phase() != &Phase::Collecting {
+            return;
+        }
+        let running = run
+            .rows()
+            .iter()
+            .filter(|row| row.progress == Progress::Running)
+            .count();
+        // Saturation cannot create extra work when a superseded run still holds a link permit.
+        let capacity = MAX_PARALLEL_HOSTS.saturating_sub(running);
+        let asks: Vec<_> = run
             .rows()
             .iter()
             .filter(|row| row.progress == Progress::Pending)
+            .take(capacity)
             .map(|row| Ask {
                 machine: row.machine.clone(),
                 ticket,
@@ -95,15 +116,6 @@ impl Shell {
                 .running(ticket, &ask.machine);
             self.command(Command::Diagnostics(ask));
         }
-        self.areas.settings.diagnostics.dialog.focus(window, cx);
-        cx.notify();
-    }
-    pub(crate) fn diagnostic_answer(&mut self, answer: Answer) {
-        self.areas.settings.diagnostics.collection.answer(
-            answer.ticket,
-            &answer.machine,
-            answer.result,
-        );
     }
     /// Retire pending data after forget, rename or disconnect before accepting more results.
     pub(crate) fn settle_diagnostics(&mut self) {
@@ -156,4 +168,33 @@ fn app_facts(shell: &Shell, window: &Window) -> AppFacts {
         log: None,
         home: None,
     }
+}
+
+/// Bound the snapshot before allocating all saved labels into a pending run.
+fn host_requests(
+    shell: &Shell,
+    target: Option<&MachineKey>,
+) -> Vec<(MachineKey, Result<(), Problem>)> {
+    let mut hosts: Vec<_> = shell
+        .fleet
+        .machines
+        .iter()
+        .filter(|machine| target.is_none_or(|key| key.as_str() == machine.name))
+        .take(MAX_REPORT_HOSTS.saturating_add(1))
+        .map(|machine| {
+            (
+                MachineKey::from_book(&machine.name),
+                match machine.reach {
+                    Reach::Online => Ok(()),
+                    Reach::Unreachable(_) => Err(Problem::Offline),
+                },
+            )
+        })
+        .collect();
+    if hosts.is_empty()
+        && let Some(key) = target
+    {
+        hosts.push((key.clone(), Err(Problem::Offline)));
+    }
+    hosts
 }

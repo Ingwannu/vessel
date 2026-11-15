@@ -39,12 +39,8 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) {
         .unwrap();
     stream.write_all(&bytes).await.unwrap();
 }
-async fn peer(outcome: Outcome) -> (NodeClient, tokio::task::JoinHandle<()>) {
+async fn peer(admitted: NodeId, outcome: Outcome) -> (NodeClient, tokio::task::JoinHandle<()>) {
     let (local, mut remote) = tokio::io::duplex(FRAME_BYTES);
-    let admitted = match &outcome {
-        Outcome::Ok(Reply::GetNode(info)) => info.id,
-        _ => NodeId::random(),
-    };
     let task = tokio::spawn(async move {
         assert!(matches!(read(&mut remote).await, ClientFrame::Hello(_)));
         write(
@@ -57,7 +53,7 @@ async fn peer(outcome: Outcome) -> (NodeClient, tokio::task::JoinHandle<()>) {
         .await;
         if let ClientFrame::Request { id, call } = read(&mut remote).await {
             assert!(
-                matches!(call, Call::GetNode(_)),
+                matches!(call, Call::NodeInfo(_)),
                 "diagnostics must not discover a provider"
             );
             write(&mut remote, ServerFrame::Response { id, outcome }).await;
@@ -83,8 +79,8 @@ async fn peer(outcome: Outcome) -> (NodeClient, tokio::task::JoinHandle<()>) {
 #[tokio::test]
 async fn node_info_projects_only_allowed_fields_without_discovery() {
     let id = NodeId::random();
-    let (client, task) = peer(Outcome::Ok(Reply::GetNode(node(id)))).await;
-    let answer = collect(&client).await.unwrap();
+    let (client, task) = peer(id, Outcome::Ok(Reply::NodeInfo(node(id)))).await;
+    let answer = collect(&client).await;
     assert_eq!(answer.admitted, id);
     assert_eq!(answer.facts.as_ref().unwrap().node, id);
     assert!(!format!("{answer:?}").contains(CANARY));
@@ -97,8 +93,9 @@ async fn peer_error_message_never_crosses_the_diagnostic_edge() {
         (ErrorCode::Unsupported, Problem::Unsupported),
         (ErrorCode::Internal, Problem::Failed),
     ] {
-        let (client, task) = peer(Outcome::Err(WireError::new(code, CANARY))).await;
-        let answer = collect(&client).await.unwrap();
+        let (client, task) =
+            peer(NodeId::random(), Outcome::Err(WireError::new(code, CANARY))).await;
+        let answer = collect(&client).await;
         assert_eq!(answer.facts, Err(expected));
         assert!(!format!("{answer:?}").contains(CANARY));
         task.abort();
@@ -107,7 +104,7 @@ async fn peer_error_message_never_crosses_the_diagnostic_edge() {
 #[test]
 fn collector_capacity_and_queue_refusal_are_bounded() {
     let hub = Hub::default();
-    let permits: Vec<_> = (0..MAX_COLLECTIONS)
+    let permits: Vec<_> = (0..MAX_PARALLEL_HOSTS)
         .map(|_| Arc::clone(&hub.0).try_acquire_owned().unwrap())
         .collect();
     assert!(Arc::clone(&hub.0).try_acquire_owned().is_err());
@@ -118,4 +115,18 @@ fn collector_capacity_and_queue_refusal_are_bounded() {
         super::super::rejected(crate::Rejected::Closed),
         Problem::Offline
     );
+}
+
+#[tokio::test]
+async fn a_reply_for_another_node_is_not_attributed_to_the_admitted_host() {
+    let admitted = NodeId::random();
+    let (client, task) = peer(
+        admitted,
+        Outcome::Ok(Reply::NodeInfo(node(NodeId::random()))),
+    )
+    .await;
+    let answer = collect(&client).await;
+    assert_eq!(answer.admitted, admitted);
+    assert_eq!(answer.facts, Err(Problem::InvalidReply));
+    task.abort();
 }

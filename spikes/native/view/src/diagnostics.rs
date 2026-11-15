@@ -88,6 +88,16 @@ pub fn report(app: &AppFacts, machines: &[Machine]) -> String {
     redact(&text)
 }
 
+/// A client-only section; host sources are collected independently by the run.
+/// # Errors
+/// Refuses client metadata that exceeds the combined diagnostic text budget.
+pub fn client_report(
+    app: &AppFacts,
+    hosts: collection::HostCount,
+) -> Result<collection::ReportText, collection::Problem> {
+    collection::ReportText::new(&app_section(app, hosts.get()))
+}
+
 /// One section: its title, then a line per entry.
 fn section(title: &str, entries: &[(&str, String)]) -> String {
     let mut text = title.to_owned();
@@ -151,78 +161,5 @@ fn machine_section(machine: &Machine) -> String {
     section(&format!("Machine: {}", machine.name), &entries)
 }
 
-/// Schemes whose addresses are taken out: a machine's routes, a relay's,
-/// a pairing link.
-const SCHEMES: [&str; 6] = [
-    "ws://",
-    "wss://",
-    "http://",
-    "https://",
-    "vessel://",
-    "ssh://",
-];
-
-/// Words after which the value is a secret, as Paseo's redaction names
-/// them.
-const SECRET_KEYS: [&str; 6] = [
-    "token",
-    "secret",
-    "password",
-    "key",
-    "authorization",
-    "credential",
-];
-
-/// The text with every address, key and secret value replaced by
-/// `[redacted]`: a URL of [`SCHEMES`] to its end, a `name=value` or
-/// `name: value` whose name holds one of [`SECRET_KEYS`], and an `x25519:`
-/// key.
-#[must_use]
-pub fn redact(text: &str) -> String {
-    text.split('\n')
-        .map(redact_line)
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn redact_line(line: &str) -> String {
-    let mut out = String::with_capacity(line.len());
-    let mut words = line.split(' ');
-    let mut first = true;
-    while let Some(word) = words.next() {
-        if !first {
-            out.push(' ');
-        }
-        first = false;
-        out.push_str(&redact_word(word));
-        // "token: value": the value is the next word.
-        let lower = word.to_ascii_lowercase();
-        if lower.ends_with(':') && names_a_secret(&lower) && words.next().is_some() {
-            out.push_str(" [redacted]");
-        }
-    }
-    out
-}
-
-fn redact_word(word: &str) -> String {
-    let lower = word.to_ascii_lowercase();
-    if let Some(at) = SCHEMES.iter().filter_map(|scheme| lower.find(scheme)).min() {
-        // Keep what precedes the address ("(" or a label), drop the rest.
-        let kept = word.get(..at).unwrap_or_default();
-        return format!("{kept}[redacted]");
-    }
-    if let Some(at) = lower.find("x25519:") {
-        let kept = word.get(..at).unwrap_or_default();
-        return format!("{kept}x25519:[redacted]");
-    }
-    if let Some((name, _value)) = word.split_once('=')
-        && names_a_secret(&name.to_ascii_lowercase())
-    {
-        return format!("{name}=[redacted]");
-    }
-    word.to_owned()
-}
-
-fn names_a_secret(name: &str) -> bool {
-    SECRET_KEYS.iter().any(|key| name.contains(key))
-}
+mod redaction;
+pub use redaction::redact;

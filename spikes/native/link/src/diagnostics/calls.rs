@@ -1,19 +1,17 @@
 //! The bounded read never asks agent.status, which can spawn discovery.
-use super::{Answer, Ask};
+use super::{Answer, Ask, MAX_PARALLEL_HOSTS};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
 use vessel_app_view::diagnostics::collection::{HostResult, NodeFacts, Problem};
 use vessel_client::{CallError, NodeClient};
 
-/// Slots include event delivery, bounding retained replies under UI backpressure.
-const MAX_COLLECTIONS: usize = 4;
 /// A basic node-info round trip cannot hold a diagnostic row indefinitely.
 const NODE_INFO_DEADLINE: Duration = Duration::from_secs(10);
 
 pub(crate) struct Hub(Arc<Semaphore>);
 impl Default for Hub {
     fn default() -> Self {
-        Self(Arc::new(Semaphore::new(MAX_COLLECTIONS)))
+        Self(Arc::new(Semaphore::new(MAX_PARALLEL_HOSTS)))
     }
 }
 impl crate::State {
@@ -34,13 +32,13 @@ impl crate::State {
             let answer = Answer {
                 machine: ask.machine,
                 ticket: ask.ticket,
-                result: collect(&client).await,
+                result: Ok(collect(&client).await),
             };
             let _closed = events.send(crate::Event::Diagnostics(answer)).await;
         }));
     }
 }
-async fn collect(client: &NodeClient) -> Result<HostResult, Problem> {
+async fn collect(client: &NodeClient) -> HostResult {
     let admitted = client.node().id;
     let facts = match tokio::time::timeout(NODE_INFO_DEADLINE, client.node_info()).await {
         Ok(Ok(info)) if info.id == admitted => Ok(NodeFacts {
@@ -52,7 +50,7 @@ async fn collect(client: &NodeClient) -> Result<HostResult, Problem> {
         Ok(Err(error)) => Err(problem(error)),
         Err(_elapsed) => Err(Problem::TimedOut),
     };
-    Ok(HostResult { admitted, facts })
+    HostResult { admitted, facts }
 }
 fn problem(error: CallError) -> Problem {
     match error {

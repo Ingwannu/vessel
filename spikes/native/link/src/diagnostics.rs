@@ -5,6 +5,9 @@
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::diagnostics::collection::{HostResult, Problem};
 
+/// Bound shared by the dispatcher and its per-run scheduling.
+pub const MAX_PARALLEL_HOSTS: usize = 4;
+
 /// One page-issued request; refresh allocates a different ticket.
 #[derive(Debug, Clone)]
 pub struct Ask {

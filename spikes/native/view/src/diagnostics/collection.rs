@@ -2,7 +2,6 @@
 //! Refresh and close replace the run identity, so late replies cannot revive it.
 
 use crate::devices::{MachineKey, Ticket};
-use chrono::{DateTime, Utc};
 use vessel_proto::{NodeId, NodeState, ProtocolVersion};
 
 /// Maximum combined UTF-8 report bytes accepted for display or copying.
@@ -10,9 +9,25 @@ pub const MAX_REPORT_BYTES: usize = 128 * 1024;
 /// Maximum host rows retained by a diagnostic run.
 pub const MAX_REPORT_HOSTS: usize = 64;
 
+/// A saved-host count, separate from an identifier or byte budget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HostCount(usize);
+impl HostCount {
+    /// Carry the length of an already parsed node book.
+    #[must_use]
+    pub const fn from_book(count: usize) -> Self {
+        Self(count)
+    }
+    /// Numeric count for the technical report header.
+    #[must_use]
+    pub const fn get(self) -> usize {
+        self.0
+    }
+}
+
 /// Shareable text that has passed redaction and the combined output budget.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReportText(String);
+pub struct ReportText(std::sync::Arc<str>);
 impl ReportText {
     /// Sanitize before admitting text to the copyable report.
     /// # Errors
@@ -25,7 +40,7 @@ impl ReportText {
         if text.len() > MAX_REPORT_BYTES {
             return Err(Problem::TooLarge);
         }
-        Ok(Self(text))
+        Ok(Self(text.into()))
     }
     /// Text suitable for the report viewer and clipboard.
     #[must_use]
@@ -135,22 +150,24 @@ pub struct Collection {
     client: Option<ReportText>,
     rows: Vec<HostRow>,
     report: Option<ReportText>,
-    collected_at: Option<DateTime<Utc>>,
 }
 impl Collection {
     /// Supersede the previous run before admitting its new host list.
     pub fn start(
         &mut self,
         ticket: Ticket,
-        at: DateTime<Utc>,
         client: ReportText,
         hosts: impl IntoIterator<Item = (MachineKey, Result<(), Problem>)>,
     ) {
         self.close();
         self.ticket = Some(ticket);
         self.client = Some(client);
-        self.collected_at = Some(at);
         for (machine, availability) in hosts {
+            if self.rows.iter().any(|row| row.machine == machine) {
+                self.phase = Phase::Failed(Problem::InvalidReply);
+                self.rows.clear();
+                return;
+            }
             if self.rows.len() >= MAX_REPORT_HOSTS {
                 self.phase = Phase::Failed(Problem::TooLarge);
                 self.rows.clear();
@@ -217,6 +234,11 @@ impl Collection {
             self.finish();
         }
     }
+    /// Refuse a replacement run immediately, invalidating every previous answer.
+    pub fn refuse(&mut self, problem: Problem) {
+        self.close();
+        self.phase = Phase::Failed(problem);
+    }
     /// Close immediately; no outstanding answer still names an active run.
     pub fn close(&mut self) {
         self.ticket = None;
@@ -224,7 +246,11 @@ impl Collection {
         self.client = None;
         self.rows.clear();
         self.report = None;
-        self.collected_at = None;
+    }
+    /// Correlation for dispatching the next pending host of this same run.
+    #[must_use]
+    pub const fn ticket(&self) -> Option<Ticket> {
+        self.ticket
     }
     /// What the screen draws.
     #[must_use]

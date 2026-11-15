@@ -43,7 +43,7 @@ mod tests {
             (
                 Problem::Offline,
                 "The host is not connected. Reconnect and refresh.",
-                "호스트가 연결되어 있지 않습니다. 다시 연결한 뒤 새로고침하세요.",
+                "머신이 연결되어 있지 않습니다. 다시 연결한 뒤 새로 고침하세요.",
             ),
             (
                 Problem::Unavailable,
@@ -53,7 +53,7 @@ mod tests {
             (
                 Problem::TooLarge,
                 "The combined report is too large. Run a report for one host.",
-                "통합 보고서가 너무 큽니다. 호스트 한 대의 보고서를 실행하세요.",
+                "통합 보고서가 너무 큽니다. 머신 한 대의 보고서를 생성하세요.",
             ),
         ] {
             assert_eq!(problem(failure, en), english);

@@ -78,7 +78,7 @@ pub(crate) fn render(
                 div()
                     .type_(Type::Caption)
                     .text_color(tokens.neutral.foreground_muted)
-                    .child(labels.unavailable())
+                    .child(labels.unavailable_badge())
                     .into_any_element(),
             ),
             index == 0,

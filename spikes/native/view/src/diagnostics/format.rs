@@ -11,16 +11,16 @@ pub(super) fn combined(
     for (index, row) in rows.iter().enumerate() {
         // Saturation only guards the ordinal; the row bound keeps it well below usize::MAX.
         let ordinal = index.saturating_add(1);
-        let _written = write!(text, "\n\nHost {ordinal}\n");
+        let _written = writeln!(text, "\n\nHost {ordinal}");
         match &row.progress {
             Progress::Done(facts) => {
                 let state = match facts.state {
                     NodeState::Serving => "serving",
                     NodeState::Draining => "draining",
                 };
-                let _written = write!(
+                let _written = writeln!(
                     text,
-                    "  Node ID: {}\n  Protocol: {}\n  Lifecycle: {state}\n",
+                    "  Node ID: {}\n  Protocol: {}\n  Lifecycle: {state}",
                     facts.node, facts.protocol
                 );
             }
