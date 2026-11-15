@@ -155,7 +155,7 @@ impl Node {
             unadmitted_per_address: Arc::default(),
         };
         let teardown = Teardown {
-            workspace_labels: service.0.workspace_labels.clone(),
+            workspace_labels: secure.service.0.workspace_labels.clone(),
             runtime,
             settings,
             tasks,

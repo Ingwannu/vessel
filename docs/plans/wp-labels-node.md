@@ -205,3 +205,12 @@ explicit method pattern into that existing arm, preserving the same sample bytes
 and exhaustive coverage. Store strict checking completed before this failure;
 Node/test execution is not accepted by this partial result. Current strict and
 all new runtime tests remain owed. No test expectation or lint allowance changed.
+
+
+While the corrected-sample run was still queued, source audit found teardown
+referenced `service` after SecureGateway had taken ownership. Capture the same
+label handle through that existing gateway owner instead; no new service or
+actor is constructed. The queued-only cancellation verified its process group
+and terminal 143 before a single corrected replacement. No compiler ran on
+that cancelled source, so the ownership defect is source-found, not a claimed
+compiler diagnostic. The existing shutdown drain order remains unchanged.
