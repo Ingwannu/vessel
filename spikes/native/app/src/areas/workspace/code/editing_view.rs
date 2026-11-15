@@ -58,7 +58,7 @@ pub(super) fn body(
                 move |_, _, cx| editor.open_find(cx)
             }),
         )
-        .children(editing.find.as_ref().cloned())
+        .children(editing.find.clone())
         .children(conflict_bar(shell, editing, tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()

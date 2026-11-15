@@ -7,16 +7,16 @@ use vessel_proto::{ProjectId, SessionId};
 
 use super::*;
 
-fn root() -> WorkspaceRoot {
+pub(super) fn root() -> WorkspaceRoot {
     WorkspaceRoot::Project {
-        project: ProjectId::new(),
+        project: ProjectId::random(),
     }
 }
 
-fn target(shell: &mut Shell, root: WorkspaceRoot) {
+pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
     shell.areas.workspace.code.target = Some(Target {
         machine: "node".to_owned(),
-        session: SessionId::new(),
+        session: SessionId::random(),
         place: Place::Root(root),
         cwd: Some("/fixture".into()),
     });
@@ -31,7 +31,7 @@ fn read(root: WorkspaceRoot, path: &str) -> ReadFile {
     }
 }
 
-fn text(text: &str) -> Result<FileRead, Problem> {
+pub(super) fn text(text: &str) -> Result<FileRead, Problem> {
     Ok(FileRead {
         version: FileVersion {
             size: u64::try_from(text.len()).unwrap(),

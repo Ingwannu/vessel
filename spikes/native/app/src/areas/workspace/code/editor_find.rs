@@ -2,14 +2,18 @@
 //! does not repaint the shell. Replacement explicitly reaches the guarded
 //! save model; the engine's replacement method emits no change event.
 
+#[cfg(test)]
+#[path = "editor_find_tests.rs"]
+mod tests;
+
 use gpui::AppContext as _;
 use vessel_app_kit::code_editor::{
     CodeEditor, FindCase, FindDirection, FindRevision, FindState, ReplaceScope,
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    Context, Entity, IntoElement, ParentElement as _, Render, StatefulInteractiveElement as _,
-    Styled as _, Subscription, WeakEntity, Window, div, px,
+    Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _, Render,
+    StatefulInteractiveElement as _, Styled as _, Subscription, WeakEntity, Window, div, px,
 };
 use vessel_app_kit::{TextField, Type, TypeExt as _, button};
 
@@ -76,7 +80,7 @@ impl FindPanel {
         let text = self.replacement.text(cx);
         if self.editor.find_replace(&text, scope, window, cx).0 != 0 {
             let _gone = self.shell.update(cx, |shell, cx| {
-                shell.editor_changed_for(&self.key, window, cx)
+                shell.editor_changed_for(&self.key, window, cx);
             });
         }
         cx.notify();
@@ -118,90 +122,115 @@ impl Render for FindPanel {
                 }
             )
         };
-        let query = div()
-            .flex_1()
-            .min_w_0()
-            .child(self.query.input(&tokens, cx));
-        let replacement = div()
-            .flex_1()
-            .min_w_0()
-            .child(self.replacement.input(&tokens, cx));
         div()
             .flex()
             .flex_col()
+            .on_key_down(cx.listener(|this, event, window, cx| {
+                if event.keystroke.key == "escape" {
+                    this.editor.close_find(window, cx);
+                    cx.stop_propagation();
+                }
+            }))
             .gap(px(spacing::S1))
             .p(px(spacing::S2))
             .type_(Type::Meta)
             .text_color(tokens.neutral.foreground_muted)
+            .child(self.search_row(labels, &tokens, count, cx))
+            .child(self.replacement_row(labels, &tokens, cx))
+    }
+}
+
+impl FindPanel {
+    fn search_row(
+        &self,
+        labels: &vessel_app_view::workspace::words::Labels,
+        tokens: &vessel_app_kit::Tokens,
+        count: String,
+        cx: &mut Context<'_, Self>,
+    ) -> Div {
+        div()
+            .flex()
+            .flex_row()
+            .flex_wrap()
+            .gap(px(spacing::S1))
+            .child(div().flex_1().min_w_0().child(self.query.input(tokens, cx)))
+            .child(count)
             .child(
-                div()
-                    .flex()
-                    .flex_row()
-                    .flex_wrap()
-                    .gap(px(spacing::S1))
-                    .child(query)
-                    .child(count)
-                    .child(
-                        button(
-                            "source-find-previous",
-                            labels.file_find_previous,
-                            false,
-                            &tokens,
-                        )
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.move_match(FindDirection::Previous, cx)
-                        })),
-                    )
-                    .child(
-                        button("source-find-next", labels.file_find_next, false, &tokens).on_click(
-                            cx.listener(|this, _, _, cx| this.move_match(FindDirection::Next, cx)),
-                        ),
-                    )
-                    .child(
-                        button(
-                            "source-find-case",
-                            labels.file_find_case,
-                            self.case == FindCase::Sensitive,
-                            &tokens,
-                        )
-                        .on_click(cx.listener(|this, _, _, cx| {
-                            this.case = match this.case {
-                                FindCase::Sensitive => FindCase::Insensitive,
-                                FindCase::Insensitive => FindCase::Sensitive,
-                            };
-                            this.editor.find_query(&this.query.text(cx), this.case, cx);
-                        })),
-                    )
-                    .child(
-                        button("source-find-close", labels.dismiss, false, &tokens).on_click(
-                            cx.listener(|this, _, window, cx| this.editor.close_find(window, cx)),
-                        ),
-                    ),
+                button(
+                    "source-find-previous",
+                    labels.file_find_previous,
+                    false,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.move_match(FindDirection::Previous, cx);
+                })),
             )
             .child(
+                button("source-find-next", labels.file_find_next, false, tokens).on_click(
+                    cx.listener(|this, _, _, cx| {
+                        this.move_match(FindDirection::Next, cx);
+                    }),
+                ),
+            )
+            .child(
+                button(
+                    "source-find-case",
+                    labels.file_find_case,
+                    self.case == FindCase::Sensitive,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.case = match this.case {
+                        FindCase::Sensitive => FindCase::Insensitive,
+                        FindCase::Insensitive => FindCase::Sensitive,
+                    };
+                    this.editor.find_query(&this.query.text(cx), this.case, cx);
+                })),
+            )
+            .child(
+                button("source-find-close", labels.dismiss, false, tokens).on_click(cx.listener(
+                    |this, _, window, cx| {
+                        this.editor.close_find(window, cx);
+                    },
+                )),
+            )
+    }
+
+    fn replacement_row(
+        &self,
+        labels: &vessel_app_view::workspace::words::Labels,
+        tokens: &vessel_app_kit::Tokens,
+        cx: &mut Context<'_, Self>,
+    ) -> Div {
+        div()
+            .flex()
+            .flex_row()
+            .flex_wrap()
+            .gap(px(spacing::S1))
+            .child(
                 div()
-                    .flex()
-                    .flex_row()
-                    .flex_wrap()
-                    .gap(px(spacing::S1))
-                    .child(replacement)
-                    .child(
-                        button("source-find-replace", labels.file_replace, false, &tokens)
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.replace(ReplaceScope::Current, window, cx)
-                            })),
-                    )
-                    .child(
-                        button(
-                            "source-find-replace-all",
-                            labels.file_replace_all,
-                            false,
-                            &tokens,
-                        )
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.replace(ReplaceScope::All, window, cx)
-                        })),
-                    ),
+                    .flex_1()
+                    .min_w_0()
+                    .child(self.replacement.input(tokens, cx)),
+            )
+            .child(
+                button("source-find-replace", labels.file_replace, false, tokens).on_click(
+                    cx.listener(|this, _, window, cx| {
+                        this.replace(ReplaceScope::Current, window, cx);
+                    }),
+                ),
+            )
+            .child(
+                button(
+                    "source-find-replace-all",
+                    labels.file_replace_all,
+                    false,
+                    tokens,
+                )
+                .on_click(cx.listener(|this, _, window, cx| {
+                    this.replace(ReplaceScope::All, window, cx);
+                })),
             )
     }
 }

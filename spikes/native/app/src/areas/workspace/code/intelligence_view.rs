@@ -59,7 +59,7 @@ pub(super) fn panel(
                 Refusal::Workspace | Refusal::Path | Refusal::Language => {
                     labels.language_unavailable
                 }
-            })
+            });
         }
         State::Ready { result, .. } => {
             body = body.child(result_body(shell, result, tokens, cx));

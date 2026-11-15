@@ -139,3 +139,32 @@ These tests are written but not yet executed. Remote narrow clippy on
 `18aded91` failed at app UI imports, extracted method visibility and one
 LSP row signature; this source corrects those errors. Earlier red runs
 remain failures; no whole gate or screenshot approval exists yet.
+
+## Mutation ownership and shared base 2
+
+App base `6036eeb8` is merged (typed machine welcome node id and the shared
+field events/editability seams). Explorer refresh now reuses the existing
+bounded folder/file refresh controller. File rename/delete has a single
+tracked mutation registration; acknowledgements check node, root, operation
+and ticket before any resource or inline-form update. Dirty or pending
+source/target resources refuse a mutation. Clean source controls are held
+readonly until it settles, preventing new edits from racing the operation.
+A successful directory rename rewrites retained keys, viewer paths, expanded
+folders and cached listing keys by complete path components. Source controls
+are rebuilt because their callbacks capture the original key; the clean
+model and caret line survive. Deletes release only the affected clean
+resources. An old root's acknowledgement settles its retained resources but
+cannot close the current root's file. Regression tests cover those cases.
+
+Difference: renaming/deleting an unsaved file currently asks the user to
+save and retry through an explicit refusal instead of opening a save/discard
+modal. This preserves edits while the W12 close/lifecycle seam is pending.
+The destination must have no resident buffer to avoid rekeying over another
+buffer's lifetime. No acknowledgement is interpreted as proof of a mutation
+without its matching local ticket. Node-side filesystem confinement remains
+the authority; the UI checks protect buffer lifetime, not filesystem access.
+
+`1df27749` narrow clippy reached the app with no library type errors and
+failed on test fixture ID constructors plus strict app style lints. Those
+failures are corrected in this source; the newer GPUI find/replace/Escape
+and mutation tests remain unexecuted until the next narrow check completes.

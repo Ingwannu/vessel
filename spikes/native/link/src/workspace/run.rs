@@ -160,9 +160,10 @@ async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
             result: call(client, ask.clone()).await,
             ask,
         },
-        FileAsk::Path(change) => Answer::PathChanged {
+        FileAsk::Path { change, ticket } => Answer::PathChanged {
             result: path_change(client, change.clone()).await,
             change,
+            ticket,
         },
     }
 }

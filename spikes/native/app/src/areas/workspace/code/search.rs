@@ -103,10 +103,10 @@ impl Search {
 
 impl Shell {
     fn search_typed(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        if text.trim().is_empty() {
-            if let Some(key) = self.areas.workspace.code.files.search.key {
-                self.cancel_file_search(key);
-            }
+        if text.trim().is_empty()
+            && let Some(key) = self.areas.workspace.code.files.search.key
+        {
+            self.cancel_file_search(key);
         }
         let search = &mut self.areas.workspace.code.files.search;
         if text.trim().is_empty() {
@@ -239,7 +239,7 @@ impl Shell {
         machine: &str,
         ask: &FindFiles,
         result: Result<FoundFiles, Problem>,
-        cx: &mut Context<'_, Self>,
+        _cx: &mut Context<'_, Self>,
     ) {
         if result.as_ref().is_ok_and(|found| found.superseded) {
             return;
@@ -461,7 +461,7 @@ enum SearchDispatch {
 
 fn search_received(
     shell: &mut Shell,
-    request: crate::areas::workspace::FileSearchRequest,
+    request: &crate::areas::workspace::FileSearchRequest,
     result: Result<FoundFiles, Problem>,
     _cx: &mut Context<'_, Shell>,
 ) {

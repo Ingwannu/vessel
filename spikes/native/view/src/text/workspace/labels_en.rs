@@ -28,6 +28,8 @@ pub const EN: Labels = Labels {
     hide_hidden_files: "Hide hidden files",
     show_hidden_files: "Show hidden files",
     editor_buffers_full: "Save or close an open file before opening another.",
+    file_busy: "Save changes and wait for pending file operations before trying again.",
+    files_refresh: "Refresh",
     projects: "Projects",
     projects_lead: "The folders a machine works in. A session runs in a project's folder as it is, or in a worktree of its own on a new branch.",
     add_project: "Add project",

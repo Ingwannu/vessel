@@ -35,7 +35,7 @@ pub(crate) struct FileSearchRequest {
 
 /// Consumers register a UI callback, not a network or filesystem handler.
 pub(crate) type FileSearchReceiver =
-    fn(&mut Shell, FileSearchRequest, Result<FoundFiles, Problem>, &mut Context<'_, Shell>);
+    fn(&mut Shell, &FileSearchRequest, Result<FoundFiles, Problem>, &mut Context<'_, Shell>);
 
 pub(super) struct RegisteredSearch {
     ticket: FileTicket,
@@ -68,7 +68,7 @@ impl Shell {
             .code
             .tickets
             .issue()
-            .map_err(|_| FileSearchRefusal::Exhausted)?;
+            .map_err(FileSearchRefusal::Exhausted)?;
         let searches = &mut self.areas.workspace.code.searches.0;
         if searches.len() >= MAX_FILE_SEARCH_OWNERS && !searches.contains_key(&request.key) {
             return Err(FileSearchRefusal::Capacity);
@@ -112,7 +112,7 @@ impl Shell {
             return;
         }
         if let Some((request, receive)) = self.take_file_search(machine, ask, ticket) {
-            receive(self, request, result, cx);
+            receive(self, &request, result, cx);
         }
     }
 

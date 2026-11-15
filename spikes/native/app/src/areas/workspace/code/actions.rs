@@ -23,7 +23,7 @@
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
-use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
+use vessel_app_link::workspace::PathChange;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::FolderName;
@@ -283,7 +283,7 @@ impl Shell {
                 to: target,
             }),
         };
-        self.ask(&machine, Ask::File(FileAsk::Path(change)));
+        self.begin_file_mutation(&machine, change, cx);
         cx.notify();
     }
 
@@ -305,13 +305,14 @@ impl Shell {
         let Some((path, folder)) = panel.files.actions.deleting.take() else {
             return;
         };
-        self.ask(
+        self.begin_file_mutation(
             &machine,
-            Ask::File(FileAsk::Path(PathChange::Delete(DeletePath {
+            PathChange::Delete(DeletePath {
                 root,
                 path,
                 recursive: folder,
-            }))),
+            }),
+            cx,
         );
         cx.notify();
     }
@@ -337,14 +338,6 @@ impl Shell {
             | PathChange::Delete(DeletePath { path, .. }) => vec![path.clone()],
             PathChange::Rename(RenamePath { from, to, .. }) => vec![from.clone(), to.clone()],
         };
-        if files
-            .viewer
-            .as_ref()
-            .is_some_and(|viewer| touched.contains(&viewer.path))
-            && !matches!(change, PathChange::CreateFile { .. })
-        {
-            files.viewer = None;
-        }
         let folders: Vec<RelPath> = touched
             .iter()
             .map(|path| path.parent().unwrap_or_else(RelPath::root))

@@ -7,7 +7,7 @@ use super::*;
 
 fn receive(
     _: &mut Shell,
-    _: FileSearchRequest,
+    _: &FileSearchRequest,
     _: Result<FoundFiles, Problem>,
     _: &mut Context<'_, Shell>,
 ) {
@@ -17,7 +17,7 @@ fn request(key: SearchKey) -> FileSearchRequest {
     FileSearchRequest {
         machine: Name::parse("node").unwrap(),
         root: WorkspaceRoot::Project {
-            project: ProjectId::new(),
+            project: ProjectId::random(),
         },
         query: "alpha".parse().unwrap(),
         key,
@@ -82,7 +82,7 @@ fn repeated_query_keeps_new_generation_after_old_reply(cx: &mut TestAppContext) 
         );
         let mut wrong_root = ask(&first);
         wrong_root.root = WorkspaceRoot::Project {
-            project: ProjectId::new(),
+            project: ProjectId::random(),
         };
         assert!(
             shell

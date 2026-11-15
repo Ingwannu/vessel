@@ -196,6 +196,10 @@ impl Shell {
 
     /// Reload: at once for a clean buffer, else after Paseo's question.
     pub(super) fn editor_reload(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.refuse_active_file_mutation() {
+            cx.notify();
+            return;
+        }
         let Some(editing) = self.editing() else {
             return;
         };
@@ -236,6 +240,7 @@ impl Shell {
         let Some(key) = self.areas.workspace.code.file_key() else {
             return;
         };
+        let mutation_held = self.areas.workspace.code.file_mutating(&key);
         let labels = self.words().labels();
         let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() else {
             return;
@@ -268,6 +273,7 @@ impl Shell {
             window,
             cx,
         );
+        editor.set_read_only(mutation_held, cx);
         if wrap {
             editor.set_wrapping(true, window, cx);
         }

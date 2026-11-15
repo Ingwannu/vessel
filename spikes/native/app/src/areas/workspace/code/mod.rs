@@ -45,6 +45,7 @@ mod intelligence_view;
 mod io_tests;
 mod layout_adapter;
 mod line_syntax;
+mod mutation;
 mod search;
 mod tree;
 mod tree_memory;
@@ -166,6 +167,7 @@ struct Files {
 
 /// The panel's state.
 pub(crate) struct CodePanel {
+    mutation: Option<mutation::PendingMutation>,
     find_keys: vessel_app_view::workspace::find::SearchKeys,
     searches: file_search::Searches,
     /// Whether it is out.
@@ -223,6 +225,7 @@ impl CodePanel {
                 narrow: std::cell::Cell::new(false),
             },
             tickets: vessel_app_view::workspace::file_ticket::FileTickets::default(),
+            mutation: None,
             edge: crate::areas::edge::PanelEdge::new(),
             row: std::rc::Rc::new(std::cell::Cell::new(None)),
             stale: Stale::default(),

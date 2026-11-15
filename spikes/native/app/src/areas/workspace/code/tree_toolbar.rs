@@ -67,6 +67,14 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         .gap(px(spacing::S1))
         .p(px(spacing::S2))
         .child(
+            button("files-refresh", labels.files_refresh, false, tokens).on_click(cx.listener(
+                |shell, _, _, cx| {
+                    shell.reread_files();
+                    cx.notify();
+                },
+            )),
+        )
+        .child(
             button("files-sort", sort, false, tokens)
                 .on_click(cx.listener(|shell, _, _, cx| shell.tree_sort_changed(cx))),
         )

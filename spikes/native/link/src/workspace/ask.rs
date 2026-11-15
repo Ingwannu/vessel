@@ -119,7 +119,12 @@ pub enum FileAsk {
     /// `file.grep`.
     Grep(SearchFiles),
     /// `file.create_dir`, `file.rename`, `file.delete`, or a new file.
-    Path(PathChange),
+    Path {
+        /// Root-confined operation.
+        change: PathChange,
+        /// App mutation identity, echoed on refusals too.
+        ticket: FileTicket,
+    },
 }
 
 /// A git write (`git.stage` to `git.stash`).
@@ -198,4 +203,17 @@ pub enum PathChange {
         /// The new file.
         path: RelPath,
     },
+}
+
+impl PathChange {
+    /// Authorized root independent of the selected file panel.
+    #[must_use]
+    pub const fn root(&self) -> WorkspaceRoot {
+        match self {
+            Self::CreateDir(ask) => ask.root,
+            Self::Rename(ask) => ask.root,
+            Self::Delete(ask) => ask.root,
+            Self::CreateFile { root, .. } => *root,
+        }
+    }
 }

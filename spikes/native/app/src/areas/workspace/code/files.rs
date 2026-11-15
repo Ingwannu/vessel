@@ -73,6 +73,15 @@ impl Shell {
                 })),
             );
         }
+        if self
+            .areas
+            .workspace
+            .code
+            .file_key()
+            .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
+        {
+            return;
+        }
         let edited = self
             .areas
             .workspace
@@ -114,7 +123,9 @@ impl Shell {
     ) {
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
-        if panel.root() != Some((machine, &ask.root)) {
+        if panel.root() != Some((machine, &ask.root))
+            || !panel.files.listings.contains_key(&ask.dir)
+        {
             return;
         }
         let listing = match result {
@@ -174,6 +185,14 @@ impl Shell {
         else {
             return;
         };
+        if super::buffers::FileKey::from_book(&machine, root, path.clone())
+            .is_some_and(|key| self.areas.workspace.code.file_mutating(&key))
+        {
+            self.areas.workspace.code.files.actions.refused =
+                Some(self.words().labels().file_busy.to_owned());
+            cx.notify();
+            return;
+        }
         self.flush_file();
         if !self.park_file() {
             cx.notify();

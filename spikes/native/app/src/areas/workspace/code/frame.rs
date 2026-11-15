@@ -234,7 +234,7 @@ fn code_panel(
                     crate::areas::workspace::ExplorerKind::Changes,
                     window,
                     cx,
-                )
+                );
             })),
         )
         .child(
@@ -251,7 +251,7 @@ fn code_panel(
                     crate::areas::workspace::ExplorerKind::Files,
                     window,
                     cx,
-                )
+                );
             })),
         );
     let close = div().child(

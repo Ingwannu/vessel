@@ -184,7 +184,11 @@ impl Shell {
                 result,
             } => self.file_search_answered(machine, &ask, ticket, result, cx),
             Answer::Grepped { ask, result } => self.files_grepped(machine, &ask, result),
-            Answer::PathChanged { change, result } => self.path_changed(&change, result),
+            Answer::PathChanged {
+                change,
+                ticket,
+                result,
+            } => self.file_mutation_answered(machine, &change, ticket, result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's

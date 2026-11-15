@@ -31,6 +31,9 @@ pub struct Labels {
     pub language_truncated: &'static str,
     /// Retained dirty/pending buffers cannot be discarded for a new file.
     pub editor_buffers_full: &'static str,
+    /// Root mutation cannot discard edits or race pending file I/O.
+    pub file_busy: &'static str,
+    pub files_refresh: &'static str,
     /// File sort and visibility actions.
     pub file_sort_size: &'static str,
     pub hide_hidden_files: &'static str,

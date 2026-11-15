@@ -39,9 +39,9 @@ impl Shell {
         let Some(key) = self.areas.workspace.code.file_key() else {
             return;
         };
-        let request = self.language_request(&key, action, cx);
+        let request = self.language_request(&key, cx);
         match request {
-            Ok(at) => self.send_language_query(key, at, action),
+            Ok(at) => self.send_language_query(&key, at, action),
             Err(refusal) => {
                 if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
                     viewer.intelligence = State::Refused(refusal);
@@ -54,7 +54,6 @@ impl Shell {
     fn language_request(
         &mut self,
         key: &FileKey,
-        action: IntelligenceAction,
         cx: &Context<'_, Self>,
     ) -> Result<AtPosition, Refusal> {
         let viewer = self
@@ -91,7 +90,7 @@ impl Shell {
         };
         // All query kinds name the same saved document; diagnostics use
         // the position only as part of the retained navigation context.
-        let _kind = action;
+
         Ok(AtPosition {
             workspace: Workspace { root, language },
             file,
@@ -100,7 +99,7 @@ impl Shell {
         })
     }
 
-    fn send_language_query(&mut self, key: FileKey, at: AtPosition, action: IntelligenceAction) {
+    fn send_language_query(&mut self, key: &FileKey, at: AtPosition, action: IntelligenceAction) {
         let Some(ticket) = self.next_file_ticket() else {
             return;
         };
@@ -111,7 +110,7 @@ impl Shell {
             at,
             action,
         };
-        if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.intelligence = State::Loading(ask.clone());
         }
         self.ask(key.machine.as_str(), Ask::File(FileAsk::Intelligence(ask)));
@@ -147,7 +146,7 @@ impl Shell {
         let mut at = ask.at.clone();
         at.page.offset = offset;
         let action = ask.action;
-        self.send_language_query(key, at, action);
+        self.send_language_query(&key, at, action);
         cx.notify();
     }
 

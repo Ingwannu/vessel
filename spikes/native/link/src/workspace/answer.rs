@@ -221,6 +221,8 @@ pub enum Answer {
     },
     /// A path made, renamed or deleted.
     PathChanged {
+        /// Original app mutation identity.
+        ticket: FileTicket,
         /// What was asked.
         change: PathChange,
         /// Done, or why not.
@@ -412,8 +414,9 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             ask,
             result: no(problem),
         },
-        FileAsk::Path(change) => Answer::PathChanged {
+        FileAsk::Path { change, ticket } => Answer::PathChanged {
             change,
+            ticket,
             result: no(problem),
         },
     }
