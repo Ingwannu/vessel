@@ -104,19 +104,43 @@ fn click(window: &mut Window, cx: &mut App, at: Point<Pixels>) {
         cx,
     );
 }
+#[derive(Clone, Copy)]
+enum Opening {
+    InPlace,
+    AfterClose,
+    MeasuredEnd,
+}
 // One outer window update intentionally retains A's rendered event tree while
 // opening B. Dispatch outside the entity update avoids re-entrant borrowing;
 // the render count proves no redraw silently replaced A's handlers beforehand.
 fn stale_event(
     view: &Entity<Probe>,
     cx: &mut VisualTestContext,
+    opening: Opening,
     event: impl FnOnce(&mut Window, &mut App),
 ) {
     cx.update(|window, cx| {
         let before = view.read(cx).renders.get();
         view.update(cx, |this, cx| {
             this.generation = 1;
-            this.open(window, cx);
+            match opening {
+                Opening::InPlace => this.open(window, cx),
+                Opening::AfterClose => {
+                    this.menu.close_and_restore(window, cx);
+                    this.open(window, cx);
+                }
+                Opening::MeasuredEnd => {
+                    this.menu.open_end(
+                        Bounds {
+                            origin: point(px(100.0), px(10.0)),
+                            size: gpui::size(px(220.0), px(30.0)),
+                        },
+                        window,
+                        cx,
+                    );
+                    cx.notify();
+                }
+            }
             this.menu.highlighted = Some(1);
         });
         event(window, cx);
@@ -136,11 +160,18 @@ fn old_render_pointer_and_outside_cannot_close_new_open_or_run_keep_open_actions
 ) {
     initialize(cx);
     for dismissal in [Dismissal::Close, Dismissal::KeepOpen] {
-        for at in [point(px(120.0), px(62.0)), point(px(500.0), px(350.0))] {
+        for (at, opening) in [
+            (point(px(120.0), px(62.0)), Opening::InPlace),
+            (point(px(500.0), px(350.0)), Opening::InPlace),
+            (point(px(120.0), px(62.0)), Opening::AfterClose),
+            (point(px(500.0), px(350.0)), Opening::AfterClose),
+            (point(px(120.0), px(62.0)), Opening::MeasuredEnd),
+            (point(px(500.0), px(350.0)), Opening::MeasuredEnd),
+        ] {
             let (view, cx) = cx.add_window_view(|window, cx| Probe::new(dismissal, window, cx));
             cx.run_until_parked();
             open_a(&view, cx);
-            stale_event(&view, cx, |window, cx| click(window, cx, at));
+            stale_event(&view, cx, opening, |window, cx| click(window, cx, at));
             cx.simulate_click(point(px(120.0), px(62.0)), Modifiers::none());
             cx.run_until_parked();
             cx.update(|window, cx| {
@@ -166,7 +197,9 @@ fn old_render_keys_cannot_highlight_close_restore_focus_or_choose_in_new_open(
             let (view, cx) = cx.add_window_view(|window, cx| Probe::new(dismissal, window, cx));
             cx.run_until_parked();
             open_a(&view, cx);
-            stale_event(&view, cx, |window, cx| key(window, cx, old_key));
+            stale_event(&view, cx, Opening::AfterClose, |window, cx| {
+                key(window, cx, old_key)
+            });
             cx.simulate_keystrokes("enter");
             cx.run_until_parked();
             view.read_with(cx, |this, _| {
@@ -207,5 +240,26 @@ fn closed_and_replaced_state_never_accept_a_retained_open_lease(cx: &mut TestApp
         assert!(this.menu.is_open());
         assert!(this.menu.focus.is_focused(window));
         assert!(this.chosen.is_empty());
+    });
+}
+
+#[gpui::test]
+fn in_place_reopen_also_rejects_old_keys(cx: &mut TestAppContext) {
+    initialize(cx);
+    let (view, cx) = cx.add_window_view(|window, cx| Probe::new(Dismissal::KeepOpen, window, cx));
+    cx.run_until_parked();
+    open_a(&view, cx);
+    stale_event(&view, cx, Opening::InPlace, |window, cx| {
+        key(window, cx, "down");
+        key(window, cx, "enter");
+        key(window, cx, "escape");
+    });
+    cx.simulate_keystrokes("enter escape");
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        let this = view.read(cx);
+        assert_eq!(this.chosen, [(1, 1)]);
+        assert!(!this.menu.is_open());
+        assert!(this.field.focus_handle(cx).is_focused(window));
     });
 }

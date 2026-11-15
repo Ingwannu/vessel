@@ -42,7 +42,9 @@ Future delayed hierarchy mutations must carry and validate this same lease.
 frame A inside one outer window update after opening B. A render-count assertion
 proves B has not redrawn. Close and KeepOpen cover pointer, outside, down/up/Tab,
 Home/End, Enter/Space/Escape, focus ownership, no actions, unchanged highlight,
-and valid B action after redraw. A real kit TextField is the return-focus target;
+and valid B action after redraw. Pointer/outside also cover in-place reopening,
+close/reopen and measured open_end; key checks cover close/reopen and in-place
+reopening. A real kit TextField is the return-focus target;
 state replacement exercises old pointer/outside callbacks and allocation identity.
 These are headless GPUI regressions, not Linux native F5, OS keyboard or complete
 accessibility proof. The historical focused-field native F5 hold remains open.
