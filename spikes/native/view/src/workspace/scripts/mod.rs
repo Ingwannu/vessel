@@ -3,6 +3,7 @@
 //! Approval remains the project's exact-digest policy (ADR 0031).
 mod preview;
 mod rows;
+pub mod services;
 mod state;
 pub mod words;
 pub use preview::{PreviewHost, PreviewProblem, PreviewUrl};

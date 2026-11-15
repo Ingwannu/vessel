@@ -80,3 +80,10 @@ package's `Target::Setup`, and scripts its `Target::Scripts`. Terminal reveal us
 Missing runtime/registry contracts are dependencies, not accepted parity differences.
 The tracker must not mark service allocation, env, proxy, health, route preference or
 workspace status delivery passed on the strength of the existing script/port card.
+
+
+Pure `scripts::services` now defines the survey's pending/healthy/unhealthy states,
+per-row and aggregate tones, validated public/proxy/direct targets and preference
+fallback/deduplication policy. These are view rules tested with fixed data, not a
+new wire API. No current node is reported healthy and no proxy URL is fabricated.
+The native adapter will accept them only from the workspace track's reviewed report.
