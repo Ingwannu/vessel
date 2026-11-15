@@ -71,6 +71,50 @@ impl Collector {
             })
             .await
             .map_err(reason)?;
+        self.orphans(store, workspaces, stop).await?;
+        for garbage in store.checkpoint_garbage().await.map_err(reason)? {
+            if stop.is_cancelled() {
+                return Ok(());
+            }
+            let work = match garbage.object {
+                GarbageObject::Capture { worktree, capture } => Work::Clean { worktree, capture },
+                GarbageObject::Restore {
+                    worktree,
+                    capture,
+                    restore,
+                } => Work::Restore {
+                    worktree,
+                    capture,
+                    restore,
+                },
+                GarbageObject::Preview {
+                    worktree,
+                    capture,
+                    plan,
+                } => Work::Preview {
+                    worktree,
+                    capture,
+                    plan,
+                },
+            };
+            self.execute(
+                store,
+                workspaces,
+                stop,
+                Object::Garbage(garbage.object),
+                work,
+                Settlement::Garbage(garbage.object),
+            )
+            .await?;
+        }
+        Ok(())
+    }
+    async fn orphans(
+        &mut self,
+        store: &Store,
+        workspaces: &Arc<Workspaces>,
+        stop: &CancellationToken,
+    ) -> Result<(), CheckpointError> {
         let page = store
             .checkpoint_orphaned_page(self.after)
             .await
@@ -114,41 +158,6 @@ impl Collector {
             .await?;
         }
         self.after = page.next;
-        for garbage in store.checkpoint_garbage().await.map_err(reason)? {
-            if stop.is_cancelled() {
-                return Ok(());
-            }
-            let work = match garbage.object {
-                GarbageObject::Capture { worktree, capture } => Work::Clean { worktree, capture },
-                GarbageObject::Restore {
-                    worktree,
-                    capture,
-                    restore,
-                } => Work::Restore {
-                    worktree,
-                    capture,
-                    restore,
-                },
-                GarbageObject::Preview {
-                    worktree,
-                    capture,
-                    plan,
-                } => Work::Preview {
-                    worktree,
-                    capture,
-                    plan,
-                },
-            };
-            self.execute(
-                store,
-                workspaces,
-                stop,
-                Object::Garbage(garbage.object),
-                work,
-                Settlement::Garbage(garbage.object),
-            )
-            .await?;
-        }
         Ok(())
     }
     async fn execute(

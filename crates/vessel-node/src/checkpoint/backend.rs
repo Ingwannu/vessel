@@ -26,20 +26,7 @@ pub(super) fn start_shared(
         move |key, publication| {
             let store = store.clone();
             async move {
-                let write = match publication {
-                    Publication::Reserve(_escrow) => CheckpointWrite::ReserveCapture {
-                        key,
-                        at: chrono::Utc::now(),
-                    },
-                    Publication::Candidate(snapshot) => CheckpointWrite::Candidate {
-                        key,
-                        snapshot: Box::new(snapshot),
-                    },
-                    Publication::Activate => CheckpointWrite::Activate {
-                        key,
-                        checkpoint: CheckpointId::random(),
-                    },
-                };
+                let write = publication_write(key, publication);
                 store.checkpoint_write(write).await.map_err(reason)
             }
         },
@@ -71,6 +58,26 @@ pub(super) fn start_shared(
             })
         },
     )
+}
+
+fn publication_write(
+    key: vessel_proto::checkpoint::CaptureKey,
+    publication: Publication,
+) -> CheckpointWrite {
+    match publication {
+        Publication::Reserve(_escrow) => CheckpointWrite::ReserveCapture {
+            key,
+            at: chrono::Utc::now(),
+        },
+        Publication::Candidate(snapshot) => CheckpointWrite::Candidate {
+            key,
+            snapshot: Box::new(snapshot),
+        },
+        Publication::Activate => CheckpointWrite::Activate {
+            key,
+            checkpoint: CheckpointId::random(),
+        },
+    }
 }
 
 pub(crate) fn reason(error: StoreError) -> CheckpointError {

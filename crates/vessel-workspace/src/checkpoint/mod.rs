@@ -27,9 +27,6 @@ mod rooted;
 mod scope;
 mod storage;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, thiserror::Error)]
 /// Source-preserving filesystem failure; node adapters expose only its reason.
 pub enum CheckpointFsError {
@@ -69,3 +66,6 @@ impl CheckpointFsError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

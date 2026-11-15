@@ -7,8 +7,6 @@ mod journal;
 pub use journal::RecoveryState;
 mod original;
 pub(super) mod stage;
-#[cfg(test)]
-mod tests;
 
 use super::{
     Error,
@@ -263,3 +261,6 @@ fn same_entry(
 ) -> bool {
     current.map(original::object) == expected
 }
+
+#[cfg(test)]
+mod tests;

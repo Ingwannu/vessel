@@ -5,9 +5,6 @@ use vessel_proto::{
     checkpoint::{CheckpointError, CheckpointHumanOrigin, CheckpointOwner},
 };
 
-#[cfg(test)]
-mod tests;
-
 impl Principal {
     pub(crate) fn checkpoint_owner(&self) -> Result<CheckpointOwner, WireError> {
         match self {
@@ -38,3 +35,6 @@ fn forbidden() -> WireError {
         }),
     }
 }
+
+#[cfg(test)]
+mod tests;

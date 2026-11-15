@@ -1250,3 +1250,18 @@ typed error replies, retaining the original shared commit failure. The existing
 fault test includes both variants and checks those replies. This remains unrun;
 no root-admission units ran, no leaf was extracted, and further narrow checks use
 the ordinary lane under the coordinator's priority ruling.
+
+### Focused orchestration stages and test ordering (unverified)
+
+The local test-module preflight initially checked inline modules only. Extending
+it to external test module declarations found six owned modules before product
+items. Their declarations now follow product items; no test behavior changes.
+The corrected scan covers all changed root crates and reports no introduced
+ordering violation (unchanged base findings are reported separately).
+
+Collector orphan inspection, preview reservation, capture publication/receipt
+completion and reverse per-path undo now have focused functions. They preserve
+the same deadlines, error paths, worker/root ownership and SQL barriers; this
+keeps phase boundaries reviewable without repeating the protocol or filesystem
+logic. Existing behavior tests remain the validation target; these structural
+changes have no runtime pass yet.

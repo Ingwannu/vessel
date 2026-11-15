@@ -8,8 +8,7 @@ mod changes;
 mod completed;
 mod garbage;
 mod journal;
-#[cfg(test)]
-mod journal_tests;
+
 mod list;
 pub(crate) mod metadata;
 mod orphans;
@@ -23,8 +22,7 @@ mod records;
 mod recovery;
 pub(crate) mod retention;
 mod rotation;
-#[cfg(test)]
-mod rotation_tests;
+
 mod staging;
 mod startup;
 pub(crate) use startup::replay_metadata;
@@ -41,11 +39,6 @@ pub use write::CheckpointWrite;
 pub(crate) use write::apply;
 
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
-mod writer_tests;
-
-#[cfg(test)]
 use crate::StoreError;
 #[cfg(test)]
 use rusqlite::Connection;
@@ -58,6 +51,18 @@ fn install_staged(connection: &Connection) -> Result<(), StoreError> {
     connection.execute_batch(CHECKPOINTS)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod journal_tests;
+
+#[cfg(test)]
+mod rotation_tests;
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+mod writer_tests;
 
 #[cfg(test)]
 mod metadata_tests;

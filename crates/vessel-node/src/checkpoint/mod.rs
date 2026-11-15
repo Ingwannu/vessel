@@ -22,12 +22,8 @@ mod capture;
 pub(crate) mod gc;
 mod quota;
 mod runner;
-#[cfg(test)]
-mod runner_tests;
-mod workers;
 
-#[cfg(test)]
-mod tests;
+mod workers;
 
 #[cfg(target_os = "linux")]
 pub(crate) fn start(
@@ -43,3 +39,9 @@ pub(crate) fn start(
     bridge::serve(context, requests);
     controller
 }
+
+#[cfg(test)]
+mod runner_tests;
+
+#[cfg(test)]
+mod tests;

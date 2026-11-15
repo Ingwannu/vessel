@@ -12,8 +12,7 @@ mod metadata;
 mod mutation;
 mod owner;
 mod rpc;
-#[cfg(test)]
-mod rpc_tests;
+
 mod state;
 
 pub use crate::id::{CaptureId, CheckpointId, RestoreId, RestorePlanId};
@@ -44,3 +43,6 @@ pub use state::{Boundary, CaptureGeneration, CaptureKey, CheckpointError, Restor
 /// No peer may receive checkpoint calls before the integrator enables them.
 /// Requires reviewed node, store, CLI/web and native consumers before assignment.
 pub const FILE_CHECKPOINTS: Option<crate::ProtocolVersion> = None;
+
+#[cfg(test)]
+mod rpc_tests;

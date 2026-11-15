@@ -138,37 +138,7 @@ impl Execution<'_> {
         // deadline, retaining the original worker/root instead of spawning one.
         let cleanup = CancellationToken::new();
         if let Some(restore) = restore {
-            for (index, intent) in paths.iter().enumerate().rev() {
-                let index = PathCount::new(index)?;
-                match restore
-                    .recovery_state(index, &cleanup)
-                    .map_err(|error| error.reason())?
-                {
-                    RecoveryState::Original => {}
-                    RecoveryState::Desired => {
-                        if restore
-                            .undo(index, &cleanup)
-                            .map_err(|error| error.reason())?
-                            != Rollback::Restored
-                        {
-                            self.conflict(&current, intent)?;
-                            return Err(CheckpointError::RecoveryPending);
-                        }
-                    }
-                    RecoveryState::Conflict => {
-                        self.conflict(&current, intent)?;
-                        return Err(CheckpointError::RecoveryPending);
-                    }
-                }
-                if matches!(intent.phase, PathPhase::Pending | PathPhase::Applied) {
-                    self.write(CheckpointWrite::Advance {
-                        operation: Box::new(current.clone()),
-                        path: intent.path.clone(),
-                        from: intent.phase,
-                        to: PathPhase::Restored,
-                    })?;
-                }
-            }
+            self.undo_paths(&current, restore, &paths, &cleanup)?;
         }
         let observed = files.observe(self.runtime, self.defaults, &self.plan.current, &cleanup)?;
         // The store rechecks exact whole-image/root/ignore and original stable
@@ -179,6 +149,46 @@ impl Execution<'_> {
             reason: failure,
         })?;
         Ok(RestoreOutcome::RolledBack { reason: failure })
+    }
+    fn undo_paths(
+        &self,
+        current: &Operation,
+        restore: &Restore,
+        paths: &[PathIntent],
+        cleanup: &CancellationToken,
+    ) -> Result<(), CheckpointError> {
+        for (index, intent) in paths.iter().enumerate().rev() {
+            let index = PathCount::new(index)?;
+            match restore
+                .recovery_state(index, cleanup)
+                .map_err(|error| error.reason())?
+            {
+                RecoveryState::Original => {}
+                RecoveryState::Desired => {
+                    if restore
+                        .undo(index, cleanup)
+                        .map_err(|error| error.reason())?
+                        != Rollback::Restored
+                    {
+                        self.conflict(current, intent)?;
+                        return Err(CheckpointError::RecoveryPending);
+                    }
+                }
+                RecoveryState::Conflict => {
+                    self.conflict(current, intent)?;
+                    return Err(CheckpointError::RecoveryPending);
+                }
+            }
+            if matches!(intent.phase, PathPhase::Pending | PathPhase::Applied) {
+                self.write(CheckpointWrite::Advance {
+                    operation: Box::new(current.clone()),
+                    path: intent.path.clone(),
+                    from: intent.phase,
+                    to: PathPhase::Restored,
+                })?;
+            }
+        }
+        Ok(())
     }
     fn conflict(&self, operation: &Operation, intent: &PathIntent) -> Result<(), CheckpointError> {
         if matches!(intent.phase, PathPhase::Pending | PathPhase::Applied) {

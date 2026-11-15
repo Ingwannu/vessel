@@ -181,6 +181,16 @@ async fn handle(
             return;
         }
     };
+    complete_capture(request, key, guard, &client, &store).await;
+}
+async fn complete_capture(
+    request: CheckpointRequest,
+    key: CaptureKey,
+    guard: crate::workspace::StartGuard,
+    client: &Client,
+    store: &Store,
+) {
+    let deadline = request.deadline();
     match client
         .capture_candidate(guard.physical(), key, deadline)
         .await
@@ -201,10 +211,11 @@ async fn handle(
         Err(reason) => {
             drop(guard);
             drop(request.acknowledge(Err(reason)));
-            refused_boundary(&store, key, reason).await;
+            refused_boundary(store, key, reason).await;
         }
     }
 }
+
 async fn refused_boundary(store: &Store, key: CaptureKey, refusal: CheckpointError) {
     if let Err(error) = store
         .checkpoint_write(vessel_store::checkpoint::CheckpointWrite::RefusedBoundary {

@@ -61,31 +61,7 @@ impl Controller {
         let defaults = bridge::defaults()?;
         let key = selected.key;
         let plan = RestorePlanId::random();
-        let allocation = Allocation::Preview { plan };
-        if let Err(error) = self
-            .context
-            .store
-            .checkpoint_write(CheckpointWrite::Allocate {
-                key,
-                allocation,
-                owner,
-                at: chrono::Utc::now(),
-            })
-            .await
-        {
-            let refusal = reason(error);
-            // These writer refusals precede insertion. Other failures may have
-            // committed and must retain both persistent escrow and worker budget.
-            if !matches!(
-                refusal,
-                CheckpointError::StorageFull
-                    | CheckpointError::StaleCapture
-                    | CheckpointError::RestoreIdConflict
-            ) {
-                self.hold(lease).await;
-            }
-            return Err(refusal);
-        }
+        self.allocate_preview(key, plan, owner, lease).await?;
         let workspaces = Arc::clone(&self.context.workspaces);
         let runtime = tokio::runtime::Handle::current();
         let actual = Arc::clone(lease);
@@ -132,6 +108,39 @@ impl Controller {
         // Actual read I/O and durable publication finished before root release.
         drop(guard);
         result
+    }
+    async fn allocate_preview(
+        &self,
+        key: CaptureKey,
+        plan: RestorePlanId,
+        owner: CheckpointOwner,
+        lease: &Arc<WorkerLease>,
+    ) -> Result<(), CheckpointError> {
+        if let Err(error) = self
+            .context
+            .store
+            .checkpoint_write(CheckpointWrite::Allocate {
+                key,
+                allocation: Allocation::Preview { plan },
+                owner,
+                at: chrono::Utc::now(),
+            })
+            .await
+        {
+            let refusal = reason(error);
+            // These writer refusals precede insertion. Other failures may have
+            // committed and must retain both persistent escrow and worker budget.
+            if !matches!(
+                refusal,
+                CheckpointError::StorageFull
+                    | CheckpointError::StaleCapture
+                    | CheckpointError::RestoreIdConflict
+            ) {
+                self.hold(lease).await;
+            }
+            return Err(refusal);
+        }
+        Ok(())
     }
     async fn preview_selection(
         &self,
