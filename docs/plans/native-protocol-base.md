@@ -129,8 +129,9 @@ assigned or enabled by this adaptation.
 The selected node commit is `29eebb8b`, the latest green head announced
 when this integration began; the package parent is `8d5513e4`. Their
 histories are retained by a merge commit. The node's exported table and
-Option-valued admission decision are documented in `rpc.rs` and
-`rpc/since.rs`; no new Paseo behaviour is introduced by this integration.
+Option-valued admission decision are documented in `rpc/table.rs`,
+`rpc/contract.rs` and `rpc/since.rs`; no new Paseo behaviour is introduced
+by this integration.
 
 ### Updated package seams
 
@@ -156,3 +157,28 @@ the verified tab-session receipt before the existing storage assertions and
 add a controlled slow-welcome regression. They do not change production web
 or native code. Both `6036eeb8` and this reviewed fix are ancestors of the
 combined package base; later integrator work is outside this validation.
+
+### Unified native line and the next node contract
+
+The unified native package line `bb2ce38e` includes the accepted
+Diagnostics and Chat vocabulary package, preferred languages, and the
+shared settings, sidebar, devices, Git and terminal updates. The combined
+base retains that complete history so consumers use its prepared
+`Chat::display_choice` adapter instead of restoring retired settings
+fields or inventing a second translation boundary.
+
+The selected node head is `ba45a6e3`, announced after its whole gate. Its
+single RPC table is now `rpc/table.rs`, the request contract is in
+`rpc/contract.rs`, and validated workspace identities are shared protocol
+types. Integration introduces no new method or pending row and keeps
+client admission and decode privacy at their existing root boundaries.
+
+This selected head defines metadata value types but has not added a
+`metadata` field to `NodeSettings`. Its native idle-release fixtures
+therefore retain their complete existing literals. The link's partial
+settings write already uses `SetNodeSettings::default()`, preserving
+unrelated settings. Any future optional reply field must be adapted only
+when that field reaches the selected contract, rather than pre-emptively
+naming a nonexistent field. No additional native behavior or dependency
+is introduced. Narrow consumer checks precede the final root and native
+gates on the same combined head.
