@@ -1,7 +1,7 @@
 # Composer shell and commands
 
 Status (2026-11-15 13:06 UTC): incomplete B2 package. App integration is source-stage;
-no whole gate, capture matrix or final reviewer approval exists. Packagebase7 d18bb794 (including the dd13 lock correction) is adopted. Node and native work remain separate.
+no whole gate, capture matrix or final reviewer approval exists. Packagebase8 91407173 (including the FieldId seam and dd13 lock correction) is adopted. Node and native work remain separate.
 
 ## Decision and existing assets
 
@@ -175,3 +175,5 @@ Assistant file-token normalization also reuses the existing matcher’s exact Ja
 Code copy now shares the engine’s pure `trim_code_line_breaks` helper between code-only retained selection and the existing code-copy button. It matches Paseo `assistant-selection-copy/markup.ts:12-19` and `components/highlighted-code-block.tsx:95`, removing final LF/CRLF plus following ASCII indentation while preserving the last code line’s own spaces, leading indentation, interior newlines, NBSP and lone CR. The prior query removed only CR/LF and could leave a selected newline followed by spaces. Table regressions cover those boundaries; actual existing Copy handling and the window selection aggregator are retained. New source still awaits VM checks.
 
 Base7 union preserves the shared FieldId producer and its unchanged identity regression. The one existing `Callbacks::submit` invocation is wrapped by the same field-local SubmitPress guard. Plain submit factories retain captured Fn support; identified callbacks retain their exact signatures, engine ids and source checks. No second listener is installed. Existing queued d4ca checks remain prior-source checks, and no new base7 union compilation result is claimed.
+
+Pure-view run `wp-composer-shell-view-tests-20261115T131112Z-44c50564` failed before tests because the base6 fixture repair accidentally added Machine.connection_epoch to LifecycleTarget as well. Only that erroneous fixture member is removed; Machine retains its required field. Base8 merges the checked node82 line and staged Delivery/menu lease sources. The merge keeps both B2 command metadata masking and the canonical inner AgentEvent projection, and leaves all staged Delivery attributes intact. No new owner source is promoted to product and no union pass is inferred.
