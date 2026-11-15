@@ -1,6 +1,6 @@
 //! Add Project navigation, following Paseo add-project-flow/model.ts.
 //! No IO or RPC dispatch; a view target is not authority to mutate a peer.
-//! The link still verifies its authenticated NodeId before any eventual call.
+//! The link still verifies its authenticated `NodeId` before any eventual call.
 
 use crate::machine_book::Name;
 use std::{collections::HashMap, path::PathBuf};
@@ -74,7 +74,7 @@ pub enum AddMethod {
     Directory,
     /// Request the local desktop directory picker.
     Browse,
-    /// Search GitHub or select a full Git remote for cloning.
+    /// Search `GitHub` or select a full Git remote for cloning.
     Github,
     /// Create one empty directory under an existing host parent.
     NewDirectory,
@@ -100,9 +100,9 @@ pub enum ProjectPage {
         /// Search draft; it is not a canonical filesystem path.
         query: String,
     },
-    /// GitHub account search and manual remote choices.
+    /// `GitHub` account search and manual remote choices.
     Github {
-        /// Node whose GitHub credentials/search are used.
+        /// Node whose `GitHub` credentials/search are used.
         target: ProjectTarget,
         /// Account search or manual remote input draft.
         query: String,

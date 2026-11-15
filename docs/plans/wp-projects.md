@@ -440,3 +440,39 @@ It validates the row's original admission before the existing checked cache and
 project membership route. It is the intended cross-area sink for S2/palette;
 WorkspaceId-based activation still belongs to the pending registry projection
 and W12's one activation adapter. Current-source checks remain owed.
+
+### Canonical registry projection skeleton (not registered or compiled yet)
+
+`view/workspace/registry_projection.rs` and its rows/validation/tests are a source
+skeleton waiting for the reviewed registry proto to reach the app line through
+B0. The node integrator has merged the dependency in batch11, but has not yet
+announced its gate47 head; no full node head is merged into this app tree.
+The module is intentionally not registered in workspace/mod.rs yet. Existing
+native checks do not compile or execute this skeleton. Do not consume it as a
+checked producer or a runtime implementation.
+
+[Decision Log]
+- Purpose: one C1 projection for S2 sidebar, W22 palette and W12 ownership/roots.
+- Existing assets: canonical RegistrySnapshot/WorkspaceDescriptor/memberships and W12 WorkspaceLookup/LayoutKey; existing project/worktree RPC values supply explicit metadata, never cwd ownership.
+- Alternatives: caller-local registries, duplicate workspace ids, root inference or treating unsupported as empty.
+- Choice: retain canonical values with the shared physical admission and a unique read ticket; borrow rows with NodeId+ProjectId placement and the existing LayoutKey::Workspace key. Encoded metadata has a16MiB aggregate cache budget,64 retained hosts and no implicit eviction; a streaming counter measures without a second serialized buffer.
+- Reason: atomic registry membership remains the sole owner fact. Actor routing always retains an explicit original ConnectionContext; cross-node metadata lookup never chooses a client or alias.
+- Impact: loading/offline/unsupported/refused remain distinct. Same-node reconnects retire old replies. Invalid/duplicate ids or memberships fail closed. Root mapping exposes only an explicitly identified exact project/worktree root; nested execution folders are External until the canonical reroot contract lands. Historical memberships remain ownership facts, not liveness or eligibility.
+
+The skeleton deliberately does not invent status/root-agent facts: W2 and W7
+have not published checked native producer subsets. No generation, process exit,
+start authority, archive/restore effects or resource readiness is inferred. The
+next wiring adds the selected node read and W12's one activation sink once the
+shared proto reaches the app, then exact checks and V1 source review. The draft
+pure tests cover independent same-cwd ids, stale epochs/tickets, unsupported vs
+unowned, contradictory snapshots, root mismatch/archive history and budgets;
+none has run yet.
+
+The shared admission is independent of Reach, which reports the session-list
+read outcome. Project requests/cache reconciliation now use Machine's actual
+connection context even when sessions were refused; a session-list failure cannot
+retire a still-authenticated project connection. The headless project test keeps
+that semantic refusal while checking the same admission. The old ad4 strict check
+failed first on an unquoted NodeId doc identifier; owned new doc identifiers are
+quoted, with the original failed log retained. No successful compile is inferred
+for newer code from that old run.

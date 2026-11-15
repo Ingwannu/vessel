@@ -147,6 +147,9 @@ mod tests {
                 shell.areas.workspace.projects[host.as_str()].project(&project.id),
                 Some(&project)
             );
+            // A session-list refusal is not a retired authenticated admission.
+            shell.fleet.machines[0].reach = Reach::Unreachable("sessions refused".to_owned());
+            assert_eq!(shell.project_connection(host.as_str()), Some(context.clone()));
             let selected = ProjectTarget::new(host.clone(), node);
             assert_eq!(
                 shell.open_project_settings_for_connection(&context, project.id, window, cx),

@@ -3,8 +3,8 @@
 //! [Decision Log]
 //! - Purpose: reconnecting the same node must not inherit an old form's intent.
 //! - Constraint: a write may already have taken effect when its connection retires.
-//! - Alternatives: compare only NodeId, or allocate another area-local epoch.
-//! - Choice: reuse SelectedConnection, echo its context and retain uncertainty.
+//! - Alternatives: compare only `NodeId`, or allocate another area-local epoch.
+//! - Choice: reuse `SelectedConnection`, echo its context and retain uncertainty.
 //! - Impact: callers reconcile retired writes; no automatic replay is permitted.
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -27,7 +27,7 @@ pub enum Operation {
     Change(ProjectChange),
 }
 
-/// The original machine snapshot, never resolved by NodeId or another alias.
+/// The original machine snapshot, never resolved by `NodeId` or another alias.
 #[derive(Debug)]
 pub struct Request {
     /// Shared authenticated admission captured before dispatch.

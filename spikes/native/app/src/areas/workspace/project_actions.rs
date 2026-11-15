@@ -120,17 +120,15 @@ impl Shell {
         host: &str,
     ) -> Option<vessel_app_view::connection::ConnectionContext> {
         self.fleet
-            .online()
+            .machines
+            .iter()
             .find(|machine| machine.name == host)?
             .connection_context()
     }
 
-    /// Only an authenticated online welcome can provide a new mutation's node identity.
+    /// Only the shared admitted snapshot can provide a new mutation's node identity.
     pub(super) fn project_node(&self, host: &str) -> Option<NodeId> {
-        self.fleet
-            .online()
-            .find(|machine| machine.name == host)
-            .and_then(|machine| machine.node)
+        self.project_connection(host).map(|context| context.node())
     }
 
     /// A forgotten/renamed alias cannot retain mutation authority for its former target.

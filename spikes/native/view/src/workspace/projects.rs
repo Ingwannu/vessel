@@ -13,7 +13,7 @@
 //! - Alternatives: the fleet's own list (read every two seconds for
 //!   sessions): projects change rarely, and that list is the lead's.
 //! - Choice: a view of its own per authenticated peer, with route aliases used
-//!   only after NodeId validation. Read tickets reject superseded completions;
+//!   only after `NodeId` validation. Read tickets reject superseded completions;
 //!   reconnect requires hydration, and clone revisions cannot move backwards.
 //!   The link follows each cloning project on that exact node until it ends.
 //! - Cost: a project added from the CLI shows when a screen reads again.

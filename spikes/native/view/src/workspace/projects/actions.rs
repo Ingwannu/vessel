@@ -197,7 +197,7 @@ impl ProjectActions {
         self.pending.as_ref()
     }
 
-    /// Query exactly one Name+NodeId; aliases reused by another node cannot inherit readiness.
+    /// Query exactly one Name+`NodeId`; aliases reused by another node cannot inherit readiness.
     #[must_use]
     pub fn setup_readiness(&self, host: &Name, node: NodeId) -> ProjectSetupReadiness {
         let mut result = ProjectSetupReadiness::Ready;

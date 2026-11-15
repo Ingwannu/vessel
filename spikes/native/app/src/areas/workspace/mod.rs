@@ -102,14 +102,15 @@ impl Shell {
         });
     }
 
-    /// Read every online machine's projects that has not been read yet
+    /// Read every admitted machine's projects that has not been read yet
     /// (the fleet was read again): the sidebar's group and the composer's
     /// tray show them without a visit to Settings first.
     pub(crate) fn workspace_fleet(&mut self) {
         use vessel_app_view::{machine_book::Name, workspace::projects::navigation::ProjectTarget};
-        let online: Vec<_> = self
+        let admitted: Vec<_> = self
             .fleet
-            .online()
+            .machines
+            .iter()
             .filter_map(|machine| {
                 let context = machine.connection_context()?;
                 Some(ProjectTarget::new(
@@ -118,7 +119,7 @@ impl Shell {
                 ))
             })
             .collect();
-        for target in &online {
+        for target in &admitted {
             let host = target.host().as_str();
             if self
                 .areas
@@ -132,8 +133,8 @@ impl Shell {
                 self.project_host_detached(host);
             }
         }
-        self.areas.workspace.project_reads.retain_online(&online);
-        for target in online {
+        self.areas.workspace.project_reads.retain_online(&admitted);
+        for target in admitted {
             if !self.project_cache_current(target.host()) {
                 self.read_projects(target.host().as_str());
             }
