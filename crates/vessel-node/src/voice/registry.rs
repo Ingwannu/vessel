@@ -145,7 +145,7 @@ impl Registry {
         Ok(())
     }
     fn admit_nonce(&self, owner: &Owner) -> Result<(), Refusal> {
-        let owned = self
+        let retained = self
             .entries
             .values()
             .filter(|entry| &entry.owner == owner)
@@ -156,7 +156,7 @@ impl Registry {
                     .filter(|(key, _id)| key == owner)
                     .count(),
             );
-        if owned >= ATTEMPTS_PER_CONNECTION
+        if retained >= ATTEMPTS_PER_CONNECTION
             || self
                 .entries
                 .len()

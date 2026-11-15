@@ -369,3 +369,12 @@ separate reviewed ADR amendment before activation.
 - Choice: a staged Turn owns those exact mechanisms and an exact VoiceLease. Only contiguous sequence input is admitted; retransmits/gaps are refused before buffering/inference. Caller still checks connection authority through Registry before reaching it.
 - Why: a deterministic detector can exercise the complete policy while model distribution remains unapproved, without pretending RMS is VAD or activating a node call.
 - Impact: a confirmed start cancels the preceding turn's child work; an ending edge creates Finalization immediately so queue delay counts. Stop/error retires input, discards pre-roll/lookahead and resets the detector, never flushes into an agent prompt. Native inference, RPC/session/provider integration and real detector readiness remain absent.
+
+### Node strict compilation feedback
+
+Run wp-voice-node-narrow-20261115T124554Z-61e5fa93 returned Cargo101:
+nonce accounting used confusing owner/owned names, and the finalization fake
+called a nonexistent CapturePcm::try_from(Vec) instead of its validated new
+constructor. The counter is renamed retained and the fixture uses the existing
+constructor. No runtime pass follows from that failed strict run. The next
+immutable strict snapshot includes the later probability/turn composition too.

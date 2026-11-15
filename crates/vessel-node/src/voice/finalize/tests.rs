@@ -31,7 +31,7 @@ impl Transcriber for Fake {
 fn utterance() -> Utterance {
     let mut input = InputBuffer::default();
     input
-        .append(&CapturePcm::try_from(vec![0; 640]).unwrap())
+        .append(&CapturePcm::new(vec![0; 640]).unwrap())
         .unwrap();
     input.confirmed().unwrap();
     input.seal().unwrap()
