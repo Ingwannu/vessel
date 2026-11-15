@@ -2,8 +2,8 @@
 
 use gpui::{AppContext as _, Entity, Render, TestAppContext, VisualTestContext};
 use tokio::sync::mpsc;
-use vessel_app_kit::ui::{Context, IntoElement as _, Window, div};
-use vessel_app_link::{Command, Link, search::Ask};
+use vessel_app_kit::ui::{Context, Window, div};
+use vessel_app_link::{Command, search::Ask};
 use vessel_app_view::{Machine, Reach};
 use vessel_proto::search::{MessageRole, SearchHit, SearchPage, Snippet, SnippetPart};
 use vessel_proto::{EventSeq, SessionId};
@@ -19,7 +19,7 @@ struct Probe {
 
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl gpui::IntoElement {
-        div().into_any_element()
+        div()
     }
 }
 
@@ -72,19 +72,21 @@ fn answer(ask: &Ask) -> Searched {
 fn replacing_conversation_residents_preserves_global_search_debounce_and_replies(
     cx: &mut TestAppContext,
 ) {
-    const ROOM: usize = 8;
     language_tests::init(cx);
     let (probe, cx) = cx.add_window_view(|window, cx| {
-        let (link, commands) = Link::detached(ROOM).unwrap();
+        let mut commands = None;
         let shell = cx.new(|cx| {
-            let mut shell = Shell::without_io(window, cx);
-            shell.link = Some(link);
+            let (mut shell, inbox) = language_tests::with_commands(window, cx);
+            commands = Some(inbox);
             shell.fleet.machines = vec![machine("one"), machine("two")];
             shell.message_search_query("needle", cx);
             shell.areas.conversation = ConversationArea::new(cx);
             shell
         });
-        Probe { shell, commands }
+        Probe {
+            shell,
+            commands: commands.unwrap(),
+        }
     });
     cx.run_until_parked();
     cx.executor().advance_clock(Duration::from_secs(1));
