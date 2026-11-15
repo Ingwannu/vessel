@@ -98,8 +98,8 @@ QuestionOutcome and authoritative Question::check. A durable Settled reply will
 be compared against exact request id and selected option/accepted field values
 before printing success; cancellation, another client's different answer, an
 unoffered option or an invalid empty form is unconfirmed. The private helpers
-are staged under the same cfg(test) module until W23's checked RPC and W17's
-reviewed output seam arrive. They neither invent a wire method nor turn the
+are staged under the same cfg(test) module until W23's checked RPC arrives;
+W17's reviewed output seam is already adopted. They neither invent a wire method nor turn the
 legacy Ack into durable proof. Regression fixtures explicitly cover these cases.
 
 
@@ -134,7 +134,7 @@ follows the shared selected-connection error boundary's treatment of untrusted
 peer detail; no parser cause is discarded. The regression verifies retained Data
 category and walks every printable cause with a synthetic private-answer canary.
 It would expose that answer through the previous inner #[source] annotation.
-The CLI module remains test-only pending checked DTO/output integration; execution
+The CLI module remains test-only pending checked DTO/response integration; execution
 of this new regression is still owed on the build VM.
 
 
