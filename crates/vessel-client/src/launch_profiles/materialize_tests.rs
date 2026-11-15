@@ -54,7 +54,7 @@ fn draft_copies_selection_without_live_binding_and_keeps_creation_strict() {
     let draft = SessionSpec::new(
         HarnessKind::Gemini,
         SessionMode::Structured {
-            model: Some("previous".to_owned()),
+            model: Some(vessel_proto::ModelId::new("previous")),
             resume: None,
             options: Vec::new(),
         },
@@ -173,4 +173,24 @@ fn reported_categories_order_steps_and_feature_order_is_stable() {
             .collect::<Vec<_>>(),
         ["model", "mode", "thinking", "f1", "f2"]
     );
+}
+
+#[test]
+fn retired_mode_ids_reused_by_other_controls_are_not_applied_as_features() {
+    let preset = profile(vec![choice("old-mode", "plan", OptionCategory::Mode)]);
+    let other = vec![reported("old-mode", OptionCategory::Other, "plan")]
+        .try_into()
+        .unwrap();
+    let LivePreparation::Ready(ready) = prepare_live(&preset, Some(&other)).unwrap() else {
+        panic!("not ready")
+    };
+    assert!(ready.options().as_slice().is_empty());
+    assert_eq!(ready.omitted_modes().as_slice().len(), 1);
+    let mut unknown = reported("new-mode", OptionCategory::Mode, "plan");
+    unknown.kind = OptionKind::Unknown;
+    let unknown = vec![unknown].try_into().unwrap();
+    assert!(matches!(
+        prepare_live(&preset, Some(&unknown)).unwrap(),
+        LivePreparation::AwaitingOptions
+    ));
 }

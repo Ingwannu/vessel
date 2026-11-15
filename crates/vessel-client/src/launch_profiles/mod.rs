@@ -5,6 +5,7 @@
 
 mod calls;
 mod materialize;
+pub mod migration;
 
 pub use calls::{APPLY_OPTIONS_TIMEOUT, LaunchProfileClientError, LaunchProfileSupport};
 pub use materialize::{LivePreparation, PreparedLiveProfile, materialize_draft, prepare_live};

@@ -1,6 +1,7 @@
 //! Pending/older admission refuses actual typed client calls before any frame.
 
 use super::*;
+use crate::CallError;
 use crate::launch_profiles::LaunchProfileClientError;
 use futures_util::{SinkExt as _, StreamExt as _};
 use std::{future::Future, time::Duration};

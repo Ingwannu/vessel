@@ -137,7 +137,7 @@ pub async fn probe_with_cancel(
     driver: Driver,
     command: &CommandSpec,
     setup: AgentSetup,
-    cancelled: impl std::future::Future<Output = ()>,
+    cancelled: impl Future<Output = ()>,
 ) -> Result<Probed, ProbeError> {
     // Never questions, whatever the caller set: nobody watches a probe,
     // and what the agent offers does not depend on it.

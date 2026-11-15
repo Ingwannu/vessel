@@ -22,6 +22,52 @@ pub enum LaunchProfileClientError {
     /// Provider work can remain fenced after this caller stops waiting.
     #[error("configuration acknowledgement timed out; reread the session before retrying")]
     Timeout(#[source] tokio::time::error::Elapsed),
+    /// A supplied mapping was draft-dependent or its account identity is unknown.
+    #[error("the legacy provider catalogue cannot safely resolve a default launch")]
+    LegacyCatalogueUnusable,
+    /// No actual mapping was supplied for this source provider key.
+    #[error("a legacy provider has no reported catalogue mapping")]
+    LegacyCatalogueMissing(vessel_proto::launch_profiles::LegacyProviderKey),
+    /// A finite catalogue set cannot repeat a provider key.
+    #[error("legacy catalogue mappings repeat a provider")]
+    LegacyCatalogueDuplicate,
+    /// The catalogue set exceeded the compatibility input's finite bound.
+    #[error("too many legacy catalogue mappings")]
+    LegacyCatalogueCapacity,
+    /// No exact reported model id resolves this source favorite.
+    #[error("a legacy favorite has no exact reported model choice")]
+    LegacyModelUnavailable(vessel_proto::launch_profiles::LegacyFavorite),
+    /// No provider policy may be guessed between multiple model controls.
+    #[error("a legacy provider has ambiguous reported model controls")]
+    LegacyModelAmbiguous(vessel_proto::launch_profiles::LegacyProviderKey),
+    /// The bounded source naming rule could not produce a free valid name.
+    #[error("legacy migration cannot choose a unique bounded profile name")]
+    LegacyNameCollision,
+    /// A callback returned another provider's catalogue; no mapping is guessed.
+    #[error("the legacy catalogue response does not match its requested provider")]
+    LegacyCatalogueMismatch,
+    /// Explicit loading/busy persisted through the source retry schedule.
+    #[error("the legacy provider catalogue is still loading; migration remains incomplete")]
+    LegacyCatalogueLoading,
+    /// Repeated stale CAS responses exhausted this attempt's bounded rebuilds.
+    #[error("launch profiles kept changing; legacy migration remains incomplete")]
+    LegacyConflictBudget {
+        /// Last actual stale revision refusal, if any attempt ran.
+        #[source]
+        last: Option<CallError>,
+    },
+    /// A lost acknowledgement was not proved complete by a subsequent read.
+    #[error("legacy migration write acknowledgement is unknown; reread before retrying")]
+    LegacyUnknownWrite {
+        /// Original write uncertainty; never replaced with a fabricated rollback.
+        #[source]
+        write: CallError,
+        /// Any read/planning failure while trying to prove completion.
+        reconciliation: Option<Box<LaunchProfileClientError>>,
+    },
+    /// The successful reply did not confirm the whole planned import state.
+    #[error("the host reply did not confirm the legacy import; reread before retrying")]
+    LegacyWriteNotConfirmed,
     /// A pure transition exceeded a validated launch bound.
     #[error("the prepared launch selection is invalid")]
     Values(#[from] vessel_proto::launch_profiles::InvalidLaunchValue),

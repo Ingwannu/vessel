@@ -234,6 +234,15 @@ impl LaunchCatalogue {
         options: LaunchCatalogueOptions,
         probed_at: DateTime<Utc>,
     ) -> Result<Self, InvalidLaunchValue> {
+        if account.kind() == LaunchAccountKind::Named && selection.account_profile().is_none() {
+            return Err(InvalidLaunchValue::Catalogue);
+        }
+        if selection
+            .account_profile()
+            .is_some_and(|name| name != account.account_name())
+        {
+            return Err(InvalidLaunchValue::Catalogue);
+        }
         let value = Self {
             selection,
             account,

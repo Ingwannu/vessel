@@ -176,3 +176,25 @@ The first client-stage selected Clippy stopped on the canonical account
 getter colliding with the TS trait's `name`; it is renamed `account_name`.
 The raw failure remains preserved. Pure migration planning/application,
 actual runtime checks and the package gate remain incomplete.
+
+The shared legacy helper is implemented in source with explicit provider-to-
+node catalogue mappings, actual node identity checks, pair/id/model-selection
+dedup, source name/suffix order, and existing-first whole-list CAS. Only
+explicit loading/busy states use the six source delays plus final read.
+Stale conflicts rebuild from a fresh list within a finite budget. Unknown
+write acknowledgements retain their cause and can complete only after a
+read proves all imports present; they are never blindly replayed. A typed
+receipt identifies the actual node for the app-owned completion marker.
+
+Planner and driven-clock callback fixtures cover existing records, explicit
+default account equivalence, names, unknown model ids, wrong-machine data,
+conflicts/manual edits, failed/unknown acknowledgements, wrong reply state,
+and exact loading/backoff behavior. They do not prove assigned wire traffic
+or native marker persistence. Runtime execution remains outstanding.
+
+Selected type check on `e071c09d2` reached the consumer crates and found a
+missing client-test CallError import and a fixture using String instead of
+the existing ModelId type; those and the agent Future qualification warning
+are corrected. The new node head is consumed next at this clean boundary;
+its canonical method table and startup extraction take precedence over the
+working branch's earlier mechanical file divisions.

@@ -70,6 +70,19 @@ pub fn prepare_live(
     let Some(live) = live else {
         return Ok(LivePreparation::AwaitingOptions);
     };
+    let needs_mode = profile.launch().options().as_slice().iter().any(|choice| {
+        choice.category() == OptionCategory::Mode
+            || live.as_slice().iter().any(|option| {
+                option.id == choice.as_choice().id && option.category == OptionCategory::Mode
+            })
+    });
+    if needs_mode
+        && live.as_slice().iter().any(|option| {
+            option.category == OptionCategory::Mode && matches!(option.kind, OptionKind::Unknown)
+        })
+    {
+        return Ok(LivePreparation::AwaitingOptions);
+    }
     let mut options = Vec::new();
     let mut omitted = Vec::new();
     for choice in profile.launch().options().as_slice() {
@@ -78,11 +91,14 @@ pub fn prepare_live(
             .iter()
             .find(|option| option.id == choice.as_choice().id);
         let category = reported.map_or(choice.category(), |option| option.category);
-        if category == OptionCategory::Mode {
+        if category == OptionCategory::Mode || choice.category() == OptionCategory::Mode {
             if reported.is_some_and(|option| matches!(option.kind, OptionKind::Unknown)) {
                 return Ok(LivePreparation::AwaitingOptions);
             }
-            if !reported.is_some_and(|option| offered(option, &choice.as_choice().value)) {
+            if !reported.is_some_and(|option| {
+                option.category == OptionCategory::Mode
+                    && offered(option, &choice.as_choice().value)
+            }) {
                 omitted.push(choice.clone());
                 continue;
             }
