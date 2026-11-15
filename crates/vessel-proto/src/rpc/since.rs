@@ -169,6 +169,12 @@ impl Call {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
+            | Self::ReleaseWorkspaceAutomation(_)
+            | Self::GetRegistry(_)
+            | Self::ListWorkspaces(_)
+            | Self::GetWorkspace(_)
+            | Self::RenameWorkspace(_)
+            | Self::PinWorkspace(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)
@@ -185,6 +191,8 @@ impl Call {
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
+            | Self::GitCompare(_)
+            | Self::GitCompareFile(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)
@@ -260,6 +268,7 @@ impl Call {
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
             | Self::MarkInbox(_)
+            | Self::Diagnostics(_)
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
@@ -270,7 +279,8 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
-            | Self::GetAgentHistory(_) => None,
+            | Self::GetAgentHistory(_)
+            | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
         labels::on(self).map_or(Some(required), |labels| {

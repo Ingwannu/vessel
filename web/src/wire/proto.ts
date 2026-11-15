@@ -64,23 +64,6 @@ agent: AgentToAdd,
 replace?: boolean, };
 
 /**
- * Source is deliberately absent from an unauthenticated request payload.
- */
-export type AddHostRegistration = { 
-/**
- * Resolve an existing trusted node before adding display metadata.
- */
-destination: HostDestination, 
-/**
- * An absent custom label follows the trusted destination label.
- */
-label: HostLabel | null, 
-/**
- * Bounded display metadata only.
- */
-metadata: HostMetadata, };
-
-/**
  * `project.add`: a folder on the node.
  */
 export type AddProject = { 
@@ -709,6 +692,19 @@ total: number, };
 export type BlobHash = string & { readonly __brand: "BlobHash" };
 
 /**
+ * Exact external source that caused automatic setup/naming to be withheld.
+ */
+export type BlockedSource = { "kind": "change_request", 
+/**
+ * Forge repository includes its validated host/kind/path, not a free URL.
+ */
+head_repository: RepoRef, 
+/**
+ * Stable request number, positive and exactly representable on the wire.
+ */
+number: PullNumber, };
+
+/**
  * A branch.
  */
 export type Branch = { 
@@ -815,7 +811,7 @@ zone: TimeZoneName, } | { "kind": "unknown" };
 /**
  * A request of any method, as sent on the wire.
  */
-export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "host_registry.list", "params": ListHostRegistrations } | { "method": "host_registry.add", "params": AddHostRegistration } | { "method": "host_registry.update", "params": UpdateHostRegistration } | { "method": "host_registry.remove", "params": RemoveHostRegistration } | { "method": "terminal.capture", "params": CaptureTerminal };
+export type Call = { "method": "node.info", "params": GetNode } | { "method": "harness.list", "params": ListHarnesses } | { "method": "session.list", "params": ListSessions } | { "method": "session.get", "params": GetSession } | { "method": "session.create", "params": CreateSession } | { "method": "session.side_open", "params": OpenSideQuestion } | { "method": "session.side_prompt", "params": PromptSideQuestion } | { "method": "session.side_reset", "params": ResetSideQuestion } | { "method": "session.send", "params": SendInput } | { "method": "session.kill", "params": KillSession } | { "method": "session.read", "params": ReadEvents } | { "method": "session.subscribe", "params": Subscribe } | { "method": "session.unsubscribe", "params": Unsubscribe } | { "method": "node.stop", "params": StopNode } | { "method": "device.invite", "params": InviteDevice } | { "method": "device.self", "params": GetDeviceSelf } | { "method": "device.list", "params": ListDevices } | { "method": "device.revoke", "params": RevokeDevice } | { "method": "profile.list", "params": ListProfiles } | { "method": "profile.reload", "params": ReloadProfiles } | { "method": "session.move_profile", "params": MoveProfile } | { "method": "fleet.manifest", "params": GetManifest } | { "method": "fleet.blob", "params": ReadBlob } | { "method": "fleet.watch", "params": WatchFleet } | { "method": "fleet.report", "params": ReportApplied } | { "method": "fleet.join", "params": JoinFleet } | { "method": "fleet.leave", "params": LeaveFleet } | { "method": "fleet.sync", "params": SyncFleet } | { "method": "fleet.status", "params": GetFleetStatus } | { "method": "fleet.published", "params": GetPublished } | { "method": "fleet.members", "params": ListMembers } | { "method": "fleet.forward", "params": Forward } | { "method": "fleet.relay", "params": RelayCall } | { "method": "fleet.deliver", "params": Deliver } | { "method": "fleet.grant", "params": GrantHome } | { "method": "fleet.callback", "params": GetCallback } | { "method": "fleet.peers", "params": ListPeers } | { "method": "fleet.nodes", "params": ListNodes } | { "method": "fleet.forget", "params": ForgetNode } | { "method": "session.export", "params": ExportSession } | { "method": "session.import", "params": ImportSession } | { "method": "memory.export", "params": ExportMemory } | { "method": "memory.import", "params": ImportMemory } | { "method": "transfer.read", "params": ReadTransfer } | { "method": "transfer.close", "params": CloseTransfer } | { "method": "secret.set", "params": SetSecret } | { "method": "secret.list", "params": ListSecrets } | { "method": "secret.delete", "params": DeleteSecret } | { "method": "secret.copy", "params": CopySecret } | { "method": "lsp.workspace_symbols", "params": WorkspaceSymbols } | { "method": "lsp.document_symbols", "params": DocumentSymbols } | { "method": "lsp.definition", "params": Definition } | { "method": "lsp.references", "params": References } | { "method": "lsp.hover", "params": GetHover } | { "method": "lsp.implementations", "params": Implementations } | { "method": "lsp.type_definition", "params": TypeDefinition } | { "method": "lsp.incoming_calls", "params": IncomingCalls } | { "method": "lsp.outgoing_calls", "params": OutgoingCalls } | { "method": "lsp.diagnostics", "params": Diagnostics } | { "method": "model.list", "params": ListModels } | { "method": "harness.options", "params": GetHarnessOptions } | { "method": "session.options", "params": GetSessionOptions } | { "method": "session.set_option", "params": SetSessionOption } | { "method": "session.rename", "params": RenameSession } | { "method": "session.prompt", "params": PromptSession } | { "method": "session.queue", "params": ChangeQueue } | { "method": "session.conversation", "params": GetConversation } | { "method": "session.resume", "params": ResumeSession } | { "method": "session.mark", "params": MarkSession } | { "method": "session.delete", "params": DeleteSession } | { "method": "attachment.begin", "params": BeginUpload } | { "method": "attachment.write", "params": WriteUpload } | { "method": "attachment.finish", "params": FinishUpload } | { "method": "attachment.read", "params": ReadAttachment } | { "method": "project.list", "params": ListProjects } | { "method": "project.get", "params": GetProject } | { "method": "project.add", "params": AddProject } | { "method": "project.clone", "params": CloneProject } | { "method": "project.init", "params": InitProject } | { "method": "project.remove", "params": RemoveProject } | { "method": "project.commands", "params": GetProjectCommands } | { "method": "project.approve", "params": ApproveCommands } | { "method": "worktree.list", "params": ListWorktrees } | { "method": "worktree.create", "params": CreateWorktree } | { "method": "worktree.output", "params": ReadSetupOutput } | { "method": "worktree.setup", "params": RunSetup } | { "method": "worktree.remove", "params": RemoveWorktree } | { "method": "worktree.snapshots", "params": ListSnapshots } | { "method": "worktree.drop_snapshot", "params": DropSnapshot } | { "method": "git.status", "params": GetStatus } | { "method": "git.changes", "params": GetChanges } | { "method": "git.diff", "params": GetFileDiff } | { "method": "git.show", "params": ShowFile } | { "method": "git.branches", "params": ListBranches } | { "method": "git.log", "params": ReadLog } | { "method": "git.stashes", "params": ListStashes } | { "method": "git.stage", "params": Stage } | { "method": "git.unstage", "params": Unstage } | { "method": "git.discard", "params": Discard } | { "method": "git.commit", "params": Commit } | { "method": "git.fetch", "params": Fetch } | { "method": "git.push", "params": Push } | { "method": "git.pull", "params": Pull } | { "method": "git.switch", "params": Switch } | { "method": "git.rename_branch", "params": RenameBranch } | { "method": "git.stash", "params": StashChanges } | { "method": "file.list", "params": ListDir } | { "method": "file.read", "params": ReadFile } | { "method": "file.write", "params": WriteFile } | { "method": "file.create_dir", "params": CreateDir } | { "method": "file.rename", "params": RenamePath } | { "method": "file.delete", "params": DeletePath } | { "method": "file.find", "params": FindFiles } | { "method": "file.grep", "params": SearchFiles } | { "method": "forge.status", "params": GetForgeStatus } | { "method": "pr.list", "params": ListPullRequests } | { "method": "pr.get", "params": GetPullRequest } | { "method": "pr.open", "params": OpenPullRequest } | { "method": "pr.merge", "params": MergePullRequest } | { "method": "pr.feedback", "params": SetFeedback } | { "method": "terminal.create", "params": CreateTerminal } | { "method": "terminal.list", "params": ListTerminals } | { "method": "terminal.get", "params": GetTerminal } | { "method": "terminal.read", "params": ReadTerminal } | { "method": "terminal.subscribe", "params": SubscribeTerminal } | { "method": "terminal.send", "params": SendTerminal } | { "method": "terminal.rename", "params": RenameTerminal } | { "method": "terminal.kill", "params": KillTerminal } | { "method": "terminal.close", "params": CloseTerminal } | { "method": "script.list", "params": ListScripts } | { "method": "script.run", "params": RunScript } | { "method": "script.restart", "params": RestartScript } | { "method": "port.list", "params": ListPorts } | { "method": "agent.list", "params": ListAgents } | { "method": "agent.add", "params": AddAgent } | { "method": "agent.remove", "params": RemoveAgent } | { "method": "agent.status", "params": GetAgentStatus } | { "method": "agent.catalogue", "params": GetCatalogue } | { "method": "agent.install", "params": InstallAgent } | { "method": "agent.install_output", "params": ReadInstall } | { "method": "usage.query", "params": QueryUsage } | { "method": "push.key", "params": GetPushKey } | { "method": "push.subscribe", "params": SubscribePush } | { "method": "push.unsubscribe", "params": UnsubscribePush } | { "method": "push.presence", "params": ReportPushPresence } | { "method": "inbox.list", "params": ListInbox } | { "method": "inbox.get", "params": GetInboxEntry } | { "method": "inbox.mark", "params": MarkInbox } | { "method": "usage.limits", "params": GetUsageLimits } | { "method": "usage.lookup", "params": SetUsageLookup } | { "method": "schedule.preview", "params": PreviewSchedule } | { "method": "schedule.list", "params": ListSchedules } | { "method": "schedule.get", "params": GetSchedule } | { "method": "schedule.create", "params": CreateSchedule } | { "method": "schedule.update", "params": UpdateSchedule } | { "method": "schedule.pause", "params": PauseSchedule } | { "method": "schedule.resume", "params": ResumeSchedule } | { "method": "schedule.run", "params": RunSchedule } | { "method": "schedule.delete", "params": DeleteSchedule } | { "method": "schedule.runs", "params": ListRuns } | { "method": "prompt.list", "params": ListPrompts } | { "method": "prompt.create", "params": CreatePrompt } | { "method": "prompt.update", "params": UpdatePrompt } | { "method": "prompt.delete", "params": DeletePrompt } | { "method": "session.search", "params": SearchMessages } | { "method": "session.park", "params": ParkSession } | { "method": "session.wake", "params": WakeSession } | { "method": "node.settings", "params": GetNodeSettings } | { "method": "node.set_settings", "params": SetNodeSettings } | { "method": "session.fork", "params": ForkSession } | { "method": "session.rewind", "params": RewindSession } | { "method": "agent.history", "params": GetAgentHistory } | { "method": "session.detach", "params": DetachSession } | { "method": "workspace.registry", "params": GetRegistry } | { "method": "workspace.list", "params": ListWorkspaces } | { "method": "workspace.get", "params": GetWorkspace } | { "method": "workspace.rename", "params": RenameWorkspace } | { "method": "workspace.pin", "params": PinWorkspace } | { "method": "workspace.release_automation", "params": ReleaseWorkspaceAutomation } | { "method": "git.compare", "params": CompareGit } | { "method": "git.compare_file", "params": CompareGitFile } | { "method": "node.diagnostics", "params": GetDiagnostics };
 
 /**
  * What `fleet.callback` answers.
@@ -831,60 +827,6 @@ relays: Array<RouteUrl>,
  * A ticket for the member's key, with `relays`.
  */
 ticket?: RelayTicket | null, };
-
-/**
- * A signed screen-line index: negatives count backwards from retained rows.
- */
-export type CaptureLine = number;
-
-/**
- * Retained line count is not a byte count or event sequence.
- */
-export type CaptureLineCount = number;
-
-/**
- * The CLI translates --scrollback to start=0 before constructing this request.
- */
-export type CaptureOptions = { 
-/**
- * Inclusive retained-row selection, never event offsets.
- */
-range: CaptureRange, 
-/**
- * Preserve or remove controls from translated text.
- */
-style: CaptureStyle, };
-
-/**
- * Paseo indices are zero-based, inclusive, clamped and relative to retained history.
- */
-export type CaptureRange = { 
-/**
- * None selects the first retained line.
- */
-start: CaptureLine | null, 
-/**
- * None selects the final retained line.
- */
-end: CaptureLine | null, };
-
-/**
- * Both variants return xterm-compatible translated text; style is not synthesized.
- */
-export type CaptureStyle = "plain" | "preserve";
-
-/**
- * Pending method registration uses `host_registry::CLI_PARITY_PROTOCOL`, never a literal.
- */
-export type CaptureTerminal = { 
-/**
- * Existing terminal identity; the node checks its ordinary ownership policy.
- */
-terminal: TerminalId, 
-/**
- * One bounded, point-in-time screen projection.
- */
-options: CaptureOptions, };
 
 /**
  * The node's copy of the registry.
@@ -1306,6 +1248,44 @@ more: boolean, };
 export type CommitStage = "staged" | "tracked" | "everything";
 
 /**
+ * Pending `git.compare`: no arbitrary directory or command text is accepted.
+ */
+export type CompareGit = { 
+/**
+ * Re-resolved and authorized by the node, including on a cache hit.
+ */
+root: WorkspaceRoot, 
+/**
+ * Exactly the selected comparison, never an approximate legacy scope.
+ */
+comparison: GitComparison, 
+/**
+ * Included in the cache key so filtered output cannot poison other views.
+ */
+whitespace: GitWhitespace, 
+/**
+ * Bypassing freshness requires an explicit reason.
+ */
+reason?: GitReadReason, };
+
+/**
+ * Pending `git.compare_file`: one bounded file body in the same comparison.
+ */
+export type CompareGitFile = { 
+/**
+ * Repository/comparison/whitespace identity retained across pages.
+ */
+query: CompareGit, 
+/**
+ * A validated path relative to the root.
+ */
+path: RelPath, 
+/**
+ * Hunk offset, not a byte offset or an array index in the client.
+ */
+from_hunk: GitHunkOffset, };
+
+/**
  * A key of a repository's git configuration (`core.sshcommand`), named
  * when a run is refused for it (protocol 11, ADR 0030); never its
  * value.
@@ -1701,6 +1681,43 @@ entry: QueueEntryId, };
 export type Delivery = "start" | "queue" | "steer" | "interrupt";
 
 /**
+ * A retry distinguishes a committed detach from a new mutation.
+ */
+export type DetachDisposition = "detached" | "already_detached";
+
+/**
+ * Stored once per managed child, surviving lost replies, resume and restart.
+ */
+export type DetachReceipt = { former_parent: SessionRef, detached_at: string, };
+
+/**
+ * Planned session.detach input; only the target id comes from the caller.
+ * Method registration awaits the central pending-method contract.
+ */
+export type DetachSession = { 
+/**
+ * The child on the receiving node; parent and workspace are authoritative.
+ */
+session: SessionId, };
+
+/**
+ * Planned session.detach result; session carries the unchanged workspace.
+ */
+export type DetachedSession = { 
+/**
+ * Current authoritative session with identical process/history identity.
+ */
+session: SessionInfo, 
+/**
+ * Original typed parent and commit time, including on a repeat.
+ */
+receipt: DetachReceipt, 
+/**
+ * Whether this request changed current delegation.
+ */
+disposition: DetachDisposition, };
+
+/**
  * A paired device: one client machine holding its own credential for a
  * node (ADR 0010). Minted by the node at pairing.
  */
@@ -1948,6 +1965,19 @@ direct: DiagnosticBinding, };
 export type DiagnosticLocalKind = "socket" | "pipe";
 
 /**
+ * Memory from one observation. Counts expose JSON-safe saturation explicitly.
+ */
+export type DiagnosticMemory = { 
+/**
+ * Resident memory in bytes.
+ */
+resident_bytes: DiagnosticCount, 
+/**
+ * Virtual address-space size in bytes.
+ */
+virtual_bytes: DiagnosticCount, };
+
+/**
  * Public process facts, projected rather than cloning `NodeInfo`.
  */
 export type DiagnosticNode = { 
@@ -1989,6 +2019,33 @@ export type DiagnosticOs = "linux" | "mac_os" | "windows" | "other";
  * Executable presence says nothing about sign-in or successful turns.
  */
 export type DiagnosticPresence = "found" | "missing" | "unknown";
+
+/**
+ * Only this daemon's process; no remote process-list or signalling handle.
+ */
+export type DiagnosticProcess = { 
+/**
+ * Process identity at observation time.
+ */
+pid: DiagnosticProcessId, 
+/**
+ * Parent, absent when the operating system supplies no parent.
+ */
+parent: DiagnosticProcessId | null, 
+/**
+ * Missing memory is explicit; no zero substitution.
+ */
+memory: DiagnosticSection<DiagnosticMemory>, };
+
+/**
+ * Nonzero process identity, distinct from node and session identities.
+ */
+export type DiagnosticProcessId = number & { readonly __brand: "DiagnosticProcessId" };
+
+/**
+ * Safe typed explanation of resource admission refusal.
+ */
+export type DiagnosticRefusal = "busy" | "stopping";
 
 /**
  * Counts from relay watches; no route, refusal text or credential.
@@ -2045,6 +2102,10 @@ collected_at: string,
  * Safe node identity/platform/lifecycle.
  */
 node: DiagnosticNode, 
+/**
+ * Numeric metadata about this daemon process only.
+ */
+process: DiagnosticSection<DiagnosticProcess>, 
 /**
  * Readability/schema and stored session counts, not integrity proof.
  */
@@ -2398,7 +2459,11 @@ export type ErrorCode = "invalid_request" | "unauthorized" | "forbidden" | "prot
 /**
  * Further typed context for a refusal. Unknown future reasons stay readable.
  */
-export type ErrorDetail = { "kind": "schedule_preview", 
+export type ErrorDetail = { "kind": "diagnostics", 
+/**
+ * Resource refusal, never a source error message.
+ */
+reason: DiagnosticRefusal, } | { "kind": "schedule_preview", 
 /**
  * The stable preview reason.
  */
@@ -3165,6 +3230,11 @@ session: SessionId, };
 export type GetDeviceSelf = Record<symbol, never>;
 
 /**
+ * Request a bounded metadata-only report. Never refreshes providers or agents.
+ */
+export type GetDiagnostics = Record<symbol, never>;
+
+/**
  * `git.diff`: one file's hunks in a scope.
  */
 export type GetFileDiff = { 
@@ -3305,6 +3375,15 @@ refresh: boolean, };
 export type GetPushKey = null;
 
 /**
+ * Long-poll one complete registry revision, with a finite server wait.
+ */
+export type GetRegistry = { 
+/**
+ * None reads immediately; an unchanged revision may wait within caller shares.
+ */
+changed_from: RegistryRevision | null, };
+
+/**
  * `schedule.get`: one schedule. Needs `read`.
  */
 export type GetSchedule = { 
@@ -3368,14 +3447,68 @@ scope: LimitsScope,
 refresh: LimitRefresh, };
 
 /**
+ * Direct identity lookup includes archived records for recovery inspection.
+ */
+export type GetWorkspace = { 
+/**
+ * Exact host-local workspace identity.
+ */
+workspace: WorkspaceId, };
+
+/**
  * What looking for the machine's `gh` found.
  */
 export type GhState = "missing" | "signed_out" | "failed" | "unknown";
 
 /**
+ * A successful read distinguishes absent comparison, bounded refusal and data.
+ * Partial coverage stays in the existing summary's `more` field.
+ */
+export type GitCompared<T> = { "kind": "no_base" } | { "kind": "base_mismatch", 
+/**
+ * The ref recorded when this worktree was created.
+ */
+stored: RefName, 
+/**
+ * The different base selected by the caller.
+ */
+requested: WorktreeBase, } | { "kind": "too_large" } | { "kind": "ready", 
+/**
+ * Payload from the existing git parser, not text interpreted by a UI.
+ */
+data: T, };
+
+/**
+ * Which two versions a git document compares.
+ */
+export type GitComparison = { "kind": "uncommitted" } | { "kind": "committed", 
+/**
+ * Absent means the registered worktree/project base.
+ */
+base?: WorktreeBase | null, } | { "kind": "all", 
+/**
+ * Absent means the registered worktree/project base.
+ */
+base?: WorktreeBase | null, } | { "kind": "commit", 
+/**
+ * Already parsed before any git process is started.
+ */
+id: CommitId, };
+
+/**
+ * A continuation supplied by the node; zero requests the first bounded page.
+ */
+export type GitHunkOffset = number;
+
+/**
  * A git operation that leaves a repository between two states.
  */
 export type GitOperation = "merge" | "rebase" | "cherry_pick" | "revert" | "bisect";
+
+/**
+ * A forced refresh always carries a typed reason, never an unchecked flag.
+ */
+export type GitReadReason = "view" | "refresh" | "mutation" | "recovery";
 
 /**
  * Why git refused a change: what a client can act on.
@@ -3483,6 +3616,11 @@ minor: number,
  * The third (0 when git printed two).
  */
 patch: number, };
+
+/**
+ * A typed preference in query/cache identity, not a free-form git option.
+ */
+export type GitWhitespace = "show" | "ignore";
 
 /**
  * `fleet.grant` (protocol 6): a member gives its home a credential on
@@ -3665,104 +3803,6 @@ updated_at?: string | null,
 in_vessel?: SessionId | null, };
 
 /**
- * A registration points at established destinations, never grants access itself.
- */
-export type HostDestination = { "kind": "fleet", 
-/**
- * Stable node identity, not its display name.
- */
-node: NodeId, } | { "kind": "paired", 
-/**
- * Already authenticated peer identity.
- */
-node: NodeId, };
-
-/**
- * A directory includes disabled and failed records as well as the node's own identity.
- */
-export type HostDirectory = { 
-/**
- * The selected node, not a registration pretending to be self.
- */
-node: NodeInfo, 
-/**
- * Caller-source entries, including unavailable targets.
- */
-hosts: Array<HostSummary>, };
-
-/**
- * Persisted enablement never revokes a destination's underlying credentials.
- */
-export type HostEnabled = "enabled" | "disabled";
-
-/**
- *A display label never selects or authenticates a host.
- */
-export type HostLabel = string;
-
-/**
- * Label patch keeps omission distinct from clearing a custom label.
- */
-export type HostLabelChange = { "kind": "keep" } | { "kind": "clear" } | { "kind": "set", "label": HostLabel };
-
-/**
- * A whole validated metadata map; updates cannot bypass the entry bound.
- */
-export type HostMetadata = { [key in MetadataKey]: MetadataValue };
-
-/**
- * The durable registry record carries only refs and display annotations.
- */
-export type HostRegistration = { 
-/**
- * Opaque registry identity survives connection replacement.
- */
-registration_id: HostRegistrationId, 
-/**
- * Authentication-derived source ownership.
- */
-source: HostSource, 
-/**
- * Destination's existing trust authority.
- */
-destination: HostDestination, 
-/**
- * Custom label; omitted follows destination display name.
- */
-label: HostLabel | null, 
-/**
- * Source-owned bounded display annotations.
- */
-metadata: HostMetadata, 
-/**
- * Directory state, independent of device revocation/fleet membership.
- */
-enabled: HostEnabled, 
-/**
- * Optimistic metadata/identity updates compare this value.
- */
-revision: HostRevision, };
-
-/**
- * A host registration is independent of its current trusted destination.
- */
-export type HostRegistrationId = string & { readonly __brand: "HostRegistrationId" };
-
-/**
- * Revision prevents two CLI metadata merges from silently losing changes.
- */
-export type HostRevision = number;
-
-/**
- * The node derives ownership from authentication, never a client-provided source id.
- */
-export type HostSource = { "kind": "owner" } | { "kind": "device", 
-/**
- * Authenticated device, not a target destination.
- */
-device: DeviceId, };
-
-/**
  * How the node is signed in to one host.
  */
 export type HostStatus = { 
@@ -3782,27 +3822,6 @@ access: ForgeAccess,
  * Where the token came from, when there is one.
  */
 source?: TokenSource | null, };
-
-/**
- * Display metadata and independently observed connectivity stay distinguishable.
- */
-export type HostSummary = { 
-/**
- * Durable identity/annotations, owned by this caller's source.
- */
-registration: HostRegistration, 
-/**
- * This read's actual transport observation.
- */
-status: RegisteredHostStatus, 
-/**
- * Destination display name when the existing authority supplies one.
- */
-destination_name: HostLabel | null, 
-/**
- * Explicit uncertainty/failure instead of fabricated online state.
- */
-error: WireError | null, };
 
 /**
  * Hover text is untrusted content; clients must not render raw HTML.
@@ -3869,11 +3888,6 @@ section?: string | null,
  * Its lines.
  */
 lines: Array<DiffLine>, };
-
-/**
- * Rebinding to another node identity requires this explicit user choice.
- */
-export type IdentityChange = "keep_pinned" | "replace";
 
 /**
  * Minutes of idleness before a park: 1 to [`IdleMinutes::MAX`] (a week).
@@ -4619,11 +4633,6 @@ ignored: boolean, };
 export type ListHarnesses = null;
 
 /**
- * List includes disabled and unreachable registrations; connectivity is a projection.
- */
-export type ListHostRegistrations = null;
-
-/**
  * A bounded descending page. Omitted cursor starts at the newest entry.
  */
 export type ListInbox = { 
@@ -4756,6 +4765,23 @@ export type ListTerminals = {
  * Only this session's or project's.
  */
 place?: TerminalPlace | null, };
+
+/**
+ * List snapshots; no secondary client database or path-based identity.
+ */
+export type ListWorkspaces = { 
+/**
+ * Narrow to one registered project when provided.
+ */
+project: ProjectId | null, 
+/**
+ * Default active only.
+ */
+lifecycle: WorkspaceList, 
+/**
+ * Default foreground only.
+ */
+visibility: WorkspaceVisibilityFilter, };
 
 /**
  * `worktree.list`: every worktree, or one project's.
@@ -5018,19 +5044,9 @@ export type Mergeable = "mergeable" | "conflicting" | "blocked" | "unstable" | "
 export type MessageRole = "prompt" | "reply";
 
 /**
- *A bounded metadata key preserves a host source's annotations.
- */
-export type MetadataKey = string;
-
-/**
- *A bounded annotation carries text, never a credential or route.
- */
-export type MetadataValue = string;
-
-/**
  * Every RPC method.
  */
-export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "host_registry.list" | "host_registry.add" | "host_registry.update" | "host_registry.remove" | "terminal.capture";
+export type Method = "node.info" | "harness.list" | "session.list" | "session.get" | "session.create" | "session.side_open" | "session.side_prompt" | "session.side_reset" | "session.send" | "session.kill" | "session.read" | "session.subscribe" | "session.unsubscribe" | "node.stop" | "device.invite" | "device.self" | "device.list" | "device.revoke" | "profile.list" | "profile.reload" | "session.move_profile" | "fleet.manifest" | "fleet.blob" | "fleet.watch" | "fleet.report" | "fleet.join" | "fleet.leave" | "fleet.sync" | "fleet.status" | "fleet.published" | "fleet.members" | "fleet.forward" | "fleet.relay" | "fleet.deliver" | "fleet.grant" | "fleet.callback" | "fleet.peers" | "fleet.nodes" | "fleet.forget" | "session.export" | "session.import" | "memory.export" | "memory.import" | "transfer.read" | "transfer.close" | "secret.set" | "secret.list" | "secret.delete" | "secret.copy" | "lsp.workspace_symbols" | "lsp.document_symbols" | "lsp.definition" | "lsp.references" | "lsp.hover" | "lsp.implementations" | "lsp.type_definition" | "lsp.incoming_calls" | "lsp.outgoing_calls" | "lsp.diagnostics" | "model.list" | "harness.options" | "session.options" | "session.set_option" | "session.rename" | "session.prompt" | "session.queue" | "session.conversation" | "session.resume" | "session.mark" | "session.delete" | "attachment.begin" | "attachment.write" | "attachment.finish" | "attachment.read" | "project.list" | "project.get" | "project.add" | "project.clone" | "project.init" | "project.remove" | "project.commands" | "project.approve" | "worktree.list" | "worktree.create" | "worktree.output" | "worktree.setup" | "worktree.remove" | "worktree.snapshots" | "worktree.drop_snapshot" | "git.status" | "git.changes" | "git.diff" | "git.show" | "git.branches" | "git.log" | "git.stashes" | "git.stage" | "git.unstage" | "git.discard" | "git.commit" | "git.fetch" | "git.push" | "git.pull" | "git.switch" | "git.rename_branch" | "git.stash" | "file.list" | "file.read" | "file.write" | "file.create_dir" | "file.rename" | "file.delete" | "file.find" | "file.grep" | "forge.status" | "pr.list" | "pr.get" | "pr.open" | "pr.merge" | "pr.feedback" | "terminal.create" | "terminal.list" | "terminal.get" | "terminal.read" | "terminal.subscribe" | "terminal.send" | "terminal.rename" | "terminal.kill" | "terminal.close" | "script.list" | "script.run" | "script.restart" | "port.list" | "agent.list" | "agent.add" | "agent.remove" | "agent.status" | "agent.catalogue" | "agent.install" | "agent.install_output" | "usage.query" | "push.key" | "push.subscribe" | "push.unsubscribe" | "push.presence" | "inbox.list" | "inbox.get" | "inbox.mark" | "usage.limits" | "usage.lookup" | "schedule.preview" | "schedule.list" | "schedule.get" | "schedule.create" | "schedule.update" | "schedule.pause" | "schedule.resume" | "schedule.run" | "schedule.delete" | "schedule.runs" | "prompt.list" | "prompt.create" | "prompt.update" | "prompt.delete" | "session.search" | "session.park" | "session.wake" | "node.settings" | "node.set_settings" | "session.fork" | "session.rewind" | "agent.history" | "session.detach" | "workspace.registry" | "workspace.list" | "workspace.get" | "workspace.rename" | "workspace.pin" | "workspace.release_automation" | "git.compare" | "git.compare_file" | "node.diagnostics";
 
 /**
  * A media type without parameters, `type/subtype`, lower case
@@ -5669,6 +5685,19 @@ tool_call: ToolCallId,
  * Choices, in the harness's order.
  */
 options: Array<PermissionOption>, };
+
+/**
+ * Explicit pin mutation cannot accidentally target all workspaces sharing a cwd.
+ */
+export type PinWorkspace = { 
+/**
+ * Exact host-local identity.
+ */
+workspace: WorkspaceId, 
+/**
+ * Explicit desired state, including unpin.
+ */
+pin: WorkspacePin, };
 
 /**
  * One step of the agent's plan.
@@ -6825,14 +6854,36 @@ export type RefusedReason = { "kind": "unauthorized" } | { "kind": "no_access" }
 url?: ForgeUrl | null, } | { "kind": "forbidden" } | { "kind": "unknown" };
 
 /**
- * Connection facts are projected from existing authorities, never guessed from registration.
- */
-export type RegisteredHostStatus = "online" | "offline" | "disabled" | "error";
-
-/**
  * An agent's id in the ACP registry (`goose`).
  */
 export type RegistryId = string;
+
+/**
+ * Monotonic registry version; checked advancement refuses exhausted revisions.
+ */
+export type RegistryRevision = number;
+
+/**
+ * Complete person-visible registry state, replaced atomically by clients.
+ * No field is added to existing session replies while the feature is pending.
+ */
+export type RegistrySnapshot = { 
+/**
+ * Cryptographic node identity survives a node-book alias rename.
+ */
+node: NodeId, 
+/**
+ * Global monotonic version for ordering complete snapshots.
+ */
+revision: RegistryRevision, 
+/**
+ * Includes empty workspaces; separate from the session list.
+ */
+workspaces: Array<WorkspaceDescriptor>, 
+/**
+ * Explicit session/terminal ownership in the same authoritative snapshot.
+ */
+memberships: Array<WorkspaceMembership>, };
 
 /**
  * A version in the ACP registry: the registry's own, or an entry's.
@@ -6890,6 +6941,23 @@ expires_at: number,
 mac: TicketMac, };
 
 /**
+ * Compare source and descriptor revision before releasing this workspace's automation gate.
+ */
+export type ReleaseWorkspaceAutomation = { 
+/**
+ * Exact lifecycle owner on this node.
+ */
+workspace: WorkspaceId, 
+/**
+ * A changed source or metadata revision requires reinspection and another explicit choice.
+ */
+expected: RegistryRevision, 
+/**
+ * Must equal the retained blocked source, not a generic approve-all flag.
+ */
+source: BlockedSource, };
+
+/**
  * `profile.reload` (protocol 5): read `profiles.toml` again. If it does
  * not parse, the node keeps the profiles it had and the error says where.
  * Answers with the profiles now in effect. Needs `Admin`.
@@ -6921,19 +6989,6 @@ export type RemoveAgent = {
  * Which agent.
  */
 name: AgentName, };
-
-/**
- * Removing metadata never forgets a fleet node or revokes a paired device.
- */
-export type RemoveHostRegistration = { 
-/**
- * Directory entry to remove.
- */
-registration_id: HostRegistrationId, 
-/**
- * Concurrent updates must not be silently removed.
- */
-expected_revision: HostRevision, };
 
 /**
  * `project.remove`: forget a project (its files stay).
@@ -7046,9 +7101,22 @@ terminal: TerminalId,
 title: SessionTitle, };
 
 /**
+ * Manual rename is independent from filesystem/branch names.
+ */
+export type RenameWorkspace = { 
+/**
+ * Existing identity.
+ */
+workspace: WorkspaceId, 
+/**
+ * None resets the displayed override.
+ */
+title: SessionTitle | null, };
+
+/**
  * A successful response of any method, as sent on the wire.
  */
-export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "host_registry.list", "result": HostDirectory } | { "method": "host_registry.add", "result": HostRegistration } | { "method": "host_registry.update", "result": HostRegistration } | { "method": "host_registry.remove", "result": Ack } | { "method": "terminal.capture", "result": TerminalCapture };
+export type Reply = { "method": "node.info", "result": NodeInfo } | { "method": "harness.list", "result": Array<Harness> } | { "method": "session.list", "result": Array<SessionInfo> } | { "method": "session.get", "result": SessionInfo } | { "method": "session.create", "result": SessionInfo } | { "method": "session.side_open", "result": SessionInfo } | { "method": "session.side_prompt", "result": Delivered } | { "method": "session.side_reset", "result": SessionInfo } | { "method": "session.send", "result": Ack } | { "method": "session.kill", "result": Ack } | { "method": "session.read", "result": EventPage } | { "method": "session.subscribe", "result": Subscribed } | { "method": "session.unsubscribe", "result": Ack } | { "method": "node.stop", "result": Ack } | { "method": "device.invite", "result": Invitation } | { "method": "device.self", "result": DeviceSelf } | { "method": "device.list", "result": Array<DeviceInfo> } | { "method": "device.revoke", "result": Ack } | { "method": "profile.list", "result": Array<ProfileInfo> } | { "method": "profile.reload", "result": Array<ProfileInfo> } | { "method": "session.move_profile", "result": SessionInfo } | { "method": "fleet.manifest", "result": Manifest } | { "method": "fleet.blob", "result": BlobChunk } | { "method": "fleet.watch", "result": Generation } | { "method": "fleet.report", "result": Ack } | { "method": "fleet.join", "result": JoinedFleet } | { "method": "fleet.leave", "result": Ack } | { "method": "fleet.sync", "result": Ack } | { "method": "fleet.status", "result": FleetSyncStatus } | { "method": "fleet.published", "result": FleetPublished } | { "method": "fleet.members", "result": Array<FleetMember> } | { "method": "fleet.forward", "result": Forwarded } | { "method": "fleet.relay", "result": Forwarded } | { "method": "fleet.deliver", "result": Forwarded } | { "method": "fleet.grant", "result": Ack } | { "method": "fleet.callback", "result": Callback } | { "method": "fleet.peers", "result": Array<FleetNode> } | { "method": "fleet.nodes", "result": Array<FleetNode> } | { "method": "fleet.forget", "result": NodeForgotten } | { "method": "session.export", "result": TransferManifest } | { "method": "session.import", "result": SessionImported } | { "method": "memory.export", "result": TransferManifest } | { "method": "memory.import", "result": MemoryImported } | { "method": "transfer.read", "result": BlobChunk } | { "method": "transfer.close", "result": Ack } | { "method": "secret.set", "result": Ack } | { "method": "secret.list", "result": Array<SecretName> } | { "method": "secret.delete", "result": Ack } | { "method": "secret.copy", "result": Ack } | { "method": "lsp.workspace_symbols", "result": Page<Symbol> } | { "method": "lsp.document_symbols", "result": Page<Symbol> } | { "method": "lsp.definition", "result": Page<Location> } | { "method": "lsp.references", "result": Page<Location> } | { "method": "lsp.hover", "result": Hover } | { "method": "lsp.implementations", "result": Page<Location> } | { "method": "lsp.type_definition", "result": Page<Location> } | { "method": "lsp.incoming_calls", "result": Page<LspCall> } | { "method": "lsp.outgoing_calls", "result": Page<LspCall> } | { "method": "lsp.diagnostics", "result": Page<Diagnostic> } | { "method": "model.list", "result": Array<ModelRoute> } | { "method": "harness.options", "result": HarnessOptions } | { "method": "session.options", "result": Array<SessionOption> } | { "method": "session.set_option", "result": Array<SessionOption> } | { "method": "session.rename", "result": SessionInfo } | { "method": "session.prompt", "result": Delivered } | { "method": "session.queue", "result": QueueChanged } | { "method": "session.conversation", "result": Conversation } | { "method": "session.resume", "result": SessionInfo } | { "method": "session.mark", "result": SessionInfo } | { "method": "session.delete", "result": SessionDeleted } | { "method": "attachment.begin", "result": Upload } | { "method": "attachment.write", "result": Written } | { "method": "attachment.finish", "result": AttachmentRef } | { "method": "attachment.read", "result": BlobChunk } | { "method": "project.list", "result": ProjectList } | { "method": "project.get", "result": ProjectInfo } | { "method": "project.add", "result": ProjectInfo } | { "method": "project.clone", "result": ProjectInfo } | { "method": "project.init", "result": ProjectInfo } | { "method": "project.remove", "result": Ack } | { "method": "project.commands", "result": ProjectCommands } | { "method": "project.approve", "result": ProjectCommands } | { "method": "worktree.list", "result": WorktreeList } | { "method": "worktree.create", "result": CreateWorktreeOutcome } | { "method": "worktree.output", "result": SetupOutput } | { "method": "worktree.setup", "result": WorktreeInfo } | { "method": "worktree.remove", "result": RemoveWorktreeOutcome } | { "method": "worktree.snapshots", "result": SnapshotList } | { "method": "worktree.drop_snapshot", "result": Ack } | { "method": "git.status", "result": GitStatus } | { "method": "git.changes", "result": DiffSummary } | { "method": "git.diff", "result": FileDiff } | { "method": "git.show", "result": FileRead } | { "method": "git.branches", "result": BranchList } | { "method": "git.log", "result": CommitPage } | { "method": "git.stashes", "result": StashList } | { "method": "git.stage", "result": GitStatus } | { "method": "git.unstage", "result": GitStatus } | { "method": "git.discard", "result": GitStatus } | { "method": "git.commit", "result": CommitOutcome } | { "method": "git.fetch", "result": FetchOutcome } | { "method": "git.push", "result": PushOutcome } | { "method": "git.pull", "result": PullOutcome } | { "method": "git.switch", "result": SwitchOutcome } | { "method": "git.rename_branch", "result": RenameOutcome } | { "method": "git.stash", "result": StashOutcome } | { "method": "file.list", "result": DirListing } | { "method": "file.read", "result": FileRead } | { "method": "file.write", "result": FileVersion } | { "method": "file.create_dir", "result": Ack } | { "method": "file.rename", "result": Ack } | { "method": "file.delete", "result": Ack } | { "method": "file.find", "result": FoundFiles } | { "method": "file.grep", "result": GrepResult } | { "method": "forge.status", "result": ForgeStatus } | { "method": "pr.list", "result": PullRequestList } | { "method": "pr.get", "result": PullRequestView } | { "method": "pr.open", "result": OpenOutcome } | { "method": "pr.merge", "result": MergeOutcome } | { "method": "pr.feedback", "result": SessionPullRequest } | { "method": "terminal.create", "result": TerminalInfo } | { "method": "terminal.list", "result": TerminalList } | { "method": "terminal.get", "result": TerminalInfo } | { "method": "terminal.read", "result": EventPage } | { "method": "terminal.subscribe", "result": TerminalSubscribed } | { "method": "terminal.send", "result": Ack } | { "method": "terminal.rename", "result": TerminalInfo } | { "method": "terminal.kill", "result": Ack } | { "method": "terminal.close", "result": Ack } | { "method": "script.list", "result": ScriptList } | { "method": "script.run", "result": ScriptRunOutcome } | { "method": "script.restart", "result": ScriptRunOutcome } | { "method": "port.list", "result": PortList } | { "method": "agent.list", "result": Array<AgentInfo> } | { "method": "agent.add", "result": AgentInfo } | { "method": "agent.remove", "result": Ack } | { "method": "agent.status", "result": Array<AgentReadiness> } | { "method": "agent.catalogue", "result": Catalogue } | { "method": "agent.install", "result": InstallJob } | { "method": "agent.install_output", "result": InstallOutput } | { "method": "usage.query", "result": UsageReport } | { "method": "push.key", "result": PushKey } | { "method": "push.subscribe", "result": PushLease } | { "method": "push.unsubscribe", "result": Ack } | { "method": "push.presence", "result": Ack } | { "method": "inbox.list", "result": InboxPage } | { "method": "inbox.get", "result": InboxEntry | null } | { "method": "inbox.mark", "result": Ack } | { "method": "usage.limits", "result": UsageLimits } | { "method": "usage.lookup", "result": ExternalLookup } | { "method": "schedule.preview", "result": SchedulePreview } | { "method": "schedule.list", "result": ScheduleList } | { "method": "schedule.get", "result": ScheduleInfo } | { "method": "schedule.create", "result": ScheduleInfo } | { "method": "schedule.update", "result": ScheduleInfo } | { "method": "schedule.pause", "result": ScheduleInfo } | { "method": "schedule.resume", "result": ScheduleInfo } | { "method": "schedule.run", "result": ScheduleRun } | { "method": "schedule.delete", "result": Ack } | { "method": "schedule.runs", "result": RunList } | { "method": "prompt.list", "result": PromptList } | { "method": "prompt.create", "result": SavedPrompt } | { "method": "prompt.update", "result": SavedPrompt } | { "method": "prompt.delete", "result": Ack } | { "method": "session.search", "result": SearchPage } | { "method": "session.park", "result": SessionInfo } | { "method": "session.wake", "result": SessionInfo } | { "method": "node.settings", "result": NodeSettings } | { "method": "node.set_settings", "result": NodeSettings } | { "method": "session.fork", "result": SessionInfo } | { "method": "session.rewind", "result": SessionInfo } | { "method": "agent.history", "result": AgentHistoryPage } | { "method": "session.detach", "result": DetachedSession } | { "method": "workspace.registry", "result": RegistrySnapshot } | { "method": "workspace.list", "result": Array<WorkspaceDescriptor> } | { "method": "workspace.get", "result": WorkspaceDescriptor } | { "method": "workspace.rename", "result": WorkspaceDescriptor } | { "method": "workspace.pin", "result": WorkspaceDescriptor } | { "method": "workspace.release_automation", "result": WorkspaceDescriptor } | { "method": "git.compare", "result": GitCompared<DiffSummary> } | { "method": "git.compare_file", "result": GitCompared<FileDiff> } | { "method": "node.diagnostics", "result": DiagnosticReport };
 
 /**
  * A repository's path on its forge: `owner/name`, or GitLab's
@@ -8114,6 +8182,11 @@ profile?: ProfileName | null,
  */
 created_by: Creator, 
 /**
+ * Durable current-parent boundary (ADR 0090), separate from creation audit.
+ * Absent on older peers and before a human explicitly detaches the child.
+ */
+detach_receipt?: DetachReceipt | null, 
+/**
  * Current process state.
  */
 status: SessionStatus, 
@@ -9159,23 +9232,6 @@ export type SyncFleet = Record<symbol, never>;
 export type TerminalBytes = string;
 
 /**
- * Parsed rows retain blank lines and report their entire retained-buffer count.
- */
-export type TerminalCapture = { 
-/**
- * The terminal actually resolved by the node.
- */
-terminal: TerminalId, 
-/**
- * Requested translated screen lines, not raw output chunks.
- */
-lines: Array<string>, 
-/**
- * All retained rows before the range was applied.
- */
-total_lines: CaptureLineCount, };
-
-/**
  * A terminal beside a session: a shell, or a run of a project's script
  * (protocol 11, ADR 0031).
  */
@@ -9732,39 +9788,6 @@ subscription: SubscriptionId, };
 export type UnsubscribePush = null;
 
 /**
- * An edit compares the whole prior record's revision before changing anything.
- */
-export type UpdateHostRegistration = { 
-/**
- * Directory entry, never a node id.
- */
-registration_id: HostRegistrationId, 
-/**
- * Reject a stale CLI metadata merge.
- */
-expected_revision: HostRevision, 
-/**
- * Keep, clear or replace the display label.
- */
-label: HostLabelChange, 
-/**
- * None leaves all metadata unchanged.
- */
-metadata: HostMetadata | null, 
-/**
- * None preserves enabled state.
- */
-enabled: HostEnabled | null, 
-/**
- * None preserves the current destination ref.
- */
-destination: HostDestination | null, 
-/**
- * Explicit consent if the destination's `NodeId` changes.
- */
-identity_change: IdentityChange, };
-
-/**
  * `prompt.update`: change a saved prompt (its project stays). Needs
  * `operate`; agents are refused.
  */
@@ -10060,6 +10083,131 @@ root: string,
 language: Language, };
 
 /**
+ * Applies to automatic setup, named services and metadata work, not explicit user shells.
+ */
+export type WorkspaceAutomation = { "kind": "allowed" } | { "kind": "blocked", 
+/**
+ * Render the actual source; never derive it from cwd, branch or approval digest.
+ */
+source: BlockedSource, };
+
+/**
+ * Existing backing identity is separate from the logical workspace identity.
+ */
+export type WorkspaceBacking = { "kind": "local" } | { "kind": "managed", 
+/**
+ * Exact backing identity, not a branch or cwd heuristic.
+ */
+worktree: WorktreeId, };
+
+/**
+ * Every client receives placement from the node; duplicate cwd means distinct owners.
+ */
+export type WorkspaceDescriptor = { 
+/**
+ * Stable independent identity.
+ */
+id: WorkspaceId, 
+/**
+ * Registered project on this node.
+ */
+project: ProjectId, 
+/**
+ * Authoritative execution folder on this node.
+ */
+path: string, 
+/**
+ * User title or absence; automatic names never replace a manual rename.
+ */
+title: SessionTitle | null, 
+/**
+ * Automatic work from external sources needs an explicit retained-source release.
+ */
+automation: WorkspaceAutomation, 
+/**
+ * Pin survives clients and reconnects; no second sidebar preference store.
+ */
+pin: WorkspacePin, 
+/**
+ * Backing ownership used by archive/recovery, never guessed from path shape.
+ */
+backing: WorkspaceBacking, 
+/**
+ * Active or archived as persisted by the node.
+ */
+lifecycle: WorkspaceLifecycle, 
+/**
+ * Durable visibility independent of route/tab state.
+ */
+visibility: WorkspaceVisibility, 
+/**
+ * Creation time for stable list ordering.
+ */
+created_at: string, 
+/**
+ * Revision permits stale response rejection without comparing timestamps.
+ */
+revision: RegistryRevision, };
+
+/**
+ * Independent workspace identity; shared cwd never implies shared ownership.
+ */
+export type WorkspaceId = string & { readonly __brand: "WorkspaceId" };
+
+/**
+ * Archived records remain inspectable and can be restored through reinspection.
+ */
+export type WorkspaceLifecycle = { "kind": "active" } | { "kind": "archiving", 
+/**
+ * Kept durably so interrupted cleanup can be inspected and resumed.
+ */
+at: string, } | { "kind": "restoring", 
+/**
+ * Retained recovery intent survives a node restart without duplicate creation.
+ */
+at: string, } | { "kind": "archived", 
+/**
+ * Host timestamp used for history ordering.
+ */
+at: string, };
+
+/**
+ * Explicit filter keeps archived records out of the default sidebar.
+ */
+export type WorkspaceList = "active" | "archived" | "all";
+
+/**
+ * Membership travels with the same snapshot as placement to avoid split hydration.
+ */
+export type WorkspaceMembership = { 
+/**
+ * The independent lifecycle container.
+ */
+workspace: WorkspaceId, 
+/**
+ * A resource belongs to at most one workspace on this node.
+ */
+resource: WorkspaceResource, };
+
+/**
+ * Pin is durable registry presentation, not a device-local sidebar ordering key.
+ */
+export type WorkspacePin = "unpinned" | "pinned";
+
+/**
+ * Ownership is explicit even when several workspaces share the same directory.
+ */
+export type WorkspaceResource = { "kind": "session", 
+/**
+ * Stable session identity, independent of provider-specific session ids.
+ */
+session: SessionId, } | { "kind": "terminal", 
+/**
+ * Terminal identity does not imply ownership by its cwd.
+ */
+terminal: TerminalId, };
+
+/**
  * The folder a git or file call works in.
  */
 export type WorkspaceRoot = { "kind": "project", 
@@ -10088,6 +10236,16 @@ query: string,
  * Sorted result page.
  */
 page: PageRequest, };
+
+/**
+ * A background workspace remains durable but is hidden by default lists.
+ */
+export type WorkspaceVisibility = "foreground" | "background";
+
+/**
+ * Lists do not infer background inclusion from an unrelated client preference.
+ */
+export type WorkspaceVisibilityFilter = "foreground" | "all";
 
 /**
  * Where a new branch starts.

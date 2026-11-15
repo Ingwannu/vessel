@@ -387,6 +387,54 @@ async fn limits_policy_and_reads_send_no_frames_to_an_old_hop() {
 
 mod inbox;
 
+/// Quality B pending calls are refused before a frame is sent, even to a
+/// current peer. This preserves older clients while the package is integrated.
+#[tokio::test]
+async fn pending_git_comparison_never_reaches_the_peer() {
+    use vessel_proto::workspace::{CompareGit, GitComparison, GitWhitespace, WorkspaceRoot};
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let peer = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: ProtocolRange::CURRENT.max,
+                    node: node(),
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let error = client
+        .call(CompareGit {
+            root: WorkspaceRoot::Project {
+                project: vessel_proto::ProjectId::random(),
+            },
+            comparison: GitComparison::Committed { base: None },
+            whitespace: GitWhitespace::Show,
+            reason: vessel_proto::workspace::GitReadReason::View,
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(error.code(), Some(ErrorCode::Unsupported));
+    assert!(matches!(
+        error,
+        crate::CallError::UnassignedProtocol {
+            method: vessel_proto::Method::GitCompare
+        }
+    ));
+    drop(client);
+    assert!(
+        peer.await.unwrap().is_none(),
+        "no pending request frame was sent"
+    );
+}
+
 /// Pending package methods must not leak a request to either an old or a current peer.
 #[tokio::test]
 async fn cli_host_and_capture_calls_refuse_locally_until_assigned() {

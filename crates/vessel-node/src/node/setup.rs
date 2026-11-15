@@ -4,7 +4,6 @@
 //! which assembles the node from it.
 
 use crate::error::NodeError;
-use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -104,6 +103,76 @@ pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
         .map_err(NodeError::ModelClient)
 }
 
+/// The LSP manager's configuration with the operator's roots filled in:
+/// executables and toolchains inside any configured root are not trusted
+/// for conservative analysis, so the registry needs the full list.
+pub(super) fn lsp_config(config: &Config) -> vessel_lsp::Config {
+    let mut lsp = config.lsp.clone();
+    lsp.registry.configured_roots = config
+        .lsp_roots
+        .iter()
+        .map(|root| root.path.clone())
+        .collect();
+    lsp
+}
+
+/// Say where the node listens.
+pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local: &Endpoint) {
+    tracing::info!(
+        node = %id,
+        address = ?address,
+        local = %local.path().display(),
+        "node listening"
+    );
+}
+
+/// The checked disk/config phase, kept separate from transport assembly.
+/// The caller captures its monotonic start clock before this I/O begins.
+pub(super) struct Startup {
+    pub(super) id: NodeId,
+    pub(super) token: vessel_store::NodeToken,
+    pub(super) keypair: Arc<vessel_secure::NodeKeypair>,
+    pub(super) lock: vessel_store::NodeLock,
+    pub(super) store: vessel_store::Store,
+    pub(super) models: Arc<Models>,
+    pub(super) proxy: TcpListener,
+    pub(super) session_setup: SessionSetup,
+    pub(super) clients: vessel_relay::address::ClientAddress,
+    pub(super) relaying: Option<(vessel_proto::RelayToken, vessel_relay::TlsConfig)>,
+}
+impl Startup {
+    pub(super) async fn open(config: &Config) -> Result<Self, NodeError> {
+        // Keep the checks and I/O in the exact original order. A malformed
+        // relay/proxy must still fail before any node state starts.
+        let clients = super::client_address(config)?;
+        let relaying = super::relaying(config)?;
+        let super::Prepared {
+            id,
+            token,
+            keypair,
+            lock,
+            profiles,
+            models,
+            dirs,
+        } = super::prepare_off_thread(config).await?;
+        let store = super::open_store(config).await?;
+        let (models, proxy) = model_proxy(models).await?;
+        let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
+        Ok(Self {
+            id,
+            token,
+            keypair,
+            lock,
+            store,
+            models,
+            proxy,
+            session_setup,
+            clients,
+            relaying,
+        })
+    }
+}
+
 /// A failed registry never resets saved data or prevents unrelated node operations.
 pub(super) async fn host_registry(
     config: &Config,
@@ -122,13 +191,4 @@ pub(super) async fn host_registry(
             None
         }
     }
-}
-
-pub(super) fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
-    tracing::info!(target: "vessel_node::node",
-        node = %id,
-        address = ?address,
-        local = %local.path().display(),
-        "node listening"
-    );
 }

@@ -2,6 +2,7 @@
 //! logic, and over a loopback websocket for the connection and the token.
 
 mod calls;
+mod diagnostics;
 mod memory;
 mod pinned;
 mod resume;
@@ -430,6 +431,13 @@ impl Handler for FakeNode {
         update_host_registration: vessel_proto::host_registry::UpdateHostRegistration => vessel_proto::host_registry::HostRegistration;
         remove_host_registration: vessel_proto::host_registry::RemoveHostRegistration => Ack;
         capture_terminal: vessel_proto::terminals::CaptureTerminal => vessel_proto::terminals::TerminalCapture;
+        get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
+        list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
+        get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
+        diagnostics: vessel_proto::diagnostics::GetDiagnostics => vessel_proto::diagnostics::DiagnosticReport;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
@@ -492,6 +500,8 @@ impl Handler for FakeNode {
         list_snapshots: vessel_proto::workspace::ListSnapshots => vessel_proto::workspace::SnapshotList;
         drop_snapshot: vessel_proto::workspace::DropSnapshot => Ack;
         git_status: vessel_proto::workspace::GetStatus => vessel_proto::workspace::GitStatus;
+        git_compare: vessel_proto::workspace::CompareGit => vessel_proto::workspace::GitCompared<vessel_proto::workspace::DiffSummary>;
+        git_compare_file: vessel_proto::workspace::CompareGitFile => vessel_proto::workspace::GitCompared<vessel_proto::workspace::FileDiff>;
         git_changes: vessel_proto::workspace::GetChanges => vessel_proto::workspace::DiffSummary;
         git_diff: vessel_proto::workspace::GetFileDiff => vessel_proto::workspace::FileDiff;
         git_show: vessel_proto::workspace::ShowFile => vessel_proto::workspace::FileRead;
@@ -572,6 +582,7 @@ impl Handler for FakeNode {
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
+        detach_session: vessel_proto::subagents::DetachSession => vessel_proto::subagents::DetachedSession;
     }
 }
 
