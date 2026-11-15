@@ -206,6 +206,20 @@ and the notify watcher; W10 owns timeline notification rendering. A5 adds no
 second watcher or wire. The old restart assumption needs an ADR0033 amendment
 in that owner package; it is not an OS notification implementation here.
 
+The isolated legacy answer port does not establish a durable Unconfirmed fence
+across Inbox selection replacement. W4's reviewed owner registry and original
+resident/binding ingress are still required for receipt/retry parity; no second
+response registry or task engine is created in A5.
+
+GPUI has one process notification response handler: later registration replaces
+it (app.rs:1970-1984). The current single-Shell registration must become one
+idempotent App Global with bounded opaque tags retaining the original weak Shell,
+window handle and Source before multi-window readiness. W19 confirmed that its
+canonical focused/live-window fallback APIs are not in approved base8b and have
+no reviewed portable packet yet. A5 must consume that owner boundary, never add
+a competing window registry. Original alive/dead/window-ABA admission and generic
+fallback still require actual consumer tests; no multi-window OS proof is claimed.
+
 ## Stated native differences
 
 Durable Inbox follows Vessel ADR 0040; it is not a second copy of Paseo flags.
