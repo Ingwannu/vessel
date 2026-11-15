@@ -1,5 +1,5 @@
 //! Linux exposes flock writers by file identity without acquiring the lock.
-//! Keeping this edge beside `NodeLock` avoids a second lock parser in the CLI.
+//! One decoder remains shared with later descriptor verification.
 
 use super::{KernelLock, LockFileIdentity, NodeProcess};
 use std::io::{self, Read};
@@ -62,11 +62,12 @@ enum DecodeError {
     Device,
 }
 
-/// Only `NodeLock` may expose this kernel snapshot as process authority.
+/// Observe a selected OS file without acquiring its lock or trusting a record.
+/// The snapshot supplies no signal authority.
 ///
 /// # Errors
 /// The lock metadata or bounded procfs table cannot be read/decoded.
-pub(super) fn observe(path: &Path) -> io::Result<Option<KernelLock>> {
+pub fn observe(path: &Path) -> io::Result<Option<KernelLock>> {
     let file = match identity(path) {
         Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -116,7 +117,8 @@ fn writer(line: &str, selected: &LockFileIdentity) -> Result<Option<KernelLock>,
     let file = match parse_identity(identity) {
         Ok(file) => file,
         Err(error) => {
-            tracing::debug!(%error, "kernel lock row has no recognizable file identity");
+            // Preserve existing log filters during this behavior-preserving move.
+            tracing::debug!(target: "vessel_store::lock::kernel", %error, "kernel lock row has no recognizable file identity");
             return Ok(None);
         }
     };
@@ -158,6 +160,33 @@ fn parse_identity(text: &str) -> Result<LockFileIdentity, DecodeError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_held_file_snapshot_reports_its_actual_kernel_process() {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("vessel-proc-lock-{}-{stamp}", std::process::id(),));
+        // Exclusive creation gives this fixture its own file without adding
+        // a dependency or overwriting an earlier run's files.
+        let file = std::fs::File::options()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .unwrap();
+        file.try_lock().unwrap();
+        let record_pid = std::process::id();
+        let kernel = observe(&path).unwrap().unwrap();
+        // These private PID assertions moved from the store's owner fixture;
+        // the record/data-directory preservation assertions remain there.
+        assert_eq!(kernel.process, NodeProcess(std::process::id()));
+        assert_eq!(kernel.process.0, record_pid);
+        file.unlock().unwrap();
+        std::fs::remove_file(&path).unwrap();
+    }
 
     #[test]
     fn only_an_exclusive_writer_supplies_a_process_and_device_identity() {
