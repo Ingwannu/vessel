@@ -1,5 +1,6 @@
 //! [`history`]: one page of an agent's own conversations, as it lists them
-//! over ACP (`session/list`; protocol 17's `agent.history`, ADR 0053).
+//! over its selected native protocol or ACP (`session/list`; protocol 17's
+//! `agent.history`, ADR 0053).
 //!
 //! [Decision Log]
 //! - Purpose: a person imports a conversation they had with an agent
@@ -18,7 +19,7 @@
 //!   adapter) can answer a page with nothing in it and a next one: the
 //!   listing asks on, on the same connection, up to [`MAX_PAGES`] pages, as
 //!   Paseo does, so an empty page is the end unless it says otherwise.
-//! - Only an agent that advertises `sessionCapabilities.list` and
+//! - Over ACP, only an agent that advertises `sessionCapabilities.list` and
 //!   `loadSession` lists: a conversation that cannot be loaded cannot be
 //!   imported.
 

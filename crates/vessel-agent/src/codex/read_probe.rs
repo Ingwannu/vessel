@@ -13,7 +13,7 @@ const METHOD_NOT_FOUND: i64 = -32601;
 
 /// Safe failure classes; native error/log text never crosses into diagnostics.
 #[derive(Debug, thiserror::Error)]
-pub enum ProbeError {
+pub(super) enum ProbeError {
     /// The finite read deadline elapsed.
     #[error("Codex read-only probe deadline elapsed")]
     TimedOut,
