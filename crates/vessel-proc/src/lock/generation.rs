@@ -48,7 +48,7 @@ impl Generation {
             return Err(Error::Stat);
         }
         let ticks = fields
-            .split(|byte| byte.is_ascii_whitespace())
+            .split(u8::is_ascii_whitespace)
             .filter(|field| !field.is_empty())
             .nth(Self::START_TICKS.saturating_sub(Self::FIRST_AFTER_COMM))
             .ok_or(Error::Stat)?;
@@ -173,7 +173,7 @@ fn same_view(bytes: &[u8], expected: NodeProcess) -> Result<(), Error> {
         }
         found = true;
         let mut values = value
-            .split(|byte| byte.is_ascii_whitespace())
+            .split(u8::is_ascii_whitespace)
             .filter(|v| !v.is_empty());
         let observed = process(values.next().ok_or(Error::Hierarchy)?)?;
         // One hierarchy entry proves the proc mount and this active PID

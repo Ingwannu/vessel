@@ -13,8 +13,9 @@ slice order. The docs commit adds both and no command.
 - Source: 2p2a adds candidate descriptor possession to the opaque snapshot.
   Its focused clippy passed; focused tests are pending.
 - Source: 2p2b brackets descriptor capture with generation and active PID
-  namespace evidence. Focused checks and the proof package whole gate are
-  pending; no signal caller is included.
+  namespace evidence. First focused clippy found two redundant decoding
+  closures, now corrected without changing the rule. Final focused checks
+  and the proof package whole gate are pending; no signal caller is included.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
