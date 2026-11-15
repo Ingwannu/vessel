@@ -3,6 +3,7 @@
 use super::*;
 use vessel_proto::creation::{
     Advance, Certainty, Fingerprint, FirstInput, Kind, Phase, Reservation, Revision, Stage,
+    WorkspaceClaim,
 };
 use vessel_proto::{BlobHash, ErrorCode, WorkspaceId};
 
@@ -183,7 +184,8 @@ fn corrupted_reservation_accounting_is_not_a_free_slot_or_an_absent_key() {
     let admission = candidate("accounting");
     let identity = admission.identity.clone();
     apply_committed(&mut db, Write::Admit(admission), budget()).unwrap();
-    db.execute("UPDATE creation_receipts SET reserved_bytes=0", [])
+    let _changed = db
+        .execute("UPDATE creation_receipts SET reserved_bytes=0", [])
         .unwrap();
     assert!(matches!(
         lookup(&db, &identity),

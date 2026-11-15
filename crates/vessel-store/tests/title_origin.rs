@@ -114,7 +114,7 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
     connection
-        .pragma_update(None, "user_version", after_creation.checked_sub(1).unwrap())
+        .pragma_update(None, "user_version", after_creation.checked_sub(2).unwrap())
         .unwrap();
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))

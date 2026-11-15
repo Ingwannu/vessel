@@ -56,7 +56,7 @@ pub enum CreationError {
     #[error("creation revision exhausted")]
     RevisionExhausted,
     /// Receipt and claims are retained; admission fails instead of evicting keys.
-    #[error("creation receipt limit of {MAX_RECEIPTS} reached")]
+    #[error("creation receipt retention capacity reached")]
     Full,
     /// A receipt cannot consume another operation's reserved growth allowance.
     #[error("creation receipt exceeds {MAX_RECEIPT_BYTES} bytes")]
@@ -64,6 +64,12 @@ pub enum CreationError {
     /// Damaged reservation accounting fails closed before any effects.
     #[error("creation capacity accounting is invalid")]
     CapacityCorrupt,
+    /// An owner/index mismatch cannot be reconciled as an absent receipt.
+    #[error("creation receipt namespace metadata is invalid")]
+    NamespaceCorrupt,
+    /// A receipt cannot proceed after its permanent claims were altered.
+    #[error("creation receipt claims are invalid")]
+    ClaimsCorrupt,
     /// Observation of a missing receipt is distinct from uncertain work.
     #[error("creation receipt not found")]
     NotFound,
@@ -81,9 +87,11 @@ impl CreationError {
             | Self::ResourceClaimed
             | Self::StaleRevision
             | Self::InvalidTransition => crate::ErrorCode::Conflict,
-            Self::RevisionExhausted | Self::ReceiptTooLarge | Self::CapacityCorrupt => {
-                crate::ErrorCode::Internal
-            }
+            Self::RevisionExhausted
+            | Self::ReceiptTooLarge
+            | Self::CapacityCorrupt
+            | Self::NamespaceCorrupt
+            | Self::ClaimsCorrupt => crate::ErrorCode::Internal,
             Self::Full => crate::ErrorCode::Unavailable,
             Self::NotFound => crate::ErrorCode::NotFound,
         }

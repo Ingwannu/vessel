@@ -59,7 +59,16 @@ cannot suppress notification. A rolled-back savepoint produces no wake-up.
 No new RPC or runtime provisioning is registered by this storage addition.
 
 Coordinator assigned the MCP agent receipt extension to A1 on 2026-11-15.
-ADR0091's pending amendment binds namespaces to the admitted origin principal,
+ADR0091's amendment (V3 contract source acceptance, row154) binds namespaces to the admitted origin principal,
 keeps user workspace/terminal creation person-only, and preserves existing
 parentage/count leases before effects. V3 contract acceptance is required
-before agent namespace/handler code. Current agent refusal remains intact.
+before agent namespace/handler code; that prerequisite is now satisfied.
+
+The staged implementation derives person/agent identities from Principal and
+validates stored owner/index/claim metadata before returning a receipt. A
+separate additive owner-column migration keeps old person digests unchanged.
+Own-agent observation allows Agent kind only; workspace/terminal admission
+remains person-only. Tests exercise independent origins, delegated identity,
+forged fields, migration and corrupted metadata. New agent creation/count
+lease orchestration remains unimplemented and is not approved by the contract
+review or these storage changes. Source review and execution evidence are owed.

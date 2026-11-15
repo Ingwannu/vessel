@@ -11,7 +11,7 @@ fn seed_before_last_slot(dir: &DataDir) -> Result<(), StoreError> {
     for index in 0..slots.saturating_sub(1) {
         let admission = any_candidate(&format!("retained-{index}"));
         let reserved = admission.receipt.snapshot().reserved;
-        tx.execute(
+        let _changed = tx.execute(
             "INSERT INTO creation_receipts(key_hash,operation,reserved_bytes,receipt) VALUES (?1,?2,?3,?4)",
             rusqlite::params![admission.identity.digest().to_string(), reserved.operation.to_string(),
                 i64::try_from(RESERVED_BYTES_PER_RECEIPT).map_err(|_overflow| CreationError::CapacityCorrupt)?,
@@ -28,7 +28,7 @@ fn seed_before_last_slot(dir: &DataDir) -> Result<(), StoreError> {
                 },
             ),
         ] {
-            tx.execute(
+            let _changed = tx.execute(
                 "INSERT INTO creation_claims(kind,resource,operation) VALUES (?1,?2,?3)",
                 rusqlite::params![kind, resource, reserved.operation.to_string()],
             )?;

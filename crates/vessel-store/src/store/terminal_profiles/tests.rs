@@ -94,7 +94,8 @@ async fn picker_metadata_contains_no_program_or_argv_and_corrupt_settings_are_no
     store.close().await;
     drop(store);
     let db = rusqlite::Connection::open(dir.database_path()).unwrap();
-    db.execute("UPDATE terminal_profile_settings SET profiles='{'", [])
+    let _changed = db
+        .execute("UPDATE terminal_profile_settings SET profiles='{'", [])
         .unwrap();
     drop(db);
     let store = Store::open(&dir, crate::StoreConfig::default())

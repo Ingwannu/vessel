@@ -1,30 +1,50 @@
 //! Durable creation admission/CAS on the existing `SQLite` writer (ADR 0091).
 //! Store only normalized intent fingerprints, hashed keys and safe receipts.
 
+mod claims;
+mod owner;
 mod projection;
+use owner::Owner;
 #[cfg(test)]
 pub(crate) mod tests;
 
 use sha2::{Digest as _, Sha256};
 use vessel_proto::creation::{Advance, Key, Kind, Receipt, Revision};
-use vessel_proto::{BlobHash, WorkspaceOperationId};
+use vessel_proto::{BlobHash, NodeId, SessionId, WorkspaceOperationId};
 
 /// Caller key and operation kind form one namespace; Debug redacts the key.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Identity {
     kind: Kind,
     key: Key,
+    owner: Owner,
 }
 
 impl Identity {
     /// Keys are already validated by the protocol boundary.
     #[must_use]
     pub const fn new(kind: Kind, key: Key) -> Self {
-        Self { kind, key }
+        Self {
+            kind,
+            key,
+            owner: Owner::Person,
+        }
+    }
+
+    /// Bind an agent's keys only to its authenticated origin parent tuple.
+    /// The node derives both ids from `Principal`; request data supplies neither.
+    #[must_use]
+    pub const fn for_agent(node: NodeId, parent: SessionId, key: Key) -> Self {
+        Self {
+            kind: Kind::Agent,
+            key,
+            owner: Owner::Agent { node, parent },
+        }
     }
 
     fn digest(&self) -> BlobHash {
         let mut hash = Sha256::new();
+        self.owner.hash(&mut hash);
         hash.update(match self.kind {
             Kind::Workspace => b"workspace".as_slice(),
             Kind::Agent => b"agent".as_slice(),

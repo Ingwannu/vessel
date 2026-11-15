@@ -1,10 +1,10 @@
-//! Person-only creation observations reuse the store and shared waiting limits.
+//! Principal-bound creation observations reuse the store and shared waiting limits.
 
 use super::{Connection, NodeService, wire};
 use crate::{principal::Principal, waits::Waiter};
 use std::time::Duration;
-use vessel_proto::creation::{ObserveCreation, Snapshot, SubscribeCreation};
-use vessel_proto::{ErrorCode, WireError};
+use vessel_proto::creation::{Kind, ObserveCreation, Snapshot, SubscribeCreation};
+use vessel_proto::{ErrorCode, Method, WireError};
 use vessel_store::CreationIdentity as Identity;
 
 impl NodeService {
@@ -13,8 +13,8 @@ impl NodeService {
         connection: &Connection,
         request: ObserveCreation,
     ) -> Result<Option<Snapshot>, WireError> {
-        person(connection.principal())?;
-        self.creation_snapshot(request).await
+        let identity = identity(connection.principal(), request)?;
+        self.creation_snapshot(&identity).await
     }
 
     pub(crate) async fn subscribe_creation(
@@ -22,7 +22,7 @@ impl NodeService {
         connection: &Connection,
         request: SubscribeCreation,
     ) -> Result<Option<Snapshot>, WireError> {
-        person(connection.principal())?;
+        let identity = identity(connection.principal(), request.identity)?;
         let here = self.links.node();
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let mut wait = request.wait.seconds();
@@ -33,7 +33,7 @@ impl NodeService {
         // Subscribe first. A write between the SQL read and changed() remains
         // visible; notifications may coalesce, never the authoritative row.
         let mut changes = self.sessions.store().creation_changes();
-        let snapshot = self.creation_snapshot(request.identity.clone()).await?;
+        let snapshot = self.creation_snapshot(&identity).await?;
         let Some(current) = &snapshot else {
             return Ok(None);
         };
@@ -55,30 +55,31 @@ impl NodeService {
         };
         let _wake =
             tokio::time::timeout(Duration::from_secs(u64::from(seconds)), changes.changed()).await;
-        self.creation_snapshot(request.identity).await
+        self.creation_snapshot(&identity).await
     }
 
-    async fn creation_snapshot(
-        &self,
-        request: ObserveCreation,
-    ) -> Result<Option<Snapshot>, WireError> {
+    async fn creation_snapshot(&self, identity: &Identity) -> Result<Option<Snapshot>, WireError> {
         self.sessions
             .store()
-            .creation(&Identity::new(request.kind, request.key))
+            .creation(identity)
             .await
             .map(|receipt| receipt.map(|receipt| receipt.snapshot().clone()))
             .map_err(|error| wire(&error.into()))
     }
 }
 
-fn person(principal: &Principal) -> Result<(), WireError> {
-    if principal.agent().is_some() {
-        return Err(WireError::new(
-            ErrorCode::Forbidden,
-            "creation receipts are a person's operation history",
-        ));
+fn identity(principal: &Principal, request: ObserveCreation) -> Result<Identity, WireError> {
+    principal.permit(Method::ObserveCreation)?;
+    match principal.agent() {
+        Some((node, parent)) => match request.kind {
+            Kind::Agent => Ok(Identity::for_agent(node, parent, request.key)),
+            Kind::Workspace | Kind::Terminal => Err(WireError::new(
+                ErrorCode::Forbidden,
+                "an agent may observe only its own agent creation operations",
+            )),
+        },
+        None => Ok(Identity::new(request.kind, request.key)),
     }
-    Ok(())
 }
 
 #[cfg(test)]

@@ -61,6 +61,9 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Namespace corruption preserves the row instead of permitting replay.
+    #[error("stored creation ownership metadata is invalid")]
+    CorruptCreationOwner(#[source] serde_json::Error),
     /// Validated profile mutation refusal, with one safe protocol mapping.
     #[error(transparent)]
     TerminalProfiles(#[from] vessel_proto::terminal_profiles::ProfileError),
@@ -306,6 +309,7 @@ impl StoreError {
             | Self::Commit(_)
             | Self::Corrupt { .. }
             | Self::CorruptCreation(_)
+            | Self::CorruptCreationOwner(_)
             | Self::CorruptTerminalProfiles(_)
             | Self::CorruptPush { .. }
             | Self::CorruptId { .. }

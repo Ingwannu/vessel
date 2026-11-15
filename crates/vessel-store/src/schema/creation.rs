@@ -19,3 +19,7 @@ CREATE TABLE creation_claims (
     PRIMARY KEY(kind,resource)
 );
 ";
+
+/// Existing rows remain person-owned without rewriting their historical key hash.
+pub(super) const OWNER: &str =
+    r#"ALTER TABLE creation_receipts ADD COLUMN owner TEXT NOT NULL DEFAULT '{"kind":"person"}';"#;
