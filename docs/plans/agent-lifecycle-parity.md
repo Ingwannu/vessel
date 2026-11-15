@@ -407,8 +407,9 @@ No row of the crate table changes.
 
 ## Typed label entry access for app consumers
 
-The metadata editor consumes `SessionLabels::iter()` as an exact-size iterator
-of `(&LabelKey, &LabelValue)`, in canonical key order. Its `len()` is the count
+Consumers read `SessionLabels::iter()` as an exact-size iterator of
+`(&LabelKey, &LabelValue)`, in canonical key order. No generic session-label
+editor is introduced by this accessor. Its `len()` is the count
 of remaining entries. This extends the existing validated map, with no JSON
 tree, summary parsing, mutable map access or new wire field. Values retain
 spaces, commas and equals signs. This accessor does not add the pending
@@ -418,8 +419,10 @@ spaces, commas and equals signs. This accessor does not add the pending
 
 The protocol owner accepted this existing-wire-type change with required wire
 scope and named Rust constructors. The method-table integration head is now merged. The request conversion and
-its optional field rule are implemented; storage, inheritance and discovery
-service/CLI wiring are still in progress.
+its optional field rule are implemented, along with durable listing, source
+inheritance, selected discovery and import preservation. Their package checks
+are in progress; the separately integrated CLI/MCP consumers and canonical
+bound-workspace bridge remain outside this implementation.
 
 ```rust
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -512,18 +515,35 @@ and event pages detect actual projection changes. This also incorporates the
 head's fix for the previously reported Replayed observation page inconsistency.
 The legacy labels migration test already follows the table's latest version.
 
-Current package boundary: the legacy interrupt repair and existing label
-admission passed review and their whole gates. Event availability plus stop
-refusal passed the complete gate and review too. Earlier per-commit "owed"
-notes below record those checkpoints. Background values and the nullable request are merged into this package;
-storage/discovery/inheritance and CLI remain next. Existing unit-value callers
-use only `ListSessions::default()` with their assertions unchanged. The saved
-SDK `sessions()` still requests the legacy full collection. Selection serde
-checks distinguish null from the required-scope object. The existing RPC
-admission scenarios now also cover shown, all and labelled discovery directly,
-in each fleet envelope and in mixed nesting; no pending request reaches the
-writer or handler. These checks still need execution on this new code.
+Current package boundary: legacy interrupt repair, label admission and the event/stop
+prerequisite passed review; their integrated gate debt is also settled. The
+background package implements validated listing/scope/selection values, the
+nullable request, durable effective metadata, source-node inheritance, selected
+current-label reads and source-preserving imports. The migration runner and
+legacy SDK full-list behavior remain unchanged. Explicit discovery and metadata
+are refused by the shared accessor while the assignment remains pending.
 
+Generated declarations preserve unrelated integrated types. Metadata projection
+covers infos, lists, subscriptions, transfers, templates and envelopes. The
+strict check found fixture Arc/SQL-result and helper-reference defects, which
+are corrected. Corrected-source checks and this package's whole gate are still
+owed; source is not yet approved for integration. The typed iterator belongs
+to the same pending package.
+
+The independent public call preflight passed its narrow, complete root gate and
+review. Its approved legacy run anchor now checks the creation call after
+connection but before placement. New CLI metadata/filter options and MCP
+facades are separate consumer integrations. A real-node regression also covers
+hidden durable listing and the dynamic import refusal before target-directory
+work; its execution remains owed.
+
+Canonical workspace visibility is the authority for bound sessions; creation
+orchestration still owes that mirror/override bridge. Independent listing and
+source inheritance apply to legacy/unbound sessions or an already fixed mirror.
+No label mutation call or LabelsChanged event is implemented yet. Actual reload
+also remains unimplemented: a reviewed producer with proved transient-prompt
+support/capture/restore precedes that common orchestration. No real-provider,
+platform or end-user metadata workflow is claimed.
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
