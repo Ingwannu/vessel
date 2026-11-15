@@ -3,7 +3,7 @@
 use super::super::{KeyError, Models, config::Provider};
 use std::{path::PathBuf, sync::Arc};
 use tokio::{sync::OwnedSemaphorePermit, task::JoinError};
-use tokio_util::task::TaskTrackerToken;
+use tokio_util::task::task_tracker::TaskTrackerToken;
 use vessel_llm::client::ApiKey;
 use vessel_session::SessionHandle;
 use vessel_workspace::{Git, project_file::metadata::ProjectStyles};

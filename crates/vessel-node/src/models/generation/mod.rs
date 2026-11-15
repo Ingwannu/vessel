@@ -12,7 +12,7 @@ mod text;
 
 use super::Models;
 use std::{path::PathBuf, sync::Arc};
-use tokio_util::{sync::CancellationToken, task::TaskTrackerToken};
+use tokio_util::{sync::CancellationToken, task::task_tracker::TaskTrackerToken};
 use vessel_proto::{SessionMode, settings::MetadataSettings};
 use vessel_session::SessionHandle;
 use vessel_workspace::Git;
