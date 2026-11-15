@@ -89,7 +89,7 @@ impl DataDir {
 /// Why another user could change `file` (in the data directory `dir`), if
 /// one could.
 #[cfg(unix)]
-fn unsafe_to_run(dir: &Path, file: &Path) -> io::Result<Option<&'static str>> {
+pub(crate) fn unsafe_to_run(dir: &Path, file: &Path) -> io::Result<Option<&'static str>> {
     use std::os::unix::fs::MetadataExt as _;
 
     let dir = std::fs::metadata(dir)?;
@@ -106,7 +106,7 @@ fn unsafe_to_run(dir: &Path, file: &Path) -> io::Result<Option<&'static str>> {
 }
 
 #[cfg(not(unix))]
-fn unsafe_to_run(_dir: &Path, _file: &Path) -> io::Result<Option<&'static str>> {
+pub(crate) fn unsafe_to_run(_dir: &Path, _file: &Path) -> io::Result<Option<&'static str>> {
     Ok(None)
 }
 

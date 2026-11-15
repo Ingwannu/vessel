@@ -94,3 +94,12 @@ override iteration is deterministic by provider ID. Native ACP/direct mode IDs
 remain the ones observed by the transport, and are not silently translated to
 the reference manifest's mode dialect. This is a policy/discovery stage, not
 complete Claude/OpenCode/Pi/OMP native execution parity.
+
+## Storage preparation
+
+Quality B was merged cleanly before method wiring. The existing settings-file
+preservation and recursive unknown-field comparison are extracted behind
+crate-private path-taking operations without changing the settings methods or
+their test expectations. The added-agent file trust check becomes crate-visible
+for reuse by provider persistence; its checks are unchanged. This avoids a
+second implementation of owner-only backup naming and nested-field detection.

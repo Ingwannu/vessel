@@ -29,9 +29,11 @@
 //!   why on the next change. Rejected: refusing every change until a
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
+//! - This is a JSON file decoding edge: a local tree comparison detects unknown
+//!   fields before preservation; no untyped JSON escapes the file comparison.
 
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use vessel_proto::settings::SetNodeSettings;
@@ -114,39 +116,7 @@ impl DataDir {
         at: DateTime<Utc>,
         why: SetAside,
     ) -> Result<PathBuf, StoreError> {
-        let path = self.settings_path();
-        let kind = match why {
-            SetAside::Unreadable => "unreadable",
-            SetAside::Later => "later",
-        };
-        let stamp = at.format("%Y%m%dT%H%M%S%.3fZ");
-        for attempt in 1..=SET_ASIDE_TRIES {
-            let name = if attempt == 1 {
-                format!("{SETTINGS_FILE}.{kind}-{stamp}")
-            } else {
-                format!("{SETTINGS_FILE}.{kind}-{stamp}-{attempt}")
-            };
-            let aside = self.root().join(name);
-            match std::fs::symlink_metadata(&aside) {
-                Ok(_taken) => continue,
-                Err(error) if error.kind() == io::ErrorKind::NotFound => {}
-                Err(error) => return Err(StoreError::io(&aside)(error)),
-            }
-            match why {
-                SetAside::Unreadable => std::fs::rename(&path, &aside).map(drop),
-                // The file stays until the write replaces it atomically.
-                SetAside::Later => std::fs::copy(&path, &aside).map(drop),
-            }
-            .map_err(StoreError::io(&path))?;
-            // Kept as private as the file it was; a copy someone made
-            // readable by others is tightened like the store's own files.
-            let _privacy = files::make_private(&aside).map_err(StoreError::io(&aside))?;
-            return Ok(aside);
-        }
-        Err(StoreError::io(&path)(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "every name to set the settings aside under is taken",
-        )))
+        set_aside(self.root(), &self.settings_path(), at, why)
     }
 
     /// Whether `settings.json` holds more than `known`, what this build
@@ -156,16 +126,7 @@ impl DataDir {
     /// # Errors
     /// The file exists but cannot be read, or is not JSON.
     pub fn settings_hold_more_than(&self, known: &SetNodeSettings) -> Result<bool, StoreError> {
-        let path = self.settings_path();
-        let text = match std::fs::read(&path) {
-            Ok(text) => text,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
-            Err(error) => return Err(StoreError::io(&path)(error)),
-        };
-        let invalid = |error| StoreError::io(&path)(io::Error::other(error));
-        let file: serde_json::Value = serde_json::from_slice(&text).map_err(invalid)?;
-        let known = serde_json::to_value(known).map_err(invalid)?;
-        Ok(!covered(&file, &known))
+        holds_more_than(&self.settings_path(), known)
     }
 
     /// Replace the saved settings, owner-only and atomically.
@@ -178,6 +139,72 @@ impl DataDir {
             .map_err(|error| StoreError::io(&path)(io::Error::other(error)))?;
         files::replace(&path, &text).map_err(StoreError::io(&path))
     }
+}
+
+/// Shared configuration-preservation operation. Only the node holding the data
+/// directory lock may call it; otherwise the unique-name check can race a rename.
+pub(crate) fn set_aside(
+    root: &Path,
+    path: &Path,
+    at: DateTime<Utc>,
+    why: SetAside,
+) -> Result<PathBuf, StoreError> {
+    let base = path.file_name().ok_or_else(|| {
+        StoreError::io(path)(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "configuration file has no name",
+        ))
+    })?;
+    let kind = match why {
+        SetAside::Unreadable => "unreadable",
+        SetAside::Later => "later",
+    };
+    let stamp = at.format("%Y%m%dT%H%M%S%.3fZ");
+    for attempt in 1..=SET_ASIDE_TRIES {
+        let name = if attempt == 1 {
+            format!("{}.{kind}-{stamp}", base.to_string_lossy())
+        } else {
+            format!("{}.{kind}-{stamp}-{attempt}", base.to_string_lossy())
+        };
+        let aside = root.join(name);
+        match std::fs::symlink_metadata(&aside) {
+            Ok(_taken) => continue,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(StoreError::io(&aside)(error)),
+        }
+        match why {
+            SetAside::Unreadable => std::fs::rename(path, &aside).map(drop),
+            // The file stays until the write replaces it atomically.
+            SetAside::Later => std::fs::copy(path, &aside).map(drop),
+        }
+        .map_err(StoreError::io(path))?;
+        // Kept as private as the file it was; a copy someone made
+        // readable by others is tightened like the store's own files.
+        let _privacy = files::make_private(&aside).map_err(StoreError::io(&aside))?;
+        return Ok(aside);
+    }
+    Err(StoreError::io(path)(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "every name to set the settings aside under is taken",
+    )))
+}
+
+/// JSON decoding edge: compare the complete original tree with its typed
+/// serialization so unknown nested fields trigger preservation before a write.
+/// No JSON tree leaves this function.
+pub(crate) fn holds_more_than<T: serde::Serialize>(
+    path: &Path,
+    known: &T,
+) -> Result<bool, StoreError> {
+    let text = match std::fs::read(path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(StoreError::io(path)(error)),
+    };
+    let invalid = |error| StoreError::io(path)(io::Error::other(error));
+    let file: serde_json::Value = serde_json::from_slice(&text).map_err(invalid)?;
+    let known = serde_json::to_value(known).map_err(invalid)?;
+    Ok(!covered(&file, &known))
 }
 
 /// Whether every key of `file`, at every depth, is in `known` with the
