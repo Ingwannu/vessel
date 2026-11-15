@@ -247,3 +247,12 @@ without claiming Serving or a confirmed stop. Fleet hydration remains separate.
 The refusal modal's Keep running and quit applies only to that quit attempt. It
 does not change the separately persisted Keep running after quit preference.
 Only the explicit settings switch changes future-launch policy.
+
+The current pane base adds Prefs.layouts. The shell owner's source-only
+86082834a per-LayoutKey delta and two-workspace/removal/concurrent-add regressions
+are adopted provisionally, preserving this package's separate completion and
+local-node policy field deltas. Each validated tree stays atomic. W12's owned
+layout-cache rebase is a separate pending consumer; this preference merge alone
+does not prove cross-window layout cache behavior. Native Cargo.lock now includes
+only the incoming root serde_path_to_error and Store-to-Proc manifest edges;
+the already queued local build generated those two missing lock dependency lines.
