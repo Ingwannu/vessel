@@ -31,10 +31,10 @@ impl LockTable {
     fn writer(&self, file: &LockFileIdentity) -> Result<Option<KernelLock>, DecodeError> {
         let mut found = None;
         for line in self.0.lines() {
-            let Some(writer) = writer(line)? else {
+            let Some(writer) = writer(line, file)? else {
                 continue;
             };
-            if &writer.file == file && found.replace(writer).is_some() {
+            if found.replace(writer).is_some() {
                 return Err(DecodeError::Multiple);
             }
         }
@@ -98,7 +98,7 @@ fn identity(path: &Path) -> io::Result<LockFileIdentity> {
     })
 }
 
-fn writer(line: &str) -> Result<Option<KernelLock>, DecodeError> {
+fn writer(line: &str, selected: &LockFileIdentity) -> Result<Option<KernelLock>, DecodeError> {
     let mut fields = line.split_whitespace();
     let _sequence = fields.next();
     // A blocked waiter, a POSIX range or a read lock is no exclusive flock.
@@ -108,12 +108,22 @@ fn writer(line: &str) -> Result<Option<KernelLock>, DecodeError> {
     {
         return Ok(None);
     }
-    let process = fields
-        .next()
-        .ok_or(DecodeError::Missing)?
-        .parse()
-        .map_err(DecodeError::Number)?;
-    let file = parse_identity(fields.next().ok_or(DecodeError::Missing)?)?;
+    // Other files are outside this query's authority. Do not let their PID
+    // spelling or an unrecognizable identity hide a matching writer later.
+    let Some((process, identity)) = fields.next().zip(fields.next()) else {
+        return Ok(None);
+    };
+    let file = match parse_identity(identity) {
+        Ok(file) => file,
+        Err(error) => {
+            tracing::debug!(%error, "kernel lock row has no recognizable file identity");
+            return Ok(None);
+        }
+    };
+    if &file != selected {
+        return Ok(None);
+    }
+    let process = process.parse().map_err(DecodeError::Number)?;
     let writer = KernelLock {
         process: NodeProcess(process),
         file,
@@ -151,7 +161,8 @@ mod tests {
 
     #[test]
     fn only_an_exclusive_writer_supplies_a_process_and_device_identity() {
-        let observed = writer("42: FLOCK ADVISORY WRITE 8123 00:1a:765 0 EOF")
+        let file = parse_identity("00:1a:765").unwrap();
+        let observed = writer("42: FLOCK ADVISORY WRITE 8123 00:1a:765 0 EOF", &file)
             .unwrap()
             .unwrap();
         assert_eq!(observed.process, NodeProcess(8123));
@@ -168,23 +179,23 @@ mod tests {
             "42: POSIX ADVISORY WRITE 8123 00:1a:765 0 EOF",
             "42: FLOCK ADVISORY READ 8123 00:1a:765 0 EOF",
         ] {
-            assert!(writer(line).unwrap().is_none());
+            assert!(writer(line, &file).unwrap().is_none());
         }
         assert!(matches!(
-            writer("42: FLOCK ADVISORY WRITE abc 00:1a:765"),
+            writer("42: FLOCK ADVISORY WRITE abc 00:1a:765", &file),
             Err(DecodeError::Number(_))
         ));
         assert!(matches!(
             parse_identity("00:1a:765:4"),
             Err(DecodeError::Extra)
         ));
-        assert!(matches!(
-            writer("42: FLOCK ADVISORY WRITE"),
-            Err(DecodeError::Missing)
-        ));
+        assert!(writer("42: FLOCK ADVISORY WRITE", &file).unwrap().is_none());
         let reserved = NodeProcess::MINIMUM.saturating_sub(1);
         assert!(matches!(
-            writer(&format!("42: FLOCK ADVISORY WRITE {reserved} 00:1a:765")),
+            writer(
+                &format!("42: FLOCK ADVISORY WRITE {reserved} 00:1a:765"),
+                &file
+            ),
             Err(DecodeError::Pid)
         ));
     }
@@ -212,5 +223,31 @@ mod tests {
         let table = LockTable("42: FLOCK ADVISORY WRITE 8123 00:1a:765 0 EOF\n43: FLOCK ADVISORY WRITE 8124 00:1a:765 0 EOF".to_owned());
         let file = parse_identity("00:1a:765").unwrap();
         assert!(matches!(table.writer(&file), Err(DecodeError::Multiple)));
+    }
+
+    #[test]
+    fn undecodable_foreign_rows_cannot_hide_a_selected_writer() {
+        let file = parse_identity("00:1a:765").unwrap();
+        let negative = format!("-{}", NodeProcess::MINIMUM);
+        let foreign = format!(
+            "1: FLOCK ADVISORY WRITE {negative} 00:1a:766 0 EOF\n\
+             2: FLOCK ADVISORY WRITE not-a-pid 00:1a:767 0 EOF\n\
+             3: FLOCK ADVISORY WRITE not-a-pid unknown:identity 0 EOF\n\
+             4: FLOCK ADVISORY WRITE"
+        );
+        assert!(LockTable(foreign.clone()).writer(&file).unwrap().is_none());
+        let matching = "5: FLOCK ADVISORY WRITE 8123 00:1a:765 0 EOF";
+        for text in [
+            format!("{foreign}\n{matching}"),
+            format!("{matching}\n{foreign}"),
+        ] {
+            let writer = LockTable(text).writer(&file).unwrap().unwrap();
+            assert_eq!(writer.process, NodeProcess(8123));
+            assert_eq!(writer.file, file);
+        }
+        for process in [negative.as_str(), "not-a-pid"] {
+            let table = LockTable(format!("5: FLOCK ADVISORY WRITE {process} 00:1a:765 0 EOF"));
+            assert!(matches!(table.writer(&file), Err(DecodeError::Number(_))));
+        }
     }
 }

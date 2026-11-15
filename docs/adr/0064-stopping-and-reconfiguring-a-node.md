@@ -707,3 +707,42 @@ check. Focused waiter/handshake test budgets are named constants, too.
   promise atomic stop/start. An unreadable kernel table is a typed refusal,
   not an assumption that a held directory is free. Only Linux local locks
   are exercised here; namespace, NFS/SMB and other OS runtime are not verified.
+
+
+## Selected-file kernel decoding (slice 2e)
+
+[Decision Log]
+- Purpose and intent: an unrelated lock's PID or unfamiliar record must not
+  hide the selected directory's holder.
+- Existing implementation and constraints: the query decoded every exclusive
+  flock PID before comparing dev/inode. The kernel prints signed PIDs and
+  can report negative remote-lock owners; their process identity is outside
+  this directory's authority.
+- Alternatives considered: accept arbitrary signed PIDs as signal targets;
+  fail the whole probe for another file; compare canonical printed strings.
+  The first weakens process authority, the second hides valid later rows,
+  and the third unnecessarily depends on field padding.
+- Selected approach: select the lock kind, decode its file identity once,
+  and compare dev/inode before parsing the PID. A nonmatching file is skipped.
+  An unrecognizable file identity is logged without its contents and supplies
+  no process authority. A matching identity still requires the strict typed
+  PID and rejects conflicting writers; its numeric error retains the cause.
+- Why this approach: scope strict process decoding to the only file the query
+  can authorize. The kernel format and PID translation are recorded in
+  [Linux fs/locks.c](https://github.com/torvalds/linux/blob/master/fs/locks.c),
+  `locks_translate_pid`, `lock_get_status` and `locks_show`.
+- Advantages, costs and effects: no new bound, dependency, wire call, signal
+  or file mutation. Foreign negative/invalid PID and unknown-identity rows
+  cannot mask a valid row before or after them. A matching invalid PID still
+  refuses. Absence remains `NotVisible`, never proof that the OS lock is free.
+
+File identity can also be invisible when visible `stat` identifiers differ
+from the locked inode's superblock device or inode. Btrfs subvolumes assign
+an anonymous device in `btrfs_getattr`
+([source](https://github.com/torvalds/linux/blob/master/fs/btrfs/inode.c));
+overlayfs may present identifiers distinct from its backing files
+([kernel documentation](https://docs.kernel.org/filesystems/overlayfs.html)).
+These are additional limitations beside PID namespaces and NFS/SMB lock
+emulation. The query then falls back to the actual OS lock. Those filesystem
+layouts have not been exercised here; the source reason does not establish
+runtime coverage of btrfs, overlayfs, network filesystems or PID namespaces.

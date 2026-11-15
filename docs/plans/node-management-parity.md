@@ -11,10 +11,17 @@ slice order. The docs commit adds both and no command.
   and OS-lock completion. Its whole gate had one shared side-question
   lifecycle failure; the authorized isolated retry passed and review passed.
   No full-green claim is made for that first run.
-- In progress: 2d adds a bounded kernel observation at `NodeLock`; it sends no
-  signal. Force, matching-service finalization and restart remain separate.
-- Next: run and report the whole gate for 2d, followed by service and
-  force/restart and slices 3/4. Real agents/managers remain unverified.
+- Done: 2d (`019995ae`) adds a bounded kernel observation at `NodeLock`.
+  Its whole gate passed (1,985 Rust tests, no failures, 12 ignored) and
+  review passed. It sends no signal.
+- In progress: 2e compares dev/inode before strict PID decoding, so a
+  foreign malformed row cannot hide the selected writer. Focused store
+  clippy and seven lock tests pass; the whole gate is pending.
+- Deferred draft: service path fidelity passed focused clippy only; no
+  service-path tests, commit or whole gate have run yet.
+- Next: focused and whole gates for 2e, then service paths, deadline-safe
+  local reads, service observation/finalization, force/restart and slices
+  3/4. Actual service managers and real agents remain unverified.
 
 ## Existing asset check
 
@@ -337,3 +344,19 @@ allocation/error text and duplicate writers. Existing CLI stop tests cover
 the preflight's held/unreadable and stale owner refusals. Bounds are
 named beside `NodeProcess` and `LockTable`; boundary tests derive from them.
 No new call, field, protocol number, schema migration or crate edge.
+
+
+### Slice 2e: selected-file kernel decoding
+
+Modify the existing kernel edge, retaining its numeric decoder and typed
+errors. Compare the decoded file identity once before interpreting its PID;
+foreign and unidentifiable rows cannot terminate this selected-file query.
+A matching invalid PID is still an error and multiple matching writers
+still refuse. Existing missing-field selection tests now expect no candidate
+when a row cannot identify the selected file; the new regression places
+foreign failures both before and after a valid row. No head test is changed.
+
+The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
+format source. No new dependency, wire call, application bound or platform
+path is added. Focused store clippy and seven lock tests pass; the whole
+workspace gate remains pending.
