@@ -196,3 +196,5 @@ fn absent_factory_refuses_explicitly_and_installed_factory_creates_a_real_window
         assert_eq!(mark(cx), Delivery::Delivered);
     });
 }
+
+mod enumeration;
