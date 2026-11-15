@@ -81,6 +81,10 @@ The per-user service starts at login and restarts a failed process. A clean
 shutdown stays stopped. Existing service files are preserved; an older
 macOS agent with unconditional `KeepAlive` still starts again after a
 clean exit until you remove and recreate it with `vessel init --service`.
+New service files store an absolute data-directory path, so they work from
+the service manager's working directory. Existing relative-path units stay
+unchanged; remove and recreate one to adopt that behavior. Paths and PATH
+must be Unicode without control characters to be stored in a unit.
 
 `vessel node stop` requests graceful shutdown through the node's Admin
 permission. With live sessions it lists them and refuses; `--when-idle`
@@ -1225,6 +1229,11 @@ required-feature binaries, so the gate and CI explicitly enable `forge-fixture`
 for Clippy and its launcher tests. Normal product/release builds never enable
 that feature. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
 and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
+
+On Unix, the generated-service plist regression test also uses `python3`
+with its standard-library XML/plist parser. It runs in isolated, no-site
+mode and reads only synthetic test data from stdin; Python is not used by
+the installed service or product binary.
 
 ## License
 

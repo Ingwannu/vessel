@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Service input and reads must never expose unit environment contents.
+    #[error(transparent)]
+    Service(#[from] crate::init::ServiceError),
     /// Bounded comparison input or command ownership.
     #[error(transparent)]
     ComparisonInput(#[from] vessel_client::comparison::InputError),
