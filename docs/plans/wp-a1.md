@@ -221,3 +221,10 @@ New key. Duplex tests check the captured source on every reply and a shell
 regression prevents another draft's equal ticket from completing New. Actual
 workspace dispatch/settlement awaits W6's keyed preparation bridge and the
 reviewed workspace runtime; this correlation change performs no new RPC.
+### Portable renderer extraction
+
+Draft ownership and rendering now occupy separate files on the composer's
+exact committed source. This moves the existing functions verbatim and keeps
+the same four token exceptions under their new path, with no budget increase
+or launch/form behavior change. It allows the scoped editor owner to remain
+under the existing file limit while retaining the composer's current card.
