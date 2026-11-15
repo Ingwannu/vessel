@@ -282,3 +282,12 @@ There is intentionally no fabricated/public default native registry: a bare
 owner/slug requires explicit native-compatible registry configuration, while a
 host/owner/slug reference can identify its own HTTPS origin. Paseo's published
 TS/React packages are not silently treated as native author-port artifacts.
+
+The real-helper cancellation fixture now waits for the helper's actual request
+receipt before cancellation. Previously it could cancel before actor admission,
+so it was only a pre-cancel/owner-drop case. Private log retention now publishes
+an optional typed sequence via bounded watch (no diagnostic text in that event);
+management snapshots remain separately authorized. The fixture waits on that
+publication instead of filesystem polling/sleeps, then cancels an actually
+received request and verifies owner-drop cleanup. This adds no public node log
+method, broker grant or new private protocol message family.

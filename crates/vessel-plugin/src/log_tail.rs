@@ -22,6 +22,11 @@ pub struct LogTail {
 }
 
 impl LogTail {
+    /// Cursor publication contains no private text and never uses zero as a row.
+    pub(crate) fn latest(&self) -> Option<LogSequence> {
+        (self.sequence != 0).then(|| LogSequence::new(self.sequence))
+    }
+
     /// Bounded current tail, oldest first. Only authorized management code may
     /// serialize the returned entries or call their `LogText::as_str` accessors.
     #[must_use]

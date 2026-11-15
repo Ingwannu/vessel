@@ -66,6 +66,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     while let Some(message) = wire::read_node(&mut input).await? {
         if mode == "stall" {
+            if matches!(message, NodeToHelper::Request { .. }) {
+                let mut diagnostic = tokio::io::stderr();
+                diagnostic.write_all(b"fixture request admitted\n").await?;
+                diagnostic.flush().await?;
+            }
             continue;
         }
         match message {

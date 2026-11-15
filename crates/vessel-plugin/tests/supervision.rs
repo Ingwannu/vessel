@@ -99,10 +99,12 @@ async fn real_helper_echoes_only_live_registered_calls_and_withdraws_on_shutdown
 async fn cancelled_call_has_no_late_success_and_owner_drop_stops_retained_handles() {
     let directory = tempfile::tempdir().expect("isolated directory");
     let pid_path = directory.path().join("leader.pid");
+    let logs = SharedLogs::default();
+    let mut changed = logs.subscribe();
     let supervisor = Supervisor::spawn(
         PreparedCommand::new(command("stall", directory.path()).arg(&pid_path)).expect("prepared"),
         address(),
-        SharedLogs::default(),
+        logs.clone(),
         &CancellationToken::new(),
     )
     .expect("spawn");
@@ -116,6 +118,21 @@ async fn cancelled_call_has_no_late_success_and_owner_drop_stops_retained_handle
     let child = cancel.clone();
     let retained = handle.clone();
     let request = tokio::spawn(async move { retained.call(current, call(), &child).await });
+    tokio::time::timeout(STATE_WAIT_BUDGET, async {
+        loop {
+            if logs
+                .snapshot()
+                .expect("private tail")
+                .iter()
+                .any(|entry| entry.message.as_str() == "fixture request admitted")
+            {
+                break;
+            }
+            changed.changed().await.expect("diagnostic publication");
+        }
+    })
+    .await
+    .expect("request really reached helper");
     cancel.cancel();
     assert_eq!(request.await.expect("join"), Err(CallError::Cancelled));
     let mut state = handle.subscribe();
