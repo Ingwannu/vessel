@@ -18,6 +18,16 @@ impl Managed {
     }
 }
 
+impl Drop for Managed {
+    fn drop(&mut self) {
+        // Revoke admission before the owned node's RAII cleanup can affect its
+        // process. Field destruction alone would drop `node` before `source`.
+        if let Some(source) = &self.source {
+            source.retire();
+        }
+    }
+}
+
 pub(super) enum Command {
     Logs(oneshot::Sender<Result<super::LogText, ManagerError>>),
     Action {
