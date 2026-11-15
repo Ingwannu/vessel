@@ -43,7 +43,7 @@ fn report(id: NodeId) -> DiagnosticReport {
     .try_into()
     .unwrap()
 }
-async fn phase<F: std::future::Future>(name: &str, work: F) -> F::Output {
+async fn phase<F: Future>(name: &str, work: F) -> F::Output {
     tokio::time::timeout(PHASE, Box::pin(work))
         .await
         .unwrap_or_else(|error| panic!("diagnostic responder {name}: {error}"))

@@ -278,3 +278,9 @@ instead of repeating startup policy. Its release-sender helper preserves
 timeout cleanup. Paired-reader and clipped-agent assertions are named fixture
 phases so each test history remains readable without a large function. This
 changes test structure only; the accepted guard test and product API stay intact.
+
+Strict follow-up run `diagnostics-20261115T162652Z-6be6f9f6` failed after
+98 seconds with one reported new-test error: an unnecessary qualification of
+the prelude `Future` trait in the typed responder. The correction uses `Future`
+directly, without a lint exception. No test ran in that strict invocation;
+its older source also excludes the later raw fixture and observer correction.
