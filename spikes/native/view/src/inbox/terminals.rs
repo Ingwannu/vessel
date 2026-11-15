@@ -32,17 +32,10 @@ impl Row {
     #[must_use]
     pub fn workspace_state(&self) -> super::badges::TerminalState {
         use super::badges::TerminalState;
-        match self.bucket() {
-            Some(state) => TerminalState::Known(state),
-            None if self.plain_shell
-                && self
-                    .attention
-                    .is_some_and(|state| state.activity == TerminalActivity::Unknown) =>
-            {
-                TerminalState::Untracked
-            }
-            None => TerminalState::Unknown,
-        }
+        // The current app base conflates explicit Unknown and serde(other).
+        // Only the reviewed canonical Untracked DTO can enable neutrality.
+        self.bucket()
+            .map_or(TerminalState::Unknown, TerminalState::Known)
     }
 
     /// The same priority buckets used by sessions and workspace rollups.
@@ -156,7 +149,7 @@ mod workspace_tests {
     use super::super::badges::TerminalState;
     use super::*;
     #[test]
-    fn only_explicit_unknown_on_a_known_shell_is_untracked() {
+    fn ambiguous_current_wire_unknown_cannot_authorize_untracked_projection() {
         let terminal = TerminalId::random();
         let mut row = Row {
             terminal,
@@ -171,7 +164,7 @@ mod workspace_tests {
             }),
         };
         assert_eq!(row.bucket(), None);
-        assert_eq!(row.workspace_state(), TerminalState::Untracked);
+        assert_eq!(row.workspace_state(), TerminalState::Unknown);
         row.plain_shell = false;
         assert_eq!(row.workspace_state(), TerminalState::Unknown);
         row.plain_shell = true;

@@ -271,3 +271,10 @@ branch merges that exact producer and reexports its Bucket/workspace/badge
 policy; there is one implementation. Inbox-specific Card classification and
 terminal metadata projection remain A5 adapters. Exact narrow checks and bounded
 review of the producer are pending; consumers must not treat it as ready yet.
+
+The current app-base TerminalActivity::Unknown is also serde(other), so its Row
+adapter cannot yet prove Untracked. It now stays conservative (Unknown) until
+canonical pending values589d3c723 receive V3/integrator handoff. That DTO separates
+explicit Untracked from lost/missing/future Unknown. The standalone projection
+API is valid independently; only a proven explicit fact may use its Untracked
+variant. The native mapper is not advertised as ready or wire-complete.
