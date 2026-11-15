@@ -80,6 +80,15 @@ impl Parentage {
     }
 }
 
+impl SessionInfo {
+    /// Current delegation after validating immutable provenance against the receipt.
+    /// # Errors
+    /// Corrupt or mismatched receipt; callers must refuse rather than infer ownership.
+    pub fn parentage(&self) -> Result<Parentage, InvalidParentage> {
+        Parentage::of(&self.created_by, self.detach_receipt)
+    }
+}
+
 /// Planned session.detach input; only the target id comes from the caller.
 /// Method registration awaits the central pending-method contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

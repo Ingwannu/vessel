@@ -1,7 +1,7 @@
 # Session children: node contract and execution plan
 
-The package decision is ADR 0090. Native import is already an existing-contract
-client (ADR 0053); it does not require node changes in this worktree.
+The package decision is ADR 0090. Native import reuses the existing ADR 0053 contract; account matching needed the
+correctness repair recorded below.
 
 ## Structure
 
@@ -33,8 +33,25 @@ collections, serde and existing RPC/store crates suffice. No dependency adoption
    TypeScript; one V3 node review and root gate for the complete node package.
 5. Native integration consumes only a reviewed, integrated head.
 
-Resume: ADR recorded, implementation not started. Base is the reviewed node head
-named in the working brief; later central merges follow A8 without rewriting it.
+Resume: Quality B merged. Validated DTOs and the durable store boundary are
+staged; no detach method is exposed before authoritative node admission and
+publication exist. ADR0090 architecture-only PASS is review row118. Provider
+bounds/driver extraction and the complete native track remain outstanding.
+
+## Durable metadata decision
+
+The store appends one nullable receipt column after title origin. Receipt decode
+must agree with immutable Creator; corrupt rows fail closed. Writer savepoints
+serialize first/repeat/never-child decisions and only answer after transaction
+commit. A lost oneshot receiver does not undo the write. Appends, archive and
+reopen preserve the receipt, and a repeat retains the original timestamp.
+Existing SessionInfo carriers share one optional-field mask, including nested
+fleet replies. Until SUBAGENT_RELATIONS is assigned, no peer receives the field.
+This stage does not authorize detach or alter live processes; node ownership
+admission and cancellation-safe publication are the next required boundary.
+Tests cover concurrent first/repeat writes, abandoned commit receivers, reopen,
+restart, never-child refusal and receipt/creator corruption. No provider or
+service process is launched by these tests.
 
 ## Own-history account correctness
 

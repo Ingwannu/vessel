@@ -20,7 +20,8 @@ mod fixtures;
 /// ledger, side plans, search,
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
 /// request feedback.
-const UNDO_SCHEMAS_10_TO_16: &str = "ALTER TABLE sessions DROP COLUMN title_origin;
+const UNDO_SCHEMAS_10_TO_16: &str = "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;
      DROP TABLE usage_samples;
      DROP TABLE usage_meta;
      ALTER TABLE sessions DROP COLUMN usage_cost_baseline;

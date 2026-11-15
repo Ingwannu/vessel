@@ -1,6 +1,7 @@
 //! Managed delegation and provider-owned tasks are different identities (ADR 0090).
 //! Creator is immutable audit data; current parentage applies a durable detach.
 
+mod older;
 mod parentage;
 mod values;
 

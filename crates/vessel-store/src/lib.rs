@@ -73,6 +73,7 @@ mod search;
 mod settings_file;
 mod side_context;
 mod store;
+mod subagents;
 mod token;
 mod usage;
 mod usage_lookup;
