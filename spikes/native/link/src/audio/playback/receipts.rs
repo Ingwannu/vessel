@@ -12,7 +12,7 @@ use vessel_app_view::audio::{CaptureLease, CapturePurpose};
 use super::packet::{Packet, Reader};
 use crate::cancel::Fence;
 
-const MAX_SEGMENTS: usize = 2;
+pub(super) const MAX_SEGMENTS: usize = 2;
 const MAX_DEVICE_DRAIN: Duration = Duration::from_secs(3);
 const PREPARE_TIMEOUT: Duration = Duration::from_secs(10);
 const PLAYBACK_GRACE: Duration = Duration::from_secs(30);

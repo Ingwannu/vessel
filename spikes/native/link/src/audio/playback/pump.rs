@@ -12,7 +12,7 @@ use vessel_app_view::audio::CaptureLease;
 use super::{
     output::{Prepared, Reference, Scheduled},
     packet::{Packet, Reader},
-    receipts::{Book, Handle, Lease, Refusal},
+    receipts::{Book, Handle, Lease, MAX_SEGMENTS, Refusal},
 };
 use crate::{
     audio::{AudioError, dsp::Processor, format::Format},
@@ -22,7 +22,6 @@ use crate::{
 // Yield to capture/control after a bounded amount of preparation, even if a
 // callback consumes blocks concurrently and continuously creates more space.
 const PREPARE_BLOCKS_PER_TURN: usize = 100;
-const READERS_PER_STEP: usize = 2;
 
 #[derive(Debug, thiserror::Error)]
 pub(in crate::audio) enum Failure {
@@ -119,7 +118,7 @@ impl Pump {
         Ok(())
     }
     fn next(&mut self, processor: &mut Processor) -> Result<Option<Prepared>, Failure> {
-        for _ in 0..READERS_PER_STEP {
+        for _ in 0..MAX_SEGMENTS {
             if self.current.as_ref().is_some_and(Reader::stopped) {
                 self.current = None;
             }
