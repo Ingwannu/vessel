@@ -140,6 +140,7 @@ impl Shell {
         panel.changes.closed.clear();
         panel.changes.relist();
         panel.files.listings.clear();
+        panel.files.modified.clear();
         panel.files.listing_tickets.clear();
         panel.files.open.clear();
         panel.files.viewer = None;

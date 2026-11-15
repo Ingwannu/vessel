@@ -186,6 +186,7 @@ impl crate::State {
 fn root_of(ask: &FileAsk) -> WorkspaceRoot {
     match ask {
         FileAsk::Observe { ask, .. } => ask.root,
+        FileAsk::Inspect { ask, .. } => ask.root,
         FileAsk::Intelligence(ask) => ask.root,
         FileAsk::List { ask, .. } => ask.root,
         FileAsk::Read { ask, .. } | FileAsk::EditorRead { ask, .. } => ask.root,

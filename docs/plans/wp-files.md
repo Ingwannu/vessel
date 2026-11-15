@@ -423,3 +423,14 @@ Deep directory rename rewrites now join each already-validated suffix component 
 - Why: reusing `Any` could recreate a deleted file. An unavailable snapshot is now a separate unverified conflict with Reload but no Overwrite; only an actual NotFound readback reports deletion. The generic helper remains source-compatible for other explicit unguarded consumers.
 - Tradeoff: this strengthens intent under the existing wire contract but is not an immutable read snapshot or atomic filesystem compare-and-swap. The existing node hash/read and guard-check/rename gaps remain documented limitations. Invoked unknown write failures retain their original sticky obligation; pre-read failures are known not sent.
 - Validation: added ready-boundary tests for fresh hash, missing/no-write, pre-read refusal, binary/partial/oversize refusal, guarded race/no-retry and unavailable conflict readback; model regression preserves the unverified draft and disables overwrite. These new tests are source-only until the next meaningful narrow run. Fast size, crate boundaries, token checks pass; no budget is raised.
+
+
+## Modification-time tree sorting
+
+[Decision Log]
+- Purpose: preserve Paseo's Name → Modified → Size tree cycle without inventing modification dates or statting each row.
+- Existing assets: pending ADR0083 `InspectDirectory`, typed optional `FileModifiedMillis`, the scoped file runner/tickets, existing `Listing` indices and pure tree flattening. Reuse those; no new protocol or directory watcher is added. Paseo discovers external tree changes on explicit refresh, so a root watch is unnecessary here.
+- Choice: when the assigned feature protocol is admitted on the exact captured connection, each requested directory uses one inspection instead of an additional list. The same reply projects existing entry data and optional timestamps. Modified sorts newest known values first, unknown values last, directories first and deterministic name ties; rows preserve original snapshot indices.
+- Correlation: metadata installs only with the matching original directory ticket and scope. Legacy refreshes clear older metadata for that directory. Root switches/forget clear it; acknowledged directory rename rewrites component-safe metadata keys and delete removes them with existing owner state.
+- Difference/admission: the constant remains None, so live inspection and the Modified cycle are not offered yet. Older nodes retain existing Name/Size listings. Persisted Modified with unavailable metadata uses deterministic name ties rather than fabricated epoch values. No live parity or assigned-number claim is made.
+- Validation: source regressions cover optional/epoch timestamps, directory ordering/ties, immutable row indices and clipped rows, projection scope/ignored/clipping facts, stale same-scope metadata and a subsequent legacy refresh. Fast size/boundaries/tokens pass; strict/native tests for this new source remain owed.

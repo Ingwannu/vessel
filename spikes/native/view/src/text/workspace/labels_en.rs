@@ -29,6 +29,7 @@ pub const EN: Labels = Labels {
     language_cached: "Cached report · file scope",
     language_unknown: "No current report is available.",
     language_truncated: "The result was shortened by the server budget.",
+    file_sort_modified: "Modified",
     file_sort_size: "Size",
     hide_hidden_files: "Hide hidden files",
     show_hidden_files: "Show hidden files",

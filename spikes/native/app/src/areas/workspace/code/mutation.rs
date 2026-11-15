@@ -266,6 +266,12 @@ impl Shell {
                 PathChange::CreateDir(_) | PathChange::CreateFile { .. } => Some(path),
             }
         };
+        panel.files.modified = panel
+            .files
+            .modified
+            .drain()
+            .filter_map(|(path, timestamp)| renamed(path).map(|path| (path, timestamp)))
+            .collect();
         panel.files.open = panel.files.open.drain().filter_map(renamed).collect();
         panel.files.listings = panel
             .files

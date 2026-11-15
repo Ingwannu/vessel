@@ -41,16 +41,14 @@ impl Shell {
         let _older = panel.files.listing_tickets.insert(dir.clone(), ticket);
         let _was = panel.files.listings.insert(dir.clone(), Listing::Loading);
         panel.files.relist();
-        self.send_file_scope(
+        self.request_directory(
             scope,
-            FileAsk::List {
-                ask: ListDir {
-                    root,
-                    dir: dir.clone(),
-                    ignored: true,
-                },
-                ticket,
+            ListDir {
+                root,
+                dir: dir.clone(),
+                ignored: true,
             },
+            ticket,
         );
     }
 
@@ -90,16 +88,14 @@ impl Shell {
                 .files
                 .listing_tickets
                 .insert(dir.clone(), ticket);
-            self.send_file_scope(
+            self.request_directory(
                 scope.clone(),
-                FileAsk::List {
-                    ask: ListDir {
-                        root,
-                        dir,
-                        ignored: true,
-                    },
-                    ticket,
+                ListDir {
+                    root,
+                    dir,
+                    ignored: true,
                 },
+                ticket,
             );
         }
         if self
@@ -162,6 +158,10 @@ impl Shell {
             return;
         }
         let _settled = panel.files.listing_tickets.remove(&ask.dir);
+        panel
+            .files
+            .modified
+            .retain(|path, _| path.parent().as_ref() != Some(&ask.dir));
         let listing = match result {
             Ok(listing) => Listing::Listed(listing),
             // The sentence is the panel's (`labels.list_failed`); the

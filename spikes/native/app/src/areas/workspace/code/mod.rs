@@ -14,7 +14,7 @@
 //!   session's root is not on its card: the panel reads the session
 //!   (`session.get`) when it opens on one.
 //! - Alternatives: diffs opened in a pane of their own (Paseo's desktop
-//!   opens a diff tab in the main pane; Vessel has no panes); every
+//!   opens a diff tab in the main pane; the typed owner mount is pending); every
 //!   file's diff read at once (a hundred calls for a monorepo).
 //! - Choice: Paseo's Explorer at its default place and width; Changes as
 //!   Paseo's diff pane draws it (files expanded, folded by a click), each
@@ -30,6 +30,7 @@ mod appear;
 mod buffers;
 mod change_rows;
 mod changes;
+mod directory;
 mod editing;
 mod editing_view;
 mod editor_find;
@@ -168,6 +169,7 @@ struct Files {
     options: vessel_app_view::workspace::explorer::ExplorerOptions,
     retained: HashMap<buffers::FileKey, Viewer>,
     listings: HashMap<RelPath, Listing>,
+    modified: HashMap<RelPath, vessel_proto::workspace::FileModifiedMillis>,
     listing_tickets: HashMap<RelPath, vessel_app_view::workspace::file_ticket::FileTicket>,
     open: HashSet<RelPath>,
     rows: Vec<TreeRow>,
@@ -231,6 +233,7 @@ impl CodePanel {
                 options: vessel_app_view::workspace::explorer::ExplorerOptions::default(),
                 retained: HashMap::new(),
                 listings: HashMap::new(),
+                modified: HashMap::new(),
                 listing_tickets: HashMap::new(),
                 open: HashSet::new(),
                 rows: Vec::new(),
@@ -273,6 +276,7 @@ impl CodePanel {
             self.changes.states.clear();
             self.changes.relist();
             self.files.listings.clear();
+            self.files.modified.clear();
             self.files.listing_tickets.clear();
             // The active resource remains owned, including dirty/uncertain work.
             self.files.relist();

@@ -7,10 +7,10 @@
 //! - Purpose: edit a file of the session's project in place, saving as
 //!   Paseo does (800 ms after the last keystroke), and never write over a
 //!   change made on disk that this editor did not see.
-//! - Constraint: the node has no watch of a file; a change on disk shows
-//!   when a save is refused (`file.write` is guarded by the hash of what
-//!   the edit started from, `save.rs`) or when the panel reads the file
-//!   again (after a git write, `code_git_changed`). Answers come back in
+//! - Constraint: saved-file observation is pending protocol admission.
+//!   A change reaches this model through a guarded save refusal or the
+//!   owner's explicit reconcile read, including observation invalidation.
+//!   The original read hash guards a save (`save.rs`). Answers come back in
 //!   any order, so each write and read carries a number and a stale one is
 //!   dropped, as Paseo's sequences do.
 //! - Alternatives: a timer polling the file (a read every few seconds for
@@ -20,8 +20,8 @@
 //!   what the panel must do (`Step`): write, read, start or stop the
 //!   autosave. A clean buffer follows the disk; a modified one meets a
 //!   change as a conflict, and the person overwrites or reloads.
-//! - Cost: a change on disk while nothing is saved or re-read is seen only
-//!   at the next save (Paseo sees it at once through its watch).
+//! - Cost: the model does not own a watcher or connection. Until the owner
+//!   can admit observation, disk changes require a save or explicit reread.
 
 mod reading;
 mod write_attempt;

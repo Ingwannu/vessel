@@ -29,6 +29,7 @@ pub const KO: Labels = Labels {
     language_cached: "캐시된 보고 · 이 파일 범위",
     language_unknown: "현재 보고된 정보를 사용할 수 없습니다.",
     language_truncated: "서버의 결과 크기 제한으로 일부만 표시됩니다.",
+    file_sort_modified: "수정일",
     file_sort_size: "크기",
     hide_hidden_files: "숨김 파일 감추기",
     show_hidden_files: "숨김 파일 표시",

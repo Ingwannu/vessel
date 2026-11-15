@@ -29,6 +29,15 @@ pub enum FileAnswer {
         /// Current saved state or a typed failure.
         result: Result<vessel_proto::workspace::ObservedFile, Problem>,
     },
+    /// Directory metadata, acquired together with its entries.
+    Inspected {
+        /// Original directory acquisition.
+        ask: vessel_proto::workspace::InspectDirectory,
+        /// Original refresh identity.
+        ticket: FileTicket,
+        /// One bounded snapshot or a typed failure.
+        result: Result<vessel_proto::workspace::InspectedDirectory, Problem>,
+    },
     /// A folder's entries.
     Listed {
         /// What was asked.
@@ -114,6 +123,11 @@ impl FileAsk {
             FileAsk::Intelligence(ask) => FileAnswer::Intelligence {
                 result: super::intelligence::refused(ask.action, problem),
                 ask,
+            },
+            FileAsk::Inspect { ask, ticket } => FileAnswer::Inspected {
+                ask,
+                ticket,
+                result: no(problem),
             },
             FileAsk::List { ask, ticket } => FileAnswer::Listed {
                 ask,

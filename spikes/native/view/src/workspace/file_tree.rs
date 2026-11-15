@@ -20,7 +20,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::explorer::ExplorerOptions;
-use vessel_proto::workspace::{DirListing, EntryKind, RelPath};
+use vessel_proto::workspace::{DirListing, EntryKind, FileModifiedMillis, RelPath};
 
 /// What is known of one folder's entries.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,8 +111,27 @@ pub fn tree_rows_with<S: std::hash::BuildHasher>(
     open: &HashSet<RelPath, S>,
     options: ExplorerOptions,
 ) -> Vec<TreeRow> {
+    tree_rows_with_metadata(listings, open, options, &HashMap::new())
+}
+
+/// Flatten the same tree using timestamps from its accepted directory snapshots.
+#[must_use]
+pub fn tree_rows_with_metadata<S: std::hash::BuildHasher>(
+    listings: &HashMap<RelPath, Listing, S>,
+    open: &HashSet<RelPath, S>,
+    options: ExplorerOptions,
+    modified: &HashMap<RelPath, FileModifiedMillis>,
+) -> Vec<TreeRow> {
     let mut rows = Vec::new();
-    rows_under(listings, open, &RelPath::root(), 0, options, &mut rows);
+    rows_under(
+        listings,
+        open,
+        &RelPath::root(),
+        0,
+        options,
+        modified,
+        &mut rows,
+    );
     rows
 }
 
@@ -122,6 +141,7 @@ fn rows_under<S: std::hash::BuildHasher>(
     dir: &RelPath,
     depth: usize,
     options: ExplorerOptions,
+    modified: &HashMap<RelPath, FileModifiedMillis>,
     rows: &mut Vec<TreeRow>,
 ) {
     let listing = match listings.get(dir) {
@@ -148,7 +168,14 @@ fn rows_under<S: std::hash::BuildHasher>(
         .enumerate()
         .filter(|(_, entry)| options.visible(entry))
         .collect();
-    entries.sort_by(|(_, left), (_, right)| options.compare(left, right));
+    let timestamp = |entry: &vessel_proto::workspace::DirEntry| {
+        dir.child(&entry.name)
+            .ok()
+            .and_then(|path| modified.get(&path).copied())
+    };
+    entries.sort_by(|(_, left), (_, right)| {
+        options.compare_metadata(left, right, timestamp(left), timestamp(right))
+    });
     if entries.is_empty() {
         rows.push(TreeRow::Empty {
             dir: dir.clone(),
@@ -176,6 +203,7 @@ fn rows_under<S: std::hash::BuildHasher>(
                 &path,
                 depth.saturating_add(1),
                 options,
+                modified,
                 rows,
             );
         }
@@ -219,6 +247,35 @@ mod tests {
             size: None,
             ignored: false,
         }
+    }
+
+    #[test]
+    fn modified_tree_reorders_rows_without_reindexing_the_snapshot() {
+        let listing = DirListing {
+            entries: vec![entry("a", EntryKind::File), entry("b", EntryKind::File)],
+            more: true,
+        };
+        let listings = HashMap::from([(RelPath::root(), Listing::Listed(listing))]);
+        let modified = HashMap::from([
+            (path("a"), FileModifiedMillis(1)),
+            (path("b"), FileModifiedMillis(2)),
+        ]);
+        let rows = tree_rows_with_metadata(
+            &listings,
+            &HashSet::new(),
+            ExplorerOptions {
+                sort: super::super::explorer::ExplorerSort::Modified,
+                ..ExplorerOptions::default()
+            },
+            &modified,
+        );
+        assert!(
+            matches!(rows.first(), Some(TreeRow::Entry { index: 1, path: p, .. }) if p == &path("b"))
+        );
+        assert!(
+            matches!(rows.get(1), Some(TreeRow::Entry { index: 0, path: p, .. }) if p == &path("a"))
+        );
+        assert!(matches!(rows.last(), Some(TreeRow::More { .. })));
     }
 
     fn path(text: &str) -> RelPath {

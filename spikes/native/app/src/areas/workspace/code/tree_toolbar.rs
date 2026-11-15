@@ -35,9 +35,13 @@ impl Shell {
     }
 
     fn tree_sort_changed(&mut self, cx: &mut Context<'_, Self>) {
+        let metadata = self
+            .file_admitted_scope()
+            .is_some_and(|scope| self.file_panels_available(&scope));
         let options = &mut self.areas.workspace.code.files.options;
         options.sort = match options.sort {
-            ExplorerSort::Name => ExplorerSort::Size,
+            ExplorerSort::Name if metadata => ExplorerSort::Modified,
+            ExplorerSort::Name | ExplorerSort::Modified => ExplorerSort::Size,
             ExplorerSort::Size => ExplorerSort::Name,
         };
         self.tree_options_changed(cx);
@@ -59,6 +63,7 @@ pub(super) fn toolbar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
     let files = &shell.areas.workspace.code.files;
     let sort = match files.options.sort {
         ExplorerSort::Name => labels.by_name,
+        ExplorerSort::Modified => labels.file_sort_modified,
         ExplorerSort::Size => labels.file_sort_size,
     };
     let hidden = match files.options.hidden {

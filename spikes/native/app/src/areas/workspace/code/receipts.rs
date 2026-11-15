@@ -35,6 +35,15 @@ impl Shell {
     ) {
         let shown = live && self.areas.workspace.code.scope().as_ref() == Some(scope);
         match answer {
+            FileAnswer::Inspected {
+                ask,
+                ticket,
+                result,
+            } => {
+                if shown {
+                    self.directory_inspected(scope, &ask, ticket, result);
+                }
+            }
             FileAnswer::Observed {
                 ask,
                 ticket,

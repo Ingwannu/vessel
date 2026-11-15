@@ -9,7 +9,7 @@ use vessel_app_link::workspace::FileAsk;
 use vessel_app_view::workspace::{
     file_scope::FileScope, file_ticket::FileTicket, problem::Problem,
 };
-use vessel_proto::workspace::{FILE_PANELS_PROTOCOL, ObserveFile, ObservedFile, ReadFile};
+use vessel_proto::workspace::{ObserveFile, ObservedFile, ReadFile};
 const MIN_OBSERVATION_INTERVAL: Duration = Duration::from_secs(1);
 
 #[derive(Default)]
@@ -48,19 +48,6 @@ fn poll_delay(elapsed: Duration) -> Duration {
     MIN_OBSERVATION_INTERVAL.saturating_sub(elapsed)
 }
 impl Shell {
-    fn observation_available(&self, scope: &FileScope) -> bool {
-        let Some(since) = FILE_PANELS_PROTOCOL else {
-            return false;
-        };
-        self.fleet
-            .machines
-            .iter()
-            .find(|machine| machine.name == scope.connection().machine().as_str())
-            .is_some_and(|machine| {
-                machine.connection_context().as_ref() == Some(scope.connection())
-                    && machine.protocol.is_some_and(|version| version >= since)
-            })
-    }
     fn observation_needed(&self, key: &FileKey) -> bool {
         self.areas.workspace.code.file_key().as_ref() == Some(key)
             || self
@@ -90,7 +77,7 @@ impl Shell {
             return;
         }
         let scope = viewer.scope.clone();
-        if !self.observation_available(&scope) {
+        if !self.file_panels_available(&scope) {
             if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
                 viewer.watch.phase = Phase::Unsupported;
             }

@@ -44,6 +44,8 @@ pub struct Labels {
     /// Never offer overwrite when conflict readback failed or became uneditable.
     pub editor_conflict_unverified: &'static str,
     /// File sort and visibility actions.
+    /// Modification-time ordering for directory metadata.
+    pub file_sort_modified: &'static str,
     pub file_sort_size: &'static str,
     pub hide_hidden_files: &'static str,
     pub show_hidden_files: &'static str,

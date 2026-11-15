@@ -7,7 +7,7 @@ use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
 use super::{CodePanel, Files, Slot, Viewer, actions};
 use crate::shell::Shell;
-use vessel_app_view::workspace::file_tree::{TreeRow, tree_rows_with};
+use vessel_app_view::workspace::file_tree::{TreeRow, tree_rows_with_metadata};
 
 /// One-MiB editor buffers require an aggregate retention ceiling.
 const MAX_RETAINED_FILES: usize = 32;
@@ -101,7 +101,8 @@ impl Shell {
 
 impl Files {
     pub(super) fn relist(&mut self) {
-        self.rows = tree_rows_with(&self.listings, &self.open, self.options);
+        self.rows =
+            tree_rows_with_metadata(&self.listings, &self.open, self.options, &self.modified);
         self.list.reset(self.row_count());
     }
 

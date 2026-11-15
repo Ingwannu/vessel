@@ -4,7 +4,7 @@
 use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
-use vessel_proto::workspace::{DirEntry, EntryKind, RelPath};
+use vessel_proto::workspace::{DirEntry, EntryKind, FileModifiedMillis, RelPath};
 
 /// Reference file ordering; modified order is enabled with node metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -13,6 +13,8 @@ pub enum ExplorerSort {
     /// Case-folded names in deterministic Unicode order.
     #[default]
     Name,
+    /// Newest known timestamp first; missing metadata remains last.
+    Modified,
     /// Largest files first; unknown sizes remain last.
     Size,
 }
@@ -47,10 +49,24 @@ impl ExplorerOptions {
     /// Stable directory-first ordering with deterministic tie breaks.
     #[must_use]
     pub fn compare(self, left: &DirEntry, right: &DirEntry) -> Ordering {
+        self.compare_metadata(left, right, None, None)
+    }
+
+    /// Apply optional metadata from the same directory acquisition. Unknown
+    /// modification times are never substituted with an invented epoch.
+    #[must_use]
+    pub fn compare_metadata(
+        self,
+        left: &DirEntry,
+        right: &DirEntry,
+        left_modified: Option<FileModifiedMillis>,
+        right_modified: Option<FileModifiedMillis>,
+    ) -> Ordering {
         (left.kind != EntryKind::Dir)
             .cmp(&(right.kind != EntryKind::Dir))
             .then_with(|| match self.sort {
                 ExplorerSort::Name => Ordering::Equal,
+                ExplorerSort::Modified => right_modified.cmp(&left_modified),
                 ExplorerSort::Size => right.size.cmp(&left.size),
             })
             .then_with(|| left.name.to_lowercase().cmp(&right.name.to_lowercase()))
@@ -113,6 +129,47 @@ mod tests {
         assert_eq!(
             entries.map(|entry| entry.name),
             ["dir", "large", "small", "unknown"]
+        );
+    }
+
+    #[test]
+    fn modified_order_keeps_directories_first_and_unknown_times_last() {
+        let options = ExplorerOptions {
+            sort: ExplorerSort::Modified,
+            hidden: HiddenFiles::Show,
+        };
+        let mut entries = [
+            (entry("unknown", EntryKind::File, None), None),
+            (
+                entry("epoch", EntryKind::File, None),
+                Some(FileModifiedMillis(0)),
+            ),
+            (
+                entry("new", EntryKind::File, None),
+                Some(FileModifiedMillis(30)),
+            ),
+            (
+                entry("older", EntryKind::File, None),
+                Some(FileModifiedMillis(10)),
+            ),
+            (entry("dir", EntryKind::Dir, None), None),
+        ];
+        entries.sort_by(|(a, at), (b, bt)| options.compare_metadata(a, b, *at, *bt));
+        assert_eq!(
+            entries.map(|(entry, _)| entry.name),
+            ["dir", "new", "older", "epoch", "unknown"]
+        );
+        let a = entry("a", EntryKind::File, None);
+        let b = entry("b", EntryKind::File, None);
+        assert!(
+            options
+                .compare_metadata(
+                    &a,
+                    &b,
+                    Some(FileModifiedMillis(1)),
+                    Some(FileModifiedMillis(1))
+                )
+                .is_lt()
         );
     }
 
