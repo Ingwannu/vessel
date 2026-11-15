@@ -2,7 +2,7 @@
 
 These notices accompany the ADR0080 minimal-VAD acquisition proposal. No
 model, native runtime or inference dependency is installed, linked, loaded or
-distributed by this directory. Archive-content correspondence is still owed.
+distributed by this directory. The completed inspection is recorded in ADR0080; no installation/load/distribution is approved.
 
 - Silero VAD v4, Silero Team: MIT, `Silero-v4-MIT.txt`. Upstream v4 source
   commit915dd3d639b8333a52e001af095f87c5b7f1e0ac. The proposed model is
@@ -35,3 +35,10 @@ actual runtime/model, independently of an About-screen link or online URL.
 This VAD-only proposal contains no Kokoro/espeak-ng data, phonemizer, local
 ASR/TTS model, Sherpa shared library or provider credential. Those remain
 excluded from this acquisition and require their own reviewed amendment.
+
+Phase A correspondence: Linux runtime licences match these source bytes exactly.
+Windows raw files differ by CRLF only: full byte comparison after CRLF-to-LF
+normalization matches both source texts. Raw and normalized digests are in
+`../../evidence/voice-vad-phase-a/windows-notice-reconciliation.json`; do not
+call the Windows originals byte-identical. This does not change any terms or
+approve the rejected links/debug assets, an installation layout or distribution.

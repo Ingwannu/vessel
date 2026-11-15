@@ -358,8 +358,9 @@ lifecycle support, rather than claiming that endpoint HTTP alone enables voice.
 
 ## Proposed amendment: minimal VAD acquisition (2026-11-15)
 
-Status: **not approved**. This amendment requests review of one bounded,
-quarantined acquisition/inventory phase only. It does not authorize a dependency
+Status: **V3 row221 PASS for quarantined acquisition/inventory only**, on
+exact docs commit0a6b0e641. The six fixed acquisitions and inventories were
+performed within that scope; findings are recorded below. It does not authorize a dependency
 manifest, extraction into a product tree, native/model loading, distribution,
 auto-download or voice readiness. The coordinator requires this amendment and
 Vessel notices before any new model/native-runtime download. A PASS must name
@@ -492,7 +493,9 @@ request is intentionally narrower than runtime or distribution approval.
 
 ### Proposed Phase A Windows continuation after the enforced refusal
 
-Status: **not approved; do not execute the exception yet**. The first
+Status: **V3 row221 continuation CONTRACT PASS**, on exact docs commitda77d7d18.
+The bounded continuation was performed; it does not authorize final layout,
+manifest, load or distribution. The first
 [Phase A inventory](../plans/wp-voice-vad-inventory.md) stopped before
 Windows member26, the408244224-byte `lib/onnxruntime.pdb`; the existing256MiB
 expanded-member cap was enforced without inflating that member. Linux links
@@ -526,3 +529,31 @@ library/model load, manifest, distribution or activation is authorized by
 this request. A final reviewed file/layout amendment remains mandatory after
 notice correspondence; Linux aliases and all debug/test DLL assets remain
 excluded unless separately reviewed.
+
+
+### Continuation receipt: complete metadata and notice correspondence
+
+The [complete Windows inventory](../evidence/voice-vad-phase-a/windows-continuation.json)
+contains34 entries/4646 central-directory bytes/425969843 declared metadata
+bytes. The sole approved PDB payload is explicitly skipped, with no SHA or
+verified payload CRC, zero inflated bytes and mandatory product exclusion.
+All other entries total17725619 actual inflated bytes; CRC/SHA checks passed.
+The separate405504-byte providers-shared PDB was handled normally within the
+original budget and is also excluded from future product plans. No exception
+was generalized to other PDB names or extra payload bytes.
+
+Windows LICENSE1094B/SHA c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674
+and ThirdPartyNotices331175B/SHA fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866
+are **not raw-byte matches** to the LF source notices. Full bounded
+[notice reconciliation](../evidence/voice-vad-phase-a/windows-notice-reconciliation.json)
+proves the only difference is CRLF:21/6121 pairs respectively, no bare CR, and
+normalizing those pairs produces byte-exact previously pinned source texts.
+No wording/attribution was dropped or compared by a prefix alone. Source LF
+notices remain retained; this correspondence is not legal clearance, ABI/model
+compatibility, a final installation layout or distribution approval.
+
+Five synthetic continuation guards passed: exact skip never invokes inflater/
+hasher/CRC, changed PDB size, different PDB name, declared-total cap before
+entry materialization and central-directory byte cap. These are parser tests,
+not inference or physical-device evidence. The initial enforced Windows refusal
+and all original limits/results remain preserved alongside this continuation.

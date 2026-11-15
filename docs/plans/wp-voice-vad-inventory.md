@@ -65,3 +65,24 @@ member's expanded-size admission; no automatic cap increase or partial
 product adoption follows. Full runtime layout, Cargo feature proof, loader
 privacy/failure isolation, inference compatibility, resource/platform tests
 and final voice activation remain unapproved.
+
+## Approved continuation result
+
+V3 accepted only the exact PDB metadata skip and new bounded metadata totals
+on docs commitda77d7d18. The [completed continuation](../evidence/voice-vad-phase-a/windows-continuation.json)
+has34entries,4646central bytes,425969843declared bytes; other payloads total
+17725619actual inflated bytes. The408244224B PDB remains uninflated, unhashed,
+payload-CRC-unverified and excluded from every product/load plan. Its local
+header/path/type/method/encryption/bounds were checked. The405504B separate
+providers-shared PDB received normal CRC/SHA checks, with no extra exception.
+
+Windows licences differ from the source raw bytes. Bounded full-payload
+[comparison](../evidence/voice-vad-phase-a/windows-notice-reconciliation.json)
+found exactly21/6121 CRLF pairs in LICENSE/ThirdPartyNotices respectively,
+zero bare CR and byte-exact source contents after only CRLF-to-LF conversion.
+No prefix/first-line match is substituted for full correspondence. Five new
+synthetic guard cases passed; source/output hashes are retained privately.
+
+The initial refusal stays authoritative for the first policy/run. This
+continuation does not approve extraction into product, dependency manifests,
+native/model loading, inference, final file layout/distribution or activation.

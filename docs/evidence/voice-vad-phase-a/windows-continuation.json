@@ -1,0 +1,326 @@
+{
+  "members": 34,
+  "expanded_member_bytes": 17725619,
+  "entries": [
+    {
+      "path": "onnxruntime-win-x64-1.28.2",
+      "kind": "directory",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/GIT_COMMIT_ID",
+      "kind": "file",
+      "bytes": 43,
+      "sha256": "db6a9b7ff8688aff316b5a01af2473b3ed6c010ebebbf34f78e0ffb245393a90",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include",
+      "kind": "directory",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/cpu_provider_factory.h",
+      "kind": "file",
+      "bytes": 416,
+      "sha256": "e2f658eeace78d79a8df82f233dcdeea135db498a77766156054bfc0d1d06c21",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_cxx_api.h",
+      "kind": "file",
+      "bytes": 172735,
+      "sha256": "0765fc56924999b06b4c01f665d8fbd368582fed7a856a22ce1ed686a73e8be2",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_cxx_inline.h",
+      "kind": "file",
+      "bytes": 161868,
+      "sha256": "e6c0478ab86467cfb4ac8694df3081ad1d42585c16f024d107638fb197e92f4a",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_c_api.h",
+      "kind": "file",
+      "bytes": 403673,
+      "sha256": "e3a01cdb382b2ba52267bf8a1a40d60b1197a1bac4da55667fe4d84e244f589a",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_env_config_keys.h",
+      "kind": "file",
+      "bytes": 1339,
+      "sha256": "e56d37fd1e6497e9c8e8e5bd81732cd5414b4dc0867f3e8badb60101502d0435",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_ep_c_api.h",
+      "kind": "file",
+      "bytes": 156087,
+      "sha256": "612dd6c3b5c7fa8f936fe07e1d8da4dc4727890011305b4f67279b132aa1c8e0",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_ep_device_ep_metadata_keys.h",
+      "kind": "file",
+      "bytes": 1907,
+      "sha256": "d2970b305076cefa0e5b740758ac9b67c2450f7cebc89e2f7db6813c735a85d2",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_error_code.h",
+      "kind": "file",
+      "bytes": 2873,
+      "sha256": "6690bf0df3f7a7a9c4f38597dc3232042e432b48ea166cb5672f72a49d32b742",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_experimental_cxx_api.h",
+      "kind": "file",
+      "bytes": 8229,
+      "sha256": "b998fbb7abd4ce0760a6b2fecc731c68bdf7932327fe9c1aa8edb0b53747e3aa",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_experimental_c_api.h",
+      "kind": "file",
+      "bytes": 7814,
+      "sha256": "6639049e3ae65548c251bebfc53ccedc2f2f275ebc1c342cbe6180f35a4c84cc",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_experimental_c_api.inc",
+      "kind": "file",
+      "bytes": 23401,
+      "sha256": "c48203a7c2081054349d3318adccb8fdd8252e8a80ee828cbcf69bfc3ff409fa",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_float16.h",
+      "kind": "file",
+      "bytes": 18528,
+      "sha256": "9b45e1bc0fe19d9d53f272b168f5cab616e26eb00136c3a1b78f394c9b1b6757",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_lite_custom_op.h",
+      "kind": "file",
+      "bytes": 63413,
+      "sha256": "d65413bf8ca63fb71efcb0f9e14f996736367cf72ea3421d18b3370def1e483b",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_run_options_config_keys.h",
+      "kind": "file",
+      "bytes": 3006,
+      "sha256": "38cfec5817e67990f242bbf7177db730a4d60f5ed256b4832f02ac38c3fd6d06",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_session_options_config_keys.h",
+      "kind": "file",
+      "bytes": 42393,
+      "sha256": "79d27ec166bfca980e2349ec7240b7b36e7a7501165c310ca04750cbba5edcd0",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_training_cxx_api.h",
+      "kind": "file",
+      "bytes": 19993,
+      "sha256": "c4e31c020e3a087c751b31358bb97891ff1c11c5c6c47565e2fc2c1200ecf844",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_training_cxx_inline.h",
+      "kind": "file",
+      "bytes": 13166,
+      "sha256": "0a1b67caad64a7fc5a7aa489c8e4dc57ba11ba2d3c18b398a81ee3d864a50383",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/onnxruntime_training_c_api.h",
+      "kind": "file",
+      "bytes": 36508,
+      "sha256": "f920338841fce3ba9976882a8ec20155462298c12486a4e0bb6af29306d26330",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/include/provider_options.h",
+      "kind": "file",
+      "bytes": 498,
+      "sha256": "74f8accd5b30fbfe8abb24ca279e634657b446bf5b9be520badaaebcea63cade",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib",
+      "kind": "directory",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.dll",
+      "kind": "file",
+      "bytes": 15818040,
+      "sha256": "1becbd71adbf49609d33195e29c9214969db3c3de69c81425bebe5a4b69aef97",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.lib",
+      "kind": "file",
+      "bytes": 2124,
+      "sha256": "b9fc3cd678257d88a111b0773ede4bfceaf0fe95daab4379f2b2b37348a68781",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.pdb",
+      "kind": "file",
+      "bytes": 408244224,
+      "compressed_bytes": 72632856,
+      "metadata_crc32": 2361237558,
+      "payload_crc_verified": false,
+      "sha256": null,
+      "inflated_bytes": 0,
+      "status": "approved-metadata-only-skip",
+      "excluded_from_product": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.dll",
+      "kind": "file",
+      "bytes": 21816,
+      "sha256": "2e3a2a3903f1d4b1b15cd6887593ed2f269cd2b24e3d729fead45406ec9a25ac",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.lib",
+      "kind": "file",
+      "bytes": 2314,
+      "sha256": "8f8ee251580eabd4374c11f59df8b4bfe397b638a78f0f438df68442e95030a7",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.pdb",
+      "kind": "file",
+      "bytes": 405504,
+      "sha256": "ccf8205f890f3214a3e1ffbd0ae3a1ab5124c07a51a913ff9c02fb0309bdad07",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/LICENSE",
+      "kind": "file",
+      "bytes": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/Privacy.md",
+      "kind": "file",
+      "bytes": 2490,
+      "sha256": "bfb7712b075f3f07e3ebee5dc2a296d1de32dbf71ad28663f73d1538cb6c3b08",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/README.md",
+      "kind": "file",
+      "bytes": 3164,
+      "sha256": "2f4fe7bd0ce28472fc7b61f70b4e1978c3858177a7d02e63dc8d72be6ee383eb",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/ThirdPartyNotices.txt",
+      "kind": "file",
+      "bytes": 331175,
+      "sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/VERSION_NUMBER",
+      "kind": "file",
+      "bytes": 8,
+      "sha256": "ec9fca2b7825a8e33f38111208aea305b6227250c328e689319b31ab81b822b2",
+      "payload_crc_verified": true
+    }
+  ],
+  "metadata": [],
+  "notices": [
+    {
+      "path": "onnxruntime-win-x64-1.28.2/LICENSE",
+      "bytes": 1094,
+      "sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+      "matches": [],
+      "first_line": "MIT License"
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/ThirdPartyNotices.txt",
+      "bytes": 331175,
+      "sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866",
+      "matches": [],
+      "first_line": "THIRD PARTY SOFTWARE NOTICES AND INFORMATION"
+    }
+  ],
+  "notice_bytes": 332269,
+  "layout_blockers": [],
+  "libraries": [
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.dll",
+      "kind": "file",
+      "bytes": 15818040,
+      "sha256": "1becbd71adbf49609d33195e29c9214969db3c3de69c81425bebe5a4b69aef97",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.lib",
+      "kind": "file",
+      "bytes": 2124,
+      "sha256": "b9fc3cd678257d88a111b0773ede4bfceaf0fe95daab4379f2b2b37348a68781",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime.pdb",
+      "kind": "file",
+      "bytes": 408244224,
+      "compressed_bytes": 72632856,
+      "metadata_crc32": 2361237558,
+      "payload_crc_verified": false,
+      "sha256": null,
+      "inflated_bytes": 0,
+      "status": "approved-metadata-only-skip",
+      "excluded_from_product": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.dll",
+      "kind": "file",
+      "bytes": 21816,
+      "sha256": "2e3a2a3903f1d4b1b15cd6887593ed2f269cd2b24e3d729fead45406ec9a25ac",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.lib",
+      "kind": "file",
+      "bytes": 2314,
+      "sha256": "8f8ee251580eabd4374c11f59df8b4bfe397b638a78f0f438df68442e95030a7",
+      "payload_crc_verified": true
+    },
+    {
+      "path": "onnxruntime-win-x64-1.28.2/lib/onnxruntime_providers_shared.pdb",
+      "kind": "file",
+      "bytes": 405504,
+      "sha256": "ccf8205f890f3214a3e1ffbd0ae3a1ab5124c07a51a913ff9c02fb0309bdad07",
+      "payload_crc_verified": true
+    }
+  ],
+  "asset": "onnxruntime-win-x64-1.28.2.zip",
+  "archive_sha256": "c4eedd29489d5feca21866d054638416f3655bf6b18851b3b6b85c8313e95c35",
+  "central_directory_bytes": 4646,
+  "declared_metadata_bytes": 425969843,
+  "actual_inflated_bytes": 17725619,
+  "skipped_payloads": 1,
+  "metadata_declared_cap": 536870912,
+  "actual_inflation_cap": 268435456,
+  "scope": "V3 row221 bounded continuation; no extraction/load/manifest/distribution"
+}

@@ -430,3 +430,10 @@ PDB, with a bounded512MiB declared metadata total and the original256MiB actual
 inflation/notice limits for all other members. It has NOT been executed. Return
 the findings and proposed continuation to V3 before any exception. Runtime
 loading/distribution/final layout and real VAD compatibility remain unapproved.
+
+V3 accepted the exact metadata-only Windows continuation on da77d7d18. It
+completed34entries/17,725,619other inflated bytes and retained the large PDB
+as skipped/unhashed/CRC-unverified. Full Windows notice comparison proves
+CRLF-only differences, not raw-byte equality. The source LF notices and all
+first-refusal evidence remain intact. Final runtime file/layout/manifest/load
+and real model/device tests are still unapproved and unperformed.

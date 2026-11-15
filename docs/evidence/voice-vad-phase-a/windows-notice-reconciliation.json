@@ -1,0 +1,28 @@
+[
+  {
+    "archive_path": "onnxruntime-win-x64-1.28.2/LICENSE",
+    "raw_bytes": 1094,
+    "raw_sha256": "c250d6278f0b47a6439fb7592b08b58a55eb9f535aa49a1db63211c3f982b674",
+    "source_notice": "ONNXRuntime-MIT.txt",
+    "source_bytes": 1073,
+    "source_sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "crlf_pairs": 21,
+    "bare_cr_bytes": 0,
+    "lf_normalized_bytes": 1073,
+    "lf_normalized_sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "content_equal_after_crlf_normalization": true
+  },
+  {
+    "archive_path": "onnxruntime-win-x64-1.28.2/ThirdPartyNotices.txt",
+    "raw_bytes": 331175,
+    "raw_sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866",
+    "source_notice": "ONNXRuntime-ThirdPartyNotices.txt",
+    "source_bytes": 325054,
+    "source_sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+    "crlf_pairs": 6121,
+    "bare_cr_bytes": 0,
+    "lf_normalized_bytes": 325054,
+    "lf_normalized_sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+    "content_equal_after_crlf_normalization": true
+  }
+]
