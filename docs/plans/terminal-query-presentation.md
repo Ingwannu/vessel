@@ -148,3 +148,8 @@ field doc. Corrections preserve the original TryFromIntError in the library
 error and document the explicit clamp; new strict compilation remains owed.
 The prerequisite final docs/consumer-gate condition are merged without any
 product delta from that prerequisite. No full-package approval is inferred.
+
+The first corrected strict run reached tests and reported only a wildcard on
+the owned AnchorState and a map get/unwrap. Explicit remaining variants and
+direct fixture indexing preserve every assertion. No whole gate or review is
+claimed from this lint correction.

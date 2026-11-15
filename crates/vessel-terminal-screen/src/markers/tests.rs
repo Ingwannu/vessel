@@ -12,7 +12,9 @@ fn feed(screen: &mut Screen, bytes: &[u8]) {
 fn row(screen: &Screen, anchor: &ViewportAnchor) -> LineIndex {
     match screen.resolve_marker(anchor).unwrap().state {
         AnchorState::Retained(row) => row,
-        other => panic!("unexpected marker {other:?}"),
+        other @ (AnchorState::Evicted { .. } | AnchorState::Reset | AnchorState::Released) => {
+            panic!("unexpected marker {other:?}")
+        }
     }
 }
 #[test]
@@ -214,9 +216,7 @@ fn eleven_physical_marker_checkpoints_match_actual_paseo_headless() {
                         .find(|s| s.checkpoint == checkpoint)
                         .unwrap();
                     for marker in &expected.markers {
-                        let actual = engine
-                            .resolve_marker(markers.get(&marker.name).unwrap())
-                            .unwrap();
+                        let actual = engine.resolve_marker(&markers[&marker.name]).unwrap();
                         assert_eq!(actual.presence, BufferPresence::Active);
                         if marker.disposed {
                             assert_eq!(
