@@ -20,6 +20,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A correlated prompt-metadata page or a safe refusal.
+    PromptIndex(crate::prompt_index::IndexAnswer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.

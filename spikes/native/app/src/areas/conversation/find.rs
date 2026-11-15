@@ -253,6 +253,7 @@ impl Shell {
         if route != crate::routes::Route::Session {
             self.close_find(window, cx);
             self.areas.conversation.outline_pointer.leave();
+            self.areas.conversation.prompts.clear();
         }
     }
 

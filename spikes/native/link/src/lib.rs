@@ -60,6 +60,7 @@ pub mod agents;
 mod demo;
 pub mod devices;
 pub mod node_settings;
+pub mod prompt_index;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -190,6 +191,7 @@ impl Link {
             agents: agents::Hub::default(),
 
             device_calls: devices::Hub::default(),
+            prompt_calls: prompt_index::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -254,6 +256,7 @@ struct State {
     agents: agents::Hub,
 
     device_calls: devices::Hub,
+    prompt_calls: prompt_index::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

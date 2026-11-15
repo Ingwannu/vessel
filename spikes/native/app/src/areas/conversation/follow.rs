@@ -25,6 +25,7 @@ impl Shell {
         _cx: &mut Context<'_, Self>,
     ) {
         self.areas.conversation.open(machine, session);
+        self.prompt_index_opened();
         // Opened again: a fork's origin that could not be read is read.
         self.origin_read();
         for act in [Act::Info, Act::Conversation] {
@@ -62,6 +63,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if self.areas.conversation.take(session, records) {
+            self.prompt_index_records(records);
             if records
                 .iter()
                 .any(|record| matches!(record.event, vessel_proto::SessionEvent::Rewound { .. }))

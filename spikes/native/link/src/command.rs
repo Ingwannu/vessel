@@ -23,6 +23,8 @@ use vessel_proto::{
 /// What a screen asks of the link.
 #[derive(Debug)]
 pub enum Command {
+    /// Read one consistent prompt-metadata page for the outline.
+    PromptIndex(vessel_app_view::prompt_index::IndexAsk),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

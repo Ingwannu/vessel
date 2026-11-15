@@ -59,6 +59,12 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::PromptIndex(ask) => {
+            Event::PromptIndex(vessel_app_link::prompt_index::IndexAnswer {
+                ask,
+                result: Err(vessel_app_link::prompt_index::rejected(unsent.why)),
+            })
+        }
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {

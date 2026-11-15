@@ -84,6 +84,12 @@ impl Link {
     fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::PromptIndex(ask) => {
+                self.emit(Event::PromptIndex(crate::prompt_index::IndexAnswer {
+                    ask,
+                    result: Err(vessel_app_view::prompt_index::IndexProblem::Unsupported),
+                }))
+            }
             Command::Agents {
                 machine, request, ..
             } => self.emit(Event::Agents {

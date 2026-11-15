@@ -41,6 +41,7 @@ pub mod pairing;
 pub mod palette;
 pub mod panels;
 pub mod prefs;
+pub mod prompt_index;
 pub mod rewind;
 pub mod search;
 pub mod session;

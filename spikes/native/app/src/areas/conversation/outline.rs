@@ -23,9 +23,11 @@ use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
 };
-use vessel_app_kit::{Reveal, Tokens, Type, TypeExt as _, popup};
+use vessel_app_kit::{Tokens, Type, TypeExt as _, popup};
+#[cfg(test)]
+use vessel_app_view::timeline::OutlineItem;
 use vessel_app_view::timeline::{
-    HoverChange, OUTLINE_INTENT, OutlineHover, OutlineItem, OutlinePoint, OutlineSlot,
+    HoverChange, OUTLINE_INTENT, OutlineHover, OutlinePoint, OutlineSlot,
 };
 
 use crate::shell::Shell;
@@ -102,11 +104,12 @@ impl Shell {
     /// Changing the preference cancels a preview even while the rail is hidden.
     pub(crate) fn conversation_outline_changed(&mut self) {
         self.areas.conversation.outline_pointer.clear();
+        self.prompt_index_opened();
     }
 
     fn outline_point(&mut self, index: usize, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
-        let Some(slot) = OutlineSlot::new(index, area.outline.len()) else {
+        let Some(slot) = OutlineSlot::new(index, area.prompt_rows().len()) else {
             return;
         };
         let change = area.outline_pointer.hover.point_at(slot);
@@ -156,22 +159,20 @@ impl Shell {
 
     fn outline_key(&mut self, event: &gpui::KeyDownEvent, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
-        if area.outline.is_empty() {
+        let count = area.prompt_rows().len();
+        if count == 0 {
             return;
         }
         let current = area
             .outline_pointer
             .keyboard
             .unwrap_or(0)
-            .min(area.outline.len().saturating_sub(1));
+            .min(count.saturating_sub(1));
         match event.keystroke.key.as_str() {
             "up" | "down" => {
-                let next = vessel_app_view::timeline::step(
-                    area.outline.len(),
-                    current,
-                    event.keystroke.key == "down",
-                )
-                .index;
+                let next =
+                    vessel_app_view::timeline::step(count, current, event.keystroke.key == "down")
+                        .index;
                 area.outline_pointer.keyboard = Some(next);
                 cx.notify();
                 cx.stop_propagation();
@@ -187,18 +188,16 @@ impl Shell {
     /// Go to prompt `item` of the outline.
     fn outline_jump(&mut self, item: usize, cx: &mut Context<'_, Self>) {
         let area = &self.areas.conversation;
-        let Some(entry) = area.outline.get(item).map(|item| item.entry) else {
+        let Some(seq) = area.prompt_rows().get(item).map(|item| item.seq) else {
             return;
         };
-        if let Some(row) = area.rows.row_index(entry, area.folds.as_ref(), &area.logs) {
-            area.list.reveal(area.at(row), Reveal::Top);
-        }
-        cx.notify();
+        self.prompt_jump(seq, cx);
     }
 }
 
 /// The prompt whose turn is at the view's top: the last at or before the
 /// entry the view starts in.
+#[cfg(test)]
 fn lit(outline: &[OutlineItem], top_entry: usize) -> Option<usize> {
     outline
         .partition_point(|item| item.entry <= top_entry)
@@ -213,8 +212,9 @@ pub(super) fn rail(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = &shell.areas.conversation;
+    let rows = area.prompt_rows();
     if !shell.prefs.settings.appearance.chat_outline.on()
-        || area.outline.len() < vessel_app_view::timeline::OUTLINE_MIN
+        || rows.len() < vessel_app_view::timeline::OUTLINE_MIN
         || area.list.width() < px(MIN_PANEL)
     {
         return None;
@@ -224,7 +224,8 @@ pub(super) fn rail(
     let lit = top_row
         .checked_sub(area.head())
         .and_then(|own| area.rows.entry(own))
-        .and_then(|top| lit(&area.outline, top));
+        .and_then(|top| area.timeline.entries().get(top))
+        .and_then(|entry| rows.active(entry.seq));
     let pointer = &area.outline_pointer;
     let attention = pointer.shown.or_else(|| {
         pointer
@@ -233,7 +234,11 @@ pub(super) fn rail(
             .then_some(pointer.keyboard.unwrap_or(0))
     });
     let neutral = tokens.neutral;
-    let slots = area.outline.iter().enumerate().map(|(index, item)| {
+    let shown = std::rc::Rc::new(area.shown.clone()?);
+    let epoch = area.prompt_epoch();
+    let slots = rows.iter().map(|(index, item)| {
+        let shown = std::rc::Rc::clone(&shown);
+        let seq = item.seq;
         let is_lit = lit == Some(index);
         let to = motion::size(index, is_lit, attention, cx.reduce_motion());
         let from = motion::size(index, is_lit, pointer.before, cx.reduce_motion());
@@ -244,7 +249,7 @@ pub(super) fn rail(
         } else {
             neutral.border_accent
         };
-        let card = (attention == Some(index)).then(|| preview(item.prompt.clone(), tokens));
+        let card = (attention == Some(index)).then(|| preview(item.preview.to_owned(), tokens));
         div()
             .id(("outline-slot", index))
             .relative()
@@ -262,7 +267,7 @@ pub(super) fn rail(
                 }
             }))
             .on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.outline_jump(index, cx);
+                shell.prompt_selected(&shown, seq, epoch, cx);
             }))
             .child(motion::pill(from, to, color, pointer.turn))
             .children(card)

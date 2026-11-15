@@ -9,7 +9,7 @@ fn point(x: f32, y: f32) -> OutlinePoint {
 fn scheduled(change: HoverChange) -> HoverTicket {
     match change {
         HoverChange::Schedule(ticket) => ticket,
-        other => panic!("expected timer: {other:?}"),
+        other @ (HoverChange::None | HoverChange::Changed) => panic!("expected timer: {other:?}"),
     }
 }
 

@@ -133,6 +133,7 @@ pub(crate) struct ConversationArea {
     pub(crate) outline: Vec<OutlineItem>,
     /// Where the pointer is on the rail.
     pub(crate) outline_pointer: outline::Pointer,
+    pub(super) prompts: super::prompts::Prompts,
     /// A queued message edited in its row.
     pub(crate) queue_edit: Option<queue::QueueEdit>,
     /// The question waiting first, being answered over the composer.
@@ -215,6 +216,7 @@ impl ConversationArea {
             reveal: None,
             outline: Vec::new(),
             outline_pointer: outline::Pointer::new(cx),
+            prompts: super::prompts::Prompts::default(),
             find: None,
             find_cache: FindCache::default(),
             bench: bench::Bench::default(),
@@ -280,6 +282,7 @@ impl ConversationArea {
         self.live = Live::default();
         self.reveal = None;
         self.outline_pointer.clear();
+        self.prompts.clear();
     }
 
     /// Bring record `seq` into view (the inbox opening a session at the

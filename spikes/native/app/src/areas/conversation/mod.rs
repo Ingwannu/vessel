@@ -66,6 +66,7 @@ mod overlays;
 mod permission;
 mod place;
 mod plan;
+mod prompts;
 mod question;
 mod queue;
 mod read;

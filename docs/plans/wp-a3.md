@@ -169,3 +169,22 @@ not runtime or gate approval. The narrow check on e023b85c compiled product code
 and reported five test semicolon warnings, now corrected. Expanded regressions
 and complete package validation are still pending. A7's `reveal_turn(entry)` must
 precede find/outline row lookup when its reviewed area API reaches the base.
+
+### Typed prompt-index consumer
+
+The app branch now joins the A3 node candidate with Quality B so its consumer
+uses actual `ListSessionPrompts`/`PromptIndexPage` types. This candidate is not
+released: root gate, V3 review and the integrator's protocol assignment remain
+required. The pending call is refused before wire I/O; compatibility keeps the
+complete followed-log outline on older or unassigned peers.
+
+`view::prompt_index` owns target/ticket/cursor/epoch checks, bounded accumulation,
+coalesced refreshes and the borrowed rail projection. A partial page set never
+becomes navigable. `link::prompt_index` owns two-call admission, a named deadline
+and code-only errors; the standard command/event/unsent/demo dispatchers register
+it. `conversation::prompts` requests metadata at open and latest-prompt changes,
+invalidates after observed rewinds, and bounds pending jumps while the existing
+Follow delivers bodies. Ready metadata shows every tick before those bodies
+arrive. Pointer callbacks keep session, sequence and epoch instead of an ordinal
+that could change under them. No second transcript, store, provider call or wire
+shape is introduced. The app's metadata and jump tests are pending validation.

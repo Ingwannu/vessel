@@ -17,6 +17,15 @@ use vessel_proto::{PermissionOutcome, SessionInput};
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
+            Command::PromptIndex(ask) => {
+                let client = self
+                    .clients
+                    .get(ask.target.machine.as_str())
+                    .map(|connected| connected.client.clone());
+                self.prompt_calls
+                    .ask(client, ask, self.events.clone())
+                    .await;
+            }
             Command::Reload => self.reload().await,
             Command::Agents {
                 machine,
