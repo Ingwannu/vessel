@@ -232,3 +232,21 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
         }
     }
 }
+
+#[test]
+fn code_copy_trims_only_final_line_breaks_and_their_ascii_indentation() {
+    use gpui_base::text::trim_code_line_breaks;
+    for (input, expected) in [
+        ("  echo hi\n", "  echo hi"),
+        ("echo hi\r\n \t\r\n\t", "echo hi"),
+        ("echo hi  \n  ", "echo hi  "),
+        ("echo hi  ", "echo hi  "),
+        ("echo hi\r", "echo hi\r"),
+        ("echo hi\n\u{00a0}", "echo hi\n\u{00a0}"),
+        ("echo first\n  echo second\n\t", "echo first\n  echo second"),
+        ("\n \t\n", ""),
+        ("한글 \n\t", "한글 "),
+    ] {
+        assert_eq!(trim_code_line_breaks(input), expected);
+    }
+}

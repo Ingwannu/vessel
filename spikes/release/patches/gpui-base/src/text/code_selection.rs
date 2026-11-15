@@ -27,8 +27,24 @@ pub(super) fn selected(document: &ParsedDocument) -> Option<String> {
     let CodeSelection::Code(text) = selected else {
         return None;
     };
-    let text = text.trim_end_matches(['\r', '\n']);
+    let text = trim_code_line_breaks(&text);
     (!text.is_empty()).then(|| text.to_owned())
+}
+
+/// Remove trailing LF/CRLF lines and their following ASCII indentation.
+///
+/// Retain spaces on the final nonempty line and every leading code byte. Both
+/// the selection query and host code-copy buttons use this operation, so pasting
+/// code cannot unexpectedly execute a final line. A lone CR remains literal.
+#[must_use]
+pub fn trim_code_line_breaks(mut text: &str) -> &str {
+    loop {
+        let candidate = text.trim_end_matches([' ', '\t']);
+        let Some(without_lf) = candidate.strip_suffix('\n') else {
+            return text;
+        };
+        text = without_lf.strip_suffix('\r').unwrap_or(without_lf);
+    }
 }
 
 impl BlockNode {

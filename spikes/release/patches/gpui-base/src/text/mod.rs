@@ -23,6 +23,7 @@ mod style;
 mod text_view;
 mod utils;
 
+pub use code_selection::trim_code_line_breaks;
 use gpui::{App, ElementId, IntoElement, RenderOnce, SharedString, Window};
 pub use inline_element::*;
 pub use inline_links::{

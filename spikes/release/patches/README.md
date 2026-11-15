@@ -270,6 +270,12 @@ seam listed below is also marked in each changed file.
   longer fences containing shorter backtick runs). The kit's window aggregator
   still owns selections across messages. Regression coverage is in
   `chat_markdown::actions::link_tests::code_copy_uses_parsed_inline_and_fenced_regions`.
+  `text::trim_code_line_breaks` is the one shared LF/CRLF+ASCII-indentation
+  cleanup for this query and the kit's existing code-copy button. It implements
+  Paseo `assistant-selection-copy/markup.ts:12-19` and
+  `components/highlighted-code-block.tsx:95`: keep leading indentation, interior
+  newlines and trailing spaces on a nonempty line; remove only final line breaks
+  and indentation after them. No regular-expression dependency is introduced.
 
 ### 4. A steady caret while motion is held
 

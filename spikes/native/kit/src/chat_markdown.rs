@@ -399,6 +399,9 @@ fn corner(
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    let text: SharedString = gpui_base::text::trim_code_line_breaks(&text)
+        .to_owned()
+        .into();
     div()
         .flex()
         .items_center()
