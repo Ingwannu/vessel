@@ -716,3 +716,14 @@ contract and tests first. New node calls are consumed through the lead's
 integration, never by merging the node branch directly into this tree.
 Invitation/QR and Sync remain separate following slices; the old Diagnostics
 draft remains archived and uncompiled.
+
+Current boundary: V1 accepted the Alert producer at `eb75a637` with result
+`a65317cf`, source and native gate only. G2 received the exact API/commits
+and owns the first-use package captures, empty-list hiding, initial-load
+surface and outer margins. The full gated lead `d30804b2` was then merged
+cleanly as `7ed69812`; this newer combined tree is not covered by the older
+standalone gates. A14 now makes a feature package the gate/review unit:
+narrow checks per commit, one whole gate and affected captures at package
+end, while security retains per-commit review. No unchanged merge-only whole
+gate is added. The next security contract is
+`backend-m12-device-targets.md`; implementation has not started.
