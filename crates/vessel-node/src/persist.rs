@@ -85,7 +85,7 @@ pub(crate) async fn run(
                 }
                 if let Some((change, reply)) = batch.barrier {
                     #[cfg(not(test))]
-                    let _checkpoint = change;
+                    let _ = change;
                     #[cfg(test)]
                     let reply = match reply_gate::hold(session, change, reply, changed) {
                         Ok(()) => continue,

@@ -311,3 +311,12 @@ lints (unnecessary qualification, unwrap inside a Result-returning observer,
 and use of an underscore binding). They are corrected without an admission,
 barrier, assertion or duration change. That red run remains predecessor evidence;
 no positive repair execution or joint package gate is claimed yet.
+
+
+The corrected real held-ACK cases passed both Kill and Off (two passed, no
+failures). The separate strict follow-up still failed in the non-test branch:
+a dummy named checkpoint binding has no side effect. It now uses the explicit
+discard pattern for the already committed Copy marker; the cfg(test) observer
+and both runtime cases are unchanged. Strict success and the final joint
+package gate remain owed. The common settings producer is being validated
+separately with recovery execution unwired.
