@@ -127,6 +127,9 @@ pub(crate) enum ServiceError {
     /// A manifest must not install unassigned discovery metadata before starting.
     #[error("session listing has no assigned protocol version")]
     ListingUnassigned,
+    /// Export must preserve current metadata across every peer boundary.
+    #[error(transparent)]
+    MetadataProtocol(vessel_rpc::CallError),
     /// The session has ended and is served from the store (it ended in an
     /// earlier run, or in this one and was handed over); it can be read but
     /// not driven.
@@ -445,6 +448,7 @@ impl ServiceError {
             | Self::NotAPoint { .. }
             | Self::LabelsUnassigned
             | Self::ListingUnassigned => ErrorCode::Unsupported,
+            Self::MetadataProtocol(error) => error.code().unwrap_or(ErrorCode::Internal),
             Self::SideQuestion(error) => error.code(),
             Self::Session(error) => error.code(),
             Self::Transfer(error) => error.code(),

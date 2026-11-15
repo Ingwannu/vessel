@@ -66,7 +66,11 @@ impl NodeService {
         request: ExportSession,
     ) -> Result<TransferManifest, WireError> {
         self.exporter()
-            .session(Holder::of(connection.principal()), request)
+            .session(
+                Holder::of(connection.principal()),
+                request,
+                Some(connection.protocol()),
+            )
             .await
             .map_err(|error| wire(&error))
     }

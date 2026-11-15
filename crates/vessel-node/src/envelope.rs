@@ -100,7 +100,10 @@ impl NodeService {
         }
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.passed_wait(connection, shares, &mut call);
-        self.pass_on(connection.principal(), node, call).await
+        let forwarded = self.pass_on(connection.principal(), node, call).await?;
+        crate::metadata_export::forwarded(&forwarded, connection.protocol())
+            .map_err(|error| error.to_wire())?;
+        Ok(forwarded)
     }
 
     /// Run `call` on fleet node `node` (another node) for `principal`: the
@@ -167,7 +170,13 @@ impl NodeService {
         let mut shares = Waiter::origin(&origin).shares(self.links.node());
         shares.push(Share::Relay(*id));
         let _slot = self.passed_wait(connection, shares, &mut call);
-        self.links.call_member(node, Deliver { call, origin }).await
+        let forwarded = self
+            .links
+            .call_member(node, Deliver { call, origin })
+            .await?;
+        crate::metadata_export::forwarded(&forwarded, connection.protocol())
+            .map_err(|error| error.to_wire())?;
+        Ok(forwarded)
     }
 
     /// `fleet.deliver` (a member): run a call the home delivered, as the

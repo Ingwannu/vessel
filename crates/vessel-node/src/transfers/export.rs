@@ -30,8 +30,8 @@ use std::sync::Arc;
 use vessel_fleet::{Limits, Snapshot};
 use vessel_harness::{Profile, SessionFilesError};
 use vessel_proto::{
-    ExportMemory, ExportSession, HarnessKind, ProfileName, SessionInfo, SessionMode, TransferDetail,
-    TransferManifest,
+    ExportMemory, ExportSession, HarnessKind, ProfileName, SessionInfo, SessionMode,
+    TransferDetail, TransferManifest,
 };
 use vessel_session::SessionError;
 
@@ -55,8 +55,9 @@ impl Exporter<'_> {
         &self,
         holder: Holder,
         request: ExportSession,
+        peer: Option<vessel_proto::ProtocolVersion>,
     ) -> Result<TransferManifest, ServiceError> {
-        let info = self.snapshot(&request).await?;
+        let info = self.snapshot(&request, peer).await?;
         if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
             return Err(TransferError::Terminal.into());
         }
@@ -117,10 +118,15 @@ impl Exporter<'_> {
 
     /// Read the export snapshot once, retaining the existing turn/terminal checks.
     /// A later peer guard can validate this exact snapshot without a second lookup.
-    async fn snapshot(&self, request: &ExportSession) -> Result<SessionInfo, ServiceError> {
+    async fn snapshot(
+        &self,
+        request: &ExportSession,
+        peer: Option<vessel_proto::ProtocolVersion>,
+    ) -> Result<SessionInfo, ServiceError> {
         let info = match self.sessions.find(request.session).await? {
             Found::Live { handle, .. } => {
                 let info = handle.info();
+                crate::metadata_export::check(&info, peer)?;
                 if matches!(info.spec.mode, SessionMode::Terminal { .. }) {
                     return Err(TransferError::Terminal.into());
                 }
@@ -129,7 +135,10 @@ impl Exporter<'_> {
                 }
                 info
             }
-            Found::Stored(info) => info,
+            Found::Stored(info) => {
+                crate::metadata_export::check(&info, peer)?;
+                info
+            }
         };
         Ok(info)
     }

@@ -916,3 +916,22 @@ consume testkit's deadline Result: a timeout must fail the test. They now unwrap
 that result without changing the budget or any assertion. The snapshot method
 also needs the SessionInfo import; its extraction was not used as compiled
 evidence before that correction.
+
+### Export preservation implementation
+
+The original test commit fails on the real source node with Conflict instead
+of the required Unsupported; it reaches the missing-conversation path before
+metadata readiness. The fix shares lifecycle_version::visible with projection.
+The source service supplies its connection protocol to the existing exporter,
+whose single original-info snapshot is checked before turn/history work and
+is then the same snapshot placed in the manifest. Local pulls supply no peer
+and retain their existing original-info/manifest checks. This avoids a separate
+check/re-fetch race. Forward and Relay check returned session manifests before
+returning to their peer, without remote lookups or changes to broader replies.
+
+The new peer tests exercise default metadata, pending and synthetic assigned
+thresholds, plus serialized source/home/older-importer return boundaries. The
+three-hop assignment is synthetic because the actual assignment remains None;
+it is not a claim of an assigned feature running across a real fleet. Existing
+ordinary-history transfer tests and their assertions remain unchanged. Corrected
+strict checks, green source regression and the complete package gate are owed.

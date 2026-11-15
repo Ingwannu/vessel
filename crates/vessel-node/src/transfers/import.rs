@@ -81,7 +81,7 @@ pub(crate) struct Local<'a> {
 impl Source for Local<'_> {
     async fn export_session(&self, request: ExportSession) -> Result<TransferManifest, WireError> {
         self.exporter
-            .session(self.holder, request)
+            .session(self.holder, request, None)
             .await
             .map_err(|error| error.to_wire())
     }
