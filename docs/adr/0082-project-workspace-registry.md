@@ -142,8 +142,9 @@ existing RPC MAX_FRAME ceiling.
 Coalesced watches emit only after a successful writer commit. Consumers re-read
 a complete descriptor/membership snapshot on wake; no polling interval, cwd
 inference, resource payload or project config text is put into notifications.
-Blocked cross-repository source/trust release fields are intentionally not yet in
-this subset; absence must not be interpreted as released approval.
+The retained external-source gate and explicit release CAS described below are
+included. The filesystem provisioner remains staged in the project continuation;
+this dependency does not start automatic setup or claim provisioning is wired.
 
 ## Retained external source and explicit release
 

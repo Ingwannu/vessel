@@ -240,3 +240,20 @@ The first fixture-correction narrow failed at compile time because devices.rs
 uses its own inline fixture builders rather than support/fixtures.rs. The
 rollback SQL now has one small test-only module used by both fixture families.
 The failed run is retained; a corrected narrow and whole gate remain owed.
+
+
+## Corrected dependency narrow evidence
+
+At exact source 53c13163, proto/store all-target tests passed 465/0/1, including
+the corrected legacy migration fixtures, admission/restart and registry watch
+cases. Store benchmarks also completed. The subsequent Clippy command did not
+execute because local Rust compilation was disabled centrally; this is not a
+compiler failure. Strict proto/store/node Clippy is now submitted to the remote
+build gate. No new Rust work will run on the development host.
+
+The unrelated command-list failure was classified by its web owner as a base
+caret timing defect: a deterministic regression failed 3/3 before its fix and
+passed with the fix. Its combined node gate is still running. This dependency
+will merge the announced complete node head when available, as instructed,
+before retrying the whole gate. No web source was edited here. Source review
+and dependency adoption remain pending.
