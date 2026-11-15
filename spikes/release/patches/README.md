@@ -217,3 +217,26 @@ at the top and `Vessel patch` at the change.
   times in 3 s with motion, never with motion held). The CPU measures
   before and after are in `docs/plans/backend-m12-effort-slider.md`,
   "Known costs".
+
+
+### Linux notifications: independent sound preference
+
+- Purpose and intent: a visual-only desktop notification must not also ask the
+  notification daemon to play sound when the person's sound preference is off.
+- Existing implementation and constraints: `SystemNotification` has no sound
+  field. The Windows adapter already sets silent audio and the macOS adapter
+  leaves sound unset, while Linux previously left the daemon's default intact.
+- Alternatives considered: another notification library in the app, a new GPUI
+  protocol field across all platforms, or a local hint in the existing adapter.
+- Choice: the Linux `system_notifications.rs` builder adds
+  `Hint::SuppressSound(true)`. Vessel requests sound independently through
+  `Window::play_system_bell()` when that channel is selected.
+- Why: one adapter line keeps visual and audible delivery independent without
+  another dependency or shell process. Desktop notification preferences remain
+  in Vessel's existing app preferences file.
+- Costs and effects: system alert sounds remain subject to the OS's bell and
+  volume settings. This is a local GPUI patch; release builds must rebuild the
+  patched dependency, rather than reuse an upstream platform artifact.
+- Verification: the attention package captures the actual `Notify` call on its
+  own private D-Bus notification service and checks `suppress-sound=true`.
+  The package's plan records whether that runtime capture has been completed.

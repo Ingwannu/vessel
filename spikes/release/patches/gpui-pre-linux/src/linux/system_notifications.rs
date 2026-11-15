@@ -1,5 +1,7 @@
 //! System notifications over the XDG notifications D-Bus interface, via
 //! `notify-rust`.
+//! MODIFIED by Vessel: visual notifications suppress daemon-provided sound;
+//! the app controls its independent system-bell preference.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -43,6 +45,7 @@ impl SystemNotificationState {
         builder
             .summary(&notification.title)
             .body(&notification.body)
+            .hint(notify_rust::Hint::SuppressSound(true))
             .action(DEFAULT_ACTION, DEFAULT_ACTION);
         let mut action_ids = HashMap::new();
         for (index, action) in notification.actions.iter().enumerate() {

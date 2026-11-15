@@ -82,3 +82,14 @@ end; narrow changed-crate checks during implementation.
 Research read; worktree isolated; no wire invented. Next: pure model and fake
 boundary tests, area skeleton; then merge the centrally supplied baseline and
 wire inbox.list/get/mark plus existing session input.
+
+
+## Platform patch verification
+
+The local GPUI Linux notification builder adds `SuppressSound(true)`;
+releases rebuild this local platform patch. Sound ON uses the existing
+`Window::play_system_bell()`. Windows already requests silent visual delivery;
+macOS leaves the visual notification's sound unset. Verification planned:
+private D-Bus capture of the real app's `Notify` message, asserting the hint
+is true. Not yet run. OS delivery/actual audibility on the owner's desktop
+remain separate from this transport-level proof.
