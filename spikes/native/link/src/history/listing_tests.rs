@@ -136,9 +136,5 @@ fn a_remote_page_cannot_persist_an_oversized_continuation() {
 }
 
 async fn bounded_answer(selected: &crate::connections::SelectedConnection, request: Ask) -> Reply {
-    crate::testing::phase(
-        "history adapter result",
-        crate::history::answer(selected, request),
-    )
-    .await
+    crate::testing::phase("history adapter result", answer(selected, request)).await
 }
