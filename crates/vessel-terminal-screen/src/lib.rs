@@ -13,7 +13,9 @@ pub use cell::{
 pub use geometry::{MAX_SCREEN_CELLS, ScrollbackLines, Size};
 pub use model::{BytesTaken, FEED_BUDGET, Feed, Screen, Snapshot};
 pub use queries::{MAX_REPLY_BYTES, Replies, ReplyDuty};
-pub use range::{Capture, CaptureRange, LineCount, LineOffset, MAX_CAPTURE_BYTES};
+pub use range::{
+    Capture, CaptureRange, HistoryLines, LineCount, LineIndex, LineOffset, MAX_CAPTURE_BYTES,
+};
 
 /// A screen operation refuses before replacing a valid authority or allocating a reply.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

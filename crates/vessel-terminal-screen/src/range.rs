@@ -9,6 +9,19 @@ impl From<i64> for LineOffset {
         Self(value)
     }
 }
+/// Absolute zero-based physical row in the active retained buffer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LineIndex(pub u32);
+/// Retained primary history rows, excluding the live screen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HistoryLines(pub(crate) usize);
+impl HistoryLines {
+    /// Count for viewport calculations; never an event-log sequence.
+    #[must_use]
+    pub const fn get(self) -> usize {
+        self.0
+    }
+}
 /// Number of physical rows retained, including visible blank rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LineCount(pub(crate) u32);

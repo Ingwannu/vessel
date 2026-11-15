@@ -160,7 +160,7 @@ fn check_corpus(input: &str, count: usize) {
                         screen.buffer_kind() == BufferKind::Alternate,
                         expected.alternate
                     );
-                    assert_eq!(screen.history_len(), expected.history);
+                    assert_eq!(screen.history_len().get(), expected.history);
                     assert_eq!(
                         screen.capture(CaptureRange::default()).unwrap().lines,
                         expected.lines,
@@ -220,12 +220,12 @@ fn shrinking_history_preserves_newest_and_increase_never_revives_eviction() {
     screen
         .set_scrollback(ScrollbackLines::new(8).unwrap())
         .unwrap();
-    assert_eq!(screen.history_len(), 1);
+    assert_eq!(screen.history_len().get(), 1);
     screen
         .set_scrollback(ScrollbackLines::new(0).unwrap())
         .unwrap();
     feed(&mut screen, b"\r\n6\r\n7");
-    assert_eq!(screen.history_len(), 0);
+    assert_eq!(screen.history_len().get(), 0);
 }
 
 #[test]
@@ -276,5 +276,54 @@ fn geometry_reserves_both_screens_and_split_utf8_remains_original() {
     assert_eq!(
         screen.capture(CaptureRange::default()).unwrap().lines,
         vec![text, ""]
+    );
+}
+
+#[test]
+fn retained_styled_cells_and_final_metadata_outlive_eviction_and_owner() {
+    let snapshot = {
+        let mut screen =
+            Screen::new(Size::new(4, 2).unwrap(), ScrollbackLines::new(3).unwrap()).unwrap();
+        feed(&mut screen, "\x1b[31m한!\x1b[0m\r\ntwo\r\nend".as_bytes());
+        let lead = screen.buffer_cell(LineIndex(0), Column(0)).unwrap();
+        let continuation = screen.buffer_cell(LineIndex(0), Column(1)).unwrap();
+        assert_eq!(lead.text(), "한");
+        assert_eq!(lead.attributes().foreground(), Color::Indexed(1));
+        assert_eq!(continuation.width(), Width::Continuation);
+        assert_eq!(continuation.attributes(), lead.attributes());
+        let snapshot = screen.snapshot();
+        screen
+            .set_scrollback(ScrollbackLines::new(0).unwrap())
+            .unwrap();
+        feed(&mut screen, b"\r\nnew\r\nlast");
+        assert_eq!(screen.history_len().get(), 0);
+        snapshot
+    };
+    assert_eq!(snapshot.history_len().get(), 1);
+    assert_eq!(snapshot.buffer_kind(), BufferKind::Primary);
+    assert_eq!(
+        snapshot.cursor(),
+        Cursor {
+            row: Row(1),
+            column: Column(3),
+            visibility: Visibility::Shown
+        }
+    );
+    assert_eq!(
+        snapshot
+            .buffer_cell(LineIndex(0), Column(0))
+            .unwrap()
+            .text(),
+        "한"
+    );
+    assert!(
+        snapshot
+            .buffer_cell(LineIndex(u32::MAX), Column(0))
+            .is_none()
+    );
+    assert!(snapshot.cell(Row(0), Column(u16::MAX)).is_none());
+    assert_eq!(
+        snapshot.capture(CaptureRange::default()).unwrap().lines,
+        vec!["한!", "two", "end"]
     );
 }

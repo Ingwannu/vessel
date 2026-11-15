@@ -1,5 +1,7 @@
 //! Pure row/cell projection fixes representation differences at the single engine boundary.
-use crate::{Capture, CaptureRange, Cell, Column, LineCount, MAX_CAPTURE_BYTES, Row, ScreenError};
+use crate::{
+    Capture, CaptureRange, Cell, Column, LineCount, LineIndex, MAX_CAPTURE_BYTES, Row, ScreenError,
+};
 
 pub(crate) fn cell(screen: &vt100::Screen, row: Row, column: Column) -> Option<Cell<'_>> {
     let (rows, cols) = screen.size();
@@ -12,6 +14,26 @@ pub(crate) fn cell(screen: &vt100::Screen, row: Row, column: Column) -> Option<C
             .0
             .checked_sub(1)
             .and_then(|col| screen.cell(row.0, col))
+            .filter(|cell| cell.is_wide())
+            .unwrap_or(body)
+    } else {
+        body
+    };
+    Some(Cell::of(body, lead))
+}
+
+pub(crate) fn buffer_cell(
+    screen: &vt100::Screen,
+    line: LineIndex,
+    column: Column,
+) -> Option<Cell<'_>> {
+    let index = usize::try_from(line.0).ok()?;
+    let body = screen.buffer_cell(index, column.0)?;
+    let lead = if body.is_wide_continuation() {
+        column
+            .0
+            .checked_sub(1)
+            .and_then(|col| screen.buffer_cell(index, col))
             .filter(|cell| cell.is_wide())
             .unwrap_or(body)
     } else {

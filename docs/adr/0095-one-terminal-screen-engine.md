@@ -64,6 +64,12 @@ One capture has a named byte limit, includes empty rows and separators and
 refuses a too-large response rather than truncating it. Signed inclusive row
 ranges clamp and count negatives from the end. Text stays unnormalized; JS
 trimEnd semantics include BOM and exclude NEL. No ANSI is invented by capture.
+Paseo's `stripAnsi=false` returns that same translated row; it does not
+regenerate SGR styling from cells. CLI Plain/Preserve stays a wire/glue choice.
+Native rendering reads typed retained cells (including continuation ink),
+without another row parser or another capture renderer. Immutable snapshots
+retain those cells, cursor, active buffer and typed history count after owner
+exit or later live eviction. They do not claim mutable decoder restoration.
 
 Query replies follow the explicit server handlers at
 `packages/server/src/terminal/terminal.ts:884–925` and its fixed OSC color

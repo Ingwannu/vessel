@@ -74,3 +74,11 @@ grow monomorphizations. Added refusal tests exercise the capture allocation
 ceiling without mutating the retained screen, both-screen geometry admission,
 and original Unicode text supplied one byte at a time. These introduce no I/O
 or runtime test dependencies. Changed-source checks remain owed.
+
+The consumer facade now exposes typed retained `LineIndex` cells and
+`HistoryLines`, plus final snapshot cursor/buffer/history metadata. A regression
+checks continuation ink and final state after live eviction and owner drop.
+This supplies styled scrollback to the sole native renderer without another
+interpretation. Capture remains translated text: the reference server's
+`stripAnsi=false` branch does not synthesize SGR from cell attributes, so CLI
+Plain/Preserve mapping stays outside the engine.

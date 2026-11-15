@@ -1,7 +1,7 @@
 //! One owner feeds the engine; immutable snapshots survive actor exit without log replay.
 use crate::{
-    BufferKind, Capture, CaptureRange, Cell, Column, Cursor, Replies, ReplyDuty, Row, ScreenError,
-    ScrollbackLines, Size, Visibility,
+    BufferKind, Capture, CaptureRange, Cell, Column, Cursor, HistoryLines, LineIndex, Replies,
+    ReplyDuty, Row, ScreenError, ScrollbackLines, Size, Visibility,
 };
 use std::sync::Arc;
 
@@ -126,14 +126,19 @@ impl Screen {
     }
     /// Physical primary history currently retained (zero in the alternate buffer).
     #[must_use]
-    pub fn history_len(&self) -> usize {
-        self.parser.screen().scrollback_len()
+    pub fn history_len(&self) -> HistoryLines {
+        HistoryLines(self.parser.screen().scrollback_len())
     }
 
     /// A borrowed visible cell with the lead cell's continuation attributes.
     #[must_use]
     pub fn cell(&self, row: Row, column: Column) -> Option<Cell<'_>> {
         crate::projection::cell(self.parser.screen(), row, column)
+    }
+    /// Retained styled cells let one native renderer show history without parsing text again.
+    #[must_use]
+    pub fn buffer_cell(&self, line: LineIndex, column: Column) -> Option<Cell<'_>> {
+        crate::projection::buffer_cell(self.parser.screen(), line, column)
     }
     /// Translate retained physical rows; no clone or mutation of the live engine.
     ///
@@ -163,10 +168,30 @@ impl Snapshot {
     pub const fn size(&self) -> Size {
         self.size
     }
+    /// Final cursor and visibility, independent of a presentation's blink state.
+    #[must_use]
+    pub fn cursor(&self) -> Cursor {
+        cursor(&self.state)
+    }
+    /// Final active buffer, without reviving primary history while alternate is active.
+    #[must_use]
+    pub fn buffer_kind(&self) -> BufferKind {
+        buffer_kind(&self.state)
+    }
+    /// Final retained history, independent of any pruned output log.
+    #[must_use]
+    pub fn history_len(&self) -> HistoryLines {
+        HistoryLines(self.state.scrollback_len())
+    }
     /// Retained visible cells, without leaking the mutable engine API.
     #[must_use]
     pub fn cell(&self, row: Row, column: Column) -> Option<Cell<'_>> {
         crate::projection::cell(&self.state, row, column)
+    }
+    /// Styled retained rows share the same projection as the mutable authority.
+    #[must_use]
+    pub fn buffer_cell(&self, line: LineIndex, column: Column) -> Option<Cell<'_>> {
+        crate::projection::buffer_cell(&self.state, line, column)
     }
     /// Capture remains available after the mutable authority has exited.
     ///
