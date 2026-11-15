@@ -174,8 +174,9 @@ pub const fn editable(definition: &ScheduleDefinition) -> bool {
     cadence && catch_up && target
 }
 
-/// Actions for a row, in Paseo's menu order. Node semantics additionally allow
-/// run-now, pause and resume for an existing-session target (ADR 0033).
+/// Wired operations for a row. The menu separately applies Paseo's order and
+/// heartbeat visibility. Node semantics additionally allow run-now, pause and
+/// resume for an existing-session target (ADR 0033).
 #[must_use]
 pub fn actions(schedule: &ScheduleInfo, authority: &authority::Authority) -> Vec<Action> {
     if !authority.allows_actions() {

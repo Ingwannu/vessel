@@ -175,14 +175,24 @@ impl Row<'_> {
         let allowed = super::super::actions(self.schedule, self.authority);
         let pending = self.mutation.progress();
         [
-            Action::Edit,
             Action::Pause,
             Action::Resume,
             Action::RunNow,
+            Action::Edit,
             Action::Delete,
         ]
         .into_iter()
         .filter(|action| {
+            // Paseo's cadence actions belong only to a new-chat target.
+            // Existing-session node operations remain available to typed
+            // callers; the heartbeat menu exposes only Edit and Delete.
+            if matches!(
+                self.schedule.definition.target,
+                vessel_proto::automation::ScheduleTarget::Session { .. }
+            ) && matches!(action, Action::Pause | Action::Resume | Action::RunNow)
+            {
+                return false;
+            }
             let opposite = match pending {
                 Some(Action::Pause) => *action == Action::Resume,
                 Some(Action::Resume) => *action == Action::Pause,

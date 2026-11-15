@@ -245,10 +245,27 @@ fn run_now_uses_the_node_outcome_without_inventing_a_successful_run_count() {
 
 #[test]
 fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
-    let (mut page, key) = loaded();
+    let mut page = Page::default();
+    bound(&mut page, &[key("laptop")]);
+    let read = page.due(now()).remove(0);
+    let mut source = info();
+    source.definition.target = vessel_proto::automation::ScheduleTarget::NewSession {
+        spec: Box::new(
+            serde_json::from_str(
+                r#"{"harness":"claude-code","mode":"structured","cwd":"/project"}"#,
+            )
+            .unwrap(),
+        ),
+        after: vessel_proto::automation::AfterRun::Archive,
+    };
+    let key = RowKey {
+        machine: read.machine().clone(),
+        schedule: source.id,
+    };
+    page.listed(&read, Ok(snapshot(vec![source.clone()])));
     let pause = page.act(&key, Action::Pause).unwrap();
     let read = page.due(now() + chrono::TimeDelta::seconds(5)).remove(0);
-    let mut paused = info();
+    let mut paused = source;
     paused.state = ScheduleState::Paused { since: now() };
     page.listed(&read, Ok(snapshot(vec![paused.clone()])));
     let row = page.row(&key).unwrap();
@@ -256,15 +273,15 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
         row.menu_entries(),
         [
             MenuEntry {
-                action: Action::Edit,
-                state: EntryState::Disabled
-            },
-            MenuEntry {
                 action: Action::Pause,
                 state: EntryState::Pending
             },
             MenuEntry {
                 action: Action::RunNow,
+                state: EntryState::Disabled
+            },
+            MenuEntry {
+                action: Action::Edit,
                 state: EntryState::Disabled
             },
             MenuEntry {
@@ -279,15 +296,15 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
         page.row(&key).unwrap().menu_entries(),
         [
             MenuEntry {
-                action: Action::Edit,
-                state: EntryState::Enabled
-            },
-            MenuEntry {
                 action: Action::Resume,
                 state: EntryState::Enabled
             },
             MenuEntry {
                 action: Action::RunNow,
+                state: EntryState::Enabled
+            },
+            MenuEntry {
+                action: Action::Edit,
                 state: EntryState::Enabled
             },
             MenuEntry {

@@ -56,12 +56,7 @@ fn exact_target_metadata_and_menu_are_prepared_for_each_language() {
             .iter()
             .map(|entry| entry.label.as_ref())
             .collect::<Vec<_>>(),
-        [
-            "Edit recurring prompt",
-            "Pause recurring prompt",
-            "Run now",
-            "Delete recurring prompt"
-        ]
+        ["Edit recurring prompt", "Delete recurring prompt"]
     );
     assert_eq!(english, rows(&page, &Fleet::default(), now, &clock, en));
 }
@@ -77,13 +72,18 @@ fn pending_identity_and_forbidden_have_one_signal_and_disable_edit() {
     assert_eq!(prepared[0].menu[0].action, Action::Edit);
     assert_eq!(prepared[0].menu[0].state, EntryState::Disabled);
     assert_eq!(
-        prepared[0].menu[1],
-        MenuEntry {
-            action: Action::Pause,
-            state: EntryState::Pending,
-            label: "Pause recurring prompt".into(),
-            pending: Some("Pausing...".into())
-        }
+        prepared[0]
+            .menu
+            .iter()
+            .map(|entry| entry.action)
+            .collect::<Vec<_>>(),
+        [Action::Edit, Action::Delete]
+    );
+    assert!(
+        prepared[0]
+            .menu
+            .iter()
+            .all(|entry| entry.state == EntryState::Disabled)
     );
     page.written(
         &request,

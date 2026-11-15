@@ -1186,3 +1186,17 @@ second control renderer, extra wrapper/spacing or new state is introduced, no
 size record raised and no lint suppression added. Node calls, typed guards and
 UI behavior remain unverified until the meaningful changed-head package checks;
 this source scan is not compiler or runtime evidence.
+
+
+### Menu reference correction before package proof
+
+Rechecking pinned schedule-row.tsx262–330 found two own presentation errors:
+Edit was ordered before cadence actions, and heartbeat rows exposed the node's
+extra existing-session pause/resume/run capability. Row menu presentation now
+keeps the source order cadence action / Run now / Edit / Delete and limits
+heartbeat menus to Edit / Delete. Typed node/Page operations retain their
+existing capability; no protocol or backend restriction is invented. Pending
+caption direction is tested with an explicit new-chat fixture, while heartbeat
+presentation separately asserts the two disabled entries during unrelated
+legacy operation state. Existing accepted action-copy tables are not moved.
+These corrected-source cases remain unexecuted and are not a menu/UI PASS.
