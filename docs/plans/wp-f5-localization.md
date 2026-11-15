@@ -121,7 +121,9 @@ or a whole geometry comparison across the accepted base merge.
 Standalone view's wasm library check and full library build/code generation
 passed on the same source. The unstripped dev rlib is 26,980,654 bytes; this is a
 library artifact, not an installed-app or browser-bundle size. Neither proves
-browser app execution. V1 review is still owed. Current Windows/OS change subscriptions,
+browser app execution. V1 accepted this exact package with bounded source,
+native gate and inspected startup visual approval; it independently opened all
+16 originals and verified their hashes/dimensions and retained app binary. Current Windows/OS change subscriptions,
 real provider/node/updater flows, persisted-preference I/O, accessibility, real
 GPU and plugin runtime integration are not inferred from these tests or frames;
 the per-installation plugin integration belongs to F6.
@@ -145,3 +147,19 @@ the per-installation plugin integration belongs to F6.
 These are word/API seams, not behavior or whole-package approvals. The package
 owners coordinate shared Chat edits directly; this track does not write their
 screens or preferences in parallel.
+
+## Accepted core package and later work
+
+V1's disposition is limited to exact `8a944a23`, its one native gate and the
+inspected startup states above. It explicitly excludes frame-one/flicker or
+geometry parity, Windows/real GPU/accessibility, node/provider/updater flows,
+new persisted-preference I/O and plugin localization. No unchanged gate or
+capture matrix was requested. Documentation-only closure commits retain this
+boundary rather than claiming a current combined application approval.
+
+The subsequent package-base-2 merge `55ef3679` brings `6036eeb8` without changing
+the preferred-locale implementation or root crates. Its incoming machine-node
+identity and field editability/listener seams are not part of this accepted
+locale feature. The following F6 shared bundle/contract work is a separate
+consumer seam, documented in its own plan; its checks must not borrow this
+package's earlier gate or startup approval.
