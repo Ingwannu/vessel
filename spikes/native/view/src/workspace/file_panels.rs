@@ -109,6 +109,7 @@ impl SelectorKey {
 }
 
 /// Resolved choices borrow the catalogue; no second renderer instance is made.
+#[derive(Debug)]
 pub struct PanelResolution<'a, P> {
     /// The explicit tab choice, valid association, or first candidate.
     pub selected: Option<&'a PanelCandidate<'a, P>>,

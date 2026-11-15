@@ -224,3 +224,35 @@ run `wp-files-narrow-20261115T075904Z-0df7abd9` (native-fonts and native-cargo
 rc0). Focused app code tests for that same commit are queued separately in
 `wp-files-narrow-20261115T080536Z-0df7abd9`; a clippy pass is not a test pass.
 No whole package gate or screenshot approval exists yet.
+
+
+## ADR: Markdown front matter parser
+
+[Decision Log]
+- Purpose and intent: port Paseo `markdown-preview/document.ts`'s YAML core
+  mapping table, including ordered keys, scalar lists and nested values.
+- Existing assets and constraints: the kit already renders Markdown. Rust's
+  standard library cannot parse YAML; a hand-written scalar subset would
+  silently disagree on quotes, aliases, lists and nested maps.
+- Alternatives: deprecated serde-yaml; an unrestricted generic YAML tree;
+  dropping front matter; a second Markdown renderer. None provides the
+  reference semantics with explicit parser work bounds and existing kit use.
+- Choice: the already locked `serde-saphyr 1.3.0`, only serialize/deserialize features, in
+  view's private document-format parser. crates.io and the downloaded release
+  manifest/licence files confirm MIT OR Apache-2.0, Rust 1.89 minimum, and a
+  non-yanked release. `granit-parser 1.3.0` is its existing pure Rust parser.
+- Why: YAML 1.2 core scalars with explicit budgets before AST allocation,
+  while retaining the shared Markdown renderer and no local resource I/O.
+- Advantages, costs and effects: source <=10 MiB; front matter <=64 KiB,
+  depth16, aliases100, events/nodes4096, and bounded retained/replayed alias
+  work. Parse/format errors, non-maps, duplicate keys or exceeded budgets
+  preserve the complete original source. Complex mapping keys are rejected
+  rather than inventing JavaScript object-key coercion. These additional
+  resource limits are stated differences; binary-size growth is unmeasured.
+
+Primary release sources: <https://crates.io/crates/serde-saphyr/1.3.0>,
+<https://github.com/bourumir-wyngs/serde-saphyr>. The exact locked 1.3.0 registry source and its parser budgets were inspected;
+this reuses both existing packages rather than introducing a second version. Parser tests cover ordered CRLF/BOM metadata,
+scalar/list/nested display, invalid/non-map/duplicate/deep headers, alias
+amplification, literal property syntax and the source budget. UI wiring and
+this parser's narrow compile/test result are still pending.

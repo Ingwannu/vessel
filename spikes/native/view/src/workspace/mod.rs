@@ -23,6 +23,7 @@ pub mod find;
 pub mod git;
 pub mod git_quick;
 pub mod intelligence;
+pub mod markdown_preview;
 pub mod marks;
 pub mod pace;
 pub mod place;

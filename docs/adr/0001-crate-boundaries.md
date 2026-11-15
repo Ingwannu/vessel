@@ -325,3 +325,14 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+
+### Native file Markdown metadata (ADR 0083 app companion)
+
+`vessel-app-view` owns `serde-saphyr` for bounded YAML 1.2 front matter,
+with only `serialize` and `deserialize` enabled. Include, filesystem
+resolver, property interpolation and comment-capture features stay disabled.
+The format AST remains private to its parser; only ordered display rows and
+complete Markdown body reach the app. The kit's existing Markdown renderer
+continues to own drawing; there is no second Markdown renderer or I/O edge.
+The native README's external-owner row enforces this boundary.
