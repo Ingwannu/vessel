@@ -89,3 +89,16 @@ cover both mapped 127/8 examples, ordinary ::1, documentation IPv6 and mapped
 non-loopback IPv4. The old canonical/credential/dot-path/cause tests remain.
 Reference: [Rust IPv6 embedding rules](https://doc.rust-lang.org/std/net/struct.Ipv6Addr.html#embedding-ipv4-addresses).
 All eighteen authored consumer-value tests remain unexecuted on this source.
+
+
+Precursor ancestry: merge the reviewed setup value carrier by its original
+commit identity before consuming MAX_PROJECT_COMMANDS. Only its canonical
+bound and value declarations are dependencies here; no runner/bootstrap or
+runtime admission is adopted. The next announced base is merged normally,
+so the shared ancestry is not duplicated or renumbered.
+
+The previously reviewed ServiceEnvName owner is carried unchanged into this
+isolated values package because it is absent from the announced node base.
+Its normalization body and tests are byte-identical to the existing owner;
+helper/allocator/parser execution paths are not copied. Environment DTOs
+will derive keys through that owner, never normalize a second time.

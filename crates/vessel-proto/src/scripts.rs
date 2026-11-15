@@ -27,7 +27,9 @@ use crate::terminals::TerminalInfo;
 use crate::workspace::{CreateWorktreeOutcome, ProjectCommands};
 
 mod entry;
+mod service_env;
 pub use entry::{InvalidScriptEntry, ScriptEntry, ScriptEntryView};
+pub use service_env::ServiceEnvName;
 
 /// A script's or a service's name in `vessel.toml`: 1 to 64 bytes of ASCII
 /// letters, digits, `-`, `_` and `.`, starting with a letter or a digit.
