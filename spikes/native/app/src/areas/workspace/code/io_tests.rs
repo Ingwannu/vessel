@@ -376,3 +376,27 @@ fn old_same_scope_folder_refresh_cannot_replace_the_latest_listing(cx: &mut Test
         assert!(matches!(&shell.areas.workspace.code.files.listings[&dir], vessel_app_view::workspace::file_tree::Listing::Listed(listing) if listing.entries[0].name == "current"));
     });
 }
+
+#[gpui::test]
+fn deferred_editor_creation_stays_with_its_original_retained_owner(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let root = root();
+        target(shell, root);
+        shell.open_file_at("a.rs".parse().unwrap(), None, cx);
+        let a = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&a).unwrap().reading.unwrap().0;
+        shell.editor_read_answered("node", ticket, &read(root, "a.rs"), Ok(text("a")), cx);
+        shell.open_file_at("b.rs".parse().unwrap(), None, cx);
+        let b = shell.areas.workspace.code.file_key().unwrap();
+        let ticket = shell.editing_for(&b).unwrap().reading.unwrap().0;
+        shell.editor_read_answered("node", ticket, &read(root, "b.rs"), Ok(text("b")), cx);
+        shell.editor_frame_for(&a, window, cx);
+        assert!(shell.editing_for(&a).unwrap().editor.is_some());
+        assert!(shell.editing_for(&b).unwrap().editor.is_none());
+        assert_eq!(shell.areas.workspace.code.file_key(), Some(b.clone()));
+        shell.leave_file_for(&a, cx);
+        assert_eq!(shell.areas.workspace.code.file_key(), Some(b));
+    });
+}

@@ -68,7 +68,8 @@ impl Render for Probe {
                 .edit
                 .as_ref()
                 .unwrap();
-            editing_view::body(shell, editing, &Tokens::of(Scheme::Dark), cx)
+            let key = shell.areas.workspace.code.file_key().unwrap();
+            editing_view::body(shell, editing, &key, &Tokens::of(Scheme::Dark), cx)
         });
         div().size_full().child(body)
     }

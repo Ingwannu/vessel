@@ -13,6 +13,7 @@ use vessel_app_view::workspace::intelligence::{
 };
 use vessel_proto::lsp::{Freshness, Location};
 
+use super::buffers::FileKey;
 use super::intelligence::{Refusal, State};
 use crate::shell::Shell;
 
@@ -23,6 +24,7 @@ pub(super) fn panel(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let _language = language_for(viewer.path.as_str())?;
+    let key = FileKey::new(&viewer.scope, viewer.path.clone());
     let labels = shell.words().labels();
     let actions = [
         (IntelligenceAction::Hover, labels.language_hover),
@@ -39,8 +41,11 @@ pub(super) fn panel(
                 .into_iter()
                 .enumerate()
                 .map(|(index, (action, label))| {
+                    let key = key.clone();
                     button(("file-language", index), label, false, tokens).on_click(cx.listener(
-                        move |shell, _, window, cx| shell.language_query(action, window, cx),
+                        move |shell, _, window, cx| {
+                            shell.language_query_for(&key, action, window, cx)
+                        },
                     ))
                 }),
         );
@@ -62,7 +67,7 @@ pub(super) fn panel(
             });
         }
         State::Ready { result, .. } => {
-            body = body.child(result_body(shell, result, tokens, cx));
+            body = body.child(result_body(shell, &key, result, tokens, cx));
         }
     }
     Some(
@@ -85,6 +90,7 @@ fn failure(shell: &Shell, failure: &IntelligenceFailure) -> String {
 
 fn result_body(
     shell: &Shell,
+    key: &FileKey,
     result: &IntelligenceResult,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -107,7 +113,7 @@ fn result_body(
                 body = body.child(labels.language_no_locations);
             }
             for (index, location) in page.items.iter().enumerate() {
-                body = body.child(location_row(index, location, None, tokens, cx));
+                body = body.child(location_row(key.clone(), index, location, None, tokens, cx));
             }
             (page.context.freshness, page.next, page.truncated)
         }
@@ -117,6 +123,7 @@ fn result_body(
             }
             for (index, diagnostic) in page.items.iter().enumerate() {
                 body = body.child(location_row(
+                    key.clone(),
                     index,
                     &diagnostic.location,
                     Some(&diagnostic.message),
@@ -141,15 +148,18 @@ fn result_body(
         body = body.child(labels.language_truncated);
     }
     if let Some(offset) = next {
+        let key = key.clone();
         body = body.child(
-            button("file-language-more", labels.show_rest, false, tokens)
-                .on_click(cx.listener(move |shell, _, _, cx| shell.language_next(offset, cx))),
+            button("file-language-more", labels.show_rest, false, tokens).on_click(
+                cx.listener(move |shell, _, _, cx| shell.language_next_for(&key, offset, cx)),
+            ),
         );
     }
     body.into_any_element()
 }
 
 fn location_row(
+    key: FileKey,
     index: usize,
     location: &Location,
     message: Option<&str>,
@@ -165,6 +175,8 @@ fn location_row(
         |message| format!("{path}:{line}:{column} {message}"),
     );
     button(("file-language-location", index), text, false, tokens)
-        .on_click(cx.listener(move |shell, _, _, cx| shell.language_location(&target, cx)))
+        .on_click(
+            cx.listener(move |shell, _, _, cx| shell.language_location_for(&key, &target, cx)),
+        )
         .into_any_element()
 }

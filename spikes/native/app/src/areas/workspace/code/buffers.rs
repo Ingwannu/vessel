@@ -43,6 +43,13 @@ impl CodePanel {
             *root,
         ))
     }
+    pub(super) fn viewer_at(&self, key: &FileKey) -> Option<&Viewer> {
+        if self.file_key().as_ref() == Some(key) {
+            self.files.viewer.as_ref()
+        } else {
+            self.files.retained.get(key)
+        }
+    }
     pub(super) fn viewer_for(&mut self, key: &FileKey) -> Option<&mut Viewer> {
         if self.file_key().as_ref() == Some(key) {
             self.files.viewer.as_mut()

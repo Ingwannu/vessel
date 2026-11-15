@@ -26,17 +26,23 @@ use crate::shell::Shell;
 /// The caret's line and column, and the selection's button.
 pub(super) struct Status {
     editor: CodeEditor,
+    key: super::buffers::FileKey,
     shell: WeakEntity<Shell>,
     _follow: Subscription,
 }
 
 impl Status {
-    pub(super) fn new(editor: CodeEditor, cx: &mut Context<'_, Shell>) -> Entity<Self> {
+    pub(super) fn new(
+        editor: CodeEditor,
+        key: super::buffers::FileKey,
+        cx: &mut Context<'_, Shell>,
+    ) -> Entity<Self> {
         let shell = cx.entity().downgrade();
         cx.new(|cx| {
             let follow = editor.observe(cx, |_status, cx| cx.notify());
             Self {
                 editor,
+                key,
                 shell,
                 _follow: follow,
             }
@@ -57,10 +63,13 @@ impl Render for Status {
                 usize::try_from(last).unwrap_or(usize::MAX),
             );
             let shell = self.shell.clone();
+            let key = self.key.clone();
             let button = vessel_app_kit::button("code-editor-add-lines", label, true, &tokens)
                 .on_click(move |_event, window, cx| {
                     let _gone = shell.update(cx, |shell, cx| {
-                        shell.add_editor_lines((first, last), window, cx);
+                        if shell.areas.workspace.code.file_key().as_ref() == Some(&key) {
+                            shell.add_editor_lines((first, last), window, cx);
+                        }
                     });
                 });
             // Comes in as a selection starts; its id does not name the

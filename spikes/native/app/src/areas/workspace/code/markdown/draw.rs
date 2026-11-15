@@ -23,6 +23,7 @@ pub(in crate::areas::workspace::code) fn toolbar(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let preview = viewer.markdown.as_ref()?;
+    let key = FileKey::new(&viewer.scope, viewer.path.clone());
     let labels = shell.words().labels();
     Some(
         div()
@@ -34,15 +35,14 @@ pub(in crate::areas::workspace::code) fn toolbar(
                     (Mode::Preview, "file-mode-preview", labels.file_mode_preview),
                 ]
                 .map(|(mode, id, label)| {
+                    let key = key.clone();
                     button(id, label, preview.mode == mode, tokens).on_click(cx.listener(
                         move |shell, _, _, cx| {
                             if let Some(preview) = shell
                                 .areas
                                 .workspace
                                 .code
-                                .files
-                                .viewer
-                                .as_mut()
+                                .viewer_for(&key)
                                 .and_then(|viewer| viewer.markdown.as_mut())
                             {
                                 preview.mode = mode;
@@ -75,7 +75,7 @@ pub(in crate::areas::workspace::code) fn body(
     }) {
         return None;
     }
-    let key = shell.areas.workspace.code.file_key()?;
+    let key = FileKey::new(&viewer.scope, viewer.path.clone());
     let content = stage_element(shell, viewer, key, &preview.stage, tokens, window, cx);
     Some(
         div()

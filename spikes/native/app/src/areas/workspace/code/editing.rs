@@ -310,7 +310,14 @@ impl Shell {
     }
 
     /// The file is left (Back, another file): flushed, then closed.
-    pub(super) fn leave_file(&mut self, cx: &mut Context<'_, Self>) {
+    pub(super) fn leave_file_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if self.areas.workspace.code.file_key().as_ref() != Some(key) {
+            return;
+        }
         self.flush_file();
         let _parked = self.park_file();
         cx.notify();
@@ -318,13 +325,22 @@ impl Shell {
 
     /// Make the editor control after the first read, or put a reload's
     /// text in it (both need the window, which an answer does not carry).
+    #[cfg(test)]
     pub(super) fn editor_frame(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(key) = self.areas.workspace.code.file_key() else {
-            return;
-        };
-        let mutation_held = self.areas.workspace.code.file_mutating(&key);
+        if let Some(key) = self.areas.workspace.code.file_key() {
+            self.editor_frame_for(&key, window, cx);
+        }
+    }
+
+    pub(super) fn editor_frame_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let mutation_held = self.areas.workspace.code.file_mutating(key);
         let labels = self.words().labels();
-        let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() else {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         let language = language_of(viewer.path.as_str());
@@ -370,8 +386,9 @@ impl Shell {
         if let Some(location) = goto {
             super::editor_io::reveal_location(&editor, location, window, cx);
         }
-        let status = super::editor_status::Status::new(editor.clone(), cx);
-        let find = super::editor_find::FindPanel::new(editor.clone(), key, labels, window, cx);
+        let status = super::editor_status::Status::new(editor.clone(), key.clone(), cx);
+        let find =
+            super::editor_find::FindPanel::new(editor.clone(), key.clone(), labels, window, cx);
         let Some(editing) = viewer.edit.as_mut() else {
             return;
         };

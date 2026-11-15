@@ -13,7 +13,7 @@ use vessel_app_kit::{CodeTokens, Tokens, Type, TypeExt as _, glyph};
 use vessel_app_view::workspace::syntax::{TokenKind, language_of, tokenize};
 
 use super::frame::note;
-use super::{Shown, Viewer};
+use super::{Shown, Viewer, buffers::FileKey};
 use crate::shell::Shell;
 
 /// The file shown: Back and its path, then its lines, or the editor when
@@ -25,6 +25,7 @@ pub(super) fn viewer_element(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    let key = FileKey::new(&viewer.scope, viewer.path.clone());
     if let Some(editing) = &viewer.edit
         && (viewer.goto.is_some()
             || editing.stale
@@ -32,7 +33,10 @@ pub(super) fn viewer_element(
     {
         // The control is made, or a reload's text put in it, on the next
         // frame: an answer brings no window.
-        cx.defer_in(window, Shell::editor_frame);
+        let key = key.clone();
+        cx.defer_in(window, move |shell, window, cx| {
+            shell.editor_frame_for(&key, window, cx)
+        });
     }
     let neutral = tokens.neutral;
     let labels = shell.words().labels();
@@ -62,7 +66,10 @@ pub(super) fn viewer_element(
                 .text_color(neutral.foreground_muted)
                 .child(glyph(Glyph::ChevronLeft, 14.0, neutral.foreground_muted))
                 .child(labels.back)
-                .on_click(cx.listener(|this, _event, _window, cx| this.leave_file(cx))),
+                .on_click({
+                    let key = key.clone();
+                    cx.listener(move |this, _event, _window, cx| this.leave_file_for(&key, cx))
+                }),
         )
         .child(
             div()
@@ -90,7 +97,7 @@ pub(super) fn viewer_element(
         if let Some(preview) = super::markdown::body(shell, viewer, tokens, window, cx) {
             preview
         } else if let Some(editing) = &viewer.edit {
-            super::editing_view::body(shell, editing, tokens, cx)
+            super::editing_view::body(shell, editing, &key, tokens, cx)
         } else {
             read_only_body(shell, viewer, tokens, cx)
         };
@@ -104,7 +111,7 @@ pub(super) fn viewer_element(
         .children(super::intelligence_view::panel(shell, viewer, tokens, cx))
         .child(div().flex_1().min_h(px(0.0)).child(body))
         .children(super::editing_view::reload_dialog(
-            shell, tokens, window, narrow, cx,
+            shell, &key, tokens, window, narrow, cx,
         ))
         .into_any_element()
 }
@@ -124,12 +131,13 @@ fn read_only_body(
         Shown::Failed(why) => failed(labels.read_failed, why, 16.0, tokens).into_any_element(),
         Shown::Text { .. } => viewer
             .list
-            .element(
-                cx.processor(|shell: &mut Shell, index: usize, _window, cx| {
+            .element(cx.processor({
+                let key = FileKey::new(&viewer.scope, viewer.path.clone());
+                move |shell: &mut Shell, index: usize, _window, cx| {
                     let tokens = vessel_app_kit::tokens(cx);
-                    code_line(shell, index, &tokens, cx)
-                }),
-            )
+                    code_line(shell, &key, index, &tokens, cx)
+                }
+            }))
             .into_any_element(),
     }
 }
@@ -137,6 +145,7 @@ fn read_only_body(
 /// Line `index` of the file shown: its number, its text coloured.
 fn code_line(
     shell: &Shell,
+    key: &FileKey,
     index: usize,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
@@ -150,9 +159,7 @@ fn code_line(
         .areas
         .workspace
         .code
-        .files
-        .viewer
-        .as_ref()
+        .viewer_at(key)
         .map(|viewer| &viewer.text)
     else {
         return div().into_any_element();
@@ -169,9 +176,7 @@ fn code_line(
         .areas
         .workspace
         .code
-        .files
-        .viewer
-        .as_ref()
+        .viewer_at(key)
         .map_or("", |viewer| viewer.path.as_str());
     let language = language_of(path);
     let state = states.get(index).copied().unwrap_or_default();
@@ -199,12 +204,10 @@ fn code_line(
         .areas
         .workspace
         .code
-        .files
-        .viewer
-        .as_ref()
+        .viewer_at(key)
         .and_then(|viewer| viewer.chosen)
         .is_some_and(|(first, last)| (first..=last).contains(&index));
-    line_frame(index, chosen, tokens, cx)
+    line_frame(key.clone(), index, chosen, tokens, cx)
         .child(
             div()
                 .flex_1()
@@ -218,7 +221,13 @@ fn code_line(
 /// A line's frame: the number column (muted, right-aligned; a click
 /// chooses the line, Shift extends the choice), mono 12 on 20, wrapped; a
 /// chosen line on the second surface.
-fn line_frame(index: usize, chosen: bool, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
+fn line_frame(
+    key: FileKey,
+    index: usize,
+    chosen: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let neutral = tokens.neutral;
     div()
         .w_full()
@@ -243,7 +252,7 @@ fn line_frame(index: usize, chosen: bool, tokens: &Tokens, cx: &mut Context<'_, 
                 .hover(move |style| style.text_color(neutral.foreground))
                 .child(index.saturating_add(1).to_string())
                 .on_click(cx.listener(move |this, event: &ClickEvent, _window, cx| {
-                    this.choose_line(index, event.modifiers().shift, cx);
+                    this.choose_line_for(&key, index, event.modifiers().shift, cx);
                 })),
         )
 }
@@ -276,8 +285,14 @@ impl Shell {
     /// Choose line `index` of the viewed file; with Shift, from the line
     /// chosen first to this one; a second click on the only line chosen
     /// lets it go.
-    fn choose_line(&mut self, index: usize, extend: bool, cx: &mut Context<'_, Self>) {
-        if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
+    fn choose_line_for(
+        &mut self,
+        key: &FileKey,
+        index: usize,
+        extend: bool,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
             viewer.chosen = match viewer.chosen {
                 Some((first, _)) if extend => Some((first.min(index), first.max(index))),
                 Some((first, last)) if first == index && last == index => None,

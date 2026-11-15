@@ -30,20 +30,18 @@ pub(super) enum Refusal {
 }
 
 impl Shell {
-    pub(super) fn language_query(
+    pub(super) fn language_query_for(
         &mut self,
+        key: &FileKey,
         action: IntelligenceAction,
         _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(key) = self.areas.workspace.code.file_key() else {
-            return;
-        };
-        let request = self.language_request(&key, cx);
+        let request = self.language_request(key, cx);
         match request {
-            Ok(at) => self.send_language_query(&key, at, action),
+            Ok(at) => self.send_language_query(key, at, action),
             Err(refusal) => {
-                if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+                if let Some(viewer) = self.areas.workspace.code.viewer_for(key) {
                     viewer.intelligence = State::Refused(refusal);
                 }
             }
@@ -130,11 +128,13 @@ impl Shell {
         }
     }
 
-    pub(super) fn language_next(&mut self, offset: Offset, cx: &mut Context<'_, Self>) {
-        let Some(key) = self.areas.workspace.code.file_key() else {
-            return;
-        };
-        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+    pub(super) fn language_next_for(
+        &mut self,
+        key: &FileKey,
+        offset: Offset,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(viewer) = self.areas.workspace.code.viewer_for(key) else {
             return;
         };
         let State::Ready { ask, .. } = &viewer.intelligence else {
@@ -143,15 +143,19 @@ impl Shell {
         let mut at = ask.at.clone();
         at.page.offset = offset;
         let action = ask.action;
-        self.send_language_query(&key, at, action);
+        self.send_language_query(key, at, action);
         cx.notify();
     }
 
-    pub(super) fn language_location(
+    pub(super) fn language_location_for(
         &mut self,
+        key: &FileKey,
         location: &vessel_proto::lsp::Location,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.areas.workspace.code.file_key().as_ref() != Some(key) {
+            return;
+        }
         let path = location
             .file
             .as_path()

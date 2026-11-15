@@ -32,6 +32,7 @@ const CONFLICT_WORDS_LEAST: f32 = 180.0;
 pub(super) fn body(
     shell: &Shell,
     editing: &Editing,
+    key: &super::buffers::FileKey,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -43,7 +44,7 @@ pub(super) fn body(
         }
         return note(labels.loading, tokens).into_any_element();
     };
-    let key = shell.areas.workspace.code.file_key();
+    let save_key = key.clone();
     // The viewer's slot for the body is a plain block of a definite
     // height: the body takes all of it (`flex_1` there did nothing, and
     // the engine's editor, whose height is its parent's, fell back to two
@@ -61,9 +62,7 @@ pub(super) fn body(
                     modifiers.control
                 };
                 if primary && !modifiers.alt && !modifiers.shift && event.keystroke.key == "s" {
-                    if let Some(key) = &key {
-                        shell.editor_save_for(key, cx);
-                    }
+                    shell.editor_save_for(&save_key, cx);
                     cx.stop_propagation();
                 }
             }),
@@ -76,14 +75,7 @@ pub(super) fn body(
             }),
         )
         .children(editing.find.clone())
-        .children(
-            shell
-                .areas
-                .workspace
-                .code
-                .file_key()
-                .and_then(|key| conflict_bar(shell, editing, key, tokens, cx)),
-        )
+        .children(conflict_bar(shell, editing, key.clone(), tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()
 }
@@ -263,24 +255,17 @@ fn conflict_bar(
 /// destructive).
 pub(super) fn reload_dialog(
     shell: &Shell,
+    key: &super::buffers::FileKey,
     tokens: &Tokens,
     window: &mut Window,
     narrow: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let editing = shell
-        .areas
-        .workspace
-        .code
-        .files
-        .viewer
-        .as_ref()?
-        .edit
-        .as_ref()?;
+    let editing = shell.areas.workspace.code.viewer_at(key)?.edit.as_ref()?;
     let prompt = editing.reload.as_ref()?;
     let state = &prompt.dialog;
     let ticket = prompt.ticket;
-    let key = shell.areas.workspace.code.file_key()?;
+    let key = key.clone();
     let labels = shell.words().labels();
     let content = DialogContent {
         title: labels.editor_reload_title.into(),
