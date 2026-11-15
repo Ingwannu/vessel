@@ -73,3 +73,17 @@ child escapes because detachable Windows jobs do not use kill-on-close.
   repeated quit, live-session protection, verified stop then restart, keep on quit.
 - Private isolated directories and fake programs only. Real agent/service-manager
   flows and macOS/Windows behaviour are separate from Linux fixture evidence.
+
+### Release capability and Windows crash policy
+
+The safe process wrapper fixes kill-on-close at job creation and cannot clear it
+later. Standard `spawn` therefore retains its bound Windows job policy. Only
+`spawn_releasable` creates the explicitly releasable job; its still-owned Child
+has the same explicit drop cleanup. `Child::detach` rejects a bound launch and
+returns that Child in a typed refusal, preserving authority. Only a releasable
+launch can consume authority into Detached. This capability split avoids
+weakening ordinary children on launcher crash and avoids unsafe job mutation.
+The local-node launch module is the only consumer of both the releasable spawn
+and detach capabilities. Its launcher runtime remains until application exit.
+Shared bounded readiness is owned once by `vessel-proto::local_launch`; node main
+emits it for `--desktop-managed`. There is no node-to-launcher dependency.
