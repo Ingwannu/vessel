@@ -7,7 +7,7 @@ mod menus;
 #[cfg(test)]
 mod tests;
 
-use gpui::{AppContext as _, EventEmitter, Render};
+use gpui::{AppContext as _, EventEmitter, Render, StatefulInteractiveElement as _};
 use std::{
     cell::RefCell,
     collections::BTreeMap,

@@ -1,5 +1,5 @@
 use super::*;
-use gpui::{AppContext as _, TestAppContext};
+use gpui::TestAppContext;
 use vessel_app_kit::{Scheme, SchemeChoice};
 use vessel_app_view::plugins::{HostSupport, Installation, Submission};
 use vessel_proto::plugins::{

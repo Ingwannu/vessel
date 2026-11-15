@@ -1,4 +1,5 @@
 use super::{SurfaceEvent, SurfaceView};
+use gpui::StatefulInteractiveElement as _;
 use std::sync::Arc;
 use vessel_app_kit::{
     ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, Tokens, Type,
@@ -6,8 +7,8 @@ use vessel_app_kit::{
     badge::{self, Size, Variant},
     theme::spacing,
     ui::{
-        AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-        IntoElement, ParentElement as _, Styled as _, Window, div, px,
+        AnyElement, ClickEvent, Context, Div, ElementId, FluentBuilder as _,
+        InteractiveElement as _, IntoElement, ParentElement as _, Styled as _, Window, div, px,
     },
 };
 use vessel_app_view::plugins::FieldValue;
@@ -270,7 +271,7 @@ fn draw_button(
         config(ButtonKind::Secondary, available, window),
         look.tokens,
     )
-    .on_click(cx.listener(move |view, event, window, cx| {
+    .on_click(cx.listener(move |view, event: &ClickEvent, window, cx| {
         view.press(&field, &behavior, event.position(), window, cx)
     }))
     .into_any_element();
