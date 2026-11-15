@@ -68,11 +68,11 @@ pub(super) fn create(directory: &Path, requested: Option<PluginId>) -> Result<Cr
     prepare_directory(&directory)?;
     for (name, bytes) in files {
         let mut options = fs::OpenOptions::new();
-        options.write(true).create_new(true);
+        let _configured = options.write(true).create_new(true);
         #[cfg(unix)]
         {
             use std::os::unix::fs::OpenOptionsExt as _;
-            options.mode(0o600);
+            let _private = options.mode(0o600);
         }
         let mut file = options.open(directory.join(name)).map_err(InitError::Io)?;
         file.write_all(&bytes).map_err(InitError::Io)?;
@@ -98,7 +98,7 @@ fn prepare_directory(directory: &Path) -> Result<(), InitError> {
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt as _;
-                builder.mode(0o700);
+                let _private = builder.mode(0o700);
             }
             // A concurrent target creation refuses instead of acquiring it.
             builder.create(directory).map_err(InitError::Io)?;

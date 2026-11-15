@@ -9,7 +9,7 @@ mod tests {
 
     async fn init(root: &Path, args: &[&str]) -> std::process::Output {
         let mut command = Command::new(env!("CARGO_BIN_EXE_vessel"));
-        command
+        let _configured = command
             .env_clear()
             .env("HOME", root)
             .env("TMPDIR", root)
@@ -21,7 +21,7 @@ mod tests {
             .args(args);
         #[cfg(windows)]
         if let Some(system_root) = std::env::var_os("SystemRoot") {
-            command.env("SystemRoot", system_root);
+            let _configured = command.env("SystemRoot", system_root);
         }
         tokio::time::timeout(CLI_START_BUDGET, command.output())
             .await

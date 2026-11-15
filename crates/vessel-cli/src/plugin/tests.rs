@@ -27,9 +27,7 @@ fn scaffold_is_valid_static_data_and_cannot_replace_an_existing_project() {
         fs::read(directory.join("client.json")).expect("retained"),
         client
     );
-    let row =
-        crate::parity::output::render_list(crate::args::parity::Presentation::Quiet, &[created])
-            .expect("shared formatter");
+    let row = output::render_list(Presentation::Quiet, &[created]).expect("shared formatter");
     assert_eq!(row, b"sample\n");
 }
 
@@ -41,7 +39,7 @@ fn invalid_default_identity_has_no_effect_and_an_explicit_id_accepts_an_empty_di
     assert!(!format!("{error:?} {error}").contains("PRIVATE-CANARY"));
     assert!(!directory.exists());
     fs::create_dir(&directory).expect("existing empty");
-    scaffold::create(&directory, Some("sample".parse().expect("id")))
+    let _created = scaffold::create(&directory, Some("sample".parse().expect("id")))
         .expect("explicit id and empty target");
 }
 
@@ -51,7 +49,7 @@ fn private_modes_and_owner_are_retained_and_symlink_targets_are_not_followed() {
     use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _, symlink};
     let root = tempfile::tempdir().expect("root");
     let directory = root.path().join("sample");
-    scaffold::create(&directory, None).expect("private directory");
+    let _created = scaffold::create(&directory, None).expect("private directory");
     let parent = fs::metadata(root.path()).expect("owner");
     let metadata = fs::metadata(&directory).expect("directory metadata");
     assert_eq!(metadata.mode() & 0o777, 0o700);
@@ -69,7 +67,7 @@ fn private_modes_and_owner_are_retained_and_symlink_targets_are_not_followed() {
     let existing = root.path().join("existing");
     fs::create_dir(&existing).expect("empty directory");
     fs::set_permissions(&existing, fs::Permissions::from_mode(0o750)).expect("existing mode");
-    scaffold::create(&existing, None).expect("preserve directory mode");
+    let _created = scaffold::create(&existing, None).expect("preserve directory mode");
     assert_eq!(
         fs::metadata(&existing).expect("metadata").mode() & 0o777,
         0o750
