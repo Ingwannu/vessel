@@ -135,3 +135,14 @@ redraws or clones; an actual semantic theme change replaces that one collection.
 The regression uses public input state/collection observation, Hangul byte ranges,
 unchanged buffer text and clone/theme updates. It is newly included, unexecuted
 source until the next immutable producer selection runs.
+
+
+Execution update: original27194 public test completed native-fonts0/native-cargo101
+on the known Editor-to-Element helper error and three lifetime warnings; zero
+window tests executed. The corrected public selection is now queued on exact
+08b1f5bbc (wp-git-consumer-tests-20261115T145527Z-08b1f5bb). The matching current
+app source's four-crate all-target Clippy is queued on bdeed2a1. All16 owned
+Kit/vendor source/test blobs match. Earlier b011/27194 returns stay red; there is
+no current producer pass or V1 submission. Local preflight is standalone
+rustfmt5 files, pure size656/14, token ratchet no new and import/doc checks;
+boundary invokes Cargo metadata and belongs on the VM, not local preflight.
