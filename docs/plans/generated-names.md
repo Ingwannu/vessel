@@ -813,3 +813,14 @@ wakes before polling the cancellation future, proves current info is eligible,
 and requires the recorded park to stop the task. No new queue or retry exists.
 The first product Clippy reached all modules and found only the reused test
 fixture's formerly unused bin field name; it is renamed now that it is used.
+
+
+Wiring narrow checkpoint: all-targets Clippy for node/store/proto passes on
+the permanent-cancellation implementation. The ordinary basic generation
+run on the preceding body passes all 24 cases, including real fake-runtime
+application, one bounded loopback call, semantic refusal with usage and
+manual/park/end/node cancellation. The coalesced park/wake case remains
+pending. A local Git-root style test additionally exercises checked toplevel
+resolution against an isolated temporary repository and folder fallback;
+no second product runner or external provider is added. Proto/store tests
+and TypeScript regeneration precede the one final package gate.
