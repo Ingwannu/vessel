@@ -131,3 +131,9 @@ discarded its decoding cause. ConfigEditError now retains Utf8Error as a source,
 while public text remains redacted; the node mapping and existing binary-input
 regression match the payload variant. This changes no permission or validation
 policy. Corrected strict workspace/proto/node checks move to the remote gate.
+
+The corrected UTF-8/source check reached the node and found two identical error
+mapping arms. They are combined without changing classification or error text.
+The failed exact0f8097f3 log remains retained; a new immutable strict check is
+required. The independent directory/config node test run at28950f795 passed77/0
+with its web/fake/node prerequisites, still not a complete C1 gate or review.

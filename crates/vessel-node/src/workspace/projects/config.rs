@@ -52,13 +52,14 @@ fn edit_error(error: &ConfigEditError) -> WireError {
         ConfigEditError::Invalid
         | ConfigEditError::NotText(_)
         | ConfigEditError::Text(_)
-        | ConfigEditError::Read(_) => ErrorCode::InvalidRequest,
-        ConfigEditError::Root(_) => ErrorCode::NotFound,
-        ConfigEditError::Write(FileError::Changed(_) | FileError::Exists(_)) => ErrorCode::Conflict,
-        ConfigEditError::Write(FileError::Path(_)) => ErrorCode::NotFound,
-        ConfigEditError::Write(
+        | ConfigEditError::Read(_)
+        | ConfigEditError::Write(
             FileError::Kind(..) | FileError::NotEmpty(_) | FileError::TooLarge,
         ) => ErrorCode::InvalidRequest,
+        ConfigEditError::Root(_) | ConfigEditError::Write(FileError::Path(_)) => {
+            ErrorCode::NotFound
+        }
+        ConfigEditError::Write(FileError::Changed(_) | FileError::Exists(_)) => ErrorCode::Conflict,
         ConfigEditError::Write(FileError::Io(_) | FileError::Task)
         | ConfigEditError::Task(_)
         | ConfigEditError::Name(_) => ErrorCode::Internal,
