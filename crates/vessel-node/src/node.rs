@@ -101,23 +101,18 @@ impl Node {
     /// data directory, or the local socket or the address cannot be bound.
     pub async fn start(config: Config) -> Result<Self, NodeError> {
         let diagnostic_started = tokio::time::Instant::now();
-        // Checked before anything starts, so a misconfigured relay or
-        // proxy is an error at once rather than a node that is unreachable
-        // (or limited as one client) later.
-        let clients = client_address(&config)?;
-        let relaying = relaying(&config)?;
-        let Prepared {
+        let setup::Startup {
             id,
             token,
             keypair,
             lock,
-            profiles,
+            store,
             models,
-            dirs,
-        } = prepare_off_thread(&config).await?;
-        let store = open_store(&config).await?;
-        let (models, proxy) = model_proxy(models).await?;
-        let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
+            proxy,
+            session_setup,
+            clients,
+            relaying,
+        } = setup::Startup::open(&config).await?;
 
         let Core {
             runtime,

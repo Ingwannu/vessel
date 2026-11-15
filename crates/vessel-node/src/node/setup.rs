@@ -99,3 +99,50 @@ pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local
         "node listening"
     );
 }
+
+/// The checked disk/config phase, kept separate from transport assembly.
+/// The caller captures its monotonic start clock before this I/O begins.
+pub(super) struct Startup {
+    pub(super) id: NodeId,
+    pub(super) token: vessel_store::NodeToken,
+    pub(super) keypair: Arc<vessel_secure::NodeKeypair>,
+    pub(super) lock: vessel_store::NodeLock,
+    pub(super) store: vessel_store::Store,
+    pub(super) models: Arc<Models>,
+    pub(super) proxy: tokio::net::TcpListener,
+    pub(super) session_setup: SessionSetup,
+    pub(super) clients: vessel_relay::address::ClientAddress,
+    pub(super) relaying: Option<(vessel_proto::RelayToken, vessel_relay::TlsConfig)>,
+}
+impl Startup {
+    pub(super) async fn open(config: &Config) -> Result<Self, crate::error::NodeError> {
+        // Keep the checks and I/O in the exact original order. A malformed
+        // relay/proxy must still fail before any node state starts.
+        let clients = super::client_address(config)?;
+        let relaying = super::relaying(config)?;
+        let super::Prepared {
+            id,
+            token,
+            keypair,
+            lock,
+            profiles,
+            models,
+            dirs,
+        } = super::prepare_off_thread(config).await?;
+        let store = super::open_store(config).await?;
+        let (models, proxy) = super::model_proxy(models).await?;
+        let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
+        Ok(Self {
+            id,
+            token,
+            keypair,
+            lock,
+            store,
+            models,
+            proxy,
+            session_setup,
+            clients,
+            relaying,
+        })
+    }
+}
