@@ -30,6 +30,14 @@
 //!   `followRef` starts true) and stays there while it grows, unless the
 //!   person has scrolled up. A diff's sign is the bar's colour, not a `+`
 //!   or `-` character (marks are drawn, never typed).
+//! - The copy button's column: GOAT's text wraps inside `pe-7`, so its
+//!   copy button has a column of its own. Here a line does not wrap but
+//!   scrolls sideways, and a padding at the line's end kept clear of the
+//!   button only once scrolled to that end: a long command showed on both
+//!   sides of the button (the coordinator on build 0.0.0.0.8's
+//!   captures). The box with a copy button keeps a column of
+//!   [`GUTTER`] at its right that the lines' viewport never enters, so no
+//!   text is under or beyond the button, wherever the box is used.
 //! - Cost: a text is made into lines again whenever its version changes
 //!   (a running command's output grows by chunks); that is linear in the
 //!   text.
@@ -62,10 +70,13 @@ const MAX_HEIGHT: f32 = 192.0;
 const SIZE: f32 = 12.0;
 const LINE: f32 = 20.0;
 
-/// The box's inset; the right one leaves room for the copy button
-/// (GOAT's `pe-7`).
+/// The box's inset.
 const PAD: f32 = 8.0;
-const PAD_RIGHT: f32 = 32.0;
+
+/// The column at the right of a box with a copy button that no line
+/// enters (GOAT's `pe-7`): the button (22, 4 from the box's corner) and
+/// 6 clear of the text.
+const GUTTER: f32 = 32.0;
 
 /// A diff's number column and its bar.
 const NUMBER: f32 = 32.0;
@@ -239,11 +250,14 @@ pub fn lines_box(
     .py(px(PAD))
     .h(px(HEIGHTS.get(count).copied().unwrap_or(MAX_HEIGHT)));
     let look = paint.look;
+    let corner = copy.is_some();
     // The frame's id scopes its parts' (the list, the copy button), so
     // two boxes in one card do not share them.
     div()
         .id(id.clone())
         .relative()
+        .flex()
+        .flex_row()
         .rounded(px(8.0))
         .border_1()
         .border_color(look.edge)
@@ -253,7 +267,8 @@ pub fn lines_box(
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(look.text.opacity(0.8))
         .overflow_hidden()
-        .child(list)
+        .child(list.flex_1().min_w(px(0.0)))
+        .when(corner, |frame| frame.child(div().flex_none().w(px(GUTTER))))
         .child(ScrollableMask::new(Axis::Vertical, &handle).id(id))
         .children(copy.map(|copy| {
             div()
@@ -335,8 +350,8 @@ fn row_of(line: &Line, numbered: bool, wrap: bool, paint: Paint) -> AnyElement {
     let mut row = div()
         .flex()
         .flex_row()
-        .when(!wrap, |row| row.whitespace_nowrap().pr(px(PAD_RIGHT)))
-        .when(wrap, |row| row.pr(px(PAD)));
+        .pr(px(PAD))
+        .when(!wrap, Styled::whitespace_nowrap);
     if let Some(ink) = ink {
         row = row.bg(ink.opacity(WASH));
     }
