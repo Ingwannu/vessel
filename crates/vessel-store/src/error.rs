@@ -144,6 +144,30 @@ pub enum StoreError {
     /// because one failure answers several callers.
     #[error("committing to the database failed")]
     Commit(#[source] Arc<rusqlite::Error>),
+    /// Missing and inactive are distinct admission refusals; callers never parse a generic message.
+    #[error("workspace {0} is not registered")]
+    RegistryMissing(vessel_proto::WorkspaceId),
+    /// Existing ownership is retained, but new actors/assignments require an Active lifecycle.
+    #[error("workspace {0} is not active")]
+    RegistryInactive(vessel_proto::WorkspaceId),
+    /// A lifecycle or membership CAS failed; no partial mutation was committed.
+    #[error("workspace registry revision changed or the workspace is not active")]
+    RegistryConflict,
+    /// Retained ownership/identity capacity is reserved before any new side effect.
+    #[error("workspace registry retained capacity is full")]
+    RegistryFull,
+    /// Per-record logical bytes exceed their pre-reserved worst-case allowance.
+    #[error("workspace registry record exceeds its retained byte allowance")]
+    RegistryRecordTooLarge,
+    /// A registry counter must never wrap or silently lose ordering.
+    #[error("workspace registry revision is exhausted")]
+    RegistryRevisionExhausted,
+    /// Signed SQL quantities are converted without truncating or discarding their cause.
+    #[error("registry revision is outside the SQLite storage range")]
+    RegistryRevisionRange(#[source] std::num::TryFromIntError),
+    /// Typed registry state corruption is explicit; rows are never silently skipped.
+    #[error("stored workspace registry data is invalid")]
+    RegistryDecode(#[source] serde_json::Error),
     /// A stored value did not decode; the database was edited or corrupted.
     #[error("stored {column:?} of session {session} is invalid")]
     Corrupt {
@@ -276,10 +300,15 @@ impl StoreError {
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
+            | Self::RegistryMissing(_)
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
             Self::NotChild(_)
+            | Self::RegistryFull
+            | Self::RegistryInactive(_)
+            | Self::RegistryRecordTooLarge
+            | Self::RegistryConflict
             | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)
@@ -289,7 +318,10 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::Io { .. }
+            Self::RegistryRevisionRange(_)
+            | Self::RegistryRevisionExhausted
+            | Self::RegistryDecode(_)
+            | Self::Io { .. }
             | Self::NotPrivate { .. }
             | Self::Locked { .. }
             | Self::Random(_)

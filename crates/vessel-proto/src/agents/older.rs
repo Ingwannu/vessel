@@ -175,6 +175,12 @@ impl Reply {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
+            | Self::GetRegistry(_)
+            | Self::ListWorkspaces(_)
+            | Self::GetWorkspace(_)
+            | Self::RenameWorkspace(_)
+            | Self::PinWorkspace(_)
+            | Self::ReleaseWorkspaceAutomation(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)
@@ -191,6 +197,8 @@ impl Reply {
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
+            | Self::GitCompare(_)
+            | Self::GitCompareFile(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)
@@ -281,6 +289,7 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
+            | Self::Diagnostics(_)
             | Self::SearchMessages(_) => None,
         }
     }

@@ -224,3 +224,19 @@ All use validated test indexing after the unchanged two-entry assertion, and a
 checked request-id increment. No production code or test expectations change.
 The generated snapshot intentionally retains its generator's trailing spaces;
 Rust/docs whitespace checks are separate from that immutable generated artifact.
+
+## Announced gate50c base merge
+
+The worker merged announced9c150c6efbff583762d02e6a8576b3fa66cc7ae9 (all18
+steps0, Rust2549/0/12), preserving its canonical protocol/store definitions.
+The alias table merged cleanly: canonical9dfdf0a1 is present and the three own
+provider primitive classifications remain once each. No independent alias fix
+or protocol/schema assignment was made.
+
+Registration conflicts retain the head's complete method/forwardable/web set,
+then append the two provider read methods and their typed unsupported fake rows.
+The existing detach row remains once; subagents module and ProviderChildRef have
+one canonical registration. No ancestry/admission/store algorithm needed manual
+resolution. The head's generated proto.ts is retained byte-for-byte rather than
+hand-merging generated text; the new union requires its own generator snapshot
+and narrow checks before the final whole root gate.
