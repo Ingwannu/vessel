@@ -431,7 +431,7 @@ fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
         terminal,
         revision: TerminalAttentionRevision::new(1),
         activity: TerminalActivity::Working,
-        changed_at: chrono::DateTime::UNIX_EPOCH,
+        changed_at: DateTime::UNIX_EPOCH,
     };
     fake.snapshot.terminals = Some(vec![terminals::Row {
         terminal,
