@@ -166,15 +166,17 @@ changes or captures are required by this node-only package.
   receipt/follower calls. Their version, and all new settings/skills calls,
   remain MCP_PARITY=None; no protocol/schema number is chosen here.
 - Checked: protocol tests 289/0/0 (a694cda2), store tests 85/0/0 (ee3be73e),
-  repeated fmt/size/boundary checks. Strict Clippy and fleet/node/MCP execution
-  remain incomplete; failed and queued checks are recorded separately.
+  fleet library tests 32/0/0 (b4736cfab), node library tests 250/0/0
+  (2055feb36), repeated fmt/size/boundary checks. Strict Clippy and MCP
+  integration execution remain incomplete; failed and queued checks are
+  recorded separately.
 - Pending: TS generation, strict and functional checks on the final integrated
   head, full root gate once, V3 review and the numbered consumer handover.
 - Dependencies: W3's principal-bound agent creation receipts, N3's named launch
   bundles, W22's provider catalogue, W17's permitted agent host-directory view,
   and browser/voice producer readiness. No staged foreign contract is consumed.
-  The coordinator's next node head must be merged when announced; pending
-  method rows then belong at the end of its single rpc/table.rs.
+  Gate40 ba45a6e3 is merged; the nine pending method rows are at the end
+  of its single rpc/table.rs.
 
 ## Bundled asset decision
 
@@ -421,3 +423,17 @@ adapters now follow the existing ready-future RPC pattern; checked expiry
 refuses before allocating a receipt if the finite platform deadline cannot
 be represented. No lint suppression or assertion change is used. This is
 not yet a successful strict rerun or whole-package gate.
+
+
+The TypeScript alias registry follows its existing distinction: the
+node-minted PromptReceiptId is branded, while selected skill/tool names
+remain plain text validated at the Rust boundary. No protocol representation
+changes. The initial queued TS run predates this registry correction and is
+retained as an earlier-source result, not a final freshness check.
+
+Receipt regressions additionally distinguish a delegated origin from the
+delivering device, another origin, and a direct local agent, on both read
+and close. A manually polled long read proves cancellation returns the
+reader permit; paused-time expiry proves old reservations no longer consume
+the opener's admission budget. These tests do not claim a two-node runtime
+check while MCP_PARITY remains pending.

@@ -1,5 +1,5 @@
 //! Bundled orchestration skills: values only, with no access to agent homes.
-//! Mutation requests stay unregistered until the shared pending method table.
+//! Admin-only local requests use the shared pending table until MCP_PARITY is numbered.
 
 mod name;
 

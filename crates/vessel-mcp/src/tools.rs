@@ -1,26 +1,20 @@
-//! The tools, each one protocol call (or a call and a wait) through the
-//! agent's own principal. Arguments and results are JSON; sessions, events
-//! and nodes appear as the protocol describes them (PROTOCOL.md).
+//! Agent MCP schemas, argument decoding and typed node-call adapters.
 //!
 //! [Decision Log]
-//! - Other nodes (protocol 6, Track X): every tool but `list_nodes` takes
-//!   `node`, a node's id or its name in `list_nodes` (`fleet.nodes`); a
-//!   call for another node goes in `fleet.forward` (`NodeClient::call_on`),
-//!   and that node applies its own grant, ownership and limits to the
-//!   agent. Left out or naming this node, it is a call here. Names are
-//!   chosen by each node, so a name more than one node has (this one and
-//!   another included) is refused with the ids to choose from, never
-//!   guessed (the review of Track X, item 5; the home also refuses a
-//!   member named like another).
-//! - Waiting is a long poll, here and elsewhere alike: `wait_turn` (and a
-//!   new session's wait to be ready) is a loop of `session.read` with
-//!   `wait`, so one code path serves every node and nothing needs a
-//!   subscription across hops. A wait returns within one round trip of a
-//!   record landing; an empty page means nothing happened in that wait.
-//!   A node answers at once, empty, when too many reads already wait on
-//!   the connection or for this agent (protocol 6); the loop then pauses
-//!   [`EARLY_PAUSE`] before the next, so that is a poll a second, not a
-//!   busy loop.
+//! - The existing authenticated client and destination guard enforce grants
+//!   and session ownership; routing never supplies a second caller identity.
+//! - `machine` and the compatibility spelling `node` choose a fleet ID or
+//!   unique name. Conflicting selectors and selectors on local-only tools
+//!   are refused before mutation. Names that identify several nodes require
+//!   an explicit ID rather than a guessed destination.
+//! - A frozen exact-provider policy controls listing and direct invocation
+//!   through the shared ToolId. Browser identities delegate to their owner's
+//!   catalogue; availability still needs the browser producer's admission.
+//! - Session agents receive finish/permission/error notifications and do not
+//!   advertise a wait tool. Direct legacy `wait_turn` and readiness reads
+//!   retain bounded long polls for compatibility. Remote notifications follow
+//!   a principal-bound exact-turn receipt at the origin; they do not infer
+//!   a completed turn from the next event after a prompt was queued.
 
 mod args;
 mod automation;
