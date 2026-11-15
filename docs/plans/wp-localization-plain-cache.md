@@ -75,3 +75,27 @@ while sharing the same bounded cache algorithm with Usage and Schedules.
 The exact adapted tree still owes remote strict Clippy, native tests and the
 synthetic compiler regression before V4 review. Consumer package compilation
 and combined-line validation remain separate evidence.
+
+## Exact Shape validation
+
+The adapted source is `2407b6932`, six straight producer commits on
+`2b806402`. Run `i18n-narrow-20261115T160707Z-2407b693` completed all four
+selected steps (fonts, quality, strict native Clippy and native tests) with
+zero exit status and no skip. Independently summed raw results are 1465 passed,
+zero failed and two ignored: 1463 ordinary tests and two compile-fail doc tests.
+The named large-cache compiler regression executed successfully; View, Kit,
+Link and App actually recompiled. This is the adapted Shape tree's evidence,
+separate from the earlier checked-Contract run.
+
+The final three generator/test source files match the previously supplied
+Shape compatibility patch byte for byte. The dynamic argument emitter and
+registry helpers match the line baseline byte for byte. This packet contains
+no dependency, lock, catalog, runtime formatter, General or F6 validator change.
+
+This is a four-step producer suite, not a six-stage native whole/export. V4
+review and the lead's combined-line gate are still pending. Actual Usage and
+Schedules consumer package checks remain their owners' responsibility. No new
+UI capture, release-size measurement, browser/wasm/Windows execution or plugin
+validator approval is claimed. Source work and static checks ran as the
+repository owner; compilers and test subprocesses ran only in the build VM.
+No service permissions or live data were changed.
