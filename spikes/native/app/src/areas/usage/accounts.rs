@@ -31,7 +31,8 @@ pub(super) fn render(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .children(draw::read_status(state.inventory.phase(), shell, tokens));
+        .children(draw::read_status(state.inventory.phase(), shell, tokens))
+        .children(super::read_states::retry(shell, tokens, cx));
     if let Some(error) = state.policy_error {
         body = body.child(notice(
             error.message(shell.words),
@@ -58,7 +59,7 @@ pub(super) fn render(
     }
     if inventory.policy() == Some(ExternalLookup::Off) {
         return body
-            .child(message(text.lookup_off(), tokens))
+            .child(super::read_states::off(shell, tokens, cx))
             .into_any_element();
     }
     if inventory.accounts().is_empty() {

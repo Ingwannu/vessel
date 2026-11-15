@@ -137,7 +137,7 @@ impl Shell {
             return;
         }
         let state = &mut self.areas.usage;
-        if state.policy_pending.is_some() {
+        if state.policy_pending.is_some() || state.source_pending.is_some() {
             return;
         }
         let Some(machine) = &state.connection else {

@@ -9,7 +9,9 @@ use vessel_app_kit::{
         StatefulInteractiveElement as _, Styled as _, div, px,
     },
 };
-use vessel_app_view::usage::{Phase, source_failure, source_problem, source_view, timestamp};
+use vessel_app_view::usage::{
+    Phase, source_failure, source_login_errors, source_problem, source_view, timestamp,
+};
 use vessel_proto::{
     limits::ExternalLookup,
     usage_reports::{
@@ -37,7 +39,7 @@ pub(super) fn render(
         ));
     if reports.policy == ExternalLookup::Off {
         return body
-            .child(message(text.lookup_off(), tokens))
+            .child(super::read_states::off(shell, tokens, cx))
             .into_any_element();
     }
     let enabled = state.policy_pending.is_none()
@@ -133,8 +135,19 @@ fn card(
                 ))
                 .child(message(text.account_disclosure(), tokens)),
         );
-    if let Some(status) = &view.status {
-        body = body.child(message(status.clone(), tokens));
+    let login_errors = source_login_errors(&entry.state, shell.words);
+    if login_errors.is_empty() {
+        if let Some(status) = &view.status {
+            body = body.child(message(status.clone(), tokens));
+        }
+    } else {
+        for error in login_errors {
+            body = body.child(notice(
+                error,
+                vessel_app_kit::alert::Variant::Warning,
+                tokens,
+            ));
+        }
     }
     if view.retained {
         body = body.child(message(text.retained(), tokens));

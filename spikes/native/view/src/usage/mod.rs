@@ -41,9 +41,11 @@ pub use session::{SessionSelection, binding_epoch};
 mod quota;
 pub use quota::{quota_facts, reset_label, window_label};
 
+mod source_errors;
 mod source_summary;
 mod source_values;
 mod sources;
+pub use source_errors::source_login_errors;
 pub use source_values::{
     SourceWindowTiming, balance_percent, source_risk_label, source_window_timing,
 };
