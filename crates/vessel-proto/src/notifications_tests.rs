@@ -109,7 +109,7 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
                         .unwrap()
                         .contains("\"attention\"")
                 );
-                let _: ServerFrame = serde_json::from_value(json).unwrap();
+                let _decoded: ServerFrame = serde_json::from_value(json).unwrap();
             }
         }
     }
