@@ -112,11 +112,7 @@ impl NodeService {
                 .map(|entry| HistoryEntry {
                     in_vessel: known.get(&entry.session).copied(),
                     title: entry.title.as_deref().and_then(SessionTitle::from_prompt),
-                    updated_at: entry.updated_at.as_deref().and_then(|at| {
-                        chrono::DateTime::parse_from_rfc3339(at)
-                            .ok()
-                            .map(|at| at.to_utc())
-                    }),
+                    updated_at: entry.updated_at.and_then(history_time),
                     harness_session: entry.session,
                     cwd: entry.cwd,
                 })
@@ -158,4 +154,41 @@ impl NodeService {
 /// An `invalid_request` saying `why`.
 fn invalid(why: String) -> WireError {
     WireError::new(ErrorCode::InvalidRequest, why)
+}
+
+/// The node already owns calendar validation for the public history projection.
+fn history_time(at: vessel_agent::HistoryTimestamp) -> Option<chrono::DateTime<chrono::Utc>> {
+    match at {
+        vessel_agent::HistoryTimestamp::Rfc3339(text) => {
+            chrono::DateTime::parse_from_rfc3339(&text)
+                .ok()
+                .map(|at| at.to_utc())
+        }
+        vessel_agent::HistoryTimestamp::UnixSeconds(seconds) => {
+            chrono::DateTime::from_timestamp(seconds, 0)
+        }
+    }
+}
+
+#[cfg(test)]
+mod native_time_tests {
+    use super::history_time;
+    use vessel_agent::HistoryTimestamp;
+    #[test]
+    fn observed_epoch_is_valid_but_invalid_native_or_acp_dates_stay_unknown() {
+        assert_eq!(
+            history_time(HistoryTimestamp::UnixSeconds(0))
+                .unwrap()
+                .timestamp(),
+            0
+        );
+        assert!(history_time(HistoryTimestamp::UnixSeconds(i64::MAX)).is_none());
+        assert!(history_time(HistoryTimestamp::Rfc3339("invalid".into())).is_none());
+        assert_eq!(
+            history_time(HistoryTimestamp::Rfc3339("1970-01-01T00:00:00Z".into()))
+                .unwrap()
+                .timestamp(),
+            0
+        );
+    }
 }

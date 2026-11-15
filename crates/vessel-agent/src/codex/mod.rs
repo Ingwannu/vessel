@@ -5,7 +5,7 @@
 //! cancelled, Codex's approvals are permission requests and its questions
 //! are questions, and the session's mode decides what it asks. The node
 //! may select the driver from slice 2 (`vessel_harness::direct`). Listing
-//! is slice 4's.
+//! uses the same prompt-free transport as native catalogue discovery.
 //!
 //! Layout: `wire` reads and writes the JSON-RPC lines, `protocol` holds
 //! the messages as types (checked against `schema/app-server.json` by
@@ -24,9 +24,11 @@
 //!   own process, so a listing shapes its own command there).
 
 mod asks;
+mod history;
 mod mapper;
 mod mode;
 mod protocol;
+mod read_probe;
 mod session;
 mod wire;
 
@@ -89,22 +91,14 @@ pub(crate) async fn run(
     session::run(stdin, stdout, commands, outputs, setup).await;
 }
 
-/// One page of the agent's own conversations in `cwd` (all without), from
-/// `from`, within `limit`, as `crate::history::history` does for ACP. Not
-/// yet: `thread/list` is slice 4's, so this driver cannot list
-/// (`unsupported`), as an ACP agent without `session/list` cannot.
-///
+/// One page of native conversations, using prompt-free initialize/thread/list.
 /// # Errors
-/// [`HistoryError::CannotList`], until slice 4.
-#[expect(
-    clippy::unused_async,
-    reason = "slice 4's listing is async; this stands in for it until then"
-)]
+/// Spawn, timeout, unsupported listing or malformed bounded native metadata.
 pub(crate) async fn history(
-    _command: &CommandSpec,
-    _cwd: Option<&Path>,
-    _from: HistoryFrom,
-    _limit: Duration,
+    command: &CommandSpec,
+    cwd: Option<&Path>,
+    from: HistoryFrom,
+    limit: Duration,
 ) -> Result<HistoryPage, HistoryError> {
-    Err(HistoryError::CannotList)
+    history::list(command, cwd, from, limit).await
 }
