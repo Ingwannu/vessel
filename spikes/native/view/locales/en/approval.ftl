@@ -30,3 +30,8 @@ approval-allocation-changes = Service port allocation changes are shown below
 
 # An earlier admitted connection cannot authorize a later confirmation.
 approval-connection-changed = Refresh commands on the current connection before reviewing or approving them.
+
+# Settings approves the inspected digest and does not start a workflow.
+approval-grant-title = Approve this project's commands?
+# Unlike the start flow, this button only changes the exact digest's grant.
+approval-approve-only = Approve

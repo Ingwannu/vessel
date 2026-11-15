@@ -220,7 +220,7 @@ fn review(
     let panel_id = format!("settings-approval-{element_key}");
     let cancel = owner(card).cloned();
     let busy = model.writing.is_some() || model.reading.outstanding().is_some() || ticket.is_none();
-    approval::render(
+    approval::render_grant(
         shell,
         &Panel {
             id: &panel_id,

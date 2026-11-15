@@ -30,3 +30,8 @@ approval-allocation-changes = 서비스 포트 할당 변경 사항은 아래에
 
 # An earlier admitted connection cannot authorize a later confirmation.
 approval-connection-changed = 현재 연결에서 명령을 새로 읽은 뒤 검토하거나 승인하세요.
+
+# 설정 화면에서는 확인한 명령 집합을 승인하며 실행을 시작하지 않습니다.
+approval-grant-title = 이 프로젝트의 명령을 승인할까요?
+# 시작 흐름과 달리 확인한 digest의 승인만 변경하는 버튼입니다.
+approval-approve-only = 승인

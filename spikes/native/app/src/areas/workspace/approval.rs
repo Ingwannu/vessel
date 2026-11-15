@@ -9,8 +9,10 @@
 //! Every script of the set is drawn, in full: a set is never offered for
 //! approval with any of it out of view.
 
+mod display;
 mod ports;
 mod terminals;
+use display::{Displayed, displayed};
 
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
@@ -32,7 +34,7 @@ pub(super) type Action = Box<dyn Fn(&mut Shell, &mut Window, &mut Context<'_, Sh
 
 /// What a person can do from the panel.
 pub(super) struct Actions {
-    /// Approve and run.
+    /// Approve the inspected set; the calling workflow controls later execution.
     pub(super) approve: Action,
     /// Start without setup, where there is something to start.
     pub(super) skip: Option<Action>,
@@ -63,7 +65,7 @@ pub(super) fn local() -> Local {
     }
 }
 
-/// The panel.
+/// Approval inside a start workflow; successful approval continues that start.
 pub(super) fn render(
     shell: &Shell,
     panel: &Panel<'_>,
@@ -71,46 +73,58 @@ pub(super) fn render(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    render_for(shell, panel, actions, Purpose::Run, tokens, cx)
+}
+
+/// Settings grants this digest without starting its commands.
+pub(super) fn render_grant(
+    shell: &Shell,
+    panel: &Panel<'_>,
+    actions: Actions,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    render_for(shell, panel, actions, Purpose::Grant, tokens, cx)
+}
+
+#[derive(Clone, Copy)]
+enum Purpose {
+    Grant,
+    Run,
+}
+
+fn render_for(
+    shell: &Shell,
+    panel: &Panel<'_>,
+    actions: Actions,
+    purpose: Purpose,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     let Panel {
-        id,
+        id: _,
         asked,
         compared,
         place,
-        busy,
+        busy: _,
     } = *panel;
     let words = shell.words();
     let labels = words.labels();
-    let (setup, teardown, scripts, terminals, allocation) = match compared {
-        Compared::Changed {
-            setup,
-            teardown,
-            scripts,
-            terminals,
-            allocation,
-            ..
-        } => (
-            setup.clone(),
-            teardown.clone(),
-            scripts.clone(),
-            terminals.clone(),
-            allocation.clone(),
+    let Displayed {
+        setup,
+        teardown,
+        scripts,
+        terminals,
+        allocation,
+    } = displayed(asked, compared);
+    let (heading, approve_text) = match purpose {
+        Purpose::Grant => (
+            shell.words.approval().grant_title().to_owned(),
+            shell.words.approval().approve_only().to_owned(),
         ),
-        Compared::None => (
-            as_listed(asked.setup),
-            as_listed(asked.teardown),
-            asked
-                .scripts
-                .iter()
-                .map(|script| ScriptLine::Line {
-                    change: Change::Same,
-                    script: script.clone(),
-                })
-                .collect(),
-            vessel_app_view::workspace::terminal_changes::compare(asked.terminals, asked.terminals),
-            Box::new(vessel_app_view::workspace::allocation_changes::compare(
-                asked.service_ports,
-                asked.service_ports,
-            )),
+        Purpose::Run => (
+            labels.approval_title.to_owned(),
+            labels.approve_and_run.to_owned(),
         ),
     };
     let mut card = div()
@@ -122,7 +136,7 @@ pub(super) fn render(
         .border_1()
         .border_color(tokens.neutral.border)
         .bg(tokens.neutral.surface1)
-        .child(div().type_(Type::Title).child(labels.approval_title))
+        .child(div().type_(Type::Title).child(heading))
         .child(
             div()
                 .type_(Type::Body)
@@ -152,7 +166,7 @@ pub(super) fn render(
         };
         card = card.child(banner(message, true, None, tokens));
     }
-    let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
+    let buttons = buttons(panel, approval, actions, labels, &approve_text, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))
         .child(
             div()
@@ -165,14 +179,16 @@ pub(super) fn render(
 
 /// Cancel, start without setup (when offered), approve and run.
 fn buttons(
-    id: &str,
-    busy: bool,
+    panel: &Panel<'_>,
     approval: Result<(), ApprovalRefusal>,
     actions: Actions,
     labels: &'static Labels,
+    approve_text: &str,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let id = panel.id;
+    let busy = panel.busy;
     let Actions {
         approve,
         skip,
@@ -205,7 +221,7 @@ fn buttons(
     buttons = buttons.child(
         button(
             format!("{id}-approve"),
-            labels.approve_and_run,
+            approve_text.to_owned(),
             true,
             tokens,
         )

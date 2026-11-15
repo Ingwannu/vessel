@@ -395,3 +395,10 @@ and the panel timer is a separate lifecycle helper. This keeps strict function
 budgets without adding wrappers around approval scope or changing callback
 tickets, widget identities or final dispatch checks. Optional refresh targets
 are borrowed options; a retained/changed owner still refuses exactly as before.
+
+The legacy settings smoke exposed a misleading shared approval label: its
+callback only grants the inspected digest, while the start workflow continues
+execution. The shared renderer now has explicit grant/start entry points over
+one implementation, with complete EN/KO grant-only heading/button text. The
+start caller keeps its existing API and wording. No approval RPC or subsequent
+execution behavior changes; complete executable-field display/refusal is shared.
