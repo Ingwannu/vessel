@@ -499,3 +499,20 @@ SHA256SUMS entry; bridge.ts and calls.ts were unchanged. Evidence:
   remain unchanged. No new RPC, store, transport or dependency is introduced.
 - Impact: a standalone early shared slice can be reviewed independently; its
   consumer readiness still requires review. The full package is not yet gated.
+
+
+### Bounded structured-output staging
+
+Coordinator approved the single jsonschema Value edge, recorded in AGENTS.md and
+ADR0001. Reused RawJson and RawValue, pinned cached jsonschema 0.60.2 (MIT), with
+no default resolvers and offline compilation. All schema/response diagnostics
+are content-free. Added cfg(test) semantic validation, internal/external ref and
+size tests, raw/fenced response decoding, maxRetries2 orchestration and fake
+caller failure/no-retry checks. This is source staging only pending remote checks
+and W22's reviewed per-turn native contract; the product still refuses the flag
+before creating an agent. It is not runtime output-schema parity.
+
+Approved once-only local offline cargo metadata resolved 24 added packages;
+a parsed lock comparison preserves all 448 existing package identities/checksums,
+and every addition is in jsonschema's dependency closure. No compilation or lane
+was used. This does not constitute adapter test evidence.

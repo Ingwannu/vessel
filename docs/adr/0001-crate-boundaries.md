@@ -354,3 +354,30 @@ crate and its measurements. Node capture, restore/query and the native view must
 that one core; vessel-session retains only actor/channel/PTY ordering. Its provisional
 direct vt100 dependency must be removed at consumer integration, with no GPUI dependency
 introduced into the node and no second parser merged.
+
+
+### W17: fenced JSON Schema compiler edge (coordinator 2026-11-15)
+
+Paseo's CLI run.ts loadOutputSchema/fetchStructuredOutput and server
+agent-response-loop.ts validate responses semantically and retry at most twice.
+The existing RawJson asset validates JSON syntax but cannot interpret a schema.
+Hand-implementing JSON Schema would create an incompatible partial validator.
+The coordinator approved jsonschema **0.60.2**, exact cached release, MIT licence
+(recorded package Cargo.toml license and cache LICENSE). It is owned only by
+vessel-cli's structured_output/schema.rs adapter. Default features are disabled
+and options().offline() refuses external/file retrieval; internal refs remain.
+
+The compiler needs Value, so this one module has the documented lint allowance.
+There is no field traversal beyond the required root-object input gate, no Value
+in any API/domain/wire type, and no schema/response content in diagnostics. The
+public boundary uses RawJson with named 64 KiB schema and 1 MiB response limits.
+Validation errors are static categories to avoid exposing content. Markdown/raw
+response extraction uses the existing RawValue decoder, a 128-candidate scan cap,
+and no dynamic tree. Retry orchestration is generic over the real caller boundary
+and uses in-memory fakes while W22's schema transport remains unavailable.
+
+This is initially cfg(test) staging and a dev dependency, not a new callable
+command. Promoting it requires the reviewed W22 per-turn contract and full CLI
+regressions. Current pre-create refusal remains. No runtime schema, provider,
+network or file call is silently emulated. Byte/candidate limits and redacted
+errors are deliberate bounds beyond Paseo; no implicit remote refs are supported.

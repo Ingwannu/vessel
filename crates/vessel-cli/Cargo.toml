@@ -53,6 +53,10 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 [dev-dependencies]
+# Coordinator-approved fenced schema adapter is staged until W22 transport lands.
+# Disable all default remote/file resolvers; the adapter also selects offline().
+jsonschema = { version = "=0.60.2", default-features = false }
+
 # The load test (`tests/load`, `docs/PERFORMANCE.md`) is a browser tab of
 # `vessel ui`: its websocket and the mutual proof's HMAC. All four are
 # already in the workspace (vessel-web's own dependencies).

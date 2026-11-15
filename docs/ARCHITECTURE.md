@@ -88,6 +88,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 | `agent-client-protocol` | only `vessel-agent`, `vessel-testkit` | ACP types never leave the client (ADR 0003); the fake agent speaks it. |
 | `rusqlite` | only `vessel-store` | The event log's schema and its migrations have one owner. |
 | `snow` | only `vessel-secure` | The Noise handshake and the record layer (ADR 0009). |
+| `jsonschema` | only `vessel-cli` | Fenced offline JSON Schema edge in structured_output/schema.rs; staged dev dependency until W22 transport lands (ADR 0001). |
 | `vt100` | only `vessel-session` (provisional W17 adapter) | Measurement input for C2 ADR0095; the final shared screen owner is vessel-terminal-screen. |
 | `portable-pty` | only `vessel-pty` | Terminals behind one seam, with its Windows answers. |
 | `process-wrap` | only `vessel-proc` | Process groups and kill-on-close jobs in one place. |
@@ -101,6 +102,7 @@ set up a state through another crate's format, as `vessel-node`'s e2e
 
 | Name | Crate | May appear | Why |
 | --- | --- | --- | --- |
+| `jsonschema` | `vessel-cli` | only `src/parity/structured_output/schema.rs` | One approved offline JSON Schema compiler edge (ADR 0001). |
 | `vessel_proc` | `vessel-store` | only `src/lock/` | Delegate the generic lock query only; no spawn, signal, group or session cleanup. |
 
 ## Data flow

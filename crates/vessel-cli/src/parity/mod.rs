@@ -11,6 +11,8 @@ pub(crate) mod projects;
 pub(crate) mod prompt_input;
 pub(crate) mod schedule_output;
 mod terminals;
+#[cfg(test)]
+mod structured_output;
 
 use crate::{
     args::{

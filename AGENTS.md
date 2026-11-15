@@ -60,7 +60,14 @@ The goal is that the compiler, not a reviewer, catches mistakes.
 - **No untyped data in domain or wire types.** Forbidden: `serde_json::Value`,
   `Box<dyn Any>`/`downcast`, `HashMap<String, Value>`, `Vec<u8>` carrying
   structured data, and `String` fields that hold one of a known set of values.
-- **The one exception is opaque passthrough.** Payloads Vessel forwards but
+- **Approved CLI schema edge exception (W17, 2026-11-15 coordinator):**
+  `crates/vessel-cli/src/parity/structured_output/schema.rs` alone may use
+  `serde_json::Value` internally to call jsonschema 0.60.2. Only bounded RawJson
+  enters/leaves that adapter; no hand traversal, dynamic domain/wire types,
+  external/file retrieval, or schema/response logging. The module states its
+  lint allowance and named byte bounds. This is staged under cfg(test) until
+  W22's reviewed native schema transport lands; V3 reviews the boundary.
+- **The opaque passthrough exception:** Payloads Vessel forwards but
   never inspects (for example a tool's arbitrary input arguments) use the
   `RawJson` newtype from `vessel-proto` (a `Box<serde_json::value::RawValue>`):
   no parse into a tree, no field access. If code needs to branch on a field,
