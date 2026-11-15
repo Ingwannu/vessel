@@ -23,7 +23,10 @@ hyper = { workspace = true, features = ["client"] }
 hyper-util.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
-nix = { workspace = true, features = ["net"] }
+nix = { workspace = true, features = ["net", "user"] }
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

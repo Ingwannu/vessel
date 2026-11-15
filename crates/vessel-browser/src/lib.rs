@@ -16,6 +16,8 @@ mod network;
 mod page;
 #[cfg(test)]
 mod preparation;
+#[cfg(all(test, target_os = "linux"))]
+mod profile;
 #[cfg(test)]
 mod proxy;
 #[cfg(test)]

@@ -447,3 +447,22 @@ No operator/system permission or sandbox configuration changed. The engine stays
 NoEngine. The future initializer must own a short private runtime temp directory
 and cache/fontconfig0700 on every creation, and retain the profile until actual
 child/descendant cleanup is observed, including failed/aborted startup.
+
+
+## Staged Linux profile filesystem owner
+
+The initializer creates/validates a node-supplied absolute profile and short
+private runtime temp directory, plus home/config/cache and precreated fontconfig
+cache. It sets creation modes, refuses existing unsafe paths instead of chmod
+repair, rejects symlinks and writable non-sticky ancestors, and holds a regular
+private no-follow/no-hardlink lock file exclusively. A root-owned sticky temp
+ancestor is permitted; arbitrary writable group parents are not. This stricter
+ancestor policy can refuse custom data paths and is intentional; a diagnostic
+profile under shared /tmp/work does not independently qualify production storage.
+The temp-root byte ceiling has one named owner and leaves a conservative margin
+for Chrome149's Unix SingletonSocket suffix. Linux unit fixtures use their actual
+service UID, small private /tmp directories and real file locks/permissions; no
+browser is launched. The sync initializer must run under Preparation's finite
+actual-worker ownership. Its lock cannot be released/reused until the future
+supervisor has observed child/descendant cleanup. Windows ACL admission remains
+unimplemented/NoEngine; this module is test-staged on Linux only.
