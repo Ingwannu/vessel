@@ -218,7 +218,10 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
                 let _paint = window.draw(cx);
                 assert_eq!(
                     state.read(cx).selected_code_text().as_deref(),
-                    Some(expected)
+                    Some(expected),
+                    "source={source:?}, selected={:?}, source_range={:?}",
+                    state.read(cx).selected_text(),
+                    state.read(cx).selected_source_range(),
                 );
                 let focus = window.focused(cx).expect("code drag focuses TextView");
                 focus.dispatch_action(&gpui_base::input::Copy, window, cx);
