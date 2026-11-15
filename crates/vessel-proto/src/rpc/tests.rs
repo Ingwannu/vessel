@@ -56,7 +56,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install",
             "agent.install_output",
             "usage.lookup",
-            "node.set_settings"
+            "node.set_settings",
+            "terminal_profile.get",
+            "terminal_profile.set"
         ]
     );
     assert_eq!(
@@ -500,8 +502,6 @@ fn every_hop_of_the_envelope_has_its_own_scope() {
 /// group is in or out): changing it is a decision, so it is written out.
 const FORWARDABLE: &[&str] = &[
     "node.info",
-    "creation.observe",
-    "creation.subscribe",
     "harness.list",
     "session.list",
     "session.get",
@@ -636,6 +636,9 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "creation.observe",
+    "creation.subscribe",
+    "terminal_profile.list",
 ];
 
 #[test]

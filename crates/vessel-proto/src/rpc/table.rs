@@ -382,6 +382,12 @@ macro_rules! method_table {
             ObserveCreation / observe_creation / "creation.observe" [Read, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::creation::ObserveCreation => Option<$crate::creation::Snapshot>;
             /// Observe the next committed revision with a bounded, shared wait.
             SubscribeCreation / subscribe_creation / "creation.subscribe" [Read, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::creation::SubscribeCreation => Option<$crate::creation::Snapshot>;
+            /// Read safe terminal launch picker metadata.
+            ListTerminalProfiles / list_terminal_profiles / "terminal_profile.list" [Read, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::terminal_profiles::ListTerminalProfiles => Vec<$crate::terminal_profiles::ProfileSummary>;
+            /// Read full administrator-defined templates.
+            GetTerminalProfiles / get_terminal_profiles / "terminal_profile.get" [Admin, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::terminal_profiles::GetTerminalProfiles => $crate::terminal_profiles::ProfileSettings;
+            /// CAS-replace administrator-defined templates.
+            SetTerminalProfiles / set_terminal_profiles / "terminal_profile.set" [Admin, (pending $crate::creation::CREATION_PROTOCOL), unary]: $crate::terminal_profiles::SetTerminalProfiles => $crate::terminal_profiles::ProfileSettings;
         }
     };
 }

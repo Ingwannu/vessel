@@ -9,6 +9,7 @@ mod forge;
 mod inbox;
 mod push;
 mod search;
+mod terminal_profiles;
 mod usage;
 
 use std::path::Path;

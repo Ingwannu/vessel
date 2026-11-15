@@ -28,6 +28,11 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::TerminalProfiles { settings, done } => {
+            write_answer(transaction, done, |connection| {
+                crate::terminal_profiles::apply(connection, settings)
+            })
+        }
         Write::Creation { change, done } => {
             let applied = isolated(transaction, |connection| {
                 crate::creation::apply(connection, *change)

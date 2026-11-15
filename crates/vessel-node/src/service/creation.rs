@@ -5,7 +5,7 @@ use crate::{principal::Principal, waits::Waiter};
 use std::time::Duration;
 use vessel_proto::creation::{ObserveCreation, Snapshot, SubscribeCreation};
 use vessel_proto::{ErrorCode, WireError};
-use vessel_store::creation::Identity;
+use vessel_store::CreationIdentity as Identity;
 
 impl NodeService {
     pub(crate) async fn observe_creation(

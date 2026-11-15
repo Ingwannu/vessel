@@ -74,6 +74,7 @@ mod search;
 mod settings_file;
 mod side_context;
 mod store;
+mod terminal_profiles;
 mod token;
 mod usage;
 mod usage_lookup;

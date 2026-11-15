@@ -294,6 +294,9 @@ impl Reply {
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::GetAgentHistory(_)
+            | Self::ListTerminalProfiles(_)
+            | Self::GetTerminalProfiles(_)
+            | Self::SetTerminalProfiles(_)
             | Self::ObserveCreation(_)
             | Self::SubscribeCreation(_) => None,
         }

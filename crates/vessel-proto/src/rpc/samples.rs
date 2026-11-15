@@ -19,11 +19,14 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let definition =
         json!({"cadence":cadence,"target":{"kind":"session","session":id},"prompt":"sample"});
     let params = match method {
+        Method::SetTerminalProfiles => json!({"expected":0,"profiles":[]}),
         Method::ObserveCreation => json!({"kind":"workspace","key":"sample"}),
         Method::SubscribeCreation => {
             json!({"identity":{"kind":"workspace","key":"sample"},"after":null,"wait":0})
         }
-        Method::NodeInfo
+        Method::ListTerminalProfiles
+        | Method::GetTerminalProfiles
+        | Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions
         | Method::ListDevices

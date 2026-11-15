@@ -2,8 +2,14 @@
 //! This module validates and substitutes literal argv; it performs no I/O,
 //! program lookup, shell interpolation or process creation.
 
+mod settings;
 mod text;
 mod values;
+
+pub use settings::{
+    GetTerminalProfiles, ListTerminalProfiles, ProfileRevision, ProfileSettings, ProfileSummary,
+    PromptMode, SetTerminalProfiles,
+};
 
 pub use text::{Argument, Icon, Id, Name, Program, Prompt, TextKind};
 pub use values::{Profile, Profiles, Resolved};
@@ -18,10 +24,26 @@ pub const MAX_PROFILES: usize = 64;
 pub const MAX_ARGUMENTS: usize = 256;
 /// Maximum combined command and argument bytes in one launch.
 pub const MAX_COMMAND_BYTES: usize = 64 * 1024;
+/// Aggregate textual configuration bounds its JSON and picker response footprint.
+pub const MAX_PROFILE_SET_BYTES: usize = 1024 * 1024;
+/// Escaped JSON plus fixed per-row/argument keys stays below the RPC frame cap.
+pub const MAX_PROFILE_SETTINGS_BYTES: usize = 8 * 1024 * 1024;
 
 /// Invalid template data is refused before it can be persisted or executed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum ProfileError {
+    /// Aggregate settings cannot grow to the sum of every per-profile maximum.
+    #[error("terminal profile configuration is too large")]
+    SettingsTooLarge,
+    /// Another administrator changed the configuration after it was read.
+    #[error("terminal profile configuration changed")]
+    StaleRevision,
+    /// Never wrap or truncate a stored settings version.
+    #[error("terminal profile revision exhausted")]
+    RevisionExhausted,
+    /// A corrupt stored revision is not an absent/default configuration.
+    #[error("stored terminal profile revision is invalid")]
+    CorruptRevision,
     /// An identity, display name or program must contain non-whitespace text.
     #[error("terminal profile {0:?} cannot be empty")]
     Empty(TextKind),
@@ -55,3 +77,23 @@ pub enum ProfileError {
 
 #[cfg(test)]
 mod tests;
+
+impl ProfileError {
+    /// One mapping for settings validation, storage and the node boundary.
+    #[must_use]
+    pub const fn code(self) -> crate::ErrorCode {
+        match self {
+            Self::StaleRevision => crate::ErrorCode::Conflict,
+            Self::RevisionExhausted | Self::CorruptRevision => crate::ErrorCode::Internal,
+            Self::SettingsTooLarge
+            | Self::Empty(_)
+            | Self::Character(_)
+            | Self::TooLong { .. }
+            | Self::ReservedId
+            | Self::DuplicateId
+            | Self::TooManyProfiles
+            | Self::TooManyArguments
+            | Self::CommandTooLarge => crate::ErrorCode::InvalidRequest,
+        }
+    }
+}

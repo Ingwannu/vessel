@@ -98,7 +98,10 @@ const fn refused(method: Method) -> bool {
     match method {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
-        Method::ObserveCreation
+        Method::ListTerminalProfiles
+        | Method::GetTerminalProfiles
+        | Method::SetTerminalProfiles
+        | Method::ObserveCreation
         | Method::SubscribeCreation
         | Method::AddProject
         | Method::CloneProject

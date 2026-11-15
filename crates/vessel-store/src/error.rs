@@ -61,6 +61,12 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Validated profile mutation refusal, with one safe protocol mapping.
+    #[error(transparent)]
+    TerminalProfiles(#[from] vessel_proto::terminal_profiles::ProfileError),
+    /// Invalid persisted settings are never treated as absent/defaults.
+    #[error("stored terminal profile configuration is invalid")]
+    CorruptTerminalProfiles(#[source] serde_json::Error),
     /// A typed receipt conflict/refusal is distinct from a database failure.
     #[error(transparent)]
     Creation(#[from] vessel_proto::creation::CreationError),
@@ -272,6 +278,7 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             Self::Creation(error) => error.code(),
+            Self::TerminalProfiles(error) => error.code(),
             // A row without its file: removed under the node.
             Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
@@ -299,6 +306,7 @@ impl StoreError {
             | Self::Commit(_)
             | Self::Corrupt { .. }
             | Self::CorruptCreation(_)
+            | Self::CorruptTerminalProfiles(_)
             | Self::CorruptPush { .. }
             | Self::CorruptId { .. }
             | Self::CorruptDevice { .. }

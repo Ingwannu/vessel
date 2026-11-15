@@ -63,6 +63,11 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
+    /// Full bounded profile settings share the same atomic writer as receipts.
+    TerminalProfiles {
+        settings: vessel_proto::terminal_profiles::SetTerminalProfiles,
+        done: Done,
+    },
     /// Admission and CAS never bypass the existing serialized writer.
     Creation {
         change: Box<crate::creation::Write>,

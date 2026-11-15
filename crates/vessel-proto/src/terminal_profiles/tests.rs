@@ -150,3 +150,40 @@ fn aggregate_and_expanded_bounds_are_checked_and_debug_redacts_content() {
     assert!(!format!("{profile:?} {prompt:?}").contains("private-token"));
     assert_eq!(Profiles::new(Vec::new()).unwrap().entries(), &[]);
 }
+
+#[test]
+fn aggregate_settings_budget_bounds_escaped_json_and_revision_never_wraps() {
+    let mut profiles = Vec::new();
+    for index in 0..16 {
+        let args = vec![
+            Argument::parse("\u{1}".repeat(Argument::MAX_BYTES)).unwrap(),
+            Argument::parse("\u{1}".repeat(Argument::MAX_BYTES)).unwrap(),
+            Argument::parse("\u{1}".repeat(Argument::MAX_BYTES)).unwrap(),
+            Argument::parse("\u{1}".repeat(Argument::MAX_BYTES.saturating_sub("tool".len())))
+                .unwrap(),
+        ];
+        profiles.push(
+            Profile::new(
+                Id::parse(format!("p{index}")).unwrap(),
+                Name::parse("x").unwrap(),
+                Program::parse("tool").unwrap(),
+                args,
+                None,
+            )
+            .unwrap(),
+        );
+    }
+    assert!(matches!(
+        Profiles::new(profiles.clone()),
+        Err(ProfileError::SettingsTooLarge)
+    ));
+    let _removed = profiles.pop();
+    let within = Profiles::new(profiles).unwrap();
+    let encoded = serde_json::to_vec(&within).unwrap();
+    assert!(encoded.len() > MAX_PROFILE_SET_BYTES);
+    assert!(encoded.len() <= MAX_PROFILE_SETTINGS_BYTES);
+    assert_eq!(
+        ProfileRevision::new(u64::MAX).next(),
+        Err(ProfileError::RevisionExhausted)
+    );
+}

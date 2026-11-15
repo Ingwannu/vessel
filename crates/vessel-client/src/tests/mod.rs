@@ -424,6 +424,9 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        list_terminal_profiles: vessel_proto::terminal_profiles::ListTerminalProfiles => Vec<vessel_proto::terminal_profiles::ProfileSummary>;
+        get_terminal_profiles: vessel_proto::terminal_profiles::GetTerminalProfiles => vessel_proto::terminal_profiles::ProfileSettings;
+        set_terminal_profiles: vessel_proto::terminal_profiles::SetTerminalProfiles => vessel_proto::terminal_profiles::ProfileSettings;
         observe_creation: vessel_proto::creation::ObserveCreation => Option<vessel_proto::creation::Snapshot>;
         subscribe_creation: vessel_proto::creation::SubscribeCreation => Option<vessel_proto::creation::Snapshot>;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;

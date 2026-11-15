@@ -276,6 +276,9 @@ impl Reply {
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
             | Self::SearchMessages(_)
+            | Self::ListTerminalProfiles(_)
+            | Self::GetTerminalProfiles(_)
+            | Self::SetTerminalProfiles(_)
             | Self::ObserveCreation(_)
             | Self::SubscribeCreation(_) => None,
         }

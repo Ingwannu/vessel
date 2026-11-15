@@ -288,3 +288,23 @@ the same child/message id, retained capacity/growth accounting including owner
 metadata, old person-key migration and failed namespace decoding as corruption
 rather than an absent key. MCP consumes this one typed path only after source
 review and checks; it does not construct a second receipt pipeline.
+
+
+## Terminal profile settings persistence and scope
+
+Profiles use one bounded row in the existing protected SQLite store and the
+same serialized writer/savepoint, not a parallel settings file. Absence means
+the four reference defaults; an explicit empty list stays empty across restart.
+A distinct ProfileRevision provides CAS for full-list edits. Identical current
+settings do not increment it; stale edits cannot overwrite a newer list.
+Corrupt settings are refused and retained, including when an administrator
+tries to write, rather than silently resetting or exposing parse contents.
+
+The validated profile set has a named aggregate textual bound (1 MiB), and
+its serialized storage row has an 8 MiB limit below the RPC frame limit. This
+is an additional stated safety difference from Paseo's permissive settings.
+Read-scope terminal_profile.list returns only ids, names, icons and prompt mode;
+program/argv templates are absent. Admin get/set return the full configuration
+and stay node-local administration. All three calls refuse agents, including
+delegated agents, and remain pending under the sole creation protocol constant.
+The configuration does not itself launch a process or approve repository setup.

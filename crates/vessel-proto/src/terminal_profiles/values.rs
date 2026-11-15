@@ -6,8 +6,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    Argument, Icon, Id, MAX_ARGUMENTS, MAX_COMMAND_BYTES, MAX_PROFILES, Name, PROMPT_SENTINEL,
-    ProfileError, Program, Prompt, TextKind,
+    Argument, Icon, Id, MAX_ARGUMENTS, MAX_COMMAND_BYTES, MAX_PROFILE_SET_BYTES, MAX_PROFILES,
+    Name, PROMPT_SENTINEL, ProfileError, Program, Prompt, TextKind,
 };
 
 /// A validated administrator-defined terminal launch template.
@@ -224,6 +224,20 @@ impl Profiles {
     pub fn new(profiles: Vec<Profile>) -> Result<Self, ProfileError> {
         if profiles.len() > MAX_PROFILES {
             return Err(ProfileError::TooManyProfiles);
+        }
+        let bytes = profiles.iter().try_fold(0usize, |count, profile| {
+            [
+                profile.id.as_str().len(),
+                profile.name.as_str().len(),
+                profile.command.as_str().len(),
+                profile.icon.as_ref().map_or(0, |icon| icon.as_str().len()),
+            ]
+            .into_iter()
+            .chain(profile.args.iter().map(|arg| arg.as_str().len()))
+            .try_fold(count, usize::checked_add)
+        });
+        if bytes.is_none_or(|bytes| bytes > MAX_PROFILE_SET_BYTES) {
+            return Err(ProfileError::SettingsTooLarge);
         }
         let mut seen = HashSet::new();
         if profiles.iter().any(|profile| !seen.insert(profile.id())) {

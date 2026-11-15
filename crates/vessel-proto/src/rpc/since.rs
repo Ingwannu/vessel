@@ -265,6 +265,9 @@ impl Call {
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_)
+            | Self::ListTerminalProfiles(_)
+            | Self::GetTerminalProfiles(_)
+            | Self::SetTerminalProfiles(_)
             | Self::ObserveCreation(_)
             | Self::SubscribeCreation(_) => None,
         };
