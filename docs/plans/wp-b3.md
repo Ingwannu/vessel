@@ -1,8 +1,8 @@
 # Per-turn file checkpoints: implementation plan
 
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
-not a product/runtime pass. The node branch consumes Quality B `29eebb8b`
-and the shared `Request`/`UnexpectedReply` extraction `1c8d0b93`. The separate
+not a product/runtime pass. The node branch consumes the reviewed integration head `ba45a6e3` (Quality B)
+and the shared `Request`/`UnexpectedReply` extraction `1c8d0b93`; pending rows now live at the end of `rpc/table.rs`. The separate
 app branch consumes package bases `8d5513e4` and `6036eeb8`; no app feature is implemented yet.
 
 ## References and existing assets
@@ -102,3 +102,11 @@ classification and its one-line correction is isolated. Generated wire files
 retain the canonical generator's formatting; manual Rust sources pass whitespace
 checks independently. New node/app baseline integration follows the coordinator's
 announced `6c782cb6`, including the exact security e2e race fix `c5da5305`.
+
+Resume: merged the reviewed integration head and retained all five pending rows
+in its extracted canonical table. The generated handler receiver is retained
+by the unavailable service seam until real orchestration is ready. Latest
+scoped clippy exposed only that unused receiver; its correction is not yet
+verified. The separate TypeScript registry check reached its short-lane limit
+while compiling; it is not a passing result. Capture evidence, physical quota,
+production assembly and recovery remain the next implementation work.

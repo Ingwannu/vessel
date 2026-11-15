@@ -35,6 +35,10 @@ fn unavailable_for<T>(connection: &Connection) -> Ready<Result<T, WireError>> {
 }
 
 impl NodeService {
+    #[expect(
+        clippy::unused_self,
+        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
+    )]
     pub(crate) fn list_checkpoints(
         &self,
         _connection: &Connection,
@@ -42,6 +46,10 @@ impl NodeService {
     ) -> Ready<Result<CheckpointPage, WireError>> {
         ready(Err(unavailable()))
     }
+    #[expect(
+        clippy::unused_self,
+        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
+    )]
     pub(crate) fn preview_checkpoint(
         &self,
         connection: &Connection,
@@ -49,6 +57,10 @@ impl NodeService {
     ) -> Ready<Result<RestorePreview, WireError>> {
         unavailable_for(connection)
     }
+    #[expect(
+        clippy::unused_self,
+        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
+    )]
     pub(crate) fn read_checkpoint_changes(
         &self,
         connection: &Connection,
@@ -56,6 +68,10 @@ impl NodeService {
     ) -> Ready<Result<ChangePage, WireError>> {
         unavailable_for(connection)
     }
+    #[expect(
+        clippy::unused_self,
+        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
+    )]
     pub(crate) fn restore_checkpoint(
         &self,
         connection: &Connection,
@@ -63,6 +79,10 @@ impl NodeService {
     ) -> Ready<Result<RestoreOutcome, WireError>> {
         unavailable_for(connection)
     }
+    #[expect(
+        clippy::unused_self,
+        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
+    )]
     pub(crate) fn checkpoint_restore_status(
         &self,
         connection: &Connection,
