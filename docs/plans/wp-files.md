@@ -563,3 +563,21 @@ remain in construct.rs. field.rs shrinks its existing owned557 record to556
 composition, K's Windowed events and B2's submit-press additions remain separate
 unready producer work and are not copied here. No merged-head compilation or
 shared-control consumer approval is claimed; exact strict18 is older-source.
+
+## One shared IME registry
+
+Consumed only W22b's checked control source a67511993: the exact composition
+module and actual CodeEditor marked-text regression match its SHA manifest.
+That producer has four-crate all-target strict Clippy rc0 and same-source
+App112/0/2 plus Kit168/0/0, including the real Hangul/focus/commit case. These
+are producer receipts, not the current C5/FieldId union's checks or V4 approval.
+
+The old field weak registry is moved once to field/composition. C5's actual
+central line/multiline factories register there, including W4 identity callers;
+CodeEditor::new adds one editor registration. TextField::focused_composing
+still supplies the sole global-shortcut guard. No callback, subscription,
+composer_hooks, windowed notification or text engine is duplicated. Current
+boxed Plain submit and unchanged Identified dispatch remain intact. field.rs
+shrinks556→508; no size allowance rises. The older whole field root/ratchet
+patch was not copied. The exact new module/test blobs are preserved while
+constructor callsites are adapted to this worktree's already split factory.

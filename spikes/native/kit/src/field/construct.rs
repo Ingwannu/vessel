@@ -3,8 +3,8 @@
 //! shrinks; no input engine, Enter/IME rule or focus behavior is duplicated.
 use super::events::{Callbacks, Handlers, listen};
 use super::{
-    COMPOSER_LINES, FORM_LINES, FORM_MIN_LINES, InputState, Kind, Known, MultilineStyle, SendOn,
-    TextField, TextareaState, register,
+    COMPOSER_LINES, FORM_LINES, FORM_MIN_LINES, InputState, Kind, MultilineStyle, SendOn,
+    TextField, TextareaState, composition,
 };
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
@@ -54,7 +54,7 @@ pub(super) fn multiline<V: 'static>(
         window,
         cx,
     );
-    register(Known::Lines(state.downgrade()));
+    composition::lines(&state);
     TextField {
         kind: Kind::Lines(state, style),
         focused,
@@ -81,7 +81,7 @@ pub(super) fn line<V: 'static>(
         window,
         cx,
     );
-    register(Known::Line(state.downgrade()));
+    composition::line(&state);
     TextField {
         kind: Kind::Line(state),
         focused,

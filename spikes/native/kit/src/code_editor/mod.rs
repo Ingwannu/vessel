@@ -22,6 +22,8 @@
 //! - Cost: the engine's caret and selection drawing are its own (the
 //!   caret stops blinking while motion is held, the engine's own rule).
 
+#[cfg(test)]
+mod composition_tests;
 mod find;
 mod navigation;
 mod syntax;
@@ -98,6 +100,7 @@ impl CodeEditor {
             state.set_value(text, window, cx);
             state
         });
+        crate::field::composition::editor(&state);
         cx.subscribe_in(
             &state,
             window,
