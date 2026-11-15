@@ -133,12 +133,12 @@ parity is explicitly unavailable.
 ## Remaining work and deliberate differences
 
 - W12's coordinated product resource cutover, W3 scoped field/mode getters and W6 Workspace-keyed card/intake must be consumed without Workspace-to-New or cwd authority fallback. W3 confirms Chat→Chat and BlankTerminal/Profile→Terminal, including readonly resolved profiles.
-- Terminal mode/font and preserve-and-lock values exist; their new workspace hosts are not fully wired.
+- Terminal mode/font and preserve-and-lock values exist; their new workspace hosts are not fully wired. W3's exact field and mode getters do not grant send readiness: its private workspace ingress retains input and returns Unsupported while scope/config/driver admission is unavailable. Workspace fullscreen Send stays disabled until one exact-key owner wrapper exposes Busy/Unavailable and reads that same field; no synthetic Enter, New fallback or second CreationState/config cache is added.
 - W3 confirms no checked authorized DraftCommandConfig root/config snapshot. The draft RPC stays gatedNone; no agent is started just to fabricate a catalog.
 - The real protocol still masks command metadata under COMPOSER_COMMANDS=None. Native metadata is node-side staged source; actual current-run W22 offers and W23 acceptance must both be checked before advertisement. Persisted command reports/cache never authorize native execution.
 - W23 owns keyed SubmitPrompt/CommandAccepted and atomic SteerOrInterrupt. No new UI read-then-act fallback or separate command queue is added. Vessel's existing queue remains node-owned/durable, unlike Paseo's client queue.
 - Modified-Enter metadata exists; actual alternate-send/keyed-delivery integration remains pending. Fullscreen collapse must also cover all shared submit entry points, not only its own button/client guard.
-- Plugin descriptors/invocation await W16; shortcut/command-center dispatch and source contributions await W22b. No second listener/palette is installed.
+- Plugin descriptors/invocation await W16; shortcut/command-center dispatch and source contributions await W22b. Canonical FocusComposer must stand down until the checked admitted-target adapter exists; inherited Route-based global focus is not its fallback. Local modal focus restoration requires its actual rendered input owner. The legacy helper remains in the unconverted shortcut source. No second listener/palette is installed.
 - Timeline's one Markdown host hook, authorized file/image acquisition and context-only fullscreen sending await their checked consumers.
 - B3 dictation waits for node wiring and W19's one CapturePurpose lease; no second capture engine is added.
 
