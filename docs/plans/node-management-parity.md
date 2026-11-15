@@ -92,6 +92,11 @@ slice order. The docs commit adds both and no command.
 
 ### Configuration work since this base
 
+- The designated node head now includes service observations, the call
+  preflight and plugin value prerequisites. The config package keeps its two
+  methods unassigned; the iterator lint fix is ready for the next narrow check.
+  Generated TypeScript and runtime evidence are still pending.
+
 - The combined narrow check reached a duplicate must_use attribute on the
   validated-key iterator. Remove only that redundant attribute; the iterator
   trait remains must_use. The initial VM-restart cancellation is separate

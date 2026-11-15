@@ -1106,5 +1106,3 @@ The tests owe strict byte boundaries, unknown/nested/null input, safe Display/
 Debug/source chains, per-key version admission, live CLI output and persisted
 mutation. Existing settings cases remain unchanged. Real agents, remote service
 accounts and loaded service managers are outside these config fixtures.
-
-
