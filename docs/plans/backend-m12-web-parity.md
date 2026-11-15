@@ -778,3 +778,20 @@ subsequently expanded capture matrix and exhaustive DOM decision branch
 are checked again by the pending bundle's typecheck and the whole gate.
 Format, size, boundary and diff checks passed. Full web lint/build is
 queued; no actual-node or rendered follow-up success is claimed yet.
+
+
+The narrow full web lint caught two new static errors before the whole
+queue: a geometry read discarded with a needless void operator and an
+exported follower missing its explicit return type. The follower now has
+a named interface. The actual-page fixture returns its measured geometry
+and asserts a positive, shortened viewport with a pre-delivery gap beyond
+the shared near-end threshold, making its controlled ordering meaningful.
+The original phone assertion and deadline remain unchanged.
+
+
+After those static corrections, all 434 frontend units, the complete page
+and script typecheck, full web lint (including 132 font stacks) and the
+production bundle pass on the final correction tree. The bundle typecheck
+covers the final ten-image capture matrix and the explicit DOM decision
+interface. No actual-node browser/capture or whole-gate success is inferred
+from these narrow checks; the next run freezes both corrections together.

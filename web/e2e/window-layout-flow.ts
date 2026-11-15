@@ -2,6 +2,7 @@
 // on an actual question dock; no timers or changes to the original case.
 import { expect, type Page } from "@playwright/test";
 
+import { NEAR_END } from "../src/data/follow-end";
 import { timeline } from "./kit";
 
 const NARROW_WIDTH = 390;
@@ -22,8 +23,9 @@ export async function expectWaitingAboveDock(page: Page): Promise<void> {
 }
 
 export async function resizeBeforeDelivery(page: Page): Promise<void> {
-  await page.locator(".timeline").evaluate(
+  const geometry = await page.locator(".timeline").evaluate(
     (element, size) => {
+      const before = element.clientHeight;
       const main = element.closest(".session-main");
       const dock = main?.querySelector(".session-dock");
       if (!(main instanceof HTMLElement) || !(dock instanceof HTMLElement))
@@ -32,11 +34,16 @@ export async function resizeBeforeDelivery(page: Page): Promise<void> {
       dock.style.height = `${String(size.dock)}px`;
       // Reading geometry commits layout synchronously; scroll can already
       // be queued while the browser has not delivered its resize observer.
-      void element.clientHeight;
+      const height = element.clientHeight;
+      const gap = element.scrollHeight - element.scrollTop - height;
       element.dispatchEvent(new Event("scroll"));
+      return { before, height, gap };
     },
     { width: NARROW_WIDTH, dock: DOCK_HEIGHT },
   );
+  expect(geometry.height).toBeGreaterThan(0);
+  expect(geometry.height).toBeLessThan(geometry.before);
+  expect(geometry.gap).toBeGreaterThan(NEAR_END);
 }
 
 export async function leaveEndThenResize(page: Page): Promise<void> {

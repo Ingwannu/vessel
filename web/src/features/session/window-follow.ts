@@ -12,8 +12,14 @@ function view(element: HTMLElement): EndView {
   };
 }
 
+/** The two delivery points that share one end-following snapshot. */
+export interface EndFollower {
+  scrolled: () => void;
+  settle: () => void;
+}
+
 /** Preserve end intent across layout with the existing near-end reading rule. */
-export function followEnd(element: HTMLElement, reading: Reading) {
+export function followEnd(element: HTMLElement, reading: Reading): EndFollower {
   let before = view(element);
   const changed = (source: "scroll" | "layout") => {
     const after = view(element);
