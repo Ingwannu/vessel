@@ -25,6 +25,8 @@ pub struct Machine {
     pub node: Option<NodeInfo>,
     /// The negotiated protocol, if connected.
     pub protocol: Option<ProtocolVersion>,
+    /// Every route to it, in the order they are tried; endpoints only.
+    pub routes: Vec<vessel_app_view::connections::Route>,
 }
 
 /// What the Machines screen asks.

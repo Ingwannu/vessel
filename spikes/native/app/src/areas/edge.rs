@@ -65,12 +65,21 @@ impl PanelEdge {
 impl Panel {
     /// The width drawn in `room` points (see `Limits::width`).
     pub(crate) fn width(self, shell: &Shell, room: f32) -> f32 {
-        let edge = (self.edge)(shell);
-        let asked = edge
+        self.limits.width(self.asked(shell), room)
+    }
+
+    /// The width drawn in `room` points leaving `beside` to the rest (see
+    /// `Limits::width_leaving`).
+    pub(crate) fn width_leaving(self, shell: &Shell, room: f32, beside: f32) -> f32 {
+        self.limits.width_leaving(self.asked(shell), room, beside)
+    }
+
+    /// The width asked for: being dragged, else kept.
+    pub(crate) fn asked(self, shell: &Shell) -> Option<f32> {
+        (self.edge)(shell)
             .dragged
             .get()
-            .or_else(|| (self.kept)(shell).map(f32::from));
-        self.limits.width(asked, room)
+            .or_else(|| (self.kept)(shell).map(f32::from))
     }
 
     /// Keep `width` in the layout and save the preferences.

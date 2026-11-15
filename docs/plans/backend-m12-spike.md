@@ -600,6 +600,68 @@ right, are resized by dragging their inner edge, after Paseo's
 - Below the phone's width the sidebar is a sheet and the code panel the
   whole screen, as before: no handle.
 
+### A narrow window with both panels (0.0.0.0.17)
+
+The 0.0.0.0.16 smoke test: at 800 × 600 with the code panel open, the
+sidebar at its default 264 left the conversation about 190 points, and
+dragged to 360 about 110 (one character a line, the composer unusable).
+Each panel kept its own least (sidebar 200, code panel 320) and was sized
+alone: the sidebar against the window less 400, the code panel against
+its row less 480, so together they took more than the window held.
+
+What Paseo does (`packages/app/src`):
+
+- `components/desktop-sidebar-layout.ts`: the sidebar is drawn beside
+  the content only when `viewportWidth - sidebarWidth >=
+  contentMinimumWidth` (`canDesktopAppSidebarShare`), and the content's
+  minimum is `EXPLORER_WORKSPACE_MIN_WIDTH` while the explorer is open
+  (`resolveDesktopAppContentMinimum`); a panel is never wider than
+  `viewportWidth - MIN_DESKTOP_CENTER_WIDTH` (400).
+- `components/explorer-sidebar-layout.ts`: the explorer is kept between
+  240 and `containerWidth - MIN_WORKSPACE_BODY_WIDTH` (360), and
+  `EXPLORER_WORKSPACE_MIN_WIDTH = MIN_EXPLORER_SIDEBAR_WIDTH +
+  MIN_WORKSPACE_BODY_WIDTH`.
+- `screens/workspace/workspace-screen.tsx:3635`: `presentation={isMobile
+  ? "overlay" : "dock"}`: on the compact layout the explorer is drawn
+  over the workspace (`MobilePanelOverlay`), not beside it.
+
+The change:
+
+1. The panels give way before the conversation does: the sidebar's room
+   counts the code panel's least when the panel is beside the
+   conversation (what lies beside the sidebar is then the panel's least
+   and the conversation's), so the sidebar shrinks to its least before
+   the conversation goes under 480; the code panel is then held to its
+   row less 480, as today.
+2. Under the width where the panel's least and the conversation's least
+   no longer fit in the row beside the sidebar at its least, the code
+   panel is drawn over the conversation at the right (its stored width,
+   held to the row), not beside it, as Paseo's explorer on its compact
+   layout; the conversation keeps the whole row under it.
+3. Stored widths are not rewritten: they apply again when the window
+   grows.
+
+Done in `e60165f3` (`view::panels::code_placement`, `sidebar_leaves`,
+`over_width`, `Limits::width_leaving`; the sidebar's frame and the code
+panel's frame in the app). Evidence: the rule's unit test
+(`a_narrow_window_keeps_the_conversation_s_least`, with the smoke test's
+numbers) and captures with both panels stored at their widest (sidebar
+600, code panel 1600), both themes:
+
+- 800 × 600: the panel over the conversation, the sidebar down to 308
+  (before: the conversation about 70 points wide between them).
+- 1024 × 700: both beside the conversation, the sidebar at 212, the
+  conversation at its 480, the panel at its least 320.
+
+Over the conversation (0.0.0.0.18, the coordinator's note on the 800 ×
+600 capture: nothing said a conversation was underneath): Paseo's compact
+panel has no title or back button of its own; it dims what it covers
+(`mobile-panels/presentation.tsx`: a backdrop at black 50 %) and a press
+on that backdrop returns to the agent (`onPress={showMobileAgent}`). The
+same here: the conversation under the panel is dimmed and a press on it
+closes the panel. A panel stored as wide as the row covers it all, as
+Paseo's full-width panel does; its close button is then the way back.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

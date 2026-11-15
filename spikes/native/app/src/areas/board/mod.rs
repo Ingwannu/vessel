@@ -120,8 +120,9 @@ impl BoardArea {
 }
 
 impl Shell {
-    /// Show one machine's sessions, or every machine's.
-    fn scope_board(&mut self, scope: Option<String>, cx: &mut Context<'_, Self>) {
+    /// Show one machine's sessions, or every machine's (the board's own
+    /// strip, and the sidebar's "N more" under a machine).
+    pub(crate) fn scope_board(&mut self, scope: Option<String>, cx: &mut Context<'_, Self>) {
         self.areas.board.scope = scope;
         cx.notify();
     }

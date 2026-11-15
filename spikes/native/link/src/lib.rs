@@ -44,6 +44,7 @@ pub mod agents;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod node_settings;
 pub mod search;
 pub mod sync;
 #[cfg(target_arch = "wasm32")]
@@ -60,7 +61,7 @@ use chrono::Utc;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::{Agent, Machine, Reach};
+use vessel_app_view::{Agent, Machine, NodeVersion, Reach};
 use vessel_app_view::{Card, Fleet};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
@@ -220,6 +221,8 @@ pub enum Command {
         /// The device operation.
         ask: devices::Ask,
     },
+    /// Read or change a machine's own settings.
+    NodeSettings(node_settings::Ask),
     /// Read-only sharing status for one selected machine.
     Sync {
         /// Its parsed node-book identity.
@@ -371,6 +374,8 @@ pub enum Event {
     Devices(devices::Answer),
     /// Safe, correlated sharing status.
     Sync(sync::Answer),
+    /// A machine's settings in force, after a read or a change.
+    NodeSettings(node_settings::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.
@@ -627,6 +632,7 @@ impl State {
 
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
+            Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
                 machine,
                 ticket,
@@ -753,6 +759,7 @@ impl State {
                                 .collect(),
                             agents: connected.agents.clone(),
                             protocol: Some(connected.client.protocol()),
+                            version: Some(NodeVersion::new(&connected.client.node().version)),
                             name: name.clone(),
                             reach: Reach::Online,
                         };
@@ -762,10 +769,10 @@ impl State {
                     Err(error) => {
                         // A dropped connection: dial again next time.
                         let _gone = self.clients.remove(&name);
-                        unreachable(name, &error.to_string())
+                        Machine::unreachable(name, &error.to_string())
                     }
                 },
-                Err(error) => unreachable(name, &error.to_string()),
+                Err(error) => Machine::unreachable(name, &error.to_string()),
             };
             machines.push(machine);
         }
@@ -1040,17 +1047,6 @@ impl State {
             ))
             .await;
         }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn unreachable(name: String, why: &str) -> Machine {
-    Machine {
-        name,
-        reach: Reach::Unreachable(why.to_owned()),
-        sessions: Vec::new(),
-        agents: Vec::new(),
-        protocol: None,
     }
 }
 

@@ -195,6 +195,7 @@ fn deals_rows_into_lanes_the_waiting_first_then_the_most_recent() {
             sessions,
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -315,6 +316,7 @@ fn reads_a_machines_protocol_only_while_it_is_connected() {
         sessions: Vec::new(),
         agents: Vec::new(),
         protocol,
+        version: None,
     };
     let fleet = Fleet {
         machines: vec![
@@ -340,6 +342,7 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
             sessions: vec![listed, other.clone()],
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -380,6 +383,7 @@ fn a_fork_is_listed_on_its_machine_at_once_and_only_once() {
             sessions: vec![listed.clone()],
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };

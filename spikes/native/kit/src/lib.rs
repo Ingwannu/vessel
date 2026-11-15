@@ -32,6 +32,7 @@ pub mod card_button;
 pub mod chat_markdown;
 pub mod chrome;
 pub mod code;
+pub mod code_editor;
 pub mod command;
 pub mod copy;
 pub mod dialog;
@@ -40,6 +41,7 @@ pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
+pub mod host_rename;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -66,7 +68,7 @@ pub mod virtual_list;
 mod widgets;
 pub mod window_glyph;
 
-use gpui::{App, AppContext as _, Global, Window, WindowAppearance};
+use gpui::{App, AppContext as _, Global, IntoElement as _, Styled as _, Window, WindowAppearance};
 
 pub use assets::Assets;
 pub use card_button::{CardLook, CardState, card_button};
@@ -76,6 +78,7 @@ pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{SendOn, TextField, composer_card};
 pub use fonts::Type;
+pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
@@ -127,6 +130,17 @@ pub enum SchemeChoice {
     System,
     /// Always this one.
     Fixed(Scheme),
+}
+
+/// `view` filling its parent's box, its last frame reused until its own
+/// entity is notified (GPUI's cached view; the app's `region.rs` says why).
+/// A cached view is not measured from its content: its parent gives it
+/// its size.
+#[must_use]
+pub fn cached_view<V: gpui::Render>(view: &gpui::Entity<V>) -> gpui::AnyElement {
+    view.clone()
+        .cached(gpui::StyleRefinement::default().size_full())
+        .into_any_element()
 }
 
 /// The tokens in use.

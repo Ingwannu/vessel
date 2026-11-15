@@ -151,9 +151,7 @@ impl WorkspaceWords for En {
                     .to_owned()
             }
             BranchNameProblem::TrailingDot => "A branch name cannot end with a dot.".to_owned(),
-            BranchNameProblem::DotPart => {
-                "No part of a branch name can start with a dot.".to_owned()
-            }
+            BranchNameProblem::DotPart => "No part of a branch name can start with a dot.".into(),
             BranchNameProblem::LockPart => {
                 "No part of a branch name can end with \u{201c}.lock\u{201d}.".to_owned()
             }
@@ -611,9 +609,7 @@ impl WorkspaceWords for En {
     fn removed(&self, branch: &str, snapshot: Option<&str>) -> String {
         match snapshot {
             None => format!("Removed {branch}"),
-            Some(commit) => {
-                format!("Removed {branch}; its work is kept in snapshot {commit}")
-            }
+            Some(commit) => format!("Removed {branch}; its work is kept in snapshot {commit}"),
         }
     }
 
@@ -673,6 +669,10 @@ impl WorkspaceWords for En {
         } else {
             format!("Add lines {first}\u{2013}{last} to chat")
         }
+    }
+
+    fn editor_lines(&self, count: usize) -> String {
+        counted_len(count, "line", "lines")
     }
 
     fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {

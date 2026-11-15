@@ -15,7 +15,7 @@ use vessel_app_link::agents::Ask;
 use vessel_app_view::agent_status::{pages::Inventory, readiness};
 use vessel_proto::{
     HarnessRef,
-    agents::{AgentDetail, InstallAgent, InstallPart},
+    agents::{AgentDetail, InstallAgent, InstallOffer, InstallPart},
 };
 
 pub(super) fn render(
@@ -206,15 +206,20 @@ fn installers(
         .flex_col()
         .gap(px(spacing::S3));
     for (index, offer) in offers.into_iter().enumerate() {
+        // Every field named, no `..`: the person approves what this shows,
+        // so a field the node adds must break the build until the screen
+        // shows it or refuses the offer (README, "Rules every screen
+        // follows").
+        let InstallOffer { part, command } = offer;
         let Some(kind) = agent.known() else {
             continue;
         };
         let scope = shell.areas.settings.agents.machine.clone();
         let install = InstallAgent {
             agent: kind,
-            part: offer.part,
+            part: *part,
         };
-        let label = match offer.part {
+        let label = match part {
             InstallPart::Harness => words.install,
             InstallPart::Adapter => words.install_adapter,
         };
@@ -222,7 +227,7 @@ fn installers(
             .child(note(words.install_warning(), tokens))
             .child(widgets::command_box(
                 format!("install-command-{index}"),
-                &offer.command,
+                command,
                 tokens,
                 window,
                 cx,

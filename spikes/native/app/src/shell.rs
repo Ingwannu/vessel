@@ -208,6 +208,7 @@ impl Shell {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
+            Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Fleet(fleet) => {
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
@@ -388,11 +389,11 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let started = crate::region::begin(self, cx);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_devices(window);
-        self.settle_sync(window);
+        self.settle_settings(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and
@@ -411,7 +412,7 @@ impl Render for Shell {
             vessel_app_kit::sheet(
                 "sidebar-sheet",
                 vessel_app_kit::Edge::Left,
-                areas::sidebar::render(self, &tokens, true, cx).into_any_element(),
+                areas::sidebar::render(self, &tokens, true, window, cx).into_any_element(),
                 &tokens,
                 cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
             )
@@ -438,7 +439,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone && self.sidebar_shown(), |row| {
-                        row.child(routes::sidebar(self.route, self, &tokens, window, cx))
+                        row.child(routes::sidebar(self, &tokens, window, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width
@@ -488,7 +489,8 @@ impl Render for Shell {
                     .children(sheet),
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::palette::render(self, &tokens, window, cx));
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

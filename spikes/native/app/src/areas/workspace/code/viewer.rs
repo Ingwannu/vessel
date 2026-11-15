@@ -16,14 +16,22 @@ use super::frame::note;
 use super::{Shown, Viewer};
 use crate::shell::Shell;
 
-/// The file shown: Back and its path, then its lines.
+/// The file shown: Back and its path, then its lines, or the editor when
+/// it is edited in place.
 pub(super) fn viewer_element(
     shell: &Shell,
     viewer: &Viewer,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    if let Some(editing) = &viewer.edit
+        && (editing.stale || (editing.editor.is_none() && editing.model.version().is_some()))
+    {
+        // The control is made, or a reload's text put in it, on the next
+        // frame: an answer brings no window.
+        cx.defer_in(window, Shell::editor_frame);
+    }
     let neutral = tokens.neutral;
     let labels = shell.words().labels();
     let hover = neutral.surface2;
@@ -52,10 +60,7 @@ pub(super) fn viewer_element(
                 .text_color(neutral.foreground_muted)
                 .child(glyph(Glyph::ChevronLeft, 14.0, neutral.foreground_muted))
                 .child(labels.back)
-                .on_click(cx.listener(|this, _event, _window, cx| {
-                    this.areas.workspace.code.files.viewer = None;
-                    cx.notify();
-                })),
+                .on_click(cx.listener(|this, _event, _window, cx| this.leave_file(cx))),
         )
         .child(
             div()
@@ -78,7 +83,35 @@ pub(super) fn viewer_element(
                 this.add_lines_to_chat(window, cx);
             }))
         }));
-    let body: AnyElement = match &viewer.text {
+    let body: AnyElement = if let Some(editing) = &viewer.edit {
+        super::editing_view::body(shell, editing, tokens, cx)
+    } else {
+        read_only_body(shell, viewer, tokens, cx)
+    };
+    let narrow = vessel_app_kit::breakpoint::phone(window);
+    div()
+        .flex_1()
+        .min_h(px(0.0))
+        .flex()
+        .flex_col()
+        .child(head)
+        .child(div().flex_1().min_h(px(0.0)).child(body))
+        .children(super::editing_view::reload_dialog(
+            shell, tokens, window, narrow, cx,
+        ))
+        .into_any_element()
+}
+
+/// The lines of a file shown read-only (a phone's width, a binary, more
+/// than the editable size).
+fn read_only_body(
+    shell: &Shell,
+    viewer: &Viewer,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let labels = shell.words().labels();
+    match &viewer.text {
         Shown::Loading => note(labels.loading, tokens).into_any_element(),
         Shown::Binary => note(labels.binary_file, tokens).into_any_element(),
         Shown::Failed(why) => failed(labels.read_failed, why, 16.0, tokens).into_any_element(),
@@ -91,15 +124,7 @@ pub(super) fn viewer_element(
                 }),
             )
             .into_any_element(),
-    };
-    div()
-        .flex_1()
-        .min_h(px(0.0))
-        .flex()
-        .flex_col()
-        .child(head)
-        .child(div().flex_1().min_h(px(0.0)).child(body))
-        .into_any_element()
+    }
 }
 
 /// Line `index` of the file shown: its number, its text coloured.

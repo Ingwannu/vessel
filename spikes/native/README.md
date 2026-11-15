@@ -176,6 +176,9 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+Overview and Connections share one read of the machine book
+(`settings/book.rs`, asked while either is shown); a route reaches the
+screen as its endpoint only (`view::connections`).
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
@@ -300,6 +303,10 @@ The shared spring follows the installed Reanimated helper (including its
 64 ms delayed-frame cap); its numeric fixtures were sampled from that
 helper.
 
+`kit::settings::row_titled` is `row_at` with the caller's title element
+(a title with Paseo's `SettingsInfoTip` beside it); `row_at` builds its
+text title and delegates to the same private body.
+
 `kit::settings::section_with_trailing` is the shared section head with an
 optional trailing action (Paseo’s `SettingsSection`); `section` delegates
 with no action. Areas supply the action’s state and tooltip, rather than
@@ -412,6 +419,12 @@ Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
 
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
+static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
+its caller owns the callback and pending state, with no extra paint. Unlike
+Paseo's it has no accessible name (the kit has no accessibility tree yet).
+
 ### Rules every screen follows
 
 `kit::theme::spacing` contains Paseo's complete spacing scale, with its
@@ -454,14 +467,22 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
 - A struct pattern over a protocol type (`vessel_proto`) ends with `..`,
   so a field a newer node adds does not break the app (old and new peers
   are both accepted). The exception is a type that carries what a person
-  approves or agrees to (today `ProjectCommands::Listed` in
-  `Listed::of`, and the worktree's `NeedsApproval` that carries it): its
-  pattern names every field on purpose, with a comment saying so, so
-  that a new field breaks the build until the screen shows it or refuses
-  it by type. Ignoring it would let a person approve something the
-  screen never showed. A permission request and an install offer are
-  read by field access, which no added field breaks; giving them the
-  same guard is an open item.
+  approves or agrees to (`ProjectCommands::Listed` in `Listed::of` and
+  the worktree's `NeedsApproval` that carries it; the permission card's
+  `PermissionRequest` and each `PermissionOption`; an `InstallOffer`
+  where it is shown and run): its pattern names every field on purpose,
+  with a comment saying so, so that a new field breaks the build until
+  the screen shows it or refuses it by type. Ignoring it would let a
+  person approve something the screen never showed.
+- The sidebar and the conversation's timeline are drawn as regions
+  (`app/src/region.rs`): GPUI views of their own, cached between frames,
+  drawn again whenever the shell changes. A field's caret blink (or any
+  view's own notify) outside a region then draws the window without it.
+  What a region shows must come from the shell or from views drawn
+  inside it: a model entity read there and notified on its own would
+  leave the region showing old content. Measured on 2026-11-14 (release,
+  composer focused on an open session, the caret blinking): the app's
+  own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
 
 ### The brand's drawing (ADR 0059)
 
@@ -582,6 +603,11 @@ Environment:
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.
+- `VESSEL_APP_FRAME_LOG=<file>`: a line per frame a moving control draws
+  and, for every window frame, `draw <time> <took>`: the microseconds
+  from the root's render to the end of its paint, the app's own CPU per
+  frame before the renderer rasterises (on a software renderer the
+  process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build

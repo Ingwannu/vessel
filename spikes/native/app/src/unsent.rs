@@ -28,6 +28,7 @@ use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
+use vessel_app_view::idle_release;
 use vessel_app_view::machine_book::Failure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::{ErrorCode, SessionId};
@@ -76,6 +77,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
         }
+        Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
+            Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
+            Rejected::Closed => idle_release::Problem::Offline,
+        })),
         Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
