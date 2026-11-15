@@ -1455,3 +1455,8 @@ RPCs and terminal screen capture registration have explicit dependency refusals 
 reviewed node contracts land. The complete 117-path inventory, ownership boundaries,
 reference flags/defaults and current differences are in [the W17 plan](docs/plans/wp-w17.md).
 A parsed command or a matching name alone is not evidence of functional parity.
+
+The shared CLI presentation boundary is described in
+[W17 output seam](docs/plans/wp-w17-output.md). Explicit output selections are
+consumed by supported commands or refused before connecting. Configured `models`
+preserves its default listing and supports JSON/YAML, quiet and headerless modes.

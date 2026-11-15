@@ -26,6 +26,7 @@ use crate::{
 };
 
 pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
+    crate::presentation::check(&cli)?;
     cli.connection.apply(&mut cli.target)?;
     let target = &cli.target;
     match cli.command {
@@ -56,11 +57,7 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
             ))
             .await
         }
-        Command::Models => {
-            let client = connect(target).await?.client;
-            let text = render::models(&client.models().await?);
-            Ok(io::out(text.as_bytes()).await?)
-        }
+        Command::Models => crate::formatted_models::run(target, cli.output.presentation()).await,
         Command::Sessions => {
             let client = connect(target).await?.client;
             let text = render::sessions(&client.sessions().await?);

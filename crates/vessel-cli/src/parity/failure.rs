@@ -14,7 +14,10 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         code: vessel_proto::ErrorCode,
         message: &'a str,
     }
-    let code = if matches!(error, CliError::ParityBlocked(_)) {
+    let code = if matches!(
+        error,
+        CliError::ParityBlocked(_) | CliError::UnsupportedPresentation
+    ) {
         vessel_proto::ErrorCode::Unsupported
     } else if matches!(
         error,

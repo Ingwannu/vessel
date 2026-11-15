@@ -14,6 +14,10 @@ use vessel_remote::{
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
     #[error(
+        "this command does not support explicit output selection; omit --json/-o/-q/--no-headers"
+    )]
+    UnsupportedPresentation,
+    #[error(
         "image staging exceeded its deadline for session {session}; inspect attachments before retrying"
     )]
     ParityImageTimeout {

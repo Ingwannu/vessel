@@ -148,7 +148,7 @@ async fn capture(
     let terminal = resolve(&client, &id).await?;
     let result = client.capture_terminal(terminal.id, options).await?;
     match presentation {
-        Presentation::Json | Presentation::Yaml => {
+        Presentation::Json | Presentation::Yaml | Presentation::Quiet => {
             output::single(
                 presentation,
                 &terminal.id.to_string(),
@@ -160,7 +160,7 @@ async fn capture(
             )
             .await
         }
-        Presentation::Table(_) | Presentation::Quiet => {
+        Presentation::Table(_) => {
             if result.lines.is_empty() {
                 Ok(())
             } else {
@@ -186,8 +186,8 @@ async fn send_keys(
         })
         .await?;
     match presentation {
-        Presentation::Table(_) | Presentation::Quiet => Ok(()),
-        Presentation::Json | Presentation::Yaml => {
+        Presentation::Table(_) => Ok(()),
+        Presentation::Json | Presentation::Yaml | Presentation::Quiet => {
             output::single(
                 presentation,
                 &terminal.id.to_string(),

@@ -258,7 +258,7 @@ pub(crate) fn models(routes: &[ModelRoute]) -> String {
     text
 }
 
-const fn api(api: ModelApi) -> &'static str {
+pub(crate) const fn api(api: ModelApi) -> &'static str {
     match api {
         ModelApi::AnthropicMessages => "anthropic-messages",
         ModelApi::OpenAiResponses => "openai-responses",

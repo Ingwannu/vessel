@@ -10,9 +10,9 @@ pub(crate) mod output;
 pub(crate) mod projects;
 pub(crate) mod prompt_input;
 pub(crate) mod schedule_output;
-mod terminals;
 #[cfg(test)]
 mod structured_output;
+mod terminals;
 
 use crate::{
     args::{

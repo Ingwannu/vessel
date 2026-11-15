@@ -531,3 +531,17 @@ run title/cwd come from the creation acknowledgement, not a fabricated final
 snapshot. Inspect now orders modes before permissions and shows [] for no
 pending permissions, matching inspect.ts. Process expectations cover the changed
 completed status; latest narrow execution remains owed.
+
+
+### Shared output integration staging
+
+Merged own early output source 872ea64 into the W17 development tree, preserving
+its isolated immutable review/test head. This is internal source staging only;
+no consumer-ready hash or integrator merge is claimed. Admission now precedes
+connection aliases and connection work. Explicit global output is consumed only
+by parity adapters (excluding raw hooks/attach), project parity paths, schedule
+non-preview paths, configured models, and typed report preflight refusals. Other
+legacy paths refuse instead of ignoring the request. Compare retains its local
+JSON switch. Terminal capture/send-keys quiet output uses terminal IDs; their
+plain default remains raw capture/silent send respectively. Full package gate,
+corrected shared strict lint and targeted execution remain owed.
