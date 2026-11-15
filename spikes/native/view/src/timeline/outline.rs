@@ -80,6 +80,8 @@ pub fn outline(entries: &[Entry]) -> Vec<OutlineItem> {
             | EntryKind::TurnFailed { .. }
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => {}
         }
