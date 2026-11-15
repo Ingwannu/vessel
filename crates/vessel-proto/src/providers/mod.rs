@@ -1,6 +1,7 @@
 //! Provider policy values (ADR 0081). A definition is not driver availability.
 //! Method-table rows remain pending until integrator protocol assignment.
 
+mod binding;
 mod catalogue;
 mod config;
 mod create;
@@ -9,6 +10,9 @@ mod output_schema;
 mod snapshot;
 mod text;
 
+pub use binding::{
+    ProviderBinding, ProviderLaunchAssociation, ProviderSignIn, ProviderSignInVerdict,
+};
 pub use catalogue::{
     Catalogue, CatalogueError, DefaultChoice, MAX_CATALOGUE_ENTRIES, MAX_CHOICE_ID, Model,
     ModelSpec, ModelVisibility, Models, ThinkingChoice, ThinkingChoices,
