@@ -34,6 +34,8 @@ Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 ## Current integration state (2026-11-15 13:22 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
+The [current invocation map](wp-w17-current.md) records source adapters and refusals
+for every path without converting them into pass claims.
 The development tree merged announced node head82ae7c91 (gate46g) at4ce46b45e.
 Its Rust/e2e/forge passes and coordinator-counted web load timeout describe that
 base only. Latest W17 changes and the combined head remain unverified. No whole
