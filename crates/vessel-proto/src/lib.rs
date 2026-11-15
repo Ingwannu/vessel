@@ -30,6 +30,7 @@ mod harness;
 pub mod history;
 mod id;
 pub mod inbox;
+pub mod inbox_attention;
 mod key;
 pub mod labels;
 pub mod lifecycle_version;
@@ -38,6 +39,9 @@ pub mod lsp;
 mod model;
 mod name;
 mod node;
+pub mod notifications;
+#[cfg(test)]
+mod notifications_tests;
 mod options;
 mod pairing;
 pub mod parking;
@@ -105,7 +109,7 @@ pub use id::{
     AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
     NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
     QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorktreeId,
+    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};

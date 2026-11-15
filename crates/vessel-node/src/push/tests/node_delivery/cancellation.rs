@@ -66,6 +66,7 @@ async fn cancels_before_admission(stage: crate::push::PreparedStage, action: Dur
         DuringPreparation::Focus => fixture
             .owner
             .report_push_presence(ReportPushPresence {
+                idle_age: None,
                 focus: PushFocus::Session { session },
                 activity: PushActivity::Active,
             })

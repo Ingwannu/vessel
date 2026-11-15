@@ -37,6 +37,7 @@ pub(crate) struct Entry {
     /// session in a project counts against the project too, which its
     /// place alone does not say).
     pub(crate) owner: Owner,
+    producer: Option<producers::Producer>,
 }
 
 /// A start to count before it runs.
@@ -83,6 +84,9 @@ pub(crate) enum TerminalsError {
     /// A request the node refuses as written.
     #[error("{0}")]
     Invalid(String),
+    /// The OS random source could not mint a terminal activity capability.
+    #[error("the terminal activity credential could not be created")]
+    Random(#[source] getrandom::Error),
     /// The shell did not start.
     #[error("the shell could not be started: {0}")]
     Spawn(String),
@@ -101,6 +105,7 @@ impl TerminalsError {
     /// The error a client sees.
     pub(crate) fn wire(self) -> WireError {
         let code = match &self {
+            Self::Random(_) => ErrorCode::Internal,
             Self::NotFound(_) => ErrorCode::NotFound,
             Self::Limit(_) | Self::ShuttingDown => ErrorCode::Unavailable,
             Self::Forbidden(_) => ErrorCode::Forbidden,
@@ -247,6 +252,7 @@ impl Terminals {
             handle,
             plan,
             owner: reservation.owner.clone(),
+            producer: None,
         };
         let mut state = self.state();
         drop(state.entries.insert(id, entry));
@@ -281,7 +287,11 @@ impl Terminals {
 
     /// Forget one (it has ended, or is being closed).
     pub(crate) fn forget(&self, id: TerminalId) {
-        drop(self.state().entries.remove(&id));
+        if let Some(entry) = self.state().entries.remove(&id)
+            && let Some(producer) = entry.producer
+        {
+            producer.close();
+        }
     }
 
     /// Every terminal `keep` lets through: live ones first, then ended
@@ -378,3 +388,5 @@ impl Terminals {
         });
     }
 }
+
+mod producers;

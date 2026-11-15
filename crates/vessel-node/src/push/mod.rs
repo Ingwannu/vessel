@@ -1,6 +1,7 @@
 //! Device-scoped push authority and presence (ADR 0041). The worker owns
 //! delivery, the store owns leases, and the protocol owns capability shapes.
 //! Neither a relay nor a service receives request or conversation content.
+mod claims;
 mod crypto;
 mod delivery;
 mod policy;
@@ -9,7 +10,7 @@ mod worker;
 pub(crate) use worker::start;
 #[cfg(test)]
 mod tests;
-use chrono::{TimeDelta, Utc};
+use chrono::Utc;
 use crypto::{Crypto, CryptoError};
 use delivery::{Delivered, DeliveryError};
 use policy::{Plan, Presence};
@@ -21,7 +22,7 @@ use vessel_proto::{DeviceId, ErrorCode, SessionId, WireError};
 use vessel_store::{DataDir, Store, StoredPush};
 
 /// Identity of one transport connection, shared by its delegated call contexts.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct PresenceId(uuid::Uuid);
 impl PresenceId {
     pub(crate) fn new() -> Self {
@@ -183,7 +184,7 @@ impl Push {
         crypto.delivery.validate(&subscription.endpoint).await?;
         let now = Utc::now();
         let expires_at = now
-            .checked_add_signed(TimeDelta::hours(48))
+            .checked_add_signed(vessel_store::PUSH_LEASE)
             .ok_or(PushError::Clock)?;
         self.store
             .subscribe_push(
@@ -196,6 +197,10 @@ impl Push {
             )
             .await?;
         Ok(PushLease { expires_at })
+    }
+    pub(crate) async fn renew(&self, device: DeviceId) -> Result<(), PushError> {
+        self.store.renew_push(device, Utc::now()).await?;
+        Ok(())
     }
     pub(crate) async fn unsubscribe(&self, device: DeviceId) -> Result<(), PushError> {
         Ok(self.store.remove_push(device).await?)

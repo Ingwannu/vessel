@@ -2,6 +2,8 @@
 use super::Store;
 use crate::{StoreError, writer::Write};
 use vessel_proto::inbox::{InboxPage, ListInbox, MarkInbox};
+/// Candidate scan pages stay bounded after origin filtering.
+const PUSH_CANDIDATE_PAGE: usize = 64;
 impl Store {
     /// A bounded inbox page, newest first, read without scanning session logs.
     ///
@@ -69,7 +71,7 @@ impl Store {
         self.read(move |reader| reader.with(|connection| {
             let lower = i64::try_from(after.get()).unwrap_or(i64::MAX);
             let upper = i64::try_from(through.get()).unwrap_or(i64::MAX);
-            let mut query = connection.prepare_cached("SELECT cursor,session,seq FROM inbox WHERE cursor>?1 AND cursor<=?2 AND seen=0 AND (waiting=1 OR json_extract(item,'$.kind') IN ('finished','limit')) ORDER BY cursor LIMIT 64")?;
+            let mut query = connection.prepare_cached(&format!("SELECT i.cursor,i.session,i.seq FROM inbox i JOIN sessions s ON s.id=i.session WHERE i.cursor>?1 AND i.cursor<=?2 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')) AND {} ORDER BY i.cursor LIMIT {PUSH_CANDIDATE_PAGE}",crate::notification_policy::SESSION))?;
             let mut rows = query.query([lower, upper])?;
             let mut candidates = Vec::new();
             while let Some(row) = rows.next()? {
@@ -96,5 +98,52 @@ impl Store {
     ) -> Result<Option<vessel_proto::inbox::InboxEntry>, StoreError> {
         self.read(move |reader| reader.with(|connection| crate::inbox::get(connection, key)))
             .await
+    }
+}
+
+impl Store {
+    /// Authoritative per-session unread/waiting, from one read transaction.
+    ///
+    /// # Errors
+    /// Database or projection decoding failed. The node bounds the batch.
+    pub async fn inbox_attention(
+        &self,
+        sessions: Vec<vessel_proto::SessionId>,
+    ) -> Result<Vec<vessel_proto::inbox_attention::SessionAttention>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| {
+                let transaction = connection.unchecked_transaction()?;
+                let result = crate::inbox::attention::read(&transaction, &sessions)?;
+                transaction.commit()?;
+                Ok(result)
+            })
+        })
+        .await
+    }
+}
+
+impl Store {
+    /// Passive read with a transactional waiting-request veto. Reuses the
+    /// existing marks write so delayed appends inherit the same watermark.
+    ///
+    /// # Errors
+    /// Pending requests, missing session, or store write failure.
+    pub async fn read_attention(
+        &self,
+        session: vessel_proto::SessionId,
+        through: vessel_proto::EventSeq,
+        at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<vessel_proto::KeptMarks, StoreError> {
+        {
+            let (done, committed) = tokio::sync::oneshot::channel();
+            self.send(Write::ReadAttention {
+                session,
+                through,
+                at,
+                done,
+            })
+            .await?;
+            committed.await.map_err(|_closed| StoreError::Closed)?
+        }
     }
 }

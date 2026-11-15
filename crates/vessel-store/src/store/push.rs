@@ -37,6 +37,17 @@ impl Store {
         })
         .await
     }
+    /// Renew this paired caller's existing active lease after its half-life.
+    /// Revoked, read-less, missing and expired leases are never resurrected.
+    /// # Errors
+    /// The committed writer update or node-assigned timestamp cannot be stored.
+    pub async fn renew_push(&self, device: DeviceId, now: DateTime<Utc>) -> Result<(), StoreError> {
+        self.write(|done| Write::Push {
+            write: PushWrite::Renew { device, now },
+            done,
+        })
+        .await
+    }
     /// Remove only the exact lease whose HTTP attempt returned 404/410.
     /// Renewing the same capability with a later expiry keeps the new lease.
     ///
@@ -78,7 +89,7 @@ impl Store {
         let stored = stored.clone();
         self.read(move |reader| reader.with(|connection| {
             let cursor = i64::try_from(attention.cursor.get()).unwrap_or(i64::MAX);
-            connection.query_row("SELECT EXISTS(SELECT 1 FROM push_subscriptions p JOIN devices d ON d.id=p.device JOIN inbox i ON i.session=?4 AND i.seq=?5 WHERE p.device=?1 AND p.subscription=?2 AND p.expires_at=?3 AND p.expires_at>?6 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read') AND i.cursor=?7 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')))", rusqlite::params![stored.device.to_string(), crate::codec::encode(&stored.subscription)?, crate::codec::time_to_sql(stored.expires_at)?, attention.key.session.to_string(), crate::codec::seq_to_sql(attention.key.seq)?, crate::codec::time_to_sql(now)?, cursor], |row| row.get(0)).map_err(StoreError::from)
+            connection.query_row(&format!("SELECT EXISTS(SELECT 1 FROM push_subscriptions p JOIN devices d ON d.id=p.device JOIN inbox i ON i.session=?4 AND i.seq=?5 JOIN sessions s ON s.id=i.session WHERE p.device=?1 AND p.subscription=?2 AND p.expires_at=?3 AND p.expires_at>?6 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read') AND i.cursor=?7 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')) AND {})",crate::notification_policy::SESSION), rusqlite::params![stored.device.to_string(), crate::codec::encode(&stored.subscription)?, crate::codec::time_to_sql(stored.expires_at)?, attention.key.session.to_string(), crate::codec::seq_to_sql(attention.key.seq)?, crate::codec::time_to_sql(now)?, cursor], |row| row.get(0)).map_err(StoreError::from)
         })).await
     }
 }

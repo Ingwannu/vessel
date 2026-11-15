@@ -61,6 +61,9 @@ pub enum Column {
 /// Anything that can go wrong in the store.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
+    /// Current device has no person Read authority for local notification admission.
+    #[error("notification authority changed; reconnect and refresh before notifying")]
+    NotificationDenied,
     /// A file in the data directory could not be read or written.
     #[error("{}: {source}", path.display())]
     Io {
@@ -231,6 +234,9 @@ pub enum StoreError {
     /// An inbox entry was answered or removed before it could be marked.
     #[error("this inbox entry has moved on; refresh the inbox before trying again")]
     InboxGone,
+    /// Passive read must not consume another live permission or question.
+    #[error("this session still waits for an answer; keep its attention unread")]
+    AttentionWaiting,
     /// A push lease cannot be registered after revocation or without read.
     #[error("this device cannot register push; pair it again with read access")]
     PushDenied,
@@ -266,12 +272,13 @@ impl StoreError {
     pub const fn code(&self) -> ErrorCode {
         match self {
             // A row without its file: removed under the node.
-            Self::PushDenied => ErrorCode::Forbidden,
+            Self::NotificationDenied | Self::PushDenied => ErrorCode::Forbidden,
             Self::InboxGone
             | Self::UnknownSession(_)
             | Self::UnknownDevice(_)
             | Self::Attachment(AttachmentFileError::Missing(_)) => ErrorCode::NotFound,
-            Self::PushFull
+            Self::AttentionWaiting
+            | Self::PushFull
             | Self::SessionExists(_)
             | Self::SessionLive(_)
             | Self::DeviceExists(_)

@@ -3,7 +3,9 @@
 //! a subscription after device.revoke commits.
 use crate::StoreError;
 use crate::codec::{encode, time_from_sql, time_to_sql};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
+/// Account-free push leases last 48 hours; activity renews only after half-life.
+pub const PUSH_LEASE: TimeDelta = TimeDelta::hours(48);
 use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::push::PushSubscription;
 use vessel_proto::{DeviceId, Scope};
@@ -37,10 +39,24 @@ pub(crate) enum PushWrite {
         device: DeviceId,
     },
     Expire(Box<StoredPush>),
+    Renew {
+        device: DeviceId,
+        now: DateTime<Utc>,
+    },
 }
 pub(crate) fn apply(connection: &Connection, write: &PushWrite) -> Result<(), StoreError> {
     match write {
         PushWrite::Subscribe { stored, now } => subscribe(connection, stored, *now),
+        PushWrite::Renew { device, now } => {
+            let next = now
+                .checked_add_signed(PUSH_LEASE)
+                .ok_or(StoreError::OutOfRange(crate::Quantity::Time))?;
+            let half = now
+                .checked_add_signed(PUSH_LEASE / 2)
+                .ok_or(StoreError::OutOfRange(crate::Quantity::Time))?;
+            let _renewed = connection.execute("UPDATE push_subscriptions SET expires_at=?1 WHERE device=?2 AND expires_at>?3 AND expires_at<?4 AND EXISTS(SELECT 1 FROM devices d WHERE d.id=?2 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read'))",params![time_to_sql(next)?,device.to_string(),time_to_sql(*now)?,time_to_sql(half)?])?;
+            Ok(())
+        }
         PushWrite::Remove { device } => {
             let _rows = connection.execute(
                 "DELETE FROM push_subscriptions WHERE device=?1",

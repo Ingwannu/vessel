@@ -461,9 +461,18 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
+/// Follows the newest integrated schema; integration re-points this one line.
+const NOTIFICATION_CLAIMS_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+
+/// Admissions cannot outlive attention. No title, path, device or content is
+/// retained in this once-only cursor index.
+const NOTIFICATION_CLAIMS: &str = "CREATE TABLE notification_claims (
+    cursor INTEGER PRIMARY KEY REFERENCES inbox(cursor) ON DELETE CASCADE
+) STRICT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; NOTIFICATION_CLAIMS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -482,4 +491,5 @@ pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    NOTIFICATION_CLAIMS,
 ];

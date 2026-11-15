@@ -36,7 +36,7 @@ use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
 use crate::identity;
-use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
+use crate::ipc::{self, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
@@ -55,7 +55,7 @@ use crate::workspace::{Opening, Workspaces};
 
 mod setup;
 
-use self::setup::{SessionSetup, SetupDirs};
+use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -178,12 +178,8 @@ impl Node {
             )
         });
         relays.serve(secure.clone(), connections.clone());
-        let gateway = LocalGateway {
-            rpc,
-            token,
-            connections,
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
-        };
+        let gateway =
+            LocalGateway::new(rpc, token, connections, agents, &secure, config.rpc.clone());
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
@@ -423,6 +419,7 @@ async fn core(
     // Terminals beside sessions (protocol 11, ADR 0031): the node's tasks,
     // so its stop ends them and waits for their ends; memory only.
     let terminals = Terminals::new(Runner {
+        endpoint: Endpoint::of(&config.data_dir, id),
         config: Arc::new(config.terminals.clone()),
         shutdown: stop.clone(),
         tasks: tasks.clone(),
@@ -675,28 +672,6 @@ async fn prepare_off_thread(config: &Config) -> Result<Prepared, NodeError> {
     tokio::task::spawn_blocking(move || prepare(&dir, env))
         .await
         .map_err(NodeError::Task)?
-}
-
-/// The model proxy's listener, on a port of loopback's the system picks
-/// (harnesses learn it from their environment). It is served from `core`'s
-/// stop: model calls end with the node, a harness still calling gets its
-/// connection closed, as its session is interrupted anyway.
-async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeError> {
-    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
-        .await
-        .map_err(NodeError::ModelProxy)?;
-    models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
-    Ok((Arc::new(models), listener))
-}
-
-fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
-    let limits = vessel_llm::client::Limits::default();
-    vessel_llm::client::Client::new(limits)
-        .or_else(|error| {
-            tracing::warn!(%error, "model calls to https providers will fail");
-            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
-        })
-        .map_err(NodeError::ModelClient)
 }
 
 /// Bind the TCP listen address.

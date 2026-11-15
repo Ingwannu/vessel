@@ -66,6 +66,7 @@ mod followed;
 mod inbox;
 mod limits;
 mod notices;
+mod notifications;
 mod prompts;
 mod push;
 mod schedule_preview;

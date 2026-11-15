@@ -58,6 +58,11 @@ pub enum PushFocus {
         /// Session this device is viewing.
         session: SessionId,
     },
+    /// Visible and focused on an independent terminal (ADR 0089).
+    Terminal {
+        /// Exact terminal this connection is viewing.
+        terminal: crate::TerminalId,
+    },
     /// Visible, focused on another screen.
     Elsewhere,
     /// Hidden or unfocused.
@@ -73,6 +78,24 @@ pub enum PushActivity {
     /// Only visibility/focus changed; do not extend the activity lease.
     Unchanged,
 }
+/// OS-observed elapsed idle milliseconds, never a client wall-clock timestamp.
+/// The node subtracts it from its own now; a report cannot name future activity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct PushIdleAge(u32);
+impl PushIdleAge {
+    /// Wrap an operating system's nonnegative idle counter.
+    #[must_use]
+    pub const fn new(milliseconds: u32) -> Self {
+        Self(milliseconds)
+    }
+    /// Elapsed idle milliseconds.
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
 /// Presence for this connection: a socket alone never suppresses push.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -81,6 +104,9 @@ pub struct ReportPushPresence {
     pub focus: PushFocus,
     /// A real input event, or only a focus change.
     pub activity: PushActivity,
+    /// Optional desktop OS evidence; absent on older/native backends.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idle_age: Option<PushIdleAge>,
 }
 
 #[cfg(test)]

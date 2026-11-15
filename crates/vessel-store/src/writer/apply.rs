@@ -28,6 +28,16 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
+        Write::NotificationClaim {
+            authority,
+            source,
+            done,
+        } => Answer::NotificationClaim(
+            done,
+            isolated(transaction, |connection| {
+                crate::notification_claims::claim(connection, authority, source)
+            }),
+        ),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -70,6 +80,32 @@ pub(super) fn apply(
             let applied = isolated(transaction, |connection| {
                 marks::mark(connection, session, mark, at)
             });
+            effects.attention |= applied.is_ok();
+            Answer::Marked(done, applied)
+        }
+        Write::ReadAttention {
+            session,
+            through,
+            at,
+            done,
+        } => {
+            let applied = isolated(transaction, |connection| {
+                let waiting: bool = connection.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM inbox WHERE session=?1 AND waiting=1)",
+                    [session.to_string()],
+                    |row| row.get(0),
+                )?;
+                if waiting {
+                    return Err(StoreError::AttentionWaiting);
+                }
+                marks::mark(
+                    connection,
+                    session,
+                    vessel_proto::Mark::Read { through },
+                    at,
+                )
+            });
+            effects.attention |= applied.is_ok();
             Answer::Marked(done, applied)
         }
         Write::Delete { session, done } => {
@@ -87,6 +123,7 @@ pub(super) fn apply(
             let applied = isolated(transaction, |connection| {
                 again::reopen(connection, session, next)
             });
+            effects.attention |= applied.is_ok();
             Answer::Marked(done, applied)
         }
         Write::Attach { kept, at, done } => {
@@ -95,9 +132,13 @@ pub(super) fn apply(
             });
             Answer::Done(done, applied)
         }
-        Write::Inbox { mark, done } => write_answer(transaction, done, |connection| {
-            crate::inbox::mark(connection, &mark)
-        }),
+        Write::Inbox { mark, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::inbox::mark(connection, &mark)
+            });
+            effects.attention |= applied.is_ok();
+            Answer::Done(done, applied)
+        }
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
@@ -150,9 +191,17 @@ fn append(
     indexer.keep(session, advanced);
     let _first = effects.touched.insert(session);
     effects.ended |= now_ended;
-    effects.attention |= records
-        .iter()
-        .any(|record| record.event.asks_for_attention());
+    effects.attention |= records.iter().any(|record| {
+        record.event.asks_for_attention()
+            || matches!(
+                &record.event,
+                vessel_proto::SessionEvent::Agent {
+                    event: vessel_proto::AgentEvent::PermissionResolved { .. }
+                        | vessel_proto::AgentEvent::QuestionResolved { .. }
+                        | vessel_proto::AgentEvent::TurnStarted { .. }
+                } | vessel_proto::SessionEvent::Rewound { .. }
+            )
+    });
     Ok(())
 }
 
