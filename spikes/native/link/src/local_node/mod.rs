@@ -5,9 +5,11 @@
 //! - Constraint: GPUI has no Tokio reactor; the shared library owns child authority.
 //! - Alternatives: a controller per window, or a mutex around a long-running call.
 //! - Choice: a bounded actor on one process-owned runtime, with immutable watches.
-//! - Cost: one runtime thread; finalization must complete before app runtime teardown.
+//! - Cost: one reactor worker and a blocked supervisor retain runtime ownership
+//!   through an irreversible OS exit; ordinary quit still finalizes beforehand.
 
 mod actor;
+mod shutdown;
 mod signals;
 pub use signals::QuitSignal;
 pub mod registration;
@@ -165,15 +167,14 @@ pub struct Confirmation(Arc<()>);
 pub struct Controller {
     commands: mpsc::Sender<actor::Command>,
     state: watch::Receiver<Snapshot>,
-    runtime: Option<tokio::runtime::Runtime>,
+    reactor: tokio::runtime::Handle,
+    shutdown: std::sync::mpsc::SyncSender<shutdown::Policy>,
     home: NodeHome,
 }
 
 impl Drop for Controller {
     fn drop(&mut self) {
-        if let Some(runtime) = self.runtime.take() {
-            runtime.shutdown_background();
-        }
+        let _closed = self.shutdown.try_send(shutdown::Policy::Ordinary);
     }
 }
 
@@ -197,10 +198,21 @@ impl Controller {
     #[must_use]
     pub fn quit_signals(&self) -> mpsc::Receiver<Result<QuitSignal, std::io::Error>> {
         let (sender, receiver) = mpsc::channel(1);
-        if let Some(runtime) = &self.runtime {
-            drop(runtime.spawn(signals::observe(sender)));
-        }
+        drop(self.reactor.spawn(signals::observe(sender)));
         receiver
+    }
+
+    /// Irrevocable OS exit cannot wait for the ordinary protected stop dialog.
+    /// Transfer runtime lifetime before GPUI's short shutdown callback expires.
+    /// This neither interrupts sessions nor changes the saved quit preference.
+    ///
+    /// # Errors
+    /// The supervisor has already ended; no cleanup acknowledgement is implied.
+    pub fn preserve_on_exit(&self) -> Result<(), ManagerError> {
+        match self.shutdown.try_send(shutdown::Policy::Preserve) {
+            Ok(()) | Err(std::sync::mpsc::TrySendError::Full(_)) => Ok(()),
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => Err(ManagerError::Unavailable),
+        }
     }
 
     /// The explicit managed home's existing private log, never a remote path.
@@ -253,11 +265,24 @@ impl Controller {
         });
         let (commands, inbox) = mpsc::channel(COMMAND_CAPACITY);
         let home = configuration.home.clone();
-        drop(runtime.spawn(actor::run(configuration, inbox, published)));
+        let reactor = runtime.handle().clone();
+        let (shutdown, policy) = std::sync::mpsc::sync_channel(shutdown::CAPACITY);
+        let keep_commands = commands.clone();
+        let keep_state = state.clone();
+        let supervisor = std::thread::Builder::new()
+            .name("vessel-node-exit".to_owned())
+            .spawn(move || {
+                // No child can start before supervisor creation succeeds.
+                drop(runtime.spawn(actor::run(configuration, inbox, published)));
+                shutdown::run(runtime, policy, keep_commands, keep_state);
+            })
+            .map_err(ManagerError::Runtime)?;
+        drop(supervisor);
         Ok(Self {
             commands,
             state,
-            runtime: Some(runtime),
+            reactor,
+            shutdown,
             home,
         })
     }

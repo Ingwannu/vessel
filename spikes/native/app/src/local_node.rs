@@ -49,24 +49,19 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
     });
     crate::desktop::set_quit_handler(request_quit, cx);
     crate::desktop::set_window_close_handler(crate::quit::admit_shell, cx);
-    // OS shutdown bypasses menu cancellation. Preserve active work by releasing
-    // only an owned child if its protected graceful stop is refused. This never
-    // sends an unconfirmed StopWhen::Now to a reused or owned node.
+    // GPUI gives non-vetoable quit observers only 200ms. Hand off runtime
+    // ownership synchronously; a cancelled observer cannot drop an owned node.
+    // Ordinary quit/update have already awaited their protected finalizers.
     cx.on_app_quit(|cx| {
         let controller = cx
             .try_global::<Managed>()
             .and_then(|managed| managed.controller.clone());
-        let after = crate::desktop::current_local_preferences(cx).after_quit;
-        async move {
-            if let Some(controller) = controller
-                && let Err(error) = controller.finalize(after, None).await
-            {
-                tracing::warn!(%error,"protected OS quit preserved the local node");
-                if let Err(error) = controller.finalize(AfterQuit::KeepRunning, None).await {
-                    tracing::warn!(%error,"local node release on OS quit failed");
-                }
-            }
+        if let Some(controller) = controller
+            && let Err(error) = controller.preserve_on_exit()
+        {
+            tracing::warn!(%error,"OS exit runtime handoff was unavailable");
         }
+        async {}
     })
     .detach();
 }
