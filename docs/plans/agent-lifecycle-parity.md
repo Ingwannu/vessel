@@ -601,3 +601,9 @@ remain the source for combined-cap atomicity; their assertions are unchanged.
 No wire request, actor/store operation, protocol assignment or consumer readiness
 is implied by this implementation. Compilation and execution remain unverified
 until the remote narrow results arrive.
+
+
+The first TypeScript-enabled narrow Clippy stopped at `doc_markdown`: the module
+header named the map type without code markup. The header now links that existing
+type. No input, serializer, test expectation or bound changed; the original
+strict failure is retained and execution is still unverified.

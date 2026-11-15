@@ -1,5 +1,5 @@
 //! Nonempty label changes at the decoding edge, without a second map validator.
-//! Applying a change against current state remains SessionLabels' responsibility.
+//! Applying a change against current state remains the responsibility of [`SessionLabels`].
 
 use serde::{Deserialize, Deserializer, Serialize, de};
 
