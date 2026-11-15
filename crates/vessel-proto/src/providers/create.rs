@@ -17,6 +17,7 @@ pub enum ProviderKind {
     /// Copilot ACP with its synthetic allow-all mode.
     Copilot,
     /// `OpenCode` with dynamic agent names and an auto-accept feature.
+    #[serde(rename = "opencode")]
     OpenCode,
     /// Pi RPC has no permission modes.
     Pi,

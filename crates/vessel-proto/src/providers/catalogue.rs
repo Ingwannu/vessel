@@ -149,10 +149,10 @@ impl Model {
         identifier(spec.id.as_str())?;
         if let Some(default) = &spec.default_thinking {
             identifier(default.as_str())?;
-            if spec
+            if !spec
                 .thinking
                 .as_ref()
-                .is_some_and(|choices| !choices.contains(default))
+                .is_some_and(|choices| choices.contains(default))
             {
                 return Err(CatalogueError::MissingThinkingDefault);
             }
@@ -291,6 +291,12 @@ mod tests {
         let mut input = spec();
         input.id = ModelId::new("bad\n");
         assert_eq!(Model::new(input), Err(CatalogueError::Identifier));
+        let mut input = spec();
+        input.default_thinking = Some(OptionValueId::new("high"));
+        assert_eq!(
+            Model::new(input),
+            Err(CatalogueError::MissingThinkingDefault)
+        );
         let mut input = spec();
         input.thinking = Some(ThinkingChoices::new(vec![]).unwrap());
         input.default_thinking = Some(OptionValueId::new("high"));

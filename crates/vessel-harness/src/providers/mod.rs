@@ -7,6 +7,7 @@ mod manifest;
 mod models;
 mod options;
 mod registry;
+mod selection;
 
 pub use create::{CreateError, resolve_create};
 pub use launch::{
@@ -20,3 +21,4 @@ pub use registry::{
     ConfigurationRequirement, PluginDefinition, PluginRevision, ProviderDefinition,
     ProviderRegistry, ProviderSource, RegistryError,
 };
+pub use selection::{ModelSelection, SelectionError, select_model};

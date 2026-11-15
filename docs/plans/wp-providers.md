@@ -129,3 +129,17 @@ Native denied-tool patterns now have their own validating type instead of
 crossing the launch-policy boundary as argument strings. The wire/local-file
 shape remains a string array, and an adapter still must explicitly enforce the
 policy before receiving an executable command.
+
+## Model selection preflight
+
+The pure selection policy reuses the checked catalogue and its per-model
+thinking index. Explicit unknown models and efforts refuse the whole selection;
+an effort offered by a different model is not accepted. Defaults follow the
+selected model, with the first selectable model as fallback. Compatibility-only
+rows remain available explicitly and do not become implicit defaults. Missing
+discovery leaves the native model unset rather than fabricating a choice. A
+model default effort must belong to its actual offered list, including when the
+list is absent. This helper grants no execution authority; RPC/create wiring
+must supply the node's own current catalogue. Scoped tests are pending.
+
+The OpenCode provider kind serializes as `opencode`, matching the manifest ID.
