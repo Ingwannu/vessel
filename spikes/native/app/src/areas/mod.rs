@@ -24,6 +24,7 @@ pub(crate) mod session;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
+pub(crate) mod terminal;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
 
@@ -52,6 +53,8 @@ pub(crate) struct Areas {
     pub(crate) composer: composer::ComposerArea,
     /// The parts drawn as views of their own (`crate::region`).
     pub(crate) regions: crate::region::Regions,
+    /// A terminal session's screen (ADR 0073).
+    pub(crate) terminal: terminal::TerminalArea,
 }
 
 impl Areas {
@@ -73,6 +76,7 @@ impl Areas {
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::default(),
             regions: crate::region::Regions::default(),
+            terminal: terminal::TerminalArea::new(cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, window, cx);

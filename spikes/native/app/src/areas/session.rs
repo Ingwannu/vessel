@@ -24,7 +24,7 @@ use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
 use vessel_app_view::{Card, Conversation};
-use vessel_proto::{Delivery, EventRecord, SessionId};
+use vessel_proto::{Delivery, EventRecord, SessionId, TerminalSize};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -130,16 +130,21 @@ impl Shell {
 
     /// Show a session's conversation, following it.
     fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, cx);
+        self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
+        // A terminal session is followed too: its output comes as records
+        // (`terminal`, ADR 0073). Its size comes with the first frame.
         if open.structured {
-            self.command(Command::Open {
-                machine: open.machine.clone(),
-                session: open.session,
-            });
+            self.terminal_closed();
+        } else {
+            self.terminal_opened(&open.machine, open.session, TerminalSize::default(), cx);
         }
+        self.command(Command::Open {
+            machine: open.machine.clone(),
+            session: open.session,
+        });
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
@@ -260,6 +265,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         self.conversation_records(session, records, cx);
+        self.terminal_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open
@@ -437,13 +443,7 @@ pub(crate) fn render(
     let body: AnyElement = if open.structured {
         crate::region::timeline(shell, tokens, window, cx)
     } else {
-        div()
-            .flex_1()
-            .p(px(24.0))
-            .type_(Type::Body)
-            .text_color(tokens.text_secondary)
-            .child(t.terminal_not_yet)
-            .into_any_element()
+        crate::areas::terminal::body(shell, tokens, window, cx)
     };
     let working = view.conversation.turn_running();
     let screen = div()
