@@ -167,3 +167,48 @@ labels and the separately retained accepted cadence/error tables.
 - The partial-host-error Alert profile remains unassigned, not implemented.
   No area override or parallel renderer is permitted. List view/Fluent/target
   preparation remains external and uncompiled; Automation screens remain0/6.
+
+
+## Active resume point — 2026-11-15, after base8
+
+- Main branch backend/m12-app-schedules is on announced91407173 via07c8e9145.
+  Latest source ce1b0e04c; create/edit sheet and original FieldId/visit guards,
+  caches, retained/off-route read-only engines and reference row-menu fixes are
+  committed. They have NOT passed current App compilation, package gate or UI.
+- Exact715 ordinary run finished ViewClippy101/no tests. Its full batch is
+  retained at /tmp/work/m12-g2/f1-foundation-v1-20261115-clippy; own source fixes
+  are committed. Generated PlainSchedules resolver length awaits L's checked
+  typed64-field chunks (984fd5b1 candidate, NOT adopted/green here).
+- Isolated shared picker: backend/m12-shared-picker-lease, worktree
+  /tmp/work/m12-g2/picker-lease-producer. Exact range914..a1b1..eceae..99ad57b8.
+  A1/ece REDs are preserved. V1 source precheck99 found no remaining blocker;
+  adoption still HOLD pending exact requested lib tests. Clippy run
+  picker-control-20261115T144446Z-99ad57b8 is0 (ordinary short, priority0).
+  Tests picker-control-20261115T150539Z-99ad57b8 are queued, same exact99.
+  Driver /tmp/work/m12-g2/run-picker-control-99ad57b8.sh PID110244 (verify actual
+  command before touching). Label picker-control is temporary; drop only after
+  checked handoff to V1/lead/W2, never while busy. No further priority is granted.
+- Picker user-facing per-open admission and weak return focus use the SAME
+  engine/geometry, no F1/width/Form dependencies. Evidence scratch contains
+  immutable source pins and raw remote logs; final99 packet/outcomes still owed.
+- Multiline580 already has V1 source/Kit narrow pass and was handed G3. G3 is
+  sole SearchField writer now; G2 must wait for its checked handoff before the
+  assigned Body/Code form-text profile. Do not edit shared field files meanwhile.
+- L generator, G3 SearchField, W12 actual product delivery/opening are external
+  dependencies. DeliveryGuard is still test-only in current base8; historical
+  candidates remain unopened, no legacy alias opener or fake proof allowed.
+- W11 reaffirmed no announced production provision/launch adapter at this
+  checkpoint (combined node49b pending; W3 internal driver still test-only).
+  W21 also has no reviewed runtime archive/restore head. Keep isolation hidden,
+  use typed ports, After=Keep explicitly skips cleanup, no cwd ownership or
+  duplicate provision/receipt/archive path. This is an in-scope remaining gap.
+- No new whole/package run until source/dependencies are coherent. F1 tracker
+  UI rows remain skeleton. New screen words are generated schedules.ftl; old
+  cadence/error tables stay. Typed docs-links schedules destination is None:
+  Vessel user docs do not exist yet; it is a known gap, not a parity exception.
+- Every cargo/rustc/build/capture compilation is VM-only. A local boundary
+  script mistakenly ran cargo metadata (no compile); disclosed to coordinator
+  and stopped. Do not repeat any local Cargo-backed quality script. Direct
+  rustfmt, source-size/token scans and Git remain available.
+- No own fleet, virtual display, app or capture binary is running. No UI captures
+  for current F1 exist; no service-account/OS/physical input proof is claimed.

@@ -1221,3 +1221,16 @@ return restores ordinary editing. This assertion would reject a callback-only
 hide that still lets the underlying off-route engine mutate. It remains authored,
 not executed. Root rendering delegates directly to the same child entry points
 rather than retaining wrappers above the500-line product budget.
+
+
+### Next Code-profile measurement, no field edit
+
+Before G3's checked handoff, only reference reading was done. Pinned
+cadence-editor.tsx106–131 passes fontFamily.mono onto the same FormTextInput;
+form-field.tsx175–218 combines that with inputMd text. control-geometry.ts221–249
+uses base14 and fieldLineHeight round(14*1.4)=20 for both layouts; only the MD
+chrome height maps32/44. Canonical MonoBody14/20 normal therefore matches the
+written cron typography. The planned minimal Body/Code presentation will reuse
+that existing type on the same form engine, preserving Body defaults, constructors,
+FieldId/Callbacks/Editability/FormMinimum and G3's search profile. It is not an
+implemented or checked API yet; no area font override was added.
