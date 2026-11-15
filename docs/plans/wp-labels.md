@@ -287,3 +287,10 @@ and visibility queries; A6 does not invent an alternative selection fence.
 The preferences hook remains literal cfg(test); no canonical preferences or
 workspace registry caller is enabled by this merge. W12's scoped source/clippy
 and 38-test evidence is producer evidence, not an A6 current-head whole gate.
+
+Merged announced package base 6 (18eedad4) without conflicts after the bounded
+W12 follow-up adoption. This brings the line's root d432ef0f through B0 rather
+than merging a node head directly into the app tree. The lead reported its
+native baseline as 1404/0/2; A6 has no current-head gate result yet. The native
+lockfile on this base is announced stale, so no --locked invocation or local
+lockfile regeneration is used while awaiting the lead's corrected lock.
