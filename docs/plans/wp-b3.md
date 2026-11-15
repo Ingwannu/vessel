@@ -1,8 +1,10 @@
 # Per-turn file checkpoints: contract-first plan
 
 Status: ADR 0077 design contract accepted, 2026-11-15, on `a852bde3`.
-Product implementation remains held pending central ownership assignment and
-the merge of the node contracts into the app baseline.
+The node implementation remains under validation. App product work waits for
+the reviewed canonical node contract on the app line and the agreed live keyed
+timeline context/registration seam. Ownership is assigned; no checkpoint UI has
+been implemented or validated.
 
 ## Reference and existing assets
 
