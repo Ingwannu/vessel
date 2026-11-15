@@ -115,3 +115,16 @@ Next: obtain V3 architecture verdict; implement node and app skeletons
 against a fake adapter without sending missing calls; amend dependency
 measurements before adding crates. App-base and Quality B announcement
 must precede wire registration. No gates/captures/runtime proof yet.
+
+
+### Shared capture-slot draft
+
+`view::audio` now separates reservation, running, stopping and confirmed
+release. A voice reservation excludes dictation before a remote enable;
+requesting Stop immediately rejects frames but retains ownership until
+actual stream-stop/drop confirmation. Late start/release completions cannot
+retarget a later consumer. This is a pure model, not a hardware API or
+consumer-ready engine. The process-wide `link::audio` owner remains to be
+implemented. The initial remote view-clippy snapshot failed only an
+unnecessary qualification after the import fix; corrected in the next
+snapshot, with narrow recheck still owed.

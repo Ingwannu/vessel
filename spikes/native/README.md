@@ -1039,7 +1039,9 @@ written to the fixture report.
 ## Spoken-conversation skeleton (ADR 0080)
 
 `view::voice` models the seven conversation phases, exact node/session
-identity, mute and generation-fenced starts/stops without I/O. It cannot
+identity, mute and generation-fenced starts/stops without I/O. Shared
+`view::audio` keeps a single capture slot reserved through actual device
+release confirmation, including Stop-during-start and stale callbacks. It cannot
 mark capture ready before node enable, retarget a late completion, or
 upload while muted or stopping. Its current public state is not a capability
 claim: no voice entry point is displayed.

@@ -299,7 +299,7 @@ impl State {
     pub fn observe(
         &mut self,
         received: Generation,
-        event: super::VoiceEvent,
+        event: VoiceEvent,
     ) -> Result<Applied, TransitionError> {
         if self.generation() != Some(received) {
             return Ok(Applied::Stale);
