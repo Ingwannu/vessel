@@ -285,11 +285,12 @@ No row of the crate table changes.
   column/source errors remain; the quote/backslash, title trimming and
   corruption tests are unchanged. `QUALITY.md` records the removal without
   guessing a new global debt count. No dependency is added.
-- Half-done: this decoder refactor needs narrow store checks and its own
-  whole Rust gate. Later filtering, actor patches, CLI and MCP remain
-  protected drafts. Unwired services may be staged under `cfg(test)` until
-  the shared accessor and call plumbing are ready; they are not a product
-  build claim.
+- The independent decoder refactor passed its narrow store checks and whole
+  Rust gate: 1980 passed, none failed, 12 ignored; both prebuilds, format,
+  size, boundaries and clippy passed. No waiver or rerun was needed. The wire
+  and page were unchanged. Later label filtering, actor patches, CLI and MCP
+  remain protected drafts until the shared accessor and call plumbing are
+  ready; staged services are not a product build claim.
 - Implementation slice 5a, verification pending: one-shot `--tail` reuses
   the existing read/render path. The count is parsed before connection and
   its window allocates only for actual records. Zero selects no history;
@@ -299,13 +300,13 @@ No row of the crate table changes.
   boundary test makes the projected-item difference explicit: the last record
   of a split reply renders only its final fragment. Count-overflow tests
   derive their rejected input from the platform's integer bound.
-- The full time/kind/follow implementation is a protected draft for slice 5b,
-  not part of the tail slice. It must reuse the tail type and window rather
-  than restating their rules. Existing render test expectations stay unchanged.
+- Time/kind selection and follow are protected drafts for slices 5b and 5c,
+  outside this tail slice. They reuse its tail type and window. Existing render
+  test expectations stay unchanged, including the raw-chunk boundary.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: report the independent decoder gate, then gate tail slice 5a while
+- Next: run narrow CLI checks and the whole gate for tail slice 5a while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Windows, macOS, native UI and real harnesses remain
   unverified.
