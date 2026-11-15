@@ -24,7 +24,7 @@ async fn attempted_spawn_failure_is_not_a_no_child_cleanup_certificate() {
         assert_eq!(report.descendants(), CleanupFact::Unconfirmed);
         assert_eq!(report.io(), CleanupFact::Unconfirmed);
         assert!(!report.is_confirmed());
-        fixture.tasks.close();
+        let _closed = fixture.tasks.close();
         fixture.tasks.wait().await;
     })
     .await;
@@ -60,7 +60,7 @@ async fn no_spawn_completion_certifies_no_child_and_waits_for_auxiliary_cleanup(
         assert!(report.is_confirmed());
         assert!(!output.exists());
         assert!(!leftover.exists());
-        fixture.tasks.close();
+        let _closed = fixture.tasks.close();
         fixture.tasks.wait().await;
     })
     .await;
@@ -80,7 +80,7 @@ async fn ended_script_joins_io_but_does_not_claim_unproved_descendant_cleanup() 
         assert_eq!(report.descendants(), CleanupFact::Unconfirmed);
         assert_eq!(report.process(), CleanupFact::Confirmed);
         assert_eq!(report.io(), CleanupFact::Confirmed);
-        fixture.tasks.close();
+        let _closed = fixture.tasks.close();
         fixture.tasks.wait().await;
     })
     .await;
@@ -109,7 +109,7 @@ async fn failed_auxiliary_cleanup_cannot_certify_a_terminal_that_never_spawned()
         assert_eq!(report.auxiliary(), CleanupFact::Unconfirmed);
         assert!(!report.is_confirmed());
         assert!(directory.is_dir());
-        fixture.tasks.close();
+        let _closed = fixture.tasks.close();
         fixture.tasks.wait().await;
     })
     .await;

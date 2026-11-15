@@ -96,7 +96,7 @@ mod tests {
         assert!(
             matches!(handle.cleanup().await, CleanupObservation::Finished(report) if report.is_confirmed())
         );
-        tasks.close();
+        let _closed = tasks.close();
         tasks.wait().await;
     }
     #[tokio::test]
@@ -118,7 +118,7 @@ mod tests {
         );
         assert!(directory.is_dir());
         assert!(handle.is_ended());
-        tasks.close();
+        let _closed = tasks.close();
         tasks.wait().await;
     }
 }
