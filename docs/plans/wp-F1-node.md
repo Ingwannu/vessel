@@ -1,6 +1,8 @@
 # F1 node extension: per-run schedule isolation
 
-Assigned base: Quality B29eebb8b (protocol23, store18). This is the separately
+Current assigned base: node gate40 ba45a6e3 (protocol23, store18), merged
+through60bb77f63. It includes Quality B and the approved workspace identity
+values; it does not provide the runtime provision/receipt/archive adapters. This is the separately
 owned node worktree; the app remains on its assigned package base. No product
 change, pending feature registration, schema allocation or working isolation
 implementation is asserted by this design checkpoint.
@@ -57,10 +59,12 @@ contracts; this document does not manufacture either one.
 
 ## Dependencies and tests still owed
 
-W11's staged702277bd is not yet a reviewed consumer-ready contract. It defines
-WorkspaceId/registry shapes and explicit membership, not cwd ownership. The
-local/worktree provision+store producer is W11, creation receipts W3, archive
-W21. None is merged here solely because its types exist on a staged branch.
+WorkspaceId and WorkspaceOperationId identity values are now in the assigned
+node base. W11's registry/provision c717bad1, W3's durable creation receipt
+storage0b112311 and W21's archive port afdcb766 were reported as staged, not
+reviewed product/runtime adapters. Their passing storage/fake tests do not
+provide a driver. Local/worktree provision is W11, creation receipts/driver W3,
+archive W21; none of those moving branches is merged merely for staged types.
 The app isolation option remains hidden until the implementation is admitted.
 
 Required regressions: field absent vs pending admission and each envelope;
@@ -72,3 +76,19 @@ Use existing fake harnesses and worktree fixtures, never real agents. Test the
 real actor/client and platform-specific refusal paths. Changed-crate narrow
 checks precede the final one node package gate and V3 review; none has run for
 an isolation implementation at this checkpoint.
+
+## Gate40 registration boundary
+
+RPC rows now live in rpc/table.rs (new methods append at its end), Request and
+UnexpectedReply in rpc/contract.rs, boot wiring in node/setup.rs. Isolation
+extends existing schedule.create/update payloads, so its admission belongs in
+the existing target_since field rule; no extra RPC row/capability is invented.
+New project/worktree/git/file methods owned by other packages use the explicit
+WORKSPACE_FAMILIES_LATER test inventory. Schema18 is inherited and unchanged;
+request a real migration step from the integrator only after durable run IDs
+and shared driver storage are fixed. The known c5da5305 root e2e race fix is
+already inherited, so no duplicate patch or test edit is needed.
+
+This merge/design note contains no isolation product implementation or test
+claim. Shared native button/menu producer handoffs remain the current priority;
+app isolation stays hidden until the node runtime and its review are available.
