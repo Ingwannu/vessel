@@ -22,6 +22,7 @@
 //! - Cost: the engine's caret and selection drawing are its own (the
 //!   caret stops blinking while motion is held, the engine's own rule).
 
+mod find;
 mod syntax;
 
 use std::rc::Rc;
@@ -33,6 +34,7 @@ use gpui_base::input::{
     Position, RopeExt as _,
 };
 
+pub use find::{FindCase, FindDirection, FindRevision, FindState, MatchCount, ReplaceScope};
 pub use syntax::{LineSyntax, Runs, SyntaxKind};
 
 use crate::theme::spacing;
@@ -60,7 +62,7 @@ impl CodeEditor {
     pub fn new<V: 'static, S: LineSyntax>(
         text: &str,
         syntax: S,
-        on_change: fn(&mut V, &mut Window, &mut Context<'_, V>),
+        on_change: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -73,6 +75,7 @@ impl CodeEditor {
             let mut state = EditorState::new(window, cx)
                 .folding(false)
                 .line_number(true)
+                .searchable(true)
                 .soft_wrap(false);
             // Paseo's `CodeMirror` theme: 16 above and below the text, and
             // `CodeMirror`'s 5 before the line numbers (without it they

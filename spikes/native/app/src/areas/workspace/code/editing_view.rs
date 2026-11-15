@@ -9,7 +9,7 @@ use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::motion::{QUICK, STANDARD};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, glyph};
@@ -52,6 +52,13 @@ pub(super) fn body(
         .flex()
         .flex_col()
         .child(toolbar(shell, editing, tokens))
+        .child(
+            button("source-open-find", labels.file_find, false, tokens).on_click({
+                let editor = editor.clone();
+                move |_, _, cx| editor.open_find(cx)
+            }),
+        )
+        .children(editing.find.as_ref().cloned())
         .children(conflict_bar(shell, editing, tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()

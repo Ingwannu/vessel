@@ -125,6 +125,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
+            Answer::Intelligence { ask, result } => self.language_answered(machine, ask, result),
             Answer::Projects(result) => {
                 let _was = self
                     .areas

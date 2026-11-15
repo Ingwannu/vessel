@@ -35,6 +35,7 @@ use crate::shell::Shell;
 
 /// A file being edited.
 pub(super) struct Editing {
+    pub(super) find: Option<vessel_app_kit::ui::Entity<super::editor_find::FindPanel>>,
     pub(super) model: EditorModel,
     /// Made on the frame after the first read (it needs the window).
     pub(super) editor: Option<CodeEditor>,
@@ -54,6 +55,7 @@ pub(super) struct Editing {
 impl Editing {
     pub(super) const fn new() -> Self {
         Self {
+            find: None,
             model: EditorModel::new(),
             editor: None,
             status: None,
@@ -90,15 +92,20 @@ impl Shell {
     }
 
     /// The person typed in the editor.
-    pub(super) fn editor_changed(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(editing) = self.editing() else {
+    pub(super) fn editor_changed_for(
+        &mut self,
+        key: &super::buffers::FileKey,
+        _window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(editing) = self.editing_for(key) else {
             return;
         };
         let Some(text) = editing.editor.as_ref().map(|editor| editor.text(cx)) else {
             return;
         };
         let step = editing.model.edit(&text);
-        self.run_step(step, cx);
+        self.run_step_for(key.clone(), step, cx);
     }
 
     /// A read of the file being edited came back. `false` when the file
@@ -223,6 +230,10 @@ impl Shell {
     /// Make the editor control after the first read, or put a reload's
     /// text in it (both need the window, which an answer does not carry).
     pub(super) fn editor_frame(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(key) = self.areas.workspace.code.file_key() else {
+            return;
+        };
+        let labels = self.words().labels();
         let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() else {
             return;
         };
@@ -235,6 +246,9 @@ impl Shell {
             return;
         }
         if let Some(editor) = editing.editor.as_ref() {
+            if let Some(line) = viewer.goto.take() {
+                editor.reveal_line(line, window, cx);
+            }
             if editing.stale {
                 editing.stale = false;
                 editor.set_text(editing.model.content(), window, cx);
@@ -244,7 +258,10 @@ impl Shell {
         let editor = CodeEditor::new(
             editing.model.content(),
             ViewSyntax(language),
-            Self::editor_changed,
+            {
+                let key = key.clone();
+                move |shell: &mut Shell, window, cx| shell.editor_changed_for(&key, window, cx)
+            },
             window,
             cx,
         );
@@ -256,11 +273,13 @@ impl Shell {
             editor.reveal_line(line, window, cx);
         }
         let status = super::editor_status::Status::new(editor.clone(), cx);
+        let find = super::editor_find::FindPanel::new(editor.clone(), key, labels, window, cx);
         let Some(editing) = viewer.edit.as_mut() else {
             return;
         };
         editing.editor = Some(editor);
         editing.status = Some(status);
+        editing.find = Some(find);
         cx.notify();
     }
 }

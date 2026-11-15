@@ -38,7 +38,7 @@ impl Shell {
         cx.notify();
     }
 
-    fn next_file_ticket(&mut self) -> Option<FileTicket> {
+    pub(super) fn next_file_ticket(&mut self) -> Option<FileTicket> {
         match self.areas.workspace.code.tickets.issue() {
             Ok(ticket) => Some(ticket),
             Err(error) => {

@@ -31,12 +31,15 @@ mod change_rows;
 mod changes;
 mod editing;
 mod editing_view;
+mod editor_find;
 mod editor_io;
 mod editor_status;
 mod elsewhere;
 mod files;
 mod found;
 mod frame;
+mod intelligence;
+mod intelligence_view;
 mod layout_adapter;
 mod line_syntax;
 mod search;
@@ -112,6 +115,8 @@ struct Changes {
 
 /// A file shown in the Files tab.
 struct Viewer {
+    workspace_dir: Option<std::path::PathBuf>,
+    intelligence: intelligence::State,
     path: RelPath,
     text: Shown,
     list: VirtualList,

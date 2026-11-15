@@ -87,6 +87,8 @@ pub enum GitAsk {
 /// The file asks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileAsk {
+    /// An existing read-only `lsp.*` query for a saved source file.
+    Intelligence(super::IntelligenceAsk),
     /// `file.list`.
     List(ListDir),
     /// `file.read`.

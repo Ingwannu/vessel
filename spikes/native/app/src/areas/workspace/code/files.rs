@@ -183,6 +183,12 @@ impl Shell {
     /// Show `path`: edited in place at a desktop's width (read whole, in
     /// one page of at most 1 MiB), read-only at a phone's (Paseo's rule).
     fn show_file(&mut self, machine: &str, root: WorkspaceRoot, path: RelPath, line: Option<u32>) {
+        let workspace_dir = self
+            .areas
+            .workspace
+            .code
+            .cwd()
+            .map(std::path::Path::to_path_buf);
         let files = &mut self.areas.workspace.code.files;
         let key = super::buffers::FileKey {
             machine: machine.to_owned(),
@@ -198,6 +204,8 @@ impl Shell {
         }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            workspace_dir,
+            intelligence: super::intelligence::State::Idle,
             path: path.clone(),
             text: Shown::Loading,
             list: VirtualList::new(false),

@@ -128,6 +128,10 @@ async fn git_ask(client: &NodeClient, ask: GitAsk) -> Answer {
 
 async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
     match ask {
+        FileAsk::Intelligence(ask) => Answer::Intelligence {
+            result: super::intelligence::run(client, &ask).await,
+            ask,
+        },
         FileAsk::List(ask) => Answer::Listed {
             result: call(client, ask.clone()).await,
             ask,

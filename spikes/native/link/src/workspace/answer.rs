@@ -42,6 +42,13 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// A file-owned language query, correlated with its exact request.
+    Intelligence {
+        /// Original request, including source identity and ticket.
+        ask: super::IntelligenceAsk,
+        /// Typed language result or failure.
+        result: super::IntelligenceResult,
+    },
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -357,6 +364,10 @@ fn git_refused(ask: GitAsk, problem: &Problem) -> Answer {
 
 fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
     match ask {
+        FileAsk::Intelligence(ask) => Answer::Intelligence {
+            result: super::intelligence::refused(ask.action, problem),
+            ask,
+        },
         FileAsk::List(ask) => Answer::Listed {
             ask,
             result: no(problem),

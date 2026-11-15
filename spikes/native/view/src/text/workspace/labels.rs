@@ -7,6 +7,28 @@
 #[derive(Debug)]
 #[expect(missing_docs, reason = "each field is named for the words it holds")]
 pub struct Labels {
+    /// Literal file search and replacement.
+    pub file_find: &'static str,
+    pub file_find_no_matches: &'static str,
+    pub file_find_previous: &'static str,
+    pub file_find_next: &'static str,
+    pub file_find_case: &'static str,
+    pub file_replace: &'static str,
+    pub file_replace_all: &'static str,
+    /// Saved-file language intelligence controls and honest result states.
+    pub language_hover: &'static str,
+    pub language_definition: &'static str,
+    pub language_diagnostics: &'static str,
+    pub language_save_first: &'static str,
+    pub language_unavailable: &'static str,
+    pub language_timeout: &'static str,
+    pub language_no_hover: &'static str,
+    pub language_no_locations: &'static str,
+    pub language_no_diagnostics: &'static str,
+    pub language_saved: &'static str,
+    pub language_cached: &'static str,
+    pub language_unknown: &'static str,
+    pub language_truncated: &'static str,
     /// Retained dirty/pending buffers cannot be discarded for a new file.
     pub editor_buffers_full: &'static str,
     /// File sort and visibility actions.

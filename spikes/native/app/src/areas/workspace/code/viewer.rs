@@ -26,7 +26,9 @@ pub(super) fn viewer_element(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     if let Some(editing) = &viewer.edit
-        && (editing.stale || (editing.editor.is_none() && editing.model.version().is_some()))
+        && (viewer.goto.is_some()
+            || editing.stale
+            || (editing.editor.is_none() && editing.model.version().is_some()))
     {
         // The control is made, or a reload's text put in it, on the next
         // frame: an answer brings no window.
@@ -95,6 +97,7 @@ pub(super) fn viewer_element(
         .flex()
         .flex_col()
         .child(head)
+        .children(super::intelligence_view::panel(shell, viewer, tokens, cx))
         .child(div().flex_1().min_h(px(0.0)).child(body))
         .children(super::editing_view::reload_dialog(
             shell, tokens, window, narrow, cx,
