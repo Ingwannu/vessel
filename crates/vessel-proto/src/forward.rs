@@ -364,6 +364,11 @@ impl Method {
             | Self::GitRenameBranch
             | Self::GitStash
             | Self::ListDir
+            | Self::InspectDirectory
+            | Self::ReadFileBytes
+            | Self::DuplicateFileEntry
+            | Self::ObserveFile
+            | Self::SuggestEntries
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir
@@ -459,6 +464,11 @@ impl Method {
             | Self::StopNode
             // The node's settings (protocol 12): its own administration,
             // read and changed by its owner and its own devices.
+            | Self::GetSkillsStatus
+            | Self::ReconcileSkills
+            | Self::UninstallSkills
+            | Self::SaveSkillsSelection
+            | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
             | Self::InviteDevice

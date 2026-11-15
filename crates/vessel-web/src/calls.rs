@@ -171,6 +171,13 @@ const fn forwardable(method: Method) -> bool {
         | Method::GitStash
         | Method::ListDir
         | Method::ReadFile
+        // ADR0083: unary workspace calls remain subject to node scope and
+        // pending protocol admission; no stream or browser authority is added.
+        | Method::InspectDirectory
+        | Method::ReadFileBytes
+        | Method::DuplicateFileEntry
+        | Method::ObserveFile
+        | Method::SuggestEntries
         | Method::WriteFile
         | Method::CreateDir
         | Method::RenamePath
@@ -267,7 +274,12 @@ const fn forwardable(method: Method) -> bool {
         | Method::Deliver
         | Method::GrantHome
         | Method::GetCallback
-        | Method::ListPeers => false,
+        | Method::ListPeers
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection => false,
     }
 }
 
@@ -330,6 +342,11 @@ mod tests {
                 "fleet.peers",
                 // Protocol 11: a terminal's stream has its own frame.
                 "terminal.subscribe",
+                "skills.status",
+                "skills.reconcile",
+                "skills.uninstall",
+                "skills.save_selection",
+                "skills.import_selection",
                 // Staged service values do not enable a browser bridge path.
                 "workspace.script.list",
                 "workspace.script.start",
@@ -341,6 +358,21 @@ mod tests {
                 "service.set_exposure",
             ]
         );
+    }
+
+    #[test]
+    fn file_panel_unaries_keep_pending_admission_when_forwarded() {
+        for method in [
+            Method::InspectDirectory,
+            Method::ReadFileBytes,
+            Method::DuplicateFileEntry,
+            Method::ObserveFile,
+            Method::SuggestEntries,
+        ] {
+            assert!(forwardable(method));
+            assert_eq!(method.since(), None);
+            assert_eq!(method.shape(), vessel_proto::MethodShape::Unary);
+        }
     }
 
     #[test]

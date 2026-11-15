@@ -464,3 +464,10 @@ The third strict check reached the client fixtures and rejected ownership of
 an error that the assertion only inspects. The fixture now borrows each
 returned error; its exact variant/method assertions and all budgets remain
 unchanged. That earlier check ran no tests either.
+
+The next announced node head is merged without changing its protocol,
+schema, lifecycle selection or pending file/Skills contracts. Its complete
+method rows precede the service rows, which remain staged and unassigned.
+Client module registration and the browser refusal test retain the incoming
+entries and add only the service entries. No whole gate was running during
+the merge; earlier narrow runs retain their exact commits and scopes.
