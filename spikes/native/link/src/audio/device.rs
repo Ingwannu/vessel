@@ -41,11 +41,13 @@ impl Native {
             .ok_or(DeviceFailure::Unavailable)?;
         let config = device
             .default_input_config()
-            .map_err(|_| DeviceFailure::Unavailable)?;
-        let rate = RateHz::new(config.sample_rate().0).map_err(|_| DeviceFailure::Format)?;
-        let channels = Channels::try_from(config.channels()).map_err(|_| DeviceFailure::Format)?;
-        let format = Format::new(rate, channels).map_err(|_| DeviceFailure::Format)?;
-        let processor = Processor::new(format, format).map_err(|_| DeviceFailure::Processing)?;
+            .map_err(|_private| DeviceFailure::Unavailable)?;
+        let rate = RateHz::new(config.sample_rate().0).map_err(|_private| DeviceFailure::Format)?;
+        let channels =
+            Channels::try_from(config.channels()).map_err(|_private| DeviceFailure::Format)?;
+        let format = Format::new(rate, channels).map_err(|_private| DeviceFailure::Format)?;
+        let processor =
+            Processor::new(format, format).map_err(|_private| DeviceFailure::Processing)?;
         let (callback, frames) = Callback::channel(format, Arc::clone(&fence));
         let overrun = callback.overrun();
         let interrupted = Arc::new(AtomicBool::new(false));
@@ -62,7 +64,9 @@ impl Native {
 
 impl CaptureDevice for Native {
     fn start(&self) -> Result<(), DeviceFailure> {
-        self.stream.play().map_err(|_| DeviceFailure::Unavailable)
+        self.stream
+            .play()
+            .map_err(|_private| DeviceFailure::Unavailable)
     }
 
     fn receive(&mut self) -> Result<Option<Captured>, DeviceFailure> {
@@ -71,7 +75,7 @@ impl CaptureDevice for Native {
                 .processor
                 .capture(frame.as_slice())
                 .map(Some)
-                .map_err(|_| DeviceFailure::Processing),
+                .map_err(|_private| DeviceFailure::Processing),
             Err(mpsc::error::TryRecvError::Empty) => Ok(None),
             Err(mpsc::error::TryRecvError::Disconnected) => Err(DeviceFailure::Interrupted),
         }
@@ -114,6 +118,7 @@ fn build(
     let stream = match config.sample_format() {
         cpal::SampleFormat::I8 => input!(i8),
         cpal::SampleFormat::I16 => input!(i16),
+        cpal::SampleFormat::I24 => input!(cpal::I24),
         cpal::SampleFormat::I32 => input!(i32),
         cpal::SampleFormat::I64 => input!(i64),
         cpal::SampleFormat::U8 => input!(u8),
@@ -124,5 +129,5 @@ fn build(
         cpal::SampleFormat::F64 => input!(f64),
         _ => return Err(DeviceFailure::Format),
     };
-    stream.map_err(|_| DeviceFailure::Unavailable)
+    stream.map_err(|_private| DeviceFailure::Unavailable)
 }

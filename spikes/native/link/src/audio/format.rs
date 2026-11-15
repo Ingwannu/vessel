@@ -82,9 +82,6 @@ impl Format {
     pub(super) const fn channels(self) -> Channels {
         self.channels
     }
-    pub(super) const fn rate(self) -> RateHz {
-        self.rate
-    }
     pub(super) fn config(self) -> sonora::StreamConfig {
         sonora::StreamConfig::new(self.rate.get(), self.channels.get())
     }

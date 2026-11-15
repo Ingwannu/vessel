@@ -58,13 +58,13 @@ fn a_slow_device_destructor_keeps_the_slot_after_callbacks_are_fenced() {
     let (release, released) = blocking::sync_channel(1);
     let (sender, _receiver) = mpsc::channel(1);
     let task = std::thread::spawn(move || {
-        run(owner, sender, |fence| {
+        run(owner, &sender, |fence| {
             Ok(Device {
                 fence,
                 dropped,
                 release: released,
             })
-        })
+        });
     });
     destroying.recv_timeout(Duration::from_secs(2)).unwrap();
     handle.stop();
@@ -85,7 +85,7 @@ impl CaptureDevice for Frames {
         self.0
             .capture(&[0.0; 160])
             .map(Some)
-            .map_err(|_| DeviceFailure::Processing)
+            .map_err(|_private| DeviceFailure::Processing)
     }
     fn failure(&self) -> Option<DeviceFailure> {
         None
@@ -98,7 +98,7 @@ fn normalized_queue_overrun_disposes_the_device_and_cannot_reuse_a_generation() 
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, mut receiver) = mpsc::channel(1);
-    run(owner, sender, |_fence| Ok(Frames(processor())));
+    run(owner, &sender, |_fence| Ok(Frames(processor())));
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Overrun));
     let frame = receiver.try_recv().unwrap();
     assert_eq!(frame.lease(), handle.lease());
@@ -115,7 +115,7 @@ fn opening_failure_releases_reservation_without_any_running_state() {
     let (owner, handle) = engine.reserve(CapturePurpose::Dictation).unwrap();
     let status = handle.status();
     let (sender, _receiver) = mpsc::channel(1);
-    run::<Frames>(owner, sender, |_fence| Err(DeviceFailure::Unavailable));
+    run::<Frames>(owner, &sender, |_fence| Err(DeviceFailure::Unavailable));
     assert_eq!(*status.borrow(), State::Failed(DeviceFailure::Unavailable));
     assert!(engine.reserve(CapturePurpose::Conversation).is_ok());
 }

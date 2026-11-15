@@ -41,8 +41,8 @@ struct Device {
 }
 
 impl Audio for Device {
-    async fn release(&mut self) -> Result<(), Failure> {
-        self.release
+    fn release(&mut self) -> impl Future<Output = Result<(), Failure>> + Send {
+        std::future::ready(self.release)
     }
 }
 

@@ -73,7 +73,7 @@ impl Engine {
         let lease = self
             .slot
             .lock()
-            .map_err(|_| AudioError::Ownership)?
+            .map_err(|_private| AudioError::Ownership)?
             .reserve(purpose)
             .map_err(AudioError::Reservation)?;
         let fence = Arc::new(AtomicBool::new(false));
@@ -116,7 +116,7 @@ impl Owner {
             .engine
             .slot
             .lock()
-            .map_err(|_| AudioError::Ownership)?
+            .map_err(|_private| AudioError::Ownership)?
             .started(self.lease)
             .map_err(AudioError::Reservation)?;
         if completion != CaptureCompletion::Current {
@@ -136,11 +136,12 @@ impl Drop for Owner {
     fn drop(&mut self) {
         self.fence.store(true, Ordering::Release);
         // Keep a poisoned slot held rather than publish unverified release.
-        if let Ok(mut slot) = self.engine.slot.lock() {
-            if slot.stopping(self.lease).is_ok() && slot.released(self.lease).is_ok() {
-                let state = self.failure.map_or(State::Released, State::Failed);
-                let _previous = self.status.send_replace(state);
-            }
+        if let Ok(mut slot) = self.engine.slot.lock()
+            && slot.stopping(self.lease).is_ok()
+            && slot.released(self.lease).is_ok()
+        {
+            let state = self.failure.map_or(State::Released, State::Failed);
+            let _previous = self.status.send_replace(state);
         }
     }
 }

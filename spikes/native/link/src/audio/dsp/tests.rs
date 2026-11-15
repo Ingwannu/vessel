@@ -7,7 +7,9 @@ fn format(rate: u32, channels: Channels) -> Format {
 fn decode(frame: &Captured) -> Vec<i16> {
     frame
         .pcm()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|bytes| i16::from_le_bytes(bytes.try_into().unwrap()))
         .collect()
 }
@@ -63,11 +65,9 @@ fn conversion_frames_preserve_mono_in_both_speaker_channels() {
             .render(&[0.25; 240], RateHz::new(24_000).unwrap())
             .unwrap();
         assert_eq!(rendered.samples().len(), 960);
-        for pair in rendered.samples().chunks_exact(2) {
-            let [left, right] = pair else {
-                panic!("malformed stereo output");
-            };
-            assert!(left.to_bits() == right.to_bits());
+        for pair in rendered.samples().as_chunks::<2>().0.iter() {
+            let [left, right] = pair;
+            assert_eq!(left.to_bits(), right.to_bits());
         }
         assert!(!format!("{rendered:?}").contains("0.25"));
     }

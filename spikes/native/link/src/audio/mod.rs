@@ -1,7 +1,8 @@
 //! Staged desktop audio/DSP mechanisms, not an advertised device capability.
 //!
-//! A real process-wide device actor will drive view::audio ownership and
-//! use this processor on its dedicated thread. These tests open no device.
+//! The device thread drives `view::audio` ownership and owns the capture DSP.
+//! Conversation playback wiring still removes this outer staging boundary.
+//! These tests open no device.
 
 mod callback;
 mod device;

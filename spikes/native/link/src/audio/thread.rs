@@ -36,14 +36,14 @@ pub(super) fn start(owner: Owner) -> Result<mpsc::Receiver<Frame>, DeviceFailure
     let (sender, receiver) = mpsc::channel(NORMALIZED_QUEUE_BLOCKS);
     let _thread = std::thread::Builder::new()
         .name("vessel-audio".to_owned())
-        .spawn(move || run(owner, sender, Native::open))
-        .map_err(|_| DeviceFailure::Thread)?;
+        .spawn(move || run(owner, &sender, Native::open))
+        .map_err(|_private| DeviceFailure::Thread)?;
     Ok(receiver)
 }
 
 fn run<D: CaptureDevice>(
     mut owner: Owner,
-    sender: mpsc::Sender<Frame>,
+    sender: &mpsc::Sender<Frame>,
     open: impl FnOnce(Arc<AtomicBool>) -> Result<D, DeviceFailure>,
 ) {
     if owner.stopped() {
@@ -51,7 +51,7 @@ fn run<D: CaptureDevice>(
     }
     match open(owner.fence()) {
         Ok(mut device) => {
-            let result = capture(&owner, &sender, &mut device);
+            let result = capture(&owner, sender, &mut device);
             if let Err(failure) = result {
                 owner.fail(failure);
             } else if let Some(failure) = device.failure() {
@@ -89,7 +89,7 @@ fn capture(
                         lease: owner.lease(),
                         audio,
                     })
-                    .map_err(|_| DeviceFailure::Overrun)?;
+                    .map_err(|_private| DeviceFailure::Overrun)?;
             }
             None => std::thread::sleep(DEVICE_POLL),
         }

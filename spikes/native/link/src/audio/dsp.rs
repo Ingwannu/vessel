@@ -120,13 +120,13 @@ impl Processor {
             Channels::Mono => self.in_left.copy_from_slice(samples),
             Channels::Stereo => {
                 for ((pair, left), right) in samples
-                    .chunks_exact(2)
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
                     .zip(&mut self.in_left)
                     .zip(&mut self.in_right)
                 {
-                    let [a, b] = pair else {
-                        return Err(AudioError::Frame);
-                    };
+                    let [a, b] = pair;
                     *left = *a;
                     *right = *b;
                 }
