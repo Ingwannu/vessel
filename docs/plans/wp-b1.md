@@ -260,3 +260,5 @@ Upload and resume envelopes now carry the same existing canonical ClientMessageI
 
 
 Portable consumer packet: this isolated commit composes only the Node-pinned read prerequisite, canonical Upload/Woke identity envelopes, mention-ticket high-water, permitted immutable connection Hash leaves, helper visibility and original-admission changes on the creation owner snapshot. It preserves that snapshot's existing direct sent-image read completion; image normalization and plugin attachment variants are not prerequisites or included. No new protocol/client/runtime leaf is introduced. The packet is staged until its own combined VM check runs.
+
+Earlier composer-test compilation identified a stale SessionId import and redundant HashMap/WorkspaceInput qualification. This isolated correction keeps scoped behavior unchanged. The newer async clipboard fixture correction is separate and is not a prerequisite of this packet.
