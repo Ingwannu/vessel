@@ -94,3 +94,10 @@ owned spawn and before awaiting readiness. It retains only the bounded stderr
 reader, so cancellation/malformed readiness still drops and cleans up the owned
 child while the UI can explicitly read the failure's log tail. Error values do
 not retain or print log text. Reused nodes have no captured owned stderr source.
+
+The launcher-exit fixture starts a separate test executable and waits for that
+launcher's actual exit before probing the synthetic child over parent-owned
+loopback IPC. It covers detached survival, ordinary bound drop and releasable
+still-owned drop on the same source path on Unix and Windows. EOF/x cleans up the
+fixture without numeric PID control. A Linux run only proves Linux; Windows job
+survival remains unverified until that same case executes on Windows.
