@@ -9,8 +9,8 @@ use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::motion::{QUICK, STANDARD};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, IntoElement as _, ParentElement as _, StatefulStyled as _, Window,
-    div, px,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button, glyph};
 use vessel_app_view::workspace::editor::{ConflictKind, EditorStatus};

@@ -92,7 +92,12 @@ pub enum FileAsk {
     /// `file.list`.
     List(ListDir),
     /// `file.read`.
-    Read(ReadFile),
+    Read {
+        /// The bounded wire read.
+        ask: ReadFile,
+        /// Invalidates an older response after reopening or refreshing.
+        ticket: FileTicket,
+    },
     /// A whole editor read whose response echoes a unique request identity.
     EditorRead {
         /// The bounded wire read.
@@ -104,6 +109,13 @@ pub enum FileAsk {
     Save(Save),
     /// `file.find`.
     Find(FindFiles),
+    /// Shared picker search with per-request correlation even for repeated queries.
+    TrackedFind {
+        /// Existing wire search; its stable key still cancels older node work.
+        ask: FindFiles,
+        /// Local acquisition generation, echoed without a wire change.
+        ticket: FileTicket,
+    },
     /// `file.grep`.
     Grep(SearchFiles),
     /// `file.create_dir`, `file.rename`, `file.delete`, or a new file.

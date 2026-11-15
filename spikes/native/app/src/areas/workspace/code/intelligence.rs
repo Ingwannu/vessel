@@ -114,7 +114,7 @@ impl Shell {
         if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
             viewer.intelligence = State::Loading(ask.clone());
         }
-        self.ask(&key.machine, Ask::File(FileAsk::Intelligence(ask)));
+        self.ask(key.machine.as_str(), Ask::File(FileAsk::Intelligence(ask)));
     }
 
     pub(in crate::areas::workspace) fn language_answered(
@@ -123,10 +123,8 @@ impl Shell {
         ask: IntelligenceAsk,
         result: IntelligenceResult,
     ) {
-        let key = FileKey {
-            machine: machine.to_owned(),
-            root: ask.root,
-            path: ask.path.clone(),
+        let Some(key) = FileKey::from_book(machine, ask.root, ask.path.clone()) else {
+            return;
         };
         let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
             return;

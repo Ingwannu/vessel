@@ -1,6 +1,7 @@
 //! File resources belong to node/root/path, independently of pane or
 //! renderer. Leaving a tab retains its outstanding I/O and dirty buffer.
 
+use vessel_app_view::machine_book::Name;
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
 use super::{CodePanel, Files, Slot, Viewer, actions};
@@ -12,19 +13,26 @@ const MAX_RETAINED_FILES: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) struct FileKey {
-    pub(super) machine: String,
+    pub(super) machine: Name,
     pub(super) root: WorkspaceRoot,
     pub(super) path: RelPath,
+}
+
+impl FileKey {
+    /// Legacy book callbacks provide text; retain only validated identities.
+    pub(super) fn from_book(machine: &str, root: WorkspaceRoot, path: RelPath) -> Option<Self> {
+        Some(Self {
+            machine: Name::parse(machine).ok()?,
+            root,
+            path,
+        })
+    }
 }
 
 impl CodePanel {
     pub(super) fn file_key(&self) -> Option<FileKey> {
         let (machine, root) = self.root()?;
-        Some(FileKey {
-            machine: machine.to_owned(),
-            root: *root,
-            path: self.files.viewer.as_ref()?.path.clone(),
-        })
+        FileKey::from_book(machine, *root, self.files.viewer.as_ref()?.path.clone())
     }
 
     pub(super) fn viewer_for(&mut self, key: &FileKey) -> Option<&mut Viewer> {
@@ -52,11 +60,12 @@ impl Shell {
                     .retained
                     .iter()
                     .find_map(|(key, viewer)| {
-                        let idle = viewer.edit.as_ref().is_none_or(|editing| {
-                            !editing.model.modified()
-                                && editing.reading.is_none()
-                                && editing.writing.is_none()
-                        });
+                        let idle = viewer.reading.is_none()
+                            && viewer.edit.as_ref().is_none_or(|editing| {
+                                !editing.model.modified()
+                                    && editing.reading.is_none()
+                                    && editing.writing.is_none()
+                            });
                         idle.then(|| key.clone())
                     });
             let Some(disposable) = disposable else {
@@ -75,7 +84,7 @@ impl Shell {
 }
 
 impl Files {
-    fn relist(&mut self) {
+    pub(super) fn relist(&mut self) {
         self.rows = tree_rows_with(&self.listings, &self.open, self.options);
         self.list.reset(self.row_count());
     }
@@ -93,7 +102,7 @@ impl Files {
 
     /// What list row `index` draws: the typed name's row (at its depth),
     /// or the tree's row at an index.
-    fn slot(&self, index: usize) -> Slot {
+    pub(super) fn slot(&self, index: usize) -> Slot {
         let Some((at, replaces)) = self
             .actions
             .editing

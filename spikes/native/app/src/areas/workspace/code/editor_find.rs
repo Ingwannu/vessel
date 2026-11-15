@@ -2,13 +2,14 @@
 //! does not repaint the shell. Replacement explicitly reaches the guarded
 //! save model; the engine's replacement method emits no change event.
 
+use gpui::AppContext as _;
 use vessel_app_kit::code_editor::{
     CodeEditor, FindCase, FindDirection, FindRevision, FindState, ReplaceScope,
 };
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AppContext as _, Context, Entity, IntoElement, ParentElement as _, Render,
-    StatefulInteractiveElement as _, Styled as _, Subscription, WeakEntity, Window, div, px,
+    Context, Entity, IntoElement, ParentElement as _, Render, StatefulInteractiveElement as _,
+    Styled as _, Subscription, WeakEntity, Window, div, px,
 };
 use vessel_app_kit::{TextField, Type, TypeExt as _, button};
 

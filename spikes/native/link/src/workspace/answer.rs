@@ -171,6 +171,8 @@ pub enum Answer {
     Read {
         /// What was asked.
         ask: ReadFile,
+        /// Original request identity, independent of the active pane.
+        ticket: FileTicket,
         /// The page.
         result: Result<FileRead, Problem>,
     },
@@ -199,6 +201,15 @@ pub enum Answer {
         /// What was asked.
         ask: FindFiles,
         /// The matches.
+        result: Result<FoundFiles, Problem>,
+    },
+    /// A shared picker response, fenced independently of query text.
+    TrackedFound {
+        /// Original wire request.
+        ask: FindFiles,
+        /// Original acquisition generation.
+        ticket: FileTicket,
+        /// Matches or a typed refusal.
         result: Result<FoundFiles, Problem>,
     },
     /// Lines found in files.
@@ -372,8 +383,9 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             ask,
             result: no(problem),
         },
-        FileAsk::Read(ask) => Answer::Read {
+        FileAsk::Read { ask, ticket } => Answer::Read {
             ask,
+            ticket,
             result: no(problem),
         },
         FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
@@ -389,6 +401,11 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
         },
         FileAsk::Find(ask) => Answer::Found {
             ask,
+            result: no(problem),
+        },
+        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
+            ask,
+            ticket,
             result: no(problem),
         },
         FileAsk::Grep(ask) => Answer::Grepped {

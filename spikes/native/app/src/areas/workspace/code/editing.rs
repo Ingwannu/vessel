@@ -123,7 +123,9 @@ impl Shell {
     ) -> bool {
         let words = self.words();
         let Some(editing) = self.editing_for(key) else {
-            return false;
+            // No matching editor owns this response anymore; only a
+            // current ticket may choose a readonly fallback below.
+            return true;
         };
         let Some((_, sequence)) = editing.reading.take_if(|(at, _)| *at == ticket) else {
             return true;
@@ -164,10 +166,8 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
-        let key = super::buffers::FileKey {
-            machine: machine.to_owned(),
-            root: *root,
-            path: path.clone(),
+        let Some(key) = super::buffers::FileKey::from_book(machine, *root, path.clone()) else {
+            return;
         };
         let Some(editing) = self.editing_for(&key) else {
             return;

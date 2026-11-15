@@ -244,10 +244,6 @@ impl Shell {
         if result.as_ref().is_ok_and(|found| found.superseded) {
             return;
         }
-        if let Some((request, receive)) = self.take_file_search(machine, ask) {
-            receive(self, request, result, cx);
-            return;
-        }
         if ask.key != self.areas.workspace.code.files.search.key {
             // Another field's find (track P's `@`, `code_find_files`).
             super::elsewhere::found_elsewhere(self, ask, result);

@@ -93,14 +93,14 @@ impl Shell {
             return;
         }
         if let Some(path) = shown {
-            self.ask(
+            self.read_viewer(
                 &machine,
-                Ask::File(FileAsk::Read(ReadFile {
+                ReadFile {
                     root,
                     path,
                     offset: 0,
                     limit: None,
-                })),
+                },
             );
         }
     }
@@ -193,10 +193,8 @@ impl Shell {
             .cwd()
             .map(std::path::Path::to_path_buf);
         let files = &mut self.areas.workspace.code.files;
-        let key = super::buffers::FileKey {
-            machine: machine.to_owned(),
-            root,
-            path: path.clone(),
+        let Some(key) = super::buffers::FileKey::from_book(machine, root, path.clone()) else {
+            return;
         };
         if let Some(mut viewer) = files.retained.remove(&key) {
             if line.is_some() {
@@ -207,6 +205,7 @@ impl Shell {
         }
         let editable = !files.narrow.get();
         files.viewer = Some(Viewer {
+            reading: None,
             workspace_dir,
             intelligence: super::intelligence::State::Idle,
             path: path.clone(),
@@ -233,22 +232,61 @@ impl Shell {
             offset: 0,
             limit: None,
         };
-        self.ask(machine, Ask::File(FileAsk::Read(read)));
+        self.read_viewer(machine, read);
+    }
+
+    fn read_viewer(&mut self, machine: &str, ask: ReadFile) {
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
+        };
+        let Some(ticket) = self.next_file_ticket() else {
+            return;
+        };
+        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+            return;
+        };
+        viewer.reading = Some(ticket);
+        self.ask(machine, Ask::File(FileAsk::Read { ask, ticket }));
+    }
+
+    pub(in crate::areas::workspace) fn file_read_answered(
+        &mut self,
+        machine: &str,
+        ask: &ReadFile,
+        ticket: vessel_app_view::workspace::file_ticket::FileTicket,
+        result: Result<FileRead, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
+        };
+        let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
+            return;
+        };
+        if viewer
+            .reading
+            .take_if(|pending| *pending == ticket)
+            .is_none()
+        {
+            return;
+        }
+        self.file_read(machine, ask, result, cx);
     }
 
     /// A file's first page arrived.
-    pub(in crate::areas::workspace) fn file_read(
+    pub(super) fn file_read(
         &mut self,
         machine: &str,
         ask: &ReadFile,
         result: Result<FileRead, Problem>,
-        cx: &mut Context<'_, Self>,
+        _cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
-        let key = super::buffers::FileKey {
-            machine: machine.to_owned(),
-            root: ask.root,
-            path: ask.path.clone(),
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
         };
         let Some(viewer) = self.areas.workspace.code.viewer_for(&key) else {
             return;
@@ -292,10 +330,9 @@ impl Shell {
         result: Result<FileRead, Problem>,
         cx: &mut Context<'_, Self>,
     ) {
-        let key = super::buffers::FileKey {
-            machine: machine.to_owned(),
-            root: ask.root,
-            path: ask.path.clone(),
+        let Some(key) = super::buffers::FileKey::from_book(machine, ask.root, ask.path.clone())
+        else {
+            return;
         };
         if self.editing_read(&key, ticket, &result, cx) {
             return;

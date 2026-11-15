@@ -1,6 +1,7 @@
 # Workspace files, editor and document panels
 
-Status: proposed. Base: `1d1f11df`; node companion starts at `d954fa3a`.
+Status: implementation in progress; no package acceptance yet. App base `8d5513e4`
+is merged; node companion includes Quality B `29eebb8b`.
 
 ## Reference and existing assets
 
@@ -118,3 +119,23 @@ compile; finish persisted expansions, modified ordering, retained I/O
 routing and pane rendering; integrate the common node base, then LSP,
 document rendering, captures and the final gates. Nothing is claimed
 complete yet.
+
+## Correlation regression checks (2026-11-15)
+
+Retained `FileKey` uses the existing validated machine-book `Name`, authorized
+root and relative path. Readonly loads now echo the same monotonic ticket
+family as editor reads; a refresh invalidates the previous response without
+discarding its currently displayed content. Shared picker searches retain a
+stable wire `SearchKey` for node cancellation and a distinct local ticket
+for every acquisition. Comparing only query text cannot reject the first
+response in `A → B → A`, so tracked replies never fall through to another
+consumer's legacy response path. No new node method is needed for correlation.
+
+Headless shell tests use the existing isolated `without_io` constructor: no
+node connection, updater, real agent or filesystem is started. They exercise
+same-path readonly refresh, retained editor responses, wrong node/ticket
+refusal, repeated query generations, cancellation and registration budgets.
+These tests are written but not yet executed. Remote narrow clippy on
+`18aded91` failed at app UI imports, extracted method visibility and one
+LSP row signature; this source corrects those errors. Earlier red runs
+remain failures; no whole gate or screenshot approval exists yet.

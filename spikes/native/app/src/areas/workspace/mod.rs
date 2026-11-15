@@ -167,13 +167,22 @@ impl Shell {
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(machine, &ask, result),
-            Answer::Read { ask, result } => self.file_read(machine, &ask, result, cx),
+            Answer::Read {
+                ask,
+                ticket,
+                result,
+            } => self.file_read_answered(machine, &ask, ticket, result, cx),
             Answer::EditorRead {
                 ask,
                 ticket,
                 result,
             } => self.editor_read_answered(machine, ticket, &ask, result, cx),
             Answer::Found { ask, result } => self.files_found(machine, &ask, result, cx),
+            Answer::TrackedFound {
+                ask,
+                ticket,
+                result,
+            } => self.file_search_answered(machine, &ask, ticket, result, cx),
             Answer::Grepped { ask, result } => self.files_grepped(machine, &ask, result),
             Answer::PathChanged { change, result } => self.path_changed(&change, result),
             // Track G1's: the git toolbar's reads and writes.

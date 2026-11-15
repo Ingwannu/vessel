@@ -41,6 +41,8 @@ mod found;
 mod frame;
 mod intelligence;
 mod intelligence_view;
+#[cfg(test)]
+mod io_tests;
 mod layout_adapter;
 mod line_syntax;
 mod search;
@@ -118,6 +120,8 @@ struct Changes {
 
 /// A file shown in the Files tab.
 struct Viewer {
+    /// Read-only loads must not overwrite a newer refresh of the same path.
+    reading: Option<vessel_app_view::workspace::file_ticket::FileTicket>,
     workspace_dir: Option<std::path::PathBuf>,
     intelligence: intelligence::State,
     path: RelPath,

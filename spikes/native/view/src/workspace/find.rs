@@ -45,6 +45,9 @@ pub const FILE_SEARCH_LIMIT: u32 = 100;
 /// Acquisition refuses before network work when a caller exceeds its budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum FileSearchRefusal {
+    /// A request identity must never wrap and accept a stale response.
+    #[error("file request identities are exhausted")]
+    Exhausted,
     /// A closing or cleared field frees its pending registration.
     #[error("at most {MAX_FILE_SEARCH_OWNERS} file search fields may wait at once")]
     Capacity,

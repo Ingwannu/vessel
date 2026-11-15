@@ -8,6 +8,7 @@ use std::num::NonZeroU32;
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::{Ask, FileAsk};
 use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::{FindFiles, FindQuery, FoundFiles, SearchKey, WorkspaceRoot};
 
@@ -37,6 +38,7 @@ pub(crate) type FileSearchReceiver =
     fn(&mut Shell, FileSearchRequest, Result<FoundFiles, Problem>, &mut Context<'_, Shell>);
 
 pub(super) struct RegisteredSearch {
+    ticket: FileTicket,
     request: FileSearchRequest,
     receive: FileSearchReceiver,
 }
@@ -60,6 +62,13 @@ impl Shell {
         if request.limit.get() > FILE_SEARCH_LIMIT {
             return Err(FileSearchRefusal::Limit);
         }
+        let ticket = self
+            .areas
+            .workspace
+            .code
+            .tickets
+            .issue()
+            .map_err(|_| FileSearchRefusal::Exhausted)?;
         let searches = &mut self.areas.workspace.code.searches.0;
         if searches.len() >= MAX_FILE_SEARCH_OWNERS && !searches.contains_key(&request.key) {
             return Err(FileSearchRefusal::Capacity);
@@ -71,8 +80,18 @@ impl Shell {
             limit: Some(request.limit.get()),
         };
         let machine = request.machine.clone();
-        let _replaced = searches.insert(request.key, RegisteredSearch { request, receive });
-        self.ask(machine.as_str(), Ask::File(FileAsk::Find(ask)));
+        let _replaced = searches.insert(
+            request.key,
+            RegisteredSearch {
+                ticket,
+                request,
+                receive,
+            },
+        );
+        self.ask(
+            machine.as_str(),
+            Ask::File(FileAsk::TrackedFind { ask, ticket }),
+        );
         Ok(())
     }
 
@@ -81,15 +100,33 @@ impl Shell {
         let _cancelled = self.areas.workspace.code.searches.0.remove(&key);
     }
 
-    pub(super) fn take_file_search(
+    pub(in crate::areas::workspace) fn file_search_answered(
         &mut self,
         machine: &str,
         ask: &FindFiles,
+        ticket: FileTicket,
+        result: Result<FoundFiles, Problem>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if result.as_ref().is_ok_and(|found| found.superseded) {
+            return;
+        }
+        if let Some((request, receive)) = self.take_file_search(machine, ask, ticket) {
+            receive(self, request, result, cx);
+        }
+    }
+
+    fn take_file_search(
+        &mut self,
+        machine: &str,
+        ask: &FindFiles,
+        ticket: FileTicket,
     ) -> Option<(FileSearchRequest, FileSearchReceiver)> {
         let key = ask.key?;
         let searches = &mut self.areas.workspace.code.searches.0;
         let pending = searches.get(&key)?;
-        if pending.request.machine.as_str() != machine
+        if pending.ticket != ticket
+            || pending.request.machine.as_str() != machine
             || pending.request.root != ask.root
             || pending.request.query != ask.query
         {
@@ -100,3 +137,7 @@ impl Shell {
             .map(|pending| (pending.request, pending.receive))
     }
 }
+
+#[cfg(test)]
+#[path = "file_search_tests.rs"]
+mod tests;

@@ -76,7 +76,7 @@ impl Shell {
             }
             Step::None | Step::Autosave | Step::StopAutosave => return,
         };
-        self.ask(&key.machine, Ask::File(ask));
+        self.ask(key.machine.as_str(), Ask::File(ask));
     }
 
     fn read_editor_for(&mut self, key: &FileKey, sequence: u64) {
@@ -88,7 +88,7 @@ impl Shell {
         };
         editing.reading = Some((ticket, sequence));
         self.ask(
-            &key.machine,
+            key.machine.as_str(),
             Ask::File(FileAsk::EditorRead {
                 ask: whole_read(key.root, key.path.clone()),
                 ticket,
@@ -106,14 +106,10 @@ impl Shell {
         else {
             return;
         };
-        self.read_editor_for(
-            &FileKey {
-                machine,
-                root,
-                path,
-            },
-            sequence,
-        );
+        let Some(key) = FileKey::from_book(&machine, root, path) else {
+            return;
+        };
+        self.read_editor_for(&key, sequence);
     }
 
     /// Leaving a file requests one serialized flush; its retained model

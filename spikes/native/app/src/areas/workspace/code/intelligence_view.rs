@@ -117,7 +117,6 @@ fn result_body(
             }
             for (index, diagnostic) in page.items.iter().enumerate() {
                 body = body.child(location_row(
-                    shell,
                     index,
                     &diagnostic.location,
                     Some(&diagnostic.message),
