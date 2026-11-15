@@ -16,6 +16,8 @@ use std::rc::Rc;
 
 const OFFSET: f32 = 4.0;
 const MARGIN: f32 = 8.0;
+// Signed total for the two viewport margins in fused layout arithmetic.
+const VIEWPORT_INSET: f32 = -16.0;
 const PAGE_INSET: f32 = 4.0;
 const MIN_VISIBLE: f32 = 1.0;
 const COMPACT_CAP: u8 = 80;
@@ -184,7 +186,6 @@ fn desktop<V: 'static>(
 
 fn available(length: Pixels) -> Pixels {
     px(f32::from(length)
-        .mul_add(1.0, -MARGIN)
-        .mul_add(1.0, -MARGIN)
+        .mul_add(1.0, VIEWPORT_INSET)
         .max(MIN_VISIBLE))
 }
