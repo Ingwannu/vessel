@@ -252,12 +252,14 @@ async fn full_history_budget_refuses_before_spawning_or_sending() {
             .unwrap();
         let mut request = batch(context.node());
         request.scope.context = context;
-        state
-            .history(Ask::Profiles {
+        crate::testing::phase(
+            "history budget refusal admission",
+            state.history(Ask::Profiles {
                 scope: request.scope,
                 ticket: request.ticket,
-            })
-            .await;
+            }),
+        )
+        .await;
         let event = crate::testing::phase("history refusal event", async {
             events.recv().await.unwrap()
         })
