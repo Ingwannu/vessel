@@ -1,6 +1,6 @@
 # Paseo parity: where the work stands
 
-Updated 2026-11-15, 14:55 UTC (end of the day's push). The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
+Updated 2026-11-15, 17:25 UTC. The full row-by-row state is in `TRACKER.md`. The scored catalogue is in `measure/`.
 
 ## Measured score (source coverage, 1,419 catalogue rows)
 
@@ -10,57 +10,51 @@ Updated 2026-11-15, 14:55 UTC (end of the day's push). The full row-by-row state
 | Node (`crates/`) | 30.02 % | 30.02 % |
 | Web page (`web/`) | 28.47 % | 28.47 % |
 
-`README.md` explains how the score is computed. Each surface is scored against all 1,419 rows. The goal of parity "today" was not reached. Most of the afternoon's work is reviewed but not yet merged into a scored head; it is listed below. The next measurement counts it.
+`README.md` explains how the score is computed. Each surface is scored against all 1,419 rows. The goal of parity on 2026-11-15 was not reached. No re-measurement has run since 12:00. The packages that landed since then (listed below) are counted at the next measurement.
 
 ## Lines and builds
 
-- App line (`backend/m12-package-base`):
-  - At e1b73c9e (package base 8 = node 82ae7c91 + S2's menu per-open lease + W12's staged delivery + W4's field identity), plus W12's selected() getter, the release branch and the Subagents leaf.
-  - The next head, c3429952 (W12's core union and W1's search ownership move), is gating.
-- Node line (`backend/m12-node`):
-  - At 82ae7c91.
-  - Gate 49 runs batches 11 and 12. Batch 11: W11 base fixes, W16 portable wait, W8 setup values, dictation's settings diagnostic, W2's detach core, W11's registry, and the ConnectionLife seam. Batch 12: W7's attention values, the shared Settings writer, G1's staged git compare, N1's diagnostics (protocol 24), and W11's project admission.
+- Node line (`backend/m12-node`), head **1c762ccf**:
+  - Gate 52 green on all 18 steps: Rust 2,550 passed / 0 failed / 12 ignored; web unit 464; browser end-to-end 80; forge 4.
+  - Protocol 25: the project and workspace registry's six metadata calls (list, get, rename, pin, release automation, registry). Minimum protocol 2, store schema 20.
+  - Since this morning: diagnostics (protocol 24), project admission and fixed ids, the shared Settings writer, the guarded handler boxing that fixed a worker-stack overflow, the web toast width correction, and the registry assignment.
+  - Gate 53 runs next on the session lifecycle package (store schema 21).
+- App line (`backend/m12-package-base`), package base **9** at **db42d9c5**:
+  - Green: native 1,510 passed / 0 failed / 2 ignored, with the locked dependency set unchanged.
+  - Contents: node 9c150c6e, the shared search field, the general translation words, GPUI zoom, the glyph inventory, inbox attention values, the picker admission and the workspace-tab owner hooks.
+  - Gating next: the dialog header actions; then the timeline resident seam, the git control patch and node 1c762ccf (base 10 candidate).
 - Published build: 0.0.0.0.21 (preview feed, 14:02 UTC).
-  - It adds the menu fix, dialog focus return, the outline rail following resizes, and resumable compressed updates.
-  - Compiled on the build VM, including the first Windows build there. The Linux smoke test passed.
 
 ## Reviewed and waiting for a base (not yet in a scored head)
 
-- Shared controls:
-  - G2: multiline field and the picker per-open admission.
-  - G3: SearchField and ExternalLink.
-  - G2: Circle button.
-  - W19: the shared popover.
-  - S2: SavePrefs boxing and a declarative glyph inventory.
-- Node packages:
-  - N1: diagnostics (protocol 24).
-  - W11: project admission and fixed ids, which unblocks W3's agent creation.
-  - GKS nodectl: the shared Settings writer.
-  - Dictation's pure codec seam.
-  - G4: relay lifetime.
-  - C2: terminal screen engine (gate owed).
-  - W18: Skills and browser values carrier.
+- Shared controls: dialog header actions; git control patch 7; the timeline resident seam; message-search navigation hooks; the import window correction.
+- Node packages: workspace file I/O (W13); MCP tools and browser values (W18); worktree setup progress and cancel (W8, its own handoff); the session lifecycle package (gate 53).
 
 ## Open work, by owner
 
-- Agent creation (W3): adapters are written against the admission package, and wait for the gate-49 node head.
-- Projects and workspaces (W11):
-  - The native registry projection waits for base 9.
-  - An early values carrier was reverted, because `(pending)` rows need node handlers.
-- Usage (W5) and Schedules (G2): wait for L's generator fix, which splits generated resolve functions over 100 lines.
-- Plugins (W16), scripts and services (W8), preview (GKS workspace), browser (W14): each has its contract reviewed. Each waits on a named producer: the service DTO, the canonical connection, the browser test-executable run.
-- Terminal (C2): the node answers terminal queries and strips them from presentation. A rare ambiguous overlap is left to the client. It stays off until that path passes.
-- Git (G1) and providers (W22): still skeleton. Corrections are in review.
+- Project registry (W11): protocol 25 is assigned. The supported-wire test matrix on that head is next. Workspace membership reads for inbox read/unread are in checks.
+- Settings (nodectl with N5): one shared owner for the settings record and its writer. The contract is reviewed. The restart-recovery hook and the implementation are next, followed by one joint gate.
+- Provider preparation (W22): one shared seam keeps the caller's permit until blocking preparation actually ends. It also keeps the create exclusion through registration. The source is settled and the checks are owed.
+- Terminal (C2, W17):
+  - The screen engine's history-cell fix is reviewed.
+  - The node's query responder has a written failure policy. A full reply queue never blocks output.
+  - The responder stays off until the engine passes.
+- Changes and git (W13, G1): a shown-Changes producer that carries the original context is being written. Git writes on data without that context stay refused.
+- Voice (W19): the inference runtime dependency is decided (dynamic loading, no build-time download). Provisioning into the offline index and the compile come next.
+- Web sign-in (N2): a timed-out sign-in wait now closes as "try again" instead of "unauthorized". The source is reviewed and the checks are owed.
+- Wasm build of the app link (G4): failing; being classified against the base.
 
-## Rules settled today that affect the remaining work
+## Rules settled on 2026-11-15 that affect the remaining work
 
 - Protocol numbers are assigned at merge, in merge order. A reservation only marks intent.
 - The priority build lane is only for:
   - a shared seam that named workers are blocked on;
   - the release label;
   - node integration gates.
+  A source scan (test modules last, function length, known lints) runs before each priority request. A failed priority run goes back to the ordinary lanes.
 - Values carriers must build the root node before they reach the app line.
 - When a survey row and the pinned Paseo source disagree, the source wins.
+- A defect found in a shared base is fixed once in the base. Each affected track then reruns its own full gate on the corrected source.
 
 ## Not in scope yet
 
