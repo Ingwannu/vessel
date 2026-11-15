@@ -328,6 +328,7 @@ impl Method {
             | Self::RenameWorkspace
             | Self::PinWorkspace
             | Self::ReleaseWorkspaceAutomation
+            | Self::RegisterProjectDirectory
             | Self::ListProjects
             | Self::GetProject
             | Self::AddProject

@@ -53,3 +53,15 @@ custom names/equivalence/icons, history suggestions, revision-aware vessel.toml,
 editor targets and automatic archive. Root/native full gates and UI captures are
 owed. No real provider, editor, live node or filesystem outside isolated tests
 has been touched by this work.
+
+## First source checkpoint (unverified)
+
+Selected-root registration now has a typed pending method with its own
+PROJECT_MANAGEMENT feature gate, separate from the approved registry dependency.
+The old add call keeps Git-top behavior. Both registration paths use serialized
+insertion, recheck exact-root deduplication under that admission lock, save before
+publishing, and keep critical insertion on the existing task tracker after a
+caller disconnects. Tests compare nested-root behavior with the legacy call,
+concurrent deduplication, and a closed store that must leave no visible ghost.
+Current source has passed format/size/boundary checks only; compilation, tests,
+TS regeneration and full C1 validation remain owed. No native caller was wired.

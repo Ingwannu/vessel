@@ -52,6 +52,7 @@ mod status;
 // Protocol 10's calls: projects, worktrees, git and files (`workspace`).
 mod files;
 mod git;
+mod project_management;
 mod projects;
 mod registry;
 mod worktrees;

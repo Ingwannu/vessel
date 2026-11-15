@@ -175,6 +175,7 @@ impl Reply {
             | Self::RenameWorkspace(_)
             | Self::PinWorkspace(_)
             | Self::ReleaseWorkspaceAutomation(_)
+            | Self::RegisterProjectDirectory(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)

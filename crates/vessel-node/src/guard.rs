@@ -276,6 +276,7 @@ untargeted!(
     vessel_proto::lsp::OutgoingCalls,
     vessel_proto::lsp::Diagnostics,
     vessel_proto::registry::ReleaseWorkspaceAutomation,
+    vessel_proto::project_management::RegisterProjectDirectory,
     vessel_proto::registry::GetRegistry,
     vessel_proto::registry::ListWorkspaces,
     vessel_proto::registry::GetWorkspace,

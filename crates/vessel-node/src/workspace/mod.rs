@@ -164,6 +164,7 @@ pub(crate) struct Workspaces {
     dirs: Dirs,
     places: Places,
     state: Mutex<State>,
+    project_registrations: tokio::sync::Mutex<()>,
     indexes: Arc<Indexes>,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
@@ -236,6 +237,7 @@ impl Workspaces {
             dirs,
             places,
             state: Mutex::new(State::default()),
+            project_registrations: tokio::sync::Mutex::new(()),
             indexes: Arc::new(Indexes::default()),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),

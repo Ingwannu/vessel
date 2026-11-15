@@ -127,6 +127,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::FinishUpload => json!({"upload":id}),
         Method::ReadAttachment => json!({"session":id,"attachment":id,"offset":0}),
         Method::GetWorkspace | Method::RenameWorkspace => json!({"workspace":id}),
+        Method::RegisterProjectDirectory => json!({"path":"/fixture"}),
         Method::ReleaseWorkspaceAutomation => {
             json!({"workspace":id,"expected":0,"source":{"kind":"change_request","number":1,"head_repository":{"kind":"github","host":"github.com","path":"sample/project"}}})
         }

@@ -43,6 +43,7 @@ mod pairing;
 pub mod parking;
 pub mod ports;
 mod profile;
+pub mod project_management;
 mod proxy;
 pub mod push;
 mod raw;

@@ -4,6 +4,7 @@
 //! is checked against the refused ones (`policy`) before it is recorded.
 
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 
 use chrono::Utc;
 use tokio::sync::watch;
@@ -15,6 +16,13 @@ use vessel_proto::workspace::{
 use super::short;
 use crate::workspace::{MAX_PROJECTS, ProjectEntry, WorkspaceError, Workspaces, policy};
 
+/// Legacy clients retain Git-top registration; C1 explicitly keeps the selected root.
+#[derive(Clone, Copy)]
+enum RootSelection {
+    RepositoryTop,
+    SelectedDirectory,
+}
+
 impl Workspaces {
     /// Add the folder `path` (absolute, existing) as a project: the
     /// repository's top level when it is inside one. A root already known
@@ -24,23 +32,45 @@ impl Workspaces {
     /// `invalid_request` for a path that is not an absolute folder or a
     /// refused root; `conflict` past the bound.
     pub(crate) async fn add_project(
-        &self,
+        self: &Arc<Self>,
         path: PathBuf,
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
+        self.register_directory(path, name, RootSelection::RepositoryTop)
+            .await
+    }
+
+    /// Register the exact selected root, including a nested Git subproject.
+    ///
+    /// # Errors
+    /// Existing canonical root policy, unavailable folder or retained project capacity.
+    pub(crate) async fn register_project_directory(
+        self: &Arc<Self>,
+        path: PathBuf,
+        name: Option<ProjectName>,
+    ) -> Result<ProjectInfo, WorkspaceError> {
+        self.register_directory(path, name, RootSelection::SelectedDirectory)
+            .await
+    }
+
+    async fn register_directory(
+        self: &Arc<Self>,
+        path: PathBuf,
+        name: Option<ProjectName>,
+        selection: RootSelection,
+    ) -> Result<ProjectInfo, WorkspaceError> {
         let folder = existing_folder(path).await?;
         self.refuse_git_dir(&folder).await?;
-        let (root, git) = match &self.git {
-            Some(git) => match git.toplevel(&folder).await? {
-                Some(top) => (canonical(top).await, true),
-                None => (folder, false),
-            },
-            None => (folder, false),
+        let repository = match &self.git {
+            Some(git) => git.toplevel(&folder).await?,
+            None => None,
+        };
+        let git = repository.is_some();
+        let root = match (selection, repository) {
+            (RootSelection::RepositoryTop, Some(top)) => canonical(top).await,
+            (RootSelection::RepositoryTop, None) | (RootSelection::SelectedDirectory, _) => folder,
         };
         policy::check_root(&self.places, &root)?;
-        if let Some(known) = self.project_at(&root) {
-            return Ok(known);
-        }
         self.insert_project(root, git, name, ProjectState::Ready)
             .await
     }
@@ -51,7 +81,7 @@ impl Workspaces {
     /// `unsupported` without git; `conflict` for a folder that is not
     /// empty; `invalid_request` for a relative path or a refused root.
     pub(crate) async fn init_project(
-        &self,
+        self: &Arc<Self>,
         path: PathBuf,
         name: Option<ProjectName>,
     ) -> Result<ProjectInfo, WorkspaceError> {
@@ -215,12 +245,36 @@ impl Workspaces {
     }
 
     async fn insert_project(
+        self: &Arc<Self>,
+        root: PathBuf,
+        git: bool,
+        name: Option<ProjectName>,
+        state: ProjectState,
+    ) -> Result<ProjectInfo, WorkspaceError> {
+        let owner = Arc::clone(self);
+        self.tasks
+            .spawn(async move { owner.insert_project_now(root, git, name, state).await })
+            .await
+            .map_err(WorkspaceError::ProjectTask)?
+    }
+
+    async fn insert_project_now(
         &self,
         root: PathBuf,
         git: bool,
         name: Option<ProjectName>,
         state: ProjectState,
     ) -> Result<ProjectInfo, WorkspaceError> {
+        // Serialize admission through durability/publication; cancelled callers cannot leave ghosts.
+        let _serial = self.project_registrations.lock().await;
+        if let Some(known) = self.project_at(&root) {
+            return Ok(known);
+        }
+        if self.state().projects.len() >= MAX_PROJECTS {
+            return Err(WorkspaceError::Conflict(format!(
+                "this machine keeps at most {MAX_PROJECTS} projects"
+            )));
+        }
         let name = match name {
             Some(name) => name,
             None => root
@@ -243,13 +297,9 @@ impl Workspaces {
             created_at: Utc::now(),
             revision: 0,
         };
+        self.save_project(info.clone()).await?;
         {
             let mut registry = self.state();
-            if registry.projects.len() >= MAX_PROJECTS {
-                return Err(WorkspaceError::Conflict(format!(
-                    "this machine keeps at most {MAX_PROJECTS} projects"
-                )));
-            }
             let (revision, _) = watch::channel(0);
             drop(registry.projects.insert(
                 info.id,
@@ -260,7 +310,6 @@ impl Workspaces {
                 },
             ));
         }
-        self.save_project(info.clone()).await?;
         Ok(info)
     }
 }
