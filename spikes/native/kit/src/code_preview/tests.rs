@@ -51,13 +51,16 @@ fn near(actual: Pixels, expected: f32) {
 fn source_card_caption_and_full_rows_fit_both_schemes_and_four_scales(cx: &mut TestAppContext) {
     // Physical border snapping and measured text heights are calculated from
     // py8/px12/pb8/border1, content15/21 and code12/18, not from kit constants.
+    // The pinned GPUI patch also pixel-snaps text line-height BEFORE leaf
+    // measurement (elements/text.rs643): at125%, 21->26dp and18->22dp;
+    // at150%, 21->31dp. Thus caption totals are28.8/28.666667, not ceil21.
     // GPUI Taffy pre-snaps authored absolute widths with half toward zero:
     // 390 * 1.25 = 487.5 becomes487dp (389.6 logical). Each border is1dp,
     // so the inner width is485/1.25 =388; subtracting borders from390 is wrong.
     for (scale, edge, top, caption_height, row_height, small_outer) in [
         (1.0, 1.0, 9.0, 29.0, 18.0, 390.0),
-        (1.25, 0.8, 8.8, 29.6, 18.4, 389.6),
-        (1.5, 0.666_666_7, 8.666_667, 29.333_334, 18.0, 390.0),
+        (1.25, 0.8, 8.8, 28.8, 17.6, 389.6),
+        (1.5, 0.666_666_7, 8.666_667, 28.666_666, 18.0, 390.0),
         (2.0, 1.0, 9.0, 29.0, 18.0, 390.0),
     ] {
         for (width, expected_outer) in [(390.0, small_outer), (1280.0, 1280.0)] {

@@ -107,23 +107,6 @@ pub struct TextField {
 }
 
 impl TextField {
-    /// The same single-line engine, with optional edit/focus/blur hooks.
-    /// Existing constructors retain their legacy callbacks and defaults.
-    pub fn with_events<V: 'static>(
-        placeholder: &str,
-        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-        events: FieldEvents<V>,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line(
-            placeholder,
-            Callbacks::Windowed { on_submit, events },
-            window,
-            cx,
-        )
-    }
-
     /// Which press sends a composer's text (a form field ignores it).
     pub fn set_send_on(&self, send: SendOn) {
         if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {

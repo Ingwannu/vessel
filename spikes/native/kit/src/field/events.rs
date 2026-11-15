@@ -26,7 +26,8 @@ type TextEvent<V> = fn(&mut V, String, &mut Window, &mut Context<'_, V>);
 /// Generic notifications from the existing editor. Consumers own validation
 /// and decide whether a composing edit should update their local preview.
 pub struct FieldEvents<V: 'static> {
-    /// A text edit; Window permits an owner to replace filtered text in place.
+    /// An engine Change, possibly repeating current text on native commit.
+    /// Window permits an owner to replace filtered text in the same engine.
     pub on_edit: Option<TextEvent<V>>,
     /// Focus gained; numeric owners can defer the shared select-all hook.
     pub on_focus: Option<fn(&mut V, &mut Window, &mut Context<'_, V>)>,
@@ -202,5 +203,25 @@ impl<V: 'static> Callbacks<V> {
         }
     }
 }
+// Keep hook construction with its dispatcher, without growing the shared root.
+impl super::TextField {
+    /// The same single-line engine, with optional edit/focus/blur hooks.
+    /// Existing constructors retain their legacy callbacks and defaults.
+    pub fn with_events<V: 'static>(
+        placeholder: &str,
+        on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
+        events: FieldEvents<V>,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        Self::line(
+            placeholder,
+            Callbacks::Windowed { on_submit, events },
+            window,
+            cx,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests;

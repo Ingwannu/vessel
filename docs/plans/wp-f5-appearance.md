@@ -647,3 +647,23 @@ legacy focus/blur hooks. Unicode simulation inserts scalars individually; a
 normalized Enter fallback can emit a same-value Change. The test no longer
 confuses that existing engine stream with a duplicate callback. No second
 production subscription, dedup cache or editing state is introduced.
+
+
+The base9 scoped Kit run themes-narrow-20261115T182233Z-1c930441 finished
+fonts0/Cargo101:227 passed,1 failed. The field minimum/engine alignment and
+stronger raw-event regression passed. The remaining preview expectation
+missed the pinned GPUI PATCH's elements/text.rs643 pixel_snap(line_height)
+before leaf measurement. At125%,21pt becomes26dp=20.8pt and18pt becomes
+22dp=17.6pt; caption adds8pt padding for28.8pt. At150%,21pt becomes31dp,
+so caption is28.666667pt. These are source-derived device-grid values, not
+new product metrics or a larger tolerance. The exact decimal derivation is
+retained with the run scratch evidence.
+
+Field hook construction now moves, with an identical method body, into the
+existing events child before its test module. Public API and the one line
+factory/dispatcher stay unchanged; no renderer, editing state or subscription
+is added. This keeps portable notification reuse independent of Appearance
+profiles and preserves root headroom. The raw observer counters reset on the
+same boundary as hook observations; equality lookup uses contains. Generic
+on_edit docs explicitly describe engine Change semantics, including repeated
+current text on native commit. The next scoped Kit suite checks this union.

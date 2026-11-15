@@ -97,6 +97,8 @@ fn windowed_hooks_follow_the_single_editor_stream_and_legacy_has_no_blur_hook(
     cx.run_until_parked();
     probe.update_in(cx, |owner, window, cx| {
         owner.events.clear();
+        owner.source_edits = 0;
+        owner.legacy_source_edits = 0;
         owner.field.focus(window, cx);
     });
     cx.run_until_parked();
@@ -139,11 +141,7 @@ fn windowed_hooks_follow_the_single_editor_stream_and_legacy_has_no_blur_hook(
             .position(|event| matches!(event, Seen::Submit(_)))
             .unwrap();
         assert_eq!(owner.events[submit], Seen::Submit("한글".into()));
-        assert!(
-            owner.events[..submit]
-                .iter()
-                .any(|event| *event == Seen::Edit("한글".into()))
-        );
+        assert!(owner.events[..submit].contains(&Seen::Edit("한글".into())));
         let edits: Vec<_> = owner
             .events
             .iter()
@@ -160,6 +158,8 @@ fn windowed_hooks_follow_the_single_editor_stream_and_legacy_has_no_blur_hook(
     });
     probe.update_in(cx, |owner, window, cx| {
         owner.events.clear();
+        owner.source_edits = 0;
+        owner.legacy_source_edits = 0;
         owner.legacy.focus(window, cx);
     });
     cx.run_until_parked();
