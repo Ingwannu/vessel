@@ -600,3 +600,11 @@ re-export; field access remains limited to the same client-module subtree
 as before. No configuration, call, response or test expectation changes.
 The large-file ratchet drops from 786 to 747. The separate initialized-trust
 factory extension is next; this extraction introduces no new behavior.
+
+Initialized-trust factory checkpoint: Client::with_limits constructs a
+separate existing HTTP pool with the same immutable TLS configuration.
+No roots are loaded again; Clone still shares its original pool. Debug
+omits TLS state. The adjacent test checks shared trust identity, different
+limits and unchanged earlier clients. LLM all-targets Clippy and 109
+library tests pass. Node ownership still needs to construct metadata's
+pool once and connect it to the staged completion wrapper.
