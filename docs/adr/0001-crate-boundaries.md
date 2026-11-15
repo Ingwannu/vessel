@@ -355,6 +355,11 @@ through its private-node-files facade, never SQLite. Proc remains independent of
 all Vessel crates. The implementation commit adds the manifest, architecture row
 and a name rule restricting Proc and detach in the new crate to `src/launch/`.
 
+The vessel-node dev dependency on vessel-local-node exists only so its integration
+tests can drive the real vesseld through the controller's public API; there is no
+production graph edge or controller test hook, and vessel-local-node must never
+depend on vessel-node, including through a dev dependency.
+
 `Child::detach(self)` consumes cleanup authority into an opaque Detached handle.
 It retains group/job and unreaped-child generation facts, offers only observation
 and wait, and cannot signal or become an owned Child again. A dropped detached
