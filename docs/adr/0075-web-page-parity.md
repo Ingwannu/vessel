@@ -164,8 +164,11 @@ not keyboard-owning menus and are not part of this guard.
 
 Paseo's `components/toast-host.tsx` places the app-shell viewport under the
 header, centred, including on narrow screens. Vessel uses its own safe
-inset/header/spacing tokens, retaining its 320px wide card and using the
-reference's responsive 92%/480px boundary on narrow screens. Positioning at
+inset/header/spacing tokens, retaining its 320px wide card. On narrow
+screens the reference first insets its host 16px at each side, then applies
+a 92% boundary capped at 480px. The card therefore measures
+`min(0.92 * (viewport width - 32px), 480px)`: 329.36px at a 390px
+viewport. Applying 92% directly to the viewport was an incorrect port. Positioning at
 the top across sizes avoids moving the same overlap to a wider composer.
 Existing success-four-seconds/error-until-dismissed and multi-toast semantics
 are deliberately retained here rather than changing unrelated notification
@@ -200,3 +203,20 @@ belongs to the earlier unchanged toast renderer `7e3418d8` and its caption-
 only capture harness `37a723ba`; later menu ownership is exercised by the
 real-browser regressions. Earlier failures and the precise capture/provenance
 limits remain documented in the plan.
+
+The inset-width correction's executed source is `811c18d53`. Its whole-web
+run passes lint, both typechecks, 464 units, fonts and the fresh bundle/binary
+builds; E2E records 78 passed and one timeout before a Usage interaction.
+The retained DOM reports an actual identity-verification refusal. One
+explicitly authorized same-source replay passes that case (7.0s; 26.3s
+including its fixture). The original failure remains recorded as a named
+intermittent, with an open source/receipt-path investigation; it is not
+relabelled as a wholly clean run. The preceding exact Rust result is retained
+only because every Rust/manifests/toolchain/script byte is unchanged.
+
+Eight affected capture cases pass, producing sixteen newly inspected
+originals at 390x844/390x600 in both themes and browser locales. These use
+verified same-commit managed CLI/node/fake exports, without a local Rust or
+bundle build. The selected source and binary identities match before/after.
+This replaces the earlier narrow-width visual claim only; the plan retains
+the exact execution, provenance limits and next investigation.

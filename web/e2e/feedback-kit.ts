@@ -3,6 +3,9 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 export const STACK_FIXTURE_COUNT = 8;
 export const FOCUS_FRAME_MS = 120;
+// Paseo toast-host: 16px at each side, then a 92% width boundary.
+// A literal measured result keeps this independent of the CSS formula.
+const REFERENCE_NARROW_TOAST = { viewport: 390, card: 329.36 } as const;
 
 async function rectangle(element: Locator) {
   const value = await element.boundingBox();
@@ -31,6 +34,9 @@ export async function clearToastBounds(page: Page): Promise<Locator> {
   const viewport = page.viewportSize();
   if (viewport === null) throw new Error("Expected a fixed fixture viewport");
   const notice = await rectangle(toast);
+  if (viewport.width === REFERENCE_NARROW_TOAST.viewport) {
+    expect(notice.width).toBeCloseTo(REFERENCE_NARROW_TOAST.card, 1);
+  }
   const header = await rectangle(page.getByRole("banner"));
   const prompt = await rectangle(page.getByRole("form", { name: "Prompt" }));
   const next = await rectangle(

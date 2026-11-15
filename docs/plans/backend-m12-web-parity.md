@@ -1319,3 +1319,111 @@ quota data in the browser. Same-binding success, refresh origin, explicit
 source disclosure and unsupported session associations must remain typed.
 Pure formatting/time preparation has not been installed into this tree and
 is not part of this package's gate or review.
+
+
+### Returned narrow-width correction
+
+Review of `dac496599` finds one remaining reference mismatch. Paseo's
+`components/toast-host.tsx:283–295` applies 16px container insets before
+its 92%/480px width boundary. The earlier viewport-relative width measured
+358.796875px at 390px; a new real-page counterfactual expects the literal
+329.36px and fails on that retained renderer. This is a porting error,
+not a deliberate difference. The narrow card now uses the inset-relative
+formula, with the literal measured assertion shared by its browser and
+capture cases. The declared existing 320px wide-layout choice is unchanged.
+
+The earlier whole result and inspected images remain evidence of their
+original source. Corrected-source checks and the affected narrow image
+states are owed before this return closes; they are not inferred from the
+old gate. The correction is isolated on the exact review candidate rather
+than the next feature's moving base.
+
+### Narrow-width correction: executed result
+
+Source `811c18d53a8443fe94e3a0aa6817e61b9be99fb9` fixes the returned width.
+The independent literal is 329.36px at a 390px viewport; the retained old
+renderer fails it at 358.796875px. No existing assertion, retry or deadline
+is weakened.
+
+Whole-web run `webparity-20261115T143312Z-811c18d5` passes eight stages:
+fresh bundle/binaries, both fixture prebuilds, lint, both typechecks, 464
+units in 87 files and fonts. Its full E2E remains 78 passed / one failed.
+All twelve feedback focus/toast cases pass. The sole timeout is the
+unchanged Usage scope test at `openUi`'s verified-tab-receipt wait, before
+any usage seeding, navigation or scope assertion. Its retained DOM reports
+“The UI was restarted or its identity could not be verified”. This is an
+actual identity-verification refusal, not a merely slow receipt.
+
+The explicitly authorized single same-source replay,
+`webparity-20261115T153059Z-811c18d5`, passes all five stages and that exact
+case: 7.0s for the case, 26.3s including the fixture. It rebuilds the same
+source's web/CLI and runs both prebuilds. Whole-run load is 34.06 at start,
+40.43 at end; replay load is 35.07 at start, 35.26 at end. Acceptance counts
+this one named intermittent under the explicit ruling; neither the first
+failure nor its observed refusal is erased. A second unchanged replay is
+not permitted. The investigation below stays open whatever that pass shows.
+
+The source differs from the preceding executed feedback source only in the
+stylesheet, shared feedback helper and two documents. Rust, manifests,
+lockfiles, toolchains and gate scripts are byte-identical. The prior exact
+2,307 passed / zero failed / twelve ignored Rust result is retained for that
+unchanged source under the changed-web verification scope. It is not a new
+Root run; latest-line combined integration remains separate.
+
+A successful managed export builds the exact source's CLI, node and eight
+fake executables. Source/features/recipes, hashes, sizes and owner/modes are
+verified before use; the modified web and CLI crates actually compile.
+Eight real-page capture cases pass across en-US/ko-KR browser locales,
+light/dark and 390x844/390x600. All sixteen normal/stack original PNGs are
+opened and rehashed. Width, header/host clearance, prompt/question-button
+clearance, horizontal overflow and page/console errors are checked. The
+stack stays bounded above the question. This supersedes only the earlier
+narrow-width visual claim; earlier wide frames retain their original source.
+
+All 3,239 selected capture inputs match before/after, including exported
+binaries and their manifest; 3,235 tracked contents independently match Git.
+Local capture performs no Rust compilation or bundle build. Eighteen served
+static hashes are observations tied to the verified CLI, not an inferred
+comparison with local dist. Both helper exe/start identities are recorded
+immediately at launch, as are five runtime identities after setup. All seven
+are gone, the owned-runtime scan is empty and the private mode-0700 fixture
+root is emptied by its original owner after normal teardown. No additional
+signals or live-service permission changes are made. Completed export/
+log OUT top directories are restored to private 0700 without changing
+source, log or binary bytes.
+
+The older scratch counterfactual pins tracked helpers and the old bundle,
+but excludes its external spec/config files. Its raw measured failure is
+retained without a stronger executed-test identity claim. The corrected
+actual-page test and config are tracked and pinned before/after. The earlier
+helper-snapshot limitation and all earlier adverse results remain history;
+this new capture does not repair their historical provenance.
+
+Browser locale is not complete UI translation. Desktop authentication then
+resize is not cold-phone bootstrap. No physical device, long-error or
+permission-card rendering, OS IME, accessibility, native app, live vendor,
+real account, deployment or combined latest-line approval is claimed.
+
+### Web UI identity refusal investigation
+
+| Investigation | State | Evidence | Next |
+|---|---|---|---|
+| WEB-IDENTITY-1: intermittent web UI identity refusal under build-VM load | Open; cause unknown. Investigate after the feedback package; no further unchanged replays. | Source `811c18d53`; whole `webparity-20261115T143312Z-811c18d5` (78 passed / one timeout); authorized single replay `webparity-20261115T153059Z-811c18d5` (one passed; 7.0s case, 26.3s including fixture). Error-context SHA256 `d5667e687c89c749f2099486637274d897e513c613cc08343de913e0494fb783`. | Follow the one-use bootstrap, challenge/hello/welcome proof, socket refusal/drop and receipt-persistence paths from source; identify the cause before changing behavior. |
+
+The retained DOM says “The UI was restarted or its identity could not be
+verified”. This is an actual identity-verification refusal, not evidence
+that the receipt was merely slow. The helper times out waiting for the
+verified tab receipt before any usage seeding or scope interaction. The
+helper and usage test are byte-identical to the preceding green feedback
+source. High build-machine load is observed; a causal explanation is still
+unverified. The approved error context is preserved privately without
+frames, capabilities or stored credential values.
+
+The authorized replay is evidence for the package's named intermittent
+only if it passes. It never erases the original failure or closes this
+investigation. If it fails, the package remains blocked and no further
+unchanged replay is permitted. Subsequent work traces the receipt path and
+uses a controlled regression from the confirmed cause, not repeated
+unexplained browser runs. This investigation precedes the next usage-page
+implementation; the new account-report contract remains gated on its
+reviewed, assigned and merged node source.
