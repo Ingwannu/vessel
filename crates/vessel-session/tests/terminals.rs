@@ -21,6 +21,7 @@ use support::{
     Fixture, alive, gone, info, output_to_end, read_pid, script_kind, type_in, wait_for_count,
     wait_for_file, wait_for_output, within,
 };
+#[path = "terminals/cleanup.rs"]
 mod cleanup;
 
 #[cfg(test)]
