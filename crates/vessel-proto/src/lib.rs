@@ -10,8 +10,6 @@
 //! - it is the only place wire types are defined.
 
 mod agent;
-pub mod notifications;
-pub mod inbox_attention;
 pub mod agents;
 pub mod automation;
 mod base64_bytes;
@@ -32,6 +30,7 @@ mod harness;
 pub mod history;
 mod id;
 pub mod inbox;
+pub mod inbox_attention;
 mod key;
 pub mod labels;
 pub mod lifecycle_version;
@@ -40,6 +39,7 @@ pub mod lsp;
 mod model;
 mod name;
 mod node;
+pub mod notifications;
 mod options;
 mod pairing;
 pub mod parking;
