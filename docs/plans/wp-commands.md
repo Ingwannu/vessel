@@ -851,3 +851,11 @@ multiline/CodeEditor composition cases executed and passed. Scope excludes
 View integration/example suites, whole gate, captures, OS IME and physical
 owner admission. The narrow control packet for base8b has unchanged tested
 owned blobs; it is not a standalone leaf or package approval.
+
+Announced base8d6ebdf8e8 is merged after R17/R9 completed. The shared picker
+lease admission/key-handler signature is retained alongside the existing ONE
+VesselOverlay marker and popup layer. README retains both independent notes;
+picker size allowance decreases to804. Incoming W19 popover/W12 close-target,
+attention/save-prefs extraction do not grant missing desktop or session-open
+controller authority. New union checks are owed; f0eb results above stay scoped
+to the preceding base8b combination. Gating e670 zoom source is not adopted.

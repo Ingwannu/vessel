@@ -36,9 +36,8 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent,
-    MouseButton, Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point,
-    px, rgba, svg,
+    Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, MouseButton,
+    Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point, px, rgba, svg,
 };
 
 use crate::assets::Glyph;
@@ -48,6 +47,11 @@ use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
+mod focus;
+mod keys;
+mod lifecycle;
+use keys::key_handler;
+use lifecycle::RenderLease;
 mod rows;
 mod send;
 use rows::{note_row, rows_list, title_row};
@@ -412,6 +416,8 @@ pub enum Side {
 #[derive(Debug)]
 pub struct ComboboxState {
     open: bool,
+    cycle: Rc<()>,
+    return_to: crate::focus::ReturnFocus,
     highlighted: Option<usize>,
     /// The highlighted row's label: the highlight follows its row when rows
     /// are added or removed above it while the list is open (an agent's
@@ -456,6 +462,8 @@ impl ComboboxState {
         );
         Self {
             open: false,
+            cycle: Rc::new(()),
+            return_to: crate::focus::ReturnFocus::default(),
             highlighted: None,
             highlighted_label: None,
             focus: cx.focus_handle(),
@@ -474,28 +482,6 @@ impl ComboboxState {
         self.header_leading = leading;
     }
 
-    /// Open it, its search emptied and holding the keys, showing `search`
-    /// while empty (or the list holding the keys, with no search row).
-    pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
-        self.open = true;
-        self.highlighted = None;
-        self.highlighted_label = None;
-        self.search.clear(window, cx);
-        if let Some(placeholder) = search {
-            self.search.set_placeholder(placeholder, window, cx);
-            self.search.focus(window, cx);
-        } else {
-            self.focus.focus(window, cx);
-        }
-    }
-
-    /// Close it (no longer `const`: it drops the highlighted row's label).
-    pub fn close(&mut self) {
-        self.open = false;
-        self.highlighted = None;
-        self.highlighted_label = None;
-    }
-
     /// Whether it is open.
     #[must_use]
     pub const fn is_open(&self) -> bool {
@@ -506,16 +492,6 @@ impl ComboboxState {
     #[must_use]
     pub fn query(&self, cx: &App) -> String {
         self.search.text(cx)
-    }
-
-    /// Start its search over, showing `placeholder` while empty (a way
-    /// back, a row's own list).
-    pub fn reset_query(&mut self, placeholder: &str, window: &mut Window, cx: &mut App) {
-        self.highlighted = None;
-        self.highlighted_label = None;
-        self.search.clear(window, cx);
-        self.search.set_placeholder(placeholder, window, cx);
-        self.search.focus(window, cx);
     }
 
     /// Put this in the trigger: it notes where the trigger is drawn, for
@@ -627,15 +603,28 @@ pub fn combobox<V: 'static>(
     let surfaces = Surfaces::of(tokens);
     let neutral = tokens.neutral;
     let get = handlers.state;
-    let on_key = key_handler(rows, handlers, cx);
-    let on_outside = cx.listener(move |view: &mut V, _event, _window, cx| {
-        get(view).close();
-        cx.notify();
+    let on_key = key_handler(rows, state, handlers, cx);
+    let lease = state.render_lease();
+    let outside_lease = lease.clone();
+    let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
+        if get(view).accepts(&outside_lease) {
+            get(view).close_and_restore(window, cx);
+            cx.notify();
+        } else {
+            window.prevent_default();
+        }
+        cx.stop_propagation();
     });
 
     let mut panel = div()
         .id(list_id.clone())
         .track_focus(&state.focus)
+        .capture_any_mouse_down(cx.listener(move |view: &mut V, _event, window, cx| {
+            if !get(view).accepts(&lease) {
+                window.prevent_default();
+                cx.stop_propagation();
+            }
+        }))
         .capture_key_down(on_key)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
         .map(popup::layer)
@@ -667,7 +656,7 @@ pub fn combobox<V: 'static>(
         panel = panel.child(title_row(
             title.clone(),
             header.back,
-            state.header_leading.clone(),
+            state,
             handlers,
             tokens,
             cx,
@@ -695,7 +684,13 @@ pub fn combobox<V: 'static>(
             crate::motion::QUICK
         },
     );
-    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    let placement = Placement {
+        compact,
+        side: header.side,
+        anchor,
+        lease: state.render_lease(),
+    };
+    let element = placed(panel, placement, get, window, cx);
     // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
     // from a row of the features sheet.
     // A row's tooltip draws over the list (the tooltip's own priority).
@@ -711,21 +706,36 @@ pub fn combobox<V: 'static>(
 /// Where the list is drawn: below the compact width a sheet from the
 /// bottom over the dimmed page (a press on the dim closes it); wider, at
 /// its trigger on the caller's side.
-fn placed<V: 'static>(
-    panel: impl IntoElement,
+struct Placement {
     compact: bool,
     side: Side,
     anchor: Option<Bounds<Pixels>>,
+    lease: RenderLease,
+}
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    placement: Placement,
     get: fn(&mut V) -> &mut ComboboxState,
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
+    let Placement {
+        compact,
+        side,
+        anchor,
+        lease,
+    } = placement;
     if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
         let viewport = window.viewport_size();
-        let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
-            get(view).close();
-            cx.notify();
+        let on_scrim = cx.listener(move |view: &mut V, _event, window, cx| {
+            if get(view).accepts(&lease) {
+                get(view).close_and_restore(window, cx);
+                cx.notify();
+            } else {
+                window.prevent_default();
+            }
+            cx.stop_propagation();
         });
         anchored()
             .position(point(px(0.0), px(0.0)))
@@ -791,40 +801,6 @@ fn room(anchor: Option<Bounds<Pixels>>, side: Side, window: &Window) -> f32 {
     })
 }
 
-/// Arrows (wrapping), Enter, Escape, and Backspace in an empty search to
-/// go back, taken before the search row sees them.
-fn key_handler<V: 'static>(
-    rows: &[ComboRow],
-    handlers: &ComboHandlers<V>,
-    cx: &mut Context<'_, V>,
-) -> impl Fn(&KeyDownEvent, &mut Window, &mut App) + 'static {
-    let get = handlers.state;
-    let key_rows: Rc<[ComboRow]> = rows.into();
-    let chose = Rc::clone(&handlers.chose);
-    let back = handlers.back.clone();
-    cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
-        let list = get(view);
-        match event.keystroke.key.as_str() {
-            "escape" => list.close(),
-            "down" => list.step(&key_rows, true),
-            "up" => list.step(&key_rows, false),
-            "enter" => {
-                if let Some(index) = list.choice(&key_rows) {
-                    chose(view, index, window, cx);
-                }
-            }
-            "backspace" if back.is_some() && list.query(cx).is_empty() => {
-                if let Some(back) = &back {
-                    back(view, window, cx);
-                }
-            }
-            _other => return,
-        }
-        cx.stop_propagation();
-        cx.notify();
-    })
-}
-
 #[cfg(test)]
 mod tests {
     //! A list's rows hold what real agents send (the owner's capture of
@@ -877,7 +853,7 @@ mod tests {
                 .id("picker-probe")
                 .track_focus(&self.state.focus)
                 .key_context(popup::KEY_CONTEXT)
-                .capture_key_down(key_handler(&self.rows, &handlers, cx))
+                .capture_key_down(key_handler(&self.rows, &self.state, &handlers, cx))
                 .w(px(360.0))
                 .type_(Type::Body)
                 .flex()
