@@ -593,3 +593,14 @@ fits that actual button, using the existing picker probe. No kit API, button
 geometry/style or assertions are changed. Both failed logs remain; the corrected
 source is checked on the newly merged announced a7aab9d6 base, independently
 from the pre-popup973 success and the old636 compile-only failure.
+
+
+Exact827780679 executed the popup-selected App11 and View33 cases successfully:
+44/0/0, with the other suites explicitly filtered. Actual same-handler Markdown
+live/offline/retired and popup/ancestor/deferred-open cases ran. Its strict run
+reported four style issues, retained in the evidence: duplicate empty match
+arms, explicit Arc clone, method-pointer spelling and a190-line test function.
+The correction extracts named live/offline and retired-input assertion phases,
+keeps every assertion and ordering, and applies the three equivalent style
+changes. No guard, target, UI geometry or fake opener expectation is weakened.
+This remains selected execution on827 plus changed-source strict/runtime owed.

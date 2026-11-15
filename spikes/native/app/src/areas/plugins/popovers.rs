@@ -128,7 +128,7 @@ impl SurfaceView {
         let lease = self.popover.open(anchor, Alignment::Start, window, cx);
         let inputs = InputScope::child(&self.inputs);
         let body_inputs = Rc::clone(&inputs);
-        let opener: Opener = self.opener.clone();
+        let opener: Opener = std::sync::Arc::clone(&self.opener);
         let body =
             cx.new(|cx| Self::build(&registry, state, surface, opener, body_inputs, window, cx));
         let captured = lease.clone();

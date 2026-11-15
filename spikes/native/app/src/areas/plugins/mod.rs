@@ -225,7 +225,7 @@ impl Render for SurfaceView {
         div()
             .id("plugin-surface-root")
             .w_full()
-            .when(self.inputs.is_root(), |body| body.size_full())
+            .when(self.inputs.is_root(), vessel_app_kit::ui::Styled::size_full)
             .when(!self.inputs.is_root(), |body| {
                 body.px(vessel_app_kit::ui::px(vessel_app_kit::theme::spacing::S3))
             })

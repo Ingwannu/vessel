@@ -98,8 +98,8 @@ pub(super) fn collect(surface: &Surface, fields: &mut Vec<(ContributionId, Capti
             ControlContent::Stack { surface }
             | ControlContent::Row { surface }
             | ControlContent::Section { surface, .. } => collect(surface, fields),
-            ControlContent::Button { .. } => {}
-            ControlContent::Text { .. }
+            ControlContent::Button { .. }
+            | ControlContent::Text { .. }
             | ControlContent::Markdown { .. }
             | ControlContent::Choice { .. }
             | ControlContent::Toggle { .. }
