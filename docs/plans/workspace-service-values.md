@@ -128,3 +128,33 @@ or runtime cache/wait/alloc/env effects are wired yet. The announced next
 node head is merged after this clean value boundary, retaining precursor
 ancestry rather than copying it. ConnectionLife expectations remain until
 an actual real consumer is wired, not this values package.
+
+
+The announced node head is merged at a clean boundary. Its protocol/schema,
+method entries, protected runtime and canonical registry/connection source
+stay unchanged; the exact setup precursor is shared ancestry, not another
+copy. This values package is not a real ConnectionLife consumer and removes
+neither expectation. Qualified internal registry admission still supplies
+no physical backing generation or actual predecessor exit/socket proof.
+
+Eight staged rows and thin typed SDK methods are now authored. All share
+WORKSPACE_SERVICES=None and unary shape, all are explicitly nonforwardable,
+and the node changes only their eight agent-deny lines. No Target/handler,
+writer, listener or process path is registered. Mutation requests carry only
+optimistic metadata/digest fences; complete NeedsApproval and summary replies
+reuse peer projection in direct and nested envelopes. The row outcome is
+boxed to avoid inflating every small refusal; this does not change JSON.
+
+The shared request-sample edge gains only these eight typed cases; existing
+cases and forwardable expectations stay intact. New primitive aliases are
+classified through the existing owner: the two metadata handles are branded;
+origin/base/listener/env-name text is named data. Generated wire remains
+owed and is recovered from the existing remote generator artifact, never
+hand-edited.
+
+Two protocol tests pin all row scopes/shape/None/nonforwardability, forged
+owner/device/agent envelopes and direct/nested approval privacy. Two client
+in-memory tests cover all wrappers and real inherited staged Handler defaults;
+only handshake may reach the peer, no service implementation is supplied.
+They do not qualify the future real handler's direct-principal matrix, which
+remains required before staged becomes pending. All new execution is owed.

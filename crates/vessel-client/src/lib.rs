@@ -67,6 +67,7 @@ mod tests;
 mod token;
 mod url;
 mod usage;
+mod workspace_services;
 mod ws;
 
 pub use address::{

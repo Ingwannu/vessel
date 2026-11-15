@@ -6,6 +6,7 @@ mod env_peer;
 mod environment;
 mod gateway;
 mod observation;
+mod operation;
 mod origin;
 mod page;
 mod row;
@@ -37,6 +38,9 @@ pub use observation::{
     InvalidServiceProxyUrls, ServiceHealth, ServiceLink, ServiceLinkAccess, ServiceObservation,
     ServicePortPlan, ServicePortSource, ServiceProxyState, ServiceProxyUrls, ServiceUnavailable,
 };
+pub use operation::{
+    RestartWorkspaceScript, StartWorkspaceScript, StopWorkspaceScript, WorkspaceScriptOutcome,
+};
 pub use origin::{
     InvalidServiceProxyUrl, MAX_PROXY_HOST_BYTES, MAX_PROXY_LABEL_BYTES, MAX_PROXY_URL_BYTES,
     ServiceProxyUrl,
@@ -63,6 +67,9 @@ pub struct WorkspaceScriptRef {
     /// The approved definition's validated name.
     pub script: ScriptName,
 }
+
+#[cfg(test)]
+mod method_tests;
 
 #[cfg(test)]
 mod tests {

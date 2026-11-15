@@ -110,7 +110,15 @@ impl Call {
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
             Self::CreateSchedule(request) => target_since(&request.definition.target),
             Self::UpdateSchedule(request) => target_since(&request.definition.target),
-            Self::OpenSideQuestion(_)
+            Self::ListWorkspaceScripts(_)
+            | Self::StartWorkspaceScript(_)
+            | Self::StopWorkspaceScript(_)
+            | Self::RestartWorkspaceScript(_)
+            | Self::GetWorkspaceServiceEnv(_)
+            | Self::GetServiceSettings(_)
+            | Self::SetServiceGateway(_)
+            | Self::SetServiceExposure(_)
+            | Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
             | Self::NodeInfo(_)
