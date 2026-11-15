@@ -381,3 +381,8 @@ and revision comparison. The actor test disables with an empty trusted-destinati
 Agent list display now appends the latest advertised model (then the pinned/launch model)
 and uses the reference relative-time boundaries, including future timestamps as just now.
 This is presentation only: it does not invent provider identity or change model selection.
+
+CLI-only narrow check 55b342d8 reached the full executable/tests and reported only lints,
+including long command dispatch functions and one oversized schedule future. Terminal capture,
+key-send effects, preview cadence and usage report formatting now have separate typed helpers;
+the schedule future is boxed at dispatch. No lint suppression or file budget was raised.

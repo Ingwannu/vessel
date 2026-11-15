@@ -137,7 +137,6 @@ impl CreateWorkspace {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::args::{Cli, Command, parity::ParityCommand};
     use clap::Parser as _;
     fn valid(args: &[&str]) -> bool {

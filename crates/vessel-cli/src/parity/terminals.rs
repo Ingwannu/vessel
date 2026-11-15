@@ -10,6 +10,7 @@ use crate::{
 };
 use bytes::Bytes;
 use serde::Serialize;
+use std::path::PathBuf;
 use vessel_client::NodeClient;
 use vessel_proto::{
     TerminalBytes, TerminalId, TerminalInput,
@@ -40,20 +41,7 @@ pub(super) async fn run(
                     None => std::env::current_dir()?,
                 })
             };
-            let client = connect(target).await?.client;
-            let entries = client
-                .call(ListTerminals { place: None })
-                .await?
-                .terminals
-                .into_iter()
-                .filter(|t| cwd.as_ref().is_none_or(|cwd| &t.folder == cwd))
-                .collect::<Vec<_>>();
-            let ids = entries
-                .iter()
-                .map(|t| t.id.to_string())
-                .collect::<Vec<_>>()
-                .join("\n");
-            output::single(presentation, &ids, &entries).await
+            list(target, presentation, cwd).await
         }
         TerminalCommand::Create { .. } => Err(CliError::ParityBlocked(
             "terminal create requires real workspace identity; project/session IDs must not be used as substitutes",
@@ -86,33 +74,7 @@ pub(super) async fn run(
                     vessel_proto::terminals::CaptureStyle::Plain
                 },
             };
-            let client = connect(target).await?.client;
-            let terminal = resolve(&client, &id).await?;
-            let result = client.capture_terminal(terminal.id, options).await?;
-            match presentation {
-                Presentation::Json | Presentation::Yaml => {
-                    output::single(
-                        presentation,
-                        &terminal.id.to_string(),
-                        &Captured {
-                            terminal_id: terminal.id,
-                            lines: result.lines,
-                            total_lines: result.total_lines,
-                        },
-                    )
-                    .await
-                }
-                Presentation::Table(_) | Presentation::Quiet => {
-                    if result.lines.is_empty() {
-                        Ok(())
-                    } else {
-                        Ok(
-                            crate::io::out(format!("{}\n", result.lines.join("\n")).as_bytes())
-                                .await?,
-                        )
-                    }
-                }
-            }
+            capture(target, presentation, id, options).await
         }
         TerminalCommand::Kill { id } => {
             let client = connect(target).await?.client;
@@ -142,30 +104,99 @@ pub(super) async fn run(
                 },
             )?;
             let keys_sent = KeyCount(input.encode_utf16().count());
-            let client = connect(target).await?.client;
-            let terminal = resolve(&client, &id).await?;
-            let _ack = client
-                .call(SendTerminal {
-                    terminal: terminal.id,
-                    input: TerminalInput::Data {
-                        data: TerminalBytes::new(Bytes::from(input)),
-                    },
-                })
-                .await?;
-            match presentation {
-                Presentation::Table(_) | Presentation::Quiet => Ok(()),
-                Presentation::Json | Presentation::Yaml => {
-                    output::single(
-                        presentation,
-                        &terminal.id.to_string(),
-                        &Sent {
-                            terminal_id: terminal.id,
-                            keys_sent,
-                        },
-                    )
-                    .await
-                }
+            send_keys(
+                target,
+                presentation,
+                id,
+                TerminalBytes::new(Bytes::from(input)),
+                keys_sent,
+            )
+            .await
+        }
+    }
+}
+
+/// None means the explicit --all scope; folder selection is resolved before connection.
+async fn list(
+    target: &Target,
+    presentation: Presentation,
+    cwd: Option<PathBuf>,
+) -> Result<(), CliError> {
+    let client = connect(target).await?.client;
+    let entries = client
+        .call(ListTerminals { place: None })
+        .await?
+        .terminals
+        .into_iter()
+        .filter(|t| cwd.as_ref().is_none_or(|cwd| &t.folder == cwd))
+        .collect::<Vec<_>>();
+    let ids = entries
+        .iter()
+        .map(|t| t.id.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    output::single(presentation, &ids, &entries).await
+}
+
+async fn capture(
+    target: &Target,
+    presentation: Presentation,
+    id: TerminalSelector,
+    options: vessel_proto::terminals::CaptureOptions,
+) -> Result<(), CliError> {
+    let client = connect(target).await?.client;
+    let terminal = resolve(&client, &id).await?;
+    let result = client.capture_terminal(terminal.id, options).await?;
+    match presentation {
+        Presentation::Json | Presentation::Yaml => {
+            output::single(
+                presentation,
+                &terminal.id.to_string(),
+                &Captured {
+                    terminal_id: terminal.id,
+                    lines: result.lines,
+                    total_lines: result.total_lines,
+                },
+            )
+            .await
+        }
+        Presentation::Table(_) | Presentation::Quiet => {
+            if result.lines.is_empty() {
+                Ok(())
+            } else {
+                Ok(crate::io::out(format!("{}\n", result.lines.join("\n")).as_bytes()).await?)
             }
+        }
+    }
+}
+
+async fn send_keys(
+    target: &Target,
+    presentation: Presentation,
+    id: TerminalSelector,
+    input: TerminalBytes,
+    keys_sent: KeyCount,
+) -> Result<(), CliError> {
+    let client = connect(target).await?.client;
+    let terminal = resolve(&client, &id).await?;
+    let _ack = client
+        .call(SendTerminal {
+            terminal: terminal.id,
+            input: TerminalInput::Data { data: input },
+        })
+        .await?;
+    match presentation {
+        Presentation::Table(_) | Presentation::Quiet => Ok(()),
+        Presentation::Json | Presentation::Yaml => {
+            output::single(
+                presentation,
+                &terminal.id.to_string(),
+                &Sent {
+                    terminal_id: terminal.id,
+                    keys_sent,
+                },
+            )
+            .await
         }
     }
 }
@@ -265,6 +296,15 @@ fn encode_keys(keys: &[String], mode: KeyMode) -> Result<String, CliError> {
     }
     Ok(input)
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Captured {
+    terminal_id: TerminalId,
+    lines: Vec<String>,
+    total_lines: vessel_proto::terminals::CaptureLineCount,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -285,12 +325,4 @@ mod tests {
             "한😀EnterC-center"
         );
     }
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Captured {
-    terminal_id: TerminalId,
-    lines: Vec<String>,
-    total_lines: vessel_proto::terminals::CaptureLineCount,
 }

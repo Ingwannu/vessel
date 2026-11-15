@@ -1,4 +1,4 @@
-//! Provider identity is not a HarnessRef; W22 owns its canonical node decoding.
+//! Provider identity is not a `HarnessRef`; W22 owns its canonical node decoding.
 use crate::error::CliError;
 use clap::Subcommand;
 use std::str::FromStr;

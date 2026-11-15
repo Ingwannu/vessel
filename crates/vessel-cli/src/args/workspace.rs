@@ -147,3 +147,26 @@ pub(crate) enum WorktreeCommand {
         project: String,
     },
 }
+
+impl WorktreeCommand {
+    pub(crate) fn require_contract(&self) -> Result<(), crate::error::CliError> {
+        use crate::error::CliError;
+        match self {
+            Self::Create(args) => {
+                args.validate()?;
+                Err(CliError::ParityBlocked(
+                    "path-based worktree creation awaits W11's reviewed workspace source/registry contract",
+                ))
+            }
+            Self::Archive { .. } | Self::List { cwd: Some(_), .. } => Err(CliError::ParityBlocked(
+                "repository-scoped worktree list/archive awaits W11's reviewed workspace ownership contract",
+            )),
+            Self::List { cwd: None, .. }
+            | Self::New { .. }
+            | Self::Output { .. }
+            | Self::Setup { .. }
+            | Self::Remove { .. }
+            | Self::Snapshots { .. } => Ok(()),
+        }
+    }
+}

@@ -83,7 +83,12 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
             .await
         }
         Command::Schedule { command } => {
-            automation::schedule(target, cli.output.presentation(), command).await
+            Box::pin(automation::schedule(
+                target,
+                cli.output.presentation(),
+                command,
+            ))
+            .await
         }
         Command::Prompt { command } => automation::prompt(target, command).await,
         Command::Attach { session, from } => {

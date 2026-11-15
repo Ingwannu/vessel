@@ -119,7 +119,7 @@ async fn finish_clone(
                         project: project.id,
                         changed_from: Some(project.revision),
                     })
-                    .await?
+                    .await?;
             }
             ProjectState::CloneFailed { reason, message } => {
                 return Err(CliError::ParityCloneFailed {

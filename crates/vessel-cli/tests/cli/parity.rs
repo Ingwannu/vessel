@@ -51,7 +51,7 @@ async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() 
                 .status
                 .is_live()
         );
-        owner
+        let _delivered = owner
             .prompt(
                 waited.agent_id,
                 vec![ContentBlock::Text {

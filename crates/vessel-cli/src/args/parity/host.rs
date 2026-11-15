@@ -52,17 +52,17 @@ impl HostCommand {
             Self::Add {
                 connection, meta, ..
             } => {
-                destination(connection)?;
-                metadata(meta)?;
+                let _destination = destination(connection)?;
+                let _metadata = metadata(meta)?;
                 Ok(())
             }
             Self::Update {
                 connection, meta, ..
             } => {
                 if let Some(connection) = connection {
-                    destination(connection)?;
+                    let _destination = destination(connection)?;
                 }
-                metadata(meta)?;
+                let _metadata = metadata(meta)?;
                 Ok(())
             }
         }

@@ -169,17 +169,16 @@ struct HostRow {
     label: Option<HostLabel>,
     source: HostSource,
     metadata: HostMetadata,
-    #[serde(serialize_with = "enabled_flag")]
-    enabled: HostEnabled,
+    enabled: Enabled,
     status: HostStatus,
     target_description: String,
     error: Option<WireError>,
 }
-fn enabled_flag<S: serde::Serializer>(
-    enabled: &HostEnabled,
-    serializer: S,
-) -> Result<S::Ok, S::Error> {
-    serializer.serialize_bool(*enabled == HostEnabled::Enabled)
+struct Enabled(HostEnabled);
+impl Serialize for Enabled {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bool(self.0 == HostEnabled::Enabled)
+    }
 }
 impl From<HostSummary> for HostRow {
     fn from(summary: HostSummary) -> Self {
@@ -196,7 +195,7 @@ impl From<HostSummary> for HostRow {
             label: record.label.or(summary.destination_name),
             source: record.source,
             metadata: record.metadata,
-            enabled: record.enabled,
+            enabled: Enabled(record.enabled),
             status: summary.status,
             target_description,
             error: summary.error,

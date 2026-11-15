@@ -141,6 +141,10 @@ fn pending_consumers_parse_complete_forms_and_keep_scope_conflicts_explicit() {
         let args = args.into_iter().map(std::ffi::OsString::from).collect();
         assert!(Cli::try_parse_from(super::normalize(args)).is_ok());
     }
+}
+
+#[test]
+fn pending_consumer_scopes_and_limit_resets_conflict_explicitly() {
     for args in [
         vec!["vessel", "usage", "--agent", "ab12", "inspect", "quota"],
         vec!["vessel", "usage", "inspect", "quota", "--agent", "ab12"],

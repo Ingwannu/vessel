@@ -36,26 +36,7 @@ pub(crate) async fn schedule(
             after,
             count,
         } => {
-            let cadence = if let Some(every) = every {
-                Cadence::Every {
-                    seconds: EverySeconds::try_from(seconds(&every)?)
-                        .map_err(|error| CliError::Automation(error.to_string()))?,
-                    anchor: None,
-                }
-            } else {
-                let zone = match tz {
-                    Some(zone) => parse(&zone, "--tz")?,
-                    None => this_zone()?,
-                };
-                Cadence::Cron {
-                    expr: parse(
-                        cron.as_deref()
-                            .ok_or(CliError::Usage("give --cron or --every"))?,
-                        "--cron",
-                    )?,
-                    zone,
-                }
-            };
+            let cadence = preview_cadence(cron.as_deref(), every.as_deref(), tz.as_deref())?;
             let preview = client
                 .preview_schedule(vessel_proto::automation::PreviewSchedule {
                     cadence,
@@ -414,6 +395,33 @@ fn run_line(run: &ScheduleRun) -> String {
         run.number.get(),
         run.due_at
     )
+}
+
+/// Preview retains the legacy elapsed-interval contract; create/update use cron presets.
+fn preview_cadence(
+    cron: Option<&str>,
+    every: Option<&str>,
+    tz: Option<&str>,
+) -> Result<Cadence, CliError> {
+    if let Some(every) = every {
+        Ok(Cadence::Every {
+            seconds: EverySeconds::try_from(seconds(every)?)
+                .map_err(|error| CliError::Automation(error.to_string()))?,
+            anchor: None,
+        })
+    } else {
+        let zone = match tz {
+            Some(zone) => parse(zone, "--tz")?,
+            None => this_zone()?,
+        };
+        Ok(Cadence::Cron {
+            expr: parse(
+                cron.ok_or(CliError::Usage("give --cron or --every"))?,
+                "--cron",
+            )?,
+            zone,
+        })
+    }
 }
 
 #[cfg(test)]

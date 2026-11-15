@@ -10,15 +10,19 @@ use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageSampleKind, UsageScope, 
 pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), CliError> {
     match &command {
         UsageCommand::Ls(options) => {
-            let _requested_agent = options.agent.as_ref();
-            let _refresh = options.refresh;
+            let crate::args::UsageList {
+                agent: _agent,
+                refresh: _refresh,
+            } = options;
             return Err(CliError::ParityBlocked(
                 "usage report discovery awaits W5's reviewed account report/source contract",
             ));
         }
-        UsageCommand::Inspect { report, refresh } => {
+        UsageCommand::Inspect {
+            report,
+            refresh: _refresh,
+        } => {
             let _report_id = report.text();
-            let _refresh = refresh;
             return Err(CliError::ParityBlocked(
                 "usage inspect awaits W5's canonical report-ID contract; report IDs are not harness/profile IDs",
             ));
@@ -83,6 +87,13 @@ pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), Cl
             after,
         })
         .await?;
+    let text = report_text(&report, period)?;
+    Ok(io::out(text.as_bytes()).await?)
+}
+fn report_text(
+    report: &vessel_proto::usage::UsageReport,
+    period: UsagePeriod,
+) -> Result<String, CliError> {
     let mut text = match period {
         UsagePeriod::Day => "Past 24 hours\n".to_owned(),
         UsagePeriod::Week => "Past 7 days\n".to_owned(),
@@ -110,7 +121,7 @@ pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), Cl
     if report.incomplete {
         text.push_str("Coverage may be incomplete for this range.\n");
     }
-    for agent in report.agents {
+    for agent in &report.agents {
         writeln!(
             text,
             "{} / {}",
@@ -128,7 +139,7 @@ pub(crate) async fn run(target: &Target, command: UsageCommand) -> Result<(), Cl
     if let Some(next) = report.next {
         writeln!(text, "More reports: repeat with --after {next}")?;
     }
-    Ok(io::out(text.as_bytes()).await?)
+    Ok(text)
 }
 fn from(period: Period) -> UsagePeriod {
     match period {

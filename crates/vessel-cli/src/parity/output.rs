@@ -97,44 +97,6 @@ fn escape(text: &str) -> String {
         .collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[derive(Serialize)]
-    struct Item {
-        id: u32,
-        text: &'static str,
-    }
-    impl Row for Item {
-        fn id(&self) -> String {
-            self.id.to_string()
-        }
-        fn headers() -> &'static [&'static str] {
-            &["ID", "TEXT"]
-        }
-        fn cells(&self) -> Vec<String> {
-            vec![self.id.to_string(), self.text.to_owned()]
-        }
-    }
-    #[test]
-    fn output_keeps_structured_fields_and_quiet_ignores_format() {
-        let rows = [Item {
-            id: 7,
-            text: "한글\n\u{1b}[31m",
-        }];
-        assert_eq!(render_list(Presentation::Quiet, &rows).unwrap(), b"7\n");
-        let json = render_list(Presentation::Json, &rows).unwrap();
-        assert!(String::from_utf8(json).unwrap().contains("한글"));
-        let table =
-            String::from_utf8(render_list(Presentation::Table(Headers::Hide), &rows).unwrap())
-                .unwrap();
-        assert!(!table.contains('\u{1b}'));
-        assert!(!table.contains("ID"));
-        let yaml = render_list(Presentation::Yaml, &rows).unwrap();
-        assert!(yaml.starts_with(b"---\n["));
-    }
-}
-
 /// A success receipt can only be constructed after the command's typed ack.
 pub(crate) struct Success;
 impl Serialize for Success {
@@ -200,5 +162,43 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         Presentation::Quiet | Presentation::Table(_) => {
             io::note(&format!("error: {message}\n")).await
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[derive(Serialize)]
+    struct Item {
+        id: u32,
+        text: &'static str,
+    }
+    impl Row for Item {
+        fn id(&self) -> String {
+            self.id.to_string()
+        }
+        fn headers() -> &'static [&'static str] {
+            &["ID", "TEXT"]
+        }
+        fn cells(&self) -> Vec<String> {
+            vec![self.id.to_string(), self.text.to_owned()]
+        }
+    }
+    #[test]
+    fn output_keeps_structured_fields_and_quiet_ignores_format() {
+        let rows = [Item {
+            id: 7,
+            text: "한글\n\u{1b}[31m",
+        }];
+        assert_eq!(render_list(Presentation::Quiet, &rows).unwrap(), b"7\n");
+        let json = render_list(Presentation::Json, &rows).unwrap();
+        assert!(String::from_utf8(json).unwrap().contains("한글"));
+        let table =
+            String::from_utf8(render_list(Presentation::Table(Headers::Hide), &rows).unwrap())
+                .unwrap();
+        assert!(!table.contains('\u{1b}'));
+        assert!(!table.contains("ID"));
+        let yaml = render_list(Presentation::Yaml, &rows).unwrap();
+        assert!(yaml.starts_with(b"---\n["));
     }
 }
