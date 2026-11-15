@@ -88,7 +88,13 @@ fn golden_cells(screen: &Screen) -> String {
             });
         }
     }
-    format!("{:x}", Sha256::digest(serde_json::to_vec(&cells).unwrap()))
+    use std::fmt::Write as _;
+    let digest = Sha256::digest(serde_json::to_vec(&cells).unwrap());
+    let mut hash = String::new();
+    for byte in digest.iter() {
+        write!(&mut hash, "{byte:02x}").unwrap();
+    }
+    hash
 }
 fn feed(screen: &mut Screen, mut bytes: &[u8]) {
     while !bytes.is_empty() {
