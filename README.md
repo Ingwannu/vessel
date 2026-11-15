@@ -1245,6 +1245,12 @@ with its standard-library XML/plist parser. It runs in isolated, no-site
 mode and reads only synthetic test data from stdin; Python is not used by
 the installed service or product binary.
 
+Named launch profiles have bounded core value definitions only
+([ADR 0076](docs/adr/0076-named-launch-profiles.md)); no launch-profile
+RPC, persistence, command or screen is available yet. They are separate
+from the account profiles described above. Their remaining implementation
+is tracked in [the package plan](docs/plans/backend-m12-launch-profiles.md).
+
 ## License
 
 Vessel is **source-available, not open source.** It is licensed under the

@@ -218,6 +218,12 @@ uuid_id! {
 }
 
 uuid_id! {
+    /// A named launch bundle, separate from an account name (ADR 0076).
+    /// It stays stable when the bundle is replaced or reordered.
+    LaunchProfileId
+}
+
+uuid_id! {
     /// A webhook (protocol 11, ADR 0034). Random, and in the hook's path,
     /// but not a secret: every request is signed with the hook's own.
     HookId

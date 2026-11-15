@@ -2,16 +2,29 @@
 
 ## State
 
-ADR source `3f0ae46d` is submitted to V3 for contract review, with the same
-request to the node integrator for schema allocation. Both are pending;
-the ADR is unchanged in this results-only checkpoint. No approval or
-executable launch-profile behavior is claimed.
+V3 accepted ADR source `3f0ae46d` as contract/documents only. The node
+integrator allocated store schema 19, after title origin's schema 18;
+when its baseline is consumed the migration is appended using the named
+predecessor rather than repeating a number. No migration is added here.
 
-Contract proposed; no launch-profile code, method registration, store
-migration, CLI or UI is built. The security contract goes to the node
-reviewer before code. Protocol and store schema allocation are the node
-integrator's. Quality B's pending table-row support is still a wiring
-prerequisite; no dummy/current number is used.
+Core values now implement name/notes/appearance, bounded existing choices,
+stable ids, exact revisions and whole ordered snapshots with count/id/JSON
+byte invariants. They share immutable arrays, expose no mutable inner
+values, and register no call. Decoder diagnostics redact untrusted input;
+canonical JSON is counted without allocating a serialized copy. The list
+budgets the maximum revision, including JSON escaping. No catalogue,
+method, store migration, CLI, MCP, runtime probe or UI is built. Narrow
+checks are pending; this is not package completion or runtime approval.
+
+The first selected Clippy check failed on a getter conflicting with TS's
+trait method and test-only lint findings. The getter is now `display_name`
+(the serialized field stays `name`); tests use checked division and a
+module-level unchecked fixture representation. That failed log is retained.
+Corrected-source Clippy and test execution remain pending at this commit.
+
+Quality B's announced pending row remains a wiring prerequisite; the
+integrator's row shape is `[Scope, (pending NAMED_LAUNCH_PROFILES), unary]`.
+No dummy/current protocol number or second registry is used.
 
 The prerequisite merged baseline is `44cbf0d2`, merging announced green
 node head `242076b5` into `f9752ef7`. Its only conflict was architecture

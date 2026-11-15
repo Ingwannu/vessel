@@ -1,8 +1,9 @@
 # ADR 0076: Named launch profiles
 
-Status: proposed, 2026-11-15. Contract review precedes code. Neither a
-protocol number nor a store schema number is assigned here. No method in
-this document is available yet.
+Status: contract accepted, 2026-11-15; implementation is not approved.
+Core value definitions are being built; catalogue/storage/wiring remain
+unbuilt. The integrator allocated the store migration; no migration or
+protocol assignment is made here. No method in this document is available.
 
 ## Context and reference
 
@@ -92,23 +93,23 @@ Model, mode, thinking and additional features are all choices named by
 the agent; `OptionCategory` places the controls and does not infer what
 an id means. There is no second fixed model/mode/thinking representation.
 
-The proposed definitions below move to the validating types when built;
-messages, tests and documentation then refer to their names, rather than
-repeat their numeric definitions.
+Built definitions live only in the validating types. Messages, tests and
+documentation refer to those names. Catalogue/admission definitions below
+remain proposals until those parts are built.
 
 | Named bound | Proposed definition |
 | --- | --- |
-| `LaunchProfiles::MAX_PROFILES` | 64 records |
-| `LaunchChoices::MAX_CHOICES` | 32 choices |
-| `LaunchChoice::MAX_ID_BYTES` | 256 UTF-8 bytes per option or select-value id |
-| `LaunchProfileName::MAX_CHARS` | 80 Unicode scalar values |
-| `LaunchProfileNotes::MAX_BYTES` | 4096 UTF-8 bytes |
-| `LaunchAppearanceKey::MAX_BYTES` | 64 ASCII letters, digits, underscores or hyphens |
+| `LaunchProfiles::MAX_PROFILES` | Defined in `launch_profiles/list.rs` |
+| `LaunchChoices::MAX_CHOICES` | Defined in `launch_profiles/choices.rs` |
+| `LaunchChoice::MAX_ID_BYTES` | Defined in `launch_profiles/choices.rs` |
+| `LaunchProfileName::MAX_CHARS` | Defined in `launch_profiles/text.rs` |
+| `LaunchProfileNotes::MAX_BYTES` | Defined in `launch_profiles/text.rs` |
+| `LaunchAppearanceKey::MAX_BYTES` | Defined in `launch_profiles/text.rs` |
 | `LaunchCatalogue::MAX_OPTIONS` | 64 descriptors |
 | `LaunchCatalogueOption::MAX_VALUES` | 128 select values |
 | `LaunchCatalogueLabel::MAX_BYTES` | 512 UTF-8 bytes for labels/group labels |
 | `LaunchCatalogueDescription::MAX_BYTES` | 4096 UTF-8 bytes |
-| `LaunchPayload::MAX_BYTES` | 262144 serialized JSON bytes |
+| `LaunchPayload::MAX_BYTES` | Defined in `launch_profiles/codec.rs` |
 | `LaunchProfileJobs::MAX_ACTIVE` | 4 admitted jobs per node |
 
 Optional text is omitted to clear it; an explicitly blank optional value

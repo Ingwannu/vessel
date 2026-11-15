@@ -32,6 +32,7 @@ mod id;
 pub mod inbox;
 mod key;
 pub mod labels;
+pub mod launch_profiles;
 pub mod lifecycle_version;
 pub mod limits;
 pub mod lsp;
@@ -101,10 +102,10 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
-    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
-    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId,
+    LaunchProfileId, ModelId, NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId,
+    ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId,
+    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};

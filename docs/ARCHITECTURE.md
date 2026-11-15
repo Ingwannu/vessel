@@ -1564,3 +1564,25 @@ This staged service has no product field or call registration. The shared
 protocol admission, connection request budget, reviewed client/CLI/fleet
 wiring, authority fixtures and older-peer checks must land before removing
 `cfg(test)` and integrating the service into the product configuration.
+
+## Named launch profile values (ADR 0076, transport pending)
+
+`vessel-proto::launch_profiles` holds core values only: an immutable,
+ordered whole list of stable-id presets, separate from account profiles.
+A preset contains a `HarnessRef`, optional account name and bounded
+existing agent choices, plus validated public appearance/text metadata.
+Shared arrays and strings avoid copying whole lists for snapshots. No
+credential value or execution authority is represented.
+
+Construction and strict decoding enforce the same id/count/text rules.
+A counting serializer checks canonical escaped JSON without building a
+serialized copy. Every accepted list budgets the maximum exact revision,
+so a later increment cannot overflow the response budget. Invalid later
+entries, duplicates and unknown fields fail the whole snapshot; decoder
+errors and Debug do not echo submitted public guidance.
+
+The feature's protocol remains unassigned. There is no method, existing
+reply/event field, store migration, catalogue probe, client/CLI or MCP
+consumer for these values yet. Store ownership and runtime/process
+behavior remain proposals of the accepted contract, not implemented or
+validated behavior of this value-only stage.

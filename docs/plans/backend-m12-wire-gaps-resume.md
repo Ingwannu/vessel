@@ -1,5 +1,24 @@
 # N3 current checkpoint
 
+## Current: accepted contract, core values under narrow checks
+
+V3 passed ADR0076 contract `3f0ae46d`, documents only. The node integrator
+allocated schema 19 after title origin's 18; no migration is added before
+consuming that baseline. Core launch-profile values now exist in proto,
+without catalogue, service, storage, RPC, client/CLI, MCP or screen wiring.
+The first TS-enabled Clippy failed on a getter/trait name and test lints;
+those were corrected, with the original log retained. Corrected checks
+and constructor/decoder test execution are still pending at this commit.
+The feature stays Option None and absent from the method table.
+
+The next assigned package is A10's node side, including draft and live
+application and legacy favorites migration. That expands the previous
+CRUD-only contract: finish these core-value checks, read the new survey
+and package plan, then amend the contract before implementing those new
+behaviors. Do not present the current omission of running apply as full
+package parity. Review, assigned wire happy paths and complete package
+gate remain owed.
+
 ## Latest: staged correction accepted; launch-profile contract proposed
 
 V1 accepted `ed34a92b` plus results `f9752ef7` as source-reviewed/staged
