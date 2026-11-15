@@ -512,3 +512,16 @@ would catch the removed legacy fallback. No registry or process admission
 is inferred from this value. Helper and allocator remain test-only. Resume:
 source committed, joined focused checks still owed; earlier remote queued
 attempts were cancelled by build-machine maintenance before any check ran.
+
+
+## Current shared node base
+
+The preparation branch now merges the designated node head `ede20014`.
+Its composer correction, plugin values, AgentEvent protocol accessor and
+node service-file observations are retained unchanged. Protocol and store
+schema stay the head's; no new method, feature assignment or dependency is
+introduced here. The staged helper, allocator and health source is byte
+identical to the previously narrow-tested preparation. The parser command
+bound is unchanged while its shared lower-layer successor is reviewed.
+This merge has no conflict resolution. The final service-runtime package
+still owes its canonical ownership producers, actual callers and whole gate.
