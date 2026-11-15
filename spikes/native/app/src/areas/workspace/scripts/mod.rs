@@ -176,6 +176,7 @@ impl Shell {
     }
     pub(super) fn script_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
         if !self.scripts_visible() {
+            tracing::debug!("script action ignored after its view changed");
             return;
         }
         let model = &mut self.areas.workspace.scripts.model;
@@ -183,8 +184,10 @@ impl Shell {
             return;
         };
         let Some(key) = model.begin_write(action.clone()) else {
+            tracing::debug!("script action requires fresh current state");
             return;
         };
+        tracing::debug!("script lifecycle request dispatched");
         self.ask(
             target.machine.as_str(),
             Ask::Scripts(ScriptAsk::Write {
@@ -202,8 +205,14 @@ impl Shell {
         let scripts = &mut self.areas.workspace.scripts;
         let result = scripts.model.preview_url(preview, &scripts.host.text(cx));
         match result {
-            Ok(url) => cx.open_url(url.as_str()),
-            Err(problem) => scripts.model.issue = Some(Issue::Preview(problem)),
+            Ok(url) => {
+                tracing::debug!("opening the observed script listener in the system browser");
+                cx.open_url(url.as_str());
+            }
+            Err(problem) => {
+                tracing::debug!(?problem, "script preview refused after socket recheck");
+                scripts.model.issue = Some(Issue::Preview(problem));
+            }
         }
         cx.notify();
     }

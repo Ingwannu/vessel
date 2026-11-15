@@ -136,3 +136,19 @@ Coordinator ruling moves managed-process helper ledger tracker508 to A9/W22.
 The survey says it belongs to provider helpers, not scripts/terminals; W8
 adds no parallel persistent process reaper. D2 still owns the native surface
 and ADR0093 setup runner/observation/automatic terminal bootstrap.
+
+## Initial isolated runtime smoke (before package base 2 rebuild)
+
+The dbfc9a5d binary connected to a private protocol-15 fake fleet. The app
+approved its exact fixture set, ran a plain command to exit 0 and another to
+exit 7, started its HTTP service, and displayed its observed loopback listener.
+Explicit host input enabled the external-preview control. The service remained
+alive after the app exited; its process ancestry was verified against that
+private fleet. This is legacy-call evidence only, not the final capture/gate.
+
+Browser delivery is unverified: the initial desktop MIME handler selected a
+different installed application, so the QA environment now uses its own data
+and MIME directories to select a real isolated Chromium profile. No operator
+MIME/profile setting is changed. Restart/stop are also not yet proved by this
+smoke; state-only debug messages distinguish a stale/view-refused click from
+a dispatched intention without logging a command, host or credential.
