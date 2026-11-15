@@ -126,9 +126,24 @@ function (config) {
     const heading = /^H([1-6])$/u.exec(element.tagName);
     return { checked, expanded:booleanAttribute("aria-expanded"),
       selected:role === "option" ? Boolean(element.selected) : booleanAttribute("aria-selected"),
-      disabled:Boolean(element.disabled) || attr(element, "aria-disabled") === "true",
+      disabled:element.matches(":disabled") || attr(element, "aria-disabled") === "true",
       readonly:Boolean(element.readOnly) || attr(element, "aria-readonly") === "true",
       level:role === "heading" && heading ? Number(heading[1]) : null };
+  }
+  function editableValue(element) {
+    if (!element.isContentEditable) return typeof element.value === "string" ? element.value : "";
+    const iterator = element.ownerDocument.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let result = "";
+    let used = 0;
+    let item;
+    while ((item = iterator.nextNode()) !== null) {
+      if (!takeWork()) return null;
+      const part = measured(item.nodeValue, remaining - used);
+      if (!part) { truncated = true; return null; }
+      result += part.text;
+      used += part.bytes;
+    }
+    return result;
   }
   function bind(element, role, name) {
     const empty = { tag:"", id:"", input_type:"", name:"", value:"" };
@@ -136,9 +151,10 @@ function (config) {
       if (interactive.has(role)) truncated = true;
       return { reference:null, fingerprint:empty };
     }
+    const value = editableValue(element);
+    if (value === null) return { reference:null, fingerprint:empty };
     const fingerprint = { tag:element.tagName.toLowerCase(), id:element.id,
-      input_type:attr(element, "type"), name:attr(element, "name"),
-      value:typeof element.value === "string" ? element.value : "" };
+      input_type:attr(element, "type"), name:attr(element, "name"), value };
     let required = 0;
     for (const field of Object.values(fingerprint)) {
       const size = measured(field, remaining - required);

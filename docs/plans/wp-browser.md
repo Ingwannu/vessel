@@ -681,3 +681,13 @@ letter keydowns, refuses keyup for a key this target never pressed and releases
 only this target's held set. It never accepts arbitrary editing commands or
 keyboard text: committed text uses the separate Text channel. Shared pointer/key
 modifier masks now have one CDP owner. Node/renderer/MCP admission is unchanged.
+
+## Snapshot form-state correction under qualification
+
+Disabled form state now uses the DOM's native :disabled semantics so a fieldset's
+inherited disabling is retained. A contenteditable ref retains an exact bounded
+text-node value fingerprint (including whitespace) instead of an empty value.
+That read shares the traversal's work/text budgets; if it cannot complete, no ref
+is assigned and truncation is explicit. These are our own DOM operations, not
+copied reference code. The updated real149 semantic/form fixture is in flight;
+old script-hash evidence does not qualify this changed source. Engine stays closed.
