@@ -26,9 +26,13 @@ mod editability;
 mod events;
 pub use editability::Editability;
 use events::{Handlers, listen};
+mod frame;
 mod presentation;
+mod rename;
+mod selection;
 mod styles;
 
+pub(crate) use frame::settings_frame;
 pub use presentation::composer_card;
 pub(crate) use styles::apply_tokens;
 
