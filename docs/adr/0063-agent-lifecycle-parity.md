@@ -441,3 +441,27 @@ other list calls refuse rather than truncate.
   the protocol change. This track does not draw a screen.
 - Not verified here: no process was restarted and no list was filtered.
   The slices after this one implement the contract.
+
+
+### Nonempty label changes at the input edge
+
+[Decision Log]
+- Purpose: a label mutation must contain a change before any actor or stored
+  session is consulted. An empty label map remains valid as session state,
+  creation input and a discovery predicate.
+- Existing assets: `SessionLabels` already bounds and validates every map entry;
+  its `apply` constructs an atomic result and checks the combined map's cap.
+  Paseo's lifecycle command rejects an empty metadata update
+  (`agent/lifecycle-command.ts:163-192`); its CLI validates before connecting
+  (`agent/update.ts:150-201`).
+- Alternatives: changing `SessionLabels` to reject empty maps would break valid
+  state and reads. A boolean mode or a separate raw map would split validation.
+- Choice: a `LabelPatch` wraps the existing validated map, without `Default` or
+  mutable access. Construction and deserialization refuse `InvalidLabel::Empty`;
+  deserialization first uses the map's bounded visitor. Serialization retains
+  the same object shape, with the TypeScript derive kept for later call wiring.
+- Why: the type carries the known input invariant across module boundaries while
+  `SessionLabels::apply` retains the context-dependent combined-cap check.
+- Effects: no new dependency or bound, method registration, event, storage write
+  or protocol assignment is introduced by this value foundation. The later
+  mutation package must prove actor/stored ordering and compatible projections.

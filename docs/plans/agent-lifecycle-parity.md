@@ -399,6 +399,12 @@ No row of the crate table changes.
 
 ## Resume point
 
+Current label-mutation preparation: the nonempty `LabelPatch` contract is written;
+implementation and narrow checks follow. This is a value foundation only, with
+no mutation method/event, actor/store write or feature assignment. Earlier notes
+below retain their historical checkpoints.
+
+
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
 - The named node head is merged without rewriting earlier commits. Its
@@ -564,3 +570,23 @@ The following commit adds the thin wrappers and the exact first-frame test.
 The shared checker, allocator and writer behavior are unchanged. The complete root gate passed on this implementation, including the first-frame
 regression, TypeScript freshness, web checks and the forge fixture. This API
 adds no CLI behavior until its separate consumer calls it.
+
+
+## Nonempty label patch foundation
+
+- Modify existing validated map operations; introduce only the type distinction
+  between an empty state/filter and a nonempty mutation. Existing `ServicePorts`
+  demonstrates a constructor invariant enforced at the serde edge, but its port
+  choices are not a label map and are not reused as a generic container.
+- Use standard `TryFrom` and the existing serde/ts-rs dependencies. There is no
+  external library or new dependency to justify; a second validator or generic
+  JSON patch would add an unnecessary boundary.
+- Follow Paseo's caller chain: CLI `agent/update.ts:150-201` checks for changes
+  before connection; `agent/lifecycle-command.ts:163-192` refuses an empty metadata
+  update; manager `agent-manager.ts:2529-2578` serializes live/stored metadata.
+  This increment adds no runtime mutation and claims none of that execution.
+- Planned tests: empty construction/serde refusal, the unchanged bounded map's
+  refusal paths, valid duplicate-key/value behavior and a transparent object
+  round trip. Combined-cap failure must still leave the original map unchanged.
+- The mutation's later request registration, pending event projection and actual
+  live/terminal/stored persistence remain separate work in the same package.
