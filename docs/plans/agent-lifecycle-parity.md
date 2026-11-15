@@ -513,6 +513,11 @@ feature constant, and an unassigned constant makes the whole call None.
 
 ## Resume point
 
+Current preparation: integrated discovery is merged; nonempty patches and the
+metadata queue refactor have narrow evidence. Mutation-clock and label-coverage
+contracts below await design review before their implementation. No new event
+or mutation RPC is registered. Historical checkpoint text follows.
+
 The title-origin node head is merged before background fields. Its origin
 projection remains authoritative; readable events use the existing origin mask,
 and event pages detect actual projection changes. This also incorporates the
@@ -1170,3 +1175,67 @@ strict failure is retained and execution is still unverified.
 - Follow-up: label mutation will add its own variant and tests in the behavior
   commit. The external native-options mailbox and later execution fence remain
   their existing owners' boundaries and are not edited by this refactor.
+
+
+## Mutation clock and label coverage: design predecision
+
+The durable session mutation clock and the current-label coverage boundary are
+proposed in ADR 0063 before implementation. They have different purposes:
+updated_at orders committed session mutations for selection, while a label
+coverage watermark states which full-map events an Info snapshot includes.
+Neither is an authority or execution fence. The timestamp is not a substitute
+for the coverage watermark.
+
+Source reading for this proposal:
+
+- Paseo `server/agent/agent-manager.ts:1017-1031`: monotonic millisecond clock;
+  `:2290-2328`: live/stored label mutation; `:2390-2435`: live and stored unread
+  differ in whether they explicitly advance updatedAt.
+- Paseo `server/session.ts:7770-7837`: canonical eligible root selection with
+  updatedAt descending/id ascending. The predicate is not inferred from cwd,
+  creation parent alone or an incomplete client list.
+- Store `writer/apply.rs`: one savepoint per operation, followed by the writer's
+  commit-before-acknowledgement. `log.rs` owns creation/append projections;
+  `marks.rs`, `inbox.rs`, `again.rs` and `subagents.rs` own direct mutations.
+  `recovery.rs` appends an interruption through the normal log path.
+- Store profile/cost and search updates are projections inside append or
+  maintenance; they do not justify a second clock or a duplicate tick.
+- Session `publish.rs` and node `persist.rs` distinguish publication from a
+  durable append. Node `sessions.rs` currently seeds storage from late
+  `handle.info()` while create_session sets next_seq to zero. A frozen initial
+  seed is a prerequisite for the proposed label coverage, not a claim about
+  the already shipped creation behavior with immutable labels.
+
+Proposed writer coverage to verify:
+
+| Operation | Clock effect | Existing atomic boundary |
+|---|---|---|
+| Successful new row | Initialize from writer time, ignore supplied/imported ordering time | Create savepoint |
+| Nonempty ordered append, including recovery and metadata events | Advance once per accepted batch | Append projection savepoint |
+| Session mark or an existing inbox-entry mark | Advance with the accepted mark | Mark savepoint |
+| Reopen | Advance only on success | Conditional reopen savepoint |
+| First detach | Advance once; repeated receipt stays unchanged | Receipt savepoint |
+| Future stored label mutation | Advance with its event/projection, once | Existing writer savepoint under reopen ordering |
+| Read, failed write, empty append, migration, retention/index/backfill maintenance | Keep the clock | Existing behavior retained |
+
+A private store helper must take the existing writer connection. Later workspace
+attention mutations need no public setter or separate read: require_active,
+owned members/roles, current attention/clock selection and marking stay in one
+transaction. Legacy NULL remains Unknown and a selection requiring that fact
+refuses. Widening session.mark permissions is outside this package.
+
+Proposed protocol additions remain unassigned: optional SessionUpdatedAt and
+LabelsWatermark fields and the future full-map LabelsChanged variant. The
+mutation timestamp has its own pending feature; label coverage shares the
+existing lifecycle metadata projection. No new feature constant, wire field,
+event, RPC registration, schema append or clock writer is implemented by this
+contract. Native timeline/terminal/current-metadata consumers remain separate;
+no exhaustive-match repair is made in this node package.
+
+Current evidence: the nonempty label patch's sixteen filtered map/patch tests
+passed, and the metadata queue refactor passed TypeScript-enabled Clippy for
+proto/session on their exact pre-merge revision. Existing options/generated-title
+regressions are queued after the integrated discovery head merge. Those checks
+do not prove timestamp production, label-event coverage or complete mutations.
+The next step is design review of this contract, then implementation and the
+forcing tests before one complete package gate.
