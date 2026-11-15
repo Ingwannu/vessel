@@ -294,3 +294,16 @@ UTC offset, so the first and last civil days of the extreme years are not
 all supported instants. A request outside those bounds is `time_out_of_range`;
 a search with no remaining cron instant is `no_future_run`. Neither returns
 a partial run list.
+
+
+### Definition edits after completion (F1 source amendment, 2026-11-15)
+
+Pinned Paseo0.15.4 schedule/service.ts458–509 preserves completed status while
+updating a definition; its schedule-row.tsx209–250 still opens that form.
+The schedule actor therefore admits updates of known Ended records separately
+from pause/resume/run admission. It retains the exact end reason/time, even
+when a new run cap is below the historical count. Unknown stays refused.
+The original ownership, forwarded-call restrictions, revision comparison,
+serialization and storage path are unchanged. This requires no wire/schema
+change. Source tests and narrow/V3 evidence are recorded in wp-F1-node; this
+amendment itself does not claim a gate or reactivation behavior.

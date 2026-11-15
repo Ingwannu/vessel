@@ -1,11 +1,12 @@
 # F1 node extension: per-run schedule isolation
 
-Current assigned base: node gate40 ba45a6e3 (protocol23, store18), merged
-through60bb77f63. It includes Quality B and the approved workspace identity
-values; it does not provide the runtime provision/receipt/archive adapters. This is the separately
-owned node worktree; the app remains on its assigned package base. No product
-change, pending feature registration, schema allocation or working isolation
-implementation is asserted by this design checkpoint.
+Current assigned node base: 9c150c6e, merged as a6fa710ce under the
+coordinator's F1 ended-edit ruling. The older gate40 design section below is
+historical. No protocol/schema number is allocated or changed by this slice.
+The isolated known-Ended update change below is authored and awaiting narrow
+checks/V3; per-run isolation is still a separate unimplemented dependency on
+canonical provision/receipt/archive runtime APIs. The app stays on its own
+announced package line and does not merge this whole node branch.
 
 ## Existing assets and constraints
 
@@ -92,3 +93,29 @@ already inherited, so no duplicate patch or test edit is needed.
 This merge/design note contains no isolation product implementation or test
 claim. Shared native button/menu producer handoffs remain the current priority;
 app isolation stays hidden until the node runtime and its review are available.
+
+
+## Known Ended definition edits (coordinator ba9f75ad)
+
+[Decision Log]
+- Purpose: pinned Paseo schedule-row.tsx209–250 opens editing for completed
+  records; schedule-form-model.ts545–565 has no completed veto; server
+  schedule/service.ts458–509 updates definitions without reactivating completed.
+- Existing constraint: Actor::update already preserves Ended in its state
+  match, but the earlier shared ended_refused call prevented reaching it.
+  That helper remains the correct pause/resume/run-now admission.
+- Choice: separate known-state update admission, allowing Active/Paused/Ended
+  and refusing Unknown. All original Asker ownership/forwarded-call/revision
+  checks remain before changing data; the actor still serializes each update.
+- Why: no second update path, no new wire/schema/method/number. Existing
+  ended reason/time must also survive edits of max_runs below the past count,
+  so only non-Ended states undergo the existing max-run completion transition.
+- Impact: the source comment is corrected. Tests seed the REAL scheduler/store
+  and cover Ended edit with exact end reason/time/count/store receipt preserved,
+  foreign-agent and forwarded update refusal, stale-revision replay refusal;
+  Unknown unchanged; Active unchanged cadence preserves next_due. No fake job
+  may be queued. Existing bounded harness guard and cancellation-on-drop apply.
+- Proof: authored tests/static format/size only at this checkpoint; actual
+  narrow commands/V3/integrator merge are owed. App Ended admission stays
+  unchanged until this node behavior is reviewed/available. Old nodes may
+  still refuse with their real typed Conflict; writes are never auto-replayed.

@@ -14,7 +14,7 @@ use super::actor::Actor;
 use super::book::Entry;
 use super::check::{node_anchor, settle};
 use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES};
-use super::state::{advanced, ended_refused, ends_an_agents};
+use super::state::{advanced, ended_refused, ends_an_agents, update_admitted};
 use super::{Clock, Command, Runner};
 use crate::automation::error::AutomationError;
 use crate::automation::time::Due;
@@ -187,7 +187,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     ) -> Result<ScheduleInfo, AutomationError> {
         let mut info = self.found(schedule)?.info.clone();
         asker.may(Act::Update, &info.defined_by)?;
-        ended_refused(&info)?;
+        update_admitted(&info)?;
         if revision != info.revision {
             return Err(AutomationError::Conflict(format!(
                 "the schedule was changed meanwhile (now revision {}); edit that one",
@@ -216,7 +216,9 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             | ScheduleState::Ended { .. }
             | ScheduleState::Unknown) => other,
         };
-        if let Some(max) = definition.max_runs
+        // Updating limits must not rewrite an already completed reason/time.
+        if !matches!(info.state, ScheduleState::Ended { .. })
+            && let Some(max) = definition.max_runs
             && info.runs >= max.get()
         {
             info.state = ScheduleState::Ended {
