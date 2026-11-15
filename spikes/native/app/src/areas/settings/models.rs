@@ -46,6 +46,12 @@ impl State {
     }
 }
 impl Shell {
+    pub(crate) fn models_connected(&mut self, connection: &models::page::Connection) {
+        let state = &mut self.areas.settings.models;
+        if state.page.connected(connection) {
+            state.refused = None;
+        }
+    }
     /// Like the other machine sections: navigation is reconciled before drawing.
     pub(crate) fn settle_models(&mut self, window: &Window) {
         let shown = self.route == Route::Settings

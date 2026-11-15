@@ -172,6 +172,7 @@ mod tests {
 #[derive(Debug)]
 pub struct State<E> {
     machine: Option<crate::agent_status::pages::MachineKey>,
+    node: Option<vessel_proto::NodeId>,
     next: u64,
     page: Page<E>,
 }
@@ -179,6 +180,7 @@ impl<E> Default for State<E> {
     fn default() -> Self {
         Self {
             machine: None,
+            node: None,
             next: 0,
             page: Page::default(),
         }
@@ -203,8 +205,27 @@ impl<E> State<E> {
     pub fn select(&mut self, machine: Option<crate::agent_status::pages::MachineKey>) {
         if machine != self.machine {
             self.machine = machine;
+            self.node = None;
             self.page = Page::default();
         }
+    }
+    /// A real connection replaces cached and pending facts even when the
+    /// node id is unchanged. Tickets survive, so old replies stay stale.
+    /// This notice alone makes no claim about permissions or retained clients.
+    #[must_use]
+    pub fn connected(&mut self, connection: &Connection) -> bool {
+        if self.machine.as_ref() != Some(&connection.machine) {
+            return false;
+        }
+        self.node = Some(connection.node);
+        self.page = Page::default();
+        true
+    }
+    /// Physical identity from the last actual connection notice for this
+    /// selected machine, distinct from the editable book route.
+    #[must_use]
+    pub const fn node(&self) -> Option<vessel_proto::NodeId> {
+        self.node
     }
     /// The current machine, used to tag the outgoing read.
     #[must_use]
@@ -246,10 +267,89 @@ impl<E> State<E> {
         self.page.received(ticket, result)
     }
 }
+/// Actual reconnect identity emitted by the shared connection-ready fan-out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Connection {
+    /// Validated route in the machine book.
+    pub machine: crate::agent_status::pages::MachineKey,
+    /// Identity obtained from the connected client's handshake.
+    pub node: vessel_proto::NodeId,
+}
 #[cfg(test)]
 mod navigation_tests {
     use super::*;
     use crate::agent_status::pages::MachineKey;
+    #[test]
+    fn every_real_reconnect_clears_cached_and_pending_facts_without_reusing_tickets() {
+        let machine = MachineKey::from_book("one");
+        let connection = Connection {
+            machine: machine.clone(),
+            node: vessel_proto::NodeId::random(),
+        };
+        let mut state = State::<&str>::default();
+        state.select(Some(machine.clone()));
+        assert!(state.connected(&connection));
+        let old = state.begin().unwrap();
+        assert!(state.received(
+            &machine,
+            old,
+            Ok(Snapshot {
+                routes: Listed::Available(vec![]),
+                profiles: Listed::Available(vec![]),
+                agents: vec![],
+            }),
+        ));
+        assert!(state.page().snapshot().is_some());
+        let pending = state.begin().unwrap();
+        assert!(
+            state.connected(&connection),
+            "same id is still a new connection"
+        );
+        assert_eq!(state.node(), Some(connection.node));
+        assert!(state.page().snapshot().is_none());
+        assert_eq!(state.page().pending(), None);
+        let next = state.begin().unwrap();
+        assert_ne!(pending, next);
+        assert!(!state.received(&machine, pending, Err("late old connection")));
+        assert_eq!(state.page().pending(), Some(next));
+        assert!(state.page().problem().is_none());
+        let replacement = Connection {
+            machine: machine.clone(),
+            node: vessel_proto::NodeId::random(),
+        };
+        assert!(state.connected(&replacement));
+        assert_eq!(state.node(), Some(replacement.node));
+        assert!(!state.received(&machine, next, Err("late replaced node")));
+        assert_eq!(state.page().pending(), None);
+    }
+
+    #[test]
+    fn another_machines_connection_preserves_the_current_read_and_error() {
+        let machine = MachineKey::from_book("one");
+        let other = Connection {
+            machine: MachineKey::from_book("two"),
+            node: vessel_proto::NodeId::random(),
+        };
+        let mut state = State::<&str>::default();
+        assert!(!state.connected(&other));
+        state.select(Some(machine.clone()));
+        let pending = state.begin().unwrap();
+        assert!(!state.connected(&other));
+        assert_eq!(state.node(), None);
+        assert_eq!(state.page().pending(), Some(pending));
+        assert!(state.received(&machine, pending, Err("retained failure")));
+        assert!(!state.connected(&other));
+        assert_eq!(state.page().problem(), Some(&"retained failure"));
+        let current = Connection {
+            machine: machine.clone(),
+            node: vessel_proto::NodeId::random(),
+        };
+        assert!(state.connected(&current));
+        assert!(state.page().problem().is_none());
+        state.select(None);
+        assert_eq!(state.node(), None);
+        assert!(!state.connected(&current));
+    }
     #[test]
     fn same_machine_selection_keeps_pending_facts_and_exhaustion_is_nonmutating() {
         let machine = MachineKey::from_book("one");

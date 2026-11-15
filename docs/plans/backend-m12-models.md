@@ -264,3 +264,22 @@ writer admission. The 30-second removal deadline, physical identity guard,
 acknowledgement checks and no-resend policy are unchanged. Direct category
 regressions cover the new source, including removal's non-uncertain verdict.
 No pending method, dummy version or new RPC call is introduced.
+
+## Actual-connection cache invalidation
+
+The isolated connection-ready producer is now consumed. Its existing
+`hand_kept` happens first; Models registers one typed notice in the same
+bounded fan-out, before sessions/Fleet publication. No second hook or
+generation counter is introduced. This timing alone proves neither that
+the client will be retained nor that the device can read Models.
+
+The current pure page accepts only its selected book route's notice,
+records the handshake NodeId, and clears cached, pending and failed facts
+on every real connection. An equal NodeId is still a reconnect. Ticket
+allocation is not reset, so responses from the previous connection cannot
+overwrite the replacement page. Unrelated machine notices are ignored.
+The area clears a stale start refusal on that same accepted notice; normal
+read results still decide Offline/Denied/Busy. Tests cover the shared
+fan-out identity, equal-id reconnect, replaced node, stale responses,
+unrelated notices and navigation. Changed-source narrow/runtime checks
+remain pending; these rules are not a reconnect UI approval.

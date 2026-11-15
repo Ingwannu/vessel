@@ -21,6 +21,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 /// What the link reports.
 #[derive(Debug)]
 pub enum Event {
+    /// A real Models connection invalidates facts even for an equal Fleet.
+    ModelsConnected(vessel_app_view::models::page::Connection),
     /// Configured model facts for the original machine and page ticket.
     Models(models::Answer),
     /// An Agents response, including background install progress.

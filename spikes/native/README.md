@@ -1072,6 +1072,8 @@ See docs/plans/backend-m12-g2-loading-019-producer.md for source/gate/UI scope.
 The existing machine-group Models entry registers `areas/settings/models`.
 Its pure `view::models` page owns machine/ticket correlation, search and
 initial/cached states; the app only draws and sends `Command::Models`.
+Actual reconnect notices use the shared `connection_ready` fan-out: same-node
+reconnects also invalidate pending/cached facts without reusing a ticket.
 `link::models` reads existing model/profile/agent lists on one connection,
 with four dispatched reads and one 15-second snapshot deadline. Older
 methods stay distinct from empty lists. The shared actor may still delay
