@@ -1,16 +1,20 @@
 //! Source Name/Prompt/target/cadence/Max runs field order.
 use super::draw::{Selection, framed, select, shared};
+use super::inputs::Inputs;
 use super::{AnyElement, Context, Picker, Shell, Tokens, kit};
 use kit::{
     Type, TypeExt as _,
     theme::spacing,
     ui::{
-        IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+        Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
+        div, px,
     },
 };
 use std::sync::Arc;
 use vessel_app_view::schedules::editor::{
-    cadence::Choice, fields::Field, presentation::OperationProblem,
+    cadence::Choice,
+    fields::Field,
+    presentation::{Form, OperationProblem},
 };
 pub(super) fn render(
     shell: &Shell,
@@ -66,6 +70,23 @@ pub(super) fn render(
             tokens,
         ));
     }
+    body = target_fields(body, shell, tokens, touch, form, cx);
+    if area.data.editor.draft().is_none() {
+        return body.into_any_element();
+    }
+    body = cadence_fields(body, shell, tokens, touch, form, inputs, cx);
+    suffix_fields(body, shell, tokens, touch, form, inputs, cx).into_any_element()
+}
+
+fn target_fields(
+    mut body: Div,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    form: &Form,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let area = &shell.areas.schedules;
     if !form.text.is_empty() {
         let model = &area.data.editor;
         if model.draft().is_some_and(|draft| draft.opened().is_some())
@@ -120,103 +141,132 @@ pub(super) fn render(
                 touch,
                 cx,
             ));
-            if model.project_id().is_some()
-                || model.draft().is_some_and(|draft| draft.opened().is_some())
-            {
-                let controls = form.controls.as_ref();
-                let model_name = controls
-                    .and_then(|controls| controls.model.as_ref())
-                    .map(|control| control.current_name().to_owned());
-                let value = model_name.map_or_else(
-                    || {
-                        kit::select::FormValue::Placeholder(
-                            shell.words.schedules().form_model_placeholder().into(),
-                        )
-                    },
-                    |name| kit::select::FormValue::Selected(name.into()),
-                );
-                let agent = model
-                    .draft()
-                    .and_then(|draft| draft.target())
-                    .map(|target| &target.spec().harness);
-                let leading = agent.map(|agent| {
-                    crate::agent_mark::mark(
-                        Some(agent),
-                        kit::agent_mark::Size::Sixteen,
-                        kit::agent_mark::Space::Row,
+            body = model_fields(body, shell, tokens, touch, form, cx);
+        }
+    }
+    body
+}
+
+fn model_fields(
+    mut body: Div,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    form: &Form,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let model = &shell.areas.schedules.data.editor;
+    if model.project_id().is_some() || model.draft().is_some_and(|draft| draft.opened().is_some()) {
+        let controls = form.controls.as_ref();
+        let model_name = controls
+            .and_then(|controls| controls.model.as_ref())
+            .map(|control| control.current_name().to_owned());
+        let value = model_name.map_or_else(
+            || {
+                kit::select::FormValue::Placeholder(
+                    shell.words.schedules().form_model_placeholder().into(),
+                )
+            },
+            |name| kit::select::FormValue::Selected(name.into()),
+        );
+        let agent = model
+            .draft()
+            .and_then(|draft| draft.target())
+            .map(|target| &target.spec().harness);
+        let leading = agent.map(|agent| {
+            crate::agent_mark::mark(
+                Some(agent),
+                kit::agent_mark::Size::Sixteen,
+                kit::agent_mark::Space::Row,
+                tokens,
+            )
+            .into_any_element()
+        });
+        body = body.child(select(
+            shell,
+            Selection::new(Picker::Model, value).leading(leading),
+            tokens,
+            touch,
+            cx,
+        ));
+        if let Some(controls) = controls {
+            for (picker, control) in [
+                (Picker::Thinking, controls.effort.as_ref()),
+                (Picker::Mode, controls.permissions.as_ref()),
+            ] {
+                if let Some(control) = control {
+                    body = body.child(select(
+                        shell,
+                        Selection::new(
+                            picker,
+                            kit::select::FormValue::Selected(
+                                control.current_name().to_owned().into(),
+                            ),
+                        ),
                         tokens,
-                    )
-                    .into_any_element()
-                });
-                body = body.child(select(
-                    shell,
-                    Selection::new(Picker::Model, value).leading(leading),
-                    tokens,
-                    touch,
-                    cx,
-                ));
-                if let Some(controls) = controls {
-                    for (picker, control) in [
-                        (Picker::Thinking, controls.effort.as_ref()),
-                        (Picker::Mode, controls.permissions.as_ref()),
-                    ] {
-                        if let Some(control) = control {
-                            body = body.child(select(
-                                shell,
-                                Selection::new(
-                                    picker,
-                                    kit::select::FormValue::Selected(
-                                        control.current_name().to_owned().into(),
-                                    ),
-                                ),
-                                tokens,
-                                touch,
-                                cx,
-                            ));
-                        }
-                    }
-                }
-                if let Some(target) = model.draft().and_then(|draft| draft.target()) {
-                    let on = target.finish()
-                        == vessel_app_view::schedules::editor::definition::Finish::Archive;
-                    let visit = form.visit;
-                    let toggle = kit::settings::switch(
-                        "schedule-archive",
-                        on,
-                        !form.blocked,
                         touch,
-                        0,
-                        tokens,
-                    );
-                    let toggle = if form.blocked {
-                        toggle
-                    } else {
-                        toggle.on_click(cx.listener(move |shell, _, _, cx| {
-                            let model = &mut shell.areas.schedules.data.editor;
-                            let finish = if on {
-                                vessel_app_view::schedules::editor::definition::Finish::Keep
-                            } else {
-                                vessel_app_view::schedules::editor::definition::Finish::Archive
-                            };
-                            if model.finish(visit, finish) {
-                                let _changed = shell.schedules_changed(cx);
-                                cx.notify();
-                            }
-                        }))
-                    };
-                    body = body.child(framed(
-                        shell.words.schedules().form_archive().into(),
-                        toggle.into_any_element(),
-                        None,
-                        tokens,
+                        cx,
                     ));
                 }
             }
         }
+        body = archive_fields(body, shell, tokens, touch, form, cx);
     }
+    body
+}
+
+fn archive_fields(
+    mut body: Div,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    form: &Form,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let model = &shell.areas.schedules.data.editor;
+    if let Some(target) = model.draft().and_then(|draft| draft.target()) {
+        let on = target.finish() == vessel_app_view::schedules::editor::definition::Finish::Archive;
+        let visit = form.visit;
+        let toggle = kit::settings::switch("schedule-archive", on, !form.blocked, touch, 0, tokens);
+        let toggle = if form.blocked {
+            toggle
+        } else {
+            toggle.on_click(cx.listener(move |shell, _, _, cx| {
+                let model = &mut shell.areas.schedules.data.editor;
+                let finish = if on {
+                    vessel_app_view::schedules::editor::definition::Finish::Keep
+                } else {
+                    vessel_app_view::schedules::editor::definition::Finish::Archive
+                };
+                if model.finish(visit, finish) {
+                    let _changed = shell.schedules_changed(cx);
+                    cx.notify();
+                }
+            }))
+        };
+        body = body.child(framed(
+            shell.words.schedules().form_archive().into(),
+            toggle.into_any_element(),
+            None,
+            tokens,
+        ));
+    }
+    body
+}
+
+fn cadence_fields(
+    mut body: Div,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    form: &Form,
+    inputs: &Inputs,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let area = &shell.areas.schedules;
     let model = &area.data.editor;
     let Some(draft) = model.draft() else {
-        return body.into_any_element();
+        return body;
     };
     let cadence_label = match draft.cadence.choice() {
         Choice::Preset(preset) => preset.label(shell.words),
@@ -282,6 +332,19 @@ pub(super) fn render(
         tokens,
     );
     body = body.child(cadence_frame);
+
+    body
+}
+
+fn suffix_fields(
+    mut body: Div,
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    form: &Form,
+    inputs: &Inputs,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     if let Some(description) = &form.cadence {
         body = body.child(
             div()
@@ -332,5 +395,6 @@ pub(super) fn render(
             body = body.child(super::super::draw::row_notice(notice, tokens));
         }
     }
-    body.into_any_element()
+
+    body
 }

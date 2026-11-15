@@ -1173,3 +1173,16 @@ real typing still edits B. It reuses language_tests initialization and the same
 callbacks/listen path, not a fixture route, fake field engine or direct callback
 invocation. This is authored but UNEXECUTED source; no form authority, physical
 IME, network or user UI proof is inferred. No node is connected or RPC issued.
+
+
+### Preflight the remaining own App function budgets
+
+A non-compiling scan of the masked Rust source found the newly wired form body,
+choice builder/dispatch, footer and area cache rebuild exceeding100-line function
+budgets before a later Clippy could reach App. They are split by their existing
+responsibilities: unchanged field-order sections on the same body, offered rows
+in a child, bootstrap admission, footer, and stale overlay reconciliation. No
+second control renderer, extra wrapper/spacing or new state is introduced, no
+size record raised and no lint suppression added. Node calls, typed guards and
+UI behavior remain unverified until the meaningful changed-head package checks;
+this source scan is not compiler or runtime evidence.

@@ -61,64 +61,7 @@ pub(super) fn render(
         || shell.words.schedules().form_new_title().into(),
         |form| shared(&form.title),
     );
-    let saving = cache.is_some_and(|form| {
-        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Pending
-    });
-    let can_save = cache.is_some_and(|form| {
-        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Ready
-    });
-    let sizing = ControlSizing::from_compact(touch);
-    let close_bootstrap = bootstrap.clone();
-    let cancel = kit::button_control(
-        "schedule-form-cancel",
-        ButtonContent::Label(shell.words.schedules().cancel().into()),
-        ButtonConfig::new(
-            ButtonKind::Secondary,
-            if saving {
-                ButtonState::Disabled
-            } else {
-                ButtonState::Enabled
-            },
-            sizing,
-        ),
-        tokens,
-    )
-    .flex_1()
-    .on_click(cx.listener(move |shell, _, window, cx| {
-        close(shell, visit, close_bootstrap.clone(), window, cx)
-    }));
-    let config = ButtonConfig::new(
-        ButtonKind::Primary,
-        if can_save {
-            ButtonState::Enabled
-        } else {
-            ButtonState::Disabled
-        },
-        sizing,
-    );
-    let config = if saving { config.loading() } else { config };
-    let save_button = kit::button_control(
-        "schedule-form-save",
-        ButtonContent::Label(cache.map_or_else(
-            || shell.words.schedules().form_create().into(),
-            |form| shared(&form.submit),
-        )),
-        config,
-        tokens,
-    )
-    .flex_1()
-    .on_click(cx.listener(move |shell, _, window, cx| {
-        if let Some(visit) = visit {
-            save(shell, visit, window, cx);
-        }
-    }));
-    let footer = div()
-        .flex()
-        .flex_1()
-        .gap(px(spacing::S3))
-        .child(cancel)
-        .child(save_button)
-        .into_any_element();
+    let footer = footer(shell, cache, visit, bootstrap.clone(), touch, tokens, cx);
     let body = if bootstrap.is_some() {
         div()
             .flex()
@@ -171,6 +114,74 @@ pub(super) fn render(
         move |shell, window, cx| close(shell, visit, bootstrap.clone(), window, cx),
         cx,
     ))
+}
+fn footer(
+    shell: &Shell,
+    cache: Option<&vessel_app_view::schedules::editor::presentation::Form>,
+    visit: Option<super::Visit>,
+    bootstrap: Option<super::Weak<()>>,
+    touch: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let saving = cache.is_some_and(|form| {
+        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Pending
+    });
+    let can_save = cache.is_some_and(|form| {
+        form.submission == vessel_app_view::schedules::editor::presentation::Submission::Ready
+    });
+    let sizing = ControlSizing::from_compact(touch);
+    let close_bootstrap = bootstrap;
+    let cancel = kit::button_control(
+        "schedule-form-cancel",
+        ButtonContent::Label(shell.words.schedules().cancel().into()),
+        ButtonConfig::new(
+            ButtonKind::Secondary,
+            if saving {
+                ButtonState::Disabled
+            } else {
+                ButtonState::Enabled
+            },
+            sizing,
+        ),
+        tokens,
+    )
+    .flex_1()
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        close(shell, visit, close_bootstrap.clone(), window, cx)
+    }));
+    let config = ButtonConfig::new(
+        ButtonKind::Primary,
+        if can_save {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
+        },
+        sizing,
+    );
+    let config = if saving { config.loading() } else { config };
+    let save_button = kit::button_control(
+        "schedule-form-save",
+        ButtonContent::Label(cache.map_or_else(
+            || shell.words.schedules().form_create().into(),
+            |form| shared(&form.submit),
+        )),
+        config,
+        tokens,
+    )
+    .flex_1()
+    .on_click(cx.listener(move |shell, _, window, cx| {
+        if let Some(visit) = visit {
+            save(shell, visit, window, cx);
+        }
+    }));
+    div()
+        .flex()
+        .flex_1()
+        .gap(px(spacing::S3))
+        .child(cancel)
+        .child(save_button)
+        .into_any_element()
 }
 pub(super) struct Selection {
     picker: Picker,

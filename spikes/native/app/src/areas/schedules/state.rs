@@ -82,53 +82,54 @@ impl Area {
         self.data.host_errors = host_errors;
         self.data.blocking = blocking;
         self.data.local = local;
-        {
-            let ui = &mut self.ui;
-            if ui.selected.as_ref().is_some_and(|intent| {
-                !intent.is_current(&self.data.page)
-                    || !self
-                        .data
-                        .rows
-                        .iter()
-                        .any(|row| row.key == *intent.key() && row.has_menu())
-            }) {
-                ui.selected = None;
-                if ui.menu.is_open() {
-                    ui.menu.close();
-                    let _new = ui.pending_focus.insert(Popup::Actions);
-                }
-            }
-            if ui
-                .deleting
-                .as_ref()
-                .is_some_and(|prompt| !prompt.intent.is_current(&self.data.page))
-            {
-                ui.deleting = None;
-                let _new = ui.pending_focus.insert(Popup::Delete);
-            }
-            if ui.picker.is_open()
-                && (!self.data.page.filters_visible() || !self.data.page.multiple_machines())
-            {
-                ui.picker.close();
-                let _new = ui.pending_focus.insert(Popup::Hosts);
-            }
-            ui.anchors
-                .retain(|key, _| self.data.rows.iter().any(|row| row.key == *key));
-            for row in &self.data.rows {
-                let _existing = ui
-                    .anchors
-                    .entry(row.key.clone())
-                    .or_insert_with(|| RowControl {
-                        anchor: Anchor::default(),
-                        id: format!(
-                            "schedule-actions-{}-{}",
-                            row.key.machine.as_str(),
-                            row.key.schedule
-                        )
-                        .into(),
-                    });
+        self.reconcile_controls();
+        changed
+    }
+    fn reconcile_controls(&mut self) {
+        let ui = &mut self.ui;
+        if ui.selected.as_ref().is_some_and(|intent| {
+            !intent.is_current(&self.data.page)
+                || !self
+                    .data
+                    .rows
+                    .iter()
+                    .any(|row| row.key == *intent.key() && row.has_menu())
+        }) {
+            ui.selected = None;
+            if ui.menu.is_open() {
+                ui.menu.close();
+                let _new = ui.pending_focus.insert(Popup::Actions);
             }
         }
-        changed
+        if ui
+            .deleting
+            .as_ref()
+            .is_some_and(|prompt| !prompt.intent.is_current(&self.data.page))
+        {
+            ui.deleting = None;
+            let _new = ui.pending_focus.insert(Popup::Delete);
+        }
+        if ui.picker.is_open()
+            && (!self.data.page.filters_visible() || !self.data.page.multiple_machines())
+        {
+            ui.picker.close();
+            let _new = ui.pending_focus.insert(Popup::Hosts);
+        }
+        ui.anchors
+            .retain(|key, _| self.data.rows.iter().any(|row| row.key == *key));
+        for row in &self.data.rows {
+            let _existing = ui
+                .anchors
+                .entry(row.key.clone())
+                .or_insert_with(|| RowControl {
+                    anchor: Anchor::default(),
+                    id: format!(
+                        "schedule-actions-{}-{}",
+                        row.key.machine.as_str(),
+                        row.key.schedule
+                    )
+                    .into(),
+                });
+        }
     }
 }
