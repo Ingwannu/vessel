@@ -291,3 +291,10 @@ A known different node or session clears that guard. This prevents disconnect /
 readmission from accepting metadata older than a rewind already observed on
 Follow. The pure regression includes the unavailable and unknown-admission gap,
 not only an immediate old-context → new-context swap.
+
+The observed-rewind guard also accounts for retention passing that marker. A
+fresh epoch whose retained start is after the known rewind no longer contains
+the marker; rejecting it forever would strand the metadata index until a full
+reset. A boundary at or before the marker still requires the known rewind. The
+pure regression tests both sides of this boundary without weakening page-set
+epoch consistency or accepting older pre-rewind data. Runtime check is pending.

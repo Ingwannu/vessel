@@ -358,3 +358,30 @@ fn followed_fallback_includes_steers_and_uses_the_same_bounded_preview_as_metada
         PromptPreview::from_text(text).as_str()
     );
 }
+
+#[test]
+fn retention_past_an_observed_rewind_accepts_its_new_retained_history() {
+    let mut index = PromptIndex::default();
+    let _first = index.refresh(target("one"), None).unwrap();
+    let old = index.history_changed(EventSeq::new(5)).unwrap();
+    let retained = PromptIndexEpoch::new(EventSeq::new(6), None).unwrap();
+    assert!(
+        index
+            .answered(&old, Ok(page(&old, &[7], None, retained)))
+            .is_none()
+    );
+    assert_eq!(index.phase(), IndexPhase::Ready);
+    assert_eq!(index.entries().unwrap()[0].seq, EventSeq::new(7));
+    let retry = index.restart().unwrap();
+    let not_past = PromptIndexEpoch::new(EventSeq::new(5), None).unwrap();
+    assert!(
+        index
+            .answered(&retry, Ok(page(&retry, &[7], None, not_past)))
+            .is_none()
+    );
+    assert_eq!(
+        index.phase(),
+        IndexPhase::Failed(IndexProblem::HistoryChanged),
+        "a retained boundary at the marker must still report that rewind"
+    );
+}
