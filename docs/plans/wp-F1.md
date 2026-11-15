@@ -283,8 +283,8 @@ reviewed and integrated. Prepared editor sources are still uninstalled.
 
 All Rust compilation, Clippy, tests and capture builds now run through the
 remote gate tool. No new local Cargo/rustc process is allowed, including direct
-or scheduled capture builds. Rustfmt and source-only size/boundary/token checks
-compile nothing. Existing registered remote runs keep their original lane and
+or scheduled capture builds. Rustfmt and standalone size/token checks compile nothing. The boundary
+script requires Cargo metadata, so its check stays on the remote quality step. Existing registered remote runs keep their original lane and
 immutable commit; a later source commit is not evidence for a queued old run.
 Capture executables must be exact-source remote exports with checked ABI,
 manifest and file hashes, using the assigned read-only shared root binaries
