@@ -169,3 +169,9 @@ and will retain the existing explicit Unsupported refusal rather than force.
 These are DTOs and a pure predicate only, with no Request/table/client/handler
 for conditional children until reviewed W2 current parentage is adopted. The
 ordinary explicit ArchiveSession remains the path for ended stored sessions.
+
+Node archive unit tests prepare their fake harness fixture before entering the
+named safety deadline. The deadline then covers actor readiness, persistence,
+repeat/refusal checks and cleanup, so a broken admission or handover reports a
+bounded failure rather than holding the build slot indefinitely. These tests use
+only the existing fake runtime and temporary store.

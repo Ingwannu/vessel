@@ -57,7 +57,7 @@ pub enum ChildArchiveOutcome {
 
 /// Snapshot eligibility for the managed idle/error rows in archive-finished.
 /// This is not mutation authority: current parent must also match under the node
-/// admission lock, followed by actor IfIdle admission on a live structured child.
+/// admission lock, followed by actor `IfIdle` admission on a live structured child.
 /// Missing board facts never imply idle, and display/PR phrases are not activity.
 #[must_use]
 pub fn finished_child_candidate(info: &SessionInfo) -> bool {
