@@ -81,3 +81,14 @@ admission must use Identified and future drivers must refuse unkeyed agent
 prompt replay. Present still describes blank-terminal typed input, whose
 unknown side effect cannot be replayed. This value addition activates no
 prompt method and is not server-side deduplication proof.
+
+Pending first-turn archive behavior (not implemented): Paseo's
+`server/agent/create-agent-lifecycle-dispatch.ts:217-250` subscribes once,
+without replaying prior state, before initial prompt delivery. The first
+completed/failed/canceled turn releases the listener and invokes archive.
+A newly created managed worktree chooses workspace archive; otherwise only
+that agent is archived. The future driver must use authoritative provision
+results and the lifecycle owner's archive path, preserve its authority and
+settle the listener before prompt dispatch. A cwd or legacy session listing
+cannot select workspace archive. No automatic archive or flag is exposed by
+this staged receipt/profile slice.
