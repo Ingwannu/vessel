@@ -18,3 +18,5 @@ This leaf is exactly the kit helper/registration/feature policy from the compose
 - Tradeoffs: static first frame only; CPU conversion belongs on a background executor. Codec allocation limits are best-effort and each decoded/native buffer is bounded; no peak-process, GPU/cache, frame acquisition, browser engine or actual UI proof is claimed. No URL fetch, uploader, context store, or new dependency is introduced.
 
 The pixel extension is isolated source preparation until its changed-source strict and actual pixel/policy tests execute. It is not part of the frozen composer candidate.
+
+The first pixel-extension strict run wp-composer-image-kit-20261115T153040Z-39ecc0a7 reached Kit and refused the fixed-size chunks_exact_mut API. The conversion uses the pinned toolchain's as_chunks_mut::<4>() array view instead; pixel order, buffer ownership and limits are unchanged. No tests ran after that strict failure.

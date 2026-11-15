@@ -42,7 +42,7 @@ impl DecodedRaster {
     /// cache lifetime remain the caller's responsibility.
     #[must_use]
     pub fn into_render_image(mut self) -> Arc<gpui::RenderImage> {
-        for pixel in self.pixels.chunks_exact_mut(4) {
+        for pixel in self.pixels.as_chunks_mut::<4>().0 {
             pixel.swap(0, 2);
         }
         Arc::new(gpui::RenderImage::new(vec![image::Frame::new(self.pixels)]))
