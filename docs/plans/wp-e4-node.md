@@ -177,3 +177,8 @@ binary search therefore reported it unclassified and stopped before writing
 new declarations. Only the new row moves into its correct sorted position;
 existing shared classifications and their order are unchanged. The failed
 generation remains separate from the subsequent corrected source check.
+
+The generated-guard regression also checks the actual collected recent-error
+window: both pre-handler scope refusals and the three saturated-collector
+refusals must be present in order without loss. This verifies the journal's
+real caller rather than relying only on its actor component tests.

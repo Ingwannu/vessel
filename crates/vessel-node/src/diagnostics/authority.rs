@@ -5,7 +5,10 @@ use super::{
 };
 use crate::{Config, Node, principal::Principal, service::Connection};
 use vessel_harness::HarnessEnv;
-use vessel_proto::diagnostics::{DiagnosticRefusal, GetDiagnostics, MAX_DIAGNOSTIC_COLLECTIONS};
+use vessel_proto::diagnostics::{
+    DiagnosticRefusal, DiagnosticReport, DiagnosticSection, GetDiagnostics,
+    MAX_DIAGNOSTIC_COLLECTIONS,
+};
 use vessel_proto::{ClientInfo, DeviceId, ErrorCode, Handler as _, Scope, SessionId};
 use vessel_rpc::{ClientConfig, Peer, Server, ServerConfig};
 use vessel_store::DataDir;
@@ -81,6 +84,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         .await
         .unwrap();
         assert_eq!(report.fields().node.id, id);
+        assert_recorded_guard_failures(&report);
         let error = phase(
             "self wrapper is not forwardable",
             guard.forward(
@@ -105,6 +109,31 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
             .unwrap();
     })
     .await;
+}
+
+// Snapshot is ordered after the completed calls on the journal's channel.
+// This catches an observer moved below the guard's early scope refusal.
+fn assert_recorded_guard_failures(report: &DiagnosticReport) {
+    let DiagnosticSection::Available { value, .. } = &report.fields().recent_failures else {
+        panic!("completed guard failures must be observable")
+    };
+    let codes: Vec<_> = value
+        .entries
+        .as_slice()
+        .iter()
+        .map(|entry| entry.code)
+        .collect();
+    assert_eq!(
+        codes,
+        [
+            ErrorCode::Forbidden,
+            ErrorCode::Forbidden,
+            ErrorCode::Unavailable,
+            ErrorCode::Unavailable,
+            ErrorCode::Unavailable,
+        ]
+    );
+    assert_eq!(value.omitted.get(), 0);
 }
 
 pub(super) struct Transport {
