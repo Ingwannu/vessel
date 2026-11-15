@@ -41,6 +41,11 @@ impl<T: Default> DraftTrays<T> {
         self.trays.get(&key).map(|(_, tray)| tray)
     }
 
+    /// Snapshot enumeration for persistence; it grants no new eviction authority.
+    pub fn entries(&self) -> impl Iterator<Item = (DraftKey, &T)> {
+        self.trays.iter().map(|(key, (_, tray))| (*key, tray))
+    }
+
     /// `key`'s tray to change, if it has one (an upload's answer for a
     /// tray that was dropped finds none).
     pub fn get_mut(&mut self, key: DraftKey) -> Option<&mut T> {
@@ -64,6 +69,11 @@ impl<T: Default> DraftTrays<T> {
         let (used, tray) = self.trays.entry(key).or_default();
         *used = self.clock;
         tray
+    }
+
+    /// Release an owner-confirmed empty slot; retained content is the caller's responsibility.
+    pub fn remove(&mut self, key: DraftKey) -> Option<T> {
+        self.trays.remove(&key).map(|(_, tray)| tray)
     }
 
     /// `from`'s tray is now `to`'s (the new chat's, once its session

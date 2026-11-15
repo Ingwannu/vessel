@@ -18,7 +18,12 @@ where
 
 fn sent(n: u64) -> Sent {
     Sent {
-        machine: crate::machine_book::Name::parse("laptop").expect("valid book key"),
+        connection: crate::connection::ConnectionEpochs::default()
+            .admit(
+                crate::connection::MachineKey::from_book("laptop"),
+                id::<vessel_proto::NodeId>(2),
+            )
+            .unwrap(),
         session: id::<SessionId>(1),
         attachment: id::<AttachmentId>(n),
     }
@@ -140,4 +145,21 @@ fn a_picture_being_read_is_not_dropped() {
         pictures.seed(sent(n), bytes(1));
     }
     assert_eq!(pictures.ask(&sent(1)), Picture::Reading);
+}
+
+#[test]
+fn a_reused_machine_label_does_not_reuse_a_previous_nodes_image_bytes() {
+    let first = sent(1);
+    let mut replacement = first.clone();
+    replacement.connection = crate::connection::ConnectionEpochs::default()
+        .admit(
+            crate::connection::MachineKey::from_book("laptop"),
+            id::<vessel_proto::NodeId>(3),
+        )
+        .unwrap();
+    let mut pictures = Pictures::default();
+    pictures.seed(first.clone(), bytes(3));
+    assert!(matches!(pictures.ask(&first), Picture::Ready(_)));
+    assert_eq!(pictures.ask(&replacement), Picture::Wanted);
+    assert_ne!(first, replacement);
 }

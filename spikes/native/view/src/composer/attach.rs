@@ -29,6 +29,9 @@ use vessel_proto::{AgentAbilities, AttachmentKind, AttachmentLimits, AttachmentN
 /// A destination address may disappear or be rebound to a different node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum TargetProblem {
+    /// Same node identity is insufficient after an admission retires.
+    #[error(transparent)]
+    Admission(#[from] crate::connection::Refusal),
     /// No verified peer is available under the captured address.
     #[error("the attachment destination is offline")]
     Offline,
@@ -54,6 +57,9 @@ pub enum PrepareProblem {
     /// Preserve the existing machine-name validator result.
     #[error("invalid machine selection: {0:?}")]
     Machine(crate::machines::NameProblem),
+    /// Context validation preserves its source-specific refusal.
+    #[error(transparent)]
+    Context(#[from] super::context::ContextProblem),
     /// A peer has not provided an authoritative destination identity.
     #[error(transparent)]
     Target(#[from] TargetProblem),
