@@ -12,7 +12,9 @@
 //!   this value never silently truncates a label.
 
 mod label;
+mod managed_alias;
 pub use label::{EmptyLabel, Label};
+pub use managed_alias::ManagedLocalAlias;
 
 /// Paseo's host colors, in `HOST_COLORS` order (none then identity colors).
 /// This is a choice, not a paint value; the kit owns its actual colors.
