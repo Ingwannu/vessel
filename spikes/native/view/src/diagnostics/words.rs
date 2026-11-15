@@ -65,8 +65,8 @@ mod tests {
             ),
             (
                 Problem::Stopping,
-                "The host is stopping. Reconnect before collecting diagnostics again.",
-                "머신이 종료 중입니다. 다시 연결한 뒤 진단 정보를 수집하세요.",
+                "The daemon is stopping. Collect diagnostics after it restarts.",
+                "데몬이 종료 중입니다. 다시 시작된 뒤 진단 정보를 수집하세요.",
             ),
             (
                 Problem::Unavailable,

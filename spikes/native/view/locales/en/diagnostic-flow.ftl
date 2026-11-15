@@ -64,5 +64,5 @@ diagnostic-flow-connection-changed = The host connection changed. Run the report
 # Availability is resolved by each explicit host report, never inferred from this badge.
 diagnostic-flow-host-dependent = Depends on host
 
-# Collection admission refused because this node is shutting down; not a missing API.
-diagnostic-flow-stopping = The host is stopping. Reconnect before collecting diagnostics again.
+# Vessel daemon shutdown admission refusal, not operating-system shutdown; retry requires the daemon to be running again. No automatic restart is promised.
+diagnostic-flow-stopping = The daemon is stopping. Collect diagnostics after it restarts.
