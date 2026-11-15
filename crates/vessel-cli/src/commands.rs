@@ -139,7 +139,7 @@ async fn node(target: &Target, command: NodeCommand) -> Result<(), CliError> {
             } else {
                 client.call(GetNodeSettings {}).await?
             };
-            Ok(io::out(render::node_settings(settings).as_bytes()).await?)
+            Ok(io::out(render::node_settings(&settings).as_bytes()).await?)
         }
     }
 }

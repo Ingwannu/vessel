@@ -48,6 +48,8 @@ impl Reply {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
+            Self::SetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::SetNodeSettings),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
@@ -281,8 +283,6 @@ impl Reply {
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::ParkSession(_)
             | Self::WakeSession(_)
-            | Self::GetNodeSettings(_)
-            | Self::SetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
@@ -414,3 +414,6 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod restart_tests;

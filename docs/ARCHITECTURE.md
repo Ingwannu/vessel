@@ -1347,3 +1347,13 @@ probe or automatic relay activation is performed. Existing Admin guards run
 first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
+
+### Startup recovery values (ADR 0059)
+
+`vessel-proto::restart` defines the disabled/reference-prompt policy and partial
+patch values using the existing bounded `PromptText`. The feature protocol is
+unassigned. Both settings replies pass through peer projection, including the
+existing recursive envelope walker; an unassigned field stays hidden from every
+peer. The node's existing response builder supplies only the disabled default.
+There is no recovery settings engine, request registration or startup service
+in this value-only slice; those remain for the staged and wiring slices.

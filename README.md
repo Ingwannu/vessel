@@ -1337,3 +1337,7 @@ attention payload, expires subscriptions and rechecks device access before
 sending. No hosted account is required. This is the node/API side; an installed
 phone subscription UI is not included. See ADRs 0040–0041 for privacy, bounds
 and the dependency licence inventory.
+
+Startup continuation is being prepared in separate slices (ADR 0059). Its
+policy values and settings reply projection exist, with an unassigned protocol;
+there is no new startup setting or automatic resume behavior in this slice.

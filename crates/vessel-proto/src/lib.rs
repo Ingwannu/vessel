@@ -42,6 +42,7 @@ mod proxy;
 pub mod push;
 mod raw;
 mod relay;
+pub mod restart;
 mod rpc;
 pub mod scripts;
 pub mod search;
