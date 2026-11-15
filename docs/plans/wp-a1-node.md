@@ -156,3 +156,15 @@ or read lock is introduced. A regression consumes an older Begin answer only
 after a subsequent Finished commit and checks that it still names its own
 revision/marker. Driver exclusion and current authority checks remain separate
 requirements; an exact acknowledgement alone does not authorize an effect.
+
+### Ownership transfer recorded for PLAN section 7
+
+Coordinator ruling on 2026-11-15 transfers actual empty-workspace filesystem
+provisioning and the receipt/launch adapter to A1/W3. W11 retains canonical
+identity, registry persistence, start leases, project/config admission, native
+projection, nested-project reroot, PR mode, unregister and the legacy destructive
+route fence. W3 waits for the reviewed Store dependency and the explicit file
+handoff; f255's cfg(test) provisioner remains reference only. There is one
+workspace registry, no local cwd-based ownership cache and no copied persistence.
+The new driver must reserve fixed backing identities through that authority,
+keep approval/Uncertain outcomes, and hold current admission through registration.
