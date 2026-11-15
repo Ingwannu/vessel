@@ -1,14 +1,14 @@
 //! Actual legacy cleanup cannot cross independent registry metadata admission.
 use super::*;
 use std::time::Duration;
-
-const REGISTRY_FENCE_DEADLINE: Duration = Duration::from_secs(60);
 use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{
     RegistryRevision, WorkspaceAutomation, WorkspaceBacking, WorkspaceDescriptor,
     WorkspaceIsolation, WorkspaceLifecycle, WorkspacePin, WorkspaceVisibility,
 };
 use vessel_store::{RegistryRecord, RegistryReservation, ReservationStage, WorkspaceProvision};
+
+const REGISTRY_FENCE_DEADLINE: Duration = Duration::from_secs(60);
 
 fn descriptor(
     project: &ProjectInfo,
@@ -60,12 +60,16 @@ async fn registry_fence_empty_local_and_archived_workspaces_block_legacy_project
             }
             retain(&fixture, item).await;
             let result = fixture.workspaces.remove_project(project.id, &[]).await;
-            assert!(matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id));
+            assert!(
+                matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id)
+            );
             assert!(fixture.workspaces.has_project(project.id));
             assert!(project.root.join("README.md").is_file());
         }
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
 
 #[tokio::test]
@@ -128,7 +132,9 @@ async fn registry_fence_managed_backing_blocks_discard_before_teardown_and_keeps
                 .is_none()
         );
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
 
 #[tokio::test]
@@ -169,7 +175,9 @@ async fn registry_fence_uncertain_reservation_without_descriptor_blocks_legacy_d
         assert!(matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id));
         assert!(worktree.path.join("README.md").is_file());
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
 
 #[tokio::test]
@@ -206,13 +214,15 @@ async fn registry_fence_project_admission_serializes_publication_against_legacy_
         );
         assert!(worktree.path.exists());
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
 
 #[tokio::test]
 async fn registry_fence_automatic_retire_keeps_registry_backing_and_unrelated_legacy_still_removes()
+{
     vessel_testkit::within(REGISTRY_FENCE_DEADLINE, async {
-    {
         let fixture = Fixture::new().await;
         let project = fixture.project("retired-managed", None).await;
         let session = SessionId::random();
@@ -259,7 +269,9 @@ async fn registry_fence_automatic_retire_keeps_registry_backing_and_unrelated_le
         assert!(matches!(removed, RemoveWorktreeOutcome::Removed { .. }));
         assert!(!other.path.exists());
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
 
 #[tokio::test]
@@ -297,5 +309,7 @@ async fn registry_fence_saturation_refuses_before_detach_and_releases_the_same_b
             .unwrap();
         assert!(matches!(removed, RemoveWorktreeOutcome::Removed { .. }));
         fixture.stop.cancel();
-    }).await.expect("registry cleanup fence did not settle within its safety deadline");
+    })
+    .await
+    .expect("registry cleanup fence did not settle within its safety deadline");
 }
