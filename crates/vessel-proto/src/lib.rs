@@ -18,6 +18,7 @@ mod base64_bytes;
 mod board;
 mod book_route;
 pub mod book_values;
+pub mod browser;
 pub mod composer_commands;
 pub mod conversation;
 mod device;
@@ -40,7 +41,9 @@ mod key;
 pub mod labels;
 pub mod lifecycle_version;
 pub mod limits;
+mod listing;
 pub mod lsp;
+pub mod mcp;
 mod model;
 mod name;
 mod node;
@@ -65,6 +68,7 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
+pub mod skills;
 pub mod subagents;
 mod terminal;
 pub mod terminal_profiles;
@@ -116,14 +120,16 @@ pub use forward::{
 };
 pub use harness::{Harness, HarnessKind, StructuredSupport, UnknownHarness};
 pub use id::{
-    AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
-    NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
-    QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
+    AgentMessageId, AttachmentId, DeviceId, EventSeq, FinishIntentId, HarnessSessionId, HookId,
+    InstallId, ModelId, NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId,
+    ProjectId, QuestionId, QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId,
+    SubscriptionId, TerminalId, ToolCallId, TransferId, UploadId, WorkspaceId,
+    WorkspaceOperationId, WorktreeId,
 };
 pub use id::{SetupRevision, SetupRunId};
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
+pub use listing::{ListingScope, SessionListing, SessionSelection};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

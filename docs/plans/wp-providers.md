@@ -845,3 +845,13 @@ Generic host fixtures do not prove the node recovery policy integration; that
 consumer must use its actual attempt/policy fences and retain its original
 Attempt/Store obligations. Source and VM evidence for this amendment are owed;
 the older 043c nine-crate strict green does not cover these changes.
+
+
+Node54 merge checkpoint: incoming file/skills rows and lifecycle schema21 are
+preserved; provider/draft pending rows follow skills.import_selection. The
+canonical ListSessions tuple struct remains, with default for full listing.
+The generated wire conflict keeps the exact incoming node54 bytes, superseding
+the older ea7 generation snapshot above. Provider/draft declarations must be
+regenerated on the joined source; no current wire-equality proof is inferred.
+The version-gate source and relaunch split are still awaiting the canonical
+LaunchAdmission producer and joined checks; no provider number is assigned.
