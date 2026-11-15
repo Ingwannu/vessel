@@ -236,3 +236,8 @@ With the link's bounded concurrency, a fixed first batch could otherwise starve
 later machines on every refresh. The pure regression proves every candidate
 reaches the head even if only the first admission succeeds; no effect is replayed
 or retargeted and the visible machine order stays unchanged.
+
+Notification activation explicitly redraws generic Inbox fallback even when its
+opaque route was consumed/evicted and the window was already active. OS/window
+activation alone is not a state-change notification. Exact source lookup and
+opaque routing remain unchanged; platform capture verification is still owed.

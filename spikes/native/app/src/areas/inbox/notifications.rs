@@ -30,8 +30,10 @@ pub(super) fn listen(window: &Window, cx: &mut Context<'_, Shell>) {
                         shell.areas.inbox.terminals.selected = Some(key)
                     }
                 }
-                cx.notify();
             }
+            // A consumed/evicted tag still changes the route to Inbox. An
+            // already-active window must redraw that generic fallback too.
+            cx.notify();
             cx.activate(true);
         });
         let _closed = handle.update(cx, |_root, window, _cx| window.activate_window());
