@@ -6,12 +6,35 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Gated: service-file observations now pass on the designated terminal-deletion
+  repair head, without changing their reviewed source. The whole gate reports
+  2,318 Rust tests passed, no failures, 12 ignored; forge 4, web unit 464 and
+  e2e 67. All steps passed. The original red gate remains recorded below;
+  no unchanged replay or waiver was used.
+
+- Merged the designated upstream auth-receipt test repair before the
+  proof package's first executed whole gate. No product source or test
+  expectation was edited locally for that base race.
+
+
+- Merged for the proof package: the designated Quality B node head, without
+  conflicts or manual merge edits. Protocol and schema remain the head's;
+  existing head tests and tables were retained. The full proof gate covers
+  this merge. This is separate from service-observation gate debt.
+
+
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
-- Source: 2p1 moves only the generic kernel query and opaque snapshots to
-  proc; the store facade, parser behavior and existing assertions remain.
-  Manifest, active map and name restriction land together. Focused checks
-  and the merged-tree whole gate are pending.
+- Done: 2p1's query move passed review and its whole gate (2,211 Rust
+  tests, no failures, 12 ignored; forge 4, web unit 442 and e2e 65).
+- Source: 2p2a adds candidate descriptor possession to the opaque snapshot.
+  Final focused clippy and the combined lock tests passed (20 tests, no
+  failures); the initial lint failures remain recorded.
+- Source: 2p2b brackets descriptor capture with generation and active PID
+  namespace evidence. First focused clippy found two redundant decoding
+  closures, now corrected without changing the rule. A later fixture literal
+  separator was corrected. Final clippy and all 20 focused lock tests pass;
+  the proof package whole gate is pending. No signal caller is included.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -45,11 +68,27 @@ slice order. The docs commit adds both and no command.
   the first narrow clippy failure is retained, not called green.
 - Merged: node head `242076b5`, conflict-free, before the proc move. Its
   existing tables, documents and tests remain intact.
-- Next: gate the pure query move, then descriptor/generation verification
-  and the real force caller as separate slices. Service observations and
-  config/reload/session-restart work remain; actual managers and agents
-  are unverified. The separate service-observation source has only focused
-  checks and is not included in this move.
+- Merged: the designated node head `ba45a6e3` includes the terminal-deletion
+  handover repair. The merge was conflict-free, with no manual content changes.
+  The service observation gate on this tree passed; its earlier failed run
+  remains red in the record.
+  Descriptor possession, generation/namespace verification
+  and the real force caller remain separate reviewed changes. Config/reload/
+  session-restart work and real manager/agent execution remain unverified.
+- Reviewed: 2h0's documents-only observation contract passed review.
+- Source: 2h service-file observations reuse installer paths and rendering,
+  with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
+  match gives loaded-manager authority. The first focused clippy found a
+  test-doc Markdown issue; final auxiliary clippy, 16 service units and
+  18 stop cases passed. The merged-tree clippy and all 170 CLI unit/
+  integration cases also passed. Source review passed. The first whole gate was
+  red (2,221 Rust tests passed, one failed, 12 ignored): the unchanged terminal
+  deletion case received Conflict while its log was still being written.
+  The integrator owns that base race. Do not change its test or node code,
+  waive the failure or replay before the designated repair head arrives.
+  All other steps passed, including forge 4, web unit 442 and e2e 65.
+  Source approval was separate from that gate debt; the designated repair
+  merge and fully green gate above now settle it.
 
 ## Existing asset check
 
@@ -462,7 +501,7 @@ cases derive their timeout and diagnostic expectation from one named test
 budget and find the node Serving after the CLI exits. No service manager,
 signal, new wire call or dependency is introduced. Book/credential/pinning
 paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
-This source is not yet compiled or gated.
+Its gate and review are recorded in the Resume point.
 
 
 ### Slice 2p1: behavior-preserving process-query move
@@ -475,3 +514,54 @@ that use to `src/lock/`, in the same commit as the active map. Existing
 private PID assertions relocate to a real held-file fixture in proc;
 all data-directory and owner-byte assertions remain in store. No PID
 getter, external dependency, signal, new call or descriptor proof is added.
+
+
+### Slice 2p2a: descriptor possession
+
+Split the approved proof phase so the FD relation is reviewed separately
+from generation/namespace parsing. Reuse the one lock-line decoder and
+metadata identity; add only private raw-row, bounded record and descriptor
+proof types. The existing store facade returns the opaque snapshot only
+when this additional observation succeeds. No PID getter, wire, external
+edge, manager or signal. Test real held-lock capture, a live unrelated
+candidate without that descriptor, foreign malformed FD contents, missing/
+wrong/duplicate lock blocks, anchoring and named byte/count caps. Namespace
+and process-reuse semantics remain unverified until their following proof.
+
+
+### Slice 2p2b: generation and namespace observation
+
+Modify the private capture path using the bounded record and retained process
+reference already present. The existing listening parser only finds parent
+relations and tolerates missing data; it is unsuitable for this refusing
+generation check. Standard-library namespace handles avoid an extra external
+crate. Keep command-name bytes opaque, decode PID/start ticks into private
+types, and bracket the descriptor evidence with equal captures. The observer
+must have exactly its own NStgid namespace level and the candidate's active
+namespace file must match the retained observer namespace. Refuse ambiguous,
+missing or changed data. Test numeric/opaque-command boundaries, generation
+change, actual owned-child disappearance, an independent stat-layout fixture
+and hierarchy/namespace mismatch; actual PID reuse and child namespace
+mutation remain unverified. No signal API or unused future public wrapper.
+
+### Slice 2h: service-file observations
+
+Modify the existing installer boundary; do not add a second unit generator
+or execute text from a service file. Reuse its platform paths, validation
+and renderers in a bounded file decoder, then inspect only a directory bound
+to the authenticated greeting. The current whole-gate commit stays frozen;
+this contract is prepared separately before code. No proc code, manager
+invocation, dependency edge, wire registration or loaded-state claim.
+
+The implementation adds template/byte-decoder tests and CLI cases for a
+personal file, invalid Unicode, draining, a blocked FIFO and another local
+directory's malformed file. A manager stand-in records any invocation;
+its log must remain absent. Existing test cases remain unchanged. Fixture
+HOME, VESSEL_HOME and XDG_CONFIG_HOME are isolated before the first lookup.
+The source was prepared separately while the independent 2g2 gate stayed
+frozen, then merged after the process-query move. The combined gate remains
+pending; the earlier focused checks do not replace it.
+
+A Linux child also receives a stderr socket whose peer was closed before
+exec. Its warning write must fail and the node must stay Serving. This
+pins warning-before-RPC ordering without a race or a wire-format copy.

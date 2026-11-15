@@ -121,10 +121,18 @@ pub use lsp_config::{LspConfigError, load_lsp_config};
 pub use models::ModelsError;
 pub use node::Node;
 pub use profiles::ProfilesFileError;
-pub use shutdown::signal;
+pub use shutdown::{StopSignals, signal};
 pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build
 // a `Config` without depending on `vessel-store` themselves.
 pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, StoreError};
 /// Local lifecycle commands share the node's persistent lock rather than a PID file.
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
+
+// The first speech consumer removes staging after its product wiring.
+#[cfg(test)]
+mod speech_audio;
+
+// The first connection-owned resource wires this into the real context once.
+#[cfg(test)]
+mod connection_life;

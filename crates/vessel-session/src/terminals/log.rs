@@ -86,6 +86,13 @@ impl TermLog {
         });
         if !live {
             self.shared.pid.store(0, Ordering::Relaxed);
+            drop(
+                self.shared
+                    .process
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .take(),
+            );
             self.shared.ring().close();
         }
     }
@@ -102,7 +109,13 @@ impl TermLog {
     }
 
     /// The running process's id, for port scans; `None` between runs.
-    pub(super) fn running(&self, pid: Option<u32>) {
-        self.shared.pid.store(pid.unwrap_or(0), Ordering::Relaxed);
+    pub(super) fn running(&self, process: Option<vessel_proc::ProcessLifetime>) {
+        let pid = process.as_ref().map_or(0, |process| process.pid().get());
+        self.shared.pid.store(pid, Ordering::Relaxed);
+        *self
+            .shared
+            .process
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = process;
     }
 }

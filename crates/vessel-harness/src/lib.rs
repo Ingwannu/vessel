@@ -74,6 +74,7 @@ mod profile;
 mod routing;
 mod sessions;
 mod setup;
+mod system_prompt;
 
 pub use added::{
     AddedAgent, AddedAgents, AgentProblem, AgentsError, EditError, MAX_FILE as MAX_AGENTS_FILE,
@@ -103,3 +104,4 @@ pub use setup::{
     AccountHome, AddProfileError, Install, InstallPart, account_homes, add_profile, binary,
     home_variable, installs, login_command, missing,
 };
+pub use system_prompt::{SystemPromptSupport, system_prompt_support};

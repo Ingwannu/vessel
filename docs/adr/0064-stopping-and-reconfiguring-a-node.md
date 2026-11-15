@@ -892,3 +892,145 @@ proc through the store's restricted lock shim. Selected-file decoding,
 bounds, errors, duplicate handling, fallback and owner bytes are unchanged.
 The snapshot is still no signal authority. No force/restart caller, signal,
 wire change or new external dependency is included in this move.
+
+
+## Descriptor possession before process control (slice 2p2a)
+
+[Decision Log]
+- Purpose and intent: a kernel row's PID cannot identify a current holder
+  by itself. Require that candidate's descriptor to report the selected
+  locked file description before publishing the local snapshot.
+- Existing implementation and constraints: the moved decoder already selects
+  dev/inode before decoding a PID. The existing opaque snapshot grants no
+  signal authority. Linux can retain a dead creator's number with an
+  inherited flock, so mere PID existence is insufficient.
+- Alternatives considered: trust the owner record, accept any open descriptor
+  of the inode, or copy a second parser. None relates the candidate to the
+  exclusive lock. Descriptor possession still does not settle generation
+  or PID namespace; those checks remain a separate required phase.
+- Selected approach: pin a read-only candidate proc directory, resolve its
+  children through that retained descriptor and inspect only FD identities
+  matching the selected file. Decode only their lock blocks using the same
+  parser as the global table. Unrelated FD contents cannot poison the query.
+  Byte and entry caps have one named constant each, used in errors and tests.
+- Why this approach: inode equality alone does not prove that a descriptor
+  owns the lock. FDinfo relates the actual file description to its lock;
+  a retained proc directory does not reserve a numeric PID. An inaccessible,
+  missing or ambiguous observation refuses without changing a lock/record.
+- Advantages, costs and effects: no external dependency, wire field or signal.
+  The snapshot retains its proc-directory reference, not a copy of the node
+  lock. A live unrelated fake is refused while the test's original lock stays
+  held. Generation/namespace proof and pre-signal rechecks remain mandatory
+  before the later force entry point; this slice is not signal authority.
+
+Primary source: Linux `fs/proc/fd.c` 21–67 obtains the task's actual descriptor;
+`fs/locks.c` 2880–2913 checks its file description/owner before printing the
+same lock record. The kernel's proc documentation says old proc descriptors
+do not retarget a reused PID and do not reserve its number. The directory
+replacement fixture tests ordinary descriptor anchoring, not real PID reuse.
+No namespace/platform behavior is inferred from that fixture. Real non-Linux
+and alternative filesystem behavior remains unverified.
+
+
+## Generation and namespace bracketing (slice 2p2b)
+
+[Decision Log]
+- Purpose and intent: relate descriptor possession to one candidate generation
+  and the invoking process's PID namespace before retaining the observation.
+- Existing implementation and constraints: the descriptor query retains a
+  read-only proc-directory reference, shares the selected-file lock decoder
+  and grants no signal authority. The bounded record decoder can also read
+  the generation and namespace hierarchy. An open proc descriptor does not
+  reserve a numeric PID.
+- Alternatives considered: compare numeric PIDs alone, trust start ticks
+  alone, read the namespace of the proc view's init, or add a new dependency.
+  Coincident numbers do not identify namespaces; start ticks alone do not
+  establish lock possession; a normal account may not read the init's
+  namespace link. Existing standard-library handles and metadata suffice.
+- Selected approach: decode only the candidate PID and start ticks from a
+  bounded anchored stat record, leaving command-name bytes opaque. Require
+  the observer's NStgid hierarchy to contain exactly its own identifier,
+  without another namespace level. Open and retain the observer's and the
+  candidate's active PID namespace files; compare device/inode identities.
+  Capture generation/namespace before the descriptor scan and compare again
+  after it. Changed, missing, unreadable or malformed evidence refuses.
+- Why this approach: the kernel emits NStgid from the proc mount namespace
+  level through the task's level, so one level proves the observer's proc
+  view agrees with its active PID namespace. This is stronger than numeric
+  equality alone. Namespace file references retain their identities, while
+  anchored stat reads and repeated capture detect changed observations.
+- Advantages, costs and effects: no dependency, wire field, process signal or
+  public PID getter. The snapshot retains two namespace references as well
+  as the proc-directory reference until its last clone is dropped. A missing
+  hierarchy or namespace facility is a refusal, never permission to signal.
+  Candidate processes in another PID namespace are conservatively refused.
+
+The real held-lock fixture exercises capture on Linux. The unrelated live
+fake is also observed through a retained proc reference; after its owned
+child exits, the old reference must refuse with the OS disappearance error.
+Tests cover opaque
+command bytes, missing and invalid numbers, changed generation, namespace
+hierarchy ambiguity and actual namespace-file identity disagreement. These
+are not a demonstration of real PID reuse or a child entering a PID namespace;
+those scenarios remain unverified. The later force entry point must repeat
+its proof immediately before each signal. No signal entry point exists in
+this change, and the future final-check-to-numeric-signal race remains open.
+
+Primary sources: Linux [proc status generation](https://github.com/torvalds/linux/blob/master/fs/proc/array.c)
+emits the hierarchy relative to the proc view;
+[PID namespaces](https://github.com/torvalds/linux/blob/master/kernel/pid_namespace.c)
+distinguishes the active namespace from the namespace for future children;
+[namespace files](https://github.com/torvalds/linux/blob/master/fs/nsfs.c)
+retain namespace references. The existing
+[proc descriptor limitation](https://docs.kernel.org/filesystems/proc.html)
+still applies. Paseo's owner-PID/replacement checks and polling remain the
+reference difference already recorded above; these added checks are Vessel's
+explicit conservative floor.
+
+## Service-file observations before shutdown (slice 2h)
+
+[Decision Log]
+- Purpose and intent: warn before shutdown when a personal or older service
+  file may restart the node, without equating disk text with loaded state.
+- Existing implementation and constraints: the installer owns both renderers,
+  their locations, path validation and escaping. Paseo `packages/cli/src/
+  commands/daemon/stop.ts` 44–57 budgets its shutdown connection and 95–98
+  reports remote exit as unverified; `restart.ts` 20–21 and 118 retains a
+  supervisor launch. Vessel's direct services have no such supervisor.
+- Alternatives considered: execute a unit's command, trust its undo comment,
+  parse every manager directive, or infer a loaded service from matching text.
+  These either grant authority to editable text or confuse different evidence.
+- Selected approach: reuse the current installer renderers and location rule.
+  Match every byte against the invoking executable and the authenticated
+  directory, decoding only the saved PATH needed to regenerate that template.
+  A mismatch produces one fixed warning, without echoing the file or PATH.
+  Older unconditional launchd agents get that same conservative warning;
+  removal and recreation guidance remains in the README and initializer.
+- Why this approach: a file's own executable or comment must not validate
+  itself. Another CLI installation can therefore produce a conservative
+  mismatch even when it talks to the same node. A full match still grants
+  no manager authority: drop-ins, stale loaded configuration and the actual
+  running job have not been inspected.
+- Advantages, costs and effects: a missing file is harmless; unreadable,
+  invalid-Unicode or oversized files refuse before the RPC with typed errors
+  retaining safe causes. ServiceFile::MAX_BYTES is the single read cap,
+  checked before Unicode decoding. The existing dedicated reader handoff
+  bounds process exit when file opening blocks. No new dependency or call.
+
+Only a directory whose stored identity matches the authenticated greeting
+may supply this observation, including when draining. Remote connections,
+other local directories and platforms without an installer service remain
+RPC-only. Reads use the invoking OS account and its HOME/XDG location;
+no other account's credentials or process environment are read. No file is
+created or rewritten and no service manager is invoked. Matching text does
+not authorize future manager control. That needs a separate implementation
+and review of loaded-state evidence.
+
+Tests owed with the implementation: current templates for both managers;
+wrong executable/directory or edited bytes; older launchd policy; bounded
+and malformed byte readers with no file contents in errors; isolated CLI
+warnings, invalid-file refusal before shutdown, a draining live session,
+and a blocked service FIFO with child exit. Stand-in manager executables
+must record zero invocations. All fixtures isolate HOME and XDG before
+service lookup. Actual manager behavior and macOS/Windows execution remain
+unverified by Linux fixtures.
