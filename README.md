@@ -882,7 +882,9 @@ When host injection and its exact-provider policy are enabled, a session's
 agent gets the `vessel` MCP server (`vessel mcp`, started by the node), with
 a credential of its own ending with the session. Fresh nodes default to
 injection off; existing identities upgrade with injection on. Settings apply
-at the next launch/reload. Its
+at the next launch/reload. `vesseld --no-mcp` or `vessel node start --no-mcp`
+omits the server for that process without changing the saved choice;
+`--no-inject-mcp` is an alias. Its
 tools: `list_nodes`, `list_sessions`, `create_session` (with a first
 prompt, and a `project` or `worktree` to run in), `send_input` (with a
 `delivery`: `start`, `queue`, `steer` or `interrupt`),
