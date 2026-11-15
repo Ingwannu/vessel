@@ -339,7 +339,7 @@ then 10 more; 17 real releases make the paging controls meaningful.
 
 ## Remaining integrations and deliberate differences
 
-- W21's authenticated bounded session lookup is integrated provisionally. C2's retained Binding terminal cutover is still required; the old alias-only terminal path is not declared identity-safe.
+- W21's older bounded session lookup is integrated provisionally. Its retained connection snapshot carries Name/NodeClient and rechecks NodeId, but does not yet retain current G4 context/validity or the W12 carrier; same-node reconnect/retirement safety requires the session owner's current checked portable producer. C2's retained Binding terminal cutover is also still required. Neither path is declared current-context safe.
 - W11's managed-local project adapter is not consumer-ready. Its directory intent stays queued; no first-alias fallback, implicit trust or registration occurs. The callback now returns ProjectDelivery::Opened only after the exact editable draft opens, otherwise Pending retains the directory without overwriting a newer arrival. Pending is idempotent and does not emit repeated UI events.
 - W15's managed-node, document/quit and update-restart consumer remains pending a checked range.
 - W22's sole dispatcher, shortcut invalidation and receipt UI remain pending its checked range. No competing keyboard listener is installed.
