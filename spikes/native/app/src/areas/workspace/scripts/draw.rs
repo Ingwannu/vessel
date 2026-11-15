@@ -188,6 +188,7 @@ fn script_row(
         command,
         dir,
         port,
+        observed_dir,
     } = entry;
     let model = card.model;
     let state = run_state(run);
@@ -251,7 +252,10 @@ fn script_row(
             div()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
-                .child(dir.map_or_else(|| words.root().to_owned(), ToString::to_string)),
+                .child(observed_dir.map_or_else(
+                    || dir.map_or_else(|| words.root().to_owned(), ToString::to_string),
+                    |folder| folder.display().to_string(),
+                )),
         )
         .child(actions)
         .child(ports::for_run(card, run, tokens, cx))

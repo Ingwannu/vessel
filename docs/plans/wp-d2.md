@@ -312,3 +312,8 @@ The staged health-tone policy now follows script-status.ts's exact running-only
 condition. Starting/backoff/ended/unknown states cannot inherit green or red
 from a previous child report. This remains a pure presentation regression, not
 a live health consumer or a service lifetime grant.
+
+Retained processes render TerminalInfo.folder as their observed directory. A
+session-placed terminal or an omitted TerminalPlace.dir does not prove that an
+old command ran at the project root. Current configured rows still render the
+exact approved relative dir; observed cwd is a separate presentation field.

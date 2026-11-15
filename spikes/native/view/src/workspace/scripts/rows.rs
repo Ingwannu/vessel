@@ -20,6 +20,8 @@ pub struct Entry<'a> {
     pub dir: Option<&'a RelPath>,
     /// Approved declaration, never an observed listener or health result.
     pub port: Option<ServicePort>,
+    /// Actual process directory for a retained run, separate from declaration.
+    pub observed_dir: Option<&'a std::path::Path>,
 }
 impl<'a> Entry<'a> {
     /// Name every approved field so future additions break the adapter.
@@ -38,6 +40,7 @@ impl<'a> Entry<'a> {
             command,
             dir,
             port,
+            observed_dir: None,
         }
     }
 }
@@ -150,6 +153,7 @@ impl<'a> Entry<'a> {
             command,
             dir,
             port: None,
+            observed_dir: Some(&run.folder),
         })
     }
 }

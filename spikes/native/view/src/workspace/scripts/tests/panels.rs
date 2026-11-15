@@ -111,3 +111,22 @@ fn refreshing_an_approved_command_does_not_retarget_an_already_drawn_run_button(
     let fresh = model.action_ticket().unwrap();
     assert!(model.begin_write_at(&fresh, action).is_some());
 }
+
+#[test]
+fn retained_runs_show_the_actual_directory_without_claiming_the_project_root() {
+    let base = target();
+    let mut retained = run(&base);
+    retained.folder = "/project/actual-subfolder".into();
+    retained.place = TerminalPlace::Session {
+        session: SessionId::random(),
+    };
+    let entry = Entry::retained(&retained).unwrap();
+    assert_eq!(
+        entry.observed_dir,
+        Some(std::path::Path::new("/project/actual-subfolder"))
+    );
+    let data = snapshot(&base);
+    let crate::workspace::command_changes::Listed { scripts, .. } =
+        crate::workspace::command_changes::Listed::of(&data.scripts.commands).unwrap();
+    assert_eq!(Entry::of(&scripts[0]).observed_dir, None);
+}
