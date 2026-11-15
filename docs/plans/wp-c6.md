@@ -321,3 +321,16 @@ Exact `1026f12e9` passed the batched app/view/link usage suite in
 zero failures/ignored. This includes the modal/host-pick and whole-sentence wording
 regressions plus real compact-row geometry. It predates this base/popover delta;
 it is not strict Clippy, a whole native gate, captures or F3 acceptance.
+
+The announced green `6ebdf8e8` supplies G2's shared picker lease and actual-close
+focus API. Usage retains its host NodeId/modal-ticket admission, then uses
+close_and_restore before the parent dialog acknowledgment. The new Kit lease
+owns stale pointer/key/default-focus admission; it does not authorize backend work.
+
+The conversation notice's model action and quota refresh now capture the same
+SessionSelection as their data. Before dispatch they compare both the current
+reader/binding and the actually open agent's full ConnectionContext and SessionId.
+A route/agent switch before redraw cannot retarget an old notice to the new agent.
+Pure tests cover changed agent, same-node reconnect, binding replacement, closed
+reader and absent active conversation. The existing node notice remains factual
+saved-account data; it still does not diagnose a stopped turn or resume prompts.

@@ -107,13 +107,10 @@ impl Shell {
         }
     }
     fn usage_refresh_session(&mut self, expected: SessionSelection) {
-        if !self.usage_connection_current(&expected.machine) {
+        if !self.usage_session_current(&expected) {
             return;
         }
         let reader = &mut self.areas.usage.session;
-        if reader.selection() != Some(&expected) {
-            return;
-        }
         let Some(selected) = reader.selection().cloned() else {
             return;
         };
@@ -123,6 +120,29 @@ impl Shell {
                 refresh: LimitRefresh::Refresh,
             }));
         }
+    }
+    fn usage_session_current(&self, expected: &SessionSelection) -> bool {
+        let opened = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .filter(|_| self.route == Route::Session)
+            .and_then(|open| {
+                let machine = self
+                    .fleet
+                    .machines
+                    .iter()
+                    .find(|machine| machine.name == open.machine)?
+                    .connection_context()?;
+                Some((machine, open.session))
+            });
+        expected.admits(
+            self.areas.usage.session.selection(),
+            opened
+                .as_ref()
+                .map(|(machine, session)| (machine, *session)),
+        )
     }
 }
 
@@ -210,6 +230,7 @@ pub(crate) fn limit_notice(
     let state = &shell.areas.usage;
     let limits = state.session.phase().observation()?;
     let reported = limits.notice.as_ref()?;
+    let expected = state.session.selection()?.clone();
     let text = shell.words.usage();
     let reset = reported
         .latest_reported_reset
@@ -240,9 +261,11 @@ pub(crate) fn limit_notice(
                     true,
                     tokens,
                 )
-                .on_click(
-                    cx.listener(|shell, _, window, cx| shell.press_model_control(window, cx)),
-                ),
+                .on_click(cx.listener(move |shell, _, window, cx| {
+                    if shell.usage_session_current(&expected) {
+                        shell.press_model_control(window, cx);
+                    }
+                })),
             )
             .into_any_element(),
     )

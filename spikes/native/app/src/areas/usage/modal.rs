@@ -46,7 +46,7 @@ impl Shell {
         }
         self.close_usage_options_for_parent(expected, window, cx);
         let state = &mut self.areas.usage;
-        state.host_list.close();
+        state.host_list.close_and_restore(window, cx);
         state.dialog.dismissed(window, cx);
         cx.notify();
     }
