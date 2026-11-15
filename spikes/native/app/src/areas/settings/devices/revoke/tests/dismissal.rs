@@ -2,7 +2,8 @@
 //! then deliver each of its old dismissal paths. None may close the new one.
 use super::*;
 use gpui::{
-    AppContext as _, Entity, InputEvent as _, Modifiers, MouseButton, MouseUpEvent, Render,
+    AppContext as _, Entity, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton,
+    MouseUpEvent, Render,
 };
 use std::{cell::Cell, rc::Rc};
 use vessel_app_kit::ui::{IntoElement, MouseDownEvent, Point, div, point};
@@ -101,6 +102,11 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                 }
             });
             cx.run_until_parked();
+            if matches!(path, Dismissal::Escape) {
+                // GPUI redraws dirty key dispatch (window.rs:6053). Enter
+                // keyboard modality before retaining the old rendered tree.
+                cx.simulate_keystrokes("left");
+            }
             let glyph = cx.debug_bounds("dialog-close").unwrap().center();
             let drawn = renders.get();
             let expected = probe.update_in(cx, |probe, _, cx| {
@@ -116,10 +122,21 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
             });
             assert_eq!(renders.get(), drawn, "the replacement has not been drawn");
             match path {
-                Dismissal::Escape => cx.simulate_keystrokes("escape"),
+                Dismissal::Escape => cx.update(|window, cx| {
+                    let _escape = window.dispatch_event(
+                        KeyDownEvent {
+                            keystroke: Keystroke::parse("escape").unwrap(),
+                            is_held: false,
+                            prefer_character_input: false,
+                        }
+                        .to_platform_input(),
+                        cx,
+                    );
+                }),
                 Dismissal::Scrim => click_without_a_frame(cx, point(px(0.0), px(0.0))),
                 Dismissal::Glyph => click_without_a_frame(cx, glyph),
             }
+            assert_eq!(renders.get(), drawn, "the old tree handled the input");
             probe.read_with(cx, |probe, cx| {
                 probe.shell.read_with(cx, |shell, _cx| {
                     let page = &shell.areas.settings.devices.page;

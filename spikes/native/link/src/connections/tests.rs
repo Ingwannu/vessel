@@ -124,3 +124,112 @@ async fn reload_retirement_keeps_one_epoch_owner_and_disconnect_retires_semantic
     assert!(state.clients.is_empty());
     assert_eq!(*validity.borrow(), Validity::Retired);
 }
+
+#[tokio::test]
+async fn rename_retires_a_stale_destination_before_event_backpressure() {
+    const EVENT_CAPACITY: usize = 1;
+    for source_present in [false, true] {
+        let home = Home::new();
+        let (mut state, _original_events) = state(&home);
+        let (events, mut receiving) = tokio::sync::mpsc::channel(EVENT_CAPACITY);
+        state.events = events;
+        let mut source_peer = peer::connect("source").await;
+        let client = source_peer.client.take().unwrap();
+        let original = context(&mut state, &client);
+        let source_connected = Connected::new(client, Vec::new(), binding(), original.clone());
+        if source_present {
+            let _old = state
+                .clients
+                .insert("fixture".into(), source_connected.clone());
+        }
+        let mut destination_peer = peer::connect("stale-destination").await;
+        let client = destination_peer.client.take().unwrap();
+        let replaced = state
+            .admissions
+            .admit(MachineKey::from_book("destination"), client.node().id)
+            .unwrap();
+        let destination_connected = Connected::new(client, Vec::new(), binding(), replaced.clone());
+        let _old = state
+            .clients
+            .insert("destination".into(), destination_connected.clone());
+        state
+            .events
+            .send(Event::DeviceRetired(replaced.tag()))
+            .await
+            .unwrap();
+        let expected = if source_present {
+            vec![replaced.tag(), original.tag()]
+        } else {
+            vec![replaced.tag()]
+        };
+        {
+            let changing =
+                state.book_connections_applied(vessel_app_view::machine_book::Edit::Rename {
+                    from: "fixture".parse().unwrap(),
+                    to: "destination".parse().unwrap(),
+                });
+            tokio::pin!(changing);
+            tokio::select! {
+                biased;
+                () = &mut changing => panic!("the full event queue must block publication"),
+                () = std::future::ready(()) => {}
+            }
+            // Keep both Connected owners alive so a closed watch sender cannot
+            // masquerade as explicit retirement of the observed binding.
+            assert_eq!(
+                *destination_connected.validity().borrow(),
+                Validity::Retired
+            );
+            if source_present {
+                assert_eq!(*source_connected.validity().borrow(), Validity::Retired);
+            }
+            let _prefilled = receiving.try_recv().unwrap();
+            let count = expected.len();
+            let collecting = tokio::spawn(async move {
+                let mut tags = Vec::new();
+                for _ in 0..count {
+                    let Event::DeviceRetired(tag) = receiving.recv().await.unwrap() else {
+                        panic!("only retirement was sent");
+                    };
+                    tags.push(tag);
+                }
+                tags
+            });
+            tokio::time::timeout(crate::testing::DEADLINE, changing)
+                .await
+                .unwrap();
+            assert_eq!(collecting.await.unwrap(), expected);
+        }
+        assert!(matches!(
+            state.selected_connection(&replaced),
+            Err(vessel_app_view::connection::Refusal::Changed)
+        ));
+        if source_present {
+            let current = &state.clients["destination"];
+            assert_eq!(current.client.node().id, original.node());
+            assert_ne!(current.context.epoch(), original.epoch());
+        } else {
+            assert!(state.clients.is_empty());
+        }
+    }
+}
+
+#[tokio::test]
+async fn an_unchanged_alias_does_not_retire_or_allocate_an_admission() {
+    let home = Home::new();
+    let (mut state, mut events) = state(&home);
+    let mut peer = peer::connect("fixture").await;
+    let client = peer.client.take().unwrap();
+    let original = context(&mut state, &client);
+    let connected = Connected::new(client, Vec::new(), binding(), original.clone());
+    let _old = state.clients.insert("fixture".into(), connected.clone());
+    state
+        .book_connections_applied(vessel_app_view::machine_book::Edit::Rename {
+            from: "fixture".parse().unwrap(),
+            to: "fixture".parse().unwrap(),
+        })
+        .await;
+    assert!(state.clients["fixture"].matches(&original));
+    assert_eq!(*connected.validity().borrow(), Validity::Active);
+    assert!(events.try_recv().is_err());
+}

@@ -126,3 +126,17 @@ source chain: retaining structured detail for a feature mapper must not let
 a generic error reporter bypass redacted Display/Debug. A canary regression
 covers all three surfaces; no real credential is used. Core imports use
 view::connection directly, keeping Devices aliases as compatibility only.
+
+The first runtime App suite on30af passed74, failed1, ignored2; cargo then
+stopped before Link/View suites. The failing no-frame Escape case changed
+input modality: pinned GPUI window.rs5647/6053 redraws a dirty keyboard tree
+before dispatch. Its fixture now enters keyboard modality first and sends
+the actual KeyDown event without running the executor; it also asserts no
+render occurred during delivery. This is a stronger precondition check, not
+a skipped assertion or a relaxed production stale-intent guard.
+
+An observed successful rename also retires a stale cached destination, not
+only its source; cached destination absence may not have been refreshed before
+the book edit. Both retire before event-channel backpressure. Source follow
+is preserved and renamed; an overwritten destination follow is cancelled.
+No second resolver or client-book writer is added.
