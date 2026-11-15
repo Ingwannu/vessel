@@ -1553,3 +1553,9 @@ The F1 callback now deliberately has no effect; only explicit footer Create/
 Save dispatches the existing guarded save. Line/multiline Enter/IME handling
 and callbacks in all other areas are untouched. Actual ready-form field Enter
 no-write and explicit-footer-first-use evidence is still owed.
+
+The no-submit callback also requests propagation containment: the input engine
+explicitly propagates Enter in its submit branch. It still performs no field/
+model/write action. Actual event-order/root-key proof remains owed; this source
+request alone is not a claim that a deferred subscription controls every OS
+keyboard path. The shared engine/default callbacks are unchanged.

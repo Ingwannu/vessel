@@ -173,8 +173,9 @@ fn submit(
     _source: FieldId,
     _text: String,
     _window: &mut Window,
-    _cx: &mut Context<'_, Shell>,
+    cx: &mut Context<'_, Shell>,
 ) {
+    cx.stop_propagation();
 }
 
 #[cfg(test)]
