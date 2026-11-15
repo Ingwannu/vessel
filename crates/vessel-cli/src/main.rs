@@ -29,6 +29,7 @@ mod node_ctl;
 mod nodes;
 mod pair;
 mod parity;
+mod plugin;
 mod presentation;
 mod project_commands;
 mod remote;
@@ -113,6 +114,7 @@ async fn cli() -> ExitCode {
         | Command::Agents { .. }
         | Command::Fleet { .. }
         | Command::Models
+        | Command::Plugin { .. }
         | Command::Sessions
         | Command::Run(_)
         | Command::Attach { .. }

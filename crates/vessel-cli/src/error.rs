@@ -13,6 +13,9 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    /// Local author scaffold refuses overwrites and unvalidated identifiers.
+    #[error(transparent)]
+    PluginInit(#[from] crate::plugin::InitError),
     /// File observations refuse unsafe reads before a shutdown request.
     #[error(transparent)]
     ServiceFile(#[from] crate::init::ServiceFileError),

@@ -411,3 +411,24 @@ unauthenticated public HTTP option. URI userinfo/query/fragment refuse before
 any future credential/fetch adapter. Directory/Git spellings remain unresolved
 input and must not be passed to launch or storage without their real node-owned
 canonical/pin/authorization adapter. No source install is enabled by parsing.
+
+
+### Native CLI scaffold implementation choice
+
+The local init leaf follows Paseo's required directory, optional validated id
+and empty-directory admission. It emits a static native document and manifest
+instead of TypeScript/React dependencies or npm scripts. Passive helper guidance
+explains the separately built exact-target executable and existing framed V1
+contract; no helper, runtime or callback is implicitly installed or advertised.
+This makes scaffolding usable independently of the pending node plugin protocol.
+
+W17's existing presentation parser/admission and Row/list formatter are reused.
+The leaf writes only after preparing valid fixed templates, refuses nonempty or
+symlink targets, and uses exclusive file creation. Existing directories retain
+their permissions; newly created Unix targets/files are private to the invoking
+account. The same-account pathname replacement race is not strengthened into a
+filesystem capability. Failed writes may retain a partial scaffold: automatic
+recursive cleanup could remove concurrent user work and is therefore excluded.
+No source acquisition, settings mutation, node connection or executable launch
+is part of this command. Its actual CLI/output and permission tests are separate
+from installation/runtime/UI qualification.

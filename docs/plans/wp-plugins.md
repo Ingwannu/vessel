@@ -358,3 +358,38 @@ file now uses the ordinary literal cfg(test) module, retaining its separate
 fixture-feature gate and all assertions. No lint allowance or product panic is
 added. The original failed log remains evidence; changed-head strict and actual
 feature-enabled tests are still required, including the later stderr cases.
+
+
+## Local CLI author scaffold
+
+[Decision Log]
+- Purpose: Paseo plugin/index.ts214–218 and scaffold.ts170–235 expose local
+  plugin init before installation. Native authors need the corresponding data
+  format without an implicit React/TypeScript runtime.
+- Reuse: canonical PluginId and ClientDocument, existing clap root admission,
+  and W17's Row/list formatter from the announced node head. No dependency.
+- Choice: plugin init emits a checked static Welcome screen, native manifest,
+  README and passive helper protocol guidance. It accepts a new or empty
+  ordinary local directory and exclusively creates fixed files.
+- Reason: no callback can be advertised without its actual helper, and an
+  init command must not contact a node, install packages or execute code.
+- Tradeoff: no React entries, npm dependencies or typecheck scripts are emitted;
+  the canonical declarative decoder validates the generated client data before
+  any filesystem mutation. Helper executables remain an explicit author task.
+
+Invalid default identities fail before creating a directory. Existing files and
+symlink targets refuse; existing directory modes are preserved. New target
+folders use0700 and files0600 on Unix, subject to the user's umask. Windows
+uses the user's inherited ACL; no new platform qualification is claimed. All
+operations run as the invoking CLI account. Exclusive files prevent overwrites;
+this is not an open-directory capability against same-account path replacement.
+An I/O failure may leave already-created scaffold files: recursive rollback by
+pathname could delete a concurrent writer's work and is deliberately avoided.
+
+Only Init consumes explicit output selection, through the shared formatter.
+Unimplemented management/log commands remain absent from the parser rather than
+accepting output modes and doing partial work. Tests exercise the actual CLI in
+all output modes with a deliberately malformed node URL and an empty environment;
+no node connection or credential/config discovery should occur. The tests also
+check canonical client decoding, existing-content refusal, symlink refusal,
+private Unix modes and retained ownership. Execution is still owed.
