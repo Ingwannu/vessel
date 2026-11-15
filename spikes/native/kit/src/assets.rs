@@ -513,6 +513,12 @@ mod tests {
             }
         }
         assert_eq!(Glyph::Commit.path(), "kit/commit.svg");
+        for glyph in [Glyph::Wrench, Glyph::Eye, Glyph::MicVocal, Glyph::Scissors] {
+            let bytes = Assets.load(glyph.path()).unwrap().unwrap();
+            let text = std::str::from_utf8(&bytes).unwrap();
+            assert!(text.contains("ISC License"));
+            assert!(text.contains("Copyright (c) 2026 Lucide Icons and Contributors"));
+        }
     }
 }
 

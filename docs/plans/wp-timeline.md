@@ -289,3 +289,7 @@ no extra settings store, node call or untranslated Settings row is introduced.
 Normal Full/CollapseTools behavior remains available through the existing choice.
 V1 recorded custody of the four glyph names at7368d1d8, with no collision and
 without implying a geometry/licence/raster/gate/UI review.
+
+Each of the four attributed vectors also embeds that notice as SVG metadata,
+so an asset distributed without the source checkout retains its notice. The
+existing raster test checks that metadata survives the AssetSource boundary.

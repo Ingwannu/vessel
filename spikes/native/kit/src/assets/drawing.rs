@@ -8,14 +8,28 @@
 use super::{Glyph, MARK};
 
 /// A line glyph on Lucide's grid (24 units, a stroke of 1.5, round ends),
-/// as Paseo's icons are drawn; the paths are the kit's own.
+/// as Paseo's icons are drawn. Original kit paths use this directly; the
+/// four attributed Lucide paths below retain their licence in SVG metadata.
 macro_rules! line_glyph {
-    ($body:literal) => {
+    ($body:expr) => {
         concat!(
             r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">"#,
             $body,
             "</svg>"
         )
+    };
+}
+
+// Retain the upstream notice in each distributed vector, not only the source
+// checkout. CDATA preserves the licence text without interpreting it as SVG.
+macro_rules! lucide_glyph {
+    ($body:literal) => {
+        line_glyph!(concat!(
+            "<metadata><![CDATA[",
+            include_str!("../../licenses/lucide.txt"),
+            "]]></metadata>",
+            $body,
+        ))
     };
 }
 
@@ -278,16 +292,16 @@ impl Glyph {
             ),
             // Lucide source, adapted only to the shared stroke. Immutable
             // revision and ISC notice: kit/licenses/lucide.txt.
-            Self::Wrench => line_glyph!(
+            Self::Wrench => lucide_glyph!(
                 r#"<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>"#
             ),
-            Self::Eye => line_glyph!(
+            Self::Eye => lucide_glyph!(
                 r#"<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>"#
             ),
-            Self::MicVocal => line_glyph!(
+            Self::MicVocal => lucide_glyph!(
                 r#"<path d="m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12"/><path d="M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5"/><circle cx="16" cy="7" r="5"/>"#
             ),
-            Self::Scissors => line_glyph!(
+            Self::Scissors => lucide_glyph!(
                 r#"<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>"#
             ),
         }
