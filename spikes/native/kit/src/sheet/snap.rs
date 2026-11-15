@@ -16,14 +16,18 @@ mod drag;
 pub mod listener;
 pub(crate) mod motion;
 mod points;
+mod positions;
 
 #[cfg(test)]
 mod configuration_tests;
+#[cfg(test)]
+mod fit_tests;
 #[cfg(test)]
 mod tests;
 
 pub use motion::Stop;
 pub use points::{Percentage, SnapPoints};
+use positions::Positions;
 
 use std::time::Instant;
 
@@ -31,6 +35,17 @@ use gpui::{Pixels, Point, px};
 
 use drag::Drag;
 use motion::{Spring, SpringValue, destination_in};
+
+/// Result of measuring a natural-content sheet, not an owner close decision.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Fit {
+    /// No finite positive child/viewport height yet; retain current state.
+    PendingLayout,
+    /// The existing spring now targets this newly measured single open height.
+    Updated,
+    /// Same target; an active pan or spring is left untouched.
+    Unchanged,
+}
 
 /// Where a pointer gesture began.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,7 +117,7 @@ pub struct State {
     pose: Pose,
     drag: Option<Drag>,
     height: f32,
-    points: SnapPoints,
+    points: Positions,
 }
 
 impl Default for State {
@@ -111,7 +126,7 @@ impl Default for State {
             pose: Pose::At(Stop::Closed),
             drag: None,
             height: 0.0,
-            points: SnapPoints::default(),
+            points: Positions::default(),
         }
     }
 }
@@ -121,9 +136,34 @@ impl State {
     #[must_use]
     pub fn with_points(points: SnapPoints) -> Self {
         Self {
-            points,
+            points: points.into(),
             ..Self::default()
         }
+    }
+
+    /// Retarget this same spring/gesture engine to one measured open height.
+    /// The full child height includes its handle/header. Invalid measurements
+    /// retain the previous frame; authored two-stop configuration is unchanged.
+    #[must_use]
+    pub fn fit_content(
+        &mut self,
+        content: Pixels,
+        viewport: Pixels,
+        cap: Percentage,
+        now: Instant,
+    ) -> Fit {
+        let Some(points) = Positions::fit(content, viewport, cap) else {
+            return Fit::PendingLayout;
+        };
+        if self.points == points {
+            return Fit::Unchanged;
+        }
+        let current = self.position(now, false);
+        let position = current.position_in(self.points);
+        self.points = points;
+        self.drag = None;
+        self.settle(position, current.velocity(), Stop::Compact, now);
+        Fit::Updated
     }
 
     /// A refused close keeps its existing control at the initial open stop.
@@ -181,7 +221,7 @@ impl State {
             height: px(position.mul_add(-1.0, 1.0).mul_add(height, 0.0).max(0.0)),
             backdrop: position
                 .mul_add(-1.0, 1.0)
-                .mul_add(self.points.compact().fraction().recip(), 0.0)
+                .mul_add(self.points.compact_fraction().recip(), 0.0)
                 .clamp(0.0, 1.0),
             movement,
         })

@@ -38,3 +38,14 @@ Resume: docs skeleton only, no Rust source installed or check claimed. Work
 on the announced6eb base and keep all compilation on the build machine,
 serialized after the already-queued policy check. Source/narrow/native input
 proof and V1/lead handoff remain owed.
+
+Physics source checkpoint: keep public authored SnapPoints validation exactly
+as before; internal Positions::ContentFit is a separate measured configuration.
+Both compact/expanded semantic samples resolve to its one open position, so
+nearest-stop, spring, sampled drag and content-scroll handoff use their existing
+implementations. Existing default positions retain their exact literal branch.
+Retargeting content cancels a pan and settles that same spring from its sampled
+position; unchanged geometry leaves an active gesture untouched. Invalid layout
+retains prior state. New tests drive these actual methods and preserve every
+old authored-configuration test unchanged. No renderer/input adapter yet; all
+new Rust is uncompiled and no checked producer is claimed.

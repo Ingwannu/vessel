@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use gpui::{Pixels, Point};
 
-use super::{Origin, SnapPoints, Stop};
+use super::{Origin, Stop, positions::Positions};
 
 const HISTORY: usize = 8;
 const VELOCITY_WINDOW: Duration = Duration::from_millis(100);
@@ -65,7 +65,7 @@ impl Drag {
         position: f32,
         scroll: f32,
         now: Instant,
-        points: SnapPoints,
+        points: impl Into<Positions>,
     ) -> Self {
         Self {
             top: Stop::Expanded.position_in(points),
