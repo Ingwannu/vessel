@@ -168,7 +168,10 @@ impl Model {
         }) else {
             return false;
         };
-        let vessel_proto::OptionKind::Select { values, .. } = &option.kind else {
+        let vessel_proto::OptionKind::Select {
+            current, values, ..
+        } = &option.kind
+        else {
             return false;
         };
         if model.as_ref().is_some_and(|model| {
@@ -188,9 +191,9 @@ impl Model {
                 vessel_proto::ChoiceValue::Toggle { .. } => false,
             };
         }
-        // Legacy models were checked above; no explicit pick keeps the
-        // reference's provider-default model path once options are ready.
-        true
+        // A default is usable only when actually offered; absence is not an
+        // invented valid selection. A known explicit legacy model was checked above.
+        model.is_some() || values.iter().any(|offered| offered.id == *current)
     }
     /// The prepared candidate must still equal the current form before dispatch.
     /// This also rejects a captured old save callback without reparsing text.

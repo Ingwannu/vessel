@@ -1667,3 +1667,15 @@ The new complete localized preference failure is generated from schedules.ftl;
 it does not claim Operate refusal, uncertain write or node unavailability.
 Caller preference composition/readback and the real framed/file tests are the
 next unverified source steps; no producer or final F1 PASS is claimed here.
+
+
+The pure form now projects only offered Model/ThoughtLevel/Mode choices for
+the existing native preference API, including offered defaults. It can restore
+those values only into a fresh unedited target; old visits, edits, explicit
+choices and blocked forms refuse. Initial provider selection prefers a current
+installed remembered provider, else the first available structured provider.
+No profile, project path, unrelated option or store is fabricated.
+The shared F1 picks projection now follows actual agent application order:
+legacy model first, then explicit choices. An unavailable default is not a
+valid model merely because no explicit model was set. These were source gaps,
+not parity exceptions; all new pure/caller tests and checks remain owed.

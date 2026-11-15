@@ -245,10 +245,36 @@ pub(super) fn controls_for(
     options: &vessel_proto::HarnessOptions,
     lang: crate::Lang,
 ) -> Option<crate::Controls> {
-    let mut picks = match &spec.mode {
-        SessionMode::Structured { options, .. } => crate::Picks::from_choices(options.clone()),
-        SessionMode::Terminal { .. } => return None,
+    let picks = picks_for(spec, options)?;
+    let offered = crate::with_picks(&options.options, &picks);
+    let mut controls = crate::controls_of(&offered, &crate::agent_name(&spec.harness), lang);
+    if let SessionMode::Structured {
+        model: Some(model), ..
+    } = &spec.mode
+        && let Some(control) = &mut controls.model
+        && !control
+            .values
+            .iter()
+            .any(|value| value.id.as_str() == model.as_str())
+    {
+        // Keep an unavailable opened selection visible as unavailable;
+        // the node's current default is not what this stored spec asks for.
+        control.current = vessel_proto::OptionValueId::new(model.as_str());
+    }
+    Some(controls)
+}
+
+pub(super) fn picks_for(
+    spec: &SessionSpec,
+    options: &vessel_proto::HarnessOptions,
+) -> Option<crate::Picks> {
+    let SessionMode::Structured {
+        options: chosen, ..
+    } = &spec.mode
+    else {
+        return None;
     };
+    let mut picks = crate::Picks::default();
     if let SessionMode::Structured {
         model: Some(model), ..
     } = &spec.mode
@@ -271,20 +297,9 @@ pub(super) fn controls_for(
             }
         }
     }
-    let offered = crate::with_picks(&options.options, &picks);
-    let mut controls = crate::controls_of(&offered, &crate::agent_name(&spec.harness), lang);
-    if let SessionMode::Structured {
-        model: Some(model), ..
-    } = &spec.mode
-        && let Some(control) = &mut controls.model
-        && !control
-            .values
-            .iter()
-            .any(|value| value.id.as_str() == model.as_str())
-    {
-        // Keep an unavailable opened selection visible as unavailable;
-        // the node's current default is not what this stored spec asks for.
-        control.current = vessel_proto::OptionValueId::new(model.as_str());
+    // The agent applies legacy model first, then explicit option choices.
+    for choice in chosen {
+        picks.pick(choice.clone());
     }
-    Some(controls)
+    Some(picks)
 }

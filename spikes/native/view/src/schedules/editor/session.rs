@@ -16,6 +16,7 @@ use vessel_proto::automation::{Cadence, ScheduleInfo, TimeZoneName};
 
 mod catalog;
 mod change;
+mod preferences;
 mod retry;
 mod submit;
 pub use catalog::CatalogStatus;
