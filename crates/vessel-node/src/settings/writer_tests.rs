@@ -111,6 +111,10 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
             settings.tool_policy().borrow().inject,
             vessel_proto::mcp::Injection::On
         );
+        // The cancelled caller's outer operation owns its permit separately
+        // from the real writer token; join that owner before inspecting room.
+        let _closed = settings.tasks.close();
+        settings.tasks.wait().await;
         assert_eq!(settings.changes.available_permits(), MAX_SETTINGS_CHANGES);
         assert_eq!(
             settings

@@ -659,3 +659,11 @@ No check, assertion, timeout, effect ordering or lint rule changes. The queued
 Settings test on the known compile-red union was superseded only after terminal
 cancellation; the failed strict log is retained. Exact corrected seven-crate
 strict and Settings execution remain owed.
+
+
+The new permit-release assertion joins the actual outer operation tracker before
+reading capacity, separately from the canonical writer shutdown. A cancelled
+caller may have a ready writer result before its detached operation is polled
+to completion; an unguarded capacity snapshot would race that legitimate owner.
+The existing whole-fixture deadline covers both joins. No sleep, assertion
+relaxation or timeout increase is introduced.
