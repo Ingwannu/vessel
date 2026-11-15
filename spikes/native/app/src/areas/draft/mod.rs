@@ -373,7 +373,7 @@ impl Shell {
         } else {
             let _earlier = self.prefs.folders.insert(machine.clone(), folder.clone());
         }
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         // In a project, track F's start (a new worktree made first, its
         // steps on the session's screen); else in the folder.
         if !self.start_in_place(&machine, &harness, &options, &text) {

@@ -112,9 +112,11 @@ impl State {
     }
 }
 
-// Keep registration-only arms within the existing function budget. This is
-// the same awaited blocking save and error handling; no scheduling/order change.
-async fn save_prefs(prefs: super::Prefs) {
+// [Decision Log]
+// Keep the command match within its function budget so feature registrations
+// remain one-line arms. The same blocking save remains awaited before the
+// actor handles its next command; errors and logging remain unchanged.
+async fn save_prefs(prefs: Box<super::Prefs>) {
     let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
     match saved {
         Ok(Ok(())) => {}
