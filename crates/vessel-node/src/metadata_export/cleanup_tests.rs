@@ -172,7 +172,7 @@ async fn uncertain_close_is_bounded_by_existing_expiry_and_keeps_the_metadata_re
                 assert_eq!(id, transfer);
                 Err(WireError::new(
                     vessel_proto::ErrorCode::Forbidden,
-                    "fixture scope refusal".into(),
+                    "fixture scope refusal",
                 ))
             },
         )

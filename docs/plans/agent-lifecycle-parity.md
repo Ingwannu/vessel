@@ -1021,3 +1021,8 @@ that same run and provider association; absence of such observation is Unknown,
 not inferred success from a credential or identifier. Provider binding types and
 registry projection stay with the provider module. This records the authority
 boundary only: no actor capture API or consumer-ready implementation exists yet.
+
+The first cleanup increment's strict check stopped in a new fixture before tests:
+a string converted with Into left the generic WireError constructor ambiguous.
+The fixture now passes its string literal directly; its Forbidden result and
+assertions are unchanged. The original compile failure remains recorded.

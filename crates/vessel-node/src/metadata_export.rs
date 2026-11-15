@@ -1,5 +1,5 @@
-//! Preserve current session metadata before any export peer could mask it.
-//! The assignment/peer rule is shared with reply projection, not copied here.
+//! Refuse lossy export metadata and settle any returned transfer before refusal.
+//! Visibility is shared with reply projection; transport stays in the envelope.
 
 use crate::error::ServiceError;
 use std::future::Future;
