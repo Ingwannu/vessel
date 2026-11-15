@@ -257,3 +257,7 @@ or profile. A regression covers both absent and existing entries while changing
 independent host-agent, profile and choices fields. Choices remains the view's
 validated atomic option bag (the existing AgentDefaults change API), so no merge
 can construct an oversized invalid bag. Removal remains a whole map-key delta.
+Legacy non-settings choices are likewise merged by their typed HarnessRef within
+each machine's retained vector, so independent providers cannot erase one
+another's remembered options. A second regression covers stale additions and
+per-provider removal. Each provider's option bag remains one atomic field.

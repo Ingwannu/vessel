@@ -1,6 +1,6 @@
 //! Typed three-way deltas preserve stale windows' unrelated fields and map entries.
 
-use crate::Prefs;
+use crate::{Kept, Prefs};
 use std::collections::{BTreeMap, BTreeSet};
 use vessel_app_view::prefs::{
     AgentDefaults, Appearance, Composer, Layout, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
@@ -68,7 +68,14 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
     let mut next = current.clone();
     fields!(next,before,after;machine,agent,manual_updates,last_label,update_notes);
     map(&mut next.folders, &before.folders, &after.folders);
-    map(&mut next.choices, &before.choices, &after.choices);
+    merge_map(
+        &mut next.choices,
+        &before.choices,
+        &after.choices,
+        |current, before, after| {
+            kept_agents(current, before.map(Vec::as_slice), after);
+        },
+    );
     preferences(&mut next.settings, &before.settings, &after.settings);
     let grew = |prior: usize, next: usize, max: usize| next > max && next > prior;
     if grew(
@@ -86,6 +93,23 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
         return Err(Refused::Machines);
     }
     Ok(next)
+}
+
+fn kept_agents(current: &mut Vec<Kept>, before: Option<&[Kept]>, after: &[Kept]) {
+    let before = before.unwrap_or_default();
+    current.retain(|kept| {
+        !before.iter().any(|old| old.agent == kept.agent)
+            || after.iter().any(|new| new.agent == kept.agent)
+    });
+    for new in after {
+        if before.iter().find(|old| old.agent == new.agent) == Some(new) {
+            continue;
+        }
+        match current.iter_mut().find(|kept| kept.agent == new.agent) {
+            Some(kept) => kept.choices.clone_from(&new.choices),
+            None => current.push(new.clone()),
+        }
+    }
 }
 
 fn preferences(current: &mut Preferences, before: &Preferences, after: &Preferences) {
@@ -207,6 +231,34 @@ fn agent_defaults(
 mod tests {
     use super::*;
     use vessel_app_view::prefs::{Grouping, Theme};
+
+    #[test]
+    fn stale_nonsettings_choices_keep_other_agents_and_remove_only_the_named_agent() {
+        let claude = Kept {
+            agent: "claude".parse().unwrap(),
+            choices: Vec::new(),
+        };
+        let codex = Kept {
+            agent: "codex".parse().unwrap(),
+            choices: Vec::new(),
+        };
+        let before = Prefs::default();
+        let mut current = before.clone();
+        let _old = current.choices.insert("host".into(), vec![claude.clone()]);
+        let mut after = before.clone();
+        let _old = after.choices.insert("host".into(), vec![codex.clone()]);
+        let merged = apply(&current, &before, &after).unwrap();
+        assert_eq!(
+            merged.choices.get("host").unwrap(),
+            &vec![claude.clone(), codex.clone()]
+        );
+        let mut old = before;
+        let _prior = old.choices.insert("host".into(), vec![claude]);
+        let mut removed = old.clone();
+        removed.choices.get_mut("host").unwrap().clear();
+        let next = apply(&merged, &old, &removed).unwrap();
+        assert_eq!(next.choices.get("host").unwrap(), &vec![codex]);
+    }
 
     #[test]
     fn concurrent_default_records_preserve_independent_host_profile_and_choice_fields() {
