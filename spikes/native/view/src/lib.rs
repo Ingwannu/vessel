@@ -21,6 +21,7 @@ pub mod composer;
 pub mod connection;
 pub mod connections;
 mod conversation;
+pub mod creation;
 pub mod devices;
 pub mod diagnostics;
 pub mod effort;

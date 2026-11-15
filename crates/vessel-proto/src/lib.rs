@@ -57,6 +57,7 @@ mod session;
 pub mod settings;
 pub mod side_questions;
 mod terminal;
+pub mod terminal_profiles;
 pub mod terminals;
 mod title;
 mod transfer;
