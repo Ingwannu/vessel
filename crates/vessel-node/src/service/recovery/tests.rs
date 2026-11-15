@@ -17,6 +17,7 @@ use vessel_store::DataDir;
 use vessel_testkit::Fake;
 
 /// Test-only safety nets; these do not change product admission deadlines.
+const EVENT_PAGE: u32 = 128;
 const WAIT: Duration = Duration::from_secs(20);
 const CASE_DEADLINE: Duration = Duration::from_secs(60);
 
@@ -141,7 +142,7 @@ impl Fixture {
             }
         }
         // Read waits for persistence through the captured produced prefix.
-        let kept = client.read(id, EventSeq::ZERO, 128).await.unwrap();
+        let kept = client.read(id, EventSeq::ZERO, EVENT_PAGE).await.unwrap();
         assert!(kept.records.iter().any(|record| matches!(
             record.event,
             SessionEvent::Agent {
@@ -197,21 +198,11 @@ async fn final_admission(invalidation: Invalidation) {
             set(&node, true).await;
             let original = f.active(&owner).await;
             node.stop().await.unwrap();
-            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            f.profile(Some(listener.local_addr().unwrap()));
+            let gate = LoadGate::install(&f).await;
             let node = f.start().await;
             let owner = f.client(&node).await;
-            let (mut load, _) = listener.accept().await.unwrap();
-            let length = load.read_u32().await.unwrap();
-            assert!(
-                usize::try_from(length).unwrap() <= vessel_testkit::LOAD_GATE_SESSION_MAX_BYTES
-            );
-            let mut bytes = vec![0; usize::try_from(length).unwrap()];
-            assert_eq!(load.read_exact(&mut bytes).await.unwrap(), bytes.len());
-            assert_eq!(
-                String::from_utf8(bytes).unwrap(),
-                original.harness_session.unwrap().as_str()
-            );
+            let (loaded, mut load) = gate.arrive().await;
+            assert_eq!(loaded, original.harness_session.unwrap().as_str());
             let control = &node.secure.service.0.recovery;
             let (entered, release) = control.pause_admission();
             let cancelled = control.attempt_cancelled(original.id);
@@ -244,7 +235,7 @@ async fn final_admission(invalidation: Invalidation) {
             }
             done(&node).await;
             let records = owner
-                .read(original.id, EventSeq::ZERO, 128)
+                .read(original.id, EventSeq::ZERO, EVENT_PAGE)
                 .await
                 .unwrap()
                 .records;
@@ -378,3 +369,14 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
 mod failures;
 
 mod eligibility;
+
+mod restart;
+
+#[cfg(target_os = "linux")]
+mod crash;
+
+mod grants;
+
+mod load;
+use load::LoadGate;
+mod order;

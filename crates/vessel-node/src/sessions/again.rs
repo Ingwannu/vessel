@@ -152,12 +152,10 @@ impl Sessions {
         ended: EndedSession,
         launch: Relaunch,
         claim: Claim,
-        operation: Option<Arc<crate::recovery::Operation>>,
     ) -> Result<SessionHandle, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
-                let _operation = operation;
                 let started = sessions.reopen(ended, launch).await;
                 drop(claim);
                 started

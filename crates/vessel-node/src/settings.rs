@@ -236,6 +236,22 @@ impl Engine {
             }
             return Ok(current);
         }
+        self.keep(&next).await?;
+        #[cfg(test)]
+        self.gates.before_apply().await;
+        *saved = next;
+        let in_force = self.in_force(&saved);
+        self.policy.apply(in_force.restart_recovery.clone());
+        self.runtime.set_park_after(in_force.park_after.duration());
+        self.runtime.set_drivers(in_force.drivers);
+        #[cfg(test)]
+        self.gates.before_cleanup().await;
+        self.synchronize(&in_force).await?;
+        Ok(in_force)
+    }
+    /// One file replacement. The FIFO worker retains its saved-value lock
+    /// through this result; a failed write releases only the provisional gate.
+    async fn keep(&self, next: &SavedNodeSettings) -> Result<(), SettingsError> {
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
@@ -270,17 +286,7 @@ impl Engine {
             tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
             self.later.store(false, Ordering::Relaxed);
         }
-        #[cfg(test)]
-        self.gates.before_apply().await;
-        *saved = next;
-        let in_force = self.in_force(&saved);
-        self.policy.apply(in_force.restart_recovery.clone());
-        self.runtime.set_park_after(in_force.park_after.duration());
-        self.runtime.set_drivers(in_force.drivers);
-        #[cfg(test)]
-        self.gates.before_cleanup().await;
-        self.synchronize(&in_force).await?;
-        Ok(in_force)
+        Ok(())
     }
     async fn synchronize(&self, current: &NodeSettings) -> Result<(), SettingsError> {
         self.store

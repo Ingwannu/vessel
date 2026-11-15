@@ -84,8 +84,11 @@ impl NodeService {
         };
         let started = match granted.await {
             Ok(()) => {
+                let sessions = std::sync::Arc::clone(&self.sessions);
                 self.sessions
-                    .start_again(ended, launch, claim, connection.operation())
+                    .hold(connection.operation(), async move {
+                        sessions.start_again(ended, launch, claim).await
+                    })
                     .await
             }
             Err(error) => Err(error),

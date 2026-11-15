@@ -14,7 +14,7 @@ fn chosen() -> SavedNodeSettings {
 }
 
 #[test]
-fn full_record_keeps_verbatim_policy_and_the_old_view_still_decodes() {
+fn full_record_and_registered_patch_view_keep_the_same_verbatim_policy() {
     let directory = tempfile::tempdir().unwrap();
     let data = DataDir::new(directory.path());
     assert_eq!(data.read_settings_record().unwrap(), None);
@@ -26,12 +26,13 @@ fn full_record_keeps_verbatim_policy_and_the_old_view_still_decodes() {
         Some(SetNodeSettings {
             park_after: Some(ParkAfter::Never),
             drivers: None,
-            ..SetNodeSettings::default()
+            restart_recovery: record.restart_recovery.clone(),
         })
     );
     assert!(!data.settings_record_holds_more_than(&record).unwrap());
     assert!(
-        data.settings_hold_more_than(&data.read_settings().unwrap().unwrap())
+        !data
+            .settings_hold_more_than(&data.read_settings().unwrap().unwrap())
             .unwrap()
     );
 }
@@ -67,6 +68,10 @@ fn malformed_record_diagnostics_redact_input_and_keep_the_original_source() {
     assert!(!error.to_string().contains(PRIVATE));
     assert!(!format!("{error:?}").contains(PRIVATE));
     assert!(error.source().is_some());
+    let legacy = data.read_settings().unwrap_err();
+    assert!(!legacy.to_string().contains(PRIVATE));
+    assert!(!format!("{legacy:?}").contains(PRIVATE));
+    assert!(legacy.source().is_some());
 }
 
 #[test]
@@ -77,7 +82,7 @@ fn a_legacy_patch_conversion_contains_no_recovery_change() {
         ..SetNodeSettings::default()
     };
     assert_eq!(
-        SavedNodeSettings::from(patch),
+        SavedNodeSettings::from(patch.clone()),
         SavedNodeSettings {
             park_after: patch.park_after,
             drivers: patch.drivers,

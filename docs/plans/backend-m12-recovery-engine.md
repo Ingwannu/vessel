@@ -1,11 +1,14 @@
-# Startup recovery R2: staged engine and service
+# Startup recovery R2: owned engine and product admission
 
-ADR 0059's accepted contract remains the behavior to implement. R1's source
-`2890410c` and result record `7a00b4d6` passed value-only source and whole-gate
-review; that verdict does not cover the runtime below. This branch starts
-from that record and merges announced node `ec5b1162` at a clean boundary.
-The file/owned-settings portion of R2 is now being implemented. The startup
-coordinator and its admission mounts are not installed yet.
+Current candidate: the accepted R1 values and hidden reply projection are
+retained on the announced Quality B head. The passive ordered journal is now
+connected to node boot, ordinary person-stop/resume and the same owned settings
+engine. Client helpers and the explicit CLI inputs use canonical admission;
+recovery's protocol remains Option None and no positive new-field request is
+claimed. The full runtime package is not yet gated or reviewed. Sections below
+record earlier baseline/staging decisions in their original sequence; their
+old staging status is historical, superseded by this paragraph and the final
+Quality B section. The accepted ADR0059 contract still defines behavior.
 
 [Decision Log]
 - Purpose: implement the recovery settings and startup coordinator while its
@@ -298,3 +301,30 @@ authorized collectors and recovery rollback-table prefixes reproduces the
 head's seven affected test files exactly. No other assertions or deadlines
 changed. Generated TS retains its three canonical whitespace warnings; it is
 not hand-edited. Merged-source narrow and whole-package evidence are pending.
+
+
+## Current Quality B filling
+
+The node bootstrap reads the same validated settings snapshot before store
+normalization. The runtime uses the journal lane for actual checkpoints;
+startup takes at most Recovery::MAX_ATTEMPTS independent attempts. An attempt
+consumes its intent before dispatch and holds normal session claims and an
+operation arbiter through all admitted effects. Fresh Devices grants and the
+shared policy/stop generation are checked separately at launch and after
+provider load before the Start-only prompt enqueue. Manual takeover never
+shares cleanup authority with an older boot attempt.
+
+Both existing settings request fields are registered only through the shared
+recursive Call requirement; there is no added method or assigned protocol.
+Existing Get/Set response projection remains per peer. Ordinary legacy
+parking/drivers mutations preserve the full saved policy. Explicit client
+reads do not infer capability from an absent decoded default; CLI reads report
+unsupported separately. A requested mixed mutation is refused as one typed
+call before dispatch if recovery's number is unassigned.
+
+Component tests of Off/save cancellation intentionally call the same Settings
+engine, not a test-only server route. They cannot stand in for a successful
+new-field RPC while assignment is pending. The real raw legacy setter regression
+continues to exercise server encoding. Clean-stop, killed-process, real paired
+creator grant changes and held provider load tests belong to the final package
+run. No native/page code or real provider is used.

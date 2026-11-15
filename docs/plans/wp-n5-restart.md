@@ -19,7 +19,7 @@ index.test.ts, config.ts::resolveRestartRecoveryConfig and bootstrap's
 freeze/capture/close/flush order. Keep the reference's disabled default,
 verbatim configured prompt, clear-before-dispatch and no implicit unarchive.
 The full accepted contract and deliberate resource/authority differences are
-in ADR 0059; runtime work remains staged until the common wiring boundary.
+in ADR 0059; runtime wiring follows the now-available common boundary and remains unverified until the package gate.
 
 [Decision Log]
 - Purpose: continue interrupted committed work without reviving work a person
@@ -74,3 +74,11 @@ its existing durable prefix is extracted without changing append SQL or the
 projection. The first local product check was cancelled while still queued,
 before any Cargo invocation, to use the managed remote lane. Product wiring,
 settings failure tests and provider admission tests are not yet validated.
+
+The first runtime narrow check found missing imports, a moved test patch and
+an internal resume signature mismatch. The existing three-argument resume
+entry is retained; its outer owned operation holds recovery admission through
+the actual inner completion. The saved-file compatibility view now decodes
+the registered optional patch too, with the same verbatim policy and redacted
+parse diagnostics. These adjustments and the expanded tests remain candidates
+until the next immutable narrow run and final package gate.

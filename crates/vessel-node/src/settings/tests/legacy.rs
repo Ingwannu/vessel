@@ -4,7 +4,7 @@ use super::*;
 use futures_util::{SinkExt as _, StreamExt as _};
 use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest as _};
 use vessel_proto::restart::{RestartRecovery, SetRestartRecovery};
-use vessel_proto::settings::{GetNodeSettings, SetAgentDrivers};
+use vessel_proto::settings::{GetNodeSettings, SetAgentDrivers, SetNodeSettings};
 use vessel_proto::{
     Call, ClientFrame, ClientInfo, Hello, Outcome, ProtocolRange, ProtocolVersion, Reply,
     Request as _, RequestId, ServerFrame,
@@ -73,7 +73,14 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
 fn ordinary_calls() -> [(RequestId, Call); 3] {
     [
         (RequestId::new(1), GetNodeSettings::default().into_call()),
-        (RequestId::new(2), patch(idle()).into_call()),
+        (
+            RequestId::new(2),
+            SetNodeSettings {
+                park_after: Some(idle()),
+                ..SetNodeSettings::default()
+            }
+            .into_call(),
+        ),
         (
             RequestId::new(3),
             SetNodeSettings {

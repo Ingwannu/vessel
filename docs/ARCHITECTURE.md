@@ -1568,3 +1568,24 @@ its append-only migration; no new dependency edge, RPC or protocol assignment
 is introduced. Checkpoint batches share the ordinary append's retention,
 search and post-commit attention effects. The startup coordinator and product
 mounts are still separate staged work.
+
+
+### Restart recovery product wiring (ADR 0059)
+
+Node startup reads Settings::Opening before Store recovery normalizes live
+rows. The same snapshot initializes the one owned Settings engine. Store's
+restart projection, independent of transcript retention, selects eligible
+committed active turns; the node's bounded boot coordinator consumes each
+intent before ordinary conversation loading. Session journal checkpoints share
+the existing event persistence lane and actual commit acknowledgements, without
+public event sequence numbers or a second log. A person's stop is suppressed
+before its effect; global shutdown captures only its current active turn.
+
+The boot owner and ordinary operations share admission, but release all grant
+and policy fences during provider waits. Devices' current stored grant plus
+policy/stop generations are checked again immediately before each launch or
+prompt enqueue. Failed cleanup is limited to the same unprompted run. Settings
+Off applies and invalidates generation before consuming pending intents; its
+FIFO owner survives caller cancellation and prevents later On overtaking an
+unsettled save or cleanup. Existing per-peer reply projection and canonical
+field requirements keep the unassigned recovery feature off the wire.

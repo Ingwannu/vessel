@@ -1444,3 +1444,14 @@ application even if the requesting connection disappears. Shutdown drains
 those operations before stopping sessions. The local saved-record view also
 preserves an unregistered recovery policy across parking/driver changes; this
 does not expose a new startup setting or enable automatic continuation.
+
+
+Restart recovery (ADR 0059) extends saved node settings with disabled-by-default
+continuation of eligible interrupted active structured turns, using the same
+provider conversation and the exact configured prompt (default `Resume working.`).
+Manually stopped, parked, archived, side-helper, agent-created and delegated
+sessions are excluded. Pending intent is consumed before dispatch; an uncertain
+attempt is never retried automatically. The node implementation is under
+verification. Its explicit settings read and CLI options `--resume-on-startup`
+and `--resume-prompt` remain unavailable until the feature protocol is assigned;
+ordinary settings operations retain their existing behavior.

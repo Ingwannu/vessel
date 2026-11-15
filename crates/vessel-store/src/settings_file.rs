@@ -70,7 +70,7 @@ pub enum SettingsFileError {
     #[error(transparent)]
     Read(#[from] StoreError),
     /// It is not the settings' JSON.
-    #[error("{}: {source}", path.display())]
+    #[error("{}: the saved settings could not be parsed", path.display())]
     Parse {
         /// The file.
         path: PathBuf,
@@ -103,10 +103,10 @@ impl fmt::Debug for SettingsFileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Read(error) => f.debug_tuple("Read").field(error).finish(),
-            Self::Parse { path, source } => f
+            Self::Parse { path, source: _ } => f
                 .debug_struct("Parse")
                 .field("path", path)
-                .field("source", source)
+                .field("source", &"[redacted]")
                 .finish(),
             Self::RecordParse { path, source: _ } => f
                 .debug_struct("RecordParse")

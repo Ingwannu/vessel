@@ -16,7 +16,7 @@ impl NodeService {
     ) -> Result<NodeSettings, WireError> {
         let mut current = self.settings.current().await;
         if !request.include_restart_recovery {
-            current.restart_recovery = Default::default();
+            current.restart_recovery = vessel_proto::restart::RestartRecovery::default();
         }
         Ok(current)
     }

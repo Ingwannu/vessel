@@ -2,12 +2,13 @@
 
 Date: 2026-11-14. Status: accepted contract; implementation split for review.
 
-R1 implements only policy/prompt values and projection of settings replies.
-The settings/file engine and recovery service belong to the test-staged R2;
-request registration, client/CLI and runtime wiring follow the shared protocol
-accessor and the single method table. The remaining sections are the complete
-recovery contract, not a statement that those runtime paths exist in R1.
-No implementation approval is implied by acceptance of the contract.
+R1's value/projection boundary is accepted independently. After the announced
+Quality B node head, R2's ordinary product wiring is being implemented on this
+track. It reuses the canonical call-field requirement and one method table;
+the feature constant remains unassigned. Positive new-field RPC/client/CLI
+execution awaits integration's assignment, while actual node recovery can be
+tested from the saved settings file and through the existing owned engine.
+No implementation approval is implied by acceptance of this contract.
 
 ## Reference and existing parts
 
