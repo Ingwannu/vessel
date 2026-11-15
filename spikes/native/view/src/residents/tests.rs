@@ -70,6 +70,32 @@ fn ready(residents: &mut Residents, token: ResidentToken) {
     }
 }
 #[test]
+fn main_timeline_ready_cannot_overwrite_a_provider_child_hold_or_settle_its_ticket() {
+    let (mut residents, token, _) = fixture();
+    ready(&mut residents, token);
+    let binding = residents.begin_follow(token).unwrap();
+    let child = residents
+        .admit_operation(binding, OperationKind::Subagents)
+        .unwrap();
+    assert_eq!(
+        residents.settle_operation(binding, OperationKind::Timeline, child),
+        Err(ResidentProblem::UnadmittedOperation)
+    );
+    let retired = residents.retire_current(token).unwrap().unwrap();
+    assert_eq!(
+        retired.operations().first().unwrap().kind(),
+        OperationKind::Subagents
+    );
+    residents
+        .readiness(token, ResourceOwner::Timeline, OwnerReadiness::Ready)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Err(ResidentProblem::Held));
+    residents
+        .readiness(token, ResourceOwner::Subagents, OwnerReadiness::Ready)
+        .unwrap();
+    assert_eq!(residents.retire_clean(token), Ok(()));
+}
+#[test]
 fn same_node_reconnect_fences_queued_old_metadata_error_and_mutation_reply() {
     let (mut residents, token, _) = fixture();
     let first = residents.begin_follow(token).unwrap();
