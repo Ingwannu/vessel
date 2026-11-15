@@ -32,7 +32,7 @@ pub(super) struct LocalState {
 }
 const SAVE_DELAY: Duration = Duration::from_millis(200);
 
-/// Only the real startup calls this; with_drafts remains isolated for tests.
+/// Only the real startup calls this; `with_drafts` remains isolated for tests.
 pub(crate) fn restore_local(areas: &mut Areas) {
     areas.composer.local.production = true;
     #[cfg(not(target_arch = "wasm32"))]
@@ -67,7 +67,7 @@ pub(crate) fn restore_local(areas: &mut Areas) {
                 }
             }
             Err(problem) => {
-                tracing::warn!(%problem, "local attachment state could not be restored; preserved without collection")
+                tracing::warn!(%problem, "local attachment state could not be restored; preserved without collection");
             }
         }
     }
@@ -151,7 +151,7 @@ impl Shell {
             .trays
             .get(key)
             .into_iter()
-            .flat_map(|tray| tray.items())
+            .flat_map(vessel_app_view::composer::tray::Tray::items)
             .filter_map(|item| match &item.origin {
                 Origin::Stored(file) => Some(std::sync::Arc::clone(file)),
                 Origin::File(_) | Origin::Pasted(_) => None,
