@@ -226,7 +226,7 @@ Unit fixtures cover ASCII/Unicode blanks, inner text retention and encoded value
 Shared Editability8eac02e8+497dd62e is now V1 SOURCE + REQUESTED NARROW PROOF
 PASS: exact kit all-target Clippy0 and real keyboard test1/0/0 (Line+Lines in one
 case), independently audited specs/TSV/log hashes. Audit:
-/tmp/work/m12-review/w4-497-shared-field-narrow-audit.json. Package base6036 has
+shared-field narrow audit w4-497-shared-field-narrow-audit.json. Package base6036 has
 byte-identical kit, native manifest and lock; A8 merged it at541b5392.
 This is bounded editor-policy proof, not RPC/authority/OS/IME/UI parity proof.
 
@@ -531,8 +531,9 @@ Uncertain admitted effects remain a separate Hold until authoritative settlement
 The isolated shared FieldId producer dcbdbb018 now has V1 bounded source adoption
 and exact requested Kit Clippy PASS; its four source blobs match prior Kit128
 keyboard evidence. Lead and G2 received the immutable producer/evidence packet.
-G2 is the next reserved field writer for multiline source callbacks and its
-FormMinimum; W4 makes no concurrent field.rs edit. This shared prerequisite pass
+G2 subsequently delivered the selected multiline producer through580a7781,
+with V1 bounded source/requested Kit Clippy and171 tests passed. G3 is the next
+sole SearchField writer; W4 makes no concurrent field.rs edit. This shared prerequisite pass
 is separate from the A8 package's latest still-pending all-target native checks.
 
 
@@ -556,3 +557,11 @@ The two exact peer-retirement fixtures use test-only HashMap indexing instead of
 get().unwrap(), as the reported get_unwrap lint requires. Fixture identity and
 all before-poll/after-send retirement assertions remain unchanged; no product
 indexing, retry policy or suppression attribute is added.
+
+
+Official package base8 (91407173) is merged. The sole kit export conflict retains
+both the shared button design additions and A8 Markdown label sibling. Owned
+native Rust format, size, dependency boundary and token checks pass after the
+merge; the current all-target Clippy run is pinned to its pre-merge feature head,
+so it cannot establish this union or overall runtime acceptance. Shared field
+proof, request-owner source and final package evidence remain distinct.

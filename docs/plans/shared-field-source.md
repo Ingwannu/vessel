@@ -19,8 +19,8 @@ Those remain prior-source evidence, not an exact isolated-head runtime run.
 Exact dcbdbb018 now has V1 bounded SOURCE ADOPTION and requested Kit Clippy PASS:
 wp-side-narrow-20261115T120940Z-dcbdbb01 ran clippy --locked -p vessel-app-kit
 --all-targets -- -D warnings, fonts/cargo0 with actual changed Kit compilation
-and no skip. Audit: /tmp/work/m12-review/w4-field-source-dcb/audit.json.
-Packet: /tmp/work/wp-side/field-source-handoff.json. This is the approved minimal
+and no skip. Audit: shared-field-source review packet (audit.json).
+Packet: field-source-handoff.json in the worker evidence bundle. This is the approved minimal
 consumer source; it is not a whole A8, stale consumer, multiline or IME pass.
 
 G2's FormMinimum source is deliberately not included while unreviewed. The
