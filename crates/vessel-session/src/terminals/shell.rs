@@ -75,6 +75,7 @@ pub async fn start_shell(start: ShellStart) -> Result<TerminalHandle, TerminalEr
         kill: kill.clone(),
         restarts: None,
         pid: AtomicU32::new(pty.pid()),
+        process: Mutex::new(Some(pty.lifetime())),
     });
     let actor = ShellActor {
         log: TermLog::new(Arc::clone(&shared)),

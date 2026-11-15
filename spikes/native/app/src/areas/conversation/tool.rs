@@ -105,6 +105,7 @@ fn body(
                 path,
                 old_text,
                 new_text,
+                ..
             } => body
                 .child(label(paint, &words.diff_of(&path.to_string_lossy())))
                 .child(diff(
@@ -115,7 +116,7 @@ fn body(
                     window,
                     cx,
                 )),
-            ToolCallContent::Content { content } => body.child(output_box(
+            ToolCallContent::Content { content, .. } => body.child(output_box(
                 key(part),
                 &block_text(content),
                 Start::End,
@@ -136,6 +137,25 @@ fn body(
         ));
     }
     body
+}
+
+/// A tool call's diff, as its opened row shows it: what a permission card
+/// shows for an edit (Paseo's `EditDetailSection`); `None` without one.
+pub(super) fn diff_detail(
+    paint: &Paint<'_>,
+    id: &ElementId,
+    tool: &ToolView,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    tool.content.iter().find_map(|content| match content {
+        ToolCallContent::Diff {
+            old_text, new_text, ..
+        } => Some(
+            diff(paint, id.clone(), old_text.as_deref(), new_text, window, cx).into_any_element(),
+        ),
+        ToolCallContent::Content { .. } => None,
+    })
 }
 
 fn label(paint: &Paint<'_>, text: &str) -> Div {

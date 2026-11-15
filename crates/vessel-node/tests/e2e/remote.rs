@@ -14,6 +14,7 @@ use tempfile::TempDir;
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use vessel_client::NodeClient;
 use vessel_harness::fakes::{Role, install};
+use vessel_node::attach::START_TIMEOUT;
 use vessel_proto::{
     ErrorCode, EventRecord, EventSeq, GetNode, HarnessKind, ProxyExit, SessionMode, SessionSpec,
     StopNode, StopWhen, TerminalSize,
@@ -150,14 +151,28 @@ fn stdio(child: &mut Child) -> Framed<ChildStdout, ChildStdin> {
     )
 }
 
+/// A handshake through `attach`, which may first start the node: the
+/// proxy allows that start [`START_TIMEOUT`], then the ordinary handshake
+/// follows, as vessel-remote's SSH connector allows (its 60 s
+/// `HANDSHAKE_TIMEOUT`). With the plain 10 s default the clock ran during
+/// the node's start, and a start slower than 10 s under load failed the
+/// handshake while the proxy was still within its own window (2026-11-15).
+fn through_attach() -> ClientConfig {
+    let config = ClientConfig::default();
+    ClientConfig {
+        handshake_timeout: START_TIMEOUT.saturating_add(config.handshake_timeout),
+        ..config
+    }
+}
+
 async fn connect(child: &mut Child) -> NodeClient {
-    NodeClient::over(stdio(child), client(), &ClientConfig::default())
+    NodeClient::over(stdio(child), client(), &through_attach())
         .await
         .unwrap()
 }
 
 async fn control(child: &mut Child) -> Connection {
-    Connection::connect(stdio(child), client(), &ClientConfig::default())
+    Connection::connect(stdio(child), client(), &through_attach())
         .await
         .unwrap()
 }
@@ -245,7 +260,7 @@ async fn a_refused_or_unreadable_token_has_its_own_exit_code() {
         let wrong = DataDir::new(other.path()).load_or_create_token().unwrap();
         std::fs::write(&token, wrong.expose()).unwrap();
         let mut refused = remote.attach();
-        let answer = NodeClient::over(stdio(&mut refused), client(), &ClientConfig::default()).await;
+        let answer = NodeClient::over(stdio(&mut refused), client(), &through_attach()).await;
         assert!(
             matches!(&answer, Err(vessel_rpc::ConnectError::Rejected(error)) if error.code == ErrorCode::Unauthorized),
             "{answer:?}"
