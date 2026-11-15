@@ -917,3 +917,28 @@ This intentionally suspends legacy writes; it is not functional C3 write parity
 or a merge candidate. Reading old data stays readonly. Known-unavailable menu
 presentation and eventual scoped write activation remain part of the final C3
 consumer; no authority is inferred from a successful read or stamp alone.
+
+## Deferred body reads retain the accepted summary generation
+
+[Decision Log]
+- Existing assets: PanelReads, ComparisonTicket, lifetime RequestKeys and the
+  existing numbered diff rows. Paseo workspace-cache.tsx reuses actual source
+  object identity, not equal path/count metadata, across model variants.
+- Constraint: Ready previously retained data without its request key. A queued
+  row callback could therefore survive identical refresh data or comparison
+  A-to-B-to-A if it checked only repository/comparison/path.
+- Choice: preserve the accepted summary ticket in the same read store. A
+  FileReadTarget captures only a present file in Ready status/summary, and its
+  currentness is rechecked before the owner issues a request. A body ticket
+  retains its parent summary generation; refresh invalidates acceptance before
+  the next summary arrives, even while previous content remains drawn.
+- No second controller, parser, NodeId map, root resolver, capability or external
+  dependency. Explicit lower-level/direct-file reads remain available; future
+  drawn-row consumers use the captured-target boundary.
+- Tests cover ready/missing file, identical refresh before and after settlement,
+  late/duplicate body reply, mode round-trip, retirement/reopen, failed status
+  and failed summary. They are written, not yet executed. This source is newer
+  than f1ab's registered App checks and borrows none of their outcomes.
+- Limits: local generation is not physical connection authority or an atomic
+  repository snapshot across pages. Body mounting, offset echo/pagination and
+  global payload/editor retention bounds still need their real consumers.

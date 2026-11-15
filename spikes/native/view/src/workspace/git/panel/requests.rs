@@ -1,5 +1,15 @@
 //! Read identity for a pane: transport replies may outlive repository, mode,
 //! base and whitespace changes. Reuse the accepted monotonic request issuer.
+//!
+//! [Decision Log]
+//! - A retained summary may stay drawn while refreshing, but equal paths/counts
+//!   cannot make an old row callback current. Ready data alone lost its key.
+//! - Keep the accepted summary ticket in this existing read store; refresh,
+//!   mode changes and retirement invalidate activation before new work begins.
+//! - File callbacks capture that opaque generation and recheck it synchronously.
+//!   No second key book, resolver or content-based authority is introduced.
+//! - This only correlates local reads; original connection/pane admission and
+//!   filesystem snapshot guarantees remain their respective owners' concern.
 
 use super::{
     Body, Comparison, Demand, DiffRead, PanelRead, ReadFailure, RepositoryKey, RepositoryRead, body,
@@ -65,6 +75,7 @@ pub(super) struct FileStamp {
 pub struct FileTicket {
     comparison: ComparisonTicket,
     path: RelPath,
+    summary_key: Option<RequestKey>,
 }
 
 impl FileTicket {
@@ -95,6 +106,7 @@ pub struct PanelReads {
     comparison: Comparison,
     status: PanelRead<GitStatus>,
     summary: PanelRead<DiffSummary>,
+    accepted_summary: Option<ComparisonTicket>,
     files: HashMap<RelPath, PanelRead<FileDiff>>,
 }
 
@@ -107,6 +119,7 @@ impl PanelReads {
             comparison,
             status: PanelRead::Empty,
             summary: PanelRead::Empty,
+            accepted_summary: None,
             files: HashMap::new(),
         }
     }
@@ -128,6 +141,7 @@ impl PanelReads {
     pub fn retire(&mut self) {
         self.status = PanelRead::Failed(ReadFailure::DestinationChanged);
         self.summary = PanelRead::Failed(ReadFailure::DestinationChanged);
+        self.accepted_summary = None;
         self.files.clear();
     }
 
@@ -136,6 +150,7 @@ impl PanelReads {
         if self.comparison != comparison {
             self.comparison = comparison;
             self.summary = PanelRead::Empty;
+            self.accepted_summary = None;
             self.files.clear();
         }
     }
@@ -143,6 +158,7 @@ impl PanelReads {
     /// Loading retains display facts but does not authorize writes from them.
     #[must_use]
     pub fn begin_status(&mut self, key: RequestKey) -> StatusTicket {
+        self.accepted_summary = None;
         self.status.start(key);
         StatusTicket {
             repository: self.repository,
@@ -173,6 +189,7 @@ impl PanelReads {
         key: RequestKey,
         reason: GitReadReason,
     ) -> ComparisonTicket {
+        self.accepted_summary = None;
         self.summary.start(key);
         ComparisonTicket {
             repository: self.repository,
@@ -194,11 +211,14 @@ impl PanelReads {
         if !self.matches(ticket) || !self.summary.accept(ticket.key, answer) {
             return false;
         }
+        self.accepted_summary = self.summary.ready().map(|_| ticket.clone());
         self.files.clear();
         true
     }
 
-    /// A visible file owns one current body read; issuing again supersedes it.
+    /// Low-level explicit body reads also serve immutable/direct-file callers.
+    /// Drawn-row callbacks use `begin_captured_file` so a stale summary cannot
+    /// start another request. Issuing again supersedes this file's old read.
     #[must_use]
     pub fn begin_file(&mut self, path: RelPath, key: RequestKey) -> FileTicket {
         self.files.entry(path.clone()).or_default().start(key);
@@ -210,6 +230,7 @@ impl PanelReads {
                 key,
             },
             path,
+            summary_key: self.accepted_summary.as_ref().map(|ticket| ticket.key),
         }
     }
 
@@ -220,7 +241,9 @@ impl PanelReads {
         ticket: &FileTicket,
         answer: Result<FileDiff, ReadFailure>,
     ) -> bool {
-        if !self.matches(&ticket.comparison) {
+        if !self.matches(&ticket.comparison)
+            || ticket.summary_key != self.accepted_summary.as_ref().map(|ticket| ticket.key)
+        {
             return false;
         }
         let answer = answer.and_then(|file| {
@@ -282,7 +305,51 @@ impl PanelReads {
         self.files.get(path)
     }
 
+    /// Capture only a file in the actually accepted summary, never retained
+    /// refresh data. The generation is local read correlation, not authority
+    /// or a promise of an atomic filesystem snapshot across paged reads.
+    #[must_use]
+    pub fn file_target(&self, path: &RelPath) -> Option<FileReadTarget> {
+        self.status.ready()?;
+        let summary = self.summary.ready()?;
+        let ticket = self.accepted_summary.as_ref()?;
+        summary.files.iter().find(|file| file.path == *path)?;
+        Some(FileReadTarget {
+            comparison: ticket.clone(),
+            path: path.clone(),
+        })
+    }
+
+    /// A deferred row callback must recheck this immediately before issuing a
+    /// key or a request. Equal paths/counts and comparison A-to-B-to-A do not
+    /// make a callback from a retired summary current again.
+    #[must_use]
+    pub fn file_target_is_current(&self, target: &FileReadTarget) -> bool {
+        self.file_target(&target.path).as_ref() == Some(target)
+    }
+
+    /// Start only the exact captured generation. This rechecks even if the
+    /// caller already tested currentness before allocating its lifetime key.
+    #[must_use]
+    pub fn begin_captured_file(
+        &mut self,
+        target: &FileReadTarget,
+        key: RequestKey,
+    ) -> Option<FileTicket> {
+        self.file_target_is_current(target)
+            .then(|| self.begin_file(target.path.clone(), key))
+    }
+
     fn matches(&self, ticket: &ComparisonTicket) -> bool {
         ticket.repository == self.repository && ticket.comparison == self.comparison
     }
+}
+
+/// Opaque activation from a successfully drawn summary's exact generation.
+/// The owner must additionally retain and check its original connection,
+/// pane incarnation and visibility; this value grants no write capability.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileReadTarget {
+    comparison: ComparisonTicket,
+    path: RelPath,
 }

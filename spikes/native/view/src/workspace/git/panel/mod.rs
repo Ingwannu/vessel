@@ -38,7 +38,7 @@ pub use options::{
     Presentation, TreeVisibility, Wrap,
 };
 pub use projection::{Body, Demand, DiffRead, EmptyAction, RepositoryRead, body, empty_action};
-pub use requests::{ComparisonTicket, FileTicket, PanelReads, StatusTicket};
+pub use requests::{ComparisonTicket, FileReadTarget, FileTicket, PanelReads, StatusTicket};
 pub use tree::{
     ChangeIndex, ChangeTotals, ChangeTree, ChangeTreeRow, LineCount, TreeDepth, TreeError,
 };
@@ -52,3 +52,6 @@ mod tree_tests;
 
 #[cfg(test)]
 mod requests_tests;
+
+#[cfg(test)]
+mod file_target_tests;
