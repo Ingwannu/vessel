@@ -2,7 +2,6 @@
 
 use super::Connection;
 use crate::{Event, State};
-use vessel_app_view::Machine;
 use vessel_app_view::devices::Ticket;
 use vessel_app_view::local_node::{AdmissionProblem, LocalTarget};
 
@@ -50,16 +49,5 @@ impl State {
             result,
         }))
         .await;
-    }
-
-    pub(crate) async fn check_local_collision<'a>(
-        &mut self,
-        _names: impl Iterator<Item = &'a str>,
-    ) {
-        // No local admission exists while this explicit unavailable skeleton is active.
-    }
-
-    pub(crate) async fn local_machine(&mut self) -> Option<Machine> {
-        None
     }
 }

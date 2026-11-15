@@ -112,13 +112,6 @@ type SessionHandler = fn(
 type ProjectHandler =
     fn(&mut Shell, &std::path::Path, &mut gpui::Window, &mut gpui::Context<'_, Shell>);
 
-pub(crate) fn set_session_handler(handler: SessionHandler, cx: &mut App) {
-    cx.global_mut::<Desktop>().session = Some(handler);
-}
-pub(crate) fn set_project_handler(handler: ProjectHandler, cx: &mut App) {
-    cx.global_mut::<Desktop>().project = Some(handler);
-}
-
 pub(crate) fn drain_pending(
     shell: &mut Shell,
     window: &mut gpui::Window,

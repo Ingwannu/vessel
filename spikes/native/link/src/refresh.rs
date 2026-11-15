@@ -36,13 +36,8 @@ impl State {
                 return;
             }
         };
-        self.check_local_collision(book.iter().map(|(name, _entry)| name.as_str()))
-            .await;
         self.reconcile_connections(&book).await;
         let mut machines = Vec::with_capacity(book.len());
-        if let Some(local) = self.local_machine().await {
-            machines.push(local);
-        }
         for (name, entry) in book {
             let name = name.as_str().to_owned();
             let reach = if let Some(connected) = self.clients.get(&name) {

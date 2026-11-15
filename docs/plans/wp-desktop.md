@@ -521,3 +521,10 @@ incomplete difference from Paseo hides the unusable local Fleet destination;
 owned process controls remain separately scoped. No shared connections/selected/
 delivery source is edited, fake Book or second epoch introduced. The skeleton
 requires V1 review if it reaches the line and is not a parity-complete handoff.
+
+Unavailable-skeleton cleanup also removes its branch-only refresh hooks rather
+than retain empty async methods. Fleet publishes only the existing book path;
+no local target is synthesized. The desktop-shell owner approved removing the
+two uncalled session/project setter definitions in this older snapshot, preserving
+its fields/drain/None behavior until their actual owner consumers arrive. This
+is source hygiene, not session/project delivery or E3 completion.
