@@ -66,3 +66,27 @@ empty event; do not suppress callbacks or change the product. All focus, target,
 geometry, localization-identity and Enter assertions remain. The later checks
 were not reached in that failed test, so their execution remains unverified.
 Old red evidence is retained; corrected focused checks and adoption remain owed.
+
+
+## Exact corrected producer results
+
+Exact13c46693 strict all-target Kit Clippy0 at
+agents-control-20261115T152445Z-13c46693; focused runtime2 passed/0 failed/0 ignored
+(184 unselected tests) at agents-control-20261115T155040Z-13c46693. Both runs
+completed native-fonts0/cargo0 without skips and actually checked/compiled Kit.
+The latter exercises both themes and the later narrow/Enter/placeholder-identity
+checks that the old red never reached. The original queued focused run was
+cancelled with verified143 only after the coordinator approved one same-source
+priority replacement for G2's blocked shared-field writer. No priority is carried
+to another head or feature. Old2e3 and2b999 failures remain separate evidence.
+
+Clippy steps SHA256:
+5e92d8cf468f6301d0506a6c6ce3c4bd09cc937077e879832e37800a1c02b848.
+Runtime steps SHA256:
+18d3f4b5fa74d128f245ba8f73eb9a626ec420db38a30efe347f0e42d1cd22ec.
+
+V1 disposition and selected-producer adoption remain the next boundary; this is
+not a full Kit suite, consumer UI, actual OS IME/accessibility, hover-pixel or
+whole A9 result. Only selected2e3f05bf +2b9994ac +13c46693 belong to the control;
+never consume intervening A9 changes or the complete branch as its producer.
+After checked handoff, G2 becomes the sole next field writer for Code form text.

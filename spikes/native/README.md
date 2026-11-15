@@ -1326,4 +1326,7 @@ maximum,34-point shell and focus palette; areas provide only localized placehold
 and the existing change callback. Its X uses the ordinary replacement event/undo
 path and retains focus; navigation clear remains programmatic. Do not add search
 chrome or another editor in an area. See docs/plans/shared-search-field.md for
-the source values and unverified keyboard/accessibility/first-use boundaries.
+the source values and unverified keyboard/accessibility/first-use boundaries. Exact corrected13c46693
+Kit all-target Clippy and its two focused tests completed0; this is not a full
+Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
+from area first-use evidence.
