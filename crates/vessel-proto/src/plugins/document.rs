@@ -9,7 +9,7 @@ use super::declarations::{
     Action, Button, ButtonBehavior, Contribution, ContributionContent, ControlContent, MenuEntry,
     Surface,
 };
-use super::{ContributionId, RpcName, ThemeContribution};
+use super::{ContributionId, PluginJsonError, RpcName, ThemeContribution};
 
 /// Maximum encoded document before allocating a parsed graph (Vessel resource limit).
 pub const MAX_DOCUMENT_BYTES: usize = 1024 * 1024;
@@ -48,10 +48,10 @@ struct DocumentInput {
 pub enum DocumentError {
     /// The decoder keeps its concrete cause without logging untrusted text.
     #[error("invalid plugin declaration JSON")]
-    Decode(#[source] serde_json::Error),
+    Decode(#[source] PluginJsonError),
     /// Programmatically constructed documents must obey the same encoded budget.
     #[error("plugin declarations could not be encoded")]
-    Encode(#[source] serde_json::Error),
+    Encode(#[source] PluginJsonError),
     /// Encoded input must be bounded before deserializing.
     #[error("plugin declarations exceed {MAX_DOCUMENT_BYTES} bytes")]
     Bytes,
@@ -101,7 +101,8 @@ impl ClientDocument {
         if bytes.len() > MAX_DOCUMENT_BYTES {
             return Err(DocumentError::Bytes);
         }
-        serde_json::from_slice(bytes).map_err(DocumentError::Decode)
+        serde_json::from_slice(bytes)
+            .map_err(|cause| DocumentError::Decode(PluginJsonError::new(cause)))
     }
 
     /// Construct an immutable graph for a helper or typed fixture.
@@ -196,7 +197,7 @@ impl ClientDocument {
             state: BudgetState::Available,
         };
         serde_json::to_writer(&mut budget, self).map_err(|source| match budget.state {
-            BudgetState::Available => DocumentError::Encode(source),
+            BudgetState::Available => DocumentError::Encode(PluginJsonError::new(source)),
             BudgetState::Exceeded => DocumentError::Bytes,
         })
     }

@@ -48,8 +48,8 @@ until its owner provides a reviewed hash. Do not copy those files.
 ## Current boundary
 
 The initial baseline 1d1f11df had no plugin RPC. The app tree now merged
-package base 8d5513e4 and the node tree merged Quality B 29eebb8b under A8,
-both without conflicts. No feature is advertised
+package base 4, 3cd0d3fc, under A8, including Quality B and the reviewed auth
+race correction c5da5305. The node tree has Quality B 29eebb8b. No feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
 
@@ -73,7 +73,7 @@ work and are not claimed by the scalar tests.
 
 ## Native skeleton and request ownership
 
-The app tree merged package base 8d5513e4 without conflicts; node work
+The app tree merged package base 4, 3cd0d3fc, without conflicts; node work
 merged Quality B 29eebb8b. Shared registration follows the split command,
 event, dispatch and shell/events modules from that base. No size record
 has been raised.
@@ -150,3 +150,13 @@ raw references for language changes. Disposal/generation fences prevent stale
 labels republishing. No locale RPC and no edits to core translator policy.
 The existing scalar names are literals; the dynamic resource implementation is
 still required and is not claimed by the current schema tests.
+
+## Decoder diagnostics
+
+Self-audit found that a fixed DocumentError message still exposed serde's
+unknown-field/variant input through Debug and Error::source. PluginJsonError
+retains the parser's concrete cause but seals that raw diagnostic chain;
+only category and line/column leave the edge. Canary fixtures traverse every
+exposed cause. Direct serde decoding is an internal edge, never an approved
+diagnostic path; wrap its error before returning it. No executable helper or
+native renderer is implied by these graph tests.

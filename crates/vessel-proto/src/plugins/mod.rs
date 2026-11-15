@@ -8,6 +8,7 @@ mod attachment;
 mod declarations;
 mod document;
 mod identity;
+mod json_error;
 mod logs;
 mod theme;
 
@@ -23,6 +24,7 @@ pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, FileNamePattern, InvalidPluginValue,
     PluginId, RpcName, ThemeName,
 };
+pub use json_error::PluginJsonError;
 pub use logs::{
     InvalidLogText, LogEntry, LogSequence, LogStream, LogText, LogTruncation, MAX_LOG_BYTES,
     MAX_LOG_ENTRIES, MAX_LOG_LINE_BYTES,

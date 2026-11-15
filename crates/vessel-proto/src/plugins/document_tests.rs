@@ -1,6 +1,32 @@
 //! Whole-document rejection tests exercise the render/dispatch trust boundary.
 
 use super::*;
+
+#[test]
+fn declaration_parser_errors_seal_every_input_bearing_diagnostic_level() {
+    use std::error::Error;
+
+    for text in [
+        r#"{"methods":[],"contributions":[],"themes":[],"PRIVATE-GRAPH-CANARY":true}"#,
+        r#"{"methods":[],"contributions":[{"id":"a","title":"A","content":{"kind":"PRIVATE-GRAPH-CANARY"}}],"themes":[]}"#,
+    ] {
+        let error = ClientDocument::decode(text.as_bytes()).expect_err("invalid graph");
+        let mut cause: &dyn Error = &error;
+        loop {
+            assert!(!format!("{cause:?} {cause}").contains("PRIVATE-GRAPH-CANARY"));
+            match cause.source() {
+                Some(next) => cause = next,
+                None => break,
+            }
+        }
+        let error = serde_json::from_str::<ClientDocument>(text).expect_err("serde graph");
+        // Direct serde is a decoding edge and may carry rejected field names;
+        // wrapping it is mandatory before any diagnostic is emitted.
+        let sealed = PluginJsonError::new(error);
+        assert!(!format!("{sealed:?} {sealed}").contains("PRIVATE-GRAPH-CANARY"));
+        assert!(sealed.source().is_none());
+    }
+}
 use crate::plugins::PanelLocation;
 use crate::plugins::declarations::{ChoiceOption, CommandContext, Control, PanelContext};
 
