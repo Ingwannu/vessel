@@ -384,10 +384,10 @@ macro_rules! method_table {
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
 
-            /// Distinct committed/All comparison summary (ADR 0087, pending).
-            GitCompare / git_compare / "git.compare" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
-            /// A bounded file in the same comparison (ADR 0087, pending).
-            GitCompareFile / git_compare_file / "git.compare_file" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
+            /// Distinct committed/All comparison summary (ADR 0087, staged values).
+            GitCompare / git_compare / "git.compare" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
+            /// A bounded file in the same comparison (ADR 0087, staged values).
+            GitCompareFile / git_compare_file / "git.compare_file" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
         }
     };
 }

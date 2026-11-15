@@ -224,6 +224,7 @@ mod tests {
             assert_eq!(method.scope(), Some(Scope::Read));
             assert_eq!(method.shape(), MethodShape::Unary);
             assert_eq!(method.since(), None);
+            assert!(method.is_staged());
         }
     }
 
