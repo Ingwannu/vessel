@@ -1,6 +1,6 @@
 //! The visible session identity shared by navigation and session rendering.
 use crate::routes::Route;
-use vessel_app_kit::ui::Context;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_view::{Card, Conversation};
 use vessel_proto::SessionId;
@@ -58,5 +58,56 @@ impl crate::shell::Shell {
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
+    }
+}
+
+impl crate::shell::Shell {
+    /// Open a session from a card or a row, the composer focused.
+    pub(crate) fn open_session(
+        &mut self,
+        mut open: Open,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if open.binding.is_none()
+            && let Some(node) = self
+                .fleet
+                .machines
+                .iter()
+                .find(|machine| machine.name == open.machine)
+                .and_then(|machine| machine.node)
+        {
+            let Ok(host) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
+                self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+                cx.notify();
+                return;
+            };
+            open.binding = Some(vessel_app_link::sessions::Binding {
+                host,
+                address: vessel_app_view::sessions::SessionAddress {
+                    node,
+                    session: open.session,
+                },
+            });
+        }
+        self.cancel_session_navigation();
+        // Track P: the session composer swaps the draft it holds.
+        self.composer_switched(open.session, window, cx);
+        // An ended session takes prompts too: sending starts it again.
+        let takes_prompts = open.structured && open.archived_at.is_none();
+        self.areas.session.pending = None;
+        self.areas.session.resuming = None;
+        self.areas.session.resume_error = None;
+        self.follow(open, cx);
+        let placeholder = self
+            .t
+            .composer_placeholder(&crate::areas::settings::send_key_words(self));
+        self.areas
+            .session
+            .composer
+            .set_placeholder(&placeholder, window, cx);
+        if takes_prompts {
+            self.areas.session.composer.focus(window, cx);
+        }
     }
 }

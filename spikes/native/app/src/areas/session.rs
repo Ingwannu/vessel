@@ -78,34 +78,6 @@ impl SessionView {
 }
 
 impl Shell {
-    /// Open a session from a card or a row, the composer focused.
-    pub(crate) fn open_session(
-        &mut self,
-        open: Open,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        self.cancel_session_navigation();
-        // Track P: the session composer swaps the draft it holds.
-        self.composer_switched(open.session, window, cx);
-        // An ended session takes prompts too: sending starts it again.
-        let takes_prompts = open.structured && open.archived_at.is_none();
-        self.areas.session.pending = None;
-        self.areas.session.resuming = None;
-        self.areas.session.resume_error = None;
-        self.follow(open, cx);
-        let placeholder = self
-            .t
-            .composer_placeholder(&super::settings::send_key_words(self));
-        self.areas
-            .session
-            .composer
-            .set_placeholder(&placeholder, window, cx);
-        if takes_prompts {
-            self.areas.session.composer.focus(window, cx);
-        }
-    }
-
     /// The draft was sent: show its prompt while the session starts.
     /// The machine `from` is called `to` now (Settings › Machines, track
     /// E2, after the book was written): the session open and a session

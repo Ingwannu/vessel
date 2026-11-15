@@ -62,6 +62,7 @@ fn machine(name: &str, when: &str, title: &str, archived: bool) -> crate::Machin
         info.marks.archived_at = Some(info.created_at);
     }
     crate::Machine {
+        node: None,
         name: name.to_owned(),
         reach: crate::Reach::Online,
         sessions: vec![crate::Card::from_session(name, &info)],

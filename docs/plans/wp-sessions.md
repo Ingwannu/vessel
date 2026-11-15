@@ -121,9 +121,9 @@ its metadata/conversation reads and the log follow use `SessionAccess` instead
 of alias-only commands. The link actor validates the live `NodeClient` identity
 and captures it synchronously before dispatch; alias replacement refuses without
 contacting the replacement. Lifecycle requests retain the same optional expected
-node, preventing an archive/delete on an alias that changed after lookup. Normal
-legacy saved-host opens keep their existing path until identity hydration is
-available. Queue/web refusals settle the exact pending read/stream.
+node, preventing an archive/delete on an alias that changed after lookup. The shared `Machine.node` welcome identity now hydrates ordinary saved-host
+opens too; already-bound deep links retain their original expected identity.
+Legacy records without a hydrated identity keep their existing passive path. Queue/web refusals settle the exact pending read/stream.
 
 Evidence so far: the standalone staged node workflow's first 11 tests pass
 (in-memory ports only), and native view's full 870 tests pass. Node concurrent
