@@ -93,6 +93,17 @@ comparison and two markup/duration lints; corrected without changing runtime
 behaviour. Checks of the corrected source are pending.
 Node comparison staging has separate protocol/workspace clippy and library
 tests green (382 passed, 0 failed, 1 ignored); no new node method admitted.
+The announced app base is merged (8d5513e4); the node checkout separately merged
+the Quality B base. The post-merge narrow submissions ended before receiving
+run identifiers, with no step logs, so their result is unknown. Their server
+state must be checked before resubmitting under the same labels.
+
+`git-panel.ftl` in both languages and its typed words adapter now stage the
+new surface's labels/recoveries. Labels follow `i18n/resources/{en,ko}.ts`
+workspace.git.diff / panels.diff / diffViewer; error recoveries deliberately
+use complete app sentences rather than raw git text. Unsupported history stays
+hidden as `commits-section.tsx` does; unsupported reads never imply NotGit.
+The words are unverified pending a fresh changed-tree narrow check.
 Next: complete typed link/screen/words skeleton, node All private index,
 classified history, observation/cache and the write policy. No C3 row is claimed
 built or passed. Existing bounded Git/PR approval is not package parity.

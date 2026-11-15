@@ -15,6 +15,7 @@ mod options;
 mod projection;
 mod requests;
 mod tree;
+mod words;
 
 pub use comparison::{Comparison, ComparisonMode, RepositoryKey, Whitespace};
 pub use history::{
@@ -28,6 +29,7 @@ pub use options::{
 pub use projection::{Body, Demand, DiffRead, EmptyAction, RepositoryRead, body, empty_action};
 pub use requests::{ComparisonTicket, FileTicket, PanelReads, StatusTicket};
 pub use tree::{ChangeIndex, ChangeTotals, ChangeTree, ChangeTreeRow, LineCount, TreeDepth};
+pub use words::ReadIssue;
 
 #[cfg(test)]
 mod tests;

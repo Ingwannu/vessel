@@ -1,0 +1,43 @@
+## Git 비교 화면. 오류의 기술적인 세부 내용은 별도의 코드 영역에 표시합니다.
+
+git-panel-title = 변경 사항
+git-panel-mode = Diff 모드
+git-panel-mode-all = 모든 변경 사항
+git-panel-mode-uncommitted = 커밋되지 않음
+git-panel-mode-committed = 커밋됨
+git-panel-options = Diff 옵션
+git-panel-inline = 인라인 Diff
+git-panel-unified = 통합 diff
+git-panel-split = 나란히 보기 diff
+git-panel-wrap = 긴 줄 줄바꿈
+git-panel-no-wrap = 긴 줄 스크롤
+git-panel-hide-whitespace = 공백 숨기기
+git-panel-show-whitespace = 공백 표시
+git-panel-expand-files = 모든 파일 확장
+git-panel-collapse-files = 모든 파일 축소
+git-panel-expand-folders = 모든 폴더 확장
+git-panel-collapse-folders = 모든 폴더 축소
+git-panel-refresh = 새로고침
+git-panel-refreshing = 새로고침 중
+git-panel-jump = 파일로 이동
+git-panel-checking = 저장소 확인 중...
+git-panel-not-repository = Git 저장소가 아닙니다
+git-panel-empty = 표시할 변경 사항이 없습니다
+git-panel-see-uncommitted = 커밋되지 않은 변경 사항 보기
+git-panel-see-committed = 커밋된 변경 사항 보기
+git-panel-too-large-title = Diff가 너무 커서 미리 볼 수 없습니다
+git-panel-too-large-description = 여기에서 미리 보려면 비교 범위를 좁히세요.
+git-panel-binary = 바이너리 파일
+git-panel-commits = 커밋
+git-panel-commits-loading = 커밋 로드 중…
+git-panel-commits-empty = 아직 커밋이 없습니다.
+# 오류의 원인과 다음 행동을 하나의 문장으로 유지합니다.
+git-panel-problem-unsent = 보내지 못했습니다. 다시 시도하세요.
+git-panel-problem-connection = 머신의 연결이 끊겼습니다. 다시 연결하고 변경 사항을 새로고침하세요.
+git-panel-problem-access = 이 기기에서 머신의 변경 사항을 읽을 수 없습니다. 접근 권한을 확인하세요.
+git-panel-problem-version = 변경 사항을 보려면 이 기기와 머신의 Vessel을 업데이트하세요.
+git-panel-problem-missing = 이 폴더를 더 이상 사용할 수 없습니다. 다른 워크스페이스를 여세요.
+git-panel-problem-unavailable = 지금은 머신에서 변경 사항을 읽을 수 없습니다. 새로고침하고 다시 시도하세요.
+git-panel-problem-failed = 머신에서 변경 사항을 읽지 못했습니다. 새로고침하고 다시 시도하세요.
+git-panel-problem-unsupported = 이 머신에서 변경 사항을 제공할 수 없습니다. 머신의 Git과 Vessel을 확인하고 새로고침하세요.
+git-panel-failed-title = 변경 사항을 읽지 못했습니다
