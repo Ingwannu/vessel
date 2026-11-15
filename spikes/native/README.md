@@ -763,6 +763,7 @@ owners keep their area tables until their own migration. The shared machine
 file-fault sentence still belongs to its table, including when pairing shows it.
 About's licence and bundled-software labels use `about.ftl`; inventory roles
 map exhaustively to cached plain getters in `view/src/about/words.rs`.
+The Fluent libraries have the Translations role; UUID has the Identifiers role.
 The update card, connected-machine section and trademark section still belong
 to their existing areas and have not moved with the licence vocabulary.
 General's Language row uses System first, then each embedded language's own

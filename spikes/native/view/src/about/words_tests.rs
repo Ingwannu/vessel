@@ -33,6 +33,8 @@ fn english_and_korean_labels_keep_the_table_sentences() {
             "이 컴퓨터의 이름",
         ),
         (Role::Data, "Reading and writing data", "데이터 읽고 쓰기"),
+        (Role::Translations, "Translations", "번역"),
+        (Role::Identifiers, "Unique identifiers", "고유 식별자"),
         (Role::Language, "The system's language", "시스템 언어"),
         (Role::Errors, "Errors", "오류"),
         (

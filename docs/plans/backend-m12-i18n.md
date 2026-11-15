@@ -1,5 +1,25 @@
 # Track L: the app's words as translation data
 
+## About role correction (after `7c99ae1f`)
+
+The catalogue move is committed independently as `7c99ae1f`, preserving
+all 22 old messages. This follow-up changes the five Fluent-stack rows
+from Data to Translations and UUID from Data to Identifiers. Their complete
+English/Korean labels are “Translations” / “번역” and “Unique identifiers” /
+“고유 식별자”. The two additional roles are closed enum variants and cached
+plain getters, raising About's vocabulary to 24 messages per language.
+An inventory regression pins all five translation rows and UUID's role;
+whole-message and zero-allocation coverage includes the new labels.
+No dependency, licence, list order, row layout or inventory size changes.
+Narrow all-target view Clippy and 814 library tests pass, including the new
+inventory/whole-message checks. Native fmt/size/boundary/token checks pass.
+Explicit-root coverage through the unchanged production validator reports
+English/Korean complete, zero missing. The duplicate contract-test command
+and compiled-registry report remain queued; their pending state is not used
+as a pass. Whole native gate and captures remain owed over the batch.
+Status: **source ready, gate owed**. Next area ownership for the
+update table and its title-bar/About callers is confirmed, words only.
+
 ## Resume point (2026-11-15)
 
 Published build 0.0.0.0.17 (`56a7cbd3`) is merged without rebasing. The

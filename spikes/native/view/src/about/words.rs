@@ -18,6 +18,8 @@ impl<'a> About<'a> {
             Role::Folders => self.role_folders(),
             Role::ComputerName => self.role_computer_name(),
             Role::Data => self.role_data(),
+            Role::Translations => self.role_translations(),
+            Role::Identifiers => self.role_identifiers(),
             Role::Language => self.role_language(),
             Role::Errors => self.role_errors(),
             Role::Network => self.role_network(),

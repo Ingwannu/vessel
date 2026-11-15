@@ -38,6 +38,12 @@ about-role-computer-name = 이 컴퓨터의 이름
 # Under a bundled software name: its data role. Keep short.
 about-role-data = 데이터 읽고 쓰기
 
+# Under the Fluent libraries: they resolve the app's translations. Keep short.
+about-role-translations = 번역
+
+# Under UUID: it makes unique identifiers, rather than reading files. Keep short.
+about-role-identifiers = 고유 식별자
+
 # Under a bundled software name: its language role. Keep short.
 about-role-language = 시스템 언어
 

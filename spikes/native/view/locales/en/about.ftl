@@ -38,6 +38,12 @@ about-role-computer-name = This computer's name
 # Under a bundled software name: its data role. Keep short.
 about-role-data = Reading and writing data
 
+# Under the Fluent libraries: they resolve the app's translations. Keep short.
+about-role-translations = Translations
+
+# Under UUID: it makes unique identifiers, rather than reading files. Keep short.
+about-role-identifiers = Unique identifiers
+
 # Under a bundled software name: its language role. Keep short.
 about-role-language = The system's language
 
