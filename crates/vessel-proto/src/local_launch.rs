@@ -5,6 +5,12 @@
 
 use crate::NodeId;
 
+mod bootstrap;
+pub use bootstrap::{
+    BootstrapChallenge, BootstrapReady, CHALLENGE_BYTES, CHALLENGE_RECORD_BYTES,
+    MAX_BOOTSTRAP_READY_BYTES, TranscriptError,
+};
+
 /// Both ends share this single marker and local-record format version.
 pub const READY_PREFIX: &str = "vessel-local-ready/1 ";
 /// Canonical UUID text is bounded before decoding.

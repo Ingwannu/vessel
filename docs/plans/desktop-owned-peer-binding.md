@@ -66,6 +66,21 @@ Unsupported for Owned. unsafe_code stays forbid. Windows compile plus a console
 probe under wine is only an approximation; real Windows behavior stays unverified
 until actually executed there.
 
+## Shared transcript values
+
+`vessel_proto::local_launch` owns the private transcript once, alongside the
+existing readiness record. `BootstrapChallenge` contains 32 caller-supplied OS
+random bytes; its exact URL-safe unpadded representation has a fixed width.
+`BootstrapReady` contains the public NodeId and the echoed challenge. Neither
+value grants process authority, creates entropy, authenticates a connection or
+compares a response on the launcher's behalf. Debug output redacts the challenge.
+Strict decoders reject alternate markers, widths, UUID spelling, padding and
+extra lines before a consumer can use the data. The launcher must compare its
+own challenge in constant time after correlating the retained stdout and pipe.
+These local-only records add no RPC method, schema or TypeScript wire type.
+The prepared value tests and feature regression are not execution evidence until
+their exact source runs.
+
 ## Canonical Attached compatibility limit
 
 The coordinator scoped the credential-before-proof requirement to Owned
