@@ -11,14 +11,23 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button, outline_button, settings};
 use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_link::devices::Ask;
-use vessel_app_view::devices::{Inviting, Target, invite_label};
+use vessel_app_view::devices::{ConnectionContext, Inviting, Target, invite_label};
 
 impl Shell {
-    fn devices_invite(&mut self, cx: &mut Context<'_, Self>) {
-        let state = &mut self.areas.settings.devices;
-        let Target::Online(machine) = &state.page.target else {
+    fn devices_invite(
+        &mut self,
+        context: &ConnectionContext,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.devices_press(context, window) {
             return;
-        };
+        }
+        let state = &mut self.areas.settings.devices;
+        if state.page.check_context(context).is_err() {
+            return;
+        }
+
         if matches!(state.page.inviting, Inviting::Loading(_)) {
             return;
         }
@@ -32,8 +41,7 @@ impl Shell {
         };
         state.copied = None;
         state.page.inviting = Inviting::Loading(ticket);
-        let machine = machine.clone();
-        if let Err(why) = self.devices_send(machine, ticket, Ask::Invite { label }) {
+        if let Err(why) = self.devices_send(context.clone(), ticket, Ask::Invite { label }) {
             let _accepted = self
                 .areas
                 .settings
@@ -44,8 +52,19 @@ impl Shell {
         }
     }
 
-    fn devices_reveal(&mut self, cx: &mut Context<'_, Self>) {
+    fn devices_reveal(
+        &mut self,
+        context: &ConnectionContext,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.devices_press(context, window) {
+            return;
+        }
         let state = &mut self.areas.settings.devices;
+        if state.page.check_context(context).is_err() {
+            return;
+        }
         let Inviting::Ready(pairing) = &mut state.page.inviting else {
             return;
         };
@@ -85,8 +104,19 @@ impl Shell {
         .detach();
     }
 
-    fn devices_copy(&mut self, cx: &mut Context<'_, Self>) {
+    fn devices_copy(
+        &mut self,
+        context: &ConnectionContext,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.devices_press(context, window) {
+            return;
+        }
         let state = &mut self.areas.settings.devices;
+        if state.page.check_context(context).is_err() {
+            return;
+        }
         let Inviting::Ready(pairing) = &mut state.page.inviting else {
             return;
         };
@@ -141,16 +171,22 @@ pub(super) fn render(
         tokens,
     ));
     if let Inviting::Failed(why) = state.page.inviting {
-        card = card.child(div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
-            vessel_app_kit::alert::Content {
-                title: None,
-                description: Some(div().child(words.invite_problem(why)).into_any_element()),
-                action: None,
-            },
-            crate::badge::alert_variant(why.notice()),
-            vessel_app_kit::alert::Size::Small,
-            tokens,
-        )));
+        card = card.child(
+            div().p(px(spacing::S4)).child(vessel_app_kit::alert::alert(
+                vessel_app_kit::alert::Content {
+                    title: None,
+                    description: Some(
+                        div()
+                            .child(words.invite_problem(why, shell.words))
+                            .into_any_element(),
+                    ),
+                    action: None,
+                },
+                crate::badge::alert_variant(why.notice()),
+                vessel_app_kit::alert::Size::Small,
+                tokens,
+            )),
+        );
     }
     if let Inviting::Ready(pairing) = &state.page.inviting {
         card = card
@@ -185,6 +221,9 @@ pub(super) fn render(
 fn form(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Shell>) -> AnyElement {
     let words = shell.t.lang.devices();
     let state = &shell.areas.settings.devices;
+    let Some(context) = state.page.context().cloned() else {
+        return div().into_any_element();
+    };
     let busy = matches!(state.page.inviting, Inviting::Loading(_));
     div()
         .flex()
@@ -204,12 +243,17 @@ fn form(shell: &Shell, tokens: &Tokens, compact: bool, cx: &mut Context<'_, Shel
         .child(state.name.element(tokens, compact, cx))
         .when(!busy, |form| {
             form.child(
-                button("devices-new-link", words.new_link, true, tokens)
-                    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-                    .on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.devices_invite(cx);
-                        cx.notify();
-                    })),
+                button(
+                    format!("devices-new-link-{}", context.epoch()),
+                    words.new_link,
+                    true,
+                    tokens,
+                )
+                .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+                .on_click(cx.listener(move |shell, _event, window, cx| {
+                    shell.devices_invite(&context, window, cx);
+                    cx.notify();
+                })),
             )
         })
         .into_any_element()
@@ -285,31 +329,40 @@ fn actions(
     cx: &mut Context<'_, Shell>,
 ) -> vessel_app_kit::ui::Div {
     let words = shell.t.lang.devices();
+    let Some(context) = shell.areas.settings.devices.page.context().cloned() else {
+        return div();
+    };
+    let reveal_context = context.clone();
     div()
         .flex()
         .flex_wrap()
         .gap(px(spacing::S2))
         .child(
             outline_button(
-                "devices-reveal",
+                format!("devices-reveal-{}", context.epoch()),
                 if showing { words.hide } else { words.show },
                 true,
                 tokens,
             )
             .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-            .on_click(cx.listener(|shell, _event, _window, cx| {
-                shell.devices_reveal(cx);
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.devices_reveal(&reveal_context, window, cx);
                 cx.notify();
             })),
         )
         .when(showing, |row| {
             row.child(
-                outline_button("devices-copy", words.copy, true, tokens)
-                    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-                    .on_click(cx.listener(|shell, _event, _window, cx| {
-                        shell.devices_copy(cx);
-                        cx.notify();
-                    })),
+                outline_button(
+                    format!("devices-copy-{}", context.epoch()),
+                    words.copy,
+                    true,
+                    tokens,
+                )
+                .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+                .on_click(cx.listener(move |shell, _event, window, cx| {
+                    shell.devices_copy(&context, window, cx);
+                    cx.notify();
+                })),
             )
         })
 }
