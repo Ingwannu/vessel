@@ -1481,3 +1481,22 @@ seam before it can replace product drawing. It is isolated, with an assertion
 requiring actual range admission rather than the mark helper's cache-key Some.
 No API refusal is treated as working find. Main still uses the existing user
 renderer; no second parser/selection manager or product fallback is introduced.
+
+### Borrowed-body precheck corrections
+
+V1 row276 returned two static P2 findings at the otherwise strict/focused-green
+5c body source. Equal bytes could retain raw output when refined into a parsed
+patch, because section identity/version ignored format. An empty unified patch
+could also hide reported old/new contents. The shared body now separates typed
+format children and hashes full optional computed-diff inputs; empty unified text
+falls back, with missing replacement distinct from explicit deletion.
+
+The same correction is byte-equal in the isolated body preparation and main A7.
+Actual retained-facade regressions switch equal-byte formats in both directions,
+inspect the exact Lines admitted by the real Kit cache factories (tone, number,
+copy) and assert no extra warm factory builds. The observer is test-only and
+private, with no new product cache/public inspection bypass. Additional model and
+body cases cover replacement, explicit deletion and missing new content. These
+new tests are not yet executed. Prior strict3/GPUI evidence is not enlarged, and
+final adoption remains held. Announced base10 is normally merged; shared resident
+staging and full A7 reasoning/tool-sheet protection remain intact.
