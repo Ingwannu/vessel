@@ -1,6 +1,6 @@
 //! Pending prompt reads are refused before any direct or routed frame is sent.
 use super::*;
-use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL};
+use vessel_proto::prompt_index::{ListSessionPrompts, PROMPT_INDEX_PROTOCOL, PromptIndexLimit};
 use vessel_proto::{Deliver, Forward, Method, Origin, OriginBy, RelayCall, Request as _};
 use vessel_rpc::{CallError, UnaryCall};
 
@@ -33,7 +33,7 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         session: session_id(),
         after: None,
         epoch: None,
-        limit: Default::default(),
+        limit: PromptIndexLimit::default(),
     };
     assert_eq!(ListSessionPrompts::METHOD.since(), PROMPT_INDEX_PROTOCOL);
     assert_eq!(
@@ -45,12 +45,12 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
         vessel_proto::MethodShape::Unary
     );
     refused(
-        client.call(request.clone()).await.unwrap_err(),
+        &client.call(request.clone()).await.unwrap_err(),
         Method::ListSessionPrompts,
         negotiated,
     );
     refused(
-        client.call_on(target, request.clone()).await.unwrap_err(),
+        &client.call_on(target, request.clone()).await.unwrap_err(),
         Method::Forward,
         negotiated,
     );
@@ -83,7 +83,7 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
             .call_any(UnaryCall::try_from(call).unwrap())
             .await
             .unwrap_err();
-        refused(error, expected, negotiated);
+        refused(&error, expected, negotiated);
     }
     drop(client);
     assert!(
@@ -94,12 +94,12 @@ async fn pending_prompt_index_never_enters_a_direct_or_enveloped_transport() {
 
 // Assignment changes the assertion from pending refusal to old-peer refusal;
 // the same no-frame evidence remains required after the integrator assigns a number.
-fn refused(error: CallError, expected: Method, negotiated: ProtocolVersion) {
+fn refused(error: &CallError, expected: Method, negotiated: ProtocolVersion) {
     match PROMPT_INDEX_PROTOCOL {
-        None => assert_eq!(error, CallError::UnassignedProtocol { method: expected }),
+        None => assert_eq!(error, &CallError::UnassignedProtocol { method: expected }),
         Some(needs) => assert_eq!(
             error,
-            CallError::NotInProtocol {
+            &CallError::NotInProtocol {
                 method: expected,
                 needs,
                 negotiated
