@@ -298,3 +298,11 @@ the marker; rejecting it forever would strand the metadata index until a full
 reset. A boundary at or before the marker still requires the known rewind. The
 pure regression tests both sides of this boundary without weakening page-set
 epoch consistency or accepting older pre-rewind data. Runtime check is pending.
+
+The staged navigation vote and retirement hook recurse through the existing
+`Origin::Shown` area accessor. The whole TimelineSnapshot includes those areas,
+so an origin metadata read/jump/hover or find field must also Hold installation
+and transfer. A7 still owns non-navigation loading/overlay/effect votes. The
+regression places a read two origin levels below an idle main area, requires
+Hold, then retires that exact tree and verifies no pending read or ticket reset.
+No new snapshot, registry or global controller is introduced. Execution pending.
