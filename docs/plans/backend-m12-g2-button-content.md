@@ -91,3 +91,14 @@ unexhaustive button border match and a documentation lint. The original result
 is retained as old-source failure. The base4 checkpoint corrects these; a new
 minimal base4 producer must pass narrow checks before consumer handoff. No whole
 F1 gate or UI pass is claimed here.
+
+## Multiline source check
+
+Paseo buttonSm/Md and text styles add no vertical label padding. New typed
+content therefore wraps with only its line height and the button's border;
+the historical filled-label APIs explicitly retain their existing four-point
+label inset through a private compatibility presentation. Published outline
+entries retain direct text. This keeps existing callers unchanged while source
+content (including catalog Add) avoids eight invented points on a multiline
+label. A real-layout regression compares two-line Medium42/Small34 with legacy
+filled50, in both themes; narrow execution is still owed for this correction.
