@@ -34,6 +34,32 @@ pub struct UsageHost {
     pub support: HostSupport,
 }
 impl UsageHost {
+    /// Project the one authenticated admission; a refused session list does not prove transport death.
+    #[must_use]
+    pub fn of_machine(machine: &crate::Machine) -> Option<Self> {
+        let protocol = machine.protocol;
+        let supports = |method: vessel_proto::Method| {
+            protocol
+                .zip(method.since())
+                .is_some_and(|(have, need)| have >= need)
+        };
+        Some(Self {
+            node: machine.node?,
+            label: machine.name.clone(),
+            availability: if machine.connection_context().is_some() {
+                HostAvailability::Connected
+            } else {
+                HostAvailability::Disconnected
+            },
+            support: if supports(vessel_proto::Method::ListUsageReports) {
+                HostSupport::Reports
+            } else if supports(vessel_proto::Method::GetUsageLimits) {
+                HostSupport::Limits
+            } else {
+                HostSupport::Unsupported
+            },
+        })
+    }
     fn reporting(&self) -> bool {
         self.availability == HostAvailability::Connected && self.support != HostSupport::Unsupported
     }
@@ -92,6 +118,34 @@ mod tests {
             availability,
             support,
         }
+    }
+    #[test]
+    fn semantic_session_refusal_does_not_erase_the_usage_connection() {
+        let context = crate::connection::ConnectionEpochs::default()
+            .admit(
+                crate::connection::MachineKey::from_book("fixture"),
+                NodeId::random(),
+            )
+            .unwrap();
+        let mut machine = crate::Machine::unreachable("fixture".to_owned(), "session list refused");
+        machine.node = Some(context.node());
+        machine.connection_epoch = Some(context.epoch());
+        machine.protocol = Some(vessel_proto::PROTOCOL_VERSION);
+        assert_eq!(
+            UsageHost::of_machine(&machine).unwrap().availability,
+            HostAvailability::Connected
+        );
+        machine.connection_epoch = None;
+        assert_eq!(
+            UsageHost::of_machine(&machine).unwrap().availability,
+            HostAvailability::Disconnected
+        );
+        machine.reach = crate::Reach::Online;
+        assert_eq!(
+            UsageHost::of_machine(&machine).unwrap().availability,
+            HostAvailability::Disconnected,
+            "a legacy/demonstration Online flag is not an admitted connection"
+        );
     }
     #[test]
     fn sidebar_uses_picked_then_active_then_first_reporting_identity() {

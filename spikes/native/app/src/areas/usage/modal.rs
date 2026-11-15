@@ -14,10 +14,9 @@ use vessel_app_kit::{
     dialog, outline_button,
 };
 use vessel_app_view::{
-    Reach,
     devices::Target,
     prefs::PreferenceChange,
-    usage::{HostAvailability, HostChoice, HostSupport, UsageHost},
+    usage::{HostAvailability, HostChoice, UsageHost},
 };
 use vessel_proto::NodeId;
 const HOST_LIST_WIDTH: f32 = 240.0;
@@ -59,27 +58,7 @@ pub(super) fn hosts(shell: &Shell) -> Vec<UsageHost> {
         .fleet
         .machines
         .iter()
-        .filter_map(|machine| {
-            let node = machine.node?;
-            let support = if machine
-                .protocol
-                .zip(vessel_proto::Method::GetUsageLimits.since())
-                .is_some_and(|(protocol, needed)| protocol >= needed)
-            {
-                HostSupport::Limits
-            } else {
-                HostSupport::Unsupported
-            };
-            Some(UsageHost {
-                node,
-                label: machine.name.clone(),
-                availability: match machine.reach {
-                    Reach::Online => HostAvailability::Connected,
-                    Reach::Unreachable(_) => HostAvailability::Disconnected,
-                },
-                support,
-            })
-        })
+        .filter_map(UsageHost::of_machine)
         .collect()
 }
 pub(super) fn selected(shell: &Shell) -> Option<NodeId> {
@@ -115,7 +94,7 @@ pub(super) fn target(shell: &Shell) -> Target {
         .fleet
         .machines
         .iter()
-        .find(|machine| machine.node == Some(node) && matches!(machine.reach, Reach::Online))
+        .find(|machine| machine.node == Some(node) && machine.connection_context().is_some())
         .map_or(Target::NoMachines, |machine| {
             Target::Online(vessel_app_view::devices::MachineKey::from_book(
                 &machine.name,

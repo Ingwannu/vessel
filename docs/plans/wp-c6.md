@@ -173,3 +173,11 @@ Remote exact 78d73771 native-sources-clippy-1 is RED: view/workspace/command_cha
 K's 2026-11-15 ruling keeps Cursor/Grok/Kimi/MiniMax/Zai on the approved Generic/Bot artwork pending the operator's decision; no new vendor bytes/API may ship. Usage cards and sidebar share the exhaustive typed built-in mapping and existing app artwork adapter/kit mark renderer. OpenCodeGo is explicitly mapped to its OpenCode publisher identity; no source-id spelling or human label selects a brand. Claude/Codex/Copilot use their existing reviewed artwork. This is an explicit approved asset boundary, not nine new artwork implementations.
 
 Coordinator assigned the remaining arbitrary-body adaptive UsageOptions popover to W19b. Consumer reuses the existing global-policy/display/sidebar controls at width 340; no row workaround or area popup is introduced. W19b owns validated geometry, per-open lease and admitted dismissal before focus restore, desktop anchoring and the one existing compact sheet engine. Inline controls remain accessible until that V1-reviewed producer is landed; exact cog/popover geometry is still owed.
+
+### Session-list refusal is separate from a live authenticated usage connection
+[Decision Log]
+- Purpose: a semantic session-list refusal must not turn an authenticated host into a false usage Offline result.
+- Existing constraint: G4's shared Machine snapshot retains NodeId/epoch for semantic refusals; Reach describes the session read, not connection validity or usage authority. Contextless legacy/demo Online snapshots cannot authorize calls.
+- Choice: one pure `UsageHost::of_machine` projection uses the shared ConnectionContext for availability and the actual method table for support. Settings, modal, summary, session reads and stale-action checks all use that same admission fact; the actual usage RPC still decides scopes.
+- Impact: usage can display its own typed refusal/success independently of the session list. Dropping the admitted epoch makes the host disconnected even if an old Online display flag remains. No alias substitution or second connection registry is added.
+- Regression: a semantic-refusal Machine with a real fixture admission remains connected for usage; removing that epoch, including with an Online flag, becomes disconnected.

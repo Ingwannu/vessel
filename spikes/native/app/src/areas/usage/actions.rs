@@ -4,7 +4,6 @@ use crate::{routes::Route, shell::Shell};
 use vessel_app_kit::ui::Window;
 use vessel_app_link::{Command, usage::Ask};
 use vessel_app_view::{
-    Reach,
     connection::ConnectionContext,
     devices::{MachineKey, Target},
     settings::Section,
@@ -16,7 +15,6 @@ impl Shell {
     pub(super) fn usage_connection_current(&self, expected: &ConnectionContext) -> bool {
         self.fleet.machines.iter().any(|machine| {
             machine.name == expected.machine().as_str()
-                && matches!(machine.reach, Reach::Online)
                 && machine.connection_context().as_ref() == Some(expected)
         })
     }
@@ -37,9 +35,10 @@ impl Shell {
                 None => Target::NoMachines,
                 Some(machine) => {
                     let key = MachineKey::from_book(&machine.name);
-                    match machine.reach {
-                        Reach::Online => Target::Online(key),
-                        Reach::Unreachable(_) => Target::Offline(key),
+                    if machine.connection_context().is_some() {
+                        Target::Online(key)
+                    } else {
+                        Target::Offline(key)
                     }
                 }
             }

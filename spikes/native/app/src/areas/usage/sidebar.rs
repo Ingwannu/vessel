@@ -55,7 +55,7 @@ pub(super) fn selected(shell: &Shell) -> Option<ConnectionContext> {
         .fleet
         .machines
         .iter()
-        .find(|machine| machine.node == Some(node))
+        .find(|machine| machine.node == Some(node) && machine.connection_context().is_some())
         .and_then(vessel_app_view::Machine::connection_context)
 }
 impl Shell {

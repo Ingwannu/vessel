@@ -37,8 +37,7 @@ impl Shell {
             .filter(|_| self.route == Route::Session)
             .filter(|open| {
                 self.fleet.machines.iter().any(|machine| {
-                    machine.name == open.machine
-                        && matches!(machine.reach, vessel_app_view::Reach::Online)
+                    machine.name == open.machine && machine.connection_context().is_some()
                 })
             })
             .and_then(|open| {
