@@ -108,32 +108,37 @@ mod tests {
         }
     }
 
+    fn preview_shell(shell: &mut Shell, cx: &mut Context<'_, Shell>) -> FileKey {
+        use crate::areas::workspace::code::io_tests;
+        let root = io_tests::root();
+        io_tests::target(shell, root);
+        shell.route = crate::routes::Route::Session;
+        shell.areas.workspace.code.open = true;
+        shell.areas.workspace.code.tab = super::super::super::Tab::Files;
+        let session = shell.areas.workspace.code.target.as_ref().unwrap().session;
+        shell.areas.session.open = Some(crate::areas::session::Open {
+            machine: "node".into(),
+            session,
+            title: "fixture".into(),
+            agent: "fixture".into(),
+            structured: true,
+            live: true,
+        });
+        shell.open_file_at("docs/start.md".parse().unwrap(), None, cx);
+        shell.areas.workspace.code.file_key().unwrap()
+    }
+
     #[gpui::test]
     fn old_preview_click_cannot_use_rebound_same_node_or_another_session(
         cx: &mut gpui::TestAppContext,
     ) {
-        use crate::areas::workspace::code::io_tests;
         use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
         use vessel_app_view::workspace::file_scope::FileScope;
         crate::shell::language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update(cx, |shell, cx| {
-            let root = io_tests::root();
-            io_tests::target(shell, root);
-            shell.route = crate::routes::Route::Session;
-            shell.areas.workspace.code.open = true;
-            shell.areas.workspace.code.tab = super::super::super::Tab::Files;
-            let session = shell.areas.workspace.code.target.as_ref().unwrap().session;
-            shell.areas.session.open = Some(crate::areas::session::Open {
-                machine: "node".into(),
-                session,
-                title: "fixture".into(),
-                agent: "fixture".into(),
-                structured: true,
-                live: true,
-            });
-            shell.open_file_at("docs/start.md".parse().unwrap(), None, cx);
-            let key = shell.areas.workspace.code.file_key().unwrap();
+            let key = preview_shell(shell, cx);
+            let root = key.root;
             let mut epochs = ConnectionEpochs::default();
             let first = epochs
                 .admit(MachineKey::from_book("node"), key.node)

@@ -3,7 +3,10 @@ use super::buffers::FileKey;
 use crate::shell::Shell;
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::{FileAnswer, FileAsk, scoped::Request};
-use vessel_app_view::workspace::{file_scope::FileScope, problem::Problem};
+use vessel_app_view::workspace::{
+    file_scope::FileScope, file_ticket::FileTicket, problem::Problem,
+};
+use vessel_proto::workspace::{FileRead, ReadFile};
 
 impl Shell {
     pub(super) fn send_file_scope(&mut self, scope: FileScope, ask: FileAsk) {
@@ -53,34 +56,14 @@ impl Shell {
                 ask,
                 ticket,
                 result,
-            } => {
-                let key = FileKey::new(scope, ask.path.clone());
-                let current = live
-                    && self
-                        .areas
-                        .workspace
-                        .code
-                        .viewer_for(&key)
-                        .is_some_and(|viewer| viewer.scope == *scope);
-                if current {
-                    self.file_read_answered_for(&key, &ask, ticket, result, cx);
-                } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
-                    let _settled = viewer.reading.take_if(|pending| *pending == ticket);
-                }
-            }
+            } => self.readonly_file_receipt(scope, &ask, ticket, result, live, cx),
             FileAnswer::EditorRead {
                 ask,
                 ticket,
                 result,
             } => {
                 let key = FileKey::new(scope, ask.path.clone());
-                let current = live
-                    && self
-                        .areas
-                        .workspace
-                        .code
-                        .viewer_for(&key)
-                        .is_some_and(|viewer| viewer.scope == *scope);
+                let current = self.file_reply_current(&key, scope, live);
                 if current {
                     self.editor_read_answered_for(&key, ticket, &ask, result, cx);
                 } else if let Some(editing) = self.editing_for(&key) {
@@ -100,24 +83,12 @@ impl Shell {
                 ..
             } => {
                 let key = FileKey::new(scope, path);
-                let current = live
-                    && self
-                        .areas
-                        .workspace
-                        .code
-                        .viewer_for(&key)
-                        .is_some_and(|viewer| viewer.scope == *scope);
+                let current = self.file_reply_current(&key, scope, live);
                 self.editor_saved_for(&key, scope, ticket, current, saved, cx);
             }
             FileAnswer::Intelligence { ask, result } => {
                 let key = FileKey::new(scope, ask.path.clone());
-                let current = live
-                    && self
-                        .areas
-                        .workspace
-                        .code
-                        .viewer_for(&key)
-                        .is_some_and(|viewer| viewer.scope == *scope);
+                let current = self.file_reply_current(&key, scope, live);
                 if current {
                     self.language_answered(&key, ask, result);
                 } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
@@ -170,6 +141,33 @@ impl Shell {
                     self.files_grepped(scope.connection().machine().as_str(), &ask, result);
                 }
             }
+        }
+    }
+    // Read-only currentness never re-resolves a route or root. Settlement still
+    // goes to the matching original ticket when admission has retired.
+    fn file_reply_current(&self, key: &FileKey, scope: &FileScope, live: bool) -> bool {
+        live && self
+            .areas
+            .workspace
+            .code
+            .viewer_at(key)
+            .is_some_and(|viewer| viewer.scope == *scope)
+    }
+
+    fn readonly_file_receipt(
+        &mut self,
+        scope: &FileScope,
+        ask: &ReadFile,
+        ticket: FileTicket,
+        result: Result<FileRead, Problem>,
+        live: bool,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let key = FileKey::new(scope, ask.path.clone());
+        if self.file_reply_current(&key, scope, live) {
+            self.file_read_answered_for(&key, ask, ticket, result, cx);
+        } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
+            let _settled = viewer.reading.take_if(|pending| *pending == ticket);
         }
     }
 }

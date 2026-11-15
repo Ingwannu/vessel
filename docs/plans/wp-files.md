@@ -953,3 +953,14 @@ is active, focuses A's painted editor, verifies only A's Find opens, then
 maximizes B and checks refusal without reassigning either buffer. This is local
 UI routing, not connection admission, an OS focus-retirement proof or a new key
 listener; W22's one central shortcut registration stays authoritative.
+
+
+The acquisition module now separates restoration of an existing owner from
+creation of a new viewer. Rebinding still retires only observations, retains the
+original write obligation and reuses the same guarded read/watch path. Receipts
+share an immutable scope/currentness predicate and one readonly-ticket settlement
+helper; the exhaustive answer match and original ticket checks remain. This
+keeps those functions within the existing length limit without suppressions.
+The owned Markdown activation fixture only extracts its setup; assertions and
+admission changes remain identical. These static corrections are later than
+strict24 and require the next meaningful combined source check.
