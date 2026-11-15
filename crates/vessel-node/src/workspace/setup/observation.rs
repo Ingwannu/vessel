@@ -94,20 +94,17 @@ impl Workspaces {
 
 // Called only after the worktree and invocation have matched under the lock.
 fn cancel_observed(state: SetupRunState, token: Option<&CancellationToken>) -> CancelSetupOutcome {
-    match state {
-        SetupRunState::Unknown => CancelSetupOutcome::Unknown,
-        SetupRunState::Succeeded | SetupRunState::Failed | SetupRunState::Cancelled => {
+    match (state, token) {
+        // A missing live token or an unknown observation cannot prove that the
+        // process or its children have ended.
+        (SetupRunState::Unknown, _) | (SetupRunState::Running, None) => CancelSetupOutcome::Unknown,
+        (SetupRunState::Running, Some(token)) => {
+            token.cancel();
+            CancelSetupOutcome::Requested
+        }
+        (SetupRunState::Succeeded | SetupRunState::Failed | SetupRunState::Cancelled, _) => {
             CancelSetupOutcome::NotRunning
         }
-        SetupRunState::Running => match token {
-            Some(token) => {
-                token.cancel();
-                CancelSetupOutcome::Requested
-            }
-            // A missing token contradicts the live observation and cannot prove
-            // that the process or its children have ended.
-            None => CancelSetupOutcome::Unknown,
-        },
     }
 }
 
