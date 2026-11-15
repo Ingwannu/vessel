@@ -330,6 +330,7 @@ fn push_merged(
     } else {
         node.marks.push((0..len, new_mark));
     }
+    node.marks = crate::text::inline_links::source_marks(node.marks);
     paragraph.push(node);
 }
 
@@ -851,7 +852,7 @@ fn parse_paragraph(
             paragraph.push(
                 InlineNode::new(text.clone())
                     .source_segments(code_source_segments(source, &text, span, cx.offset))
-                    .marks(marks),
+                    .marks(crate::text::inline_links::source_marks(marks)),
             );
         }
         Node::Link(val) => {

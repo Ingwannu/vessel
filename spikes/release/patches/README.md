@@ -221,6 +221,19 @@ seam listed below is also marked in each changed file.
   `TextViewDefaults::style` accessor is public so kit refinements start from the
   exact Component-installed theme, preserving its colors and table geometry.
   This adds no renderer, state owner, theme adapter, or dependency.
+- Recognized marks are made disjoint with the renderer's existing highlight
+  sweep before source selection walks them. Otherwise a code/emphasis mark and
+  its overlapping inferred link copy the same bytes twice. The highlight sweep
+  is extracted generically with its body unchanged; marks without inferred
+  links keep the original parser path and original source segments.
+
+- Code-aware copy queries the same parsed selection through
+  `TextViewState::selected_code_text()`. Inline code and fenced code use their
+  existing marks/blocks; mixed prose and multiple code regions retain Markdown.
+  This avoids a second fence scanner disagreeing with the renderer (including
+  longer fences containing shorter backtick runs). The kit's window aggregator
+  still owns selections across messages. Regression coverage is in
+  `chat_markdown::actions::link_tests::code_copy_uses_parsed_inline_and_fenced_regions`.
 
 ### 4. A steady caret while motion is held
 

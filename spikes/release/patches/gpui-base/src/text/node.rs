@@ -1109,6 +1109,21 @@ struct MarkdownSource {
 }
 
 impl MarkdownSource {
+    fn into_code(self) -> super::code_selection::CodeSelection {
+        use super::code_selection::CodeSelection;
+        if self.pieces.is_empty() {
+            return CodeSelection::Unselected;
+        }
+        if self.has_objects
+            || self
+                .pieces
+                .iter()
+                .any(|(_, layers)| !layers.iter().any(|mark| mark.code))
+        {
+            return CodeSelection::Mixed;
+        }
+        CodeSelection::Code(self.pieces.into_iter().map(|(text, _)| text).collect())
+    }
     fn push_str(&mut self, source: &str) {
         self.push_marked(source, &TextMark::default());
     }
@@ -1871,6 +1886,20 @@ impl Paragraph {
     /// How many styles the selection within this paragraph takes in.
     pub(super) fn selection_styles(&self) -> SelectionStyles {
         self.selected_markdown().styles()
+    }
+
+    pub(super) fn code_selection(&self, all: bool) -> super::code_selection::CodeSelection {
+        if !all {
+            return self.selected_markdown().into_code();
+        }
+        let mut source = MarkdownSource::default();
+        for child in &self.children {
+            if child.image.is_some() || child.custom.is_some() {
+                return super::code_selection::CodeSelection::Mixed;
+            }
+            source.push_text(&child.text, &child.marks, 0..child.text.len());
+        }
+        source.into_code()
     }
 
     /// The selection as Markdown pieces, before their marks are serialized;

@@ -124,3 +124,20 @@ Mouse selection checks the drawn DraftKey, text, caret and row label before acti
 preventing a stale menu from archiving a replacement selected session. Presentation
 was extracted to its own module to keep the root below the500-line cap. New menu,
 context-suppression and theme-preservation tests are prepared, still unrun.
+
+Source inspection found a real overlap risk: inline code and inferred link marks
+can cover the same bytes, while source copy walks marks sequentially. Opt-in
+recognized runs now reuse the existing highlight sweep to combine those ranges
+before copying; code/emphasis and inferred links still use the same text and
+source segments. The unchanged sweep body is shared generically, rather than
+introducing another renderer or parser. GPUI selection fixtures now also cover
+recognized links within bold prose and bold inline code, asserting one copied
+occurrence. This correction is source-only until the new test head is checked.
+
+Code-aware selection now queries existing parsed code blocks/inline marks through
+TextViewState::selected_code_text rather than scanning fences independently. The
+query refuses mixed prose, multiple independent regions and stale replacement
+documents; it preserves leading indentation and strips trailing line breaks. The
+existing window selection aggregator still prevents a single-message override of
+a multi-message selection. This removes a second parser with different nested
+fence/inline-code behavior. Actual GPUI query fixtures are added, not yet passed.

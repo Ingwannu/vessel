@@ -413,6 +413,16 @@ impl TextViewState {
         self.selected_text_in(None)
     }
 
+    /// Raw rendered code only when selection stays in one code region.
+    /// Mixed prose, multiple regions and stale replacements return None.
+    /// Trailing line breaks are removed; leading code indentation is preserved.
+    pub fn selected_code_text(&self) -> Option<String> {
+        if self.format != TextViewFormat::Markdown || !self.has_current_copy_document() {
+            return None;
+        }
+        super::code_selection::selected(&self.parsed_content.document, self.select_all)
+    }
+
     /// Return the original Markdown source byte range corresponding to the
     /// rendered selection.
     ///

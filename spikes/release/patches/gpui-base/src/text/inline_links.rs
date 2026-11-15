@@ -137,3 +137,19 @@ pub(crate) enum InlineLinkScope {
     Recognize,
     ExplicitLink,
 }
+
+/// Inferred links can overlap code/emphasis. Reuse the renderer's existing sweep
+/// only for opt-in recognized marks; its copy walk must see each byte once.
+pub(crate) fn source_marks(marks: Vec<(Range<usize>, TextMark)>) -> Vec<(Range<usize>, TextMark)> {
+    if !marks.iter().any(|(_, mark)| {
+        mark.link
+            .as_ref()
+            .is_some_and(|link| matches!(link.source, LinkSource::Inferred(_)))
+    }) {
+        return marks;
+    }
+    super::inline::combine_ranges(marks, [], |mut combined: TextMark, layer| {
+        combined.merge(layer.clone());
+        combined
+    })
+}

@@ -72,6 +72,8 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
     for source in [
         "prefix words src/lib.rs:4 suffix words beyond more",
         "prefix words `src/lib.rs:4` suffix words beyond more",
+        "**prefix words src/lib.rs:4 suffix words beyond more**",
+        "**prefix words `src/lib.rs:4` suffix words beyond more**",
     ] {
         let clicks = Arc::new(Mutex::new(Vec::new()));
         let captured = Arc::clone(&clicks);
@@ -111,9 +113,16 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
             );
             assert!(state.selected_text().contains(PATH));
             assert_eq!(
-                state.selected_text().trim_end_matches('\n'),
-                &source[selected]
+                state.selected_text().matches(PATH).count(),
+                1,
+                "overlapping code/emphasis/link marks must not copy bytes twice"
             );
+            if !source.starts_with("**") {
+                assert_eq!(
+                    state.selected_text().trim_end_matches('\n'),
+                    &source[selected]
+                );
+            }
             assert!(
                 !state.selected_text().contains("](src/lib.rs:4)"),
                 "inferred links must not fabricate copied markdown"
@@ -153,5 +162,32 @@ fn explicit_links_keep_authored_provenance_and_fenced_code_is_not_recognized(
         } else {
             assert!(seen.is_empty());
         }
+    }
+}
+
+#[gpui::test]
+fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    for (source, expected) in [
+        ("`echo 한글`", Some("echo 한글")),
+        ("```sh\n  echo 한글\n```", Some("  echo 한글")),
+        ("````sh\necho '```'\n````", Some("echo '```'")),
+        ("text `echo hi`", None),
+        ("```sh\necho one\n```\n\n```sh\necho two\n```", None),
+    ] {
+        let (probe, window) = cx.add_window_view(move |_, cx| Probe {
+            source,
+            state: cx.new(|cx| TextViewState::markdown(source, cx)),
+            clicks: Arc::default(),
+        });
+        window.run_until_parked();
+        window.update(|window, cx| {
+            let _paint = window.draw(cx);
+        });
+        let state = probe.read_with(window, |probe, _| probe.state.clone());
+        window.update(|_, cx| state.update(cx, |state, cx| state.select_all(cx)));
+        state.read_with(window, |state, _| {
+            assert_eq!(state.selected_code_text().as_deref(), expected, "{source}");
+        });
     }
 }
