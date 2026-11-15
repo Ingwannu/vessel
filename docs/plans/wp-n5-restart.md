@@ -123,3 +123,18 @@ the actual regenerated TypeScript. Existing sessions without the creation-time
 eligibility projection remain manual even after later turns; neither a log
 scan nor a manual resume invents that provenance. This deliberate migration
 limit is stated in the ADR and user documentation.
+
+## Combined node runtime before the package gate
+
+The package now also consumes announced node head `d432ef0f`. Its runner-issued
+ProcessLifetime and AgentSetup system_prompt field remain intact. The session
+parts constructor combines that existing process observation with the recovery
+journal; neither is reconstructed from a PID or a second persistence path.
+Architecture additions from both branches are retained. No incoming test
+expectation or deadline is changed.
+
+The previous whole-gate submission was cancelled by the build machine's
+restart while it was still queued. No gate step ran; this is neither a code
+failure nor a pass. The source stayed identical to its recorded input hashes.
+The combined immutable tree is submitted once under the infrastructure retry
+ruling. The earlier narrow results retain their original source scope.

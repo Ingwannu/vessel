@@ -1698,4 +1698,3 @@ Off applies and invalidates generation before consuming pending intents; its
 FIFO owner survives caller cancellation and prevents later On overtaking an
 unsettled save or cleanup. Existing per-peer reply projection and canonical
 field requirements keep the unassigned recovery feature off the wire.
-
