@@ -1052,3 +1052,6 @@ mod git_apart;
 mod checkpoint_starting;
 #[cfg(target_os = "linux")]
 mod checkpoint_writing;
+
+#[cfg(target_os = "linux")]
+mod checkpoint_backend;

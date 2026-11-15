@@ -3,6 +3,8 @@
 //! Candidate workers cannot publish. The coordinator owns deadline fencing and
 //! keeps root/worker/quota admission until cleanup, even after the actor resumes.
 
+#[cfg(target_os = "linux")]
+pub(crate) mod backend;
 mod capture;
 mod quota;
 mod runner;

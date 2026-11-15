@@ -1805,3 +1805,12 @@ Raw blob handles reuse opened directories; stage locations retain their opened
 folder. The node must reserve first and retain actual I/O ownership. Drop does
 not remove storage or free accounting; physical GC and controller assembly remain
 separate work. No runtime setting or live permission change is implied.
+
+Checkpoint retirement now distinguishes publication from actual worker cleanup
+in the capture row. A timed-out worker continues pinning retention until its
+cleanup acknowledgement; GC never treats Unavailable as physical completion.
+Linux Storage cleanup takes bounded FD-relative passes through the fixed typed
+private layout and acknowledges only synced absence, refusing unexpected
+objects. The staged node capture backend joins that mechanism to the existing
+writer and managed-worktree lookup. Its real-worktree fixture does not launch
+a provider; bootstrap and the actor bridge remain unwired pending validation.

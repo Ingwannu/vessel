@@ -778,3 +778,21 @@ and its physical/quota admission remain occupied throughout that wait. A
 three-outcome barrier regression checks no early activation and Keep/Discard
 cleanup. This closes the adapter boundary before real bridge assembly; it does
 not claim that assembly is already installed.
+
+### Real capture backend assembly (source; not installed at bootstrap)
+
+The staged Linux backend now binds the bounded runner to the existing store
+writer and managed-worktree filesystem implementation. ReserveCapture proves
+the exact durable anchor before private namespace creation or project reads.
+The blocking worker resolves the registered WorktreeId, refuses an active
+script, verifies the supplied opened physical identity, and captures with
+explicit global-ignore defaults. Candidate and Ready remain separate store
+barriers; actual actor advancement gates Ready. Discard retains the original
+typed failure, invalidates before physical cleanup, and settles escrow only
+after synced absence. Lost reserve/activation acknowledgement retains the
+worker and archive for reconciliation. No second writer or extra I/O pool.
+The integration fixture uses a real isolated managed worktree and sole writer,
+with no provider process: accepted delivery retains readable Ready evidence;
+refused delivery exposes Unavailable and removes the private capture. Both
+are unrun until the next remote suite. Bootstrap/turn bridge, recovery and
+restore controllers remain incomplete; FILE_CHECKPOINTS stays None.

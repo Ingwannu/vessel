@@ -16,7 +16,7 @@ use vessel_session::CheckpointAdvance;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Disposition {
     Keep,
-    Discard,
+    Discard(CheckpointError),
     /// Ready activation may have committed; keep bytes until reconciliation.
     Recovery,
 }
@@ -68,14 +68,14 @@ enum Event {
     Cleaned(CaptureKey),
 }
 #[derive(Debug, Clone)]
-pub(super) struct Client {
+pub(crate) struct Client {
     requests: mpsc::Sender<Request>,
     lifecycle: watch::Receiver<Lifecycle>,
     cleanup_faults: watch::Receiver<Option<CleanupFault>>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct CleanupFault {
-    pub(super) key: CaptureKey,
+    pub(crate) key: CaptureKey,
     pub(super) reason: CheckpointError,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,12 +85,12 @@ pub(super) enum Lifecycle {
 }
 /// Durable candidate acknowledgement, still gated on the actual actor receipt.
 #[derive(Debug)]
-pub(super) struct AcceptedCapture {
+pub(crate) struct AcceptedCapture {
     pub(super) key: CaptureKey,
     advancement: oneshot::Sender<CheckpointAdvance>,
 }
 impl AcceptedCapture {
-    pub(super) fn complete(self, outcome: CheckpointAdvance) {
+    pub(crate) fn complete(self, outcome: CheckpointAdvance) {
         let _closed = self.advancement.send(outcome);
     }
 }
@@ -126,7 +126,7 @@ impl Client {
         deadline: Instant,
     ) -> Result<CaptureKey, CheckpointError> {
         let accepted = self
-            .capture_candidate(physical, key, bytes, deadline)
+            .capture_reserved(physical, key, bytes, deadline)
             .await?;
         let key = accepted.key;
         accepted.complete(CheckpointAdvance::TurnComplete);
@@ -134,7 +134,16 @@ impl Client {
     }
     /// Bridges preserve the actor's original deadline across their own queues.
     /// Dropping the returned receipt cannot activate a durable Ready image.
-    pub(super) async fn capture_candidate(
+    pub(crate) async fn capture_candidate(
+        &self,
+        physical: PhysicalRoot,
+        key: CaptureKey,
+        deadline: Instant,
+    ) -> Result<AcceptedCapture, CheckpointError> {
+        self.capture_reserved(physical, key, ReservedBytes::capture(), deadline)
+            .await
+    }
+    pub(super) async fn capture_reserved(
         &self,
         physical: PhysicalRoot,
         key: CaptureKey,
@@ -258,11 +267,11 @@ fn completed_event(
             let disposition = match result {
                 Ok(()) => match captures.published(key, Instant::now()) {
                     Ok(()) => Disposition::Keep,
-                    Err(_) => Disposition::Discard,
+                    Err(reason) => Disposition::Discard(reason),
                 },
                 Err(reason) => {
                     captures.refuse(key, reason);
-                    Disposition::Discard
+                    Disposition::Discard(reason)
                 }
             };
             let _closed = accepted.send(disposition);
@@ -308,7 +317,7 @@ async fn work<Read, Persist, Cleanup, Stored>(
                     reason: CheckpointError::CaptureTimedOut,
                 })
                 .await;
-            Disposition::Discard
+            Disposition::Discard(CheckpointError::CaptureTimedOut)
         }
         Err(reason) => {
             let _closed = events.send(Event::Failed { key, reason }).await;
@@ -350,7 +359,7 @@ where
         Ok(Ok(image)) => publish(key, image, job.advancement, persist, events).await,
         Ok(Err(reason)) => {
             let _closed = events.send(Event::Failed { key, reason }).await;
-            Disposition::Discard
+            Disposition::Discard(reason)
         }
         Err(_lost) => {
             let _closed = events
@@ -359,7 +368,7 @@ where
                     reason: CheckpointError::StaleCapture,
                 })
                 .await;
-            Disposition::Discard
+            Disposition::Discard(CheckpointError::StaleCapture)
         }
     }
 }
@@ -376,10 +385,12 @@ where
 {
     let (permit, allowed) = oneshot::channel();
     if events.send(Event::Candidate { key, permit }).await.is_err() {
-        return Disposition::Discard;
+        return Disposition::Discard(CheckpointError::StaleCapture);
     }
-    if !matches!(allowed.await, Ok(Ok(()))) {
-        return Disposition::Discard;
+    match allowed.await {
+        Ok(Ok(())) => {}
+        Ok(Err(reason)) => return Disposition::Discard(reason),
+        Err(_closed) => return Disposition::Discard(CheckpointError::StaleCapture),
     }
     let result = persist(key, Publication::Candidate(image)).await;
     let (accepted, outcome) = oneshot::channel();
@@ -392,9 +403,12 @@ where
         .await
         .is_err()
     {
-        return Disposition::Discard;
+        return Disposition::Discard(CheckpointError::StaleCapture);
     }
-    match outcome.await.unwrap_or(Disposition::Discard) {
+    match outcome
+        .await
+        .unwrap_or(Disposition::Discard(CheckpointError::StaleCapture))
+    {
         Disposition::Keep => match advancement.await {
             Ok(CheckpointAdvance::PromptSent | CheckpointAdvance::TurnComplete) => {
                 match persist(key, Publication::Activate).await {
@@ -402,9 +416,11 @@ where
                     Err(_uncertain) => Disposition::Recovery,
                 }
             }
-            Ok(CheckpointAdvance::PromptRefused) | Err(_) => Disposition::Discard,
+            Ok(CheckpointAdvance::PromptRefused) | Err(_) => {
+                Disposition::Discard(CheckpointError::StaleCapture)
+            }
         },
-        Disposition::Discard => Disposition::Discard,
+        Disposition::Discard(reason) => Disposition::Discard(reason),
         Disposition::Recovery => Disposition::Recovery,
     }
 }

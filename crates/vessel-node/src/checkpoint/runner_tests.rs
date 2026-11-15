@@ -59,7 +59,7 @@ async fn held_read_io_releases_prompt_and_late_candidate_never_publishes() {
             async { Ok(()) }
         },
         move |_key, disposition| {
-            assert_eq!(disposition, Disposition::Discard);
+            assert!(matches!(disposition, Disposition::Discard(_)));
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
             Ok(())
         },
@@ -114,7 +114,7 @@ async fn dropping_all_clients_does_not_drop_the_owner_before_held_io_is_cleaned(
         },
         |_key, _phase| async { Ok(()) },
         |_key, disposition| {
-            assert_eq!(disposition, Disposition::Discard);
+            assert!(matches!(disposition, Disposition::Discard(_)));
             Ok(())
         },
     );
@@ -166,7 +166,7 @@ async fn held_publication_ack_cannot_revive_the_expired_lease() {
             }
         },
         move |_key, disposition| {
-            assert_eq!(disposition, Disposition::Discard);
+            assert!(matches!(disposition, Disposition::Discard(_)));
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
             Ok(())
         },
@@ -318,7 +318,7 @@ async fn held_global_reservation_never_starts_filesystem_work_after_actor_deadli
             }
         },
         move |_key, disposition| {
-            assert_eq!(disposition, Disposition::Discard);
+            assert!(matches!(disposition, Disposition::Discard(_)));
             cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
             Ok(())
         },
@@ -407,7 +407,9 @@ async fn checkpoint_actor_receipt_gates_ready_and_refused_or_lost_delivery_disca
             Some(CheckpointAdvance::PromptSent | CheckpointAdvance::TurnComplete) => {
                 Disposition::Keep
             }
-            Some(CheckpointAdvance::PromptRefused) | None => Disposition::Discard,
+            Some(CheckpointAdvance::PromptRefused) | None => {
+                Disposition::Discard(CheckpointError::StaleCapture)
+            }
         };
         let (client, owner) = runner::start(
             |_key, _root, _cancel| empty(),
@@ -428,7 +430,7 @@ async fn checkpoint_actor_receipt_gates_ready_and_refused_or_lost_delivery_disca
         );
         let key = key();
         let accepted = client
-            .capture_candidate(
+            .capture_reserved(
                 super::capture::model_root(key.worktree),
                 key,
                 ReservedBytes::new(1).unwrap(),

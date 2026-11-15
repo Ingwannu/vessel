@@ -24,6 +24,8 @@
 
 #[cfg(target_os = "linux")]
 mod admission;
+#[cfg(all(test, target_os = "linux"))]
+mod checkpoints;
 mod error;
 #[cfg(any(test, target_os = "linux"))]
 pub(crate) mod exclusion;
