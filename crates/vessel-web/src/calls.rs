@@ -149,6 +149,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::SetupOutput
         | Method::RunSetup
         | Method::RemoveWorktree
+        | Method::ListCheckpoints
+        | Method::PreviewCheckpoint
+        | Method::ReadCheckpointChanges
+        | Method::RestoreCheckpoint
+        | Method::CheckpointRestoreStatus
         | Method::ListSnapshots
         | Method::DropSnapshot
         | Method::GitStatus

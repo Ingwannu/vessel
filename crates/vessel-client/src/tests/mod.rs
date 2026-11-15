@@ -566,6 +566,12 @@ impl Handler for FakeNode {
         fork_session: vessel_proto::forking::ForkSession => SessionInfo;
         rewind_session: vessel_proto::forking::RewindSession => SessionInfo;
         agent_history: vessel_proto::history::GetAgentHistory => vessel_proto::history::AgentHistoryPage;
+        list_checkpoints: vessel_proto::checkpoint::ListCheckpoints => vessel_proto::checkpoint::CheckpointPage;
+        preview_checkpoint: vessel_proto::checkpoint::PreviewCheckpoint => vessel_proto::checkpoint::RestorePreview;
+        read_checkpoint_changes: vessel_proto::checkpoint::ReadCheckpointChanges => vessel_proto::checkpoint::ChangePage;
+        restore_checkpoint: vessel_proto::checkpoint::RestoreCheckpoint => vessel_proto::checkpoint::RestoreOutcome;
+        checkpoint_restore_status: vessel_proto::checkpoint::CheckpointRestoreStatus => vessel_proto::checkpoint::RestoreOutcome;
+
     }
 }
 
