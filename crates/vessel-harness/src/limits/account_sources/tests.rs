@@ -339,7 +339,7 @@ async fn report_fixture_preserves_forecasts_and_still_refuses_credential_echo() 
         root.path(),
         BuiltinUsageSource::Cursor,
         access(root.path()),
-        br#"{"plan":"Synthetic", "windows":[],"balances":[],"details":[]}"#,
+        br#"{"plan":"Synthetic","windows":[{"id":"forecast","label":"Forecast","short_label":null,"used":90,"remaining":7,"resets_at":"2030-01-01T00:00:00Z","runs_out_at":"2029-12-31T23:00:00Z","shortfall":17,"tone":"danger"}],"balances":[],"details":[]}"#,
     );
     let AccountUsageProbe::Recorded { format, .. } = &mut probe else {
         panic!("recorded only")
@@ -350,10 +350,22 @@ async fn report_fixture_preserves_forecasts_and_still_refuses_credential_echo() 
     let first = probe
         .read(&context, BuiltinUsageSource::Cursor, Utc::now(), &stop)
         .await;
-    assert!(matches!(
-        first.result,
-        Ok(AccountUsageOutcome::Available(_))
-    ));
+    let Ok(AccountUsageOutcome::Available(report)) = &first.result else {
+        panic!("recorded source report")
+    };
+    assert_eq!(
+        report.windows.as_slice()[0]
+            .shortfall
+            .unwrap()
+            .get()
+            .to_string(),
+        "17"
+    );
+    assert!(
+        report.windows.as_slice()[0].runs_out_at.unwrap()
+            < report.windows.as_slice()[0].resets_at.unwrap()
+    );
+
     write(
         root.path(),
         "recorded-body.json",
