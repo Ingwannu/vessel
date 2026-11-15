@@ -13,7 +13,7 @@
 //!   validates its current catalog version and Admin permission at dispatch.
 
 use vessel_proto::agents::{AgentDetail, AgentInfo, AgentSource, CatalogueEntry, CatalogueRun};
-use vessel_proto::{HarnessKind, HarnessRef, fleet::HttpUrl};
+use vessel_proto::{HarnessKind, HarnessRef, HttpUrl};
 
 use crate::{alphabetical, matcher::Query};
 

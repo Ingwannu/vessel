@@ -103,3 +103,9 @@ state await the separately reviewed numbered node contract. Catalog Add
 and ProviderRow action controls await their existing shared-control owners.
 Named launch-profile CRUD/application remains a later package and is not
 implemented against a draft contract.
+
+The first narrow catalog candidate failed compilation because its HttpUrl
+import used a private module instead of the protocol crate's existing
+public re-export. The correction changes that import only; no visibility
+or dependency is widened. The failed run remains red evidence, and no
+runtime test or UI result is inferred from it.
