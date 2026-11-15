@@ -106,3 +106,14 @@ have not compiled or run. It must not silently enter a27194 evidence packet.
 All14 Kit/vendor production and test blobs selected here equal those in the
 queued b011 consumer all-target check. The27194 public test run and b011 Clippy
 are still queued; there is no pass or integration-ready handoff yet.
+
+## Actual b011 compilation return
+
+The b011 four-crate consumer Clippy returned cargo101: two new View fixtures
+omitted the existing status(Vec<StatusEntry>) argument; the identical Kit test
+blobs had three elided Context lifetimes and passed an IntoElement Editor to
+the window draw helper, which requires Element. The Kit correction names
+Context lifetimes and converts Editor to AnyElement at that test boundary.
+No production mapping, geometry, assertion or lint policy changes. The running
+27194 test retains its old source and is not cancelled or assumed passed.
+The next meaningful checked union must carry these public API corrections.
