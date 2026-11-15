@@ -5,6 +5,7 @@ pub mod cadence;
 pub mod definition;
 pub mod fields;
 pub mod io;
+pub mod presentation;
 pub mod preview;
 pub mod session;
 pub mod zones;

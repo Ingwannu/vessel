@@ -343,3 +343,86 @@ schedules-history-heading = 실행 기록
 
 # A machine supports schedule create/update but predates the read-only preview call.
 schedules-preview-unavailable-older = 이 머신은 이 규칙을 미리 확인할 수 없습니다. 미리보기 없이 저장할 수 있습니다.
+
+# Schedule form labels follow schedule-form-sheet.tsx409–537/706–813 and cadence-editor.tsx.
+
+# Schedule editor: form-new-title control/feedback, never a node diagnostic.
+schedules-form-new-title = 새 예약
+
+# Schedule editor: form-edit-title control/feedback, never a node diagnostic.
+schedules-form-edit-title = 예약 편집
+
+# Schedule editor: form-heartbeat-title control/feedback, never a node diagnostic.
+schedules-form-heartbeat-title = 하트비트 편집
+
+# Schedule editor: form-create control/feedback, never a node diagnostic.
+schedules-form-create = 예약 만들기
+
+# Schedule editor: form-save control/feedback, never a node diagnostic.
+schedules-form-save = 변경 사항 저장
+
+# Schedule editor: form-name control/feedback, never a node diagnostic.
+schedules-form-name = 이름
+
+# Schedule editor: form-prompt control/feedback, never a node diagnostic.
+schedules-form-prompt = 프롬프트
+
+# Schedule editor: form-host control/feedback, never a node diagnostic.
+schedules-form-host = 머신
+
+# Schedule editor: form-project control/feedback, never a node diagnostic.
+schedules-form-project = 프로젝트
+
+# Schedule editor: form-model control/feedback, never a node diagnostic.
+schedules-form-model = 모델
+
+# Schedule editor: form-thinking control/feedback, never a node diagnostic.
+schedules-form-thinking = 추론
+
+# Schedule editor: form-mode control/feedback, never a node diagnostic.
+schedules-form-mode = 모드
+
+# Schedule editor: form-archive control/feedback, never a node diagnostic.
+schedules-form-archive = 완료 후 보관
+
+# Schedule editor: form-limit control/feedback, never a node diagnostic.
+schedules-form-limit = 최대 실행 횟수
+
+# Schedule editor: form-optional control/feedback, never a node diagnostic.
+schedules-form-optional = 선택 사항
+
+# Schedule editor: form-prompt-placeholder control/feedback, never a node diagnostic.
+schedules-form-prompt-placeholder = 에이전트가 실행할 때마다 무엇을 해야 하나요?
+
+# Schedule editor: form-unlimited control/feedback, never a node diagnostic.
+schedules-form-unlimited = 제한 없음
+
+# Schedule editor: form-cadence control/feedback, never a node diagnostic.
+schedules-form-cadence = 실행 주기
+
+# Schedule editor: form-zone control/feedback, never a node diagnostic.
+schedules-form-zone = 시간대
+
+# Schedule editor: form-next-runs control/feedback, never a node diagnostic.
+schedules-form-next-runs = 다음 실행 시각
+
+# Schedule editor: form-host-placeholder control/feedback, never a node diagnostic.
+schedules-form-host-placeholder = 머신 선택
+
+# Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
+schedules-form-project-placeholder = 프로젝트 선택
+
+# Schedule editor: form-model-placeholder control/feedback, never a node diagnostic.
+schedules-form-model-placeholder = 모델 선택
+
+# Schedule editor: form-zone-placeholder control/feedback, never a node diagnostic.
+schedules-form-zone-placeholder = 시간대 선택
+
+# Schedule editor: form-custom control/feedback, never a node diagnostic.
+schedules-form-custom = 직접 입력
+
+# Schedule editor: form-interval control/feedback, never a node diagnostic.
+schedules-form-interval = 시간 간격
+
+# One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
+schedules-form-next-at = { DATETIME($at) }

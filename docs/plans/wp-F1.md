@@ -946,3 +946,17 @@ prior failure/cancellation records and boundaries are in shared-multiline-source
 and /tmp/work/m12-g2/multiline-final-packet-20261115. V1 source disposition is
 still required before G3 edits shared field files. This does not approve the
 current moving F1 source, new editor/history plumbing or any product capture.
+
+
+### Form words and validation are prepared outside paint
+
+The view's new editor presentation cache follows schedule-form-sheet409–537
+and target-field706–813: heading/submit and Name/Prompt/Max runs text frames,
+with heartbeat edits exposing no new-chat text. New screen words are generated
+EN/KO schedules.ftl entries; accepted cadence and field/editor error tables keep
+their one source. Only original slot failures are shown as typed operation
+problems; preview uses its typed reason mapper. Canonical projected times use
+the explicit viewer Clock and retain calendar failures instead of fabricating
+UTC or machine-zone names. Read-only is actual scope/refusal evidence, and save
+readiness uses the form owner. The cache has no controls, calls, local scheduler
+or input engine and is not an editor UI/compiled proof at this checkpoint.

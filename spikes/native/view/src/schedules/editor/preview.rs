@@ -73,7 +73,7 @@ pub enum Problem {
     Mismatched,
 }
 impl Problem {
-    fn of(failure: Failure) -> Self {
+    pub(super) fn of(failure: Failure) -> Self {
         if let Failure::Node(wire) = &failure
             && wire.code == vessel_proto::ErrorCode::InvalidRequest
             && let Some(vessel_proto::ErrorDetail::SchedulePreview { reason }) = &wire.detail

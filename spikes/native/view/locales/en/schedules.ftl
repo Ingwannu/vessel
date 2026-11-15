@@ -343,3 +343,86 @@ schedules-history-heading = Run history
 
 # A machine supports schedule create/update but predates the read-only preview call.
 schedules-preview-unavailable-older = This machine cannot preview this rule. You can save it without a preview.
+
+# Schedule form labels follow schedule-form-sheet.tsx409–537/706–813 and cadence-editor.tsx.
+
+# Schedule editor: form-new-title control/feedback, never a node diagnostic.
+schedules-form-new-title = New schedule
+
+# Schedule editor: form-edit-title control/feedback, never a node diagnostic.
+schedules-form-edit-title = Edit schedule
+
+# Schedule editor: form-heartbeat-title control/feedback, never a node diagnostic.
+schedules-form-heartbeat-title = Edit heartbeat
+
+# Schedule editor: form-create control/feedback, never a node diagnostic.
+schedules-form-create = Create schedule
+
+# Schedule editor: form-save control/feedback, never a node diagnostic.
+schedules-form-save = Save changes
+
+# Schedule editor: form-name control/feedback, never a node diagnostic.
+schedules-form-name = Name
+
+# Schedule editor: form-prompt control/feedback, never a node diagnostic.
+schedules-form-prompt = Prompt
+
+# Schedule editor: form-host control/feedback, never a node diagnostic.
+schedules-form-host = Host
+
+# Schedule editor: form-project control/feedback, never a node diagnostic.
+schedules-form-project = Project
+
+# Schedule editor: form-model control/feedback, never a node diagnostic.
+schedules-form-model = Model
+
+# Schedule editor: form-thinking control/feedback, never a node diagnostic.
+schedules-form-thinking = Thinking
+
+# Schedule editor: form-mode control/feedback, never a node diagnostic.
+schedules-form-mode = Mode
+
+# Schedule editor: form-archive control/feedback, never a node diagnostic.
+schedules-form-archive = Archive on finish
+
+# Schedule editor: form-limit control/feedback, never a node diagnostic.
+schedules-form-limit = Max runs
+
+# Schedule editor: form-optional control/feedback, never a node diagnostic.
+schedules-form-optional = Optional
+
+# Schedule editor: form-prompt-placeholder control/feedback, never a node diagnostic.
+schedules-form-prompt-placeholder = What should the agent do each run?
+
+# Schedule editor: form-unlimited control/feedback, never a node diagnostic.
+schedules-form-unlimited = Unlimited
+
+# Schedule editor: form-cadence control/feedback, never a node diagnostic.
+schedules-form-cadence = Cadence
+
+# Schedule editor: form-zone control/feedback, never a node diagnostic.
+schedules-form-zone = Time zone
+
+# Schedule editor: form-next-runs control/feedback, never a node diagnostic.
+schedules-form-next-runs = Next runs
+
+# Schedule editor: form-host-placeholder control/feedback, never a node diagnostic.
+schedules-form-host-placeholder = Select host
+
+# Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
+schedules-form-project-placeholder = Select project
+
+# Schedule editor: form-model-placeholder control/feedback, never a node diagnostic.
+schedules-form-model-placeholder = Select model
+
+# Schedule editor: form-zone-placeholder control/feedback, never a node diagnostic.
+schedules-form-zone-placeholder = Choose a time zone
+
+# Schedule editor: form-custom control/feedback, never a node diagnostic.
+schedules-form-custom = Custom
+
+# Schedule editor: form-interval control/feedback, never a node diagnostic.
+schedules-form-interval = Interval
+
+# One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
+schedules-form-next-at = { DATETIME($at) }

@@ -230,6 +230,20 @@ impl Model {
             State::Active(active) => Some(&mut active.draft),
         }
     }
+    /// The four existing slots, without inventing a request payload just to
+    /// inspect a spinner/error. Their stored requests retain the real method.
+    pub fn operations(&self) -> impl Iterator<Item = &io::Mailbox> {
+        let slots = match &self.state {
+            State::Active(active) => Some([
+                &active.targets,
+                &active.options,
+                &active.preview,
+                &active.saving,
+            ]),
+            State::Closed | State::ChoosingHost { .. } => None,
+        };
+        slots.into_iter().flatten()
+    }
     /// While saving no field/host change may replace the submitted definition.
     #[must_use]
     pub fn blocked(&self) -> bool {
