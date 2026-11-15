@@ -118,7 +118,9 @@ mod protection_tests {
         ]);
         forget_alias(&mut book, &alias);
         assert!(!book.contains_key(&clean_key));
-        let retained = book.get(&dirty_key).unwrap();
+        let Some(retained) = book.get(&dirty_key) else {
+            panic!("host forget discarded the modified draft");
+        };
         assert_eq!(retained.tab(tab).unwrap().target(), &target);
         assert_eq!(retained.tab(tab).unwrap().modified(), Modified::Dirty);
         let durable = super::super::RememberedLayout::new(dirty_key, retained);
