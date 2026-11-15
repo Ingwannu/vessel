@@ -6,6 +6,13 @@ use vessel_app_view::machine_book::Edit;
 impl Shell {
     pub(crate) fn layout_book_applied(&mut self, edit: &Edit, cx: &mut Context<'_, Self>) {
         super::initialized(self);
+        #[cfg(test)]
+        let before = match edit {
+            Edit::Rename { from, .. } | Edit::Forget(from) => {
+                Some(super::registry::retirement::Before::alias(self, from))
+            }
+            Edit::MakeDefault(_) => None,
+        };
         let result = (|| {
             let mut book = self.areas.layout.book.borrow_mut();
             let book = book.as_mut().ok_or(LayoutError::InvalidState)?;
@@ -22,6 +29,10 @@ impl Shell {
                 Edit::MakeDefault(_) => Ok(()),
             }
         })();
+        #[cfg(test)]
+        if let Some(before) = before {
+            self.layout_retired(before, super::registry::retirement::Source::Unavailable, cx);
+        }
         if !matches!(edit, Edit::MakeDefault(_)) {
             self.layout_result(result, cx);
         }
