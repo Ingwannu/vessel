@@ -35,7 +35,9 @@ preview node or customer service is needed to validate the integration.
 - Conversation and settings plans retain both sides' conflicting text.
 - Native files retain the app parent; adaptations follow separately.
 - The fake ACP retains the node's named usage modes and extends them with
-  the app's numeric usage input and changing-plan fixture. Neither named
+  the app's numeric usage input and changing-plan fixture. The numeric
+  decoder retains the app parent's prefix and trimming rules exactly,
+  while named node usage modes keep their existing replies. Neither named
   usage modes nor plan behaviour is removed.
 
 ## Validation
