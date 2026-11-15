@@ -1,9 +1,10 @@
 //! Field construction shares the existing event wiring. Keeping factories
 //! here lets the public control grow captured callbacks while its listed root
 //! shrinks; no input engine, Enter/IME rule or focus behavior is duplicated.
+use super::events::{Callbacks, Handlers, listen};
 use super::{
-    COMPOSER_LINES, FORM_LINES, FORM_MIN_LINES, Handlers, InputState, Kind, Known, MultilineStyle,
-    SendOn, TextField, TextareaState, listen, register,
+    COMPOSER_LINES, FORM_LINES, FORM_MIN_LINES, InputState, Kind, Known, MultilineStyle, SendOn,
+    TextField, TextareaState, register,
 };
 use gpui::{AppContext as _, Context, Window};
 use std::{cell::Cell, rc::Rc};
@@ -39,12 +40,13 @@ pub(super) fn multiline<V: 'static>(
     listen(
         &state,
         Handlers {
-            on_submit: Box::new(on_submit),
-            // A growing form changes the surrounding dialog's layout
-            // and submit availability; its owner must see each edit.
-            on_change: match style {
-                MultilineStyle::Composer => None,
-                MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+            callbacks: Callbacks::Plain {
+                on_submit: Box::new(on_submit),
+                // Growing forms update layout and submit availability.
+                on_change: match style {
+                    MultilineStyle::Composer => None,
+                    MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+                },
             },
             focused: Rc::clone(&focused),
             send: Some(Rc::clone(&send)),
@@ -62,8 +64,7 @@ pub(super) fn multiline<V: 'static>(
 
 pub(super) fn line<V: 'static>(
     placeholder: &str,
-    on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-    on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    callbacks: Callbacks<V>,
     window: &mut Window,
     cx: &mut Context<'_, V>,
 ) -> TextField {
@@ -73,8 +74,7 @@ pub(super) fn line<V: 'static>(
     listen(
         &state,
         Handlers {
-            on_submit: Box::new(on_submit),
-            on_change,
+            callbacks,
             focused: Rc::clone(&focused),
             send: None,
         },

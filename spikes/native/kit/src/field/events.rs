@@ -7,20 +7,18 @@
 //! - Choice: move the existing Handlers/listen together into this child module;
 //!   only parent visibility and imports change, with no behavioral change.
 //! - Cost: one source file; every existing constructor and caller stays intact.
-use super::SendOn;
+use super::{
+    SendOn,
+    identity::{FieldId, source},
+};
 use gpui::{Context, Entity, Window};
 use gpui_base::input::InputEvent;
 use std::{cell::Cell, rc::Rc};
 
-// Host callbacks are an open extension point. One immutable capture keeps a
-// decision bound to its original request instead of today's selected form.
-pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
-
 /// Follow a field's events: Enter, edits, and whether it holds the keys.
 /// What a field's events call.
 pub(super) struct Handlers<V: 'static> {
-    pub(super) on_submit: Submit<V>,
-    pub(super) on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    pub(super) callbacks: Callbacks<V>,
     pub(super) focused: Rc<Cell<bool>>,
     /// A composer's send press; `None` for a form field (Enter submits).
     pub(super) send: Option<Rc<Cell<SendOn>>>,
@@ -33,8 +31,7 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
     cx: &mut Context<'_, V>,
 ) {
     let Handlers {
-        on_submit,
-        on_change,
+        callbacks,
         focused,
         send,
     } = handlers;
@@ -55,13 +52,13 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
                     state.update(cx, |state, cx| state.replace("\n", window, cx));
                 } else {
                     let text = state.read(cx).value().to_string();
-                    on_submit(owner, text, window, cx);
+                    callbacks.submit(owner, source(state.entity_id()), text, window, cx);
                 }
             }
             InputEvent::Change => {
-                if let Some(on_change) = on_change {
+                if callbacks.changes() {
                     let text = state.read(cx).value().to_string();
-                    on_change(owner, text, cx);
+                    callbacks.change(owner, source(state.entity_id()), text, cx);
                 }
             }
             InputEvent::Focus => {
@@ -76,4 +73,53 @@ pub(super) fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
         },
     )
     .detach();
+}
+
+// A host may capture one original immutable request; identified callbacks still
+// use the canonical engine FieldId and the very same event subscription.
+pub(super) type Submit<V> = Box<dyn Fn(&mut V, String, &mut Window, &mut Context<'_, V>)>;
+
+/// Existing callbacks and request-scoped callbacks share the same event path.
+pub(super) enum Callbacks<V: 'static> {
+    Plain {
+        on_submit: Submit<V>,
+        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+    },
+    Identified {
+        on_submit: fn(&mut V, FieldId, String, &mut Window, &mut Context<'_, V>),
+        on_change: fn(&mut V, FieldId, String, &mut Context<'_, V>),
+    },
+}
+
+impl<V: 'static> Callbacks<V> {
+    fn changes(&self) -> bool {
+        match self {
+            Self::Plain { on_change, .. } => on_change.is_some(),
+            Self::Identified { .. } => true,
+        }
+    }
+
+    fn submit(
+        &self,
+        owner: &mut V,
+        id: FieldId,
+        text: String,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) {
+        match self {
+            Self::Plain { on_submit, .. } => on_submit(owner, text, window, cx),
+            Self::Identified { on_submit, .. } => on_submit(owner, id, text, window, cx),
+        }
+    }
+    fn change(&self, owner: &mut V, id: FieldId, text: String, cx: &mut Context<'_, V>) {
+        match self {
+            Self::Plain { on_change, .. } => {
+                if let Some(on_change) = on_change {
+                    on_change(owner, text, cx);
+                }
+            }
+            Self::Identified { on_change, .. } => on_change(owner, id, text, cx),
+        }
+    }
 }

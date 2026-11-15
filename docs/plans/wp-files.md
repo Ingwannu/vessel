@@ -541,3 +541,25 @@ Two regressions cover every closed code, EN/KO nonempty output, hidden transport
 details and preserved legacy nonempty copy. The existing En/Ko size records
 shrink681→669 and659→648; no allowance is raised. This source is newer than
 strict18's immutable0eb404312 head and has no compiler/test receipt yet.
+
+## Package base7 / shared field identity merge
+
+Merged the official d18bb794 line before the next native submission, retaining
+its FieldId, Callbacks::Plain/Identified, identity constructors/tests, G2 assets
+and unrelated owners. Four conflicts are resolved explicitly: README keeps both
+independent sections; field/events.rs takes the head identity dispatch then
+reapplies only captured Plain submit; field.rs takes the head constructor/API
+shape and delegates its two existing factories to C5's construct child; the
+size list combines the head additions with the smaller owned limits.
+
+Plain submit stays one boxed host callback on the same event subscription.
+Identified submit/change signatures and engine FieldId checks are unchanged.
+The head's source-aware constructor and identity tests remain byte-identical;
+plain new/with_change plus composer/form factories accept captures as before.
+The old captured-submit regression remains registered, with no duplicate public
+constructors, text engine or event listener. Private construction bodies alone
+remain in construct.rs. field.rs shrinks its existing owned557 record to556
+(the incoming head record was615), without raising any size allowance. W22's
+composition, K's Windowed events and B2's submit-press additions remain separate
+unready producer work and are not copied here. No merged-head compilation or
+shared-control consumer approval is claimed; exact strict18 is older-source.

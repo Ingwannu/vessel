@@ -150,35 +150,16 @@ pub struct TextField {
     send: Rc<Cell<SendOn>>,
 }
 
-mod construct;
 mod events;
-use events::{Handlers, listen};
+use events::Callbacks;
+mod construct;
+mod identity;
+pub use identity::FieldId;
+
 mod editability;
 pub use editability::Editability;
 
 impl TextField {
-    /// A form field showing `placeholder` while empty. Enter in it calls
-    /// `on_submit` on its owner with the text it holds. The callback may capture
-    /// a request/decision identity; it never needs to re-read a mutable UI slot.
-    pub fn new<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        construct::line(placeholder, on_submit, None, window, cx)
-    }
-    /// The same, also calling `on_change` with the text after every edit
-    /// (to say what is wrong with it beside the field as it is typed).
-    pub fn with_change<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        on_change: fn(&mut V, String, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        construct::line(placeholder, on_submit, Some(on_change), window, cx)
-    }
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
     /// `on_submit` with the text, Shift+Enter starts a new line.
@@ -194,9 +175,8 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        construct::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
+        Self::multiline(MultilineStyle::Composer, placeholder, on_submit, window, cx)
     }
-
     /// A multiline form field on the one-line form field's surface.
     /// Enter starts a line; Mod+Enter submits. It grows from three to
     /// twelve lines, then the existing text engine scrolls. GOAT's small
@@ -207,7 +187,17 @@ impl TextField {
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
-        construct::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
+        Self::multiline(MultilineStyle::Form, placeholder, on_submit, window, cx)
+    }
+
+    fn multiline<V: 'static>(
+        style: MultilineStyle,
+        placeholder: &str,
+        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        construct::multiline(style, placeholder, on_submit, window, cx)
     }
 
     /// Which press sends a composer's text (a form field ignores it).
@@ -215,6 +205,15 @@ impl TextField {
         if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
             self.send.set(send);
         }
+    }
+
+    fn line<V: 'static>(
+        placeholder: &str,
+        callbacks: Callbacks<V>,
+        window: &mut Window,
+        cx: &mut Context<'_, V>,
+    ) -> Self {
+        construct::line(placeholder, callbacks, window, cx)
     }
 
     /// What it holds.
