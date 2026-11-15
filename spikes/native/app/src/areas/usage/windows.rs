@@ -75,6 +75,9 @@ pub(super) fn draw(
     let Some(source) = vessel_app_view::usage::saved_source(account.harness()) else {
         return body.into_any_element();
     };
+    let Some(ticket) = state.inventory.observation_ticket() else {
+        return body.into_any_element();
+    };
     let pin = Pin {
         source,
         window: window.id.clone(),
@@ -104,7 +107,7 @@ pub(super) fn draw(
             },
         ))
         .on_click(cx.listener(move |shell, _, window, cx| {
-            shell.usage_toggle_pin(machine.clone(), pin.clone(), window, cx)
+            shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx)
         }))
         .into_any_element()
 }

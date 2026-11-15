@@ -3,6 +3,7 @@ use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::{
     connection::ConnectionContext,
+    devices::Ticket,
     prefs::PreferenceChange,
     sidebar::navigation::{Builtin, Key, Section, Visibility},
     usage::{Pin, default_pins},
@@ -12,11 +13,14 @@ impl Shell {
     pub(super) fn usage_toggle_pin(
         &mut self,
         machine: ConnectionContext,
+        ticket: Ticket,
         pin: Pin<UsageSourceId, LimitKey>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.usage.inventory.selection() != Some(&machine) {
+        if self.areas.usage.inventory.selection() != Some(&machine)
+            || self.areas.usage.inventory.observation_ticket() != Some(ticket)
+        {
             return;
         }
         let Some(inventory) = self.areas.usage.inventory.phase().observation() else {

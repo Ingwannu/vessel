@@ -33,6 +33,9 @@ pub(super) fn render(
     else {
         return body.into_any_element();
     };
+    let Some(ticket) = state.inventory.observation_ticket() else {
+        return body.into_any_element();
+    };
     let pin = Pin {
         source: source.clone(),
         window: window.id.clone(),
@@ -60,7 +63,7 @@ pub(super) fn render(
         },
     ))
     .on_click(cx.listener(move |shell, _, window, cx| {
-        shell.usage_toggle_pin(machine.clone(), pin.clone(), window, cx)
+        shell.usage_toggle_pin(machine.clone(), ticket, pin.clone(), window, cx)
     }))
     .into_any_element()
 }

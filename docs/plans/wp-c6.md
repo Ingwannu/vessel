@@ -188,3 +188,13 @@ Coordinator assigned the remaining arbitrary-body adaptive UsageOptions popover 
 - Existing asset: typed PinSelection plus the shared per-field lenient serde decoder already preserve valid host/display fields independently. Serde is already a dependency; no external API is needed.
 - Choice: modify that decoder with a private missing/present pin state, preserve new null/malformed/empty precedence, and accept sourceId/windowId plus displayAs/serverId aliases at the storage edge. Serialize only canonical native fields so compatibility is read once through the normal writer.
 - Impact: no second preference, pin registry or transport DTO. Default/explicit-empty distinction remains unchanged and the first edit still snapshots source defaults.
+
+### Pin edits belong to the displayed observation
+A connection can stay unchanged while a cache response replaces its windows or the
+usage surface closes/reopens. Pin callbacks now capture the reader's existing
+successful observation ticket as well as ConnectionContext. A replacement/close
+revokes that edit before it can snapshot newer defaults under an older rendered
+row. A pending/failed transport read that still draws the same immutable success
+keeps its ticket. This reuses the correlation owner rather than allocating a second
+UI generation or capturing a separate defaults vector for every window. The pure
+reader regression covers replacement, failed refresh retention and same-scope reopen.

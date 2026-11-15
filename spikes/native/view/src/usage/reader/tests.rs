@@ -92,3 +92,30 @@ fn a_closed_page_admits_no_queued_reads() {
     assert!(reader.answer(old.ticket, Ok(value(1))).is_none());
     assert!(matches!(reader.phase(), Phase::Idle));
 }
+
+#[test]
+fn render_edits_follow_the_observation_identity_not_only_its_connection() {
+    let mut reader = UsageReader::default();
+    let first = reader.request(Account::First).unwrap();
+    assert!(reader.observation_ticket().is_none());
+    assert!(reader.answer(first.ticket, Ok(value(1))).is_none());
+    assert_eq!(reader.observation_ticket(), Some(first.ticket));
+    let failed = reader.request(Account::First).unwrap();
+    assert_eq!(reader.observation_ticket(), Some(first.ticket));
+    assert!(
+        reader
+            .answer(failed.ticket, Err(RequestFailure::TimedOut))
+            .is_none()
+    );
+    assert_eq!(reader.observation_ticket(), Some(first.ticket));
+    let replacement = reader.request(Account::First).unwrap();
+    assert!(reader.answer(replacement.ticket, Ok(value(2))).is_none());
+    assert_eq!(reader.observation_ticket(), Some(replacement.ticket));
+    assert_ne!(reader.observation_ticket(), Some(first.ticket));
+    reader.close();
+    assert!(reader.observation_ticket().is_none());
+    let reopened = reader.request(Account::First).unwrap();
+    assert!(reader.observation_ticket().is_none());
+    assert!(reader.answer(reopened.ticket, Ok(value(3))).is_none());
+    assert_ne!(reader.observation_ticket(), Some(replacement.ticket));
+}

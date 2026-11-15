@@ -114,6 +114,7 @@ pub struct Reader<K, T> {
     tickets: Tickets,
     phase: Phase<T>,
     current: Option<Ticket>,
+    observed: Option<Ticket>,
 }
 impl<K, T> Default for Reader<K, T> {
     fn default() -> Self {
@@ -124,6 +125,7 @@ impl<K, T> Default for Reader<K, T> {
             tickets: Tickets::default(),
             phase: Phase::Idle,
             current: None,
+            observed: None,
         }
     }
 }
@@ -138,12 +140,21 @@ impl<K: Clone + Eq, T> Reader<K, T> {
     pub const fn selection(&self) -> Option<&K> {
         self.selected.as_ref()
     }
+    /// Identity of the immutable observation currently drawn, including while a read is pending.
+    /// Render callbacks use it to refuse edits from an older report or closed/reopened surface.
+    #[must_use]
+    pub const fn observation_ticket(&self) -> Option<Ticket> {
+        self.observed
+    }
     /// Select or explicitly refresh; intermediate pending choices are coalesced.
     #[must_use]
     pub fn request(&mut self, selection: K) -> Option<ReadRequest<K>> {
         let retained = (self.selected.as_ref() == Some(&selection))
             .then(|| self.phase.retained())
             .flatten();
+        if retained.is_none() {
+            self.observed = None;
+        }
         self.selected = Some(selection.clone());
         self.queued = Some(selection);
         self.current = None;
@@ -156,6 +167,7 @@ impl<K: Clone + Eq, T> Reader<K, T> {
         self.queued = None;
         self.current = None;
         self.phase = Phase::Idle;
+        self.observed = None;
     }
     /// Settle only the active admission and then admit the latest queued choice.
     #[must_use]
@@ -170,7 +182,10 @@ impl<K: Clone + Eq, T> Reader<K, T> {
         self.active = None;
         if self.current == Some(ticket) {
             self.phase = match result {
-                Ok(value) => Phase::Ready(Arc::new(value)),
+                Ok(value) => {
+                    self.observed = Some(ticket);
+                    Phase::Ready(Arc::new(value))
+                }
                 Err(reason) => Phase::Failed {
                     reason,
                     retained: self.phase.retained(),
