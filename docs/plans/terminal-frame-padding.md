@@ -33,4 +33,9 @@ head still needs its own narrow result and changed-source enclosing gate.
 The strengthened a637 head executed39 tests with no failures. Its strict check
 rejected unchecked arithmetic in the test's full-grid counter. The counter now
 checks overflow without weakening the cardinality assertion or changing product
-code. Its strict check and the changed-source enclosing whole remain owed.
+code. Exact3878 all-target strict Clippy passed in
+termscreen-query-20261115T170651Z-3878b5ad. Its executable correction is
+byte-identical to the a637 runtime39/0 source; only the test counter changed.
+The changed-source enclosing whole remains owed, as does full consumer
+qualification under row217. The original2807 whole remains evidence for its
+own source, including its unrelated heartbeat test failure, never this repair.
