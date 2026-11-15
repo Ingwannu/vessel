@@ -86,7 +86,7 @@ fn count_saturation_retains_old_evidence_and_never_evicts_to_admit_another() {
 #[test]
 fn byte_and_body_bounds_do_not_remove_retained_keys() {
     let mut snapshots = Snapshots::default();
-    let text = "a".repeat(MAX_DETAIL_BYTES / 2);
+    let text = "a".repeat(MAX_DETAIL_BYTES.checked_div(2).unwrap());
     for index in 0..MAX_DETAIL_SNAPSHOTS {
         snapshots.observe(&mut call(&format!("{index}"), Some(1), &text));
     }

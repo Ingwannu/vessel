@@ -15,6 +15,7 @@ use vessel_store::{
 #[expect(dead_code, reason = "only session and directory fixtures are needed")]
 mod fixtures;
 
+#[cfg(test)]
 fn form() -> Question {
     Question {
         tool_scope: None,
@@ -39,6 +40,7 @@ fn form() -> Question {
         }],
     }
 }
+#[cfg(test)]
 fn answer() -> QuestionAnswer {
     QuestionAnswer::Accept {
         values: BTreeMap::from([("route".parse().unwrap(), AnswerValue::Text("left".into()))]),

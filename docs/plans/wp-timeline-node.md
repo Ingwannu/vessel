@@ -437,3 +437,9 @@ classified once as Alias::Content: a user-authored objective is carried text,
 not a minted handle or an action capability. This classification becomes reachable
 through the unified SubmitPrompt intent; predecessor unregistered command values
 could not prove this generator path. No failed artifact bytes were applied.
+
+Strict run wp-timeline-core-next-20261115T152106Z-9b2bb06f next reached integration
+fixture helpers: the two durable-question builders are explicitly test-only,
+matching their integration target, and the snapshot byte-bound fixture uses
+checked division. The existing assertions and boundary values are unchanged;
+no product lint allowance is introduced. That immutable run stays failed.
