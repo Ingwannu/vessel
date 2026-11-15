@@ -1,254 +1,343 @@
-# Spoken conversation package
+# ADR 0080: Spoken conversation and desktop audio
 
-## Decision before code
+Status: initial contract accepted, 2026-11-15. Engine/dependency distribution
+amendments and product integration still require their own evidence.
+Protocol number given at merge; `voice::SINCE: Option<ProtocolVersion>` is
+`None` until assigned by the node integrator. No schema change: audio,
+voice leases and playback receipts are ephemeral.
 
-Decision: modify existing settings/secret/session boundaries; add voice-only
-actors and a desktop audio owner because none exists. ADR 0080 is proposed,
-with architecture review required before product code. ADR 0067's owner was
-consulted: only PCM/WAV/TLS/secret primitives are potential shared assets;
-its stream commit/prompt/confidence policy is not a voice API.
+## Purpose and intent
 
-## Reference behaviour read (Paseo 0.15.4)
+A person starts an opt-in spoken conversation with an existing agent,
+speaks while listening, interrupts an answer by speaking, mutes capture,
+and stops. The native app owns the physical microphone and speaker; the
+node owns turn detection, transcription, agent input and speech synthesis.
+Host Voice settings select dictation STT, conversation STT and conversation
+TTS independently. Ordinary typing and voice use the same session authority.
 
-Paths below are relative to the reference repository, not copied sources.
+The reference is Paseo 0.15.4, read from its source, not copied. Detailed
+locations and differences are in `docs/plans/wp-voice.md`.
 
-| Source | Lines | Behaviour |
+## Existing implementation and constraints
+
+- ADR 0067 owns dictation: PCM16 mono values, STT settings, endpoint
+  validation, bounded in-memory WAV/multipart and transcription HTTP.
+  Its current implementation is staged, private and test-only. It is not
+  a product API. Its owner confirmed that microphone capture, VAD, TTS,
+  local inference and model downloads are outside that package.
+- Dictation's one-second chunks and 15-second commit policy cannot drive
+  low-latency conversation. Its provider does not request logprobs; voice
+  must retain Paseo's low-confidence rejection separately.
+- The node has one typed method table and `required_protocol()`.
+  `node.settings`/`node.set_settings` own settings persistence;
+  `FleetFiles::resolved_secret` owns secret resolution. New secret readers
+  and raw key settings would create another authority and are rejected.
+- The app has pure `view`, network/device `link`, GPUI `app` and controls
+  `kit`. Settings already has a reserved Voice section, currently hidden.
+  There is no existing microphone/playback engine or voice service.
+- The node integrator must assign the version and announce the method-table
+  prerequisite before any new call is wired. App code never invents a call
+  absent on its node base. Until then, a typed internal adapter and an
+  in-memory test fake exercise the state machines; no entry point is shown.
+
+## Alternatives considered
+
+1. Browser/WebView audio inside the GPUI app. Rejected: adds an engine,
+   permission origin and IPC just to access devices, and duplicates the
+   native audio lifecycle. Paseo desktop can use WebAudio because its UI
+   already runs in a browser.
+2. Spawn ffmpeg/arecord or PowerShell for capture. Rejected: separate
+   installation, fragile process/permission boundaries, and no shared
+   playback reference for acoustic echo cancellation.
+3. Send raw microphone audio straight to a cloud realtime model. Rejected:
+   substitutes a different assistant for the selected coding agent and
+   bypasses the node's session, permissions and speak-tool path.
+4. Reuse the complete dictation actor for voice. Rejected: commit cadence,
+   finalization, confidence and cancellation semantics differ. Share codec
+   and transport primitives only after their owning branch is integrated.
+5. Handwrite OS audio/ONNX/WebRTC FFI. Rejected: our code forbids unsafe;
+   the standard library provides none of these APIs.
+
+## Choice and reasons
+
+### Ownership and flow
+
+One app audio owner holds an exclusive `CaptureLease` with a closed
+`CapturePurpose::{Dictation, Conversation}`. It survives route changes,
+not app shutdown. Dictation and voice cannot record concurrently. A second
+request is a typed `CaptureBusy` refusal, never a second open device.
+
+`view::voice` owns validated presentation values, phases, mute, generation
+fencing, playback ordering and pure VAD boundary state. It does no I/O.
+`link::voice` owns the bounded conversation actor, node adapter, playback
+acknowledgements and cancellation deadlines. Shared `link::audio` owns
+the exclusive microphone/playback device thread, purpose leases and PCM
+conversion; dictation consumes that same engine rather than opening another.
+`app::areas::voice` draws the composer overlay and host settings through
+existing kit controls. Words come from EN/KO catalogs. Shared shell/link
+files receive registration lines only.
+
+`vessel-proto::voice` owns wire values and requests. The node's `voice`
+actor owns connection-bound leases, STT/VAD/TTS providers and transient
+outbound updates. Service methods authorize before work. Session input,
+reload and interrupt use the existing session service, not an alternate
+harness or prompt sender. The provider owner supplies the typed transient
+AgentSetup field and per-driver capability; the lifecycle owner supplies
+the one reload actor. Voice owns only bounded policy text and generation-
+fenced enable/restore state. Unsupported drivers are explicitly refused;
+there is no ordinary user-prompt or arbitrary environment fallback. The MCP path exposes `speak` only to the agent
+whose session currently has a live voice lease. It cannot open a microphone
+or select another session. Agent tools and direct person calls have
+separate request types and authority checks.
+
+Starting validates readiness and a non-running existing session, then
+reloads its voice instruction and installs the speak capability, before
+capture starts. Failure rolls back that generation; uncertain remote
+cleanup is surfaced. Local Stop first fences all capture callbacks, gates uploading, discards
+queued unsent PCM, stops local playback and capture and releases the local
+capture lease, independently of any remote await or full data queue. Only
+then does remote teardown interrupt the running turn, cancel speech,
+disable voice and restore the prompt. Local cleanup runs on every error,
+timeout and lost-reply path. Remote teardown uncertainty remains visible
+and retains its separate remote-generation record, never microphone or
+upload permission. A new conversation cannot silently replace that remote
+record; dictation can acquire the already released local capture lease.
+Disconnect or OS device interruption has the same immediate local privacy
+boundary; it never keeps a microphone streaming to a replacement connection. Reconnect may start a new explicit generation only
+when the previous lease is confirmed gone.
+
+### Providers and settings
+
+One optional top-level `voice` field is added to node settings. Absent means
+voice off. STT and TTS each default to `Local`; local defaults are Parakeet
+v2 (`parakeet-tdt-0.6b-v2-int8`) and Kokoro English (`kokoro-en-v0_19`).
+Dictation remains ADR 0067's independent field and default-on switch.
+Provider selection drops the previous provider's fields rather than moving
+credentials between sites. Omitted patches keep, null clears, and invalid
+patches change neither file nor effective settings. Unknown values remain
+readable but cannot be applied. Old writers preserve newer settings through
+the existing backup/refusal contract. Reads expose key presence only.
+
+`Endpoint` is OpenAI-compatible HTTPS (or parsed loopback HTTP), default
+base `https://api.openai.com/v1`. Voice STT uses `/audio/transcriptions`,
+`whisper-1`, language `en`. Models `gpt-4o-transcribe` and
+`gpt-4o-mini-transcribe` request logprobs; finite mean below -3.0 means
+non-speech. Missing logprobs do not manufacture low confidence. Dictation's
+fixed prompt is not silently inherited. TTS uses `/audio/speech`, `tts-1`,
+`alloy`, PCM16 mono 24 kHz. Closed provider enums dispatch at a validated
+boundary; responses never leak foreign JSON beyond their decoder.
+
+Node VAD uses Silero at 16 kHz, windows of 512 samples, threshold 0.5,
+internal minimum silence/speech 0.2/0.1 seconds, boundary confirmation
+800 ms and ending silence 1000 ms. The dormant client VAD constants are
+not the reference algorithm. Barge-in cancels current synthesis/playback
+and interrupts the agent on confirmed speech start. Empty/low-confidence
+final text returns to listening without submitting an agent turn.
+
+Local model loading/download is a separate prerequisite inside this
+package, not permission to substitute a peak detector or a fake provider.
+No local engine is advertised ready before its runtime and selected model
+are available. Local backend returns `LocalNotBuilt` while absent; missing
+models return typed readiness. Full local parity remains incomplete until
+the dependency/model license and distribution amendment below is reviewed.
+
+### Linux and Windows devices, crates and licences
+
+Chosen capture/playback candidate: `cpal = 0.16.0`, Apache-2.0, in the
+native link crate only under Linux/Windows target conditions. It supplies
+safe Rust callback APIs over ALSA (Linux, including system plugin routing)
+and WASAPI shared mode (Windows). ASIO/JACK optional features stay off.
+No process is spawned. GPUI stays on its UI thread; a dedicated device
+owner creates/drops both streams and owns the audio processing instance.
+The node never opens the app's hardware. No system package is installed by
+this feature; Linux build prerequisites must be supplied by the build image.
+
+Chosen echo processing candidate: `sonora = 0.3.0`, BSD-3-Clause, default
+library only, no examples or FFI. Rendered output feeds the reverse stream
+before the corresponding capture block; capture passes through AEC3,
+noise suppression and gain control in 10 ms mono blocks. Use the same
+engine for thinking cues and TTS so the echo reference includes both.
+CPAL itself does not provide echo cancellation. Unsupported device rates,
+formats or processor initialization fail with typed errors; never silently
+claim echo cancellation. Conversion/downmix/resampling is bounded and
+preserves state across callbacks rather than resetting each chunk.
+
+Direct crate archives inspected from crates.io on 2026-11-15:
+
+| Candidate | Archive bytes | Unpacked source bytes | License |
+| --- | ---: | ---: | --- |
+| cpal 0.16.0 | 104465 | 506821 | Apache-2.0 |
+| sonora 0.3.0 | 111649 | 565551 | BSD-3-Clause |
+| sherpa-onnx 2.0.1 (not selected yet) | 55820 | 267432 | Apache-2.0 |
+
+Sources: [CPAL](https://github.com/RustAudio/cpal),
+[Sonora](https://github.com/dignifiedquire/sonora),
+[sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx).
+These are source/archive sizes, not linked binary size. CPAL's OS crates
+and Sonora's companion crates must be inventoried before manifest changes;
+Linux/Windows linked-size delta must be measured before release.
+`std` has no audio API and existing dependencies have no device/AEC owner.
+
+Local inference candidate is sherpa-onnx's safe wrapper, with ONNX Runtime
+(MIT). It is deliberately not selected/added in this initial decision:
+its sys build may fetch prebuilt native archives, whose platform size,
+notices, supply-chain pins and runtime-loading paths need a further
+reviewed amendment before any manifest change. Model weights have their
+own licenses. Default reference archive sizes are 482468385 bytes STT and
+319625534 bytes TTS; those numbers do not establish redistribution rights.
+Silero, Kokoro's espeak data and every selected model require exact notices
+and trusted-source digests before distribution. Neither a model nor
+native binary is copied from Paseo's bundle. No automatic build-script
+fetch or unverified download is accepted as a production dependency.
+
+### Wire contract, authorization and compatibility
+
+Proposed methods, all pending on one `SINCE = None` until assignment:
+
+| Call | Request / reply | Authority |
 | --- | --- | --- |
-| packages/app/src/voice/voice-runtime.ts | 13-24, 525-540 | cue timing and display smoothing |
-| same | 706-810 | old target disable, initialize, node enable, capture; rollback/stop |
-| same | 557-580, 662-704, 900 onward | reconnect resync, grouped playback, barge-in |
-| packages/app/src/components/realtime-voice-overlay.tsx | 17-110 | 44-point mute/stop, meter, switching disables actions |
-| packages/app/src/screens/settings/voice/voice-page.tsx | 43-165 | offline/unsupported gates; dictation and voice sections, per-site editor |
-| packages/server/src/server/speech/speech-config-resolver.ts | 39-49, 68-120 | local providers; dictation on, voice off |
-| packages/server/src/server/speech/providers/openai/config.ts | 8, 25-65 | site resolution, tts-1/alloy/PCM defaults |
-| packages/server/src/server/speech/providers/openai/stt.ts | 195-232 | temp WAV; logprobs for two known models; mean threshold -3.0 |
-| packages/server/src/server/session/voice/voice-session.ts | 354-450 | readiness, target agent, voice enable/disable and response |
-| packages/server/src/server/session/voice/voice-turn-controller.ts | 14, 16-45, 69-104, 136-185 | final deadline, filler partials, typed input phases, confidence |
-| packages/server/src/server/speech/providers/local/sherpa/silero-vad-session.ts | 10-24, 75-119, 206-263 | 16k/512/0.5; 800 ms confirm, 1000 ms ending |
-| packages/server/src/server/agent/tts-manager.ts | 30-32, 107-120, 150-245, 350-420 | 260-unit segments, two prefetched; per-segment collected PCM and receipts |
-| packages/server/src/server/speech/providers/openai/tts.ts | 25-30, 59-83 | tts-1/alloy/PCM; complete response collected before playback |
-| packages/server/src/server/voice-config.ts | 1-62 | voice prompt replacement/disable and spoken-input wrapper |
-| packages/server/src/server/speech/providers/local/sherpa/model-catalog.ts | 256-267, 358-373 | default STT/TTS model ids and archive sizes |
+| `voice.start` | client lease id + session / ready generation | person operate |
+| `voice.chunk` | lease + generation + sequence + PCM / contiguous ack | owning connection operate |
+| `voice.next` | lease + generation / typed transient update | owning connection operate |
+| `voice.played` | lease + generation + playback id + outcome / ack | owning connection operate |
+| `voice.abort` | lease + generation / interrupted or typed failure | owning connection operate |
+| `voice.stop` | lease + generation / stopped or uncertain cleanup | owning connection operate |
+| `voice.speak` | bounded speech text / playback finished outcome | agent's own active voice session only |
 
-The area-2 composer survey section 7 and Settings survey part D's Host Voice
-section are the inventory. Source overrides any shorthand in those notes.
+No call is forwardable through a fleet home. A paired read-only principal,
+agent capture request or another connection's lease is refused before
+provider/device work. A new start never replaces another owner's live
+lease. `next` is cancellable long-poll, not a durable event log; audio
+updates never enter session storage. Transcript prompts and intentional
+assistant speech follow the ordinary session history, unlike raw audio.
+A cancelled `next` consumes no queued update before response readiness.
 
-## Differences and reasons
+Typed ids, sequence, sample rate, PCM, character counts, confidence,
+playback group and duration values validate at decode. The initial node
+emits one complete packet per synthesis segment, as the reference TTS
+manager does at lines 397-410; no arbitrary partial-group stream is exposed.
+Low-confidence and empty transcription variants cannot carry text. Audio `Debug`
+shows byte length only; transcript/speech values redact content. Old peers
+cannot send/receive the calls; omitted settings are not interpreted as
+support. Unknown settings/reasons remain readable. Method registration,
+client wrappers and generated TS land together only after the node exists.
 
-- Typed RPC long-poll replaces the reference's unsolicited voice messages:
-  the node has one versioned table, not a second frame protocol.
-- Named resource caps, explicit overload/refusal, finite provider and receipt
-  waits: a multi-user node cannot retain unbounded audio or pending speech.
-- Generation-bound explicit reconnect replaces automatic enable resync:
-  no implicit second microphone/provider/agent lease after uncertain cleanup.
-- Credentials use the existing secret store, read presence only. No raw
-  config key, process environment override or displayed secret name. One
-  credential owner prevents accidental export and cross-site reuse.
-- No audio files, debug dumps, text previews or upstream error logging:
-  privacy floor over the reference's temporary WAV/debug diagnostics.
-- ALSA/WASAPI plus explicit software AEC replaces WebAudio/Expo:
-  GPUI does not supply browser/mobile audio engines. Hardware support and
-  AEC quality require independent physical-platform checks.
-- Local inference is unavailable until vetted native runtime, notices and
-  model downloads exist. Default remains local/off, never endpoint fallback.
-  This is an explicit incomplete parity dependency, not a completed feature.
-- Plugin non-PCM arbitrary audio and mobile/browser device engines are
-  outside the Linux/Windows package; no claim that those platforms work.
-- Thinking cue audio must be generated independently, not copied from the
-  reference's asset; preserve its timing and purpose.
+### Limits and failure behaviour
 
-## Implementation order and module map
+All added bounds become named constants at their owner. Additional limits
+are deliberate resource floors, never silent truncation:
 
-1. ADR/plan review. Resolve inference distribution and common-code ownership
-   before manifests/shared edits; protocol number assigned only at merge.
-2. Node skeleton on the node line: proto voice values/requests/settings,
-   node voice actor/provider seam, client adapter, fail-closed version gate.
-3. App skeleton: pure voice state/ordering/lease model, adapter fake, hidden
-   area registration. No invented RPC is sent before node implementation.
-4. Implement node VAD/STT, spoken session input/prompt and scoped speak TTS,
-   receipt/abort ownership; settings and readiness. Add real adapters only
-   after method-table prerequisites and assignment.
-5. Implement capture/playback/DSP, overlay and settings in EN/KO. Wire into
-   composer and existing settings with registration-only shared changes.
-6. Narrow checks each commit. One root gate and one native gate at package
-   end; own fake fleet/display captures at 1280x900/390x844 and 800x600 in
-   dark/light EN/KO, every capture inspected. One node review and app review.
+| Resource | Bound / behaviour |
+| --- | --- |
+| Active voice | 1 per app; 1 per connection; 8 per node; one owner per session |
+| Start nonce history | at most128 retained attempts per connection and1024 per node, including cancelled-before-start markers; explicit Capacity refusal, no eviction/rebinding of a live connection's ids |
+| Capture wire | 16 kHz mono PCM16, 20 ms normal chunks; at most 100 ms/chunk |
+| Capture queue | 2 seconds; overflow stops capture with CaptureOverrun |
+| Input ordering | contiguous sequence; exact duplicates idempotent; gaps fail lease |
+| Utterance | 60 seconds / 1920000 PCM bytes at 16 kHz; TooLong ends turn |
+| Final STT | 10000 ms, from Paseo voice controller |
+| HTTP | connect 10 s, request 60 s; no redirects, env proxy or automatic retry |
+| STT response | 512 KiB before decoding; text at most 64 KiB UTF-8 |
+| Speech input | 64 KiB UTF-8; split at sentences/clauses/words, 260 UTF-16 units |
+| Composite transient prompt | existing 16 KiB AutomationText transport cap, including base and policy; refuse before reload |
+| TTS prefetch | 2 segments, matching Paseo; 8 MiB decoded PCM per segment |
+| Playback receipt | PCM duration + 30 s, bounded by 210 s; timeout fails speak |
+| Closed receipts | 10 s TTL, 256 ids maximum; unknown/foreign id refused |
+| Outbound queue | 2 audio segments plus 16 control events; pressure fails lease |
+| App/node operations | finite 10 s start/stop/abort; local Stop gates immediately before remote awaits; remote uncertainty is visible |
+| Meter | publish at 120 ms or 0.02 delta; attack 0.35/release 0.18 |
+| Thinking cue | wait 1500 ms, repeat after cue duration + 350 ms |
 
-Node: proto voice/{mod,values,settings,requests}; node voice/{actor,registry,
-turn,stt,tts,playback}; service/voice; client voice wrapper. Shared PCM/TLS
-extraction is owned by integration, never copied from a private staged API.
-App: view voice/{mod,phase,playback,capture}; link voice/{mod,adapter,audio};
-app areas/voice/{mod,overlay,settings}; locale voice.ftl. No new kit control.
+A receipt acknowledges played, failed or interrupted, never queued audio.
+Generation fences reject callbacks, audio and receipts from an earlier
+lease. Cancellation is out-of-band from bounded data queues. Reconnect,
+shutdown and abort must be able to stop even when those queues are full.
 
-## Required regression evidence
+### Secrets and reach
 
-Start prerequisites before any side effect; old peer refusal in both
-directions; bad PCM/rate/sequence rejection before work; cross-owner and
-agent capture refusal; speak restricted to its current voice session;
-busy capture; rollback on node/capture start failure; late-generation audio
-and receipts; partial/full queue cancellation; held/rejected/lost remote-stop
-reply with full capture/playback queues: no post-Stop PCM sends or late
-callback upload, local capture released on every failure, uncertain remote
-record still visible and no implicit restart; interrupted and failed
-playback acknowledgements; barge-in during TTS and agent work; empty,
-filler-only and low-confidence speech; 260-unit segmentation including
-Unicode; prefetch two; timeout cleanup; key edit/delete visibility; URL,
-secret, audio and text redaction through Debug/Display/error sources;
-settings read/patch compatibility and provider-switch clearing; mute
-upload gating; disconnect/device-loss release; non-running button gate;
-EN/KO compact overlay and settings. No real agent or provider in tests.
+Keys are stored only by existing secret.set, selected by validated secret
+references, resolved on a blocking worker for a fresh provider session.
+Reads return present/absent, never the name or value. No library reads a
+process environment or home to obtain credentials. The shared node TLS
+configuration and secret owner are reused after their integration; there
+is no copied TLS root/secret-loading implementation.
 
-## Resume point
+The administrator-selected endpoint receives PCM/WAV or speech text with
+that site's bearer key. HTTPS can reach that configured host; plain HTTP
+is restricted to parsed loopback. Userinfo, query and fragment are refused.
+Redirects and environment proxy lookup are disabled. Keys are never placed
+in command lines, added environment variables, settings files or URLs.
+Errors redact URL, headers, bodies, text, audio and foreign diagnostics;
+private causes must also be safe under Debug/source traversal. No debug
+recording switch, temporary audio file or transcript preview log exists.
+Cancellation cannot retract bytes already accepted by an external provider.
 
-Done: isolated app and node branches; worker/common/native rules and
-reference survey/source read; ADR 0067 owner consulted; coordinator gave
-both-side ownership; integrator asked once for pending feature/version.
-Direct candidate archives measured; no manifest or product code changed.
+## Advantages, costs and effects
 
-Current: initial ADR 0080 accepted after ordinary Stop ordering correction:
-local generation fence/upload gate/queued PCM discard/playback and capture
-release precede every remote await; uncertain remote cleanup is independent.
-Device ownership releases only after streams actually stop/drop, not after
-queueing a stop request. Engine/distribution and method registration remain
-unapproved prerequisites. Dictation's app consumer agreed to one shared
-link::audio owner and purpose lease, including fenced events and typed frames.
+The app stays native; the node remains the only provider/credential owner.
+Shared codec boundaries avoid duplicate audio parsers without coupling
+voice turn policy to dictation. Typed ownership and finite queues bound
+capture, synthesis and stale replay. Costs are extra desktop audio/DSP
+crates and platform testing, and a separately audited local inference
+runtime/model distribution. A fake/provider unit test proves contracts,
+not microphone permissions, audio quality or actual provider service.
 
-Draft node skeleton: voice request/update values with SINCE None, separate
-capture/playback PCM bounds, redacted speech, low-confidence branch without
-text; existing base64 decoder extended with opt-in preallocation bounds.
-No methods or settings fields registered. Staged detector boundary consumes
-Silero observations on a deterministic sample clock; it is not an inference
-engine. Tests/narrow compile evidence must complete before its commit. Local native inference distribution
-and transitive audio dependency inventory remain explicit prerequisites.
+Deliberate differences, detailed in the plan, include RPC long-poll rather
+than ad-hoc push, bounded resources, explicit reconnect rather than implicit
+resync, secret references rather than raw config keys, no env overrides or
+audio debug dumps, and readiness refusal until real local inference ships.
+These decisions do not establish whole-package parity by themselves.
 
-Next: finish narrow skeleton checks; implement node and app skeletons
-against a fake adapter without sending missing calls; amend dependency
-measurements before adding crates. App-base and Quality B announcement
-must precede wire registration. No gates/captures/runtime proof yet.
+## Turn-buffer resource amendment (2026-11-15 08:28 UTC, staged)
 
+Paseo voice-turn-controller.ts500–538 appends detector/STT data while listening,
+before confirmation. Its endpoint STT buffer can therefore accumulate idle audio.
+Vessel's staged input buffer keeps only the latest two seconds (64000 PCM16 bytes
+at16kHz) while unconfirmed, preserving the800ms confirmation plus detector/chunk
+latency without retaining endless silence. After the confirmed edge it retains
+at most1920000 bytes, sixty seconds including that pre-roll and ending silence.
+Overflow refuses before mutation and retires the turn/lease in its eventual
+actor; it never truncates confirmed speech. A Stop/abort discards both prefix and
+current utterance without STT commit. This is a deliberate resource difference,
+not proof that a two-second prefix covers physical/network conditions; detector
+and codec integration plus waveform validation remain owed.
 
-### Pending registration draft after the shared-table head
+### Pending-start cancellation target clarification
 
-The node branch merged the shared method-table head. Seven pending unary
-rows use the single unassigned voice gate; next is one long-poll reply,
-not an RPC subscription. All methods are nonforwardable and operate;
-agent capture/control is refused, and speak is agent-only. Skeleton
-handlers return typed runtime-unavailable without opening any provider,
-changing a prompt or advertising readiness. The live own-session lease
-check belongs to the real implementation before any speak success.
-Generated declarations and compile evidence for this draft remain owed.
+A Stop request cannot require a server epoch before the start reply was received.
+The typed target therefore distinguishes Starting(client VoiceId nonce) from
+Active(full VoiceLease). Both require the canonical opaque connection owner;
+Starting is not a bearer capability and cannot address another connection's
+start. The registry must cancel/retain the original start record through its
+actual factory/reload cleanup, fence late completion, and never bind that nonce
+to a later acquisition. Active always requires its exact epoch. This closes the
+implementation gap between the client-selected cancellation id described above
+and an epoch-only Stop request; it adds no method, feature number or schema.
 
-Voice policy now reuses the existing 16 KiB PromptText transport bound
-(including the base and policy), retains redacted transient restoration
-state, and refuses replacement while a restore is uncertain. The provider
-owner's new setup field/capability must land before the lifecycle owner's
-reload and this package's real enable/restore bridge. No driver or reload
-actor is duplicated and no user-message/env fallback exists.
+Local Stop still fences capture/upload/playback first. Sending pending Stop does
+not wait for the delayed start result; a late ready result is retired, never used
+to open capture. Unknown/rejected/lost remote cleanup stays explicitly uncertain.
+Owning-registry held-start/late-ready/cross-connection tests are owed with wiring;
+typed serialization fixtures alone do not prove remote teardown.
 
-The seven rows initially exceeded the shared rpc.rs 500-line budget.
-The coordinator directed consuming the already isolated Request/UnexpectedReply
-extraction, then awaiting the integrator's lasting table seam; no size
-record is raised. New drafts are preserved as WIP before that merge.
+### Pending-start cancellation and bounded nonce history
 
-## Pending-wire generation repair (2026-11-15 07:43 UTC)
+The registry records a caller-owned Starting Stop even if its Start handler
+has not yet reserved the attempt. A later Start on that same connection and
+nonce is refused before provider or reload work. For a reserved generation,
+Stop cancels its child token synchronously; late startup success cannot mark
+it active. A foreign connection cannot cancel an existing reservation, and
+an active target additionally checks the exact node epoch.
 
-The first pending-row TS generation caught the exhaustive agent reply classifier; the next caught unclassified wire aliases. The seven voice handles/content aliases and the existing PCM format alias now follow the central handle/content/name rules. `VoiceEpoch` is an authority generation handle; `VoiceSeq` is a count. Speech blank validation reuses the existing JavaScript whitespace contract (BOM rejected, NEL retained). These failures are generation coverage, not a provider/runtime test. The pending node handlers remain fail-closed.
-
-## TTS segmentation source slice (2026-11-15 07:53 UTC)
-
-The staged `voice::segments` follows Paseo `tts-manager.ts:30–131`: JS whitespace normalization; sentence boundaries after .!?; greedy clause packing after ,;:; a late-enough space before a hard 260 UTF-16-unit cut. It reuses the existing JS trim validator rather than Rust's different NEL/BOM rules. Rust moves a hard cut before a surrogate pair (up to one unit earlier) because invalid UTF-8/unpaired surrogate output cannot become SpeechText. Added deterministic sentence/clause/word/astral cases; no provider call or playback proof. Provider/reload/codec integration is still outstanding.
-
-Pending-row TypeScript generation now passes locally: `VESSEL_WRITE_TS=1 cargo test -p vessel-proto --features ts --lib typescript` (3 passed, 287 filtered; log `/tmp/work/wp-voice/proto-wire-generation-3.log`). Committed generator output is unedited; ts-rs emits the same trailing-space style as preexisting declarations, so `git diff --check` reports generated lines. Source whitespace is checked separately; this does not claim a clean generated whitespace check. The bridge's combined declaration test and full proto/node checks remain owed.
-
-`voice::transcript` now stages the voice-specific bounded JSON/confidence decoder (`speech/providers/openai/stt.ts:24–47,216–250`). Only the two named transcribe models request scores. Malformed/absent/empty score arrays do not invent low confidence; valid finite mean strictly below -3.0 produces a text-free Rejected variant. Token and optional bytes structure are validated like the reference, without retaining them. JSON/text limits and overflowing sums are typed provider failures rather than foreign exception text. Tests cover strict threshold, models, empty/BOM, malformed tokens/bytes, limits, overflowing sums and redacted rejection. These are deterministic source tests, not live STT evidence.
-
-## Playback receipt source slice (2026-11-15 08:00 UTC)
-
-`voice::receipts` now stages per-generation completion bookkeeping. Audio is not completed when emitted/queued: exact PlaybackId plus owning VoiceLease and explicit Played/Failed/Interrupted settles it once. Duplicate matching receipts are idempotent; foreign/unknown/conflicting receipts cannot settle another pending packet. Two pending packets and 256 ten-second closed receipts bound memory. Wait is the PCM frame duration rounded up to a nanosecond plus 30 seconds; packets exceeding the 210-second total cap are refused before insertion rather than timing out mid-packet. Deadline arithmetic is checked. Expiry and barge-in settle as Failed/Interrupted, so late Played cannot create success. Deterministic clock-value tests cover capacity, deadline equality, retries, generations, TTL and count eviction; no actual playback or real-device completion evidence.
-
-## Endpoint TTS source slice (2026-11-15 08:12 UTC)
-
-The staged voice-only Endpoint receives a fresh ResolvedValue from the existing secret owner, uses node::http_tls::config on a blocking worker, and keeps credential/client ownership per voice endpoint. No second secret reader or TLS-root implementation exists. The request sends model/voice (defaults tts-1/alloy), bounded segment input and response_format=pcm to the validated base's audio/speech path. Proxy/redirect/protocol retries are disabled; connect10s/request60s covers response streaming. HTTP failures become closed diagnostic-free classifications; neither foreign errors/source chains nor URL/key/header/body/audio/text are retained in error diagnostics. This intentionally forgoes foreign error source chains to preserve ADR0080's traversal privacy boundary.
-
-The 8MiB PCM cap is checked before declared-size allocation and at every chunk append; empty/odd data or an explicitly different Content-Type is refused. Missing Content-Type and application/octet-stream remain compatible; audio/pcm is accepted. PCM is 24kHz mono PCM16 little-endian, as the [official OpenAI speech guide](https://developers.openai.com/api/docs/guides/text-to-speech) specifies. [Reqwest retry policy](https://docs.rs/reqwest/0.13.5/reqwest/retry/fn.never.html) is explicitly never. Tests bind isolated loopback listeners with synthetic credentials and cover default request, redaction, redirect refusal/one attempt, oversized/odd/empty/wrong-media bodies and pre-network credential/segment refusal. They are not yet executed and do not establish actual TLS, provider or audio quality. No actual provider/key/model/device has been used. Root pending protocol and reload/codec/settings/identity/MCP prerequisites remain unchanged.
-
-Remote node clippy d3c3d306 reached the staged tests and found five receipt fixture constructor calls using new rather than the existing UUID macro's random(). Corrected those test-only constructors. This is compilation coverage, not a passed service test. Shared base3 6c782cb6 was merged after the snapshot; no whole gate ran during that merge.
-
-Staged input_buffer now separates bounded unconfirmed pre-roll(2s) from confirmed utterance(60s including prefix). See ADR0080 amendment and reference voice-turn-controller.ts500–538. It stores no codec or resampler, only validated CapturePcm bytes; the common codec still awaits dictation/V3. Synthetic tests cover long idle, ordered prefix transfer, whole-turn refusal before mutation, and Stop discard/no stale seal. They are not yet executed and do not prove real VAD/audio behavior.
-
-## Shared-codec voice STT integration (2026-11-15 09:25 UTC, staged)
-
-Coordinator-authorized exact d7f30b6b shared codec/lifetime merge is b19b38537; only appended architecture prose conflicted, all sections retained. speech_audio stays cfg(test): voice is itself staged, so this is not the first real product caller. No private dictation service/API is copied. Voice stt_form normalizes the sealed fixed16k utterance through the shared Resampler, appends the shared24k Wav directly to bounded multipart, and owns only model/language/response_format/include[] metadata. No dictation fixed prompt is inherited. Model-dependent scores policy and response decoding remain voice-specific.
-
-The prior TTS TLS/client/body-limit mechanisms are now one private voice::http lifecycle used by both sites, with per-site clients/keys and the original central TLS/secret owners. The tests share one isolated loopback listener fixture. Added STT real-client loopback cases for request metadata/auth-only-header, low-confidence text-free rejection, unrequested Whisper scores, bounded/rejected response redaction; no real provider/TLS/microphone test. Provider-rate/full sixty-second form tests cover the shared codec integration.
-
-Node test snapshot398f2945 had20 passed/1 failed: the credential fixture expected leading CRLF to fail, although the existing key trim policy removes leading/trailing whitespace. Changed fixture to embedded CRLF, which HeaderValue refuses before work. Its failed unwrap printed only SpeechEndpoint{..}, no fixture key/URL. New refactor/form/fixture/prompt delta tests and strict checks are owed.
-
-W22 clarified Some replaces only the complete supplemental Vessel layer, preserving vendor base; None means the captured native/original launch context. Voice restore may be Some(savedBase+disabled policy), matching voice-session.ts491–555. Private prompt::Base now requires explicit KnownAbsent or Known(&Prompt); unavailable is not composable. Lifecycle must positively supply that base before activation; no getter currently exists. Every driver remains Unsupported and product voice admission remains unassigned/fail-closed.
-
-STT integration narrow at054446302 compiled the shared HTTP and codec paths
-but returned three strict-lint defects: Form's intentionally hidden content
-header needed non-exhaustive Debug, and two WAV fixture reads used forbidden
-get().unwrap(). Fixed without lint allowances or payload diagnostics. Runtime
-loopback tests and the new merged-head strict result remain owed.
-
-### Provider cancellation draft
-
-Voice STT/TTS now requires the owning generation's CancellationToken. Already
-cancelled work is refused before encoding/request dispatch; the shared site HTTP
-boundary prioritizes cancellation while waiting for headers and on every body
-chunk. Bounded loopback regressions hold headers/body and verify cancellation
-returns without an upstream reply. These fakes use only a synthetic credential
-and explicitly release their held server responses before teardown. They are
-not a provider/device test and still require narrow verification.
-
-### Staged transient update delivery
-
-Voice owns a bounded two-audio/sixteen-control FIFO and one pending long poll.
-A canceled actor reply receiver restores its exact queued update before another
-await; a second waiter is refused. Stop/failure clears unsent payloads and holds
-one terminal independently of queue room. Successful oneshot send is the actor's
-response-ready point, not network delivery or audible output. Separate played
-receipts still time out/fail when a response is lost or a client never plays it.
-This module does not mutate generic RPC framing or borrow dictation's private
-policy API. Actor/service integration and corresponding transport evidence remain
-owed; tests only exercise the staged ownership mechanism.
-
-Provider-cancellation strict check75458da5 compiled the new transport paths
-but returned seven unnecessary fully qualified token names in fixtures; fixed
-by using the parent module's imported type. No operation or diagnostic policy
-was weakened. The new bounded update mechanism still owes its own first narrow
-compile/runtime check.
-
-STT endpoint Debug is now opaque like TTS, including free-form model/language
-metadata. A valid-looking model field can contain an accidentally pasted key;
-there is no diagnostic need to print it. A constructor-only loopback fixture
-uses that sensitive synthetic model and checks the full endpoint Debug remains
-redacted. This does not change persisted model values or the provider request.
-
-The staged detector input edge now carries exactly512 normalized samples across
-fixed16k client chunks using the shared aligned PCM view. It neither resamples
-nor infers speech; an actual reviewed Silero engine must consume each window.
-Chunk-partition invariance and cancellation fakes cover partial input and a
-stop raised by the first inference callback in a multi-window chunk. Stop/reset
-discards the incomplete window instead of padding a false speech observation.
-No model/native runtime is downloaded or loaded by this mechanism.
-
-Pending-start Stop target: proto now distinguishes caller nonce from an active
-node lease, so ordinary Stop can cancel before an epoch reply exists. The existing
-seven methods/one None feature remain unchanged. Service is still fail-closed;
-no application sends this pending contract before its node registry exists.
-Nonce ownership/tombstone/late completion obligations are in ADR0080. Generated
-TypeScript is owed via the approved remote named ts artifact step.
-
-### TS generation preflight and browser boundary
-
-The f46861ea named TS run compiled proto but failed before either generator
-ran: vessel-web's exhaustive browser allowlist did not yet classify the seven
-pending voice methods. The bridge now explicitly rejects all seven, as ADR0080
-requires a direct owner connection and does not provide browser audio here.
-Its existing complete refusal-table regression includes the seven names.
-No generated diff came from that failed run, so its unchanged snapshot is not
-a fresh wire artifact. The corrected immutable source must run the named TS
-step again before any generated bytes are adopted. The node also merged the
-announced ede20014 head outside a final freeze; no product activation follows.
+Original ids are retained through confirmed remote teardown and the owning
+connection's lifetime. Unknown pending-stop markers are scoped by the opaque
+canonical connection owner. Unlike Paseo, this requires explicit finite nonce
+history limits:128 per connection,1024 per node. Saturation refuses additional
+admission or unknown nonce cancellation; it never evicts a marker to manufacture
+space or returns Stopped without recording the cancellation. Such refusal is
+remote uncertainty to the app, whose local Stop boundary already remains closed.
+Closing a connection cancels its jobs but cannot free a remote reservation
+before restore is confirmed. Uncertain cleanup retains its active quota and
+session exclusion. This pure registry currently remains staged under tests;
+actual Connection::life wiring and reload/provider teardown are not supplied
+by this module or proved by its state-transition fakes.

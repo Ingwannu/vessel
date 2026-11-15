@@ -230,6 +230,7 @@ are deliberate resource floors, never silent truncation:
 | Resource | Bound / behaviour |
 | --- | --- |
 | Active voice | 1 per app; 1 per connection; 8 per node; one owner per session |
+| Start nonce history | at most128 retained attempts per connection and1024 per node, including cancelled-before-start markers; explicit Capacity refusal, no eviction/rebinding of a live connection's ids |
 | Capture wire | 16 kHz mono PCM16, 20 ms normal chunks; at most 100 ms/chunk |
 | Capture queue | 2 seconds; overflow stops capture with CaptureOverrun |
 | Input ordering | contiguous sequence; exact duplicates idempotent; gaps fail lease |
@@ -318,3 +319,25 @@ not wait for the delayed start result; a late ready result is retired, never use
 to open capture. Unknown/rejected/lost remote cleanup stays explicitly uncertain.
 Owning-registry held-start/late-ready/cross-connection tests are owed with wiring;
 typed serialization fixtures alone do not prove remote teardown.
+
+### Pending-start cancellation and bounded nonce history
+
+The registry records a caller-owned Starting Stop even if its Start handler
+has not yet reserved the attempt. A later Start on that same connection and
+nonce is refused before provider or reload work. For a reserved generation,
+Stop cancels its child token synchronously; late startup success cannot mark
+it active. A foreign connection cannot cancel an existing reservation, and
+an active target additionally checks the exact node epoch.
+
+Original ids are retained through confirmed remote teardown and the owning
+connection's lifetime. Unknown pending-stop markers are scoped by the opaque
+canonical connection owner. Unlike Paseo, this requires explicit finite nonce
+history limits:128 per connection,1024 per node. Saturation refuses additional
+admission or unknown nonce cancellation; it never evicts a marker to manufacture
+space or returns Stopped without recording the cancellation. Such refusal is
+remote uncertainty to the app, whose local Stop boundary already remains closed.
+Closing a connection cancels its jobs but cannot free a remote reservation
+before restore is confirmed. Uncertain cleanup retains its active quota and
+session exclusion. This pure registry currently remains staged under tests;
+actual Connection::life wiring and reload/provider teardown are not supplied
+by this module or proved by its state-transition fakes.

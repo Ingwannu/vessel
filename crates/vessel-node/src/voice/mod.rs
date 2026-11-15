@@ -13,6 +13,7 @@ mod input_buffer;
 
 mod prompt;
 mod receipts;
+mod registry;
 mod segments;
 mod stt_endpoint;
 mod stt_form;
