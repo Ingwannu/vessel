@@ -5,3 +5,6 @@
 mod manifest;
 
 mod source;
+
+// Pure bounded digest facts only; no filesystem observation or authority.
+mod artifact;

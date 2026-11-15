@@ -98,3 +98,21 @@ not descend into another mounted filesystem. Acquisition must prepare an owned
 package tree without VCS control metadata before this package-path observation;
 it must never strip metadata from the user's directory. Pinned source revision
 is recorded by that separate owner, not reconstructed from an artifact digest.
+
+
+## Pure fact-model checkpoint (implementation still staged)
+
+The private plugin module now has the deterministic supplied-record digest and
+atomic count/byte/path/depth budget model. It reuses the existing PackagePath
+validator through plugin-private visibility, ContentHash and SHA-256. Three
+pure tests are authored for ordering/kind/content/execute distinctions, duplicate
+paths, every counter refusal retaining prior facts, and full-chain invalid-path
+canaries. They allocate no candidate filesystem and execute no process.
+
+TreeDigest explicitly means supplied facts, not a complete/stable filesystem
+receipt or source authority. No filesystem reader, UID/ACL dependency, blocking
+worker, admission lane, observation timeout or installation is implemented by
+this checkpoint. Their proposed contract and real-OS evidence remain pending.
+No new protocol/storage type or public API is added. Current pure-model execution
+and selected implementation review are still owed; the contract row does not
+silently accept this later code.

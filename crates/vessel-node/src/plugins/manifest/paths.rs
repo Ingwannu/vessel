@@ -8,10 +8,10 @@ use vessel_proto::{
 
 #[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "String")]
-pub(super) struct PackagePath(RelPath);
+pub(in crate::plugins) struct PackagePath(RelPath);
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum InvalidPackagePath {
+pub(in crate::plugins) enum InvalidPackagePath {
     #[error("plugin asset is not a valid package-relative path")]
     Path(#[source] vessel_proto::workspace::InvalidRelPath),
     #[error("plugin asset must name a confined package-relative file")]
@@ -38,7 +38,7 @@ impl PackagePath {
         self.0.clone()
     }
 
-    pub(super) fn as_str(&self) -> &str {
+    pub(in crate::plugins) fn as_str(&self) -> &str {
         self.0.as_str()
     }
 }

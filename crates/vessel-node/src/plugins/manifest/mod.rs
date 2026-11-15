@@ -3,7 +3,7 @@
 //! containment. The decoder does no I/O; its inspection child reads bounded
 //! declarations through workspace files. Neither path executes package code.
 mod inspection;
-mod paths;
+pub(super) mod paths;
 #[cfg(test)]
 mod tests;
 
