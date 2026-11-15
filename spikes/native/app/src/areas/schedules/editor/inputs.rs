@@ -166,3 +166,6 @@ fn submit(
     let visit = inputs.visit;
     super::save(shell, visit, window, cx);
 }
+
+#[cfg(test)]
+mod tests;

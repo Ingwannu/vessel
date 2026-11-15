@@ -1161,3 +1161,15 @@ profile. That delta is isolated on announced914 as a1b1b607, its same-renderer
 source and real GPUI parent/TextField fixtures are with V1, and its sole permitted
 temporary picker-control priority Kit suite is running remotely. F1/main and
 G3's field writer are not changed by that isolated check.
+
+
+### Retained actual field-origin regression source
+
+App test source now renders the real identified line and multiline controls
+against Shell::without_io. It leaves A's actual engine mounted and focused,
+closes/recreates the pure form plus fresh B engines, types into retained A,
+asserts B's input remains unchanged, then mounts/focuses B and verifies its
+real typing still edits B. It reuses language_tests initialization and the same
+callbacks/listen path, not a fixture route, fake field engine or direct callback
+invocation. This is authored but UNEXECUTED source; no form authority, physical
+IME, network or user UI proof is inferred. No node is connected or RPC issued.
