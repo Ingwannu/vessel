@@ -79,6 +79,8 @@ mod rename;
 mod rewind;
 #[cfg(test)]
 mod resident;
+#[cfg(test)]
+pub(crate) use resident::ResidentSeat;
 pub(crate) mod search;
 mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).

@@ -852,3 +852,27 @@ A retained fork-origin Area also votes recursively before snapshot transfer, so
 an active overlay/effect in that embedded conversation cannot be skipped by a
 clean parent. The staged regression exercises an actual retained child resource;
 no product eviction or follow path is enabled by this additional vote.
+
+### Staged owned-context Seat successor
+
+W12 confirmed the adoption point: a Clone enum owns the complete SessionContext;
+main and derived origin lookup resolve only the sole SessionResidents. The staged
+ResidentSeat constructors main(context)/origin(context), get(&Shell), and
+get_mut(&mut Shell) return None for missing/stale parents or absent origins.
+Mutation additionally requires current Visible/Focused metadata. Cloned row
+contexts remain strict and never refresh themselves into a successor. No main
+SESSION constant, copy decomposition, identity cache or selected fallback exists
+in this staged type. Product Place/Seat and A8 handlers remain unchanged until
+the same coordinated W12 storage/follow/main-render union; this is not another
+resource manager or a live parallel rendering path.
+
+The staged populated-resource regression exercises a cloned captured Seat,
+independent parent/origin rows, and rejection of both after presentation change.
+Child Seat adoption has an agreed concrete owner rather than a new manager:
+W2 moves its existing SubagentArea into SessionResources.subagents once. Its
+readonly_for(_mut)(ProviderChildRef, projection_revision Ticket) validates the
+canonical pane identity, installed readonly_source and exact revision. A child
+Seat retains all three parent context/source/revision and validates the parent
+before those getters and BEFORE numeric row access. Retargeted or inactive child
+queries return None. That isolated W2 getter and field move are not present in
+this A7 source yet, so no live child Seat claim is made.

@@ -10,6 +10,9 @@ use vessel_app_view::residents::{
 };
 use vessel_proto::EventRecord;
 
+mod seat;
+pub(crate) use seat::ResidentSeat;
+
 /// Moves the concrete owner resource, preserving scroll/controller identity.
 /// This is not serialization or a claim that a cold transcript has a byte cap.
 pub(crate) struct TimelineSnapshot {

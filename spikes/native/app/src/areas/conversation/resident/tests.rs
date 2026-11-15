@@ -108,11 +108,25 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
                 .conversation_records_scoped(binding_b, &[record(1, "B")])
                 .unwrap()
         );
-        shell
-            .conversation_input_scoped(&a)
+        let seat = crate::areas::conversation::ResidentSeat::main(a.clone());
+        let captured = seat.clone();
+        seat.get_mut(shell).unwrap().list.reveal(0, Reveal::Top);
+        assert_eq!(text(captured.get(shell).unwrap()), "A");
+        let origin_seat = ResidentSeat::origin(a.clone());
+        assert!(
+            origin_seat.get(shell).is_none(),
+            "absent origin is not main"
+        );
+        let mut origin = ConversationArea::new(cx);
+        origin.fold_records(&[record(1, "Origin")]);
+        seat.get_mut(shell).unwrap().origin = Origin::Shown(Box::new(origin));
+        assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin");
+        origin_seat
+            .get_mut(shell)
             .unwrap()
-            .list
-            .reveal(0, Reveal::Top);
+            .fold_records(&[record(2, " retained")]);
+        assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin retained");
+        assert_eq!(text(seat.get(shell).unwrap()), "A");
         assert!(matches!(
             shell.conversation_input_scoped(&b),
             Err(ResidentProblem::Held)
@@ -151,6 +165,10 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             shell.conversation_scoped(&a),
             Err(ResidentProblem::StaleEpoch)
         ));
+        assert!(captured.get(shell).is_none());
+        assert!(captured.get_mut(shell).is_none());
+        assert!(origin_seat.get(shell).is_none());
+        assert!(origin_seat.get_mut(shell).is_none());
         assert!(matches!(
             shell.conversation_input_scoped(&hidden),
             Err(ResidentProblem::Held)
