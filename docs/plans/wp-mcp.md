@@ -340,3 +340,13 @@ owns the SessionDetails serializable output; the MCP adapter adds no serde
 dependency or parallel wire shape. Regression helpers compare both result
 channels on every successful integration call. Malformed creation tests assert
 the adapter's actual invalid-params response and unchanged node session count.
+
+
+The first pure protocol run executed 289 tests: 286 passed and three failed
+on pinned policy expectations. The exact Admin and forwardable expected lists
+now add only this package's named methods. Local notification remains protocol
+11, while the forwarded-notify test explicitly expects MCP_PARITY rather
+than inheriting 11. The failure logs are retained. A new synthetic-home
+interruption test recovers applied patches against the unchanged durable
+choice; persistence-failure coverage also pins Unix permission restoration.
+These changes do not constitute a successful rerun yet.

@@ -64,6 +64,18 @@ fn failed_preference_write_restores_overwritten_and_obsolete_files() {
     assert_eq!(std::fs::read(shared.join("old.md")).unwrap(), b"owned");
     assert_eq!(std::fs::read(shared.join("user.md")).unwrap(), b"user");
     assert!(!shared.join("new/nested.md").exists());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        assert_eq!(
+            std::fs::metadata(shared.join("SKILL.md"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o750
+        );
+    }
     assert_eq!(
         std::fs::read_dir(temp.path().join("transactions"))
             .unwrap()
@@ -103,5 +115,39 @@ fn outside_edit_survives_rollback_and_keeps_its_backup() {
             .unwrap()
             .count(),
         1
+    );
+}
+
+#[test]
+fn interrupted_patch_application_recovers_with_only_the_old_durable_choice() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut old = service(temp.path(), catalogue("one", Some(("old.md", b"old"))));
+    let _installed = old.reconcile(&SkillSelection::All).unwrap();
+    let shared = temp.path().join("agents/skills/vessel");
+    let original = std::fs::read(shared.join("SKILL.md")).unwrap();
+    let mut new = service(
+        temp.path(),
+        catalogue("two", Some(("nested/new.md", b"new"))),
+    );
+    let plan = new.status(&SkillSelection::All).unwrap();
+    let state = SkillRoot::new(temp.path().join("transactions")).unwrap();
+    let mut transaction =
+        deletion::DeletionTransaction::begin(&new.homes, &state, None, SkillSelection::All, &plan)
+            .unwrap();
+    transaction.capture_patches(&new, &plan).unwrap();
+    transaction.apply().unwrap();
+    new.apply_updates(&plan).unwrap();
+    assert_ne!(std::fs::read(shared.join("SKILL.md")).unwrap(), original);
+    drop(transaction); // Process-like interruption before durable preference save.
+    let mut restarted = service(temp.path(), catalogue("two", None));
+    restarted.recover(&state, None).unwrap();
+    assert_eq!(std::fs::read(shared.join("SKILL.md")).unwrap(), original);
+    assert_eq!(std::fs::read(shared.join("old.md")).unwrap(), b"old");
+    assert!(!shared.join("nested/new.md").exists());
+    assert_eq!(
+        std::fs::read_dir(temp.path().join("transactions"))
+            .unwrap()
+            .count(),
+        0
     );
 }
