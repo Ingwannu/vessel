@@ -1346,3 +1346,11 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+Streamed assistant/reasoning prefixes use view TextReveal/RevealClock with mounted
+GPUI keyed counters only. Canonical text and copy/find/outline stay complete;
+selected find matches, completion and reduced motion show all text. First mount
+and remount show the hydrated target whole; only later growth is paced. Existing
+Unicode grapheme segmentation protects the displayed boundary, and frame requests
+stop at rest. The policy/actual frame fixture evidence remains package-scoped;
+no detached per-session animation timer or snapshot field is introduced.

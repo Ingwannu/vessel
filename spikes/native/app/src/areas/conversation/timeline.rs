@@ -244,7 +244,15 @@ fn entry_element(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let drawn = entries::entry(paint, index, entry, area.entry_expanded(index), window, cx);
+    let drawn = entries::entry(
+        paint,
+        index,
+        entry,
+        area.entry_expanded(index),
+        super::pacing::phase(area.timeline.turn(), entry),
+        window,
+        cx,
+    );
     let said = if let EntryKind::Prompt(prompt) = &entry.kind {
         Some(prompt.text.as_str())
     } else if let EntryKind::Steer { text, .. } = &entry.kind {

@@ -66,6 +66,7 @@ mod notices;
 mod origin;
 mod outline;
 mod overlays;
+mod pacing;
 mod permission;
 mod place;
 mod plan;

@@ -1223,3 +1223,29 @@ still queued; no source pass is claimed from a canceled run.
   revision, and grapheme scanning is confined to mounted streaming text. Native
   keeps its uncapped full-text rule. This section records intended implementation,
   not an executed pacing/latency/UI pass.
+
+Pacing implementation source now connects entries to the mounted-row helper for
+assistant text and expanded reasoning. The caller derives Streaming only from
+the same area's current Timeline::turn and the entry's creating sequence; history
+and completed/status-closed turns are Complete. Both normal rows and compact
+run sheets use that phase. No A8 Paint field or permission/question file changed.
+Selected find matches and the existing reduced-motion policy complete the prefix.
+The Markdown version includes canonical revision plus visible byte length, so a
+frame's reveal updates its cached text without changing the canonical revision.
+Reply copy/outline/find ingestion retain the original full entry text.
+
+GPUI keyed state holds only revision/counters/clock origin, not another String,
+map, session resource or detached timer. New growth schedules its first frame
+without immediately revealing a burst. Unmounted rows release this state and
+rehydrate whole on remount. The fixture exercises the real keyed-state/frame
+request helper, growth, completion and reduced motion; pure tests cover 60Hz,
+UTF-16 arithmetic, Korean/Indic/combining/flag/ZWJ boundaries and monotonic progress.
+Those new app tests remain unexecuted. The previous287 pass predates pacing.
+
+Official c3429952 (native1450/0/2) is merged as f5783cb63; conflict resolutions
+keep the canonical W12 resident foundation/minter and six-owner vocabulary,
+retain exactly one Machine.connection_epoch initializer and both README sections.
+The resident module stays literal cfg(test); no product resource/follow path is
+enabled. Its real lazy visibility/same-claim synchronization remains W12's
+coordinated cutover. View-only exact d2ea72814 strict and tests are submitted as
+separate immutable runs; no current result is presumed.

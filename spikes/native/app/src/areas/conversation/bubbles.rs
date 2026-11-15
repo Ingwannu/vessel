@@ -139,7 +139,7 @@ pub(super) fn message(
         .child(chat_markdown(
             ElementId::NamedInteger("message".into(), id(index)),
             text,
-            u64::from(rev),
+            vessel_app_kit::version_of(&(rev, text.len())),
             marks.as_ref(),
             paint.tokens,
             window,

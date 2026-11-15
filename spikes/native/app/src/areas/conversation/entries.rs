@@ -16,7 +16,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{FindPalette, Tokens, Type, TypeExt as _};
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
-    Entry, EntryKind, Prompt, answered_lines, repeats_failure, settled, spans_of,
+    Entry, EntryKind, Prompt, TextPhase, answered_lines, repeats_failure, settled, spans_of,
 };
 use vessel_proto::{Question, QuestionOutcome};
 
@@ -65,6 +65,7 @@ pub(super) fn entry(
     index: usize,
     entry: &Entry,
     open: bool,
+    phase: TextPhase,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -87,8 +88,18 @@ pub(super) fn entry(
         EntryKind::Message { .. } if repeats_failure(paint.entries, index) => {
             div().into_any_element()
         }
-        EntryKind::Message { text } => bubbles::message(paint, index, text, entry.rev, window, cx),
-        EntryKind::Thought { text } => thought(paint, index, text, open, window, cx),
+        EntryKind::Message { text } => {
+            let text = paced(paint, index, entry, text, phase, window, cx);
+            bubbles::message(paint, index, text, entry.rev, window, cx)
+        }
+        EntryKind::Thought { text } => {
+            let text = if open {
+                paced(paint, index, entry, text, phase, window, cx)
+            } else {
+                text
+            };
+            thought(paint, index, text, open, window, cx)
+        }
         EntryKind::Tool(view) => tool::card(paint, index, view, open, window, cx),
         EntryKind::Notification(notice) => {
             super::notices::notification(paint, index, notice, window, cx)
@@ -144,6 +155,35 @@ pub(super) fn entry(
         }
         EntryKind::Model(call) => meta(paint, words.model_line(call)),
     }
+}
+
+/// Only the selected find result bypasses display pacing.
+fn paced<'a>(
+    paint: &Paint<'_>,
+    index: usize,
+    entry: &Entry,
+    text: &'a str,
+    phase: TextPhase,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> &'a str {
+    let phase = if paint
+        .find
+        .is_some_and(|find| find.current_in(index).is_some())
+    {
+        TextPhase::Complete
+    } else {
+        phase
+    };
+    let end = super::pacing::visible_end(
+        ElementId::NamedInteger("text-reveal".into(), entry.seq.get()),
+        text,
+        entry.rev,
+        phase,
+        window,
+        cx,
+    );
+    text.get(..end).unwrap_or(text)
 }
 
 /// A thought: its work row, and its words under it while open.
