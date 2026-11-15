@@ -305,3 +305,11 @@ the authoritative workspace/layout restoration policy. No second persistence
 store or external solution is introduced. The legacy preparation lookup
 wrapper is now literal cfg(test); creation's product caller always passes its
 original captured connection directly. Shared package base8 is merged.
+
+Known first-input retries now require the retained original ConnectionContext,
+including epoch, before preparation; the same node on a replacement admission
+cannot inherit the retry. A completion queued across admission retirement is
+classified unknown, retaining the registered child/input instead of offering
+a duplicate prompt. The existing conservative flow and payload owner are
+reused. This closes local retry behavior while W12's guarded delivery/minter
+remains a separate required handoff; it is not a full follow-authority claim.
