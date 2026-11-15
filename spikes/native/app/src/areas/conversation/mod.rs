@@ -67,6 +67,8 @@ mod permission;
 mod place;
 mod plan;
 mod question;
+#[cfg(test)]
+pub(crate) mod requests;
 mod queue;
 mod read;
 mod rename;
