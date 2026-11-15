@@ -61,6 +61,8 @@ pub(crate) struct Rewinding {
     pending: Option<usize>,
     /// A rewound message's words, to go back into the composer.
     restore: Option<String>,
+    /// Retained across navigation while its frame notice may still be visible.
+    notice: Option<vessel_app_view::rewind::FailureNotice>,
     /// The undo marks' tooltip (one shown at a time).
     pub(super) tips: Tooltips,
     /// Where each message's undo mark was last drawn, by entry.
@@ -90,6 +92,7 @@ impl Rewinding {
             target: None,
             pending: None,
             restore: None,
+            notice: None,
             tips: Tooltips::new(),
             places: RefCell::default(),
         }
@@ -171,7 +174,7 @@ pub(super) fn with_row(
                 .on(
                     mark,
                     &rewinding.place(index),
-                    paint.words.rewind_tooltip(),
+                    paint.catalog.rewind().tooltip(),
                     narrow,
                 )
                 .into_any_element()
@@ -240,17 +243,31 @@ fn undo(
 /// The rewind menu's rows: Paseo's warning (shown, not chosen), then the
 /// one mode our node has.
 pub(super) fn menu_items(shell: &Shell) -> Vec<MenuItem> {
-    let words = shell.t.lang.conversation();
+    let words = shell.words.rewind();
     vec![
         MenuItem {
             disabled: true,
-            ..MenuItem::new(words.rewind_warning())
+            ..MenuItem::new(words.warning())
         },
-        MenuItem::new(words.rewind_conversation()).grouped(),
+        MenuItem::new(words.conversation()).grouped(),
     ]
 }
 
 impl Shell {
+    /// Reword only the frame notice still owned by the last rewind refusal.
+    pub(crate) fn translate_rewind_notice(&mut self) {
+        let Some(notice) = self.areas.conversation.rewinding.notice.as_mut() else {
+            return;
+        };
+        let previous = notice.words();
+        let visible = self.notice.as_deref() == Some(previous.as_ref());
+        match notice.translate(self.words) {
+            Ok(()) if visible => self.notice = Some(notice.words().to_string()),
+            Ok(()) => {}
+            Err(error) => tracing::warn!(%error, "rewind notice could not be reworded"),
+        }
+    }
+
     /// Open the rewind menu for `target` at `at`.
     fn rewind_open(
         &mut self,
@@ -308,9 +325,13 @@ impl Shell {
             Err(ActFailed {
                 code: Some(_),
                 message,
-            }) => {
-                self.notice = Some(self.t.lang.conversation().rewind_failed(message));
-            }
+            }) => match vessel_app_view::rewind::FailureNotice::new(message, self.words) {
+                Ok(notice) => {
+                    self.notice = Some(notice.words().to_string());
+                    rewinding.notice = Some(notice);
+                }
+                Err(error) => tracing::warn!(%error, "rewind notice could not be prepared"),
+            },
             // No answer at all: the session's lost connection says it.
             Err(ActFailed { code: None, .. }) => {}
         }

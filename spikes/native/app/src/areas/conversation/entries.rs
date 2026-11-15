@@ -28,6 +28,8 @@ use crate::shell::Shell;
 
 /// What every row needs to draw itself.
 pub(super) struct Paint<'a> {
+    /// Prepared catalogs for the areas already moved out of legacy tables.
+    pub(super) catalog: &'static vessel_app_view::localization::Translator,
     pub(super) words: &'static ConversationWords,
     pub(super) tokens: &'a Tokens,
     pub(super) look: Look,

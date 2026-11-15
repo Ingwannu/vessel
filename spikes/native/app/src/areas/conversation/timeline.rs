@@ -110,6 +110,7 @@ fn paint<'a>(
     window: &Window,
 ) -> Paint<'a> {
     Paint {
+        catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),

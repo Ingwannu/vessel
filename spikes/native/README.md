@@ -779,6 +779,10 @@ whole status sentences live in the files. Typed updater errors select complete
 recovery messages; their diagnostics stay in the state/logs. A failed restart's
 owned frame notice also rewords on a language change without replacing a later
 notice from another area. No update error's Display becomes UI text.
+Rewind's menu and copy vocabulary use `rewind.ftl`; its retained notice is
+prepared at answer/language events. Conversation paints receive the shell's
+already-prepared catalog beside their remaining legacy words. The separate
+rewind error correction replaces the staged diagnostic interpolation.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

@@ -1,5 +1,40 @@
 # Track L: the app's words as translation data
 
+## Rewind vocabulary migration
+
+The instructed conversation-file split is merged before this migration.
+Five rewind messages move from `text/conversation/rewind.rs` to complete
+English/Korean `rewind.ftl`: tooltip, warning, mode, copy label and failure
+notice. The retired table module is deleted. Reference: Paseo 0.15.4
+`components/rewind/rewind-menu.tsx` lines 38–151,
+`rewind/use-rewind-agent-mutation.ts` lines 25–65, and
+`rewind/composer-restore.test.ts`. Keep the existing one conversation-only
+mode, menu/tooltip geometry and composer-restoration behavior. The existing
+timeline point/restoration fixtures are unchanged.
+
+Decision: reuse generated getters and the prepared-notice pattern. Plain
+labels borrow the shell's prepared catalog; a retained failure formats only
+at the answer or language event and keeps shared text. A frame notice that
+still belongs to this failure can reword after navigation without resetting
+the pending target, composer, selection or focus. Its cache is deliberately
+not cleared by navigation, since the global frame notice is not cleared then.
+
+This is a wording-preserving move. It deliberately retains the former node
+diagnostic interpolation in the whole failure sentence, including the empty
+diagnostic branch; Fluent adds its normal Unicode argument isolation. The
+typed-error correction follows separately, before a complete UI submission.
+The staged notice is not claimed to make an English node diagnostic Korean.
+Tests compare every label and whole notice in both languages, including
+rewording the retained outcome. All-target view Clippy, 827 library tests,
+ten catalog-contract tests and native source checks pass. App and full native
+checks/screens remain owed. No new dependency, protocol, control or token.
+
+Other conversation-file seams: `entries.rs` adds one prepared-catalog field
+to `Paint`, with its one-line initialization in `timeline.rs` and
+`permission.rs`. The field avoids initializing/resolving a locale in a draw.
+The language-change path adds the one-purpose notice refresh. Rewind's own
+state/callback holds its cache; no unrelated conversation table is moved.
+
 ## Source ready: typed update recovery
 
 The updater's English Display strings previously reached About directly, and

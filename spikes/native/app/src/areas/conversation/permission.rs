@@ -335,6 +335,7 @@ fn body(
             .into_any_element();
     }
     let paint = Paint {
+        catalog: shell.words,
         words: shell.t.lang.conversation(),
         tokens,
         look: Look::of(tokens),
