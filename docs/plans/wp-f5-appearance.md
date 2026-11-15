@@ -194,3 +194,11 @@ This is token preparation only. The typed plugin catalog/selection is not
 imported yet, and no plugin tile, saved choice or runtime connectivity is
 claimed. Existing page-only aliases without a Paseo counterpart retain the
 same scheme defaults used by the accepted named-palette mapping.
+
+Focused run `themes-20261115T070649Z-1eeba47d` compiled current tile/syntax
+preparation: breakpoint test passed, frame test failed (actual 106.5 versus
+unsnapped mathematical 106.625). The fake window uses scale 2 and GPUI's
+physical-edge snapping. The correction keeps the same tight tolerance and
+uses independently calculated snapped bounds for scales 1, 1.25, 1.5 and 2,
+including pre-layout snapping of the two-point border at 125%; no product
+geometry changes. The new four-scale expectations still require execution.

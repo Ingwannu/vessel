@@ -51,32 +51,44 @@ fn near(actual: Pixels, expected: f32) {
 fn single_and_split_keep_the_reference_frame_and_small_label_in_both_schemes(
     cx: &mut TestAppContext,
 ) {
-    for scheme in [Scheme::Light, Scheme::Dark] {
-        for state in [State::Idle, State::Chosen] {
-            for split in [false, true] {
-                let children = Seen::default();
-                let (_, cx) = cx.add_window_view({
-                    let children = Rc::clone(&children);
-                    move |_, _| Probe {
-                        scheme,
-                        state,
-                        split,
-                        children,
-                    }
-                });
-                cx.run_until_parked();
-                let children = children.borrow();
-                assert_eq!(children.len(), 2);
-                let picture = children[0];
-                let label = children[1];
-                near(picture.origin.x, 6.0);
-                near(picture.origin.y, 6.0);
-                near(picture.size.width, 188.0);
-                near(picture.size.height, 106.625);
-                near(label.origin.x, 6.0);
-                near(label.origin.y, 116.625);
-                near(label.size.width, 188.0);
-                near(label.size.height, 16.0);
+    // Independently calculated physical-edge expectations. GPUI snaps authored
+    // borders/padding before aspect layout and then snaps absolute edges;
+    // half pixels round toward zero (taffy.rs), including the 2px border at
+    // 125%. Compare exact projected bounds rather than loosening tolerance.
+    for (scale, origin, width, height, label_y) in [
+        (1.0, 6.0, 188.0, 107.0, 117.0),
+        (1.25, 5.6, 188.8, 107.2, 116.8),
+        (1.5, 6.0, 188.0, 106.0, 116.0),
+        (2.0, 6.0, 188.0, 106.5, 116.5),
+    ] {
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            for state in [State::Idle, State::Chosen] {
+                for split in [false, true] {
+                    let children = Seen::default();
+                    let (_, cx) = cx.add_window_view({
+                        let children = Rc::clone(&children);
+                        move |_, _| Probe {
+                            scheme,
+                            state,
+                            split,
+                            children,
+                        }
+                    });
+                    cx.simulate_scale_factor_change(scale);
+                    cx.run_until_parked();
+                    let children = children.borrow();
+                    assert_eq!(children.len(), 2);
+                    let picture = children[0];
+                    let label = children[1];
+                    near(picture.origin.x, origin);
+                    near(picture.origin.y, origin);
+                    near(picture.size.width, width);
+                    near(picture.size.height, height);
+                    near(label.origin.x, origin);
+                    near(label.origin.y, label_y);
+                    near(label.size.width, width);
+                    near(label.size.height, 16.0);
+                }
             }
         }
     }
