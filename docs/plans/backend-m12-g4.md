@@ -661,3 +661,58 @@ is retained under `alert-native-gate-01`. Pre/post source pins match all
 lint suppression or behavior change. The corrected commit receives a
 short Clippy check first, followed by a new whole A13 gate; no pass is
 claimed before those results exist.
+
+## Shared Alert result and next boundary
+
+Alert source `68fac599` plus the documentation correction `eb75a637`
+passed A13 run `devices-20261115T041805Z-eb75a637`, retained under
+`/tmp/work/m12-g4/resumed-20261115/alert-native-gate-02`. All six native
+steps returned zero, with no skipped step. Ten raw test summaries sum to
+1045 passed, zero failed and one ignored (the existing pairing-browser
+capture test). Both new profile tests passed; Clippy checked the changed
+kit, and build/test actually recompiled kit and app. The preceding short
+Clippy run `devices-narrow-20261115T041507Z-eb75a637` also passed in 90
+seconds. The first failed run remains separate, not retried into a pass.
+
+All 666 selected native Rust/Cargo/toolchain inputs match the pre-check
+pin after the whole run. `alert-corrected-source.sha256` has digest
+`3618e360f73f140e7fee4954d1975e5de54178f0751e149fa7af5b890a1e7e70`;
+the file selection is the same rule documented above. `alert-final-audit.json`
+records the independent sums and input comparison. This results-only
+documentation changes no compiled input and gets no unchanged gate rerun.
+
+Public API for review: `kit::alert::host_errors(messages, &tokens)`, where
+messages implements `IntoIterator<Item = SharedString>`. One localized
+whole message becomes one wrapping sibling. A private typed presentation
+chooses its look; both entries share the same frame. No existing caller,
+semantic variant, token, dependency or glyph changed. The only shared
+documentation seam is the Alert paragraph in the native README. Source
+comparison remains Paseo's schedules-screen lines 334–347 and 400–417;
+there is no planned visual difference in this profile. G2's first-use
+long/multiple-host/phone/English/Korean/dark/light captures are still owed.
+This is a source/gate submission, not their visual approval or API handoff
+before V1 passes it. No app, node or display was started for this control
+slice; no service, credential or permission changed.
+
+The Devices PASS above is bounded normal-flow evidence, not physical-node
+binding or authority-sensitive integration proof. A separate source review
+found that a stable Online(alias) can survive book replacement: reload
+clears clients and emits only the final fleet. The current Devices target
+can therefore retain rows/confirmation across an alias rebind. Next slice
+must carry authenticated NodeId and an admitted connection/book generation
+through snapshots and confirmed requests, compare at dispatch, and reject
+stale replies and observed A-to-B-to-A changes before drawing an old
+confirmation. No runtime reproduction or fix is claimed yet. A session-list
+failure also cannot establish this device's scopes or physical reachability;
+the no-Read flow needs an independent authenticated fact. V1 confirmed both
+are outside its earlier bounded pass and required these regressions. Their
+absence must not be hidden by the 22 successful ordinary revokes.
+
+Resume point: Devices normal-flow slice is with the coordinator after V1's
+bounded pass. Alert source/gate is now submitted separately to V1; consumer
+captures and V1 approval remain pending. At this clean boundary merge the
+coordinator's gated lead head, then write the next Devices identity/authority
+contract and tests first. New node calls are consumed through the lead's
+integration, never by merging the node branch directly into this tree.
+Invitation/QR and Sync remain separate following slices; the old Diagnostics
+draft remains archived and uncompiled.
