@@ -86,11 +86,17 @@ separate request types and authority checks.
 Starting validates readiness and a non-running existing session, then
 reloads its voice instruction and installs the speak capability, before
 capture starts. Failure rolls back that generation; uncertain remote
-cleanup is surfaced. Stopping first interrupts a running turn, cancels
-speech and clears playback, disables voice and restores the prompt, stops
-capture and releases the lease. Disconnect or OS device interruption stops
-local devices immediately; it never keeps a microphone streaming to a
-replacement connection. Reconnect may start a new explicit generation only
+cleanup is surfaced. Local Stop first fences all capture callbacks, gates uploading, discards
+queued unsent PCM, stops local playback and capture and releases the local
+capture lease, independently of any remote await or full data queue. Only
+then does remote teardown interrupt the running turn, cancel speech,
+disable voice and restore the prompt. Local cleanup runs on every error,
+timeout and lost-reply path. Remote teardown uncertainty remains visible
+and retains its separate remote-generation record, never microphone or
+upload permission. A new conversation cannot silently replace that remote
+record; dictation can acquire the already released local capture lease.
+Disconnect or OS device interruption has the same immediate local privacy
+boundary; it never keeps a microphone streaming to a replacement connection. Reconnect may start a new explicit generation only
 when the previous lease is confirmed gone.
 
 ### Providers and settings
@@ -226,7 +232,7 @@ are deliberate resource floors, never silent truncation:
 | Playback receipt | PCM duration + 30 s, bounded by 210 s; timeout fails speak |
 | Closed receipts | 10 s TTL, 256 ids maximum; unknown/foreign id refused |
 | Outbound queue | 2 audio segments plus 16 control events; pressure fails lease |
-| App/node operations | finite 10 s start/stop/abort; cleanup uncertainty is visible |
+| App/node operations | finite 10 s start/stop/abort; local Stop gates immediately before remote awaits; remote uncertainty is visible |
 | Meter | publish at 120 ms or 0.02 delta; attack 0.35/release 0.18 |
 | Thinking cue | wait 1500 ms, repeat after cue duration + 350 ms |
 
