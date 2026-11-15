@@ -176,7 +176,7 @@ Notification activation can select the exact Inbox terminal row meanwhile.
 - Aggregate urgency is needs-input > failed > working > review > done.
   Sidebar display/shortcut groups put review before working, following the
   separate reference order. Terminal untracked/unknown rows retain no dot.
-  Pure workspace projection takes one LatestRoot plus terminal facts; unknown
+  Pure workspace projection takes all canonical agent contributions plus terminal facts; unknown
   ownership/attention never becomes zero/Done. W11 owns canonical selection.
 - Dock/taskbar badge is an approved native difference: GPUI has no API. W19b owns
   the later small host seam. Pure typed workspace count/global icon projection
@@ -278,7 +278,13 @@ Its exact VM view all-target Clippy passed (run
 wp-inbox-projection-check-20261115T135741Z-911438d2, rc0/62s). Executable
 predecessor ed950 passed three focused tests (run
 wp-inbox-projection-20261115T131303Z-ed950284, 3/0/0, rc0/151s).
-Bounded source review is requested; consumer/whole/host evidence remains owed.
+Bounded source review returned two findings; 911 is held and is not adoptable.
+Successor246f1ba28 separates latest-root DISPLAY from the complete aggregate of
+all workspace-relative roots and working same-workspace descendants. Independent
+typed icon activity/attention replaces the lossy Bucket input. Missing timestamps
+block display/order facts, not an aggregate whose coverage is otherwise complete.
+Changed-source portable strict/tests are queued; consumer/whole/host evidence
+and the source correction verdict remain owed. W11 owns role/membership coverage.
 
 The pre-adoption app DTO conflated explicit unknown and serde(other), so the Row
 adapter stayed conservative until c2dcebea's V3/integrator handoff below. Current
