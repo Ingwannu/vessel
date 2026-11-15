@@ -6,7 +6,7 @@ use gpui::{AppContext as _, Render, TestAppContext};
 use vessel_app_kit::ui::{
     Context, Entity, InteractiveElement as _, IntoElement, ParentElement as _, Styled as _, div,
 };
-use vessel_app_view::layout::{AgentRole, OpenIntent, Placement, Position, Target};
+use vessel_app_view::layout::{OpenIntent, Placement, Position, Target};
 use vessel_proto::SessionId;
 
 struct Probe(Entity<Shell>);
@@ -47,6 +47,7 @@ fn closing_a_maximized_empty_pane_restores_surviving_panel_and_poll_visibility(
             shell
         }))
     });
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     probe.update_in(cx, |probe, window, cx| {
         probe.0.update(cx, |shell, cx| {
             let key = super::super::key(shell).unwrap();
