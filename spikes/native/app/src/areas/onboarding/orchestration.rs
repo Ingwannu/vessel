@@ -43,6 +43,9 @@ pub(super) fn opened(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
 }
 
 fn refresh(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
+    if !shell.areas.onboarding.integrations.running.is_empty() {
+        return;
+    }
     shell.areas.onboarding.integrations.facts = Facts::Loading;
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -57,10 +60,12 @@ fn refresh(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
                 if shell.areas.onboarding.integrations.query != Some(ticket) {
                     return;
                 }
-                shell.areas.onboarding.integrations.facts = match result {
+                let facts = match result {
                     Ok(snapshot) => Facts::Ready(snapshot),
                     Err(error) => Facts::Failed(error),
                 };
+                let _accepted =
+                    install_query(&mut shell.areas.onboarding.integrations, ticket, facts);
                 cx.notify();
             });
         })
@@ -136,6 +141,7 @@ fn execute(
 ) {
     match operation.integration {
         Integration::Cli => {
+            shell.areas.onboarding.integrations.query = None;
             let work = crate::areas::desktop::cli::set_installed(
                 match operation.choice {
                     Choice::On => CliOperation::Install,
@@ -146,6 +152,9 @@ fn execute(
             cx.spawn_in(window, async move |this, cx| {
                 let result = work.await;
                 let _closed = this.update_in(cx, |shell, window, cx| {
+                    // An authorized mutation outranks every earlier status read,
+                    // including a read from a flow that was closed/reopened.
+                    shell.areas.onboarding.integrations.query = None;
                     let outcome = match result {
                         Ok(snapshot) => {
                             if snapshot.status == CliStatus::Installed
@@ -200,6 +209,14 @@ fn settled(
         Settlement::Stale | Settlement::Waiting => {}
     }
     cx.notify();
+}
+
+fn install_query(setup: &mut Setup, ticket: Ticket, facts: Facts) -> bool {
+    if setup.query != Some(ticket) {
+        return false;
+    }
+    setup.facts = facts;
+    true
 }
 
 fn failed(shell: &Shell) -> bool {
@@ -358,5 +375,26 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn a_late_status_query_cannot_replace_an_authorized_mutation_result() {
+        let mut setup = Setup::default();
+        let ticket = setup.tickets.next_ticket().unwrap();
+        setup.query = Some(ticket);
+        let installed = Snapshot {
+            availability: Availability::Bundled,
+            status: CliStatus::Installed,
+            path: PathStatus::Configured,
+        };
+        // The original install may finish after its old flow was abandoned.
+        setup.query = None;
+        setup.facts = Facts::Ready(installed);
+        let stale = Snapshot {
+            status: CliStatus::Absent,
+            ..installed
+        };
+        assert!(!install_query(&mut setup, ticket, Facts::Ready(stale)));
+        assert!(matches!(setup.facts, Facts::Ready(current) if current == installed));
     }
 }

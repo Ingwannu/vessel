@@ -104,7 +104,9 @@ remain required. No checked-suggestion UI/acknowledgement is implemented yet.
 
 Orchestration changes apply only on Continue and advance after exact owner
 acknowledgements. CLI uses the desktop-shell installation API, never a copied
-PATH/service policy. MCP/skills remain unavailable until their numbered/reviewed
+PATH/service policy. An authorized CLI mutation invalidates earlier status-query
+tickets; reopening/refresh does not start a query while that mutation is running.
+A delayed pre-mutation snapshot cannot replace its exact operation acknowledgement. MCP/skills remain unavailable until their numbered/reviewed
 owner APIs exist. Unsupported effects are not claimed installed. A foreign CLI destination offers
 neither Install nor Remove: onboarding uses the owner State::allows admission and
 omits that unsupported choice instead of trapping Continue on a refused overwrite. Shared footer
