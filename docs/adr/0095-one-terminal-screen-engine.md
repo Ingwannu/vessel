@@ -110,6 +110,27 @@ full D1 UI, physical input, platform runtime or renderer parity.
 
 ## Verification owed
 
+## D1 follow-up: decoder metadata and multiplexed presentation
+
+The same transitive VTE 0.15 decoder may be vendored with exact checksum,
+licenses and two numbered minimal patches: preserve CSI parameter presence,
+and expose read-only completed-token boundaries. Normalized parameters erase
+the difference between omitted Kitty flags and explicit zero; guessing is
+rejected because it changes keyboard negotiation. A separate scanner is rejected
+because it duplicates terminal interpretation. Dependency classification is
+re-audited before its use; the frozen prerequisite source is unchanged.
+
+The node's presentation stream omits the non-rendering query requests it
+answers. Incomplete tokens are withheld, other complete bytes remain, and
+empty output still advances the event sequence. This also protects older raw
+CLI clients and replay without suppressing actual input keys or refusing raw
+attach. NodeAuthority stays off until the compatibility path lands and passes.
+Current authoritative frame consumers use one revision/anchor/mode contract;
+they do not restore mutable parsers from visible cells. The CLI ANSI renderer
+is a display backend, not ANSI state replay into a parser.
+
+## Verification owed (prerequisite)
+
 Golden fixture checkpoints execute actual recorded output, independently
 captured raw cell hashes and text/cursor/history expectations. Add primary
 shrink/grow/soft-wrap/CJK, capacity change/eviction, query and final-snapshot
