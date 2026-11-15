@@ -1,5 +1,6 @@
 //! Staged permit command edge. Product registration waits for ADR 0084's
-//! acknowledged response contract and W17's reviewed output interface.
+//! acknowledged response contract. W17's reviewed output interface is adopted;
+//! production dispatch waits for complete response handlers.
 
 mod confirmation;
 mod input;

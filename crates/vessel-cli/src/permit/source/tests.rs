@@ -42,6 +42,7 @@ fn structured(id: SessionId) -> SessionInfo {
         SessionMode::Structured {
             model: None,
             resume: None,
+            options: Vec::new(),
         },
     )
 }
