@@ -1692,3 +1692,4 @@ The agent input seam includes a dedicated internal native-command carrier with
 closed acceptance/refusal/uncertainty. It shares the existing bounded command
 queue; every current provider refuses before RPC. Positive transports stay with
 the provider owner and cannot be enabled by a label/version guess.
+Composer catalog values (ADR0085) live in vessel-proto::composer_commands; native_commands owns closed native intents/status and validated goal objectives. The optional kind/native_command fields project away under an unassigned feature. The standalone carrier registers no call/runtime; provider edges and current-run availability remain separate owners. No dependency edge changes.

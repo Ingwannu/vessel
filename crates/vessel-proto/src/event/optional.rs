@@ -10,6 +10,9 @@ impl SessionEvent {
         protocol: ProtocolVersion,
         assigned: Option<ProtocolVersion>,
     ) -> Option<Self> {
+        if let Some(projected) = self.composer_commands_for_protocol(protocol) {
+            return Some(projected);
+        }
         if let Self::QueueChanged { queue } = self
             && let Some(queue) =
                 crate::timeline::compat::queue(queue, protocol, crate::timeline::TIMELINE_PARITY)

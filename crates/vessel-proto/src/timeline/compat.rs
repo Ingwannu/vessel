@@ -284,10 +284,7 @@ pub(crate) fn conversation_with_reference(
     context: ReferenceContext,
 ) -> Option<Conversation> {
     let assigned = context.assigned;
-    let usage = value
-        .usage
-        .as_ref()
-        .and_then(|usage| usage.for_protocol(protocol));
+    let composer = value.composer_for_protocol(protocol);
     let has_timeline_change = !supported(protocol, assigned)
         && (value.through.is_some()
             || value.permissions.iter().any(permission_changed)
@@ -297,13 +294,10 @@ pub(crate) fn conversation_with_reference(
                 .entries
                 .iter()
                 .any(|entry| entry.client_message_id.is_some()));
-    if usage.is_none() && !has_timeline_change {
+    if composer.is_none() && !has_timeline_change {
         return None;
     }
-    let mut adapted = value.clone();
-    if let Some(usage) = usage {
-        adapted.usage = Some(usage);
-    }
+    let mut adapted = composer.unwrap_or_else(|| value.clone());
     if !supported(protocol, assigned) {
         adapted.through = None;
         adapted.permissions = value

@@ -64,6 +64,15 @@ pub struct AgentCommand {
     /// [`AgentCommand::MAX_HINT`] bytes).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
+    /// Explicit provider classification (ADR 0085); absent from older reports.
+    /// Only a Skill is eligible for inline completion; missing/unknown stays root-only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<crate::composer_commands::CommandKind>,
+    /// Proven native execution offered by the actual current provider run.
+    /// Names and ordinary command kind never imply this capability. The composer
+    /// and actor additionally validate the canonical root and shared intent parser.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_command: Option<crate::native_commands::NativeCommandKind>,
 }
 
 impl AgentCommand {
