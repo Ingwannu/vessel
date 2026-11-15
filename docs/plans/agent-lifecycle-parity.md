@@ -377,6 +377,10 @@ No row of the crate table changes.
   control match and actor constructor have no test fault arm or field there.
   The test failure, corrective narrow checks and one package gate travel
   together. This is one prerequisite package, not a working reload command.
+- Resume: the event accessor's corrective clippy and all 262 protocol units
+  passed. Its first narrow compile failure (remaining old test accessor calls)
+  is retained. The isolated stop-refusal regression is now committed against
+  the unchanged log-and-continue policy; its expected failing run is next.
 
 ## Resume point
 

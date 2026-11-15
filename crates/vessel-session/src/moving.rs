@@ -144,6 +144,12 @@ pub(crate) enum Control {
     /// every launch site gives the node's, `RuntimeConfig::private_dir`).
     #[cfg(test)]
     PrivateDir(oneshot::Sender<Option<PathBuf>>),
+    /// One actor's next stop signal only; absent from product builds.
+    #[cfg(test)]
+    RefuseNextStop {
+        source: vessel_proc::SignalError,
+        ready: oneshot::Sender<()>,
+    },
 }
 
 /// Everything the actor needs to move.
@@ -332,10 +338,24 @@ impl StructuredActor {
         Ok(self.move_state.turn_over)
     }
 
+    // Keep the fault local to the actor: another session cannot consume it.
+    fn signal_stop(&mut self, signal: Signal) {
+        #[cfg(test)]
+        let delivered = match self.stop_signal_error.take() {
+            Some(error) => Err(error),
+            None => self.agent.signal(signal),
+        };
+        #[cfg(not(test))]
+        let delivered = self.agent.signal(signal);
+        if let Err(error) = delivered {
+            tracing::warn!(pid = self.agent.pid(), %error, ?signal, "cannot signal the agent during a move");
+        }
+    }
+
     /// Stop the current agent (`SIGTERM`, then `SIGKILL` after
     /// [`STOP_GRACE`]) and publish what it still had to say.
     pub(crate) async fn stop_agent(&mut self) -> Result<(), MoveError> {
-        signal(&mut self.agent, Signal::Terminate);
+        self.signal_stop(Signal::Terminate);
         let grace = tokio::time::sleep(STOP_GRACE);
         let mut grace = std::pin::pin!(grace);
         let mut forced = false;
@@ -353,7 +373,7 @@ impl StructuredActor {
                 },
                 () = &mut grace, if !forced => {
                     forced = true;
-                    signal(&mut self.agent, Signal::Kill);
+                    self.signal_stop(Signal::Kill);
                 }
             }
         }
