@@ -35,7 +35,7 @@ impl<T> Tolerant<T> {
 #[derive(Deserialize)]
 pub(super) struct Token {
     #[serde(rename = "token")]
-    _token: String,
+    _text: String,
     pub(super) logprob: f64,
     #[serde(rename = "bytes", default = "absent_bytes", deserialize_with = "bytes")]
     pub(super) bytes_valid: bool,
