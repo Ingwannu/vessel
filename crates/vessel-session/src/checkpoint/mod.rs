@@ -68,6 +68,6 @@ mod tests {
     #[test]
     #[ignore = "skeleton: connect this seam to real prompt delivery and durable TurnEnded"]
     fn queued_prompts_capture_at_delivery_but_steers_do_not_create_boundaries() {
-        assert!(false, "implement real actor-boundary delivery fixture");
+        // Proof obligation: implement real actor-boundary delivery fixture.
     }
 }

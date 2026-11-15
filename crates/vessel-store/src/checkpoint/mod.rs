@@ -4,6 +4,11 @@
 //! reserved for another feature. migrate() and the existing migration list stay
 //! unchanged until the launch-profile predecessor is available.
 
+mod journal;
+#[cfg(test)]
+mod journal_tests;
+mod records;
+
 #[cfg(test)]
 mod tests;
 

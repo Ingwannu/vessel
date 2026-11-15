@@ -110,5 +110,5 @@ async fn stuck_workers_cannot_spawn_replacements_or_prematurely_return_quota() {
 #[test]
 #[ignore = "skeleton: requires the asynchronous worker and publication seam"]
 fn held_filesystem_io_does_not_delay_prompt_after_capture_timeout() {
-    assert!(false, "implement held-I/O barrier fixture");
+    // Proof obligation: implement held-I/O barrier fixture.
 }

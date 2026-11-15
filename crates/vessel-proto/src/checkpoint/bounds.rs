@@ -35,10 +35,10 @@ pub const CHECKPOINT_WORKERS: usize = 2;
 pub const CHECKPOINT_QUEUE: usize = 8;
 
 macro_rules! bounded {
-    ($name:ident, $raw:ty, $limit:expr, $error:ident, $why:literal) => {
+    ($name:ident, $raw:ty, $repr:literal, $limit:expr, $error:ident, $why:literal) => {
         #[doc = $why]
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-        #[serde(try_from = $raw, into = $raw)]
+        #[serde(try_from = $repr, into = $repr)]
         pub struct $name($raw);
         impl $name {
             /// Refuse over-limit input before allocating or admitting work.
@@ -71,6 +71,7 @@ macro_rules! bounded {
 bounded!(
     FileBytes,
     u64,
+    "u64",
     CHECKPOINT_FILE_BYTES,
     FileTooLarge,
     "Validated raw file size."
@@ -78,6 +79,7 @@ bounded!(
 bounded!(
     ImageBytes,
     u64,
+    "u64",
     CHECKPOINT_IMAGE_BYTES,
     ImageTooLarge,
     "Validated image byte sum."
@@ -85,6 +87,7 @@ bounded!(
 bounded!(
     PathCount,
     usize,
+    "usize",
     CHECKPOINT_PATHS,
     TooManyPaths,
     "Validated image entry count."
