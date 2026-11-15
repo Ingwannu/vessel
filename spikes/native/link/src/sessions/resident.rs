@@ -7,7 +7,7 @@ use vessel_app_view::{
     connection::{ConnectionContext, Refusal},
     residents::{FollowBinding, OperationKind, OperationTicket, ResidentProblem},
 };
-use vessel_proto::{Conversation, EventRecord, SessionInfo};
+use vessel_proto::{Conversation, EventRecord, SessionId, SessionInfo};
 
 /// One effect's opaque original owner admission, echoed without reminting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,6 +73,27 @@ impl std::fmt::Debug for Payload {
         f.write_str("ResidentPayload(<opaque>)")
     }
 }
+impl Payload {
+    fn described_session(&self) -> Option<SessionId> {
+        match self {
+            Self::Metadata(info) => Some(info.id),
+            Self::Completion { result, .. } => match result.as_ref() {
+                Ok(Acted::Session(info)) => Some(info.id),
+                // A fork intentionally describes its new session. Its owner
+                // must validate the original fork request before installing it.
+                Ok(
+                    Acted::Forked(_)
+                    | Acted::Deleted(_)
+                    | Acted::Done
+                    | Acted::Conversation(_)
+                    | Acted::Log(_),
+                )
+                | Err(_) => None,
+            },
+            Self::Conversation(_) | Self::Records(_) | Self::Lost(_) | Self::Eof => None,
+        }
+    }
+}
 /// Invalid ingress never returns its peer payload or applies its mutation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Problem {
@@ -129,8 +150,10 @@ impl Envelope {
             .delivery
             .validate(&self.scope.context)
             .map_err(Problem::Delivery)?;
-        if let Payload::Metadata(info) = &self.payload
-            && info.id != self.scope.binding.resident.address.session
+        if self
+            .payload
+            .described_session()
+            .is_some_and(|session| session != self.scope.binding.resident.address.session)
         {
             return Err(Problem::WrongSession);
         }

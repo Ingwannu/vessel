@@ -117,7 +117,9 @@ the original selected guard once, the canonical binding and one shared immutable
 context; record envelopes clone only those immutable/weak facts. Queued payloads
 retain no raw client or alternative identity allocator. Envelope::install checks
 actual delivery immediately before a synchronous canonical receive/settle callback
-and rejects metadata with another SessionId. Peer payload Debug is opaque.
+and rejects metadata or an Acted::Session completion with another SessionId.
+A fork's distinct new identity remains its concrete pending-request owner's
+validation responsibility. Peer payload Debug is opaque.
 
 Completion headers retain the original owner kind/ticket. A separate control-only
 CorrelatedRefusal carries no fake guard or peer data: actor preflight can prove
@@ -142,6 +144,8 @@ identity, wrong owner/duplicate tickets and obsolete guardless refusals are also
 covered. A real framed MarkSession reply is also decoded and queued before shared
 lease retirement; its peer result cannot reach the mutation callback or consume
 the retained owner ticket. This is ingress evidence only, not an actor archive test.
+Actual guarded GetSession and MarkSession replies naming another session are
+rejected before owner mutation or ticket consumption, even with a live guard.
 These tests have not executed yet and do not prove App timeline/form/input
 mutation, dirty/IME retention or live scoped admission. Cross-crate guard staging
 remains intact; App tests cannot manufacture a guard through Link::detached.
