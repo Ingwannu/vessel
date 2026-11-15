@@ -22,6 +22,8 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+#[cfg(test)]
+mod creation;
 mod subagents;
 
 use std::collections::HashMap;

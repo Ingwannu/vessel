@@ -344,3 +344,23 @@ WorkspaceOperationId alias before generating a patch. That shared UUID is now
 classified as a Handle, matching WorkspaceId and the alias policy; the empty
 artifact was not applied. Combined generation and corrected strict execution
 remain owed on this source.
+
+
+### Actor/count/start-lease join (staged)
+
+Modify/reuse: Sessions::create_receipted joins the existing tracked Sessions
+creation/persistence path, the same Agents reservation, canonical registry start
+lease and committed Resource Begin. It binds count retention before any further
+await, verifies the stored exact receipt and still-pending lease, refuses an
+existing runtime/stored resource, and forces the one reserved SessionId. Only
+actual actor registration plus session persistence permits completing the same
+registry lease; only then is Resource Finished written. No first input is sent
+or accepted: the result is ResourceReady with the original canonical message id.
+Errors/cancellation retain admission history and do not prove a no-spawn refusal.
+
+This is a lower registration primitive, literal cfg(test), below the missing
+current authorization, profile/placement, workspace visibility/listing and tracked
+public controller. Its fake-ACP test uses the actual session runtime, Store and
+registry rather than claiming a fake effect list proves actor registration. The
+fixture's manually registered workspace does not prove project/root authority.
+New test execution and strict checks remain owed; no MCP/native API is activated.
