@@ -1,6 +1,7 @@
 //! One attention list from every paired machine; existing conversation cards
 //! answer a freshly confirmed request without manufacturing timeline events.
 mod actions;
+mod badges;
 mod draw;
 mod idle;
 mod notifications;

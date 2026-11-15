@@ -3,7 +3,7 @@
 //! is requested through the current window, without shell helpers or new deps.
 use crate::routes::Route;
 use crate::shell::Shell;
-use vessel_app_kit::ui::{Context, SystemNotification, Window};
+use vessel_app_kit::ui::{AppContext as _, Context, SystemNotification, Window};
 use vessel_app_link::{Command, inbox::Ask};
 use vessel_app_view::inbox::delivery::{Channel, Delivery, Visibility};
 use vessel_app_view::inbox::notices::DeliveryTag;
@@ -150,18 +150,21 @@ impl Shell {
             return Visibility::Away;
         }
         if self.route == Route::Session
-            && let Some(open) = &self.areas.session.open
-            && let Some(node) = self
+            && let Some(open) = self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .filter(|open| open.structured)
+            && let Some(target) = self
                 .areas
                 .inbox
-                .store
-                .nodes()
-                .iter()
-                .find(|node| node.source.name.as_str() == open.machine)
+                .read_open
+                .filter(|target| target.session == open.session)
         {
             return Visibility::Viewing {
-                node: node.source.node,
-                session: open.session,
+                node: target.node,
+                session: target.session,
             };
         }
         if self.route == Route::Inbox

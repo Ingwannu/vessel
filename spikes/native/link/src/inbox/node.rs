@@ -49,6 +49,7 @@ pub(super) async fn list(client: &NodeClient, pages: Pages) -> Result<Snapshot, 
     };
     Ok(Snapshot {
         authority,
+        attention: attention(client).await?,
         counts,
         entries,
         next: next.map(|cursor| Position::new(cursor.get())),
@@ -158,4 +159,33 @@ pub(super) fn problem(error: vessel_client::CallError) -> Problem {
         vessel_client::CallError::UnexpectedReply(_) => Problem::InvalidReply,
         vessel_client::CallError::RequestIdsExhausted => Problem::Exhausted,
     }
+}
+
+async fn attention(
+    client: &NodeClient,
+) -> Result<Option<Vec<vessel_proto::inbox_attention::SessionAttention>>, Problem> {
+    use vessel_proto::inbox_attention::ATTENTION_BATCH;
+    if !vessel_proto::Method::GetInboxAttention
+        .since()
+        .is_some_and(|since| since <= client.protocol())
+    {
+        return Ok(None);
+    }
+    let sessions = client.sessions().await.map_err(problem)?;
+    let ids: Vec<_> = sessions.into_iter().map(|session| session.id).collect();
+    let mut attention = Vec::with_capacity(ids.len());
+    for chunk in ids.chunks(ATTENTION_BATCH) {
+        let badges = client
+            .inbox_attention(chunk.to_vec())
+            .await
+            .map_err(problem)?;
+        let mut seen = std::collections::HashSet::new();
+        for badge in &badges {
+            if !chunk.contains(&badge.session) || !seen.insert(badge.session) {
+                return Err(Problem::InvalidReply);
+            }
+        }
+        attention.extend(badges);
+    }
+    Ok(Some(attention))
 }

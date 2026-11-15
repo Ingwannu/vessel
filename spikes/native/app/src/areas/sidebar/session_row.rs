@@ -75,7 +75,7 @@ pub(super) fn session_row(
             .open
             .as_ref()
             .is_some_and(|open| open.session == card.session && open.machine == card.machine);
-    let unread = card.detail.marks.unread;
+    let unread = shell.inbox_unread(card);
     let open = Open::of(card);
     let group: SharedString = format!("session-row-{}-{}", card.machine, card.session).into();
     let menu_open = shell.areas.sidebar.rows.is_for(card);

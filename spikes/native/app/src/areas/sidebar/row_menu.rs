@@ -97,7 +97,7 @@ fn acts(shell: &Shell, card: &Card) -> Vec<RowAct> {
     }
     if marks_taken {
         let marks = card.detail.marks;
-        if !marks.unread {
+        if !shell.inbox_unread(card) {
             acts.push(RowAct::Mark(MarkAction::MarkUnread));
         } else if card.detail.next_seq.is_some() {
             acts.push(RowAct::Mark(MarkAction::MarkRead));

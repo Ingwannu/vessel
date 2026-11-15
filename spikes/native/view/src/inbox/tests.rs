@@ -16,6 +16,7 @@ impl FakeNode {
             },
             snapshot: Snapshot {
                 authority: Authority::Operate,
+                attention: None,
                 counts: Counts::new(42, 7, 9),
                 entries: Vec::new(),
                 extent: Extent::More,

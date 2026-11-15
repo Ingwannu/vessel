@@ -96,3 +96,6 @@ inbox-test-unconfirmed = 알림이 표시됐는지 확인하세요. 표시되지
 
 # Return from an older cursor page without losing the node's full unread counts.
 inbox-newest = 최신 항목
+
+# An older node can list inbox entries without supporting the newer authoritative session rollup.
+inbox-badges-legacy = 공유 알림 수를 확인할 수 없어 세션 배지에 기존 읽음 상태를 표시합니다.

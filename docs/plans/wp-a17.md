@@ -266,3 +266,28 @@ resets the window without resetting notification watermarks. Overlap after
 projection removal is deduplicated by exact key, never by title. This uses only
 existing inbox.list cursors. The new regression traverses 9999 cursor windows
 without increasing memory/read bounds. Runtime results are pending.
+
+## Combined staged SDK consumer
+
+Own node source7c926b41d (including announced green gate40 ba45a6e3) is merged
+into this app worktree under A8. V3 returned one A7 bound duplication finding;
+that correction is committed, and exact changed-source checks remain queued.
+This is local package assembly, not producer handoff or source PASS.
+
+Native claim now uses the actual NodeClient method, with exact projection
+checks before and after the admitted reply. Terminal focus and aged idle use
+the real optional DTOs; passive reads use the narrow inbox.read SDK method.
+The single feature constant is still None, so the SDK explicitly refuses these
+operations until the integrator assigns it. No invented call or fake success
+is used. Authoritative per-session rollups feed board/sidebar/read policy when
+supported; older peers explicitly show a legacy badge caption. The existing
+SessionInfo marks retain their log-watermark meaning. Session focus uses the
+identity pinned on follow, covering a newly started session as well as a card
+open; unstructured terminals never masquerade as structured session focus.
+
+G4's canonical ConnectionContext/MachineKey/NodeId/ConnectionEpoch producer is
+not consumer-ready yet. Its owner will send a bounded reviewed range. Replace
+our temporary private incarnation with that value and selected.call boundary
+then; do not import the unreviewed G4 branch. W12's bounded shared source1720 is
+announced; C2 D1 focused-target/renderer handoff and W21 reviewed open routing
+remain dependencies. No pane manager or resident parser is duplicated here.

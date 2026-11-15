@@ -17,6 +17,8 @@ pub struct Snapshot {
     pub authority: Authority,
     /// Whole-node counters from the first page transaction.
     pub counts: Counts,
+    /// Whole-projection session rollups; None explicitly uses legacy log marks.
+    pub attention: Option<Vec<vessel_proto::inbox_attention::SessionAttention>>,
     /// Loaded rows, newest first.
     pub entries: Vec<Entry>,
     /// Continuation of the selected page, never inferred from loaded rows.

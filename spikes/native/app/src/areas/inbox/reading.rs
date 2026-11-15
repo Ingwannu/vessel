@@ -37,7 +37,12 @@ impl Shell {
         if self.route != Route::Session {
             return None;
         }
-        let open = self.areas.session.open.as_ref()?;
+        let open = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .filter(|open| open.structured)?;
         let target = self
             .areas
             .inbox
@@ -73,7 +78,10 @@ impl Shell {
             } else {
                 Focus::Inactive
             },
-            read: if info.marks.unread {
+            read: if self
+                .inbox_session_attention(source.name.as_str(), open.session)
+                .map_or(info.marks.unread, |attention| attention.unread.get() != 0)
+            {
                 vessel_app_view::inbox::Read::Unread
             } else {
                 vessel_app_view::inbox::Read::Read

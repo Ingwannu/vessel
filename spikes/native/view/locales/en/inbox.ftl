@@ -96,3 +96,6 @@ inbox-test-unconfirmed = Check that it appeared. If it did not, check notificati
 
 # Return from an older cursor page without losing the node's full unread counts.
 inbox-newest = Newest entries
+
+# An older node can list inbox entries without supporting the newer authoritative session rollup.
+inbox-badges-legacy = Shared attention counts are unavailable; session badges show legacy read status.

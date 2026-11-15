@@ -268,7 +268,7 @@ fn title_row(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let neutral = tokens.neutral;
-    let marks = card.detail.marks.pinned || card.detail.marks.unread;
+    let unread = shell.inbox_unread(card);
     div()
         .flex()
         .flex_row()
@@ -290,7 +290,7 @@ fn title_row(
                 .text_ellipsis()
                 .child(shell.t.title(&card.title).to_owned()),
         )
-        .when(marks, |row| {
+        .when(card.detail.marks.pinned || unread, |row| {
             row.child(
                 div()
                     .flex()
@@ -301,7 +301,7 @@ fn title_row(
                     .when(card.detail.marks.pinned, |marks| {
                         marks.child(glyph(Glyph::Pin, 12.0, neutral.foreground_extra_muted))
                     })
-                    .when(card.detail.marks.unread, |marks| {
+                    .when(unread, |marks| {
                         marks.child(
                             div()
                                 .size(px(8.0))

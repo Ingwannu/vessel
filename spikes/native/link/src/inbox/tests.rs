@@ -51,6 +51,10 @@ fn key(client: &vessel_client::NodeClient, entry: &InboxEntry) -> Key {
     }
 }
 #[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the test fake rejects unrelated calls rather than copying the canonical method table"
+)]
 async fn pages_preserve_whole_counts_and_require_explicit_expansion() {
     let latest = entry(10);
     let older = entry(9);
@@ -83,6 +87,10 @@ async fn pages_preserve_whole_counts_and_require_explicit_expansion() {
     assert_eq!(expanded.extent, Extent::Complete);
 }
 #[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the test fake rejects unrelated calls rather than copying the canonical method table"
+)]
 async fn cursor_cycle_duplicate_and_out_of_order_pages_are_refused() {
     for invalid in 0..3 {
         let latest = entry(10);
@@ -105,6 +113,10 @@ async fn cursor_cycle_duplicate_and_out_of_order_pages_are_refused() {
     }
 }
 #[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the test fake rejects unrelated calls rather than copying the canonical method table"
+)]
 async fn a_full_get_cannot_substitute_another_sessions_form() {
     let requested = entry(10);
     let replacement = entry(11);
@@ -124,6 +136,10 @@ async fn a_full_get_cannot_substitute_another_sessions_form() {
     );
 }
 #[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the test fake rejects unrelated calls rather than copying the canonical method table"
+)]
 async fn answer_is_sent_once_and_ack_is_not_confused_with_projection_withdrawal() {
     let id = PermissionId::random();
     let option = PermissionOptionId::new("allow");
@@ -179,6 +195,10 @@ async fn answer_is_sent_once_and_ack_is_not_confused_with_projection_withdrawal(
     assert_eq!(*counts.lock().unwrap(), (1, 1));
 }
 #[tokio::test]
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "the test fake rejects unrelated calls rather than copying the canonical method table"
+)]
 async fn stale_answer_is_never_sent_and_remote_text_is_not_exposed() {
     let current = entry(10);
     let source = current.clone();

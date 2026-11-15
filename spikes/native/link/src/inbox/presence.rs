@@ -94,7 +94,7 @@ async fn run(
             continue;
         };
         let call = async {
-            let report = wire(&source, report)?;
+            let report = wire(&source, report);
             client.report_push_presence(report).await.map_err(problem)
         };
         let result = tokio::select! {
@@ -109,26 +109,27 @@ async fn run(
         }
     }
 }
-fn wire(source: &Source, report: Report) -> Result<ReportPushPresence, Problem> {
-    if report.idle.is_some() {
-        return Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported));
-    }
+fn wire(source: &Source, report: Report) -> ReportPushPresence {
     let focus = match report.focus {
         Focus::Session { node, session } if node == source.node => PushFocus::Session { session },
-        Focus::Terminal { node, .. } if node == source.node => {
-            return Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported));
+        Focus::Terminal { node, terminal } if node == source.node => {
+            PushFocus::Terminal { terminal }
         }
         Focus::Session { .. } | Focus::Terminal { .. } | Focus::Elsewhere => PushFocus::Elsewhere,
         Focus::Background => PushFocus::Background,
     };
-    Ok(ReportPushPresence {
+    ReportPushPresence {
         focus,
         activity: match report.activity {
             Activity::Active => PushActivity::Active,
             Activity::Unchanged => PushActivity::Unchanged,
         },
-    })
+        idle_age: report.idle.map(|sample| {
+            vessel_proto::push::PushIdleAge::new(sample.age_at(std::time::Instant::now()).get())
+        }),
+    }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,24 +148,23 @@ mod tests {
             activity: Activity::Unchanged,
             idle: None,
         };
-        assert_eq!(wire(&source, foreign).unwrap().focus, PushFocus::Elsewhere);
+        assert_eq!(wire(&source, foreign).focus, PushFocus::Elsewhere);
+        assert_eq!(wire(&source, foreign).activity, PushActivity::Unchanged);
+        let terminal = vessel_proto::TerminalId::random();
         assert_eq!(
-            wire(&source, foreign).unwrap().activity,
-            PushActivity::Unchanged
-        );
-        assert!(
             wire(
                 &source,
                 Report {
                     focus: Focus::Terminal {
                         node: source.node,
-                        terminal: vessel_proto::TerminalId::random()
+                        terminal
                     },
                     activity: Activity::Active,
                     idle: None
                 }
             )
-            .is_err()
+            .focus,
+            PushFocus::Terminal { terminal }
         );
     }
 }

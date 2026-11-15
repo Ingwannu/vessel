@@ -9,13 +9,8 @@ pub(super) async fn clear(
     session: SessionId,
     through: EventSeq,
 ) -> Result<(), Problem> {
-    let current = client.conversation(session).await.map_err(problem)?;
-    if !current.permissions.is_empty() || !current.questions.is_empty() {
-        return Err(Problem::Refused(vessel_proto::ErrorCode::Conflict));
-    }
     client
-        .mark(session, vessel_proto::Mark::Read { through })
+        .read_inbox_through(session, through)
         .await
-        .map(|_info| ())
         .map_err(problem)
 }

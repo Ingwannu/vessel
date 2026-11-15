@@ -16,6 +16,11 @@ impl Drop for Peer {
         self.task.abort();
     }
 }
+#[expect(
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "bounded test-only frame reader; corrupt fixtures must fail the test"
+)]
 async fn read(stream: &mut DuplexStream) -> Option<ClientFrame> {
     let length = match stream.read_u32().await {
         Ok(length) => length,
@@ -24,9 +29,13 @@ async fn read(stream: &mut DuplexStream) -> Option<ClientFrame> {
     };
     assert!(length <= 65_536);
     let mut bytes = vec![0; usize::try_from(length).unwrap()];
-    stream.read_exact(&mut bytes).await.unwrap();
+    let _read = stream.read_exact(&mut bytes).await.unwrap();
     Some(serde_json::from_slice(&bytes).unwrap())
 }
+#[expect(
+    clippy::unwrap_used,
+    reason = "test frame sizes and serialization are controlled by the fixture"
+)]
 async fn write(stream: &mut DuplexStream, frame: ServerFrame) -> bool {
     let bytes = serde_json::to_vec(&frame).unwrap();
     if stream
@@ -38,8 +47,13 @@ async fn write(stream: &mut DuplexStream, frame: ServerFrame) -> bool {
     }
     stream.write_all(&bytes).await.is_ok()
 }
+#[expect(
+    clippy::unwrap_used,
+    reason = "test-only handshake and fixed frame capacity must be valid"
+)]
 pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'static) -> Peer {
     let (local, mut remote) = tokio::io::duplex(65_536);
+    let protocol = vessel_proto::Method::ListInbox.since().unwrap();
     let task = tokio::spawn(async move {
         assert!(matches!(
             read(&mut remote).await,
@@ -52,7 +66,10 @@ pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'st
             os: "linux".to_owned(),
             arch: "x86_64".to_owned(),
             version: "0".to_owned(),
-            protocol: ProtocolRange::CURRENT,
+            protocol: ProtocolRange {
+                min: protocol,
+                max: protocol,
+            },
             started_at: chrono::DateTime::UNIX_EPOCH,
             state: NodeState::Serving,
             public_key: None,
@@ -60,10 +77,7 @@ pub(super) async fn connect(mut answer: impl FnMut(Call) -> Outcome + Send + 'st
         };
         if !write(
             &mut remote,
-            ServerFrame::Welcome(Welcome {
-                protocol: vessel_proto::PROTOCOL_VERSION,
-                node,
-            }),
+            ServerFrame::Welcome(Welcome { protocol, node }),
         )
         .await
         {

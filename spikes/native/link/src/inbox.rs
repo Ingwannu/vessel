@@ -6,6 +6,8 @@ use vessel_app_view::inbox::{Entry, Key, Pages, Problem, Read, Request, Snapshot
 use vessel_app_view::machine_book::Name;
 use vessel_proto::NodeId;
 #[cfg(not(target_arch = "wasm32"))]
+mod admission;
+#[cfg(not(target_arch = "wasm32"))]
 mod answer;
 mod input;
 #[cfg(not(target_arch = "wasm32"))]
@@ -359,12 +361,10 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
 #[cfg(not(target_arch = "wasm32"))]
 async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     match ask {
-        Ask::Claim(pending) => Answer::Claimed(
-            pending.source,
-            pending.key,
-            pending.request,
-            Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported)),
-        ),
+        Ask::Claim(pending) => {
+            let result = admission::claim(client, &pending).await;
+            Answer::Claimed(pending.source, pending.key, pending.request, result)
+        }
         Ask::ReadSession {
             source,
             session,

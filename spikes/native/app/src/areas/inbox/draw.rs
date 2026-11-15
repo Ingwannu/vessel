@@ -273,6 +273,16 @@ fn machine_notes(
         }
     }
     for node in area.store.nodes() {
+        if node
+            .snapshot
+            .as_ref()
+            .is_some_and(|snapshot| snapshot.attention.is_none())
+        {
+            body = body.child(note(
+                &format!("{} · {}", node.source.name.as_str(), labels.badges_legacy()),
+                tokens,
+            ));
+        }
         if let Listing::Failed(problem) = node.listing {
             body = body.child(note(
                 &format!(

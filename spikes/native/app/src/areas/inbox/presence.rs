@@ -58,7 +58,7 @@ impl Shell {
                 cx.listener(|shell, _event, window, _cx| shell.inbox_activity(window)),
             )
             .on_mouse_move(cx.listener(|shell, _event, window, _cx| shell.inbox_activity(window)))
-            .on_scroll_wheel(cx.listener(|shell, _event, window, _cx| shell.inbox_activity(window)))
+            .on_scroll(cx.listener(|shell, _event, window, _cx| shell.inbox_activity(window)))
     }
     fn inbox_activity(&mut self, window: &Window) {
         if !window.is_window_active() || !window.is_visible() {
@@ -86,18 +86,21 @@ impl Shell {
             return Focus::Background;
         }
         if self.route == Route::Session
-            && let Some(open) = &self.areas.session.open
-            && let Some(node) = self
+            && let Some(open) = self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .filter(|open| open.structured)
+            && let Some(target) = self
                 .areas
                 .inbox
-                .store
-                .nodes()
-                .iter()
-                .find(|node| node.source.name.as_str() == open.machine)
+                .read_open
+                .filter(|target| target.session == open.session)
         {
             return Focus::Session {
-                node: node.source.node,
-                session: open.session,
+                node: target.node,
+                session: target.session,
             };
         }
         if self.route == Route::Inbox
