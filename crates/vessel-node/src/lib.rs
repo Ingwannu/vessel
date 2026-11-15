@@ -126,7 +126,7 @@ pub use providers::{
     ProviderCacheError, ProviderChange, ProviderConfigurationError, ProviderDiscoveryError,
     ProviderRegistrations,
 };
-pub use shutdown::signal;
+pub use shutdown::{StopSignals, signal};
 pub use terminals::{KNOWN_CREDENTIALS, Shell, TerminalsConfig, credentials_in};
 // The store types named by `Config`'s public fields, so callers can build
 // a `Config` without depending on `vessel-store` themselves.

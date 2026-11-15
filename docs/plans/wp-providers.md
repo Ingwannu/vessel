@@ -525,3 +525,20 @@ inventory instead of waiting for the whole workspace compile to discover the
 second fixture. The already submitted seven-crate strict source remains
 immutable; RPC test compilation is an additional narrow check before any new
 whole submission. No existing assertion or method policy is changed.
+
+## Required node46g merge
+
+The node integrator announced82ae7c91 after the known-red whole was explicitly
+cancelled and before any replacement whole started. Merge that head under A8,
+without rebasing or dropping earlier red/cancelled evidence. It carries staged
+method-row support, W2 ProviderChildRef values and StopSignals. The sole source
+conflict is lib.rs public exports: preserve both provider handles and the
+head's StopSignals/signal exports. Real provider rows remain pending, not staged,
+and retain their destination handlers and separate named feature constant.
+
+The announced gate46g reports Rust2389/0/12, web e2e68 and forge4, with one named
+web load timeout counted by the coordinator; it is not evidence that this new
+combined provider source has passed. Existing c2c3 strict/RPC34 runs keep their
+immutable source and finish unchanged. The merged head needs narrow union
+qualification before the one approved replacement whole. No number, schema,
+assertion or size allowance is changed by this merge.
