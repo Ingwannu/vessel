@@ -5,17 +5,17 @@ Current integration boundaries and exact evidence are indexed in
 source survey, implementation rationale and earlier scoped execution history.
 
 Status: A7 source includes announced app base9 `db42d9c5` (native1510/0/2).
-Actuale879 pacing/kernel App114 + Kit208 =322 passed/0 failed/2 existing ignored;
-later Markdown helper consumption and this base merge are outside that source.
-View all-target strict6d8c0cd8 passed; View tests1025/1 failed only the About
-registry, now fixed and awaiting its next immutable run. S2's canonical inventory
+Actual4b591 pacing/source/Markdown-call App126 + Kit215 =341/0/2; later diff
+metadata/failure-prose changes and base9 remain outside that source. Exact6d8c0cd8
+View all-target strict passed and all-target tests1173/0/0 passed after the About
+registry fix. S2's canonical inventory
 is adopted; A7 appends its four rows after the unchanged95, with original vectors
 and license metadata preserved. Current full App/Kit strict is still owed.
 W23 rich fields/echo/receipts,
 W12 live resident cutover, K syntax and scoped Markdown host actions remain held.
 A8 approvals/questions belong to W4. Minimal resident preparation has V1 row252
 bounded staged source/narrow PASS; its line merge9652a72b is not yet green.
-No whole gate, captures or V4 package pass. Updated 2026-11-15T16:48Z.
+No whole gate, captures or V4 package pass. Updated 2026-11-15T18:08Z.
 
 ## Reference and asset check
 
@@ -1450,3 +1450,12 @@ rich DTO is copied into the minimal packet. The separate missing existing size
 facade export and external page-test adapter are included there too. Prior
 portable f839/ae256 strict attempts stopped before tests; their red evidence is
 retained and does not prove current native readiness.
+
+Literal prompt selection remains a separate unaccepted draft. B2 confirmed the
+pinned TextView range API rejects HTML and supplies background-only highlights;
+the current user StyledText also needs current-match ink. The draft reuses one
+literal engine/mark helper but requires a coordinated opt-in rendered-range/ink
+seam before it can replace product drawing. It is isolated, with an assertion
+requiring actual range admission rather than the mark helper's cache-key Some.
+No API refusal is treated as working find. Main still uses the existing user
+renderer; no second parser/selection manager or product fallback is introduced.

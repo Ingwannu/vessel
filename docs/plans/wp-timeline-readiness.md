@@ -56,15 +56,17 @@ Kit attribution/About registries must list both direct dependencies.
 
 | Immutable source | Execution | Limit |
 |---|---|---|
-| e879b506 | Run `wp-timeline-state-tests-20261115T161517Z-e879b506`: App114/0/2 + Kit208/0/0 =322/0/2 | Real pacing/borrowed-body/scoped-owner cases; excludes later f4 Markdown call, spoken prompts, source scoping and base8e merge. |
+| 4b591a90 | Run `wp-timeline-state-tests-20261115T165618Z-4b591a90`: App126/0/2 + Kit215/0/0 =341/0/2 | Real scoped pacing, borrowed-body and f4 Markdown-call source; excludes later diff metadata/failure-prose changes and base9 merge. |
 | 6d8c0cd8 | View all-target strict run `wp-timeline-narrow-20261115T165011Z-6d8c0cd8` rc0 | Includes About and spoken presentation. Base9 and later app-only kernel/source changes require their own union checks. |
-| a415e64f | View all-target tests1025/1/0 | Sole failure is the unchanged About manifest-order assertion. Registry corrected in74e625c3; later test run is still owed. All six reveal model tests passed. |
+| 6d8c0cd8 | View all-target tests1173/0/0, run `wp-timeline-models-20261115T165014Z-6d8c0cd8` | Includes corrected About registry and all four spoken prompt cases. Later base9/source joins remain separate. |
 | 2b806402..99646e29 resident packet | V1 row252 bounded STAGED source/requested narrow PASS | Exact4b8 all-target App strict0; prior7ae GPUI3/0/0, same predicate/test bodies with declaration moves only. Not exact4b8 runtime or full A7/product proof. |
 | f4c01f61 Markdown helper | Owner standalone Kit all-target strict0; all17 owned Rust blobs equal actuald068 Kit212/0/0 | Shared helper execution; not A7 host actions, root/image authority, UI or V1 package approval. |
 
-Current queued feature runs are
-`wp-timeline-models-20261115T165014Z-6d8c0cd8` (View all-target tests), and
-`wp-timeline-state-tests-20261115T165618Z-4b591a90` (App/Kit all-target tests).
+Current in-progress feature runs are corrected base9 Main strict and App/Kit
+tests on5e7c1a14. Main3a strict returned own import/test idiom diagnostics, now
+corrected without suppressions or weakened assertions; its red log remains.
+Portable body strictf839/ae256 stopped before tests on omitted closure adapters;
+corrected5c9636a0 checks are in progress. None is a current whole-source pass.
 An older still-queued View74 run was explicitly superseded, confirmed terminal143
 before its one ordinary replacement; its retained logs are not a failure/PASS.
 
