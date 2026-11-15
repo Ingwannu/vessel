@@ -1,11 +1,11 @@
-//! Appearance, as the page's (`features/settings/appearance.tsx`) in
-//! Paseo's layout (`screens/settings/appearance/appearance-section.tsx`,
-//! `appearance/theme-picker.tsx`): the theme as tiles, each a small
-//! picture of the app in its colours; the interface's and code's sizes;
-//! the conversation's width and display.
+//! Appearance, as Paseo's (`screens/settings/appearance/appearance-section.tsx`,
+//! `appearance/theme-picker.tsx`): the "Theme" section's tiles, each a
+//! small picture of the app in its colours; "Fonts" (the interface's and
+//! code's sizes); "Layout" (the content's width). How much of an agent's
+//! work the chat shows is Chat's (`chat.rs`), as in Paseo.
 //!
 //! [Decision Log]
-//! - Purpose: the page's Appearance, every row of it.
+//! - Purpose: Paseo's Appearance, section for section, label for label.
 //! - Reference (Paseo): the tiles in a card 12 in, a quarter of its width
 //!   each (a half on a phone), 12 apart; a tile 4 in, radius 8, a 2 edge
 //!   in the accent when chosen, `surface2` under the pointer; its picture
@@ -13,10 +13,13 @@
 //!   then a title line, two muted lines and the accent's bubble at the
 //!   bottom right. System's picture is light on the left and dark on the
 //!   right.
-//! - Differences: the sizes and the width are selects over the model's
-//!   values (Paseo types a number of pixels): the model keeps closed
-//!   ranges (`prefs/appearance.rs`), so a choice cannot be out of them.
-//!   A row shows once what it changes is drawn from it (`super::applied`).
+//! - Differences: three themes of Paseo's eight (System, Light, Dark;
+//!   more are another track's); no font family, content size or syntax
+//!   theme rows (nothing in the app draws from them yet); the sizes and
+//!   the width are selects over the model's closed ranges (Paseo types a
+//!   number of pixels, 10 to 21, 9 to 22, 600 to 4000), so a choice
+//!   cannot leave them. A row shows once what it changes is drawn from it
+//!   (`super::applied`).
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
@@ -46,11 +49,11 @@ pub(crate) fn render(
         grid = grid.child(tile(theme, shell, compact, tokens, cx));
     }
     let theme = settings::card(tokens).p(px(12.0)).child(grid);
-    let typography = settings::card(tokens)
+    let fonts = settings::card(tokens)
         .when(applied(List::Interface), |card| {
             card.child(settings::row_at(
-                words.interface_font,
-                Some(words.interface_font_note.into()),
+                words.interface_size,
+                Some(words.interface_size_note.into()),
                 None,
                 Some(select_for(List::Interface, shell, compact, tokens, cx)),
                 true,
@@ -60,8 +63,8 @@ pub(crate) fn render(
         })
         .when(applied(List::Code), |card| {
             card.child(settings::row_at(
-                words.code_font,
-                Some(words.code_font_note.into()),
+                words.code_size,
+                Some(words.code_size_note.into()),
                 None,
                 Some(select_for(List::Code, shell, compact, tokens, cx)),
                 !applied(List::Interface),
@@ -69,41 +72,26 @@ pub(crate) fn render(
                 tokens,
             ))
         });
-    let conversation = settings::card(tokens)
-        .when(applied(List::Width), |card| {
-            card.child(settings::row_at(
-                words.content_width,
-                Some(words.content_width_note.into()),
-                None,
-                Some(select_for(List::Width, shell, compact, tokens, cx)),
-                true,
-                compact,
-                tokens,
-            ))
-        })
-        .when(applied(List::Display), |card| {
-            card.child(settings::row_at(
-                words.conversation_display,
-                Some(words.conversation_display_note.into()),
-                None,
-                Some(select_for(List::Display, shell, compact, tokens, cx)),
-                !applied(List::Width),
-                compact,
-                tokens,
-            ))
-        });
+    let layout = settings::card(tokens).child(settings::row_at(
+        words.content_width,
+        Some(words.content_width_note.into()),
+        None,
+        Some(select_for(List::Width, shell, compact, tokens, cx)),
+        true,
+        compact,
+        tokens,
+    ));
     // Each row once what it changes is drawn from it (`super::applied`).
-    let sizes = applied(List::Interface) || applied(List::Code);
-    let conversation_shown = applied(List::Width) || applied(List::Display);
     div()
         .flex()
         .flex_col()
         .child(settings::section(words.theme, theme, tokens))
-        .when(sizes, |page| {
-            page.child(settings::section(words.typography, typography, tokens))
+        .child(super::motion::section(shell, tokens, compact, cx))
+        .when(applied(List::Interface) || applied(List::Code), |page| {
+            page.child(settings::section(words.fonts, fonts, tokens))
         })
-        .when(conversation_shown, |page| {
-            page.child(settings::section(words.conversation, conversation, tokens))
+        .when(applied(List::Width), |page| {
+            page.child(settings::section(words.layout, layout, tokens))
         })
         .into_any_element()
 }
