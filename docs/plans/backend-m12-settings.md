@@ -849,3 +849,64 @@ this exact queued-only amendment to avoid spending a whole gate on the
 known strict-lint issue. Freeze the corrected source and register the
 same complete native gate with supported app export once, in the ordinary
 lane and a fresh output directory. Captures still await that actual export.
+
+### Executed selection package: 2026-11-15
+
+The preceding queued/export debts are superseded by actual source
+`0a0a5a87bc490620ccccebca104b8a2686319450`, run
+`settings2-20261115T135403Z-0a0a5a87`. Native fonts, format, quality,
+whole all-target Clippy, normal app build and tests each returned zero;
+tests were **1420 passed, 0 failed, 2 ignored**. The logs show the changed
+View, Kit, Link and App compiling/checking. Supported app export also
+returned zero. Original logs, spec and six-step digests are retained in
+`/tmp/work/m12-settings4/rg-selection-final2`; this is the final consuming
+source, not a pass borrowed from the lead. No unchanged whole rerun is due.
+
+The exported normal binary SHA256 is
+`282f70d9ecd0662398fdc22ecebedb21e8d7170440e7dfd8d83a129f48c6300b`.
+Eight real flows cover 1280x900 and 390x844, EN/KO and dark/light:
+opening selects the existing name, first input replaces it without Ctrl+A,
+blank input is refused, reopening selects again, pending edits/Backspace/
+Escape are ignored, failed saving preserves the draft, and a subsequent
+edit/retry commits exactly that draft. All eight completed. The three
+actual selection-engine tests, including typing/paste/both IME replacement
+paths under readonly, and the blank/unchanged/pending submit fixture also
+passed in the combined gate. These are synthetic engine tests, not a
+physical IME or operating-system claim.
+
+There are 56 original PNGs in `/tmp/work/m12-settings4/shots/selection`.
+`selection-capture-manifest.json` records every SHA/dimension and the
+explicit subset personally opened; `selection-capture-results.json`
+records each flow. Pending is forced only in the isolated legacy reader
+using a controlled FIFO, then a real directory-write refusal. This does
+not prove the future safe-file API (which must refuse FIFOs), latency or
+new format/writer behavior. Capture-driver failures are preserved as
+attempt-01 and manual unfocused artifacts; they are not product failures
+or passing UI evidence. The final driver explicitly focuses the window.
+
+The capture app used the approved shared protocol-23 root binary, with
+its different source identity explicit (`same_root_commit=false`); the
+actual app showed the fixture connected. Runs used UID/GID 1000 with
+private directories 0700 and book/credentials 0600. Original book bytes
+and modes were restored after every case. Only the verified owned node
+and Xvfb were stopped, checking PID, executable, owner and start time;
+the app was already stopped by the driver. No production permissions,
+services, real credentials or customer data were changed.
+
+Review requested is bounded to the pure render/style move, shared-engine
+selection/frame/rename consumer and its submit rules. Inherited pending
+label remains Rename rather than Paseo's Saving; error typography remains
+Meta rather than its base size, and existing footer/frame adaptation was
+not redrawn. The previously accepted parent-isolation change does not
+resolve the separately deferred sibling-occlusion finding. No full E1/F5,
+physical keyboard/IME, hardware GPU, accessibility or latest combined
+release approval follows from this package. V1 review remains pending.
+
+Public book values have a separate route: strict proto all-target Clippy
+on `7becce7f` actually returned zero. Per the coordinator's corrected
+decision, its five pure root/docs commits were cherry-picked by the node
+integrator as a58e08bc/c1717a02/d9bbb8c0/390fc201/c75d6391. Their A12 and
+nine root tests belong to that integration receipt, still awaited here;
+the app receives them through an announced base. No app ancestry is
+merged into the node line. Native appearance compatibility and E1's
+private-files/routes implementation remain separate unfinished work.
