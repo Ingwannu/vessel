@@ -490,3 +490,16 @@ counts streamed bytes against one named executable-size ceiling, including a
 file growing during inspection. Actual service execute permission is required.
 A harmless owned shell-child fixture checks that an unrelated executable cannot
 inherit the candidate's post-start identity; it is never a browser fixture.
+
+
+## Non-durable watch values (transport still owed)
+
+Browser watch data is separate from EventRecord/session history. A nonzero
+watch sequence orders updates; document/viewport BrowserRevision remains the
+displayed input context and is not incremented merely for another same-context
+capture. A frame carries matching BrowserId/workspace/CSS viewport/revision/PNG.
+Initial descriptor and every update must keep the same immutable target/profile
+scope. Ends are Closed/Revoked/Lagged/typedFailure, with no fake durable resume
+cursor. Slow watches must reopen. These are value types only: no new ServerFrame,
+RPC producer/client route or successful frame fixture is registered. Pending
+browser.watch remains NoEngine until the real scoped stream/engine wiring.

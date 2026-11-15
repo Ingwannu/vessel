@@ -94,7 +94,8 @@ pub struct BrowserTab {
     pub icon: BrowserIcon,
 }
 
-/// Frame/state revisions cannot wrap into an earlier update after a long-lived watch.
+/// Document/viewport context revisions cannot wrap into an earlier input generation.
+/// Repeated captures in the same context use separate `BrowserUpdateSeq` ordering.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

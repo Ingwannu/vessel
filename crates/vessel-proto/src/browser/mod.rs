@@ -23,6 +23,7 @@ mod state;
 mod tools;
 mod upload;
 mod url;
+mod watch;
 
 pub use arguments::{
     ClickArgs, ClickCount, CssDelta, DragArgs, ElementArgs, EvaluateArgs, KeyModifier,
@@ -73,3 +74,5 @@ use crate::ProtocolVersion;
 
 /// A pending browser method cannot accidentally reach a current peer.
 pub const BROWSER_PROTOCOL: Option<ProtocolVersion> = None;
+
+pub use watch::{BrowserChange, BrowserFrame, BrowserUpdate, BrowserUpdateSeq, BrowserWatchEnd};
