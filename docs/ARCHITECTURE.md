@@ -1544,3 +1544,10 @@ budgets, silence, segmentation, prompts and multipart fields stay with callers.
 It adds no crate edge or dependency; consumers remove its test gate when wiring
 real product callers. Payload-bearing Debug is redacted and no audio file is
 created by the codec.
+
+The staged node `connection_life` primitive owns an opaque Arc identity and
+context-lifetime close/drop signal. It contains no quota, presence id, transport
+or worker. The real connection setup will own one instance and acting-as contexts
+will clone it; resources retain only its identity/close observer and observe
+transport closure as well. Dictation, spoken conversation and later resources
+consume that connection accessor rather than creating another ownership key.
