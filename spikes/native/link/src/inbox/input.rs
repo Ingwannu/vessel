@@ -83,6 +83,7 @@ mod tests {
                 }],
             },
             tool: None,
+            detail: vessel_proto::inbox::InboxDetail::Complete,
         });
         assert_eq!(
             Input::Permission(id, option.clone()).validate(&current),

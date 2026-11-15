@@ -75,3 +75,6 @@ inbox-combined = Several desktop alerts were combined. Open the inbox to see eve
 
 # Generic OS text: no source title, content, path or identifier may be exposed.
 inbox-notification-body = Something needs your attention. Open Vessel to view your inbox.
+
+# Explains that oversized tool details were retained in source history.
+inbox-in-session = Complete details remain in the source conversation. Open it before answering if you need to inspect them.

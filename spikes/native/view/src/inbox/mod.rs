@@ -97,6 +97,8 @@ pub enum Content {
         request: PermissionRequest,
         /// Optional tool detail, projected without a synthesized log event.
         tool: Option<ToolCall>,
+        /// Whether complete tool details are available here or only in history.
+        detail: vessel_proto::inbox::InboxDetail,
     },
     /// Reuse the existing question form and checker.
     Question(Question),

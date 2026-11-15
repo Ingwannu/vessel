@@ -191,6 +191,7 @@ impl Link {
             agents: agents::Hub::default(),
 
             device_calls: devices::Hub::default(),
+            inbox_calls: inbox::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
         };
@@ -255,6 +256,7 @@ struct State {
     agents: agents::Hub,
 
     device_calls: devices::Hub,
+    inbox_calls: inbox::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;

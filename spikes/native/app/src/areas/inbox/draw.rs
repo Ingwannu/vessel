@@ -226,6 +226,16 @@ fn detail(
         body = body.child(note(labels.read_only(), tokens));
     }
     body = body.child(note(words::kind(&entry.content, shell.words), tokens));
+    if matches!(
+        &entry.content,
+        vessel_app_view::inbox::Content::InSession
+            | vessel_app_view::inbox::Content::Permission {
+                detail: vessel_proto::inbox::InboxDetail::InSession,
+                ..
+            }
+    ) {
+        body = body.child(note(labels.in_session(), tokens));
+    }
     body.children(crate::areas::conversation::dock::requests::<InboxPlace>(
         shell, tokens, window, cx,
     ))

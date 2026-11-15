@@ -123,7 +123,7 @@ impl Shell {
         area.conversation
             .open(source.source.name.as_str(), entry.key.session);
         area.conversation.live = match &entry.content {
-            Content::Permission { request, tool } => {
+            Content::Permission { request, tool, .. } => {
                 area.tool = tool.as_ref().map(ToolView::announced);
                 Live {
                     permissions: vec![request.clone()],

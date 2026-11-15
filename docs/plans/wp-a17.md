@@ -153,3 +153,23 @@ registrations are reapplied in their new owning modules. No size record is
 raised. Node contracts are consumed from this baseline, not merged separately
 into the app. The checkpoint remains work in progress pending narrow checks;
 it is not a delivery claim.
+
+## Existing inbox transport (2026-11-15)
+
+The app adapter now uses device.self and the existing inbox list/get/mark and
+session.send/read methods from the centrally merged app base. It validates
+node + transport incarnation before dispatch and rejects cross-node keys.
+Eight permits bound calls including completed results awaiting UI delivery;
+a fifteen-second outer deadline bounds full-request recovery and confirmation.
+Answers fetch the current full form, validate the exact request and choices,
+send once, then wait on committed session events until the inbox projection
+withdraws. An acknowledgement alone never releases the submitting state.
+A lost reply remains an explicit failure with no automatic answer retry.
+Whole-node counters stay independent of the loaded bounded prefix. Malformed
+cursor ordering, duplicate keys and foreign detail replies fail closed.
+Omitted tool bodies get an explicit source-history explanation.
+
+Transport tests use the real NodeClient over bounded framed memory I/O rather
+than a second inbox implementation. The pending validation checkpoint is not
+a delivered package; the whole native gate, actual captures, private D-Bus
+sound-hint proof and V4 review are still required.

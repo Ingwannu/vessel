@@ -1,12 +1,20 @@
 //! Inbox's typed node boundary. Requests name an authenticated node as well as
 //! its book route; answers cannot accidentally follow a reused machine name.
-//! The existing durable inbox calls are wired after the central node merge.
+//! Existing durable inbox calls retain the node's request validation boundary.
 
 use vessel_app_view::inbox::{Entry, Key, Pages, Problem, Read, Request, Snapshot, Source};
 use vessel_app_view::machine_book::Name;
 use vessel_proto::NodeId;
+#[cfg(not(target_arch = "wasm32"))]
+mod answer;
 mod input;
+#[cfg(not(target_arch = "wasm32"))]
+mod node;
 pub use input::Input;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod peer;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests;
 
 /// A live authenticated source or an offline book route. A node identity
 /// without its connection incarnation is never enough to authorize an action.
@@ -100,6 +108,21 @@ pub enum Answer {
     Detail(Key, Request, Result<Option<Entry>, Problem>),
 }
 impl Ask {
+    fn validate(&self) -> Result<(), Problem> {
+        match self {
+            Self::Discover | Self::List { .. } => Ok(()),
+            Self::Get { source, key, .. }
+            | Self::Mark { source, key, .. }
+            | Self::Answer { source, key, .. } => {
+                if source.node == key.node {
+                    Ok(())
+                } else {
+                    Err(Problem::Refused(vessel_proto::ErrorCode::InvalidRequest))
+                }
+            }
+        }
+    }
+
     /// Settle every refused command with its own ticket, including queue
     /// rejection and unsupported peers; no spinner waits on a lost request.
     #[must_use]
@@ -143,33 +166,129 @@ impl crate::State {
     }
 
     pub(crate) async fn inbox(&self, ask: Ask) {
-        match ask {
-            Ask::Discover => {
-                let targets = self
-                    .saved_entries()
-                    .await
-                    .map_err(|_failure| Problem::InvalidReply)
-                    .and_then(|book| {
-                        book.into_iter()
-                            .map(|(route, _entry)| {
-                                let route = Name::parse(route.as_str())
-                                    .map_err(|_invalid| Problem::InvalidReply)?;
-                                Ok(self.inbox_target(route))
-                            })
-                            .collect()
-                    });
-                self.emit(crate::Event::Inbox(Answer::Targets(targets)))
-                    .await;
-            }
-            // The app's current node contract predates durable attention.
-            // The central integration replaces this explicit version refusal
-            // with the existing typed calls, never a guessed wire method.
-            ask @ (Ask::List { .. } | Ask::Get { .. } | Ask::Mark { .. } | Ask::Answer { .. }) => {
-                self.emit(crate::Event::Inbox(
-                    ask.refused(Problem::Refused(vessel_proto::ErrorCode::Unsupported)),
-                ))
-                .await;
-            }
+        if let Err(problem) = ask.validate() {
+            self.emit(crate::Event::Inbox(ask.refused(problem))).await;
+            return;
         }
+        if let Ask::Discover = ask {
+            let targets = self
+                .saved_entries()
+                .await
+                .map_err(|_failure| Problem::InvalidReply)
+                .and_then(|book| {
+                    book.into_iter()
+                        .map(|(route, _entry)| {
+                            let route = Name::parse(route.as_str())
+                                .map_err(|_invalid| Problem::InvalidReply)?;
+                            Ok(self.inbox_target(route))
+                        })
+                        .collect()
+                });
+            self.emit(crate::Event::Inbox(Answer::Targets(targets)))
+                .await;
+            return;
+        }
+        let source = match &ask {
+            Ask::Discover => return,
+            Ask::List { source, .. }
+            | Ask::Get { source, .. }
+            | Ask::Mark { source, .. }
+            | Ask::Answer { source, .. } => source,
+        };
+        let Some(connected) = self.clients.get(source.name.as_str()).filter(|connected| {
+            connected.client.node().id == source.node
+                && connected.inbox_connection == source.connection
+        }) else {
+            self.emit(crate::Event::Inbox(ask.refused(Problem::Offline)))
+                .await;
+            return;
+        };
+        let Ok(permit) = std::sync::Arc::clone(&self.inbox_calls.0).try_acquire_owned() else {
+            self.emit(crate::Event::Inbox(
+                ask.refused(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+            ))
+            .await;
+            return;
+        };
+        let client = connected.client.clone();
+        let events = self.events.clone();
+        drop(tokio::spawn(async move {
+            let answer = bounded(&client, ask).await;
+            let _closed = events.send(crate::Event::Inbox(answer)).await;
+            drop(permit);
+        }));
+    }
+}
+
+/// The permit also covers the event-send wait, so a stopped view can retain
+/// at most the named concurrency bound of completed replies.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
+#[cfg(not(target_arch = "wasm32"))]
+impl Default for Hub {
+    fn default() -> Self {
+        Self(std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CALLS)))
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+const MAX_CALLS: usize = 8;
+#[cfg(not(target_arch = "wasm32"))]
+const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
+    let timeout = match &ask {
+        Ask::Discover => {
+            Answer::Targets(Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)))
+        }
+        Ask::List {
+            source, request, ..
+        } => Answer::Listed(
+            source.clone(),
+            *request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
+        Ask::Get { key, request, .. }
+        | Ask::Mark { key, request, .. }
+        | Ask::Answer { key, request, .. } => Answer::Detail(
+            *key,
+            *request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
+    };
+    tokio::time::timeout(DEADLINE, call(client, ask))
+        .await
+        .unwrap_or(timeout)
+}
+#[cfg(not(target_arch = "wasm32"))]
+async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
+    match ask {
+        Ask::Discover => Answer::Targets(Err(Problem::InvalidReply)),
+        Ask::List {
+            source,
+            pages,
+            request,
+        } => Answer::Listed(source, request, node::list(client, pages).await),
+        Ask::Get { key, request, .. } => Answer::Detail(key, request, node::get(client, key).await),
+        Ask::Mark {
+            key, read, request, ..
+        } => {
+            let read = match read {
+                Read::Read => vessel_proto::inbox::InboxRead::Read,
+                Read::Unread => vessel_proto::inbox::InboxRead::Unread,
+            };
+            let result = match client.mark_inbox(node::wire_key(key), read).await {
+                Ok(()) => node::get(client, key).await,
+                Err(error) => Err(node::problem(error)),
+            };
+            Answer::Detail(key, request, result)
+        }
+        Ask::Answer {
+            key,
+            input,
+            request,
+            ..
+        } => Answer::Detail(key, request, answer::send(client, key, input).await),
     }
 }
