@@ -1,5 +1,5 @@
 //! Actual GPUI events through the production listener, without a link.
-//! Terminal exclusions remain pure view tests until T1 supplies real focus.
+//! The terminal owner query has a separate actual focus/route/close fixture.
 
 use crate::shell::{Shell, language_tests};
 use gpui::{

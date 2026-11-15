@@ -72,12 +72,11 @@ impl fmt::Display for ActionId {
     }
 }
 
-/// The keys that run an action: a bounded sequence of chords (`G S`),
-/// separated by one space, at most 256 bytes. A chord is its modifiers
-/// (`Mod`, `Ctrl`, `Alt`, `Shift`, `Meta`, each at most once, in that
-/// order) then its key, joined by `+`; a key is a physical key as written
-/// on a US keyboard without Shift (`A`–`Z`, `0`–`9`, `` ` - = [ ] \ ; ' ,
-/// . / ``, or a named key), so `?` is `Shift+/`.
+/// The keys that run a binding: up to 16 chords (`G S`) separated by one
+/// space, at most 256 bytes. Each chord joins modifiers and one key with `+`.
+/// The shared grammar canonicalizes Cmd/Meta, arrow names and Digit templates.
+/// Matching prefers logical characters (including `?`); permitted physical
+/// fallbacks belong to shortcuts::input, never to persisted preference data.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct KeyBinding(String);

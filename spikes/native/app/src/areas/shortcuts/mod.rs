@@ -1,26 +1,12 @@
-//! The app's one key listener (DESIGN.md §7.1; the page's
-//! `features/shortcuts/listener.ts`) and the shortcuts the shell answers
-//! (its `features/shell/use-shell-shortcuts.ts`, `use-new-session.ts` and
-//! the palette's): a key press becomes a chord, the chord an action with
-//! the person's overrides (`view::shortcuts`), and the action runs here.
+//! One native key interceptor over view's canonical binding registry. It owns
+//! event admission, chord state and capture; feature callbacks own all effects.
+//! The default predicates protect editing/terminal/center scopes, while native
+//! editing, CharacterInput and IME guards remain effective after rebinding.
 //!
-//! The rules are the page's: a chord with Mod, Ctrl, Alt or Meta fires
-//! while typing in a field, one without (`N`, `/`, `G S`) stands down; no
-//! key fires while Settings › Shortcuts records one. The listener hears a
-//! key before anything else does (GPUI's keystroke interceptor), so an
-//! action that acts takes the key from the field and the controls (the
-//! page's `preventDefault`); one that does not leaves it to them. While an
-//! input method composes in any kit field
-//! ([`vessel_app_kit::TextField::focused_composing`]), the listener stands
-//! down, so a key the input method needs (Enter to commit a syllable) is
-//! never taken for a shortcut.
-//!
-//! Every app-wide key is here: Find (track C's find bar,
-//! `Shell::conversation_find`), the composer's focus, the sidebar and the
-//! session's right panel (track F's code panel, `Shell::toggle_code`), and
-//! GOAT's two queue keys (track C's `conversation_steer_next` and
-//! `conversation_edit_latest_queued`). Keys a control keeps for itself
-//! while it has focus (a menu's arrows, a dialog's Escape) stay with it.
+//! Settings, help and hint chips read the same effective registry. Menu/dialog
+//! ownership comes from the kit key-context marker, not inferred open flags.
+//! Local control keys remain with their controls whenever no owner handles a
+//! shortcut, including an unavailable feature or a missing index payload.
 
 use std::collections::BTreeMap;
 use std::time::Instant;

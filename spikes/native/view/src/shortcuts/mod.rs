@@ -1,8 +1,7 @@
-//! Shortcuts (the page's `data/shortcuts/`): the keys' grammar, the
-//! registry of actions and their defaults, matching a press, changing a
-//! key, and Settings' rows. GPUI-free, so the page's cases run as they
-//! are; the app's one listener maps a keystroke to a [`KeyPress`] and
-//! asks [`matched`].
+//! One shortcut registry, key grammar, scope policy and override model, shared
+//! by the active engine, Settings, help and hint chips. Pure models keep GPUI
+//! and owner I/O outside resolution. The native interceptor uses `Engine`;
+//! `matched` remains a compatibility adapter for existing callers.
 
 pub mod badges;
 mod capture;
