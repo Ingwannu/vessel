@@ -11,7 +11,7 @@
 import "./new-session.css";
 
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { useAgents, useCrumbs, useFleet, useFleetState } from "../../context";
 import { chosenAgent, profileChoices } from "../../data/agent-choices";
@@ -34,6 +34,7 @@ import { pick } from "../../data/picks";
 import { rememberedAgent, startingPicks } from "../../data/defaults";
 import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
+import { focusPage } from "../../ui/page-focus";
 import type { OptionChoice } from "../../wire/proto";
 import { trayOf } from "../../data/trays";
 import { NewSessionControls } from "./new-session-controls";
@@ -42,6 +43,7 @@ import { AttachmentStrip } from "./attachment-strip";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
 import { useDraft } from "./use-draft";
+import { useDraftPresence } from "./use-draft-presence";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
 import { useOptionsWait } from "./use-options-wait";
@@ -70,25 +72,14 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   // The page's draft, kept by the bridge (back after a reload or launch).
   const saved = useDraft(null);
-  useShortcut("focus-composer", () => {
-    text.current?.focus();
-    return text.current !== null;
-  });
+  useShortcut("focus-composer", () => focusPage(text.current));
   const [busy, setBusy] = useState(false);
   // Files for the first message, held until the session exists.
   const tray = trayOf("new");
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
   useCrumbs(NO_CRUMBS);
-  // Whether the person is still on this page when the session exists.
-  const here = useRef(true);
-  useEffect(() => {
-    here.current = true;
-    text.current?.focus();
-    return () => {
-      here.current = false;
-    };
-  }, []);
+  const here = useDraftPresence(text);
 
   const book = state.book ?? [];
   const machine =
