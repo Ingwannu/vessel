@@ -823,8 +823,9 @@ The documents-only contract adds neither an edge nor process-control code.
   plist's comparison; refusing paths narrows valid OS paths; repeated passes
   obscure the invariant.
 - Selected approach: emit comment characters once, inserting a space before
-  a hyphen that would follow another, and after a final hyphen. Already valid
-  hints remain byte-identical. XML text values still use their separate encoder.
+  a hyphen that would follow another, and after a final hyphen. Every normal
+  undo hint remains byte-identical; a raw hint ending in a hyphen gains a
+  separator. XML text values still use their separate encoder.
 - Why this approach: neither adjacency nor a terminal hyphen can survive
   emission, independently of the length or surrounding input. Existing head
   assertions and normal service files need no expectation or format change.
