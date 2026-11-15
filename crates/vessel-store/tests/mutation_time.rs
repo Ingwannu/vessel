@@ -203,3 +203,59 @@ async fn refused_creation_reopen_detach_and_missing_inbox_entry_do_not_tick() {
     assert_eq!(clock(&dir, session.id), before);
     store.close().await;
 }
+
+#[tokio::test]
+async fn each_ack_keeps_its_own_marks_and_clock_before_later_queued_writes() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0);
+    let created = store
+        .create_session_committed(session.clone())
+        .await
+        .unwrap();
+    assert_eq!(created.updated_at(), clock(&dir, session.id));
+    let (pinned, unpinned) = tokio::join!(
+        store.mark_committed(session.id, Mark::Pin, at(0)),
+        store.mark_committed(session.id, Mark::Unpin, at(0)),
+    );
+    let (pin_marks, pin_time) = pinned.unwrap().into_parts();
+    let (unpin_marks, unpin_time) = unpinned.unwrap().into_parts();
+    assert!(pin_marks.pinned);
+    assert!(!unpin_marks.pinned);
+    let pin_time = pin_time.unwrap();
+    let unpin_time = unpin_time.unwrap();
+    assert_ne!(pin_time, unpin_time);
+    let latest = pin_time.max(unpin_time);
+    assert_eq!(clock(&dir, session.id), Some(latest));
+    let current = store.session(session.id).await.unwrap().unwrap();
+    assert_eq!(current.marks.pinned, pin_time > unpin_time);
+    store.close().await;
+}
+
+#[tokio::test]
+async fn an_empty_ack_keeps_legacy_unknown_until_an_actual_mutation() {
+    let (_temp, dir) = data_dir();
+    let store = open(&dir, StoreConfig::default()).await;
+    let session = new_session(0);
+    store.create_session(session.clone()).await.unwrap();
+    // Simulate a legacy row only after creation is acknowledged.
+    let connection = Connection::open(dir.database_path()).unwrap();
+    let _rows = connection
+        .execute(
+            "UPDATE sessions SET updated_at=NULL WHERE id=?1",
+            [session.id.to_string()],
+        )
+        .unwrap();
+    let empty = store
+        .append_committed(session.id, Vec::new())
+        .await
+        .unwrap();
+    assert_eq!(empty.updated_at(), None);
+    let mark = store
+        .mark_committed(session.id, Mark::Pin, at(0))
+        .await
+        .unwrap();
+    assert!(mark.updated_at().is_some());
+    assert_eq!(mark.updated_at(), clock(&dir, session.id));
+    store.close().await;
+}

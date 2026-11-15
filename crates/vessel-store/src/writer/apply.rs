@@ -17,7 +17,7 @@ use crate::error::StoreError;
 use crate::log::{self, Appended};
 use crate::search::idle::Indexer;
 use crate::search::index;
-use crate::{again, attachments, marks};
+use crate::{SessionCommit, again, attachments, marks};
 
 /// Apply one write in its own savepoint, so a failing write leaves no
 /// partial rows and does not affect the rest of the batch.
@@ -28,16 +28,21 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        Write::Create { info, done } => write_answer(transaction, done, |connection| {
-            log::create_session(connection, &info)
-        }),
+        Write::Create { info, done } => {
+            let applied = isolated(transaction, |connection| {
+                with_clock(connection, info.id, |connection| {
+                    log::create_session(connection, &info)
+                })
+            });
+            Answer::Session(done, applied)
+        }
         Write::Append {
             session,
             records,
             done,
         } => {
             let applied = append(transaction, session, &records, effects, indexer);
-            Answer::Done(done, applied)
+            Answer::Session(done, applied)
         }
         Write::AddDevice {
             device,
@@ -68,7 +73,9 @@ pub(super) fn apply(
             done,
         } => {
             let applied = isolated(transaction, |connection| {
-                marks::mark(connection, session, mark, at)
+                with_clock(connection, session, |connection| {
+                    marks::mark(connection, session, mark, at)
+                })
             });
             Answer::Marked(done, applied)
         }
@@ -91,7 +98,9 @@ pub(super) fn apply(
             done,
         } => {
             let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
+                with_clock(connection, session, |connection| {
+                    again::reopen(connection, session, next)
+                })
             });
             Answer::Marked(done, applied)
         }
@@ -162,13 +171,15 @@ fn append(
     records: &[Arc<EventRecord>],
     effects: &mut Effects,
     indexer: &mut Indexer,
-) -> Result<(), StoreError> {
+) -> Result<SessionCommit<()>, StoreError> {
     let cached = indexer.take(session);
-    let (now_ended, advanced) = isolated(transaction, |connection| {
+    let (now_ended, advanced, updated_at) = isolated(transaction, |connection| {
         let Appended { ended } = log::append(connection, session, records.iter().map(Arc::as_ref))?;
+        let updated_at = crate::mutation_time::read(connection, session)?;
         Ok((
             ended,
             index::on_append(connection, session, cached, records),
+            updated_at,
         ))
     })?;
     indexer.keep(session, advanced);
@@ -177,7 +188,7 @@ fn append(
     effects.attention |= records
         .iter()
         .any(|record| record.event.asks_for_attention());
-    Ok(())
+    Ok(SessionCommit::new((), updated_at))
 }
 
 pub(super) fn isolated<T>(
@@ -188,4 +199,16 @@ pub(super) fn isolated<T>(
     let done = operation(&savepoint)?;
     savepoint.commit()?;
     Ok(done)
+}
+
+// Read within THIS operation's savepoint, before the writer applies another
+// queued mutation; the normal Answer boundary still waits for outer commit.
+fn with_clock<T>(
+    connection: &Connection,
+    session: SessionId,
+    operation: impl FnOnce(&Connection) -> Result<T, StoreError>,
+) -> Result<SessionCommit<T>, StoreError> {
+    let value = operation(connection)?;
+    let updated_at = crate::mutation_time::read(connection, session)?;
+    Ok(SessionCommit::new(value, updated_at))
 }

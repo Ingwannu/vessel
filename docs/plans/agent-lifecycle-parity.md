@@ -1332,3 +1332,20 @@ reply instead of fixing it to unit. Its send, Closed mapping and commit wait
 are unchanged, and all current callers retain the same unit result. This lets
 subsequent clock acknowledgements reuse that one channel path; no new reply,
 public signature or mutation behavior is introduced by the refactor.
+
+
+### Exact durable acknowledgement carriers
+
+The writer now captures SessionCommit<T> (the operation's result and optional
+mutation clock) inside that operation's savepoint, before applying another
+queued write. Its existing outer commit and typed failure mapping still decide
+whether a caller receives success. The additional public committed variants
+serve runtime publication; the original create/append/mark/reopen methods keep
+their original signatures and results by delegating and discarding only the
+extra acknowledged time. No extra write queue or clock writer is introduced.
+
+The paired mark regression verifies each operation retains its own kept marks
+and distinct time even when queued together; final stored marks match the latest
+acknowledged time. An empty append on a legacy-Unknown row preserves None until
+an actual mark initializes it. Node live-clock application and public Info
+projection are still next; no consumer readiness follows from these source tests.

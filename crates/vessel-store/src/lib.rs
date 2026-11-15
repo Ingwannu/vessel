@@ -53,6 +53,8 @@ mod agents_file;
 mod attachments;
 mod automation;
 mod codec;
+mod committed;
+pub use committed::SessionCommit;
 mod config;
 mod data_dir;
 mod devices;
