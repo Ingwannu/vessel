@@ -1127,6 +1127,28 @@ never rebuilt.
     archives, `/dl/` lists it.
   - The first update whose downloader knows the gzip copies and resuming:
     0.0.0.0.21's updater fetches this one's `.gz`.
+  - Published to `preview` at 19:35:42 UTC on 2026-11-15, after the
+    coordinator's Linux smoke on the real preview node over the relay.
+    The smoke covered pairing, a session, 1280 → 600 → 1280 with the
+    sidebar docking at 200, the menus with Esc, the import window
+    listing the node's conversations, and General in Korean.
+    - The notes, 4,341 bytes, are byte for byte the signed manifest's.
+      Known problem: at width 600 the model and mode names under the
+      composer are cut short.
+    - From outside: the manifest and all nine files match the dist
+      folder. The sums and their signature check, both gzip copies unpack
+      to their files, and a range answers 206.
+  - 0.0.0.0.21's own updates to it, the first compressed and resumable
+    ones:
+    - From nothing, the published 0.0.0.0.21 Linux build fetched the
+      gzip copy (31,430,043 bytes instead of 92,303,936). It unpacked
+      and verified it, and was replaced 10 s after its start.
+    - Given the first 10,000,000 bytes of that copy under its staging
+      name (as a broken-off download leaves them), it logged "going on
+      from an earlier attempt kept=10000000". The feed answered 206 with
+      the remaining 21,430,043 bytes; the proxy's log shows the same
+      range. It was replaced 8 s after its start.
+    - Both runs: ERROR 0, no token in the logs, no `.part` left.
   - Sizes, with the change against 0.0.0.0.20: setup 14,274,020
     (+322,119), exe 53,210,624 (+1,566,720), zip 20,963,088 (+446,904),
     linux 90,384,408 (+1,629,792), tar.gz 31,201,943 (+458,553). The first
