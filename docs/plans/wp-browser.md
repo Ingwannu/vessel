@@ -205,3 +205,10 @@ PNG-only bounded RGBA/RenderImage extension; W14 waits for its exact checked
 leaf and uses that same decoder owner, never a parallel image decoder. Canonical
 browser wire values, a real owned backend and frame/input authority remain
 prerequisites before any supported visible page.
+
+
+Exact505405143f0cdb02684e4f085d615dde7fb43d36 app base8b union narrow check
+completed in run wp-browser-native-narrow-20261115T153236Z-50540514: native-fonts0,
+locked view/app all-target strict Clippy0 (229seconds), all prescribed steps0.
+No functional test, whole gate, capture, visible browser or backend/runtime
+qualification is inferred. Later changes in other branches are not covered.
