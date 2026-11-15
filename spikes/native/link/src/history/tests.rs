@@ -179,13 +179,13 @@ mod activation;
 async fn same_node_reconnect_rejects_original_history_admission_before_any_rpc() {
     let peer = peer::connect(vec![]).await;
     let (_home, mut state, _selected, old, mut events) = peer::admitted(&peer);
-    let previous = state.clients.get("fixture").unwrap().clone();
+    let previous = state.clients["fixture"].clone();
     let next = state
         .admissions
         .admit(MachineKey::from_book("fixture"), old.node())
         .unwrap();
     assert_ne!(old.epoch(), next.epoch());
-    state
+    let _previous = state
         .clients
         .insert("fixture".into(), previous.renamed(next));
     let mut request = batch(old.node());

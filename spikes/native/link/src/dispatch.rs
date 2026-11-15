@@ -108,14 +108,18 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => {
-                let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-                match saved {
-                    Ok(Ok(())) => {}
-                    Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-                    Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-                }
-            }
+            Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
+    }
+}
+
+// Keep the shared command registration below its function-size ceiling without
+// changing preference persistence, its blocking-pool owner or error projection.
+async fn save_prefs(prefs: crate::Prefs) {
+    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
+    match saved {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
+        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
     }
 }

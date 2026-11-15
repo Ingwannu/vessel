@@ -34,7 +34,7 @@ impl crate::State {
         let scope = ask.scope();
         let selected = if scope.machine == *scope.context.machine() {
             self.selected_connection(&scope.context)
-                .map_err(|_| Problem::IdentityChanged)
+                .map_err(|_retired| Problem::IdentityChanged)
         } else {
             Err(Problem::IdentityChanged)
         };

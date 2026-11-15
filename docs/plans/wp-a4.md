@@ -286,3 +286,11 @@ and ownership only, not live provider execution or complete parity.
 - Impact: exceptionally large histories require a narrower folder scope or a
   refresh; a large selection must be split explicitly. The actor independently
   refuses oversized batches before starting any write, using these same constants.
+
+Remote strict e27 found link-only integration lints after the view stage: the
+shared dispatch reached 102 lines, and the new relationship adapter needed typed
+ignored-error/match arms, the prelude Future name and a separately marked test
+module. Preference-save dispatch is extracted unchanged to retain its existing
+blocking-pool/error behavior within the shared function ceiling. Test fixture
+map accesses and ignored previous insertions are explicit. No lint suppression
+or raised size record is introduced; the changed native strict rerun is owed.

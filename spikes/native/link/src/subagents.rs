@@ -29,7 +29,7 @@ impl crate::State {
         let selected =
             if ask.context().node() == ask.node() && ask.context().machine() == ask.machine() {
                 self.selected_connection(ask.context())
-                    .map_err(|_| TrackProblem::IdentityChanged)
+                    .map_err(|_retired| TrackProblem::IdentityChanged)
             } else {
                 Err(TrackProblem::IdentityChanged)
             };
@@ -159,7 +159,7 @@ async fn answer(client: &crate::connections::SelectedConnection, ask: Ask) -> Re
 }
 #[cfg(not(target_arch = "wasm32"))]
 async fn read<T>(
-    operation: impl std::future::Future<Output = Result<T, crate::connections::RequestFailure>>,
+    operation: impl Future<Output = Result<T, crate::connections::RequestFailure>>,
 ) -> Result<T, TrackProblem> {
     tokio::time::timeout(READ_DEADLINE, operation)
         .await
@@ -211,10 +211,11 @@ fn mutation_failure(error: crate::connections::RequestFailure) -> TrackProblem {
         | crate::connections::RequestFailure::Call(
             vessel_client::CallError::Disconnected | vessel_client::CallError::UnexpectedReply(_),
         ) => TrackProblem::Uncertain,
-        other => read_failure(other),
+        other @ crate::connections::RequestFailure::Call(_) => read_failure(other),
     }
 }
 
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 #[path = "subagents/tests.rs"]
 mod tests;

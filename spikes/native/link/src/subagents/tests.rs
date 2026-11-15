@@ -142,14 +142,14 @@ fn a_lost_mutation_response_is_uncertain_and_never_automatic_retry() {
 async fn same_node_reconnect_refuses_an_old_admission_before_any_subagent_rpc() {
     let peer = peer::connect(vec![]).await;
     let (_home, mut state, _selected, old, mut events) = admitted(&peer);
-    let previous = state.clients.get("fixture").unwrap().clone();
+    let previous = state.clients["fixture"].clone();
     let next = state
         .admissions
         .admit(MachineKey::from_book("fixture"), old.node())
         .unwrap();
     assert_eq!(old.node(), next.node());
     assert_ne!(old.epoch(), next.epoch());
-    state
+    let _previous = state
         .clients
         .insert("fixture".into(), previous.renamed(next));
     let target = Target::new(old, SessionId::random());
