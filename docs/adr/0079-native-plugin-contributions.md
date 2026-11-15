@@ -150,6 +150,21 @@ is protocol only, stderr is a bounded diagnostic stream. No unbounded line
 reader, channel or pending-request table. The node owns correlation and
 generation; stale replies cannot fulfill a newer runtime's request.
 
+The first private-format value slice uses version 1, a nonzero u64 node-issued
+InvocationId, a 4 MiB complete JSON-body limit and a 3 MiB opaque payload limit.
+HelperPayload redacts Debug instead of exposing RawJson through incidental
+diagnostics. Its owner alone decodes business output. Closed modern HookName
+and HookWait carry all fourteen names and the reference wait table; subscription
+replacement rejects duplicates. Shutdown is an empty struct variant so unknown
+members cannot hide in serde's unit-variant behavior.
+
+This initial typed private envelope covers initialize/ready, invoke/hook,
+cancel/result/error/fatal, complete client/subscription changes and shutdown.
+It does not advertise server tool/provider/usage/settings/broker capabilities:
+such unknown families refuse until the corresponding owner adapters and typed
+envelopes are implemented. No node RPC or executable helper is activated by
+these values, and this slice does not fulfill the complete server API below.
+
 Mirror Paseo's server API families, with typed envelopes and opaque RawJson
 only for plugin-defined schema payloads: initialize/ready; invoke/result/error;
 hook/cancel/subscription-changed; settings changed; tool call/cancel/detach;

@@ -164,3 +164,17 @@ sealed parser cause; both paths validate the complete graph. File selectors
 reuse JavaScript edge trim for equality, rejecting rather than normalizing
 BOM-wrapped input. No executable helper or native renderer is implied by these
 graph tests.
+
+## Private helper value contract
+
+`plugins::{NodeToHelper,HelperToNode}` is the first local format slice, not a
+parallel authenticated RPC API. The node assigns PluginAddress and monotonic
+nonzero InvocationId; version1 and 4MiB frame/3MiB opaque-payload budgets are
+named once in proto. HelperPayload seals Debug; LogText holds private callback
+diagnostics separately from safe HelperFailure classes. Fourteen HookName
+values share HookWait with the future core adapter; subscription duplicates
+refuse. The transport will reject unsupported families instead of claiming
+partly implemented provider/tool/usage integrations. No process is spawned and
+no product caller, node method, protocol number or settings key is registered
+by this DTO commit. Transport/supervision drafts remain scratch until their
+ownership, limits, cancellation and non-root fake-child proof are complete.
