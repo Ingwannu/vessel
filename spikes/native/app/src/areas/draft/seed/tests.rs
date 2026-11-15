@@ -7,7 +7,6 @@ use vessel_app_view::creation::ProjectSeed;
 use vessel_app_view::{Machine, Reach};
 use vessel_proto::{NodeId, ProjectId, WorkspaceId};
 
-#[expect(clippy::unwrap_used, reason = "the fixed fixture book alias is valid")]
 fn destination(node: NodeId) -> DraftDestination {
     DraftDestination {
         machine: Name::parse("fixture").unwrap(),
@@ -26,10 +25,6 @@ fn connect(shell: &mut Shell, node: NodeId) {
         node: Some(node),
     });
 }
-#[expect(
-    clippy::unwrap_used,
-    reason = "fixed bounded history values satisfy the canonical validators"
-)]
 fn history() -> ChatHistory {
     ChatHistory::new(Payload {
         id: ContextId::parse("history").unwrap(),

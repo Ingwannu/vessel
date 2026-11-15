@@ -330,11 +330,16 @@ remains a separate required handoff; it is not a full follow-authority claim.
 
 Shared input strict run wp-composer-shared-input-20261115T133737Z-c71bd770
 reached App and exposed A1 callback-semicolon, documentation and nested-if
-lint findings. The owned delta fixes these directly and scopes validating
-fixture unwrap expectations to the four literal test constructors. Production
+lint findings. The owned delta fixes these directly. Production
 does not gain a panic path or lint exemption; the actual input semantics and
 bounded retention checks stay unchanged. The next exact source check must
 also include the attachment owner's separate corrections from that run.
+
+Run wp-handoff-shared-seed-20261115T134811Z-f0b2822a passed the Link/Kit/View
+checks and reached App, then failed on ten remaining composer/test findings
+and four unfulfilled fixture expectations added in A1's preflight. Those four
+expectations are removed rather than suppressed. This is not App acceptance;
+the next combined check must include the composer's remaining corrections.
 
 The legacy SpawnFailed code is conservatively unknown as well. In
 vessel-proc/src/child.rs:49-68, OS spawn precedes pipe, pid and process-group
