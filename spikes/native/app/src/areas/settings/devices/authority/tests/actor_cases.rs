@@ -65,3 +65,49 @@ fn actual_actor_opens_management_after_the_reported_admin_grant(cx: &mut TestApp
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn a_held_authority_reply_cannot_install_before_the_retired_fleet_frame(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        vessel_app_kit::init(
+            cx,
+            vessel_app_kit::SchemeChoice::Fixed(vessel_app_kit::Scheme::Dark),
+        )
+        .unwrap();
+    });
+    let (link, mut scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
+    let context = scene.context();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        prepare(shell, &context, window);
+        assert!(matches!(
+            scene.request(shell.fixture_link()).unwrap(),
+            Call::GetDeviceSelf(_)
+        ));
+        scene
+            .reply(
+                shell.fixture_link(),
+                WireOutcome::Ok(Reply::GetDeviceSelf(DeviceSelf {
+                    device: Some(DeviceId::random()),
+                    scopes: vec![Scope::Admin],
+                })),
+            )
+            .unwrap();
+        let held = answer(&mut scene, shell);
+        scene.retire(shell.fixture_link()).unwrap();
+        // Deliberately do not install the actor's newer Fleet/retirement event.
+        assert_eq!(
+            shell.fleet.machines[0].connection_context(),
+            Some(context.clone())
+        );
+        assert_eq!(shell.areas.settings.devices.page.context(), Some(&context));
+        shell.devices_answer(held, cx);
+        assert!(!shell.areas.settings.devices.page.authority().may_manage());
+        assert!(!matches!(
+            shell.areas.settings.devices.page.listing,
+            Listing::Ready(_)
+        ));
+        assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

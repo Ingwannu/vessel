@@ -155,3 +155,10 @@ framed actor and calls the production Devices answer handler. Those are source
 cases only, not executed proof. Legacy Answer has no queued DeliveryGuard yet;
 this fixture does not close that gap by itself. No runtime/feature-off/wasm or
 authority acceptance is claimed from static size/format/token checks.
+
+The next App regression holds a genuine authority response, retires its actor
+admission, keeps the Shell's copied Fleet unchanged, and calls the production
+answer handler. It must not install Admin/list facts. That source case is an
+expected missing-guard regression on the current legacy envelope; it has not
+been executed and is not reported as either a red or green runtime result.
+The actual receipt/guard consumer must close it before the final feature gate.
