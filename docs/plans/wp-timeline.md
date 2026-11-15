@@ -1289,3 +1289,26 @@ tickets and authoritative current pending delivery metadata remain with W4;
 resolved log beats stale Live. Original context/lease/binding admission must occur
 before the owner changes that state. This timeline adapter creates no A8 read
 registry and does not infer no-effect from a transcript watermark.
+
+
+Exactbab3 App/Kit all-target run completed16:04 UTC with App112 passed,
+1 failed, 2 ignored; Kit execution was not reached after the App failure. The
+actual proposed-body Ready/Loading draw, readonly fragment, scoped owner and
+snapshot cases passed individually. This is partial runtime evidence, not a
+whole App/Kit pass. The new pacing fixture incorrectly assumed its explicit draw
+was the first after notify; GPUI had already rendered once, correctly producing
+a partial prefix. The fixture now records actual render order and supplies a
+deterministic frame clock through the same helper, instead of guessing paint
+counts/wall time. It retains the first-arrival assertion and strengthens the
+outstanding-callback bound to exactly one.
+
+The renderer now advances only on a real frame wake, not an unrelated render.
+FrameWake::{Idle,Scheduled,Ready} coalesces requests, and the callback holds only
+a weak mounted state. Completion/reduced motion makes an already queued callback
+inert, without waking the row; after that bounded callback drains, no work remains.
+This matches the source's one frame handle without detached session timers. The
+new exact callback/regression source is not executed yet. Pacing view strict's
+firstd2 run found type complexity and integer/NFC/slice test idioms; WordChanges
+names the existing return value, clock remainder is checked, the frame interval
+uses nearest-nanosecond precision, and escaped jamo preserve test bytes. No lint
+suppression, weakened Unicode assertion or new dependency version is introduced.

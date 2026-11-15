@@ -5,11 +5,19 @@ use std::time::{Duration, Instant};
 use vessel_app_kit::ui::{App, ElementId, Window};
 use vessel_app_view::timeline::{Entry, RevealClock, TextPhase, TextReveal};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum FrameWake {
+    Idle,
+    Scheduled,
+    Ready,
+}
+
 struct Kept {
     reveal: TextReveal,
     clock: RevealClock,
     version: u32,
     epoch: Instant,
+    wake: FrameWake,
 }
 impl Kept {
     fn begin(text: &str, version: u32) -> Self {
@@ -18,6 +26,7 @@ impl Kept {
             clock: RevealClock::default(),
             version,
             epoch: Instant::now(),
+            wake: FrameWake::Idle,
         }
     }
     fn follow(
@@ -27,6 +36,13 @@ impl Kept {
         phase: TextPhase,
         now: Duration,
     ) -> (usize, bool) {
+        let frame_ready = match self.wake {
+            FrameWake::Idle | FrameWake::Scheduled => false,
+            FrameWake::Ready => {
+                self.wake = FrameWake::Idle;
+                true
+            }
+        };
         let changed = self.version != version;
         if changed {
             self.reveal.retarget(text);
@@ -35,7 +51,8 @@ impl Kept {
         match phase {
             TextPhase::Complete => self.reveal.complete(),
             TextPhase::Streaming => {
-                if !changed
+                if frame_ready
+                    && !changed
                     && !self.reveal.settled()
                     && let Some(elapsed) = self.clock.frame(now)
                 {
@@ -71,17 +88,57 @@ pub(super) fn visible_end(
     window: &mut Window,
     cx: &mut App,
 ) -> usize {
+    visible_end_with_clock(
+        id,
+        text,
+        version,
+        phase,
+        |kept| kept.epoch.elapsed(),
+        window,
+        cx,
+    )
+}
+
+// The same renderer accepts a deterministic frame clock in its GPUI fixture;
+// production uses its mounted epoch. No clock or target leaves this row.
+fn visible_end_with_clock(
+    id: ElementId,
+    text: &str,
+    version: u32,
+    phase: TextPhase,
+    now: impl FnOnce(&Kept) -> Duration,
+    window: &mut Window,
+    cx: &mut App,
+) -> usize {
     let phase = if vessel_app_kit::motion::held(cx) {
         TextPhase::Complete
     } else {
         phase
     };
     let state = window.use_keyed_state(id, cx, |_, _| Kept::begin(text, version));
-    let (end, pending) = state.update(cx, |kept, _| {
-        kept.follow(text, version, phase, kept.epoch.elapsed())
+    let (end, schedule) = state.update(cx, |kept, _| {
+        let now = now(kept);
+        let (end, pending) = kept.follow(text, version, phase, now);
+        let schedule = pending && kept.wake != FrameWake::Scheduled;
+        if schedule {
+            kept.wake = FrameWake::Scheduled;
+        }
+        (end, schedule)
     });
-    if pending {
-        window.request_animation_frame();
+    if schedule {
+        let weak = state.downgrade();
+        window.on_next_frame(move |_, cx| {
+            if let Some(state) = weak.upgrade() {
+                state.update(cx, |kept, cx| {
+                    if kept.reveal.settled() {
+                        kept.wake = FrameWake::Idle;
+                    } else {
+                        kept.wake = FrameWake::Ready;
+                        cx.notify();
+                    }
+                });
+            }
+        });
     }
     end
 }

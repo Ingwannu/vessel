@@ -12,6 +12,7 @@ fn growth_waits_for_a_frame_and_stops_scheduling_after_completion() {
         kept.follow(&full, 1, TextPhase::Streaming, Duration::ZERO),
         (1, true)
     );
+    kept.wake = FrameWake::Ready;
     let (end, pending) = kept.follow(&full, 1, TextPhase::Streaming, Duration::from_millis(17));
     assert!(end > 1 && end < full.len());
     assert!(pending);
@@ -35,7 +36,8 @@ struct Probe {
     text: String,
     revision: u32,
     phase: TextPhase,
-    shown: Rc<RefCell<String>>,
+    shown: Rc<RefCell<Vec<String>>>,
+    now: Duration,
 }
 impl Render for Probe {
     fn render(
@@ -43,16 +45,18 @@ impl Render for Probe {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> impl gpui::IntoElement {
-        let end = visible_end(
+        let now = self.now;
+        let end = visible_end_with_clock(
             "pace-probe".into(),
             &self.text,
             self.revision,
             self.phase,
+            |_| now,
             window,
             cx,
         );
         let prefix = self.text.get(..end).unwrap();
-        *self.shown.borrow_mut() = prefix.to_owned();
+        self.shown.borrow_mut().push(prefix.to_owned());
         div().child(prefix.to_owned()).into_any_element()
     }
 }
@@ -69,17 +73,19 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
 ) {
     crate::shell::language_tests::init(cx);
     cx.update(|cx| cx.set_reduce_motion(false));
-    let shown = Rc::new(RefCell::new(String::new()));
+    let shown = Rc::new(RefCell::new(Vec::new()));
     let observed = Rc::clone(&shown);
     let (view, cx) = cx.add_window_view(move |_, _| Probe {
         text: "a".to_owned(),
         revision: 0,
         phase: TextPhase::Streaming,
         shown,
+        now: Duration::ZERO,
     });
     draw(cx);
-    assert_eq!(observed.borrow().as_str(), "a");
+    assert_eq!(observed.borrow().last().unwrap(), "a");
     let _startup = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let before_growth = observed.borrow().len();
     view.update_in(cx, |probe, _, cx| {
         probe.text.push_str(&"b".repeat(300));
         probe.revision += 1;
@@ -87,21 +93,33 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     });
     draw(cx);
     assert_eq!(
-        observed.borrow().as_str(),
+        observed.borrow().get(before_growth).unwrap(),
         "a",
-        "arrival changes only the target"
+        "first arrival render changes only the target"
     );
     let scheduled = cx.update(|window, cx| window.simulate_next_frame(cx));
-    assert!(scheduled > 0);
+    assert_eq!(
+        scheduled, 1,
+        "one outstanding callback across repeated draws"
+    );
     draw(cx);
-    assert!(observed.borrow().len() > 1 && observed.borrow().len() < 301);
+    let shown = observed.borrow().last().unwrap().len();
+    assert!(shown > 1 && shown < 301);
     let _old = cx.update(|window, cx| window.simulate_next_frame(cx));
     view.update_in(cx, |probe, _, cx| {
         probe.phase = TextPhase::Complete;
         cx.notify();
     });
     draw(cx);
-    assert_eq!(observed.borrow().len(), 301);
+    assert_eq!(observed.borrow().last().unwrap().len(), 301);
+    let paints_before_drain = observed.borrow().len();
+    let completed = cx.update(|window, cx| window.simulate_next_frame(cx));
+    assert!(completed <= 1);
+    assert_eq!(
+        observed.borrow().len(),
+        paints_before_drain,
+        "settled callback cannot wake the row"
+    );
     assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
     view.update_in(cx, |probe, _, cx| {
         probe.text.push_str("reduced");
@@ -111,7 +129,7 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
         cx.notify();
     });
     draw(cx);
-    assert_eq!(observed.borrow().len(), 308);
+    assert_eq!(observed.borrow().last().unwrap().len(), 308);
     assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
 }
 
