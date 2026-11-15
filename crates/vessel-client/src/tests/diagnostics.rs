@@ -3,14 +3,29 @@ use super::*;
 use crate::CallError;
 use futures_util::{SinkExt as _, StreamExt as _};
 use vessel_proto::diagnostics::GetDiagnostics;
-use vessel_proto::{Method, Origin, OriginBy, Request as _, ServerFrame, Welcome};
+use vessel_proto::{Method, Origin, OriginBy, ProtocolVersion, Request as _, ServerFrame, Welcome};
 
 const SAFETY: std::time::Duration = std::time::Duration::from_secs(60);
 const PHASE: std::time::Duration = std::time::Duration::from_secs(20);
+
+/// The local refusal of `method` on a connection speaking `negotiated`,
+/// below the `needs` its call requires: nothing was sent.
+fn refused_below(
+    error: &CallError,
+    method: Method,
+    needs: ProtocolVersion,
+    negotiated: ProtocolVersion,
+) -> bool {
+    matches!(
+        error,
+        CallError::NotInProtocol { method: got, needs: required, negotiated: spoke }
+            if *got == method && *required == needs && *spoke == negotiated
+    )
+}
 #[tokio::test]
 async fn diagnostics_below_its_protocol_direct_self_and_every_envelope_send_no_frame() {
     let needs = vessel_proto::diagnostics::DIAGNOSTICS_PROTOCOL.unwrap();
-    let previous = vessel_proto::ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
+    let previous = ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
     vessel_testkit::within(SAFETY, async {
         for version in [vessel_proto::MIN_PROTOCOL_VERSION, previous] {
             let (client_end, mut node_end) =
@@ -42,26 +57,15 @@ async fn diagnostics_below_its_protocol_direct_self_and_every_envelope_send_no_f
                 .await
                 .expect("diagnostic client admission")
                 .unwrap_err();
-            assert!(matches!(
-                error,
-                crate::DiagnosticError::Call(CallError::NotInProtocol {
-                    method: Method::Diagnostics,
-                    needs: got,
-                    negotiated,
-                }) if got == needs && negotiated == version
-            ));
+            let crate::DiagnosticError::Call(error) = error else {
+                panic!("diagnostics below their protocol are refused locally");
+            };
+            assert!(refused_below(&error, Method::Diagnostics, needs, version));
             let error = tokio::time::timeout(PHASE, client.call_on(id, GetDiagnostics {}))
                 .await
                 .expect("diagnostic self wrapper")
                 .unwrap_err();
-            assert!(matches!(
-                error,
-                CallError::NotInProtocol {
-                    method: Method::Forward,
-                    needs: got,
-                    negotiated,
-                } if got == needs && negotiated == version
-            ));
+            assert!(refused_below(&error, Method::Forward, needs, version));
             let origin = Origin {
                 node: id,
                 by: OriginBy::Owner,
@@ -92,14 +96,7 @@ async fn diagnostics_below_its_protocol_direct_self_and_every_envelope_send_no_f
                     .await
                     .expect("diagnostic recursive admission")
                     .unwrap_err();
-                assert!(matches!(
-                    error,
-                    CallError::NotInProtocol {
-                        method: got,
-                        needs: required,
-                        negotiated,
-                    } if got == method && required == needs && negotiated == version
-                ));
+                assert!(refused_below(&error, method, needs, version));
             }
             drop(client);
             assert!(

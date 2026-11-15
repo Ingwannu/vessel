@@ -7,7 +7,7 @@ const PHASE: std::time::Duration = std::time::Duration::from_secs(20);
 #[tokio::test]
 async fn diagnostics_below_their_protocol_refuse_correlated_direct_and_nested_before_dispatch() {
     let needs = vessel_proto::diagnostics::DIAGNOSTICS_PROTOCOL.unwrap();
-    let previous = vessel_proto::ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
+    let previous = ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
     vessel_testkit::within(SAFETY, async {
         for version in [vessel_proto::MIN_PROTOCOL_VERSION, previous] {
             let (mut client, mut served, node) = tokio::time::timeout(PHASE, raw_client_with_node(version.get())).await.expect("raw diagnostic welcome");
