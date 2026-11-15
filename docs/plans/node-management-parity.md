@@ -39,7 +39,8 @@ slice order. The docs commit adds both and no command.
   the next slice's whole gate covers the merged tree.
 - Source: 2g2 moves only identity/preflight reads off the runtime's blocking
   pool. Two Linux FIFO cases test child exit and a still-Serving node;
-  focused checks and the whole gate are pending.
+  the first focused clippy found an unused test exit status. The test now
+  asserts that status; final focused checks and the whole gate are pending.
 - Next: gate 2g2, then service observations and finalization, force/restart
   and slices 3/4. Proc implementation still awaits its integration decision.
   Actual managers and agents are unverified.

@@ -345,6 +345,6 @@ async fn stop_with_blocked_reader(fixture: &Fixture, seconds: &str) -> crate::su
         child.kill().await.unwrap();
         panic!("blocked-reader CLI did not exit within {LOCAL_READ_EXIT_BUDGET:?}");
     }
-    waited.unwrap().unwrap();
+    assert!(!waited.unwrap().unwrap().success());
     child.wait_with_output().await.unwrap().into()
 }
