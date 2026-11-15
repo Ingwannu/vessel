@@ -15,10 +15,11 @@ fn a_legacy_row_is_shown_and_the_append_is_idempotent() {
         .unwrap();
     let original = r#"{"harness":"codex","mode":"structured"}"#;
     let id = vessel_proto::SessionId::random();
-    connection.execute(
+    let inserted = connection.execute(
         "INSERT INTO sessions (id,spec,status,live,created_at,next_seq,first_seq,retained_bytes) VALUES (?1,?2,'{}',0,0,0,0,0)",
         rusqlite::params![id.to_string(), original],
     ).unwrap();
+    assert_eq!(inserted, 1);
     migrate(&mut connection).unwrap();
     migrate(&mut connection).unwrap();
     let version: usize = connection

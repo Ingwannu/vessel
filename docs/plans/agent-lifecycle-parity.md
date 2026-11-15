@@ -854,6 +854,7 @@ The integrated strict check found two fixture defects and a private helper's
 reference convention: append records are shared Arc values, the corruption
 fixture must consume and assert its SQL row count, and the import spec builder
 takes Option<&ProfileName>. These corrections retain imported profile values
-and existing expectations; the corruption assertion is stronger. The failed
+and existing expectations; both insert and corruption fixtures now assert
+that their SQL changed exactly the intended row. The failed
 check is retained, and corrected-source checks and the complete package gate
 are still owed.
