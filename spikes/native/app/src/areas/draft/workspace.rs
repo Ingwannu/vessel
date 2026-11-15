@@ -15,7 +15,10 @@ use vessel_app_kit::ui::{
     Window, div,
 };
 use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
-use vessel_app_view::composer::{context::ContextScope, drafts::Drafts};
+use vessel_app_view::composer::{
+    context::ContextScope,
+    drafts::{DraftKey, Drafts},
+};
 use vessel_app_view::creation::{DraftDestination, DraftSeed, Launch, SeedPlace, SeedProblem};
 use vessel_app_view::layout::{DraftId, LayoutKey, Target};
 
@@ -76,7 +79,6 @@ impl Shell {
             .and_then(|entry| entry.scope.clone())
     }
     /// Stage selections/editor before layout_open_target; a failed open retains it.
-    /// History intake is refused until the canonical W6 keyed bridge is adopted.
     #[cfg_attr(
         not(test),
         expect(
@@ -98,6 +100,11 @@ impl Shell {
             node: seed.destination.node,
             workspace,
         };
+        let source = DraftKey::Workspace {
+            node: seed.destination.node,
+            workspace,
+            draft,
+        };
         let entries = &self.areas.draft.workspace_drafts.entries;
         if entries.contains_key(&(key.clone(), draft)) {
             return Err(SeedProblem::Busy);
@@ -113,18 +120,12 @@ impl Shell {
         }) {
             return Err(SeedProblem::DestinationChanged);
         }
-        if seed.history.is_some() {
-            return Err(SeedProblem::Context(
-                vessel_app_view::composer::context::ContextProblem::Scope,
-            ));
-        }
         let owner = cx.entity().downgrade();
         let target = key.clone();
         // The kit deliberately takes a function pointer. Put the captured
         // address in its model owner, rather than inferring a global field.
         let editor = cx.new(|cx| {
             let field = TextField::composer("", Editor::submitted, window, cx);
-            field.set_text(seed.text.as_str(), window, cx);
             Editor {
                 workspace: target,
                 draft,
@@ -134,7 +135,7 @@ impl Shell {
         });
         let composer = editor.read(cx).field.clone();
         let _previous = self.areas.draft.workspace_drafts.entries.insert(
-            (key, draft),
+            (key.clone(), draft),
             WorkspaceDraft {
                 destination: seed.destination,
                 launch: seed.launch,
@@ -145,6 +146,23 @@ impl Shell {
                 error: None,
             },
         );
+        // History intake requires the admitted exact editor to be empty. Only
+        // this new entry is rolled back on refusal; other drafts stay intact.
+        if let Some(history) = seed.history {
+            if let Err(problem) = self.composer_seed_history(source, history, window, cx) {
+                drop(
+                    self.areas
+                        .draft
+                        .workspace_drafts
+                        .entries
+                        .remove(&(key, draft)),
+                );
+                return Err(problem.into());
+            }
+        }
+        if let Some(field) = self.workspace_draft_field(&key, draft) {
+            field.set_text(seed.text.as_str(), window, cx);
+        }
         cx.notify();
         Ok(())
     }
