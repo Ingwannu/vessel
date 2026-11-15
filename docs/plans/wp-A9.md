@@ -368,3 +368,37 @@ remain, and the Models hub moved into the lead's single shared test-state
 constructor rather than retaining a duplicate builder. G2's exact reviewed
 ProviderRow/modal producer four-commit range was adopted; no other F1 source
 or future hierarchy work was consumed. All actual consumer UI remains pending.
+
+
+### Add admission and authoritative registry acknowledgements
+
+[Decision Log]
+- Purpose: never present a local inability to send as a machine rejection.
+- Constraint: the client distinguishes an unassigned method, exhausted local
+  request ids and an actually older negotiated peer before any frame is sent.
+- Choice: retain those sources and map them to distinct build-unavailable,
+  restart-required and older-node instructions. No automatic replay.
+- Alternative: one generic unsupported/rejected label, which wrongly tells
+  people to update the remote machine or edit a valid command.
+- Impact: no protocol, file writer, permission or installation behavior changes.
+  A registry command also requires an actually fetched copy, not entries in an
+  unfetched reply. ACK tests reject another registry id or version while keeping
+  the original pending ticket until the exact acknowledgement arrives.
+
+These source refinements are unverified until the next changed-head narrow and
+final A9 gate. The earlier immutable narrow on 039c9e86 excludes this refinement.
+The two priority runs on cbdd/de809 refused the stale base6 lock before compiling;
+039c9e86 merges the lead's canonical lock repair dd13ce37. Those refusals are not
+compiler or test passes.
+
+### Modern provider identity boundary (coordinator ruling)
+
+The modern provider snapshot and legacy agent definitions are separate sections.
+Models, diagnostic and enable use only the modern entry; installation, sign-in,
+defaults and remove use only the node's returned HarnessRef/profile facts. Neither
+provider id nor driver kind establishes an account binding. The provider actor
+must supply an explicit typed binding and known sign-in verdict before the page
+can combine them into one row per provider as Paseo does. This is a deliberate,
+temporary parity difference, not a fabricated compatibility/account table.
+Protocol24 is reserved for the provider package but is not callable until its
+integrator announces assignment and the canonical app base carries it.

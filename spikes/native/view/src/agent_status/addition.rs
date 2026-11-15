@@ -201,6 +201,9 @@ fn check_entry<E>(
         Some(Read::NotRequested | Read::Pending { .. } | Read::Failed { previous: None, .. })
         | None => return Err(Refused::Unavailable),
     };
+    if copy.fetched_at.is_none() {
+        return Err(Refused::Unavailable);
+    }
     if !copy.entries.iter().any(|present| present == entry)
         || !matches!(catalogue::offer(entry, &current.agents), Offer::Add(_))
     {
@@ -240,6 +243,10 @@ pub enum Failure {
     Changed,
     /// The typed client or node refused an unsupported method.
     Unsupported,
+    /// This build has no assigned method; updating the peer cannot fix it.
+    BuildUnavailable,
+    /// Local request identities cannot be safely reused in this client.
+    Exhausted,
     /// Node Admin/local-person policy refused the action.
     Permission,
     /// Agent/profile name or pinned registry version conflicts.
@@ -263,6 +270,8 @@ impl Failure {
             Self::Unknown | Self::Busy => crate::alert::Variant::Warning,
             Self::Changed
             | Self::Unsupported
+            | Self::BuildUnavailable
+            | Self::Exhausted
             | Self::Permission
             | Self::Conflict
             | Self::Rejected

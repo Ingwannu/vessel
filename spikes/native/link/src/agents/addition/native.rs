@@ -46,10 +46,9 @@ impl AdditionError {
             | Self::Call(CallError::Disconnected | CallError::UnexpectedReply(_)) => {
                 Failure::Unknown
             }
-            Self::Call(CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. }) => {
-                Failure::Unsupported
-            }
-            Self::Call(CallError::RequestIdsExhausted) => Failure::Rejected,
+            Self::Call(CallError::NotInProtocol { .. }) => Failure::Unsupported,
+            Self::Call(CallError::UnassignedProtocol { .. }) => Failure::BuildUnavailable,
+            Self::Call(CallError::RequestIdsExhausted) => Failure::Exhausted,
             Self::Call(CallError::Remote(error)) => match error.code {
                 ErrorCode::Forbidden | ErrorCode::Unauthorized => Failure::Permission,
                 ErrorCode::Conflict => Failure::Conflict,

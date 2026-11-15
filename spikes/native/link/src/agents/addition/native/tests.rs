@@ -156,3 +156,29 @@ async fn deadline_ends_the_wait_and_never_replays_or_probes() {
     })
     .await;
 }
+
+#[test]
+fn local_admission_failures_do_not_blame_the_machine_or_imply_a_write() {
+    for (call, expected) in [
+        (
+            CallError::UnassignedProtocol {
+                method: vessel_proto::Method::AddAgent,
+            },
+            Failure::BuildUnavailable,
+        ),
+        (CallError::RequestIdsExhausted, Failure::Exhausted),
+        (
+            CallError::NotInProtocol {
+                method: vessel_proto::Method::AddAgent,
+                needs: ProtocolVersion::new(11),
+                negotiated: ProtocolVersion::new(10),
+            },
+            Failure::Unsupported,
+        ),
+    ] {
+        let error = AdditionError::Call(call);
+        assert_eq!(error.problem(), expected);
+        assert!(!error.is_uncertain());
+        assert!(matches!(error, AdditionError::Call(_)));
+    }
+}

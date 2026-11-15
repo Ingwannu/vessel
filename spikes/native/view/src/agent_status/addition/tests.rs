@@ -291,3 +291,60 @@ fn uncertain_add_preserves_facts_but_requires_discovery_before_retry() {
         "lost ACK"
     );
 }
+
+#[test]
+fn an_unfetched_copy_does_not_authorize_a_registry_addition() {
+    let (mut pages, machine, node) = setup().unwrap();
+    let entry = registry().unwrap();
+    let ticket = pages
+        .begin(machine.clone(), Operation::Catalogue { node })
+        .unwrap();
+    assert!(pages.catalogue_loaded(
+        &machine,
+        ticket,
+        node,
+        Catalogue {
+            fetched_at: None,
+            entries: vec![entry.clone()],
+            ..Catalogue::default()
+        }
+    ));
+    assert!(matches!(
+        Intent::registry(&pages, machine.clone(), &entry),
+        Err(Refused::Unavailable)
+    ));
+    assert!(pages.get(machine.as_str()).unwrap().pending().is_none());
+}
+#[test]
+fn a_registry_ack_keeps_the_exact_id_and_version_not_just_the_name() {
+    let (mut pages, machine, node) = setup().unwrap();
+    let entry = registry().unwrap();
+    set_catalogue(&mut pages, &machine, node, entry.clone()).unwrap();
+    let intent = Intent::registry(&pages, machine.clone(), &entry).unwrap();
+    let (_, _, call, ticket) = intent
+        .submit(&machine, &mut pages, "custom", "", "")
+        .unwrap()
+        .into_parts();
+    for source in [
+        AgentSource::Registry {
+            id: "another-provider".parse().unwrap(),
+            version: entry.version.clone(),
+        },
+        AgentSource::Registry {
+            id: entry.id.clone(),
+            version: "2.0.0".parse().unwrap(),
+        },
+    ] {
+        let mut info = ack(&call).unwrap();
+        let AgentDetail::Added { added } = &mut info.detail else {
+            panic!("fixture is an added definition")
+        };
+        added.source = source;
+        assert!(!pages.added(&machine, ticket, node, info));
+        assert_eq!(
+            pages.get(machine.as_str()).unwrap().pending().unwrap().id,
+            ticket
+        );
+    }
+    assert!(pages.added(&machine, ticket, node, ack(&call).unwrap()));
+}
