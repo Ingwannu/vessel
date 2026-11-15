@@ -20,13 +20,16 @@ use vessel_proto::ErrorCode;
 use vessel_proto::search::{SearchMessages, SearchPage};
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::{Event, LinkError, State};
+use crate::{Event, State};
+use vessel_app_view::connection::ConnectionContext;
 
 /// One machine's page of a search.
 #[derive(Debug, Clone)]
 pub struct Ask {
     /// The machine.
     pub machine: String,
+    /// Shared immutable admission captured when this query started.
+    pub connection: Option<ConnectionContext>,
     /// The search it belongs to (the app's count of searches started).
     pub ticket: u64,
     /// The words, and the page.
@@ -40,12 +43,12 @@ pub enum Refusal {
     Older,
     /// It is not connected.
     NotConnected,
+    /// The bounded read did not finish.
+    TimedOut,
     /// It answered with an error, or the connection failed.
     Failed {
         /// The node's code; `None` when the connection failed.
         code: Option<ErrorCode>,
-        /// Its words.
-        message: String,
     },
 }
 
@@ -62,26 +65,19 @@ pub struct Answer {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
-    /// Ask `ask.machine` for a page, on a task of its own; the answer
-    /// comes back as [`Event::Searched`].
+    /// Use only the query's original admitted client, never a later alias target.
     pub(crate) fn search(&self, ask: Ask) {
         let events = self.events.clone();
-        let client = self
-            .clients
-            .get(&ask.machine)
-            .map(|connected| connected.client.clone());
+        let client = ask
+            .connection
+            .as_ref()
+            .filter(|context| context.machine().as_str() == ask.machine)
+            .ok_or(vessel_app_view::connection::Refusal::Changed)
+            .and_then(|context| self.selected_connection(context));
         drop(tokio::spawn(async move {
-            let result = if let Some(client) = client {
-                client
-                    .call(ask.request)
-                    .await
-                    .map_err(|error| refusal(&error))
-            } else {
-                tracing::debug!(
-                    error = %LinkError::NotConnected(ask.machine.clone()),
-                    "a search found no connection"
-                );
-                Err(Refusal::NotConnected)
+            let result = match client {
+                Ok(client) => bounded(client.call(ask.request), DEADLINE).await,
+                Err(_refused) => Err(Refusal::NotConnected),
             };
             let answer = Answer {
                 machine: ask.machine,
@@ -95,14 +91,35 @@ impl State {
     }
 }
 
-/// Why a call gave no page: a machine too old to search, or its error.
+/// A slow peer must settle its machine slot so other results remain usable.
 #[cfg(not(target_arch = "wasm32"))]
-fn refusal(error: &CallError) -> Refusal {
-    if let CallError::NotInProtocol { .. } = error {
-        return Refusal::Older;
-    }
-    Refusal::Failed {
-        code: error.code(),
-        message: error.to_string(),
+const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn bounded(
+    call: impl std::future::Future<Output = Result<SearchPage, crate::connections::RequestFailure>>,
+    deadline: std::time::Duration,
+) -> Result<SearchPage, Refusal> {
+    match tokio::time::timeout(deadline, call).await {
+        Ok(answer) => answer.map_err(|error| match error {
+            crate::connections::RequestFailure::Refused(_why) => Refusal::NotConnected,
+            crate::connections::RequestFailure::Call(error) => refusal(&error),
+        }),
+        Err(_elapsed) => Err(Refusal::TimedOut),
     }
 }
+
+/// Project structured codes only: peer text may contain sensitive connection data.
+#[cfg(not(target_arch = "wasm32"))]
+fn refusal(error: &CallError) -> Refusal {
+    match error {
+        CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. } => Refusal::Older,
+        CallError::Disconnected => Refusal::NotConnected,
+        CallError::Remote(_) | CallError::UnexpectedReply(_) | CallError::RequestIdsExhausted => {
+            Refusal::Failed { code: error.code() }
+        }
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests;

@@ -256,3 +256,13 @@ head immediate-ticket invalidation and single palette field; add its actual GPUI
 residency regression, with only the new shared Machine epoch fixture field.
 Keep the existing identical detached-command helper once. Standalone narrow
 proof does not approve this wider A3 union; it remains pending its own gate.
+
+Global Messages pages now retain the same shared admitted connection for every
+page of a query. A fleet admission change restarts the query immediately, before
+debounce, so a cursor or late page from an older connection cannot join its
+replacement. Choosing a painted hit also checks its source against the current
+fleet. The actor uses the common immutable SelectedConnection, with a named
+15-second deadline; only safe structured error codes survive projection, and
+timeout/failure copy comes from the approved message-search domain. The session
+selection itself still uses the existing canonical open_session boundary; W12
+owns the context-bound pane/session cutover, not another A3 navigation registry.

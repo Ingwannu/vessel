@@ -119,7 +119,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             kind: act.kind(),
             result: Err(ActFailed {
                 code: Some(ErrorCode::Unavailable),
-                message: said(),
             }),
         }),
         Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),
@@ -134,7 +133,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ticket: ask.ticket,
             result: Err(vessel_app_link::search::Refusal::Failed {
                 code: Some(ErrorCode::Unavailable),
-                message: said(),
             }),
         }),
         Command::Prompt { session, text, .. }

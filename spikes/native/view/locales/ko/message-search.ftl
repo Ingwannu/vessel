@@ -11,3 +11,8 @@ message-search-unavailable = 이 세션을 더 이상 열 수 없습니다. 다�
 
 # Palette action for entering the Messages scope using only the keyboard.
 message-search-open = 메시지 검색
+
+# Per-machine palette search recovery. The existing note supplies the source name.
+# Whole sentences without variables; never display peer-provided error text.
+message-search-timeout = 검색 제한 시간을 초과했습니다. 다시 시도해 주세요.
+message-search-failed = 이 머신의 메시지를 검색하지 못했습니다. 다시 시도해 주세요.

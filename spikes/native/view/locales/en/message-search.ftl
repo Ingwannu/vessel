@@ -11,3 +11,8 @@ message-search-unavailable = This session is no longer available. Refresh the se
 
 # Palette action for entering the Messages scope using only the keyboard.
 message-search-open = Search messages
+
+# Per-machine palette search recovery. The existing note supplies the source name.
+# Whole sentences without variables; never display peer-provided error text.
+message-search-timeout = Search timed out. Try again.
+message-search-failed = This machine could not search its messages. Try again.

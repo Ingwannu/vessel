@@ -43,6 +43,7 @@ use vessel_app_link::search::{Answer as Searched, Ask, Refusal};
 use vessel_app_view::Card;
 use vessel_app_view::ago::Ago;
 use vessel_app_view::board::Reach;
+use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::search::{Answer, HitId, MessageSearch, Note, PageAsk, Row};
 use vessel_proto::EventSeq;
 use vessel_proto::search::{MessageRole, SearchHit, SearchQuery};
@@ -60,23 +61,22 @@ const SETTLE: Duration = Duration::from_millis(150);
 #[derive(Debug, Default)]
 pub(crate) struct Searching {
     view: MessageSearch,
+    /// Admission is fixed for the whole paged query.
+    sources: Vec<(String, Option<ConnectionContext>)>,
 }
 
 impl Shell {
     /// Invalidate old rows and replies immediately; debounce only the node work.
     pub(crate) fn message_search_query(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let machines = self
-            .fleet
-            .machines
-            .iter()
-            .filter(|machine| machine.reach == Reach::Online)
-            .map(|machine| machine.name.as_str());
+        let sources = search_sources(&self.fleet);
+        let machines = sources.iter().map(|(name, _)| name.as_str());
         let asks = self
             .areas
             .palette
             .messages_search
             .view
             .start(text, machines);
+        self.areas.palette.messages_search.sources = sources;
         let ticket = self.areas.palette.messages_search.view.ticket();
         cx.notify();
         if asks.is_empty() {
@@ -98,10 +98,29 @@ impl Shell {
         let ticket = self.areas.palette.messages_search.view.ticket();
         for ask in asks {
             self.command(Command::Search(Ask {
+                connection: self
+                    .areas
+                    .palette
+                    .messages_search
+                    .sources
+                    .iter()
+                    .find(|(name, _)| name == &ask.machine)
+                    .and_then(|(_, context)| context.clone()),
                 machine: ask.machine,
                 ticket,
                 request: ask.request,
             }));
+        }
+    }
+
+    /// Changed admission invalidates every old page/cursor before a replacement query.
+    pub(crate) fn message_search_fleet_changed(&mut self, cx: &mut Context<'_, Self>) {
+        let search = &self.areas.palette.messages_search;
+        if search.sources == search_sources(&self.fleet) {
+            return;
+        }
+        if let Some(query) = search.view.query().map(str::to_owned) {
+            self.message_search_query(&query, cx);
         }
     }
 
@@ -111,7 +130,12 @@ impl Shell {
             Ok(page) => Answer::Page(page),
             Err(Refusal::Older) => Answer::Older,
             Err(Refusal::NotConnected) => Answer::NotConnected,
-            Err(Refusal::Failed { message, .. }) => Answer::Failed(message),
+            Err(Refusal::TimedOut) => {
+                Answer::Failed(self.words.message_search().timeout().to_owned())
+            }
+            Err(Refusal::Failed { .. }) => {
+                Answer::Failed(self.words.message_search().failed().to_owned())
+            }
         };
         let asks =
             self.areas
@@ -139,6 +163,21 @@ impl Shell {
     pub(crate) fn message_search_destination(&self, hit: &HitId) -> Option<Destination> {
         let view = &self.areas.palette.messages_search.view;
         let found = view.hit(hit)?;
+        let source = self
+            .areas
+            .palette
+            .messages_search
+            .sources
+            .iter()
+            .find(|(name, _)| name == &hit.machine)?;
+        let current = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == hit.machine)?;
+        if current.reach != Reach::Online || source.1 != current.connection_context() {
+            return None;
+        }
         Some(Destination {
             open: card_of(self, hit).map(Open::of)?,
             seq: found.seq,
@@ -157,6 +196,15 @@ impl Shell {
         self.conversation_reveal(destination.seq, cx);
         self.find_at(destination.query.as_str(), destination.seq, window, cx);
     }
+}
+
+fn search_sources(fleet: &vessel_app_view::Fleet) -> Vec<(String, Option<ConnectionContext>)> {
+    fleet
+        .machines
+        .iter()
+        .filter(|machine| machine.reach == Reach::Online)
+        .map(|machine| (machine.name.clone(), machine.connection_context()))
+        .collect()
 }
 
 /// A prepared selection cannot lose its query when the palette closes.

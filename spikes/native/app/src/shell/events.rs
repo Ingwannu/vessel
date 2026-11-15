@@ -37,6 +37,7 @@ impl Shell {
                 self.devices_fleet();
 
                 self.prompt_index_fleet_changed();
+                self.message_search_fleet_changed(cx);
                 self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;

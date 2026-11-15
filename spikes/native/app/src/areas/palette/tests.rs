@@ -383,3 +383,43 @@ fn global_messages_survive_replacing_a_conversation_resident(cx: &mut TestAppCon
         drop(previous);
     });
 }
+
+#[gpui::test]
+fn readmitting_a_machine_invalidates_old_pages_before_debounce(cx: &mut TestAppContext) {
+    use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+    let (view, cx) = harness(cx);
+    let mut admissions = ConnectionEpochs::default();
+    let node = vessel_proto::NodeId::random();
+    let first = admissions
+        .admit(MachineKey::from_book("one"), node)
+        .unwrap();
+    update(&view, cx, |shell, window, cx| {
+        shell.fleet.machines[0].node = Some(node);
+        shell.fleet.machines[0].connection_epoch = Some(first.epoch());
+        enter_messages(shell, window, cx);
+        shell.message_search_query("needle", cx);
+    });
+    ready(cx);
+    let old = asks(&view, cx);
+    assert_eq!(old[0].connection, Some(first));
+    let next = admissions
+        .admit(MachineKey::from_book("one"), node)
+        .unwrap();
+    update(&view, cx, |shell, _, cx| {
+        shell.message_searched(answer(&old[0], SessionId::random(), 1), cx);
+        assert_eq!(shell.message_search_rows().len(), 1);
+        shell.fleet.machines[0].connection_epoch = Some(next.epoch());
+        shell.message_search_fleet_changed(cx);
+        assert!(shell.message_search_rows().is_empty());
+        shell.message_searched(answer(&old[0], SessionId::random(), 1), cx);
+        assert!(
+            shell.message_search_rows().is_empty(),
+            "the old generation is retired"
+        );
+    });
+    ready(cx);
+    let new = asks(&view, cx);
+    assert_eq!(new.len(), 2);
+    assert_eq!(new[0].connection, Some(next));
+    assert_ne!(new[0].ticket, old[0].ticket);
+}
