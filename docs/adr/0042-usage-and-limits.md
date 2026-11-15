@@ -464,3 +464,27 @@ cache and projection with scratch-only synthetic inputs. It does not establish
 successful live vendor support, assigned wire admission, plugin execution or
 additional-source immutable launch association. Those remain separate acceptance
 conditions; no local Cargo or manual VM binary copy is a validation substitute.
+
+### F3 final node verification freeze
+
+The two adapter families share the same configured admission context, rather than
+minting separate permits for saved-login and additional-source jobs. Actual work
+keeps its permit until it stops. The additional HTTP adapter now selects policy
+cancellation around the actual request future; precancelled work never polls the
+request, and cancellation after admission drops it. Network-free barrier tests
+exercise those two production paths without credentials or vendor endpoints.
+
+Exact `9bd4a9c86` passed the five changed crates' all-target strict Clippy check,
+including TypeScript and the required usage-fixture feature, in run
+`wp-usage-consent-values-20261115T142252Z-9bd4a9c8`. The two HTTP cancellation
+regressions passed in `wp-usage-source-tests-20261115T142251Z-9bd4a9c8`. Earlier
+four-crate library coverage passed 746 tests at `05b7a342`; the later real mixed-
+family admission regression passed at `d5f1804b`. Those are distinct snapshots.
+Generated declarations recovered from the latter source are committed unchanged;
+current freshness and the complete root gate remain owed at this freeze.
+
+The recorded fixture's earlier managed export passed independent source, recipe,
+feature and byte checks. Its isolated UID/GID-1000 boot, same-source CLI status,
+normal stop and scratch permissions were checked separately. That older binary
+is not evidence for this frozen runtime, assigned report calls or UI acceptance.
+No production service, credential, vendor or permission change was performed.
