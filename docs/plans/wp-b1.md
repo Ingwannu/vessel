@@ -278,3 +278,5 @@ Image normalization evidence: fixed-source run wp-composer-image-kit-20261115T12
 
 
 Capability results remain bound to the same original admission even after becoming Ready; the pending owner must match both its creation ticket and ConnectionContext. Successful settlement removes that capability entry so a later send cannot inherit an obsolete creation read. Read-only shortcut admission and arriving @ rows also reject a same-node reconnect before rendering/consuming its old popup. This is local cache/operation correlation, not additional transport authority.
+
+Creation now calls prepare_draft_input_on with its original ConnectionContext directly. The name/node compatibility wrapper is literal cfg(test) for the two recovered-intake refusal fixtures; no product caller can rehydrate an admission through it.
