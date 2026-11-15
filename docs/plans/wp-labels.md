@@ -186,3 +186,9 @@ Four new binding regressions cover these cases. Fleet events update bindings
 while the manager is open, and a removed host cannot retarget a pending write.
 The name-field policy is wired to the shared editor API. Narrow compilation
 and the expanded model tests are still pending; no full gate/capture is claimed.
+
+Narrow app compilation reached the complete area and found two remaining
+strict-lint issues: a visual counter exposed through an unnecessarily wide
+field and a nested conditional. Fields are now private to the area and its
+children, and the condition is a let-chain. The corrected narrow check is
+pending; expanded tests and final gates/captures remain owed.

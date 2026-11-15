@@ -12,15 +12,15 @@ use vessel_app_view::labels::{EditAccess, Failure, Host, HostState, Manager};
 use crate::shell::Shell;
 
 pub(crate) struct Labels {
-    pub(super) open: bool,
-    pub(super) manager: Manager,
-    pub(super) hosts: Vec<Host>,
-    pub(super) search: TextField,
-    pub(super) name: TextField,
-    pub(super) dialog: DialogState,
-    pub(super) error: Option<Failure>,
-    pub(super) color_turn: colors::ColorTurn,
-    pub(super) unresolved: Vec<vessel_app_view::machine_book::Name>,
+    open: bool,
+    manager: Manager,
+    hosts: Vec<Host>,
+    search: TextField,
+    name: TextField,
+    dialog: DialogState,
+    error: Option<Failure>,
+    color_turn: colors::ColorTurn,
+    unresolved: Vec<vessel_app_view::machine_book::Name>,
     applied_editability: Option<EditAccess>,
 }
 
@@ -109,7 +109,7 @@ impl Shell {
         cx.notify();
     }
 
-    pub(super) fn labels_close(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn labels_close(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let state = &mut self.areas.labels;
         state.open = false;
         // Surface lifetime is independent of a committed/in-flight mutation.

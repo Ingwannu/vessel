@@ -70,12 +70,12 @@ pub(super) fn choices(
                     return;
                 }
                 let state = &mut shell.areas.labels;
-                if let Some(draft) = state.manager.draft_mut() {
-                    if draft.color() != color {
-                        draft.set_color(color);
-                        state.color_turn.advance();
-                        cx.notify();
-                    }
+                if let Some(draft) = state.manager.draft_mut()
+                    && draft.color() != color
+                {
+                    draft.set_color(color);
+                    state.color_turn.advance();
+                    cx.notify();
                 }
             }));
             if color == selected {
