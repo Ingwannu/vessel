@@ -3,7 +3,7 @@
 //! Restored browser slots may exist while this node has no qualified engine.
 //! They get an explicit unavailable state, without a synthetic page, URL fetch,
 //! open action or separate pane manager. Live owner state will be keyed by
-//! (LayoutKey, TabId) and bound to the node resource when its typed stream exists.
+//! (`LayoutKey`, `TabId`) and bound to the node resource when its typed stream exists.
 
 use crate::areas::layout::registry::PanelContext;
 use crate::shell::Shell;
