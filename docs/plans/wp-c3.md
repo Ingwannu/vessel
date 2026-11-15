@@ -705,3 +705,13 @@ bounds alongside readonly selection/copy; its name does not claim selection-path
 z-order. Exact mapped-label right alignment, private folded-array order and
 selection/touch-handle paint remain source or first-use capture obligations. The
 readonly profile explicitly disables folding; no new test-access API was added.
+
+## Post-line mapped-control capture handoff
+
+The lead accepted retaining exact label alignment, folded-array order and
+selection/touch paint as explicitly separate source/capture obligations without
+widening the vendor for tests. `kit/examples/mapped_diff_audit.rs` supplies an
+optional real-window control consumer with2500 fixed rows, seven-digit mapped
+number, English/Korean, wrap/scroll and ordinary selection/copy. The patch7 README
+names exact steps; no build/capture/UI pass exists. It has no node authority and
+cannot replace later C3 fake-fleet first-use or prove unsupported touch behavior.

@@ -1331,3 +1331,9 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+
+The optional kit example `mapped_diff_audit` is a supplementary patch7 control
+capture surface, not an app route or node fixture. It uses the production
+DiffDocumentEditor/VirtualList and fixed English/Korean rows; change7's capture
+handoff records exact steps and unverified limits. It has not been built/run.

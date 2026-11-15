@@ -321,6 +321,30 @@ at the top and `Vessel patch` at the change.
   fixtures above replace the removed private test source; their results are
   pending. No source-precheck result is runtime, consumer or OS approval.
 
+- Capture handoff (not yet built/run): kit example `mapped_diff_audit` is a
+  supplementary control surface using the production DiffDocumentEditor and
+  one VirtualList. It has2500 fixed source rows, an unnumbered hunk header,
+  removed English, added Korean, a7-digit mapped number beside short numbers
+  and a long wrapped line. It creates no node/session/repository. After the
+  change is on the line, the lead's Linux/Xvfb audit can inspect these steps:
+  1. Open at1280x844 then390x844 (`VESSEL_APP_SIZE=390x844` selects the latter),
+     dark and light (`VESSEL_APP_THEME=light`). Row3 number9999999 and nearby
+     short numbers should share the gutter's right edge; ordinary source
+     editor gutters must be captured separately for the unchanged None path.
+  2. Choose Wrap; drag from removed row2 through added Korean row3 into the
+     wrapped row4. Inspect visible selection above the row tints. Copy with
+     the platform shortcut and compare with the exact selected source text,
+     without presentation numbers. Select beyond an offclip boundary and
+     repeat after scrolling; inspect any visible touch handle on a supported
+     touch platform (Linux mouse capture does not prove that platform path).
+  3. Choose Scroll; move horizontally on row4, then vertically into the2500
+     row document and use End/Shift-Up while focused. Inspect fixed gutter,
+     owner scrolling and selection. This is control evidence only; actual
+     fake-fleet C3 first-use still needs the mounted feature surface.
+  Private folded-array order remains source-only; the profile disables folding.
+  No capture exists yet, and this example is not a substitute for an exact
+  changed-source gate. Builds must use the prescribed remote VM path.
+
 ## `gpui-pre` 0.3.10
 
 Upstream: the `gpui-pre` snapshot of Zed's `gpui` (zed@08cbb88),
