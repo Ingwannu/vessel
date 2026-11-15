@@ -166,3 +166,12 @@ working changes, qualified local/remote selections, and a remote pointing at a
 non-commit object. They assert both committed/All file sets and unchanged real
 index bytes. No network or real agent is needed. These additions require their
 changed-source check and execution; old17257659 results do not cover them.
+
+## Gate40 integration
+
+Merged ba45a6e3 after the prior narrow check completed. The two pending Read
+comparison rows now live at the end of rpc/table.rs, and their names are in
+WORKSPACE_FAMILIES_LATER; their protocol remains unassigned. Both architecture
+additions are retained. This closes the old prefix-family fixture conflict
+without assigning a protocol or changing a legacy call. Gate40's published
+whole results are base evidence only; the combined package still needs checks.

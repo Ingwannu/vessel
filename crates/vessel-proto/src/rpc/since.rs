@@ -8,6 +8,8 @@ use crate::session::{SessionInput, SessionMode};
 
 use super::Call;
 
+mod labels;
+
 impl Call {
     /// The assigned requirement for admission: [`Call::since`]. A feature
     /// awaiting a protocol number returns `None`; senders must refuse it
@@ -66,12 +68,7 @@ impl Call {
                 };
                 // An added agent came in 11 (ADR 0032): an older node
                 // cannot decode it.
-                fields.max(added(Some(&spec.harness))).max(
-                    (!spec.labels.is_empty())
-                        .then_some(crate::lifecycle_version::SINCE)
-                        .flatten()
-                        .map(ProtocolVersion::get),
-                )
+                fields.max(added(Some(&spec.harness)))
             }
             Self::HarnessOptions(request) => added(Some(&request.harness)),
             Self::ListProfiles(request) => added(request.harness.as_ref()),
@@ -271,7 +268,10 @@ impl Call {
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_) => None,
         };
-        Some(fields.map_or(method, |since| method.max(ProtocolVersion::new(since))))
+        let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
+        labels::on(self).map_or(Some(required), |labels| {
+            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        })
     }
 }
 
@@ -283,14 +283,7 @@ fn added(harness: Option<&HarnessRef>) -> Option<u32> {
 }
 
 fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
-    spec.and_then(|spec| {
-        spec.side_question_of.map(|_| 19).max(
-            (!spec.labels.is_empty())
-                .then_some(crate::lifecycle_version::SINCE)
-                .flatten()
-                .map(ProtocolVersion::get),
-        )
-    })
+    spec.and_then(|spec| spec.side_question_of.map(|_| 19))
 }
 
 fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
