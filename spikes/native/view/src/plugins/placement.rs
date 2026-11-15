@@ -19,20 +19,28 @@ pub struct ResolvedPluginPanel<'a> {
 impl ResolvedPluginPanel<'_> {
     /// Exact node, installation generation, contribution kind and identity.
     #[must_use]
-    pub const fn address(&self) -> &ContributionAddress { self.address }
+    pub const fn address(&self) -> &ContributionAddress {
+        self.address
+    }
 
     /// The context that was checked, including the agent identity where present.
     #[must_use]
-    pub const fn context(&self) -> &PluginPanelContext { self.context }
+    pub const fn context(&self) -> &PluginPanelContext {
+        self.context
+    }
 
     /// Validated manifest locations; layout cannot broaden them using Target's
     /// generic host support. A rejected restore remains in its original slot.
     #[must_use]
-    pub const fn locations(&self) -> &[PanelLocation] { self.locations }
+    pub const fn locations(&self) -> &[PanelLocation] {
+        self.locations
+    }
 
     /// Placement is explicit; explorer-only declarations cannot open in workspace.
     #[must_use]
-    pub fn supports(&self, location: PanelLocation) -> bool { self.locations.contains(&location) }
+    pub fn supports(&self, location: PanelLocation) -> bool {
+        self.locations.contains(&location)
+    }
 }
 
 impl Registry {
@@ -48,16 +56,29 @@ impl Registry {
         context: &'a PluginPanelContext,
     ) -> Result<ResolvedPluginPanel<'a>, Problem> {
         let contribution = self.resolve_contribution(address)?;
-        let ContributionContent::Panel { context: declared, locations, .. } = &contribution.content else {
+        let ContributionContent::Panel {
+            context: declared,
+            locations,
+            ..
+        } = &contribution.content
+        else {
             return Err(Problem::Context);
         };
         match (declared, context) {
-            (PanelContext::Workspace, PluginPanelContext::Workspace {}) |
-            (PanelContext::Agent, PluginPanelContext::Agent { .. }) =>
-                Ok(ResolvedPluginPanel { address, context, locations }),
-            (PanelContext::Workspace, PluginPanelContext::Agent { .. } | PluginPanelContext::File { .. }) |
-            (PanelContext::Agent, PluginPanelContext::Workspace {} | PluginPanelContext::File { .. }) =>
-                Err(Problem::Context),
+            (PanelContext::Workspace, PluginPanelContext::Workspace {})
+            | (PanelContext::Agent, PluginPanelContext::Agent { .. }) => Ok(ResolvedPluginPanel {
+                address,
+                context,
+                locations,
+            }),
+            (
+                PanelContext::Workspace,
+                PluginPanelContext::Agent { .. } | PluginPanelContext::File { .. },
+            )
+            | (
+                PanelContext::Agent,
+                PluginPanelContext::Workspace {} | PluginPanelContext::File { .. },
+            ) => Err(Problem::Context),
         }
     }
 }

@@ -4,8 +4,8 @@
 //! safe snapshot and rejects stale replies/other-node actions. Appearance's
 //! owner resolves theme preferences; this registry never selects another host.
 
-mod registry;
 mod placement;
+mod registry;
 
 pub use placement::ResolvedPluginPanel;
 

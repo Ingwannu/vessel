@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::devices::{Ticket, Tickets};
 use vessel_proto::plugins::{
-    ClientDocument, Contribution, ContributionAddress, PluginAddress, PluginId,
-    RuntimeGeneration, ThemeContribution,
+    ClientDocument, Contribution, ContributionAddress, PluginAddress, PluginId, RuntimeGeneration,
+    ThemeContribution,
 };
 use vessel_proto::{ErrorCode, NodeId};
 
@@ -127,7 +127,10 @@ impl Installation {
     /// adapters. Whole-host ownership and budgets are checked during replacement.
     #[must_use]
     pub fn from_document(address: PluginAddress, document: ClientDocument) -> Self {
-        Self { address, document: Arc::new(document) }
+        Self {
+            address,
+            document: Arc::new(document),
+        }
     }
 
     /// Node and helper generation captured by controls and actions.
@@ -316,9 +319,14 @@ impl Registry {
     ///
     /// # Errors
     /// Refuses offline/stale installations or a missing exact kind/id pair.
-    pub fn resolve_contribution(&self, address: &ContributionAddress) -> Result<&Contribution, Problem> {
+    pub fn resolve_contribution(
+        &self,
+        address: &ContributionAddress,
+    ) -> Result<&Contribution, Problem> {
         self.resolve_action(&address.installation)?
-            .document().contributions().iter()
+            .document()
+            .contributions()
+            .iter()
             .find(|item| item.id == address.contribution && item.content.kind() == address.kind)
             .ok_or(Problem::MissingContribution)
     }
@@ -344,9 +352,15 @@ fn validate_snapshot(node: NodeId, entries: &[Installation]) -> Result<(), Probl
     Ok(())
 }
 
-fn validate_generations(previous: &[Installation], incoming: &[Installation]) -> Result<(), Problem> {
+fn validate_generations(
+    previous: &[Installation],
+    incoming: &[Installation],
+) -> Result<(), Problem> {
     for entry in incoming {
-        if previous.iter().any(|old| old.address == entry.address && old.document != entry.document) {
+        if previous
+            .iter()
+            .any(|old| old.address == entry.address && old.document != entry.document)
+        {
             // Semantic changes must rotate the node-owned generation. Otherwise
             // an old captured action would silently acquire new behavior.
             return Err(Problem::InvalidCatalog);
