@@ -63,6 +63,8 @@ pub enum Glyph {
     Search,
     /// Send.
     ArrowUp,
+    /// Outward link arrow, consumed at12 by `ExternalLink`.
+    ArrowUpRight,
     /// Stop.
     Stop,
     /// The permissions mode.
@@ -229,10 +231,14 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// A usage dial, on the shared24-unit line grid.
+    Gauge,
+    /// A catalog package with its add action.
+    PackagePlus,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 92] = [
+const ALL: [Glyph; 95] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -247,6 +253,7 @@ const ALL: [Glyph; 92] = [
     Glyph::Check,
     Glyph::Search,
     Glyph::ArrowUp,
+    Glyph::ArrowUpRight,
     Glyph::Stop,
     Glyph::Shield,
     Glyph::ShieldPlus,
@@ -325,6 +332,8 @@ const ALL: [Glyph; 92] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::Gauge,
+    Glyph::PackagePlus,
 ];
 
 impl Glyph {
@@ -346,6 +355,7 @@ impl Glyph {
             Self::Check => "kit/check.svg",
             Self::Search => "kit/search.svg",
             Self::ArrowUp => "kit/arrow-up.svg",
+            Self::ArrowUpRight => "kit/arrow-up-right.svg",
             Self::Stop => "kit/stop.svg",
             Self::Shield => "kit/shield.svg",
             Self::ShieldPlus => "kit/shield-plus.svg",
@@ -424,6 +434,8 @@ impl Glyph {
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
+            Self::Gauge => "kit/gauge.svg",
+            Self::PackagePlus => "kit/package-plus.svg",
         }
     }
 }
@@ -779,3 +791,6 @@ mod activity_indicator_asset_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod added_navigation_tests;
