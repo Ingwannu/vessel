@@ -450,3 +450,12 @@ does not create another controller. A user override of Palette to Down cannot
 close the list instead of navigating. Escape always closes the center, including
 nested pages; Back and blank-query Backspace handle parent navigation. A real
 key-event regression covers that override and nested Escape closure.
+
+
+Routing audit against keyboard/route-shortcut.ts distinguishes sidebar scope
+from the sidebar.* action prefix: PinWorkspace, ArchiveWorkspace and right-panel
+toggle route to Sidebar, while only the three sidebar toggles exit focus mode
+AFTER a handled result. A typed exits_focus_mode helper expresses that prefix
+policy without string matching. The actual idempotent exit call waits for W12's
+checked follow-up; ordinary workspace creation/pin/archive must not use that hook.
+Canonical NewWorkspace defaults are Cmd/Ctrl+N; OpenProject is Cmd/Ctrl+O.

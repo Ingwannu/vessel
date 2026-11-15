@@ -151,10 +151,11 @@ impl Action {
             | Self::JumpSession
             | Self::PreviousSession
             | Self::NextSession
-            | Self::ToggleSidebars => crate::shortcuts::dispatcher::ActionScope::Sidebar,
-            Self::PinWorkspace
+            | Self::ToggleSidebars
+            | Self::PinWorkspace
             | Self::ArchiveWorkspace
-            | Self::NewTab
+            | Self::ToggleInspector => crate::shortcuts::dispatcher::ActionScope::Sidebar,
+            Self::NewTab
             | Self::TabAgent
             | Self::NewTerminal
             | Self::TabBrowser
@@ -175,7 +176,6 @@ impl Action {
             | Self::MoveTabUp
             | Self::MoveTabDown
             | Self::ClosePane
-            | Self::ToggleInspector
             | Self::ToggleFocus
             | Self::Find => crate::shortcuts::dispatcher::ActionScope::Workspace,
             Self::Palette
@@ -197,6 +197,16 @@ impl Action {
             | Self::ToggleSidebar
             | Self::Interrupt => crate::shortcuts::dispatcher::ActionScope::Global,
         }
+    }
+
+    /// Source sidebar.* toggles leave focus mode only after being handled.
+    /// Sidebar-scope workspace creation/pin/archive are distinct intentions.
+    #[must_use]
+    pub const fn exits_focus_mode(self) -> bool {
+        matches!(
+            self,
+            Self::ToggleSidebar | Self::ToggleInspector | Self::ToggleSidebars
+        )
     }
 
     /// Retained core handlers are fallbacks; feature owners may register a
