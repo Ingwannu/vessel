@@ -1265,3 +1265,15 @@ the same deadlines, error paths, worker/root ownership and SQL barriers; this
 keeps phase boundaries reviewable without repeating the protocol or filesystem
 logic. Existing behavior tests remain the validation target; these structural
 changes have no runtime pass yet.
+
+The architecture description now states the current module/authority boundaries
+and pending consumers once, replacing accumulated intermediate-stage statements
+that incorrectly called the normal restore/controller modules test-only or left
+implemented collection wiring listed as future work. Current source still has
+no complete runtime pass or consumer-ready RootLease leaf.
+
+An isolated SQL union probe applied all 21 extracted migrations, checked six
+checkpoint tables and foreign keys, ran the exact legacy rollback helper and
+reapplied registry/checkpoint SQL. It also compared migrate() byte-for-byte with
+the announced head. These scoped checks passed; Python SQLite execution does not
+prove the Rust writer, filesystem recovery, permissions or feature runtime.

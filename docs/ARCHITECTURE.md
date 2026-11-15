@@ -1616,22 +1616,6 @@ module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
 
 
-### Staged file checkpoints (ADR 0077)
-
-`vessel-proto::checkpoint` holds validated immutable file images, metadata
-policy, boundary identities and typed outcomes; its protocol gate is None.
-The node capture coordinator remains staged under A10. Session pause/turn hooks,
-the typed store boundary and Linux admitted-worker filesystem API compile in
-production, without advertising a capability or installing a node controller. The node owns admission/fencing, store owns SQL, workspace owns
-filesystem operations and the session only waits for a bounded node
-acknowledgement. No dependency edge changes. After consuming Quality B, the
-five files-only unary methods are registered as pending in the canonical
-table; admission refuses them while FILE_CHECKPOINTS is None and the service
-seam explicitly returns Unavailable. Preview, changes, restore and status
-refuse direct and delegated agents; list follows existing read visibility.
-The table migration appends directly after this base's newest schema; the
-integrator re-points its constant at merge. Service activation still requires
-reviewed ownership/exclusion, durable coordinator wiring and restore tests.
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public
 `NodeLock` API and snapshot re-export remain unchanged. The name rule keeps
@@ -1804,213 +1788,106 @@ The portable body kernel has no event/RPC attachment or execution path; native
 renderers borrow it without creating a competing provider model. No dependency
 edge changes. See docs/plans/timeline-body-values.md for exact source provenance
 and pending consumer-adoption checks.
-### Physical checkpoint admission consumers
 
-The shared physical-root admission mechanism now also serves ordinary Linux file
-mutations. `vessel-workspace::physical::Directory` derives the opaque physical key
-from an opened FD; it knows neither logical workspace identity nor authority.
-The node's `workspace::exclusion` owns bounded leases, and `workspace::writing`
-retains operations in the existing TaskTracker through actual file I/O and root
-verification, independent of RPC response lifetime. Checkpoint capture/restore
-orchestration remains test-only and unadvertised; wiring the remaining writer
-families and durable startup recovery is still required before activation.
+## Files-only checkpoints and physical admission (ADR 0077, pending)
 
-Terminal shell startup also retains physical-root admission through registration
-and placement validation. `workspace::starting` maps nested/aliased CWD ancestry
-through `vessel-workspace::physical`; `workspace::metadata` bounds blocking root
-probes independently and keeps permits until actual I/O completion. Actor wake/move and checkpoint restore orchestration are not yet
-connected, so this source does not establish complete root-wide exclusion.
-New-session creation and ended-session resume transfer both admission and the
-worktree start count into the existing retained session task. Store refusal
-drains a failed process before admission is released; successful registration
-provides the live-session observation used by later restore admission.
+The implementation source is split by authority: vessel-proto owns immutable
+images, effective metadata policy, boundary identities and typed outcomes;
+vessel-store owns SQL and durable publication; vessel-workspace owns synchronous
+filesystem mechanisms; vessel-node owns admission, principal binding and retained
+jobs; vessel-session owns bounded actor hooks and pauses. Current source has not
+passed its complete gate or implementation review. FILE_CHECKPOINTS remains None,
+the five canonical unary rows remain pending, and production restoration refuses
+Busy until terminal quiescence and replacement-start/lifecycle consumers are ready.
+Private no-terminal fixtures cannot establish a production capability.
 
-Script/service actors receive a generic per-attempt admission callback. The node
-opens its registration receipt only after registry insertion and placement
-validation; each first/retry/manual spawn then claims physical admission and
-rechecks approval. The session actor publishes its process before releasing the
-hold. No node identity or workspace dependency enters the session crate.
+Physical identity comes from the retained directory FD's device/inode, including
+opened parent ancestry for a nested or aliased start. Logical WorkspaceId remains
+separate. The sole workspace::exclusion RootGate owns bounded, non-clone leases;
+StartGuard::root_lease borrows that exact authority for the future terminal proof.
+A copied key, cwd, PID, registry absence, ended flag or revoked ProcessLifetime
+cannot prove runner or descendant I/O completion. The minimal borrow producer
+must pass its own review before dependent workers consume it.
 
-`vessel-session::CheckpointPause` is the actor-owned input/queue pause used by
-files-only restoration. It preserves the prior live/parked route and held queue;
-drop releases it and explicit resume waits for actor acknowledgement. The actor
-refuses prompts, moves, rewind and wake while paused and suppresses automatic
-queue advancement/idle parking. The node controller still must combine this
-with physical admission and durable recovery; the pending wire gate stays None.
+Ordinary file/Git mutations retain admission in the existing TaskTracker through
+actual I/O and root postconditions after response loss. Setup and worktree
+removal/retire hold it through teardown and verified removal; internal operations
+borrow an existing hold rather than reacquiring it. Bounded root-metadata workers
+retain their permits inside the actual blocking closures. New/resumed sessions
+and shell/script/service attempts retain startup admission through registration
+and placement checks. Registration binds launch evidence; it is not terminal
+cleanup proof. Workspace archive and canonical terminal cleanup-debt integration
+remain separate obligations on this same root authority.
 
-Workspace setup takes physical admission in its retained task through command
-completion and root verification. Worktree removal/retire takes one admission
-through teardown, Git removal and final path absence; teardown borrows that
-hold instead of reacquiring. Metadata-only removal of an already missing folder
-preserves its earlier behavior. Full physical live-occupant checks and the
-workspace archive adapters still remain separate integration obligations.
+CheckpointHooks associates a durable accepted-prompt sequence with the later
+provider TurnStarted and requests before/after images. The original capture
+deadline includes queue time. A timed-out actor receives unavailability without
+joining arbitrary blocked filesystem work; the worker, root-capture reservation
+and quota remain retained through actual cleanup. Only the coordinator publishes
+lease-fenced Ready metadata, so late candidates cannot be promoted after timeout
+or startup. Linux bootstrap installs actor hooks only when the centrally assigned
+feature version exists; None preserves baseline turn history. The private
+collector may reconcile existing journals independently.
 
-`vessel-proto::checkpoint::CheckpointEvent` separates the durable accepted-prompt
-anchor from the later provider TurnStarted position, and reserves FilesRestored
-for verified durable completion. The family is pending and all current peers get
-harmless log projections. Metadata consumers explicitly preserve conversation,
-attention and cost state; actual actor hooks/controller publication and generated
-TypeScript/native integration remain required before activation.
+StartupHooks is an optional bounded session replacement seam for wake/move/fork/
+rewind. Its permit records Starting before spawn, then NotStarted or runtime-owned
+Registered. Lost Starting delivery retains uncertainty. The node consumer still
+needs canonical registry/restart admission and is not installed. CheckpointPause
+preserves the prior live/parked route and queue while refusing new prompts,
+options, moves, rewind and wake. A future live restore must retain that pause
+through actual blocking I/O as well as the physical lease, including owner loss.
 
-`CheckpointHooks` is a bounded session-to-node request/receipt bridge. It preserves
-the original actor deadline through queueing, validates session/boundary receipt
-association and distinguishes prompt sent/refused from after-turn completion.
-The node retains physical/storage ownership; a lost receipt is uncertain, never
-a successful advance. Actual producers and Linux bootstrap now bind the bridge
-to the capture assembly; the prior private prototype was removed.
+Preview reserves private storage before filesystem work, verifies the selected
+archive/current scope and freezes EffectiveDesiredImage after current ownership/
+read-write retention and checkpoint executable-bit policy. New/restored absent
+files receive private access. All changed-file pages, stale checks, staging,
+journal verification and no-op classification use that same target. Confirmation
+binds the complete authenticated human principal, including delegated origin;
+requests cannot supply their own authority. Preview/changes/restore/status refuse
+direct and delegated agents; listing follows existing session read visibility.
 
-New structured actors may receive CheckpointHooks explicitly from SessionRuntime.
-Actual new delivery emits and associates the accepted anchor; injected steers do
-not. TurnEnded requests an after-image before queue advancement, including an end
-pumped during a different delivery. Anchor admission/acknowledgement share the
-capture deadline. Linux bootstrap installs the bridge, waits for initial node
-registration and exact SQL persistence, then takes opened-root admission before
-the bounded filesystem worker. Runtime proof of this connection remains owed;
-the serial private collector is connected, while runtime restore admission,
-complete recovery/retention and RPC activation remain separate obligations.
+The retained restore controller re-observes without growing archives, pins the
+original physical/worktree namespace before durable admission, and commits all
+path intents and staged-object evidence before mutation. Its actual blocking
+closure owns an Arc of StartGuard and its shared worker lease. Failure fences
+recovery before guarded reverse undo; only complete original-image and original
+object verification produces RolledBack. Unsafe external replacement retains
+RecoveryRequired. Root recovery pins also fence replacement folder inodes by
+managed namespace. A completed retry reacquires its exact original recovery lease
+for metadata completion only; it never reapplies files.
 
-The staged store quota equation also counts durable preview/restore allocations.
-They bind conservative reservations to a capture key/full human principal and
-pin unfinished private work. Accounted id tombstones prevent reuse after cleanup;
-retirement transfers private reservations into durable capture garbage. The node
-must still connect actual worker/cleanup ownership, expiry, GC and recovery, and
-complete capture reservation policy before exposing a checkpoint capability.
+FilesRestored and its EventSeq marker commit atomically through the existing
+writer. Ended-target metadata leaves status, ended_at, conversation and queue
+unchanged and may follow the last runtime lifecycle record. A live actor append
+would require the owned pause and the same durable marker acknowledgement.
+Checkpoint batches pay FULL sync; ordinary batches keep their earlier policy.
+Status remains InProgress after file success until its durable metadata marker
+exists. Startup replays completed metadata after interrupting previous live
+sessions and before retention/admission, without duplicating the event.
 
+One additive checkpoint migration follows the announced head's newest schema;
+the integrator assigns its final number at merge. migrate() is unchanged. The
+existing store writer/read pool supplies typed capture/plan/result/journal and
+bounded reconciliation operations. Capture reservation validates its exact SQL
+prompt/turn anchor before filesystem work. Worker settlement is independent of
+publication state. Startup invalidates candidates and fences previous-process
+private reservations without promoting them or treating a live worker as gone.
 
-Checkpoint result metadata (ADR 0077) shares the existing log transaction:
-FilesRestored is validated against the durable restored outcome and selected
-checkpoint, with its EventSeq saved on the restore row atomically. Ended targets
-use a storage-only writer command guarded by the stored live flag; live targets
-use actor append under their owned pause. Neither path changes conversation,
-queue, status or ended_at. Checkpoint-bearing append batches require FULL sync.
-The store operations/projection compile in production; controller wiring and
-physical recovery admission remain incomplete and the capability is not enabled.
+Retention rotates old unpinned images and expired unconsumed previews by durable
+garbage transfer. Unfinished workers, recovery journals, active previews and
+missing result markers pin their parent data. Completed private payloads retire
+only after settlement and required result publication; charged non-reusable ids
+and result metadata survive image expiry for idempotent retries. Pending garbage
+still counts against quota until actual cleanup and the sole writer's durable
+acknowledgement. Session retention transfers eligible archives into independent
+garbage accounting in the same deletion transaction.
 
-
-The staged checkpoint startup reconciles candidate/Prepared rows before retention,
-without promoting images or deleting payload. Its retention adapter transfers
-eligible captures/private allocations into independent garbage accounting before
-removing a session, while pending worker/recovery/result-metadata obligations pin
-it. Startup retention is transactional as well as writer-batch retention. Actual
-filesystem GC and recovery-root hydration remain controller integration work.
-
-
-`vessel-store::checkpoint` is the trusted node/storage seam for typed commands,
-selected evidence, principal-bound previews/status, path journals, event markers
-and bounded reconciliation pages. It reuses the existing store writer/read pool.
-Capture admission checks that its exact prompt/turn boundary already exists in
-SQL. Preview publication requires pre-reserved private storage; restore admission
-reserves its private envelope and all Pending intents atomically. Fixed capture
-reservations cannot be bypassed through the test-only small accounting command.
-Linux capture assembly now owns actual filesystem work through bounded workers.
-Physical GC/recovery and restore controller activation remain separate work;
-this API does not authenticate RPC callers.
-
-
-The Linux workspace checkpoint API exposes opened-FD Tree/Archive/Restore values
-only to admitted workers; it owns no authentication, root lock or store state.
-Safe rustix fs/process operations are now a Linux normal dependency, reusing the
-resolved version for FD-relative mutation and effective service UID checks. Root
-authority ignores rename-generated timestamps but preserves stable inode/access/
-mount identity; apply/undo verify that authority before and after each mutation.
-The node must commit complete staged-object evidence before first apply, verify
-whole-scope postconditions and retain its physical/worker/quota leases throughout
-actual I/O. Other platforms require an explicit UnsupportedPlatform adapter;
-there is no supported-platform or end-to-end capability claim from this library.
-
-
-Before starting physical admission, Workspaces hydrates durable checkpoint recovery
-pages into the sole RootGate. Recovery blocks both the original physical root and
-its managed worktree namespace, so replacing a folder inode does not bypass an
-unresolved journal. Actual lock authority remains the opened physical identity.
-The shared admitted-directory helper derives current namespaces/nearest managed
-ancestor from opened FDs; file/Git writers and starts use it, and their placement
-postconditions run in the retained bounded metadata pool. Runtime recovery claims/completion now join the retained restore controller;
-production terminal quiescence remains unavailable and closes restore admission.
-
-
-Linux checkpoint Storage owns only private FD-relative namespace creation below
-an existing service-owned node data folder. It validates existing directories
-instead of changing their security policy, uses typed ids/static components and
-same-mount checks, and syncs newly created private names independently of umask.
-Raw blob handles reuse opened directories; stage locations retain their opened
-folder. The node must reserve first and retain actual I/O ownership. Drop does
-not remove storage or free accounting; physical GC and controller assembly remain
-separate work. No runtime setting or live permission change is implied.
-
-Checkpoint retirement now distinguishes publication from actual worker cleanup
-in the capture row. A timed-out worker continues pinning retention until its
-cleanup acknowledgement; GC never treats Unavailable as physical completion.
-Linux Storage cleanup takes bounded FD-relative passes through the fixed typed
-private layout and acknowledges only synced absence, refusing unexpected
-objects. The staged node capture backend joins that mechanism to the existing
-writer and managed-worktree lookup. Its real-worktree fixture does not launch
-a provider. Linux bootstrap now installs the actor bridge; its real-node/fake-ACP
-fixture is unrun pending remote verification.
-
-Checkpoint startup distinguishes previous-process orphaned workers from current
-active captures. Only the internal orphan keyset scan feeds reconciliation;
-retention pins both until actual cleanup/verification and settlement. Ready
-archives retain their immutable checkpoint identity and are verified through
-the workspace's existing bounded hash reader, including private mount and
-metadata checks. No live-worker cleanup authority comes from this scan.
-
-Linux bootstrap runs a serial private collector sharing capture's node-wide
-Workers leases. Bounded orphan and garbage scans never grant authority over a
-current active capture. Retained payload verification or FD-relative namespace
-cleanup precedes the sole writer's settlement acknowledgement. Physical errors
-retain a bounded per-object lease; the collector does not readmit that object
-within the same serving process. Stop closes admission and waits for actual I/O.
-Preview expiry, image rotation and restore reconciliation remain separate work.
-
-Capture root authority is bound at actual node session startup/resume through
-the held physical admission, independently of mutable cwd text. Capture compares
-that evidence under the canonical guard and refuses shared/unknown live roots.
-This is process-launch evidence, not a second writer lock or workspace registry.
-Bootstrap installs turn hooks only when FILE_CHECKPOINTS has its centrally
-assigned version; None leaves baseline turn history untouched. Private fixtures
-may install the typed runtime bridge directly while the wire fixture awaits
-activation. The private collector can reconcile existing journals independently.
-
-Session replacement starts have an optional bounded StartupHooks seam shared by
-wake/move/fork/rewind. A typestate permit marks Starting before spawn and reports
-NotStarted or runtime-owned Registered afterwards. Node lifecycle/root guards
-remain on the node; sender loss while Starting retains uncertainty, and no PID
-or revocation stands for cleanup. The node consumer awaits the canonical
-registry/restart lease producer and is not installed by this source seam.
-
-
-The checkpoint controller now shares capture/collector worker admission and routes
-principal-bound metadata/preview reads behind the pending public gate. Preview
-uses actual selected/current scope and freezes the post-policy target. Fresh
-restore re-observes without writing archives, commits recovery pin/admission and
-complete staged-object evidence before per-path I/O. Failures fence recovery;
-only guarded undo plus whole original-image/object verification reports rollback.
-Ended-target completion uses the storage-only atomic metadata marker. These
-connections remain unverified source, with runtime restore admission deliberately
-Busy until canonical terminal quiescence and replacement-start/lifecycle consumers
-are ready. Private no-terminal fixtures do not establish a production capability.
-
-Checkpoint collection now rotates old unpinned ready images and retires expired
-unconsumed previews through durable garbage transfers; the shared serial worker
-acknowledges only actual synced namespace absence. Expired marks retain boundary
-and cursor identity. Global pressure plans reclamation while quota still counts
-pending garbage. Startup fences old private reservations independently from live
-workers, preserving referenced data and collecting only unpublished allocations.
-Completed restore metadata replays atomically under FULL sync after interrupting
-previous live sessions and before retention/admission. Completed private payloads now retire after actual-worker settlement and durable
-outcome/result-marker acknowledgement, while idempotency metadata remains charged
-and survives image expiry. In-flight/recovery journals stay pinned. Source tests
-remain unverified and production restore admission remains closed.
-
-A completed retry can discover its original recovery pin through the same sole
-RootGate, independent of an expired image's list/preview association. It acquires
-the matching physical recovery lease, finishes only metadata publication, and
-settles that exact operation before release. This lookup grants no file-mutation
-authority. Missing/error publication acknowledgements cannot force file reapply,
-lose the original fence or leave an otherwise completed root permanently locked.
-
-Actual restore mutation closures retain an Arc of the opened-root StartGuard as
-well as their worker permit. Async-owner loss cannot unlock in-flight writes.
-The borrowed opaque root_lease accessor is the planned quiescence-proof seam;
-its consumer/producer review and actual non-root runtime proof remain outstanding.
+The serial collector shares the capture/restore worker budget. Bounded orphan
+verification and typed FD-relative cleanup precede settlement; failed physical
+cleanup retains a bounded object lease for the process lifetime. Linux private
+storage validates existing service-owned directories, creates private directories
+and files independently of umask, refuses links/unsafe metadata/mount changes,
+and acknowledges only synced absence. Drop releases no quota and deletes no
+payload. The mechanism reuses resolved rustix for safe FD-relative operations;
+other platforms require typed UnsupportedPlatform. No live permissions change or
+non-root/runtime/platform validation is implied by these source mechanisms.
