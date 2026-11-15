@@ -189,5 +189,20 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
         state.read_with(window, |state, _| {
             assert_eq!(state.selected_code_text().as_deref(), expected, "{source}");
         });
+        if let Some(expected) = expected {
+            window.update(|window, cx| {
+                let focus = state.read(cx).focus_handle().clone();
+                focus.focus(window);
+                let _paint = window.draw(cx);
+                focus.dispatch_action(&gpui_base::input::Copy, window, cx);
+                assert_eq!(
+                    cx.read_from_clipboard()
+                        .and_then(|item| item.text())
+                        .as_deref(),
+                    Some(expected),
+                    "the host capture writes raw code to the real clipboard path"
+                );
+            });
+        }
     }
 }
