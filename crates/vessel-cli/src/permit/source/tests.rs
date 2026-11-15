@@ -112,3 +112,20 @@ async fn recheck_recovers_only_the_exact_source_and_refuses_changed_or_gone_requ
         assert_eq!(source.read, vec![original.key]);
     }
 }
+
+#[test]
+fn preflight_retains_typed_peer_failure_without_printing_its_private_message() {
+    let canary = "synthetic-private-peer-diagnostic";
+    let error = SourceError::from(CallError::Remote(vessel_proto::WireError::new(
+        vessel_proto::ErrorCode::Forbidden,
+        canary,
+    )));
+    let SourceError::Node(CallError::Remote(original)) = &error else {
+        panic!("original typed failure retained")
+    };
+    assert_eq!(original.code, vessel_proto::ErrorCode::Forbidden);
+    assert!(original.message.contains(canary));
+    assert!(!error.to_string().contains(canary));
+    assert!(!format!("{error:?}").contains(canary));
+    assert!(std::error::Error::source(&error).is_none());
+}

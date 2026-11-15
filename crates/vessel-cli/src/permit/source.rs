@@ -26,7 +26,7 @@ impl Source for NodeClient {
 }
 
 /// Preflight errors occur before the response path has any effects.
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 pub(crate) enum SourceError {
     #[error("selected forms exceed this command's payload budget; select fewer requests")]
     Budget,
@@ -34,14 +34,45 @@ pub(crate) enum SourceError {
     Encoding(#[source] serde_json::Error),
     #[error(transparent)]
     Pages(#[from] ReadError),
-    #[error(transparent)]
-    Node(#[from] CallError),
+    // The original typed error remains available for closed-code projection.
+    // A peer's arbitrary message must not enter the automatic CLI cause chain.
+    #[error("could not read pending requests from the selected node")]
+    Node(CallError),
     #[error("a selected request was resolved or withdrawn; list pending requests again")]
     Gone,
     #[error("the complete request exceeds the node's reply budget; open its session")]
     Compact,
     #[error("the node returned a different request for the selected source; no answer was sent")]
     Mismatch,
+}
+
+impl From<CallError> for SourceError {
+    fn from(error: CallError) -> Self {
+        Self::Node(error)
+    }
+}
+impl std::fmt::Debug for SourceError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Budget => formatter.write_str("Budget"),
+            Self::Encoding(error) => formatter.debug_tuple("Encoding").field(error).finish(),
+            Self::Pages(error) => formatter.debug_tuple("Pages").field(error).finish(),
+            Self::Gone => formatter.write_str("Gone"),
+            Self::Compact => formatter.write_str("Compact"),
+            Self::Mismatch => formatter.write_str("Mismatch"),
+            Self::Node(error) => {
+                let code = match error {
+                    CallError::Remote(error) => Some(error.code),
+                    CallError::Disconnected
+                    | CallError::UnexpectedReply(_)
+                    | CallError::RequestIdsExhausted
+                    | CallError::NotInProtocol { .. }
+                    | CallError::UnassignedProtocol { .. } => None,
+                };
+                formatter.debug_struct("Node").field("code", &code).finish()
+            }
+        }
+    }
 }
 
 /// A complete, current form with its authoritative source key.

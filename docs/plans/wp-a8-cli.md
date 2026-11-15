@@ -154,3 +154,13 @@ request scope and explicit interrupt intent. Allow keeps ModifiedInput's existin
 redacted Debug. The actual parsed denial-message regression verifies the original
 text remains available for the future typed provider call but cannot appear in
 Command diagnostics. No product registration or send is added by this change.
+
+
+Read-only preflight errors also keep the original CallError for later typed-code
+projection while stopping arbitrary peer messages at the CLI diagnostic boundary.
+SourceError::Node uses a safe message and Debug's closed remote ErrorCode only;
+it does not automatically expose CallError's Display through main's cause chain.
+The original variant/message remain stored, as in the shared selected-connection
+error boundary. A canary regression verifies both retained typed data and private
+Display/Debug/source traversal. Listing/lookup still returns failure and no partial
+successful output. No response side effect or protocol change is introduced.
