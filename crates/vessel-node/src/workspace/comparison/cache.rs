@@ -40,7 +40,7 @@ pub(in crate::workspace::comparison) enum Snapshot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::workspace) enum PayloadKind {
+pub(crate) enum PayloadKind {
     Summary,
     File,
 }
@@ -55,7 +55,7 @@ impl Snapshot {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(in crate::workspace) enum CacheError {
+pub(crate) enum CacheError {
     #[error(transparent)]
     Refused(#[from] core::Refusal),
     #[error("the comparison result channel closed")]
@@ -90,6 +90,7 @@ struct Active {
 }
 
 /// Existing node lifecycle, not a per-connection task or cancellation owner.
+#[derive(Clone, Copy)]
 pub(in crate::workspace::comparison) struct Owner<'a> {
     pub(in crate::workspace::comparison) tasks: &'a TaskTracker,
     pub(in crate::workspace::comparison) stop: &'a CancellationToken,

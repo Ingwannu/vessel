@@ -1626,3 +1626,13 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+
+ADR0087 comparison reads now pass through workspace/comparison/cache on the node.
+Its pure core keeps64 completed typed summaries/file pages independently of active
+work. Jobs owns execution on the node task tracker; Tokio watch shares outcomes
+without transferring cancellation/cleanup ownership to a reply receiver. The
+caller re-resolves its registered root before every hit and after an invalidated
+build finishes. Existing git writes retain a before/after invalidation guard.
+Filesystem observation and the remaining ADR0087 methods are still pending; this
+cache alone is not a status/diff push service.

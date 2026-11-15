@@ -287,7 +287,7 @@ fn repository_invalidation_retires_immutable_bodies_but_working_and_history_do_n
     let key = fixture.key(GitComparison::Commit {
         id: "a".repeat(40).parse().unwrap(),
     });
-    let mut cache = Cache::default();
+    let mut cache = Cache::<&str>::default();
     let id = start(cache.read(key.clone(), ReadReason::View, now).unwrap());
     assert!(cache.invalidate(key.query.root, Change::Working).is_empty());
     assert!(cache.invalidate(key.query.root, Change::History).is_empty());

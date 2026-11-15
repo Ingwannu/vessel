@@ -235,3 +235,15 @@ to the end. This change moves only those two expected entries to the table's end
 no membership/version/permission is weakened. Its original red log is retained.
 The next changed-source suite must execute that regression and the previously
 unreached workspace cases along with the new cache tests.
+
+
+Cache all-target clippy at36121311 stopped in the new source: the immutable-cache
+fixture needed an explicit payload type; CacheError had narrower visibility than
+the existing crate-visible WorkspaceError payload; one method-name doc needed
+code markup; the child module needed named imports; borrowed lifecycle references
+were passed by value without declaring their Copy semantics. This correction
+retains the same algorithm, makes error payload visibility match its containing
+error (and no wider), names imports and derives Copy only for the two borrowed
+lifecycle capabilities. No lint allowance or source-chain flattening is added.
+Original log: wp-git-node-narrow-20261115T093141Z-36121311. New execution remains
+unverified until the changed-source checks finish.

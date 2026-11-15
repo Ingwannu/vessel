@@ -131,7 +131,7 @@ pub(in crate::workspace::comparison) struct Decision<V> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-pub(in crate::workspace) enum Refusal {
+pub(crate) enum Refusal {
     #[error("too many comparison reads are active")]
     Busy,
     #[error("comparison read identifiers are exhausted")]
@@ -316,7 +316,7 @@ impl<V> Cache<V> {
     }
 
     /// A forced scope refresh also retires its lazy sibling pages. The current
-    /// part is handled by read(), so concurrent waiters share its retry.
+    /// part is handled by `read()`, so concurrent waiters share its retry.
     pub(in crate::workspace::comparison) fn invalidate_siblings(
         &mut self,
         key: &Key,
