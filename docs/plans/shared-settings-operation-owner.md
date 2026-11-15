@@ -24,11 +24,10 @@ not claims that Paseo provides this resource bound or these teardown phases.
 ## Admission and ownership shape
 
 One `settings::admission` owns a bounded Tokio mpsc channel and one consumer.
-Its waiting capacity is `SettingsAdmission::MAX_WAITING = 8` operations. This is
-the single documentary numeric definition; the implementation moves it beside
-the type and removes this numeric copy. The running consumer is structurally
-single: pending capacity is additional to the active operation. Error messages
-and boundary tests derive from the same named waiting-capacity owner.
+Its waiting capacity is `SettingsAdmission::MAX_WAITING`, defined once beside
+the implementation type. The running consumer is structurally single: pending
+capacity is additional to the active operation. Error messages and boundary
+tests derive from the same named waiting-capacity owner.
 
 - Protocol, scope and field authority, and pure typed input validation, precede
   admission. No new RPC method, scope or protocol number is introduced here.
@@ -195,3 +194,27 @@ nodectl implements the common owner/record/boot join, and the union gets changed
 strict/tests and one joint enclosing gate. A prior branch's green gate or a
 source-only verdict does not qualify the new producer. Existing source-returned
 recovery behavior stays out until its independent findings are corrected.
+
+## Implementation resume point
+
+The opaque model is now composed with the canonical private-cause decoder.
+The initial operation lane is implemented for the existing generic patch: one
+consumer prepares candidates after earlier publications, owns the saved guard
+through the existing atomic replacement and applies before attempting a reply.
+Its state does not own the sender. A closed tracker and receiver seal refuse
+late work while draining accepted intents; dropping a shutdown waiter cannot
+abort the consumer. A full waiting lane is a typed Conflict at the service edge.
+
+Fixtures hold the real blocking writer to pin overflow, cancelled queued
+replies, ordered preparation, shutdown-waiter cancellation and last-handle
+drain without a sender cycle. The original cancellation regressions retain
+their assertions and budget, with only the private state path adapted. A sealed
+concrete task failure reuses the separately reviewed diagnostic policy. These
+fixtures have not yet compiled or executed on this source.
+
+This is not the completed joint producer: RecoveryApply, the typed recovery
+field, same-value cleanup, one-read Opening and the changed effect/shutdown
+order remain to be joined and checked. The initial lane does not authorize any
+recovery, MCP or plugin activation and does not replace a consumer's temporary
+quota until the qualified joint head is announced. Explicit reset/reload intents
+join this same lane with their actual callers rather than unused variants here.

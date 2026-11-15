@@ -1797,3 +1797,11 @@ boundary. Generic wire requests and Read replies keep their existing types.
 The retained settings task still owns validation/persistence/publication order,
 and a non-Copy candidate returns from blocking I/O before publication. No
 private payload, extra writer, file or crate edge is added by this separation.
+
+
+The settings admission lane transfers an accepted typed patch to its sole
+consumer before saved-guard waiting. The worker state holds the disk/runtime
+parts without its sender; accepted work drains even when callers or the last
+handle disappear. Its bounded waiting capacity and typed overflow belong to
+`settings::admission`. Recovery settlement and pre-Store startup composition
+remain a separate joint implementation (shared-settings-operation-owner plan).

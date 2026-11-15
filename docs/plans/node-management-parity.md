@@ -6,6 +6,15 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The accepted common Settings contract now has its initial finite lane over
+  the opaque model and canonical private-cause decoder. Candidate construction
+  happens in the consumer, so queued intents survive caller loss without stale
+  snapshots. Real-writer capacity/order/drop regressions are authored; this
+  source has not compiled or run. Recovery hook/field, one-read boot and changed
+  effect/shutdown order remain the joint package's next step. Existing green
+  writer checks do not qualify these changes.
+
+
 - The shared writer's first strict check refused a wildcard product import.
   Replace it with explicit owner imports; write/application behavior and both
   regression assertions stay unchanged. The original failure is retained;

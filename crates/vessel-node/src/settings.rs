@@ -48,8 +48,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use tokio::sync::Mutex;
-use tokio_util::task::TaskTracker;
 
+mod admission;
 mod writer;
 #[cfg(test)]
 mod writer_tests;
@@ -67,6 +67,15 @@ pub(crate) enum SettingsError {
     /// Shutdown has closed mutation admission, so no late writer may start.
     #[error("the node is stopping; settings cannot be changed")]
     Stopping,
+    /// The bounded waiting lane refused this operation before any work.
+    #[error(
+        "settings queue is full; at most {} changes may wait",
+        admission::SettingsAdmission::MAX_WAITING
+    )]
+    Full,
+    /// The retained consumer ended without answering this operation.
+    #[error("the settings operation ended without a reply")]
+    Consumer(#[source] tokio::sync::oneshot::error::RecvError),
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -81,7 +90,7 @@ pub(crate) enum SettingsError {
     Write(#[source] vessel_store::StoreError),
     /// The write's task did not finish.
     #[error("the settings could not be kept: {0}")]
-    Lost(#[source] tokio::task::JoinError),
+    Lost(#[source] writer::TaskFailure),
     /// `settings.json` could not be used at start and could not be moved
     /// aside either, so no change replaces it.
     #[error(
@@ -93,14 +102,19 @@ pub(crate) enum SettingsError {
 /// The node's settings: the flags' values and what a person saved.
 #[derive(Debug)]
 pub(crate) struct Settings {
+    state: Arc<State>,
+    admission: admission::SettingsAdmission,
+}
+
+/// Worker state never owns a sender; dropping the last handle closes the lane.
+#[derive(Debug)]
+struct State {
     data_dir: DataDir,
     runtime: Arc<SessionRuntime>,
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
     saved: Arc<Mutex<SavedNodeSettings>>,
-    /// Writes outlive a cancelled RPC and are joined at node shutdown.
-    writers: TaskTracker,
     #[cfg(test)]
     gate: writer_tests::GateSlot,
     /// Why `settings.json` must not be replaced: it could not be used at
@@ -145,12 +159,11 @@ impl Settings {
             }
         };
         let public = saved.public_settings();
-        let settings = Self {
+        let settings = State {
             data_dir,
             runtime,
             flag,
             saved: Arc::new(Mutex::new(saved)),
-            writers: TaskTracker::new(),
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
             kept,
@@ -167,9 +180,39 @@ impl Settings {
             .runtime
             .set_park_after(in_force.park_after.duration());
         settings.runtime.set_drivers(in_force.drivers);
-        settings
+        let state = Arc::new(settings);
+        Self {
+            admission: admission::SettingsAdmission::start(Arc::clone(&state)),
+            state,
+        }
     }
 
+    /// The settings in force.
+    pub(crate) async fn current(&self) -> NodeSettings {
+        let public = self.state.saved.lock().await.public_settings();
+        self.state.in_force(public)
+    }
+
+    /// Success transfers the typed intent before the caller awaits its reply.
+    pub(crate) async fn change(
+        &self,
+        change: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        validate(&change)?;
+        self.admission
+            .submit(change)?
+            .await
+            .map_err(SettingsError::Consumer)?
+    }
+
+    /// Seal admission and join queued as well as physical work. Cancelling this
+    /// waiter cannot cancel the independent consumer.
+    pub(crate) async fn shutdown(&self) {
+        self.admission.shutdown().await;
+    }
+}
+
+impl State {
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
     fn in_force(&self, saved: SetNodeSettings) -> NodeSettings {
@@ -199,30 +242,9 @@ impl Settings {
         }
     }
 
-    /// The settings in force.
-    pub(crate) async fn current(&self) -> NodeSettings {
-        let public = self.saved.lock().await.public_settings();
-        self.in_force(public)
-    }
-
-    /// Change what `change` names, keep it, then apply it; answers what is
-    /// in force.
-    pub(crate) async fn change(
-        self: &Arc<Self>,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
+    /// Only the consumer prepares a candidate, so queued patches see all earlier
+    /// publications even when the original callers have gone away.
+    async fn change(&self, change: SetNodeSettings) -> Result<NodeSettings, SettingsError> {
         let saved = Arc::clone(&self.saved).lock_owned().await;
         let mut next = saved.public_settings();
         if let Some(after) = change.park_after {
@@ -235,6 +257,23 @@ impl Settings {
         let next = saved.clone().with_public_settings(next);
         self.persist(saved, next).await
     }
+}
+
+/// Pure validation precedes capacity admission, without acquiring a saved guard.
+fn validate(change: &SetNodeSettings) -> Result<(), SettingsError> {
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
 }
 
 /// Move an unusable `settings.json` aside, so no change replaces it;

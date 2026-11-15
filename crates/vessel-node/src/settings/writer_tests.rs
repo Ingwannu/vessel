@@ -8,7 +8,7 @@ use tokio::sync::oneshot;
 
 use super::*;
 
-const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
+pub(super) const WRITE_TEST_BUDGET: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Default)]
 pub(super) struct GateSlot(StdMutex<Option<Gate>>);
@@ -18,7 +18,7 @@ impl GateSlot {
         self.0.lock().unwrap().take()
     }
 
-    fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+    pub(super) fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
         let (entered, observing) = oneshot::channel();
         let (release, released) = oneshot::channel();
         *self.0.lock().unwrap() = Some(Gate { entered, released });
@@ -40,7 +40,7 @@ impl Gate {
     }
 }
 
-fn settings(root: &std::path::Path) -> Arc<Settings> {
+pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
@@ -61,7 +61,7 @@ fn settings(root: &std::path::Path) -> Arc<Settings> {
     ))
 }
 
-fn patch(park_after: ParkAfter) -> SetNodeSettings {
+pub(super) fn patch(park_after: ParkAfter) -> SetNodeSettings {
     SetNodeSettings {
         park_after: Some(park_after),
         ..SetNodeSettings::default()
@@ -73,7 +73,7 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
     let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path());
-        let (entered, release) = settings.gate.install();
+        let (entered, release) = settings.state.gate.install();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(patch(ParkAfter::Never)).await });
         entered.await.unwrap();
@@ -82,8 +82,11 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
 
         // This is false with the old RPC-owned guard: cancellation lets the
         // next write overtake the still-paused real filesystem replacement.
-        assert!(settings.saved.try_lock().is_err());
-        assert_eq!(settings.runtime.park_after(), ParkAfter::DEFAULT.duration());
+        assert!(settings.state.saved.try_lock().is_err());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            ParkAfter::DEFAULT.duration()
+        );
         let mut second = Box::pin(settings.change(patch(ParkAfter::DEFAULT)));
         assert!(matches!(futures_util::poll!(&mut second), Poll::Pending));
         release.send(()).unwrap();
@@ -91,9 +94,13 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
         settings.shutdown().await;
         assert_eq!(applied.park_after, ParkAfter::DEFAULT);
         assert_eq!(settings.current().await, applied);
-        assert_eq!(settings.runtime.park_after(), applied.park_after.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            applied.park_after.duration()
+        );
         assert_eq!(
             settings
+                .state
                 .data_dir
                 .read_settings()
                 .unwrap()
@@ -115,7 +122,7 @@ async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
     let result = tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path());
-        let (entered, release) = settings.gate.install();
+        let (entered, release) = settings.state.gate.install();
         let first = Arc::clone(&settings);
         let caller = tokio::spawn(async move { first.change(patch(ParkAfter::Never)).await });
         entered.await.unwrap();
@@ -126,9 +133,10 @@ async fn shutdown_joins_cancelled_writers_and_refuses_late_mutations() {
         release.send(()).unwrap();
         shutdown.await;
         assert_eq!(settings.current().await.park_after, ParkAfter::Never);
-        assert_eq!(settings.runtime.park_after(), None);
+        assert_eq!(settings.state.runtime.park_after(), None);
         assert_eq!(
             settings
+                .state
                 .data_dir
                 .read_settings()
                 .unwrap()
@@ -162,7 +170,10 @@ async fn a_noop_keeps_original_file_bytes_and_future_fields_in_place() {
         let after = settings.change(patch(ParkAfter::Never)).await.unwrap();
         settings.shutdown().await;
         assert_eq!(after, before);
-        assert_eq!(settings.runtime.park_after(), before.park_after.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            before.park_after.duration()
+        );
         assert_eq!(std::fs::read(&path).unwrap(), bytes);
         let files = std::fs::read_dir(root.path())
             .unwrap()
