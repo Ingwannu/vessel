@@ -125,6 +125,13 @@ between every pair. A callback queued before retirement must still fail its
 original guard and current-binding checks. This clarification is contract-only;
 source and real carrier/owner/Window proof remain required.
 
+W21 has read and accepted this ACK-first clarification, including the original
+guard/context retained in its existing bounded Window work, exact-binding full
+retirement when the pending-operation list is empty, and revocation without
+clearing protected values. W12 confirms the same policy and retains sole
+classification and ledger ownership. This bilateral signoff requests contract
+closure before either owner implements this additional ordering.
+
 ### Bilateral owner confirmation
 
 The lifecycle call-site/carrier owner (W21) and the sole resident/layout owner
