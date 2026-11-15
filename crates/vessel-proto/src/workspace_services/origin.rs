@@ -65,6 +65,12 @@ impl ServiceProxyUrl {
             None => false,
         }
     }
+
+    /// A public base needs a DNS suffix; resolving it remains a node operation.
+    #[must_use]
+    pub(super) fn supports_public_base(&self) -> bool {
+        matches!(self.0.host(), Some(url::Host::Domain(_))) && !self.is_node_loopback()
+    }
 }
 
 impl FromStr for ServiceProxyUrl {

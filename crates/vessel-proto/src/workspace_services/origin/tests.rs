@@ -41,12 +41,19 @@ fn userinfo_paths_and_parser_repairs_cannot_become_service_origins() {
         "http://example.test\\",
         "http://example.test/\n",
         "http://example.test/\u{85}",
-        "http://example.test:0",
     ] {
         assert!(text.parse::<ServiceProxyUrl>().is_err(), "{text:?}");
         let encoded = serde_json::to_string(text).unwrap();
         assert!(serde_json::from_str::<ServiceProxyUrl>(&encoded).is_err());
     }
+    let below = ServicePort::MIN
+        .get()
+        .checked_sub(ServicePort::MIN.get())
+        .unwrap();
+    let zero_port = format!("http://example.test:{below}/");
+    assert!(zero_port.parse::<ServiceProxyUrl>().is_err());
+    let encoded = serde_json::to_string(&zero_port).unwrap();
+    assert!(serde_json::from_str::<ServiceProxyUrl>(&encoded).is_err());
 }
 
 #[test]
@@ -105,7 +112,11 @@ fn refusal_formatters_and_all_sources_do_not_echo_url_input() {
         .parse::<ServiceProxyUrl>()
         .unwrap_err();
     assert!(syntax.source().is_some());
-    let port = "http://example.test:0/"
+    let below = ServicePort::MIN
+        .get()
+        .checked_sub(ServicePort::MIN.get())
+        .unwrap();
+    let port = format!("http://example.test:{below}/")
         .parse::<ServiceProxyUrl>()
         .unwrap_err();
     assert!(port.source().is_some());

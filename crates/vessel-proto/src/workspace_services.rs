@@ -1,9 +1,24 @@
 //! Workspace-scoped service observations and controls, never runtime authority.
 //! Values remain separate from legacy root-based script calls (ADR 0066).
 
+mod control;
+mod gateway;
 mod observation;
 mod origin;
 mod row;
+mod settings;
+
+pub use control::{ServiceRefusal, ServiceSettingsApplication, ServiceSettingsOutcome};
+pub use gateway::{
+    InvalidPublicServiceBase, InvalidServiceListenEndpoint, PublicServiceBase, ServiceGateway,
+    ServiceListenEndpoint,
+};
+pub use settings::{
+    GetServiceSettings, InvalidServicesAdminSettings, MAX_PUBLIC_SERVICE_CHOICES,
+    PublicServiceAcknowledgement, ServiceExposureChange, ServiceExposureChoice,
+    ServiceExposureEffective, ServiceExposureView, ServicesAdminSettings,
+    ServicesAdminSettingsView, SetServiceExposure, SetServiceGateway,
+};
 
 pub use crate::id::{ServiceSnapshotId, ServicesSettingsRevision};
 pub use observation::{

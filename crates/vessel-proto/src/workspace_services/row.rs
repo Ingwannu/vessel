@@ -40,7 +40,7 @@ pub struct WorkspaceScriptRow {
 /// Every display field is named here; adding an owner field breaks projection.
 #[derive(Debug, Clone, Copy)]
 pub struct WorkspaceScriptRowView<'a> {
-    /// Use ScriptEntry::view for exhaustive approved-field rendering.
+    /// Use `ScriptEntry::view` for exhaustive approved-field rendering.
     pub definition: &'a ScriptEntry,
     /// Distinguish captured removed definitions from the current file.
     pub origin: WorkspaceScriptOrigin,

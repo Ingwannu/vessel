@@ -58,3 +58,23 @@ Next: consume the announced shared MAX_PROJECT_COMMANDS owner for bounded
 page/env DTOs. Staged rows and SDK wrappers remain absent. Existing exact
 origin94811 suite stays pinned; later observation source needs its own
 changed-head narrow suite. No previous result qualifies this commit.
+
+
+Dedicated Admin values are now authored: literal nonzero-port gateway
+endpoint, credential-free DNS public base, bounded/unique settings view,
+explicit anonymous warning acknowledgement, optimistic revision requests,
+and distinct saved/applying/applied/refused outcomes. Constructors and
+serde share the same validation; no DNS, network or private-slot IO occurs.
+The settings value is an Admin projection, NOT StoredServiceConsent or a
+SavedNodeSettings disk payload. The required canonical incarnation remains
+absent, and the real enable handler must return Unavailable before writing.
+No generic settings field, writer, method row or SDK is introduced here.
+
+The publication count bound moved beside ServicesAdminSettings and its
+numeric documentary copy was removed. Six more boundary/serde tests are
+authored, including missing/implicit acknowledgement, duplicate/over-count
+refusal and DNS versus loopback role. All TCP boundary cases now derive
+invalid ports from ServicePort::MIN/MAX; sample non-bound ports are unchanged.
+A row-view doc reference is marked as code; no runtime behavior changed.
+All execution for this changed head remains owed; earlier immutable source
+checks continue untouched and cannot qualify these additions.

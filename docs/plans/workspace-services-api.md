@@ -379,7 +379,7 @@ their responsible types with the numeric copies removed in the code commit:
 - Page entries and generated environment peers: the qualified shared
   MAX_PROJECT_COMMANDS, never a duplicated project-file count literal.
 - ServiceProxyUrl encoded bytes: workspace_services::MAX_PROXY_URL_BYTES.
-- Public service choices per node: MAX_PUBLIC_SERVICE_CHOICES = 256.
+- Public service choices per node: workspace_services::MAX_PUBLIC_SERVICE_CHOICES.
 - Retained service snapshot bytes per node: MAX_SERVICE_CACHE_BYTES = 8 MiB.
 - Concurrent service long-poll waiters per node: MAX_SERVICE_WAITERS = 64.
 - Host label and complete hostname: workspace_services::MAX_PROXY_LABEL_BYTES
