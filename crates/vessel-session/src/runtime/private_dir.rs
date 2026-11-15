@@ -285,3 +285,5 @@ fn a_probe_carries_none() {
     assert_eq!(setup.private_dir, None);
     assert!(setup.mcp_servers.is_empty());
 }
+
+mod stop_failure;

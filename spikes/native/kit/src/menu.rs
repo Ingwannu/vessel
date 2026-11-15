@@ -20,92 +20,48 @@
 //! - Cost: no submenus, group labels or check rows yet (no menu of ours
 //!   needs them); a phone shows the same popover with 44-point rows, as
 //!   Paseo's menus do unless they ask for a sheet (none of ours does yet).
+//!
+//! Integration decision: the published renderer owns both entry points.
+//! Keep item values, caller-owned state and drawing in separate modules so
+//! additive feedback can stay within the file budget without duplicating
+//! placement, keyboard handling or motion. The prior split changed no behaviour;
+//! typed feedback and dismissal are additive extensions of that renderer.
 
-use std::rc::Rc;
-
-use gpui::prelude::*;
-use gpui::{
-    Anchor, AnyElement, App, Context, ElementId, FocusHandle, KeyDownEvent, MouseButton, Pixels,
-    Point, SharedString, Window, anchored, deferred, div, px,
+mod draw;
+#[cfg(test)]
+mod feedback_tests;
+#[cfg(test)]
+mod focus_tests;
+mod input;
+mod item;
+#[cfg(test)]
+mod lease_tests;
+#[cfg(test)]
+mod modal_tests;
+#[cfg(test)]
+mod presentation_tests;
+#[cfg(test)]
+mod tests;
+mod trigger;
+pub use crate::select::Anchor as TriggerAnchor;
+pub use draw::{Content, Layer, Width, menu, menu_right, menu_with};
+pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
+pub use trigger::{
+    TriggerPresentation, TriggerProfile, TriggerSizing, trigger, trigger_presented, trigger_space,
+    trigger_visual_size, trigger_with,
 };
 
-use crate::fonts::Type;
-use crate::popup::{self, Surfaces};
-use crate::theme::Tokens;
-use crate::widgets::TypeExt as _;
-
-/// The narrowest a menu is (Paseo's `minWidth`).
-const MIN_WIDTH: f32 = 180.0;
-
-/// The widest a menu is, before its words wrap.
-const MAX_WIDTH: f32 = 320.0;
-
-/// How far under its trigger a menu opens (Paseo's `offset`).
-const OFFSET: f32 = 4.0;
-
-/// A row's line height (Paseo's `MENU_ITEM_LINE_HEIGHT`).
-const ROW_LINE: f32 = 18.0;
-
-/// A row's tone.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tone {
-    /// An ordinary action.
-    Plain,
-    /// The one destructive action (delete, kill), kept apart by a line.
-    Danger,
-}
-
-/// One row of a menu.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MenuItem {
-    /// Its words.
-    pub label: SharedString,
-    /// Its tone.
-    pub tone: Tone,
-    /// Shown but not chosen.
-    pub disabled: bool,
-    /// A hairline above it: it starts a group.
-    pub starts_group: bool,
-}
-
-impl MenuItem {
-    /// A plain row.
-    #[must_use]
-    pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            tone: Tone::Plain,
-            disabled: false,
-            starts_group: false,
-        }
-    }
-
-    /// The destructive row, in a group of its own.
-    #[must_use]
-    pub fn danger(label: impl Into<SharedString>) -> Self {
-        Self {
-            tone: Tone::Danger,
-            starts_group: true,
-            ..Self::new(label)
-        }
-    }
-
-    /// The same row, starting a group.
-    #[must_use]
-    pub fn grouped(self) -> Self {
-        Self {
-            starts_group: true,
-            ..self
-        }
-    }
-}
+use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
+use std::rc::{Rc, Weak};
 
 /// A menu's state, kept by the screen that shows it.
 #[derive(Debug)]
 pub struct MenuState {
-    at: Option<Point<Pixels>>,
+    at: Option<Placement>,
     highlighted: Option<usize>,
     focus: FocusHandle,
+    return_to: crate::focus::ReturnFocus,
+    cycle: Rc<()>,
 }
 
 impl MenuState {
@@ -115,20 +71,62 @@ impl MenuState {
             at: None,
             highlighted: None,
             focus: cx.focus_handle(),
+            return_to: crate::focus::ReturnFocus::default(),
+            cycle: Rc::new(()),
         }
     }
 
     /// Open it at `at` (where its trigger was pressed), taking the keys.
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
-        self.at = Some(at);
+        self.capture_return_focus(window, cx);
+        self.cycle = Rc::new(());
+        self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
     }
 
-    /// Close it.
+    /// Close state only, preserving the existing API for callers without a
+    /// window. Input handlers use `close_and_restore` before dispatching actions.
     pub const fn close(&mut self) {
         self.at = None;
         self.highlighted = None;
+    }
+
+    /// Dismiss and restore the caller's focus only while this menu still owns
+    /// it. A new field/dialog that took focus is never displaced. A weak handle
+    /// cannot keep a removed caller alive.
+    pub fn close_and_restore(&mut self, window: &mut Window, cx: &mut App) {
+        self.close();
+        self.restore_focus(window, cx);
+    }
+    fn capture_return_focus(&mut self, window: &Window, cx: &App) {
+        if !self.is_open() {
+            // State-only legacy close cannot restore without a Window, but a
+            // later opening is a new cycle and must not retain its old caller.
+            self.return_to = crate::focus::ReturnFocus::default();
+            self.return_to.remember(window, cx);
+        }
+    }
+    fn restore_focus(&mut self, window: &mut Window, cx: &mut App) {
+        self.return_to.restore_if_owned(&self.focus, window, cx);
+    }
+    fn restore_after_choice(&mut self, window: &mut Window, cx: &mut App) {
+        if !self.is_open() {
+            self.restore_focus(window, cx);
+        }
+    }
+
+    // Each explicit opening has allocation identity, rather than a wrapping
+    // counter. Retained Weak leases keep that allocation's header alive, so a
+    // replacement state/opening cannot reuse it while an old handler survives.
+    fn render_lease(&self) -> RenderLease {
+        RenderLease(Rc::downgrade(&self.cycle))
+    }
+    fn accepts(&self, lease: &RenderLease) -> bool {
+        self.is_open() && self.same_cycle(lease)
+    }
+    fn same_cycle(&self, lease: &RenderLease) -> bool {
+        Weak::ptr_eq(&lease.0, &Rc::downgrade(&self.cycle))
     }
 
     /// Whether it is open.
@@ -139,27 +137,25 @@ impl MenuState {
 
     /// Move the highlight to the next row that can be chosen, forward or
     /// back, wrapping.
-    fn step(&mut self, items: &[MenuItem], forward: bool) {
-        let count = items.len();
-        if count == 0 {
-            return;
-        }
-        let mut at = self.highlighted;
-        for _ in 0..count {
-            let next = match (at, forward) {
-                (None, true) => 0,
-                (None | Some(0), false) => count.saturating_sub(1),
-                (Some(index), true) => index.saturating_add(1).checked_rem(count).unwrap_or(0),
-                (Some(index), false) => index.saturating_sub(1),
-            };
-            at = Some(next);
-            if items.get(next).is_some_and(|item| !item.disabled) {
-                self.highlighted = at;
-                return;
-            }
-        }
+    fn step(&mut self, items: &[MenuItem], direction: Direction) {
+        self.highlighted = next_index(items, self.highlighted, direction);
+    }
+
+    /// Open at a measured trigger's right/bottom corner, taking the keys.
+    pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+        self.capture_return_focus(window, cx);
+        self.cycle = Rc::new(());
+        self.at = Some(Placement::End(bounds));
+        self.highlighted = None;
+        self.focus.focus(window, cx);
     }
 }
+
+// Entry requires an open cycle. After an authorized Close choice, identity
+// alone permits that choice's focus restoration/action; it does not authorize
+// another callback to enter the now-closed cycle.
+#[derive(Debug, Clone)]
+struct RenderLease(Weak<()>);
 
 /// What a screen does with a chosen row: the screen, the row's index.
 pub type Chose<V> = Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
@@ -169,7 +165,8 @@ pub type Chose<V> = Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
 pub struct MenuHandlers<V> {
     /// The screen's menu state.
     pub state: fn(&mut V) -> &mut MenuState,
-    /// A row was chosen (the menu has closed).
+    /// A row was chosen. Close items dismiss first; `KeepOpen` items retain
+    /// this surface so the caller can publish pending/result feedback.
     pub chose: Chose<V>,
 }
 
@@ -179,204 +176,69 @@ impl<V> std::fmt::Debug for MenuHandlers<V> {
     }
 }
 
-/// The menu, when open: drawn over everything at the point it was opened
-/// from. `narrow`: a touch window (44-pixel rows).
-pub fn menu<V: 'static>(
-    id: impl Into<ElementId>,
-    state: &MenuState,
-    items: &[MenuItem],
-    handlers: &MenuHandlers<V>,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    draw(
-        id.into(),
-        (state, Anchor::TopLeft),
-        items,
-        handlers,
-        tokens,
-        narrow,
-        cx,
-    )
+#[derive(Debug, Clone, Copy)]
+enum Placement {
+    Pointer(Point<Pixels>),
+    End(Bounds<Pixels>),
 }
-
-/// The same menu aligned to its trigger's right edge. Paseo's split
-/// button opens from the caret half: aligning the menu's right edge to
-/// that half keeps the actions beside their trigger as their words grow.
-/// Existing point-opened menus keep their left-edge placement.
-pub fn menu_right<V: 'static>(
-    id: impl Into<ElementId>,
-    state: &MenuState,
-    items: &[MenuItem],
-    handlers: &MenuHandlers<V>,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    draw(
-        id.into(),
-        (state, Anchor::TopRight),
-        items,
-        handlers,
-        tokens,
-        narrow,
-        cx,
-    )
-}
-
-fn draw<V: 'static>(
-    id: ElementId,
-    placement: (&MenuState, Anchor),
-    items: &[MenuItem],
-    handlers: &MenuHandlers<V>,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    let (state, corner) = placement;
-    let at = state.at?;
-    let get = handlers.state;
-    let keys_items: Rc<[MenuItem]> = items.into();
-    let chose = Rc::clone(&handlers.chose);
-    let on_key = cx.listener(move |view: &mut V, event: &KeyDownEvent, window, cx| {
-        let menu = get(view);
-        match event.keystroke.key.as_str() {
-            "escape" => menu.close(),
-            "down" | "tab" => menu.step(&keys_items, true),
-            "up" => menu.step(&keys_items, false),
-            "home" => {
-                menu.highlighted = None;
-                menu.step(&keys_items, true);
-            }
-            "end" => {
-                menu.highlighted = None;
-                menu.step(&keys_items, false);
-            }
-            "enter" | "space" => {
-                if let Some(index) = menu.highlighted {
-                    menu.close();
-                    chose(view, index, window, cx);
-                }
-            }
-            _other => return,
-        }
-        cx.stop_propagation();
-        cx.notify();
-    });
-    let on_outside = cx.listener(move |view: &mut V, _event, _window, cx| {
-        get(view).close();
-        cx.notify();
-    });
-    let surfaces = Surfaces::of(tokens);
-    // Paseo's page: 4 above the first row and below the last, no gap
-    // between rows, the rule between groups the full width.
-    let mut panel = div()
-        .id(id.clone())
-        .track_focus(&state.focus)
-        .on_key_down(on_key)
-        .on_mouse_down_out(on_outside)
-        // The popover takes the pointer and shows the arrow (`popup::layer`).
-        .occlude()
-        .cursor_default()
-        .flex()
-        .flex_col()
-        .min_w(px(MIN_WIDTH))
-        .max_w(px(MAX_WIDTH))
-        .py(px(4.0))
-        .bg(surfaces.surface1)
-        .border_1()
-        .border_color(surfaces.border_accent)
-        .rounded(px(popup::MENU_RADIUS))
-        .overflow_hidden()
-        .shadow(popup::shadow_md(tokens));
-    for (index, item) in items.iter().enumerate() {
-        if item.starts_group && index > 0 {
-            panel = panel.child(div().my(px(4.0)).h(px(1.0)).bg(surfaces.border_accent));
-        }
-        panel = panel.child(row(index, item, state, handlers, &surfaces, narrow, cx));
-    }
-    Some(
-        deferred(
-            anchored()
-                .anchor(corner)
-                .position(at)
-                .offset(gpui::point(px(0.0), px(OFFSET)))
-                .snap_to_window_with_margin(px(8.0))
-                // Word 39: the menu arrives as Paseo's does (150 ms,
-                // `menu-overlay.tsx`): the kit's quick length.
-                .child(popup::appear(
-                    ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
-                    panel,
-                    crate::motion::QUICK,
-                )),
-        )
-        .with_priority(1)
-        .into_any_element(),
-    )
-}
-
-fn row<V: 'static>(
-    index: usize,
-    item: &MenuItem,
-    state: &MenuState,
-    handlers: &MenuHandlers<V>,
-    surfaces: &Surfaces,
-    narrow: bool,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    let highlighted = state.highlighted == Some(index);
-    // Paseo's row: hovered, focused and open rows alike on `surface2`,
-    // never a ring; the destructive row only in its words' colour.
-    let ink = match item.tone {
-        Tone::Plain => surfaces.foreground,
-        Tone::Danger => surfaces.destructive,
-    };
-    let wash = surfaces.surface2;
-    let get = handlers.state;
-    let chose = Rc::clone(&handlers.chose);
-    let mut element = div()
-        .id(ElementId::NamedInteger(
-            "menu-row".into(),
-            u64::try_from(index).unwrap_or(u64::MAX),
-        ))
-        .flex()
-        .items_center()
-        .gap(px(8.0))
-        .min_h(px(popup::row_height(narrow)))
-        .mx(px(4.0))
-        .px(px(8.0))
-        .py(px(4.0))
-        .rounded(px(popup::ROW_RADIUS))
-        .type_(Type::Body)
-        .line_height(px(crate::fonts::ui(ROW_LINE)))
-        .text_color(ink)
-        .when(item.disabled, |row| row.opacity(0.5))
-        .child(item.label.clone());
-    if !item.disabled {
-        element = element
-            .cursor_pointer()
-            .hover(move |style| style.bg(wash))
-            .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                cx.stop_propagation();
-            })
-            .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
-                get(view).close();
-                chose(view, index, window, cx);
-                cx.notify();
-            }));
-    }
-    if highlighted && !item.disabled {
-        // The keyboard's row fills in as the highlight arrives (word 39).
-        return popup::fill_in(
-            ElementId::NamedInteger(
-                "menu-row-arrive".into(),
-                u64::try_from(index).unwrap_or(u64::MAX),
+impl Placement {
+    fn geometry(self, pointer_corner: gpui::Anchor) -> (Point<Pixels>, gpui::Anchor) {
+        match self {
+            Self::Pointer(at) => (at, pointer_corner),
+            Self::End(bounds) => (
+                gpui::point(bounds.right(), bounds.bottom()),
+                gpui::Anchor::TopRight,
             ),
-            element,
-            wash,
-        )
-        .into_any_element();
+        }
     }
-    element.into_any_element()
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Direction {
+    Next,
+    Previous,
+}
+
+fn next_index(items: &[MenuItem], from: Option<usize>, direction: Direction) -> Option<usize> {
+    let count = items.len();
+    if count == 0 {
+        return None;
+    }
+    // An open menu may lose rows after a node update. A stale position must
+    // restart at the first/last selectable item, not step through old indices.
+    let mut at = from.filter(|index| *index < count);
+    for _ in 0..count {
+        let next = match (at, direction) {
+            (None, Direction::Next) => 0,
+            (None | Some(0), Direction::Previous) => count.saturating_sub(1),
+            (Some(index), Direction::Next) => {
+                index.saturating_add(1).checked_rem(count).unwrap_or(0)
+            }
+            (Some(index), Direction::Previous) => index.saturating_sub(1),
+        };
+        at = Some(next);
+        if items.get(next).is_some_and(MenuItem::selectable) {
+            return at;
+        }
+    }
+    None
+}
+fn selected_index(items: &[MenuItem], highlighted: Option<usize>) -> Option<usize> {
+    highlighted.filter(|index| items.get(*index).is_some_and(MenuItem::selectable))
+}
+
+// Pointer and Enter converge here so a KeepOpen action cannot accidentally
+// close before its caller publishes pending state. Escape/outside still close.
+fn pointer_choice(state: &mut MenuState, item: &MenuItem, index: usize) -> Option<usize> {
+    if !item.selectable() {
+        return None;
+    }
+    if item.dismissal == Dismissal::Close {
+        state.close();
+    }
+    Some(index)
+}
+fn keyboard_choice(state: &mut MenuState, items: &[MenuItem]) -> Option<usize> {
+    let index = selected_index(items, state.highlighted)?;
+    pointer_choice(state, items.get(index)?, index)
 }

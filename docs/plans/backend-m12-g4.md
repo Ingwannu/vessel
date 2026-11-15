@@ -1,5 +1,10 @@
 # Native Settings: Devices and Sync (G4)
 
+The earlier HostErrors producer/handoff incorrectly called `lg` 12. G2
+and V1 resolved the actual reference token to 8; the radius-only correction
+and its separate evidence are in `backend-m12-g4-alert.md`. The old green
+gate proves the old source and is not corrected-source or visual evidence.
+
 ## Decisions and scope
 
 [Decision Log]
@@ -489,3 +494,254 @@ settings-fixture checks pass. The failure is routed to the shell owner;
 no fixture source or guard is weakened here. The app uses the same scratch
 home as the CLI, so the paired book's home-relative credential files are
 resolved correctly. Pairing remains a pipe, never a stored link.
+
+## Device list and revoke: resumed verification, 2026-11-15
+
+Source commits: `eadc3324` adds press-to-open public device details and
+selection tests; `fe29f8f4` removes the duplicate loading sentence. The
+coordinator's fleet guard fix `d30804b2` is taken as `a86e0cc9`, at the
+clean boundary after the second source gate. It changes only the shared
+shell-fixture script: paired direct/relay entries and legacy URLs are
+checked without weakening the loopback and protected-port guard. The
+actual paired fleet now passes that guard and the settings-fixture check.
+The original full fleet start remains a recorded failure; it is not
+retroactively called a successful end-to-end start.
+
+Final A13 native run: `devices-20261115T032509Z-a86e0cc9`, evidence under
+`/tmp/work/m12-g4/resumed-20261115/native-gate-03`. Fonts, fmt, quality,
+all-target Clippy, build and test each returned zero, with no skipped step.
+The ten test sections independently sum to 1043 passed, zero failed and
+one ignored. `pairing_browser_words_capture` is ignored because it needs
+its own private display/config/fake offer; this slice does not claim that
+test or physical-browser pairing. Earlier exact-source gates are retained
+separately. No whole native gate ran on the saturated local machine.
+
+The local normal capture build (`local-app-build-02.log`, return zero)
+recompiled the changed view, link and app crates at `fe29f8f4`; the later
+Python-only guard fix changes no native Rust, manifest or embedded font.
+There is no capture feature or alternative installable app. The own-target
+CLI/node/testkit build also passed; root source did not change, and no
+root-workspace gate or web-page verification is claimed.
+
+Capture folder: `/tmp/work/m12-g4/resumed-20261115/captures`. All 178 final
+original PNGs were opened personally, and their SHA-256 and dimensions
+match `capture-manifest.json` (digest
+`5255fa971be42128f2f11e38ef79436714871854f7ff0447f2ec2d2367237a15`).
+The normal matrix covers English/Korean, dark/light, 1280x800, 390x844,
+800x600 and 1024x700: loading, many/long rows, two details states, long-name
+confirmation, pending and completed revoke. Each of its sixteen revokes
+was confirmed in the real disposable node's store, then only the inert
+fixture was restored. Eighteen more originals cover real GPUI scales
+1.25, 1.5 and 2 for details/confirm/pending in English dark and Korean light;
+the six additional real revokes were likewise checked. Existing kit glyphs
+remain legible and the long titles, metadata and controls wrap without
+overlap. Pending Escape leaves the confirmation open and its disabled
+controls preserve the rows behind it. The source comparisons and necessary
+differences listed above apply to these frames as well.
+
+Refused and offline states each have the full sixteen-combination matrix:
+the first uses an actual CLI-paired Read-only device; the second stops only
+the verified disposable laptop node. Empty has the same matrix but is a
+visual fixture: after admitting the disposable admin connection, the
+fixture temporarily marks its disposable rows revoked directly in SQLite,
+then restores every original tombstone in a finally block. It checks empty
+list rendering/filtering, not the authorization behavior of API revocation.
+No product feature, owner-token book or authorization bypass was added to
+the app. Real API revocation is evidenced separately above. Exploratory
+and failed automation frames are outside the final folder and not passes.
+
+Idle CPU, five seconds per sample on software Vulkan/Xvfb: English dark
+1280 list 1.80%, details 2.00%; Korean light 390 list/details 2.20% each,
+as a percentage of one core. This measures the whole app, not only this
+area; real-GPU animation, physical-phone input and other operating systems
+remain unverified.
+
+Privacy/permissions: no app invitation was created and no retained frame
+has a live link or QR. CLI pairing went through an anonymous pipe only.
+The metadata model can hold only public DeviceInfo dates/grants; no
+credential field enters it. Existing RPC errors remain typed codes. A
+private audit checked 165 retained logs for pairing URLs and the exact
+disposable credential bytes in memory: zero hits, with no value printed.
+All ten private books/credential/token files were UID/GID 1000, mode 0600,
+under 0700 parents. The app, authenticated Xvfb and both owned node children
+were stopped and reaped; the authority cookie, socket and pause marker
+were removed, all fixture tombstones restored, and the scoped process
+scan was empty (`final-cleanup.json`). No service account, service, live
+configuration or file permission was changed.
+
+Reproduction fingerprint: `native-source.sha256` enumerates `git ls-files
+spikes/native`, selecting `.rs` and Cargo.toml/Cargo.lock/rust-toolchain.toml,
+in Git's path order, hashing current file bytes. Its 666 entries have file
+digest `3a0304a5783b93c6e5b001cc237bd284d52916af1fab80915734c233c5afee75`.
+This following documentation-only evidence commit changes none of those
+bytes, so it runs only the noncompiling fast checks, not another gate.
+
+## Resume point after the device-list slice
+
+Done: list, press-accessible exact metadata, one loading signal, confirmed
+revoke, source gate and personally inspected final capture package.
+Submitted status is review requested, not V1 approval or a merge.
+Unverified/deferred: invitation/QR refresh and full pairing interaction,
+device.self permission-sensitive controls on the integrated newer node,
+Sync navigation/actions, physical phone/browser and real-GPU motion.
+Caller identity/authority stay unknown on the published base; no self-by-name
+inference. Sync stays hidden. The next clean-boundary assignment is the
+coordinator's minimal typed shared Alert presentation for the schedules
+partial-host-error banner; its first-use UI captures belong to its consumer.
+The separately archived Diagnostics draft remains uncompiled and outside
+the resumed slice.
+
+Review disposition: V1 subsequently passed the bounded Devices slice
+(`eadc3324` / `fe29f8f4` / `a86e0cc9`, docs `0e51fdbe`). It independently
+matched all 666 Git input hashes, six successful gate steps, the raw
+1043/0/1 test total and all 178 PNG hashes/dimensions. V1 personally opened
+40 risk-selected originals, including all eighteen enlarged frames;
+its visual pass covers those inspected states, not all 178 or every
+platform/accessibility case. The author opened all 178. Its exact selection
+is retained in `m12-review/g4-devices-a86-v1-captures.json`. Runtime privacy
+and process cleanup remain the author's retained evidence, not V1's live
+audit. A supplementary private check also parses credential envelopes to
+scan their bearer field separately: twelve secret patterns, 166 logs,
+zero matches. Coordinator screen comparison and merge are still separate.
+
+## Shared Alert host-errors presentation: contract first
+
+[Decision Log]
+- Purpose and intent: the schedules consumer needs Paseo's partial-host
+  error banner without painting another notice in its area.
+- Existing assets and constraints: `kit/alert.rs` already owns one notice
+  frame, five semantic variants and four density sizes. Default/ExtraSmall
+  has vertical padding 8, no stack gap and muted text; Error adds an icon
+  and an accent border. Neither matches the source. `status.red_300`,
+  `Type::Meta`, the spacing scale and radius tokens already exist.
+- Alternatives considered: an area-specific div, caller style overrides,
+  a second renderer, or another semantic error variant. These duplicate
+  ownership or conflate a presentation with the meaning chosen in view.
+- Choice: modify the existing Alert. A private typed presentation chooses
+  ordinary Notice versus HostErrors; both use the same frame. The narrow
+  public entry `alert::host_errors(messages, tokens)` accepts one localized
+  whole message per host. The kit owns their vertical stack and wrapping;
+  it accepts no arbitrary colour, padding, icon or size override.
+- Why: the partial-load banner has no title, icon, action or indentation.
+  Its host messages are siblings with spacing 4, not one opaque description
+  whose internal spacing the screen must recreate. The ordinary `alert`
+  entry and every existing caller retain their behavior and defaults.
+- Costs and effects: one additional named presentation and helper, no
+  dependency, token, glyph, view semantic variant, wire or application change.
+  The consumer remains responsible for whether it is shown and its words.
+
+Reference: Paseo 0.15.4
+`packages/app/src/screens/schedules-screen.tsx:334–347,400–417`
+(`ScheduleHostErrorsBanner`, `errorsBanner`, `errorsBannerText`). Its frame
+is transparent, neutral border 1, radius 8, padding 12 on every side, gap 4,
+normal text 12 in palette red 300, with no icon. The outer responsive margin
+belongs to the schedules layout and is not added to Alert. Compare also
+the full `components/ui/alert.tsx`, whose default description and actions
+must stay unchanged, and `styles/theme.ts:71–78`, red 300 `#fca5a5` in both
+themes. No intentional visual difference is planned for this profile.
+
+Verification planned: exact profile geometry/colour/type in both themes,
+the existing variants/sizes preserved, then A13 native gate on the changed
+committed source. G2 owns first-use captures with long messages, several
+hosts, phone width, both themes and languages in its separate consumer
+slice. A source/gate pass here will not claim those UI states passed.
+
+Implementation: the existing `alert` entry resolves Notice and builds its
+unchanged lead/description/action children; `host_errors` resolves HostErrors
+and places each message directly in the same frame. The private enum has
+no arbitrary style parameters. Existing five-variant/four-size exact tests
+remain, with both-theme host geometry/type/red-300 checks and an exhaustive
+ordinary-profile preservation check. No callers or semantic view enums
+change. README names the additional presentation.
+
+Resume point: Devices is with V1. The shared profile source is ready for
+its own exact-commit A13 gate, not yet passed or consumer-ready. First-use
+captures remain G2's responsibility; no alert UI/capture pass is claimed.
+
+The first Alert run, `devices-20261115T035609Z-68fac599`, passed fonts/fmt/
+quality, then stopped at Clippy (101): its Decision Log's `HostErrors`
+name lacked Markdown backticks. Build/test did not run, and the failure
+is retained under `alert-native-gate-01`. Pre/post source pins match all
+666 native inputs. The correction changes that comment only, without a
+lint suppression or behavior change. The corrected commit receives a
+short Clippy check first, followed by a new whole A13 gate; no pass is
+claimed before those results exist.
+
+## Shared Alert result and next boundary
+
+Alert source `68fac599` plus the documentation correction `eb75a637`
+passed A13 run `devices-20261115T041805Z-eb75a637`, retained under
+`/tmp/work/m12-g4/resumed-20261115/alert-native-gate-02`. All six native
+steps returned zero, with no skipped step. Ten raw test summaries sum to
+1045 passed, zero failed and one ignored (the existing pairing-browser
+capture test). Both new profile tests passed; Clippy checked the changed
+kit, and build/test actually recompiled kit and app. The preceding short
+Clippy run `devices-narrow-20261115T041507Z-eb75a637` also passed in 90
+seconds. The first failed run remains separate, not retried into a pass.
+
+All 666 selected native Rust/Cargo/toolchain inputs match the pre-check
+pin after the whole run. `alert-corrected-source.sha256` has digest
+`3618e360f73f140e7fee4954d1975e5de54178f0751e149fa7af5b890a1e7e70`;
+the file selection is the same rule documented above. `alert-final-audit.json`
+records the independent sums and input comparison. This results-only
+documentation changes no compiled input and gets no unchanged gate rerun.
+
+Public API for review: `kit::alert::host_errors(messages, &tokens)`, where
+messages implements `IntoIterator<Item = SharedString>`. One localized
+whole message becomes one wrapping sibling. A private typed presentation
+chooses its look; both entries share the same frame. No existing caller,
+semantic variant, token, dependency or glyph changed. The only shared
+documentation seam is the Alert paragraph in the native README. Source
+comparison remains Paseo's schedules-screen lines 334–347 and 400–417;
+there is no planned visual difference in this profile. G2's first-use
+long/multiple-host/phone/English/Korean/dark/light captures are still owed.
+This is a source/gate submission, not their visual approval or API handoff
+before V1 passes it. No app, node or display was started for this control
+slice; no service, credential or permission changed.
+
+The Devices PASS above is bounded normal-flow evidence, not physical-node
+binding or authority-sensitive integration proof. A separate source review
+found that a stable Online(alias) can survive book replacement: reload
+clears clients and emits only the final fleet. The current Devices target
+can therefore retain rows/confirmation across an alias rebind. Next slice
+must carry authenticated NodeId and an admitted connection/book generation
+through snapshots and confirmed requests, compare at dispatch, and reject
+stale replies and observed A-to-B-to-A changes before drawing an old
+confirmation. No runtime reproduction or fix is claimed yet. A session-list
+failure also cannot establish this device's scopes or physical reachability;
+the no-Read flow needs an independent authenticated fact. V1 confirmed both
+are outside its earlier bounded pass and required these regressions. Their
+absence must not be hidden by the 22 successful ordinary revokes.
+
+Resume point: Devices normal-flow slice is with the coordinator after V1's
+bounded pass. Alert source/gate is now submitted separately to V1; consumer
+captures and V1 approval remain pending. At this clean boundary merge the
+coordinator's gated lead head, then write the next Devices identity/authority
+contract and tests first. New node calls are consumed through the lead's
+integration, never by merging the node branch directly into this tree.
+Invitation/QR and Sync remain separate following slices; the old Diagnostics
+draft remains archived and uncompiled.
+
+Current boundary: V1 accepted the Alert producer at `eb75a637` with result
+`a65317cf`, source and native gate only. G2 received the exact API/commits
+and owns the first-use package captures, empty-list hiding, initial-load
+surface and outer margins. The full gated lead `d30804b2` was then merged
+cleanly as `7ed69812`; this newer combined tree is not covered by the older
+standalone gates. A14 now makes a feature package the gate/review unit:
+narrow checks per commit, one whole gate and affected captures at package
+end, while security retains per-commit review. No unchanged merge-only whole
+gate is added. The next security contract is
+`backend-m12-device-targets.md`; its pure identity checkpoint `1f4a091a`
+received V1 source-only acceptance. Actor/Page integration is now under
+narrow verification; no integrated or visual pass is claimed yet.
+
+
+### Blocking shared connection seam (base4)
+
+The exact-alias/admitted-epoch producer and Devices compatibility wiring are
+under narrow verification, not a feature/UI pass. The one actor/API and
+consumer obligations are documented in `backend-m12-connection-preflight.md`.
+The final E2 package still owes device.self permission presentation, pairing
+parity, integrated captures and its whole gate; no historic normal Devices
+result is reused as authority/alias proof. Shared dialog ReturnFocus is
+separately source/narrow reviewed at11fba709, not this actor's approval.

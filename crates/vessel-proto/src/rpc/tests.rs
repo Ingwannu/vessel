@@ -2,11 +2,13 @@ use chrono::DateTime;
 
 use super::*;
 use crate::agent::AgentEvent;
+use crate::conversation::PromptSession;
 use crate::event::{EventRecord, SessionEvent};
 use crate::harness::HarnessKind;
 use crate::id::{DeviceId, EventSeq, RequestId, SubscriptionId};
 use crate::session::{SessionMode, SessionSpec};
 use crate::terminal::TerminalSize;
+use crate::{Deliver, DeviceInfo, Forward, InviteDevice, RelayCall, SessionInfo, SetSessionOption};
 
 #[test]
 fn unit_requests_round_trip() {
@@ -93,9 +95,9 @@ const V10: ProtocolVersion = ProtocolVersion::new(10);
 
 #[test]
 fn every_method_knows_its_first_version() {
-    assert_eq!(Method::NodeInfo.since(), ProtocolVersion::new(2));
-    assert_eq!(Method::StopNode.since(), ProtocolVersion::new(3));
-    assert_eq!(Method::RevokeDevice.since(), V4);
+    assert_eq!(Method::NodeInfo.since(), Some(ProtocolVersion::new(2)));
+    assert_eq!(Method::StopNode.since(), Some(ProtocolVersion::new(3)));
+    assert_eq!(Method::RevokeDevice.since(), Some(V4));
     let v5_fleet = [
         Method::GetManifest,
         Method::ReadBlob,
@@ -112,11 +114,14 @@ fn every_method_knows_its_first_version() {
     // N3's fleet controls are 15 on the node line: preview's 13 and the
     // fork's 14 were published before them (`PROTOCOL_FIFTEEN` below).
     for method in added_fleet {
-        assert_eq!(method.since(), ProtocolVersion::new(15));
+        assert_eq!(method.since(), Some(ProtocolVersion::new(15)));
     }
-    assert_eq!(Method::GetPublished.since(), ProtocolVersion::new(16));
+    assert_eq!(Method::GetPublished.since(), Some(ProtocolVersion::new(16)));
     for method in Method::ALL {
-        assert!(method.since() <= crate::PROTOCOL_VERSION, "{method:?}");
+        assert!(
+            method.since() <= Some(crate::PROTOCOL_VERSION),
+            "{method:?}"
+        );
         let name = method.as_str();
         let fleet = name.starts_with("fleet.")
             && !added_fleet.contains(method)
@@ -127,9 +132,9 @@ fn every_method_knows_its_first_version() {
             || ["memory.", "transfer.", "secret."]
                 .iter()
                 .any(|prefix| name.starts_with(prefix));
-        assert_eq!(method.since() == V6, v6, "{method:?}");
+        assert_eq!(method.since() == Some(V6), v6, "{method:?}");
         assert_eq!(
-            method.since() == V5,
+            method.since() == Some(V5),
             (fleet || profile) && !v6,
             "{method:?}"
         );
@@ -137,7 +142,7 @@ fn every_method_knows_its_first_version() {
     // Protocol 9: what a session runs with, and titles.
     let v9: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == V9)
+        .filter(|method| method.since() == Some(V9))
         .map(|method| {
             (
                 method.as_str(),
@@ -154,18 +159,33 @@ fn every_method_knows_its_first_version() {
             ("session.rename", Scope::Operate),
         ]
     );
-    // Protocol 10, track B: projects, worktrees, git and files. Reads are
-    // `read`; everything that changes a folder or a repository is
-    // `operate`; nothing needs `admin`.
+    protocol_ten_workspace_methods_keep_their_version_and_scope();
+}
+
+/// Protocol 10, track B: projects, worktrees, git and files. Reads are
+/// `read`; everything that changes a folder or a repository is `operate`;
+/// nothing needs `admin`. Those methods are listed (`PROTOCOL_TEN_WORKSPACE`);
+/// a later method in the same families is pending until the integrator
+/// assigns its number, and its package's own test then names it in
+/// `WORKSPACE_FAMILIES_LATER`.
+fn protocol_ten_workspace_methods_keep_their_version_and_scope() {
     for method in Method::ALL {
         let name = method.as_str();
         let workspace = ["project.", "worktree.", "git.", "file."]
             .iter()
             .any(|prefix| name.starts_with(prefix));
-        if !workspace {
+        if !workspace || WORKSPACE_FAMILIES_LATER.contains(&name) {
             continue;
         }
-        assert_eq!(method.since(), V10, "{method:?}");
+        if !PROTOCOL_TEN_WORKSPACE.contains(&name) {
+            assert_eq!(
+                method.since(),
+                None,
+                "{method:?} is new: pending until assigned"
+            );
+            continue;
+        }
+        assert_eq!(method.since(), Some(V10), "{method:?}");
         let reads = [
             "project.list",
             "project.get",
@@ -197,6 +217,55 @@ fn every_method_knows_its_first_version() {
         );
     }
 }
+
+/// The project, worktree, git and file methods protocol 10 brought (track
+/// B), exactly; their version and scope are checked above.
+const PROTOCOL_TEN_WORKSPACE: &[&str] = &[
+    "project.list",
+    "project.get",
+    "project.add",
+    "project.clone",
+    "project.init",
+    "project.remove",
+    "project.commands",
+    "project.approve",
+    "worktree.list",
+    "worktree.create",
+    "worktree.output",
+    "worktree.setup",
+    "worktree.remove",
+    "worktree.snapshots",
+    "worktree.drop_snapshot",
+    "git.status",
+    "git.changes",
+    "git.diff",
+    "git.show",
+    "git.branches",
+    "git.log",
+    "git.stashes",
+    "git.stage",
+    "git.unstage",
+    "git.discard",
+    "git.commit",
+    "git.fetch",
+    "git.push",
+    "git.pull",
+    "git.switch",
+    "git.rename_branch",
+    "git.stash",
+    "file.list",
+    "file.read",
+    "file.write",
+    "file.create_dir",
+    "file.rename",
+    "file.delete",
+    "file.find",
+    "file.grep",
+];
+
+/// Methods in the same families added after protocol 10 and assigned a
+/// number: each is checked by its package's own test, which adds it here.
+const WORKSPACE_FAMILIES_LATER: &[&str] = &[];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
 /// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with
@@ -251,7 +320,7 @@ const PROTOCOL_ELEVEN: &[(&str, Scope)] = &[
 fn protocol_eleven_methods_know_their_version_and_scope() {
     let eleven: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(11))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(11)))
         .map(|method| {
             (
                 method.as_str(),
@@ -275,7 +344,7 @@ const PROTOCOL_TWELVE: &[(&str, Scope)] = &[
 fn protocol_twelve_methods_know_their_version_and_scope() {
     let twelve: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(12))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(12)))
         .map(|method| {
             (
                 method.as_str(),
@@ -298,7 +367,7 @@ const PROTOCOL_FOURTEEN: &[(&str, Scope)] = &[
 fn protocol_fourteen_methods_know_their_version_and_scope() {
     let fourteen: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(14))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(14)))
         .map(|method| {
             (
                 method.as_str(),
@@ -322,7 +391,7 @@ const PROTOCOL_FIFTEEN: &[(&str, Scope)] = &[
 fn protocol_fifteen_methods_know_their_version_and_scope() {
     let fifteen: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(15))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(15)))
         .map(|method| {
             (
                 method.as_str(),
@@ -340,7 +409,7 @@ const PROTOCOL_SIXTEEN: &[(&str, Scope)] = &[("fleet.published", Scope::Admin)];
 fn protocol_sixteen_methods_know_their_version_and_scope() {
     let sixteen: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(16))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(16)))
         .map(|method| {
             (
                 method.as_str(),
@@ -359,7 +428,7 @@ const PROTOCOL_SEVENTEEN: &[(&str, Scope)] = &[("agent.history", Scope::Operate)
 fn protocol_seventeen_methods_know_their_version_and_scope() {
     let seventeen: Vec<_> = Method::ALL
         .iter()
-        .filter(|method| method.since() == ProtocolVersion::new(17))
+        .filter(|method| method.since() == Some(ProtocolVersion::new(17)))
         .map(|method| {
             (
                 method.as_str(),
@@ -604,8 +673,8 @@ fn a_forwarded_call_nests_its_inner_call() {
     // Both the envelope and this inner request need 6. Every typed hop
     // must know an inner method and its fields before re-encoding them,
     // and each connection checks the maximum requirement before dispatch.
-    assert_eq!(call.since(), V6);
-    assert_eq!(inner.since(), V6);
+    assert_eq!(call.since(), Some(V6));
+    assert_eq!(inner.since(), Some(V6));
 }
 
 /// Protocol 18's drivers (ADR 0057): a settings change naming them needs
@@ -618,7 +687,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
         park_after: Some(crate::parking::ParkAfter::Never),
         drivers: None,
     };
-    assert_eq!(parking.into_call().since(), ProtocolVersion::new(12));
+    assert_eq!(parking.into_call().since(), Some(ProtocolVersion::new(12)));
     let drivers = SetNodeSettings {
         park_after: None,
         drivers: Some(SetAgentDrivers {
@@ -626,7 +695,7 @@ fn a_settings_change_naming_drivers_needs_protocol_eighteen() {
             ..SetAgentDrivers::default()
         }),
     };
-    assert_eq!(drivers.into_call().since(), ProtocolVersion::new(18));
+    assert_eq!(drivers.into_call().since(), Some(ProtocolVersion::new(18)));
 }
 
 /// Protocol 11's write guard (the join of wave 2's first half): a write
@@ -646,12 +715,12 @@ fn a_write_guarded_by_its_content_needs_protocol_eleven() {
         }
         .into_call()
     };
-    assert_eq!(write(WriteExpect::Absent).since(), V10);
-    assert_eq!(write(WriteExpect::Any).since(), V10);
+    assert_eq!(write(WriteExpect::Absent).since(), Some(V10));
+    assert_eq!(write(WriteExpect::Any).since(), Some(V10));
     let hash = ContentHash::from_sha256([7; 32]);
     assert_eq!(
         write(WriteExpect::Content { hash }).since(),
-        ProtocolVersion::new(11)
+        Some(ProtocolVersion::new(11))
     );
 }
 
@@ -663,9 +732,9 @@ fn a_new_field_raises_what_a_call_needs() {
     };
     let plain = SessionSpec::new(HarnessKind::Codex, terminal);
     let create = |spec| CreateSession { spec }.into_call();
-    assert_eq!(create(plain.clone()).since(), ProtocolVersion::new(2));
+    assert_eq!(create(plain.clone()).since(), Some(ProtocolVersion::new(2)));
     let profiled = plain.with_profile("alt".parse().unwrap());
-    assert_eq!(create(profiled).since(), V5);
+    assert_eq!(create(profiled).since(), Some(V5));
 
     let invite = |scopes| {
         InviteDevice {
@@ -675,10 +744,13 @@ fn a_new_field_raises_what_a_call_needs() {
         }
         .into_call()
     };
-    assert_eq!(invite(None).since(), V4);
-    assert_eq!(invite(Some(vec![Scope::Sync])).since(), V5);
+    assert_eq!(invite(None).since(), Some(V4));
+    assert_eq!(invite(Some(vec![Scope::Sync])).since(), Some(V5));
     // A protocol 5 node would refuse a scope it does not know.
-    assert_eq!(invite(Some(vec![Scope::Sync, Scope::Relay])).since(), V6);
+    assert_eq!(
+        invite(Some(vec![Scope::Sync, Scope::Relay])).since(),
+        Some(V6)
+    );
 
     let read = |wait| {
         ReadEvents {
@@ -689,8 +761,8 @@ fn a_new_field_raises_what_a_call_needs() {
         }
         .into_call()
     };
-    assert_eq!(read(None).since(), ProtocolVersion::new(2));
-    assert_eq!(read(Some(30)).since(), V6);
+    assert_eq!(read(None).since(), Some(ProtocolVersion::new(2)));
+    assert_eq!(read(Some(30)).since(), Some(V6));
 
     // Protocol 9: an older node would start the session in the agent's
     // default mode, or unnamed, rather than refuse.
@@ -706,14 +778,14 @@ fn a_new_field_raises_what_a_call_needs() {
         },
     }];
     let plain = SessionSpec::new(HarnessKind::ClaudeCode, structured(Vec::new()));
-    assert_eq!(create(plain.clone()).since(), ProtocolVersion::new(2));
+    assert_eq!(create(plain.clone()).since(), Some(ProtocolVersion::new(2)));
     assert_eq!(
         create(plain.clone().with_title("Fix the build".parse().unwrap())).since(),
-        V9
+        Some(V9)
     );
     let choosing = SessionSpec::new(HarnessKind::ClaudeCode, structured(chosen))
         .with_profile("alt".parse().unwrap());
-    assert_eq!(create(choosing).since(), V9);
+    assert_eq!(create(choosing).since(), Some(V9));
 }
 
 #[test]
@@ -844,7 +916,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         })
     };
     let changed = SessionEvent::OptionsChanged { options };
-    assert_eq!(changed.since(), V9);
+    assert_eq!(changed.required_protocol(), Some(V9));
     assert_eq!(changed.for_protocol(V9), None);
     assert_eq!(
         changed.for_protocol(V8),
@@ -861,7 +933,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         title: "Fix the build".parse().unwrap(),
         origin: crate::title::TitleOrigin::Unknown,
     };
-    assert_eq!(renamed.since(), V9);
+    assert_eq!(renamed.required_protocol(), Some(V9));
     assert_eq!(
         renamed.for_protocol(V4),
         line("vessel: renamed to Fix the build")
@@ -1151,7 +1223,7 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
     ] {
         assert_eq!(serde_json::to_string(&call).unwrap(), json);
         assert_eq!(serde_json::from_str::<Call>(json).unwrap(), call);
-        assert_eq!(call.since(), LIMITS_PROTOCOL_VERSION);
+        assert_eq!(call.since(), Some(LIMITS_PROTOCOL_VERSION));
     }
     let json = r#"{"policy":"on","account":{"harness":"codex","profile":null},"source":"codex","state":{"state":"failed","reason":"rate_limited","retained":null,"retry_at":"2026-06-01T12:00:00Z"},"cost_visibility":"withheld","notice":null}"#;
     let report: UsageLimits = serde_json::from_str(json).unwrap();

@@ -52,6 +52,16 @@ enum Command {
     },
 }
 impl Limits {
+    /// The node's limits service from its configuration: the node
+    /// assembly's one step for limits (protocol 23).
+    pub(crate) async fn configured(
+        config: &crate::Config,
+        stop: CancellationToken,
+        tasks: &TaskTracker,
+    ) -> Self {
+        Self::start(config.data_dir.clone(), config.limits.clone(), stop, tasks).await
+    }
+
     pub(crate) async fn start(
         dir: DataDir,
         probe: LimitProbe,

@@ -129,7 +129,7 @@ pub struct ProjectList {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum ProjectCommands {
-    /// No file, or a file that names no command.
+    /// No file, or no data that requires project approval.
     None,
     /// The commands, in order.
     Listed {
@@ -148,6 +148,9 @@ pub enum ProjectCommands {
         /// Terminal commands the client must show before approval (ADR 0066).
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         terminals: Vec<super::FileTerminal>,
+        /// Allocation choices that must be displayed or refused before approval.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        service_ports: Option<super::ServicePorts>,
         /// The set last approved for this project, to show what changed
         /// (protocol 11): only while this set is not approved, and only
         /// when the node kept what that approval covered (approvals given

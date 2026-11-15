@@ -155,7 +155,8 @@ impl NodeClient {
     ///
     /// # Errors
     /// `not_found` for an unknown session; `conflict` for a live one, or
-    /// one whose log is still being written (a retry works); `unsupported`
+    /// one whose log is still being written after the node waited for it
+    /// (a retry works); `unsupported`
     /// from a node before protocol 10; otherwise see [`CallError`].
     pub async fn delete_session(&self, session: SessionId) -> Result<SessionDeleted, CallError> {
         self.call(DeleteSession { session }).await

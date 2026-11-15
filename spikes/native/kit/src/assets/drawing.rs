@@ -52,6 +52,9 @@ impl Glyph {
                 line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
             }
             Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            // AppShell's LucideProvider supplies1.5; ExternalLink does not
+            // override it. Keep the canonical line glyph's inherited stroke.
+            Self::ArrowUpRight => line_glyph!(r#"<path d="M7 17 17 7M7 7h10v10"/>"#),
             Self::Stop => line_glyph!(r#"<rect x="6" y="6" width="12" height="12" rx="1.5"/>"#),
             Self::Shield => {
                 line_glyph!(r#"<path d="M12 3l7 3v5.5c0 4.6-3 8.1-7 9.5-4-1.4-7-4.9-7-9.5V6z"/>"#)
@@ -192,6 +195,25 @@ impl Glyph {
             Self::Reset => line_glyph!(
                 r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
             ),
+            Self::MoreVertical => line_glyph!(
+                r#"<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>"#
+            ),
+            Self::Pause => line_glyph!(
+                r#"<rect x="6.5" y="4.5" width="3.5" height="15" rx="0.5"/><rect x="14" y="4.5" width="3.5" height="15" rx="0.5"/>"#
+            ),
+            Self::Play => line_glyph!(r#"<path d="M7.5 4.5 19.5 12 7.5 19.5z"/>"#),
+            Self::RotateCw => {
+                line_glyph!(r#"<path d="M20 10a8.25 8.25 0 1 0-1.1 6.5M20 4.5V10h-5.5"/>"#)
+            }
+            Self::ActivityIndicator => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14" opacity="0.2"/><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
+            Self::ActivityTrack => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14"/></svg>"#
+            }
+            Self::ActivityArc => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
@@ -275,6 +297,12 @@ impl Glyph {
             ),
             Self::Monitor => line_glyph!(
                 r#"<rect x="3" y="4.125" width="18" height="12.75" rx="2.25"/><path d="M8.25 21h7.5M12 16.875V21"/>"#
+            ),
+            Self::Gauge => line_glyph!(
+                r#"<path d="M4.75 18.5a9 9 0 1 1 14.5 0"/><path d="m12 13.5 4.5-4.5"/>"#
+            ),
+            Self::PackagePlus => line_glyph!(
+                r#"<path d="M12 3.25 3.5 7.75 12 12.25l8.5-4.5L12 3.25M3.5 7.75v9L12 21.25l3-1.6M12 12.25v9M20.5 7.75v4.5M7.75 5.5l8.5 4.5M19 14.75v6.5M15.75 18h6.5"/>"#
             ),
         }
     }

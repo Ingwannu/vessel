@@ -17,6 +17,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod pulls;
@@ -43,6 +44,7 @@ pub(crate) struct Areas {
     pub(crate) settings: settings::SettingsState,
     pub(crate) workspace: workspace::Workspace,
     pub(crate) git: git::GitArea,
+    pub(crate) layout: layout::LayoutArea,
     pub(crate) pulls: pulls::PullsArea,
     pub(crate) board: board::BoardArea,
     pub(crate) palette: palette::PaletteArea,
@@ -69,6 +71,7 @@ impl Areas {
             settings: settings::SettingsState::new(window, cx),
             workspace: workspace::Workspace::new(window, cx),
             git: git::GitArea::new(window, cx),
+            layout: layout::LayoutArea::new(cx),
             pulls: pulls::PullsArea::new(window, cx),
             board: board::BoardArea::new(window, cx),
             palette: palette::PaletteArea::new(window, cx),

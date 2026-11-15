@@ -138,7 +138,7 @@ impl NodeService {
             .await
             .map_err(|error| wire(&error))?;
         self.sessions
-            .wait_side_stored(request.side)
+            .wait_stored(request.side)
             .await
             .map_err(|error| wire(&error))?;
         // Deletion can refuse while the last records commit. No new side

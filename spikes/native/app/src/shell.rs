@@ -3,6 +3,8 @@
 //! (the title bar, the sidebar on the shell, the page framed beside it:
 //! DESIGN.md section 6).
 
+mod devices;
+
 use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::frame::{Lines, panel_edges};
@@ -136,6 +138,7 @@ impl Shell {
         tracing::warn!(why = %unsent.why, "the link did not take a command");
         let words = self.t.unsent;
         match crate::unsent::settle(unsent, words) {
+            crate::unsent::Settle::Ignore => {}
             crate::unsent::Settle::Answer(event) => self.on_event(*event, cx),
             crate::unsent::Settle::Prompt { session, text } => {
                 self.prompt_unsent(session, text);
@@ -148,19 +151,6 @@ impl Shell {
             }
         }
         cx.notify();
-    }
-
-    /// Checked device dispatch keeps a refused queue from leaving its page pending.
-    pub(crate) fn devices_send(
-        &self,
-        machine: vessel_app_view::devices::MachineKey,
-        ticket: vessel_app_view::devices::Ticket,
-        ask: vessel_app_link::devices::Ask,
-    ) -> Result<(), vessel_app_view::devices::Problem> {
-        self.link
-            .as_ref()
-            .ok_or(vessel_app_view::devices::Problem::Offline)?
-            .request_devices(machine, ticket, ask)
     }
 
     /// Checked read-only dispatch settles a full or closed command queue.

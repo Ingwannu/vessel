@@ -115,7 +115,7 @@ mod tests {
                 .expect("legacy method requires a scope"),
             Scope::Read
         );
-        assert_eq!(call.since(), ProtocolVersion::new(13));
+        assert_eq!(call.since(), Some(ProtocolVersion::new(13)));
         let json = serde_json::to_string(&call).unwrap();
         assert_eq!(serde_json::from_str::<Call>(&json).unwrap(), call);
     }

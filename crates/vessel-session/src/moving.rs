@@ -99,6 +99,15 @@ pub enum MoveError {
     /// profile's agent.
     #[error("the agent did not start under the new profile: {0}")]
     Restart(Restart),
+    /// The current process could not be signalled; no replacement starts.
+    #[error("cannot stop the current agent ({signal:?})")]
+    Signal {
+        /// The requested stop action.
+        signal: Signal,
+        /// The OS refusal, kept for diagnostics without request contents.
+        #[source]
+        source: vessel_proc::SignalError,
+    },
     /// The session was stopped during the move.
     #[error("the session was stopped during the move")]
     Stopped,
@@ -144,6 +153,12 @@ pub(crate) enum Control {
     /// every launch site gives the node's, `RuntimeConfig::private_dir`).
     #[cfg(test)]
     PrivateDir(oneshot::Sender<Option<PathBuf>>),
+    /// One actor's next stop signal only; absent from product builds.
+    #[cfg(test)]
+    RefuseNextStop {
+        source: vessel_proc::SignalError,
+        ready: oneshot::Sender<()>,
+    },
 }
 
 /// Everything the actor needs to move.
@@ -332,10 +347,24 @@ impl StructuredActor {
         Ok(self.move_state.turn_over)
     }
 
+    // Keep the fault local to the actor: another session cannot consume it.
+    fn signal_stop(&mut self, signal: Signal) -> Result<(), MoveError> {
+        #[cfg(test)]
+        let delivered = match self.stop_signal_error.take() {
+            Some(error) => Err(error),
+            None => self.agent.signal(signal),
+        };
+        #[cfg(not(test))]
+        let delivered = self.agent.signal(signal);
+        delivered.map_err(|source| MoveError::Signal { signal, source })
+    }
+
     /// Stop the current agent (`SIGTERM`, then `SIGKILL` after
-    /// [`STOP_GRACE`]) and publish what it still had to say.
+    /// [`STOP_GRACE`]) and publish what it still had to say. A signal refusal
+    /// returns before replacement can start; waiting for a later kill would
+    /// turn that refusal into a restart the caller never approved.
     pub(crate) async fn stop_agent(&mut self) -> Result<(), MoveError> {
-        signal(&mut self.agent, Signal::Terminate);
+        self.signal_stop(Signal::Terminate)?;
         let grace = tokio::time::sleep(STOP_GRACE);
         let mut grace = std::pin::pin!(grace);
         let mut forced = false;
@@ -353,7 +382,7 @@ impl StructuredActor {
                 },
                 () = &mut grace, if !forced => {
                     forced = true;
-                    signal(&mut self.agent, Signal::Kill);
+                    self.signal_stop(Signal::Kill)?;
                 }
             }
         }
@@ -382,7 +411,7 @@ impl StructuredActor {
                 Ok(started) => started,
                 Err(error) => return Ok(Err(Restart::Spawn(error))),
             };
-        self.life.out.running(agent.pid());
+        self.life.out.running(Some(agent.lifetime()));
         self.agent = agent;
         self.input = input;
         self.outputs = outputs;

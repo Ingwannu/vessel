@@ -48,6 +48,7 @@ fn machine(name: &str) -> Machine {
         })
         .collect();
     Machine {
+        connection_epoch: None,
         node: None,
         name: name.to_owned(),
         reach: Reach::Online,

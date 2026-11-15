@@ -265,7 +265,7 @@ mod tests {
                 call
             );
             // The inbox is protocol 22 (`rpc.rs`), not the newest number.
-            assert_eq!(call.since(), ProtocolVersion::new(22));
+            assert_eq!(call.since(), Some(ProtocolVersion::new(22)));
         }
         assert_eq!(ListInbox::METHOD, Method::ListInbox);
         assert_eq!(Method::ListInbox.scope(), Some(Scope::Read));

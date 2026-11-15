@@ -1062,6 +1062,7 @@ mod tests {
             handshake_timeout: Duration::from_secs(60),
             questions: false,
             fork: None,
+            system_prompt: None,
             private_dir: None,
         };
         let mut session = Session::new(out, outputs, setup);

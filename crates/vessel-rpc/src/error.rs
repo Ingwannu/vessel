@@ -43,9 +43,10 @@ pub enum ServeError<E> {
     #[error("protocol violation")]
     Violation(#[source] ProtocolViolation),
     /// A frame was not valid JSON for any client frame, and did not even
-    /// carry a request id to answer.
-    #[error("undecodable frame")]
-    Decode(#[source] serde_json::Error),
+    /// carry a request id to answer. Where and what kind only: no value of
+    /// the frame, so logging this error and its chain leaks nothing.
+    #[error("undecodable frame: {0}")]
+    Decode(crate::DecodeFailure),
     /// A frame could not be serialised. This is a bug; the connection is
     /// closed so the client sees a disconnect instead of a call that never
     /// answers.

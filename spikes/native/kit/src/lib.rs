@@ -35,14 +35,19 @@ pub mod chrome;
 pub mod code;
 pub mod code_editor;
 pub mod command;
+pub mod control_sizing;
 pub mod copy;
 pub mod dialog;
+pub mod drag;
+pub mod external_link;
 pub mod field;
+pub mod focus;
 pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
 pub mod host_rename;
+pub mod loading;
 pub mod menu;
 pub mod motion;
 pub mod output;
@@ -77,6 +82,7 @@ pub use assets::Assets;
 pub use card_button::{CardLook, CardState, card_button};
 pub use chat_markdown::{FindMarks, FindPalette, chat_markdown};
 pub use code::CodeTokens;
+pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
 pub use field::{Editability, SendOn, TextField, composer_card};
@@ -101,7 +107,9 @@ pub use toast::{
 pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
-    ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
+    Button, ButtonConfig, ButtonContent, ButtonDesign, ButtonIcon, ButtonKind, ButtonSize,
+    ButtonState, CircleConfig, CircleTone, TypeExt, button, button_control, button_with_content,
+    button_with_design, button_with_kind, button_with_kind_at, choice, dot, kicker, mark,
     mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 

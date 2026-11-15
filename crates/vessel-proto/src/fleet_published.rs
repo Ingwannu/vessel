@@ -115,7 +115,7 @@ mod tests {
             Scope::Admin
         );
         assert!(!method.forwardable());
-        assert_eq!(call.since(), ProtocolVersion::new(16));
+        assert_eq!(call.since(), Some(ProtocolVersion::new(16)));
         let encoded = serde_json::to_string(&call).unwrap();
         assert_eq!(serde_json::from_str::<Call>(&encoded).unwrap(), call);
     }

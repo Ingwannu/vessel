@@ -40,14 +40,8 @@ use futures_util::{SinkExt as _, StreamExt as _};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{
-    Call, ClientFrame, ClientInfo, CloseTransfer, CopySecret, CreateSession, DeleteSecret, Deliver,
-    ExportMemory, ExportSession, ForgetNode, Forward, GetCallback, GetManifest, GetNode,
-    GetSession, GrantHome, Hello, ImportMemory, ImportSession, InviteDevice, KillSession,
-    ListDevices, ListHarnesses, ListMembers, ListModels, ListNodes, ListPeers, ListProfiles,
-    ListSecrets, ListSessions, Method, MoveProfile, Outcome, ProtocolRange, ReadBlob, ReadEvents,
-    ReadTransfer, RelayCall, ReloadProfiles, RenameSession, Reply, ReportApplied, Request,
-    RequestId, RevokeDevice, SendInput, ServerFrame, SetSecret, StopNode, Subscribe, Unsubscribe,
-    WatchFleet, Welcome, WireError,
+    Call, ClientFrame, ClientInfo, Hello, Method, MethodShape, Outcome, ProtocolRange, Reply,
+    Request, RequestId, ServerFrame, Subscribe, Welcome, WireError,
 };
 
 pub use subscription::{Subscription, SubscriptionItem, TerminalSubscription};
@@ -61,189 +55,32 @@ use crate::transport::FrameTransport;
 /// [`Connection::subscribe`]).
 pub trait Unary: Request {}
 
-impl Unary for GetNode {}
-impl Unary for ListHarnesses {}
-impl Unary for ListSessions {}
-impl Unary for GetSession {}
-impl Unary for CreateSession {}
-impl Unary for vessel_proto::side_questions::OpenSideQuestion {}
-impl Unary for vessel_proto::side_questions::PromptSideQuestion {}
-impl Unary for vessel_proto::side_questions::ResetSideQuestion {}
-impl Unary for SendInput {}
-impl Unary for KillSession {}
-impl Unary for ReadEvents {}
-impl Unary for Unsubscribe {}
-impl Unary for StopNode {}
-impl Unary for InviteDevice {}
-impl Unary for vessel_proto::GetDeviceSelf {}
-impl Unary for ListDevices {}
-impl Unary for RevokeDevice {}
-impl Unary for ListProfiles {}
-impl Unary for ReloadProfiles {}
-impl Unary for MoveProfile {}
-impl Unary for GetManifest {}
-impl Unary for ReadBlob {}
-// A long poll: one answer, however long the home waits before giving it.
-impl Unary for WatchFleet {}
-impl Unary for ReportApplied {}
-impl Unary for ListMembers {}
-// Protocol 6. The envelope's reply is its inner call's one reply (only
-// one-reply calls can be forwarded), and `session.read` with `wait` is a
-// long poll like `fleet.watch`.
-impl Unary for Forward {}
-impl Unary for RelayCall {}
-impl Unary for Deliver {}
-impl Unary for GrantHome {}
-impl Unary for ForgetNode {}
-impl Unary for GetCallback {}
-impl Unary for ListPeers {}
-impl Unary for ListNodes {}
-impl Unary for ExportSession {}
-impl Unary for ImportSession {}
-impl Unary for ExportMemory {}
-impl Unary for ImportMemory {}
-impl Unary for ReadTransfer {}
-impl Unary for CloseTransfer {}
-// Protocol 7.
-impl Unary for ListModels {}
-impl Unary for SetSecret {}
-impl Unary for ListSecrets {}
-impl Unary for DeleteSecret {}
-impl Unary for CopySecret {}
-impl Unary for vessel_proto::lsp::WorkspaceSymbols {}
-impl Unary for vessel_proto::lsp::DocumentSymbols {}
-impl Unary for vessel_proto::lsp::Definition {}
-impl Unary for vessel_proto::lsp::References {}
-impl Unary for vessel_proto::lsp::GetHover {}
-impl Unary for vessel_proto::lsp::Implementations {}
-impl Unary for vessel_proto::lsp::TypeDefinition {}
-impl Unary for vessel_proto::lsp::IncomingCalls {}
-impl Unary for vessel_proto::lsp::OutgoingCalls {}
-impl Unary for vessel_proto::lsp::Diagnostics {}
-// Protocol 9. `harness.options` may start an agent to ask it, and still
-// answers once.
-impl Unary for vessel_proto::GetHarnessOptions {}
-impl Unary for vessel_proto::GetSessionOptions {}
-impl Unary for vessel_proto::SetSessionOption {}
-impl Unary for RenameSession {}
-// Protocol 10 (Track A, the conversation).
-impl Unary for vessel_proto::conversation::PromptSession {}
-impl Unary for vessel_proto::conversation::ChangeQueue {}
-impl Unary for vessel_proto::conversation::GetConversation {}
-impl Unary for vessel_proto::conversation::ResumeSession {}
-impl Unary for vessel_proto::conversation::MarkSession {}
-impl Unary for vessel_proto::conversation::DeleteSession {}
-impl Unary for vessel_proto::conversation::BeginUpload {}
-impl Unary for vessel_proto::conversation::WriteUpload {}
-impl Unary for vessel_proto::conversation::FinishUpload {}
-impl Unary for vessel_proto::conversation::ReadAttachment {}
-// Protocol 10 (Track B): every workspace call answers once; long polls
-// (`project.get`, `worktree.output`) are bounded waits, not streams.
-impl Unary for vessel_proto::workspace::ListProjects {}
-impl Unary for vessel_proto::workspace::GetProject {}
-impl Unary for vessel_proto::workspace::AddProject {}
-impl Unary for vessel_proto::workspace::CloneProject {}
-impl Unary for vessel_proto::workspace::InitProject {}
-impl Unary for vessel_proto::workspace::RemoveProject {}
-impl Unary for vessel_proto::workspace::GetProjectCommands {}
-impl Unary for vessel_proto::workspace::ApproveCommands {}
-impl Unary for vessel_proto::workspace::ListWorktrees {}
-impl Unary for vessel_proto::workspace::CreateWorktree {}
-impl Unary for vessel_proto::workspace::ReadSetupOutput {}
-impl Unary for vessel_proto::workspace::RunSetup {}
-impl Unary for vessel_proto::workspace::RemoveWorktree {}
-impl Unary for vessel_proto::workspace::ListSnapshots {}
-impl Unary for vessel_proto::workspace::DropSnapshot {}
-impl Unary for vessel_proto::workspace::GetStatus {}
-impl Unary for vessel_proto::workspace::GetChanges {}
-impl Unary for vessel_proto::workspace::GetFileDiff {}
-impl Unary for vessel_proto::workspace::ShowFile {}
-impl Unary for vessel_proto::workspace::ListBranches {}
-impl Unary for vessel_proto::workspace::ReadLog {}
-impl Unary for vessel_proto::workspace::ListStashes {}
-impl Unary for vessel_proto::workspace::Stage {}
-impl Unary for vessel_proto::workspace::Unstage {}
-impl Unary for vessel_proto::workspace::Discard {}
-impl Unary for vessel_proto::workspace::Commit {}
-impl Unary for vessel_proto::workspace::Fetch {}
-impl Unary for vessel_proto::workspace::Push {}
-impl Unary for vessel_proto::workspace::Pull {}
-impl Unary for vessel_proto::workspace::Switch {}
-impl Unary for vessel_proto::workspace::RenameBranch {}
-impl Unary for vessel_proto::workspace::StashChanges {}
-impl Unary for vessel_proto::workspace::ListDir {}
-impl Unary for vessel_proto::workspace::ReadFile {}
-impl Unary for vessel_proto::workspace::WriteFile {}
-impl Unary for vessel_proto::workspace::CreateDir {}
-impl Unary for vessel_proto::workspace::RenamePath {}
-impl Unary for vessel_proto::workspace::DeletePath {}
-impl Unary for vessel_proto::workspace::FindFiles {}
-impl Unary for vessel_proto::workspace::SearchFiles {}
-impl Unary for vessel_proto::forge::GetForgeStatus {}
-impl Unary for vessel_proto::forge::ListPullRequests {}
-impl Unary for vessel_proto::forge::GetPullRequest {}
-impl Unary for vessel_proto::forge::OpenPullRequest {}
-impl Unary for vessel_proto::forge::MergePullRequest {}
-impl Unary for vessel_proto::forge::SetFeedback {}
-// Protocol 11 (Track C): every call but `terminal.subscribe` answers once;
-// `terminal.get`, `terminal.read` and `port.list` wait at most 30 s.
-impl Unary for vessel_proto::terminals::CreateTerminal {}
-impl Unary for vessel_proto::terminals::ListTerminals {}
-impl Unary for vessel_proto::terminals::GetTerminal {}
-impl Unary for vessel_proto::terminals::ReadTerminal {}
-impl Unary for vessel_proto::terminals::SendTerminal {}
-impl Unary for vessel_proto::terminals::RenameTerminal {}
-impl Unary for vessel_proto::terminals::KillTerminal {}
-impl Unary for vessel_proto::terminals::CloseTerminal {}
-impl Unary for vessel_proto::scripts::ListScripts {}
-impl Unary for vessel_proto::scripts::RunScript {}
-impl Unary for vessel_proto::scripts::RestartScript {}
-impl Unary for vessel_proto::ports::ListPorts {}
-impl Unary for vessel_proto::agents::ListAgents {}
-impl Unary for vessel_proto::agents::AddAgent {}
-impl Unary for vessel_proto::agents::RemoveAgent {}
-impl Unary for vessel_proto::agents::GetAgentStatus {}
-impl Unary for vessel_proto::agents::GetCatalogue {}
-impl Unary for vessel_proto::agents::InstallAgent {}
-impl Unary for vessel_proto::agents::ReadInstall {}
-// Protocol 11 (Track D): schedules and saved prompts answer once.
-impl Unary for vessel_proto::JoinFleet {}
-impl Unary for vessel_proto::LeaveFleet {}
-impl Unary for vessel_proto::SyncFleet {}
-impl Unary for vessel_proto::GetFleetStatus {}
-impl Unary for vessel_proto::GetPublished {}
-impl Unary for vessel_proto::automation::PreviewSchedule {}
-impl Unary for vessel_proto::automation::ListSchedules {}
-impl Unary for vessel_proto::automation::GetSchedule {}
-impl Unary for vessel_proto::automation::CreateSchedule {}
-impl Unary for vessel_proto::automation::UpdateSchedule {}
-impl Unary for vessel_proto::automation::PauseSchedule {}
-impl Unary for vessel_proto::automation::ResumeSchedule {}
-impl Unary for vessel_proto::automation::RunSchedule {}
-impl Unary for vessel_proto::automation::DeleteSchedule {}
-impl Unary for vessel_proto::automation::ListRuns {}
-impl Unary for vessel_proto::usage::QueryUsage {}
-impl Unary for vessel_proto::limits::GetUsageLimits {}
-impl Unary for vessel_proto::limits::SetUsageLookup {}
-impl Unary for vessel_proto::automation::ListPrompts {}
-impl Unary for vessel_proto::automation::CreatePrompt {}
-impl Unary for vessel_proto::automation::UpdatePrompt {}
-impl Unary for vessel_proto::automation::DeletePrompt {}
-impl Unary for vessel_proto::inbox::ListInbox {}
-impl Unary for vessel_proto::inbox::MarkInbox {}
-impl Unary for vessel_proto::inbox::GetInboxEntry {}
-impl Unary for vessel_proto::push::GetPushKey {}
-impl Unary for vessel_proto::push::SubscribePush {}
-impl Unary for vessel_proto::push::UnsubscribePush {}
-impl Unary for vessel_proto::push::ReportPushPresence {}
-impl Unary for vessel_proto::search::SearchMessages {}
-impl Unary for vessel_proto::parking::ParkSession {}
-impl Unary for vessel_proto::parking::WakeSession {}
-impl Unary for vessel_proto::settings::GetNodeSettings {}
-impl Unary for vessel_proto::settings::SetNodeSettings {}
-impl Unary for vessel_proto::forking::ForkSession {}
-impl Unary for vessel_proto::forking::RewindSession {}
-impl Unary for vessel_proto::history::GetAgentHistory {}
+// Every request whose method answers once gets the marker, from the one
+// method table's shape column (`vessel_proto::method_table!`): a stream's
+// request (`session.subscribe`, `terminal.subscribe`) does not, so calling
+// it with `Connection::call` does not compile. A new method takes its shape
+// from its row; nothing here is listed by hand (Quality B).
+macro_rules! unary_requests {
+    ($(
+        $(#[$doc:meta])*
+        $variant:ident / $handler:ident / $wire:literal
+            [$scope:ident, $protocol:tt, $shape:ident] : $request:ty => $response:ty;
+    )*) => {
+        $( unary_request!($shape, $request); )*
+    };
+}
+
+macro_rules! unary_request {
+    (unary, $request:ty) => {
+        impl Unary for $request {}
+    };
+    (envelope, $request:ty) => {
+        impl Unary for $request {}
+    };
+    (stream, $request:ty) => {};
+}
+
+vessel_proto::method_table!(unary_requests);
 
 /// A call answered by exactly one reply, built already: every method but
 /// `session.subscribe` (whose answer opens a stream, [`Connection::subscribe`]).
@@ -279,187 +116,10 @@ impl UnaryCall {
     }
 }
 
-/// Whether `method` is answered by exactly one reply. Exhaustive, so a new
-/// method is decided here, as it is by the [`Unary`] impls above.
-#[expect(
-    clippy::too_many_lines,
-    reason = "one arm per method, so a new method does not compile until someone decides; the \
-              list is the point"
-)]
+/// Whether `method` is answered by exactly one reply: its shape in the
+/// method table, as for the [`Unary`] impls above.
 const fn is_unary(method: Method) -> bool {
-    match method {
-        Method::Subscribe | Method::SubscribeTerminal => false,
-        Method::NodeInfo
-        | Method::ListHarnesses
-        | Method::ListSessions
-        | Method::GetSession
-        | Method::CreateSession
-        | Method::OpenSideQuestion
-        | Method::PromptSideQuestion
-        | Method::ResetSideQuestion
-        | Method::SendInput
-        | Method::KillSession
-        | Method::ReadEvents
-        | Method::Unsubscribe
-        | Method::StopNode
-        | Method::InviteDevice
-        | Method::GetDeviceSelf
-        | Method::ListDevices
-        | Method::RevokeDevice
-        | Method::ListProfiles
-        | Method::ReloadProfiles
-        | Method::MoveProfile
-        | Method::GetManifest
-        | Method::ReadBlob
-        | Method::WatchFleet
-        | Method::ReportApplied
-        | Method::ListMembers
-        | Method::Forward
-        | Method::Relay
-        | Method::Deliver
-        | Method::GrantHome
-        | Method::GetCallback
-        | Method::ListPeers
-        | Method::ListNodes
-        | Method::ForgetNode
-        | Method::ExportSession
-        | Method::ImportSession
-        | Method::ExportMemory
-        | Method::ImportMemory
-        | Method::ReadTransfer
-        | Method::CloseTransfer
-        | Method::SetSecret
-        | Method::ListSecrets
-        | Method::DeleteSecret
-        | Method::CopySecret
-        | Method::LspWorkspaceSymbols
-        | Method::LspDocumentSymbols
-        | Method::LspDefinition
-        | Method::LspReferences
-        | Method::LspHover
-        | Method::LspImplementations
-        | Method::LspTypeDefinition
-        | Method::LspIncomingCalls
-        | Method::LspOutgoingCalls
-        | Method::LspDiagnostics
-        | Method::ListModels
-        | Method::HarnessOptions
-        | Method::SessionOptions
-        | Method::SetSessionOption
-        | Method::RenameSession
-        | Method::PromptSession
-        | Method::ChangeQueue
-        | Method::GetConversation
-        | Method::ResumeSession
-        | Method::MarkSession
-        | Method::DeleteSession
-        | Method::BeginUpload
-        | Method::WriteUpload
-        | Method::FinishUpload
-        | Method::ReadAttachment
-        | Method::ListProjects
-        | Method::GetProject
-        | Method::AddProject
-        | Method::CloneProject
-        | Method::InitProject
-        | Method::RemoveProject
-        | Method::ProjectCommands
-        | Method::ApproveCommands
-        | Method::ListWorktrees
-        | Method::CreateWorktree
-        | Method::SetupOutput
-        | Method::RunSetup
-        | Method::RemoveWorktree
-        | Method::ListSnapshots
-        | Method::DropSnapshot
-        | Method::GitStatus
-        | Method::GitChanges
-        | Method::GitDiff
-        | Method::GitShow
-        | Method::GitBranches
-        | Method::GitLog
-        | Method::GitStashes
-        | Method::GitStage
-        | Method::GitUnstage
-        | Method::GitDiscard
-        | Method::GitCommit
-        | Method::GitFetch
-        | Method::GitPush
-        | Method::GitPull
-        | Method::GitSwitch
-        | Method::GitRenameBranch
-        | Method::GitStash
-        | Method::ListDir
-        | Method::ReadFile
-        | Method::WriteFile
-        | Method::CreateDir
-        | Method::RenamePath
-        | Method::DeletePath
-        | Method::FindFiles
-        | Method::SearchFiles
-        | Method::ForgeStatus
-        | Method::ListPullRequests
-        | Method::GetPullRequest
-        | Method::OpenPullRequest
-        | Method::MergePullRequest
-        | Method::SetFeedback
-        | Method::CreateTerminal
-        | Method::ListTerminals
-        | Method::GetTerminal
-        | Method::ReadTerminal
-        | Method::SendTerminal
-        | Method::RenameTerminal
-        | Method::KillTerminal
-        | Method::CloseTerminal
-        | Method::ListScripts
-        | Method::RunScript
-        | Method::RestartScript
-        | Method::ListPorts
-        | Method::ListAgents
-        | Method::AddAgent
-        | Method::RemoveAgent
-        | Method::GetAgentStatus
-        | Method::GetCatalogue
-        | Method::InstallAgent
-        | Method::ReadInstall
-        | Method::JoinFleet
-        | Method::LeaveFleet
-        | Method::SyncFleet
-        | Method::GetFleetStatus
-        | Method::GetPublished
-        | Method::PreviewSchedule
-        | Method::ListSchedules
-        | Method::GetSchedule
-        | Method::CreateSchedule
-        | Method::UpdateSchedule
-        | Method::PauseSchedule
-        | Method::ResumeSchedule
-        | Method::RunSchedule
-        | Method::DeleteSchedule
-        | Method::ListRuns
-        | Method::GetUsageLimits
-        | Method::SetUsageLookup
-        | Method::QueryUsage
-        | Method::ListPrompts
-        | Method::CreatePrompt
-        | Method::UpdatePrompt
-        | Method::DeletePrompt
-        | Method::ListInbox
-        | Method::GetInboxEntry
-        | Method::MarkInbox
-        | Method::GetPushKey
-        | Method::SubscribePush
-        | Method::UnsubscribePush
-        | Method::ReportPushPresence
-        | Method::SearchMessages
-        | Method::ParkSession
-        | Method::WakeSession
-        | Method::GetNodeSettings
-        | Method::SetNodeSettings
-        | Method::ForkSession
-        | Method::RewindSession
-        | Method::GetAgentHistory => true,
-    }
+    !matches!(method.shape(), MethodShape::Stream)
 }
 
 /// `n` as a `NonZeroUsize` for constants.
@@ -615,6 +275,20 @@ impl Connection {
         &self.shared.welcome
     }
 
+    /// Validate a call before preparatory work that must not happen for an
+    /// unsupported request, without reserving an id or sending a frame.
+    /// The actual send repeats the same shared check; this grants no authority.
+    ///
+    /// # Errors
+    /// The call needs an unassigned or newer protocol version.
+    pub fn check_call(&self, call: &Call) -> Result<(), CallError> {
+        protocol::check(
+            call.method(),
+            call.required_protocol(),
+            self.shared.welcome.protocol,
+        )
+    }
+
     /// Call a method and wait for its typed answer. Dropping the future
     /// cancels the call on the node.
     ///
@@ -714,8 +388,7 @@ impl Connection {
     }
 
     async fn start(&self, call: Call, waiter: Waiter) -> Result<PendingCall<'_>, CallError> {
-        let negotiated = self.shared.welcome.protocol;
-        protocol::check(call.method(), call.required_protocol(), negotiated)?;
+        self.check_call(&call)?;
         let id = self
             .shared
             .ids

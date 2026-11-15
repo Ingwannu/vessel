@@ -244,9 +244,18 @@ fn every_failure_and_action_has_a_whole_localized_explanation_and_next_step() {
             ),
         ] {
             let words = lang.devices();
-            assert_eq!(words.list_problem(why), format!("{list} {reason}"));
-            assert_eq!(words.invite_problem(why), format!("{invite} {reason}"));
-            assert_eq!(words.revoke_problem(why), format!("{revoke} {reason}"));
+            assert_eq!(
+                words.list_problem(why, translations(lang)),
+                format!("{list} {reason}")
+            );
+            assert_eq!(
+                words.invite_problem(why, translations(lang)),
+                format!("{invite} {reason}")
+            );
+            assert_eq!(
+                words.revoke_problem(why, translations(lang)),
+                format!("{revoke} {reason}")
+            );
         }
     }
 }
@@ -277,7 +286,8 @@ fn every_age_reads_as_a_whole_phrase_in_both_languages() {
 #[test]
 fn every_request_state_has_one_shared_badge_meaning() {
     use crate::devices::{Inviting, Listing, Revoking, Tickets};
-    let ticket = Tickets::default().next_ticket().unwrap();
+    let mut tickets = Tickets::default();
+    let ticket = tickets.next_ticket().unwrap();
     assert_eq!(Listing::Empty.variant(), Variant::Muted);
     assert_eq!(Listing::Loading(ticket).variant(), Variant::Muted);
     assert_eq!(Listing::Ready(Vec::new()).variant(), Variant::Success);
@@ -290,15 +300,12 @@ fn every_request_state_has_one_shared_badge_meaning() {
     );
     assert_eq!(Inviting::Failed(Problem::Offline).variant(), Variant::Error);
     assert_eq!(Revoking::Empty.variant(), Variant::Muted);
-    assert_eq!(Revoking::Confirm(phone()).variant(), Variant::Muted);
-    assert_eq!(
-        Revoking::Sending {
-            ticket,
-            device: phone()
-        }
-        .variant(),
-        Variant::Muted
-    );
+    let mut revoking = super::selected(phone(), &mut tickets);
+    assert_eq!(revoking.variant(), Variant::Muted);
+    let context = revoking.context().unwrap().clone();
+    let intent = revoking.intent().unwrap();
+    assert_eq!(revoking.confirm(&context, intent, ticket), Some(phone().id));
+    assert_eq!(revoking.variant(), Variant::Muted);
     assert_eq!(Revoking::Failed(Problem::Offline).variant(), Variant::Error);
 }
 
@@ -343,4 +350,40 @@ fn the_pairing_destination_stays_with_the_form_after_the_heading_scrolls_away() 
         Lang::Ko.devices().name_hint("laptop"),
         "laptop에 기기 하나를 페어링하는 링크입니다. 10분 동안 한 번만 사용할 수 있습니다."
     );
+}
+
+fn translations(lang: Lang) -> &'static crate::localization::Translator {
+    let tag = match lang {
+        Lang::En => "en",
+        Lang::Ko => "ko",
+    };
+    crate::localization::Translator::get(crate::localization::Locale::from_tag(tag).unwrap())
+        .unwrap()
+}
+
+#[test]
+fn replaced_connection_refusals_are_whole_sentences_per_action_in_both_languages() {
+    for (lang, changed, list, invite, revoke) in [
+        (
+            Lang::En,
+            "The machine’s connection changed. Refresh its devices and try again.",
+            "Could not list devices because the machine’s connection changed. Refresh its devices and try again.",
+            "Could not make a pairing link because the machine’s connection changed. Refresh its devices and make a new link.",
+            "Could not confirm access was revoked because the machine’s connection changed. Refresh its devices before trying again.",
+        ),
+        (
+            Lang::Ko,
+            "머신 연결이 바뀌었습니다. 기기 목록을 새로고침한 뒤 다시 시도하세요.",
+            "머신 연결이 바뀌어 기기를 불러오지 못했습니다. 기기 목록을 새로고침한 뒤 다시 시도하세요.",
+            "머신 연결이 바뀌어 페어링 링크를 만들지 못했습니다. 기기 목록을 새로고침한 뒤 새 링크를 만드세요.",
+            "머신 연결이 바뀌어 접근 해제 결과를 확인하지 못했습니다. 다시 시도하기 전에 기기 목록을 새로고침하세요.",
+        ),
+    ] {
+        let words = lang.devices();
+        let t = translations(lang);
+        assert_eq!(words.problem(Problem::TargetChanged, t), changed);
+        assert_eq!(words.list_problem(Problem::TargetChanged, t), list);
+        assert_eq!(words.invite_problem(Problem::TargetChanged, t), invite);
+        assert_eq!(words.revoke_problem(Problem::TargetChanged, t), revoke);
+    }
 }

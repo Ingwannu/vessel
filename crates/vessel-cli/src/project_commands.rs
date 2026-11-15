@@ -4,7 +4,7 @@
 use std::fmt::Write as _;
 
 use vessel_proto::scripts::{ScriptEntry, ScriptEntryView, ScriptKind};
-use vessel_proto::workspace::ProjectCommands;
+use vessel_proto::workspace::{ProjectCommands, ServicePorts, ServicePortsView};
 
 /// Keep every approved command in view before the CLI submits its digest.
 pub(crate) fn text(commands: &ProjectCommands) -> String {
@@ -19,6 +19,7 @@ pub(crate) fn text(commands: &ProjectCommands) -> String {
             teardown,
             scripts,
             terminals,
+            service_ports,
             digest,
             approved,
             last_approved,
@@ -30,6 +31,9 @@ pub(crate) fn text(commands: &ProjectCommands) -> String {
                 }
             }
             text.push_str(&crate::file_terminals::text(terminals));
+            if let Some(ports) = service_ports {
+                write_allocation(&mut text, ports);
+            }
             write_scripts(&mut text, scripts);
             let _written = writeln!(
                 text,
@@ -49,6 +53,17 @@ pub(crate) fn text(commands: &ProjectCommands) -> String {
             }
             text
         }
+    }
+}
+
+// Both approved choices remain visible, independently of execution precedence.
+fn write_allocation(text: &mut String, ports: &ServicePorts) {
+    let ServicePortsView { range, port_script } = ports.view();
+    if let Some(range) = range {
+        let _written = writeln!(text, "service port range: {range}");
+    }
+    if let Some(program) = port_script {
+        let _written = writeln!(text, "service port script: {program}");
     }
 }
 
@@ -82,13 +97,23 @@ mod tests {
     use super::*;
     use vessel_proto::workspace::{CommandsDigest, ServicePort};
 
-    #[test]
-    fn declared_ports_are_visible_beside_the_exact_command_and_folder() {
-        let commands = ProjectCommands::Listed {
+    fn listed(scripts: Vec<ScriptEntry>, service_ports: Option<ServicePorts>) -> ProjectCommands {
+        ProjectCommands::Listed {
             setup: Vec::new(),
             teardown: Vec::new(),
             terminals: Vec::new(),
-            scripts: vec![
+            scripts,
+            service_ports,
+            digest: CommandsDigest::from_sha256(std::array::from_fn(|_| 0xab)),
+            approved: false,
+            last_approved: None,
+        }
+    }
+
+    #[test]
+    fn declared_ports_are_visible_beside_the_exact_command_and_folder() {
+        let commands = listed(
+            vec![
                 ScriptEntry::new(
                     "dev".parse().unwrap(),
                     ScriptKind::Service,
@@ -98,13 +123,22 @@ mod tests {
                 )
                 .unwrap(),
             ],
-            digest: CommandsDigest::from_sha256(std::array::from_fn(|_| 0xab)),
-            approved: false,
-            last_approved: None,
-        };
+            None,
+        );
         assert!(
             text(&commands)
                 .contains("service dev: serve-approval-port  (in frontend)  (port 3210)\n")
         );
+    }
+    #[test]
+    fn allocation_approval_shows_both_choices_even_when_the_program_wins() {
+        let ports = ServicePorts::new(
+            Some("7000-7009".parse().unwrap()),
+            Some("tools/port-approval".parse().unwrap()),
+        )
+        .unwrap();
+        let shown = text(&listed(Vec::new(), Some(ports)));
+        assert!(shown.contains("service port range: 7000-7009\n"));
+        assert!(shown.contains("service port script: tools/port-approval\n"));
     }
 }

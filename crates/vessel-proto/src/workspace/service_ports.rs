@@ -18,6 +18,15 @@ pub struct ServicePorts {
     port_script: Option<PortScript>,
 }
 
+/// Every approved allocation choice, borrowed without exposing mutation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ServicePortsView<'a> {
+    /// Show the range even when the program has execution precedence.
+    pub range: Option<PortRange>,
+    /// Show the exact approved program, never a resolved filename.
+    pub port_script: Option<&'a PortScript>,
+}
+
 /// Why an allocation block cannot replace the node's allocation choice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum InvalidServicePorts {
@@ -39,6 +48,16 @@ impl ServicePorts {
             return Err(InvalidServicePorts::Empty);
         }
         Ok(Self { range, port_script })
+    }
+
+    /// Make a new approved field require a decision in every display.
+    #[must_use]
+    pub const fn view(&self) -> ServicePortsView<'_> {
+        let Self { range, port_script } = self;
+        ServicePortsView {
+            range: *range,
+            port_script: port_script.as_ref(),
+        }
     }
 
     /// Retain the inclusive range, even when a port script takes precedence later.
@@ -127,6 +146,22 @@ mod tests {
                 serde_json::from_str::<ServicePorts>(json).is_err(),
                 "{json}"
             );
+        }
+    }
+
+    #[test]
+    fn the_complete_view_keeps_each_present_or_absent_choice() {
+        let range: PortRange = "7000-7009".parse().unwrap();
+        let program: PortScript = "tools/port".parse().unwrap();
+        let choices = [
+            ServicePorts::new(Some(range), None).unwrap(),
+            ServicePorts::new(None, Some(program.clone())).unwrap(),
+            ServicePorts::new(Some(range), Some(program)).unwrap(),
+        ];
+        for ports in choices {
+            let ServicePortsView { range, port_script } = ports.view();
+            assert_eq!(range, ports.range());
+            assert_eq!(port_script, ports.port_script());
         }
     }
 

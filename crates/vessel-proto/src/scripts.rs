@@ -236,35 +236,43 @@ impl ProjectCommands {
         self.for_project_fields(protocol, crate::workspace::PROJECT_FILE_KEYS)
     }
 
+    // Keep both projections complete: an optional approved field needs a decision.
+    fn needs_project_fields(&self) -> bool {
+        match self {
+            Self::Listed {
+                setup: _,
+                teardown: _,
+                scripts,
+                terminals,
+                service_ports,
+                digest: _,
+                approved: _,
+                last_approved,
+            } => {
+                requires_project_fields(scripts, terminals, service_ports.as_ref())
+                    || last_approved.as_ref().is_some_and(|last| {
+                        let crate::workspace::CommandSet {
+                            setup: _,
+                            teardown: _,
+                            scripts,
+                            terminals,
+                            service_ports,
+                        } = &last.commands;
+                        requires_project_fields(scripts, terminals, service_ports.as_ref())
+                    })
+            }
+            Self::None | Self::Invalid { .. } => false,
+        }
+    }
+
     fn for_project_fields(
         &self,
         protocol: ProtocolVersion,
         since: Option<ProtocolVersion>,
     ) -> Option<Self> {
-        // A new approved field must force a decision here, even if optional.
-        if let Self::Listed {
-            setup: _,
-            teardown: _,
-            scripts,
-            terminals,
-            digest: _,
-            approved: _,
-            last_approved,
-        } = self
-            && since.is_none_or(|since| protocol < since)
-            && (requires_project_fields(scripts, terminals)
-                || last_approved.as_ref().is_some_and(|last| {
-                    let crate::workspace::CommandSet {
-                        setup: _,
-                        teardown: _,
-                        scripts,
-                        terminals,
-                    } = &last.commands;
-                    requires_project_fields(scripts, terminals)
-                }))
-        {
+        if since.is_none_or(|since| protocol < since) && self.needs_project_fields() {
             return Some(Self::Invalid {
-                message: "this client cannot show the project file's terminal commands or service port declarations; approve from a newer client".to_owned(),
+                message: "this client cannot show the project file's terminal commands or service port configuration; approve from a newer client".to_owned(),
             });
         }
         if protocol >= SCRIPTS_SHOWN {
@@ -281,6 +289,7 @@ impl ProjectCommands {
                 approved,
                 scripts,
                 terminals,
+                service_ports,
                 last_approved: Some(_),
             } => Some(Self::Listed {
                 setup: setup.clone(),
@@ -289,6 +298,7 @@ impl ProjectCommands {
                 approved: *approved,
                 scripts: scripts.clone(),
                 terminals: terminals.clone(),
+                service_ports: service_ports.clone(),
                 last_approved: None,
             }),
             Self::None | Self::Listed { .. } | Self::Invalid { .. } => None,
@@ -300,8 +310,11 @@ impl ProjectCommands {
 fn requires_project_fields(
     scripts: &[ScriptEntry],
     terminals: &[crate::workspace::FileTerminal],
+    service_ports: Option<&crate::workspace::ServicePorts>,
 ) -> bool {
-    !terminals.is_empty() || scripts.iter().any(|script| script.port().is_some())
+    service_ports.is_some()
+        || !terminals.is_empty()
+        || scripts.iter().any(|script| script.port().is_some())
 }
 
 impl ScriptRunOutcome {
@@ -381,6 +394,7 @@ mod tests {
             approved: false,
             scripts,
             terminals: Vec::new(),
+            service_ports: None,
             last_approved: None,
         };
         let dev = ScriptEntry::new(
@@ -451,6 +465,7 @@ mod tests {
             teardown: Vec::new(),
             scripts: Vec::new(),
             terminals: vec![terminal],
+            service_ports: None,
             digest: "b".repeat(64).parse().unwrap(),
             approved: false,
             last_approved: None,
@@ -490,3 +505,6 @@ mod tests {
 
 #[cfg(test)]
 mod port_approval_tests;
+
+#[cfg(test)]
+mod allocation_approval_tests;

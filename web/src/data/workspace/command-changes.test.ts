@@ -245,3 +245,36 @@ describe("declared port coverage", () => {
     });
   });
 });
+
+describe("allocation block coverage", () => {
+  const ports = { range: "7000-7009", port_script: "tools/port-approval" };
+  it("refuses any current block, independently of which choices are present", () => {
+    for (const service_ports of [
+      { range: ports.range },
+      { port_script: ports.port_script },
+      ports,
+      {},
+    ]) {
+      const current = listed([], false, "b", { service_ports });
+      expect(approvalCoverage(current)).toBe("unsupported_ports");
+      expect(compareApproved(current, null)).toEqual({
+        kind: "unsupported_ports",
+      });
+    }
+  });
+  it("refuses removal of a block from the previous approval", () => {
+    const previous = approvedSet([], []);
+    previous.commands.service_ports = ports;
+    const current = listed([], false, "b", { last_approved: previous });
+    expect(compareApproved(current, null)).toEqual({
+      kind: "unsupported_ports",
+    });
+  });
+  it("refuses a block from the approved folder fallback", () => {
+    const current = listed([], false, "b");
+    const folder = listed([], true, "a", { service_ports: ports });
+    expect(compareApproved(current, folder)).toEqual({
+      kind: "unsupported_ports",
+    });
+  });
+});

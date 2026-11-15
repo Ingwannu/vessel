@@ -94,14 +94,51 @@ reference behavior and platform-specific UI checks. Existing English page
 labels and responsive layout are not a claim of translated or installed
 phone-app parity; shared translation integration remains a separate gap.
 
-Documentation uses fast checks only. Every code slice retains the complete
-Rust/web gate, both testkit and daemon prebuilds before tests, isolated
-owned SSD test data, frozen source identities, actual rebuilt binaries and
-served-asset verification. Tests use fake agents and synthetic vendor-shaped
-fixtures only; no real agent prompt, vendor account, real credential store,
+Documentation uses fast checks only. Implementation commits run narrow
+checks of their changed modules; each completed feature package retains
+one complete Rust/web gate before hand-over. This avoids repeating the
+whole queue for intermediate commits while preserving package-level
+regression coverage. The whole run includes both testkit and daemon
+prebuilds before tests, isolated owned SSD test data, identified source
+inputs, actual rebuilt binaries and served-asset verification. Tests use
+fake agents and synthetic vendor-shaped fixtures only; no real agent prompt, vendor account, real credential store,
 live preview or production service is touched. Browser traces/video and
 automatic failure screenshots remain off to keep credentials out of artifacts;
 intentional content-only visual evidence follows the separate capture path.
 Native, non-Linux/OS-IME, live-provider, independent security/licence and
 combined-integration approval must not be inferred from a page source table
 or one passed suite. No deployment or permission change is part of this ADR.
+
+
+## A2a: reported agent/profile scopes
+
+Purpose: make the ledger's existing agent/profile scopes available without
+estimating totals or treating historical names as current credentials.
+The wire is unchanged. A missing profile in an agent query includes every
+profile; a missing profile on a reported group means no name was recorded.
+It cannot be queried as a distinct unnamed group through that same field.
+
+Reuse the existing single-flight/latest-choice reader and row/select kit.
+One names-only catalogue, replaced by an accepted all-agent response,
+keeps the available recorded names while a narrower query is selected.
+It is bound to one machine, cleared on machine change/unmount/disconnect,
+and holds no token or cost facts. Names may originate in a different
+interval; the screen says they come from the last All agents report.
+Its partial-coverage flag remains visible. A chosen historical scope stays
+named if a later interval contains none of its reports.
+
+Each selection is sent to usage.query and displays its node-provided total;
+client summing of optional fields/costs or filtering a partial machine
+report was rejected. This also keeps redaction/precision/retention rules
+owned by the node. Refreshing All agents updates the catalogue. Queued
+scope objects are copied, including added-agent references; semantic keys
+are agent identity plus optional profile, so equality or label collisions
+do not change the requested scope. The catalogue does not inspect vendor
+logins or resolve a historical name against a current account.
+
+The reference remains Paseo usage/usage-section.tsx, list.tsx and card.tsx:
+separate read/error states and named source reports. Vessel's deliberate
+increment is the existing Settings select for a reported ledger scope;
+account-window cards and their lookup policy remain the separate limits
+slice. Long scope names wrap using this feature's existing control style;
+the shared select implementation is not replaced or changed.

@@ -45,6 +45,9 @@ pub enum AgentError {
 ///   handshake, starts a process with flags the session did not ask for.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum LaunchRefusal {
+    /// The transport has no proven transient system-instruction restore path.
+    #[error("the {0} driver does not support a transient system-prompt override")]
+    SystemPromptUnsupported(crate::Driver),
     /// A session choice this driver cannot launch with (an option or a
     /// value it does not offer).
     #[error(transparent)]

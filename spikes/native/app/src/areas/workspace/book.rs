@@ -61,6 +61,7 @@ pub(super) fn forget_pairs<K, V>(map: &mut HashMap<(String, K), V>, machine: &st
 impl Shell {
     /// Track E2's hook, called once after a book edit succeeded.
     pub(crate) fn workspace_book_applied(&mut self, edit: &Edit, cx: &mut Context<'_, Self>) {
+        self.layout_book_applied(edit, cx);
         match edit {
             Edit::Rename { from, to } => self.workspace_renamed(from.as_str(), to.as_str()),
             Edit::Forget(name) => self.workspace_forgot(name.as_str()),

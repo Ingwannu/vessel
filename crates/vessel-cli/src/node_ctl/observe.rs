@@ -10,6 +10,7 @@ use crate::args::Target;
 use crate::connect;
 use crate::error::CliError;
 
+use super::local_read::{Kind, Pending};
 use super::lock_wait::Released;
 
 /// Reporting keeps a requested shutdown distinct from observed local completion.
@@ -38,7 +39,6 @@ impl ExitObservation {
 }
 
 enum Locality {
-    Drain,
     Remote,
     Connection,
     Directory(VerifiedDirectory),
@@ -54,6 +54,7 @@ struct VerifiedDirectory {
 pub(super) struct Observer {
     client: NodeClient,
     locality: Locality,
+    when: StopWhen,
 }
 
 impl Observer {
@@ -67,15 +68,21 @@ impl Observer {
         client: &NodeClient,
         when: StopWhen,
     ) -> Result<Self, CliError> {
-        let locality = match when {
-            StopWhen::WhenIdle => Locality::Drain,
-            StopWhen::Now => locality(target, resolved, client).await?,
-        };
+        let locality = locality(target, resolved, client).await?;
         // NodeClient shares its connection; this copies no token or node data.
         Ok(Self {
             client: client.clone(),
             locality,
+            when,
         })
+    }
+
+    /// Disk observations require the directory authenticated by this connection.
+    pub(super) const fn directory(&self) -> Option<&DataDir> {
+        match &self.locality {
+            Locality::Directory(local) => Some(&local.dir),
+            Locality::Remote | Locality::Connection => None,
+        }
     }
 
     /// After request success, wait on the chosen lifecycle event, never a timer.
@@ -83,8 +90,11 @@ impl Observer {
     /// # Errors
     /// The OS-lock waiter cannot be created or its I/O fails.
     pub(super) async fn completed(&mut self) -> Result<ExitObservation, CliError> {
+        match self.when {
+            StopWhen::WhenIdle => return Ok(ExitObservation::Draining),
+            StopWhen::Now => {}
+        }
         match &mut self.locality {
-            Locality::Drain => Ok(ExitObservation::Draining),
             Locality::Remote => Ok(ExitObservation::Requested),
             Locality::Connection => {
                 self.client.closed().await;
@@ -109,8 +119,15 @@ async fn locality(
     }
     let dir = connect::data_dir(target)?;
     let reading = dir.clone();
-    let id = tokio::task::spawn_blocking(move || reading.read_node_id())
-        .await?
+    let mut pending = Pending::spawn(
+        Kind::Identity,
+        move || reading.read_node_id(),
+        || tracing::debug!("node identity read completed after its command ended"),
+    )?;
+    let id = pending
+        .wait()
+        .await
+        .map_err(CliError::IdentityReader)?
         .map_err(CliError::LocalIdentity)?;
     if id == Some(client.node().id) {
         Ok(Locality::Directory(VerifiedDirectory {

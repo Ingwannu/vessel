@@ -41,6 +41,7 @@ mod node;
 mod options;
 mod pairing;
 pub mod parking;
+pub mod plugins;
 pub mod ports;
 mod profile;
 mod proxy;
@@ -105,7 +106,7 @@ pub use id::{
     AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
     NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
     QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorktreeId,
+    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
@@ -137,9 +138,9 @@ pub use relay::{
 };
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
-    Hello, KillSession, ListHarnesses, ListSessions, Method, Outcome, ReadEvents, RenameSession,
-    Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe, Subscribed,
-    SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    Hello, KillSession, ListHarnesses, ListSessions, Method, MethodShape, Outcome, ReadEvents,
+    RenameSession, Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe,
+    Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
@@ -219,3 +220,6 @@ mod tests {
         assert_eq!(serde_json::from_str::<EventRecord>(&json).unwrap(), record);
     }
 }
+
+/// Read-only provider source identities and validated metadata.
+pub mod subagents;

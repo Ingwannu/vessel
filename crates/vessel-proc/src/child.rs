@@ -1,5 +1,6 @@
 //! [`spawn`] and [`Child`]: a piped child that is stopped as a group.
 
+use std::num::NonZeroU32;
 use std::process::Stdio;
 
 use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
@@ -9,6 +10,7 @@ use crate::error::{SignalError, SpawnError, Stream, WaitError};
 use crate::group::ProcessGroup;
 use crate::signal::Signal;
 use crate::spec::CommandSpec;
+use crate::{ProcessId, ProcessLifetime, ProcessLifetimeGuard};
 
 /// How often a refused signal looks again whether the leader has exited
 /// (`Child::reaped_within`).
@@ -58,7 +60,10 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
     let stderr = stderr.ok_or_else(|| missing(Stream::Stderr))?;
     let pid = inner
         .id()
+        .and_then(NonZeroU32::new)
         .ok_or_else(|| SpawnError::NoPid { program: program() })?;
+    let observation = ProcessLifetimeGuard::begin(ProcessId::from(pid));
+    let pid = pid.get();
     #[cfg(unix)]
     let group = ProcessGroup::of_leader(pid).map_err(|source| SpawnError::NotLeader {
         program: program(),
@@ -70,6 +75,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
         child: Child {
             inner,
             pid,
+            observation,
             #[cfg(unix)]
             group,
             state: State::Running,
@@ -90,6 +96,7 @@ pub fn spawn(spec: &CommandSpec) -> Result<Spawned, SpawnError> {
 pub struct Child {
     inner: os::Inner,
     pid: u32,
+    observation: ProcessLifetimeGuard,
     #[cfg(unix)]
     group: ProcessGroup,
     state: State,
@@ -110,6 +117,12 @@ impl Child {
         self.pid
     }
 
+    /// Observe this actual run without gaining signalling or revocation authority.
+    #[must_use]
+    pub fn lifetime(&self) -> ProcessLifetime {
+        self.observation.observer()
+    }
+
     /// Ask the child's process group to stop.
     ///
     /// On Unix this signals every process in the group. Windows has no
@@ -122,6 +135,7 @@ impl Child {
     /// # Errors
     /// Fails if the OS refuses to deliver the signal.
     pub fn signal(&mut self, signal: Signal) -> Result<(), SignalError> {
+        self.observation.revoke();
         if let State::Reaped(_) = self.state {
             return Ok(());
         }
@@ -175,7 +189,14 @@ impl Child {
         if let State::Reaped(code) = self.state {
             return Ok(code);
         }
-        let status = os::wait_for_leader(&mut self.inner).await?;
+        let status = match os::wait_for_leader(&mut self.inner).await {
+            Ok(status) => status,
+            Err(error) => {
+                self.observation.revoke();
+                return Err(error.into());
+            }
+        };
+        self.observation.revoke();
         let code = status.code();
         self.state = State::Reaped(code);
         self.sweep();
@@ -198,9 +219,10 @@ impl Child {
 /// Unix: kill the whole group of a child dropped before it was reaped; the
 /// runtime's orphan queue then reaps the leader. (On Windows dropping the
 /// job handle does the same: the job is kill-on-close.)
-#[cfg(unix)]
 impl Drop for Child {
     fn drop(&mut self) {
+        self.observation.revoke();
+        #[cfg(unix)]
         if self.state == State::Running {
             let group = self.group;
             if let Err(error) =

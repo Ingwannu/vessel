@@ -4,20 +4,24 @@
 //! - Purpose: the link task's refresh and connection sit beside the crate root, which then
 //!   fits its 500-line budget and leaves the size list, so packages can
 //!   register a module and a hub without growing a listed file.
-//! - Constraint: the bodies are exactly what they were in `lib.rs`; only
-//!   their visibility widens to `pub(super)` so the root actor still calls
-//!   them. Order and effects do not change.
+//! - Constraint: connection admission and retirement are hooks into the one
+//!   connection owner. Its module owns identity and read-refusal policy;
+//!   this module retains the existing refresh and connection path.
 //! - Alternatives: raise the root's recorded size (the list only shrinks).
 //! - Choice: a child module of the crate root, as `options.rs` is.
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{Connected, Event, KeptLists, LinkError, State, machines, nodes, offers};
 use chrono::Utc;
-use vessel_app_view::{Agent, Card, Fleet, Machine, NodeVersion, Reach};
+use vessel_app_view::{Agent, Fleet, Machine};
 use vessel_client::NodeClient;
 use vessel_proto::{AgentCommand, HarnessRef, ProtocolVersion};
 
 impl State {
+    pub(crate) async fn reload(&mut self) {
+        self.retire_connections().await;
+        self.refresh().await;
+    }
     /// List every machine's sessions, connecting to those not connected.
     pub(super) async fn refresh(&mut self) {
         let book = match self.saved_entries().await {
@@ -32,42 +36,21 @@ impl State {
                 return;
             }
         };
+        self.reconcile_connections(&book).await;
         let mut machines = Vec::with_capacity(book.len());
         for (name, entry) in book {
             let name = name.as_str().to_owned();
             let reach = if let Some(connected) = self.clients.get(&name) {
                 Ok(connected.clone())
             } else {
-                let reach = self.connect(&entry).await;
+                let reach = self.connect(&name, &entry).await;
                 if let Ok(connected) = &reach {
                     self.hand_kept(&name, &connected.client).await;
                 }
                 reach
             };
             let machine = match reach {
-                Ok(connected) => match connected.client.sessions().await {
-                    Ok(sessions) => {
-                        let machine = Machine {
-                            sessions: sessions
-                                .iter()
-                                .map(|session| Card::from_session(&name, session))
-                                .collect(),
-                            agents: connected.agents.clone(),
-                            protocol: Some(connected.client.protocol()),
-                            version: Some(NodeVersion::new(&connected.client.node().version)),
-                            name: name.clone(),
-                            reach: Reach::Online,
-                            node: Some(connected.client.node().id),
-                        };
-                        let _earlier = self.clients.insert(name, connected);
-                        machine
-                    }
-                    Err(error) => {
-                        // A dropped connection: dial again next time.
-                        let _gone = self.clients.remove(&name);
-                        Machine::unreachable(name, &error.to_string())
-                    }
-                },
+                Ok(connected) => self.read_sessions(name, connected).await,
                 Err(error) => Machine::unreachable(name, &error.to_string()),
             };
             machines.push(machine);
@@ -80,7 +63,8 @@ impl State {
     }
 
     pub(super) async fn connect(
-        &self,
+        &mut self,
+        name: &str,
         entry: &vessel_client::book::BookEntry,
     ) -> Result<Connected, LinkError> {
         let client = nodes::connect(entry, nodes::client_info(&self.label)).await?;
@@ -104,7 +88,7 @@ impl State {
         } else {
             Agent::all(&harnesses)
         };
-        Ok(Connected { client, agents })
+        self.admit_connection(name, entry, client, agents)
     }
 
     /// A machine just connected: the lists its agents gave last time, if

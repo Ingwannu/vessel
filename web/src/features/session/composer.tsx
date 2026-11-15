@@ -27,6 +27,7 @@ import { AttachmentStrip } from "../compose/attachment-strip";
 import { PromptBox } from "../compose/prompt-box";
 import { useSessionRoot } from "../workspace/use-session-root";
 import { SendButton } from "../compose/send-button";
+import { useCaretAfterText } from "../compose/use-caret";
 import { useDraft } from "../compose/use-draft";
 import { useSuggest } from "../compose/use-suggest";
 import { useShortcut } from "../shortcuts/handlers";
@@ -58,6 +59,9 @@ export const Composer = memo(function Composer({
   const draft = useDraft(session.id);
   const walk = useRef<Walk | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
+  // A rewrite's caret is placed in the commit that shows its text, not a
+  // frame later, where it undid a selection made meanwhile (use-caret.ts).
+  const placeCaret = useCaretAfterText(area);
   useShortcut("focus-composer", () => {
     area.current?.focus();
     return area.current !== null;
@@ -135,9 +139,7 @@ export const Composer = memo(function Composer({
       } else {
         setEditing({ ...editing, text: next });
       }
-      window.requestAnimationFrame(() => {
-        area.current?.setSelectionRange(caret, caret);
-      });
+      placeCaret(next, caret);
     },
   });
   const blocked = pending !== null || !live || sender.sending;
@@ -208,9 +210,7 @@ export const Composer = memo(function Composer({
         // Up leaves the caret at the start, so Up again goes older; Down
         // at the end (Paseo's edges).
         const at = key === "up" ? 0 : recalled.text.length;
-        window.requestAnimationFrame(() => {
-          area.current?.setSelectionRange(at, at);
-        });
+        placeCaret(recalled.text, at);
         return true;
       }}
       disabled={blocked}

@@ -22,8 +22,7 @@
 //!   process exits) found its directory locked. Unlocking releases it for
 //!   every copy.
 
-#[cfg(target_os = "linux")]
-mod kernel;
+mod query;
 
 use std::fs::{File, TryLockError};
 use std::io;
@@ -49,28 +48,7 @@ pub struct NodeOwner {
     pub started_at: DateTime<Utc>,
 }
 
-/// A kernel-observed process id, separate from a potentially stale owner record.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct NodeProcess(u32);
-
-impl NodeProcess {
-    #[cfg(target_os = "linux")]
-    const MINIMUM: u32 = 1;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct LockFileIdentity {
-    major: u64,
-    minor: u64,
-    inode: u64,
-}
-
-/// A kernel writer bound to a lock inode; it is never constructed from the record.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KernelLock {
-    process: NodeProcess,
-    file: LockFileIdentity,
-}
+pub use query::KernelLock;
 
 /// Absence from procfs is not evidence that a directory lock is free.
 /// PID namespaces and filesystem lock emulation can hide its writer.
@@ -141,15 +119,16 @@ impl NodeLock {
         }
     }
 
-    /// Query process authority without acquiring the lock or trusting its record.
+    /// Observe the selected lock without acquiring it or trusting its record.
     /// `NotVisible` does not mean free: the OS lock remains the availability proof.
     ///
     /// # Errors
-    /// Lock metadata or the bounded kernel lock table cannot be read or decoded.
+    /// Lock metadata or bounded kernel/process observations cannot be read,
+    /// decoded or confirmed for the same candidate.
     #[cfg(target_os = "linux")]
     pub fn kernel_holder(dir: &DataDir) -> Result<KernelProbe, StoreError> {
         let path = dir.lock_path();
-        Ok(kernel::observe(&path)
+        Ok(query::observe(&path)
             .map_err(StoreError::io(&path))?
             .map_or(KernelProbe::NotVisible, KernelProbe::Found))
     }
@@ -258,11 +237,9 @@ mod tests {
         let record = owner();
         let lock = NodeLock::acquire(&dir, &record).unwrap();
         let before = std::fs::read(dir.owner_path()).unwrap();
-        let KernelProbe::Found(kernel) = NodeLock::kernel_holder(&dir).unwrap() else {
+        let KernelProbe::Found(_) = NodeLock::kernel_holder(&dir).unwrap() else {
             panic!("no kernel writer");
         };
-        assert_eq!(kernel.process, NodeProcess(std::process::id()));
-        assert_eq!(kernel.process.0, record.pid);
         assert_eq!(before, std::fs::read(dir.owner_path()).unwrap());
         std::fs::write(dir.owner_path(), b"damaged").unwrap();
         assert!(matches!(

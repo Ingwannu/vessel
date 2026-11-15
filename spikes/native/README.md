@@ -149,6 +149,26 @@ app/src/
     board.rs, archive.rs, sidebar.rs
 ```
 
+### Workspace panes and session resources
+
+`view::layout` owns typed targets and keys, validated split tree, placement,
+compact sheets, close plans and durable projection. `areas/layout` is the sole
+native frame/renderer registration point, reusing kit tabs, menus, buttons and
+resize gestures. Feature areas own their content and backend lifecycle. No
+feature creates a parallel pane manager. The native adapter currently retains
+an explicit session-route bridge until authoritative workspace resolution is
+available; equal paths never imply equal workspace identity.
+
+The reviewed session resident contract is in
+[`wp-layout-residents.md`](../../docs/plans/wp-layout-residents.md).
+`view::residents` defines the pure per-window admission/focus/lifetime table and
+per-attempt reply fences. It contains no GPUI state or connection identity cache.
+The current SessionView and ConversationArea globals remain the only live product
+owner while concrete owner adapters are prepared; the coordinated cutover must
+remove those globals and the single follow together. Pure core tests do not prove
+multiple agent panes work. Package details and evidence limits are in
+[`wp-layout.md`](../../docs/plans/wp-layout.md).
+
 ### Adding a screen (an area)
 
 1. Its meaning in `view` (a module of its own, ported from the page's
@@ -191,6 +211,17 @@ stay in their tooltip and in the read-only details opened by the row, so
 touch does not depend on hover. Details and revoke use one view selection
 rule and never open a revoked/missing row or replace a pending confirmation.
 Ordinary paired rows have no repeated state badge.
+Devices binds its public data and callbacks to the authenticated NodeId and
+an actor-lifetime admission generation. The existing connection registry in
+`link/src/connections.rs` owns parsed book bindings and retirement; it is
+independent of whether reading sessions succeeds. A reload, observed binding
+replacement, successful rename/forget or transport loss retires old work.
+Confirmations additionally carry a distinct, non-reused intent. Requests and
+replies keep the same context; neither an alias lookup nor a late reply can
+retarget an operation. The contract and explicit observation limits are in
+`docs/plans/backend-m12-device-targets.md`. Effective scopes remain
+unknown until Devices queries the existing device.self call; a failed session
+read is no substitute.
 The area's `devices/row.rs` composes the shared row/button so a wrapped
 badge/action group retains its trailing edge; its bounds cases live beside
 it (verification status is in the G4 notes).
@@ -260,6 +291,9 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`Gauge` is the shared Usage navigation dial (16/20); `PackagePlus` is the
+catalog fallback (20). Both are original24-grid/1.5-stroke drawings, appended
+without replacing older vectors or adding aliases.
 `outline_button_with_glyph` puts one before an outline button's words
 (Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
 tone), as Settings › Overview's Remove draws its Trash2.
@@ -273,6 +307,10 @@ Labels remain whole and explanations belong below their row.
 26-point pointer / 44-point touch geometry, shared busy spinner, disabled
 primary, and `menu_right` for the menu aligned to the caret's right edge.
 The caller owns its actions, labels and menu state.
+Each explicit menu opening has a private render lease: callbacks retained from
+a prior opening or replaced state stand down before state, focus or action
+changes. See `../../docs/plans/backend-m12-menu-render-lease.md` for the lifecycle
+and headless GPUI proof boundary.
 
 Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
 is the explicit 14-point slot used by Paseo’s branch switcher.
@@ -292,6 +330,16 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+
+
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
+`kit/focus.rs` provides one weak, once-per-open return policy for controls.
+`DialogState::dismissed` acknowledges an actual close after the feature's
+pending/stale guards; it preserves a newer focus and clears the old cycle.
+Unadopted unit-close callers keep their prior behavior until they call it.
 
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
@@ -552,6 +600,13 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   leave the region showing old content. Measured on 2026-11-14 (release,
   composer focused on an open session, the caret blinking): the app's
   own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
+  A region is drawn again when its size changes, but layout comes after
+  drawing: a decision taken from a size measured at the last layout (a
+  list's viewport width) is a frame late, and with nothing else marking
+  the region it stays late. Such a decision checks itself with a canvas
+  that measures this frame and marks the region dirty only when the
+  answer changes (`conversation::outline::width_probe`, the chat outline
+  rail that stayed at 800 x 600 in 0.0.0.0.19).
 
 ### The brand's drawing (ADR 0059)
 
@@ -1169,3 +1224,59 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+Shared typed button content/loading/sizing is documented in
+`docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
+renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
+adds guarded disabled/loading callbacks and Small28/px12 in both layouts with
+Small20 ActivityIndicator. Medium is Pointer32/px16 or Touch44/px24; legacy
+no-Window signatures remain Pointer. The published outline glyph API retains
+its explicit tone and immediate-child geometry in the same shared renderer.
+
+Action menus retain one published renderer (menu_right/TopRight, QUICK appear,
+fill_in) and add typed leading14/16, Pending/Success, selectable Muted, KeepOpen,
+measured open_end and caller width. See docs/plans/backend-m12-g2-menu-base4.md
+for exact source, focus limits and consumer integration. The canonical palette
+GREEN_500 and existing CircleCheck own success ink/art; no second palette.
+
+The shared trigger adds ProviderRow (More14, visual32/r8/hit48, open/hover
+surface2+foreground, pressed surface3 background only) through one frame.
+trigger_presented takes typed Closed/Open with ButtonState. Existing entries
+keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
+visual footprint; passive size has no identity, input, glyph or anchor.
+See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
+
+Menu Content's typed Layer keeps Screen/priority1 as default and offers
+AboveDialog/priority3 through the same renderer. Its transparent viewport
+input boundary consumes only the nested menu's outside press, preserving
+its host dialog; no second scrim or area popup is drawn. See
+`docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.
+
+`kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
+Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
+muted text and SVG both become foreground on hover). It receives no URL and
+performs no OS action: callers keep their typed URL and opener. Use existing
+Tooltips only when the source consumer needs a hint. `None` is arrow-only.
+It has no button fill or private target override. Native Type::Meta supplies
+12/16 regular metrics where Paseo leaves line height platform-defined;
+accessibility/keyboard semantics remain the existing kit-wide gap.
+
+button_with_design accepts ButtonDesign::Regular(ButtonConfig) or the typed
+CircleConfig family through the same button body/input guard. CircleConfig
+has no density/regular-size/kind fields: it is44 square, round, icon20, with
+Surface (surface0/neutral border/foreground) or Danger (fixed palette red600,
+red800,white), no hover or pressed override. Loading uses shared Small20 and
+refuses clicks. Existing button_control and every legacy signature stay intact.
+Button::aria_label forwards an explicit role/name without creating a keymap;
+consumer accessibility/OS/first-use evidence remains unverified.

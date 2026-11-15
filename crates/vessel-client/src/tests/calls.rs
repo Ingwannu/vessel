@@ -80,7 +80,7 @@ async fn preview_is_refused_locally_before_protocol_13() {
 #[tokio::test]
 async fn fleet_controls_are_refused_before_their_declared_protocol() {
     use vessel_proto::Request as _;
-    let since = vessel_proto::GetFleetStatus::METHOD.since();
+    let since = vessel_proto::GetFleetStatus::METHOD.since().unwrap();
     let previous = ProtocolVersion::new(since.get().checked_sub(1).unwrap());
     let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
     let old_node = tokio::spawn(async move {
@@ -173,8 +173,14 @@ async fn agent_history_is_refused_locally_before_protocol_17() {
 #[tokio::test]
 async fn self_authority_is_refused_locally_on_an_older_direct_or_routed_connection() {
     use vessel_proto::{GetDeviceSelf, Request as _};
-    let previous =
-        ProtocolVersion::new(GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap());
+    let previous = ProtocolVersion::new(
+        GetDeviceSelf::METHOD
+            .since()
+            .unwrap()
+            .get()
+            .checked_sub(1)
+            .unwrap(),
+    );
     let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
     let old_node = tokio::spawn(async move {
         let _hello = node_end.next().await.unwrap().unwrap();
@@ -214,7 +220,7 @@ async fn usage_direct_and_every_envelope_are_refused_locally_on_an_old_hop() {
     use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
     use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall, Request as _};
     use vessel_rpc::{CallError, UnaryCall};
-    let needed = QueryUsage::METHOD.since();
+    let needed = QueryUsage::METHOD.since().unwrap();
     let previous = ProtocolVersion::new(needed.get().checked_sub(1).unwrap());
     let hop = node();
     let target = hop.id;
@@ -292,8 +298,8 @@ async fn usage_direct_and_every_envelope_are_refused_locally_on_an_old_hop() {
 async fn limits_policy_and_reads_send_no_frames_to_an_old_hop() {
     use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall, Request as _, limits::*};
     use vessel_rpc::{CallError, UnaryCall};
-    let needed = GetUsageLimits::METHOD.since();
-    assert_eq!(needed, SetUsageLookup::METHOD.since());
+    let needed = GetUsageLimits::METHOD.since().unwrap();
+    assert_eq!(Some(needed), SetUsageLookup::METHOD.since());
     let previous = ProtocolVersion::new(needed.get().checked_sub(1).unwrap());
     let hop = node();
     let target = hop.id;

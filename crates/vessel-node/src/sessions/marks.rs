@@ -111,9 +111,17 @@ impl Sessions {
     }
 
     /// Delete an ended session whole: its log, marks, queue and
-    /// attachments, files included.
+    /// attachments, files included. A session that has just ended is
+    /// waited for until the store serves it (`HAND_OVER_WAIT`).
     pub(crate) async fn delete(&self, id: SessionId) -> Result<(), ServiceError> {
-        match self.find(id).await? {
+        let found = match self.find(id).await? {
+            Found::Live { handle, .. } if handle.has_ended() => {
+                self.wait_stored(id).await?;
+                self.find(id).await?
+            }
+            found @ (Found::Live { .. } | Found::Stored(_)) => found,
+        };
+        match found {
             Found::Live { handle, .. } if handle.has_ended() => Err(ServiceError::LogWriting(id)),
             Found::Live { .. } => Err(ServiceError::Live(id)),
             Found::Stored(_) => {

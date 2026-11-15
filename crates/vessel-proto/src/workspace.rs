@@ -54,7 +54,7 @@ pub use project::{
 };
 pub use project_text::trim_project_text;
 pub use service_port::{InvalidServicePort, ServicePort};
-pub use service_ports::{InvalidServicePorts, ServicePorts};
+pub use service_ports::{InvalidServicePorts, ServicePorts, ServicePortsView};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,
