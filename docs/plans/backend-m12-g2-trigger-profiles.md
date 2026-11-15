@@ -42,3 +42,9 @@ pass; old native F5, focused TextField, hit/clip/neighbor and first-use evidence
 remain owed. V1 source disposition is pending. Coordinator assigned S2 the
 additive hierarchy writer AFTER this delta's checked source handoff; no second
 engine or concurrent draw writer. The temporary label retires after handoff.
+
+V1 source disposition412e1cff + coordinator1f884098 accepted ONLY the exact
+8158..6ece4a76 producer source/requested-Kit narrow. Handoff was sent to
+G1/G3/S2 with the exact range/API and all UI/OS/focused-TextField/nativeF5 limits.
+S2 now solely owns additive hierarchy in the SAME engine; G2 makes no concurrent
+menu draw/item/state edits. No App/full-F1/consumer UI approval is inferred.
