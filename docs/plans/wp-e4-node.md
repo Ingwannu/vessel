@@ -252,3 +252,9 @@ successful assigned-wire, native consumer, other-OS and deployment behavior
 are not claimed. The integrator assigns the version and validates the combined
 line, including supported/older-wire cases after assignment. No live service
 or permissions were changed.
+
+Pre-execution source check caught a responder fixture naming its reply after
+the response type rather than the canonical method variant. It now uses
+`Reply::Diagnostics`; no product method/DTO/number changes. The first queued
+strict attempt remains pinned to its original test source; no result is
+claimed from the correction before its own remote check.

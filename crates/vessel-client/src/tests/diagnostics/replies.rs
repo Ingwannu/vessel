@@ -100,7 +100,7 @@ async fn answer(peer: &mut MemoryTransport, id: RequestId, value: DiagnosticRepo
         peer.send(
             serde_json::to_string(&ServerFrame::Response {
                 id,
-                outcome: Outcome::Ok(Reply::DiagnosticReport(value)),
+                outcome: Outcome::Ok(Reply::Diagnostics(value)),
             })
             .unwrap(),
         ),

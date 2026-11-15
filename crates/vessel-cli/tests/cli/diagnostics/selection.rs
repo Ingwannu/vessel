@@ -67,7 +67,7 @@ async fn diagnostics_older_cli_peer_refuses_without_sending_a_request_or_local_f
         ] {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let address = listener.local_addr().unwrap().to_string();
-            let info = fixture.node().info().clone();
+            let info = fixture.node().info();
             let peer = tokio::spawn(async move {
                 let (socket, _address) =
                     phase("old peer accepts", listener.accept()).await.unwrap();
