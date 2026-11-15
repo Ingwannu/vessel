@@ -15,6 +15,7 @@ mod commands;
 mod connect;
 mod conversation;
 mod devices;
+mod diagnostics;
 mod error;
 mod file_terminals;
 mod fleet;
@@ -106,6 +107,12 @@ fn complain(text: &str) {
 
 async fn cli() -> ExitCode {
     let cli = Cli::parse();
+    let diagnostic_output = matches!(
+        &cli.command,
+        Command::Node {
+            command: args::NodeCommand::Diagnostics { .. }
+        }
+    );
     // A node shows its lifecycle; client commands only warnings.
     let default_level = match cli.command {
         Command::Node { .. } => "info",
@@ -141,8 +148,10 @@ async fn cli() -> ExitCode {
     };
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_unset| default_level.into()),
+            if diagnostic_output { "off".into() } else {
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_unset| default_level.into())
+            },
         )
         .with_writer(std::io::stderr)
         // Colours only for a person at a terminal, not for log files.
@@ -153,10 +162,14 @@ async fn cli() -> ExitCode {
     match Box::pin(commands::run(cli)).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            if io::note(&format!("error: {}\n", chain(&error)))
-                .await
-                .is_err()
-            {
+            // Diagnostic errors have a safe root Display. Their typed causes
+            // remain internal; normal commands keep the established chain.
+            let text = if diagnostic_output {
+                error.to_string()
+            } else {
+                chain(&error)
+            };
+            if io::note(&format!("error: {text}\n")).await.is_err() {
                 tracing::error!("could not report an error on stderr");
             }
             ExitCode::FAILURE
