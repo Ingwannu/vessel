@@ -31,62 +31,32 @@ use gpui_base::input::{
     EditorState, FoldRange, HighlightStyleResolver, InputEdit, InputHighlighter, Rope, RopeExt as _,
 };
 
-use crate::CodeTokens;
+use crate::syntax::{SyntaxColors, SyntaxStyle};
 
-/// What a run of code is, for its colour (the view's token kinds, which
-/// the app maps onto these).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyntaxKind {
-    /// A keyword.
-    Keyword,
-    /// A string.
-    String,
-    /// A comment.
-    Comment,
-    /// A number.
-    Number,
-    /// A constant (`true`, `None`).
-    Constant,
-    /// A called name, or markup's attribute.
-    Function,
-    /// Markup's tag (drawn as a keyword, as the page draws it).
-    Tag,
-}
+/// Source-compatible name for the one semantic syntax vocabulary.
+pub use crate::syntax::SyntaxStyle as SyntaxKind;
 
-impl SyntaxKind {
-    /// The name the engine's style resolver is asked for.
-    const fn name(self) -> &'static str {
-        match self {
-            Self::Keyword => "keyword",
-            Self::String => "string",
-            Self::Comment => "comment",
-            Self::Number => "number",
-            Self::Constant => "constant",
-            Self::Function => "function",
-            Self::Tag => "tag",
+/// The sole syntax style resolver, shared by editor and readonly preview.
+#[derive(Debug, Clone, Copy)]
+pub struct CodeStyles(SyntaxColors);
+impl CodeStyles {
+    /// Resolve the current independent syntax choice for this app scheme.
+    #[must_use]
+    pub fn of(scheme: crate::Scheme) -> Self {
+        Self(crate::syntax::selected().colours(scheme))
+    }
+    /// The same semantic span style used by editor and readonly rows.
+    #[must_use]
+    pub fn highlight(&self, kind: SyntaxKind) -> HighlightStyle {
+        HighlightStyle {
+            color: Some(self.0.colour(kind)),
+            ..HighlightStyle::default()
         }
     }
 }
-
-/// The current theme's code colours, as the engine's style resolver.
-pub(super) struct CodeStyles(pub(super) CodeTokens);
-
 impl HighlightStyleResolver for CodeStyles {
     fn style(&self, name: &str) -> Option<HighlightStyle> {
-        let colours = &self.0;
-        let colour = match name {
-            "keyword" | "tag" => colours.keyword,
-            "string" => colours.string,
-            "comment" => colours.comment,
-            "number" => colours.number,
-            "constant" => colours.constant,
-            "function" => colours.function,
-            _ => return None,
-        };
-        Some(HighlightStyle {
-            color: Some(colour),
-            ..HighlightStyle::default()
-        })
+        Some(self.highlight(SyntaxStyle::parse(name)?))
     }
 }
 

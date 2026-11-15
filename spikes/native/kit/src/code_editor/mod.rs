@@ -33,7 +33,7 @@ use gpui_base::input::{
     Position, RopeExt as _,
 };
 
-pub use syntax::{LineSyntax, Runs, SyntaxKind};
+pub use syntax::{CodeStyles, LineSyntax, Runs, SyntaxKind};
 
 use crate::theme::spacing;
 use crate::{Tokens, Type, TypeExt as _};
@@ -218,9 +218,7 @@ fn project(state: &Entity<EditorState>, tokens: &Tokens, cx: &mut App) {
         // foreground.
         editor_active_line: None,
         editor_gutter_background: Some(neutral.surface0),
-        highlight_styles: std::sync::Arc::new(syntax::CodeStyles(crate::CodeTokens::of(
-            tokens.scheme,
-        ))),
+        highlight_styles: std::sync::Arc::new(CodeStyles::of(tokens.scheme)),
         ..InputEditorStyle::default()
     };
     state.update(cx, |state, _cx| state.set_editor_style(style));

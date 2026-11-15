@@ -9,6 +9,7 @@
 
 pub mod palette;
 pub mod spacing;
+pub mod syntax;
 pub mod terminal;
 pub use palette::Palette;
 
