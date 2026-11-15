@@ -1,10 +1,13 @@
 # E2 actual Devices delivery fixture boundary (proposal)
 
-Status: V1/lead fixture plan boundary accepted; isolated portable source on
-gated c3429952 now includes the real Devices guard consumer. Source checks,
-feature/graph/runtime proof and V1 product-exposure review remain pending.
-The relay lifetime security package remains first. The shared writer slot
-remains lead-held; this branch is a proposed straight packet, not adopted.
+Current checkpoint: exact 9878 has bounded V1 source/strict/runtime and
+normal default App/VM-quality evidence. Actual wasm remains RED, independently
+reproduced on the unchanged announced base with the same 27 diagnostics and
+two warnings. The coordinator accepts no new wasm diagnostics against that
+base, lifting only this inherited-defect adoption hold; wasm is not passed.
+The current-line union and its source/check handoff remain due. W2 now owns
+the landed product guard exposure and actor registration; reuse them without
+duplicate installation. Earlier sections below retain historical checkpoints.
 This plan changes no root crate, SDK API, protocol, store or production route.
 
 ## Decision Log
@@ -279,3 +282,84 @@ booleans, and two test-only formatting/checked-date lints. The correction
 changes no assertion, capacity, deadline or state decision. The two e42 test
 paths now name the same enum directly; that is the only shared-test change.
 No all-target green or runtime result is claimed for0153.
+
+
+## Exact Unary delivery verification before the line union
+
+The isolated source is 9878a4b0. Strict run
+`devices-narrow-20261115T155113Z-9878a4b0` completed with zero warnings.
+Kit, Link and App were actually checked in that run; View was cached from
+the preceding unchanged View source. Runtime run
+`devices-narrow-20261115T155547Z-9878a4b0` actually compiled View, Link and
+App, with 1296 passed, zero failed and two ignored across eight sections.
+All eight framed App actor regression cases passed. This proves the authored
+Unary admission, queue installation, uncertainty and cleanup cases; it does
+not prove TLS authentication, actual principal clipping, GUI/focus, streams,
+physical phones or other platforms.
+
+The same source default ordinary App binary and VM quality completed in
+`devices-narrow-20261115T162155Z-9878a4b0`; fonts, quality and build all
+completed zero, with actual View/Link/Kit/App compilation. No capture or
+installed-service behavior follows from this binary build.
+
+The fixed six locked/offline graph records in
+`devices-20261115T153639Z-e284af90` completed zero and their manifests
+remain byte-identical through9878. They show the new direct Link-to-RPC
+edge only in native explicit testing, the existing SDK-to-RPC App baseline,
+and no RPC/client edge in the wasm graphs. These are graph observations,
+not compilation evidence.
+
+Actual wasm Link/View with testing enabled in
+`devices-20261115T164815Z-9878a4b0` FAILED: cargo101, 27 errors and two
+warnings. Static source comparison attributes the reported modules to
+inherited source; classification still requires the separately authorized
+announced-base testing-OFF check. The package testing-OFF leg was never
+submitted after that failure. Do not label graph isolation as wasm PASS.
+
+The subsequent W2 A4 packet provides the product guard export, selected
+constructor/queue and frozen actor registration. On the actual line union,
+reuse those source bytes, preserve its protocol getter and history hub,
+and add only this package's real Devices caller and explicit-testing
+Scenario dependency/module boundary. The preserved isolated evidence above
+is not a check of that future union.
+
+### W2 integration adjustment
+
+The original fixture plan described an isolated c342-based installation and
+excluded the then-unrelated history initializer. That is historical preparation,
+not an instruction to remove the now-landed A4 history owner. The current line
+union must preserve its history State field and initialize that existing hub in
+the same fixture State factory. Its actor remains unit-only, blob9bb5858b.
+The selected protocol getter and all existing A4 guard/queue exposure stay
+byte-identical. The fixture still closes/drains the Devices hub it exercises;
+it does not claim to drain every other feature's outstanding work.
+
+
+### Unchanged-base wasm classification and the coordinator's ruling
+
+The authorized ordinary run `devices-20261115T171319Z-82ca07a7` checked
+exact announced 82ca07a7, without package changes and with testing OFF:
+`check --locked -p vessel-app-link --target wasm32-unknown-unknown`. Fonts
+completed 0, actual View compilation/Link checking ended cargo101. Its 27
+primary error records match 9878's testing-ON failure exactly in code, message,
+source path, line and column. The same LinkError and SessionId imports produced
+two warnings. All nine primary diagnostic source blobs are also identical.
+The author verified exact spec/checkout, both step receipts and raw log SHA256
+values; the baseline native-cargo log is
+`2c50911d7a3c410af23f87ce8b8d1dadad8fbaf43c76900ba0a9f6445f35b28a`.
+
+This is actual unchanged-base reproduction, rather than static attribution.
+Per the explicit classification rule, no second baseline ON check or package
+OFF check was submitted and no cross-owner platform repair was attempted.
+The coordinator accepted the exact diagnostic match: the existing Link wasm
+defect belongs to a separate base row under the lead, and no longer blocks
+Devices adoption on the criterion of no new wasm diagnostics against base.
+This does not make Link wasm green, prove testing-OFF package compilation,
+or upgrade graph records to compile/runtime evidence.
+
+The older isolated checks remain exact 9878 evidence. The receiving line must
+retain W2's protocol getter, product guard/queue exposure and history hub,
+while the fixture actor remains the unchanged unit-only 9bb blob. Only the
+actual Devices caller and conditional testing Scenario edge are added by
+this packet. The receiving-base union gets its own changed-source checks and
+V1 review; no earlier check is renamed as a combined-line pass.

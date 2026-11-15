@@ -223,3 +223,21 @@ App checking did not complete, so no three-crate success is claimed.
 The correction remains unchecked while the coordinator's isolated relay
 lifetime security package is prioritized; queued Unary guard adoption still
 uses W12's exact reviewed staging only after the lead grants its writer slot.
+
+
+## Queued Devices delivery checkpoint
+
+The isolated 9878 source now carries the real canonical weak guard through
+Devices Unary answers, validates it after the App queue and again before
+frame/callback use, and retains interrupted writes as unconfirmed without
+automatic replay. Native strict, framed App actor runtime and default binary/
+quality evidence are recorded in wp-e2-device-fixtures.md. They are bounded
+producer checks, not full E2 UI/TLS/principal/phone acceptance.
+
+Actual Link wasm is RED on both the package and unchanged announced base 82ca,
+with exactly matching 27 primary diagnostics and two warnings. The coordinator
+accepts no-new-wasm-diagnostics for adoption and tracks that inherited defect
+separately under the lead; no wasm pass or broad platform isolation is claimed.
+W2's now-landed guard export/actor/protocol/history must remain intact in the
+next gated-line union. The full pairing flow, host-upsert consumption, relay
+consent and final feature captures/gate remain owed.
