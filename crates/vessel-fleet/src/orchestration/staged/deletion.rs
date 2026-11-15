@@ -1,7 +1,10 @@
 //! Staged same-filesystem deletion journal; full selection save also needs patch backups.
 //! A foreign or future journal is never authority to delete an agent directory.
 
-use super::{SkillHomes, SkillRoot, filesystem};
+use super::{
+    SkillHomes, SkillRoot, SkillService, filesystem,
+    patches::{self, Patch},
+};
 use crate::dir::{Dir, Entry};
 use crate::orchestration::SkillError;
 use serde::{Deserialize, Serialize};
@@ -53,6 +56,7 @@ struct Document {
     previous: Option<SkillSelection>,
     next: SkillSelection,
     removals: Vec<Removal>,
+    patches: Vec<Patch>,
 }
 
 #[derive(Debug)]
@@ -109,6 +113,7 @@ impl DeletionTransaction {
             previous,
             next,
             removals,
+            patches: Vec::new(),
         };
         let transaction = Self {
             state,
@@ -118,6 +123,27 @@ impl DeletionTransaction {
         };
         transaction.write()?;
         Ok(transaction)
+    }
+
+    pub(super) fn capture_patches(
+        &mut self,
+        service: &SkillService,
+        plan: &SkillsSnapshot,
+    ) -> Result<(), SkillError> {
+        self.document.patches = patches::capture(service, plan, &self.journal)?;
+        for home in service.homes.roots() {
+            if let Some(dir) = home.read()? {
+                // A patch may create a previously absent home; retain its handle.
+                if !self.roots.values().any(|root| root.path() == dir.path()) {
+                    let slot = HOMES
+                        .into_iter()
+                        .find(|slot| root(&service.homes, *slot).0 == home.0)
+                        .ok_or(SkillError::Recovery)?;
+                    let _old = self.roots.insert(slot, dir);
+                }
+            }
+        }
+        self.write()
     }
 
     fn write(&self) -> Result<(), SkillError> {
@@ -139,6 +165,14 @@ impl DeletionTransaction {
     }
 
     pub(super) fn rollback(self) -> Result<(), SkillError> {
+        for patch in self.document.patches.iter().rev() {
+            let dir = self
+                .roots
+                .values()
+                .find(|dir| dir.path() == patch.root)
+                .ok_or(SkillError::Recovery)?;
+            patch.rollback(dir, &self.journal)?;
+        }
         for removal in self.document.removals.iter().rev() {
             let dir = self.roots.get(&removal.home).ok_or(SkillError::Recovery)?;
             let staged = stage(&self.document.id, &removal.name);
@@ -170,6 +204,7 @@ impl DeletionTransaction {
         self.discard()
     }
     fn discard(self) -> Result<(), SkillError> {
+        filesystem::remove_directory(&self.journal, "backups")?;
         self.journal.remove_file(DOCUMENT)?;
         self.state.remove_dir(&filename(&self.document.id))?;
         Ok(())
@@ -221,6 +256,21 @@ pub(super) fn recover(
                 return Err(SkillError::Recovery);
             }
             let _old = roots.insert(removal.home, dir);
+        }
+        for path in document.patches.iter().map(|patch| &patch.root) {
+            let mut found = false;
+            for home in HOMES {
+                if let Some(dir) = root(homes, home).read()?
+                    && dir.path() == path
+                {
+                    let _old = roots.insert(home, dir);
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return Err(SkillError::Recovery);
+            }
         }
         let transaction = DeletionTransaction {
             state: state.open_dir(".")?,

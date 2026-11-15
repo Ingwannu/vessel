@@ -66,7 +66,7 @@ fn staged_service_captures_only_explicit_roots_and_the_shipped_catalogue() {
     assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
 }
 
-fn service(root: &std::path::Path, bundles: SkillBundles) -> SkillService {
+pub(super) fn service(root: &std::path::Path, bundles: SkillBundles) -> SkillService {
     SkillService {
         bundles,
         homes: SkillHomes {
@@ -77,7 +77,7 @@ fn service(root: &std::path::Path, bundles: SkillBundles) -> SkillService {
     }
 }
 
-fn catalogue(version: &str, extra: Option<(&str, &[u8])>) -> SkillBundles {
+pub(super) fn catalogue(version: &str, extra: Option<(&str, &[u8])>) -> SkillBundles {
     use crate::orchestration::{SkillAsset, SkillBundle};
     use std::sync::Arc;
     let text = format!("---\nname: vessel\n---\n{version}\n");

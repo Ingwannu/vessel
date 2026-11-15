@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 const PERMISSION_BITS: u32 = 0o777;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "u32", into = "u32")]
 pub(super) struct UnixMode(u32);
 impl TryFrom<u32> for UnixMode {
@@ -23,7 +23,7 @@ impl From<UnixMode> for u32 {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "platform", content = "permissions", rename_all = "snake_case")]
 pub(super) enum SavedMode {
     Unix(UnixMode),
@@ -31,6 +31,17 @@ pub(super) enum SavedMode {
 }
 
 impl SavedMode {
+    pub(super) fn private() -> Result<Self, SkillError> {
+        #[cfg(unix)]
+        {
+            Ok(Self::Unix(UnixMode::try_from(0o600)?))
+        }
+        #[cfg(not(unix))]
+        {
+            Ok(Self::Inherited)
+        }
+    }
+
     pub(super) fn read(file: &std::fs::File) -> Result<Self, SkillError> {
         #[cfg(unix)]
         {

@@ -11,6 +11,9 @@ pub(crate) const MANAGED_SKILL_MANIFEST: &str = ".vessel-managed-files.json";
 /// A bounded, portable bundled-skill operation failed.
 #[derive(Debug, thiserror::Error)]
 pub enum SkillError {
+    /// External writes prevented convergence within the bounded retry budget.
+    #[error("skills changed repeatedly while saving the selection")]
+    Unstable,
     /// The compiled bundle must obey the same safe-name rules as fleet files.
     #[error("invalid bundled skill name")]
     Name(#[from] vessel_proto::skills::InvalidSkillName),

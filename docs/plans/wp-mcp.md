@@ -242,3 +242,16 @@ and new choices roll back unless the commit marker was written. Tree cleanup
 preflights a named depth/entry budget and refuses special files. This remains
 staged code: selection-save file backups and the node controller are not yet
 wired, so it is not a completed transactional API.
+
+The staged selection controller now captures the exact union of bundled,
+previously managed and manifest paths before applying its frozen plan. Its
+private per-transaction backups retain original bytes and permission bits,
+with a total backup budget. Persistence runs last. Failed persistence restores
+only paths still matching this transaction's own applied state; conflicting
+external content retains both live data and backups. Recreated delete names
+also refuse rollback rather than overwriting. Save retries convergence at most
+three times and rechecks deletion confirmation on each fresh plan. A cleanup
+failure after successful persistence retains the journal and reports the save
+as committed, following Paseo's controller semantics. Synthetic-home tests
+exercise confirmation, persistence failure and external-edit conflicts; their
+execution remains pending.

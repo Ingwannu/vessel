@@ -5,7 +5,9 @@ mod deletion;
 mod filesystem;
 mod manifest;
 mod mode;
+mod patches;
 mod reconcile;
+mod selection;
 mod status;
 
 /// Shared and Claude are active; Codex only retires its dedicated old copy.

@@ -186,3 +186,35 @@ fn walk(
     }
     Ok(())
 }
+
+/// Rollback of a newly created skill removes only empty directories.
+pub(super) fn prune_empty(root: &Dir) -> Result<(), SkillError> {
+    prune(root, 0, &mut 0)
+}
+fn prune(root: &Dir, depth: usize, entries: &mut usize) -> Result<(), SkillError> {
+    if depth > MAX_REMOVAL_DEPTH {
+        return Err(SkillError::Budget);
+    }
+    root.each_name(|name| {
+        *entries = entries.saturating_add(1);
+        if *entries > MAX_REMOVAL_ENTRIES {
+            return Err(std::io::Error::other(
+                "skill directory entry budget exceeded",
+            ));
+        }
+        if root.entry(name)? == Entry::Dir {
+            let dir = root.open_dir(name)?;
+            prune(&dir, depth.saturating_add(1), entries).map_err(std::io::Error::other)?;
+            let mut any = false;
+            dir.each_name(|_name| {
+                any = true;
+                Ok(())
+            })?;
+            if !any {
+                root.remove_dir(name)?;
+            }
+        }
+        Ok(())
+    })?;
+    Ok(())
+}

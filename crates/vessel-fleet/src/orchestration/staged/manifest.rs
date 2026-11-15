@@ -63,14 +63,17 @@ pub(super) fn read(dir: &Dir) -> Result<Option<BTreeMap<BundlePath, BlobHash>>, 
     Ok(Some(parsed.files))
 }
 
-pub(super) fn write(dir: &Dir, bundle: &SkillBundle) -> Result<(), SkillError> {
+pub(super) fn encoded(bundle: &SkillBundle) -> Result<Vec<u8>, SkillError> {
     let files = bundle
         .files()
         .map(|asset| (asset.path().clone(), filesystem::hash(asset.bytes())))
         .collect();
-    let bytes = serde_json::to_vec(&ManagedFile {
+    Ok(serde_json::to_vec(&ManagedFile {
         version: FORMAT_VERSION,
         files,
-    })?;
-    filesystem::write(dir, &path()?, &bytes)
+    })?)
+}
+
+pub(super) fn write(dir: &Dir, bundle: &SkillBundle) -> Result<(), SkillError> {
+    filesystem::write(dir, &path()?, &encoded(bundle)?)
 }
