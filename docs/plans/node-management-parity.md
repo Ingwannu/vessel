@@ -42,8 +42,9 @@ slice order. The docs commit adds both and no command.
   the first focused clippy found an unused test exit status. The test now
   asserts that status. Final focused clippy and 25 related tests passed;
   its merged-tree whole gate is pending.
-- Contract: 2h service-file observations are documented; implementation
-  follows separately. No disk match gives loaded-manager authority.
+- Source: 2h service-file observations reuse installer paths and rendering,
+  with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
+  match gives loaded-manager authority. Focused and whole gates are pending.
 - Next: finish the 2g2 gate, then service observations and finalization, force/restart
   and slices 3/4. Proc implementation still awaits its integration decision.
   Actual managers and agents are unverified.
@@ -470,3 +471,11 @@ and renderers in a bounded file decoder, then inspect only a directory bound
 to the authenticated greeting. The current whole-gate commit stays frozen;
 this contract is prepared separately before code. No proc code, manager
 invocation, dependency edge, wire registration or loaded-state claim.
+
+The implementation adds template/byte-decoder tests and CLI cases for a
+personal file, invalid Unicode, draining, a blocked FIFO and another local
+directory's malformed file. A manager stand-in records any invocation;
+its log must remain absent. Existing test cases remain unchanged. Fixture
+HOME, VESSEL_HOME and XDG_CONFIG_HOME are isolated before the first lookup.
+The root remains on its independent 2g2 gate commit while this source is
+prepared in a separate tree. Proc work starts at the next clean boundary.

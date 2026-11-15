@@ -387,6 +387,9 @@ fn book_command(data: &Path, dir: &Path, args: &[&str]) -> Command {
         .args(args)
         .current_dir(dir)
         .env("VESSEL_CONFIG_DIR", data.join("config"))
+        .env("HOME", data)
+        .env("VESSEL_HOME", data)
+        .env("XDG_CONFIG_HOME", data.join("config"))
         .env_remove("VESSEL_TOKEN")
         .env_remove("VESSEL_NODE")
         .env_remove("VESSEL_SSH");
