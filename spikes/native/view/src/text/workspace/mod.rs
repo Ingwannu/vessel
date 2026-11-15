@@ -216,6 +216,9 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     /// The code panel's file view, its button when lines are chosen
     /// ("Add lines 12–20 to chat"); one line when `first` is `last`.
     fn add_lines(&self, first: usize, last: usize) -> String;
+    /// The file editor's toolbar: how many lines the file has (Paseo's
+    /// `lines`).
+    fn editor_lines(&self, count: usize) -> String;
     /// The code panel's search by name, the line above its results: how
     /// many files match; `searched` files were looked at, every file of
     /// the folder when `complete`; `capped` when as many came as the

@@ -176,6 +176,9 @@ the machine picker; Paseo's `desktopOnly`/`webOnly` per surface). A
 section registers its renderer once, in `settings::sections::page`; a
 section without one is not listed (no placeholder pages), so the list and
 the pages cannot disagree. State and event slots are added only when needed.
+Overview and Connections share one read of the machine book
+(`settings/book.rs`, asked while either is shown); a route reaches the
+screen as its endpoint only (`view::connections`).
 
 Sync is read-only: `link::sync` projects manifests into names and metadata
 before a UI event exists. Partial failures remain explicit; secret values
@@ -415,6 +418,12 @@ consumed at16 for pointer and20 for compact settings navigation.
 Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
+static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
+its caller owns the callback and pending state, with no extra paint. Unlike
+Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
 ### Rules every screen follows
 

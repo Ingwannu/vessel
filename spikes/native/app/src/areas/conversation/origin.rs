@@ -28,13 +28,14 @@
 //!   outline rail cover the fork's own turns only; a toggle in the
 //!   origin measures its rows again.
 
+use vessel_app_kit::skeleton;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, Styled, div, px,
 };
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
-use vessel_app_view::timeline::{Folds, Logs, Until, origin_of};
+use vessel_app_view::timeline::{Folds, Logs, Until, empty_fork, origin_of};
 use vessel_proto::{ErrorCode, EventRecord, SessionId};
 
 use super::entries::Paint;
@@ -53,13 +54,20 @@ pub(crate) enum Origin {
     /// says how long a read and its fold took).
     Reading {
         from: SessionId,
+        until: Until,
         asked: std::time::Instant,
     },
     /// Its origin's conversation, read.
     Shown(Box<ConversationArea>),
     /// Its origin could not be read: `removed` when the node no longer
-    /// has it, else why.
-    Unread { removed: bool, message: String },
+    /// has it, else why; the read is asked again when the session is
+    /// opened again (`from`, `until` kept for it).
+    Unread {
+        removed: bool,
+        message: String,
+        from: SessionId,
+        until: Until,
+    },
 }
 
 impl std::fmt::Debug for Origin {
@@ -95,11 +103,17 @@ impl Origin {
     }
 }
 
+/// The loading row's width while the origin is read (a line of words).
+const LOADING_WIDTH: f32 = 240.0;
+
 /// What the fork's first line has above or under it.
 #[derive(Debug, Clone, Copy)]
 pub(super) enum Above<'a> {
-    /// Nothing: not read (yet), or not a fork.
+    /// Nothing: not a fork, or an origin with no turns.
     Nothing,
+    /// The origin's log is being read: a quiet loading row above the line
+    /// (the kit's skeleton), so its turns do not appear without a cue.
+    Reading,
     /// The origin's turns: the line is their divider.
     Turns,
     /// The origin could not be read.
@@ -126,24 +140,58 @@ impl ConversationArea {
     pub(super) fn above(&self) -> Above<'_> {
         match &self.origin {
             Origin::Shown(origin) if !origin.rows.is_empty() => Above::Turns,
-            Origin::Unread { removed, message } => Above::Unread {
+            Origin::Unread {
+                removed, message, ..
+            } => Above::Unread {
                 removed: *removed,
                 message,
             },
-            Origin::None | Origin::Wanted { .. } | Origin::Reading { .. } | Origin::Shown(_) => {
-                Above::Nothing
-            }
+            Origin::Wanted { .. } | Origin::Reading { .. } => Above::Reading,
+            Origin::None | Origin::Shown(_) => Above::Nothing,
         }
     }
 
+    /// Whether the session is a fork that never held a conversation, as
+    /// its records last said (F2).
+    pub(super) fn empty_fork(&self) -> bool {
+        self.timeline
+            .status()
+            .is_some_and(|status| empty_fork(status).is_some())
+    }
+
     /// Entries from `from` came in: a `forked` line among them makes the
-    /// origin wanted (once).
+    /// origin wanted (once), unless the fork never held a conversation.
     pub(super) fn origin_seen(&mut self, from: usize) {
-        if !matches!(self.origin, Origin::None) {
+        if !matches!(self.origin, Origin::None) || self.empty_fork() {
             return;
         }
         let entries = self.timeline.entries();
         if let Some((from, until)) = entries.get(from..).and_then(origin_of) {
+            self.origin = Origin::Wanted { from, until };
+        }
+    }
+
+    /// A fork found to have never held a conversation shows no origin:
+    /// what was read of it leaves the list.
+    pub(super) fn origin_dropped(&mut self) {
+        if matches!(self.origin, Origin::None) || !self.empty_fork() {
+            return;
+        }
+        let head = self.head();
+        self.origin = Origin::None;
+        self.list.splice(0..head, 0);
+    }
+
+    /// The session shown was opened again: an origin that could not be
+    /// read (not removed) is asked for again.
+    pub(super) fn origin_again(&mut self) {
+        if let Origin::Unread {
+            removed: false,
+            from,
+            until,
+            ..
+        } = self.origin
+        {
             self.origin = Origin::Wanted { from, until };
         }
     }
@@ -169,6 +217,7 @@ impl Shell {
         let (from, until, machine) = (*from, *until, shown.machine.clone());
         area.origin = Origin::Reading {
             from,
+            until,
             asked: std::time::Instant::now(),
         };
         self.command(Command::Act {
@@ -183,7 +232,7 @@ impl Shell {
     pub(super) fn origin_answered(&mut self, answer: &ActAnswer, cx: &mut Context<'_, Self>) {
         let area = &mut self.areas.conversation;
         let asked = match area.origin {
-            Origin::Reading { from, asked } if from == answer.session => Some(asked),
+            Origin::Reading { from, asked, .. } if from == answer.session => Some(asked),
             Origin::None
             | Origin::Wanted { .. }
             | Origin::Reading { .. }
@@ -197,6 +246,11 @@ impl Shell {
         let Some(asked) = asked.filter(|_| answer.kind == ActKind::Log && on_machine) else {
             return;
         };
+        // The fork failed while its origin was read: nothing to show.
+        if area.empty_fork() {
+            area.origin = Origin::None;
+            return;
+        }
         match &answer.result {
             Ok(Acted::Log(records)) => {
                 let read = asked.elapsed();
@@ -217,10 +271,14 @@ impl Shell {
                 area.list.splice(0..0, rows);
             }
             Err(ActFailed { code, message }) => {
-                area.origin = Origin::Unread {
-                    removed: *code == Some(ErrorCode::NotFound),
-                    message: message.clone(),
-                };
+                if let Origin::Reading { from, until, .. } = area.origin {
+                    area.origin = Origin::Unread {
+                        removed: *code == Some(ErrorCode::NotFound),
+                        message: message.clone(),
+                        from,
+                        until,
+                    };
+                }
             }
             Ok(
                 Acted::Session(_)
@@ -303,6 +361,25 @@ pub(super) fn forked_line(paint: &Paint<'_>, words: String) -> AnyElement {
                     .child(paint.words.origin_unread(removed, message)),
             )
             .into_any_element(),
+        Above::Reading => {
+            let tokens = *paint.tokens;
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(spacing::S2))
+                .child(skeleton::pulse("origin-reading", move |opacity| {
+                    div().py(px(spacing::S1)).child(skeleton::shape(
+                        skeleton::Shape {
+                            size: gpui::size(px(LOADING_WIDTH), px(spacing::S3)),
+                            rounding: skeleton::Rounding::Medium,
+                        },
+                        opacity,
+                        &tokens,
+                    ))
+                }))
+                .child(line)
+                .into_any_element()
+        }
         Above::Nothing => line.into_any_element(),
     }
 }

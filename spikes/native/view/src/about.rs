@@ -44,6 +44,8 @@ pub enum Role {
     Accents,
     /// Pairing links as QR codes.
     QrCodes,
+    /// Reading a terminal program's output.
+    Terminal,
     /// The face of everything.
     Face,
     /// The face of code.
@@ -87,7 +89,7 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 
 /// Every dependency of the workspace, in its manifest's order, then the
 /// faces.
-pub const BUNDLED: [Bundled; 26] = [
+pub const BUNDLED: [Bundled; 28] = [
     krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Data),
     krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Data),
     krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Data),
@@ -114,6 +116,8 @@ pub const BUNDLED: [Bundled; 26] = [
         "(MIT OR Apache-2.0) AND Unicode-3.0",
         Role::Accents,
     ),
+    krate("vte", "Apache-2.0 OR MIT", Role::Terminal),
+    krate("unicode-width", "MIT OR Apache-2.0", Role::Terminal),
     krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
     face("Geist", Role::Face),
     face("Geist Mono", Role::CodeFace),
