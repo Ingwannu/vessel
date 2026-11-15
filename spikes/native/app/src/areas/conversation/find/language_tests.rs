@@ -72,6 +72,47 @@ fn a_language_change_rewords_update_facts_without_changing_them_or_input(
 struct FocusProbe {
     shell: gpui::Entity<Shell>,
 }
+
+#[gpui::test]
+fn reopening_retains_the_query_and_edits_cancel_only_its_pending_destination(
+    cx: &mut gpui::TestAppContext,
+) {
+    use gpui::AppContext as _;
+    use vessel_proto::EventSeq;
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| FocusProbe {
+        shell: cx.new(|cx| Shell::without_io(window, cx)),
+    });
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell.find_at("retained needle", EventSeq::new(10), window, cx);
+            shell.close_find(window, cx);
+            assert_eq!(shell.areas.conversation.find_query, "retained needle");
+            shell.open_find(window, cx);
+            assert_eq!(
+                shell.areas.conversation.find.as_ref().unwrap().query,
+                "retained needle"
+            );
+            assert!(
+                shell.areas.conversation.find_query.is_empty(),
+                "the query has one owner"
+            );
+            shell.find_target(EventSeq::new(10), cx);
+            shell.areas.conversation.reveal = Some(EventSeq::new(10));
+            shell.find_changed("replacement".to_owned(), cx);
+            assert_eq!(shell.areas.conversation.reveal, None);
+            shell.find_target(EventSeq::new(10), cx);
+            shell.areas.conversation.reveal = Some(EventSeq::new(20));
+            shell.find_changed("another".to_owned(), cx);
+            assert_eq!(
+                shell.areas.conversation.reveal,
+                Some(EventSeq::new(20)),
+                "an unrelated inbox destination stays"
+            );
+        });
+    });
+    cx.run_until_parked();
+}
 impl gpui::Render for FocusProbe {
     fn render(
         &mut self,
@@ -171,6 +212,10 @@ fn a_cancelled_search_cannot_run_against_a_reopened_bar(cx: &mut gpui::TestAppCo
             assert!(
                 shell.areas.conversation.find.is_none(),
                 "deactivation closes find"
+            );
+            assert!(
+                window.focused(cx).is_none(),
+                "deactivation never focuses a hidden composer"
             );
         });
     });

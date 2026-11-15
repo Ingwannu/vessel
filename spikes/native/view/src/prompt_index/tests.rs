@@ -233,3 +233,54 @@ fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session(
     );
     assert_eq!(index.entries().unwrap()[0].seq, EventSeq::new(2));
 }
+
+#[test]
+fn followed_fallback_includes_steers_and_uses_the_same_bounded_preview_as_metadata() {
+    use vessel_proto::{AgentEvent, ContentBlock, EventRecord, SessionEvent};
+    let text = "\u{feff}  한글\n prompt ";
+    let event = |seq, event| EventRecord {
+        seq: EventSeq::new(seq),
+        at: chrono::DateTime::UNIX_EPOCH,
+        event: SessionEvent::Agent { event },
+    };
+    let mut timeline = crate::timeline::Timeline::default();
+    let _change = timeline.apply(&[
+        event(
+            0,
+            AgentEvent::TurnStarted {
+                content: vec![ContentBlock::Text {
+                    text: text.to_owned(),
+                }],
+            },
+        ),
+        event(
+            1,
+            AgentEvent::MessageChunk {
+                content: ContentBlock::Text {
+                    text: "reply".to_owned(),
+                },
+            },
+        ),
+        event(
+            2,
+            AgentEvent::Steered {
+                content: vec![ContentBlock::Text {
+                    text: "steered".to_owned(),
+                }],
+            },
+        ),
+    ]);
+    let followed = crate::timeline::outline(timeline.entries());
+    let rows = PromptRows::new(None, &timeline, &followed);
+    assert_eq!(
+        rows.iter()
+            .map(|(_, row)| row.seq.get())
+            .collect::<Vec<_>>(),
+        [0, 2]
+    );
+    assert_eq!(rows.get(0).unwrap().preview, "한글 prompt");
+    assert_eq!(
+        rows.get(0).unwrap().preview,
+        PromptPreview::from_text(text).as_str()
+    );
+}

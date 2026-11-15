@@ -63,6 +63,12 @@ const DEBOUNCE: Duration = Duration::from_millis(120);
 /// A search hit must arrive in the followed log within Paseo's reveal deadline.
 const REVEAL_DEADLINE: Duration = Duration::from_millis(5_000);
 
+/// Escape returns to its opening surface; deactivation must not focus hidden UI.
+enum FindExit {
+    Restore,
+    Deactivate,
+}
+
 /// The find bar, while it is open.
 pub(crate) struct FindBar {
     field: TextField,
@@ -180,6 +186,7 @@ impl Shell {
             return;
         }
         let prior = window.focused(cx);
+        let recalled = std::mem::take(&mut self.areas.conversation.find_query);
         let words = self.t.lang.conversation();
         let field = TextField::with_change(
             words.find_in_session(),
@@ -188,6 +195,7 @@ impl Shell {
             window,
             cx,
         );
+        field.set_text(&recalled, window, cx);
         field.focus(window, cx);
         self.areas.conversation.find = Some(FindBar {
             field,
@@ -205,6 +213,7 @@ impl Shell {
             at: None,
             target: Rc::new(()),
         });
+        self.find_changed(recalled, cx);
         cx.notify();
     }
 
@@ -233,11 +242,25 @@ impl Shell {
 
     /// Close the bar.
     pub(super) fn close_find(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.finish_find(FindExit::Restore, window, cx);
+    }
+
+    fn finish_find(&mut self, exit: FindExit, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(bar) = self.areas.conversation.find.take() {
-            if let Some(prior) = bar.prior {
-                prior.focus(window, cx);
-            } else {
-                window.blur(cx);
+            self.areas.conversation.find_query = bar.query;
+            match exit {
+                FindExit::Restore => {
+                    if let Some(prior) = bar.prior {
+                        prior.focus(window, cx);
+                    } else {
+                        window.blur(cx);
+                    }
+                }
+                FindExit::Deactivate => {
+                    if bar.field.focus_handle(cx).is_focused(window) {
+                        window.blur(cx);
+                    }
+                }
             }
             cx.notify();
         }
@@ -251,7 +274,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if route != crate::routes::Route::Session {
-            self.close_find(window, cx);
+            self.finish_find(FindExit::Deactivate, window, cx);
             self.areas.conversation.outline_pointer.leave();
             self.areas.conversation.prompts.clear();
         }
@@ -272,6 +295,9 @@ impl Shell {
         let query: String = text.chars().take(MAX_QUERY).collect();
         if query == bar.query {
             return;
+        }
+        if bar.at.is_some() && self.areas.conversation.reveal == bar.at {
+            self.areas.conversation.reveal = None;
         }
         bar.query = query;
         bar.at = None;

@@ -188,3 +188,12 @@ Follow delivers bodies. Ready metadata shows every tick before those bodies
 arrive. Pointer callbacks keep session, sequence and epoch instead of an ordinal
 that could change under them. No second transcript, store, provider call or wire
 shape is introduced. The app's metadata and jump tests are pending validation.
+
+Find retains a single closed-widget query and moves it back into the next live
+bar on reopening the same session, matching Paseo `ChatFindModel.close/open`.
+Changing sessions clears this memory. Escape restores the opening focus;
+panel deactivation only blurs the disappearing find field and never focuses a
+hidden composer. Editing a pending query cancels only the reveal address owned
+by that find target. The link also refuses an unknown welcome identity until
+the shared fleet projection supplies one, so a reused book name alone is never
+read authority for metadata.

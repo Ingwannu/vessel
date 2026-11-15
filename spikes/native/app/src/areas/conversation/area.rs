@@ -162,6 +162,8 @@ pub(crate) struct ConversationArea {
     pub(super) reveal: Option<EventSeq>,
     /// The find bar, while it is open.
     pub(crate) find: Option<find::FindBar>,
+    /// Closed-widget memory; moved into the live bar when it reopens.
+    pub(super) find_query: String,
     /// Each entry's folded text for find, kept between searches of the
     /// session shown.
     pub(crate) find_cache: FindCache,
@@ -218,6 +220,7 @@ impl ConversationArea {
             outline_pointer: outline::Pointer::new(cx),
             prompts: super::prompts::Prompts::default(),
             find: None,
+            find_query: String::new(),
             find_cache: FindCache::default(),
             bench: bench::Bench::default(),
         }
@@ -273,6 +276,7 @@ impl ConversationArea {
         self.confirm = None;
         self.rename = None;
         self.find = None;
+        self.find_query.clear();
         self.find_cache = FindCache::default();
         self.outline.clear();
         self.queue_edit = None;

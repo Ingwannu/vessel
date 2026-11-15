@@ -89,11 +89,20 @@ async fn an_unadmitted_call_sends_no_frame_and_keeps_the_original_target_and_tic
     )
     .await
     .unwrap();
-    let request = ask();
+    let mut request = ask();
+    request.target.node = Some(client.node().id);
     let (events, mut answers) = mpsc::channel(1);
-    Hub::default()
-        .ask(Some(client), request.clone(), events)
-        .await;
+    let hub = Hub::default();
+    for node in [None, Some(NodeId::random())] {
+        let mut wrong = request.clone();
+        wrong.target.node = node;
+        hub.ask(Some(client.clone()), wrong, events.clone()).await;
+        let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
+            panic!("wrong reply");
+        };
+        assert_eq!(answer.result, Err(IndexProblem::Connection));
+    }
+    hub.ask(Some(client), request.clone(), events).await;
     let crate::Event::PromptIndex(answer) = answers.recv().await.unwrap() else {
         panic!("wrong reply");
     };

@@ -60,7 +60,7 @@ mod native {
                     .await;
                 return;
             };
-            if ask.target.node.is_some_and(|node| client.node().id != node) {
+            if ask.target.node != Some(client.node().id) {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {
                         ask,
