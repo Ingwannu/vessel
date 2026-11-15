@@ -74,3 +74,24 @@ parser or vendor API is needed. Tests exercise byte ranges with Hangul and
 actual engine notifications across unchanged/changed themes and clones.
 This correction is newer than the exact27194 queued tests and remains
 uncompiled/unexecuted until its own immutable source is checked.
+
+## Source-copy consumer gap (not covered by engine-preservation tests)
+
+Paseo diff-document/hit-testing.test.ts119–170 expects unified copy to retain
+headers, but split new-side copy to omit headers/null old-only cells; old-side
+copy retains its own header and source. Header select-all prefers new, with an
+old-side fallback for deletion-only hunks. hit-testing.ts selectedCellRanges
+skips null cells; model.ts lineSources emits the hunk header in one cell.
+
+The current C3 BufferColumns repeats a header in both columns and uses empty
+engine rows for missing cells. Ordinary native Copy therefore includes that
+header/empty padding. The queued27194 fixtures assert selection/clipboard equals
+the admitted buffer, not exact Paseo split-source extraction. They remain valid
+engine-preservation checks but cannot be reported as source-copy parity.
+
+This is unresolved C3 consumer work, not a silently accepted difference or a
+reason to change patch7's engine selection/copy model. A possible Kit-only
+projection of the same selected byte range through immutable row metadata has
+been sent to the lead/V1 before any implementation. No competing selection
+engine, vendor API widening, failing/blessed reference fixture or fabricated UI
+proof is introduced by this note.
