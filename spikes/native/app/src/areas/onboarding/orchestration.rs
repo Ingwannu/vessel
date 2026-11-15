@@ -57,9 +57,6 @@ fn refresh(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
         cx.spawn(async move |this, cx| {
             let result = read.await;
             let _closed = this.update(cx, |shell, cx| {
-                if shell.areas.onboarding.integrations.query != Some(ticket) {
-                    return;
-                }
                 let facts = match result {
                     Ok(snapshot) => Facts::Ready(snapshot),
                     Err(error) => Facts::Failed(error),
@@ -152,9 +149,6 @@ fn execute(
             cx.spawn_in(window, async move |this, cx| {
                 let result = work.await;
                 let _closed = this.update_in(cx, |shell, window, cx| {
-                    // An authorized mutation outranks every earlier status read,
-                    // including a read from a flow that was closed/reopened.
-                    shell.areas.onboarding.integrations.query = None;
                     let outcome = match result {
                         Ok(snapshot) => {
                             if snapshot.status == CliStatus::Installed
@@ -164,11 +158,17 @@ fn execute(
                                 shell.notice =
                                     Some(shell.words.desktop_shell().path_manual().to_owned());
                             }
-                            shell.areas.onboarding.integrations.facts = Facts::Ready(snapshot);
+                            install_mutation(
+                                &mut shell.areas.onboarding.integrations,
+                                Facts::Ready(snapshot),
+                            );
                             Outcome::Applied
                         }
                         Err(error) => {
-                            shell.areas.onboarding.integrations.facts = Facts::Failed(error);
+                            install_mutation(
+                                &mut shell.areas.onboarding.integrations,
+                                Facts::Failed(error),
+                            );
                             Outcome::Refused
                         }
                     };
@@ -217,6 +217,13 @@ fn install_query(setup: &mut Setup, ticket: Ticket, facts: Facts) -> bool {
     }
     setup.facts = facts;
     true
+}
+
+fn install_mutation(setup: &mut Setup, facts: Facts) {
+    // An authorized mutation outranks every earlier status read, including a
+    // read from a flow that was closed/reopened while the operation continued.
+    setup.query = None;
+    setup.facts = facts;
 }
 
 fn failed(shell: &Shell) -> bool {
@@ -388,8 +395,7 @@ mod tests {
             path: PathStatus::Configured,
         };
         // The original install may finish after its old flow was abandoned.
-        setup.query = None;
-        setup.facts = Facts::Ready(installed);
+        install_mutation(&mut setup, Facts::Ready(installed));
         let stale = Snapshot {
             status: CliStatus::Absent,
             ..installed
