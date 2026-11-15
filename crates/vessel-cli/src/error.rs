@@ -35,6 +35,12 @@ pub(crate) enum CliError {
     /// A disappeared waiter must not be reported as completed shutdown.
     #[error("the node lock waiter ended without a completion")]
     LockWaiter(#[source] tokio::sync::oneshot::error::RecvError),
+    /// A lost preflight result cannot authorize a shutdown.
+    #[error("node preflight reader exited before reporting its result")]
+    PreflightReader(#[source] tokio::sync::oneshot::error::RecvError),
+    /// A lost identity result cannot bind local observations.
+    #[error("node identity reader exited before reporting its result")]
+    IdentityReader(#[source] tokio::sync::oneshot::error::RecvError),
     /// Local lifecycle checks preserve the store's original I/O cause.
     #[error("cannot inspect the node lock")]
     NodeLock(#[source] vessel_node::StoreError),

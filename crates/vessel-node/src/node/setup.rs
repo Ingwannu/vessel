@@ -1,10 +1,12 @@
-//! What sessions are created with, prepared once at node start: the
+//! Bootstrap helpers prepared once at node start: the
 //! node's profiles, the model routes, the launch seam and the directories
 //! sessions and probes use. Moved out of `node.rs` unchanged (Quality B),
 //! which assembles the node from it.
 
+use crate::error::NodeError;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 
 use vessel_proto::NodeId;
 
@@ -77,6 +79,30 @@ impl SessionSetup {
     }
 }
 
+/// The model proxy's listener, on a port of loopback's the system picks
+/// (harnesses learn it from their environment). It is served from `core`'s
+/// stop: model calls end with the node, a harness still calling gets its
+/// connection closed, as its session is interrupted anyway.
+pub(super) async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeError> {
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .map_err(NodeError::ModelProxy)?;
+    models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
+    Ok((Arc::new(models), listener))
+}
+
+pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
+    let limits = vessel_llm::client::Limits::default();
+    vessel_llm::client::Client::new(limits)
+        .or_else(|error| {
+            // The target it had in node.rs before the move, so log filters
+            // that select it keep working.
+            tracing::warn!(target: "vessel_node::node", %error, "model calls to https providers will fail");
+            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
+        })
+        .map_err(NodeError::ModelClient)
+}
+
 /// The LSP manager's configuration with the operator's roots filled in:
 /// executables and toolchains inside any configured root are not trusted
 /// for conservative analysis, so the registry needs the full list.
@@ -109,13 +135,13 @@ pub(super) struct Startup {
     pub(super) lock: vessel_store::NodeLock,
     pub(super) store: vessel_store::Store,
     pub(super) models: Arc<Models>,
-    pub(super) proxy: tokio::net::TcpListener,
+    pub(super) proxy: TcpListener,
     pub(super) session_setup: SessionSetup,
     pub(super) clients: vessel_relay::address::ClientAddress,
     pub(super) relaying: Option<(vessel_proto::RelayToken, vessel_relay::TlsConfig)>,
 }
 impl Startup {
-    pub(super) async fn open(config: &Config) -> Result<Self, crate::error::NodeError> {
+    pub(super) async fn open(config: &Config) -> Result<Self, NodeError> {
         // Keep the checks and I/O in the exact original order. A malformed
         // relay/proxy must still fail before any node state starts.
         let clients = super::client_address(config)?;
@@ -130,7 +156,7 @@ impl Startup {
             dirs,
         } = super::prepare_off_thread(config).await?;
         let store = super::open_store(config).await?;
-        let (models, proxy) = super::model_proxy(models).await?;
+        let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
         Ok(Self {
             id,
