@@ -1461,3 +1461,19 @@ connection/origin shares, one pending read per view and a finite global ceiling;
 no permit acquisition waits or new task map. These are contract corrections only,
 not approval of a new public API or executed responder evidence. Resend to V3;
 NodeAuthority remains OFF, and C2 whole/full consumer qualification remains open.
+
+### Real PTY queue-pressure prerequisite fixture (not yet executed)
+
+Add Unix-only fake-tui --held-input in an isolated module: raw/no-echo stdin is
+never read until a loopback release command. Independent numbered tick commands
+produce real PTY output while input remains blocked. The vessel-pty regression
+fills the actual OS writer and existing64-message queue with bounded admitted
+blocks, cancels a uniquely marked enqueue at a finite test window, observes output
+during and after that pending wait plus process liveness, then releases stdin and
+checks the exact drained byte count and absence of the expired canary. No fake
+immediate error, alternate writer, new dependency, sleeps/poll loop or node responder
+is introduced. Existing normal fake-TUI behavior is unchanged. This establishes
+real enqueue/cancellation conditions only: it does not exercise a not-yet-written
+Silent latch or prove writer delivery/cleanup/quiescence. The test fixture window
+is not a second production policy constant. Remote fixture execution and later
+node composition remain owed before responder implementation/activation.

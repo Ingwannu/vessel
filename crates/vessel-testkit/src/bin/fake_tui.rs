@@ -9,6 +9,7 @@
 //!    when `FAKE_TUI_LOGGED_OUT` is set (a profile's environment can set
 //!    it); `fake-tui login status` (`codex`'s) prints `Logged in using a
 //!    fake` or `Not logged in`, in Codex's words.
+//!    Unix-only `--held-input` instead runs the isolated real-PTY backpressure fixture.
 //! 2. Otherwise it starts a grandchild (`fake-tui --sleeper`) that inherits
 //!    stdout and sleeps forever, and prints `grandchild <pid>`. The
 //!    grandchild stays in the process group, so it dies only if the group is
@@ -44,6 +45,10 @@ use std::process::{ExitCode, Stdio};
 
 use tokio::sync::mpsc;
 
+#[cfg(unix)]
+#[path = "fake_tui/held_input.rs"]
+mod held_input;
+
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     match args.next().as_deref() {
@@ -67,6 +72,8 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
+        #[cfg(unix)]
+        Some("--held-input") => held_input::run(),
         Some("--sleeper") => loop {
             // Parked forever; `park` may return spuriously, hence the loop.
             std::thread::park();
