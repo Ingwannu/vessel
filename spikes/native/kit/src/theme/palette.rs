@@ -155,6 +155,9 @@ fn mapped(base: Tokens, neutral: Neutrals, ring: Hsla) -> Tokens {
         btn_primary_fg: neutral.surface0,
         btn_secondary_bg: neutral.surface2,
         btn_secondary_bg_hover: neutral.surface3,
+        // A tinted theme is a dark one: the terminal keeps Paseo's dark
+        // terminal palette (T1's tokens.terminal, ADR 0073).
+        terminal: base.terminal,
     }
 }
 

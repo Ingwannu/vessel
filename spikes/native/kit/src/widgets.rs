@@ -219,27 +219,85 @@ pub fn outline_button(
     enabled: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let neutral = tokens.neutral;
+    pressable(
+        outline_body(enabled, tokens)
+            .text_color(tokens.neutral.foreground)
+            .child(label.into()),
+        id,
+        enabled,
+    )
+}
+
+/// The square of a button's leading glyph: Paseo's `ICON_SIZE.sm`, what
+/// its screens hand a button as `leftIcon` (host-page.tsx's Trash2,
+/// `theme.iconSize.sm`).
+const BUTTON_GLYPH: f32 = 14.0;
+
+/// [`outline_button`] with `glyph` before its words (Paseo's `leftIcon`,
+/// 8 between them, the button's own gap), both in `tone`: the foreground
+/// for an ordinary action, `destructive` for Paseo's "Remove" (its
+/// `destructiveTextStyle` with a Trash2 in the same colour).
+///
+/// [Decision Log]
+/// - Purpose: Paseo's buttons carry a leading glyph on several settings
+///   rows (Remove machine's Trash2 first); the kit's button took words
+///   only, so screens drew the action without it.
+/// - Alternatives: an optional glyph argument on every button entry
+///   (each caller changes); a glyph inside the label (the label wraps as
+///   text, so the glyph would wrap with it).
+/// - Choice: a sibling entry point on the outline pill, the variant those
+///   rows use; the filled kinds gain one when a screen needs it.
+/// - Cost: the glyph and the words share one colour, as every Paseo call
+///   site passes them.
+#[must_use]
+pub fn outline_button_with_glyph(
+    id: impl Into<gpui::ElementId>,
+    glyph: crate::assets::Glyph,
+    label: impl Into<SharedString>,
+    tone: Hsla,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    pressable(glyph_body(glyph, label, tone, enabled, tokens), id, enabled)
+}
+
+/// The glyph button's pill and content, before it takes its pointer.
+fn glyph_body(
+    glyph: crate::assets::Glyph,
+    label: impl Into<SharedString>,
+    tone: Hsla,
+    enabled: bool,
+    tokens: &Tokens,
+) -> Div {
+    outline_body(enabled, tokens)
+        .text_color(tone)
+        .child(crate::glyph(glyph, BUTTON_GLYPH, tone))
+        .child(label.into())
+}
+
+/// The outline pill both entry points draw their content in.
+fn outline_body(enabled: bool, tokens: &Tokens) -> Div {
     div()
-        .id(id)
         .flex()
         .flex_row()
         .flex_shrink_0()
         .items_center()
         .justify_center()
-        .gap(px(8.0))
-        .min_h(px(32.0))
-        .px(px(16.0))
+        .gap(BUTTON_GAP)
+        .min_h(BUTTON_HEIGHT)
+        .px(BUTTON_HORIZONTAL)
         .rounded_full()
         .border_1()
-        .border_color(neutral.border_accent)
-        .text_color(neutral.foreground)
+        .border_color(tokens.neutral.border_accent)
         .type_(Type::Label)
-        .when(enabled, |button| {
-            button.cursor_pointer().active(|style| style.opacity(0.85))
-        })
         .when(!enabled, |button| button.opacity(0.5))
-        .child(label.into())
+}
+
+/// An outline pill's pointer: pressed at 85% while enabled, none when not.
+fn pressable(body: Div, id: impl Into<gpui::ElementId>, enabled: bool) -> Stateful<Div> {
+    body.id(id).when(enabled, |button| {
+        button.cursor_pointer().active(|style| style.opacity(0.85))
+    })
 }
 
 /// A status dot (its word goes beside it: state is never colour alone).
