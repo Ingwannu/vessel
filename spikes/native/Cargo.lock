@@ -7562,6 +7562,7 @@ dependencies = [
  "vessel-proc",
  "vessel-proto",
  "vessel-rpc",
+ "winreg",
 ]
 
 [[package]]

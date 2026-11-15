@@ -87,7 +87,7 @@ desktop-shell-preferences-failed = The preference change could not be saved. You
 desktop-shell-cli-checking = Checking CLI installation…
 
 # CLI settings: status or complete action label; keep short.
-desktop-shell-path-ready = Open a new terminal to use Vessel on PATH.
+desktop-shell-path-ready = Open a new terminal (or sign out and in) to use vessel on PATH.
 
 # CLI settings: status or complete action label; keep short.
 desktop-shell-cli-path = Terminal PATH

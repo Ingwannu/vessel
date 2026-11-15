@@ -49,11 +49,14 @@ fn platform() -> Platform {
 fn prepare() -> Result<(Installation, PathSetup), DesktopError> {
     let home = dirs::home_dir().ok_or(DesktopError::RelativePath)?;
     let source = bundled_tool_path(&std::env::current_exe()?, platform(), BundledTool::Cli)?;
-    let target = home.join(".local/bin").join(if cfg!(windows) {
-        "vessel.cmd"
+    let target = if cfg!(windows) {
+        source
+            .parent()
+            .ok_or(DesktopError::RelativePath)?
+            .to_path_buf()
     } else {
-        "vessel"
-    });
+        home.join(".local/bin/vessel")
+    };
     let shell = std::env::var_os("SHELL").map(std::path::PathBuf::from);
     let path = PathSetup::new(
         &home,
@@ -70,10 +73,15 @@ fn facts(installation: &Installation, path: PathStatus) -> Result<Snapshot, Desk
     } else {
         Availability::Missing
     };
+    let status = installation.status()?;
     Ok(Snapshot {
         availability,
-        status: installation.status()?,
-        path,
+        status,
+        path: if cfg!(windows) && status == Status::Installed {
+            PathStatus::Configured
+        } else {
+            path
+        },
     })
 }
 

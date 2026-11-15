@@ -1590,3 +1590,13 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+### Desktop Windows PATH registry boundary
+
+Native link owns Windows-only `winreg` access for CLI installation. Its safe
+transaction API replaces the OEM-code-page-sensitive batch launcher; it changes
+only HKCU Environment Path, retains raw UTF-16, and reports transaction conflicts.
+The app passes the explicit bundled binary directory and displays Configured
+until the platform owner's environment-change broadcast is available. Pure PATH
+policy tests never read or modify the account's actual registry. No node, wire,
+or persistent preference contract changes.

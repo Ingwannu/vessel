@@ -45,6 +45,7 @@ this table, with its reason in the same commit.
 | `gpui-base` | only `vessel-app-kit` | The kit's field draws on its editing engine. |
 | `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
 | `vte` | only `vessel-app-view` | The terminal parser (ADR 0073). Only the grid decodes PTY bytes; the kit draws cells it is given. |
+| `winreg` | only `vessel-app-link` | Safe UTF-16 HKCU user PATH access and transactional conflict refusal; replaces the Windows batch trampoline. |
 | `tokio` | never `vessel-app-view`, `vessel-app-kit` | `view` does no I/O and `kit` draws; the runtime is `link`'s (and the app's entry). |
 
 ### Names only some files may use

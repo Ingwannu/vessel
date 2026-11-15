@@ -1,4 +1,7 @@
-//! CLI installation owns only its exact symlink or Windows command trampoline.
+//! CLI installation owns its exact Unix symlink or Windows user PATH entry.
+
+#[cfg(any(windows, test))]
+mod windows_path;
 
 pub mod path_setup;
 
@@ -19,18 +22,13 @@ impl Installation {
     /// Paths are validated before any install side effect.
     ///
     /// # Errors
-    /// Refuses relative paths and Windows command metacharacters in the source.
+    /// Refuses relative paths and directories that cannot be one Windows PATH entry.
     pub fn new(source: PathBuf, target: PathBuf) -> Result<Self, DesktopError> {
         if !source.is_absolute() || !target.is_absolute() {
             return Err(DesktopError::RelativePath);
         }
         #[cfg(windows)]
-        if source
-            .to_str()
-            .is_none_or(|s| s.contains(['"', '%', '\r', '\n']))
-        {
-            return Err(DesktopError::RelativePath);
-        }
+        windows_path::validate(&target)?;
         Ok(Self { source, target })
     }
 
@@ -50,6 +48,7 @@ impl Installation {
     ///
     /// # Errors
     /// OS errors are distinct from absence.
+    #[cfg(unix)]
     pub fn status(&self) -> Result<Status, DesktopError> {
         match std::fs::symlink_metadata(&self.target) {
             Ok(metadata) => self.classify(&metadata),
@@ -70,20 +69,13 @@ impl Installation {
         )
     }
 
+    /// Inspect the user PATH without reading or changing the process environment.
+    ///
+    /// # Errors
+    /// Invalid registry types, malformed data and OS failures remain explicit.
     #[cfg(windows)]
-    fn classify(&self, metadata: &std::fs::Metadata) -> Result<Status, DesktopError> {
-        const MAX_SHIM_BYTES: u64 = 8192;
-        Ok(
-            if metadata.is_file()
-                && !metadata.file_type().is_symlink()
-                && metadata.len() <= MAX_SHIM_BYTES
-                && std::fs::read(&self.target)? == self.trampoline().as_bytes()
-            {
-                Status::Installed
-            } else {
-                Status::Foreign
-            },
-        )
+    pub fn status(&self) -> Result<Status, DesktopError> {
+        windows_path::status(&self.target)
     }
 
     /// Install only a real bundled CLI; never overwrite an unrelated existing entry.
@@ -99,6 +91,7 @@ impl Installation {
             Status::Foreign => return Err(DesktopError::ForeignCli),
             Status::Absent => {}
         }
+        #[cfg(unix)]
         if let Some(parent) = self.target.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -114,20 +107,9 @@ impl Installation {
 
     #[cfg(windows)]
     fn create(&self) -> Result<(), DesktopError> {
-        use std::io::Write as _;
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&self.target)?;
-        file.write_all(self.trampoline().as_bytes())?;
-        Ok(())
-    }
-
-    #[cfg(windows)]
-    fn trampoline(&self) -> String {
-        format!(
-            "@echo off\r\nsetlocal DisableDelayedExpansion\r\n\"{}\" %*\r\nexit /b %errorlevel%\r\n",
-            self.source.display()
+        windows_path::apply(
+            &self.target,
+            vessel_app_view::desktop::cli::Operation::Install,
         )
     }
 
@@ -140,14 +122,20 @@ impl Installation {
             Status::Absent => Ok(Status::Absent),
             Status::Foreign => Err(DesktopError::ForeignCli),
             Status::Installed => {
+                #[cfg(unix)]
                 std::fs::remove_file(&self.target)?;
+                #[cfg(windows)]
+                windows_path::apply(
+                    &self.target,
+                    vessel_app_view::desktop::cli::Operation::Remove,
+                )?;
                 Ok(Status::Absent)
             }
         }
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
 

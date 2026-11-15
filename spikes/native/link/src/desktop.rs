@@ -21,6 +21,9 @@ pub enum DesktopError {
     /// A bundled tool cannot be invented when the release did not contain one.
     #[error("the bundled Vessel CLI is unavailable in this installation")]
     MissingCli,
+    /// PATH data must retain its UTF-16 representation without changing other entries.
+    #[error("the Windows user PATH cannot safely represent this change")]
+    InvalidUserPath,
     /// Installation must never replace a tool owned by another installation.
     #[error("the CLI destination belongs to another installation")]
     ForeignCli,

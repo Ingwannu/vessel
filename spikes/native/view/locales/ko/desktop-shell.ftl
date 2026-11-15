@@ -87,7 +87,7 @@ desktop-shell-preferences-failed = 설정 변경을 저장하지 못했습니다
 desktop-shell-cli-checking = CLI 설치 상태 확인 중…
 
 # CLI settings: status or complete action label; keep short.
-desktop-shell-path-ready = 새 터미널을 열면 PATH에서 Vessel을 사용할 수 있습니다.
+desktop-shell-path-ready = PATH에서 vessel을 사용하려면 새 터미널을 열거나 로그아웃한 뒤 다시 로그인해 주세요.
 
 # CLI settings: status or complete action label; keep short.
 desktop-shell-cli-path = 터미널 PATH

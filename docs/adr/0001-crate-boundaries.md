@@ -325,3 +325,10 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+Native desktop link additionally owns Windows-only `winreg` 0.56 (transactions),
+already in the native dependency lock. This safe OS boundary replaces .cmd
+launchers, whose OEM decoding corrupts Unicode install paths. The raw UTF-16
+PATH delta preserves unrelated entries; transaction failure leaves the registry
+unchanged. GPUI remains the owner of Win32 environment-change notification, so
+no unsafe or script bypass is introduced into the native crates.

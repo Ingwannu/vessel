@@ -297,3 +297,18 @@ flows. Their text was independently checked against the release owner’s SHA-25
 values (19: `98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae`;
 20: `f5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e`). These are authored release notes, not a new feed
 endpoint or a claim that E3 has passed its native gate.
+
+## Windows CLI PATH ownership
+
+[Decision Log]
+- Purpose: make CLI installation work for Korean and other Unicode installation paths.
+- Constraint: an UTF-8 .cmd file is decoded using the Windows OEM code page, so it cannot safely preserve those paths. Native crates forbid unsafe Win32 calls.
+- Alternatives: keep a batch wrapper with code-page conversion; use a script; use the Windows registry directly through a safe maintained wrapper.
+- Decision: reuse the already locked winreg 0.56 dependency in link, Windows only, with transactions. Install/remove modifies only the exact executable-parent\bin entry of HKCU Environment Path, writing REG_EXPAND_SZ. No batch file is created.
+- Reason: raw UTF-16 preserves Unicode and unpaired Windows path units; a transaction reports competing registry changes rather than losing another process's PATH edit. Unsupported registry values and literal REG_SZ percent expressions are refused, preserving their meaning. Literal percent characters in the new directory are refused because REG_EXPAND_SZ would interpret them.
+- Impact: pure UTF-16 tests never access the real registry. Existing entries and empty separators survive an install/remove cycle. Matching compares whole entries case-insensitively (single-scalar Unicode uppercase, without expanding mappings), with no prefix, variable expansion or foreign-installation removal. The release installer owns matching uninstall cleanup.
+
+Coordinator approved the registry route and assigned the safe bounded WM_SETTINGCHANGE
+broadcast to the existing GPUI Windows platform owner. Until that producer lands,
+Configured truthfully asks for a new terminal or signing out and in; this is not
+an acknowledgment from Explorer. No Windows runtime or code-page proof is claimed.
