@@ -199,7 +199,7 @@ impl Action {
         }
     }
 
-    /// Source sidebar.* toggles leave focus mode only after being handled.
+    /// Source `sidebar.*` toggles leave focus mode only after being handled.
     /// Sidebar-scope workspace creation/pin/archive are distinct intentions.
     #[must_use]
     pub const fn exits_focus_mode(self) -> bool {

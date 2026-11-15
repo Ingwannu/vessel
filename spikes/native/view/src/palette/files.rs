@@ -3,17 +3,40 @@
 //! and retains rows while another query loads in the same owner-supplied scope.
 
 use std::time::Duration;
-use vessel_proto::workspace::FindQuery;
+use vessel_proto::workspace::{FindQuery, InvalidText};
 
 /// Nonempty queries wait briefly; empty files scope lists immediately.
 pub const FILE_SEARCH_DEBOUNCE: Duration = Duration::from_millis(100);
+
+/// Empty Files scope is a distinct owner listing operation. `FindQuery` is
+/// nonblank on the wire, so it can never represent this state implicitly.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileQuery {
+    /// Request the scoped owner's initial listing, with no fabricated query.
+    All,
+    /// Search with a query validated by the existing protocol type.
+    Matching(FindQuery),
+}
+impl FileQuery {
+    /// Parse UI text without weakening the existing nonblank wire contract.
+    ///
+    /// # Errors
+    /// Nonempty text must satisfy the file owner's bounded query grammar.
+    pub fn from_text(text: &str) -> Result<Self, InvalidText> {
+        if text.is_empty() {
+            Ok(Self::All)
+        } else {
+            text.parse().map(Self::Matching)
+        }
+    }
+}
 
 /// Scope is an opaque feature-owned address, not an authority inferred here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchTicket<S> {
     serial: u64,
     scope: S,
-    query: FindQuery,
+    query: FileQuery,
 }
 impl<S> SearchTicket<S> {
     /// Exact scope captured when the query changed.
@@ -21,9 +44,9 @@ impl<S> SearchTicket<S> {
     pub const fn scope(&self) -> &S {
         &self.scope
     }
-    /// Validated owner search text.
+    /// Explicit initial listing or validated owner search text.
     #[must_use]
-    pub const fn query(&self) -> &FindQuery {
+    pub const fn query(&self) -> &FileQuery {
         &self.query
     }
 }
@@ -76,7 +99,7 @@ impl<S: Clone + Eq, R, E> FileSearch<S, R, E> {
     pub fn begin(
         &mut self,
         scope: S,
-        query: FindQuery,
+        query: FileQuery,
         now: Duration,
     ) -> Result<SearchTicket<S>, SearchExhausted> {
         let Some(serial) = self.serial.checked_add(1) else {
@@ -86,10 +109,9 @@ impl<S: Clone + Eq, R, E> FileSearch<S, R, E> {
         if self.active.as_ref().is_none_or(|old| old.scope != scope) {
             self.rows.clear();
         }
-        let delay = if query.as_str().is_empty() {
-            Duration::ZERO
-        } else {
-            FILE_SEARCH_DEBOUNCE
+        let delay = match &query {
+            FileQuery::All => Duration::ZERO,
+            FileQuery::Matching(_) => FILE_SEARCH_DEBOUNCE,
         };
         let ticket = SearchTicket {
             serial,
@@ -162,8 +184,8 @@ impl<S: Clone + Eq, R, E> FileSearch<S, R, E> {
 mod tests {
     use super::*;
     type Search = FileSearch<&'static str, u8, &'static str>;
-    fn query(text: &str) -> FindQuery {
-        text.parse().unwrap()
+    fn query(text: &str) -> FileQuery {
+        FileQuery::from_text(text).unwrap()
     }
     #[test]
     fn input_invalidates_before_debounce_and_keeps_same_scope_rows() {

@@ -1,14 +1,9 @@
-//! The command palette (DESIGN.md §2.2; the page's `features/palette`),
-//! drawn as Paseo's command center (`kit::command`): its shortcut (Mod+K,
-//! or `/` when not typing) or the sidebar's search row opens it over the
-//! page; typing filters what `view::palette` lists, the arrows move the
-//! active row, Enter or a click runs it, Escape or a press outside closes
-//! it, and the keys go back where they were.
-//!
-//! The page lists the machines' Settings detail and every Settings
-//! section; here only the sections Settings draws are listed (a section
-//! still a placeholder would be a dead end), and machines only once
-//! Settings › Machines is drawn.
+//! One command center over source-owned contributions and existing built-ins.
+//! Mod+K or the sidebar opens it; local arrows/Enter/Escape belong to the kit
+//! frame before global rebinding. Source callbacks retain typed owner targets,
+//! query ranking stays in view, and actual close uses shared weak return focus.
+//! Legacy Settings/host/theme destinations remain searchable extensions;
+//! missing feature-owner routes are never replaced with a different screen.
 
 mod commands;
 mod entry;

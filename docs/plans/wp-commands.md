@@ -1,6 +1,6 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on shared line 2e95b7d31 (merged222ad4052),
+Status: implementation in progress on package base6 18eedad4 (merged7e9cc3d09),
 with exact
 canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
 (adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
@@ -485,3 +485,18 @@ section is available. The shared Settings phone-form argument is deliberately
 unused: at700 the source is noncompact despite global PHONE768. Availability
 has already excluded native mobile and below600, so the existing kit controls
 receive noncompact presentation; no shared breakpoint or renderer is changed.
+
+
+The UI file-query model now distinguishes FileQuery::All from Matching(FindQuery).
+The existing protocol explicitly rejects blank FindQuery, so passing an empty
+wire query was invalid and its prepared test would fail. Empty-scope acquisition
+must come from W13's scoped owner listing path (requested-parent file.list is the
+approved temporary difference), not local enumeration or a weakened protocol.
+The model's immediate empty listing case remains the same behavior with an
+explicit valid state. W13 is notified; native All acquisition remains pending.
+
+Package base6 18eed is merged from the official app line, including the exact
+W12 follow-up. No standalone node head was merged. The lead warns its native
+lock is stale and supplies a correction next; F4 invokes no --locked operation
+and does not generate a replacement lock locally. Current queued checks are
+older immutable source evidence and do not prove this latest union compiles.
