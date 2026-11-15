@@ -35,8 +35,8 @@ fn key(node: NodeId) -> LayoutKey {
 fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
-    shell.update_in(cx, |_shell, window, cx| {
-        let mut residents = SessionResidents::new();
+    shell.update_in(cx, |shell, window, cx| {
+        let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
         let node = NodeId::random();
         let key = key(node);
@@ -114,8 +114,8 @@ fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppCon
 fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
-    shell.update_in(cx, |_shell, window, cx| {
-        let mut residents = SessionResidents::new();
+    shell.update_in(cx, |shell, window, cx| {
+        let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
         let address = SessionAddress {
             node: NodeId::random(),
@@ -191,8 +191,8 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
 fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(|window, cx| Shell::without_io(window, cx));
-    shell.update_in(cx, |_shell, window, cx| {
-        let mut residents = SessionResidents::new();
+    shell.update_in(cx, |shell, window, cx| {
+        let residents = &mut shell.areas.session_residents;
         let mut layout = Layout::default();
         let node = NodeId::random();
         let key = key(node);
@@ -220,7 +220,7 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
         );
         assert_eq!(allocations.get(), 1);
         for _ in 1..vessel_app_view::residents::MAX_RESIDENT_SESSIONS {
-            residents
+            let _token = residents
                 .claim_session(
                     SessionAddress {
                         node,
