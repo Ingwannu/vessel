@@ -173,7 +173,7 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
 // The fixture removes later columns explicitly; the schema owner locates
 // the inbox predecessor instead of guessing how many appends followed it.
 fn migrate_again_without_inbox(db: &mut Connection) {
-    db.execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
+    db.execute_batch("DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN labels; DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")
         .unwrap();

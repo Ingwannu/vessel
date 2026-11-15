@@ -8,12 +8,14 @@
 
 #[cfg(test)]
 mod labels;
-pub(crate) mod migrations;
+mod migrations;
 
 use rusqlite::Connection;
 
 #[cfg(test)]
 use self::migrations::LABELS_SCHEMA;
+#[cfg(test)]
+pub(crate) use self::migrations::{CHECKPOINTS, CHECKPOINTS_SCHEMA};
 use self::migrations::{INBOX, MIGRATIONS};
 use crate::error::StoreError;
 
@@ -81,4 +83,10 @@ pub(crate) fn configure_writer(connection: &Connection) -> Result<(), StoreError
     }
     connection.pragma_update(None, "synchronous", "normal")?;
     Ok(())
+}
+
+/// Lets staged tests inspect the actual appended count without duplicating it.
+#[cfg(test)]
+pub(crate) const fn migration_count() -> usize {
+    MIGRATIONS.len()
 }

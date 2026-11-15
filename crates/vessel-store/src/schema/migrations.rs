@@ -456,14 +456,21 @@ const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
 /// The provisional title-origin schema follows the newest head migration.
 /// Integration changes this one assignment if another migration lands first.
-pub(crate) const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
+const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
+/// Checkpoint schema follows this base's newest migration. Integration re-points
+/// this one assignment in merge order; no slot is reserved or skipped.
+pub(super) const CHECKPOINTS_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+
+/// Every checkpoint table in one additive migration (ADR 0077).
+pub(super) const CHECKPOINTS: &str = include_str!("../checkpoint/schema.sql");
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; CHECKPOINTS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -482,4 +489,5 @@ pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    CHECKPOINTS,
 ];

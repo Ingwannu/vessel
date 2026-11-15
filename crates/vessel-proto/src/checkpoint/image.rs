@@ -34,6 +34,9 @@ pub struct Entry {
 pub struct FileImage(Vec<Entry>);
 impl FileImage {
     /// Bound count, total bytes and duplicate names before accepting an image.
+    ///
+    /// # Errors
+    /// Oversized images/counts or repeated paths refuse the entire image.
     pub fn new(mut entries: Vec<Entry>) -> Result<Self, CheckpointError> {
         let _count = PathCount::new(entries.len())?;
         entries.sort_by(|left, right| left.path.cmp(&right.path));
@@ -68,6 +71,9 @@ impl FileImage {
             .map(|entry| &entry.state)
     }
     /// Freeze checkpoint contents with the metadata policy applied to current files.
+    ///
+    /// # Errors
+    /// The union of captured and current paths exceeds the image bounds.
     pub fn effective(
         &self,
         current: &Self,

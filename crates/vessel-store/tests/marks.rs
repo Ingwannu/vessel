@@ -310,7 +310,7 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
         .unwrap();
     connection
         .execute_batch(
-            "ALTER TABLE sessions DROP COLUMN title_origin;
+            "DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;
              DROP TABLE usage_samples;
              DROP TABLE usage_meta;
              ALTER TABLE sessions DROP COLUMN usage_cost_baseline;

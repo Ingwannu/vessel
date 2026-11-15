@@ -105,14 +105,20 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
+    // Roll back checkpoint tables and then title origin on this base.
+    const MIGRATIONS_REMOVED: i64 = 2;
     let latest: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
     connection
-        .execute_batch("ALTER TABLE sessions DROP COLUMN title_origin;")
+        .execute_batch("DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
         .unwrap();
     connection
-        .pragma_update(None, "user_version", latest.checked_sub(1).unwrap())
+        .pragma_update(
+            None,
+            "user_version",
+            latest.checked_sub(MIGRATIONS_REMOVED).unwrap(),
+        )
         .unwrap();
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;

@@ -53,11 +53,12 @@ capability; no package UI or node implementation starts before that sequence.
 ## Node implementation: skeleton
 
 The node base is `d954fa3a`. The accepted contract is imported without the
-older app history. The schema allocator assigned checkpoints the successor
-after launch profiles: schema 20. Until that predecessor is consumable,
-checkpoint SQL is staged and the existing migration array/runner is unchanged;
-no empty migration claims the predecessor's slot. No RPC is registered and
-`FILE_CHECKPOINTS` remains None. Quality B is an explicit wiring prerequisite.
+older app history. Per the central numbering rule, the checkpoint SQL appends
+one migration after this base's title-origin schema; the integrator re-points
+its constant in merge order. No gaps or reserved placeholder migrations.
+The migration runner is unchanged; rollback fixtures remove checkpoint tables
+first. No RPC is registered, FILE_CHECKPOINTS remains None and Quality B is an
+explicit service wiring prerequisite.
 
 Skeleton modules: proto/checkpoint validated images/metadata/limits/identities;
 store/checkpoint one SQL schema and transaction tests; node/checkpoint admission,

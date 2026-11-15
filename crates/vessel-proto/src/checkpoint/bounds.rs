@@ -42,6 +42,9 @@ macro_rules! bounded {
         pub struct $name($raw);
         impl $name {
             /// Refuse over-limit input before allocating or admitting work.
+            ///
+            /// # Errors
+            /// The matching size/count refusal when the named bound is exceeded.
             pub fn new(value: $raw) -> Result<Self, CheckpointError> {
                 if value > $limit {
                     Err(CheckpointError::$error)

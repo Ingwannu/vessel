@@ -30,10 +30,7 @@ fn one_migration_creates_all_tables_and_rolls_back_atomically() {
         )
         .unwrap();
     assert_eq!(count, 0);
-    assert_eq!(
-        CHECKPOINTS_SCHEMA,
-        super::super::schema::migrations::TITLE_ORIGIN_SCHEMA.saturating_add(2)
-    );
+    assert_eq!(CHECKPOINTS_SCHEMA, super::super::schema::migration_count());
 }
 #[test]
 #[ignore = "skeleton: wire the typed journal SQL operations before enabling the feature"]
