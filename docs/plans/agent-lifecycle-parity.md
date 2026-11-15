@@ -793,3 +793,12 @@ contribute there, without another accessor or numeric fallback. Both sets of
 architecture and plan additions are retained. The integrated event projection,
 title-origin masks and shared test expectations stay unchanged. Narrow checks
 and fresh generated-wire bytes are still owed for the discovery package.
+
+### Generated discovery declarations
+
+The generator-produced declaration delta adds the nullable selection, scope,
+listing and metadata fields. It applies on top of the integrated declarations
+without replacing unrelated generated types. The source generator tests passed;
+the original stale result remains a freshness failure until these bytes are
+committed. A fresh integrated-head TS check and the package gate are still owed.
+The MCP decoder draft is excluded; its consumer owns that separate integration.
