@@ -3,11 +3,11 @@
 
 use super::*;
 use vessel_proto::{
-    HarnessKind, HarnessSessionId, SessionId, SessionListing, SessionMode,
-    SessionSpec, TransferId, TransferManifest,
+    HarnessKind, HarnessSessionId, SessionId, SessionListing, SessionMode, SessionSpec, TransferId,
+    TransferManifest,
 };
 
-fn info() -> SessionInfo {
+pub(super) fn info() -> SessionInfo {
     SessionInfo::new(
         SessionId::random(),
         SessionSpec::new(
@@ -22,7 +22,7 @@ fn info() -> SessionInfo {
     )
 }
 
-fn versions() -> (ProtocolVersion, ProtocolVersion) {
+pub(super) fn versions() -> (ProtocolVersion, ProtocolVersion) {
     let new = vessel_proto::PROTOCOL_VERSION;
     let old = ProtocolVersion::new(new.get().saturating_sub(1));
     assert!(old < new);
@@ -86,7 +86,7 @@ fn current_labels_and_background_share_the_projection_visibility_rule() {
     }
 }
 
-fn exported(info: SessionInfo) -> Forwarded {
+pub(super) fn exported(info: SessionInfo) -> Forwarded {
     Forwarded {
         reply: Box::new(Reply::ExportSession(TransferManifest {
             transfer: TransferId::random(),

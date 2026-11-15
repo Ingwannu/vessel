@@ -1681,3 +1681,9 @@ Local pulls have no wire projection and retain their existing import guards.
 Forward and Relay also validate returned export manifests against their next
 peer before projection; a new source/home cannot silently turn an old importer
 into a Shown session. This adds no crate edge, authority or wire shape.
+
+Rejected export manifests retain their original envelope route for CloseTransfer.
+The existing forwarding TaskTracker owns cleanup across caller cancellation;
+Links keeps direct/callback selection and the source guard keeps holder/scope
+checks. Cleanup waits no longer than the existing transfer idle lifetime, while
+normal shutdown grace and source expiry/restart remain unchanged.

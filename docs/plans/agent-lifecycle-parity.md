@@ -967,3 +967,13 @@ an origin after the original call has completed.
   Unsupported and rely on source expiry/restart. Shutdown grace is unchanged.
 - Tests: exact transfer/Origin and holder, successful settlement, caller abort
   while close is held, timeout and transport refusal. Assignment remains synthetic.
+
+The correction now retains the authorized route through the returned manifest,
+registers close in the existing forwarding task tracker and keeps the original
+typed metadata refusal even when close is uncertain. New tests exercise actual
+transfer-store release, wrong-holder refusal, caller abort during held close,
+virtual-time expiry, unchanged readable/default replies, and exact Home/Member
+frames used by forwarding, relay and callback selection. The frame fixture is
+not an assigned three-node fleet or a live callback transport proof; those remain
+explicitly unverified until runtime coverage is added. No old assertion or budget
+is changed. Narrow compilation and the complete package gate remain owed.

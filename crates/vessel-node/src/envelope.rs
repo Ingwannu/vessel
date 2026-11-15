@@ -102,9 +102,22 @@ impl NodeService {
         }
         let shares = Waiter::of(connection.principal(), here).shares(here);
         let _slot = self.passed_wait(connection, shares, &mut call);
-        let forwarded = self.pass_on(connection.principal(), node, call).await?;
-        crate::metadata_export::forwarded(&forwarded, connection.protocol())
-            .map_err(|error| error.to_wire())?;
+        let route = self
+            .pass_route(connection.principal(), node, &mut call)
+            .await?;
+        let forwarded = route.call(call).await?;
+        let permitted = connection
+            .principal()
+            .permit(vessel_proto::CloseTransfer::METHOD);
+        self.settle_export(
+            &forwarded,
+            connection.protocol(),
+            move |transfer| async move {
+                permitted?;
+                route.close(transfer).await
+            },
+        )
+        .await?;
         Ok(forwarded)
     }
 
@@ -120,11 +133,22 @@ impl NodeService {
         node: NodeId,
         mut call: Box<Call>,
     ) -> Result<Forwarded, WireError> {
+        self.pass_route(principal, node, &mut call)
+            .await?
+            .call(call)
+            .await
+    }
+
+    async fn pass_route(
+        &self,
+        principal: &Principal,
+        node: NodeId,
+        call: &mut Call,
+    ) -> Result<route::Route, WireError> {
         forwardable(call.method())?;
         principal.permit(call.method())?;
-        self.inherit_forwarded_listing(principal, &mut call).await?;
-        let origin = self.origin_of(principal)?;
-        route::Route::forward(&self.links, node, origin)?.call(call).await
+        self.inherit_forwarded_listing(principal, call).await?;
+        route::Route::forward(&self.links, node, self.origin_of(principal)?)
     }
 
     /// `fleet.relay` (the home): pass a member's call on, or run it here.
@@ -163,9 +187,12 @@ impl NodeService {
         let mut shares = Waiter::origin(&origin).shares(self.links.node());
         shares.push(Share::Relay(*id));
         let _slot = self.passed_wait(connection, shares, &mut call);
-        let forwarded = route::Route::member(&self.links, node, origin).call(call).await?;
-        crate::metadata_export::forwarded(&forwarded, connection.protocol())
-            .map_err(|error| error.to_wire())?;
+        let route = route::Route::member(&self.links, node, origin);
+        let forwarded = route.call(call).await?;
+        self.settle_export(&forwarded, connection.protocol(), move |transfer| {
+            route.close(transfer)
+        })
+        .await?;
         Ok(forwarded)
     }
 
