@@ -186,3 +186,19 @@ files compare byte-identical to checked b27021b4; shared delivery/selected actor
 source likewise has no delta from that packet. Popup and automatic open remain
 parked. This receiving source still needs its own strict, actual App binary and
 Link history execution plus the same-source/base-only V1 confirmation.
+
+### Receiving result and bounded handoff
+
+Exactd49b4d8de97267b135b6982962562671bab7f86b passed all three receiving
+checks: wp-transfer-import-strict-20261115T174815Z-d49b4d8d all-target
+App/View/Link Clippy0; wp-transfer-import-app-20261115T174816Z-d49b4d8d actual
+App binary import2/0/0; wp-transfer-import-tests-20261115T174815Z-d49b4d8d
+Link history25/0/0. Fonts passed, priority0, changed native code actually compiled.
+V1 R223 final same-source/receiving-base supplement independently confirmed the
+exact rangea7aab9d6..d49, all43-path scope,35 equal whole files and6 equal
+registration payloads, with root delta0. The boxed SavePrefs base helper is kept.
+This permits the bounded producer handoff under the lead's slot and combined
+gate. The lead's newer line/base10 candidate is not part of this exact receiving
+review. No full A4, OS/wasm/UI/capture, provider or resident-authority acceptance
+is claimed. Popup and automatic open remain parked. This receipt is docs-only;
+the checked d49 native bytes remain unchanged.
