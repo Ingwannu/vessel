@@ -155,3 +155,11 @@ unchanged cell metric does not hide a quiet font change. No Appearance page,
 prefs store, syntax renderer or second terminal renderer is introduced.
 These dependencies are provisional until this consumer's changed-package
 checks run; the producer's121 kit tests are bounded prior-source evidence.
+
+The quiet-stack regression holds motion, output generation and measured cell
+size fixed, applies the shared font-stack API, and exercises the measured and
+presentation equal-size paths. It requires fresh row identity for the new
+family/fallback stack and stable identity after a second unchanged presentation.
+Text/colors/cursor are preserved. Font state is restored even on assertion
+unwind. This is a deterministic GPUI cache regression; it does not claim that
+two physical fonts have identical measured metrics or that a new capture passed.
