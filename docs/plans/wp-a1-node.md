@@ -1,8 +1,10 @@
 # Creation operations and terminal profiles
 
 ADR 0091 records reference behavior, authority, alternatives and compatibility.
-ADR 0082 owns workspace identity/provisioning; consume its reviewed contract
-instead of deriving identity from cwd or persisting another registry.
+ADR 0082 owns workspace identity, backing reservations and start admission;
+A1 owns the filesystem/receipt/launch adapter under the recorded transfer.
+Consume the reviewed registry contract instead of deriving identity from cwd
+or persisting another registry.
 
 ## Structure
 
@@ -37,18 +39,21 @@ Profile values at 5c39da5f passed six narrow tests and strict proto Clippy;
 row125 found no profile-source issue but returned the capacity contract.
 Contract revision295281a2 passed row129. The earlier count-only store slice
 b4353ae6 passed five real-writer tests; those results do not validate the new
-byte accounting. Current byte enforcement, corruption checks, saturation,
-concurrent last-slot, bounded growth and full-restart tests are staged for
-narrow checks and source review. No receipt service, RPC or launch is approved.
+byte accounting. Exact5bc's four-library suite executed 750 passing tests,
+including the current capacity/restart/namespace coverage, and one failed
+completed-resource deletion fixture. That fixture is corrected in5244; its
+rerun and the later exact-ack/redaction checks are queued. No runtime driver,
+public protocol assignment or receipt/launch source acceptance is claimed.
 
 Approved shared identitye45a5d89 is merged. Unreviewed registry producer code
 was removed; registry ownership/provisioning remains behind the planned typed
 boundary until its producer passes review. Source-created change requests
 must carry ADR0082's explicit blocked-automation gate before provisioning.
 
-Next: narrow proto/store checks; receipt source review; service orchestration
-with typed registry/runtime fake; pending-method registration; native
-integration, package gates and reviews.
+Next: recover the registered checks, consume the reviewed registry Store and
+fixed-id admission primitive, implement the owned filesystem/real driver,
+then native integration, package gates and reviews. Observe/profile rows are
+already pending; actual create RPCs remain unavailable.
 
 Receipt observation uses the existing writer's post-commit effects, mirroring
 its coalesced inbox wake-up pattern. Subscribe before the initial SQL read;

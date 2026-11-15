@@ -148,10 +148,12 @@ second workspace admission implementation.
 
 ## Security boundary and platforms
 
-Only authenticated person callers with Operate may create; Read observes
-safe snapshots; Admin changes profiles. Agents are refused before admission,
-receipt lookup, filesystem access or launch. Forwarded requests retain scope
-intersection. Bind receipts to their creation authority and recheck current
+Authenticated person callers with Operate may create workspaces/terminals;
+the amendment below also permits principal-bound agent creation and own-agent
+observation. Read observes safe authorized snapshots; Admin changes profiles.
+Agents cannot enter the person workspace/terminal namespaces or use terminal
+profile configuration. Forwarded requests retain scope intersection. Bind
+receipts to their creation authority and recheck current
 authorization when observing or advancing them. No raw prompt, command argv,
 credentials or template contents enter logs, Debug or error messages.
 
@@ -183,11 +185,14 @@ subscription transport. A saturated share replies immediately. Subscribe
 before the initial SQL snapshot, then re-read after a coalesced post-commit
 wake-up or deadline. An unchanged revision is not completion, and a cursor
 ahead of storage is refused. Notifications hold one unit value, never a
-payload or unbounded history. Read scope and person-only policy apply to both
-calls, including forwarded agents. Their sole protocol constant stays None;
+payload or unbounded history. Read scope applies to both calls; the amendment
+below confines agent callers, including delegated agents, to their own agent
+namespace and kind. Their sole protocol constant stays None;
 the method table registers both as pending unary calls, never a dummy version.
 
-## Amendment: principal-bound agent creation receipts (pending security review)
+## Amendment: principal-bound agent creation receipts
+
+Contract source accepted by V3 row154; implementation security review remains owed.
 
 This amendment extends agent creation for MCP without opening a person's
 workspace/terminal creation or operation history to agents. It is a contract
