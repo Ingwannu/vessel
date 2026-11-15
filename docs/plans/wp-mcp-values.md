@@ -132,3 +132,25 @@ runner's exact generated proto patch is adopted; no generated type was edited
 by hand. Rust generator inputs are unchanged since the source of that artifact
 apart from documentation. Exact committed-file freshness is checked next; the
 failed-generation receipt remains retained and no early adoption is claimed.
+
+## Checked isolated handoff
+
+The committed generated file passed exact-source freshness in
+`wp-mcp-values-ts-20261115T164320Z-eaf10a71`: all five selected TS tests passed,
+`ts diff: 0 files`, step rc0 in 21 seconds. Supplemental
+`wp-mcp-values-web-20261115T162948Z-6b430a90` executed all 55 web library tests,
+none failed or ignored, including the new staged-method refusal classification.
+Both sources have the same carrier Rust inputs apart from the previously named
+central alias-table correction. Generated artifact hashes and source identity
+are preserved with the run receipts. No failed or cancelled predecessor is
+relabelled successful.
+
+Together with four-crate strict at `4e7c0d39` and the 679 proto/client/node units
+at `bb50f99f`, this is the checked isolated values/negative-admission packet for
+the node integrator's receiving batch. It is not a full MCP/browser/Skills gate
+or an announced consumer-ready node head. The carrier deliberately stays on its
+isolated announced base through these immutable checks; the main runtime tree
+has separately merged gate50. The receiving node/line union must build and run
+its applicable tests before app adoption. MCP_PARITY and BROWSER_PROTOCOL stay
+None, Skills rows stay staged and all calls stay unavailable. No number/schema,
+NodeSettings.mcp field, engine, launcher, store or positive authority is added.
