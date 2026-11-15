@@ -3,7 +3,7 @@
 use super::runner::{self, Client, Disposition, Publication};
 use crate::workspace::Workspaces;
 use std::sync::Arc;
-use vessel_proto::checkpoint::{CaptureKey, CheckpointError, CheckpointId};
+use vessel_proto::checkpoint::{CheckpointError, CheckpointId};
 use vessel_store::{CheckpointStoreError, Store, StoreError, checkpoint::CheckpointWrite};
 use vessel_workspace::checkpoint::{Cleanup, IgnoreDefaults, Storage};
 
@@ -82,7 +82,11 @@ pub(crate) fn reason(error: StoreError) -> CheckpointError {
 
 /// Called on the retained cleanup worker after durable publication invalidation.
 /// Errors keep both persistent escrow and the runner's worker/root reservation.
-pub(crate) fn clean(storage: &Storage, key: CaptureKey) -> Result<(), CheckpointError> {
+pub(crate) fn clean(
+    storage: &Storage,
+    worktree: vessel_proto::WorktreeId,
+    capture: vessel_proto::checkpoint::CaptureId,
+) -> Result<(), CheckpointError> {
     loop {
         match storage
             .clean_capture(key.worktree, key.capture)

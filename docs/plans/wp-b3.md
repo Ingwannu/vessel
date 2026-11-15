@@ -868,3 +868,22 @@ archive-path forwarding/consumption after that tested head; the replacement
 checks that newer source rather than claiming the old diagnostic is green.
 No runtime tests executed in this clippy run. The ordinary test run remains
 queued and is not duplicated.
+
+### Connected private collector (source; remote verification pending)
+
+Linux bootstrap now starts one serial collector with the same Workers instance
+as capture. Every pass scans bounded previous-process orphan metadata and
+durable garbage, never active runtime captures. It verifies retained Ready
+archives or removes discarded/retired namespaces on an admitted blocking
+worker, then awaits CaptureSettled/GarbageCleaned on the existing writer.
+Only successful actual I/O and its durable acknowledgement release accounting.
+A failed physical object retains its opaque lease until serving ends; a bounded
+held set prevents repeated admissions for that same object. Busy/ambiguous
+store work defers until the next named interval with quota still charged.
+Shutdown stops new collection and waits for actual in-flight I/O; no kernel
+cancellation or filesystem atomicity is claimed. Global-ignore configuration
+does not gate private cleanup. The managed-worktree backend fixture now also
+retires a real capture, proves garbage exists, collects its actual directory,
+and verifies synced absence plus the writer's accounting removal. It closes
+archive handles first. This fixture is unrun; orphan restart integration,
+preview expiry/image rotation and restore recovery remain owed.

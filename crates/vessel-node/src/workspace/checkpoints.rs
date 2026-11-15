@@ -61,9 +61,30 @@ impl Workspaces {
         tree.capture(runtime, git, &archive, defaults, cancel)
             .map_err(|error| error.reason())
     }
+    pub(crate) fn verify_checkpoint_archive(
+        &self,
+        key: CaptureKey,
+        image: &vessel_proto::checkpoint::FileImage,
+        cancel: &CancellationToken,
+    ) -> Result<(), CheckpointError> {
+        let storage = Storage::open(&self.places.data).map_err(|error| error.reason())?;
+        let capture = storage.open_capture(key).map_err(|error| error.reason())?;
+        capture
+            .archive()
+            .map_err(|error| error.reason())?
+            .verify_image(image, cancel)
+            .map_err(|error| error.reason())
+    }
+    pub(crate) fn clean_checkpoint_storage(
+        &self,
+        worktree: vessel_proto::WorktreeId,
+        capture: vessel_proto::checkpoint::CaptureId,
+    ) -> Result<(), CheckpointError> {
+        let storage = Storage::open(&self.places.data).map_err(|error| error.reason())?;
+        crate::checkpoint::backend::clean(&storage, worktree, capture)
+    }
     /// Only after the worker returns and its durable candidate is invalidated.
     pub(crate) fn clean_checkpoint(&self, key: CaptureKey) -> Result<(), CheckpointError> {
-        let storage = Storage::open(&self.places.data).map_err(|error| error.reason())?;
-        crate::checkpoint::backend::clean(&storage, key)
+        self.clean_checkpoint_storage(key.worktree, key.capture)
     }
 }

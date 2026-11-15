@@ -39,6 +39,8 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
     let defaults = defaults();
     let tasks = context.tasks.clone();
     let _owner = tasks.spawn(async move {
+        let workers = super::workers::Workers::default();
+        super::gc::start(context.store.clone(),Arc::clone(&context.workspaces),workers.clone(),&context.tasks,context.stop.clone());
         let defaults = match defaults {
             Ok(defaults) => defaults,
             Err(reason) => {
@@ -54,7 +56,7 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
                 return;
             }
         };
-        let (client, owner) = backend::start_shared(Arc::clone(&context.workspaces), context.store, defaults, super::workers::Workers::default());
+        let (client, owner) = backend::start_shared(Arc::clone(&context.workspaces), context.store, defaults, workers);
         let mut faults = client.cleanup_faults();
         let mut faults_open = true;
         let mut jobs = JoinSet::new();

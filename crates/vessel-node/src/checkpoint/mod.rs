@@ -8,6 +8,8 @@ pub(crate) mod backend;
 #[cfg(target_os = "linux")]
 pub(crate) mod bridge;
 mod capture;
+#[cfg(target_os = "linux")]
+pub(crate) mod gc;
 mod quota;
 mod runner;
 #[cfg(test)]

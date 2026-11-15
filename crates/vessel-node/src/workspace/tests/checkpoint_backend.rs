@@ -101,7 +101,29 @@ async fn checkpoint_backend_commits_anchor_before_io_and_waits_for_actual_actor_
                 assert_eq!(selected.snapshot.evidence().physical(), physical);
                 assert!(!selected.snapshot.image().entries().is_empty());
                 let storage = Storage::open(fixture.data.root()).unwrap();
-                let _blobs = storage.open_capture(key).unwrap().archive().unwrap();
+                let blobs = storage.open_capture(key).unwrap().archive().unwrap();
+                drop(blobs);
+                fixture
+                    .store
+                    .append(
+                        session,
+                        vec![Arc::new(EventRecord {
+                            seq: EventSeq::new(1),
+                            at: chrono::Utc::now(),
+                            event: SessionEvent::Status {
+                                status: vessel_proto::SessionStatus::Exited { code: Some(0) },
+                            },
+                        })],
+                    )
+                    .await
+                    .unwrap();
+                fixture.store.delete_session(session).await.unwrap();
+                assert_eq!(fixture.store.checkpoint_garbage().await.unwrap().len(), 1);
+                crate::checkpoint::gc::test_pass(&fixture.store, &fixture.workspaces)
+                    .await
+                    .unwrap();
+                assert!(fixture.store.checkpoint_garbage().await.unwrap().is_empty());
+                assert!(storage.open_capture(key).is_err());
             }
             CheckpointAdvance::PromptRefused => {
                 assert!(matches!(
