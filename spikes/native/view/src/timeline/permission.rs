@@ -96,6 +96,24 @@ pub fn permission_card<'a>(
     waiting: usize,
     say: impl Fn(PermissionOptionKind) -> &'static str,
 ) -> PermissionCard<'a> {
+    permission_card_for(
+        &permission.request,
+        permission.title.as_deref(),
+        tool,
+        waiting,
+        say,
+    )
+}
+
+/// Borrow a pending snapshot form directly instead of cloning it for a card.
+#[must_use]
+pub fn permission_card_for<'a>(
+    request: &'a PermissionRequest,
+    own_title: Option<&'a str>,
+    tool: Option<&ToolView>,
+    waiting: usize,
+    say: impl Fn(PermissionOptionKind) -> &'static str,
+) -> PermissionCard<'a> {
     let input = tool
         .and_then(|tool| tool.input.as_ref())
         .map(RawJson::as_text);
@@ -111,11 +129,7 @@ pub fn permission_card<'a>(
         .filter(|_| shell)
         .and_then(|input| serde_json::from_str::<CommandInput>(input).ok())
         .and_then(|input| input.command.text());
-    let own = permission
-        .title
-        .as_deref()
-        .map(str::trim)
-        .filter(|title| !title.is_empty());
+    let own = own_title.map(str::trim).filter(|title| !title.is_empty());
     let title = if plan.is_some() {
         CardTitle::Plan
     } else {
@@ -136,7 +150,7 @@ pub fn permission_card<'a>(
         id: _,
         tool_call: _,
         options,
-    } = &permission.request;
+    } = request;
     let primary = answers_of(options).approve;
     let answers = options
         .iter()

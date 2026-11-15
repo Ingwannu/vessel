@@ -379,3 +379,20 @@ the timeline/live projection remains authoritative. Main conversation displays
 all pending cards, with bounded scrolling above the composer; an explicit
 request-scoped drawing entry point preserves an Inbox detail's exact selection.
 No provider input parser or wire method is added by this extension.
+
+The multiple-request frame retains real fields in question::Forms keyed by
+QuestionId; its source-aware callbacks resolve that field's owner and every
+production action takes an explicit question id. Single-form test probes alone
+keep convenience wrappers; there is no first-request fallback in production.
+Question validation, transport failure, sending and plan disclosure are scoped
+independently. Typed pending-permission iteration reuses the fold's existing
+index and does not scan history or create a second projection.
+
+Place::response_scope defaults to ResponseScope::All for the main conversation;
+Inbox can return One(Request) for an exact detail. The shared requests slot
+limits the whole stack to half the viewport and scrolls, keeping the composer
+reachable. Request state is pruned after real event/snapshot changes; drafts
+remain live until their exact request no longer waits. The pending source still
+needs W23's exclusive projection watermark before omission may retire log-backed
+cards. A real two-editor keyboard/Enter test and independent plan/failure tests
+cover sibling isolation; execution/strict proof is still pending.

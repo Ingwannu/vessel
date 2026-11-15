@@ -184,27 +184,7 @@ impl Timeline {
     /// the composer's dock asks about.
     #[must_use]
     pub fn pending(&self) -> Option<(&Entry, &Permission)> {
-        let index = *self.waiting.first()?;
-        let entry = self.entries.get(index)?;
-        match &entry.kind {
-            EntryKind::Permission(permission) => Some((entry, permission)),
-            EntryKind::Ready { .. }
-            | EntryKind::Prompt(_)
-            | EntryKind::Steer { .. }
-            | EntryKind::Question { .. }
-            | EntryKind::Message { .. }
-            | EntryKind::Thought { .. }
-            | EntryKind::Tool(_)
-            | EntryKind::Plan { .. }
-            | EntryKind::TurnEnded { .. }
-            | EntryKind::TurnFailed { .. }
-            | EntryKind::Log { .. }
-            | EntryKind::Status { .. }
-            | EntryKind::Parking(_)
-            | EntryKind::Forked { .. }
-            | EntryKind::Profile { .. }
-            | EntryKind::Model(_) => None,
-        }
+        self.pending_permissions().next()
     }
 
     /// How many permission requests wait (the card's "1/N").

@@ -15,11 +15,16 @@
 
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    Styled as _, Window, div, px,
 };
 
 use super::{Place, SessionPlace};
 use crate::shell::Shell;
+use vessel_app_kit::theme::spacing;
+
+/// Preserve composer height while every pending card remains scrollable.
+const REQUEST_HEIGHT_FRACTION: f32 = 0.5;
 
 /// What shows right above the composer card; `None`: nothing. An ended
 /// session's banner (`ended`), a permission the agent waits for, a question it asks ([`requests`]),
@@ -53,8 +58,8 @@ pub(crate) fn dock(
 }
 
 /// What waits on the person in the conversation at `P`, as its cards: the
-/// first permission request (Paseo's permission card, or its plan card),
-/// then the first question (Paseo's question card); none when nothing
+/// permissions (Paseo's permission card, or its plan card),
+/// then questions (Paseo's question card); none when nothing
 /// waits. Each answers the session that conversation shows.
 ///
 /// For another area answering a session's requests in place (the inbox):
@@ -72,7 +77,37 @@ pub(crate) fn requests<P: Place>(
     if (P::SEAT.get)(shell).is_none_or(|area| !area.response_online(&shell.fleet)) {
         return Vec::new();
     }
-    let permission = super::permission::card::<P>(shell, tokens, window, cx);
-    let question = super::question::card::<P>(shell, tokens, window, cx);
-    permission.into_iter().chain(question).collect()
+    match P::response_scope(shell) {
+        vessel_app_view::responses::ResponseScope::All => {
+            let permission = super::permission::card::<P>(shell, tokens, window, cx);
+            let question = super::question::card::<P>(shell, tokens, window, cx);
+            let cards: Vec<_> = permission.into_iter().chain(question).collect();
+            if cards.is_empty() {
+                return cards;
+            }
+            // The slot shares height with the composer; all cards remain reachable.
+            vec![
+                div()
+                    .id("pending-request-stack")
+                    .max_h(window.viewport_size().height * REQUEST_HEIGHT_FRACTION)
+                    .overflow_y_scroll()
+                    .flex()
+                    .flex_col()
+                    .gap(px(spacing::S2))
+                    .children(cards)
+                    .into_any_element(),
+            ]
+        }
+        vessel_app_view::responses::ResponseScope::One(request) => {
+            let card = match request {
+                vessel_app_view::responses::Request::Permission(id) => {
+                    super::permission::card_at::<P>(shell, id, tokens, window, cx)
+                }
+                vessel_app_view::responses::Request::Question(id) => {
+                    super::question::card_at::<P>(shell, id, tokens, window, cx)
+                }
+            };
+            card.into_iter().collect()
+        }
+    }
 }

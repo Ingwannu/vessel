@@ -36,7 +36,9 @@ fn begin(shell: &mut Shell) -> Pending {
         permissions: vec![permission.clone()],
         questions: Vec::new(),
     };
-    area.permit_sending = Some((permission.id, permission.options[0].id.clone()));
+    let _previous = area
+        .permit_sending
+        .insert(permission.id, permission.options[0].id.clone());
     shell.response_at(
         Seat::SESSION,
         Answer::Permit(permission.id, permission.options[0].id.clone()),

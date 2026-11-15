@@ -1,51 +1,42 @@
 //! Read/rename failures must never replace a card's retryable response failure.
 use super::{Problem, Request};
-use vessel_proto::{PermissionId, QuestionId};
+use std::collections::HashMap;
 
-/// At most one visible failure per card kind, each scoped to its exact request.
+/// One visible failure per exact request, independent of simultaneous cards.
 /// A successor starts without its predecessor's failure; drafts stay caller-owned.
 #[derive(Debug, Default)]
 pub struct Failures {
-    permission: Option<(PermissionId, Problem)>,
-    question: Option<(QuestionId, Problem)>,
+    requests: HashMap<Request, Problem>,
 }
 impl Failures {
-    /// Record a safe category, never an opaque transport/provider diagnostic.
+    /// No response error needs reconciliation.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.requests.is_empty()
+    }
+    /// Retain each request's refusal independently of its siblings.
     pub fn failed(&mut self, request: Request, problem: Problem) {
-        match request {
-            Request::Permission(id) => self.permission = Some((id, problem)),
-            Request::Question(id) => self.question = Some((id, problem)),
-        }
+        let _previous = self.requests.insert(request, problem);
     }
     /// Only the named request may display this failure.
     #[must_use]
     pub fn get(&self, request: Request) -> Option<Problem> {
-        match request {
-            Request::Permission(id) => self
-                .permission
-                .filter(|(asked, _)| *asked == id)
-                .map(|(_, problem)| problem),
-            Request::Question(id) => self
-                .question
-                .filter(|(asked, _)| *asked == id)
-                .map(|(_, problem)| problem),
-        }
+        self.requests.get(&request).copied()
     }
-    /// A retry/ack clears its own failure without touching the other card.
+    /// A retry/ack clears its own failure without touching another request.
     pub fn clear(&mut self, request: Request) {
-        if self.get(request).is_none() {
-            return;
-        }
-        match request {
-            Request::Permission(_) => self.permission = None,
-            Request::Question(_) => self.question = None,
-        }
+        let _previous = self.requests.remove(&request);
+    }
+    /// The session owner drops failures only when their request is no longer pending.
+    pub fn retain(&mut self, pending: &[Request]) {
+        self.requests.retain(|request, _| pending.contains(request));
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vessel_proto::{PermissionId, QuestionId};
     #[test]
     fn independent_failures_do_not_leak_to_successors_or_clear_each_other() {
         let mut failures = Failures::default();
@@ -58,6 +49,7 @@ mod tests {
         assert_eq!(failures.get(question), Some(Problem::Unconfirmed));
         assert_eq!(failures.get(successor), None);
         failures.failed(successor, Problem::Unsent);
+        assert_eq!(failures.get(question), Some(Problem::Unconfirmed));
         failures.clear(question);
         assert_eq!(failures.get(successor), Some(Problem::Unsent));
         failures.clear(permission);

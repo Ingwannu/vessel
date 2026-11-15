@@ -21,7 +21,7 @@
 //!   clears the pick, as in Claude Code.
 //! - Choice: Paseo's card, one step at a time. A yes-or-no field is two
 //!   radio rows; a text or number field is the box alone ("Type your
-//!   answer..."). One text box serves every step (its text and its
+//!   answer..."). Each pending question owns one text box for its steps (text and
 //!   placeholder change with the step), made the frame after the question
 //!   arrives (`defer_in`, the slot cannot make it). Dismiss declines; the
 //!   answer is checked by the node's own check (`Question::check`) before
@@ -34,10 +34,9 @@
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{TextField, field::FieldId};
-use vessel_app_link::ActKind;
 use vessel_app_view::timeline::{
-    Draft, Drafts, EntryKind, Pick, Step, answer_of, box_is_other, empty_drafts, pick,
-    refused_field, step_after_pick, step_ready, steps_of, text_target, typed,
+    Draft, EntryKind, Pick, Step, answer_of, box_is_other, empty_drafts, pick, refused_field,
+    step_after_pick, step_ready, steps_of, text_target, typed,
 };
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
@@ -46,85 +45,33 @@ use crate::shell::Shell;
 
 mod card;
 
-pub(crate) use card::card;
+pub(crate) use card::{card, card_at};
 
-/// A question being answered: what each field holds and the step shown.
-pub(crate) struct Answering {
-    id: QuestionId,
-    drafts: Drafts,
-    step: usize,
-    /// The step's text box: a free-text step's answer, or a choice's
-    /// "Other".
-    field: TextField,
-    /// The answer went; the node has not settled the question yet.
-    sending: Option<ResponseAction>,
-}
+mod forms;
+pub(crate) use forms::Forms;
+use forms::{Answering, Cursor, ResponseAction};
 
-impl Answering {
-    /// A late reply may settle only the retained form that sent it.
-    pub(crate) fn is_sending(&self, id: QuestionId) -> bool {
-        self.id == id && self.sending.is_some()
-    }
-}
-
-/// Render-time identity prevents clicks from a replaced request or step.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Cursor {
-    id: QuestionId,
-    step: usize,
-}
-
-impl Answering {
-    fn cursor(&self) -> Cursor {
-        Cursor {
-            id: self.id,
-            step: self.step,
-        }
-    }
-}
-
-/// Submit and dismiss share a request but show progress on their own button.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResponseAction {
-    Submit,
-    Dismiss,
-}
-
-impl std::fmt::Debug for Answering {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Answering")
-            .field("id", &self.id)
-            .field("step", &self.step)
-            .field("sending", &self.sending)
-            .finish_non_exhaustive()
-    }
-}
-
-/// The question waiting first in `area`, if any: the log's, else one the
-/// node says waits whose record the log no longer holds.
-fn waiting(area: &ConversationArea) -> Option<Question> {
-    let timeline = &area.timeline;
-    timeline
+/// Every pending question in log order, then requests whose log record was pruned.
+fn waiting(area: &ConversationArea) -> Vec<&Question> {
+    area.timeline
         .waiting_questions()
-        .first()
-        .and_then(|entry| {
+        .into_iter()
+        .filter_map(|entry| {
             if let EntryKind::Question { question, .. } = &entry.kind {
-                Some(question.clone())
+                Some(question)
             } else {
                 None
             }
         })
-        .or_else(|| {
-            timeline
-                .unseen_questions(&area.live)
-                .first()
-                .map(|question| (*question).clone())
-        })
+        .chain(area.timeline.unseen_questions(&area.live))
+        .collect()
 }
 
-/// The question waiting first at `P`, if any.
-fn waiting_at<P: Place>(shell: &Shell) -> Option<Question> {
-    (P::SEAT.get)(shell).and_then(waiting)
+fn waiting_at<P: Place>(shell: &Shell, id: QuestionId) -> Option<Question> {
+    waiting((P::SEAT.get)(shell)?)
+        .into_iter()
+        .find(|question| question.id == id)
+        .cloned()
 }
 
 /// Arrival and refresh share the step's hint without reloading its draft.
@@ -139,39 +86,34 @@ fn field_placeholder(step: Step<'_>, words: vessel_app_view::ConversationWords) 
 impl Shell {
     /// A submitted answer owns the form until its reply or inline refusal;
     /// queued field callbacks must not change the answer already in flight.
-    fn question_editable<P: Place>(&self) -> bool {
+    fn question_editable<P: Place>(&self, id: QuestionId) -> bool {
         (P::SEAT.get)(self).is_some_and(|area| {
-            area.answering.as_ref().is_some_and(|answering| {
+            area.answering.get(id).is_some_and(|answering| {
                 answering.sending.is_none()
                     || area
                         .response_failures
                         .get(vessel_app_view::responses::Request::Question(answering.id))
                         .is_some()
-                    || area
-                        .refused
-                        .as_ref()
-                        .is_some_and(|(kind, _)| *kind == ActKind::Answer)
             })
         }) && !P::busy(self)
     }
 
-    /// Old input subscriptions can outlive the card that created them.
-    fn question_source<P: Place>(&self, source: FieldId) -> bool {
-        (P::SEAT.get)(self)
-            .and_then(|area| area.answering.as_ref())
-            .is_some_and(|form| {
-                form.field.id() == source
-                    && waiting_at::<P>(self).is_some_and(|question| question.id == form.id)
-            })
+    /// Old input subscriptions can outlive the request that owned the engine.
+    fn question_source<P: Place>(&self, source: FieldId) -> Option<QuestionId> {
+        let area = (P::SEAT.get)(self)?;
+        let id = area.answering.source(source)?;
+        waiting(area)
+            .into_iter()
+            .any(|question| question.id == id)
+            .then_some(id)
     }
 
     /// A queued click belongs to the request and step drawn for it.
     fn question_cursor<P: Place>(&self, cursor: Cursor) -> bool {
         (P::SEAT.get)(self)
-            .and_then(|area| area.answering.as_ref())
+            .and_then(|area| area.answering.get(cursor.id))
             .is_some_and(|form| {
-                form.cursor() == cursor
-                    && waiting_at::<P>(self).is_some_and(|question| question.id == cursor.id)
+                form.cursor() == cursor && waiting_at::<P>(self, cursor.id).is_some()
             })
     }
 
@@ -181,83 +123,78 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(question) = waiting_at::<SessionPlace>(self) else {
-            return;
-        };
+        let questions = (Seat::SESSION.get)(self)
+            .map(|area| waiting(area).into_iter().cloned().collect::<Vec<_>>())
+            .unwrap_or_default();
         let words = self.t.lang.conversation();
-        let steps = steps_of(&question);
-        let Some(answering) =
-            (Seat::SESSION.get_mut)(self).and_then(|area| area.answering.as_mut())
-        else {
-            return;
-        };
-        let Some(step) = steps.get(answering.step) else {
-            return;
-        };
-        answering
-            .field
-            .set_placeholder(field_placeholder(*step, *words), window, cx);
+        for question in questions {
+            let steps = steps_of(&question);
+            if let Some(form) =
+                (Seat::SESSION.get_mut)(self).and_then(|area| area.answering.get_mut(question.id))
+                && let Some(step) = steps.get(form.step)
+            {
+                form.field
+                    .set_placeholder(field_placeholder(*step, *words), window, cx);
+            }
+        }
     }
 
-    /// Make the card's state for the question waiting first, or drop it
-    /// when none waits.
+    /// Reconcile local form resources with the authoritative pending identities.
     fn question_prepare<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(question) = waiting_at::<P>(self) else {
-            if (P::SEAT.get_mut)(self).is_some_and(|area| area.answering.take().is_some()) {
-                cx.notify();
+        let Some(area) = (P::SEAT.get)(self) else {
+            return;
+        };
+        let pending = waiting(area);
+        let ids = pending.iter().map(|question| question.id).collect();
+        let missing: Vec<_> = pending
+            .into_iter()
+            .filter(|question| area.answering.get(question.id).is_none())
+            .cloned()
+            .collect();
+        if let Some(area) = (P::SEAT.get_mut)(self) {
+            area.answering.retain(&ids);
+        }
+        for question in missing {
+            let words = self.t.lang.conversation();
+            let field = TextField::with_source(
+                words.question_other_placeholder(),
+                Self::question_entered::<P>,
+                Self::question_typed::<P>,
+                window,
+                cx,
+            );
+            if let Some(area) = (P::SEAT.get_mut)(self) {
+                area.answering.insert(Answering {
+                    id: question.id,
+                    drafts: empty_drafts(&question),
+                    step: 0,
+                    field,
+                    sending: None,
+                    validation: None,
+                });
             }
-            return;
-        };
-        if (P::SEAT.get)(self)
-            .and_then(|area| area.answering.as_ref())
-            .is_some_and(|answering| answering.id == question.id)
-        {
-            return;
+            self.question_show_at::<P>(question.id, 0, window, cx);
         }
-        let words = self.t.lang.conversation();
-        let field = TextField::with_source(
-            words.question_other_placeholder(),
-            Self::question_entered::<P>,
-            Self::question_typed::<P>,
-            window,
-            cx,
-        );
-        let Some(area) = (P::SEAT.get_mut)(self) else {
-            return;
-        };
-        if area
-            .refused
-            .as_ref()
-            .is_some_and(|(kind, _)| *kind == ActKind::Answer)
-        {
-            area.refused = None;
-        }
-        area.answering = Some(Answering {
-            id: question.id,
-            drafts: empty_drafts(&question),
-            step: 0,
-            field,
-            sending: None,
-        });
-        self.question_show::<P>(0, window, cx);
+        cx.notify();
     }
 
     /// Show step `index`: its text box holds that step's text.
-    fn question_show<P: Place>(
+    fn question_show_at<P: Place>(
         &mut self,
+        id: QuestionId,
         index: usize,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.question_editable::<P>() {
+        if !self.question_editable::<P>(id) {
             return;
         }
         let words = self.t.lang.conversation();
-        let Some(question) = waiting_at::<P>(self) else {
+        let Some(question) = waiting_at::<P>(self, id) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.get_mut(id))
         else {
             return;
         };
@@ -284,14 +221,17 @@ impl Shell {
         text: String,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.question_source::<P>(source) || !self.question_editable::<P>() {
+        let Some(id) = self.question_source::<P>(source) else {
+            return;
+        };
+        if !self.question_editable::<P>(id) {
             return;
         }
-        let Some(question) = waiting_at::<P>(self) else {
+        let Some(question) = waiting_at::<P>(self, id) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.get_mut(id))
         else {
             return;
         };
@@ -299,6 +239,7 @@ impl Shell {
             return;
         };
         typed(step, &mut answering.drafts, text);
+        answering.validation = None;
         cx.notify();
     }
 
@@ -309,54 +250,61 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.question_source::<P>(source) {
-            self.question_primary::<P>(window, cx);
+        if let Some(id) = self.question_source::<P>(source) {
+            self.question_primary_at::<P>(id, window, cx);
         }
     }
 
     /// Pick `value` in the step shown: a radio's or a yes-or-no field's
     /// one value (picking it again clears it), a checkbox's toggle.
-    fn question_pick<P: Place>(
+    fn question_pick_at<P: Place>(
         &mut self,
+        id: QuestionId,
         value: &str,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.question_editable::<P>() {
+        if !self.question_editable::<P>(id) {
             return;
         }
-        let Some(question) = waiting_at::<P>(self) else {
+        let Some(question) = waiting_at::<P>(self, id) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.as_mut())
+        let Some(answering) = (P::SEAT.get_mut)(self).and_then(|area| area.answering.get_mut(id))
         else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
             return;
         };
+        answering.validation = None;
         match pick(step, &mut answering.drafts, value) {
             Pick::Ignored => return,
             Pick::Picked => {}
             Pick::OtherCleared => answering.field.set_text("", window, cx),
         }
         if let Some(next) = step_after_pick(&steps, answering.step, &answering.drafts) {
-            self.question_show::<P>(next, window, cx);
+            self.question_show_at::<P>(id, next, window, cx);
         }
         cx.notify();
     }
 
     /// Next, or Submit on the last step.
-    fn question_primary<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        if !self.question_editable::<P>() {
+    fn question_primary_at<P: Place>(
+        &mut self,
+        id: QuestionId,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if !self.question_editable::<P>(id) {
             return;
         }
-        let Some(question) = waiting_at::<P>(self) else {
+        let Some(question) = waiting_at::<P>(self, id) else {
             return;
         };
         let steps = steps_of(&question);
-        let Some(answering) = (P::SEAT.get)(self).and_then(|area| area.answering.as_ref()) else {
+        let Some(answering) = (P::SEAT.get)(self).and_then(|area| area.answering.get(id)) else {
             return;
         };
         let Some(step) = steps.get(answering.step).copied() else {
@@ -367,14 +315,14 @@ impl Shell {
         }
         let next = answering.step.saturating_add(1);
         if next < steps.len() {
-            self.question_show::<P>(next, window, cx);
+            self.question_show_at::<P>(id, next, window, cx);
             return;
         }
         if let Some(unready) = steps
             .iter()
             .position(|step| !step_ready(*step, &answering.drafts))
         {
-            self.question_show::<P>(unready, window, cx);
+            self.question_show_at::<P>(id, unready, window, cx);
             return;
         }
         let answer = answer_of(&question, &answering.drafts);
@@ -386,10 +334,12 @@ impl Shell {
                 })
             });
             if let Some(area) = (P::SEAT.get_mut)(self) {
-                area.refused = Some((ActKind::Answer, message));
+                if let Some(form) = area.answering.get_mut(id) {
+                    form.validation = Some(message);
+                }
             }
             if let Some(at) = at {
-                self.question_show::<P>(at, window, cx);
+                self.question_show_at::<P>(id, at, window, cx);
             }
             cx.notify();
             return;
@@ -398,14 +348,11 @@ impl Shell {
     }
 
     /// Decline the question.
-    fn question_dismiss<P: Place>(&mut self, cx: &mut Context<'_, Self>) {
-        if !self.question_editable::<P>() {
+    fn question_dismiss_at<P: Place>(&mut self, id: QuestionId, cx: &mut Context<'_, Self>) {
+        if !self.question_editable::<P>(id) {
             return;
         }
-        if let Some(id) = (P::SEAT.get)(self)
-            .and_then(|area| area.answering.as_ref())
-            .map(|answering| answering.id)
-        {
+        if waiting_at::<P>(self, id).is_some() {
             self.question_send::<P>(id, QuestionAnswer::Decline, ResponseAction::Dismiss, cx);
         }
     }
@@ -418,12 +365,13 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if let Some(area) = (P::SEAT.get_mut)(self) {
-            if let Some(answering) = area.answering.as_mut() {
+            if let Some(answering) = area.answering.get_mut(id) {
                 // Dismiss may legitimately send an empty accepted answer;
                 // progress belongs to the pressed action, not its encoding.
                 answering.sending = Some(action);
+                answering.validation = None;
             }
-            if let Some(answering) = &area.answering {
+            if let Some(answering) = area.answering.get(id) {
                 answering
                     .field
                     .set_editability(vessel_app_kit::field::Editability::ReadOnly, cx);
@@ -437,3 +385,9 @@ impl Shell {
 
 #[cfg(test)]
 mod language_tests;
+
+#[cfg(test)]
+mod compat_tests;
+
+#[cfg(test)]
+mod multi_tests;

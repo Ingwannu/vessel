@@ -81,6 +81,7 @@ impl ConversationArea {
             }) => self.lost = Some(message),
             Err(failed) => self.refused = Some((answer.kind, failed.message)),
         }
+        self.reconcile_responses();
         Followup::None
     }
 
@@ -99,6 +100,7 @@ impl ConversationArea {
         self.follow_parking(records);
         let rows_before = self.rows.len();
         let change = self.timeline.apply(records);
+        self.reconcile_responses();
         if change.is_empty(self.timeline.entries().len()) {
             return false;
         }

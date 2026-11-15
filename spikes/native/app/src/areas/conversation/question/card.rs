@@ -4,9 +4,7 @@
 //! its controls do are the parent module's; the step's rules are the
 //! view's (`view::timeline::question_step`).
 
-use std::sync::Arc;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::field::FieldId;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
@@ -17,7 +15,6 @@ use vessel_app_kit::{
     CardLook, CardState, Tokens, Type, TypeExt as _, breakpoint, card_button, chat_markdown,
     markdown, markdown_label, version_of,
 };
-use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
     Choice, Problem, Step, Wrong, answerable, choices, picked, step_answered, step_header,
@@ -28,6 +25,9 @@ use vessel_proto::Question;
 use super::{Answering, Cursor, ResponseAction, waiting};
 use crate::areas::conversation::Place;
 use crate::shell::Shell;
+
+mod options;
+use options::option_row;
 
 /// The tallest the option rows stand before they scroll: a phone's, and
 /// any wider window's.
@@ -43,20 +43,52 @@ pub(crate) fn card<P: Place>(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     let area = (P::SEAT.get)(shell)?;
-    let question = waiting(area);
-    let answering = match (&question, &area.answering) {
-        (None, None) => return None,
-        (Some(question), Some(answering)) if answering.id == question.id => answering,
-        // Made (or dropped) on the next frame: the slot cannot make a box.
-        _ => {
-            cx.defer_in(window, |shell, window, cx| {
-                shell.question_prepare::<P>(window, cx);
-            });
-            return None;
-        }
+    let pending = waiting(area);
+    if area.answering.len() != pending.len()
+        || pending
+            .iter()
+            .any(|question| area.answering.get(question.id).is_none())
+    {
+        cx.defer_in(window, |shell, window, cx| {
+            shell.question_prepare::<P>(window, cx)
+        });
+    }
+    let cards: Vec<_> = pending
+        .into_iter()
+        .filter_map(|question| super::card_at::<P>(shell, question.id, tokens, window, cx))
+        .collect();
+    if cards.is_empty() {
+        return None;
+    }
+    Some(
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(spacing::S2))
+            .children(cards)
+            .into_any_element(),
+    )
+}
+
+/// Inbox and other exact-request views choose an identity, never a list position.
+pub(crate) fn card_at<P: Place>(
+    shell: &Shell,
+    id: vessel_proto::QuestionId,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let area = (P::SEAT.get)(shell)?;
+    let question = waiting(area)
+        .into_iter()
+        .find(|question| question.id == id)?;
+    let Some(answering) = area.answering.get(id) else {
+        cx.defer_in(window, |shell, window, cx| {
+            shell.question_prepare::<P>(window, cx)
+        });
+        return None;
     };
-    let question = question?;
-    let steps = steps_of(&question);
+    let steps = steps_of(question);
     let step = steps.get(answering.step).copied()?;
     let words = shell.t.lang.conversation();
     let neutral = tokens.neutral;
@@ -65,12 +97,7 @@ pub(crate) fn card<P: Place>(
         .response_failures
         .get(vessel_app_view::responses::Request::Question(question.id))
         .map(|failure| crate::areas::responses::problem(shell.words, failure).to_owned())
-        .or_else(|| {
-            area.refused
-                .as_ref()
-                .filter(|(kind, _)| *kind == ActKind::Answer)
-                .map(|(_, message)| message.clone())
-        });
+        .or_else(|| answering.validation.clone());
     let sending = answering.sending.filter(|_| refused.is_none());
     let waiting_on_node = sending.is_some() || P::busy(shell);
     let last = answering.step.saturating_add(1) >= steps.len();
@@ -91,8 +118,8 @@ pub(crate) fn card<P: Place>(
         tokens,
         cx,
     );
-    let said = said(refused, &question, step, answering, *words);
-    let prompt = step_prompt(&question, step);
+    let said = said(refused, question, step, answering, *words);
+    let prompt = step_prompt(question, step);
     let prompt_body = chat_markdown(
         answering.field.id().element_id("question-prompt"),
         &prompt,
@@ -104,6 +131,7 @@ pub(crate) fn card<P: Place>(
     );
     Some(
         div()
+            .id(answering.field.id().element_id("question-card"))
             .flex()
             .flex_col()
             .gap(px(12.0))
@@ -195,7 +223,7 @@ fn answers<P: Place>(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let (options, multiple) = choices(step, yes_no);
-    let mut block = div().flex().flex_col().gap(px(8.0));
+    let mut block = div().flex().flex_col().gap(px(spacing::S2));
     if !options.is_empty() {
         let rows = options.into_iter().enumerate().map(|(index, choice)| {
             let on = picked(step, &answering.drafts, &choice.value);
@@ -274,7 +302,7 @@ fn tabs<P: Place>(
             .child(div().truncate().child(step_header(*step)))
             .on_click(cx.listener(move |shell, _event, window, cx| {
                 if shell.question_cursor::<P>(cursor) {
-                    shell.question_show::<P>(index, window, cx);
+                    shell.question_show_at::<P>(cursor.id, index, window, cx);
                 }
             }))
     });
@@ -285,122 +313,6 @@ fn tabs<P: Place>(
         .gap(px(4.0))
         .px(px(12.0))
         .children(tabs)
-}
-
-/// One option: Paseo's row, a radio or a checkbox at its left.
-fn option_row<P: Place>(
-    (index, cursor, source): (usize, Cursor, FieldId),
-    choice: Choice,
-    on: bool,
-    multiple: bool,
-    busy: bool,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    let control = mark(on, multiple, tokens);
-    let value = choice.value;
-    div()
-        .id(("question-option", index))
-        .flex()
-        .items_start()
-        .gap(px(8.0))
-        .px(px(12.0))
-        .py(px(8.0))
-        .rounded(px(6.0))
-        .when(on, |row| row.bg(neutral.surface2))
-        .hover(move |style| style.bg(neutral.surface2))
-        .cursor_pointer()
-        .when(!busy, |row| {
-            row.on_click(cx.listener(move |shell, _event, window, cx| {
-                if shell.question_cursor::<P>(cursor) {
-                    shell.question_pick::<P>(&value, window, cx);
-                }
-            }))
-        })
-        .child(control)
-        .child(
-            div()
-                .flex_1()
-                .min_w(px(0.0))
-                .flex()
-                .flex_col()
-                .gap(px(4.0))
-                .child(
-                    div()
-                        .debug_selector("question-option-title")
-                        .line_height(px(22.0))
-                        .text_color(if on {
-                            neutral.foreground
-                        } else {
-                            neutral.foreground_muted
-                        })
-                        .child(markdown_label(
-                            option_text_key(source, cursor, index, "question-option-title"),
-                            choice.title,
-                        )),
-                )
-                .children(choice.description.map(|description| {
-                    div()
-                        .id(option_text_key(source, cursor, index, "question-option-description-hit"))
-                        .text_size(px(13.0))
-                        .text_color(neutral.foreground_muted)
-                        .debug_selector("question-option-description")
-                        // Reading/selecting a description must not pick its option.
-                        .on_click(|_event, _window, cx| cx.stop_propagation())
-                        .child(markdown(
-                            option_text_key(source, cursor, index, "question-option-description"),
-                            description,
-                        ))
-                })),
-        )
-}
-
-/// The real form owns rich text caches; positions only distinguish its parts.
-fn option_text_key(
-    source: FieldId,
-    cursor: Cursor,
-    index: usize,
-    part: &'static str,
-) -> vessel_app_kit::ui::ElementId {
-    vessel_app_kit::ui::ElementId::NamedChild(
-        Arc::new(source.element_id(part)),
-        format!("{}-{index}", cursor.step).into(),
-    )
-}
-
-/// An option's mark: a radio (one answer) or a checkbox (several),
-/// filled in the accent when on.
-fn mark(on: bool, multiple: bool, tokens: &Tokens) -> Div {
-    let neutral = tokens.neutral;
-    div()
-        .mt(px(2.0))
-        .size(px(18.0))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .border_1()
-        .border_color(if on {
-            neutral.accent
-        } else {
-            neutral.foreground_extra_muted
-        })
-        .map(|control| {
-            if multiple {
-                control.rounded(px(4.0))
-            } else {
-                control.rounded_full()
-            }
-        })
-        .when(on && multiple, |control| {
-            control
-                .bg(neutral.accent)
-                .child(glyph(Glyph::Check, 12.0, neutral.accent_foreground))
-        })
-        .when(on && !multiple, |control| {
-            control.child(div().size(px(8.0)).rounded_full().bg(neutral.accent))
-        })
 }
 
 /// Dismiss, then Next or Submit (the accent): in a row, stacked on a
@@ -431,7 +343,7 @@ fn actions<P: Place>(
     .when(dismiss, |button| {
         button.on_click(cx.listener(move |shell, _event, _window, cx| {
             if shell.question_cursor::<P>(cursor) {
-                shell.question_dismiss::<P>(cx);
+                shell.question_dismiss_at::<P>(cursor.id, cx);
             }
         }))
     });
@@ -454,7 +366,7 @@ fn actions<P: Place>(
     .when(primary, |button| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
             if shell.question_cursor::<P>(cursor) {
-                shell.question_primary::<P>(window, cx);
+                shell.question_primary_at::<P>(cursor.id, window, cx);
             }
         }))
     });

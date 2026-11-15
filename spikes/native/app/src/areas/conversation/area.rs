@@ -138,7 +138,7 @@ pub(crate) struct ConversationArea {
     /// A queued message edited in its row.
     pub(crate) queue_edit: Option<queue::QueueEdit>,
     /// The question waiting first, being answered over the composer.
-    pub(crate) answering: Option<question::Answering>,
+    pub(crate) answering: question::Forms,
     /// The context meter left of the send button, and its card.
     pub(crate) meter: meter::MeterState,
     /// Marking the session read while it is in front.
@@ -150,10 +150,10 @@ pub(crate) struct ConversationArea {
     /// A fork's origin, its turns the list's first rows (`origin`).
     pub(crate) origin: origin::Origin,
     /// A permission's answer being sent.
-    pub(crate) permit_sending: Option<permission::Sending>,
+    pub(crate) permit_sending: permission::Sending,
     /// Whether a plan request's plan is folded (Paseo's plan card opens
     /// unfolded).
-    pub(crate) plan_folded: Option<vessel_proto::PermissionId>,
+    pub(crate) plan_folded: permission::Disclosures,
     /// What the node says waits in the session now, for the requests and
     /// questions whose records the log read no longer holds
     /// (`view::timeline::Live`).
@@ -208,14 +208,14 @@ impl ConversationArea {
             dialog: DialogState::new(cx),
             rename: None,
             queue_edit: None,
-            answering: None,
+            answering: question::Forms::default(),
             meter: meter::MeterState::default(),
             read: read::ReadMarks::default(),
             rewinding: rewind::Rewinding::new(cx),
             forking: fork::Forking::new(cx),
             origin: origin::Origin::None,
-            permit_sending: None,
-            plan_folded: None,
+            permit_sending: permission::Sending::default(),
+            plan_folded: permission::Disclosures::default(),
             live: Live::default(),
             reveal: None,
             outline: Vec::new(),
@@ -280,10 +280,10 @@ impl ConversationArea {
         self.find_cache = FindCache::default();
         self.outline.clear();
         self.queue_edit = None;
-        self.answering = None;
-        self.permit_sending = None;
+        self.answering = question::Forms::default();
+        self.permit_sending.clear();
         self.response_failures = vessel_app_view::responses::Failures::default();
-        self.plan_folded = None;
+        self.plan_folded.clear();
         self.live = Live::default();
         self.reveal = None;
         self.outline_pointer = outline::Pointer::default();

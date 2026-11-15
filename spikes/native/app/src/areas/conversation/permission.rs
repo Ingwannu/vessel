@@ -27,6 +27,7 @@
 //!   none shows; the card scrolls past 520 (440 on a phone), where Paseo's
 //!   card scrolls with the conversation.
 
+use std::collections::{HashMap, HashSet};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
@@ -39,8 +40,8 @@ use vessel_app_kit::{
 use vessel_app_link::ActKind;
 use vessel_app_view::ConversationWords;
 use vessel_app_view::timeline::{
-    AnswerMark, CardTitle, Permission, PermissionCard, PlanExpansion, PlanOutcome, ToolView,
-    permission_card,
+    AnswerMark, CardTitle, PermissionCard, PlanExpansion, PlanOutcome, ToolView,
+    permission_card_for,
 };
 use vessel_proto::{PermissionId, PermissionOptionId};
 
@@ -49,6 +50,7 @@ use super::look::Look;
 use super::plan_card::{PlanCard, card as plan_card};
 use super::{Answer, Place, Seat};
 use crate::shell::Shell;
+use vessel_app_kit::theme::spacing;
 
 /// The tallest the card stands over the composer before its content
 /// scrolls (Claude Code's plan exit stacks seven answers on a phone):
@@ -57,7 +59,9 @@ const CARD_PHONE: f32 = 440.0;
 const CARD: f32 = 520.0;
 
 /// An answer being sent: its request and the option chosen.
-pub(crate) type Sending = (PermissionId, PermissionOptionId);
+pub(crate) type Sending = HashMap<PermissionId, PermissionOptionId>;
+/// Disclosure is independent for every simultaneously pending plan.
+pub(crate) type Disclosures = HashSet<PermissionId>;
 
 impl Shell {
     /// Answer the waiting request `id` of the conversation at `P` with
@@ -72,10 +76,7 @@ impl Shell {
             return;
         };
         if !area.response_waiting(vessel_app_view::responses::Request::Permission(id))
-            || area
-                .permit_sending
-                .as_ref()
-                .is_some_and(|(asked, _)| *asked == id)
+            || area.permit_sending.contains_key(&id)
                 && area
                     .response_failures
                     .get(vessel_app_view::responses::Request::Permission(id))
@@ -87,7 +88,7 @@ impl Shell {
         {
             return;
         }
-        area.permit_sending = Some((id, option.clone()));
+        let _previous = area.permit_sending.insert(id, option.clone());
         area.refused = None;
         P::answer(self, Answer::Permit(id, option), cx);
         cx.notify();
@@ -99,7 +100,9 @@ impl Shell {
             if !area.response_waiting(vessel_app_view::responses::Request::Permission(id)) {
                 return;
             }
-            area.plan_folded = (area.plan_folded != Some(id)).then_some(id);
+            if !area.plan_folded.remove(&id) {
+                let _inserted = area.plan_folded.insert(id);
+            }
             cx.notify();
         }
     }
@@ -115,34 +118,64 @@ pub(crate) fn card<P: Place>(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    let area = (P::SEAT.get)(shell)?;
+    let ids: Vec<_> = area
+        .timeline
+        .pending_permissions()
+        .map(|(_, permission)| permission.request.id)
+        .chain(
+            area.timeline
+                .unseen_permissions(&area.live)
+                .into_iter()
+                .map(|request| request.id),
+        )
+        .collect();
+    let cards: Vec<_> = ids
+        .into_iter()
+        .filter_map(|id| card_at::<P>(shell, id, tokens, window, cx))
+        .collect();
+    if cards.is_empty() {
+        return None;
+    }
+    Some(
+        div()
+            .flex()
+            .flex_col()
+            .gap(px(spacing::S2))
+            .children(cards)
+            .into_any_element(),
+    )
+}
+
+/// An exact Inbox request uses the same card, independently of list position.
+pub(crate) fn card_at<P: Place>(
+    shell: &Shell,
+    id: PermissionId,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
     let seat = P::SEAT;
     let area = (seat.get)(shell)?;
-    let unseen = area.timeline.unseen_permissions(&area.live);
-    let live;
-    let permission = if let Some((_entry, permission)) = area.timeline.pending() {
-        permission
+    let logged = area
+        .timeline
+        .pending_permissions()
+        .find(|(_, permission)| permission.request.id == id);
+    let (request, title) = if let Some((_, permission)) = logged {
+        (&permission.request, permission.title.as_deref())
     } else {
-        let request = *unseen.first()?;
-        live = Permission {
-            request: request.clone(),
-            // Named as the fold names a request: its tool call's title.
-            title: P::tool(shell, &request.tool_call).map(|tool| tool.title.clone()),
-            outcome: None,
-        };
-        &live
+        let request = area
+            .timeline
+            .unseen_permissions(&area.live)
+            .into_iter()
+            .find(|request| request.id == id)?;
+        let title = P::tool(shell, &request.tool_call).map(|tool| tool.title.as_str());
+        (request, title)
     };
     let words = shell.t.lang.conversation();
-    let tool = P::tool(shell, &permission.request.tool_call);
-    let card = permission_card(
-        permission,
-        tool,
-        area.timeline
-            .waiting_permissions()
-            .saturating_add(unseen.len()),
-        |kind| words.permission_kind(kind),
-    );
+    let tool = P::tool(shell, &request.tool_call);
+    let card = permission_card_for(request, title, tool, 1, |kind| words.permission_kind(kind));
     let narrow = breakpoint::phone(window);
-    let id = permission.request.id;
     let refused = area
         .response_failures
         .get(vessel_app_view::responses::Request::Permission(id))
@@ -156,9 +189,9 @@ pub(crate) fn card<P: Place>(
     // The answer going, unless it failed or another request now shows.
     let sending = area
         .permit_sending
-        .as_ref()
-        .filter(|(asked, _)| *asked == id && refused.is_none())
-        .map(|(_, option)| option.clone());
+        .get(&id)
+        .filter(|_| refused.is_none())
+        .cloned();
     let title = match card.title {
         CardTitle::Agent(title) => title.to_owned(),
         CardTitle::Plan => words.permission_plan().to_owned(),
@@ -186,7 +219,7 @@ pub(crate) fn card<P: Place>(
                 title: Some(&title),
                 description: None,
                 outcome: PlanOutcome::Pending,
-                expansion: if area.plan_folded == Some(id) {
+                expansion: if area.plan_folded.contains(&id) {
                     PlanExpansion::Collapsed
                 } else {
                     PlanExpansion::Expanded
@@ -220,7 +253,7 @@ fn footer(answers: Div, refused: Option<String>, words: ConversationWords, token
     div()
         .flex()
         .flex_col()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .child(
             div()
                 .my(px(4.0))
@@ -246,7 +279,7 @@ fn frame(body: AnyElement, footer: Div, narrow: bool, tokens: &Tokens) -> AnyEle
         .overflow_y_scroll()
         .flex()
         .flex_col()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .p(px(12.0))
         .rounded(px(8.0))
         .border_1()
@@ -271,7 +304,7 @@ fn head(
     div()
         .flex()
         .items_start()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .child(
             div()
                 .flex_1()
@@ -302,7 +335,7 @@ fn answers<P: Place>(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let mut row = div().flex().gap(px(8.0));
+    let mut row = div().flex().gap(px(spacing::S2));
     row = if narrow {
         row.flex_col()
     } else {
@@ -353,7 +386,7 @@ fn body(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let column = div().flex().flex_col().gap(px(8.0));
+    let column = div().flex().flex_col().gap(px(spacing::S2));
     let paint = Paint {
         catalog: shell.words,
         words: shell.t.lang.conversation(),

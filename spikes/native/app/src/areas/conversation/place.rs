@@ -64,6 +64,11 @@ pub(crate) trait Place: 'static {
     /// Where its conversation is kept.
     const SEAT: Seat;
 
+    /// Which pending cards this projection displays; this never grants authority.
+    fn response_scope(_shell: &Shell) -> vessel_app_view::responses::ResponseScope {
+        vessel_app_view::responses::ResponseScope::All
+    }
+
     /// Send `answer` for the session the conversation shows. The card has
     /// already marked it as going (`permit_sending`, the question's
     /// `sent`); a failure is said on the card by setting the

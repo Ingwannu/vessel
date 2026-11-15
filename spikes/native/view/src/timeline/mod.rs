@@ -43,6 +43,7 @@ mod logs;
 mod meter;
 mod origin;
 mod outline;
+mod pending;
 mod permission;
 mod plan;
 mod plan_types;
@@ -73,7 +74,9 @@ pub use logs::{LogRun, Logs};
 pub use meter::{Fullness, Meter, meter_of};
 pub use origin::{Until, origin_of};
 pub use outline::{OUTLINE_MIN, OUTLINE_WIDTH, OutlineItem, PREVIEW, REPLY, outline, preview};
-pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card};
+pub use permission::{
+    AnswerMark, CardAnswer, CardTitle, PermissionCard, permission_card, permission_card_for,
+};
 pub use plan::{PlanActivity, all_pending, plan_activities};
 pub use plan_types::{PlanExpansion, PlanOutcome};
 pub use question::{

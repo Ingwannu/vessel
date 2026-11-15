@@ -109,14 +109,8 @@ impl Shell {
                     && shown.session == pending.target.session
             }) && area.response_waiting(pending.request)
                 && match pending.request {
-                    Request::Permission(id) => area
-                        .permit_sending
-                        .as_ref()
-                        .is_some_and(|(asked, _)| *asked == id),
-                    Request::Question(id) => area
-                        .answering
-                        .as_ref()
-                        .is_some_and(|form| form.is_sending(id)),
+                    Request::Permission(id) => area.permit_sending.contains_key(&id),
+                    Request::Question(id) => area.answering.is_sending(id),
                 }
         })
     }

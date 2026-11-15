@@ -16,6 +16,16 @@ pub enum Request {
     Question(QuestionId),
 }
 
+/// Drawing scope is separate from node authorization and response admission.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ResponseScope {
+    /// Main conversation shows every current pending request.
+    #[default]
+    All,
+    /// An Inbox detail shows only its exact selected request.
+    One(Request),
+}
+
 /// A request identity is local to a session on one selected node-book entry.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
