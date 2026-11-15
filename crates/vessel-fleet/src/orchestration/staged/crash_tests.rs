@@ -216,7 +216,8 @@ fn verify_files(root: &Path, operation: Operation, edge: Edge) {
         );
         let expected_entries = match (operation, edge) {
             (Operation::Delete, Edge::AfterPreference) => 1,
-            (Operation::Update, _) | (Operation::Delete, Edge::BeforePreference) => 2,
+            (Operation::Update, Edge::BeforePreference | Edge::AfterPreference)
+            | (Operation::Delete, Edge::BeforePreference) => 2,
         };
         assert_eq!(std::fs::read_dir(&home).unwrap().count(), expected_entries);
         let skill = home.join("vessel");

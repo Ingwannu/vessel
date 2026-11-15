@@ -769,3 +769,9 @@ include this naming correction rather than submitting another duplicate suite.
 The tests are authored only; changed fleet strict and actual child execution
 remain owed. This slice also includes the unchanged notification fixture budget
 name. Earlier source/check receipts are retained with their exact limits.
+
+
+The crash fixture's expected-entry table spells out both closed Edge variants
+for Update instead of a wildcard, preserving the same four expected outcomes
+while making future checkpoint additions require an explicit test decision.
+This test-pattern-only correction does not broaden prior-source execution.
