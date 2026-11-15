@@ -189,7 +189,7 @@ fn actual_sidebar_keeps_foot_and_reaches_the_end_after_unfold(cx: &mut TestAppCo
                 probe.shell.update(cx, |shell, cx| {
                     shell.areas.workspace.projects_unfolded = true;
                     cx.notify();
-                })
+                });
             });
             cx.run_until_parked();
             fixed(&probe, cx, height);
@@ -207,7 +207,7 @@ fn actual_sidebar_keeps_foot_and_reaches_the_end_after_unfold(cx: &mut TestAppCo
                         .size
                         .height
                         > folded
-                )
+                );
             });
             let body = probe.read_with(cx, |probe, cx| {
                 probe.shell.read(cx).areas.sidebar.layout.scroll.bounds()
@@ -220,7 +220,7 @@ fn actual_sidebar_keeps_foot_and_reaches_the_end_after_unfold(cx: &mut TestAppCo
             cx.run_until_parked();
             fixed(&probe, cx, height);
             probe.read_with(cx, |probe, cx| {
-                assert!(probe.shell.read(cx).areas.sidebar.layout.scroll.offset().y < px(0.0))
+                assert!(probe.shell.read(cx).areas.sidebar.layout.scroll.offset().y < px(0.0));
             });
             let nav = target(&probe, cx, |layout| &layout.navigation);
             cx.update(|window, cx| nav.focus(window, cx));

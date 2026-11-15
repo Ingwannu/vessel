@@ -40,7 +40,7 @@ pub(super) fn groups(
         );
     }
     let final_group = groups.len().checked_sub(1);
-    for (group_index, group) in groups.into_iter().enumerate() {
+    for (group_index, group) in groups.iter().enumerate() {
         let end = EndTarget::at(group_index, final_group);
         list = list.child(status_group(group, end, shell, tokens, touch, cx));
     }
@@ -49,7 +49,7 @@ pub(super) fn groups(
 
 /// Retains one status renderer while the final existing row gains reveal.
 fn status_group(
-    group: SidebarStatus<'_>,
+    group: &SidebarStatus<'_>,
     end: EndTarget,
     shell: &Shell,
     tokens: &Tokens,
