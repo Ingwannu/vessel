@@ -351,3 +351,13 @@ exclusions; real fake-runtime tests cover application, same-word manual
 renames, concurrent requests and ended actors. No model client or node
 arming is connected. Narrow all-targets Clippy, all library tests and the
 fake actor cases pass. The exact-commit whole gate remains next.
+
+### Late generated proposal contract and resume point
+
+A parked session still has a live status, so the actor's current live
+check alone does not protect it from an already queued proposal. Extend
+that same comparison with unparked and non-imported guards, keeping fresh
+Remote creates eligible and manual rename behavior unchanged. Adjacent
+rule tests must cover parked, imported and remote states before porting
+the actor API. No new queue, call, bound or dependency is needed. This
+contract precedes its small code correction; node arming is still absent.

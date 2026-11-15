@@ -377,11 +377,20 @@ create as fresh.
 
 An external read followed by an ordinary rename is racy. A generated
 proposal therefore carries the expected title to the session actor. The
-actor compares its live, structured, non-resuming session's given origin,
+actor compares its live, unparked, structured, non-resuming session's given origin,
 exact title and absent explicit specification title, then publishes the
 rename in that same serialized order. A typed rename, even to identical
 words, wins. A successful proposal returns `Applied`; a mismatch returns
 `Kept` and publishes nothing. No watch borrow crosses the publish await.
+
+The actor also refuses a generated proposal when the current session is
+parked or its origin is Imported. Task cancellation alone cannot decide a
+proposal already queued with the actor; these guards keep a late proposal
+from changing a parked/imported session. A fresh Remote origin is allowed:
+forwarding a new create is not an import. The origin match is exhaustive,
+so another origin must decide the rule. Ordinary manual renames keep their
+existing behavior. Node arming still excludes imports and cancels on park;
+the actor check is a second defense, not a replacement for that routing.
 
 The existing rename API is live-only, and the actor's final status must
 remain its last record. A session that ends before the proposal is
