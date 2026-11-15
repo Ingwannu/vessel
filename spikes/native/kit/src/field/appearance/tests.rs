@@ -48,7 +48,7 @@ fn profiles_keep_their_reference_width_minimum_and_engine_alignment(cx: &mut Tes
                 }
             });
             probe.update_in(cx, |owner, window, cx| {
-                owner.field.set_text("14", window, cx)
+                owner.field.set_text("14", window, cx);
             });
             cx.run_until_parked();
             let bounds = seen.borrow();

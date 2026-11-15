@@ -76,7 +76,7 @@ fn windowed_events_use_current_text_once_while_legacy_has_no_blur_hook(cx: &mut 
                 Seen::Submit("한글".into()),
                 Seen::Blur("한글".into())
             ]
-        )
+        );
     });
     probe.update_in(cx, |owner, window, cx| {
         owner.events.clear();
@@ -88,6 +88,6 @@ fn windowed_events_use_current_text_once_while_legacy_has_no_blur_hook(cx: &mut 
     probe.update_in(cx, |owner, window, cx| owner.other.focus(window, cx));
     cx.run_until_parked();
     probe.read_with(cx, |owner, _| {
-        assert_eq!(owner.events, vec![Seen::Legacy("legacy".into())])
+        assert_eq!(owner.events, vec![Seen::Legacy("legacy".into())]);
     });
 }

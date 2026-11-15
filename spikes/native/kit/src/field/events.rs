@@ -6,15 +6,31 @@ use gpui::{Context, Entity, Window};
 use gpui_base::input::{InputBaseState, InputEvent, InputModeKind};
 use std::{cell::Cell, rc::Rc};
 
+// Edit and blur carry the same current-text notification, not two callback
+// protocols. Naming it keeps the public hooks readable without an owner bound.
+type TextEvent<V> = fn(&mut V, String, &mut Window, &mut Context<'_, V>);
+
 /// Generic notifications from the existing editor. Consumers own validation
 /// and decide whether a composing edit should update their local preview.
 pub struct FieldEvents<V: 'static> {
     /// A text edit; Window permits an owner to replace filtered text in place.
-    pub on_edit: Option<fn(&mut V, String, &mut Window, &mut Context<'_, V>)>,
+    pub on_edit: Option<TextEvent<V>>,
     /// Focus gained; numeric owners can defer the shared select-all hook.
     pub on_focus: Option<fn(&mut V, &mut Window, &mut Context<'_, V>)>,
     /// Focus lost, with CURRENT text rather than a stale opening snapshot.
-    pub on_blur: Option<fn(&mut V, String, &mut Window, &mut Context<'_, V>)>,
+    pub on_blur: Option<TextEvent<V>>,
+}
+// Debug describes installed hooks without requiring the entire view owner
+// to implement Debug or exposing function addresses.
+impl<V: 'static> std::fmt::Debug for FieldEvents<V> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("FieldEvents")
+            .field("on_edit", &self.on_edit.is_some())
+            .field("on_focus", &self.on_focus.is_some())
+            .field("on_blur", &self.on_blur.is_some())
+            .finish()
+    }
 }
 impl<V: 'static> Default for FieldEvents<V> {
     fn default() -> Self {
@@ -126,7 +142,7 @@ pub(super) fn listen<V: 'static, M: InputModeKind>(
         state,
         window,
         move |owner, state, event: &InputEvent, window, cx| {
-            handlers.handle(owner, state, event, window, cx)
+            handlers.handle(owner, state, event, window, cx);
         },
     )
     .detach();

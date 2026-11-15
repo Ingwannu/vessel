@@ -34,8 +34,8 @@ fn custom_same_scheme_replacement_updates_component_colors_without_replacing_syn
             colors.foreground
         );
         assert_eq!(syntax::selected(), before_syntax);
-        assert_eq!(fonts::content_size(), before_content);
-        assert_eq!(fonts::code_size(), before_code);
+        assert_eq!(fonts::content_size().to_bits(), before_content.to_bits());
+        assert_eq!(fonts::code_size().to_bits(), before_code.to_bits());
         set_palette(cx, Palette::Midnight);
         assert_eq!(tokens(cx), Tokens::palette(Palette::Midnight));
         assert_eq!(

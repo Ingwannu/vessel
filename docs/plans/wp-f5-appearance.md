@@ -495,3 +495,21 @@ family to that existing editor, and does not certify its complete layout.
 The existing Markdown code-block line1.375 also remains. Markdown-file width
 projection and quiet terminal font-stack cache invalidation are coordinated
 with their owners; neither is completed evidence from this package yet.
+
+
+### Remaining strict diagnostics and central message ownership
+
+The corrected `d071a7427` narrow run
+`themes-narrow-20261115T124102Z-d071a742` finished FAILED: fonts0,
+all-target Clippy101 after29 seconds. Its nine diagnostics are confined to
+new kit callback type complexity/Debug, missing trailing semicolons, and two
+strict float comparisons in the projection test. No build/test/export follows.
+The callback shape now has one private alias and an owner-independent Debug;
+assertions compare exact float bits rather than weakening to a tolerance.
+No callback ordering, lint exemption or assertion value changes.
+
+The shared SavePrefs message-size fix is centrally assigned to the command
+owner and lead. This branch does not box Prefs or SavePrefs. Its immutable
+font-family sharing remains a value/snapshot ownership choice; the announced
+central command change will be merged before the next combined narrow check.
+The last adopted app base remains base6 plus the lead's lock-only correction.
