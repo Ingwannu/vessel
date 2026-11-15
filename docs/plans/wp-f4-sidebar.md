@@ -845,3 +845,11 @@ states are the portable6d checkpoint, not a new pass for this Main union.
 Settings720 width and PHONE/auto-hide exceptions remain until E2's atomic
 fallback. Default264, frame12 and global PHONE768 are separate native choices.
 No kit control or unrelated area was copied from the portable branch.
+
+
+Announced line3e7820e3 is merged after every own Cargo/export completed.
+Only README prose conflicts: retain both owners' DialogHeader/allocation,
+SearchField/DiffEditor, own menu-description and the single glyph-inventory
+paragraph. No pending730 panel-role/Toolbar source is consumed before its
+line announcement. Incoming root/protocol changes are base evidence; this
+F4 union and its own controls remain unverified until changed-head checks.

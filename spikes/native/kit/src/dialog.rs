@@ -48,10 +48,12 @@ use gpui::{
 
 #[cfg(test)]
 mod configuration_tests;
+mod header_content;
 mod layout;
 mod return_focus;
 mod sheet;
 
+pub use header_content::DialogInput;
 pub use layout::{BodySpacing, CompactLayout, DesktopHeight, DialogLayout, DialogWidth};
 
 use crate::assets::Glyph;
@@ -119,13 +121,14 @@ impl std::fmt::Debug for DialogContent {
 /// it is a sheet from the bottom.
 pub fn dialog<V: 'static>(
     state: &DialogState,
-    content: DialogContent,
+    content: impl Into<DialogInput>,
     tokens: &Tokens,
     window: &Window,
     narrow: bool,
     close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + Clone + 'static,
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
+    let (content, header_actions) = content.into().parts();
     let surfaces = Surfaces::of(tokens);
     let layout = content.size.layout();
     let sheet = match (narrow, layout.compact()) {
@@ -137,6 +140,14 @@ pub fn dialog<V: 'static>(
         .as_ref()
         .map(|sheet| sheet.on_release(close.clone(), cx));
     let footer = footer(content.footer, &surfaces);
+    let header = header(
+        content.title,
+        header_actions,
+        &surfaces,
+        narrow,
+        close.clone(),
+        cx,
+    );
     let escape_close = close.clone();
     let card = div()
         .id("dialog")
@@ -190,7 +201,7 @@ pub fn dialog<V: 'static>(
                 }
             }))
         })
-        .child(header(content.title, &surfaces, narrow, close.clone(), cx))
+        .child(header)
         .child(body(
             content.body,
             &surfaces,
@@ -307,14 +318,17 @@ fn handle(color: gpui::Hsla) -> gpui::Div {
 /// The title and the close button, over a rule.
 fn header<V: 'static>(
     title: SharedString,
+    actions: Option<AnyElement>,
     surfaces: &Surfaces,
     narrow: bool,
     close: impl Fn(&mut V, &mut Window, &mut Context<'_, V>) + 'static,
     cx: &mut Context<'_, V>,
 ) -> gpui::Div {
+    let has_actions = actions.is_some();
     let close_size = if narrow { 44.0 } else { 28.0 };
     let hover = surfaces.surface2;
     div()
+        .debug_selector(|| "dialog-header".to_owned())
         .flex()
         .flex_shrink_0()
         .items_center()
@@ -325,12 +339,23 @@ fn header<V: 'static>(
         .border_color(surfaces.surface2)
         .child(
             div()
+                .debug_selector(|| "dialog-title".to_owned())
                 .flex_1()
                 .min_w(px(0.0))
+                .when(has_actions, Styled::truncate)
                 .type_(Type::Label)
                 .text_color(surfaces.foreground)
                 .child(title),
         )
+        .children(actions.map(|actions| {
+            div()
+                .debug_selector(|| "dialog-header-actions".to_owned())
+                .flex()
+                .flex_none()
+                .items_center()
+                .gap(px(crate::theme::spacing::S2))
+                .child(actions)
+        }))
         .child(
             div()
                 .id("dialog-close")

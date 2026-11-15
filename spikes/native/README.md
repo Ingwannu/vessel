@@ -1282,8 +1282,8 @@ its host dialog; no second scrim or area popup is drawn. See
 
 ### Adaptive caller-content popover
 
-`kit::popover` is the shared control for arbitrary settings bodies: measured
-start/end anchoring on desktop and the existing dialog/snap renderer on compact
+`kit::popover` is the shared control for arbitrary settings bodies: captured
+start/end anchor points on desktop and the existing dialog/snap renderer on compact
 layouts. `PopoverState::open` returns an opaque lease; `PopoverHandlers::admit`
 must accept that opening before any close or ReturnFocus acknowledgment. The
 control rechecks after admission, so retained old input cannot close a newer
@@ -1295,6 +1295,25 @@ avoids adding a second inset around forms; legacy dialogs keep Inset24 and all
 existing geometry defaults. See `docs/plans/wp-adaptive-popover.md` for exact
 Paseo references, API, pending remote tests and V1/lead handoff requirements.
 
+### Caller-owned dialog title actions
+
+`DialogContent::with_header_actions(controls)` adds an optional trailing element
+before the existing close button, through the same `dialog` renderer. Plain
+struct literals still convert without actions; their geometry/defaults stay the
+same. The title yields to controls on the shared24/16/8 inset/gap rails. Callers
+retain and check their action context/ticket; the slot grants no host authority.
+See `docs/plans/wp-dialog-header-actions.md` for references and current evidence.
+
+### Allocation block approval boundary (base 5 adapter)
+
+`command_changes::Listed` projects every `ServicePortsView` field explicitly.
+Until the approval card displays and compares the full allocation block, it
+refuses any current or last-approved block, even with zero named services or
+when the current set removes the old block. The approved-folder comparison
+fallback also retains that refusal. A typed refusal has separate EN/KO
+Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
+This keeps an unseen setting out of an approval digest while the native display
+is implemented. Existing terminal refusal and head test cases remain intact.
 
 `kit::external_link::external_link(id, Option<SharedString>, &tokens)` draws
 Paseo's inline external link (label12, ArrowUpRight12, gap4, hitSlop8;
@@ -1343,3 +1362,29 @@ Menu items may carry a whole localized auxiliary description with
 MenuItem::with_description. The same row renderer caps it to two muted small
 lines while idle; pending/success feedback hides the hint. Existing items
 without a description retain their previous label element and row geometry.
+`kit::SearchField` is the shared standalone filter profile over TextField's
+one-line engine and bare renderer. It owns Search14/X14, the source420-point
+maximum,34-point shell and focus palette; areas provide only localized placeholder
+and the existing change callback. Its X uses the ordinary replacement event/undo
+path and retains focus; navigation clear remains programmatic. Do not add search
+chrome or another editor in an area. See docs/plans/shared-search-field.md for
+the source values and unverified keyboard/accessibility/first-use boundaries. Exact corrected13c46693
+Kit all-target Clippy and its two focused tests completed0; this is not a full
+Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
+from area first-use evidence.
+
+
+
+The additive kit `code_editor::DiffEditor` and `DiffDocumentEditor` are readonly
+profiles of the existing source editor, with validated source-row metadata,
+independent old/new states of the same caller lexer, optional mapped gutter/row
+paint, full-height parent scrolling and owner caret reveal. They add no token
+kind, syntax parser, palette, transport, repository authority or second engine.
+Ordinary CodeEditor shares the same style factory and retains its existing
+behavior. The diff-only style uses terminal blue at0.45 alpha, after Paseo
+paint.web.ts paintSelection; the ordinary style stays unchanged. Both-theme
+policy tests cover that value; actual selection-path readability remains a
+capture obligation. Vendor patch7 and its precise source/runtime/paint limitations are in
+spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
+control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
+isolated producer does not include C3 View/Link/app or any root-runtime changes.

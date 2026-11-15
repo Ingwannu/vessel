@@ -1,3 +1,6 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: a user zoom per window on
+// top of the platform's scale (spikes/release/patches/README.md,
+// "gpui-pre", change 8); see the lines marked "Vessel patch".
 #[cfg(feature = "profiler")]
 use crate::DebugFrameOverlayMode;
 #[cfg(any(feature = "inspector", debug_assertions))]
@@ -1271,6 +1274,9 @@ pub struct Window {
     modifiers: Modifiers,
     capslock: Capslock,
     scale_factor: f32,
+    // Vessel patch: the user's zoom; `scale_factor` is the platform's scale
+    // times this.
+    user_zoom: f32,
     pub(crate) bounds_observers: SubscriberSet<(), AnyObserver>,
     appearance: WindowAppearance,
     pub(crate) appearance_observers: SubscriberSet<(), AnyObserver>,
@@ -2054,7 +2060,13 @@ impl Window {
             let mut cx = cx.to_async();
             Box::new(move |event| {
                 handle
-                    .update(&mut cx, |_, window, cx| window.dispatch_event(event, cx))
+                    .update(&mut cx, |_, window, cx| {
+                        // Vessel patch: the platform's positions into layout
+                        // space. Only here: GPUI's own synthesized events
+                        // (div.rs, anchored.rs) are in layout space already.
+                        let event = window.input_from_platform(event);
+                        window.dispatch_event(event, cx)
+                    })
                     .log_err()
                     .unwrap_or(DispatchEventResult::default())
             })
@@ -2175,6 +2187,8 @@ impl Window {
             modifiers,
             capslock,
             scale_factor,
+            // Vessel patch: a new window starts unzoomed.
+            user_zoom: 1.0,
             bounds_observers: SubscriberSet::new(),
             appearance,
             appearance_observers: SubscriberSet::new(),
@@ -2801,9 +2815,13 @@ impl Window {
     /// the platform window, then notifies observers. Normally called automatically
     /// by the platform's resize callback, but exposed publicly for test infrastructure.
     pub fn bounds_changed(&mut self, cx: &mut App) {
-        self.scale_factor = self.platform_window.scale_factor();
-        self.viewport_size = self.platform_window.content_size();
-        self.mouse_position = self.platform_window.mouse_position();
+        // Vessel patch: the user's zoom on top of the platform's scale.
+        self.scale_factor = self.platform_window.scale_factor() * self.user_zoom;
+        self.viewport_size = self
+            .platform_window
+            .content_size()
+            .map(|length| self.length_from_platform(length));
+        self.mouse_position = self.point_from_platform(self.platform_window.mouse_position());
 
         self.refresh();
 
@@ -2952,7 +2970,8 @@ impl Window {
     /// During drawing this is a consistent frame snapshot. Outside drawing it
     /// reflects the latest platform sample, not a synchronous geometry query.
     pub fn visual_viewport_bounds(&self) -> Bounds<Pixels> {
-        self.platform_window.visual_viewport_bounds()
+        // Vessel patch: into layout space, like `viewport_size`.
+        self.bounds_from_platform(self.platform_window.visual_viewport_bounds())
     }
 
     /// Returns a conservative rectangle avoiding platform-known obscured content.
@@ -2960,7 +2979,12 @@ impl Window {
     /// Intersects the visual viewport with the full layout area inset by system
     /// safe areas and keyboard occlusion. Unknown overlays cannot be excluded.
     pub fn fully_visible_bounds(&self) -> Bounds<Pixels> {
-        let insets = self.platform_window.insets().effective();
+        // Vessel patch: the platform's insets into layout space.
+        let insets = self
+            .platform_window
+            .insets()
+            .effective()
+            .map(|length| self.length_from_platform(*length));
         let viewport = self.viewport_size();
         let left = insets.left.max(Pixels::ZERO).min(viewport.width);
         let top = insets.top.max(Pixels::ZERO).min(viewport.height);
@@ -3013,7 +3037,9 @@ impl Window {
 
     /// Opens the native title bar context menu, useful when implementing client side decorations (Wayland and X11)
     pub fn show_window_menu(&self, position: Point<Pixels>) {
-        self.platform_window.show_window_menu(position)
+        // Vessel patch: a position in the window goes out in the platform's space.
+        self.platform_window
+            .show_window_menu(self.point_to_platform(position))
     }
 
     /// Handle window movement for Linux and macOS.
@@ -3027,7 +3053,10 @@ impl Window {
     /// When using client side decorations, set this to the width of the invisible decorations (Wayland and X11)
     pub fn set_client_inset(&mut self, inset: Pixels) {
         self.client_inset = Some(inset);
-        self.platform_window.set_client_inset(inset);
+        // Vessel patch: the decorations are drawn zoomed; the platform's
+        // resize edges and input region follow them.
+        self.platform_window
+            .set_client_inset(self.length_to_platform(inset));
     }
 
     /// Returns the client_inset value by [`Self::set_client_inset`].
@@ -3064,7 +3093,9 @@ impl Window {
     /// Sets the position of the macOS traffic light buttons.
     #[cfg(target_os = "macos")]
     pub fn set_traffic_light_position(&self, position: Point<Pixels>) {
-        self.platform_window.set_traffic_light_position(position);
+        // Vessel patch: a position in the window goes out in the platform's space.
+        self.platform_window
+            .set_traffic_light_position(self.point_to_platform(position));
     }
 
     /// Sets the application identifier.
@@ -3107,6 +3138,152 @@ impl Window {
     /// be rendered as two pixels on screen.
     pub fn scale_factor(&self) -> f32 {
         self.scale_factor
+    }
+
+    // Vessel patch (the block to the end of `input_from_platform`): a user
+    // zoom per window. Layout, paint and hit-testing run in a space the
+    // zoom scales: `viewport_size` is the platform's content size divided
+    // by it, `scale_factor` the platform's scale times it, and the
+    // platform's positions are divided by it on the way in (input) and
+    // multiplied on the way out (the IME's caret, the window menu, client
+    // decorations). The platform's own scale (the display's DPI) is kept.
+    // What is about the window on the screen (`bounds`, `window_bounds`,
+    // `resize`) stays in the platform's space.
+
+    /// The smallest zoom [`Self::set_zoom`] keeps.
+    pub const MIN_ZOOM: f32 = 0.25;
+    /// The largest zoom [`Self::set_zoom`] keeps.
+    pub const MAX_ZOOM: f32 = 5.0;
+
+    /// The user's zoom of this window's content, 1 when unzoomed.
+    pub fn zoom(&self) -> f32 {
+        self.user_zoom
+    }
+
+    /// Zooms this window's content: 1.25 draws every element a quarter
+    /// larger and leaves that much less room in [`Self::viewport_size`].
+    /// Kept between [`Self::MIN_ZOOM`] and [`Self::MAX_ZOOM`]; a value that
+    /// is not a finite number changes nothing. Bounds observers run, as on
+    /// a resize, and the window redraws.
+    pub fn set_zoom(&mut self, zoom: f32, cx: &mut App) {
+        if !zoom.is_finite() {
+            return;
+        }
+        let zoom = zoom.clamp(Self::MIN_ZOOM, Self::MAX_ZOOM);
+        if zoom == self.user_zoom {
+            return;
+        }
+        self.user_zoom = zoom;
+        if let Some(inset) = self.client_inset {
+            self.platform_window
+                .set_client_inset(self.length_to_platform(inset));
+        }
+        self.bounds_changed(cx);
+    }
+
+    fn length_from_platform(&self, length: Pixels) -> Pixels {
+        Pixels(length.0 / self.user_zoom)
+    }
+
+    fn length_to_platform(&self, length: Pixels) -> Pixels {
+        Pixels(length.0 * self.user_zoom)
+    }
+
+    pub(crate) fn point_from_platform(&self, point: Point<Pixels>) -> Point<Pixels> {
+        point.map(|length| self.length_from_platform(length))
+    }
+
+    pub(crate) fn point_to_platform(&self, point: Point<Pixels>) -> Point<Pixels> {
+        point.map(|length| self.length_to_platform(length))
+    }
+
+    pub(crate) fn bounds_from_platform(&self, bounds: Bounds<Pixels>) -> Bounds<Pixels> {
+        bounds.map(|length| self.length_from_platform(length))
+    }
+
+    pub(crate) fn bounds_to_platform(&self, bounds: Bounds<Pixels>) -> Bounds<Pixels> {
+        bounds.map(|length| self.length_to_platform(length))
+    }
+
+    /// An event from the platform with its positions and pixel distances
+    /// in layout space.
+    pub(crate) fn input_from_platform(&self, event: PlatformInput) -> PlatformInput {
+        if self.user_zoom == 1.0 {
+            return event;
+        }
+        let point = |point: Point<Pixels>| self.point_from_platform(point);
+        match event {
+            PlatformInput::MouseDown(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::MouseDown(event)
+            }
+            PlatformInput::MouseUp(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::MouseUp(event)
+            }
+            PlatformInput::MousePressure(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::MousePressure(event)
+            }
+            PlatformInput::MouseMove(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::MouseMove(event)
+            }
+            PlatformInput::MouseExited(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::MouseExited(event)
+            }
+            PlatformInput::Scroll(mut event) => {
+                event.position = point(event.position);
+                if let crate::ScrollDelta::Pixels(delta) = event.delta {
+                    event.delta = crate::ScrollDelta::Pixels(point(delta));
+                }
+                PlatformInput::Scroll(event)
+            }
+            PlatformInput::Pinch(mut event) => {
+                event.position = point(event.position);
+                PlatformInput::Pinch(event)
+            }
+            PlatformInput::LongPress(mut event) => {
+                event.start_position = point(event.start_position);
+                event.position = point(event.position);
+                PlatformInput::LongPress(event)
+            }
+            PlatformInput::TouchDrag(mut event) => {
+                event.start_position = point(event.start_position);
+                event.position = point(event.position);
+                PlatformInput::TouchDrag(event)
+            }
+            PlatformInput::BackGesture(mut event) => {
+                event.start_position = point(event.start_position);
+                PlatformInput::BackGesture(event)
+            }
+            PlatformInput::Touch(mut event) => {
+                event.position = point(event.position);
+                event.predicted_position = event.predicted_position.map(point);
+                PlatformInput::Touch(event)
+            }
+            PlatformInput::FileDrop(FileDropEvent::Entered { position, paths }) => {
+                PlatformInput::FileDrop(FileDropEvent::Entered {
+                    position: point(position),
+                    paths,
+                })
+            }
+            PlatformInput::FileDrop(FileDropEvent::Pending { position }) => {
+                PlatformInput::FileDrop(FileDropEvent::Pending {
+                    position: point(position),
+                })
+            }
+            PlatformInput::FileDrop(FileDropEvent::Submit { position }) => {
+                PlatformInput::FileDrop(FileDropEvent::Submit {
+                    position: point(position),
+                })
+            }
+            event @ (PlatformInput::KeyDown(_)
+            | PlatformInput::KeyUp(_)
+            | PlatformInput::ModifiersChanged(_)
+            | PlatformInput::FileDrop(_)) => event,
+        }
     }
 
     /// Overrides the display scale factor for tests.
