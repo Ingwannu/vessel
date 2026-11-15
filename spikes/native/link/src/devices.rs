@@ -46,16 +46,10 @@ pub enum Outcome {
     Revoked(Ticket, Result<(), Problem>),
 }
 
-/// A reply cannot migrate to a new physical connection under the same alias.
-#[derive(Debug)]
-pub struct Answer {
-    /// The admission selected before the operation was sent.
-    pub context: ConnectionContext,
-    /// The request identity and safe result, with no raw error text.
-    pub outcome: Outcome,
-}
+mod receipt;
+use receipt::Pending;
+pub use receipt::{Answer, Failed, Received};
 
-#[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Copy)]
 enum Kind {
     Authority,
@@ -63,7 +57,6 @@ enum Kind {
     Invite,
     Revoke,
 }
-#[cfg(not(target_arch = "wasm32"))]
 impl Kind {
     fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
         match self {
@@ -76,7 +69,6 @@ impl Kind {
 }
 
 impl Ask {
-    #[cfg(not(target_arch = "wasm32"))]
     fn kind(&self) -> Kind {
         match self {
             Self::Authority => Kind::Authority,
@@ -88,12 +80,7 @@ impl Ask {
     /// Refuse without a connection (or on the browser's demo surface).
     #[must_use]
     pub fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
-        match self {
-            Self::Authority => Outcome::Authority(ticket, Err(why)),
-            Self::List => Outcome::Listed(ticket, Err(why)),
-            Self::Invite { .. } => Outcome::Invited(ticket, Err(why)),
-            Self::Revoke { .. } => Outcome::Revoked(ticket, Err(why)),
-        }
+        self.kind().refused(ticket, why)
     }
 }
 
@@ -173,35 +160,51 @@ impl Default for Hub {
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
     pub(crate) async fn devices(&self, context: &ConnectionContext, ticket: Ticket, ask: Ask) {
+        let pending = Pending::new(&ask, ticket);
         let connected = match self.selected_connection(context) {
             Ok(connected) => connected,
             Err(why) => {
-                self.emit(crate::Event::Devices(Answer {
-                    context: context.clone(),
-                    outcome: ask.refused(ticket, selected_problem(why.into())),
-                }))
+                self.emit(crate::Event::Devices(Answer::refused(
+                    context.clone(),
+                    pending,
+                    receipt::problem(why),
+                )))
                 .await;
                 return;
             }
         };
         let Ok(permit) = std::sync::Arc::clone(&self.device_calls.0).try_acquire_owned() else {
-            self.emit(crate::Event::Devices(Answer {
-                context: context.clone(),
-                outcome: ask.refused(
-                    ticket,
-                    Problem::Refused(vessel_proto::ErrorCode::Unavailable),
-                ),
-            }))
+            self.emit(crate::Event::Devices(Answer::refused(
+                context.clone(),
+                pending,
+                Problem::Refused(vessel_proto::ErrorCode::Unavailable),
+            )))
             .await;
             return;
         };
         let context = context.clone();
         let events = self.events.clone();
         drop(tokio::spawn(async move {
+            let guard = connected.delivery_guard();
             let outcome = bounded_call(&connected, ticket, ask).await;
-            let _closed = events
-                .send(crate::Event::Devices(Answer { context, outcome }))
+            let answer = Answer::completed(context.clone(), pending, guard, outcome);
+            let sent = connected
+                .send_guarded(&events, crate::Event::Devices(answer))
                 .await;
+            // Fallback egress holds only codes/correlation, never an old client.
+            drop(connected);
+            match sent {
+                Ok(()) | Err(crate::connections::SendFailure::ReceiverClosed) => {}
+                Err(crate::connections::SendFailure::Refused(why)) => {
+                    let _closed = events
+                        .send(crate::Event::Devices(Answer::retired(
+                            context,
+                            pending,
+                            receipt::problem(why),
+                        )))
+                        .await;
+                }
+            }
             drop(permit);
         }));
     }

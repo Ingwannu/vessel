@@ -23,10 +23,8 @@
 //!   never grows memory.
 
 mod command;
-// Staged shared envelope capability; real callers remove both exact attributes.
-#[cfg(test)]
+// Devices result envelopes consume the shared weak lease after UI queueing.
 mod delivery;
-#[cfg(test)]
 pub use delivery::DeliveryGuard;
 #[cfg(not(target_arch = "wasm32"))]
 mod connections;
