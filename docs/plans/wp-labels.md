@@ -73,8 +73,11 @@ Session metadata and colored workspace labels have separate owners and contracts
 The lifecycle owner reports reviewed source `c88066f2` with V3 final PASS and
 all 18 whole-gate steps rc 0 (Rust 2404/0/12). It includes borrowed
 ExactSizeIterator `SessionLabels::iter()` returning `(&LabelKey, &LabelValue)`;
-`iter().len()` supplies the count. It is still awaiting an announced integration
-head, so A6 has not adopted it. A6 does not parse summaries or JSON as a substitute.
+`iter().len()` supplies the count. It is now integrated on announced node
+`93970acb` (gate 53, all 18 steps rc 0, Rust 2577/0/12, listing schema 21).
+The separate A6 node tree adopted it after its narrow run finished. This native
+app still waits for the lead's announced app base bringing that node head;
+it does not merge a whole node head or parse summaries/JSON as a substitute.
 `session.labels` / SetLabels, LabelsChanged and the separate LabelPatch draft are
 not included. The earlier planned merge-only shape is not an adopted request DTO.
 A6 adds no generic session metadata editor or speculative mutation call.
