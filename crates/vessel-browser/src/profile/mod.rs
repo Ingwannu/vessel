@@ -35,7 +35,7 @@ pub(crate) enum ProfileError {
 pub(crate) struct Profile {
     root: PathBuf,
     temp: PathBuf,
-    _lock: File,
+    lock: File,
 }
 impl std::fmt::Debug for Profile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -78,8 +78,13 @@ impl Profile {
         Ok(Self {
             root: root.to_owned(),
             temp: temp.to_owned(),
-            _lock: lock,
+            lock,
         })
+    }
+    /// Only the process supervisor calls this after actual child cleanup. As
+    /// `NodeLock` does, explicitly unlock copies held transiently across fork.
+    pub(crate) fn release(self) -> Result<(), ProfileError> {
+        self.lock.unlock().map_err(ProfileError::Io)
     }
     pub(crate) fn root(&self) -> &Path {
         &self.root

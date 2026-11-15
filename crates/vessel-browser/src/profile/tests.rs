@@ -27,7 +27,7 @@ fn creation_is_private_repeatable_and_the_lease_excludes_another_owner() {
         Err(ProfileError::Busy)
     ));
     assert!(!format!("{profile:?}").contains(parent.path().to_str().unwrap()));
-    drop(profile);
+    profile.release().unwrap();
     assert!(Profile::prepare(&root, &temporary).is_ok());
 }
 #[test]
@@ -37,7 +37,7 @@ fn unsafe_existing_cache_or_link_is_refused_without_modifying_its_mode() {
     let tmp = parent.path().join("tmp");
     let profile = Profile::prepare(&root, &tmp).unwrap();
     let cache = profile.cache().join("fontconfig");
-    drop(profile);
+    profile.release().unwrap();
     fs::set_permissions(&cache, fs::Permissions::from_mode(0o755)).unwrap();
     assert!(matches!(
         Profile::prepare(&root, &tmp),
