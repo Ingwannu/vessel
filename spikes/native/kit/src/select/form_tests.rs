@@ -16,6 +16,7 @@ fn form_geometry_is_source_md_with_distinct_leading_chevron_and_loading_slots() 
                 gap: 8.0,
                 radius: Radius::Points(8.0),
                 type_: Type::Body,
+                line_height: Some(20.0),
             }
         );
     }

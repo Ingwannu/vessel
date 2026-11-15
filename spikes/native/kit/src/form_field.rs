@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: one label/trailing/body/feedback layout for forms in every area.
-//! - Existing assets: TextField and select own input chrome/engines; neither
+//! - Existing assets: `TextField` and select own input chrome/engines; neither
 //!   owns this surrounding Field layout. Settings rows have different geometry.
 //! - Choice: an additive content renderer, with no parsing or domain state.
 //! - Source: pinned ui/form-field.tsx37–78/238–264: label14 normal/muted,

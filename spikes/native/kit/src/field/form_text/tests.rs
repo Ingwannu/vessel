@@ -37,7 +37,7 @@ struct Probe {
     submitted: Option<(FieldId, String)>,
 }
 impl Render for Probe {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl gpui::IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         div().child(
             self.field
                 .element(&Tokens::of(self.scheme), self.narrow, cx),

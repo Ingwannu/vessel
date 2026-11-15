@@ -1497,3 +1497,18 @@ opens without redraw, assert render counter unchanged/B focus+parent survive/
 no retry fired; render B and assert its retry fires once without closing,
 Pending button cannot repeat, then B Escape and parent Escape work in order.
 This is NOT an executed pass. No old approved lifecycle test blob was edited.
+
+
+### Actual20c Kit check result and full correction batch
+
+Run schedules-20261115T160314Z-20c06d63: fonts0, actual Kit Checking then
+strict Clippy/native-cargo101; no tests/View/App were started. Immutable raw
+logs remain prior-source proof only (steps at the track evidence root).
+Full diagnostics: three unnecessary test qualifications; three doc backticks;
+two identical opacity match arms; test MouseButton import missing after the
+renderer move; three Geometry test literals missing the newly added optional
+line_height field. Corrected as one batch, with Settings/HostFilter expected
+None and Form expectedSome20. No geometry/palette assertion is weakened, no
+warning suppressed, no test removed. Old approved lifecycle tests change only
+by restoring the explicit import their former root import had provided.
+No20c outcome is claimed for later profiles/base merges.

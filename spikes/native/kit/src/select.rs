@@ -435,7 +435,8 @@ mod tests {
                     vertical: Some(6.0),
                     gap: 6.0,
                     radius: Radius::Points(6.0),
-                    type_: Type::Label
+                    type_: Type::Label,
+                    line_height: None,
                 }
             );
             let (height, horizontal) = match sizing {
@@ -450,7 +451,8 @@ mod tests {
                     vertical: None,
                     gap: 8.0,
                     radius: Radius::Full,
-                    type_: Type::Body
+                    type_: Type::Body,
+                    line_height: None,
                 }
             );
         }

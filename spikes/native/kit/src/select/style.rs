@@ -24,19 +24,14 @@ pub(super) fn opacity(
             crate::ButtonState::Enabled | crate::ButtonState::Disabled,
             Visibility::Closed | Visibility::Open,
         )
-        | (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
-        (
-            Presentation::Settings,
-            crate::ButtonState::Disabled,
-            Visibility::Closed | Visibility::Open,
-        ) => Some(DISABLED_OPACITY),
-        (
+        | (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed)
+        | (
             Presentation::Form,
             crate::ButtonState::Enabled,
             Visibility::Closed | Visibility::Open,
         ) => None,
         (
-            Presentation::Form,
+            Presentation::Settings | Presentation::Form,
             crate::ButtonState::Disabled,
             Visibility::Closed | Visibility::Open,
         ) => Some(DISABLED_OPACITY),

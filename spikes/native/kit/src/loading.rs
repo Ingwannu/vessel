@@ -32,7 +32,7 @@ impl Points {
 
     /// `ProviderRow`/`StatusIndicator`'s explicit numeric10 refresh indicator.
     pub const TEN: Self = Self(px(10.0));
-    /// `SelectField`'s explicit numeric14 indicator (ICON_SIZE.sm).
+    /// `SelectField`'s explicit numeric14 indicator (`ICON_SIZE.sm`).
     pub const FOURTEEN: Self = Self(px(crate::theme::icon::SM));
     /// `MenuItem`'s explicit numeric16 pending indicator.
     pub const SIXTEEN: Self = Self(px(16.0));

@@ -28,11 +28,7 @@ struct Probe {
     bounds: Rc<RefCell<Vec<Bounds<Pixels>>>>,
 }
 impl Render for Probe {
-    fn render(
-        &mut self,
-        _: &mut gpui::Window,
-        _: &mut gpui::Context<'_, Self>,
-    ) -> impl gpui::IntoElement {
+    fn render(&mut self, _: &mut gpui::Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         let bounds = Rc::clone(&self.bounds);
         form_glyph(Glyph::Folder, &Tokens::of(self.scheme))
             .on_children_prepainted(move |children, _, _| *bounds.borrow_mut() = children)

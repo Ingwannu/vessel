@@ -28,7 +28,7 @@ pub enum Activity {
     /// Source chevron with no spinner slot.
     #[default]
     Idle,
-    /// Numeric14 ActivityIndicator in a separate16-point slot.
+    /// Numeric14 `ActivityIndicator` in a separate16-point slot.
     Loading,
 }
 /// Source MD form field; no unrelated presentation/size is accepted and ignored.
