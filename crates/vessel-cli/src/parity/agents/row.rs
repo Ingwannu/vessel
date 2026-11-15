@@ -82,24 +82,16 @@ fn provider(info: &SessionInfo, options: &[SessionOption]) -> String {
     )
 }
 fn relative(created: chrono::DateTime<chrono::Utc>, now: chrono::DateTime<chrono::Utc>) -> String {
-    let seconds = now.signed_duration_since(created).num_seconds();
+    let elapsed = now.signed_duration_since(created);
+    let seconds = elapsed.num_seconds();
     if seconds < 60 {
         "just now".to_owned()
     } else if seconds < 3600 {
-        format!(
-            "{} minutes ago",
-            seconds.checked_div(60).unwrap_or_default()
-        )
+        format!("{} minutes ago", elapsed.num_minutes())
     } else if seconds < 86400 {
-        format!(
-            "{} hours ago",
-            seconds.checked_div(3600).unwrap_or_default()
-        )
+        format!("{} hours ago", elapsed.num_hours())
     } else {
-        format!(
-            "{} days ago",
-            seconds.checked_div(86400).unwrap_or_default()
-        )
+        format!("{} days ago", elapsed.num_days())
     }
 }
 #[cfg(test)]

@@ -158,9 +158,21 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         vessel_proto::ErrorCode::Unsupported
     } else if matches!(
         error,
-        CliError::Usage(_) | CliError::ParityLabel(_) | CliError::ParityHostText(_)
+        CliError::Usage(_)
+            | CliError::ParityLabel(_)
+            | CliError::ParityHostText(_)
+            | CliError::ParityCron(_)
+            | CliError::ParityAutomationText(_)
+            | CliError::ParityCloneUrl(_)
     ) {
         vessel_proto::ErrorCode::InvalidRequest
+    } else if matches!(
+        error,
+        CliError::ParitySnapshotTimeout(_)
+            | CliError::ParityPromptReadTimeout(_)
+            | CliError::ParityCloneTimeout { .. }
+    ) {
+        vessel_proto::ErrorCode::Unavailable
     } else if matches!(error, CliError::NoSuchSession(_)) {
         vessel_proto::ErrorCode::NotFound
     } else if let CliError::Call(vessel_client::CallError::Remote(failure)) = error {

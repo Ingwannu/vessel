@@ -1543,3 +1543,9 @@ W17 stages `host_registry` (one source-owned persistent directory actor) and the
 not registered RPC methods before Quality B. Host data uses the store's owner-only
 atomic `host-registry.json` snapshot; it never stores credentials or replaces fleet
 transport/paired-device authority.
+
+The current W17 screen adapter is measurement input for C2 ADR0095, not the final
+engine ownership decision. The coordinator requires one pure root vessel-terminal-screen
+crate shared by native view, D1 restore/query and node capture. C2 owns the comparison
+and API; W17 removes the direct parser/render dependency from vessel-session once that
+reviewed core arrives, leaving PTY/channel ordering there. No duplicate parser may merge.
