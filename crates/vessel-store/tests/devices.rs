@@ -4,6 +4,10 @@ use fixtures::{at, device, store};
 use vessel_proto::{DeviceId, DeviceSecret};
 use vessel_store::{CredentialHash, Store, StoreConfig, StoreError};
 
+#[cfg(test)]
+#[path = "support/registry_rollback.rs"]
+mod registry_rollback;
+
 #[test]
 fn cancelled_window_retains_admission_while_its_blocking_read_is_queued() {
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -239,6 +243,7 @@ async fn a_version_1_database_gains_the_devices_table() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
+    registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     // Back to schema 1: without the devices table (2), the sessions'
     // profile and creator columns (3), where they came from (4) and their

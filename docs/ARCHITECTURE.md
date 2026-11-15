@@ -1675,3 +1675,27 @@ path, category and bounded path shape leave it; the raw serde cause is private.
 The node's startup recovery logger uses that diagnostic while retaining the
 existing set-aside behavior. It reuses serde_path_to_error already in the
 workspace; no workspace-crate edge changes (ADR 0038).
+
+### Independent workspace registry (ADR 0082, pending)
+
+`vessel-proto::registry` carries independent workspace identity, exact backing,
+lifecycle and atomic node/workspace/resource snapshots. Workspace and create
+operation ids are distinct UUID newtypes. No identity is inferred from cwd or a
+node-book alias. Existing project/worktree IO remains `workspace::WorkspaceRoot`.
+
+`vessel-store::registry` uses the existing writer savepoints and read pool. A
+single append migration retains descriptors, backing reservations, resource
+ownership/start leases and the global snapshot revision. Capacity reserves
+worst-case retained bytes before effects and never evicts ownership. Writer
+commit publishes a coalesced watch; readers hydrate descriptors and memberships
+in one transaction. `registry::write::{require_active,bump_revision}` is the
+in-transaction seam for catalog assignment extensions, not a second registry.
+
+`vessel-node::service::registry` handles person-only registry reads, bounded
+long-poll, rename and pin through the single pending method table. The separate
+create and lifecycle packages own actor launch and archive/recovery orchestration.
+Pre-spawn leases fence archive against late actor registration. Restoring is an
+exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
+create driver wires it; no unwired node service ships in this dependency. Project config,
+icons, editor integration and automatic archive remain separate incomplete work.
+No protocol number or full package acceptance follows from this architecture.

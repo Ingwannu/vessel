@@ -13,6 +13,8 @@ use vessel_store::StoreConfig;
 )]
 mod fixtures;
 
+const BEFORE_TITLE_ORIGIN_SCHEMA: i64 = 17;
+
 #[tokio::test]
 async fn origins_follow_renames_and_survive_reopening() {
     let (_temp, dir) = data_dir();
@@ -105,9 +107,9 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    let latest: i64 = connection
-        .pragma_query_value(None, "user_version", |row| row.get(0))
-        .unwrap();
+    // Gate40's existing title-origin append is schema18. Later appends must not
+    // turn this into a fixture for the newest migration instead of that one.
+    fixtures::undo_registry_schema(&connection);
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN detach_receipt;
@@ -115,7 +117,7 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
         )
         .unwrap();
     connection
-        .pragma_update(None, "user_version", latest.checked_sub(2).unwrap())
+        .pragma_update(None, "user_version", BEFORE_TITLE_ORIGIN_SCHEMA)
         .unwrap();
     drop(connection);
     let store = open(&dir, StoreConfig::default()).await;
