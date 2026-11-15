@@ -229,3 +229,15 @@ The authored saturation regression holds all admission slots, expects refusal
 before any tracked task or directory exists, then releases and creates normally.
 Its execution is still owed. Legacy init/clone pre-registration effects and
 external filesystem races remain outside this cancellation guarantee.
+
+## Read task admission lifetime (source only)
+
+A config read now mirrors the existing tracked writer lifetime: obtain bounded
+project admission before detaching, then move its own Arc into the tracked task
+until the lower blocking read actually joins. Dropping an RPC waiter cannot free
+project metadata admission while that task still reads. The prior post-read
+membership check is redundant while this canonical admission is retained.
+This does not freeze external edits or prove physical root continuity; root
+exclusion and the independent public ConfigEditError source-chain privacy follow-up
+remain incomplete. Existing config identity/CAS tests require changed-head VM
+execution. No new runtime, wire activation or cancellation proof is claimed here.

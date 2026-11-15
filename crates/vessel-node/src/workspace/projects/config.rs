@@ -20,14 +20,18 @@ impl Workspaces {
             .admit_project(project)
             .await
             .map_err(|error| error.wire())?;
-        let root = admission.root().path().to_owned();
-        let document = project_config::read(root)
+        // The blocking reader may outlive its RPC waiter. Keep the same
+        // bounded admission in the tracked task until its actual I/O joins.
+        self.tasks
+            .spawn(async move {
+                let root = admission.root().path().to_owned();
+                let _admission = admission;
+                project_config::read(root)
+                    .await
+                    .map_err(|error| edit_error(&error))
+            })
             .await
-            .map_err(|error| edit_error(&error))?;
-        if !self.has_project(project) {
-            return Err(WorkspaceError::UnknownProject(project).wire());
-        }
-        Ok(document)
+            .map_err(|error| WorkspaceError::project_task(error).wire())?
     }
 
     pub(crate) async fn write_project_config(
