@@ -1579,7 +1579,7 @@ wiring, authority fixtures and older-peer checks must land before removing
 
 ## Named launch profile values (ADR 0076, transport pending)
 
-`vessel-proto::launch_profiles` holds core values only: an immutable,
+`vessel-proto::launch_profiles` holds validated core values: an immutable,
 ordered whole list of stable-id presets, separate from account profiles.
 A preset contains a `HarnessRef`, optional account name and bounded
 existing agent choices, plus validated public appearance/text metadata.
@@ -1594,7 +1594,19 @@ entries, duplicates and unknown fields fail the whole snapshot; decoder
 errors and Debug do not echo submitted public guidance.
 
 The feature's protocol remains unassigned. There is no method, existing
-reply/event field, store migration, catalogue probe, client/CLI or MCP
-consumer for these values yet. Store ownership and runtime/process
-behavior remain proposals of the accepted contract, not implemented or
-validated behavior of this value-only stage.
+reply/event field, catalogue probe, client/CLI or MCP consumer yet.
+The working package adds one SQLite singleton and CAS through the existing
+writer; its acknowledgement follows the outer commit. The bounded reader
+selects revision and body together and never substitutes empty data for a
+corrupt row. The appended schema follows title origin by one relative
+constant. Migration fixtures remove this append before their older rollback.
+
+`vessel-agent::configuration` owns the shared per-process setter lane. Old
+single setters and bounded bundles use the same queue and wait for actual
+driver completion. A dropped caller does not release that fence. Driver
+receiver closure ends the owner even while input handles survive. Notices
+are explicit typed driver completions, never inferred from logs; the
+existing drivers report none. `SessionHandle::apply_options` wakes once and
+captures one process handle, so a concurrent move cannot redirect later
+steps. These additions are under implementation and require the package's
+runtime checks and whole gate before a callable feature is reported.

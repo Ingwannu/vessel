@@ -7,18 +7,20 @@ profiles to drafts/existing agents, and Legacy favorites migration
 sections, checked against the original files named in ADR 0076.
 
 The initial CRUD contract passed review. The expanded contract adds live
-application and migration and is proposed for review before that code.
+application and migration and passed contract-only review in `d616e8f9`.
 Core value source `9375732b` has TS-enabled proto Clippy and 275/0 library
 tests, including nine new value cases. That is a checked partial stage,
 not this package's skeleton, completion, product review or whole gate.
 Results are in `backend-m12-launch-profiles.md` and checkpoint `82776280`.
 The original failed Clippy log remains retained.
 
-No call, migration, catalogue, service, consumer, live apply, legacy helper
-or app screen is built. The feature protocol remains None. The integrator
+No call, catalogue, service, consumer, legacy helper or app screen is built.
+The storage CAS and shared agent mutation owner are being implemented;
+this does not yet constitute the full package skeleton or passed behavior. The feature protocol remains None. The integrator
 allocated the store schema after title origin; consume the announced
 baseline before appending its single predecessor-relative constant.
-The pending Quality B row is still a registration prerequisite.
+The announced Quality B head `29eebb8b` is consumed in merge `bfb945de`;
+pending rows may now use its one table/accessor.
 
 ## Existing owners and structure
 
@@ -33,8 +35,9 @@ The pending Quality B row is still a registration prerequisite.
 | CLI / MCP / testkit | Same typed calls and fixtures; Read-agent list notes, owned-session apply rules, no real agent prompt |
 | App preference owner / G3 | Validated local compatibility input, per-node marker/in-flight state, remembered concrete choices and screens; separate app package |
 
-The shared agent/session boundary needs explicit ownership coordination;
-no driver parser or account policy is silently taken over from its owner.
+Ownership of the shared agent/session boundary is explicitly coordinated.
+Completion adapters belong to this package; driver parsers, vendor policy,
+accounts and offered choices remain with their existing owner.
 No client-loop approximation of server-side mutation serialization.
 
 ## Skeleton states, then implementation
@@ -102,3 +105,23 @@ all return codes/totals, and list anything only a real provider/OS can
 prove. G3 receives only the reviewed, assigned exact API after integration.
 No native/page screen, real account/agent, production service, preview
 pairing, push or permission mutation belongs to this node package.
+
+## Storage and common-owner implementation checkpoint
+
+The next source stage adds `vessel-store::launch_profiles` and its async
+Store API, one predecessor-relative schema append, and the existing writer's
+typed commit-delayed answer. Tests cover stale-before-equal, revision
+exhaustion/no-op, strict whole decoding, a savepoint rollback, two real
+writer CAS requests, clear/order/restart and a deferred-FK outer-commit
+failure. The store's new testkit dev edge supplies the existing finite
+safety clock and introduces no product dependency.
+
+The common agent owner routes both the old setter and the new bounded
+bundle. Driver changes only adapt the completion carrier; no provider
+parser, offered choice, account selection or launch argument changes.
+Barrier tests cover completion order with an old setter, first notice,
+partial prefix, caller cancellation and closure with retained handles.
+The session handle captures one process after its existing wake boundary.
+These source additions have format, size and crate-boundary checks only
+at this checkpoint; selected compile/runtime checks and package wiring
+remain outstanding. There is still no callable launch-profile method.

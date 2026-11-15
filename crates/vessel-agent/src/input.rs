@@ -13,7 +13,8 @@ use crate::error::InputError;
 pub(crate) type Reply = oneshot::Sender<Result<(), InputError>>;
 
 /// Where the options go after a change.
-pub(crate) type OptionsReply = oneshot::Sender<Result<Vec<SessionOption>, InputError>>;
+pub(crate) type OptionsReply =
+    oneshot::Sender<Result<crate::configuration::Configured, InputError>>;
 
 /// Where a steer's outcome goes.
 pub(crate) type SteerReply = oneshot::Sender<Result<SteerOutcome, InputError>>;
@@ -77,11 +78,16 @@ pub(crate) enum Command {
 #[derive(Debug, Clone)]
 pub struct AgentInput {
     commands: mpsc::Sender<Command>,
+    configuration: crate::configuration::Configuration,
 }
 
 impl AgentInput {
-    pub(crate) const fn new(commands: mpsc::Sender<Command>) -> Self {
-        Self { commands }
+    pub(crate) fn new(commands: mpsc::Sender<Command>) -> Self {
+        let configuration = crate::configuration::Configuration::spawn(commands.clone());
+        Self {
+            commands,
+            configuration,
+        }
     }
 
     /// Start a turn with this prompt. Returns once the prompt was sent;
@@ -270,16 +276,21 @@ impl AgentInput {
     /// [`InputError::Refused`] when the agent refuses it,
     /// [`InputError::Closed`] after the connection ended.
     pub async fn set_option(&self, choice: OptionChoice) -> Result<Vec<SessionOption>, InputError> {
-        let (reply, result) = oneshot::channel();
-        if self
-            .commands
-            .send(Command::SetOption { choice, reply })
-            .await
-            .is_err()
-        {
-            return Err(InputError::Closed);
-        }
-        result.await.unwrap_or(Err(InputError::Closed))
+        self.configuration.single(choice).await
+    }
+
+    /// Apply a bounded ordered bundle without interleaving any other setter.
+    /// Earlier acknowledged changes remain if a later choice is refused.
+    /// Dropping the caller retains the process fence until actual completion.
+    ///
+    /// # Errors
+    /// `Closed` if the process ended before admission. A refusal after
+    /// admission is returned with its acknowledged prefix in the outcome.
+    pub async fn apply_options(
+        &self,
+        choices: vessel_proto::launch_profiles::LaunchChoices,
+    ) -> Result<crate::ConfigurationOutcome, InputError> {
+        self.configuration.bundle(choices).await
     }
 
     async fn call(&self, command: impl FnOnce(Reply) -> Command) -> Result<(), InputError> {

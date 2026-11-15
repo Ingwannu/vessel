@@ -6,6 +6,7 @@ mod automation;
 mod conversation;
 mod forge;
 mod inbox;
+mod launch_profiles;
 mod push;
 mod search;
 mod usage;

@@ -857,7 +857,7 @@ impl Session {
                     }
                     Err(error) => Err(InputError::Option(error)),
                 };
-                let _gone = reply.send(result);
+                let _gone = reply.send(result.map(Into::into));
             }
         }
     }

@@ -53,6 +53,7 @@ mod abilities;
 mod attached;
 mod claude;
 mod codex;
+mod configuration;
 mod context;
 mod driver;
 mod drivers;
@@ -76,6 +77,7 @@ mod stderr;
 mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
+pub use configuration::{ConfigurationFailure, ConfigurationOutcome};
 pub use context::PromptContext;
 pub use drivers::Driver;
 pub use error::{AgentError, Disconnect, InputError, LaunchRefusal};

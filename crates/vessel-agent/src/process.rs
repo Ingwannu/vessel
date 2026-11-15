@@ -16,7 +16,7 @@ const OUTPUTS: usize = 64;
 
 /// Commands queued for the driver. Small: each caller waits for its reply
 /// anyway, so a deep queue would only hide a stuck agent.
-const COMMANDS: usize = 16;
+pub(crate) const COMMANDS: usize = 16;
 
 /// One launch as its driver shaped it: what each direct driver keeps for
 /// the session's life (ADR 0057; its `launch`), handed to its `run`.

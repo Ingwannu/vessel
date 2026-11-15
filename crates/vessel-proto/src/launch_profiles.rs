@@ -19,7 +19,8 @@ pub use codec::LaunchPayload;
 pub use list::{LaunchProfiles, LaunchProfilesSnapshot};
 pub use profile::{LaunchProfile, LaunchProfileRevision, LaunchSelection};
 pub use text::{
-    LaunchAppearanceKey, LaunchColorKey, LaunchIconKey, LaunchProfileName, LaunchProfileNotes,
+    ConfigurationNotice, LaunchAppearanceKey, LaunchColorKey, LaunchIconKey, LaunchProfileName,
+    LaunchProfileNotes,
 };
 
 /// Unassigned until reviewed node, client, CLI and consumer wiring exists.
@@ -41,6 +42,12 @@ pub enum InvalidLaunchValue {
         LaunchProfileNotes::MAX_BYTES
     )]
     Notes,
+    /// Configuration notices have their own finite public-text boundary.
+    #[error(
+        "a configuration notice must be nonblank, without controls except line breaks/tabs, at most {} bytes",
+        ConfigurationNotice::MAX_BYTES
+    )]
+    Notice,
     /// Appearance values are registry keys, not glyphs.
     #[error(
         "a launch appearance key must be ASCII letters, digits, underscores or hyphens, at most {} bytes",

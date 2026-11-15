@@ -134,6 +134,12 @@ pub(crate) enum Write {
         write: crate::forge::ForgeWrite,
         done: Done,
     },
+    /// Ordered launch-profile replacement, answered after the outer commit.
+    LaunchProfiles {
+        expected: vessel_proto::launch_profiles::LaunchProfileRevision,
+        profiles: vessel_proto::launch_profiles::LaunchProfiles,
+        done: Done<crate::LaunchProfilesChange>,
+    },
     /// Change the record of schedules, saved prompts and hooks (protocol
     /// 11): every change in `writes` or none.
     Automation {
@@ -168,6 +174,10 @@ pub(crate) struct Setup {
 enum Answer {
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
+    LaunchProfiles(
+        Done<crate::LaunchProfilesChange>,
+        Result<crate::LaunchProfilesChange, StoreError>,
+    ),
 }
 
 impl Answer {
@@ -176,6 +186,7 @@ impl Answer {
         let sent = match self {
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::LaunchProfiles(done, result) => done.send(after(failed, result)).is_ok(),
         };
         if !sent {
             tracing::trace!("store caller went away before its write committed");

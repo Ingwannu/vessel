@@ -1,6 +1,7 @@
 //! [`SessionHandle`]: the cheap, cloneable view of one session. What it
 //! sends the session is `input`'s.
 
+mod configuration;
 mod input;
 mod title;
 pub use title::TitleUpdate;

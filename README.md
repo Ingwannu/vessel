@@ -1449,3 +1449,9 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+Named launch profiles are being implemented under ADR 0076. The current
+working package extends the existing store CAS/commit boundary and the
+agent's shared configuration lane. No launch-profile RPC is available
+until the reviewed pending feature receives an assigned protocol number;
+see `docs/plans/wp-a10-node.md` for its exact implementation status.

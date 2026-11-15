@@ -78,6 +78,18 @@ text!(
             .any(|c| c.is_control() && !matches!(c, '\r' | '\n' | '\t'))
 );
 text!(
+    ConfigurationNotice,
+    "A bounded notice explicitly reported by a configuration driver.",
+    MAX_BYTES,
+    4_096,
+    Notice,
+    |s| !s.is_empty()
+        && s.len() <= ConfigurationNotice::MAX_BYTES
+        && !s
+            .chars()
+            .any(|c| c.is_control() && !matches!(c, '\r' | '\n' | '\t'))
+);
+text!(
     LaunchAppearanceKey,
     "A bounded registry key shared by distinct icon/color domains.",
     MAX_BYTES,
