@@ -143,7 +143,11 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("EventSeq", Alias::Quantity),
     ("EverySeconds", Alias::Quantity),
     ("FieldName", Alias::Handle),
+    ("FileBytes", Alias::Content),
+    ("FileModifiedMillis", Alias::Quantity),
+    ("FileOffset", Alias::Quantity),
     ("FilePath", Alias::Named),
+    ("FileSize", Alias::Quantity),
     ("FindQuery", Alias::Named),
     ("FiniteNumber", Alias::Quantity),
     ("FolderName", Alias::Named),
@@ -231,6 +235,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("Sha256Hex", Alias::Named),
     ("StreamId", Alias::Handle),
     ("SubscriptionId", Alias::Handle),
+    ("SuggestionLimit", Alias::Quantity),
+    ("SuggestionQuery", Alias::Named),
     ("TerminalBytes", Alias::Content),
     ("TerminalId", Alias::Handle),
     ("TicketMac", Alias::Secret),
@@ -323,5 +329,19 @@ mod tests {
             branded("SessionId", "string"),
             r#"type SessionId = string & { readonly __brand: "SessionId" };"#
         );
+    }
+
+    #[test]
+    fn workspace_file_aliases_reuse_content_quantity_and_person_entered_query_rules() {
+        assert_eq!(classify("FileBytes"), Some(Alias::Content));
+        for name in [
+            "FileModifiedMillis",
+            "FileOffset",
+            "FileSize",
+            "SuggestionLimit",
+        ] {
+            assert_eq!(classify(name), Some(Alias::Quantity));
+        }
+        assert_eq!(classify("SuggestionQuery"), Some(Alias::Named));
     }
 }

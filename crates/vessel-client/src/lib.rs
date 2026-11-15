@@ -67,6 +67,8 @@ mod tests;
 mod token;
 mod url;
 mod usage;
+mod workspace_files;
+mod workspace_transfer;
 mod ws;
 
 pub use address::{
@@ -91,4 +93,8 @@ pub use vessel_rpc::{
 };
 /// The short fingerprint people compare to recognise a node's key.
 pub use vessel_secure::fingerprint;
+pub use workspace_files::WorkspaceFileCallError;
+pub use workspace_transfer::{
+    InvalidFilePage, WorkspaceFileFetchError, WorkspaceFilePageError, fetch_workspace_file_with,
+};
 pub use ws::WsTransportError;

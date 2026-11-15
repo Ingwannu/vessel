@@ -174,6 +174,15 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::ReadFile | Method::CreateDir | Method::DeletePath => {
             json!({"root":root,"path":"sample.rs"})
         }
+        Method::ReadFileBytes => {
+            json!({"root":root,"path":"sample.bin","offset":0,"expected":null})
+        }
+        Method::DuplicateFileEntry => json!({"root":root,"path":"sample.rs"}),
+        Method::ObserveFile => json!({"root":root,"path":"sample.rs","after":null}),
+        Method::InspectDirectory => json!({"root":root,"directory":"","ignored":"include"}),
+        Method::SuggestEntries => {
+            json!({"root":root,"directory":"","query":"","kinds":"both","matching":"fuzzy","limit":null})
+        }
         Method::WriteFile => {
             json!({"root":root,"path":"sample.rs","text":"sample","expect":{"kind":"any"}})
         }

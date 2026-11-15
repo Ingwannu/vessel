@@ -285,7 +285,14 @@ impl Reply {
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
             | Self::Diagnostics(_)
-            | Self::SearchMessages(_) => None,
+            | Self::SearchMessages(_)
+            // Pending file-panel replies cannot reach an older peer: admission
+            // refuses these methods before execution, just like newer families.
+            | Self::InspectDirectory(_)
+            | Self::ReadFileBytes(_)
+            | Self::DuplicateFileEntry(_)
+            | Self::ObserveFile(_)
+            | Self::SuggestEntries(_) => None,
         }
     }
 }

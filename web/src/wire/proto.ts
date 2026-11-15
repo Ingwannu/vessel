@@ -2432,6 +2432,28 @@ project: ProjectId,
 worktree: WorktreeId, };
 
 /**
+ * Duplicate an entry to the first available sibling copy name.
+ */
+export type DuplicateFileEntry = { 
+/**
+ * Authorized workspace selection.
+ */
+root: WorkspaceRoot, 
+/**
+ * Source entry; the workspace root itself is refused.
+ */
+path: RelPath, };
+
+/**
+ * The new sibling path; never an assumed local path on the client.
+ */
+export type DuplicatedFileEntry = { 
+/**
+ * The exclusively created copy.
+ */
+path: RelPath, };
+
+/**
  * A duration in whole milliseconds.
  */
 export type DurationMs = number;
@@ -2445,6 +2467,19 @@ export type EndReason = "max_runs" | "expired" | "creator_gone" | "target_gone" 
  * What an entry of a folder is.
  */
 export type EntryKind = "file" | "dir" | "symlink" | "other" | "unknown";
+
+/**
+ * Results are bounded and explicitly disclose an incomplete scan.
+ */
+export type EntrySuggestions = { 
+/**
+ * Best matches first; deterministic path order breaks score ties.
+ */
+entries: Array<SuggestedEntry>, 
+/**
+ * Whether discovery reached its depth/entry budget or results were clipped.
+ */
+more: boolean, };
 
 /**
  * An environment variable's name.
@@ -2596,6 +2631,32 @@ refusal: GitRefusal, };
 export type FieldName = string & { readonly __brand: "FieldName" };
 
 /**
+ * One exact page with a version-bound continuation.
+ */
+export type FileBytePage = { 
+/**
+ * Stable identity of the entire source.
+ */
+revision: FileRevision, 
+/**
+ * Starting byte, echoed to detect misrouted/incomplete transfers.
+ */
+offset: FileOffset, 
+/**
+ * Exact source bytes.
+ */
+bytes: FileBytes, 
+/**
+ * Next byte when the source has more; absent at EOF.
+ */
+next: FileOffset | null, };
+
+/**
+ * A bounded opaque page; base64 on the wire, never interpreted as text.
+ */
+export type FileBytes = string;
+
+/**
  * One changed file in a scope.
  */
 export type FileChange = { 
@@ -2668,6 +2729,16 @@ content: DiffContent,
 more_from?: number | null, };
 
 /**
+ * Filesystem modification time for display/order, never a save guard.
+ */
+export type FileModifiedMillis = number;
+
+/**
+ * A byte position in a file, independent of character positions.
+ */
+export type FileOffset = number;
+
+/**
  * A file under the authorized workspace, never an absolute path or URI.
  */
 export type FilePath = string;
@@ -2684,6 +2755,24 @@ version: FileVersion,
  * The page.
  */
 content: FileContent, };
+
+/**
+ * The exact content identity of a bounded file, also its transfer size.
+ */
+export type FileRevision = { 
+/**
+ * The number of source bytes, never a UTF-8 character count.
+ */
+size: FileSize, 
+/**
+ * SHA-256 over the complete file, including binary bytes.
+ */
+hash: ContentHash, };
+
+/**
+ * A source byte count, distinct from a position within that source.
+ */
+export type FileSize = number;
 
 /**
  * What a file is in the index or the working tree, against the other.
@@ -3900,6 +3989,16 @@ export type IdleMinutes = number;
 export type IfLost = "keep" | "snapshot" | "discard";
 
 /**
+ * Git's classification, independent from the request's inclusion policy.
+ */
+export type IgnoreState = "ignored" | "visible";
+
+/**
+ * Whether directory discovery includes git-ignored entries.
+ */
+export type IgnoredEntries = "include" | "exclude";
+
+/**
  * Implementations at a saved source position.
  */
 export type Implementations = AtPosition;
@@ -4119,6 +4218,61 @@ path: string,
  * What to call it; its folder's name otherwise.
  */
 name?: ProjectName | null, };
+
+/**
+ * Directory inspection carries the metadata needed by all three sort modes.
+ */
+export type InspectDirectory = { 
+/**
+ * Authorized root, resolved again by the destination node.
+ */
+root: WorkspaceRoot, 
+/**
+ * Directory below that root.
+ */
+directory: RelPath, 
+/**
+ * Explicit ignore policy.
+ */
+ignored: IgnoredEntries, };
+
+/**
+ * One bounded directory snapshot.
+ */
+export type InspectedDirectory = { 
+/**
+ * At most the ordinary file-list budget, directories first.
+ */
+entries: Array<InspectedEntry>, 
+/**
+ * The directory exceeded the response budget.
+ */
+more: boolean, };
+
+/**
+ * A validated entry with optional, honestly unknown metadata.
+ */
+export type InspectedEntry = { 
+/**
+ * Full relative path, including its basename.
+ */
+path: RelPath, 
+/**
+ * Links remain links, never falsely advertised as regular files.
+ */
+kind: EntryKind, 
+/**
+ * Regular-file size when available.
+ */
+size: FileSize | null, 
+/**
+ * Display/order timestamp; absence is not the Unix epoch.
+ */
+modified: FileModifiedMillis | null, 
+/**
+ * Actual git classification.
+ */
+ignored: IgnoreState, };
 
 /**
  * `agent.install`: run the vendor's documented command for `agent`'s
@@ -5286,6 +5440,32 @@ restart_recovery?: RestartRecovery, };
  * Whether a node is taking new work.
  */
 export type NodeState = "serving" | "draining";
+
+/**
+ * Observe until a change notification or a finite heartbeat deadline.
+ */
+export type ObserveFile = { 
+/**
+ * Authorized workspace selection.
+ */
+root: WorkspaceRoot, 
+/**
+ * File path, never the workspace root.
+ */
+path: RelPath, 
+/**
+ * The last state the client received; absent for an initial snapshot.
+ */
+after: ObservedFile | null, };
+
+/**
+ * What an observed saved file currently contains.
+ */
+export type ObservedFile = { "kind": "ready", 
+/**
+ * The source revision.
+ */
+revision: FileRevision, } | { "kind": "missing" };
 
 /**
  * The pairing-link format version. Only version 1 exists; a link from a
@@ -6714,6 +6894,27 @@ offset: number,
  * At most this many bytes (at most 1 MiB, 256 KiB when absent).
  */
 limit?: number | null, };
+
+/**
+ * Read one page; later pages must name the first page's revision.
+ */
+export type ReadFileBytes = { 
+/**
+ * Authorized workspace selection.
+ */
+root: WorkspaceRoot, 
+/**
+ * Validated path below that root.
+ */
+path: RelPath, 
+/**
+ * First byte requested; zero starts a transfer.
+ */
+offset: FileOffset, 
+/**
+ * Required on continuation, optional only at offset zero.
+ */
+expected: FileRevision | null, };
 
 /**
  * `agent.install_output`: a page of an install's output. Needs `admin`.
@@ -9186,6 +9387,73 @@ resume_from: EventSeq, };
  * Node-assigned id of one event subscription; unique per connection.
  */
 export type SubscriptionId = number & { readonly __brand: "SubscriptionId" };
+
+/**
+ * A picker query within a registered workspace, never an arbitrary host root.
+ */
+export type SuggestEntries = { 
+/**
+ * Root authorization uses the same boundary as file reads.
+ */
+root: WorkspaceRoot, 
+/**
+ * Directory below that root to discover.
+ */
+directory: RelPath, 
+/**
+ * Bounded query; blank lists children without walking descendants.
+ */
+query: SuggestionQuery, 
+/**
+ * Entry kinds the caller can use.
+ */
+kinds: SuggestionKinds, 
+/**
+ * How paths match the query.
+ */
+matching: SuggestionMatch, 
+/**
+ * Requested result budget, validated by the node against the shared maximum.
+ */
+limit: SuggestionLimit | null, };
+
+/**
+ * A usable regular file or directory, with a validated in-root path.
+ */
+export type SuggestedEntry = { 
+/**
+ * Relative to the authorized workspace, never a client-local path.
+ */
+path: RelPath, 
+/**
+ * Files/directories only; symlinks and special entries are excluded.
+ */
+kind: SuggestedEntryKind, };
+
+/**
+ * The two entry kinds a picker can actually consume.
+ */
+export type SuggestedEntryKind = "file" | "directory";
+
+/**
+ * Which entries a picker accepts; avoids independent boolean combinations.
+ */
+export type SuggestionKinds = "files" | "directories" | "both";
+
+/**
+ * A validated result count, decoded before root resolution or disk work.
+ */
+export type SuggestionLimit = number;
+
+/**
+ * Reference matching modes, distinct from exact-path retrieval.
+ */
+export type SuggestionMatch = "fuzzy" | "suffix";
+
+/**
+ * A bounded, possibly empty query; empty lists immediate children.
+ */
+export type SuggestionQuery = string;
 
 /**
  * `git.switch`.

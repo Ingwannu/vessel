@@ -670,6 +670,11 @@ const FORWARDABLE: &[&str] = &[
     "workspace.release_automation",
     "git.compare",
     "git.compare_file",
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
 ];
 
 #[test]

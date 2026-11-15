@@ -364,6 +364,11 @@ impl Method {
             | Self::GitRenameBranch
             | Self::GitStash
             | Self::ListDir
+            | Self::InspectDirectory
+            | Self::ReadFileBytes
+            | Self::DuplicateFileEntry
+            | Self::ObserveFile
+            | Self::SuggestEntries
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir
