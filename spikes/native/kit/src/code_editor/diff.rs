@@ -13,6 +13,7 @@
 //!   The engine's existing six-point gutter gap is retained in this first
 //!   control; consumer/reference geometry and border parity remain unverified.
 mod document;
+mod header;
 mod syntax;
 pub use document::DiffDocumentEditor;
 
@@ -160,6 +161,7 @@ pub struct DiffEditor {
     editor: CodeEditor,
     rows: Arc<[DiffLine]>,
     sample: gpui::SharedString,
+    headers: header::HeaderInk,
 }
 impl DiffEditor {
     /// Reuse the normal editor's construction and highlighter, then make it
@@ -174,10 +176,12 @@ impl DiffEditor {
         let syntax = syntax::DiffSyntax::new(syntax, Arc::clone(&text.rows), text.side);
         let editor = CodeEditor::new(&text.text, syntax, unchanged::<V>, window, cx);
         editor.set_read_only(true, cx);
+        let headers = header::HeaderInk::new(&editor.state, &text, cx);
         let result = Self {
             editor,
             rows: text.rows,
             sample: text.sample,
+            headers,
         };
         result.set_wrapping(wrapping, window, cx);
         result
@@ -199,6 +203,7 @@ impl DiffEditor {
 
     /// Paint using the shared syntax projection and current semantic colours.
     pub fn element(&self, tokens: &Tokens, cx: &mut App) -> AnyElement {
+        self.headers.apply(tokens.neutral.foreground_muted, cx);
         let mut style = super::style(tokens);
         // Paseo diff-document/palette.ts uses terminal.blue for selection,
         // independently of the ordinary source editor's neutral selection.
