@@ -3,15 +3,15 @@ use super::{ConversationArea, Origin};
 use crate::areas::conversation::{ResidentSeat, TimelineSnapshot};
 use crate::areas::{layout::residents::SessionResources, session::SessionView};
 use crate::shell::{Shell, language_tests};
-use gpui::TestAppContext;
+use gpui::{Context, TestAppContext, Window};
 use vessel_app_kit::Reveal;
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target,
 };
 use vessel_app_view::prefs::{ConversationDisplay, ReasoningExpansion};
 use vessel_app_view::residents::{
-    HoldReason, OperationKind, OwnerReadiness, PanelClaim, ResidentProblem, SessionAddress,
-    SessionContext, Visibility,
+    FollowBinding, HoldReason, OperationKind, OwnerReadiness, PanelClaim, ResidentProblem,
+    SessionAddress, SessionContext, Visibility,
 };
 use vessel_app_view::timeline::EntryKind;
 use vessel_proto::{
@@ -51,6 +51,96 @@ fn text(area: &ConversationArea) -> &str {
     };
     text
 }
+struct Admitted {
+    a: SessionContext,
+    b: SessionContext,
+    binding_a: FollowBinding,
+    binding_b: FollowBinding,
+    claim_a: PanelClaim,
+}
+
+fn admitted(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -> Admitted {
+    let residents = &mut shell.areas.session_residents;
+    let node = NodeId::random();
+    let key = LayoutKey::Workspace {
+        node,
+        workspace: WorkspaceId::random(),
+    };
+    let mut layout = Layout::default();
+    let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
+    let mut build = |_: &SessionContext| SessionResources {
+        session: SessionView::new(window, cx),
+        conversation: ConversationArea::with_presentation(
+            ConversationDisplay::Full,
+            ReasoningExpansion::Expanded,
+            cx,
+        ),
+    };
+    let a = residents
+        .claim_session(
+            SessionAddress {
+                node,
+                session: SessionId::random(),
+            },
+            &claim_a,
+            PaneId::MAIN,
+            &mut build,
+        )
+        .unwrap();
+    let b = residents
+        .claim_session(
+            SessionAddress {
+                node,
+                session: SessionId::random(),
+            },
+            &claim_b,
+            PaneId::MAIN,
+            &mut build,
+        )
+        .unwrap();
+    residents
+        .present(a, &claim_a, PaneId::MAIN, Visibility::Visible)
+        .unwrap();
+    residents.focus(a, &claim_a).unwrap();
+    let binding_a = residents.begin_follow(a, |_, _| {}).unwrap();
+    let binding_b = residents.begin_follow(b, |_, _| {}).unwrap();
+    let context_a = residents.context(a, &claim_a).unwrap();
+    let context_b = residents.context(b, &claim_b).unwrap();
+    Admitted {
+        a: context_a,
+        b: context_b,
+        binding_a,
+        binding_b,
+        claim_a,
+    }
+}
+
+fn assert_origin_is_separate(
+    shell: &mut Shell,
+    cx: &mut Context<'_, Shell>,
+    seat: &ResidentSeat,
+    context: SessionContext,
+) -> ResidentSeat {
+    let origin_seat = ResidentSeat::origin(context);
+    assert!(
+        origin_seat.get(shell).is_none(),
+        "absent origin is not main"
+    );
+    let mut origin = ConversationArea::new(cx);
+    assert!(origin.fold_records(&[record(1, "Origin")]));
+    seat.get_mut(shell).unwrap().origin = Origin::Shown(Box::new(origin));
+    assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin");
+    assert!(
+        origin_seat
+            .get_mut(shell)
+            .unwrap()
+            .fold_records(&[record(2, " retained")])
+    );
+    assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin retained");
+    assert_eq!(text(seat.get(shell).unwrap()), "A");
+    origin_seat
+}
+
 #[gpui::test]
 fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
     cx: &mut TestAppContext,
@@ -58,55 +148,13 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
     language_tests::init(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, |shell, window, cx| {
-        let (a, b, binding_a, binding_b, claim_a) = {
-            let residents = &mut shell.areas.session_residents;
-            let node = NodeId::random();
-            let key = LayoutKey::Workspace {
-                node,
-                workspace: WorkspaceId::random(),
-            };
-            let mut layout = Layout::default();
-            let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
-            let mut build = |_: &SessionContext| SessionResources {
-                session: SessionView::new(window, cx),
-                conversation: ConversationArea::with_presentation(
-                    ConversationDisplay::Full,
-                    ReasoningExpansion::Expanded,
-                    cx,
-                ),
-            };
-            let a = residents
-                .claim_session(
-                    SessionAddress {
-                        node,
-                        session: SessionId::random(),
-                    },
-                    &claim_a,
-                    PaneId::MAIN,
-                    &mut build,
-                )
-                .unwrap();
-            let b = residents
-                .claim_session(
-                    SessionAddress {
-                        node,
-                        session: SessionId::random(),
-                    },
-                    &claim_b,
-                    PaneId::MAIN,
-                    &mut build,
-                )
-                .unwrap();
-            residents
-                .present(a, &claim_a, PaneId::MAIN, Visibility::Visible)
-                .unwrap();
-            residents.focus(a, &claim_a).unwrap();
-            let binding_a = residents.begin_follow(a, |_, _| {}).unwrap();
-            let binding_b = residents.begin_follow(b, |_, _| {}).unwrap();
-            let context_a = residents.context(a, &claim_a).unwrap();
-            let context_b = residents.context(b, &claim_b).unwrap();
-            (context_a, context_b, binding_a, binding_b, claim_a)
-        };
+        let Admitted {
+            a,
+            b,
+            binding_a,
+            binding_b,
+            claim_a,
+        } = admitted(shell, window, cx);
         assert!(
             shell
                 .conversation_records_scoped(binding_a, &[record(1, "A")])
@@ -127,23 +175,7 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
         );
         seat.get_mut(shell).unwrap().list.reveal(0, Reveal::Top);
         assert_eq!(text(captured.get(shell).unwrap()), "A");
-        let origin_seat = ResidentSeat::origin(a.clone());
-        assert!(
-            origin_seat.get(shell).is_none(),
-            "absent origin is not main"
-        );
-        let mut origin = ConversationArea::new(cx);
-        assert!(origin.fold_records(&[record(1, "Origin")]));
-        seat.get_mut(shell).unwrap().origin = Origin::Shown(Box::new(origin));
-        assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin");
-        assert!(
-            origin_seat
-                .get_mut(shell)
-                .unwrap()
-                .fold_records(&[record(2, " retained")])
-        );
-        assert_eq!(text(origin_seat.get(shell).unwrap()), "Origin retained");
-        assert_eq!(text(seat.get(shell).unwrap()), "A");
+        let origin_seat = assert_origin_is_separate(shell, cx, &seat, a.clone());
         assert!(matches!(
             shell.conversation_input_scoped(&b),
             Err(ResidentProblem::Held)
@@ -153,11 +185,13 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             .session_residents
             .admit_operation(binding_a, OperationKind::Timeline)
             .unwrap();
-        shell
-            .conversation_settled_scoped(binding_a, ticket, |area| {
-                area.fold_records(&[record(2, " accepted")])
-            })
-            .unwrap();
+        assert!(
+            shell
+                .conversation_settled_scoped(binding_a, ticket, |area| {
+                    area.fold_records(&[record(2, " accepted")])
+                })
+                .unwrap()
+        );
         assert!(matches!(
             shell.conversation_settled_scoped(binding_a, ticket, |area| area
                 .fold_records(&[record(3, " duplicated")])),
