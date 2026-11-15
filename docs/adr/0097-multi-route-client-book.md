@@ -51,8 +51,11 @@ the app merely because a typed SSH address exists.
 3. Extend the existing typed book and its one mutation path. Selected.
    Use the existing TOML and standard-library file locking assets;
    no new storage, transport or editing-engine library is needed. The
-   client's proposed direct rustix filesystem dependency still requires
-   integrator approval and the dependency-map registration before code.
+   coordinator approved the client's cfg(unix) direct workspace rustix/fs
+   dependency for this boundary on 2026-11-15. Architecture and ADR0001
+   record that ownership; no client-to-store/fleet edge is added. The
+   current file code is private test staging, with compilation, code review
+   and production integration still owed.
 
 ## Proposed format and compatibility
 

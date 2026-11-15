@@ -325,3 +325,15 @@ its integration decision. Before the move starts, these conditions bind it:
   cleanup, API change, changed bound or error source, weakened assertion,
   different duplicate-writer handling, or changed `NotVisible` fallback.
   A kernel PID alone continues to grant no signal authority.
+
+## Client book safe-file dependency (2026-11-15, ADR0097)
+
+The coordinator approved a Unix-only direct dependency from vessel-client
+to the workspace rustix with its fs feature. Book and device-credential
+files already belong to the client; directory-relative NOFOLLOW/NONBLOCK
+and opened-handle checks replace unsafe plain-path assumptions without
+unsafe code. Reusing store or fleet as an I/O shortcut would introduce a
+wrong ownership edge. Their Vessel dependency graph remains unchanged.
+Architecture and the client module header name the boundary. The first
+code is private test staging: it does not change production readers,
+writers, locking, admission or Windows behavior, and is not a safety pass.
