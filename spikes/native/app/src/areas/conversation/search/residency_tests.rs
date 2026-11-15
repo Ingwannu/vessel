@@ -25,6 +25,7 @@ impl Render for Probe {
 
 fn machine(name: &str) -> Machine {
     Machine {
+        connection_epoch: None,
         name: name.to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
