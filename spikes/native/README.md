@@ -68,6 +68,11 @@ diagnostic separate from translated instructions. Sign-in help is typed
 as labelled account, command and method steps, so a screen can copy the
 exact node-provided command without inventing a login flow.
 
+Provider-removal preparation stays in `view::agent_status::removal` and
+reuses the existing machine-page tickets. Agent snapshots retain the
+reporting `NodeId`, so a reused book name cannot stand in for identity.
+The prepared request is not yet connected to a destructive call or control.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches

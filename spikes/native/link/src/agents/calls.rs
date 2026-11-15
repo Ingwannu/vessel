@@ -80,6 +80,7 @@ async fn run(
                     (Vec::new(), Vec::new(), Administration::OlderNode)
                 };
             Answer::List(Inventory {
+                node: client.node().id,
                 command_shell: vessel_app_view::agent_status::command::CommandShell::for_os(
                     &client.node().os,
                 ),
