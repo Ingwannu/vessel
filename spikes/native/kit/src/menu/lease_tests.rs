@@ -33,6 +33,28 @@ impl Probe {
         self.menu.open(point(px(100.0), px(40.0)), window, cx);
         cx.notify();
     }
+    fn reopen(&mut self, opening: Opening, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.generation = 1;
+        match opening {
+            Opening::InPlace => self.open(window, cx),
+            Opening::AfterClose => {
+                self.menu.close_and_restore(window, cx);
+                self.open(window, cx);
+            }
+            Opening::MeasuredEnd => {
+                self.menu.open_end(
+                    Bounds {
+                        origin: point(px(100.0), px(10.0)),
+                        size: gpui::size(px(220.0), px(30.0)),
+                    },
+                    window,
+                    cx,
+                );
+                cx.notify();
+            }
+        }
+        self.menu.highlighted = Some(1);
+    }
 }
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
@@ -122,38 +144,55 @@ fn stale_event(
     cx.update(|window, cx| {
         let before = view.read(cx).renders.get();
         view.update(cx, |this, cx| {
-            this.generation = 1;
-            match opening {
-                Opening::InPlace => this.open(window, cx),
-                Opening::AfterClose => {
-                    this.menu.close_and_restore(window, cx);
-                    this.open(window, cx);
-                }
-                Opening::MeasuredEnd => {
-                    this.menu.open_end(
-                        Bounds {
-                            origin: point(px(100.0), px(10.0)),
-                            size: gpui::size(px(220.0), px(30.0)),
-                        },
-                        window,
-                        cx,
-                    );
-                    cx.notify();
-                }
-            }
-            this.menu.highlighted = Some(1);
+            this.reopen(opening, window, cx);
         });
         event(window, cx);
-        let this = view.read(cx);
-        assert_eq!(this.renders.get(), before, "must dispatch A before redraw");
-        assert!(this.menu.is_open(), "B must survive A's dismissal");
-        assert!(this.menu.focus.is_focused(window), "B retains keys");
-        assert!(!this.field.focus_handle(cx).is_focused(window));
-        assert_eq!(this.menu.highlighted, Some(1), "A cannot move B's row");
-        assert!(this.chosen.is_empty(), "A cannot dispatch either action");
+        assert_b(view, window, cx, before);
     });
     cx.run_until_parked();
 }
+fn assert_b(view: &Entity<Probe>, window: &Window, cx: &App, before: usize) {
+    let this = view.read(cx);
+    assert_eq!(this.renders.get(), before, "must dispatch A before redraw");
+    assert!(this.menu.is_open(), "B must survive A's dismissal");
+    assert!(this.menu.focus.is_focused(window), "B retains keys");
+    assert!(!this.field.focus_handle(cx).is_focused(window));
+    assert_eq!(this.menu.highlighted, Some(1), "A cannot move B's row");
+    assert!(this.chosen.is_empty(), "A cannot dispatch either action");
+}
+// GPUI draws dirty windows before routing a key. Open B in its real interceptor,
+// after that draw and before the actual retained A key listeners are dispatched.
+// No copied handler, mock keyboard function, or product-only test hook is used.
+fn stale_key(
+    view: &Entity<Probe>,
+    cx: &mut VisualTestContext,
+    opening: Opening,
+    old_key: &'static str,
+) {
+    let boundary = Rc::new(Cell::new(None));
+    let subscription = cx.update(|_, cx| {
+        let view = view.clone();
+        let boundary = Rc::clone(&boundary);
+        cx.intercept_keystrokes(move |_, window, cx| {
+            if boundary.get().is_none() {
+                boundary.set(Some(view.read(cx).renders.get()));
+                view.update(cx, |this, cx| this.reopen(opening, window, cx));
+            }
+        })
+    });
+    cx.update(|window, cx| {
+        key(window, cx, old_key);
+        assert_b(
+            view,
+            window,
+            cx,
+            boundary.get().expect("real interceptor ran"),
+        );
+    });
+    drop(subscription);
+    cx.run_until_parked();
+}
+
 #[gpui::test]
 fn old_render_pointer_and_outside_cannot_close_new_open_or_run_keep_open_actions(
     cx: &mut TestAppContext,
@@ -197,9 +236,7 @@ fn old_render_keys_cannot_highlight_close_restore_focus_or_choose_in_new_open(
             let (view, cx) = cx.add_window_view(|window, cx| Probe::new(dismissal, window, cx));
             cx.run_until_parked();
             open_a(&view, cx);
-            stale_event(&view, cx, Opening::AfterClose, |window, cx| {
-                key(window, cx, old_key)
-            });
+            stale_key(&view, cx, Opening::AfterClose, old_key);
             cx.simulate_keystrokes("enter");
             cx.run_until_parked();
             view.read_with(cx, |this, _| {
@@ -249,11 +286,7 @@ fn in_place_reopen_also_rejects_old_keys(cx: &mut TestAppContext) {
     let (view, cx) = cx.add_window_view(|window, cx| Probe::new(Dismissal::KeepOpen, window, cx));
     cx.run_until_parked();
     open_a(&view, cx);
-    stale_event(&view, cx, Opening::InPlace, |window, cx| {
-        key(window, cx, "down");
-        key(window, cx, "enter");
-        key(window, cx, "escape");
-    });
+    stale_key(&view, cx, Opening::InPlace, "enter");
     cx.simulate_keystrokes("enter escape");
     cx.run_until_parked();
     cx.update(|window, cx| {
@@ -270,16 +303,21 @@ fn state_only_close_invalidates_real_handlers_without_restoring_focus(cx: &mut T
     let (view, cx) = cx.add_window_view(|window, cx| Probe::new(Dismissal::KeepOpen, window, cx));
     cx.run_until_parked();
     open_a(&view, cx);
+    let boundary = Rc::new(Cell::new(None));
+    let subscription = cx.update(|_, cx| {
+        let view = view.clone();
+        let boundary = Rc::clone(&boundary);
+        cx.intercept_keystrokes(move |_, window, cx| {
+            boundary.set(Some(view.read(cx).renders.get()));
+            view.update(cx, |this, _| this.menu.close());
+            click(window, cx, point(px(120.0), px(62.0)));
+            click(window, cx, point(px(500.0), px(350.0)));
+        })
+    });
     cx.update(|window, cx| {
-        let before = view.read(cx).renders.get();
-        view.update(cx, |this, _| this.menu.close());
-        click(window, cx, point(px(120.0), px(62.0)));
-        key(window, cx, "home");
-        key(window, cx, "enter");
         key(window, cx, "escape");
-        click(window, cx, point(px(500.0), px(350.0)));
         let this = view.read(cx);
-        assert_eq!(this.renders.get(), before);
+        assert_eq!(Some(this.renders.get()), boundary.get());
         assert!(!this.menu.is_open());
         assert_eq!(this.menu.highlighted, None);
         assert!(
@@ -289,4 +327,5 @@ fn state_only_close_invalidates_real_handlers_without_restoring_focus(cx: &mut T
         assert!(!this.field.focus_handle(cx).is_focused(window));
         assert!(this.chosen.is_empty());
     });
+    drop(subscription);
 }

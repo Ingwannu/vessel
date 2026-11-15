@@ -40,7 +40,11 @@ hierarchy work, not part of this defect correction.
 
 MenuState creates the lease; draw captures it independently for key, outside,
 row mouse-down and row click handlers. Each checks admission before changing
-state or propagation. The key input bundle carries the same captured items,
+state or propagation. The existing key routing moves into menu/input.rs to keep the one draw module
+below its size budget; it is not another renderer. GPUI track_focus installs a
+default pointer-focus listener: the same panel uses capture_any_mouse_down to
+prevent that default only when its lease is stale, including replaced state.
+The key input bundle carries the same captured items,
 handlers and lease. No area receives an alternative action authorization path.
 Future delayed hierarchy mutations must carry and validate this same lease.
 
@@ -59,6 +63,13 @@ accessibility proof. The historical focused-field native F5 hold remains open.
 
 ## Status
 
-Source-only checkpoint; remote priority Kit Clippy and tests are next. No gate,
-execution, visual, or review pass is claimed. No local Cargo/Rustc is permitted;
+First production checkpoint 4919d7cc6 passed exact Kit all-target Clippy;
+82a4f5004 Kit test execution was 167 passed / 4 failed. It exposed GPUI's default
+pointer-focus listener on state replacement, corrected by the panel capture
+guard. Key dispatch also draws a dirty window before interceptors; the corrected
+regressions open B inside a real interceptor after A is drawn, then let the actual
+A key listener execute. A render-count boundary proves there was no draw between
+opening B and that listener. No copied callback or test-only product hook is used.
+Latest source execution and review remain pending. No whole gate, visual or
+review pass is claimed. No local Cargo/Rustc is permitted;
 all compilation runs through vessel-remote-gate on the build VM.

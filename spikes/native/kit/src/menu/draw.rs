@@ -1,9 +1,8 @@
 //! One shared renderer for point-opened and right-aligned action menus.
 
+use super::input::{KeyMenu, keyboard};
 use super::item::{Leading, paint};
-use super::{
-    Direction, MenuHandlers, MenuItem, MenuState, RenderLease, keyboard_choice, pointer_choice,
-};
+use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
 use crate::fonts::Type;
@@ -12,8 +11,8 @@ use crate::theme::{Tokens, spacing};
 use crate::widgets::TypeExt as _;
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, Context, ElementId, KeyDownEvent, MouseButton, Pixels, Window, anchored,
-    deferred, div, px,
+    Anchor, AnyElement, Context, ElementId, MouseButton, Pixels, Window, anchored, deferred, div,
+    px,
 };
 
 /// The narrowest a menu is (Paseo's `minWidth`).
@@ -225,12 +224,20 @@ fn draw<V: 'static>(
         }
         cx.notify();
     });
+    // track_focus installs GPUI's own automatic pointer-focus listener. Fence
+    // its default behavior too, before an obsolete panel can focus old state.
+    let focus_lease = state.render_lease();
     let surfaces = Surfaces::of(tokens);
     // Paseo's page: 4 above the first row and below the last, no gap
     // between rows, the rule between groups the full width.
     let mut panel = div()
         .id(id.clone())
         .track_focus(&state.focus)
+        .capture_any_mouse_down(cx.listener(move |view: &mut V, _event, window, _cx| {
+            if !get(view).accepts(&focus_lease) {
+                window.prevent_default();
+            }
+        }))
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
         // The popover takes the pointer and shows the arrow (`popup::layer`).
@@ -406,60 +413,6 @@ pub(super) fn ordinary_glyph(
     ink: gpui::Hsla,
 ) -> gpui::Svg {
     crate::picker::glyph(glyph, item.leading_size.points(), ink)
-}
-
-// Input routing stays separate from surface drawing; both menu entry points
-// and extended content dispatch through the same dismissal/selection guard.
-struct KeyMenu<V> {
-    handlers: MenuHandlers<V>,
-    items: Rc<[MenuItem]>,
-    lease: RenderLease,
-}
-
-fn keyboard<V: 'static>(
-    view: &mut V,
-    event: &KeyDownEvent,
-    window: &mut Window,
-    cx: &mut Context<'_, V>,
-    input: &KeyMenu<V>,
-) {
-    let KeyMenu {
-        handlers,
-        items,
-        lease,
-    } = input;
-    let menu = (handlers.state)(view);
-    if !menu.accepts(lease) {
-        return;
-    }
-    match event.keystroke.key.as_str() {
-        "escape" => menu.close_and_restore(window, cx),
-        "down" | "tab" => menu.step(items, Direction::Next),
-        "up" => menu.step(items, Direction::Previous),
-        "home" => {
-            menu.highlighted = None;
-            menu.step(items, Direction::Next);
-        }
-        "end" => {
-            menu.highlighted = None;
-            menu.step(items, Direction::Previous);
-        }
-        "enter" | "space" => {
-            if let Some(index) = keyboard_choice(menu, items) {
-                if !menu.same_cycle(lease) {
-                    return;
-                }
-                menu.restore_after_choice(window, cx);
-                if !(handlers.state)(view).same_cycle(lease) {
-                    return;
-                }
-                (handlers.chose)(view, index, window, cx);
-            }
-        }
-        _other => return,
-    }
-    cx.stop_propagation();
-    cx.notify();
 }
 
 fn row_body(
