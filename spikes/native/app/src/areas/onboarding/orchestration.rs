@@ -152,6 +152,13 @@ fn execute(
                 let _closed = this.update_in(cx, |shell, window, cx| {
                     let outcome = match result {
                         Ok(snapshot) => {
+                            if snapshot.status == CliStatus::Installed
+                                && snapshot.path
+                                    == vessel_app_view::desktop::cli::PathStatus::Manual
+                            {
+                                shell.notice =
+                                    Some(shell.words.desktop_shell().path_manual().to_owned());
+                            }
                             shell.areas.onboarding.integrations.facts = Facts::Ready(snapshot);
                             Outcome::Applied
                         }

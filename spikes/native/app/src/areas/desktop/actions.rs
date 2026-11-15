@@ -25,7 +25,7 @@ impl Shell {
     ) -> bool {
         match action {
             DesktopAction::NewWindow => crate::desktop::open_additional(cx),
-            DesktopAction::CloseWindow => window.remove_window(),
+            DesktopAction::CloseWindow => vessel_app_kit::chrome::request_close(window, cx),
             DesktopAction::Fullscreen => window.toggle_fullscreen(),
             DesktopAction::ZoomIn | DesktopAction::ZoomOut | DesktopAction::ActualSize => {
                 if self.areas.shortcuts.page.recording() {

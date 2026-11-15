@@ -155,6 +155,7 @@ fn install(
 ) -> Result<(), vessel_app_link::desktop::DesktopError> {
     cx.set_global(Desktop::new(store, environment)?);
     cx.set_quit_mode(gpui::QuitMode::Explicit);
+    vessel_app_kit::chrome::set_close_handler(windows::request_close, cx);
     crate::areas::desktop::listen(cx);
     cx.on_window_closed(|cx, closed| {
         cx.global_mut::<Desktop>()
