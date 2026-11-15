@@ -236,6 +236,7 @@ async fn call(
             client
                 .call(vessel_proto::RevokeDevice { device })
                 .await
+                .map(|_ack| ())
                 .map_err(selected_problem),
         ),
         Ask::Invite { label } => {

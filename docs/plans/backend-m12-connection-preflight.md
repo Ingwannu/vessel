@@ -96,3 +96,12 @@ physical-device, stream-product or final-package approval. Logs and exact
 source fingerprints are retained under `/tmp/work/m12-g4/resumed-20261115`.
 No production account, file permission, service or network configuration is
 changed; compilation runs as the existing ubuntu UID/GID 1000.
+
+
+The first immutable remote candidate `93aa3fb3a` failed Clippy compilation:
+the generic typed revoke returns wire Ack rather than the previous client's
+unit wrapper, and two test barriers incorrectly used Default on the unit
+ListSessions request. The correction explicitly discards Ack after success
+and constructs the unit request. Failed run
+`devices-narrow-20261115T084711Z-93aa3fb3` remains retained; no pass is
+claimed from it.

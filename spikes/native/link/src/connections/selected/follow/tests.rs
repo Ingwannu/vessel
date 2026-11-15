@@ -86,7 +86,7 @@ async fn buffered_record_and_metadata_are_refused_after_retirement() {
     .await;
     // The response follows the event on the same framed reader: the item is
     // actually buffered before retirement, not merely scheduled for sending.
-    selected.call(ListSessions::default()).await.unwrap();
+    selected.call(ListSessions).await.unwrap();
     state.clients["fixture"].retire();
     assert_eq!(follow.info().unwrap_err(), Refusal::Changed);
     assert_eq!(follow.next().await.unwrap_err(), Refusal::Changed);
@@ -148,7 +148,7 @@ async fn closed_reports_return_to_the_actor_and_never_retire_a_new_admission() {
         .await
         .unwrap();
     assert!(matches!(
-        selected.call(ListSessions::default()).await,
+        selected.call(ListSessions).await,
         Err(RequestFailure::Refused(Refusal::Closed))
     ));
     let crate::Command::RetireConnection(tag) = receiving.try_recv().unwrap() else {
