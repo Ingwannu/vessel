@@ -284,7 +284,7 @@ mod tests {
             Generation::decode(bytes).unwrap(),
             Generation {
                 process: NodeProcess(77),
-                started: StartTicks(7654321)
+                started: StartTicks(7_654_321)
             }
         );
         let malformed = b"77 (command)S 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 7654321";
