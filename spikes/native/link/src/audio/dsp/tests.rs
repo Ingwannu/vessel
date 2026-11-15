@@ -81,3 +81,16 @@ fn conversion_frames_preserve_mono_in_both_speaker_channels() {
         assert!(!format!("{rendered:?}").contains("0.25"));
     }
 }
+
+#[test]
+fn capture_level_is_validated_rms_not_speech_activity_or_retained_samples() {
+    let mono = format(16_000, Channels::Mono);
+    let mut processor = Processor::configured(mono, mono, Config::default()).unwrap();
+    let captured = processor.capture(&[0.25; 160]).unwrap();
+    let (pcm, level) = captured.into_parts();
+    assert_eq!(pcm.len(), 320);
+    assert_eq!(level.get().to_bits(), 0.25_f32.to_bits());
+    let captured = processor.capture(&[0.0; 160]).unwrap();
+    let (_, level) = captured.into_parts();
+    assert_eq!(level.get().to_bits(), 0.0_f32.to_bits());
+}

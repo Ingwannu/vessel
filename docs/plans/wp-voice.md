@@ -290,3 +290,10 @@ Native strict c31ffbf4 returned three small defects: one glyph doc identifier,
 one immediate fake future unnecessarily async, and one fake startup unwrap in
 a Result. Fixed without allowances; current public capture API and overlay
 changes still need their first combined strict/runtime verification.
+
+The shared capture frame also carries validated normalized block RMS for the
+existing view::voice::DisplayMeter; it is calculated after capture processing
+while PCM16 is encoded. It is never interpreted as speech detection, and audio
+Debug still shows only length/identity. Muting can leave this measurement live
+while suppressing upload. This avoids screen-local PCM scans or a second meter
+producer. Actual device levels/processing quality remain unverified.

@@ -70,14 +70,13 @@ pub enum AcquireError {
 pub struct Frame {
     lease: CaptureLease,
     pcm: Bytes,
+    level: vessel_app_view::voice::Level,
 }
 impl Frame {
     #[cfg(any(target_os = "linux", target_os = "windows"))]
     pub(super) fn new(lease: CaptureLease, audio: super::dsp::Captured) -> Self {
-        Self {
-            lease,
-            pcm: audio.into_bytes(),
-        }
+        let (pcm, level) = audio.into_parts();
+        Self { lease, pcm, level }
     }
     /// Routing is determined by this acquisition, never by the current UI route.
     #[must_use]
@@ -88,6 +87,11 @@ impl Frame {
     #[must_use]
     pub const fn format(&self) -> Format {
         Format::capture()
+    }
+    /// Normalized block RMS after capture processing; this is not VAD activity.
+    #[must_use]
+    pub const fn level(&self) -> vessel_app_view::voice::Level {
+        self.level
     }
     /// Borrow audio at the upload/codec boundary; do not put it in diagnostics.
     #[must_use]
@@ -100,7 +104,7 @@ impl std::fmt::Debug for Frame {
         f.debug_struct("CaptureFrame")
             .field("lease", &self.lease)
             .field("bytes", &self.pcm.len())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

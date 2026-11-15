@@ -18,23 +18,26 @@ use super::AudioError;
 use super::format::RateHz;
 use super::format::{Channels, Format, NORMALIZED_RATE};
 
-pub(super) struct Captured(Bytes);
+pub(super) struct Captured {
+    pcm: Bytes,
+    level: vessel_app_view::voice::Level,
+}
 
 impl Captured {
-    pub(super) fn into_bytes(self) -> Bytes {
-        self.0
+    pub(super) fn into_parts(self) -> (Bytes, vessel_app_view::voice::Level) {
+        (self.pcm, self.level)
     }
     #[cfg(test)]
     pub(super) fn pcm(&self) -> &[u8] {
-        &self.0
+        &self.pcm
     }
 }
 
 impl fmt::Debug for Captured {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Captured")
-            .field("bytes", &self.0.len())
-            .finish()
+            .field("bytes", &self.pcm.len())
+            .finish_non_exhaustive()
     }
 }
 
@@ -186,14 +189,7 @@ impl Processor {
         };
         result.map_err(AudioError::Processor)?;
         validate(&self.mono, self.normalized)?;
-        let mut pcm = Vec::with_capacity(self.mono.len().saturating_mul(size_of::<i16>()));
-        for &value in &self.mono {
-            // dasp's normalized float contract excludes +1; clip DSP overshoot
-            // before conversion rather than wrapping a loud sample's sign.
-            let sample = value.clamp(-1.0, 1.0_f32.next_down()).to_sample::<i16>();
-            pcm.extend_from_slice(&sample.to_le_bytes());
-        }
-        Ok(Captured(pcm.into()))
+        encode_capture(&self.mono)
     }
 
     #[cfg(test)]
@@ -278,6 +274,30 @@ impl Processor {
         };
         result.map_err(AudioError::Processor)
     }
+}
+
+fn encode_capture(mono: &[f32]) -> Result<Captured, AudioError> {
+    let mut pcm = Vec::with_capacity(mono.len().saturating_mul(size_of::<i16>()));
+    let mut square_sum = 0.0_f32;
+    for &value in mono {
+        // dasp's normalized float contract excludes +1; clip DSP overshoot
+        // before conversion rather than wrapping a loud sample's sign.
+        let clipped = value.clamp(-1.0, 1.0_f32.next_down());
+        square_sum = clipped.mul_add(clipped, square_sum);
+        let sample = clipped.to_sample::<i16>();
+        pcm.extend_from_slice(&sample.to_le_bytes());
+    }
+    let count = u16::try_from(mono.len()).map_err(|_private| AudioError::Frame)?;
+    let rms = square_sum
+        .mul_add(f32::from(count).recip(), 0.0)
+        .sqrt()
+        .clamp(0.0, 1.0);
+    let level =
+        vessel_app_view::voice::Level::new(rms).map_err(|_private| AudioError::NonFinite)?;
+    Ok(Captured {
+        pcm: pcm.into(),
+        level,
+    })
 }
 
 fn validate_external(samples: &[f32], format: Format) -> Result<(), AudioError> {
