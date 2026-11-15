@@ -667,6 +667,26 @@ platform or end-user metadata workflow is claimed.
   without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.
 
+### Reviewed prerequisite landing on the integrated method table
+
+This merge carries only the reviewed label admission and reload prerequisite,
+without discovery values, typed iterator or other background work. Readable
+session events keep the head's title-origin mask, with the single optional
+availability accessor and string-preserving formatters. Event pages retain
+the head's projection-based precheck, including the Replayed usage mask fix.
+The existing label requirement is folded once into `Call::since()` after its
+assigned method/field requirement; `required_protocol()` and fleet recursion
+remain the head's. The head's newly added title-origin event assertion uses
+`Some` around the same assigned version under the single-accessor contract.
+The owned event fixture fills its new origin field with Unknown; its previous
+wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
+
+The labelled-request invariant now asserts `since() == None` as well as
+`required_protocol() == None` for every direct and nested call. Its previous
+numeric-accessor comparison is obsolete on the integrated optional API; this
+strengthens the pending check without changing any assigned expectation.
+
+
 ## Shared preflight for validation before work
 
 Existing assets: the RPC client already checks the call's optional protocol
@@ -692,24 +712,7 @@ The shared checker, allocator and writer behavior are unchanged. The complete ro
 regression, TypeScript freshness, web checks and the forge fixture. This API
 adds no CLI behavior until its separate consumer calls it.
 
-### Reviewed prerequisite landing on the integrated method table
 
-This merge carries only the reviewed label admission and reload prerequisite,
-without discovery values, typed iterator or other background work. Readable
-session events keep the head's title-origin mask, with the single optional
-availability accessor and string-preserving formatters. Event pages retain
-the head's projection-based precheck, including the Replayed usage mask fix.
-The existing label requirement is folded once into `Call::since()` after its
-assigned method/field requirement; `required_protocol()` and fleet recursion
-remain the head's. The head's newly added title-origin event assertion uses
-`Some` around the same assigned version under the single-accessor contract.
-The owned event fixture fills its new origin field with Unknown; its previous
-wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
-
-The labelled-request invariant now asserts `since() == None` as well as
-`required_protocol() == None` for every direct and nested call. Its previous
-numeric-accessor comparison is obsolete on the integrated optional API; this
-strengthens the pending check without changing any assigned expectation.
 
 ### Optional call admission after the method-table merge
 

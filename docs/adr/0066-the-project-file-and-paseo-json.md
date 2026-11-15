@@ -684,3 +684,79 @@ approval; that send is its own decision.
 - Staged in slice 2a: terminal parsing and its approval snapshot. Not done:
   parsing port keys, opening terminals, allocating a port, probing health,
   archiving a workspace after a merge, and opening an editor.
+
+### Process lifetime observations for service ownership
+
+[Decision Log]
+
+- Purpose and intent: a detected port must remain tied to the actual run
+  that owns it. PID reuse and a rapid restart cannot let a stale observation
+  authorize a replacement process or retain browser Preview access.
+- Existing assets and constraints: Proc owns piped child groups/jobs; PTY
+  owns its process and waiter thread. Session and terminal handles currently
+  report only an atomic PID. The node scanner joins those numeric roots to
+  sockets; neither a cached PID nor a declared port proves a current run.
+  Paseo's `service-proxy.ts:421–754` routes by registered workspace/service
+  and port; it does not expose this per-run observation to Preview.
+- Alternatives: timestamps or a numeric generation; invent authority from
+  a PID snapshot; or a read-only observation issued by the real runner.
+  PID/time values can repeat and watch snapshots can coalesce. Choose the
+  runner-issued observation. This is a security floor for the node-owned
+  Preview boundary of ADR 0078, not a claim that Paseo implements it.
+- Choice: `vessel-proc::ProcessId` is the one nonzero OS PID value type,
+  with checked conversion from an integer. It carries no authority.
+  `ProcessLifetime` privately shares the identity of one run and a watch
+  of its revocation. Comparing two observations compares that opaque
+  identity, never PID equality or an address exposed to a client. There is
+  no serialization, wire field, numeric generation, new dependency or
+  persistent process registry.
+- Issuance and revocation: Proc Child and PtyProcess own the issuer guard.
+  Observers can inspect the typed PID, compare runs and await revocation;
+  they cannot revoke or mint an observation. The runner revokes before a
+  signal attempt, on observed exit or uncertain wait, and on owner drop.
+  A failed signal still revokes authority; it does not claim the OS process
+  died. PTY's actual waiter also revokes, even if the async caller has not
+  polled `wait`. A stopped/replaced run never revives its old observation.
+- Transport within the process: AgentProcess delegates its child's
+  observer without adding driver policy. SessionHandle and TerminalHandle
+  carry observers obtained from those actual children. A move/restart
+  replaces the observer; parking/ending clears it. Existing numeric PID
+  APIs remain for compatibility and are not used to mint authority.
+- Reuse decision: add focused `process_id` and `lifetime` modules to Proc,
+  reusing standard nonzero storage, Arc and Tokio's existing watch channel.
+  Do not put process facts, lock/FD inspection or session policy there.
+  Self-process observations reuse the PID value; those observations
+  cannot issue a lifetime. No crate dependency edge changes.
+- Costs and effects: the extra shared state is one bounded watch per run,
+  retained only while an owner or observer holds it. Revocation is a
+  conservative authority event, not an OS liveness probe or proof that all
+  descendants have exited. A Proc exit is observed when its waiter is
+  polled; callers still need complete fresh socket/process inspection.
+  A caller retains finite admission while any blocking resolution or
+  unfinished launch exists. Same-user hostile processes remain within the
+  trust boundary already stated for process groups and checkout paths.
+- Required tests: zero PID refusal; cloned observer equality and distinct
+  runs with the same PID; watchers before/after revocation without a lost
+  wake; wait/signal/drop revocation on real fake children; PTY exit before
+  async wait; session move/park and terminal restart replacing/clearing the
+  actual observer. Tests use the existing fakes and event readiness, not
+  real agents or sleep-based coordination. Windows execution remains
+  unverified by a Unix run.
+
+The lifetime alone grants no network permission. Browser Preview still
+requires the exact WorkspaceId and opening SessionId, current complete
+socket ownership, a verified canonical origin/scheme and revocation on
+lifecycle changes. No wire candidate or client URL can construct this
+observation. The service runtime and browser wiring are separate consumers;
+this carrier adds no proxy or browser capability by itself.
+
+An explicit cleanup-authority release is also a revocation boundary. When
+a release-capable child is integrated, refusing release must retain the
+still-owned observation; successful release must revoke it before transferring
+the direct OS handle. A detached reaper's separate exit observation reports
+the actual direct-child wait result. It must not reinterpret this carrier's
+revocation as OS death or mint a replacement live carrier from a retained PID.
+The joint release integration must test both cases: refused release keeps
+the owned observation live, and successful release revokes while the child
+continues until its independently observed exit. The assigned carrier base
+has no release operation; those joint tests remain with that integration.
