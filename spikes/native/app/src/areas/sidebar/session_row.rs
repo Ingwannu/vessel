@@ -42,6 +42,9 @@ use crate::shell::Shell;
 const SLOT: f32 = 20.0;
 /// A dot's size.
 const DOT: f32 = 8.0;
+/// An ended session's dash: the page's one-pixel line (`sidebar.css`,
+/// `.sdot.ended`, a top border of 1 px across the dot's width).
+const DASH: f32 = 1.0;
 /// The spinner's size.
 const SPIN: f32 = 12.0;
 /// A row's height beyond its line (the page's 5 above and below).
@@ -204,7 +207,7 @@ fn mark(card: &Card, unread: bool, tokens: &Tokens) -> AnyElement {
             .into_any_element(),
         SessionMark::Ended => div()
             .w(px(DOT))
-            .h(px(1.0))
+            .h(px(DASH))
             .bg(tokens.text_disabled)
             .into_any_element(),
     }
