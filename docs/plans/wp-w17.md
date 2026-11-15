@@ -29,22 +29,23 @@ request → typed response → presentation → stdout. Stream/attach paths reta
 No live node, real provider, credential store or production configuration is used for checks.
 Existing CLI modules remain the authority for lifecycle/daemon/scripts.
 
-## Current integration state (2026-11-15 12:46 UTC)
+## Current integration state (2026-11-15 13:22 UTC)
 
 The table below is the initial 117-path inventory, not a current green checklist.
-The development tree merged announced node gate44 ede20014 after gate42; SDK
-check_call is available. Latest source changes remain unverified after that merge. No whole
+The development tree merged announced node head82ae7c91 (gate46g) at4ce46b45e.
+Its Rust/e2e/forge passes and coordinator-counted web load timeout describe that
+base only. Latest W17 changes and the combined head remain unverified. No whole
 W17 gate, package V3 pass, protocol assignment or merge handoff has been claimed.
 
 | Boundary | Current state / owner |
 | --- | --- |
-| Shared output for W4 permit / W16 plugin | V3 scoped PASS for source5305: 6/0/0 root/process regressions and strict CLI alltarget Clippy0. Evidence-only handoff5b3ca1d is staged by the integrator as30e1e1bb; consumers wait for its announced green gate46 head. No full W17 claim. |
-| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Scoped old-head tests are in the verification matrix; these are not a latest-head/full-parity claim. |
-| Run/send output | Typed command receipts now map idle completion to completed. Standalone wait remains idle. Import/update and some schedule output projections still retain documented native differences. |
+| Shared output for W4 permit / W16 plugin | V3 scoped PASS for source5305: 6/0/0 root/process regressions and strict CLI alltarget Clippy0. Evidence-only handoff5b3ca1d is now on announced node head82ae7c91; W4/W16 were told to merge that head. No full W17 claim. |
+| Existing-client CLI adapters | Scoped agent lists, text runs, sends with attachment staging, turn waits/cancel, forced archive/delete, mode options, project create/list/clone, schedules/heartbeat and terminal keys have source implementations. Exact0656 CLI units now134/0/0; older process/host checks are in the verification matrix. The public-host/dd33 strict run is queued, and later receipt/base changes still need checks. No latest-head/full-parity claim. |
+| Run/send output | Typed command receipts now map idle completion to completed. Standalone wait remains idle. Wait/mutation tables and schedule/heartbeat deletion status are source-corrected; update/provider notices and detailed schedule logs retain documented native differences. |
 | W17 node host registry / capture | Six pending rows and one None feature constant; source-owned reference metadata, separately typed bounded public local-agent inventory and capture actor glue staged. Paired destinations lacking node-side trust lookup and direct/SSH creation remain typed refusals. Capture must consume C2's one reviewed pure engine before handoff; no second parser may merge. |
 | Workspace placement / project reset/cascade | W11 reviewed registry/operation contract awaited; WorkspaceId alone is not a workspace call. |
 | Detach / atomic archive / open | W2 detach and W21 idle archive/deep links awaited; Creator is never treated as current parentage. |
-| Provider / initial schema/image/env | W22 atomic preflight and per-turn contracts awaited. Pre-create refusal remains. The 64 KiB offline schema adapter and initial+2 retry loop are cfg(test) source staging, not runtime wiring. |
+| Provider / initial schema/image/env | W22 atomic preflight and per-turn contracts awaited. Pre-create refusal remains. The 64 KiB offline schema adapter and initial+2 retry loop passed scoped0656 units under cfg(test), not runtime wiring; Ajv extension equivalence remains owed. |
 | Reports / terminal hooks / client book | W5 report identities, W7 authenticated attribution/ingestion, E2 canonical route/upsert seam awaited. No replacement stores/transports/endpoints are created in CLI. |
 | Other owners | Lifecycle logs/labels/reload and daemon/workspace-script handlers remain with their owners. Permit W4 and plugins W16 remain separate modules, using the shared formatter after review. |
 
