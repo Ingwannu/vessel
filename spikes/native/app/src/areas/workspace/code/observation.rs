@@ -189,7 +189,7 @@ impl Shell {
             if matches!(step, vessel_app_view::workspace::editor::Step::Read { .. }) {
                 viewer.watch.reconcile = false;
             }
-            self.run_step_for(key.clone(), step, cx);
+            self.run_step_for(key, step, cx);
         } else {
             viewer.watch.reconcile = false;
             self.read_viewer_for(

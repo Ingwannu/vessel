@@ -44,7 +44,7 @@ pub(super) fn panel(
                     let key = key.clone();
                     button(("file-language", index), label, false, tokens).on_click(cx.listener(
                         move |shell, _, window, cx| {
-                            shell.language_query_for(&key, action, window, cx)
+                            shell.language_query_for(&key, action, window, cx);
                         },
                     ))
                 }),

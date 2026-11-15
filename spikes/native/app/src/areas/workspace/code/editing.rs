@@ -113,7 +113,7 @@ impl Shell {
             return;
         };
         let step = editing.model.save();
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     /// The person typed in the editor.
@@ -155,7 +155,7 @@ impl Shell {
                 preview.invalidate();
             }
         }
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     /// A read of the file being edited came back. `false` when the file
@@ -216,7 +216,7 @@ impl Shell {
         {
             preview.invalidate();
         }
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
         self.reconcile_watched_file(key, cx);
         true
     }
@@ -253,11 +253,11 @@ impl Shell {
             Saved::Uncertain(problem) => Written::Uncertain(words.problem(&problem)),
             Saved::Ended(problem) => Written::Ended(words.problem(&problem)),
             Saved::Saved(version) if current => Written::Saved(version),
-            Saved::Saved(_) => Written::UnverifiedConflict,
             Saved::Missing { .. } if current => Written::Deleted,
-            Saved::Missing { .. } => Written::UnverifiedConflict,
             Saved::Conflict { disk: Some(_), .. } if current => Written::Changed,
-            Saved::Conflict { .. } => Written::UnverifiedConflict,
+            Saved::Saved(_) | Saved::Missing { .. } | Saved::Conflict { .. } => {
+                Written::UnverifiedConflict
+            }
             Saved::Failed(failure) => Written::Failed(words.save_failure(&failure)),
         };
         let step = editing.model.saved(sequence, written);
@@ -273,7 +273,7 @@ impl Shell {
         } else {
             step
         };
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
         self.reconcile_watched_file(key, cx);
     }
 
@@ -294,7 +294,7 @@ impl Shell {
             return;
         }
         let step = editing.model.reconcile();
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     /// Conflict actions keep the originating buffer when their click is queued.
@@ -311,7 +311,7 @@ impl Shell {
             return;
         };
         let step = editing.model.overwrite();
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     pub(super) fn editor_reload(
@@ -329,7 +329,7 @@ impl Shell {
         };
         if !editing.model.modified() {
             let step = editing.model.reload();
-            self.run_step_for(key.clone(), step, cx);
+            self.run_step_for(key, step, cx);
             return;
         }
         let opening = editing.reload.is_none();
@@ -381,7 +381,7 @@ impl Shell {
             ReloadDecision::Reload => editing.model.reload(),
             ReloadDecision::Keep => Step::None,
         };
-        self.run_step_for(key.clone(), step, cx);
+        self.run_step_for(key, step, cx);
     }
 
     /// The file is left (Back, another file): flushed, then closed.

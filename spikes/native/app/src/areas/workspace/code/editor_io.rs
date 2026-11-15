@@ -18,27 +18,21 @@ impl Shell {
         self.areas.workspace.code.viewer_for(key)?.edit.as_mut()
     }
 
-    pub(super) fn run_step(&mut self, step: Step, cx: &mut Context<'_, Self>) {
-        if let Some(key) = self.areas.workspace.code.file_key() {
-            self.run_step_for(key, step, cx);
-        }
-    }
-
-    pub(super) fn run_step_for(&mut self, key: FileKey, step: Step, cx: &mut Context<'_, Self>) {
-        self.publish_file_tabs(&key, cx);
+    pub(super) fn run_step_for(&mut self, key: &FileKey, step: Step, cx: &mut Context<'_, Self>) {
+        self.publish_file_tabs(key, cx);
         match step {
             Step::None => {}
-            Step::Write { .. } | Step::Read { .. } => self.send_step_for(&key, step),
+            Step::Write { .. } | Step::Read { .. } => self.send_step_for(key, step),
             Step::Autosave => self.set_autosave_for(key.clone(), cx),
             Step::StopAutosave => {
-                if let Some(editing) = self.editing_for(&key) {
+                if let Some(editing) = self.editing_for(key) {
                     editing.autosave = editing.autosave.wrapping_add(1);
                 }
             }
         }
         // Queue refusal can settle synchronously inside an effect. Publish
         // that original outcome too; identical acknowledgements are coalesced.
-        self.publish_file_tabs(&key, cx);
+        self.publish_file_tabs(key, cx);
         cx.notify();
     }
 
@@ -171,7 +165,7 @@ impl Shell {
                     return;
                 };
                 let step = editing.model.save();
-                shell.run_step_for(key, step, cx);
+                shell.run_step_for(&key, step, cx);
             });
         })
         .detach();

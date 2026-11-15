@@ -99,7 +99,7 @@ fn project(directory: &RelPath, snapshot: InspectedDirectory) -> Result<Projecte
             ignored: entry.ignored == IgnoreState::Ignored,
         });
         if let Some(timestamp) = entry.modified {
-            modified.insert(entry.path, timestamp);
+            let _previous = modified.insert(entry.path, timestamp);
         }
     }
     Ok((

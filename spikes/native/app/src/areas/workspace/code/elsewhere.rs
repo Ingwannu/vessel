@@ -52,7 +52,10 @@ impl Shell {
         let context = self
             .file_connection(&machine)
             .ok_or_else(|| FindRefused::Failed("the original connection is unavailable".into()))?;
-        let query: FindQuery = query.trim().parse().map_err(|_| FindRefused::Query)?;
+        let query: FindQuery = query
+            .trim()
+            .parse()
+            .map_err(|_invalid_query| FindRefused::Query)?;
         let cache_key = (context.node(), session);
         let shown = self.file_workspace_scope().map(|(_, root)| Ok(Some(root)));
         let root = shown.or_else(|| {

@@ -75,7 +75,7 @@ pub(super) fn body(
             }),
         )
         .children(editing.find.clone())
-        .children(conflict_bar(shell, editing, key.clone(), tokens, cx))
+        .children(conflict_bar(shell, editing, key, tokens, cx))
         .children(write_recovery(shell, editing, key.clone(), tokens, cx))
         .child(div().flex_1().min_h_0().child(editor.element(tokens, cx)))
         .into_any_element()
@@ -85,7 +85,7 @@ pub(super) fn body(
 fn write_recovery(
     shell: &Shell,
     editing: &Editing,
-    key: super::buffers::FileKey,
+    key: &super::buffers::FileKey,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<Div> {
@@ -205,7 +205,7 @@ fn toolbar(shell: &Shell, editing: &Editing, tokens: &Tokens) -> Div {
 fn conflict_bar(
     shell: &Shell,
     editing: &Editing,
-    key: super::buffers::FileKey,
+    key: &super::buffers::FileKey,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {

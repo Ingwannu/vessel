@@ -249,13 +249,13 @@ impl Shell {
             Action::OpenFile => self.open_file_at(target.path, None, cx),
             Action::CollapseFolder => self.toggle_folder(&target.path, cx),
             Action::NewFile => {
-                self.start_entry_form(EditKind::NewFile(target.path.clone()), target, window, cx)
+                self.start_entry_form(EditKind::NewFile(target.path.clone()), target, window, cx);
             }
             Action::NewFolder => {
-                self.start_entry_form(EditKind::NewFolder(target.path.clone()), target, window, cx)
+                self.start_entry_form(EditKind::NewFolder(target.path.clone()), target, window, cx);
             }
             Action::Rename => {
-                self.start_entry_form(EditKind::Rename(target.path.clone()), target, window, cx)
+                self.start_entry_form(EditKind::Rename(target.path.clone()), target, window, cx);
             }
             Action::CopyPath | Action::CopyRelativePath => {
                 let relative = target.path.as_str().to_owned();

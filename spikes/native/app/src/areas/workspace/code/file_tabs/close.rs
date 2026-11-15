@@ -97,7 +97,7 @@ impl Shell {
             let Some(ticket) = self.next_file_ticket() else {
                 return FileCloseRequest::Handled;
             };
-            self.run_step_for(file.clone(), Step::StopAutosave, cx);
+            self.run_step_for(&file, Step::StopAutosave, cx);
             let dialog = DialogState::new(cx);
             dialog.focus(window, cx);
             self.areas.workspace.code.file_tabs.close = Some(ClosePrompt {
@@ -162,7 +162,7 @@ impl Shell {
                 editing.model.status() == EditorStatus::Dirty
                     && editing.model.write_state().is_none()
             }) {
-                self.run_step_for(file, Step::Autosave, cx);
+                self.run_step_for(&file, Step::Autosave, cx);
             }
             cx.notify();
             return;

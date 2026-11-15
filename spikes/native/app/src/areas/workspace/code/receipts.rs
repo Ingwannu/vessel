@@ -13,7 +13,7 @@ impl Shell {
         match Request::file(scope, ask) {
             Ok(request) => self.command(vessel_app_link::Command::FileOperation(request)),
             Err(problem) => {
-                self.areas.workspace.code.files.actions.refused = Some(problem.to_string())
+                self.areas.workspace.code.files.actions.refused = Some(problem.to_string());
             }
         }
     }

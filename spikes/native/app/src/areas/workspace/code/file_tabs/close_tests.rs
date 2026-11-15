@@ -113,7 +113,10 @@ fn dirty_prompt_suspends_writes_cancel_keeps_and_discard_closes(cx: &mut TestApp
         assert!(shell.layout_tab_exists(&workspace, tab));
         assert!(shell.editing_for(&file).unwrap().model.modified());
         assert!(!shell.areas.workspace.code.file_effect_held(&file));
-        shell.request_layout_file_close(&workspace, &close, window, cx);
+        assert_eq!(
+            shell.request_layout_file_close(&workspace, &close, window, cx),
+            FileCloseRequest::Handled
+        );
         let current = shell
             .areas
             .workspace
@@ -153,7 +156,10 @@ fn original_unknown_effect_cannot_be_discarded_even_after_undo(cx: &mut TestAppC
         let _step = shell.editing_for(&file).unwrap().model.edit("baseline");
         shell.publish_file_tabs(&file, cx);
         let close = plan(shell, &workspace, tab, cx);
-        shell.request_layout_file_close(&workspace, &close, window, cx);
+        assert_eq!(
+            shell.request_layout_file_close(&workspace, &close, window, cx),
+            FileCloseRequest::Handled
+        );
         assert!(shell.areas.workspace.code.file_tabs.close.is_none());
         assert!(shell.layout_tab_exists(&workspace, tab));
         assert!(shell.editing_for(&file).unwrap().model.writing().is_some());
@@ -170,7 +176,10 @@ fn changed_draft_after_prompt_is_preserved_and_refuses_confirmation(cx: &mut Tes
         let _step = shell.editing_for(&file).unwrap().model.edit("draft");
         shell.publish_file_tabs(&file, cx);
         let close = plan(shell, &workspace, tab, cx);
-        shell.request_layout_file_close(&workspace, &close, window, cx);
+        assert_eq!(
+            shell.request_layout_file_close(&workspace, &close, window, cx),
+            FileCloseRequest::Handled
+        );
         let ticket = shell
             .areas
             .workspace

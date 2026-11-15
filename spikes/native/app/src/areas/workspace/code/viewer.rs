@@ -43,7 +43,7 @@ pub(super) fn viewer_element(
         // frame: an answer brings no window.
         let key = key.clone();
         cx.defer_in(window, move |shell, window, cx| {
-            shell.editor_frame_for(&key, window, cx)
+            shell.editor_frame_for(&key, window, cx);
         });
     }
     let head = header(shell, viewer, &key, surface, tokens, cx);

@@ -964,3 +964,22 @@ keeps those functions within the existing length limit without suppressions.
 The owned Markdown activation fixture only extracts its setup; assertions and
 admission changes remain identical. These static corrections are later than
 strict24 and require the next meaningful combined source check.
+
+
+### Strict24 and old-source test6 disposition
+
+Strict24 on7b8f3b881 reached actual App strict checking and returned owned
+style/dead-code diagnostics. The two long functions and nested receipt guards
+were already refactored in the later source. Remaining corrections remove the
+unused global run_step facade, borrow FileKey for synchronous step application,
+combine identical terminal-outcome arms after their guarded cases, record map
+replacement results, and use explicit unit statements. The query validation
+mapper keeps its closed Query refusal; no input-derived diagnostic is displayed.
+Tests now assert handled close requests instead of dropping their typed result.
+No allowances, original head assertions or remote-effect policy changed.
+
+The explicitly retained test6 source492453a0 stopped at App compilation on
+older import/privacy diagnostics already corrected in the current source; no
+unit execution is claimed. Its failed record remains separate from strict24
+and from the next source batch. New viewer-host/Find fixtures and refactors
+require their own combined run; a green earlier dependency is not this result.

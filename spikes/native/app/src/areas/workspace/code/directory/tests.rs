@@ -52,14 +52,14 @@ fn old_metadata_cannot_replace_a_newer_same_scope_refresh(cx: &mut TestAppContex
         let old = shell.next_file_ticket().unwrap();
         let latest = shell.next_file_ticket().unwrap();
         let dir = RelPath::root();
-        shell
+        let _previous_listing = shell
             .areas
             .workspace
             .code
             .files
             .listings
             .insert(dir.clone(), Listing::Loading);
-        shell
+        let _previous_ticket = shell
             .areas
             .workspace
             .code
@@ -85,7 +85,7 @@ fn old_metadata_cannot_replace_a_newer_same_scope_refresh(cx: &mut TestAppContex
         );
         // A fresh legacy response removes former metadata instead of inventing it.
         let next = shell.next_file_ticket().unwrap();
-        shell
+        let _previous_ticket = shell
             .areas
             .workspace
             .code
