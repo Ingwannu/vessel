@@ -38,7 +38,6 @@ pub struct WorkspaceMembership {
 pub struct RegistrySnapshot {
     /// Optional ordered assignments, omitted when empty or unavailable to this peer.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(feature = "ts", ts(optional))]
     pub labels: Vec<crate::workspace_labels::WorkspaceLabelAssignments>,
     /// Cryptographic node identity survives a node-book alias rename.
     pub node: NodeId,

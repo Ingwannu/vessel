@@ -177,3 +177,9 @@ five calls as browser-forwardable through ordinary node scope checks. No prior
 fake behavior or head test assertion was changed. The known-red queued head may
 be superseded once under the standing queued-run rule, after terminal cancellation
 is confirmed. The root architecture now records the real catalog data flow.
+
+Pinned ts-rs macro source confirms explicit ts(optional) requires Option, while
+serde default plus skip-serialization already infers an optional non-null array.
+Removed the invalid explicit annotation on the Vec projection before generating
+TS; the Rust value/serde contract stays unchanged. The remote TS step still owes
+actual feature compilation and generated declaration evidence.
