@@ -1846,3 +1846,9 @@ The existing forwarding TaskTracker owns cleanup across caller cancellation;
 Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
+
+
+ADR0079's staged node plugin artifact file tests use Unix-only nix0.31.3 dev
+features user/fs: safe effective UID, nonblocking flags and disposable FIFOs.
+The existing node product has no direct nix edge from this prerequisite; complete
+private-tree/root/ACL and owned blocking admission remain outside this probe.

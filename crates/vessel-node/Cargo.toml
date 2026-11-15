@@ -136,3 +136,8 @@ vessel-forge = { workspace = true, features = ["fake"] }
 
 [lints]
 workspace = true
+
+[target.'cfg(unix)'.dev-dependencies]
+# ADR0079 staged artifact probes: safe effective UID and disposable FIFO tests.
+# No plugin filesystem producer is enabled in the product node by this edge.
+nix = { workspace = true, features = ["user", "fs"] }

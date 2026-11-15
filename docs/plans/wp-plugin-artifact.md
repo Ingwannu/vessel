@@ -110,9 +110,10 @@ paths, every counter refusal retaining prior facts, and full-chain invalid-path
 canaries. They allocate no candidate filesystem and execute no process.
 
 TreeDigest explicitly means supplied facts, not a complete/stable filesystem
-receipt or source authority. No filesystem reader, UID/ACL dependency, blocking
-worker, admission lane, observation timeout or installation is implemented by
-this checkpoint. Their proposed contract and real-OS evidence remain pending.
+receipt or source authority. No complete tree reader, root/ACL verifier, blocking
+worker, admission lane or installation is implemented by this checkpoint. Their
+proposed contract and real-OS evidence remain pending; the later file probe below
+is narrower.
 No new protocol/storage type or public API is added. V3 reviewed the selected
 pure model at c4a3c792. Run wp-plugins-artifact-test-20261115T180604Z-c4a3c792
 executed all22 staged plugin tests with no failures, including the three new
@@ -120,3 +121,49 @@ pure cases; all prerequisite steps passed. Its paired strict check refused one
 test-only manual match, corrected to equivalent let-else without changing the
 canary assertion. Changed strict remains owed. None of this executes the future
 filesystem observation or turns supplied records into acquisition authority.
+
+
+## Staged Unix regular-file probe
+
+[Decision Log]
+- Purpose: refuse special files before open and check the actual descriptor
+  before reading, including a FIFO substituted after the pathname check.
+- Reuse: std OpenOptions/Metadata, existing SHA/ContentHash, and workspace nix
+ 0.31.3 safe UID/flags. Store's attachment reader already uses nonblocking,
+  no-follow and fstat, but is private to stored attachment IDs and cannot admit
+  arbitrary package files. No shared Store API is widened or copied as a parser.
+- Choice: a private synchronous probe under the existing literal plugin test
+  gate, with Unix-only dev dependency nix user/fs. The user feature already
+  exists through proc; fs has no additional dependencies in the pinned crate.
+- Why: an ordinary open after lstat could block on a substituted FIFO; the
+  opened descriptor must independently be regular, same device/UID/mode and
+  unchanged inode/size/mtime/ctime before and after bounded streaming hashing.
+- Impact: one local lock edge to the already pinned nix0.31.3; no new package,
+  normal product dependency, process, permission repair, RPC or installer.
+
+Probe.prepare captures an ordinary file's metadata, checks actual effective UID,
+refuses group/other write, device mismatch and the per-file byte cap. Probe.read
+uses O_NONBLOCK|O_NOFOLLOW, verifies fstat before any read, hashes in the named
+64KiB chunks, checks cancellation and the30s deadline between reads, and checks
+both descriptor and final pathname metadata. A failed/expired observation never
+returns a partial content hash. Concrete I/O evidence is retained behind a sealed
+safe kind/OS-code diagnostic whose public source terminates before raw text.
+
+This probe DOES NOT validate a private candidate root, parent directories, path
+confinement, complete entry/link coverage, aggregate budgets or two whole-tree
+passes. It is a prerequisite for that future owner, not an ArtifactIdentity or
+source authority. It accepts only the owner's private local path in this staged
+module; no external caller can use it. There is no Windows API or ACL fallback.
+No blocking task/admission permit is introduced yet, so caller-loss/shutdown
+settlement remains an actual integration obligation, not supplied by this probe.
+
+Four disposable-filesystem regressions are authored: actual descriptor flags and
+same-size content edit with restored mtime; direct and substituted FIFO plus
+symlink refusal; sparse oversized file/device mismatch/cancel/expiry; and every
+safe diagnostic/source level retaining a private concrete canary cause. A FIFO
+peer opened nonblocking keeps the substituted-FIFO fixture bounded even if that
+flag regresses; the separate actual-descriptor assertion checks NONBLOCK itself.
+The tests assert runner UID/GID and initial0600 creation mode without chmod/chown.
+They do not manufacture or claim actual wrong-account ownership, Windows ACL,
+root/parent privacy, descendant lifetime or complete-tree proof. Actual new-source
+strict/tests and V3 selected implementation review remain owed.

@@ -459,3 +459,14 @@ and per-installation client-language lifetime are refined in
 [wp-plugin-localization-wire](../plans/wp-plugin-localization-wire.md). This
 proposal does not widen core Translator or approve a locale parser dependency;
 its manifest/lock edge and actual client admission require their owning review.
+
+
+### Staged regular-file prerequisite
+
+The artifact plan now separates a Unix regular-file probe from the still absent
+complete private-tree owner. It adds only a test-gated Unix dev edge to the
+existing nix0.31.3 user/fs features for effective UID and bounded FIFO fixtures.
+The probe uses nonblocking/no-follow open plus actual-descriptor verification,
+sealed original I/O evidence and bounded hashing; it never supplies root/ACL,
+confinement, managed provenance, installation or blocking-owner lifetime proof.
+The reasoning and required real-filesystem cases are in the artifact plan.

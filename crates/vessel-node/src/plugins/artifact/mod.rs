@@ -1,7 +1,10 @@
 //! Pure facts for a future complete private candidate observation (ADR0079).
 //! This hashes supplied records; it cannot prove a tree was completely read,
 //! confer source provenance or authorize installation/execution. The filesystem
-//! reader, UID/ACL policy and owned blocking-operation integration remain absent.
+//! complete tree reader, root/ACL policy and owned blocking-operation integration
+//! remain absent. The Unix file module is a separately staged regular-file probe.
+#[cfg(unix)]
+mod file;
 #[cfg(test)]
 mod tests;
 
