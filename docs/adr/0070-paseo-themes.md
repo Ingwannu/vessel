@@ -609,3 +609,41 @@ gain five pictures only when the preference enum grows, by the
 existing tile, not by a layout pass. Syntax themes, font ranges,
 content width and plugin themes remain as they are, written down
 here so they are not quietly invented later.
+
+## F5 extension: Appearance overrides and contributed palettes
+
+Proposed extension, 2026-11-15. The preceding palette-only scope describes
+the first implementation; its font, content, syntax and plugin deferrals
+are superseded only by the following work, not by its earlier review.
+
+[Decision Log]
+- Purpose and intent: complete Appearance with local, independently saved
+  family/size/content-width/syntax overrides and a preview of valid drafts.
+- Existing constraints: one preference store, one palette adapter and one
+  TextField engine already exist. The kit cannot import view or plugin ids.
+- Alternatives considered: a second store, input engine or plugin registry
+  would duplicate their owners; arbitrary CSS or font-file loading would
+  give a family-name field unrelated authority.
+- Choice: reuse the existing store and field engine; validate typed drafts
+  in view, draw token-only controls in kit, compose them in Appearance.
+  Plugin decoding and host snapshots stay with the plugin runtime; this
+  consumer owns deduplication, remembered host and retained-missing fallback.
+- Why: valid preview data can differ from committed preferences without
+  changing the global palette while typing. Missing contributions resolve
+  System while retaining their saved identity. Switching palettes reapplies
+  the same local typography and syntax overrides.
+- Effects: the old built-in palette constructors stay unchanged. New ranges
+  follow the reference (UI/content 10–21, code 9–22; desktop defaults
+  14/15/12). Width follows its default until explicitly changed and reset
+  restores that intent. Legacy stored width choices need migration tests.
+
+The implementation plan is `docs/plans/wp-f5-appearance.md`. A token-only
+Single/Split theme tile is the first shared control; the existing area-local
+miniature is removed when consumed. The shared field owner supplies the
+select-all/editability hook. Appearance adds only generic blur notification
+after that owner's presentation split. No new dependency, RPC or wire
+version is introduced by these controls or local preference rules.
+
+Reference details and deliberate platform differences are recorded beside
+the corresponding implementation. This extension remains proposed until
+the complete package's source, gate and native captures have been reviewed.
