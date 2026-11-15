@@ -155,6 +155,10 @@ impl Fixture {
         config.harness_lookup = Lookup::new([root.join("bin")]);
         config.name = Some("inbox push test".to_owned());
         config.push_test_origin = Some(origin);
+        // A node refuses an invitation it has no route for (N3's row 4);
+        // the tests dial its real address, so the advertised one only has
+        // to exist, as in the e2e's `secure::advertise_placeholder_route`.
+        config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
         config
     }
     async fn pair(&self) -> (vessel_proto::DeviceId, NodeClient) {

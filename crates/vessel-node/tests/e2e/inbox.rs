@@ -126,7 +126,9 @@ async fn two_nodes_two_devices_share_read_state_and_only_one_answer_wins() {
     within(async {
         let first = Fixture::new();
         let second = Fixture::new();
-        let node = first.start().await;
+        let node = first
+            .start_with(crate::secure::advertise_placeholder_route)
+            .await;
         let other_node = second.start().await;
         let owner = first.connect(&node).await;
         let other = second.connect(&other_node).await;
