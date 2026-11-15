@@ -197,3 +197,10 @@ whose token is absent, returns Unknown without signalling. NotRunning is reserve
 for a structured terminal attempt state; neither uncertainty nor absence proves
 that a process tree ended. A regression injects these states without spawning
 any shell and checks that an unknown attempt's token remains untouched.
+
+A terminal-only creation plan that selects Nothing still creates no structured
+setup invocation today. Its lack of commands is not a successful attempt token.
+The later authoritative bootstrap adapter must establish an approved current
+invocation and observe its empty-command completion before using that run as
+bootstrap scope. Neither old worktree setup history nor an absent observation
+can supply it. No automatic terminal hook is enabled by the planning fix.
