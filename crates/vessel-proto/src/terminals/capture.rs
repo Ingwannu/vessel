@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(transparent)]
-pub struct CaptureLine(i32);
+pub struct CaptureLine(i64);
 impl std::str::FromStr for CaptureLine {
     type Err = std::num::ParseIntError;
     fn from_str(text: &str) -> Result<Self, Self::Err> {
@@ -61,9 +61,9 @@ impl CaptureRange {
                 return Some(fallback);
             };
             let raw = if line < 0 {
-                i64::from(total.get()).saturating_add(i64::from(line))
+                i64::from(total.get()).saturating_add(line)
             } else {
-                i64::from(line)
+                line
             };
             u32::try_from(raw.clamp(0, i64::from(last))).ok()
         };

@@ -5,9 +5,9 @@ use std::{collections::BTreeMap, fmt, str::FromStr};
 
 /// Paseo's per-field host-label/metadata bounds, plus a directory admission floor.
 pub const LABEL_CHARS: usize = 256;
-/// Maximum Unicode scalars in a metadata key (Paseo hosts.ts).
+/// Maximum UTF-16 code units in a metadata key (Paseo hosts.ts).
 pub const METADATA_KEY_CHARS: usize = 256;
-/// Maximum Unicode scalars in a metadata value (Paseo hosts.ts).
+/// Maximum UTF-16 code units in a metadata value (Paseo hosts.ts).
 pub const METADATA_VALUE_CHARS: usize = 4096;
 /// Avoid an unbounded map even when every individual field is valid.
 pub const METADATA_ENTRIES: usize = 256;
@@ -59,7 +59,7 @@ macro_rules! text_type {
                 if text.chars().any(char::is_control) {
                     return Err(InvalidHostText::Control);
                 }
-                if text.chars().count() > $limit {
+                if text.encode_utf16().count() > $limit {
                     return Err(InvalidHostText::TooLong { maximum: $limit });
                 }
                 Ok(Self(text))
@@ -132,5 +132,35 @@ impl HostMetadata {
     #[must_use]
     pub fn entries(&self) -> &BTreeMap<MetadataKey, MetadataValue> {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn zod_utf16_bounds_and_aggregate_admission_are_preserved() {
+        assert!("😀".repeat(LABEL_CHARS / 2).parse::<HostLabel>().is_ok());
+        assert!(
+            "😀"
+                .repeat(LABEL_CHARS / 2 + 1)
+                .parse::<HostLabel>()
+                .is_err()
+        );
+        assert!("line\ncontrol".parse::<HostLabel>().is_err());
+        let entries = (0..METADATA_ENTRIES)
+            .map(|i| {
+                (
+                    i.to_string().parse::<MetadataKey>().unwrap(),
+                    "x".repeat(METADATA_VALUE_CHARS)
+                        .parse::<MetadataValue>()
+                        .unwrap(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            HostMetadata::try_from(entries).unwrap_err(),
+            InvalidHostText::TooLarge
+        );
     }
 }

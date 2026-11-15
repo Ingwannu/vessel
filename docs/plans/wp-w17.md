@@ -277,3 +277,9 @@ Heartbeat create/update/delete reuse the existing schedule client, require VESSE
 and verify the selected schedule targets that caller before update/deletion. Existing schedule
 and project/worktree list paths gained familiar aliases; unchanged legacy flag/output differences
 remain in the inventory and are not counted as full parity.
+
+Host label/metadata per-field lengths use UTF-16 code units, matching Zod string lengths;
+aggregate metadata is capped at 16 KiB and 256 entries as a stated resource admission floor.
+Control characters in host annotations are a stated CLI/terminal-safety refusal. Capture line
+indices accept signed 64-bit integers and reject trailing nonnumeric text (Paseo parseInt
+would accept it); this is a deliberate strict-input difference.
