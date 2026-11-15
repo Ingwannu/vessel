@@ -75,7 +75,8 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let project=workspaces.add_project(repo.path().to_path_buf(),None).await.unwrap();
         let CreateWorktreeOutcome::Created {worktree}=workspaces.create_worktree(Creator::Owner,CreateWorktree {project:project.id,branch:WorktreeBranch::New {name:None,base:None},setup:SetupChoice::Run},None).await.unwrap()
         else {panic!("no managed worktree");};
-        let controller = crate::checkpoint::start(Arc::clone(&fixture.sessions), Arc::clone(&workspaces), fixture.store.clone(), fixture.tasks.clone(), stop.clone(), requests);
+        let closed = crate::checkpoint::start(Arc::clone(&fixture.sessions), Arc::clone(&workspaces), fixture.store.clone(), fixture.tasks.clone(), stop.clone(), requests);
+        let controller = closed.clone().no_terminal_fixture();
         let mut spec=fixture.structured().with_cwd(worktree.path.clone());
         spec.place=Some(Box::new(SessionPlace::Worktree {worktree:worktree.id}));
         let root=workspaces.admit_start(&worktree.path).await.unwrap();
@@ -104,6 +105,31 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let (frozen, consumed) = fixture.store.checkpoint_plan(preview.page.plan, CheckpointOwner::LocalOwner).await.unwrap();
         assert!(consumed.is_none());
         assert_ne!(frozen.current, *frozen.desired.image());
+        let physical = vessel_workspace::physical::Directory::open(&worktree.path).unwrap().identity();
+        fixture.sessions.checkpoint_ended_target(session.id, physical).await.unwrap();
+        let rejected = vessel_proto::checkpoint::RestoreCheckpoint { session: session.id, plan: preview.page.plan, restore: vessel_proto::checkpoint::RestoreId::random() };
+        assert!(matches!(closed.restore(CheckpointOwner::LocalOwner, rejected).await, Err(vessel_proto::checkpoint::CheckpointError::Busy)), "runtime terminal admission must stay closed");
+        std::fs::write(worktree.path.join("README.md"), b"edit after confirmation was shown\n").unwrap();
+        assert!(matches!(controller.restore(CheckpointOwner::LocalOwner, rejected).await, Err(vessel_proto::checkpoint::CheckpointError::StalePreview)));
+        assert!(fixture.store.checkpoint_operation(session.id, rejected.restore, CheckpointOwner::LocalOwner).await.is_err(), "stale confirmation is refused before restore admission");
+        assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"edit after confirmation was shown\n");
+        let preview = controller.preview(CheckpointOwner::LocalOwner, PreviewCheckpoint { session: session.id, checkpoint }).await.unwrap();
+        let before = fixture.store.session(session.id).await.unwrap().unwrap();
+        let restore = vessel_proto::checkpoint::RestoreCheckpoint { session: session.id, plan: preview.page.plan, restore: vessel_proto::checkpoint::RestoreId::random() };
+        let result = controller.restore(CheckpointOwner::LocalOwner, restore).await.unwrap();
+        assert!(matches!(result, vessel_proto::checkpoint::RestoreOutcome::Restored { changed } if changed.get() == 1));
+        assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"checkpoint bytes\n");
+        let after = fixture.store.session(session.id).await.unwrap().unwrap();
+        assert_eq!(before.status, after.status);
+        assert_eq!(before.ended_at, after.ended_at);
+        let history = fixture.sessions.read(session.id, before.next_seq, 10).await.unwrap();
+        assert_eq!(history.records.len(), 1);
+        assert!(matches!(history.records[0].event, SessionEvent::Checkpoint { event: vessel_proto::checkpoint::CheckpointEvent::FilesRestored { restore: id, .. } } if id == restore.restore));
+        std::fs::write(worktree.path.join("README.md"), b"external edit after completed restore\n").unwrap();
+        assert_eq!(controller.restore(CheckpointOwner::LocalOwner, restore).await.unwrap(), result);
+        assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"external edit after completed restore\n");
+        assert_eq!(fixture.store.session(session.id).await.unwrap().unwrap().next_seq, after.next_seq);
+
         stop.cancel();
         fixture.settle().await;
         let page=fixture.store.checkpoint_page(session.id,None).await.unwrap();

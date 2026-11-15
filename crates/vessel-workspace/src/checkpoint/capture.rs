@@ -11,9 +11,23 @@ use vessel_proto::checkpoint::{
     SnapshotEvidence,
 };
 
+#[derive(Debug, Clone, Copy)]
+pub(super) enum Destination<'a> {
+    Archive(&'a Archive),
+    Observe,
+}
+#[cfg(test)]
 pub(super) fn image(
     root: &Root,
     archive: &Archive,
+    paths: &[CheckpointPath],
+    cancellation: &CancellationToken,
+) -> Result<FileImage, Error> {
+    image_to(root, Destination::Archive(archive), paths, cancellation)
+}
+fn image_to(
+    root: &Root,
+    destination: Destination<'_>,
     paths: &[CheckpointPath],
     cancellation: &CancellationToken,
 ) -> Result<FileImage, Error> {
@@ -34,7 +48,17 @@ pub(super) fn image(
                         .saturating_sub(total)
                         .min(CHECKPOINT_FILE_BYTES),
                 )?;
-                let (digest, bytes) = archive.capture(&mut file, budget, cancellation)?;
+                let (digest, bytes) = match destination {
+                    Destination::Archive(archive) => {
+                        archive.capture(&mut file, budget, cancellation)?
+                    }
+                    Destination::Observe => super::content::transfer(
+                        &mut file,
+                        &mut std::io::sink(),
+                        super::content::Budget::ImageRemaining(budget),
+                        cancellation,
+                    )?,
+                };
                 if Identity::of(&file.metadata()?) != identity {
                     return Err(CheckpointError::CaptureUnstable.into());
                 }
@@ -74,9 +98,25 @@ pub(super) fn image(
 }
 
 /// Keep physical evidence from the same file reads, never a later best-effort scan.
+#[cfg(test)]
 pub(super) fn observed(
     root: &Root,
     archive: &Archive,
+    paths: &[CheckpointPath],
+    ignore: IgnoreFingerprint,
+    cancellation: &CancellationToken,
+) -> Result<ObservedSnapshot, Error> {
+    observe_to(
+        root,
+        Destination::Archive(archive),
+        paths,
+        ignore,
+        cancellation,
+    )
+}
+pub(super) fn observe_to(
+    root: &Root,
+    destination: Destination<'_>,
     paths: &[CheckpointPath],
     ignore: IgnoreFingerprint,
     cancellation: &CancellationToken,
@@ -90,7 +130,7 @@ pub(super) fn observed(
             })
         })
         .collect::<Result<Vec<_>, Error>>()?;
-    let image = image(root, archive, paths, cancellation)?;
+    let image = image_to(root, destination, paths, cancellation)?;
     for entry in &before {
         if root.observe(&entry.path)? != entry.presence {
             return Err(CheckpointError::CaptureUnstable.into());

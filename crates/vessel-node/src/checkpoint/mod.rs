@@ -10,7 +10,11 @@ pub(crate) mod bridge;
 #[cfg(target_os = "linux")]
 mod controller;
 #[cfg(target_os = "linux")]
+mod execution;
+#[cfg(target_os = "linux")]
 mod preview;
+#[cfg(target_os = "linux")]
+mod restoration;
 #[cfg(target_os = "linux")]
 pub(crate) use controller::Controller;
 mod capture;

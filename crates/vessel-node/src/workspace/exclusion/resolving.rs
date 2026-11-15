@@ -1,4 +1,4 @@
-//! Staged controller seam: resolving one operation never force-unlocks its aliases.
+//! Owned controller seam: resolving one operation never force-unlocks its aliases.
 use super::*;
 use vessel_proto::checkpoint::RestoreId;
 
@@ -114,6 +114,7 @@ pub(super) fn resolve(
     match held(&root, token, deadline, state)?.purpose {
         Purpose::Recovering(id) if id == restore => {}
         Purpose::Resolved(id) if id == restore => return Ok(()),
+        Purpose::Writer if state.recovering.has(&root, &restore) => {}
         Purpose::Writer | Purpose::Recovering(_) | Purpose::Resolved(_) => {
             return Err(RootRefusal::StaleLease);
         }

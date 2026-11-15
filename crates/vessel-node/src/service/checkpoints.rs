@@ -84,7 +84,7 @@ impl NodeService {
         active()?;
         #[cfg(target_os = "linux")]
         {
-            self.checkpoints.restore(owner, request).map_err(wire)
+            self.checkpoints.restore(owner, request).await.map_err(wire)
         }
         #[cfg(not(target_os = "linux"))]
         {

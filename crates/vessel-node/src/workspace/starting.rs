@@ -109,3 +109,74 @@ impl Workspaces {
         })
     }
 }
+
+#[cfg(target_os = "linux")]
+impl StartGuard {
+    /// Pin before durable restore admission; uncertainty must not unlock writers.
+    pub(crate) async fn pin_restore(
+        &self,
+        worktree: vessel_proto::WorktreeId,
+        restore: vessel_proto::checkpoint::RestoreId,
+    ) -> Result<(), vessel_proto::checkpoint::CheckpointError> {
+        let deadline = tokio::time::Instant::now()
+            .checked_add(ADMISSION_TIMEOUT)
+            .ok_or(vessel_proto::checkpoint::CheckpointError::Busy)?;
+        self.workspaces
+            .exclusion
+            .pin_recovery(&self.lease, worktree, restore, deadline)
+            .await
+            .map_err(|_refused| vessel_proto::checkpoint::CheckpointError::RecoveryPending)
+    }
+    /// Only after whole-image verification and the matching durable journal ack.
+    pub(crate) async fn settle_restore(
+        &self,
+        restore: vessel_proto::checkpoint::RestoreId,
+    ) -> Result<(), vessel_proto::checkpoint::CheckpointError> {
+        let deadline = tokio::time::Instant::now()
+            .checked_add(ADMISSION_TIMEOUT)
+            .ok_or(vessel_proto::checkpoint::CheckpointError::Busy)?;
+        self.workspaces
+            .exclusion
+            .resolve_recovery(&self.lease, restore, deadline)
+            .await
+            .map_err(|_refused| vessel_proto::checkpoint::CheckpointError::RecoveryPending)
+    }
+}
+#[cfg(target_os = "linux")]
+impl Workspaces {
+    pub(crate) async fn checkpoint_recovery_admission(
+        self: &Arc<Self>,
+        worktree: vessel_proto::WorktreeId,
+        physical: vessel_proto::checkpoint::PhysicalRoot,
+        restore: vessel_proto::checkpoint::RestoreId,
+    ) -> Result<StartGuard, vessel_proto::checkpoint::CheckpointError> {
+        use vessel_proto::checkpoint::CheckpointError;
+        let folder = self
+            .state()
+            .worktrees
+            .get(&worktree)
+            .map(|entry| entry.info.path.clone())
+            .ok_or(CheckpointError::UnsupportedScope)?;
+        let opened = self
+            .opened_admission(&folder)
+            .await
+            .map_err(|_changed| CheckpointError::RecoveryPending)?;
+        if opened.root != physical || !opened.worktrees.contains(&worktree) {
+            return Err(CheckpointError::RecoveryPending);
+        }
+        let deadline = tokio::time::Instant::now()
+            .checked_add(ADMISSION_TIMEOUT)
+            .ok_or(CheckpointError::Busy)?;
+        let lease = self
+            .exclusion
+            .claim_recovery(physical, restore, deadline)
+            .await
+            .map_err(|_refused| CheckpointError::RecoveryPending)?;
+        Ok(StartGuard {
+            folder,
+            directory: Arc::new(opened.directory),
+            workspaces: Arc::clone(self),
+            lease,
+        })
+    }
+}

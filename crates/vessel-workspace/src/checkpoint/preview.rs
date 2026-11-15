@@ -23,6 +23,37 @@ impl Tree {
         cancel: &CancellationToken,
     ) -> Result<ObservedSnapshot, CheckpointFsError> {
         let current = self.capture(runtime, git, archive, defaults, cancel)?;
+        self.preview_union(current, selected, cancel)
+    }
+    /// Re-observe the whole frozen scope without allocating or changing archives.
+    /// Used for stale confirmation, final equality and guarded rollback proof.
+    /// # Errors
+    /// Unsafe/unstable scope, changed coverage, cancellation or actual I/O failure.
+    pub fn observe_preview(
+        &self,
+        runtime: &tokio::runtime::Handle,
+        git: &Git,
+        defaults: &IgnoreDefaults,
+        selected: &FileImage,
+        cancel: &CancellationToken,
+    ) -> Result<ObservedSnapshot, CheckpointFsError> {
+        let current = super::scope::observe_opened(
+            runtime,
+            git,
+            self.0.path(),
+            &self.0,
+            super::capture::Destination::Observe,
+            &defaults.0,
+            cancel,
+        )?;
+        self.preview_union(current, selected, cancel)
+    }
+    fn preview_union(
+        &self,
+        current: ObservedSnapshot,
+        selected: &FileImage,
+        cancel: &CancellationToken,
+    ) -> Result<ObservedSnapshot, CheckpointFsError> {
         let mut entries = current.image().entries().to_vec();
         let mut observed = current.evidence().entries().to_vec();
         for entry in selected.entries() {
@@ -97,6 +128,11 @@ mod tests {
             let path=serde_json::from_str("\"lost\"").unwrap();
             assert_eq!(current.image().get(&path),Some(&FileState::Absent));
             assert!(current.evidence().entries().iter().any(|entry| entry.path==path && entry.presence==ObservedPresence::Absent));
+            let names_before=fs::read_dir(sandbox.path().join("current")).unwrap().map(|entry|entry.unwrap().file_name()).collect::<std::collections::BTreeSet<_>>();
+            let observed=Tree::open(&root,physical).unwrap().observe_preview(&runtime,&git,&defaults,selected.image(),&cancel).unwrap();
+            assert_eq!(observed,current,"read-only observation binds the same full evidence");
+            let names_after=fs::read_dir(sandbox.path().join("current")).unwrap().map(|entry|entry.unwrap().file_name()).collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(names_before,names_after,"confirmation checks allocate no archive files");
             let account=private_metadata().unwrap();
             assert_eq!(account.owner.get(),rustix::process::geteuid().as_raw());
             assert_eq!(account.group.get(),rustix::process::getegid().as_raw());

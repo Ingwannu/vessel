@@ -36,11 +36,30 @@ pub(super) fn capture_opened(
     defaults: &Defaults,
     cancel: &CancellationToken,
 ) -> Result<ObservedSnapshot, Error> {
+    observe_opened(
+        runtime,
+        git,
+        root,
+        opened,
+        capture::Destination::Archive(archive),
+        defaults,
+        cancel,
+    )
+}
+pub(super) fn observe_opened(
+    runtime: &tokio::runtime::Handle,
+    git: &Git,
+    root: &Path,
+    opened: &Root,
+    destination: capture::Destination<'_>,
+    defaults: &Defaults,
+    cancel: &CancellationToken,
+) -> Result<ObservedSnapshot, Error> {
     opened.revalidate()?;
     let before = runtime.block_on(enumeration::cancellable(git, root, cancel))?;
     let inputs = runtime.block_on(Inputs::discover(git, root, &before, defaults, cancel))?;
     let policy = inputs.fingerprint(opened, cancel)?;
-    let snapshot = capture::observed(opened, archive, &before, policy, cancel)?;
+    let snapshot = capture::observe_to(opened, destination, &before, policy, cancel)?;
     let after = runtime.block_on(enumeration::cancellable(git, root, cancel))?;
     let rechecked = runtime.block_on(Inputs::discover(git, root, &after, defaults, cancel))?;
     if before != after || inputs != rechecked || rechecked.fingerprint(opened, cancel)? != policy {

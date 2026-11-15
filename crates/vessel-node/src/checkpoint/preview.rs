@@ -3,8 +3,8 @@
 //! [Decision Log]
 //! - Purpose: confirmation must describe a frozen, principal-bound desired image.
 //! - Constraint: a caller timeout cannot stop arbitrary filesystem reads or fsync.
-//! - Choice: the node tracker owns the job; the response deadline only abandons
-//!   publication. Actual cleanup retains the shared worker, root and SQL escrow.
+//! - Choice: the tracker owns deadline cancellation and actual cleanup, retaining
+//!   the shared worker/root/SQL escrow. Submitted SQL may commit after RPC timeout.
 //! - Cost: uncertain SQL/cleanup keeps capacity unavailable until reconciliation.
 use super::{Controller, backend::reason, bridge, workers::WorkerLease};
 use crate::workspace::PreviewRead;
@@ -36,9 +36,8 @@ impl Controller {
         let (reply, received) = oneshot::channel();
         let _job = self.context.tasks.spawn(async move {
             let _slot = slot;
-            let result = controller
-                .make_preview(owner, request, deadline, &task_cancel, &lease)
-                .await;
+            let work = controller.make_preview(owner, request, deadline, &task_cancel, &lease);
+            let result = super::workers::cancel_at(deadline, &task_cancel, work).await;
             let _abandoned = reply.send(result);
         });
         match tokio::time::timeout_at(deadline, received).await {
@@ -58,34 +57,7 @@ impl Controller {
         cancel: &CancellationToken,
         lease: &Arc<WorkerLease>,
     ) -> Result<RestorePreview, CheckpointError> {
-        let (selected, guard) = tokio::time::timeout_at(deadline, async {
-            self.context
-                .sessions
-                .get(request.session)
-                .await
-                .map_err(|_missing| CheckpointError::NotFound)?;
-            let selected = self
-                .context
-                .store
-                .checkpoint_selected(request.session, request.checkpoint)
-                .await
-                .map_err(reason)?;
-            let guard = self
-                .context
-                .workspaces
-                .checkpoint_admission(selected.key.worktree)
-                .await?;
-            if guard.physical() != selected.snapshot.evidence().physical() {
-                return Err(CheckpointError::StaleCapture);
-            }
-            guard
-                .revalidate()
-                .await
-                .map_err(|_changed| CheckpointError::StaleCapture)?;
-            Ok::<_, CheckpointError>((selected, guard))
-        })
-        .await
-        .map_err(|_deadline| CheckpointError::CaptureTimedOut)??;
+        let (selected, guard) = self.preview_selection(request, deadline).await?;
         let defaults = bridge::defaults()?;
         let key = selected.key;
         let plan = RestorePlanId::random();
@@ -148,31 +120,7 @@ impl Controller {
                 return Err(failure);
             }
         };
-        let prepared = (|| {
-            let desired = image.effective(
-                current.image(),
-                vessel_workspace::checkpoint::private_metadata()?,
-            )?;
-            let changed = PathCount::new(desired.changes(current.image()).len())?;
-            let expires = chrono::Utc::now()
-                .checked_add_signed(
-                    chrono::Duration::from_std(CHECKPOINT_PREVIEW_LIFETIME)
-                        .map_err(|_overflow| CheckpointError::Unknown)?,
-                )
-                .ok_or(CheckpointError::Unknown)?;
-            Ok::<_, CheckpointError>((
-                Plan {
-                    id: plan,
-                    key,
-                    owner,
-                    current: current.image().clone(),
-                    evidence: current.evidence().clone(),
-                    desired,
-                    expires,
-                },
-                changed,
-            ))
-        })();
+        let prepared = freeze(key, plan, owner, &image, &current);
         let (frozen, changed) = match prepared {
             Ok(prepared) => prepared,
             Err(failure) => {
@@ -180,6 +128,61 @@ impl Controller {
                 return Err(failure);
             }
         };
+        let result = self.publish_preview(frozen, changed, lease).await;
+        // Actual read I/O and durable publication finished before root release.
+        drop(guard);
+        result
+    }
+    async fn preview_selection(
+        &self,
+        request: PreviewCheckpoint,
+        deadline: Instant,
+    ) -> Result<
+        (
+            vessel_store::checkpoint::Selected,
+            crate::workspace::StartGuard,
+        ),
+        CheckpointError,
+    > {
+        tokio::time::timeout_at(deadline, async {
+            self.context
+                .sessions
+                .get(request.session)
+                .await
+                .map_err(|_missing| CheckpointError::NotFound)?;
+            let selected = self
+                .context
+                .store
+                .checkpoint_selected(request.session, request.checkpoint)
+                .await
+                .map_err(reason)?;
+            let guard = self
+                .context
+                .workspaces
+                .checkpoint_admission(selected.key.worktree)
+                .await?;
+            if guard.physical() != selected.snapshot.evidence().physical() {
+                return Err(CheckpointError::StaleCapture);
+            }
+            guard
+                .revalidate()
+                .await
+                .map_err(|_changed| CheckpointError::StaleCapture)?;
+            Ok::<_, CheckpointError>((selected, guard))
+        })
+        .await
+        .map_err(|_deadline| CheckpointError::CaptureTimedOut)?
+    }
+    async fn publish_preview(
+        &self,
+        frozen: Plan,
+        changed: PathCount,
+        lease: &Arc<WorkerLease>,
+    ) -> Result<RestorePreview, CheckpointError> {
+        let key = frozen.key;
+        let plan = frozen.id;
+        let owner = frozen.owner;
+        let allocation = Allocation::Preview { plan };
         if let Err(error) = self
             .context
             .store
@@ -206,8 +209,6 @@ impl Controller {
             self.hold(lease).await;
             return Err(reason(error));
         }
-        // The read-only job and durable publication finished before root release.
-        drop(guard);
         let page = self
             .context
             .store
@@ -221,7 +222,7 @@ impl Controller {
             page,
         })
     }
-    async fn hold(&self, lease: &Arc<WorkerLease>) {
+    pub(super) async fn hold(&self, lease: &Arc<WorkerLease>) {
         self.held.lock().await.push(Arc::clone(lease));
     }
     async fn discard_preview(
@@ -259,4 +260,36 @@ impl Controller {
         }
         Ok(())
     }
+}
+
+fn freeze(
+    key: CaptureKey,
+    plan: RestorePlanId,
+    owner: CheckpointOwner,
+    image: &vessel_proto::checkpoint::FileImage,
+    current: &vessel_proto::checkpoint::ObservedSnapshot,
+) -> Result<(Plan, PathCount), CheckpointError> {
+    let desired = image.effective(
+        current.image(),
+        vessel_workspace::checkpoint::private_metadata()?,
+    )?;
+    let changed = PathCount::new(desired.changes(current.image()).len())?;
+    let expires = chrono::Utc::now()
+        .checked_add_signed(
+            chrono::Duration::from_std(CHECKPOINT_PREVIEW_LIFETIME)
+                .map_err(|_overflow| CheckpointError::Unknown)?,
+        )
+        .ok_or(CheckpointError::Unknown)?;
+    Ok::<_, CheckpointError>((
+        Plan {
+            id: plan,
+            key,
+            owner,
+            current: current.image().clone(),
+            evidence: current.evidence().clone(),
+            desired,
+            expires,
+        },
+        changed,
+    ))
 }

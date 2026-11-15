@@ -1038,3 +1038,39 @@ Run wp-checkpoints-node-20261115T140208Z-14bc5dd4 finished rc1 at 14:59 UTC,
 with cargo101 in nested-vesseld: cleanup referred to a removed key binding.
 No tests executed. The corrected worktree/capture arguments and three reported
 warning fixes are included here. This is not runtime or permission evidence.
+
+### Retained restore execution (source; unverified)
+
+[Decision Log]
+- Purpose: make a confirmed files-only plan executable without replaying a prompt
+  or starting an ended target, while retaining truthful crash/failure outcomes.
+- Existing assets: canonical RootGate, opened Tree/Restore, per-path store intents,
+  stable staged-object evidence, whole-image recovery validation and storage-only
+  FilesRestored already implement the required mechanisms. They are extended.
+- Choice: read-only scope observation hashes through the existing bounded loop
+  without growing archives. Under the held root, fresh admission rechecks the
+  full preview image/evidence and expiry, pins recovery, and commits Admit before
+  stage creation. All stage evidence commits before first apply; each applied
+  postcondition advances its journal. Final verification uses the whole frozen
+  effective target. Failure fences RecoveryRequired before guarded undo; only
+  the store's whole original-image/object verification can report RolledBack.
+- Why: neither cancellation nor a lost SQL acknowledgement proves whether files
+  changed. A retry reads its durable operation before expiry and never reapplies
+  a terminal success. Uncertain terminal acknowledgement is reloaded before undo.
+- Tradeoff: the retained tracker enforces cancellation even after RPC caller loss,
+  then continues polling actual I/O/cleanup. A response deadline never force-drops
+  kernel work. Partial/conflicting state retains private escrow and the physical
+  and worktree recovery pins. The original writer can settle only its own held
+  verified pin; settlement does not drop the physical guard early.
+
+**Runtime admission remains closed.** W21 confirms no reviewed terminal
+quiescence producer exists, including forgotten-but-unconfirmed runners. Registry
+absence, ended flags, cwd, PID and ProcessLifetime are not cleanup proof. The
+production controller therefore returns Busy before restore admission. Only the
+private fixture that never constructs terminal runners installs an explicit
+cfg(test) admission. That fixture now covers stale confirmation before Admit,
+ended status/ended_at preservation, FilesRestored after Status, idempotent retry
+that preserves a later external edit, and a default-controller Busy assertion.
+These are source obligations, not passing runtime evidence. Live target pause,
+canonical replacement-start admission, terminal cleanup-debt adoption, automatic
+restore reconciliation and preview/image retention are still unfinished.

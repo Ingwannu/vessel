@@ -25,6 +25,24 @@ impl Workers {
     }
 }
 
+/// The tracker keeps polling actual work after cancellation; the RPC waiter may
+/// return at its own deadline without joining this future or its filesystem I/O.
+pub(super) async fn cancel_at<F: std::future::Future>(
+    deadline: tokio::time::Instant,
+    cancellation: &tokio_util::sync::CancellationToken,
+    work: F,
+) -> F::Output {
+    tokio::pin!(work);
+    tokio::select! {
+        biased;
+        output = &mut work => output,
+        () = tokio::time::sleep_until(deadline) => {
+            cancellation.cancel();
+            work.await
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -33,6 +51,31 @@ mod tests {
         EventSeq, SessionId, WorktreeId,
         checkpoint::{Boundary, CaptureGeneration, CaptureId, CaptureKey},
     };
+    #[tokio::test(start_paused = true)]
+    async fn checkpoint_owned_deadline_cancels_without_dropping_actual_work() {
+        let cancellation = tokio_util::sync::CancellationToken::new();
+        let owned = cancellation.clone();
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(30);
+        let (entered, entry) = tokio::sync::oneshot::channel();
+        let (release, held) = tokio::sync::oneshot::channel();
+        let task = tokio::spawn(async move {
+            cancel_at(deadline, &owned, async {
+                entered.send(()).unwrap();
+                held.await.unwrap();
+                assert!(owned.is_cancelled());
+            })
+            .await;
+        });
+        entry.await.unwrap();
+        tokio::time::advance(std::time::Duration::from_secs(30)).await;
+        cancellation.cancelled().await;
+        assert!(
+            !task.is_finished(),
+            "deadline must not drop held actual work"
+        );
+        release.send(()).unwrap();
+        task.await.unwrap();
+    }
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn checkpoint_shared_worker_budget_survives_capture_owner_loss_during_blocked_io() {
         vessel_testkit::within(std::time::Duration::from_secs(60), async {

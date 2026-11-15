@@ -25,7 +25,11 @@
 #[cfg(target_os = "linux")]
 mod admission;
 #[cfg(target_os = "linux")]
+mod checkpoint_files;
+#[cfg(target_os = "linux")]
 mod checkpoints;
+#[cfg(target_os = "linux")]
+pub(crate) use checkpoint_files::CheckpointFiles;
 #[cfg(target_os = "linux")]
 pub(crate) use checkpoints::PreviewRead;
 mod error;

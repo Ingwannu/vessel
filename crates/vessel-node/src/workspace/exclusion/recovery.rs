@@ -45,13 +45,11 @@ impl RecoveryRoots {
     pub(super) fn len(&self) -> usize {
         self.0.len()
     }
-    #[cfg(test)]
     pub(super) fn has(&self, root: &PhysicalRoot, restore: &RestoreId) -> bool {
         self.0
             .get(root)
             .is_some_and(|pending| pending.contains_key(restore))
     }
-    #[cfg(test)]
     pub(super) fn settled(
         &mut self,
         root: PhysicalRoot,

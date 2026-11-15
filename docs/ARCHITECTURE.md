@@ -1738,7 +1738,8 @@ pumped during a different delivery. Anchor admission/acknowledgement share the
 capture deadline. Linux bootstrap installs the bridge, waits for initial node
 registration and exact SQL persistence, then takes opened-root admission before
 the bounded filesystem worker. Runtime proof of this connection remains owed;
-restore/GC/recovery controllers and RPC activation remain separate obligations.
+the serial private collector is connected, while runtime restore admission,
+complete recovery/retention and RPC activation remain separate obligations.
 
 The staged store quota equation also counts durable preview/restore allocations.
 They bind conservative reservations to a capture key/full human principal and
@@ -1796,8 +1797,8 @@ its managed worktree namespace, so replacing a folder inode does not bypass an
 unresolved journal. Actual lock authority remains the opened physical identity.
 The shared admitted-directory helper derives current namespaces/nearest managed
 ancestor from opened FDs; file/Git writers and starts use it, and their placement
-postconditions run in the retained bounded metadata pool. Runtime recovery owner
-claims/completion and the node restore controller remain separate integration work.
+postconditions run in the retained bounded metadata pool. Runtime recovery claims/completion now join the retained restore controller;
+production terminal quiescence remains unavailable and closes restore admission.
 
 
 Linux checkpoint Storage owns only private FD-relative namespace creation below
@@ -1849,3 +1850,15 @@ NotStarted or runtime-owned Registered afterwards. Node lifecycle/root guards
 remain on the node; sender loss while Starting retains uncertainty, and no PID
 or revocation stands for cleanup. The node consumer awaits the canonical
 registry/restart lease producer and is not installed by this source seam.
+
+
+The checkpoint controller now shares capture/collector worker admission and routes
+principal-bound metadata/preview reads behind the pending public gate. Preview
+uses actual selected/current scope and freezes the post-policy target. Fresh
+restore re-observes without writing archives, commits recovery pin/admission and
+complete staged-object evidence before per-path I/O. Failures fence recovery;
+only guarded undo plus whole original-image/object verification reports rollback.
+Ended-target completion uses the storage-only atomic metadata marker. These
+connections remain unverified source, with runtime restore admission deliberately
+Busy until canonical terminal quiescence and replacement-start/lifecycle consumers
+are ready. Private no-terminal fixtures do not establish a production capability.

@@ -51,3 +51,38 @@ impl Sessions {
         .map_err(|_deadline| CheckpointError::CaptureTimedOut)?
     }
 }
+
+impl Sessions {
+    /// Ended-target slice: never start/resume an agent to append file metadata.
+    /// Live target pause/admission remains separate until all start seams join.
+    pub(crate) async fn checkpoint_ended_target(
+        &self,
+        session: SessionId,
+        root: vessel_proto::checkpoint::PhysicalRoot,
+    ) -> Result<(), CheckpointError> {
+        match self
+            .find(session)
+            .await
+            .map_err(|_missing| CheckpointError::NotFound)?
+        {
+            super::Found::Live {
+                handle,
+                mut durability,
+            } => {
+                let info = handle.info();
+                if info.status.is_live() {
+                    return Err(CheckpointError::Busy);
+                }
+                persist::wait_until(session, &mut durability, info.next_seq)
+                    .await
+                    .map_err(|_failed| CheckpointError::RecoveryPending)?;
+            }
+            super::Found::Stored(info) => {
+                if info.status.is_live() {
+                    return Err(CheckpointError::Busy);
+                }
+            }
+        }
+        self.roots.refuse_restore_writers(root, &self.runtime)
+    }
+}

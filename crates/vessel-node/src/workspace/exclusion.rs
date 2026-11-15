@@ -39,15 +39,12 @@ pub(crate) enum RootRefusal {
     TimedOut,
     #[error("workspace admission owner is closed")]
     Closed,
-    #[cfg(test)]
     #[error("workspace recovery lease is stale")]
     StaleLease,
-    #[cfg(test)]
     #[error("workspace root has no pending recovery")]
     NotRecovering,
 }
 mod recovery;
-#[cfg(test)]
 mod resolving;
 pub(crate) use recovery::RecoveryRoots;
 
@@ -76,14 +73,12 @@ enum Request {
         deadline: Instant,
         reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
     },
-    #[cfg(test)]
     ClaimRecovery {
         root: PhysicalRoot,
         restore: vessel_proto::checkpoint::RestoreId,
         deadline: Instant,
         reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
     },
-    #[cfg(test)]
     PinRecovery {
         root: PhysicalRoot,
         worktree: WorktreeId,
@@ -92,7 +87,6 @@ enum Request {
         deadline: Instant,
         reply: oneshot::Sender<Result<(), RootRefusal>>,
     },
-    #[cfg(test)]
     ResolveRecovery {
         root: PhysicalRoot,
         restore: vessel_proto::checkpoint::RestoreId,
@@ -197,23 +191,11 @@ struct State {
 #[derive(Debug)]
 struct Active {
     release: Arc<CancellationToken>,
-    #[cfg(test)]
     purpose: resolving::Purpose,
 }
 
 fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
     prune(&mut state.active);
-    #[cfg(not(test))]
-    {
-        let Request::Claim {
-            root,
-            worktrees,
-            deadline,
-            reply,
-        } = request;
-        let _gone = reply.send(claim(root, &worktrees, deadline, state, notify));
-    }
-    #[cfg(test)]
     match request {
         Request::Claim {
             root,
@@ -290,7 +272,6 @@ fn issue(
         root,
         Active {
             release: Arc::clone(&release),
-            #[cfg(test)]
             purpose: resolving::Purpose::Writer,
         },
     );

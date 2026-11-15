@@ -59,6 +59,29 @@ impl BoundRoots {
         }
         Ok(root)
     }
+    #[cfg(target_os = "linux")]
+    pub(super) fn refuse_restore_writers(
+        &self,
+        root: PhysicalRoot,
+        runtime: &SessionRuntime,
+    ) -> Result<(), CheckpointError> {
+        let roots = self
+            .0
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        for live in runtime
+            .list()
+            .into_iter()
+            .filter(|info| info.status.is_live())
+        {
+            match roots.get(&live.id) {
+                Some(physical) if *physical != root => {}
+                Some(_) | None => return Err(CheckpointError::Busy),
+            }
+        }
+        Ok(())
+    }
 }
 impl Sessions {
     /// Publish physical startup evidence before node visibility/durability wakeup.

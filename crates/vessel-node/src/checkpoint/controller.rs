@@ -4,8 +4,7 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, Semaphore};
 use vessel_proto::checkpoint::{
     CHECKPOINT_QUEUE, ChangePage, CheckpointError, CheckpointOwner, CheckpointPage,
-    CheckpointRestoreStatus, ListCheckpoints, ReadCheckpointChanges, RestoreCheckpoint,
-    RestoreOutcome,
+    CheckpointRestoreStatus, ListCheckpoints, ReadCheckpointChanges, RestoreOutcome,
 };
 
 #[derive(Debug, Clone)]
@@ -13,6 +12,7 @@ pub(crate) struct Controller {
     pub(super) context: Context,
     pub(super) jobs: Arc<Semaphore>,
     pub(super) held: Arc<Mutex<Vec<Arc<super::workers::WorkerLease>>>>,
+    pub(super) terminals: TerminalAdmission,
 }
 impl Controller {
     pub(super) fn new(context: Context) -> Self {
@@ -20,6 +20,7 @@ impl Controller {
             context,
             jobs: Arc::new(Semaphore::new(CHECKPOINT_QUEUE)),
             held: Arc::default(),
+            terminals: TerminalAdmission::Unavailable,
         }
     }
     pub(crate) async fn list(
@@ -76,14 +77,26 @@ impl Controller {
             .map(|operation| operation.outcome)
             .map_err(reason)
     }
-    pub(crate) fn restore(
-        &self,
-        _owner: CheckpointOwner,
-        _request: RestoreCheckpoint,
-    ) -> Result<RestoreOutcome, CheckpointError> {
-        let _request = Arc::clone(&self.jobs)
-            .try_acquire_owned()
-            .map_err(|_busy| CheckpointError::Busy)?;
-        Err(CheckpointError::FeatureUnavailable)
+}
+
+/// Legacy absence/ended flags cannot certify forgotten runner cleanup debt.
+#[derive(Debug, Clone, Copy)]
+pub(super) enum TerminalAdmission {
+    Unavailable,
+    #[cfg(test)]
+    NoTerminalFixture,
+}
+impl Controller {
+    pub(super) fn terminal_quiescence(&self) -> Result<(), CheckpointError> {
+        match self.terminals {
+            TerminalAdmission::Unavailable => Err(CheckpointError::Busy),
+            #[cfg(test)]
+            TerminalAdmission::NoTerminalFixture => Ok(()),
+        }
+    }
+    #[cfg(test)]
+    pub(crate) fn no_terminal_fixture(mut self) -> Self {
+        self.terminals = TerminalAdmission::NoTerminalFixture;
+        self
     }
 }

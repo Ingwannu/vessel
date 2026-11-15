@@ -20,7 +20,7 @@ pub struct Tree(pub(super) Root);
 pub struct Archive(pub(super) archive::Archive);
 /// Explicit global-ignore fallback resolved by the node, never ambient HOME here.
 #[derive(Debug, Clone)]
-pub struct IgnoreDefaults(policy::Defaults);
+pub struct IgnoreDefaults(pub(super) policy::Defaults);
 /// Opened stage and immutable expected objects; the node owns durable progress.
 #[derive(Debug)]
 pub struct Restore {

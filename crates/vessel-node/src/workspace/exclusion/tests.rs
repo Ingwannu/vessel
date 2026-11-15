@@ -268,3 +268,26 @@ async fn checkpoint_shutdown_refuses_new_writers_but_drains_the_admitted_root() 
     drop(lease);
     owner.await.unwrap();
 }
+
+#[tokio::test]
+async fn checkpoint_original_writer_can_settle_its_own_verified_pin_without_unlocking_early() {
+    let restore = vessel_proto::checkpoint::RestoreId::random();
+    let worktree = WorktreeId::random();
+    let (gate, owner) = RootGate::start(RecoveryRoots::default(), CancellationToken::new());
+    let held = gate.claim(root(1), deadline()).await.unwrap();
+    gate.pin_recovery(&held, worktree, restore, deadline())
+        .await
+        .unwrap();
+    gate.resolve_recovery(&held, restore, deadline())
+        .await
+        .unwrap();
+    assert!(matches!(
+        gate.claim(root(1), deadline()).await,
+        Err(RootRefusal::Busy)
+    ));
+    drop(held);
+    let next = gate.claim(root(1), deadline()).await.unwrap();
+    drop(next);
+    drop(gate);
+    owner.await.unwrap();
+}
