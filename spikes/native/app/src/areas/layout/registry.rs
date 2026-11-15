@@ -36,6 +36,11 @@ pub(super) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    if !shell.layout_tab_exists(panel.workspace, panel.tab)
+        || !shell.layout_panel_visible(panel.workspace, panel.tab, window)
+    {
+        return div().into_any_element();
+    }
     let body = match panel.target {
         Target::Agent(session)
             if super::key(shell).as_ref() == Ok(panel.workspace)
