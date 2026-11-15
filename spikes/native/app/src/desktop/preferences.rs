@@ -8,6 +8,9 @@ use vessel_app_link::desktop::preferences::Receipt;
 use vessel_app_link::desktop::preferences::{Observation, Outcome, Snapshot};
 use vessel_app_link::{Command, Prefs};
 
+#[cfg(test)]
+mod tests;
+
 /// One synchronous model edit captures only its own existing SavePrefs attempt.
 #[derive(Default)]
 pub(crate) struct ReceiptCapture {
@@ -129,6 +132,7 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
     let Some(client) = &shell.areas.desktop.preferences else {
         return;
     };
+    let previous = client.canonical_preferences();
     let next = match client.observe(snapshot) {
         Observation::Stale => return,
         Observation::Applied(prefs) => prefs,
@@ -138,6 +142,12 @@ fn apply(shell: &mut Shell, snapshot: &Snapshot, window: &mut Window, cx: &mut C
             prefs
         }
     };
+    let canonical = snapshot.preferences();
+    // Layout owns retained dirty/ephemeral trees. Rebase its cache against
+    // canonical snapshots before installing this window's optimistic projection.
+    if previous.layouts != canonical.layouts {
+        shell.layout_preferences_applied(&previous.layouts, &canonical.layouts, cx);
+    }
     if shell.prefs != *next {
         apply_preferences(shell, (*next).clone(), window, cx);
     }

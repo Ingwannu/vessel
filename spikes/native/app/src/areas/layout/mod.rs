@@ -5,8 +5,6 @@ mod book;
 mod draw;
 mod header;
 mod menu;
-// The desktop coordinator removes this exact staging attribute with its real caller.
-#[cfg(test)]
 mod preferences;
 mod queries;
 pub(crate) mod registry;

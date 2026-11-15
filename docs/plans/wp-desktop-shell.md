@@ -78,6 +78,15 @@ that client's acknowledged/optimistic baseline, applies it to the latest canonic
 snapshot, and uses the existing Prefs::save_at atomic private-file helper. Every
 window observes the resulting canonical revision with pending local edits rebased.
 
+W12's checked cache hook from the 9e18cf0d..30a4396f range is now called by the
+canonical observer. Capture the previous Client canonical snapshot before observe,
+then pass old/new canonical layout records to the owner before replacing projected
+Shell preferences. The hook retains locally modified, dirty, compact-sheet and
+owner-held trees; independent additions/removals update the cache. Only the two
+agreed cfg(test) staging attributes were removed with this real caller. A product
+apply-path regression checks that another window's new workspace survives the
+next local layout save; its combined run is still pending.
+
 ## Windows and startup
 
 The primary restores validated geometry (1200×800 default,400×300 minimum),
