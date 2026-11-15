@@ -1,4 +1,4 @@
-//! The blocking waiter ends observations even without polling PtyProcess::wait.
+//! The blocking waiter ends observations even without polling `PtyProcess::wait`.
 use bytes::Bytes;
 use vessel_pty::PtyProcess;
 

@@ -75,6 +75,7 @@ impl ProcessLifetimeGuard {
 
     /// End authority before signalling or once exit/wait uncertainty is observed.
     pub fn revoke(&self) {
+        // No receiver may exist yet: retain revocation for late subscribers too.
         let _previous = self.0.state.send_replace(State::Revoked);
     }
 

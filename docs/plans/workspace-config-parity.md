@@ -272,3 +272,9 @@ bound release without revocation, but revoke before successful ownership
 release. Its detached direct-child wait remains the actual exit observation.
 This carrier's assigned base has no release operation; these joint tests
 belong to the later combined lifecycle integration and are not claimed here.
+
+The next narrow check reached the PTY integration tests and rejected an
+unquoted Rust item in their module documentation. The revision fixes only
+that documentation and explains why watch revocation is retained even when
+no observer has subscribed yet. The source error and documentation-lint
+failures remain distinct recorded checks; neither ran tests.
