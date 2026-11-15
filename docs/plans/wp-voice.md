@@ -506,3 +506,10 @@ intentionally stale for the added voice rows until the next named VM ts
 step returns exact artifacts. Generated whitespace inherited from that byte
 snapshot is not hand-trimmed. Narrow old-base receipts do not validate this
 merged head. Canonical Connection::life() is now available from the base.
+
+
+The shared writer prerequisite is now assigned and isolated from this package:
+node-base9c150c6e -> cdc9c0f90, no voice/ORT ancestry, unchanged public API,
+existing waiter closure reused through pre-admission capacity/readiness waits.
+Its four fake regressions/full RPC suite are queued; V3/integrator landing is
+required before this package consumes it or enables real audio upload.

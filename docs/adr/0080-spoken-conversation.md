@@ -766,8 +766,21 @@ local audio; do not claim remote receipt timing can undo in-flight bytes.
 Any cancellation during partial framing must retire the affected transport
 safely rather than corrupt a subsequent frame or silently restart capture.
 
-Ownership has been requested from the coordinator; no shared RPC source has
-been edited and real voice transport remains unconnected. This prerequisite
+The coordinator assigned the isolated shared RPC leaf to W19 on announced
+node head9c150c6e. Its source reuses the per-call oneshot closure at dequeue
+and during registration/sink readiness waits, with no public client API change.
+The helper registers a live waiter immediately before synchronous transport
+admission, so skipped calls leave no phantom registration. Four memory-only
+regressions and the full VM RPC suite are queued, not a result. This package
+has not adopted the leaf and real voice transport remains unconnected. This prerequisite
 adds no call, protocol number, fallback or permission to activate voice. The
 existing local device/upload fences and uncertain remote cleanup remain
 required in addition to the transport proof.
+
+
+V3 accepted the PhaseB private preparation/static receipts as evidence only
+on e7f1f8c09. Exact25-file hashes/modes/ownership, notice and bounded inspector
+records were independently rechecked. This closes that preparation debt, not
+system ABI, model/native execution, telemetry/privacy, compile or activation.
+The build owner has installed the fixed RO/noexec importer; actual transfer
+is still0 and awaits the offline lock/feature receipt and its V3 acceptance.
