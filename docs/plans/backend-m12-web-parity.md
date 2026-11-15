@@ -1114,3 +1114,35 @@ new visual/translation/cold-phone/native/combined claim is made. The remote
 tool's commit/checkout and step logs identify this new execution; a custom
 remote pre/post manifest is not claimed. The source return awaits review
 closure; integration approval is separate.
+
+
+## Feedback package: narrow toasts and modal ownership (test checkpoint)
+
+Reuse the existing toast host, Base UI dialog and new-session lifecycle.
+The reported problems are lower toasts covering the composer/question
+buttons, a late-mounted new prompt taking an open dialog's focus, and
+Escape before a dialog's initial focus. The focus cases begin as page
+regressions before a product change. One holds only the real lazy new-page
+asset until the modal owns focus; the other holds the initial-focus frame
+and sends a real keyboard Escape. The toast fixture uses the existing
+Copy session id action while a real fake-agent question remains open;
+it checks the same toast host's separation from prompt and question buttons.
+Its temporary clipboard-write permission belongs only to that disposable
+browser context and synthetic id. No service or OS permission is changed.
+The original test-only checkpoint is preserved, and then restored after
+the A2a review correction. Its first baseline had two real toast geometry
+failures (bottom 828 exceeds composer top 699), an incorrect assumption
+that the first focused control was the paste field, and a passing ordinary
+pre-focus Escape case. The focus fixture now checks ownership of the whole
+dialog, waits for the new view to render and waits for route handlers when
+releasing its held asset; the original failure is not called a product proof.
+
+Separate old-product diagnostics confirm late-mounted prompt focus leaves
+the dialog, and confirm a distinct early-Escape defect: the background
+ShortcutRecorder's window capture listener prevents and stops the key before
+the modal receives it. Its isolated recorder/palette page case fails before
+any fix. Ordinary palette/menu/first-connected snapshot cases already pass;
+there is no reason to add another Escape listener to the dialog. Temporary
+frame control fixes the event order; these are controlled regressions rather
+than a claim that every historical occurrence was naturally reproduced.
+The three fixes, changed-package gate and affected captures remain pending.
