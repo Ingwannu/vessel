@@ -99,7 +99,7 @@ fn configure(prefs: &vessel_app_link::Prefs, cx: &App) -> Result<Configuration, 
     Configuration::new(
         binary,
         home,
-        &crate::desktop::environment(cx),
+        &crate::desktop::environment(cx).without(vessel_app_updater::RESTARTED_FROM),
         crate::LABEL,
         preferences,
     )

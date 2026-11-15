@@ -534,3 +534,10 @@ actual retained-buffer reducer. The production readiness query conservatively
 falls back to the existing global guard; no absent owner is presented as a
 successful node-filter capability. C5 promotion requires its real caller and
 combined checks, not a synthetic registration for lint.
+
+Owned daemon launch removes the updater's app-only RESTARTED_FROM marker from
+its child environment, including inherited fallback environments. This consumes
+the desktop-shell owner's small without builder rather than mutating process
+globals or duplicating shell resolution. The existing immutable launch recipe
+still validates program, arguments and private home; only child environment
+changes. Its in-memory regression is prepared; new-source execution is owed.
