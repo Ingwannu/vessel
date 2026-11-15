@@ -76,13 +76,10 @@ remain owed until the complete package is wired.
 
 ### Executable skeleton registration
 
-Quality B base `29eebb8b` permits the two report selectors to register in the
-single method table with `(pending ACCOUNT_REPORTS_PROTOCOL)`, which remains
-`None`. Client and server admission therefore refuse these methods rather than
+Quality B permits the two report selectors and the source-consent mutation to register at the end of `rpc/table.rs`. `ACCOUNT_REPORTS_PROTOCOL` and `USAGE_SOURCE_CONSENT_PROTOCOL` both remain `None`. Client and server admission therefore refuse these methods rather than
 assigning an invented protocol version. The initial skeleton handlers refused with typed `Unsupported`; the current
 saved-login adapter uses the existing limits actor, opaque binding registry, and
-real list/inspect service paths. Method admission remains pending. This does not
-claim the nine full provider sources or the F6 helper are implemented.
+real list/inspect service paths. Method admission remains pending. Seven additional fixed adapters are now implemented below, but nine-source end-to-end parity, extra-source launch associations and the F6 helper are not accepted or complete.
 
 ### Honest legacy observation projection
 
@@ -107,8 +104,7 @@ Session scopes retain the existing local-owner/current-provider checks around
 awaits. No inspect id expands an agent principal's authority: agents use their
 own local Session selector. Registry capacity refuses growth without eviction;
 response count/byte bounds refuse the complete observation, never silently drop
-accounts. Generic source discovery, provider account grouping, F6 and the seven
-additional provider fetchers remain required; the pending constant stays None.
+accounts. The additional fixed-source owner described below implements the seven fetchers. Provider account grouping beyond configured bindings, extra-source launch association and F6 remain required; protocol constants stay None until integrator assignment.
 
 ### Review correction: identities and captured reads
 
@@ -149,8 +145,7 @@ than displaying raw vendor text or guessing no subscription. Its missing/unknown
 status uses the percentage fallback, not an assertion of healthy quota. Malformed
 Kimi rows mark a partial observation; an oversized or non-array limits collection
 refuses the complete response instead of bypassing bounds via a fallback decoder.
-These parsers alone do not implement discovery, local sign-in reads, real fetch,
-consent or launch association. Those remain required and unverified.
+These parsers alone do not implement discovery, local sign-in reads, fetch or consent; the executable adapter/owner sections below describe that later implementation. Extra-source launch association and actual vendor acceptance remain unverified.
 
 ### Additional-source local and HTTP adapters
 

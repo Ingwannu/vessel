@@ -1667,3 +1667,46 @@ unsupported override before process spawn, with a typed Unsupported mapping.
 The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
+
+## Source/account usage reports (M12 F3, pending protocol, ADR 0042)
+
+Accounting (`usage`, protocol 21), the immutable-launch saved-login limit contract
+(`limits`, protocol 23), and generic source reports (`usage_reports`, pending) are
+separate units and authority boundaries. External lookup Off never disables an
+agent's own accounting or context observations.
+
+- `vessel-proto::usage_reports` owns validated source/account/report identities,
+  explicit identity consistency, bounded source-provided values, versioned disclosure
+  and effective permission, current attempt versus original successful observation,
+  and complete list/exact opaque inspect selectors. Clients group typed fields and
+  never split an opaque report id. Complete responses also have a byte budget.
+- `vessel-harness::account_usage` owns seven additional vendor format decoders.
+  `limits::account_sources` reuses the limits admission/TLS/cooldown edge for fixed
+  origins and read-only sign-in candidates. A binary supplies deferred environment
+  and Cursor-database capabilities. Construction and Read do not invoke them.
+  Private token/region equality governs retained success; it is not a public id.
+- `vessel-store` remains the only SQLite owner: Cursor's fixed read-only queries
+  reject active WAL ambiguity; no sign-in creation, migration or refresh occurs.
+  Source grants persist only validated source/revision metadata atomically with
+  owner-only mode. No credential or report snapshot enters the grants file.
+- `vessel-node::usage_reports` owns the bounded legacy binding registry and one
+  seven-source actor attached to the existing limits owner. It serializes explicit
+  source consent, coalesces bounded jobs, and generation-fences copied snapshots
+  and late work. `service::usage_reports` captures and reads the actual saved-login
+  proof, checks it around awaits, applies caller redaction and complete-response
+  bounds. Failed discovery is independent of other sources' successful reports.
+- Native view rules project the canonical report DTO; link requests capture the
+  shared admitted ConnectionContext and SelectedConnection, never re-resolve an
+  alias after enqueueing. GPUI draws the shared kit meter and existing settings
+  controls. N2 owns web; W17 owns CLI; they consume the same report values.
+
+The three pending unary rows (`usage.reports`, `usage.inspect`,
+`usage.source_lookup`) have no assigned protocol version; the integrator owns
+assignment and consumers cannot send them yet. Read is cache-only, explicit
+Operate refresh may read a consented source, and Admin grants the exact current
+source disclosure; legacy global consent covers only its original three stores.
+No background credential discovery follows cache expiry. Additional-source Session
+association and plugin F6 execution remain Unsupported pending their actual owner
+seams. `vessel-usage-fixture` is a separate required-feature scratch-only node,
+never an option in installed vesseld. See `docs/plans/wp-f3-sources.md` for recorded
+fixtures, managed export constraints and exact verification debt.

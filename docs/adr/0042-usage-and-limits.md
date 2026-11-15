@@ -443,3 +443,24 @@ opaque handle. Labels and client-side handle parsing cannot define identity.
 The new setter's pending protocol remains None. Its skeleton refuses Unsupported
 until the actual owner/adapters are connected; values and persistence tests alone
 are not executable source or consumer parity.
+
+### F3 executable source ownership and refresh presentation
+
+The additional fixed adapters and source actor now live in the modules documented
+in ARCHITECTURE's source/account usage section; protocol assignment remains pending.
+The actor owns the consent write even if its requesting RPC disappears. Source Off
+invalidates current work and copied snapshots before acknowledging the persisted
+choice; global Off remains the floor. Fixed known vendor store/recipient metadata
+lets clients translate exact disclosures without credential paths or endpoints.
+
+An explicit Refreshing state records the immediately preceding attempt's typed
+Available/Unavailable origin. Only an actually current success remains summary-
+eligible while pending; a failed/unavailable retained observation stays card-only
+and keeps its original success time. Legacy refresh states with no such proof
+project Unavailable. No percentage or forecast diagnoses a stopped turn.
+
+The separate feature-gated recorded node executable exercises production policy,
+cache and projection with scratch-only synthetic inputs. It does not establish
+successful live vendor support, assigned wire admission, plugin execution or
+additional-source immutable launch association. Those remain separate acceptance
+conditions; no local Cargo or manual VM binary copy is a validation substitute.
