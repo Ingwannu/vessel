@@ -82,6 +82,9 @@ pub(crate) trait ArchiveBackend: Sync {
         member: Member,
     ) -> impl Future<Output = Result<(), Self::Error>> + Send;
     /// Recheck references, trust and ownership; no unowned/shared path may be removed.
+    /// The adapter also admits the resolved physical root through workspace
+    /// exclusion. Its guard stays with actual I/O until cleanup/postconditions
+    /// settle, even if the waiting workflow times out or is cancelled.
     fn cleanup_backing(
         &self,
         claim: &Self::Claim,

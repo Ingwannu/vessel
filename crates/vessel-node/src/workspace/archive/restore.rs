@@ -55,6 +55,8 @@ pub(crate) trait RestoreBackend: Sync {
         plan: &Self::Plan,
     ) -> impl Future<Output = Result<Self::Claim, Self::Error>> + Send;
     /// Reinspect and validate the original subdirectory, rolling back only newly made backing on failure.
+    /// The adapter retains physical root exclusion through actual I/O completion
+    /// and postconditions; a caller's timeout cannot release an in-flight writer.
     fn restore_backing(
         &self,
         claim: &Self::Claim,

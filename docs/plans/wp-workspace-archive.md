@@ -141,3 +141,12 @@ Legacy session.mark Archive shares that admission core with explicit Force,
 retaining its idempotent first timestamp. The conditional session.archive method
 chooses an explicit already-archived refusal instead. This removes the old
 stop-before-marking-lock gap without creating a second stop/parentage mutex.
+
+Physical root exclusion is a second authority, distinct from registry lifecycle
+and start leases. W9 owns `workspace::exclusion` and its physical root identity;
+the actual adapter will consume its checked producer rather than key a lock by
+WorkspaceId or cwd. Lock order is durable Archiving/Restoring claim, then root
+admission, then physical cleanup/restore and verified postconditions. A guard
+belongs to actual I/O until it settles, including after caller timeout; partial
+outcomes leave the durable non-active claim. This seam is planned, with no
+production adapter or root-exclusion implementation adopted in this package yet.

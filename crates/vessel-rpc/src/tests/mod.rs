@@ -542,6 +542,7 @@ impl Handler for Fake {
         get_conversation: vessel_proto::conversation::GetConversation => vessel_proto::Conversation;
         resume_session: vessel_proto::conversation::ResumeSession => SessionInfo;
         mark_session: vessel_proto::conversation::MarkSession => SessionInfo;
+        archive_session: vessel_proto::session_archive::ArchiveSession => vessel_proto::session_archive::ArchivedSession;
         delete_session: vessel_proto::conversation::DeleteSession => vessel_proto::conversation::SessionDeleted;
         begin_upload: vessel_proto::conversation::BeginUpload => vessel_proto::conversation::Upload;
         write_upload: vessel_proto::conversation::WriteUpload => vessel_proto::conversation::Written;
