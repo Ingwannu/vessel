@@ -209,3 +209,62 @@ fn valid_confirmation(published: &watch::Sender<Snapshot>, confirmation: &Confir
     matches!(current.status, Status::Owned(_) | Status::Working)
         && Arc::ptr_eq(&current.permit, &confirmation.0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use vessel_app_view::local_node::Preferences;
+    use vessel_proto::NodeId;
+
+    fn snapshot(status: Status) -> Snapshot {
+        Snapshot {
+            status,
+            failure: None,
+            connection: None,
+            permit: Arc::new(()),
+        }
+    }
+
+    #[test]
+    fn interruption_permission_expires_even_when_a_replacement_keeps_the_node_id() {
+        let node = NodeId::random();
+        let original = snapshot(Status::Owned(node));
+        let permit = original.confirmation().unwrap();
+        let (published, _receiver) = watch::channel(original);
+        assert!(valid_confirmation(&published, &permit));
+        let _old = published.send_replace(snapshot(Status::Owned(node)));
+        assert!(!valid_confirmation(&published, &permit));
+        assert!(snapshot(Status::Attached(node)).confirmation().is_none());
+    }
+
+    #[tokio::test]
+    async fn a_missing_companion_never_leaves_an_admitted_start_spinning() {
+        let config = Configuration {
+            launch: None,
+            home: vessel_local_node::NodeHome::new(
+                std::env::temp_dir().join("unused-local-node-actor-fixture"),
+            )
+            .unwrap(),
+            preferences: Preferences::default(),
+        };
+        let (published, current) = watch::channel(snapshot(Status::NotInstalled));
+        let (commands, inbox) = mpsc::channel(2);
+        let task = tokio::spawn(run(config, inbox, published));
+        commands.send(Command::Action(Action::Start)).await.unwrap();
+        // A same-queue finalization acknowledgement is a deterministic barrier,
+        // rather than a sleep that might miss the transient Working snapshot.
+        let (reply, done) = oneshot::channel();
+        commands
+            .send(Command::Finalize {
+                policy: QuitPolicy::KeepRunning,
+                confirmation: None,
+                reply,
+            })
+            .await
+            .unwrap();
+        done.await.unwrap().unwrap();
+        assert_eq!(current.borrow().status, Status::NotInstalled);
+        drop(commands);
+        task.await.unwrap();
+    }
+}
