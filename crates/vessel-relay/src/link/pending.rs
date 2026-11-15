@@ -36,11 +36,13 @@ enum Admission {
     Stopping,
 }
 
+/// The registration keeps ownership until every pending handoff is settled.
 pub(super) struct DataOpens {
     tasks: JoinSet<()>,
     stop: CancellationToken,
 }
 impl DataOpens {
+    /// A child token follows registration stop without cancelling its caller.
     pub(super) fn new(registration: &CancellationToken) -> Self {
         Self {
             tasks: JoinSet::new(),
@@ -74,6 +76,7 @@ impl DataOpens {
         Admission::Accepted
     }
 
+    /// Full capacity starts no child; the relay keeps its existing client timeout.
     pub(super) fn open<F>(
         &mut self,
         relay: &RouteUrl,
