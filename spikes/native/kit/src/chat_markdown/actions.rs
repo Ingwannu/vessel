@@ -12,6 +12,18 @@ use gpui_component::text::{SelectionFormat, TextView, TextViewState};
 #[derive(Debug, Clone)]
 pub struct Href(SharedString);
 
+/// An image URI remains untrusted until the host resolves its authorized resource.
+#[derive(Debug, Clone)]
+pub struct ImageHref(SharedUri);
+
+impl ImageHref {
+    /// Original document image source, independent of the decoded display resource.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 impl Href {
     /// Raw href supplied by the markdown engine, never automatically opened.
     #[must_use]
@@ -23,18 +35,21 @@ impl Href {
 // Callbacks are open host extension points: the kit knows no app or node types.
 type LinkHandler = dyn Fn(Href, &mut Window, &mut App) + Send + Sync;
 type ImageResolver = dyn Fn(&SharedUri) -> ImageSource + Send + Sync;
+type ImageHandler = dyn Fn(ImageHref, &mut Window, &mut App) + Send + Sync;
 
 /// Assistant links and image sources are handled by the owning host.
 #[derive(Clone)]
 pub struct Actions {
     link: Arc<LinkHandler>,
     image: Option<Arc<ImageResolver>>,
+    image_click: Option<Arc<ImageHandler>>,
 }
 
 impl std::fmt::Debug for Actions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Actions")
             .field("image_resolver", &self.image.is_some())
+            .field("image_activation", &self.image_click.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -46,6 +61,7 @@ impl Actions {
         Self {
             link: Arc::new(handler),
             image: None,
+            image_click: None,
         }
     }
 
@@ -57,6 +73,16 @@ impl Actions {
         resolver: impl Fn(&SharedUri) -> ImageSource + Send + Sync + 'static,
     ) -> Self {
         self.image = Some(Arc::new(resolver));
+        self
+    }
+
+    /// Primary activation delegates to the host's shared image lightbox.
+    #[must_use]
+    pub fn on_image_click(
+        mut self,
+        handler: impl Fn(ImageHref, &mut Window, &mut App) + Send + Sync + 'static,
+    ) -> Self {
+        self.image_click = Some(Arc::new(handler));
         self
     }
 }
@@ -88,6 +114,13 @@ pub(super) fn finish(
         });
         if let Some(image) = actions.image {
             view = view.image_source(move |uri| image(uri));
+        }
+        if let Some(handler) = actions.image_click {
+            view = view.on_image_click(move |uri, event, window, cx| {
+                if !event.is_right_click() && !event.is_middle_click() {
+                    handler(ImageHref(uri.clone()), window, cx);
+                }
+            });
         }
     }
     div()
@@ -189,7 +222,7 @@ mod tests {
     fn code_only_selection_copies_raw_without_an_executable_trailing_newline() {
         let source = "prose\n\n```sh\nprintf '한글'\nprintf ok\n```\n";
         let start = source.find("printf").unwrap();
-        let end = source.find("\n```").unwrap().saturating_add(1);
+        let end = source.rfind("\n```").unwrap().saturating_add(1);
         assert_eq!(
             code_selection(source, start..end).as_deref(),
             Some("printf '한글'\nprintf ok")
@@ -217,3 +250,6 @@ mod tests {
         assert_eq!(code_selection("ordinary **markdown**", 0..8), None);
     }
 }
+
+#[cfg(test)]
+mod image_tests;

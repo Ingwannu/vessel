@@ -2,6 +2,7 @@ mod document;
 pub mod editor_host;
 mod editor_seam;
 mod format;
+mod image_activation;
 mod inline;
 mod inline_element;
 mod inline_flow;

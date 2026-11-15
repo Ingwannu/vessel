@@ -175,7 +175,28 @@ Upstream: gpui-kit's input base (`longbridge/gpui-kit`), Apache-2.0
 (`spikes/native`) uses it.
 
 Changed: `src/input/base/blink_cursor.rs`, marked `MODIFIED by Vessel`
-at the top and `Vessel patch` at the change.
+at the top and `Vessel patch` at the change; the optional text-image activation
+seam listed below is also marked in each changed file.
+
+### Optional image activation in the existing text engine
+
+- Purpose: Paseo opens an unlinked assistant markdown image in its image viewer.
+  The pinned TextView only handled images already wrapped in hyperlinks.
+- Choice: add optional `TextView::on_image_click` and the matching editor-host
+  setter, copied through TextViewState into NodeContext. Existing plain-image
+  and mixed inline-flow elements share `text/image_activation.rs`; image layout,
+  source selection, retained parsing, find highlighting and resource resolution
+  are unchanged. A host handler owns image activation, including linked images;
+  without one, existing linked-image behavior remains.
+- Why: a second renderer or rewriting image markdown into links would change
+  source ranges and selection. The callback lets the app use its authorized
+  acquisition and shared lightbox while the same image element keeps its atom.
+- Changed files: `text/{mod,text_view,state,node,inline_flow,editor_host}.rs` and
+  the new private `text/image_activation.rs`. No default URL or file opening is
+  added for unlinked images.
+- Check: kit `chat_markdown::actions::image_tests` covers plain images, mixed
+  inline-flow images and linked images with a host handler, plus absence of a
+  handler. These tests are pending; no visual approval is implied.
 
 ### 4. A steady caret while motion is held
 

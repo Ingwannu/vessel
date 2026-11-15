@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: image activation shares the existing image elements.
 use std::{
     cell::RefCell,
     ops::Range,
@@ -15,7 +16,7 @@ use gpui::{
     size,
 };
 
-use crate::text::text_view::{LinkClickHandlerFn, handle_link_click};
+use crate::text::text_view::LinkClickHandlerFn;
 
 use super::{
     inline::{Inline, InlineHighlight, InlineState, code_insets, text_runs, text_size_ranges},
@@ -67,6 +68,7 @@ pub(super) enum InlineFlowItem {
     },
     Image {
         source: ImageSource,
+        activation: Option<super::image_activation::ImageActivation>,
         link: Option<LinkMark>,
         title: String,
         width: Option<DefiniteLength>,
@@ -302,40 +304,15 @@ impl InlineFlow {
         _title: &str,
         size: Size<Pixels>,
         link_click_handler: Option<Arc<LinkClickHandlerFn>>,
+        activation: Option<super::image_activation::ImageActivation>,
     ) -> AnyElement {
-        img(source.clone())
+        let element = img(source.clone())
             .id(ix)
             .object_fit(ObjectFit::Contain)
             .max_w(relative(1.))
             .w(size.width)
-            .h(size.height)
-            .when_some(link.clone(), |this, link| {
-                let aux_link = link.clone();
-                let aux_link_click_handler = link_click_handler.clone();
-                this.cursor_pointer()
-                    .on_click(move |event, window, cx| {
-                        crate::TextSelection::end(window, cx);
-                        cx.stop_propagation();
-                        handle_link_click(
-                            &link_click_handler,
-                            link.url.clone(),
-                            event.clone(),
-                            window,
-                            cx,
-                        );
-                    })
-                    .on_aux_click(move |event, window, cx| {
-                        crate::TextSelection::end(window, cx);
-                        cx.stop_propagation();
-                        handle_link_click(
-                            &aux_link_click_handler,
-                            aux_link.url.clone(),
-                            event.clone(),
-                            window,
-                            cx,
-                        );
-                    })
-            })
+            .h(size.height);
+        super::image_activation::activate(element, activation, link.clone(), link_click_handler)
             .into_any_element()
     }
 }
@@ -733,6 +710,7 @@ impl Element for InlineFlow {
                 } => {
                     let InlineFlowItem::Image {
                         source,
+                        activation,
                         link,
                         title,
                         ..
@@ -750,6 +728,7 @@ impl Element for InlineFlow {
                         title.as_str(),
                         fragment_size,
                         self.link_click_handler.clone(),
+                        activation.clone(),
                     );
                     element.prepaint_as_root(
                         bounds.origin + origin,
@@ -1131,7 +1110,7 @@ fn layout_measured_flow(
                             },
                             size: glyph_size,
                             source_range: start..end,
-                            baseline: baseline,
+                            baseline,
                         });
                     }
                 }
@@ -1164,7 +1143,7 @@ fn layout_measured_flow(
                             kind: LineFragmentKind::Image,
                             size,
                             source_range: 0..IMAGE_LEN,
-                            baseline: baseline,
+                            baseline,
                         });
                     }
                 }

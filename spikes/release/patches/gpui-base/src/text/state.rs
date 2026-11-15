@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: carry the optional host image activation into the render context.
 use futures::Stream as _;
 #[cfg(not(target_family = "wasm"))]
 use std::time::Instant;
@@ -131,6 +132,8 @@ pub struct TextViewState {
     pub(super) table_actions: Option<std::sync::Arc<TableActionsFn>>,
     pub(super) image_source: Option<std::sync::Arc<super::text_view::ImageSourceFn>>,
     pub(super) link_click_handler: Option<std::sync::Arc<LinkClickHandlerFn>>,
+    pub(super) image_click_handler:
+        Option<std::sync::Arc<super::image_activation::ImageClickHandlerFn>>,
     pub(super) markdown_extensions: Arc<MarkdownExtensions>,
 
     pub(super) is_selecting: bool,
@@ -236,6 +239,7 @@ impl TextViewState {
             code_block_highlighter: None,
             table_actions: None,
             link_click_handler: None,
+            image_click_handler: None,
             image_source: None,
             markdown_extensions: Arc::default(),
             is_selecting: false,
@@ -1135,6 +1139,7 @@ impl Render for TextViewState {
             code_block_highlighter: self.code_block_highlighter.clone(),
             table_actions: self.table_actions.clone(),
             link_click_handler: self.link_click_handler.clone(),
+            image_click_handler: self.image_click_handler.clone(),
             image_source: self.image_source.clone(),
             markdown_extensions: self.markdown_extensions.clone(),
             stream_fade,

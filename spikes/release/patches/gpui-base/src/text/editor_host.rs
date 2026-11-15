@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: expose the optional existing-renderer image activation seam.
 //! Host API for external editors.
 //!
 //! An editor that lives outside gpui-kit keeps its own document model and
@@ -104,6 +105,15 @@ impl RenderContext {
         F: Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
     {
         self.node.link_click_handler = Some(Arc::new(handler));
+        self
+    }
+
+    /// Handles image activation through the same renderer as a TextView.
+    pub fn on_image_click<F>(mut self, handler: F) -> Self
+    where
+        F: Fn(&SharedUri, &ClickEvent, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.node.image_click_handler = Some(Arc::new(handler));
         self
     }
 
