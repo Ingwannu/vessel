@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: a kept node must not depend on the app's stderr pipe for diagnostics.
-//! - Reuse: DataDir owns the same filename, private modes and rotation as attach.
+//! - Reuse: `DataDir` owns the same filename, private modes and rotation as attach.
 //! - Choice: only explicit desktop-managed mode tees formatted records to that
 //!   file; other CLI modes preserve stderr-only logging. The file opens once per
 //!   record, so the existing size rotation also applies during a long app run.
@@ -10,7 +10,7 @@
 
 use std::fs::File;
 use std::io::{self, Write as _};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tracing_subscriber::fmt::MakeWriter;
 use vessel_store::DataDir;
@@ -73,25 +73,27 @@ impl io::Write for Record<'_> {
     }
 }
 
-pub(super) fn init(attaching: bool, desktop: bool, root: Option<&PathBuf>) {
-    let managed = desktop
-        .then(|| root.cloned().or_else(DataDir::default_root))
-        .flatten()
-        .map(DataDir::new)
-        .and_then(|directory| {
-            let result = directory.prepare().and_then(|()| directory.open_node_log());
-            match result {
-                Ok((_path, file)) => {
-                    drop(file);
-                    Some(Arc::new(Mutex::new(directory)))
-                }
-                Err(error) => {
-                    let _failed =
-                        writeln!(io::stderr().lock(), "managed node log unavailable: {error}");
-                    None
-                }
+pub(super) fn init(attaching: bool, desktop: bool, root: Option<&Path>) {
+    let managed = (if desktop {
+        root.map(Path::to_path_buf).or_else(DataDir::default_root)
+    } else {
+        None
+    })
+    .map(DataDir::new)
+    .and_then(|directory| {
+        let result = directory.prepare().and_then(|()| directory.open_node_log());
+        match result {
+            Ok((_path, file)) => {
+                drop(file);
+                Some(Arc::new(Mutex::new(directory)))
             }
-        });
+            Err(error) => {
+                let _failed =
+                    writeln!(io::stderr().lock(), "managed node log unavailable: {error}");
+                None
+            }
+        }
+    });
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

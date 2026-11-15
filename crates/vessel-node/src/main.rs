@@ -278,7 +278,7 @@ async fn main() -> ExitCode {
     desktop_logging::init(
         attaching,
         args.command.is_none() && args.run.launch.desktop_managed(),
-        args.data_dir.as_ref(),
+        args.data_dir.as_deref(),
     );
 
     // A relay keeps nothing on disk: it needs no data directory (nor a home).
