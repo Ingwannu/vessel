@@ -8,7 +8,7 @@ async fn a_clean_stop_continues_the_same_conversation_once_and_keeps_pending_inp
         let node = f.start().await;
         let owner = f.client(&node).await;
         set(&node, true).await;
-        let original = f.active(&owner).await;
+        let original = f.active(&node, &owner).await;
         assert!(matches!(owner.prompt(original.id, vec![ContentBlock::Text { text: "not sent".into() }], Delivery::Queue).await.unwrap(), vessel_proto::Delivered::Queued { .. }));
         node.stop().await.unwrap();
         let node = f.start().await;
@@ -53,7 +53,7 @@ async fn acknowledged_person_stop_is_not_recovered_at_the_next_start() {
             let node = f.start().await;
             let owner = f.client(&node).await;
             set(&node, true).await;
-            let original = f.active(&owner).await;
+            let original = f.active(&node, &owner).await;
             owner.kill(original.id).await.unwrap();
             node.stop().await.unwrap();
             let node = f.start().await;

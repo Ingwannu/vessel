@@ -20,7 +20,7 @@ async fn off_after_prompt_admission_does_not_kill_that_turn_or_reconstruct_it_la
                 .unwrap();
             assert!(installed.restart_recovery.enabled);
             assert_eq!(installed.restart_recovery.prompt.as_str(), "wait");
-            let original = f.active(&owner).await;
+            let original = f.active(&node, &owner).await;
             let after_initial = after_initial_turn(&owner, original.id).await;
             node.stop().await.unwrap();
             let node = f.start().await;
@@ -70,7 +70,7 @@ async fn off_after_prompt_admission_does_not_kill_that_turn_or_reconstruct_it_la
     .await
     .unwrap();
 }
-async fn after_initial_turn(owner: &NodeClient, session: vessel_proto::SessionId) -> EventSeq {
+async fn after_initial_turn(owner: &NodeClient, session: SessionId) -> EventSeq {
     // Use the actual committed event, not a possibly earlier info-watch
     // snapshot, so the second wait cannot observe the original turn again.
     owner

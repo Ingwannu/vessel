@@ -11,10 +11,10 @@ async fn a_missing_folder_fails_without_blocking_an_independent_working_session_
         let normal = f.work.clone();
         f.work = normal.join("removed");
         std::fs::create_dir(&f.work).unwrap();
-        let removed = f.active(&owner).await;
+        let removed = f.active(&node, &owner).await;
         let removed_path = f.work.clone();
         f.work = normal;
-        let working = f.active(&owner).await;
+        let working = f.active(&node, &owner).await;
         node.stop().await.unwrap();
         std::fs::remove_dir(removed_path).unwrap();
         let node = f.start().await;
@@ -48,7 +48,7 @@ async fn unsupported_resume_load_failure_and_unavailable_provider_are_not_retrie
             let node = f.start().await;
             let owner = f.client(&node).await;
             set(&node, true).await;
-            let original = f.active(&owner).await;
+            let original = f.active(&node, &owner).await;
             node.stop().await.unwrap();
             std::fs::write(f.data.profiles_path(), format!("[profiles.recovery]\nharness = \"claude\"\nenv = {{ {variable} = \"1\" }}\n")).unwrap();
             let node = f.start().await;

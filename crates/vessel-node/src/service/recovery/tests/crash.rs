@@ -4,7 +4,8 @@ use crate::{Config, DataDir, Node};
 use std::io::Write as _;
 use std::path::PathBuf;
 use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt as _, BufReader};
+use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader, Lines};
+use tokio::process::{Child, ChildStdout};
 use vessel_client::{NodeClient, NodeUrl};
 use vessel_harness::{HarnessEnv, Lookup};
 use vessel_proto::{AgentEvent, EventSeq, SessionEvent};
@@ -26,6 +27,21 @@ async fn child() {
         std::io::stdout().lock(),
         "RECOVERY_CHILD_READY {}",
         node.address().unwrap()
+    )
+    .unwrap();
+    // Only the test's private stdin pipe asks for an observation; all agent
+    // inputs still travel through the ordinary authenticated node client.
+    let request = tokio::task::spawn_blocking(|| {
+        serde_json::from_reader::<_, CommitRequest>(std::io::stdin().lock())
+    })
+    .await
+    .unwrap()
+    .unwrap();
+    let info = super::committed(&node, request.session, request.through).await;
+    writeln!(
+        std::io::stdout().lock(),
+        "RECOVERY_CHILD_COMMITTED {}",
+        serde_json::to_string(&info).unwrap()
     )
     .unwrap();
     std::future::pending::<()>().await;
@@ -119,15 +135,7 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
                 .unwrap();
             let mut process = child_command(&f).spawn().unwrap();
             let mut lines = BufReader::new(process.stdout.take().unwrap()).lines();
-            let url = loop {
-                let line = step("child node becomes ready", lines.next_line())
-                    .await
-                    .unwrap()
-                    .expect("the child exited before ready");
-                if let Some((_, address)) = line.split_once("RECOVERY_CHILD_READY ") {
-                    break address.parse::<NodeUrl>().unwrap();
-                }
-            };
+            let url: NodeUrl = child_message(&mut lines, "RECOVERY_CHILD_READY ").await;
             let token = f.data.read_token().unwrap().expose().parse().unwrap();
             let owner = NodeClient::connect(
                 &url,
@@ -139,7 +147,8 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
             )
             .await
             .unwrap();
-            let original = f.active(&owner).await;
+            let (session, through) = f.start_turn(&owner).await;
+            let original = commit_in_child(&mut process, &mut lines, session, through).await;
             let id = original.id;
             let providers = Providers::capture(process.id().unwrap());
             process.start_kill().unwrap();
@@ -192,6 +201,50 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
     .unwrap();
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+struct CommitRequest {
+    session: vessel_proto::SessionId,
+    through: EventSeq,
+}
+struct Committed(vessel_proto::SessionInfo);
+impl std::str::FromStr for Committed {
+    type Err = serde_json::Error;
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(text).map(Self)
+    }
+}
+async fn child_message<T>(lines: &mut Lines<BufReader<ChildStdout>>, prefix: &str) -> T
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Debug,
+{
+    loop {
+        let line = step(prefix, lines.next_line())
+            .await
+            .unwrap()
+            .expect("the test node exited before its observation");
+        if let Some((_, value)) = line.split_once(prefix) {
+            return value.parse().unwrap();
+        }
+    }
+}
+async fn commit_in_child(
+    process: &mut Child,
+    lines: &mut Lines<BufReader<ChildStdout>>,
+    session: vessel_proto::SessionId,
+    through: EventSeq,
+) -> vessel_proto::SessionInfo {
+    let request = serde_json::to_vec(&CommitRequest { session, through }).unwrap();
+    let mut stdin = process.stdin.take().unwrap();
+    step("request the real store commit", stdin.write_all(&request))
+        .await
+        .unwrap();
+    drop(stdin);
+    let Committed(info) = child_message(lines, "RECOVERY_CHILD_COMMITTED ").await;
+    assert_eq!(info.id, session);
+    assert!(info.next_seq >= through);
+    info
+}
 async fn step<T>(label: &str, work: impl Future<Output = T>) -> T {
     tokio::time::timeout(super::WAIT, work)
         .await
@@ -206,7 +259,7 @@ fn child_command(f: &Fixture) -> tokio::process::Command {
         .env("VESSEL_RECOVERY_TEST_DATA", f.data.root())
         .env("VESSEL_RECOVERY_TEST_HOME", &f.home)
         .env("VESSEL_RECOVERY_TEST_BIN", &f.bin)
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .kill_on_drop(true);

@@ -164,3 +164,20 @@ At the subsequent clean boundary the package also consumed announced node
 remain intact. Recovery has no AgentEvent since() caller to adapt. The
 repaired immutable tree still requires narrow checks and its clean whole
 gate before package approval.
+
+## Exact committed-turn setup for recovery tests
+
+The narrow repair check found one unnecessary SessionId qualification in a
+new helper; it is removed. A further source audit found that the common
+active-turn fixture must also distinguish a live broadcast from the writer's
+committed prefix. Its ordinary RPC still starts the turn, but the local test
+then waits on the existing persistence acknowledgement for that exact event
+sequence and returns the stored session snapshot. No synthetic input, mark,
+checkpoint or provider message is used to force progress.
+
+The crash test's child owns the same real writer observation. A typed request
+on its private stdin pipe asks only to observe that prefix; the child reports
+the actual stored snapshot before the parent sends SIGKILL. This neither adds
+a product RPC nor bypasses authority for an effect. The fake provider and all
+existing recovery assertions/deadlines retain their behavior. These changes
+are still candidates until the next immutable test and package gate.

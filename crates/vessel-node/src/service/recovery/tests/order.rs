@@ -13,7 +13,7 @@ async fn only_two_auto_loads_start_and_a_manual_queued_resume_consumes_its_inten
             let node = f.start().await;
             let owner = f.client(&node).await;
             set(&node, true).await;
-            let candidates = active_candidates(&owner, &f).await;
+            let candidates = active_candidates(&node, &owner, &f).await;
             node.stop().await.unwrap();
             let gate = LoadGate::install(&f).await;
             let node = f.start().await;
@@ -104,10 +104,10 @@ type Candidate = (
     vessel_proto::HarnessSessionId,
     EventSeq,
 );
-async fn active_candidates(owner: &NodeClient, f: &Fixture) -> Vec<Candidate> {
+async fn active_candidates(node: &Node, owner: &NodeClient, f: &Fixture) -> Vec<Candidate> {
     let mut candidates = Vec::new();
     for _ in 0..CANDIDATES {
-        let info = f.active(owner).await;
+        let info = f.active(node, owner).await;
         let id = info.id;
         let records = owner
             .read(id, EventSeq::ZERO, EVENT_PAGE)

@@ -56,7 +56,7 @@ async fn invalidated(change: Invalidate) {
             let owner = f.client(&node).await;
             set(&node, true).await;
             let (id, device) = pair(&node, &owner).await;
-            let original = f.active(&device).await;
+            let original = f.active(&node, &device).await;
             node.stop().await.unwrap();
             drop(device);
             let gate = LoadGate::install(&f).await;

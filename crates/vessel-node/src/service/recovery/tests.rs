@@ -98,7 +98,19 @@ impl Fixture {
         .await
         .unwrap()
     }
-    async fn active(&self, client: &NodeClient) -> vessel_proto::SessionInfo {
+    async fn active(&self, node: &Node, client: &NodeClient) -> vessel_proto::SessionInfo {
+        let (id, through) = self.start_turn(client).await;
+        let info = committed(node, id, through).await;
+        let kept = client.read(id, EventSeq::ZERO, EVENT_PAGE).await.unwrap();
+        assert!(kept.records.iter().any(|record| matches!(
+            record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnStarted { .. }
+            }
+        )));
+        info
+    }
+    async fn start_turn(&self, client: &NodeClient) -> (SessionId, EventSeq) {
         let spec = SessionSpec::new(
             HarnessKind::ClaudeCode,
             SessionMode::Structured {
@@ -133,7 +145,7 @@ impl Fixture {
             .await
             .unwrap();
         assert_eq!(delivered, vessel_proto::Delivered::Started);
-        loop {
+        let through = loop {
             let record = stream.next().await.unwrap().unwrap();
             if matches!(
                 record.event,
@@ -141,19 +153,39 @@ impl Fixture {
                     event: AgentEvent::TurnStarted { .. }
                 }
             ) {
-                break;
+                break record.seq.next().unwrap();
             }
-        }
-        // Read waits for persistence through the captured produced prefix.
-        let kept = client.read(id, EventSeq::ZERO, EVENT_PAGE).await.unwrap();
-        assert!(kept.records.iter().any(|record| matches!(
-            record.event,
-            SessionEvent::Agent {
-                event: AgentEvent::TurnStarted { .. }
-            }
-        )));
-        client.session(id).await.unwrap()
+        };
+        (id, through)
     }
+}
+async fn committed(
+    node: &Node,
+    session: SessionId,
+    through: EventSeq,
+) -> vessel_proto::SessionInfo {
+    // A live event precedes its info-watch update. Wait on the real writer's
+    // acknowledged prefix, so a kill test cannot race its own setup commit.
+    let crate::sessions::Found::Live { mut durability, .. } =
+        node.secure.service.0.sessions.find(session).await.unwrap()
+    else {
+        panic!("the active fake turn ended before its commit barrier");
+    };
+    crate::persist::wait_until(session, &mut durability, through)
+        .await
+        .unwrap();
+    let info = node
+        .secure
+        .service
+        .0
+        .sessions
+        .store()
+        .session(session)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(info.next_seq >= through);
+    info
 }
 fn change(enabled: bool) -> SetNodeSettings {
     SetNodeSettings {
@@ -199,7 +231,7 @@ async fn final_admission(invalidation: Invalidation) {
             let node = f.start().await;
             let owner = f.client(&node).await;
             set(&node, true).await;
-            let original = f.active(&owner).await;
+            let original = f.active(&node, &owner).await;
             node.stop().await.unwrap();
             let gate = LoadGate::install(&f).await;
             let node = f.start().await;
