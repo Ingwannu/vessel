@@ -179,3 +179,14 @@ half of the 48h lifetime. The committed update rechecks current Read/revocation
 and never resurrects an expired or missing lease. Node-owner and agent/delegated
 origins cannot borrow another device's subscription identity. A renewed expiry
 also prevents a late old 410 from deleting that newer lease.
+
+## Local error attention is independent of Web Push eligibility
+
+Paseo websocket-server.ts:2899-2904 passes every attention reason to the local
+recipient election, while agent-attention-policy.ts:77-79 excludes error ONLY
+from push eligibility. Local admission therefore accepts an exact unread failed
+Inbox source with the same device/source/read/once-only checks. Web Push
+candidates and final push admission still exclude failed outcomes. Generic OS
+content and focused-target suppression do not change; no new wire or scope is
+introduced. A real-store regression checks local once-only admission, shared
+read suppression and exclusion from the actual Web Push candidate query.

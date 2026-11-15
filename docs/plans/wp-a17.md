@@ -31,9 +31,10 @@ Paths are relative to the Paseo 0.15.4 reference checkout.
 - `packages/app/src/subagents/workspace-root-policy.ts:6-16`: no current parent OR
   known different workspace qualifies a workspace-relative root. Unknown parent
   ownership is not a root.
-- `packages/app/src/utils/workspace-agent-activity.ts:22-48`: use the latest
-  eligible non-archived root by attentionTimestamp/updatedAt, not every historical
-  root. The workspace owner combines this one root with terminal activity.
+- `packages/app/src/utils/workspace-agent-activity.ts:22-48`: latest eligible
+  root selects the DISPLAY index only. Server workspace-directory.ts:365-407
+  aggregates every eligible root and working descendant with terminals; current
+  coverage/roles remain the canonical workspace owner's responsibility.
 - `packages/server/src/server/session.ts:7655-7810`: canonical workspace ownership
   for attention clearing; unread selects a newest finished/read eligible root.
   `packages/app/src/workspace/mark-unread.ts:11-25` exits pane focus first and
@@ -437,3 +438,18 @@ pinned reference boundary; before/at/after tests and revoked-row absence match
 the corrected node fixtures. Fake handlers only deny the existing pending calls;
 no method row, SDK authority, version or runtime branch is imported. Root union
 strict/tests remain owed; prior native1090 tests do not establish that result.
+
+Source follow-up: the new lease test incorrectly treated internal list metadata
+as delivery authority after scope loss. Listing may retain the unrenewed row;
+current Read is rechecked at final admission. The node test now checks that
+actual predicate; revoke still requires exact absence and expired/readless
+leases retain no extended expiry. An explicit redundant trait import is removed
+after actual strict diagnostics. Prior failed test/strict runs remain red.
+
+Local OS failure attention was incorrectly sharing Web Push reason eligibility.
+Pinned websocket-server.ts:2899-2904 elects a local recipient for errors, while
+agent-attention-policy.ts:77-79 suppresses only error PUSH. The local store claim
+and native opportunity/current-form gates now accept failed sources, preserving
+exact identity, unread, authority, once-only and focus checks. Web Push filters
+remain unchanged. New real-store and native opportunity regressions are owed
+execution; no source/runtime PASS is inferred from this correction.

@@ -138,7 +138,8 @@ impl Content {
         }
     }
 
-    /// Notification eligibility mirrors Paseo: errors stay in the inbox.
+    /// Local notification opportunities include errors; node Web Push separately
+    /// excludes error reasons, as Paseo does. A node claim is always required.
     #[must_use]
     pub const fn announces(&self) -> bool {
         match self {
@@ -146,8 +147,9 @@ impl Content {
             | Self::Question(_)
             | Self::InSession
             | Self::Finished
+            | Self::Failed
             | Self::Limit => true,
-            Self::Failed | Self::Unknown => false,
+            Self::Unknown => false,
         }
     }
 }

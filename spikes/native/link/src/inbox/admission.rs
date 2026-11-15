@@ -68,8 +68,59 @@ fn current(entry: Option<&InboxEntry>, pending: &Pending) -> bool {
                 | InboxItem::Question { .. }
                 | InboxItem::InSession { .. }
                 | InboxItem::Finished
+                | InboxItem::Failed
                 | InboxItem::Limit => true,
-                InboxItem::Failed | InboxItem::Unknown => false,
+                InboxItem::Unknown => false,
             }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn failed_local_attention_still_requires_exact_unread_current_source() {
+        let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
+        let source = vessel_app_view::inbox::Source::new(
+            epochs
+                .admit(
+                    vessel_app_view::connection::MachineKey::from_book("fixture"),
+                    vessel_proto::NodeId::random(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let mut entry = InboxEntry {
+            cursor: vessel_proto::inbox::InboxCursor::new(1),
+            key: vessel_proto::inbox::InboxKey {
+                session: vessel_proto::SessionId::random(),
+                seq: vessel_proto::EventSeq::ZERO,
+            },
+            title: None,
+            project: None,
+            project_name: None,
+            at: chrono::DateTime::UNIX_EPOCH,
+            read: InboxRead::Unread,
+            item: InboxItem::Failed,
+        };
+        let pending = Pending {
+            key: vessel_app_view::inbox::Key {
+                node: source.node(),
+                session: entry.key.session,
+                seq: entry.key.seq,
+            },
+            source,
+            position: vessel_app_view::inbox::Position::new(entry.cursor.get()),
+            request: vessel_app_view::inbox::Inbox::default().ticket().unwrap(),
+        };
+        assert!(current(Some(&entry), &pending));
+        entry.read = InboxRead::Read;
+        assert!(!current(Some(&entry), &pending));
+        entry.read = InboxRead::Unread;
+        entry.cursor = vessel_proto::inbox::InboxCursor::new(2);
+        assert!(!current(Some(&entry), &pending));
+        entry.cursor = vessel_proto::inbox::InboxCursor::new(pending.position.get());
+        entry.item = InboxItem::Unknown;
+        assert!(!current(Some(&entry), &pending));
+    }
 }
