@@ -270,7 +270,7 @@ async fn cancelled_registrations_share_the_retained_admission_budget_and_dedupli
                 }
             }
         }).await.unwrap();
-        assert_eq!(fixture.tasks.len(), baseline + queued);
+        assert_eq!(fixture.tasks.len(), baseline.checked_add(queued).unwrap());
         // The actual caller disappears after its separately tracked insert has started.
         drop(request);
     }
@@ -280,11 +280,14 @@ async fn cancelled_registrations_share_the_retained_admission_budget_and_dedupli
             fixture.workspaces.add_project(root.clone(), None).await,
             Err(WorkspaceError::Busy(_))
         ));
-        assert_eq!(fixture.tasks.len(), baseline + MAX_PROJECT_ADMISSIONS - 1);
+        assert_eq!(
+            fixture.tasks.len(),
+            baseline.checked_add(MAX_PROJECT_ADMISSIONS - 1).unwrap()
+        );
     }
     assert_eq!(fixture.workspaces.list_projects().await.projects.len(), 1);
     drop(admission);
-    fixture.tasks.close();
+    let _was_open = fixture.tasks.close();
     tokio::time::timeout(PROJECT_ADMISSION_TEST_DEADLINE, fixture.tasks.wait())
         .await
         .unwrap();

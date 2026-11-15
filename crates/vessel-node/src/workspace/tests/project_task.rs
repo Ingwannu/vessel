@@ -6,7 +6,10 @@ use std::sync::{Arc, Mutex};
 struct Capture(Arc<Mutex<Vec<u8>>>);
 impl std::io::Write for Capture {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        self.0.lock().unwrap().extend_from_slice(bytes);
+        self.0
+            .lock()
+            .map_err(|_poisoned| std::io::Error::other("test warning capture was poisoned"))?
+            .extend_from_slice(bytes);
         Ok(bytes.len())
     }
     fn flush(&mut self) -> std::io::Result<()> {
@@ -19,11 +22,11 @@ fn assert_sealed(error: &WorkspaceError, canary: &str, class: &str) {
     assert!(outer.contains(class));
     assert!(!outer.contains(canary));
     let mut source: Option<&dyn std::error::Error> = Some(error);
-    let mut depth = 0;
+    let mut depth = 0usize;
     while let Some(part) = source {
         assert!(!format!("{part:?} {part}").contains(canary));
         source = part.source();
-        depth += 1;
+        depth = depth.checked_add(1).unwrap();
     }
     assert_eq!(
         depth, 2,
