@@ -129,7 +129,11 @@ impl Shell {
                 ..
             }
         );
-        *self.areas.draft.restore.borrow_mut() = self.areas.draft.sending.clone();
+        self.areas
+            .draft
+            .restore
+            .borrow_mut()
+            .clone_from(&self.areas.draft.sending);
         if foreground {
             self.route_to(Route::Draft);
         }
