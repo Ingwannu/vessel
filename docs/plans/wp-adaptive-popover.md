@@ -64,6 +64,9 @@ and viewport arithmetic lints. The corrected source uses explicit callback type,
 distinct names and fused finite layout arithmetic, with no allowances. Tests have
 not run yet. No runtime, V1 or consumer-ready claim exists until exact results land.
 
-The control producer is isolated on the reviewed dd13 package line with only the
-typed dialog/snap prerequisite and this control. V1 reviews it, the lead lands it,
+The control producer is isolated with only the typed dialog/snap prerequisite and
+this control. It began on dd13; package base8/91407173 is now merged in0313d40a9
+before its next remote run, including the reviewed S2 menu lease and FieldId.
+The queued Clippy2 job still inspects its selected1a/dd13 source, not this union.
+V1 reviews the checked producer, the lead lands it,
 then W5 consumes that checked producer rather than the desktop shell WIP branch.
