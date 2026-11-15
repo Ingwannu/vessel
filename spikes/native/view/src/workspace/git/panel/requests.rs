@@ -345,7 +345,7 @@ impl PanelReads {
     }
 }
 
-/// Opaque activation from a successfully drawn summary's exact generation.
+/// Opaque activation from an accepted summary's exact generation.
 /// The owner must additionally retain and check its original connection,
 /// pane incarnation and visibility; this value grants no write capability.
 #[derive(Debug, Clone, PartialEq, Eq)]

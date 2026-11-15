@@ -10,6 +10,9 @@ limits. No current C3 capture or final whole-package gate/review exists.
 but the App safety batch isf1ab56456, after announced6ebdf8e8. Later1541d314b
 adds the pure accepted-summary FileReadTarget/callback-generation guard and its
 four regressions; it is UNCOMPILED and not covered by the f1ab selections.
+The single View-only regression selection170244 on1541 is queued; the later
+doc-comment clarification changes no rule or assertion and does not borrow an
+exact-source pass. Accepted does not prove painted or physically authorized.
 Its actual body consumer, pagination and retention budget remain pending. Node head
 is34bb9f843, after announced9c150c6e. The isolated control Rust head is4133964f6;
 docs000fc16e5 records V1 bounded SOURCE/requested KitClippy+diff19 clearance,
