@@ -54,6 +54,8 @@ pub enum Column {
     LatestPlan,
     /// `sessions.labels` (a `SessionLabels`, the labels migration, ADR 0063).
     Labels,
+    /// `sessions.title_origin` (a `TitleOrigin`, ADR 0062).
+    TitleOrigin,
 }
 
 /// Anything that can go wrong in the store.

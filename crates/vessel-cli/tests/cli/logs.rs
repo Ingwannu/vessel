@@ -1,6 +1,8 @@
 //! Log selection through the CLI with fake sessions and event-driven follow transitions.
 
-use crate::support::{Captured, Fixture, within};
+#[cfg(target_os = "linux")]
+use crate::support::interrupt;
+use crate::support::{Captured, ChildGuard, Fixture, within};
 use std::time::Duration;
 
 use vessel_client::NodeClient;
@@ -54,18 +56,9 @@ async fn tail_keeps_the_last_records_without_a_false_retention_notice_and_zero_i
     .await;
 }
 
-/// A failed assertion must not leave the following CLI alive.
-struct Following(tokio::process::Child);
-
-impl Drop for Following {
-    fn drop(&mut self) {
-        let _already_ended = self.0.start_kill();
-    }
-}
-
-fn following(fixture: &Fixture, session: SessionId) -> (Following, Captured, Captured) {
+fn following(fixture: &Fixture, session: SessionId) -> (ChildGuard, Captured, Captured) {
     let id = session.to_string();
-    let mut child = Following(fixture.spawn_vessel_at(
+    let mut child = ChildGuard(fixture.spawn_vessel_at(
         &fixture.node_address(),
         &["log", &id, "--follow", "--filter", "text", "--tail", "1"],
     ));
@@ -202,26 +195,6 @@ async fn follow_keeps_the_history_cursor_and_prints_a_future_match_once() {
         fixture.stop().await;
     })
     .await;
-}
-
-#[cfg(target_os = "linux")]
-async fn interrupt(child: &mut tokio::process::Child) {
-    assert!(child.try_wait().unwrap().is_none());
-    let pid = child.id().unwrap();
-    let executable = tokio::fs::read_link(format!("/proc/{pid}/exe"))
-        .await
-        .unwrap();
-    let expected = tokio::fs::canonicalize(env!("CARGO_BIN_EXE_vessel"))
-        .await
-        .unwrap();
-    assert_eq!(executable, expected);
-    let status = tokio::process::Command::new(which::which("kill").unwrap())
-        .arg("-INT")
-        .arg(pid.to_string())
-        .status()
-        .await
-        .unwrap();
-    assert!(status.success());
 }
 
 #[cfg(target_os = "linux")]

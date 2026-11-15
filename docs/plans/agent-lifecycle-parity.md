@@ -278,12 +278,59 @@ No row of the crate table changes.
   and a bad `--since` fail before connect. Follow's first print is the
   last 10 matching records when `--tail` is omitted.
 
+## Existing interrupt-loop repair
+
+- The read-only script output path in `attach/mod.rs::print_output` and
+  `terminals.rs::ports` recreate `ctrl_c()` within each select. As with the
+  corrected log loop, the receiver disappears during an awaited write.
+- Decision: modify each loop using the existing Tokio dependency: construct
+  and pin one future before the loop, polling interruption first. Keep script
+  detach, port revisions, rendering, reconnects and watched resources intact.
+  A shared controller or a new dependency would add no needed behavior.
+  Both loops now retain that future; interruption is polled before data.
+- The existing owned-child cleanup and executable-checked SIGINT helper are
+  first shared by the tests, with existing log assertions unchanged.
+- This is a separate corrective slice from log follow. Tests use owned CLI
+  children and real signals against temporary fakes/scripts. A claimed
+  signal-during-write case must acknowledge that write deterministically;
+  otherwise report the unforced interleaving explicitly, without adding a
+  product-only test hook or using sleeps as synchronization. The Linux cases
+  acknowledge real script output and a changed ports snapshot before SIGINT,
+  then check successful exit and the still-live script/session/listeners.
+  They cannot force a specific pending write through the public harness.
+  The script executable is the existing fake in sleeper mode; only approved
+  project configuration is written, with no generated executable script.
+
+## Shared base defects and deferred wiring
+
+- The existing move stop helper (`vessel-session/src/moving.rs::stop_agent`
+  and its local `signal`) logs `SignalError` and continues. This is a base
+  defect relative to the reload contract's refusal when stopping fails. It
+  must be corrected by the shared runtime owner before reload can reuse it;
+  copying it would risk starting a replacement while the old process lives.
+- `SessionEvent::since` currently returns a plain protocol version. The shared
+  protocol owner must define how a new event represents unassigned availability
+  before `LabelsChanged` or `Reloaded` is put on the wire. Reuse the existing
+  gap-free redacted stand-ins once that shape exists, with no base-version or
+  maximum-version fallback and no second projection technique.
+- The latest merged node head now has the shared request accessor. Future
+  call and field admission must use it and the one method table. Work held
+  for the shared call-plumbing batch remains staged until that batch; event
+  availability still waits for the protocol owner's named shape.
+
 ## Resume point
 
 - Reviewed: slice 1 contract and slice 2a validating types. Bounds,
   diagnostics and boundary tests use each type's named constants.
 - The named node head is merged without rewriting earlier commits. Its
-  usage ledger, shared compatibility cases and document paragraphs remain.
+  usage ledger, shared compatibility cases and document paragraphs remain. The
+  latest announced head is merged at the next clean slice boundary as well;
+  its protocol constant, migration order and assigned labels schema win.
+  Protocol assertions use the named constant. The only manual conflict keeps
+  the head's inbox argument module/export and adds the log module/export.
+  The subsequent accessor head is merged before implementation begins. Its
+  existing Log export stays, with the LogMode export appended; no head
+  protocol, schema or expectation is changed.
 - Slice 2b keeps creation/current labels separately in durable storage.
   `lifecycle_version::SINCE` remains unassigned (`None`); both maps are
   hidden in direct replies, lists, subscriptions, saved/scheduled specs,
@@ -375,7 +422,14 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Next: check and fully gate the corrected follow slice 5c while
+- The corrected follow gate passed 1992/0/12 plus its two TS freshness tests,
+  with no waiver or rerun, and was submitted for review. The next clean slice
+  begins on the newly announced node head. The older attach/ports interrupt
+  repair passed narrow clippy and all five CLI cases selected by interrupt,
+  including both new script/ports signal cases. They check normal real signals
+  and resource survival, with the exact write interleaving still unforced.
+  Its separate complete gate remains owed.
+- Next: run the complete gate for the older interrupt-loop repair while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
