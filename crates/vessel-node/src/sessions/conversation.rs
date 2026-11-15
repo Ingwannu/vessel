@@ -12,6 +12,9 @@ use vessel_session::{SessionError, SessionHandle};
 
 use super::{Found, Sessions};
 use crate::error::ServiceError;
+use crate::persist;
+
+const SNAPSHOT_COMMIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 impl Sessions {
     pub(crate) async fn send(
@@ -131,7 +134,21 @@ impl Sessions {
     /// live one's from its runtime, an ended one's from the store.
     pub(crate) async fn conversation(&self, id: SessionId) -> Result<Conversation, ServiceError> {
         let mut conversation = match self.find(id).await? {
-            Found::Live { handle, .. } => Ok(handle.conversation()?),
+            Found::Live {
+                handle,
+                mut durability,
+            } => {
+                let snapshot = handle.conversation()?;
+                if let Some(through) = snapshot.through {
+                    tokio::time::timeout(
+                        SNAPSHOT_COMMIT_TIMEOUT,
+                        persist::wait_until(id, &mut durability, through),
+                    )
+                    .await
+                    .map_err(|_elapsed| persist::Unpersisted(id))??;
+                }
+                Ok(snapshot)
+            }
             Found::Stored(info) => match info.spec.mode {
                 SessionMode::Terminal { .. } => {
                     Err(SessionError::Terminal("a conversation").into())

@@ -61,6 +61,8 @@ export type Entry =
       kind: "question";
       question: Question;
       outcome: QuestionOutcome | null;
+      available?: boolean;
+      observed?: number;
     })
   | (Base & { kind: "message"; text: string })
   | (Base & { kind: "thought"; text: string })
@@ -71,6 +73,8 @@ export type Entry =
       request: PermissionRequest;
       title: string;
       outcome: PermissionOutcome | null;
+      available?: boolean;
+      observed?: number;
     })
   | (Base & {
       kind: "turn_ended";
@@ -94,6 +98,15 @@ export type Entry =
   | (Base & { kind: "profile"; from: string | null; to: string | null })
   | (Base & { kind: "model"; call: ModelCall });
 
+export interface PendingPermission {
+  request: PermissionRequest;
+  title: string;
+}
+export interface AuthoritativeRequests {
+  through: number;
+  /** Requests whose announcements were pruned; no log row is fabricated. */
+  permissions: readonly PermissionRequest[];
+}
 export interface Timeline {
   entries: readonly Entry[];
   /** The latest plan. */
@@ -110,7 +123,8 @@ export interface Timeline {
    * node counts unread; -1 before one. */
   attention: number;
   /** The first permission request still unanswered. */
-  pending: Extract<Entry, { kind: "permission" }> | null;
+  pending: PendingPermission | null;
+  authoritative?: AuthoritativeRequests;
   /** Paths the session's tool calls touched, in first-touched order. */
   files: readonly string[];
   /** The session's status, as its records last said. */
@@ -247,6 +261,7 @@ export function firstPending(
     if (
       entry?.kind === "permission" &&
       entry.outcome === null &&
+      entry.available !== false &&
       (first === null || entry.seq < first.seq)
     ) {
       first = entry;

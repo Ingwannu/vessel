@@ -479,3 +479,26 @@ Prepared state, capacity, option mapping, snapshot and degraded inbox lifetime
 tests are unexecuted. Positive provider producer/transition fakes remain W22's
 proof; current drivers still return Unsupported. This is staged implementation,
 not a package/consumer/provider readiness declaration.
+
+### Snapshot coverage and pruned client history
+
+Live conversation reads now wait for the captured actor projection's exclusive
+through watermark to reach the ordinary persistence barrier (bounded timeout).
+Durable questions are overlaid from their retained current state; they may be
+newer than that lower coverage fence and never grant action authority by display.
+A client applies authoritative absence only after its stream has reached that
+fence, only to earlier observed requests, and never overwrites a newer real
+request refresh or a known resolution. Older snapshots and old-node responses
+without through cannot retire cards. Covered absence changes availability only;
+it does not fabricate a cancellation/answer outcome or a log record.
+
+A snapshot may provide a pending request whose announcement has been pruned.
+The web client keeps that as a dock request, without inventing an EventSeq or
+historical timeline row. An actual later request/settlement retires that separate
+snapshot attachment through the same exact request id. Questions use the same
+coverage rules and keep their original fields/drafts while non-pending responses
+remain disabled. Reconnect/missing-history reads refresh the bounded projection;
+there is no polling loop or client shadow queue. Tests for covered absence,
+stale/ahead snapshots and pruned-announcement settlement are prepared, not yet
+executed. This is client reconciliation and never substitutes for provider or
+node response validation.

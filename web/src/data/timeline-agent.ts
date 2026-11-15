@@ -27,6 +27,7 @@ export interface AgentWork {
   attention: number;
   readonly permissions: Map<string, number>;
   readonly questions: Map<string, number>;
+  retireSnapshotPermission: (id: string) => void;
   merge: (base: Base, kind: TextKind, text: string) => void;
   findTool: (
     id: string,
@@ -97,6 +98,7 @@ export function applyAgent(
       work.entries.push({ ...base, kind: "plan", entries: event.entries });
       return;
     case "permission_requested": {
+      work.retireSnapshotPermission(event.id);
       const call = event.tool_call
         ? work.findTool(event.tool_call, event.tool_scope)
         : undefined;
@@ -106,6 +108,8 @@ export function applyAgent(
         work.entries[existingIndex] = {
           ...existing,
           request: event,
+          observed: base.seq,
+          available: true,
           title:
             event.presentation?.title ?? call?.tool.title ?? existing.title,
         };
@@ -124,10 +128,15 @@ export function applyAgent(
       return;
     }
     case "permission_resolved": {
+      work.retireSnapshotPermission(event.id);
       const index = work.permissions.get(event.id);
       const entry = entryAt(work.entries, index);
       if (index !== undefined && entry?.kind === "permission") {
-        work.entries[index] = { ...entry, outcome: event.outcome };
+        work.entries[index] = {
+          ...entry,
+          outcome: event.outcome,
+          observed: base.seq,
+        };
       }
       return;
     }
@@ -215,7 +224,12 @@ function conversationEntry(
       const existing = entryAt(work.entries, index);
       if (index !== undefined && existing?.kind === "question") {
         if (existing.outcome === null)
-          work.entries[index] = { ...existing, question: event };
+          work.entries[index] = {
+            ...existing,
+            question: event,
+            observed: base.seq,
+            available: true,
+          };
         return;
       }
       work.questions.set(event.id, work.entries.length);
@@ -237,7 +251,11 @@ function conversationEntry(
       const index = work.questions.get(event.id);
       const entry = entryAt(work.entries, index);
       if (index !== undefined && entry?.kind === "question") {
-        work.entries[index] = { ...entry, outcome: event.outcome };
+        work.entries[index] = {
+          ...entry,
+          outcome: event.outcome,
+          observed: base.seq,
+        };
       }
       return;
     }

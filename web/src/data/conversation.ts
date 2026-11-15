@@ -44,7 +44,10 @@ export interface Steer {
 /** A question the agent asked, and how it was settled (`null` while it
  * waits). */
 export interface Asked {
-  seq: number;
+  seq?: number;
+  observed?: number;
+  snapshotThrough?: number;
+  available?: boolean;
   question: Question;
   outcome: QuestionOutcome | null;
 }
@@ -179,7 +182,7 @@ function turn(
         questions: known
           ? conversation.questions.map((asked) =>
               asked.question.id === question.id && asked.outcome === null
-                ? { ...asked, question }
+                ? { ...asked, question, observed: record.seq, available: true }
                 : asked,
             )
           : [
@@ -202,5 +205,7 @@ function turn(
 
 /** The questions still waiting for an answer, oldest first. */
 export function waitingQuestions(conversation: Conversation): Asked[] {
-  return conversation.questions.filter((asked) => asked.outcome === null);
+  return conversation.questions.filter(
+    (asked) => asked.outcome === null && asked.available !== false,
+  );
 }

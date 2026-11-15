@@ -15,7 +15,7 @@ import {
   permissionReceipt,
   respondApproval,
 } from "../../data/response-receipts";
-import type { Entry } from "../../data/timeline-model";
+import type { PendingPermission } from "../../data/timeline-model";
 import {
   Button,
   Icon,
@@ -36,7 +36,7 @@ export function PermissionDock({
 }: {
   node: NodeKey;
   session: SessionId;
-  entry: Extract<Entry, { kind: "permission" }>;
+  entry: PendingPermission;
   /** The file the tool call touches, when it says. */
   location: string | null;
 }) {

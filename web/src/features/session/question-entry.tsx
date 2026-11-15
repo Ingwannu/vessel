@@ -12,6 +12,14 @@ export function QuestionEntry({
 }: {
   entry: Extract<Entry, { kind: "question" }>;
 }) {
+  if (entry.available === false && entry.outcome === null)
+    return (
+      <div className="t-item meta-item" data-entry={entry.key}>
+        <p className="t-meta">
+          Question no longer pending · {entry.question.message}
+        </p>
+      </div>
+    );
   if (entry.outcome === null) {
     return (
       <div className="t-item meta-item perm pending" data-entry={entry.key}>

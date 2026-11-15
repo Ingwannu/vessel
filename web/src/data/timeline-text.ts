@@ -24,9 +24,11 @@ export function spoken(entry: Entry): string {
     case "steer":
       return `Steered: ${entry.text}`;
     case "question":
-      return entry.outcome === null
-        ? `The agent asks: ${entry.question.message}`
-        : questionLine(entry.outcome);
+      return entry.available === false && entry.outcome === null
+        ? `Question no longer pending: ${entry.question.message}`
+        : entry.outcome === null
+          ? `The agent asks: ${entry.question.message}`
+          : questionLine(entry.outcome);
     case "message":
       return entry.text;
     case "thought":
@@ -40,6 +42,8 @@ export function spoken(entry: Entry): string {
       return `Plan · ${String(done)} of ${String(entry.entries.length)} done`;
     }
     case "permission":
+      if (entry.available === false && entry.outcome === null)
+        return `Request no longer pending: ${entry.title}`;
       return settledLine(
         entry.title,
         settled(entry.request.options, entry.outcome),

@@ -147,6 +147,12 @@ function Item({ entry }: { entry: Entry }) {
       );
     }
     case "permission": {
+      if (entry.available === false && entry.outcome === null)
+        return (
+          <Meta>
+            <p className="t-meta">Request no longer pending · {entry.title}</p>
+          </Meta>
+        );
       const state = settled(entry.request.options, entry.outcome);
       return (
         <Meta className={`t-item meta-item perm ${state.state}`}>

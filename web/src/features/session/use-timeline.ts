@@ -11,11 +11,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
+import { readConversation } from "../../data/conversation-calls";
+import { reconcileSnapshot } from "../../data/timeline-snapshot";
 import { followSession } from "../../data/calls";
 import { EMPTY, type Timeline } from "../../data/timeline-model";
 import { reduce } from "../../data/timeline";
 import type { NodeKey, StreamState } from "../../wire/bridge";
-import type { EventRecord, SessionId } from "../../wire/proto";
+import type { Conversation, EventRecord, SessionId } from "../../wire/proto";
 
 export function useTimeline(
   node: NodeKey,
@@ -42,12 +44,24 @@ export function useTimeline(
   }
   useEffect(() => {
     let batch: EventRecord[] = [];
+    let snapshot: Conversation | null = null;
+    let disposed = false;
+    const covered = (current: Timeline) =>
+      snapshot === null ? current : reconcileSnapshot(current, snapshot);
+    const refresh = () => {
+      void readConversation(fleet, node, session).then((outcome) => {
+        if (disposed || !outcome.ok || outcome.value.through == null) return;
+        if ((snapshot?.through ?? -1) > outcome.value.through) return;
+        snapshot = outcome.value;
+        setTimeline(covered);
+      });
+    };
     let frame: number | null = null;
     const flush = () => {
       frame = null;
       const records = batch;
       batch = [];
-      setTimeline((current) => reduce(current, records));
+      setTimeline((current) => covered(reduce(current, records)));
     };
     const stop = followSession(fleet, node, session, next.current, {
       record: (record) => {
@@ -55,9 +69,14 @@ export function useTimeline(
         batch.push(record);
         frame ??= window.requestAnimationFrame(flush);
       },
-      state: setStream,
+      state: (state) => {
+        setStream(state);
+        if (state.state === "resumed" || state.state === "missing") refresh();
+      },
     });
+    refresh();
     return () => {
+      disposed = true;
       stop();
       if (frame !== null) {
         window.cancelAnimationFrame(frame);

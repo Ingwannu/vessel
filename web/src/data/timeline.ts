@@ -80,9 +80,11 @@ class Work {
   options: readonly SessionOption[] | null;
   title: string | null;
   next: number;
+  authoritative: Timeline["authoritative"];
 
   constructor(timeline: Timeline) {
     this.entries = [...timeline.entries];
+    this.authoritative = timeline.authoritative;
     this.plan = timeline.plan;
     this.turns = timeline.turns;
     this.inTurn = timeline.inTurn;
@@ -108,7 +110,18 @@ class Work {
       inTurn: this.inTurn,
       turn: this.turn,
       attention: this.attention,
-      pending: firstPending(this.entries, this.permissions),
+      pending:
+        this.authoritative?.permissions[0] === undefined
+          ? firstPending(this.entries, this.permissions)
+          : {
+              request: this.authoritative.permissions[0],
+              title:
+                this.authoritative.permissions[0].presentation?.title ??
+                "Approval",
+            },
+      ...(this.authoritative === undefined
+        ? {}
+        : { authoritative: this.authoritative }),
       files: this.files,
       status: this.status,
       usage: this.usage,
@@ -119,6 +132,16 @@ class Work {
       permissions: this.permissions,
       questions: this.questions,
     };
+  }
+
+  retireSnapshotPermission(id: string): void {
+    if (this.authoritative !== undefined)
+      this.authoritative = {
+        ...this.authoritative,
+        permissions: this.authoritative.permissions.filter(
+          (request) => request.id !== id,
+        ),
+      };
   }
 
   apply(record: EventRecord): void {
