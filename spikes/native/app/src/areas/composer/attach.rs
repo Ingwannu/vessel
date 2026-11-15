@@ -80,9 +80,10 @@ pub(super) enum LocalFileProblem {
 /// A prompt waiting for its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Waiting {
-    machine: String,
+    pub(super) machine: String,
     text: String,
     delivery: Delivery,
+    pub(super) creation: Option<vessel_app_view::creation::Ticket>,
 }
 
 /// A new chat started for its files, until its session exists.
@@ -91,6 +92,7 @@ pub(crate) struct Starting {
     pub(super) machine: String,
     pub(super) text: String,
     pub(super) ticket: Option<vessel_app_view::creation::Ticket>,
+    pub(super) files: vessel_app_view::composer::tray::Tray,
 }
 
 impl Shell {
@@ -149,7 +151,13 @@ impl Shell {
                 .iter()
                 .any(|item| matches!(item.state, ItemState::Refused(_)))
         });
-        let waiting = composer.sends.contains_key(&session);
+        let waiting = composer.sends.contains_key(&session)
+            || files
+                && composer
+                    .sends
+                    .len()
+                    .saturating_add(usize::from(composer.starting.borrow().is_some()))
+                    >= vessel_app_view::composer::trays::Trays::MAX;
         (files || !text.trim().is_empty()) && !refused && !waiting
     }
 
@@ -168,6 +176,11 @@ impl Shell {
         let DraftKey::Session { session } = key else {
             return None;
         };
+        if self.areas.composer.sends.contains_key(&session)
+            && let Some(target) = self.areas.composer.capabilities.target(session)
+        {
+            return Some(target);
+        }
         let open = self.areas.session.open.as_ref()?;
         (open.session == session && open.live && open.structured).then(|| Target {
             abilities: self.areas.conversation.timeline.facts().abilities,
@@ -214,6 +227,7 @@ impl Shell {
             machine: open.machine.clone(),
             text: text.to_owned(),
             delivery,
+            creation: None,
         };
         drop(self.areas.composer.sends.insert(session, waiting));
         self.session_composer_sent(window, cx);
@@ -248,6 +262,7 @@ impl Shell {
                 machine,
                 text: text.to_owned(),
                 delivery: Delivery::Queue,
+                creation: None,
             },
         ));
         self.areas.session.resuming = Some(text.to_owned());
@@ -289,6 +304,13 @@ impl Shell {
             machine: machine.clone(),
             text: prompt,
             ticket: None,
+            files: self
+                .areas
+                .composer
+                .trays
+                .get(DraftKey::New)
+                .cloned()
+                .unwrap_or_default(),
         });
         files_start(machine, harness, folder, options)
     }
@@ -300,7 +322,16 @@ impl Shell {
     pub(crate) fn started_with_files(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
         self.started(card, cx);
         self.new_chat_kept(cx);
-        self.composer_started(card, cx);
+        let legacy = self
+            .areas
+            .composer
+            .starting
+            .borrow()
+            .as_ref()
+            .is_some_and(|held| held.ticket.is_none());
+        if legacy {
+            self.composer_started(card, cx);
+        }
     }
 
     pub(super) fn composer_started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
@@ -319,16 +350,22 @@ impl Shell {
         };
         let session = card.session;
         let composer = &mut self.areas.composer;
-        composer
-            .trays
-            .rename(DraftKey::New, DraftKey::Session { session });
+        if let Some(draft) = composer.trays.get_mut(DraftKey::New) {
+            for captured in starting.files.items() {
+                let _removed = draft.remove(captured.key);
+            }
+        }
+        *composer.trays.tray(DraftKey::Session { session }) = starting.files;
         let waiting = Waiting {
             machine: starting.machine,
             text: starting.text,
             delivery: Delivery::Start,
+            creation: starting.ticket,
         };
         drop(composer.sends.insert(session, waiting));
-        self.composer_pump(session, cx);
+        if starting.ticket.is_none() {
+            self.composer_pump(session, cx);
+        }
     }
 
     /// A step of a file's upload to `session`: its tray follows (a tray
@@ -364,6 +401,10 @@ impl Shell {
     /// two at a time, and once all are in the prompt goes with them.
     pub(crate) fn composer_pump(&mut self, session: SessionId, cx: &mut Context<'_, Self>) {
         let composer = &mut self.areas.composer;
+        if composer.capabilities.blocked(session) {
+            cx.notify();
+            return;
+        }
         let Some(waiting) = composer.sends.get(&session).cloned() else {
             cx.notify();
             return;

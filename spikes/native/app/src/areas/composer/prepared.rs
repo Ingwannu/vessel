@@ -25,6 +25,7 @@ impl PreparedSubmission {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PrepareProblem {
     Busy,
+    Capacity,
     Machine(vessel_app_view::machines::NameProblem),
 }
 
@@ -40,6 +41,9 @@ impl Shell {
         if !self.composer_has_files(DraftKey::New) {
             return Ok(None);
         }
+        if self.areas.composer.sends.len() >= vessel_app_view::composer::trays::Trays::MAX {
+            return Err(PrepareProblem::Capacity);
+        }
         let mut held = self.areas.composer.starting.borrow_mut();
         if held.is_some() {
             return Err(PrepareProblem::Busy);
@@ -48,6 +52,13 @@ impl Shell {
             machine: machine.to_owned(),
             text: text.to_owned(),
             ticket: Some(ticket),
+            files: self
+                .areas
+                .composer
+                .trays
+                .get(DraftKey::New)
+                .cloned()
+                .unwrap_or_default(),
         });
         Ok(Some(PreparedSubmission { ticket }))
     }
@@ -66,7 +77,13 @@ impl Shell {
             .as_ref()
             .is_some_and(|held| held.ticket == Some(ticket) && held.machine == card.machine);
         if matches {
+            let Ok(machine) = vessel_app_view::machine_book::Name::parse(&card.machine) else {
+                return;
+            };
             self.composer_started(card, cx);
+            if let Err(why) = self.read_creation_capabilities(ticket, machine, card.session) {
+                self.fail_creation_preparation(card.session, &why, cx);
+            }
         }
     }
 
@@ -81,3 +98,6 @@ impl Shell {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

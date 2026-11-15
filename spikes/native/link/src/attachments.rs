@@ -31,7 +31,11 @@ use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionCh
 // The tasks need tokio's files and the node's connection, which a browser
 // has not.
 #[cfg(not(target_arch = "wasm32"))]
+mod capabilities;
+#[cfg(not(target_arch = "wasm32"))]
 mod read;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use capabilities::spawn as spawn_capabilities;
 #[cfg(not(target_arch = "wasm32"))]
 mod send;
 #[cfg(not(target_arch = "wasm32"))]
@@ -43,6 +47,8 @@ pub(crate) use send::{content, spawn};
 /// command loop stays one screen of dispatch).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Files {
+    /// Read this created session's own abilities and limits without selecting it.
+    Capabilities(CapabilityAsk),
     /// Send a file to its session beside the other commands; each step
     /// answered `Answer::Upload`.
     Send(Attach),
@@ -61,6 +67,13 @@ pub enum Files {
 /// What the link says of the files (`Event::Files`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Answer {
+    /// Capabilities belong to the captured creation ticket and session.
+    Capabilities {
+        /// Original destination.
+        ask: CapabilityAsk,
+        /// Authoritative conversation facts or a typed refusal.
+        result: Result<vessel_app_view::composer::tray::Target, CapabilityFailure>,
+    },
     /// A session resumed before its files upload; failure is translated by the area.
     Woke {
         /// The session whose composer waits.
@@ -186,4 +199,32 @@ pub enum WakeOutcome {
     Ready,
     /// The node or link refused the resume.
     Refused,
+}
+
+/// Creation correlation remains independent of the selected conversation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityAsk {
+    /// The validated node book key.
+    pub machine: vessel_app_view::machine_book::Name,
+    /// The actual created session, even when it is not selected.
+    pub session: SessionId,
+    /// The local creation which retained the files.
+    pub ticket: vessel_app_view::creation::Ticket,
+}
+/// Read failures do not fabricate an agent capability or erase retained files.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum CapabilityFailure {
+    /// All bounded preparation slots are retained by other submissions.
+    #[error("attachment preparation capacity reached")]
+    Capacity,
+    /// No connected peer accepted the read.
+    #[error("attachment capability peer is offline")]
+    Offline,
+    /// The handshake/read did not finish within its bound.
+    #[error("attachment capability read timed out")]
+    TimedOut,
+    /// Preserve the node/transport cause; no message-string dispatch.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Call(#[from] vessel_rpc::CallError),
 }

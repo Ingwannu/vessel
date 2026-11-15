@@ -55,6 +55,29 @@ impl Shell {
         cx.notify();
         Ok(())
     }
+    /// W3 seeds this only after claiming the active draft's canonical target.
+    /// History has no destination root until that draft's placement is chosen.
+    pub(crate) fn composer_seed_history(
+        &mut self,
+        target: DraftKey,
+        history: vessel_app_view::composer::context::ChatHistory,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<(), ContextProblem> {
+        if target != DraftKey::New {
+            return Err(ContextProblem::Scope);
+        }
+        self.areas
+            .composer
+            .contexts
+            .tray(target)
+            .reattach(history.into_attachment())?;
+        if let Some(field) = self.composer_field(target) {
+            field.focus(window, cx);
+        }
+        cx.notify();
+        Ok(())
+    }
     pub(super) fn composer_has_context(&self, target: DraftKey) -> bool {
         self.areas
             .composer

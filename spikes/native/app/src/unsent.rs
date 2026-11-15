@@ -143,6 +143,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             },
         }),
         // A sent image the link never read: no picture this time.
+        Command::Files(Files::Capabilities(ask)) => Event::Files(Answer::Capabilities {
+            ask,
+            result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
+        }),
         Command::Files(Files::Wake(wake)) => Event::Files(Answer::Woke {
             session: wake.session,
             outcome: vessel_app_link::attachments::WakeOutcome::Refused,

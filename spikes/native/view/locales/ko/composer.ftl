@@ -104,3 +104,6 @@ composer-context-issue = 이슈
 
 # Attachment pill subtitle identifying the source of a context snapshot.
 composer-context-plugin = 플러그인 리소스
+
+# A new or background session did not provide attachment capabilities in time.
+composer-file-capabilities-failed = 에이전트의 첨부 지원 정보를 읽지 못했습니다. 클릭하여 다시 시도하세요.

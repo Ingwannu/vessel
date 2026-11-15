@@ -179,6 +179,12 @@ impl ContextTray {
         if entries.is_empty() {
             return Ok(None);
         }
+        let total = entries.iter().try_fold(0usize, |total, entry| {
+            total.checked_add(entry.attachment.text().len())
+        });
+        if !total.is_some_and(|total| total <= super::ContextText::MAX_BYTES) {
+            return Err(ContextProblem::Text);
+        }
         let token = self.next()?;
         self.phase = Phase::Submitting(token);
         Ok(Some(Submission { token, entries }))

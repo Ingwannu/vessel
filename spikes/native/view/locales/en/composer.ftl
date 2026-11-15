@@ -113,3 +113,6 @@ composer-context-issue = Issue
 
 # Attachment pill subtitle identifying the source of a context snapshot.
 composer-context-plugin = Plugin resource
+
+# A new or background session did not provide attachment capabilities in time.
+composer-file-capabilities-failed = The agent's attachment support couldn't be read. Click to retry.

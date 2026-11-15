@@ -36,6 +36,7 @@ pub(super) enum Root {
     #[default]
     Missing,
     Reading(RootAsk),
+    Exhausted,
     Ready(RootAsk, Result<Option<WorkspaceRoot>, mentions::Failure>),
 }
 impl Shell {
@@ -84,7 +85,7 @@ impl Shell {
                             root: *root,
                         })
                     }
-                    Root::Missing | Root::Reading(_) | Root::Ready(_, _) => None,
+                    Root::Missing | Root::Exhausted | Root::Reading(_) | Root::Ready(_, _) => None,
                 }
             }
         }
@@ -115,11 +116,13 @@ impl Shell {
                         || self.areas.composer.mention_root_token.borrow().as_ref() == Some(token))
             }
             Root::Missing => false,
+            Root::Exhausted => return,
         };
         if unchanged {
             return;
         }
         let Some(ticket) = self.areas.composer.mention_root_clock.get().checked_next() else {
+            *state = Root::Exhausted;
             return;
         };
         self.areas.composer.mention_root_clock.set(ticket);
@@ -133,6 +136,22 @@ impl Shell {
         drop(state);
         self.command(Command::MentionRoot(ask));
     }
+    pub(super) fn active_file_token(
+        &self,
+        target: DraftKey,
+        cx: &vessel_app_kit::ui::App,
+    ) -> Option<mentions::Mention> {
+        let field = self.composer_field(target)?;
+        let token = mentions::active(&field.text(cx), field.caret(cx))
+            .ok()
+            .flatten()?;
+        if self.areas.composer.mention_dismissed.borrow().as_ref() == Some(&(target, token.clone()))
+        {
+            None
+        } else {
+            Some(token)
+        }
+    }
     /// Rendering observes both edits and caret-only movement without polling.
     pub(super) fn observe_file_menu(&self, target: DraftKey, cx: &mut Context<'_, Self>) {
         let Some(field) = self.composer_field(target) else {
@@ -140,7 +159,25 @@ impl Shell {
         };
         let text = field.text(cx);
         let caret = field.caret(cx);
-        if let Ok(Some(token)) = mentions::active(&text, caret) {
+        let token = mentions::active(&text, caret).ok().flatten();
+        {
+            let mut dismissed = self.areas.composer.mention_dismissed.borrow_mut();
+            if dismissed.as_ref().is_some_and(|(draft, previous)| {
+                *draft == target && token.as_ref() != Some(previous)
+            }) {
+                *dismissed = None;
+            }
+        }
+        if self.active_file_token(target, cx).is_none() && token.is_some() {
+            let _observed = self.file_menu(target).borrow_mut().model.observe(
+                None,
+                &text,
+                caret,
+                Duration::from_secs_f32(self.areas.composer.now()),
+            );
+            return;
+        }
+        if let Some(token) = token {
             self.resolve_mention_root(target, &token);
         }
         let scope = self.composer_context_scope(target).map(|scope| Scope {
@@ -206,11 +243,15 @@ impl Shell {
         let visible = !matches!(
             self.file_menu(target).borrow().model.phase(),
             mentions::Phase::Hidden
-        );
+        ) || (self.active_file_token(target, cx).is_some()
+            && matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session)));
         if !visible {
             return KeyAnswer::Pass;
         }
         if key == ComposerKey::Escape {
+            *self.areas.composer.mention_dismissed.borrow_mut() = self
+                .active_file_token(target, cx)
+                .map(|token| (target, token));
             self.file_menu(target).borrow_mut().model.dismiss();
             cx.notify();
             return KeyAnswer::Taken;

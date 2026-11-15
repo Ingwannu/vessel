@@ -223,6 +223,7 @@ impl Shell {
             if let Some(key) = tray.items().get(index).map(|item| item.key) {
                 let _retried = tray.retry(key);
             }
+            self.retry_creation_capabilities(session, cx);
             self.composer_pump(session, cx);
         }
     }

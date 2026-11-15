@@ -5,8 +5,10 @@ use std::sync::Arc;
 pub(super) const MAX_KEY: usize = 1024;
 /// A single-line pill title must not retain an unbounded provider response.
 pub(super) const MAX_TITLE: usize = 1024;
-/// Context text shares the existing durable draft bound.
-pub(super) const MAX_TEXT: usize = crate::composer::drafts::Drafts::MAX_TEXT;
+/// A Unicode history snapshot fits within the existing total draft budget.
+pub(super) const MAX_TEXT: usize = crate::composer::drafts::Drafts::MAX_TOTAL;
+/// URLs are metadata rather than arbitrary retained context bodies.
+pub(super) const MAX_URL: usize = 8192;
 
 /// Why context input was refused before changing the tray.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -88,6 +90,8 @@ impl ContextTitle {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextText(Arc<str>);
 impl ContextText {
+    /// Bound for a complete formatted snapshot, including any producer wrapper.
+    pub const MAX_BYTES: usize = MAX_TEXT;
     /// Reject oversized or NUL-bearing input before it enters retained state.
     ///
     /// # Errors
@@ -114,7 +118,7 @@ impl ContextUrl {
     /// # Errors
     /// Refuses invalid input or an unavailable transition with `ContextProblem`.
     pub fn parse(value: &str) -> Result<Self, ContextProblem> {
-        if value.len() > MAX_TEXT || !crate::links::is_web_url(value) {
+        if value.len() > MAX_URL || !crate::links::is_web_url(value) {
             return Err(ContextProblem::Url);
         }
         Ok(Self(Arc::from(value)))

@@ -139,6 +139,12 @@ impl Link {
                 }));
             }
             // Nor any sent file to read back.
+            Command::Files(crate::attachments::Files::Capabilities(ask)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Capabilities {
+                    ask,
+                    result: Err(crate::attachments::CapabilityFailure::Offline),
+                }))
+            }
             Command::Files(crate::attachments::Files::Wake(wake)) => {
                 self.emit(Event::Files(crate::attachments::Answer::Woke {
                     session: wake.session,

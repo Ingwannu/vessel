@@ -28,22 +28,26 @@ pub(super) fn menu(
     let words = shell.words.composer();
     let current = match state.model.phase() {
         Phase::Hidden => {
-            let token = shell.composer_field(target).and_then(|field| {
-                mentions::active(&field.text(cx), field.caret(cx))
-                    .ok()
-                    .flatten()
-            });
+            let token = shell.active_file_token(target, cx);
             if token.is_some() {
                 match &*shell.areas.composer.mention_root.borrow() {
-                    Root::Reading(_) => Some((
-                        Listing::Loading(words.files_loading().to_owned().into()),
-                        None,
-                    )),
-                    Root::Ready(_, Err(_)) => Some((
+                    Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
+                        Some((
+                            Listing::Loading(words.files_loading().to_owned().into()),
+                            None,
+                        ))
+                    }
+                    Root::Ready(ask, Err(_)) if matches!(target, DraftKey::Session { session } if session == ask.session) => {
+                        Some((
+                            Listing::Failed(words.files_failed().to_owned().into()),
+                            None,
+                        ))
+                    }
+                    Root::Exhausted => Some((
                         Listing::Failed(words.files_failed().to_owned().into()),
                         None,
                     )),
-                    Root::Missing | Root::Ready(_, Ok(_)) => None,
+                    Root::Missing | Root::Reading(_) | Root::Ready(_, _) => None,
                 }
             } else {
                 None

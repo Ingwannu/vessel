@@ -11,6 +11,7 @@
 //! the shell, the link and the toasts.
 
 mod attach;
+mod capabilities;
 mod context;
 mod drafts;
 mod files;
@@ -91,8 +92,15 @@ pub(crate) struct ComposerArea {
     draft_files: RefCell<mentions::FileMenu>,
     mention_root: RefCell<mentions::Root>,
     mention_root_token: RefCell<Option<vessel_app_view::composer::mentions::Mention>>,
+    mention_dismissed: RefCell<
+        Option<(
+            vessel_app_view::composer::drafts::DraftKey,
+            vessel_app_view::composer::mentions::Mention,
+        )>,
+    >,
     mention_root_clock: std::cell::Cell<vessel_app_view::composer::mentions::Ticket>,
     context_preview: context::Preview,
+    capabilities: capabilities::Capabilities,
 }
 
 impl ComposerArea {
@@ -120,8 +128,10 @@ impl ComposerArea {
             draft_files: RefCell::default(),
             mention_root: RefCell::default(),
             mention_root_token: RefCell::default(),
+            mention_dismissed: RefCell::default(),
             mention_root_clock: std::cell::Cell::default(),
             context_preview: context::Preview::new(cx),
+            capabilities: capabilities::Capabilities::default(),
         }
     }
 

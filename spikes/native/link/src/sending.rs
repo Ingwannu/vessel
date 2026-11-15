@@ -66,6 +66,13 @@ impl State {
     /// What a composer's files ask (track P's row c).
     pub(super) async fn files(&mut self, files: attachments::Files) {
         match files {
+            attachments::Files::Capabilities(ask) => {
+                let client = self
+                    .clients
+                    .get(ask.machine.as_str())
+                    .map(|connected| connected.client.clone());
+                attachments::spawn_capabilities(client, ask, self.events.clone());
+            }
             attachments::Files::Send(attach) => self.attach(attach),
             attachments::Files::Create(create) => {
                 let attachments::Create {

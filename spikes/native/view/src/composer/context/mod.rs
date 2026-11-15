@@ -82,6 +82,26 @@ pub struct Payload {
     pub url: Option<ContextUrl>,
 }
 
+/// Fork seeding has history before it has a registered destination root.
+/// The producer owns recent-history selection and its explicit truncation state.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatHistory(Payload);
+impl ChatHistory {
+    /// Every field in this snapshot has already passed the shared validators.
+    #[must_use]
+    pub const fn new(payload: Payload) -> Self {
+        Self(payload)
+    }
+    /// Preserve the history semantic kind without string dispatch at the intake.
+    #[must_use]
+    pub fn into_attachment(self) -> ContextAttachment {
+        ContextAttachment::Snapshot {
+            kind: ContextKind::ChatHistory,
+            payload: self.0,
+        }
+    }
+}
+
 /// Typed distinctions affect labels, replacement and suppression semantics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ContextKind {

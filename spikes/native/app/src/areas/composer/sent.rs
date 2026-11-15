@@ -188,6 +188,7 @@ impl Shell {
     /// reads begin.
     pub(crate) fn composer_answered(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         match answer {
+            Answer::Capabilities { ask, result } => self.composer_capabilities(ask, result, cx),
             Answer::Woke { session, outcome } => match outcome {
                 vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
                 vessel_app_link::attachments::WakeOutcome::Refused => {

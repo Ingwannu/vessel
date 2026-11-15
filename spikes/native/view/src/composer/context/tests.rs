@@ -149,3 +149,36 @@ fn metadata_is_validated_and_unsafe_links_are_refused() {
     assert!(ContextUrl::parse("javascript:alert(1)").is_err());
     assert!(ContextUrl::parse("https://example.invalid/context").is_ok());
 }
+
+#[test]
+fn history_accepts_recent_unicode_context_and_bounds_the_complete_submission() {
+    let history = "한".repeat(100_000);
+    let wrapped = format!("<chat-history-summary>\n{history}\n</chat-history-summary>");
+    let history = ChatHistory::new(Payload {
+        id: ContextId::parse("history").unwrap(),
+        title: ContextTitle::parse("Chat history").unwrap(),
+        text: ContextText::parse(&wrapped).unwrap(),
+        url: None,
+    });
+    let mut tray = ContextTray::default();
+    tray.add(history.into_attachment()).unwrap();
+    assert_eq!(
+        tray.prepare()
+            .unwrap()
+            .unwrap()
+            .attachments()
+            .next()
+            .unwrap()
+            .text(),
+        wrapped
+    );
+    let mut too_much = ContextTray::default();
+    let large = "x".repeat(ContextText::MAX_BYTES);
+    too_much
+        .add(snapshot(ContextKind::Review, "one", &large))
+        .unwrap();
+    too_much
+        .add(snapshot(ContextKind::Review, "two", "extra"))
+        .unwrap();
+    assert_eq!(too_much.prepare(), Err(ContextProblem::Text));
+}
