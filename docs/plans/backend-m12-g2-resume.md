@@ -121,3 +121,17 @@ The24 images cover normal/danger/plain-muted ordinary14/16 rows and Normal pendi
 An observed exit/focus limitation is recorded in every input witness: after pointer-close, keyboard-close and Escape the root F5 callback produced no fresh event; reopening the menu restored it. Stale state was never substituted for a fresh observation. The current close remains state-only; establish parent/root focus restoration and production impact before claiming the retained-keyboard behaviour passes. Do not apply an area close/reopen workaround. This finding needs the next reviewed shared-menu slice, not an untested last-minute source change.
 
 No additional product Rust was changed after `ab1983e4`. All future controls and the original list remain external, unverified preparation as listed above. G1 confirmed that it consumed none of the new stack after the stop notice and that its real first-use evidence is still pending. The current slice's committed source/gate remains available independently of these remaining runtime obligations.
+
+### Typed published-menu gate completed
+
+`ef91b954` now has a passing A13 whole native run:
+`schedules-20261115T024307Z-ef91b954`, six zero steps/no skips,
+1075 ordinary plus2 documentation tests passed/0 failed/1 inherited ignored.
+The driver completed; no replacement run is needed for documentation edits.
+V1 review remains pending. New v2 probe evidence and its unresolved after-close
+keyboard routing observation are documented in the restoration note. The
+partial-host-error Banner geometry still awaits explicit shared-control
+assignment: G4 confirmed no equivalent active profile and is frozen on its
+own slice. No area override or parallel notice was implemented. Automation
+screens remain undelivered; resume with the schedules list, its new Fluent
+labels and the separately retained accepted cadence/error tables.

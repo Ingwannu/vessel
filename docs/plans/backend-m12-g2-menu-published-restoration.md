@@ -77,3 +77,38 @@ Next: finish the designated-machine whole gate and runtime checks, send the
 immutable control slice to review, then consume it in the schedules
 list. The list's new labels use Fluent; accepted cadence/error words remain
 in their existing table for the separate translation migration.
+
+## Whole-gate result and new runtime evidence
+
+The exact `ef91b954` whole run `schedules-20261115T024307Z-ef91b954`
+completed with all six native steps zero, no skip: fonts, fmt, quality,
+all-targets Clippy, app build and tests. The ten raw test summaries total
+1075 ordinary tests and two documentation tests passed, zero failed, one
+inherited ignored. Kit and App were actually checked and compiled; the
+unchanged View/Link outputs had already been checked in the preceding narrow
+run. No whole native gate was run on the saturated development machine.
+
+Fresh evidence `shots/resumed-controls-v2-ef91` uses the external, uncommitted
+example `resume-controls-probe-v2.rs`, not an installable fixture route.
+The build record pins its patch, binary, original product source and ignored
+fonts/configuration. The previous pilot with an obsolete caption is excluded.
+The first24 menu captures and additional28 Ghost/KeepOpen captures were all
+personally opened: both themes, normal/pending/success, long one-line EN/KO
+labels, selectable muted items, pointer and keyboard activation, and explicit
+Escape dismissal. These are shared-control probes, not the Automation list
+or Git/provider first-use evidence. Their full per-image manifests state the
+actual dimensions and exact language/state coverage.
+
+An unresolved routing observation remains: after pointer/Enter/Escape closes
+the menu, the probe root no longer receives its F5 witness. The native window
+retains the probe PID as focus, and reopening the menu restores root delivery.
+This does not establish production impact or a cause, and keyboard focus
+restoration is not claimed to pass. No area workaround was added.
+
+Actual shaped `Schedules예약` glyphs requested at300 match the name-only
+Light proof families byte-for-byte (bounds, dimensions and raster mask), and
+differ from Regular. The proof families change no outline, metric or weight
+table and are not shipped. This is Linux/these11 glyphs at14 logical pixels
+and scale1 only. V1 has received the method and artifacts; independent review
+and UI approval remain pending. Remaining interaction/motion evidence and
+first-use screens are reported separately, without rerunning unchanged Rust.
