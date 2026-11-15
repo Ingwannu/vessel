@@ -200,7 +200,7 @@ pub(super) fn failure(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    super::tool_body::failure(
+    tool_body::failure(
         &BodyPaint::from(paint),
         ElementId::NamedInteger("canonical-tool-error".into(), super::entries::id(index)),
         failure,

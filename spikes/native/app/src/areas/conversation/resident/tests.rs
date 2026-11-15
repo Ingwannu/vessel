@@ -141,6 +141,26 @@ fn assert_origin_is_separate(
     origin_seat
 }
 
+fn assert_effect_settles_once(shell: &mut Shell, binding: FollowBinding) {
+    let ticket = shell
+        .areas
+        .session_residents
+        .admit_operation(binding, OperationKind::Timeline)
+        .unwrap();
+    assert!(
+        shell
+            .conversation_settled_scoped(binding, ticket, |area| {
+                area.fold_records(&[record(2, " accepted")])
+            })
+            .unwrap()
+    );
+    assert!(matches!(
+        shell.conversation_settled_scoped(binding, ticket, |area| area
+            .fold_records(&[record(3, " duplicated")])),
+        Err(ResidentProblem::UnadmittedOperation)
+    ));
+}
+
 #[gpui::test]
 fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
     cx: &mut TestAppContext,
@@ -180,23 +200,7 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             shell.conversation_input_scoped(&b),
             Err(ResidentProblem::Held)
         ));
-        let ticket = shell
-            .areas
-            .session_residents
-            .admit_operation(binding_a, OperationKind::Timeline)
-            .unwrap();
-        assert!(
-            shell
-                .conversation_settled_scoped(binding_a, ticket, |area| {
-                    area.fold_records(&[record(2, " accepted")])
-                })
-                .unwrap()
-        );
-        assert!(matches!(
-            shell.conversation_settled_scoped(binding_a, ticket, |area| area
-                .fold_records(&[record(3, " duplicated")])),
-            Err(ResidentProblem::UnadmittedOperation)
-        ));
+        assert_effect_settles_once(shell, binding_a);
         shell
             .areas
             .session_residents

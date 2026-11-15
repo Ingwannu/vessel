@@ -9,9 +9,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window, div,
     px,
 };
-use vessel_app_kit::{
-    DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, dialog, output_box,
-};
+use vessel_app_kit::{DialogContent, DialogSize, Start, Tokens, breakpoint, dialog, output_box};
 use vessel_app_view::prefs::ReasoningExpansion;
 use vessel_app_view::timeline::{EntryKey, EntryKind, Folds, Timeline, plan_text};
 

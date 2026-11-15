@@ -88,11 +88,11 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     });
     draw(cx);
     assert_eq!(observed.borrow().last().unwrap(), "a");
-    let _startup = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let _startup = cx.update(Window::simulate_next_frame);
     let before_growth = observed.borrow().len();
     view.update_in(cx, |probe, _, cx| {
         probe.text.push_str(&"b".repeat(300));
-        probe.revision += 1;
+        probe.revision = probe.revision.saturating_add(1);
         cx.notify();
     });
     draw(cx);
@@ -101,7 +101,7 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
         "a",
         "first arrival render changes only the target"
     );
-    let scheduled = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let scheduled = cx.update(Window::simulate_next_frame);
     assert_eq!(
         scheduled, 1,
         "one outstanding callback across repeated draws"
@@ -109,7 +109,7 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     draw(cx);
     let shown = observed.borrow().last().unwrap().len();
     assert!(shown > 1 && shown < 301);
-    let _old = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let _old = cx.update(Window::simulate_next_frame);
     view.update_in(cx, |probe, _, cx| {
         probe.phase = TextPhase::Complete;
         cx.notify();
@@ -117,24 +117,24 @@ fn mounted_rows_request_frames_only_for_backlog_and_motion_policy_completes(
     draw(cx);
     assert_eq!(observed.borrow().last().unwrap().len(), 301);
     let paints_before_drain = observed.borrow().len();
-    let completed = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let completed = cx.update(Window::simulate_next_frame);
     assert!(completed <= 1);
     assert_eq!(
         observed.borrow().len(),
         paints_before_drain,
         "settled callback cannot wake the row"
     );
-    assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
+    assert_eq!(cx.update(Window::simulate_next_frame), 0);
     view.update_in(cx, |probe, _, cx| {
         probe.text.push_str("reduced");
-        probe.revision += 1;
+        probe.revision = probe.revision.saturating_add(1);
         probe.phase = TextPhase::Streaming;
         cx.set_reduce_motion(true);
         cx.notify();
     });
     draw(cx);
     assert_eq!(observed.borrow().last().unwrap().len(), 308);
-    assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
+    assert_eq!(cx.update(Window::simulate_next_frame), 0);
 }
 
 #[gpui::test]
@@ -163,7 +163,7 @@ fn equal_entry_numbers_and_revisions_in_a_new_session_do_not_reuse_a_paced_prefi
         now: Duration::ZERO,
     });
     draw(cx);
-    let _startup = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let _startup = cx.update(Window::simulate_next_frame);
     view.update_in(cx, |probe, _, cx| {
         probe.text.push_str(&"b".repeat(300));
         probe.revision = 1;
@@ -182,7 +182,7 @@ fn equal_entry_numbers_and_revisions_in_a_new_session_do_not_reuse_a_paced_prefi
     draw(cx);
     assert_eq!(observed.borrow().last().unwrap(), &next_text);
     let draws = observed.borrow().len();
-    let callbacks = cx.update(|window, cx| window.simulate_next_frame(cx));
+    let callbacks = cx.update(Window::simulate_next_frame);
     assert!(
         callbacks <= 1,
         "only the old source's bounded callback may drain"
@@ -192,7 +192,7 @@ fn equal_entry_numbers_and_revisions_in_a_new_session_do_not_reuse_a_paced_prefi
         draws,
         "old weak callback cannot wake the new row"
     );
-    assert_eq!(cx.update(|window, cx| window.simulate_next_frame(cx)), 0);
+    assert_eq!(cx.update(Window::simulate_next_frame), 0);
 }
 
 #[gpui::test]
