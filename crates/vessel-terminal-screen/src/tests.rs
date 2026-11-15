@@ -118,6 +118,11 @@ fn saved_cursor_held_runs_wide_padding_and_colors_match_paseo_server() {
     check_corpus(include_str!("tests/resize-contracts.json"), 13);
 }
 
+#[test]
+fn bold_dim_independence_and_intensity_reset_match_paseo_server() {
+    check_corpus(include_str!("tests/attribute-contracts.json"), 3);
+}
+
 fn check_corpus(input: &str, count: usize) {
     let corpus: Corpus = serde_json::from_str(input).unwrap();
     let mut checked = 0_usize;

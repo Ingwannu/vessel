@@ -90,6 +90,13 @@ response is empty, produced by the same actual server handlers; the other six
 query inputs/responses remain byte-identical. Its regression is staged before
 changing that fallback.
 
+The facade's independent Bold/Dim contract exposed a second upstream mismatch:
+setting either intensity clears the other, whereas the reference InputHandler
+sets separate bold/dim bits and SGR22 clears both. Three new raw-cell oracle
+checkpoints exercise both orders and reset, with a wide cell. Expectations
+come from the same actual server factory; original golden fixtures are unchanged.
+The regression is added before changing those two upstream setters.
+
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
 no parameter acceptance or expected reply changes. The original lint failure
