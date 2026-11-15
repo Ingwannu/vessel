@@ -251,6 +251,7 @@ mod tests {
 
     fn permission() -> PermissionRequest {
         PermissionRequest {
+            tool_scope: None,
             id: PermissionId::random(),
             tool_call: ToolCallId::new("call"),
             options: Vec::new(),

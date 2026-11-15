@@ -46,6 +46,7 @@ fn append(db: &Connection, session: SessionId, seq: u64, event: AgentEvent) {
 }
 fn tool() -> ToolCall {
     ToolCall {
+        scope: None,
         id: ToolCallId::new("tool"),
         title: "Read a long Korean project title 프로젝트의 변경 내역".to_owned(),
         kind: ToolKind::Read,
@@ -61,6 +62,7 @@ fn tool() -> ToolCall {
 }
 fn permission() -> PermissionRequest {
     PermissionRequest {
+        tool_scope: None,
         id: PermissionId::random(),
         tool_call: ToolCallId::new("tool"),
         options: vec![PermissionOption {

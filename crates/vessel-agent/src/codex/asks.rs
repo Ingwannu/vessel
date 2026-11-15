@@ -192,6 +192,7 @@ impl Approvals {
             withdrawn: asking.withdrawn,
         });
         let asked = PermissionRequest {
+            tool_scope: None,
             id,
             tool_call,
             options,
@@ -286,6 +287,7 @@ pub(super) fn tool_call(
     input: Option<&Value>,
 ) -> ToolCall {
     ToolCall {
+        scope: None,
         id: ToolCallId::new(id),
         title,
         kind,

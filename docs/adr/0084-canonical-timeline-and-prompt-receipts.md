@@ -306,3 +306,24 @@ restart and session cleanup. In-memory RPC tests prove old-peer adaptation and
 no dispatch for unassigned calls. One complete root gate on the final package,
 with TypeScript regeneration and web consumers; no real agent is run. Native
 rendering and screenshots are separate consumer evidence, not node gate proof.
+
+### Tool attribution when native ids repeat
+
+`ToolCall.scope` and `ToolCallUpdate.scope` pair `ToolCallId` with a typed
+`ToolCallScope`: `ProviderTurn { turn: ExternalTurnId }` when the native frame
+supplies its turn, `SessionTurn { started: EventSeq }` for an announcement the
+actor observes inside a canonical turn, and `Record { seq: EventSeq }` for an
+unassociated observation. `PermissionRequest.tool_scope` identifies the exact
+snapshot proposed for approval. The inbox cache keys by session, id and scope.
+A late update of an earlier turn cannot change a newer approval's details.
+
+The actor retains unambiguous id associations without eviction, at most 1024
+entries and 1 MiB charged by actual id UTF-8 bytes plus a conservative scope/map
+reservation. Reusing an id in different scopes permanently marks it ambiguous
+for this actor. Absent, ambiguous or over-budget associations yield an isolated
+`Record` update, never an inference from the current turn. Explicit provider
+scope remains usable at capacity. This finite display-state bound is a deliberate
+difference: preserving an update without attaching it is preferable to presenting
+it as evidence about different work. Old peers receive a readable log stand-in
+for such updates; other scope fields are removed with all optional canonical
+fields. These observations never select a permission option or authorize work.

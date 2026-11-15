@@ -150,7 +150,7 @@ struct Session {
     approvals: Approvals,
     questions: Questions,
     /// Tool calls announced this turn, by their item or an approval.
-    announced: HashSet<String>,
+    announced: HashSet<(Option<Box<vessel_proto::timeline::ToolCallScope>>, String)>,
     /// The running turn was cancelled: what Codex asks until it ends is
     /// withdrawn at once.
     cancelling: bool,

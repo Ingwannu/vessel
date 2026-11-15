@@ -100,7 +100,12 @@ fn agent(
             tools::update(connection, session, record.seq, update)
         }
         AgentEvent::PermissionRequested(request) => {
-            let (tool, detail) = tools::get(connection, session, &request.tool_call)?;
+            let (tool, detail) = tools::get(
+                connection,
+                session,
+                &request.tool_call,
+                request.tool_scope.as_deref(),
+            )?;
             insert(
                 connection,
                 session,

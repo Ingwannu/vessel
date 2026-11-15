@@ -4,7 +4,7 @@
 use super::ContentBlock;
 use crate::id::ToolCallId;
 use crate::raw::RawJson;
-use crate::timeline::{AgentMessageProvenance, ToolCallDetail, ToolFailure};
+use crate::timeline::{AgentMessageProvenance, ToolCallDetail, ToolCallScope, ToolFailure};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -90,6 +90,9 @@ pub enum ToolCallContent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ToolCall {
+    /// Identity scope; combine with id before applying any update.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Box<ToolCallScope>>,
     /// Harness-assigned id.
     pub id: ToolCallId,
     /// Short human-readable description.
@@ -123,6 +126,9 @@ pub struct ToolCall {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ToolCallUpdate {
+    /// Identity scope; combine with id before applying any update.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<Box<ToolCallScope>>,
     /// Which call.
     pub id: ToolCallId,
     /// New title.

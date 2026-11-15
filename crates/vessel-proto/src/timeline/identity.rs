@@ -74,6 +74,10 @@ identity!(
     "A caller-retained identity for retrying one prompt without duplication."
 );
 identity!(
+    ExternalTurnId,
+    "A provider turn identity used only to attribute tool observations."
+);
+identity!(
     ExternalAgentId,
     "Provenance from another agent system, never a local session capability."
 );

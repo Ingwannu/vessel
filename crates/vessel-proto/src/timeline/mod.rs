@@ -12,11 +12,13 @@ mod question;
 mod question_reply;
 mod receipt;
 mod response;
+mod scope;
 
 pub use detail::*;
 pub use identity::{
-    ClientMessageId, ExternalAgentId, ExternalHostId, MAX_TIMELINE_IDENTITY_BYTES, PluginItemId,
-    PluginKind, TimelineIdentityError, TimelineName, TimelinePluginId, TimelineTaskId,
+    ClientMessageId, ExternalAgentId, ExternalHostId, ExternalTurnId, MAX_TIMELINE_IDENTITY_BYTES,
+    PluginItemId, PluginKind, TimelineIdentityError, TimelineName, TimelinePluginId,
+    TimelineTaskId,
 };
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
@@ -41,3 +43,5 @@ use crate::ProtocolVersion;
 /// Activation waits for native, web, CLI, inbox and forwarded-reply consumers
 /// to understand canonical details, identified prompts and durable questions.
 pub const TIMELINE_PARITY: Option<ProtocolVersion> = None;
+
+pub use scope::ToolCallScope;

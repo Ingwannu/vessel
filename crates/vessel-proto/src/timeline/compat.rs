@@ -15,6 +15,7 @@ fn supported(protocol: ProtocolVersion, assigned: Option<ProtocolVersion>) -> bo
 
 pub(crate) fn tool(call: &ToolCall) -> ToolCall {
     let mut adapted = call.clone();
+    adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
     adapted.agent_message = None;
@@ -26,6 +27,7 @@ pub(crate) fn tool(call: &ToolCall) -> ToolCall {
 
 fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
     let mut adapted = call.clone();
+    adapted.scope = None;
     adapted.detail = None;
     adapted.failure = None;
     adapted.agent_message = None;
@@ -37,6 +39,7 @@ fn update(call: &ToolCallUpdate) -> ToolCallUpdate {
 
 fn permission(request: &PermissionRequest) -> PermissionRequest {
     let mut adapted = request.clone();
+    adapted.tool_scope = None;
     adapted.presentation = None;
     for option in &mut adapted.options {
         option.action = None;
@@ -63,11 +66,14 @@ fn question_changed(request: &Question) -> bool {
 }
 
 fn permission_changed(request: &PermissionRequest) -> bool {
-    request.presentation.is_some() || request.options.iter().any(|option| option.action.is_some())
+    request.tool_scope.is_some()
+        || request.presentation.is_some()
+        || request.options.iter().any(|option| option.action.is_some())
 }
 
 fn tool_changed(call: &ToolCall) -> bool {
-    call.detail.is_some()
+    call.scope.is_some()
+        || call.detail.is_some()
         || call.failure.is_some()
         || call.agent_message.is_some()
         || call.status == ToolCallStatus::Canceled
@@ -136,7 +142,16 @@ pub(crate) fn event(
             AgentEvent::ToolCall(tool(call))
         }
         AgentEvent::ToolCallUpdate(call) => {
-            if call.detail.is_none()
+            if matches!(
+                call.scope.as_deref(),
+                Some(super::ToolCallScope::Record { .. })
+            ) {
+                return Some(AgentEvent::HarnessLog {
+                    line: "vessel: unassociated tool update requires a newer client".to_owned(),
+                });
+            }
+            if call.scope.is_none()
+                && call.detail.is_none()
                 && call.failure.is_none()
                 && call.agent_message.is_none()
                 && call.status != Some(ToolCallStatus::Canceled)

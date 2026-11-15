@@ -35,7 +35,13 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
         return Ok(None);
     };
     let questions = questions.as_ref().ok_or("async message has no questions")?;
-    if id.is_empty() || questions.is_empty() || questions.len() > Question::MAX_FIELDS / 2 {
+    if id.is_empty()
+        || questions.is_empty()
+        || questions
+            .len()
+            .checked_mul(2)
+            .is_none_or(|fields| fields > Question::MAX_FIELDS)
+    {
         return Err("async question identity or field count is invalid");
     }
     let mut fields = Vec::new();

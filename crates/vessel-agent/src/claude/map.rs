@@ -206,6 +206,7 @@ fn turn_usage(usage: &Usage) -> TurnUsage {
 /// A call of `name` with `input`, announced.
 fn tool_call(id: &str, name: &str, input: &Value) -> ToolCall {
     ToolCall {
+        scope: None,
         id: ToolCallId::new(id),
         title: title(name, input),
         kind: kind(name),
@@ -243,6 +244,7 @@ fn settled(id: &str, content: &ToolResultContent, failed: bool) -> ToolCallUpdat
             .join("\n"),
     };
     ToolCallUpdate {
+        scope: None,
         id: ToolCallId::new(id),
         title: None,
         kind: None,

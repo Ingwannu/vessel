@@ -34,6 +34,7 @@ pub(crate) struct Publisher {
     /// What the agent is doing, read off every committed record; the
     /// source of `SessionInfo::board`.
     activity: Tracker,
+    tools: crate::tool_scopes::ToolScopes,
 }
 
 /// Room for one record in the durable channel.
@@ -68,6 +69,7 @@ impl Publisher {
             info,
             next,
             activity,
+            tools: crate::tool_scopes::ToolScopes::default(),
         }
     }
 
@@ -122,7 +124,7 @@ impl Publisher {
     /// always `follow` up to `N`. Its board is derived again from the
     /// record (no allocation: the reducer reads a few flags); watchers are
     /// woken only if that moved the lane, the phrase or the activity.
-    pub(crate) fn commit(&mut self, slot: Slot, event: SessionEvent) {
+    pub(crate) fn commit(&mut self, slot: Slot, mut event: SessionEvent) {
         let seq = self.next;
         // The last `u64` is never handed out, so `next_seq` stays
         // representable. Unreachable in practice (2^64 events).
@@ -131,6 +133,7 @@ impl Publisher {
             self.shared.kill.cancel();
             return;
         };
+        self.tools.observe(&mut event, seq);
         let at = Utc::now();
         let change = InfoChange::of(&event);
         if let SessionEvent::OptionsChanged { options } = &event {

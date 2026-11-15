@@ -13,6 +13,7 @@ use super::{content, opaque, raw_json};
 /// Map an announced tool call.
 pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
     ToolCall {
+        scope: None,
         id: ToolCallId::new(call.tool_call_id.0),
         title: call.title,
         kind: tool_kind(call.kind),
@@ -31,6 +32,7 @@ pub(crate) fn tool_call(call: acp::ToolCall) -> ToolCall {
 pub(crate) fn tool_call_update(update: acp::ToolCallUpdate) -> ToolCallUpdate {
     let fields = update.fields;
     ToolCallUpdate {
+        scope: None,
         id: ToolCallId::new(update.tool_call_id.0),
         title: fields.title,
         kind: fields.kind.map(tool_kind),
@@ -70,6 +72,7 @@ pub(crate) fn permission_tool_call(update: acp::ToolCallUpdate, known: bool) -> 
     }
     let fields = update.fields;
     Some(AgentEvent::ToolCall(ToolCall {
+        scope: None,
         id: ToolCallId::new(update.tool_call_id.0),
         title: fields.title.unwrap_or_default(),
         kind: fields.kind.map_or(ToolKind::Other, tool_kind),

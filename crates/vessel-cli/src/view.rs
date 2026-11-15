@@ -343,6 +343,7 @@ mod tests {
 
     fn request() -> PermissionRequest {
         PermissionRequest {
+            tool_scope: None,
             id: PermissionId::random(),
             tool_call: ToolCallId::new("call_1"),
             options: vec![

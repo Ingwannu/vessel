@@ -206,6 +206,7 @@ mod tests {
             at: chrono::DateTime::UNIX_EPOCH,
             event: SessionEvent::Agent {
                 event: AgentEvent::ToolCall(ToolCall {
+                    scope: None,
                     id: ToolCallId::new("call_1"),
                     title: "Run tests".to_owned(),
                     kind: ToolKind::Execute,

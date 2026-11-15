@@ -134,6 +134,7 @@ pub(super) fn tool_call(item: &ThreadItem) -> Option<ToolCall> {
         }
     };
     Some(ToolCall {
+        scope: None,
         id: ToolCallId::new(id.as_str()),
         title,
         kind,
@@ -190,6 +191,7 @@ pub(super) fn tool_call_done(item: &ThreadItem) -> Option<ToolCallUpdate> {
         }
     };
     Some(ToolCallUpdate {
+        scope: None,
         id: ToolCallId::new(id.as_str()),
         title: None,
         kind: None,

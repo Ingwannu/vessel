@@ -224,6 +224,8 @@ pub(super) struct TurnNotification {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ItemNotification {
+    #[serde(default)]
+    pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) thread_id: String,
     pub(super) item: ThreadItem,
 }
@@ -395,6 +397,8 @@ pub(super) struct RequestResolved {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct CommandApproval {
+    #[serde(default)]
+    pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     #[serde(default)]
     pub(super) command: Option<String>,
@@ -411,6 +415,8 @@ pub(super) struct CommandApproval {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct FileChangeApproval {
+    #[serde(default)]
+    pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     #[serde(default)]
     pub(super) reason: Option<String>,
@@ -420,6 +426,8 @@ pub(super) struct FileChangeApproval {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct PermissionsApproval {
+    #[serde(default)]
+    pub(super) turn_id: Option<vessel_proto::timeline::ExternalTurnId>,
     pub(super) item_id: String,
     /// `RequestPermissionProfile`, granted as asked when allowed.
     pub(super) permissions: Value,

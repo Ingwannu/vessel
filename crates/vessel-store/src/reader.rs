@@ -104,15 +104,26 @@ impl Reader {
     /// offers no commands.
     pub(crate) fn conversation(&self, id: SessionId) -> Result<Option<Conversation>, StoreError> {
         self.with(|connection| {
-            let row: Option<(Option<String>, Option<String>, Option<String>, i64)> = connection
+            let row: Option<StoredConversation> = connection
                 .prepare_cached(
                     "SELECT queue, usage, abilities, next_seq FROM sessions WHERE id = ?1",
                 )?
                 .query_row([id.to_string()], |row| {
-                    Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                    Ok(StoredConversation {
+                        queue: row.get(0)?,
+                        usage: row.get(1)?,
+                        abilities: row.get(2)?,
+                        through: row.get(3)?,
+                    })
                 })
                 .optional()?;
-            let Some((queue, usage, abilities, through)) = row else {
+            let Some(StoredConversation {
+                queue,
+                usage,
+                abilities,
+                through,
+            }) = row
+            else {
                 return Ok(None);
             };
             Ok(Some(Conversation {
@@ -273,4 +284,11 @@ pub(crate) fn select_session(
     ))?;
     let mut rows = statement.query([id.to_string()])?;
     rows.next()?.map(session_from_row).transpose()
+}
+
+struct StoredConversation {
+    queue: Option<String>,
+    usage: Option<String>,
+    abilities: Option<String>,
+    through: i64,
 }

@@ -96,6 +96,7 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
     let session = SessionId::random();
     let mut turn = Turn::new(session, None, EventSeq::new(1));
     let call = ToolCall {
+        scope: None,
         id: ToolCallId::new("call-1"),
         title: "Run cargo test".to_owned(),
         kind: ToolKind::Execute,
@@ -110,6 +111,7 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
     };
     assert_eq!(turn.take(&agent(AgentEvent::ToolCall(call))), None);
     let asks = agent(AgentEvent::PermissionRequested(PermissionRequest {
+        tool_scope: None,
         id: PermissionId::random(),
         tool_call: ToolCallId::new("call-1"),
         options: Vec::new(),

@@ -45,6 +45,7 @@ fn original_messages() -> Vec<AgentEvent> {
 fn tool_events() -> Vec<AgentEvent> {
     vec![
         AgentEvent::ToolCall(ToolCall {
+            scope: None,
             id: ToolCallId::new("call"),
             title: "fixture".into(),
             kind: ToolKind::Read,
@@ -58,6 +59,7 @@ fn tool_events() -> Vec<AgentEvent> {
             agent_message: None,
         }),
         AgentEvent::ToolCallUpdate(ToolCallUpdate {
+            scope: None,
             id: ToolCallId::new("call"),
             title: None,
             kind: None,
@@ -72,6 +74,7 @@ fn tool_events() -> Vec<AgentEvent> {
             agent_message: None,
         }),
         AgentEvent::PermissionRequested(PermissionRequest {
+            tool_scope: None,
             id: PermissionId::random(),
             tool_call: ToolCallId::new("call"),
             options: vec![],

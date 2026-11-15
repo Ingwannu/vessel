@@ -155,6 +155,7 @@ mod tests {
     #[test]
     fn omitted_details_never_promise_that_pruned_content_can_be_opened() {
         let request = vessel_proto::PermissionRequest {
+            tool_scope: None,
             id: "00000000-0000-4000-8000-000000000012".parse().unwrap(),
             tool_call: vessel_proto::ToolCallId::new("missing"),
             options: vec![vessel_proto::PermissionOption {

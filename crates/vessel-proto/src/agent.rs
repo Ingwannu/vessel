@@ -269,6 +269,9 @@ pub struct PermissionOption {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct PermissionRequest {
+    /// Scope of the proposed tool; absence is legacy attribution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_scope: Option<Box<crate::timeline::ToolCallScope>>,
     /// Typed approval semantics and plan Markdown, when reported.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub presentation: Option<PermissionPresentation>,

@@ -322,7 +322,7 @@ impl Driver {
         &mut self,
         id: OptionId,
         result: Result<Applied, Error>,
-    ) -> Result<Vec<vessel_proto::SessionOption>, crate::InputError> {
+    ) -> Result<Vec<SessionOption>, crate::InputError> {
         match result {
             Ok(applied) => {
                 self.options.apply(applied);

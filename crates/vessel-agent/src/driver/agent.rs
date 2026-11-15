@@ -66,6 +66,7 @@ impl Driver {
             .await;
         }
         self.emit(AgentEvent::PermissionRequested(PermissionRequest {
+            tool_scope: None,
             id,
             tool_call,
             options,

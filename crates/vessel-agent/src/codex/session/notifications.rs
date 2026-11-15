@@ -85,6 +85,9 @@ impl Session {
     }
 
     pub(super) async fn item(&mut self, started: bool, notification: ItemNotification) {
+        let scope = notification
+            .turn_id
+            .map(|turn| Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn }));
         let item = notification.item;
         match super::super::async_questions::question(&item) {
             Ok(Some(question)) => {
@@ -103,12 +106,17 @@ impl Session {
             Ok(None) => {}
         }
         if started {
-            if let Some(call) = mapper::tool_call(&item) {
-                if self.announced.insert(call.id.as_str().to_owned()) {
+            if let Some(mut call) = mapper::tool_call(&item) {
+                call.scope.clone_from(&scope);
+                if self
+                    .announced
+                    .insert((call.scope.clone(), call.id.as_str().to_owned()))
+                {
                     self.emit(AgentEvent::ToolCall(call)).await;
                 } else {
                     // Announced from its approval: the item says the rest.
                     let update = ToolCallUpdate {
+                        scope: call.scope,
                         id: call.id,
                         title: Some(call.title),
                         kind: Some(call.kind),
@@ -118,16 +126,17 @@ impl Session {
                         raw_input: call.raw_input,
                         raw_output: None,
 
-                        detail: None,
-                        failure: None,
-                        agent_message: None,
+                        detail: call.detail,
+                        failure: call.failure,
+                        agent_message: call.agent_message,
                     };
                     self.emit(AgentEvent::ToolCallUpdate(update)).await;
                 }
             }
             return;
         }
-        if let Some(update) = mapper::tool_call_done(&item) {
+        if let Some(mut update) = mapper::tool_call_done(&item) {
+            update.scope = scope;
             self.emit(AgentEvent::ToolCallUpdate(update)).await;
         }
         if let Some((id, whole)) = mapper::whole_text(&item)
@@ -177,7 +186,11 @@ impl Session {
                     .clone()
                     .unwrap_or_else(|| "Run a command".to_owned());
                 let input = serde_json::json!({ "command": asked.command, "cwd": asked.cwd });
-                let call = asks::tool_call(&asked.item_id, title, ToolKind::Execute, Some(&input));
+                let mut call =
+                    asks::tool_call(&asked.item_id, title, ToolKind::Execute, Some(&input));
+                call.scope = asked.turn_id.clone().map(|turn| {
+                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
+                });
                 self.approval(id, call, Asking::command(&asked)).await;
             }
             "item/fileChange/requestApproval" => {
@@ -188,7 +201,10 @@ impl Session {
                     return;
                 };
                 let title = asked.reason.unwrap_or_else(|| "Edit files".to_owned());
-                let call = asks::tool_call(&asked.item_id, title, ToolKind::Edit, None);
+                let mut call = asks::tool_call(&asked.item_id, title, ToolKind::Edit, None);
+                call.scope = asked.turn_id.map(|turn| {
+                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
+                });
                 self.approval(id, call, Asking::file_change()).await;
             }
             "item/permissions/requestApproval" => {
@@ -202,12 +218,15 @@ impl Session {
                     .reason
                     .clone()
                     .unwrap_or_else(|| "More permissions".to_owned());
-                let call = asks::tool_call(
+                let mut call = asks::tool_call(
                     &asked.item_id,
                     title,
                     ToolKind::Other,
                     Some(&asked.permissions),
                 );
+                call.scope = asked.turn_id.clone().map(|turn| {
+                    Box::new(vessel_proto::timeline::ToolCallScope::ProviderTurn { turn })
+                });
                 self.approval(id, call, Asking::permissions(&asked)).await;
             }
             "item/tool/requestUserInput" => self.user_input(id, method, params).await,
@@ -250,10 +269,15 @@ impl Session {
         asking: Asking,
     ) {
         let tool_call = call.id.clone();
-        if self.announced.insert(call.id.as_str().to_owned()) {
+        let tool_scope = call.scope.clone();
+        if self
+            .announced
+            .insert((call.scope.clone(), call.id.as_str().to_owned()))
+        {
             self.emit(AgentEvent::ToolCall(call)).await;
         }
-        let (asked, displaced) = self.approvals.open(request, tool_call, asking);
+        let (mut asked, displaced) = self.approvals.open(request, tool_call, asking);
+        asked.tool_scope = tool_scope;
         if let Some((oldest, settled)) = displaced {
             self.settle(&settled).await;
             self.emit(AgentEvent::PermissionResolved {
@@ -321,6 +345,7 @@ impl Session {
 
     /// Publish a question held, after the one it displaced.
     pub(super) async fn question(&mut self, (question, displaced): asks::Opened) {
+        asked.tool_scope = tool_scope;
         if let Some((oldest, settled)) = displaced {
             self.settle(&settled).await;
             self.emit(AgentEvent::QuestionResolved {

@@ -40,7 +40,10 @@ async fn echoes_copy_command_identity_instead_of_matching_prompt_text() {
             (Driver::Acp, Fake::Acp),
             (Driver::CodexAppServer, Fake::CodexAppServer),
         ] {
-            let command = CommandSpec::new(fake.path().unwrap());
+            let mut command = CommandSpec::new(fake.path().unwrap());
+            if driver == Driver::CodexAppServer {
+                command = command.arg("app-server");
+            }
             let (mut agent, input, mut outputs) =
                 AgentProcess::spawn_with(driver, &command, setup()).unwrap();
             let _ready = until(&mut outputs, |event| {

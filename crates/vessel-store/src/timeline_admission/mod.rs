@@ -40,6 +40,21 @@ pub(crate) fn lookup_input(
 
 /// All package tables will join the single integration-repointed migration.
 pub(crate) const SQL: &str = "
+-- Existing snapshots remain legacy-unscoped. Never let a later turn overwrite
+-- the details of a pending approval belonging to an earlier turn.
+ALTER TABLE inbox_tools RENAME TO inbox_tools_legacy;
+CREATE TABLE inbox_tools (
+    session TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    tick INTEGER NOT NULL,
+    tool TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    PRIMARY KEY(session,id,scope)
+) STRICT, WITHOUT ROWID;
+INSERT INTO inbox_tools SELECT session,id,'',seq,tick,tool,detail FROM inbox_tools_legacy;
+DROP TABLE inbox_tools_legacy;
 CREATE TABLE timeline_admissions (
     session TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     kind TEXT NOT NULL CHECK(kind IN ('receipt', 'question')),
