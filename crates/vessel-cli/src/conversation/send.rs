@@ -83,7 +83,16 @@ async fn upload(
     session: SessionId,
     path: &Path,
 ) -> Result<AttachmentRef, CliError> {
-    let mut file = super::file_input::FileInput::open(path).await?;
+    let file = super::file_input::FileInput::open(path).await?;
+    upload_file(client, session, file).await
+}
+
+/// Reuse one already opened/validated input instead of racing a second path open.
+pub(crate) async fn upload_file(
+    client: &NodeClient,
+    session: SessionId,
+    mut file: super::file_input::FileInput,
+) -> Result<AttachmentRef, CliError> {
     let Upload { upload, chunk } = client
         .begin_upload(session, file.name.clone(), file.mime.clone(), file.size)
         .await?;

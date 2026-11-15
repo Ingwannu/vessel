@@ -93,14 +93,10 @@ pub(super) async fn send(
     presentation: Presentation,
     args: AgentSend,
 ) -> Result<(), CliError> {
-    if !args.image.is_empty() {
-        return Err(CliError::ParityBlocked(
-            "--image requires validated attachment staging before prompt delivery",
-        ));
-    }
     let text = match (args.text, args.prompt, args.prompt_file) {
         (Some(text), None, None) | (None, Some(text), None) => text,
         (None, None, Some(path)) => crate::parity::prompt_input::file(&path).await?,
+        (None, None, None) if !args.image.is_empty() => String::new(),
         _ => {
             return Err(CliError::Usage(
                 "give exactly one positional prompt, --prompt or --prompt-file",
@@ -110,9 +106,10 @@ pub(super) async fn send(
     if text.len() > crate::parity::prompt_input::MAX_BYTES {
         return Err(CliError::Usage("prompt exceeds the CLI input byte budget"));
     }
-    if text.trim().is_empty() {
+    if text.trim().is_empty() && args.image.is_empty() {
         return Err(CliError::Usage("the prompt is empty"));
     }
+    let images = crate::parity::images::Images::open(&args.image).await?;
     let delivery = args.behavior.map_or_else(
         || {
             if std::env::var_os("VESSEL_AGENT_SESSION").is_some() {
@@ -126,9 +123,11 @@ pub(super) async fn send(
     let client = connect(target).await?.client;
     let info = args.id.resolve(&client).await?;
     structured(&info)?;
-    let receipt = client
-        .prompt(info.id, vec![ContentBlock::Text { text }], delivery)
-        .await?;
+    let mut content = images.stage(&client, info.id).await?;
+    if !text.is_empty() {
+        content.insert(0, ContentBlock::Text { text });
+    }
+    let receipt = client.prompt(info.id, content, delivery).await?;
     if args.no_wait {
         return output::single(presentation, &info.id.to_string(), &receipt).await;
     }

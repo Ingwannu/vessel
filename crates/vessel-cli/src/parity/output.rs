@@ -133,6 +133,7 @@ pub(crate) async fn error(presentation: Presentation, error: &CliError) -> std::
         CliError::ParitySnapshotTimeout(_)
             | CliError::ParityPromptReadTimeout(_)
             | CliError::ParityCloneTimeout { .. }
+            | CliError::ParityImageTimeout { .. }
     ) {
         vessel_proto::ErrorCode::Unavailable
     } else if matches!(error, CliError::NoSuchSession(_)) {

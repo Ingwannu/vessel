@@ -24,7 +24,7 @@ async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() 
                 &[
                     "agent",
                     "run",
-                    "hello",
+                    "plain",
                     "--provider",
                     "claude",
                     "--cwd",
@@ -230,6 +230,70 @@ async fn pending_contracts_refuse_before_network_and_leave_structured_stdout_emp
             assert_eq!(error.error.code, vessel_proto::ErrorCode::Unsupported);
             assert!(!error.error.message.contains("private-fixture-value"));
         }
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn image_send_reuses_chunk_upload_and_delivers_the_acknowledged_attachment() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let info = owner
+            .create_session(
+                SessionSpec::new(
+                    vessel_proto::HarnessKind::ClaudeCode,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                )
+                .with_cwd(fixture.cwd()),
+            )
+            .await
+            .unwrap();
+        let _options = owner.session_options(info.id).await.unwrap();
+        let path = fixture.data().join("image.png");
+        let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
+        bytes.extend_from_slice(&[0_u8; 8]);
+        std::fs::write(&path, bytes).unwrap();
+        let before = owner.session(info.id).await.unwrap().next_seq;
+        let sent = fixture
+            .vessel(
+                &[
+                    "agent",
+                    "send",
+                    &info.id.to_string(),
+                    "--prompt",
+                    "describe",
+                    "--image",
+                    &path.display().to_string(),
+                    "--json",
+                ],
+                b"",
+            )
+            .await;
+        assert!(sent.ok, "{}", sent.stderr);
+        let waited: Waited = serde_json::from_str(&sent.stdout).unwrap();
+        assert_eq!(waited.status, "idle");
+        let mut stream = owner.follow(info.id, before).await.unwrap();
+        let mut said = String::new();
+        while let Some(record) = stream.next().await {
+            if let vessel_proto::SessionEvent::Agent { event } = record.unwrap().event {
+                if let vessel_proto::AgentEvent::MessageChunk {
+                    content: ContentBlock::Text { text },
+                } = &event
+                {
+                    said.push_str(text);
+                }
+                if matches!(event, vessel_proto::AgentEvent::TurnEnded { .. }) {
+                    break;
+                }
+            }
+        }
+        assert!(said.contains("image image/png 16 bytes"), "{said}");
         fixture.stop().await;
     })
     .await;

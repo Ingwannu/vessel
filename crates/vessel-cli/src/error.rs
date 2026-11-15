@@ -13,6 +13,14 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error(
+        "image staging exceeded its deadline for session {session}; inspect attachments before retrying"
+    )]
+    ParityImageTimeout {
+        session: vessel_proto::SessionId,
+        #[source]
+        source: tokio::time::error::Elapsed,
+    },
     #[error("node acknowledgement violated the command contract: {0}")]
     ParityInvalidReceipt(&'static str),
     #[error(transparent)]

@@ -18,7 +18,8 @@ use vessel_proto::forking::{ForkSession, RewindSession};
 use vessel_proto::parking::{ParkSession, WakeSession};
 use vessel_proto::{Mark, SessionInfo};
 
-pub(crate) use send::send;
+pub(crate) use file_input::FileInput;
+pub(crate) use send::{send, upload_file};
 
 use crate::args::{ConversationCommand, Target};
 use crate::connect::connect;

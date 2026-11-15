@@ -9,16 +9,16 @@ use tokio::io::AsyncReadExt as _;
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AttachmentName, BlobChunk};
 
-pub(super) struct FileInput {
-    pub(super) name: AttachmentName,
-    pub(super) mime: MimeType,
-    pub(super) size: u64,
+pub(crate) struct FileInput {
+    pub(crate) name: AttachmentName,
+    pub(crate) mime: MimeType,
+    pub(crate) size: u64,
     file: tokio::fs::File,
     path: PathBuf,
     offset: u64,
 }
 impl FileInput {
-    pub(super) async fn open(path: &Path) -> Result<Self, CliError> {
+    pub(crate) async fn open(path: &Path) -> Result<Self, CliError> {
         let not_attachable = |source| CliError::NotAttachable {
             path: path.to_owned(),
             source,
