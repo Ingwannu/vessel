@@ -35,6 +35,30 @@ pub(super) fn settle(
     definition: &mut ScheduleDefinition,
     now: DateTime<Utc>,
 ) -> Result<DateTime<Utc>, AutomationError> {
+    settle_for(zones, definition, now, WindowRequirement::FutureRun)
+}
+
+/// An already completed definition never runs again merely because it is edited.
+/// Preserve a past expiry while retaining all cadence/zone/target-policy checks.
+/// Pinned Paseo schedule/service.ts458–509 keeps completed status on update.
+pub(super) fn settle_completed(
+    zones: &Zones,
+    definition: &mut ScheduleDefinition,
+    now: DateTime<Utc>,
+) -> Result<DateTime<Utc>, AutomationError> {
+    settle_for(zones, definition, now, WindowRequirement::CompletedEdit)
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WindowRequirement {
+    FutureRun,
+    CompletedEdit,
+}
+fn settle_for(
+    zones: &Zones,
+    definition: &mut ScheduleDefinition,
+    now: DateTime<Utc>,
+    window: WindowRequirement,
+) -> Result<DateTime<Utc>, AutomationError> {
     if let Cadence::Every { anchor, .. } = &mut definition.cadence
         && anchor.is_none()
     {
@@ -76,7 +100,8 @@ pub(super) fn settle(
                 .to_owned(),
         )
     })?;
-    if let Some(ends_at) = definition.ends_at
+    if window == WindowRequirement::FutureRun
+        && let Some(ends_at) = definition.ends_at
         && ends_at < first
     {
         return Err(AutomationError::Invalid(format!(

@@ -8,9 +8,17 @@ struct Fixture {
 }
 async fn seeded(state: ScheduleState) -> Fixture {
     let (store, data) = store().await;
+    let mut definition = definition(every(300, "2026-01-01T10:00:00Z"));
+    if let ScheduleState::Ended {
+        at,
+        reason: EndReason::Expired,
+    } = &state
+    {
+        definition.ends_at = Some(*at);
+    }
     let info = ScheduleInfo {
         id: ScheduleId::random(),
-        definition: definition(every(300, "2026-01-01T10:00:00Z")),
+        definition,
         state,
         runs: 4,
         last_due: None,
@@ -34,6 +42,10 @@ async fn ended_definition_edit_keeps_end_reason_time_authority_and_revision_fenc
         })
         .await;
         let original = &fixture.info;
+        assert_eq!(
+            original.definition.ends_at,
+            Some(at("2026-01-01T09:30:00Z"))
+        );
         let mut definition = original.definition.clone();
         definition.prompt = "Updated completed prompt".parse().unwrap();
         definition.max_runs = Some(MaxRuns::try_from(1).unwrap());

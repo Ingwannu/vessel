@@ -140,3 +140,17 @@ unchanged. A bounded real scheduler/store regression uses unchanged cadence,
 an earlier new expiry and an already reached run cap to assert the original
 MaxRuns reason. This is a source-found correction, not an executed failure.
 The older265 queued proof must not be relabelled as this source.
+
+
+### Completed expiry validation
+
+A second source audit traced settle's future-run requirement: a genuinely
+expired definition has ends_at before now, so admitting its Ended state alone
+still refused editing. The new typed CompletedEdit validation uses the SAME
+settle_for implementation and keeps cadence/zone/unknown-target/policy checks;
+only its requirement that expiry follows a new future run is inapplicable to an
+already completed definition. All ordinary create/Active/Paused validation stays
+FutureRun. State never reactivates. The real scheduler fixture now carries its
+past expiry and asserts it is retained, rather than using an Expired marker
+without an expiry. No wire/schema/number change. Source-found before execution;
+prior queued runs must stay pinned to their older source.
