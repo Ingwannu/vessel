@@ -84,7 +84,10 @@ pub(super) fn render(
         &rows,
         &ComboHandlers {
             state: |shell: &mut Shell| &mut shell.areas.import.picker,
-            chose: |shell, index, window, cx| {
+            chose: |shell: &mut Shell,
+                    index: usize,
+                    window: &mut Window,
+                    cx: &mut Context<'_, Shell>| {
                 let Some(which) = shell.areas.import.choosing else {
                     return;
                 };
