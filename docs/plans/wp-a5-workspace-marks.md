@@ -93,3 +93,12 @@ not a claim that such a clock or a compatible native workspace adapter exists.
 
 These are future test obligations. No test or runtime result is inferred from
 this design or the existing Inbox/claim tests.
+
+Existing marks::mark Read intentionally clears the deliberate flag regardless
+of through; an event watermark alone is not a manual-unread intent revision.
+Do not silently redefine that general contract or add a second read engine.
+Before wiring the new workspace unread control, verify captured focus exit and
+already-in-flight passive reads together: invalidating a UI ticket alone does
+not prove a cancellation-safe server write stopped. This is an outstanding
+consumer ordering verification condition, not an asserted shipped defect or
+a new request/token/clock implementation.
