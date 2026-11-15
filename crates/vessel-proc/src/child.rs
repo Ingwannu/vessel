@@ -1,5 +1,6 @@
 //! [`spawn`] and [`Child`]: a piped child that is stopped as a group.
 
+use std::num::NonZeroU32;
 use std::process::Stdio;
 
 use tokio::process::{ChildStderr, ChildStdin, ChildStdout};
@@ -9,6 +10,7 @@ use crate::error::{SignalError, SpawnError, Stream, WaitError};
 use crate::group::ProcessGroup;
 use crate::signal::Signal;
 use crate::spec::CommandSpec;
+use crate::{ProcessId, ProcessLifetime, ProcessLifetimeGuard};
 
 /// How often a refused signal looks again whether the leader has exited
 /// (`Child::reaped_within`).
@@ -72,10 +74,12 @@ fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnEr
         program: program(),
         source,
     })?;
-    let Some(pid) = inner.id() else {
+    let Some(pid) = inner.id().and_then(NonZeroU32::new) else {
         discard_start(inner, &reaper);
         return Err(SpawnError::NoPid { program: program() });
     };
+    let observation = ProcessLifetimeGuard::begin(ProcessId::from(pid));
+    let pid = pid.get();
     #[cfg(unix)]
     let group = match ProcessGroup::of_leader(pid) {
         Ok(group) => group,
@@ -90,6 +94,7 @@ fn spawn_with(spec: &CommandSpec, lifetime: Lifetime) -> Result<Spawned, SpawnEr
     let mut child = Child {
         inner: Some(inner),
         pid,
+        observation,
         #[cfg(unix)]
         group,
         state: State::Running,
@@ -140,6 +145,7 @@ fn discard_start(mut inner: os::Inner, reaper: &tokio::runtime::Handle) {
 pub struct Child {
     inner: Option<os::Inner>,
     pid: u32,
+    observation: ProcessLifetimeGuard,
     #[cfg(unix)]
     group: ProcessGroup,
     state: State,
@@ -180,6 +186,7 @@ impl Child {
         if self.lifetime == Lifetime::Bound {
             return Err(crate::DetachRefused::new(self));
         }
+        self.observation.revoke();
         self.state = State::Released;
         Ok(crate::detached::start(
             self.inner.take(),
@@ -197,6 +204,12 @@ impl Child {
         self.pid
     }
 
+    /// Observe this actual run without gaining signalling or revocation authority.
+    #[must_use]
+    pub fn lifetime(&self) -> ProcessLifetime {
+        self.observation.observer()
+    }
+
     /// Ask the child's process group to stop.
     ///
     /// On Unix this signals every process in the group. Windows has no
@@ -209,6 +222,7 @@ impl Child {
     /// # Errors
     /// Fails if the OS refuses to deliver the signal.
     pub fn signal(&mut self, signal: Signal) -> Result<(), SignalError> {
+        self.observation.revoke();
         match self.state {
             State::Running => {}
             State::Reaped(_) | State::Released => return Ok(()),
@@ -275,11 +289,20 @@ impl Child {
                 )));
             }
         }
-        let inner = self
-            .inner
-            .as_mut()
-            .ok_or_else(|| WaitError::from(std::io::Error::other("child handle absent")))?;
-        let status = os::wait_for_leader(inner).await?;
+        let Some(inner) = self.inner.as_mut() else {
+            self.observation.revoke();
+            return Err(WaitError::from(std::io::Error::other(
+                "child handle absent",
+            )));
+        };
+        let status = match os::wait_for_leader(inner).await {
+            Ok(status) => status,
+            Err(error) => {
+                self.observation.revoke();
+                return Err(error.into());
+            }
+        };
+        self.observation.revoke();
         let code = status.code();
         self.state = State::Reaped(code);
         self.sweep();
@@ -308,6 +331,7 @@ impl Child {
 /// the explicit owned-handle stop before its handle closes.)
 impl Drop for Child {
     fn drop(&mut self) {
+        self.observation.revoke();
         if self.state == State::Running {
             #[cfg(unix)]
             let stopped = {

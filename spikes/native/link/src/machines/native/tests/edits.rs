@@ -8,6 +8,8 @@ use vessel_app_view::machine_book::{Edit, Failure};
 async fn successful_rename_keeps_the_connection_agents_and_watched_task() {
     let mut f = Fixture::new().await;
     f.watch().await;
+    let old_context = f.state.clients["laptop"].context.clone();
+    let old_validity = f.state.clients["laptop"].validity();
     let laptop = f.state.clients["laptop"].client.node().id;
     let other = f.state.clients["other"].client.node().id;
     let agents = f.state.clients["laptop"].agents.clone();
@@ -23,6 +25,12 @@ async fn successful_rename_keeps_the_connection_agents_and_watched_task() {
     assert!(!f.state.clients.contains_key("laptop"));
     let renamed = &f.state.clients["renamed"];
     assert_eq!(renamed.client.node().id, laptop);
+    assert_ne!(renamed.context.epoch(), old_context.epoch());
+    assert_eq!(renamed.context.machine().as_str(), "renamed");
+    assert_eq!(
+        *old_validity.borrow(),
+        crate::connections::Validity::Retired
+    );
     assert_eq!(renamed.agents, agents);
     assert_eq!(f.state.clients["other"].client.node().id, other);
     assert_eq!(f.state.follow_machine.as_deref(), Some("renamed"));
@@ -62,6 +70,8 @@ async fn successful_rename_keeps_the_connection_agents_and_watched_task() {
 async fn failed_edits_leave_both_clients_and_the_watched_task_unchanged() {
     let mut f = Fixture::new().await;
     f.watch().await;
+    let old_context = f.state.clients["laptop"].context.clone();
+    let old_validity = f.state.clients["laptop"].validity();
     let laptop = f.state.clients["laptop"].client.node().id;
     let other = f.state.clients["other"].client.node().id;
     let followed = f.state.follow.as_ref().unwrap().id();
@@ -82,6 +92,8 @@ async fn failed_edits_leave_both_clients_and_the_watched_task_unchanged() {
             .await;
         assert_eq!(outcomes(&drain(&mut f.events)), vec![(edit, Err(why))]);
         assert_eq!(f.state.clients["laptop"].client.node().id, laptop);
+        assert_eq!(f.state.clients["laptop"].context, old_context);
+        assert_eq!(*old_validity.borrow(), crate::connections::Validity::Active);
         assert_eq!(f.state.clients["other"].client.node().id, other);
         assert_eq!(f.state.follow_machine.as_deref(), Some("laptop"));
         assert_eq!(f.state.follow.as_ref().unwrap().id(), followed);

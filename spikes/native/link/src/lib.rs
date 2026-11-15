@@ -26,6 +26,10 @@ mod command;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod desktop;
 #[cfg(not(target_arch = "wasm32"))]
+mod connections;
+#[cfg(not(target_arch = "wasm32"))]
+use connections::Connected;
+#[cfg(not(target_arch = "wasm32"))]
 mod dispatch;
 mod error;
 mod event;
@@ -34,6 +38,9 @@ pub mod local_node;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod testing;
 // The agents' lists kept between runs (owner word 28); a browser keeps
 // none yet (no files).
 #[cfg(not(target_arch = "wasm32"))]
@@ -79,7 +86,7 @@ use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::Agent;
+use vessel_app_view::connection::ConnectionEpochs;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;
@@ -186,6 +193,7 @@ impl Link {
         let (events, outbox) = mpsc::channel(CHANNEL);
         let state = State {
             label: label.to_owned(),
+            commands: commands.downgrade(),
             events,
             clients: HashMap::new(),
             local_registration: None,
@@ -196,6 +204,7 @@ impl Link {
             agents: agents::Hub::default(),
             onboarding_scope: vessel_app_view::onboarding::scope::Scope::default(),
 
+            admissions: ConnectionEpochs::default(),
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
             offers: std::sync::Arc::default(),
@@ -252,6 +261,8 @@ impl Link {
 /// The link's own state, owned by its task.
 struct State {
     label: String,
+    // Weak: internal closure reports must not keep the actor inbox alive.
+    commands: mpsc::WeakSender<Command>,
     events: mpsc::Sender<Event>,
     clients: HashMap<String, Connected>,
     local_registration: Option<local_node::registration::Registration>,
@@ -262,21 +273,13 @@ struct State {
     agents: agents::Hub,
     onboarding_scope: vessel_app_view::onboarding::scope::Scope,
 
+    admissions: ConnectionEpochs,
     device_calls: devices::Hub,
     sync_calls: sync::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
     offers: std::sync::Arc<std::sync::Mutex<offers::Store>>,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-/// A machine connected, and what it can start (read once per connection:
-/// what is installed changes rarely, and a new connection reads it again).
-#[derive(Clone)]
-struct Connected {
-    client: NodeClient,
-    agents: Vec<Agent>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -309,12 +312,6 @@ impl State {
     async fn emit(&self, event: Event) {
         // The receiver is gone only when the app is closing.
         let _closed = self.events.send(event).await;
-    }
-
-    /// Connect to every node in the book (again), then list sessions.
-    async fn reload(&mut self) {
-        self.clients.clear();
-        self.refresh().await;
     }
 
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {

@@ -20,6 +20,7 @@ impl State {
             Command::LocalNode(ask) => self.register_local(ask).await,
             Command::Onboarding(ask) => self.onboarding(ask).await,
             Command::Reload => self.reload().await,
+            Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {
                 machine,
                 request,
@@ -30,10 +31,10 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Devices {
-                machine,
+                context,
                 ticket,
                 ask,
-            } => self.devices(&machine, ticket, ask).await,
+            } => self.devices(&context, ticket, ask).await,
             Command::Open { machine, session } => self.open(&machine, session),
             Command::Prompt {
                 machine,
