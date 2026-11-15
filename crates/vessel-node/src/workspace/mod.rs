@@ -153,6 +153,8 @@ pub(super) struct State {
     /// worktrees against the limits, so creations at once cannot all pass
     /// the check before any is recorded.
     making: Vec<Creator>,
+    /// Fixed ids in flight, including calls sharing one retained admission.
+    making_ids: HashSet<WorktreeId>,
 }
 
 /// The node's projects and worktrees.
@@ -164,6 +166,9 @@ pub(crate) struct Workspaces {
     dirs: Dirs,
     places: Places,
     state: Mutex<State>,
+    /// Serializes project metadata publication and retained backing admissions.
+    project_registrations: Arc<tokio::sync::Mutex<()>>,
+    project_admissions: Arc<tokio::sync::Semaphore>,
     indexes: Arc<Indexes>,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
@@ -228,6 +233,7 @@ impl Workspaces {
         .await;
         tracing::info!(git = ?found.support, "workspace calls ready");
         let stored = store.workspace().await?;
+        store.recover_registry_reservations().await?;
         let workspaces = Arc::new(Self {
             git: found.git,
             support: found.support,
@@ -235,6 +241,10 @@ impl Workspaces {
             dirs,
             places,
             state: Mutex::new(State::default()),
+            project_registrations: Arc::new(tokio::sync::Mutex::new(())),
+            project_admissions: Arc::new(tokio::sync::Semaphore::new(
+                projects::admission::MAX_PROJECT_ADMISSIONS,
+            )),
             indexes: Arc::new(Indexes::default()),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
