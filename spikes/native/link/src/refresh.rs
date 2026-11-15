@@ -57,7 +57,7 @@ impl State {
                             version: Some(NodeVersion::new(&connected.client.node().version)),
                             name: name.clone(),
                             reach: Reach::Online,
-                            node: Some(connected.client.node().id.clone()),
+                            node: Some(connected.client.node().id),
                         };
                         let _earlier = self.clients.insert(name, connected);
                         machine
