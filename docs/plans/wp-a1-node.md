@@ -146,3 +146,13 @@ receipt ownership values even on a read-scope metadata/observation call.
 Changing the common formatter would affect unrelated error contracts, so this
 policy stays in the creation/profile handlers. Synthetic malformed-value tests
 require omission of that value and preservation of known Conflict refusals.
+
+Creation mutations now return their own writer-held Receipt after the batch
+commit acknowledgement. The previous unit acknowledgement followed by a
+separate reader lookup could return a later mutation, losing the exact Begin
+marker the driver must acknowledge before effects. The existing generic Done
+and transaction/savepoint authority carry the typed result; no second writer
+or read lock is introduced. A regression consumes an older Begin answer only
+after a subsequent Finished commit and checks that it still names its own
+revision/marker. Driver exclusion and current authority checks remain separate
+requirements; an exact acknowledgement alone does not authorize an effect.

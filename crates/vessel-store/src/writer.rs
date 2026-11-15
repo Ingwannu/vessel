@@ -71,7 +71,7 @@ pub(crate) enum Write {
     /// Admission and CAS never bypass the existing serialized writer.
     Creation {
         change: Box<crate::creation::Write>,
-        done: Done,
+        done: Done<vessel_proto::creation::Receipt>,
     },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
@@ -178,6 +178,10 @@ pub(crate) struct Setup {
 
 /// One caller's answer, held until its batch is committed.
 enum Answer {
+    Creation(
+        Done<vessel_proto::creation::Receipt>,
+        Result<Box<vessel_proto::creation::Receipt>, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Marked(Done<KeptMarks>, Result<KeptMarks, StoreError>),
 }
@@ -186,6 +190,9 @@ impl Answer {
     /// Send it, as a failure if the commit failed.
     fn send(self, failed: Option<&Arc<rusqlite::Error>>) {
         let sent = match self {
+            Self::Creation(done, result) => done
+                .send(after(failed, result).map(|receipt| *receipt))
+                .is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
         };

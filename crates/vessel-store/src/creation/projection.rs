@@ -124,11 +124,15 @@ fn reserve_capacity(connection: &Connection, budget: Budget) -> Result<(), Store
     Ok(())
 }
 
-pub(crate) fn apply(connection: &Connection, write: Write) -> Result<(), StoreError> {
+pub(crate) fn apply(connection: &Connection, write: Write) -> Result<Receipt, StoreError> {
     apply_with(connection, write, BUDGET)
 }
 
-fn apply_with(connection: &Connection, write: Write, budget: Budget) -> Result<(), StoreError> {
+fn apply_with(
+    connection: &Connection,
+    write: Write,
+    budget: Budget,
+) -> Result<Receipt, StoreError> {
     match write {
         Write::Admit(admission) => admit(connection, admission, budget),
         Write::Advance {
@@ -138,19 +142,24 @@ fn apply_with(connection: &Connection, write: Write, budget: Budget) -> Result<(
         } => {
             let mut receipt = operation(connection, id)?.ok_or(CreationError::NotFound)?;
             receipt.advance(expected, update)?;
-            save(connection, &receipt, budget.row)
+            save(connection, &receipt, budget.row)?;
+            Ok(receipt)
         }
     }
 }
 
-fn admit(connection: &Connection, admission: Admission, budget: Budget) -> Result<(), StoreError> {
+fn admit(
+    connection: &Connection,
+    admission: Admission,
+    budget: Budget,
+) -> Result<Receipt, StoreError> {
     let Admission { identity, receipt } = admission;
     if identity.kind != receipt.snapshot().kind {
         return Err(CreationError::InvalidTransition.into());
     }
     if let Some(existing) = lookup(connection, &identity)? {
         return if existing.fingerprint() == receipt.fingerprint() {
-            Ok(())
+            Ok(existing)
         } else {
             Err(CreationError::IntentConflict.into())
         };
@@ -173,7 +182,7 @@ fn admit(connection: &Connection, admission: Admission, budget: Budget) -> Resul
             owner
         ],
     )?;
-    Ok(())
+    Ok(receipt)
 }
 
 fn save(connection: &Connection, receipt: &Receipt, row_limit: usize) -> Result<(), StoreError> {

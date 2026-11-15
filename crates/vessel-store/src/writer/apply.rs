@@ -33,9 +33,10 @@ pub(super) fn apply(
                 crate::terminal_profiles::apply(connection, &settings)
             })
         }
-        Write::Creation { change, done } => {
-            Answer::Done(done, apply_creation(transaction, *change, effects))
-        }
+        Write::Creation { change, done } => Answer::Creation(
+            done,
+            apply_creation(transaction, *change, effects).map(Box::new),
+        ),
         Write::Create { info, done } => write_answer(transaction, done, |connection| {
             log::create_session(connection, &info)
         }),
@@ -130,7 +131,7 @@ fn apply_creation(
     transaction: &mut Transaction<'_>,
     change: crate::creation::Write,
     effects: &mut Effects,
-) -> Result<(), StoreError> {
+) -> Result<vessel_proto::creation::Receipt, StoreError> {
     let applied = isolated(transaction, |connection| {
         crate::creation::apply(connection, change)
     });

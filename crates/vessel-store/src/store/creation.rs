@@ -1,7 +1,7 @@
 //! Async receipt APIs delegate all writes to the existing committed writer.
 
 use vessel_proto::WorkspaceOperationId;
-use vessel_proto::creation::{Advance, CreationError, Receipt, Revision};
+use vessel_proto::creation::{Advance, Receipt, Revision};
 
 use crate::creation::{Admission, Identity, Write as CreationWrite};
 use crate::{Store, StoreError, writer::Write};
@@ -24,15 +24,7 @@ impl Store {
     /// # Errors
     /// A key/intent or reserved-id conflict, capacity refusal, or storage failure.
     pub async fn admit_creation(&self, admission: Admission) -> Result<Receipt, StoreError> {
-        let identity = admission.identity.clone();
-        self.write(|done| Write::Creation {
-            change: Box::new(CreationWrite::Admit(admission)),
-            done,
-        })
-        .await?;
-        self.creation(&identity)
-            .await?
-            .ok_or_else(|| CreationError::NotFound.into())
+        self.write_creation(CreationWrite::Admit(admission)).await
     }
 
     /// Observe by caller key; absence is distinct from interrupted work.
@@ -60,6 +52,7 @@ impl Store {
     }
 
     /// Commit a stage marker/result with compare-and-swap before proceeding.
+    /// Returns that committed mutation, never a later reader snapshot.
     /// # Errors
     /// A stale revision, invalid transition, missing operation or storage failure.
     pub async fn advance_creation(
@@ -68,17 +61,20 @@ impl Store {
         expected: Revision,
         update: Advance,
     ) -> Result<Receipt, StoreError> {
-        self.write(|done| Write::Creation {
-            change: Box::new(CreationWrite::Advance {
-                operation,
-                expected,
-                update,
-            }),
+        self.write_creation(CreationWrite::Advance {
+            operation,
+            expected,
+            update,
+        })
+        .await
+    }
+    async fn write_creation(&self, change: CreationWrite) -> Result<Receipt, StoreError> {
+        let (done, committed) = tokio::sync::oneshot::channel();
+        self.send(Write::Creation {
+            change: Box::new(change),
             done,
         })
         .await?;
-        self.creation_operation(operation)
-            .await?
-            .ok_or_else(|| CreationError::NotFound.into())
+        committed.await.map_err(|_dropped| StoreError::Closed)?
     }
 }
