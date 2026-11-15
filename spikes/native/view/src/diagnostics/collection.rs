@@ -228,7 +228,9 @@ impl Collection {
     }
     /// A renamed/forgotten/offline entry cannot retain a pending old-connection result.
     pub fn invalidate(&mut self, machine: &MachineKey) {
-        if let Some(row) = self.rows.iter_mut().find(|row| &row.machine == machine) {
+        if let Some(row) = self.rows.iter_mut().find(|row| &row.machine == machine)
+            && row.progress != Progress::Failed(Problem::Offline)
+        {
             row.progress = Progress::Failed(Problem::Offline);
             self.report = None;
             self.finish();

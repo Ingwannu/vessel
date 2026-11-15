@@ -85,3 +85,8 @@ replacement report is available. A removed selected host remains explicitly
 offline. A source cap or the combined text cap refuses the whole result; it
 never truncates a supposedly complete support report. New Korean framing was
 reviewed against the existing machine terminology and complete recovery text.
+
+The third narrow run compiled the changed view and link crates and found two
+formatting-only app closure lints, now corrected. The exact current compile
+check and diagnostic tests still need a green result. Unchanged offline rows
+now keep their existing report allocation instead of rebuilding it per frame.

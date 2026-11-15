@@ -39,7 +39,7 @@ pub(crate) fn render(
             tokens,
         )
         .on_click(cx.listener(move |shell, _event, window, cx| {
-            shell.run_diagnostic(Some(key.clone()), window, cx)
+            shell.run_diagnostic(Some(key.clone()), window, cx);
         }));
         hosts = hosts.child(settings::row_at(
             machine.name.clone(),
@@ -127,7 +127,7 @@ pub(crate) fn dialogs(
     }));
     let refresh = outline_button("settings-diagnostic-refresh", legacy.refresh, true, tokens)
         .on_click(cx.listener(|shell, _event, window, cx| {
-            shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx)
+            shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx);
         }));
     let mut body = div().flex().flex_col().gap(px(spacing::S3)).min_w_0();
     body = body.child(status_row(labels.client(), labels.done(), tokens));
