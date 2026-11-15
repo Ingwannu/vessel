@@ -1,3 +1,4 @@
+// MODIFIED by Vessel: carry the optional host image activation into the render context.
 use futures::Stream as _;
 #[cfg(not(target_family = "wasm"))]
 use std::time::Instant;
@@ -131,6 +132,8 @@ pub struct TextViewState {
     pub(super) table_actions: Option<std::sync::Arc<TableActionsFn>>,
     pub(super) image_source: Option<std::sync::Arc<super::text_view::ImageSourceFn>>,
     pub(super) link_click_handler: Option<std::sync::Arc<LinkClickHandlerFn>>,
+    pub(super) image_click_handler:
+        Option<std::sync::Arc<super::image_activation::ImageClickHandlerFn>>,
     pub(super) markdown_extensions: Arc<MarkdownExtensions>,
 
     pub(super) is_selecting: bool,
@@ -236,6 +239,7 @@ impl TextViewState {
             code_block_highlighter: None,
             table_actions: None,
             link_click_handler: None,
+            image_click_handler: None,
             image_source: None,
             markdown_extensions: Arc::default(),
             is_selecting: false,
@@ -407,6 +411,20 @@ impl TextViewState {
     /// Return the selected text, in the view's [`SelectionFormat`].
     pub fn selected_text(&self) -> String {
         self.selected_text_in(None)
+    }
+
+    /// Raw rendered code only when selection stays in one code region.
+    /// Mixed prose, multiple regions and stale replacements return None.
+    /// Whole-view Select All keeps message-level Markdown, including fences.
+    /// Trailing LF/CRLF and following indentation are removed; leading code is preserved.
+    pub fn selected_code_text(&self) -> Option<String> {
+        if self.format != TextViewFormat::Markdown
+            || self.select_all
+            || !self.has_current_copy_document()
+        {
+            return None;
+        }
+        super::code_selection::selected(&self.parsed_content.document)
     }
 
     /// Return the original Markdown source byte range corresponding to the
@@ -1128,6 +1146,7 @@ impl Render for TextViewState {
         let (reveal, reveal_block) = self.reveal_frame(cx.background_executor().now(), window);
         // Built every frame, so everything in it is shared, not copied.
         let node_cx = NodeContext {
+            inline_link_scope: Default::default(),
             offset: self.parsed_content.node_cx.offset,
             link_refs: self.parsed_content.node_cx.link_refs.clone(),
             style: self.text_view_style.clone(),
@@ -1135,6 +1154,7 @@ impl Render for TextViewState {
             code_block_highlighter: self.code_block_highlighter.clone(),
             table_actions: self.table_actions.clone(),
             link_click_handler: self.link_click_handler.clone(),
+            image_click_handler: self.image_click_handler.clone(),
             image_source: self.image_source.clone(),
             markdown_extensions: self.markdown_extensions.clone(),
             stream_fade,

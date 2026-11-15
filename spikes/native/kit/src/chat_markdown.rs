@@ -45,7 +45,6 @@
 //!   kit does not build).
 
 use std::ops::Range;
-use std::sync::Arc;
 
 pub mod actions;
 
@@ -62,10 +61,10 @@ pub struct Options<'a> {
 
 use gpui::{
     AnyElement, App, AppContext as _, ElementId, Entity, Hsla, IntoElement as _, Overflow,
-    ParentElement as _, Pixels, SharedString, StyleRefinement, Styled as _, WhiteSpace, Window,
-    div, px, relative,
+    ParentElement as _, Pixels, Refineable as _, SharedString, StyleRefinement, Styled as _,
+    WhiteSpace, Window, div, px, relative,
 };
-use gpui_component::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
+use gpui_base::text::{RangeHighlight, TextView, TextViewState, TextViewStyle};
 
 use crate::copy::{CopyLook, copy_button};
 use crate::fonts::Type;
@@ -197,7 +196,6 @@ impl std::fmt::Debug for FindMarks<'_> {
 /// A reply's renderer state, kept across frames by the reply's id.
 struct Kept {
     state: Entity<TextViewState>,
-    source: Arc<str>,
     /// The version of the text it holds.
     version: u64,
     /// The marks' key it shows; `None`: none shown.
@@ -247,14 +245,12 @@ pub fn chat_markdown_with(
     let palette = FindPalette::of(tokens);
     let kept = window.use_keyed_state(id.into(), cx, |_, cx| Kept {
         state: cx.new(|cx| TextViewState::markdown(text, cx)),
-        source: Arc::from(text),
         version,
         marked: None,
     });
-    let (state, source) = kept.update(cx, |kept, cx| {
+    let state = kept.update(cx, |kept, cx| {
         if kept.version != version {
             kept.version = version;
-            kept.source = Arc::from(text);
             kept.state.update(cx, |state, cx| state.set_text(text, cx));
             kept.marked = None;
         }
@@ -269,7 +265,7 @@ pub fn chat_markdown_with(
             }
             Some(_) | None => {}
         }
-        (state, Arc::clone(&kept.source))
+        state
     });
     let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
     let view = TextView::new(&state)
@@ -278,17 +274,34 @@ pub fn chat_markdown_with(
                 list.reveal_bounds(bounds, *clear_top);
             }
         })
-        .style(
-            TextViewStyle::default()
-                .code_block(block(look))
-                .table(table())
-                .table_head(table_head(look))
-                .table_cell(table_cell()),
-        )
+        .style(presentation(look, cx))
         .code_block_actions(move |code, window, cx| {
-            corner(code.code(), code.lang(), look, window, cx)
+            corner(code.code().as_ref(), code.lang(), look, window, cx)
         });
-    actions::finish(view, state, source, options.actions, options.copy)
+    actions::finish(view, state, options.actions, options.copy)
+}
+
+/// Component installs its theme on the same Base renderer. Refine that installed
+/// style directly so new engine callbacks keep the existing palette and geometry.
+fn presentation(look: Look, cx: &App) -> TextViewStyle {
+    let defaults = gpui_base::TextViewDefaults::global(cx);
+    let themed = defaults
+        .style()
+        .cloned()
+        .unwrap_or_else(|| TextViewStyle::from_theme(&gpui_base::Theme::global(cx)));
+    let refine = |mut base: StyleRefinement, overlay: StyleRefinement| {
+        base.refine(&overlay);
+        base
+    };
+    let code = refine(themed.code_block().clone(), block(look));
+    let table = refine(themed.table().clone(), table());
+    let head = refine(themed.table_head().clone(), table_head(look));
+    let cell = refine(themed.table_cell().clone(), table_cell());
+    themed
+        .with_code_block(code)
+        .with_table(table)
+        .with_table_head(head)
+        .with_table_cell(cell)
 }
 
 /// Mark `marks` in the reply `state` holds and scroll to the current
@@ -380,12 +393,15 @@ fn table_cell() -> StyleRefinement {
 
 /// The block's corner: its language and the copy button.
 fn corner(
-    text: SharedString,
+    text: &str,
     lang: Option<SharedString>,
     look: Look,
     window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
+    let text: SharedString = gpui_base::text::trim_code_line_breaks(text)
+        .to_owned()
+        .into();
     div()
         .flex()
         .items_center()
