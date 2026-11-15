@@ -204,7 +204,7 @@ fn existing_key_conflict_is_not_hidden_by_exhausted_capacity() {
     let mut conflicting = candidate("bound");
     conflicting.receipt = Receipt::admitted(
         Kind::Workspace,
-        conflicting.receipt.snapshot().reserved,
+        conflicting.receipt.snapshot().reserved.clone(),
         Fingerprint::new(BlobHash::from_bytes([8; 32])),
     )
     .unwrap();

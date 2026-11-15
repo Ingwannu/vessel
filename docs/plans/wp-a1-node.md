@@ -103,3 +103,11 @@ Agents::reserve now refuses a duplicate id atomically before minting instead
 of replacing its entry. Regressions preserve credential/grant/connections and
 exercise concurrent exact-id admission at the last child slot. This hardening
 reuses the existing count owner and does not implement the missing driver.
+
+The browser bridge's exhaustive call classification now admits the five
+pending unary methods. creation.subscribe is a bounded long poll rather than
+a connection-scoped stream. The bridge preserves the existing node scope
+checks: metadata/observation Read, full profile configuration Admin and
+person-only profile operations. Fleet forwarding remains independently
+restricted (full profile get/set are node-local). No public protocol number
+or browser-specific authority is added by this classification.

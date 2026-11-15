@@ -72,7 +72,14 @@ fn decode(call: &RawJson) -> Result<UnaryCall, Failure> {
 )]
 const fn forwardable(method: Method) -> bool {
     match method {
-        Method::GetUsageLimits
+        // Creation subscribe is a bounded unary long poll, not a connection
+        // subscription. Profile configuration still requires node Admin scope.
+        Method::ObserveCreation
+        | Method::SubscribeCreation
+        | Method::ListTerminalProfiles
+        | Method::GetTerminalProfiles
+        | Method::SetTerminalProfiles
+        | Method::GetUsageLimits
         | Method::SetUsageLookup
         | Method::QueryUsage
         | Method::NodeInfo
