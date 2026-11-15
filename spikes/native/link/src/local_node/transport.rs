@@ -41,6 +41,8 @@ impl TransportLease {
         }
     }
 
+    // Actor-observer promotion awaits the explicitly granted third writer slot.
+    #[cfg(test)]
     pub(crate) async fn retired(&self) -> Refusal {
         let mut state = self.state.clone();
         match state.wait_for(|value| *value != State::Active).await {

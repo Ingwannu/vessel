@@ -512,3 +512,12 @@ and local-node/onboarding fields retained. Desktop geometry wiring is surgical;
 no moving session/project/menu policy is imported. Producer unit18 and this actual
 consumer union are not yet checked; no scoped predecessor result is borrowed as
 proof of the new fence, retry deadline or app-wide exit behavior.
+
+Lead-approved unavailable skeleton: the obsolete branch-only registration that
+constructed/cloned raw Connected values is removed. Until the canonical third
+writer slot, registration of Some(connection) explicitly returns Unavailable,
+withdrawal acknowledges None, and no local Machine is published. This deliberate
+incomplete difference from Paseo hides the unusable local Fleet destination;
+owned process controls remain separately scoped. No shared connections/selected/
+delivery source is edited, fake Book or second epoch introduced. The skeleton
+requires V1 review if it reaches the line and is not a parity-complete handoff.
