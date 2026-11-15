@@ -165,3 +165,11 @@ it does not qualify capture, metadata lease, current-grant queue admission, or
 private notice production. The existing grant is immutable after reserve today;
 future grant mutation must invalidate under that same registry guard. Exact
 changed-source checks and review remain owed for this checkpoint.
+
+
+The existing Sessions metadata mutex is now held in Arc, retaining all current
+lock sites and order. This is the mechanical ownership prerequisite for moving
+an owned lease into the later actor command; it neither adds a second mutex nor
+captures a parent, verifies a grant, or enables private admission. The actual
+capsule and held-command/caller-loss tests are still owed. No public API or
+unused future entry point is added by this conversion.
