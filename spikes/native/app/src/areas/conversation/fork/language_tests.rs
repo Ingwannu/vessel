@@ -12,6 +12,7 @@ fn a_fork_refusal_rewords_without_diagnostics_or_losing_composer_input(
         cx,
         |shell, _window, _cx| {
             shell.fork_answered(&ActAnswer {
+                terminal: None,
                 machine: "isolated".to_owned(),
                 session: "00000000-0000-0000-0000-000000000001".parse().unwrap(),
                 kind: ActKind::Fork,
@@ -45,6 +46,7 @@ fn translating_an_older_fork_refusal_preserves_another_areas_later_notice(
         cx,
         |shell, _window, _cx| {
             shell.fork_answered(&ActAnswer {
+                terminal: None,
                 machine: "isolated".to_owned(),
                 session: "00000000-0000-0000-0000-000000000001".parse().unwrap(),
                 kind: ActKind::Fork,

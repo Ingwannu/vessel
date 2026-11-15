@@ -299,10 +299,9 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         self.settle_settings(window);
+        self.terminal_present(window, cx);
         let tokens = tokens(cx);
-        // ADR 0036: below the phone's width the sidebar is a sheet from the
-        // title bar; it closes when the person goes anywhere from it, and
-        // when the window grows past the width.
+        // ADR 0036: navigation and a wider window close the phone sidebar sheet.
         let phone = vessel_app_kit::breakpoint::phone(window);
         if !phone
             || self
