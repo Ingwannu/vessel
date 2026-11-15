@@ -26,10 +26,7 @@ impl Render for Target {
 
 /// A test window of 1000 by 800 platform points on a display of scale 2
 /// (the test platform's), zoomed by `zoom`.
-fn zoomed_window(
-    cx: &mut TestAppContext,
-    zoom: f32,
-) -> (Entity<Target>, &mut VisualTestContext) {
+fn zoomed_window(cx: &mut TestAppContext, zoom: f32) -> (Entity<Target>, &mut VisualTestContext) {
     let (target, cx) = cx.add_window_view(|_, _| Target { pressed: false });
     let handle = cx.update(|window, _| window.window_handle());
     cx.simulate_window_resize(handle, size(px(1000.0), px(800.0)));
