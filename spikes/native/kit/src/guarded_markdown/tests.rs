@@ -51,7 +51,7 @@ fn every_refused_uri_uses_the_same_inert_fixed_error_loader(cx: &mut TestAppCont
             }
             match loader(window, cx) {
                 Some(Err(ImageCacheError::Asset(message))) => assert_eq!(message.as_ref(), REFUSAL),
-                Some(Ok(_)) | Some(Err(_)) | None => panic!("fixed refusal required"),
+                Some(Ok(_) | Err(_)) | None => panic!("fixed refusal required"),
             }
             previous = Some(loader);
         }

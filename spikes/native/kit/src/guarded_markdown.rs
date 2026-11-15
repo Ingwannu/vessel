@@ -8,10 +8,10 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-/// The existing TextView link callback, with no implicit opener fallback.
+/// The existing `TextView` link callback, with no implicit opener fallback.
 pub type MarkdownLinkHandler =
     Arc<dyn Fn(&SharedString, &ClickEvent, &mut Window, &mut App) + Send + Sync>;
-/// The existing authoritative TextView image resolver, including intrinsic size.
+/// The existing authoritative `TextView` image resolver, including intrinsic size.
 pub type MarkdownImageResolver = Arc<dyn Fn(&SharedUri) -> ImageSource + Send + Sync>;
 
 /// Resource policy is explicit; a failed/refused result never uses the input URI.
