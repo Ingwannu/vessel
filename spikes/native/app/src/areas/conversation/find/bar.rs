@@ -91,8 +91,8 @@ pub(crate) fn bar(
         div()
             .flex()
             .flex_col()
-            .gap(px(spacing::TWO))
-            .p(px(spacing::TWO))
+            .gap(px(spacing::S2))
+            .p(px(spacing::S2))
             .bg(surfaces.surface1)
             .rounded(px(popup::MENU_RADIUS))
             .type_(Type::Meta)
@@ -109,7 +109,7 @@ pub(crate) fn bar(
         frame
             .flex()
             .flex_col()
-            .gap(px(spacing::ONE))
+            .gap(px(spacing::S1))
             .child(shell_row)
             .children(failure)
             .into_any_element(),

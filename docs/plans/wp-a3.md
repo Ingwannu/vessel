@@ -1,7 +1,8 @@
 # Search, chat find and prompt outline
 
-Status: message-search skeleton implemented; expanded find/outline work follows. Extends ADR 0037; no new wire calls,
-protocol fields, crate edges or dependencies.
+Status: message search and expanded find/outline implemented; narrow checks and
+prompt-index integration remain. Extends ADR 0037; the prompt-index node slice
+lives in docs/plans/wp-a3-node.md on the node track. No new dependency or crate edge.
 
 ## Reference behaviour
 
@@ -133,3 +134,38 @@ observer is removed. Its action respects route/overlays/IME, and Escape restores
 the opening surface's focus. New actual-input regressions cover this; they await
 narrow checks. The earlier Messages-only tests passed; this checkpoint is not a
 claim that the full expanded package has passed.
+
+### Find and rail implementation checkpoint
+
+Find now exposes typed Idle/Searching/Loading/Ready/Failed phases and typed
+Connection/HistoryChanged/Reveal failures. Edits cancel the old identity before
+the 120 ms debounce; close/reopen uses allocation identity so an old task cannot
+accidentally match a reset counter. Leaving the Session route closes the widget
+before the destination takes focus. Loading a search destination has a 5 s
+identity-guarded deadline, and failure offers Retry. Rewind invalidates the result
+set rather than quietly changing its count. Ordinary appends retain the selected
+occurrence without scrolling the reader away.
+
+Deliberate architecture difference from Paseo: native Follow reads the complete
+retained session (A7 confirmed it preserves that contract), so local sliced search
+reuses the existing Markdown/readable-text cache and does not issue another
+server search for text it already owns. This also keeps the page's accent-folding
+and answered-question matching, which extend Paseo's user/assistant scope. The
+node's existing `session.search` remains the global Messages boundary. If Follow
+switches to partial windows, this difference must be revisited before that change
+ships. The new metadata-only prompt request is independent of text matching.
+
+Outline hover is a view state machine with ticketed effects: vertical travel
+preserves the initial 150 ms deadline, horizontal transit of at least 4 logical
+pixels restarts it, active attention responds immediately, and leave/session
+changes invalidate old timers. The rail is keyboard reachable, Up/Down select a
+prompt and Enter/Space jump. Reduced motion suppresses magnification as Paseo
+does. Pill dimensions use the shared kit QUICK curve/150 ms rather than a new
+140 ms CSS-specific token; no recurring idle animation. Steers count as prompts.
+
+L approved exact EN/KO `chat-find.ftl` hashes 64c0b300…/b5161722… and retained
+`chat-outline.ftl` hashes 89cb7db4…/f073e348…; resource/wording approval only,
+not runtime or gate approval. The narrow check on e023b85c compiled product code
+and reported five test semicolon warnings, now corrected. Expanded regressions
+and complete package validation are still pending. A7's `reveal_turn(entry)` must
+precede find/outline row lookup when its reviewed area API reaches the base.
