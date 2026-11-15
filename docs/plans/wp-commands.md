@@ -419,3 +419,25 @@ destinations remain query-only extensions; they no longer fill the empty list.
 Their presence does not stand in for unready Home/History/Schedules owner routes.
 Messages and Theme remain explicit existing extensions. A native projection
 regression checks the empty defaults, Settings rank and searchable Appearance.
+
+
+## Outstanding owner integrations (source audit, not completion)
+
+| Surface | Owner boundary | Current evidence / remaining work |
+| --- | --- | --- |
+| Workspace creation | W3 new_workspace_current | Source1f95, checked packet pending; no global Draft fallback |
+| Workspace rows, navigation, project create | W11 registry plus S2 visible projection | Canonical values present, no checked native activation packet |
+| Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
+| Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Metadata producer in sharedline; checked tiny context/exit delta pending |
+| Root Import | W2 open_import | Source0eb3 all3clippy0, owner tests/review pending; not adopted |
+| Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
+| Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
+| Files search/open | W13 FileScope + FileLocation | Pure UI state and existing C5 acquisition available; checked actual connection-scoped opener pending |
+| Composer actions and choices | W12b owner setters + resident/W3 getters | Typed action contract exists; actual owner-generation admission and adapter pending |
+| Plugin items | W16 exact contribution registry + transport | Canonical values and narrow registry source exist; executable product adapter absent |
+| Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
+| Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Source be31d4d65, checks pending; no second writer or duplicate failure toast |
+| Messages mode | W1 existing Searching controller | Initial source665d preserved; window-lifetime successor not checked/adopted yet |
+
+All rows remain skeleton. View/Kit/App source and behavioral tests must pass on
+the combined actual head before the final frozen gate/captures/V4 submission.
