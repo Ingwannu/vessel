@@ -23,27 +23,29 @@
 //!   steer's); remove; a grip to drag a row before another (the node's
 //!   `move`, named by entry). A held queue says why and offers resume and
 //!   clear.
-//! - Not yet: the queue's own keys (GOAT's arrow keys on the grip, its
-//!   steer shortcut); attachments of a queued message are not shown.
+//! - Keys, GOAT's: a click on the grip gives it the keys, and the arrow
+//!   keys then move its row one place (the node's `move`), the grip
+//!   keeping the keys as the row moves; the grip shows it has them in the
+//!   foreground on `surface2`. GOAT's steer shortcut (Mod+Shift+Enter)
+//!   and its edit of the latest message (Alt+Up from the composer's
+//!   start) are the app's shortcuts' (track S2's registry), which call
+//!   [`Shell::conversation_steer_next`] and
+//!   [`Shell::conversation_edit_latest_queued`].
+//! - Not yet: a queued message's attachments show as their names in its
+//!   text (`[name]`), not as GOAT's thumbnails, which need the node's
+//!   files read.
 
-use gpui::AppContext as _;
-use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::glyph;
-use vessel_app_kit::ui::{
-    AnyElement, App, Context, Entity, FluentBuilder as _, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, SharedString, Stateful,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
-};
-use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _, breakpoint, popup};
+use vessel_app_kit::TextField;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Act;
 use vessel_app_view::timeline::block_text;
 use vessel_proto::{ContentBlock, Delivery, QueueChange, QueueEntryId, QueuedPrompt};
 
 use crate::shell::Shell;
 
-/// A row's round button (Paseo's 32).
-const BUTTON: f32 = 32.0;
-const BUTTON_NARROW: f32 = 40.0;
+mod rows;
+
+pub(super) use rows::queue;
 
 /// A queued message being edited in its row.
 pub(crate) struct QueueEdit {
@@ -60,37 +62,6 @@ impl std::fmt::Debug for QueueEdit {
     }
 }
 
-/// A row being dragged by its grip.
-#[derive(Debug, Clone)]
-struct Dragged {
-    entry: QueueEntryId,
-    text: SharedString,
-    tokens: Tokens,
-}
-
-/// What follows the pointer while a row is dragged: its text on the
-/// row's surface.
-struct DragPreview(Dragged);
-
-impl Render for DragPreview {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<'_, Self>) -> impl IntoElement {
-        let neutral = self.0.tokens.neutral;
-        div()
-            .w(px(280.0))
-            .px(px(12.0))
-            .py(px(8.0))
-            .rounded(px(8.0))
-            .border_1()
-            .border_color(neutral.border)
-            .bg(neutral.surface1)
-            .shadow(popup::shadow_md(&self.0.tokens))
-            .type_(Type::Body)
-            .text_color(neutral.foreground)
-            .truncate()
-            .child(self.0.text.clone())
-    }
-}
-
 /// A queued message's text, as its row shows it.
 fn text_of(prompt: &QueuedPrompt) -> String {
     prompt
@@ -103,9 +74,73 @@ fn text_of(prompt: &QueuedPrompt) -> String {
 }
 
 impl Shell {
+    /// Refresh the retained edit's hint without touching its text or keys.
+    pub(crate) fn refresh_queue_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let Some(edit) = &self.areas.conversation.queue_edit {
+            edit.field
+                .set_placeholder(self.t.lang.conversation().queue_edit(), window, cx);
+        }
+    }
+
     /// Ask the node to change the queue of the session shown.
     fn queue_change(&self, change: QueueChange) {
         self.act(Act::Queue(change));
+    }
+
+    /// Send the first queued message (GOAT's `thread.steerQueuedMessage`,
+    /// Mod+Shift+Enter by default, in the app's shortcuts): into the
+    /// running turn when the agent takes a steer, as a turn of its own
+    /// when none runs; never in place of a running turn. Whether one
+    /// went.
+    pub(crate) fn conversation_steer_next(&self) -> bool {
+        let facts = self.areas.conversation.timeline.facts();
+        let Some(first) = facts.queue.as_ref().and_then(|queue| queue.entries.first()) else {
+            return false;
+        };
+        let running = self.areas.session.conversation.turn_running();
+        let delivery = if !running {
+            Delivery::Start
+        } else if facts
+            .abilities
+            .as_ref()
+            .is_some_and(|abilities| abilities.steer)
+        {
+            Delivery::Steer
+        } else {
+            return false;
+        };
+        self.queue_change(QueueChange::SendNow {
+            entry: first.id,
+            delivery,
+        });
+        true
+    }
+
+    /// Edit the latest queued message in its row (GOAT's
+    /// `thread.editQueuedMessage`, Alt+Up from the composer's start, in
+    /// the app's shortcuts); not while another is edited. Whether one
+    /// opened.
+    pub(crate) fn conversation_edit_latest_queued(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let area = &self.areas.conversation;
+        if area.queue_edit.is_some() {
+            return false;
+        }
+        let Some(latest) = area
+            .timeline
+            .facts()
+            .queue
+            .as_ref()
+            .and_then(|queue| queue.entries.last())
+            .cloned()
+        else {
+            return false;
+        };
+        self.queue_edit(&latest, window, cx);
+        true
     }
 
     /// Edit `prompt` in its row.
@@ -153,288 +188,5 @@ impl Shell {
     }
 }
 
-/// The queue above the composer, when something waits.
-pub(super) fn queue(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let area = &shell.areas.conversation;
-    let queue = area.timeline.facts().queue.as_ref()?;
-    if queue.entries.is_empty() {
-        return None;
-    }
-    let words = shell.t.lang.conversation();
-    let narrow = breakpoint::phone(window);
-    let neutral = tokens.neutral;
-    let running = shell.areas.session.conversation.turn_running();
-    let steers = running
-        && area
-            .timeline
-            .facts()
-            .abilities
-            .as_ref()
-            .is_some_and(|abilities| abilities.steer);
-    let mut track = div().flex().flex_col().gap(px(8.0)).child(
-        div()
-            .flex()
-            .items_center()
-            .gap(px(8.0))
-            .px(px(4.0))
-            .type_(Type::Meta)
-            .text_color(neutral.foreground_muted)
-            .child(match queue.held {
-                Some(why) => words.queued_held(queue.entries.len(), why),
-                None => words.queued(queue.entries.len()),
-            })
-            .child(div().flex_1())
-            .when(queue.held.is_some(), |head| {
-                head.child(
-                    text_button("queue-resume", words.queue_resume(), tokens).on_click(
-                        cx.listener(|shell, _event, _window, _cx| {
-                            shell.queue_change(QueueChange::Resume);
-                        }),
-                    ),
-                )
-            })
-            .child(
-                text_button("queue-clear", words.queue_clear(), tokens).on_click(cx.listener(
-                    |shell, _event, _window, _cx| {
-                        shell.queue_change(QueueChange::Clear);
-                    },
-                )),
-            ),
-    );
-    for prompt in &queue.entries {
-        track = track.child(row(shell, prompt, running, steers, tokens, narrow, cx));
-    }
-    // The slot puts it in the composer's column, at the card's width.
-    Some(track.pb(px(8.0)).into_any_element())
-}
-
-/// One waiting message: Paseo's row, GOAT's actions.
-fn row(
-    shell: &Shell,
-    prompt: &QueuedPrompt,
-    running: bool,
-    steers: bool,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    let entry = prompt.id;
-    let text = text_of(prompt);
-    let editing = shell
-        .areas
-        .conversation
-        .queue_edit
-        .as_ref()
-        .filter(|edit| edit.entry == entry);
-    let side = if narrow { BUTTON_NARROW } else { BUTTON };
-    let dragged = Dragged {
-        entry,
-        text: text.clone().into(),
-        tokens: *tokens,
-    };
-    let grip = div()
-        .id(SharedString::from(format!("queue-grip-{entry}")))
-        .flex_none()
-        .cursor_grab()
-        .child(glyph(Glyph::Grip, 14.0, neutral.foreground_extra_muted))
-        .on_drag(
-            dragged,
-            |dragged, _offset, _window, cx: &mut App| -> Entity<DragPreview> {
-                cx.new(|_| DragPreview(dragged.clone()))
-            },
-        );
-    let body = body(editing, text, tokens, narrow, cx);
-    let actions = actions(prompt, editing.is_none(), running, steers, side, tokens, cx);
-    let drop_line = neutral.foreground_extra_muted;
-    let row = div()
-        .id(SharedString::from(format!("queue-row-{entry}")))
-        .flex()
-        .gap(px(8.0))
-        .px(px(12.0))
-        .py(px(8.0))
-        .rounded(px(8.0))
-        .border_1()
-        .border_color(neutral.border)
-        .bg(neutral.surface1)
-        .drag_over::<Dragged>(move |style, _dragged, _window, _cx| style.border_color(drop_line))
-        .on_drop(cx.listener(move |shell, dragged: &Dragged, _window, _cx| {
-            if dragged.entry != entry {
-                shell.queue_change(QueueChange::Move {
-                    entry: dragged.entry,
-                    before: Some(entry),
-                });
-            }
-        }));
-    // On a phone the four 40-point buttons would leave the text about
-    // 100 points: they go on a line of their own under it (Paseo keeps
-    // one line, with two buttons).
-    if narrow {
-        row.flex_col()
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(8.0))
-                    .child(grip)
-                    .child(body),
-            )
-            .child(div().flex().justify_end().child(actions))
-            .into_any_element()
-    } else {
-        row.items_center()
-            .child(grip)
-            .child(body)
-            .child(actions)
-            .into_any_element()
-    }
-}
-
-/// A row's text, or the field it is edited in (the kit's field, so it
-/// reads as one: the title's rename uses the same).
-fn body(
-    editing: Option<&QueueEdit>,
-    text: String,
-    tokens: &Tokens,
-    narrow: bool,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    match editing {
-        Some(edit) => div()
-            .flex_1()
-            .min_w(px(0.0))
-            .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _window, cx| {
-                if event.keystroke.key == "escape" {
-                    shell.queue_edit_cancelled(cx);
-                    cx.stop_propagation();
-                }
-            }))
-            .child(edit.field.element(tokens, narrow, cx))
-            .into_any_element(),
-        None => div()
-            .flex_1()
-            .min_w(px(0.0))
-            .type_(Type::Body)
-            .text_size(px(14.0))
-            .text_color(neutral.foreground)
-            .line_clamp(2)
-            .text_ellipsis()
-            .child(text)
-            .into_any_element(),
-    }
-}
-
-/// A row's round buttons: edit (not while editing), steer (while a turn
-/// runs, for an agent that takes it), send now (interrupting a running
-/// turn) and remove.
-fn actions(
-    prompt: &QueuedPrompt,
-    can_edit: bool,
-    running: bool,
-    steers: bool,
-    side: f32,
-    tokens: &Tokens,
-    cx: &mut Context<'_, Shell>,
-) -> AnyElement {
-    let entry = prompt.id;
-    let edit_prompt = prompt.clone();
-    let mut actions = div().flex().flex_none().items_center().gap(px(8.0));
-    if can_edit {
-        actions = actions.child(
-            round("queue-edit", entry, Glyph::Pencil, false, side, tokens).on_click(cx.listener(
-                move |shell, _event, window, cx| {
-                    shell.queue_edit(&edit_prompt, window, cx);
-                },
-            )),
-        );
-    }
-    if steers {
-        actions = actions.child(
-            round("queue-steer", entry, Glyph::Steer, false, side, tokens).on_click(cx.listener(
-                move |shell, _event, _window, _cx| {
-                    shell.queue_change(QueueChange::SendNow {
-                        entry,
-                        delivery: Delivery::Steer,
-                    });
-                },
-            )),
-        );
-    }
-    actions = actions
-        .child(
-            round("queue-send", entry, Glyph::ArrowUp, true, side, tokens).on_click(cx.listener(
-                move |shell, _event, _window, _cx| {
-                    shell.queue_change(QueueChange::SendNow {
-                        entry,
-                        delivery: if running {
-                            Delivery::Interrupt
-                        } else {
-                            Delivery::Start
-                        },
-                    });
-                },
-            )),
-        )
-        .child(
-            round("queue-remove", entry, Glyph::Remove, false, side, tokens).on_click(cx.listener(
-                move |shell, _event, _window, _cx| {
-                    shell.queue_change(QueueChange::Remove { entry });
-                },
-            )),
-        );
-    actions.into_any_element()
-}
-
-/// A row's round button: surface2, or the accent for send.
-fn round(
-    name: &str,
-    entry: QueueEntryId,
-    mark: Glyph,
-    accent: bool,
-    side: f32,
-    tokens: &Tokens,
-) -> Stateful<vessel_app_kit::ui::Div> {
-    let neutral = tokens.neutral;
-    let (fill, ink) = if accent {
-        (neutral.accent, neutral.accent_foreground)
-    } else {
-        (neutral.surface2, neutral.foreground)
-    };
-    let hover = popup::Surfaces::of(tokens).surface2;
-    div()
-        .id(SharedString::from(format!("{name}-{entry}")))
-        .size(px(side))
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .rounded_full()
-        .bg(fill)
-        .cursor_pointer()
-        .when(!accent, |button| button.hover(move |style| style.bg(hover)))
-        .child(glyph(mark, 14.0, ink))
-}
-
-/// A small text button in the queue's heading.
-fn text_button(
-    id: &'static str,
-    label: &'static str,
-    tokens: &Tokens,
-) -> Stateful<vessel_app_kit::ui::Div> {
-    let neutral = tokens.neutral;
-    div()
-        .id(id)
-        .px(px(8.0))
-        .py(px(2.0))
-        .rounded(px(6.0))
-        .cursor_pointer()
-        .text_color(neutral.foreground_muted)
-        .hover(move |style| style.bg(neutral.surface2).text_color(neutral.foreground))
-        .child(label)
-}
+#[cfg(test)]
+mod language_tests;

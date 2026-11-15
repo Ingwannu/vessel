@@ -193,13 +193,15 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
             Err(problem) => return Made::Failed(problem),
         };
         let listed = match outcome {
-            CreateWorktreeOutcome::Created { worktree } => {
+            CreateWorktreeOutcome::Created { worktree, .. } => {
                 return set_up(walk, worktree, commands).await;
             }
-            CreateWorktreeOutcome::Refused { reason } => {
+            CreateWorktreeOutcome::Refused { reason, .. } => {
                 walk.show(Step::Refused(Refusal::Worktree(reason))).await;
                 return Made::Stopped;
             }
+            // No `..`: what a person approves is named whole (see
+            // `Listed::of`); a field the node adds must reach the screen.
             CreateWorktreeOutcome::NeedsApproval { commands } => commands,
         };
         let Some(asked) = Listed::of(&listed) else {

@@ -264,3 +264,57 @@ fn clicking_a_form_focuses_its_input_inside_and_outside_a_dialog(cx: &mut TestAp
         }
     }
 }
+
+/// The caret blinks while things may move, and is steady while motion is
+/// held (the patched gpui-base, `spikes/release/patches/README.md`): every
+/// blink notifies the field, and a notified field repaints the window
+/// (about 31 % of a core at 1280 × 800 on a software renderer).
+#[gpui::test]
+fn the_caret_is_steady_while_motion_is_held(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    for held in [false, true] {
+        cx.update(|cx| cx.set_reduce_motion(held));
+        let (view, cx) = cx.add_window_view(|window, cx| {
+            Probe::new(
+                MultilineStyle::Composer,
+                false,
+                Rc::new(RefCell::new(Vec::new())),
+                window,
+                cx,
+            )
+        });
+        cx.run_until_parked();
+        // The window made active and the field focused again, as a click
+        // does: a test window starts inactive, and a focus event reaches
+        // the field's listener only in an active window.
+        cx.update(|window, _cx| window.activate_window());
+        cx.run_until_parked();
+        cx.update(Window::blur);
+        cx.run_until_parked();
+        let handle = cx.update(|_window, cx| view.read(cx).field.focus_handle(cx));
+        cx.update(|window, cx| handle.focus(window, cx));
+        cx.run_until_parked();
+        let input = view.read_with(cx, |probe, _cx| probe.input());
+        let notified = Rc::new(Cell::new(0_u32));
+        let count = Rc::clone(&notified);
+        let _watch = cx.update(|_window, cx| {
+            cx.observe(&input, move |_input, _cx| {
+                count.set(count.get().saturating_add(1));
+            })
+        });
+        for _ in 0..6 {
+            cx.executor()
+                .advance_clock(std::time::Duration::from_millis(500));
+            cx.run_until_parked();
+        }
+        if held {
+            assert_eq!(notified.get(), 0, "held: the caret does not blink");
+        } else {
+            assert!(
+                notified.get() >= 3,
+                "moving: it blinks ({})",
+                notified.get()
+            );
+        }
+    }
+}
