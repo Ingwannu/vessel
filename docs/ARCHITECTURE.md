@@ -1618,3 +1618,8 @@ completion, independent of async waiter cancellation. Presence shares the read
 gate without claiming a recording slot. The lease has no connection lifetime
 guard; fixed diagnostics keep store causes internal. These tests do not yet
 establish registry admission, settings integration or a callable speech service.
+
+The CLI's staged dictation file edge validates and seeks through a bounded
+little-endian PCM16 mono WAV container before connecting, then owns one bounded
+read at a time. It does not resample or transcribe; those remain node concerns.
+The command wiring removes this decoder's outer test gate.

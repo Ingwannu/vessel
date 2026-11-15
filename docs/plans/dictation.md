@@ -375,11 +375,13 @@ helpers. Their historical whole-gate and review evidence is scoped below. Input
 ordering, submission-order text, adaptive budgets, DTOs, update delivery and
 provider jobs have narrow checks. They remain staged until product wiring.
 
-In progress: the exclusive actor, with control separate from data backpressure
-and twelve tests. Its first narrow check failed on one constructor visibility
-and test calls to nonexistent constructors; those are corrected. The next narrow
-compile and actor runtime tests remain pending. No service registry, callable
-settings field, RPC registration or CLI command exists yet.
+Done as staged source: the exclusive actor and fresh secret reader/reservations
+passed strict node all-target Clippy and all 76 dictation unit cases, including
+twelve actor and four reservation/reader cases. The reader security delta passed
+source review. Those results do not prove registry admission or product wiring.
+No service registry, callable settings field, RPC registration or CLI command
+exists yet. The separate settings/file-view draft and the file preflight decoder
+are in progress; their own checks are not yet complete.
 
 Next: merge the announced call-table head at a clean boundary, then bounded
 service admission, fresh secret preparation, settings and common file-policy
@@ -486,10 +488,10 @@ preserves a previously selected terminal cause and aborts/joins provider tasks.
 Unread terminals retain only output, never the HTTP pool, credential or audio.
 
 Resume: the actor and its tests are staged under the existing outer test gate;
-its first narrow compile/runtime checks are pending. Input, text/budget, DTO,
-update buffer and provider-job narrow checks have passed. Registry quotas,
-secret preparation, settings persistence, RPC policy/transport wiring and the
-file CLI remain unimplemented. This is source under development, not product
+its narrow compile and twelve actor runtime cases passed together with the
+other dictation helpers. Registry admission, secret preparation integration,
+settings persistence, RPC policy/transport wiring and the file CLI remain
+unimplemented. This is source under development, not product
 or end-to-end evidence. The feature package gets its whole gate at completion.
 
 Actor narrow compile follow-up: the first check refused a private buffer
@@ -513,8 +515,9 @@ not implementation or runtime evidence. No new wire number is assigned here.
 
 Actor compile correction: the validating constructors now compile. The next
 narrow check found nine documentation/style/checked-test-arithmetic lints; these
-are fixed without allowances, weaker assertions or longer deadlines. Runtime
-checks are still pending, so actor behavior is not yet claimed as verified.
+are fixed without allowances, weaker assertions or longer deadlines. The
+corrected source passed strict node all-target Clippy and its twelve runtime
+cases; transport/service/product behavior remains unverified.
 
 ## Secret-reader and reservation implementation
 
@@ -530,7 +533,28 @@ paths or payloads. No connection lifetime guard is retained by a lease.
 
 Four staged cases cover both admission bounds/partial failure, actual store
 edits/deletion/empty values, canceled blocking reads retaining the lease, and
-corrupt-store fixed diagnostics. Narrow checks are pending. This remains test-only
+corrupt-store fixed diagnostics. Strict Clippy and all four cases passed. This remains test-only
 source, not a service admission or RPC/permission proof; the registry and settings
 consumers follow. Credential/path code receives its security review separately
 from the eventual combined feature-package review.
+
+
+## File preflight decoder
+
+Decision: new narrow file decoder, reusing the existing asynchronous file APIs,
+validated SampleRate/DictationPcm and one-second chunk contract. The attachment
+reader has no WAV/container parser and the node's WAV helper encodes rather than
+decodes; neither can validate a selected file before connecting. A general audio
+framework would add dependencies and conversion policy to this test client.
+The standard-library integers/byte conversions and existing Tokio file operations
+are sufficient. Pcm16Mono gains a constructor from an already parsed rate so this
+edge does not format text and parse it again.
+
+The staged decoder seeks through the whole declared RIFF extent before returning
+an open input. Metadata has one named byte cap, including headers, unknown chunks,
+format extensions and padding. Format and data chunks are unique; sample width,
+channels, byte rate, alignment, rate and duration are checked before any stream
+exists. Reading then allocates at most one input second. Later growth is ignored;
+later truncation is an I/O failure. No audio is logged or written by the command.
+Seven synthetic-file cases cover these boundaries. Narrow checks are pending;
+there is no command registration, RPC, cancellation or end-to-end claim yet.

@@ -15,6 +15,8 @@ mod commands;
 mod connect;
 mod conversation;
 mod devices;
+#[cfg(test)]
+mod dictation;
 mod error;
 mod file_terminals;
 mod fleet;

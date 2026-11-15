@@ -130,6 +130,12 @@ pub struct Pcm16Mono {
 }
 
 impl Pcm16Mono {
+    /// File decoders already hold a parsed rate; do not format and parse it again.
+    #[must_use]
+    pub const fn new(rate: SampleRate) -> Self {
+        Self { rate }
+    }
+
     /// Give resampling code a validated input rate.
     #[must_use]
     pub const fn rate(self) -> SampleRate {
