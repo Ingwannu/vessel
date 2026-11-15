@@ -5,7 +5,7 @@
 //! both roles remains required. Optional normal declarations are conservative:
 //! a shipping feature can enable them without changing this inventory test.
 
-use super::BUNDLED;
+use super::{BUNDLED, Role};
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -140,6 +140,31 @@ fn name_every_dependency_in_the_manifests_order() {
         listed,
         dependencies(include_str!("../../../Cargo.toml"), &required),
         "a runtime dependency is missing from BUNDLED, or out of order"
+    );
+}
+
+#[test]
+fn translation_libraries_and_uuid_describe_their_actual_roles() {
+    assert_eq!(
+        BUNDLED
+            .iter()
+            .filter(|entry| entry.role == Role::Translations)
+            .map(|entry| entry.name)
+            .collect::<Vec<_>>(),
+        [
+            "fluent-bundle",
+            "fluent-syntax",
+            "fluent-pseudo",
+            "intl-memoizer",
+            "unic-langid"
+        ]
+    );
+    assert_eq!(
+        BUNDLED
+            .iter()
+            .find(|entry| entry.name == "uuid")
+            .map(|entry| entry.role),
+        Some(Role::Identifiers)
     );
 }
 

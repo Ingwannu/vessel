@@ -17,8 +17,9 @@ use vessel_app_kit::{
     select,
 };
 use vessel_app_view::workspace::git::Issue;
-use vessel_app_view::workspace::pull::{BaseChoice, base_choices, refusal_words};
+use vessel_app_view::workspace::pull::{BaseChoice, base_choices, refusal_words, start_base};
 use vessel_proto::forge::OpenRefusal;
+use vessel_proto::workspace::BranchName;
 
 use super::{Form, FormIssue};
 use crate::shell::Shell;
@@ -34,6 +35,7 @@ impl Shell {
         pulls.bases.close();
         if let Some(form) = pulls.form.as_mut() {
             form.draft.base = choice.branch;
+            form.base_chosen = true;
         }
         cx.notify();
     }
@@ -55,8 +57,19 @@ fn choices(shell: &Shell, form: &Form) -> Vec<BaseChoice> {
     base_choices(shell.areas.git.branches.shown(), head.as_ref())
 }
 
+/// The base the form shows and sends: the person's choice, else the one
+/// the branch was made from as the forge spells it (`start_base`, read
+/// again each frame so a branch list that arrives late corrects it).
+pub(crate) fn form_base(shell: &Shell, form: &Form) -> Option<BranchName> {
+    if form.base_chosen {
+        form.draft.base.clone()
+    } else {
+        start_base(form.proposed.as_ref(), shell.areas.git.branches.shown())
+    }
+}
+
 /// A choice's words: the branch, or "Default branch".
-fn base_label(shell: &Shell, branch: Option<&vessel_proto::workspace::BranchName>) -> String {
+fn base_label(shell: &Shell, branch: Option<&BranchName>) -> String {
     branch.map_or_else(
         || shell.words.pulls().default_base().to_owned(),
         ToString::to_string,
@@ -173,7 +186,7 @@ fn base_row(
     let pulls = &shell.areas.pulls;
     let trigger = select::trigger(
         "pulls-base",
-        base_label(shell, form.draft.base.as_ref()),
+        base_label(shell, form_base(shell, form).as_ref()),
         &pulls.base_anchor,
         pulls.bases.is_open(),
         form.sending.is_none(),
@@ -216,10 +229,11 @@ pub(crate) fn base_list(
         return None;
     }
     let choices = choices(shell, form);
+    let shown = form_base(shell, form);
     let rows: Vec<ComboRow> = choices
         .iter()
         .map(|choice| ComboRow {
-            checked: choice.branch == form.draft.base,
+            checked: choice.branch == shown,
             ..ComboRow::new(base_label(shell, choice.branch.as_ref()))
         })
         .collect();

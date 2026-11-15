@@ -653,6 +653,15 @@ numbers) and captures with both panels stored at their widest (sidebar
 - 1024 × 700: both beside the conversation, the sidebar at 212, the
   conversation at its 480, the panel at its least 320.
 
+Over the conversation (0.0.0.0.18, the coordinator's note on the 800 ×
+600 capture: nothing said a conversation was underneath): Paseo's compact
+panel has no title or back button of its own; it dims what it covers
+(`mobile-panels/presentation.tsx`: a backdrop at black 50 %) and a press
+on that backdrop returns to the agent (`onPress={showMobileAgent}`). The
+same here: the conversation under the panel is dimmed and a press on it
+closes the panel. A panel stored as wide as the row covers it all, as
+Paseo's full-width panel does; its close button is then the way back.
+
 ## Packages installed on the machine
 
 - `fcitx5` and `fcitx5-hangul` (with their 12 dependencies: `fcitx5-data`,

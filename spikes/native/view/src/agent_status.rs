@@ -24,6 +24,7 @@ pub mod notices;
 pub mod pages;
 pub mod problem;
 pub mod readiness;
+pub mod removal;
 pub mod row;
 
 /// An agent's key in an address or a list: its kind as the wire writes it

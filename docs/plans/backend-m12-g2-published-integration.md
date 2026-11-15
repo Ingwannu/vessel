@@ -93,3 +93,24 @@ The schedules list follows, using the current Paseo
 `packages/app/src/screens/schedules-screen.tsx`,
 `components/schedules/schedules-table.tsx` and `schedule-row.tsx` as the
 reference. The editor, runs and saved prompts are separate later slices.
+
+## Move to the lead's0.0.0.0.19 line
+
+After the e282 gate completed and its separate pixel packet was submitted to
+V1, merge the lead's `d30804b2` line. Its corrected host_rename control and
+corresponding note win byte-for-byte. Keep the additive asset union (92 unique
+registered glyphs), the lead's attachment vector and all its existing vector
+bytes, shared icon/radius tokens and module registrations. No release or push.
+
+The lead's menu.rs is byte-identical to the published56a file (SHA256
+`b9543b0656a158a9e8aa4cc08af36a09a2555409c9bca3d7dde6040ab034a2f5`).
+It is nevertheless established as the integration checkpoint: remove the old
+extended child modules, then remake the pure split and typed extensions in
+separate, reviewable control commits on this line. The README marks that
+transient checkpoint explicitly. Do not call the previous gate a merged-tree
+pass. The merged tree and new Git merge-row literal need separate checking.
+
+The lead's LinkError remains in link/lib.rs. Its new size record is988;
+the external old-base extraction is not applied. The delegated move must use
+this base, preserve the exact enum and public root path and lower the measured
+record. Feature registrations follow in their own commit.

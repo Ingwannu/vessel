@@ -10,3 +10,20 @@
 - Impact: callers own callbacks and pending state; disabled consumers attach no callback. The control refuses its cursor/handler when disabled and adds no opacity, spinner or paint absent from the source.
 
 Tests check the static geometry, actual SVG ink and returned hit frame with no opacity in both themes. Native evidence must cover outside/inside input, disabled state, adjacent controls and parent clipping. This control does not own a rename editor.
+
+## After V2's review (row 65)
+
+- The values come from tokens: the glyph is `theme::icon::SM` (Paseo's
+  `ICON_SIZE.sm`), the radius `theme::radius::MD` (Paseo's
+  `borderRadius.md`), the padding `spacing::S1`, the slop `spacing::S2`.
+  The 22 frame and the 38 hit are computed from them, so a padding or slop
+  change moves both. The test compares the ink with the muted token, not
+  with a restated colour.
+- Difference from Paseo, stated: Paseo's pencil is a button named for
+  assistive technology (role button, the edit label). The kit has no
+  accessibility tree and no focusable buttons yet, so this control has no
+  accessible name and no keyboard reach. It takes no label until the kit
+  can carry one, and shows no tooltip, since Paseo's pencil shows none.
+- Moving the kit's other 14 and 6 values (`menu::draw::LEADING_GLYPH`,
+  `popup::ROW_RADIUS`, `copy.rs`, `output.rs`) onto the two tokens is left
+  to the kit's own cleanup.

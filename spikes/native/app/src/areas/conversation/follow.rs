@@ -26,6 +26,8 @@ impl Shell {
     ) {
         self.hear_find(cx);
         self.areas.conversation.open(machine, session);
+        // Opened again: a fork's origin that could not be read is read.
+        self.origin_read();
         for act in [Act::Info, Act::Conversation] {
             self.command(Command::Act {
                 machine: machine.to_owned(),
@@ -137,6 +139,7 @@ impl Shell {
         {
             self.rewind_answered(&answer);
             self.fork_answered(&answer);
+            self.empty_fork_removed(&answer);
         }
         if self.areas.conversation.answered(answer) == Followup::ReadWaiting {
             self.act(Act::Conversation);

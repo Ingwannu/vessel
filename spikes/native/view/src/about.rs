@@ -11,7 +11,9 @@
 //!   its crate declares it (`cargo metadata`), the faces' from their OFL
 //!   texts beside them.
 
-/// What a part does in the app (its words are in `text/settings.rs`).
+mod words;
+
+/// What a part does in the app (its words are in `locales/*/about.ftl`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
     /// The windows' drawing.
@@ -32,6 +34,10 @@ pub enum Role {
     ComputerName,
     /// Reading and writing data.
     Data,
+    /// Resolving the app's translated messages.
+    Translations,
+    /// Making unique identifiers for domain values.
+    Identifiers,
     /// The system's language.
     Language,
     /// Errors.
@@ -44,6 +50,8 @@ pub enum Role {
     Accents,
     /// Pairing links as QR codes.
     QrCodes,
+    /// Reading a terminal program's output.
+    Terminal,
     /// The face of everything.
     Face,
     /// The face of code.
@@ -87,13 +95,13 @@ const fn face(name: &'static str, role: Role) -> Bundled {
 
 /// Every dependency of the workspace, in its manifest's order, then the
 /// faces.
-pub const BUNDLED: [Bundled; 26] = [
-    krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Data),
-    krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Data),
-    krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Data),
-    krate("intl-memoizer", "Apache-2.0 OR MIT", Role::Data),
-    krate("unic-langid", "MIT OR Apache-2.0", Role::Data),
-    krate("uuid", "Apache-2.0 OR MIT", Role::Data),
+pub const BUNDLED: [Bundled; 28] = [
+    krate("fluent-bundle", "Apache-2.0 OR MIT", Role::Translations),
+    krate("fluent-syntax", "Apache-2.0 OR MIT", Role::Translations),
+    krate("fluent-pseudo", "Apache-2.0 OR MIT", Role::Translations),
+    krate("intl-memoizer", "Apache-2.0 OR MIT", Role::Translations),
+    krate("unic-langid", "MIT OR Apache-2.0", Role::Translations),
+    krate("uuid", "Apache-2.0 OR MIT", Role::Identifiers),
     krate("gpui-pre", "Apache-2.0", Role::Drawing),
     krate("gpui-pre-platform", "Apache-2.0", Role::Windows),
     krate("gpui-component", "Apache-2.0", Role::Controls),
@@ -114,6 +122,8 @@ pub const BUNDLED: [Bundled; 26] = [
         "(MIT OR Apache-2.0) AND Unicode-3.0",
         Role::Accents,
     ),
+    krate("vte", "Apache-2.0 OR MIT", Role::Terminal),
+    krate("unicode-width", "MIT OR Apache-2.0", Role::Terminal),
     krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
     face("Geist", Role::Face),
     face("Geist Mono", Role::CodeFace),

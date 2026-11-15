@@ -1,20 +1,25 @@
-//! A session's pull request (`pr.get`, `pr.open`, protocol 11): asked and
-//! answered on the workspace's pair, as `session.get` is.
+//! A session's pull request (`pr.get`, `pr.open`, `pr.merge`,
+//! `pr.feedback`, protocol 11): asked and answered on the workspace's
+//! pair, as `session.get` is.
 //!
 //! [Decision Log]
-//! - Purpose: the git row's "Create PR" and the pull request's facts call
-//!   the node without a new variant in the lead's `Command` and `Event`.
+//! - Purpose: the git row's pull request actions and the pull request's
+//!   facts call the node without a new variant in the lead's `Command`
+//!   and `Event`.
 //! - Constraint: the workspace pair already carries a session's calls
 //!   (`Ask::Session`); a pull request is a session's, read beside its git.
 //! - Choice: one [`PullAsk`] and one [`PullAnswer`] here, one variant each
-//!   in [`super::Ask`] and [`super::Answer`].
-//! - Cost: none beyond the two variants; `pr.merge` and `pr.feedback` join
-//!   this enum when their slices come.
+//!   in [`super::Ask`] and [`super::Answer`]; every answer carries what
+//!   was asked, so the screen that waits matches it.
+//! - Cost: none beyond the two variants.
 
 use vessel_app_view::workspace::problem::Problem;
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;
-use vessel_proto::forge::{GetPullRequest, OpenOutcome, OpenPullRequest, PullRequestView};
+use vessel_proto::forge::{
+    GetPullRequest, MergeOutcome, MergePullRequest, OpenOutcome, OpenPullRequest, PullRequestView,
+    SessionPullRequest, SetFeedback,
+};
 
 use super::calls::call;
 
@@ -25,6 +30,11 @@ pub enum PullAsk {
     Get(GetPullRequest),
     /// `pr.open`: open one from the session's branch.
     Open(OpenPullRequest),
+    /// `pr.merge`: merge it as it was seen.
+    Merge(MergePullRequest),
+    /// `pr.feedback`: send its failing checks and reviews to the session,
+    /// or stop.
+    Feedback(SetFeedback),
 }
 
 /// What the node answered, with what was asked.
@@ -44,6 +54,20 @@ pub enum PullAnswer {
         /// The outcome.
         result: Result<OpenOutcome, Problem>,
     },
+    /// What merging it did.
+    Merged {
+        /// What was asked.
+        ask: Box<MergePullRequest>,
+        /// The outcome.
+        result: Result<MergeOutcome, Problem>,
+    },
+    /// The feedback switch as the node now has it.
+    Feedback {
+        /// What was asked.
+        ask: SetFeedback,
+        /// The session's pull request after it.
+        result: Result<Box<SessionPullRequest>, Problem>,
+    },
 }
 
 /// Run `ask` to its answer.
@@ -57,6 +81,14 @@ pub(super) async fn run(client: &NodeClient, ask: PullAsk) -> PullAnswer {
             result: call(client, ask.clone()).await,
             ask: Box::new(ask),
         },
+        PullAsk::Merge(ask) => PullAnswer::Merged {
+            result: call(client, ask.clone()).await,
+            ask: Box::new(ask),
+        },
+        PullAsk::Feedback(ask) => PullAnswer::Feedback {
+            result: call(client, ask.clone()).await.map(Box::new),
+            ask,
+        },
     }
 }
 
@@ -69,6 +101,14 @@ pub(super) fn refused(ask: PullAsk, problem: &Problem) -> PullAnswer {
         },
         PullAsk::Open(ask) => PullAnswer::Opened {
             ask: Box::new(ask),
+            result: Err(problem.clone()),
+        },
+        PullAsk::Merge(ask) => PullAnswer::Merged {
+            ask: Box::new(ask),
+            result: Err(problem.clone()),
+        },
+        PullAsk::Feedback(ask) => PullAnswer::Feedback {
+            ask,
             result: Err(problem.clone()),
         },
     }

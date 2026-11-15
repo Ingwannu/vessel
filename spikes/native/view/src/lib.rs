@@ -18,6 +18,7 @@ pub mod badge;
 pub mod board;
 pub mod brand;
 pub mod composer;
+pub mod connections;
 mod conversation;
 pub mod devices;
 pub mod diagnostics;
@@ -69,8 +70,8 @@ pub use options::{
 pub use text::ScheduleWords;
 pub use text::localization;
 pub use text::{
-    AboutText, BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText,
-    GitLabels, GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText,
-    NoticeWords, OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords,
-    SidebarWords, Text, UpdateText, grouped, meter_tokens, short_tokens,
+    BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
+    GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
+    OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
+    UpdateText, grouped, meter_tokens, short_tokens,
 };

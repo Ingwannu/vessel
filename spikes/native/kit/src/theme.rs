@@ -291,4 +291,13 @@ pub mod radius {
     pub const R4: f32 = 10.0;
     /// `--r-5`: the frame.
     pub const R5: f32 = 12.0;
+    /// Paseo's `borderRadius.md`: small icon actions and popup rows. The
+    /// page's scale has no 6; controls drawn after Paseo's use this one.
+    pub const MD: f32 = 6.0;
+}
+
+/// Paseo's icon sizes (`ICON_SIZE` in its theme), in pixels.
+pub mod icon {
+    /// `ICON_SIZE.sm`: an icon-only action's glyph.
+    pub const SM: f32 = 14.0;
 }

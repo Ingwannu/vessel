@@ -156,11 +156,58 @@ fn an_origin_that_cannot_be_read_is_said_plainly() {
         "The conversation it was forked from was removed."
     );
     assert_eq!(
-        words.origin_unread(false, "connection lost"),
-        "The conversation it was forked from could not be read: connection lost"
+        words.origin_unread(false, "connection lost."),
+        "The conversation it was forked from could not be read: connection lost. Open the \
+         session again to try again."
+    );
+    assert_eq!(
+        Lang::Ko.conversation().origin_unread(false, " "),
+        "분기한 원래 대화를 읽지 못했습니다. 세션을 다시 열면 다시 읽습니다."
     );
     assert_eq!(
         Lang::Ko.conversation().origin_unread(true, ""),
         "분기한 원래 대화는 삭제되었습니다."
     );
+}
+
+#[test]
+fn an_empty_fork_says_why_in_the_persons_words() {
+    use vessel_app_view::timeline::{EmptyFork, empty_fork};
+    use vessel_proto::SessionStatus;
+    let failed = |message: &str, empty_fork| SessionStatus::Failed {
+        message: message.to_owned(),
+        empty_fork,
+    };
+    assert_eq!(
+        empty_fork(&failed("the agent did not fork at the chosen point", true)),
+        Some(EmptyFork::NotAtPoint)
+    );
+    assert_eq!(
+        empty_fork(&failed("the agent cannot fork a conversation", true)),
+        Some(EmptyFork::CannotFork)
+    );
+    assert_eq!(
+        empty_fork(&failed("`initialize` failed", true)),
+        Some(EmptyFork::Other("`initialize` failed".to_owned()))
+    );
+    assert_eq!(
+        empty_fork(&failed("the agent did not fork at the chosen point", false)),
+        None,
+        "another session's failure"
+    );
+    assert_eq!(empty_fork(&SessionStatus::Running), None);
+    let words = Lang::Ko.conversation();
+    assert_eq!(words.empty_fork_heading(), "분기가 시작되지 않았습니다");
+    assert!(
+        words
+            .empty_fork_line(&EmptyFork::NotAtPoint)
+            .starts_with("에이전트가 고른 지점에서 분기하지 않았습니다.")
+    );
+    assert_eq!(
+        Lang::En
+            .conversation()
+            .empty_fork_line(&EmptyFork::Other("x".to_owned())),
+        "x"
+    );
+    assert_eq!(Lang::En.conversation().remove_fork(), "Remove");
 }

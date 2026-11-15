@@ -12,7 +12,8 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, popup};
-use vessel_proto::{Delivery, QueueChange, QueueEntryId, QueuedPrompt};
+use vessel_app_view::ConversationWords;
+use vessel_proto::{Delivery, PromptQueue, QueueChange, QueueEntryId, QueuedPrompt};
 
 use crate::shell::Shell;
 
@@ -67,7 +68,6 @@ pub(crate) fn queue(
     }
     let words = shell.t.lang.conversation();
     let narrow = breakpoint::phone(window);
-    let neutral = tokens.neutral;
     let running = shell.areas.session.conversation.turn_running();
     let steers = running
         && area
@@ -76,53 +76,13 @@ pub(crate) fn queue(
             .abilities
             .as_ref()
             .is_some_and(|abilities| abilities.steer);
-    let mut track = div().flex().flex_col().gap(px(8.0)).child(
-        div()
-            .flex()
-            .items_center()
-            .gap(px(8.0))
-            .px(px(4.0))
-            .type_(Type::Meta)
-            .text_color(neutral.foreground_muted)
-            .child(match queue.held {
-                Some(why) => words.queued_held(queue.entries.len(), why),
-                None => words.queued(queue.entries.len()),
-            })
-            .child(div().flex_1())
-            .when(queue.held.is_some(), |head| {
-                head.child(
-                    text_button("queue-resume", words.queue_resume(), tokens).on_click(
-                        cx.listener(|shell, _event, _window, _cx| {
-                            shell.queue_change(QueueChange::Resume);
-                        }),
-                    ),
-                )
-            })
-            .child(
-                text_button("queue-clear", words.queue_clear(), tokens).on_click(cx.listener(
-                    |shell, _event, _window, _cx| {
-                        shell.queue_change(QueueChange::Clear);
-                    },
-                )),
-            ),
-    );
+    let mut track = div()
+        .flex()
+        .flex_col()
+        .gap(px(8.0))
+        .child(head(queue, *words, tokens, cx));
     for (at, prompt) in queue.entries.iter().enumerate() {
-        // Where the arrow keys move it: before the one above, or before
-        // the one after the next (the end past the last), as GOAT does.
-        let moves = Moves {
-            up: at
-                .checked_sub(1)
-                .and_then(|above| queue.entries.get(above))
-                .map_or(Move::Stay, |above| Move::Before(above.id)),
-            down: if at.saturating_add(1) < queue.entries.len() {
-                queue
-                    .entries
-                    .get(at.saturating_add(2))
-                    .map_or(Move::End, |after| Move::Before(after.id))
-            } else {
-                Move::Stay
-            },
-        };
+        let moves = moves_of(queue, at);
         track = track.child(row(
             shell,
             prompt,
@@ -135,6 +95,63 @@ pub(crate) fn queue(
     }
     // The slot puts it in the composer's column, at the card's width.
     Some(track.pb(px(8.0)).into_any_element())
+}
+
+/// The queue's head: how many wait (and why they are held), Resume while
+/// held, and Clear.
+fn head(
+    queue: &PromptQueue,
+    words: ConversationWords,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    div()
+        .flex()
+        .items_center()
+        .gap(px(8.0))
+        .px(px(4.0))
+        .type_(Type::Meta)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(match queue.held {
+            Some(why) => words.queued_held(queue.entries.len(), why),
+            None => words.queued(queue.entries.len()),
+        })
+        .child(div().flex_1())
+        .when(queue.held.is_some(), |head| {
+            head.child(
+                text_button("queue-resume", words.queue_resume(), tokens).on_click(cx.listener(
+                    |shell, _event, _window, _cx| {
+                        shell.queue_change(QueueChange::Resume);
+                    },
+                )),
+            )
+        })
+        .child(
+            text_button("queue-clear", words.queue_clear(), tokens).on_click(cx.listener(
+                |shell, _event, _window, _cx| {
+                    shell.queue_change(QueueChange::Clear);
+                },
+            )),
+        )
+}
+
+/// Where the arrow keys move entry `at`: before the one above, or before
+/// the one after the next (the end past the last), as GOAT does.
+fn moves_of(queue: &PromptQueue, at: usize) -> Moves {
+    Moves {
+        up: at
+            .checked_sub(1)
+            .and_then(|above| queue.entries.get(above))
+            .map_or(Move::Stay, |above| Move::Before(above.id)),
+        down: if at.saturating_add(1) < queue.entries.len() {
+            queue
+                .entries
+                .get(at.saturating_add(2))
+                .map_or(Move::End, |after| Move::Before(after.id))
+        } else {
+            Move::Stay
+        },
+    }
 }
 
 /// Where a row's grip moves it by an arrow key.

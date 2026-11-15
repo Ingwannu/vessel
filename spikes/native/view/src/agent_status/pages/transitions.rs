@@ -7,6 +7,43 @@ use super::{
 };
 
 impl<E> Pages<E> {
+    /// Forget only the acknowledged definition on its own pending page.
+    /// A failure instead retains the entire snapshot through [`Self::failed`].
+    #[must_use]
+    pub fn removed(
+        &mut self,
+        machine: &MachineKey,
+        id: RequestId,
+        node: vessel_proto::NodeId,
+        name: &vessel_proto::agents::AgentName,
+    ) -> bool {
+        let Some(page) = self.pending(machine, id) else {
+            return false;
+        };
+        if !matches!(
+            page.pending.as_ref().map(|ticket| &ticket.operation),
+            Some(Operation::Remove { node: expected, name: target })
+                if *expected == node && target == name
+        ) || page
+            .inventory
+            .as_ref()
+            .is_none_or(|snapshot| snapshot.node != node)
+        {
+            return false;
+        }
+        let agent = vessel_proto::HarnessRef::Added(name.clone());
+        if let Some(inventory) = &mut page.inventory {
+            inventory.agents.retain(|info| info.agent != agent);
+            inventory.harnesses.retain(|found| found.kind != agent);
+            inventory.readiness.retain(|ready| ready.agent != agent);
+        }
+        if page.selected.as_ref() == Some(&agent) {
+            page.selected = None;
+        }
+        page.pending = None;
+        true
+    }
+
     /// A snapshot answers only its own discovery request.
     pub fn loaded(&mut self, machine: &MachineKey, id: RequestId, inventory: Inventory) {
         if let Some(page) = self.pending(machine, id)

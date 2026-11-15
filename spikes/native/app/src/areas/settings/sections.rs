@@ -23,7 +23,8 @@ use vessel_app_kit::ui::{AnyElement, Context, Window};
 use vessel_app_view::settings::{Section, Surface};
 
 use super::{
-    agents, appearance, chat, choices, devices, diagnostics, general, host_agents, overview, sync,
+    agents, appearance, chat, choices, connections, devices, diagnostics, general, host_agents,
+    overview, sync,
 };
 use crate::shell::Shell;
 
@@ -67,6 +68,9 @@ fn page(section: Section) -> Option<Draw> {
         Section::Overview => {
             Some(|shell, tokens, phone, _, cx| overview::render(shell, tokens, phone, cx))
         }
+        Section::Connections => {
+            Some(|shell, tokens, phone, _, _| connections::render(shell, tokens, phone))
+        }
         Section::Agents => {
             Some(|shell, tokens, phone, _, cx| host_agents::render(shell, tokens, phone, cx))
         }
@@ -86,7 +90,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Integrations
         | Section::Notifications
         | Section::Permissions
-        | Section::Connections
         | Section::Metadata
         | Section::Voice
         | Section::Workspaces

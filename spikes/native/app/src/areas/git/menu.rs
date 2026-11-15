@@ -20,8 +20,9 @@ use vessel_app_kit::{
 use vessel_app_view::workspace::git::{Action, Issue, Unavailable, rows, step};
 use vessel_app_view::workspace::git_quick::GitAction;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::pull::{MenuEntry, PullEntry, with_pull};
+use vessel_app_view::workspace::pull::{MenuEntry, PullEntry, merge_label, with_pull};
 use vessel_app_view::{GitFailureText, Lang};
+use vessel_proto::forge::MergeMethod;
 use vessel_proto::workspace::GitStatus;
 
 use crate::shell::Shell;
@@ -70,14 +71,35 @@ fn items(shell: &Shell) -> Vec<MenuItem> {
                 }
             }
             MenuEntry::Pull(pull) => pull_item(shell, &pull),
+            MenuEntry::Merge(method) => merge_item(shell, method),
         })
         .collect()
 }
 
-/// The git rows with the pull request entry after the remote ones.
+/// The git rows with the pull request rows after the remote ones.
 fn entries(shell: &Shell, status: &GitStatus) -> Vec<MenuEntry> {
     let git = &shell.areas.git;
-    with_pull(rows(&git.status, &git.writing), shell.pulls_entry(status))
+    with_pull(
+        rows(&git.status, &git.writing),
+        shell.pulls_entry(status),
+        &shell.pulls_merges(status),
+    )
+}
+
+/// Paseo's "Merge PR (squash)" and its kin ("Merging PR..." on the one
+/// running); every merge row waits while a merge or a git write is out.
+fn merge_item(shell: &Shell, method: MergeMethod) -> MenuItem {
+    let merging = shell.areas.pulls.merging.as_deref();
+    let label = match merging {
+        Some(running) if running.method == method => shell.words.pulls().merging(),
+        Some(_) | None => merge_label(method, shell.words),
+    };
+    MenuItem {
+        label: label.into(),
+        tone: vessel_app_kit::menu::Tone::Plain,
+        disabled: shell.areas.git.writing.busy() || merging.is_some(),
+        starts_group: false,
+    }
 }
 
 /// Paseo's pull request row: "View PR" with one read, else "Create PR"
@@ -129,6 +151,11 @@ pub(super) fn overlay(
                     shell.areas.git.menu.close();
                     shell.pulls_chosen(window, cx);
                 }
+                Some(MenuEntry::Merge(method)) => {
+                    let method = *method;
+                    shell.areas.git.menu.close();
+                    shell.pulls_merge(method, cx);
+                }
                 None => {}
             }
         }),
@@ -173,6 +200,8 @@ impl Shell {
         } else {
             git.switcher.close();
             git.menu.open(at, window, cx);
+            // The merge rows need the repository's methods.
+            self.pulls_menu_opened();
         }
         cx.notify();
     }
