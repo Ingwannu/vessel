@@ -7504,6 +7504,7 @@ dependencies = [
  "vessel-app-updater",
  "vessel-app-view",
  "vessel-proto",
+ "x11rb",
 ]
 
 [[package]]

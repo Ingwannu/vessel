@@ -1,7 +1,8 @@
 # Attention inbox and desktop delivery
 
-Status: proposed; implementation begins with the pure state boundary while the
-central app/node integration supplies the existing inbox protocol (ADR 0040).
+Status: existing inbox calls and native state/drawing are implemented; narrow
+checks and the additional node contracts are in progress. No whole gate, visual
+proof or final package approval yet.
 
 ## Reference and reuse
 
@@ -224,3 +225,32 @@ cannot retarget it. Missing/changed identity suppresses passive writes instead
 of falling back to the old name-only repaint timer. The policy's pane focus,
 read state and request state are enums, replacing four independent bools after
 the narrow clippy check identified excessive flags.
+
+## A5 recipient and OS-idle checkpoint
+
+Merged package base4 3cd0d3fc under A8. Shared Connected is now Clone, so the
+presence worker closes when its last authenticated transport clone is dropped.
+New OS delivery opportunities pass a bounded exact-source/transport/ticket gate.
+Only an admitted node reply may reach GPUI, and read/source/cursor/visibility
+are rechecked immediately before display. Lost claims are not automatically
+retried. The typed app boundary explicitly refuses claim/idle extensions until
+the reviewed pending node contract is integrated; direct local delivery no
+longer bypasses the single-recipient policy. A window update is scheduled from
+the reply, independent of whether a minimized window is painting.
+
+The OS idle probe reuses x11rb0.13.2, already linked by GPUI, with its ScreenSaver
+feature (MIT/Apache-2.0). It replaces no shared GPUI host API: W19b confirmed none
+exists. One dedicated worker per process has a one-request queue, a 500ms
+consumer deadline and no automatic replacement after failure. Five-second
+samples carry elapsed idle only and keep aging in queues. Wayland/Xwayland,
+macOS, Windows, browser and unavailable X11 extension/display explicitly remain
+unknown; actual app input still reports through the compatible presence shape.
+This avoids calling Xwayland-only activity whole-desktop activity. No real
+OS-idle/private-display runtime proof has been captured yet.
+
+N1 confirmed inbox.seen is separate from SessionInfo log marks. ADR0089 adds
+pending inbox.attention (bounded 256-session authoritative SQL rollup, including
+off-page entries) and inbox.read (Read-scoped direct person, existing mark order
+and transaction, live/durable pending veto). No whole-session read is substituted
+for an exact entry mark. Native badge/reader consumption of this contract is
+pending; SessionInfo marks are not silently redefined.

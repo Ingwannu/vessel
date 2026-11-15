@@ -1199,3 +1199,14 @@ input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
+
+The desktop idle probe reuses the already linked x11rb 0.13.2 ScreenSaver
+extension (MIT/Apache-2.0, no second X11 library). It reads aggregate elapsed
+idle on one dedicated worker per process, with a 500 ms consumer deadline and
+one queued request. A timed-out/failed worker is never replaced automatically.
+Samples keep aging during queues and heartbeats. Wayland/Xwayland, macOS,
+Windows, browser and missing extension/display explicitly remain unknown;
+actual input/focus still use the existing presence path. This first-version
+difference avoids claiming whole-desktop activity from Xwayland-only input.
+The optional idle-age wire field is staged under ADR 0089; until its assigned
+contract is merged, link refuses this report rather than inventing a wire call.

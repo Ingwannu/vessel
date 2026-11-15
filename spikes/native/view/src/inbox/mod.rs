@@ -2,6 +2,7 @@
 //! model owns stale-result rejection, selection and notification eligibility.
 //! It never reconstructs an inbox entry from a session's status.
 
+pub mod admission;
 pub mod delivery;
 mod detail;
 pub mod notices;

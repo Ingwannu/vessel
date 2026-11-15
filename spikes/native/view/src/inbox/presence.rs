@@ -9,6 +9,43 @@ pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(15);
 /// Paseo's activity-triggered heartbeat throttle.
 pub const ACTIVITY_THROTTLE: Duration = Duration::from_secs(5);
 
+/// Aggregate OS idle duration, never input text or pointer coordinates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IdleAge(u32);
+impl IdleAge {
+    /// Milliseconds reported by the platform's aggregate idle counter.
+    #[must_use]
+    pub const fn new(milliseconds: u32) -> Self {
+        Self(milliseconds)
+    }
+    /// Milliseconds since the last system input.
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
+/// A sample keeps aging in a queue: repeating a cached short age must never
+/// make an abandoned connection look active indefinitely.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IdleSample {
+    age: IdleAge,
+    observed: Instant,
+}
+impl IdleSample {
+    /// Bind a platform reading to the app's monotonic clock.
+    #[must_use]
+    pub const fn new(age: IdleAge, observed: Instant) -> Self {
+        Self { age, observed }
+    }
+    /// Saturate at the wire maximum rather than wrapping back to active.
+    #[must_use]
+    pub fn age_at(self, now: Instant) -> IdleAge {
+        let elapsed = u32::try_from(now.saturating_duration_since(self.observed).as_millis())
+            .unwrap_or(u32::MAX);
+        IdleAge::new(self.age.get().saturating_add(elapsed))
+    }
+}
+
 /// Typed navigation focus; terminal support is refused until its node
 /// contract exists rather than silently treating it as a session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,12 +87,15 @@ pub struct Report {
     pub focus: Focus,
     /// Whether real input renews the node-assigned activity timestamp.
     pub activity: Activity,
+    /// Optional OS sample; absence means unknown, never zero idle.
+    pub idle: Option<IdleSample>,
 }
 
 /// Pure scheduler state, with a clock injected by the app boundary.
 #[derive(Debug)]
 pub struct Presence {
     focus: Focus,
+    idle: Option<IdleSample>,
     pending: Activity,
     sent_at: Option<Instant>,
     immediate_at: Option<Instant>,
@@ -64,6 +104,7 @@ impl Default for Presence {
     fn default() -> Self {
         Self {
             focus: Focus::Background,
+            idle: None,
             pending: Activity::Unchanged,
             sent_at: None,
             immediate_at: None,
@@ -77,6 +118,7 @@ impl Presence {
         Report {
             focus: self.focus,
             activity: Activity::Unchanged,
+            idle: None,
         }
     }
     /// A focus/visibility transition sends immediately but does not invent input.
@@ -111,7 +153,22 @@ impl Presence {
         {
             return None;
         }
-        Some(self.report(now))
+        let mut report = self.report(now);
+        if report.activity == Activity::Unchanged {
+            report.idle = self.idle;
+        }
+        Some(report)
+    }
+    /// A bounded OS probe supplied a sample, or explicitly became unknown.
+    /// The sample itself never counts as actual app input.
+    #[must_use]
+    pub fn system_idle(&mut self, age: Option<IdleAge>, now: Instant) -> Report {
+        self.idle = age.map(|age| IdleSample::new(age, now));
+        let mut report = self.report(now);
+        if report.activity == Activity::Unchanged {
+            report.idle = self.idle;
+        }
+        report
     }
     /// A new connection sends current focus without replaying stale offline
     /// input into a fresh node-assigned activity timestamp.
@@ -127,6 +184,7 @@ impl Presence {
         Report {
             focus: self.focus,
             activity,
+            idle: None,
         }
     }
 }
@@ -157,7 +215,8 @@ mod tests {
             presence.focus(Focus::Session { node, session }, now),
             Some(Report {
                 focus: Focus::Session { node, session },
-                activity: Activity::Unchanged
+                activity: Activity::Unchanged,
+                idle: None
             })
         );
         assert_eq!(presence.focus(Focus::Session { node, session }, now), None);
@@ -165,5 +224,21 @@ mod tests {
         assert_eq!(presence.input(now), None);
         assert_eq!(presence.reconnect(now).activity, Activity::Unchanged);
         assert_eq!(presence.tick(now), None);
+    }
+    #[test]
+    fn cached_os_idle_ages_and_unknown_never_becomes_zero_idle() {
+        let now = Instant::now();
+        let mut presence = Presence::default();
+        let report = presence.system_idle(Some(IdleAge::new(100_000)), now);
+        assert_eq!(report.activity, Activity::Unchanged);
+        let later = now.checked_add(Duration::from_secs(80)).unwrap();
+        assert_eq!(report.idle.unwrap().age_at(later).get(), 180_000);
+        let report = presence.tick(later).unwrap();
+        assert_eq!(report.idle.unwrap().age_at(later).get(), 180_000);
+        assert!(presence.input(later).unwrap().idle.is_none());
+        assert!(presence.snapshot().idle.is_none());
+        assert!(presence.system_idle(None, later).idle.is_none());
+        let after = later.checked_add(HEARTBEAT_INTERVAL).unwrap();
+        assert!(presence.tick(after).unwrap().idle.is_none());
     }
 }

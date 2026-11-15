@@ -87,6 +87,8 @@ pub enum Ask {
         /// Read identity supplied by the store.
         request: Request,
     },
+    /// Claim one exact new source; no client-supplied recipient identity.
+    Claim(vessel_app_view::inbox::admission::Pending),
     /// Confirm one live form before drawing actionable controls.
     Get {
         /// Exact connection identity.
@@ -137,12 +139,26 @@ pub enum Answer {
     ),
     /// A node's current bounded snapshot.
     Listed(Source, Request, Result<Snapshot, Problem>),
+    /// A claim result, correlated to its exact source/transport/ticket.
+    Claimed(
+        Source,
+        Key,
+        Request,
+        Result<vessel_app_view::inbox::admission::Admission, Problem>,
+    ),
     /// A confirmed form or withdrawal after a load, mark or answer.
     Detail(Key, Request, Result<Option<Entry>, Problem>),
 }
 impl Ask {
     fn validate(&self) -> Result<(), Problem> {
         match self {
+            Self::Claim(pending) => {
+                if pending.source.node == pending.key.node {
+                    Ok(())
+                } else {
+                    Err(Problem::InvalidReply)
+                }
+            }
             Self::Discover
             | Self::List { .. }
             | Self::Presence { .. }
@@ -164,6 +180,9 @@ impl Ask {
     #[must_use]
     pub fn refused(self, problem: Problem) -> Answer {
         match self {
+            Self::Claim(pending) => {
+                Answer::Claimed(pending.source, pending.key, pending.request, Err(problem))
+            }
             Self::Discover => Answer::Targets(Err(problem)),
             Self::Presence { source, .. } => Answer::Presence(source, Err(problem)),
             Self::ReadSession {
@@ -233,6 +252,7 @@ impl crate::State {
         }
         let source = match &ask {
             Ask::Discover => return,
+            Ask::Claim(pending) => &pending.source,
             Ask::ReadSession { source, .. }
             | Ask::Presence { source, .. }
             | Ask::List { source, .. }
@@ -293,6 +313,12 @@ const DEADLINE: std::time::Duration = std::time::Duration::from_secs(15);
 #[cfg(not(target_arch = "wasm32"))]
 async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     let timeout = match &ask {
+        Ask::Claim(pending) => Answer::Claimed(
+            pending.source.clone(),
+            pending.key,
+            pending.request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable)),
+        ),
         Ask::ReadSession {
             source,
             session,
@@ -333,6 +359,12 @@ async fn bounded(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
 #[cfg(not(target_arch = "wasm32"))]
 async fn call(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     match ask {
+        Ask::Claim(pending) => Answer::Claimed(
+            pending.source,
+            pending.key,
+            pending.request,
+            Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported)),
+        ),
         Ask::ReadSession {
             source,
             session,

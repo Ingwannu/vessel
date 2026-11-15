@@ -20,8 +20,8 @@ struct Inner {
     pending: Mutex<Pending>,
     wake: Notify,
 }
-/// Dropping a Connected closes its worker, even while RPC or UI delivery waits.
-#[derive(Debug)]
+/// Dropping the last Connected clone closes its worker, even while RPC or UI delivery waits.
+#[derive(Debug, Clone)]
 pub(crate) struct PresenceHub {
     inner: Arc<Inner>,
     closed: watch::Sender<()>,
@@ -56,7 +56,15 @@ impl PresenceHub {
             } else {
                 report.activity
             };
-            state.report = Some(Report { activity, ..report });
+            state.report = Some(Report {
+                activity,
+                idle: if activity == Activity::Active {
+                    None
+                } else {
+                    report.idle
+                },
+                ..report
+            });
             !std::mem::replace(&mut state.started, true)
         };
         if start {
@@ -102,6 +110,9 @@ async fn run(
     }
 }
 fn wire(source: &Source, report: Report) -> Result<ReportPushPresence, Problem> {
+    if report.idle.is_some() {
+        return Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported));
+    }
     let focus = match report.focus {
         Focus::Session { node, session } if node == source.node => PushFocus::Session { session },
         Focus::Terminal { node, .. } if node == source.node => {
@@ -134,6 +145,7 @@ mod tests {
                 session: vessel_proto::SessionId::random(),
             },
             activity: Activity::Unchanged,
+            idle: None,
         };
         assert_eq!(wire(&source, foreign).unwrap().focus, PushFocus::Elsewhere);
         assert_eq!(
@@ -148,7 +160,8 @@ mod tests {
                         node: source.node,
                         terminal: vessel_proto::TerminalId::random()
                     },
-                    activity: Activity::Active
+                    activity: Activity::Active,
+                    idle: None
                 }
             )
             .is_err()

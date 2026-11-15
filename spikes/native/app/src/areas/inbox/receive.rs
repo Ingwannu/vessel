@@ -12,6 +12,22 @@ use vessel_app_view::timeline::{Live, ToolView};
 impl Shell {
     pub(crate) fn inbox_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         match answer {
+            Answer::Claimed(source, key, request, result) => {
+                if let Some(pending) = self.areas.inbox.admission.take(&source, key, request) {
+                    match result {
+                        Ok(vessel_app_view::inbox::admission::Admission::Admitted) => {
+                            if self.areas.inbox.granted.len()
+                                < vessel_app_view::inbox::notices::MAX_PENDING_NOTICES
+                            {
+                                self.areas.inbox.granted.push(pending);
+                            }
+                        }
+                        Ok(vessel_app_view::inbox::admission::Admission::Suppressed) => {}
+                        Err(problem) => self.areas.inbox.problem = Some(problem),
+                    }
+                }
+                self.inbox_notice_update(cx);
+            }
             Answer::Targets(Ok(targets)) => self.inbox_targets(targets, cx),
             Answer::Targets(Err(problem)) => self.areas.inbox.problem = Some(problem),
             Answer::ReadSession(source, session, request, result) => {
@@ -58,6 +74,7 @@ impl Shell {
                 let area = &mut self.areas.inbox;
                 area.notices.retain(|key| area.store.entry(*key).is_some());
                 area.notices.extend(notices);
+                self.inbox_notice_update(cx);
             }
             Answer::Detail(key, request, result) => {
                 if self.areas.inbox.detail.receive(key, request, result) {

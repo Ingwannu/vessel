@@ -69,9 +69,11 @@ impl Shell {
             self.inbox_presence_report(report);
         }
     }
-    fn inbox_presence_report(&self, report: Report) {
+    pub(super) fn inbox_presence_report(&self, report: Report) {
         for node in self.areas.inbox.store.nodes() {
-            if node.listing != vessel_app_view::inbox::Listing::Offline {
+            if node.listing
+                != vessel_app_view::inbox::Listing::Failed(vessel_app_view::inbox::Problem::Offline)
+            {
                 self.command(Command::Inbox(Ask::Presence {
                     source: node.source.clone(),
                     report,

@@ -61,9 +61,35 @@ async fn confirmed(
             })
             .await
             .map_err(problem)?;
-        if page.next <= from {
-            return Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable));
-        }
+        validate_page(&page, from)?;
         from = page.next;
     }
+}
+
+fn validate_page(
+    page: &vessel_proto::EventPage,
+    from: vessel_proto::EventSeq,
+) -> Result<(), Problem> {
+    if page.next <= from {
+        return Err(Problem::Refused(vessel_proto::ErrorCode::Unavailable));
+    }
+    if page.records.is_empty()
+        || page.records.len() > usize::try_from(CONFIRM_PAGE_RECORDS).unwrap_or(usize::MAX)
+    {
+        return Err(Problem::InvalidReply);
+    }
+    let mut previous = None;
+    for record in &page.records {
+        if record.seq < from
+            || record.seq >= page.next
+            || previous.is_some_and(|prior| record.seq <= prior)
+        {
+            return Err(Problem::InvalidReply);
+        }
+        previous = Some(record.seq);
+    }
+    if previous.and_then(vessel_proto::EventSeq::next) != Some(page.next) {
+        return Err(Problem::InvalidReply);
+    }
+    Ok(())
 }

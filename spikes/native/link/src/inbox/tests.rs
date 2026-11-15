@@ -157,7 +157,7 @@ async fn answer_is_sent_once_and_ack_is_not_confused_with_projection_withdrawal(
             assert_eq!(ask.from, EventSeq::new(5));
             observed.lock().unwrap().1 += 1;
             withdrawn = true;
-            Reply::ReadEvents(EventPage { records: Vec::new(), next: EventSeq::new(6), at_end: true })
+            Reply::ReadEvents(EventPage { records: vec![vessel_proto::EventRecord { seq: EventSeq::new(5), at: chrono::DateTime::UNIX_EPOCH, event: vessel_proto::SessionEvent::Agent { event: vessel_proto::AgentEvent::PermissionResolved { id, outcome: vessel_proto::PermissionOutcome::Cancelled } } }], next: EventSeq::new(6), at_end: true })
         }
         other => panic!("unexpected {other:?}"),
     })).await;

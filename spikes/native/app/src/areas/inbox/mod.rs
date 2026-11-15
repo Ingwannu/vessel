@@ -2,6 +2,7 @@
 //! answer a freshly confirmed request without manufacturing timeline events.
 mod actions;
 mod draw;
+mod idle;
 mod notifications;
 mod place;
 mod presence;
@@ -20,6 +21,9 @@ use vessel_app_view::timeline::ToolView;
 
 pub(crate) struct InboxArea {
     pub(crate) store: Inbox,
+    pub(crate) window: gpui::AnyWindowHandle,
+    pub(crate) admission: vessel_app_view::inbox::admission::Gate,
+    pub(crate) granted: Vec<vessel_app_view::inbox::admission::Pending>,
     pub(crate) detail: Detail,
     pub(crate) conversation: ConversationArea,
     pub(crate) targets: Vec<Target>,
@@ -45,8 +49,12 @@ impl InboxArea {
     ) -> Self {
         notifications::listen(window, cx);
         presence::listen(window, cx);
+        idle::listen(window, cx);
         Self {
             store: Inbox::default(),
+            window: window.window_handle(),
+            admission: vessel_app_view::inbox::admission::Gate::default(),
+            granted: Vec::new(),
             detail: Detail::default(),
             conversation: ConversationArea::new(cx),
             targets: Vec::new(),
