@@ -47,18 +47,18 @@ until its owner provides a reviewed hash. Do not copy those files.
 
 ## Current boundary
 
-The baseline 1d1f11df has no plugin RPC. Protocol-23 app base is being
-prepared separately; merge its announced reviewed head under A8. Native
-pure work can proceed. Runtime/installation/catalog calls and user-visible
-controls wait for shared-contract authorization; no feature is advertised
+The initial baseline 1d1f11df had no plugin RPC. The app tree now merged
+package base 8d5513e4 and the node tree merged Quality B 29eebb8b under A8,
+both without conflicts. No feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
 
 Coordinator subsequently authorized W16 to implement both sides in a
 second node worktree based on d954fa3a. The integrator confirmed one pending
 PLUGINS Option None and one settings namespace; no SQLite schema is needed
-for owner-private settings/source files. Quality B is still awaited before
-method registration. Workspace identity belongs to W11 ADR 0082, pane/tab
+for owner-private settings/source files. Quality B now permits pending rows
+in the one method table; the node service must exist before those calls can
+be meaningfully consumed. Workspace identity belongs to W11 ADR 0082, pane/tab
 identity to W12, chooser/fallback/preferences and token adapter to K, and
 command-center registration to W22b. Consume their reviewed contracts;
 do not infer workspace identity from a path or allocate another WorkspaceId.
@@ -70,3 +70,61 @@ retain NodeId and generation. HexColor parses once and retains packed RGBA;
 no fallback color is synthesized after failed parsing. Whole documents,
 helper, node service, CLI and native adapters remain separate implementation
 work and are not claimed by the scalar tests.
+
+The coordinator authorized the exact W11 identity-only commit e45a5d89
+after V3 source review. It is merged on the node tree; no unreviewed
+workspace registry or store implementation is adopted. Header buttons and
+composer pills carry that WorkspaceId. Actual ownership resolution remains
+behind the workspace owner's typed contract.
+
+## Declarative graph boundary
+
+`ClientDocument` owns complete validation before publication: scoped
+contribution identities, sidebar header/footer namespaces, distinct slash
+names, registered method/screen references, control ids, choices, panel
+locations, literal file selectors, menu/popover recursion and whole-document
+budgets. A counting sink enforces the encoded cap even for typed in-process
+construction without allocating another encoded document. Unknown fields,
+unknown control kinds and oversized graphs refuse the whole replacement.
+
+Paseo references read for these details: `packages/app/src/plugins/evaluate.ts`
+89-92, 304-346, 391-413; `packages/plugin/src/client/buttons.ts` 6-55;
+`packages/app/src/plugins/sidebar-groups.ts` 1-110; and
+`packages/app/src/file-panels/resolve.ts` 45-90. A stored attachment filename
+is not reused as a selector: Unix dotfile/reserved-name matchers are literal
+patterns, not names the node writes. Extensions allow Paseo's literal Unicode
+and punctuation except dots, separators and wildcards; matching lowercases
+Unicode while exact filename matching remains case-sensitive. Native bounds
+and refusal of control characters are additional resource/display constraints.
+
+Slash names remain the shared `conversation::CommandName` for the composer;
+document validation also enforces Paseo's stricter plugin registration grammar
+and uniqueness without reinterpreting a noncanonical command key. B2 owns built-in/plugin/provider precedence and trims submitted
+arguments once. Sidebar grouping/order/preferences belong to S2; header and
+footer may reuse a local id and therefore have separate address kinds.
+
+`ContextAttachment` captures a validated attachment-source address. Its logical
+node/plugin/source/item key survives a helper restart for draft selection;
+that key never authorizes another search/invoke. Search replies refuse duplicate
+or excessive items. Context URLs use the already-owned URL parser with input-free causes and
+HTTP(S)/explicit-authority/no-userinfo policies behind an additional item-byte cap, an explicit difference from Paseo's
+general URL schema. No URL is fetched or opened when registering context.
+
+`LogText` redacts Debug/Display and serializes its bounded text only for the
+future management logs call. The log count/byte/line limits follow Paseo
+`plugins/runtime.ts` 41-46 and 1378-1398; invalid native stderr bytes are
+decoded lossily before enforcing the final UTF-8 cap and truncation is explicit.
+No ambient trace should contain helper diagnostic text.
+
+## Plugin localization contract
+
+L confirmed the core Translator is deliberately generated/embedded and has no
+dynamic-key loader. Plugin resources stay in their own installation namespace,
+using typed literal/message references and bounded Fluent resources with English
+mandatory, canonical locale tags, English key/argument contract validation and
+per-message English fallback. Reuse existing Fluent dependencies, prepare on
+catalog/language events, return retained validated captions/names, and retain
+raw references for language changes. Disposal/generation fences prevent stale
+labels republishing. No locale RPC and no edits to core translator policy.
+The existing scalar names are literals; the dynamic resource implementation is
+still required and is not claimed by the current schema tests.
