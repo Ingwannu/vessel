@@ -149,3 +149,16 @@ stop: the sole engine/listener has already inserted or submitted; allowing nativ
 fallback inserted a second newline. No second submit listener or key interceptor
 was added. Existing IME/menu captures still run before the engine. This correction
 awaits actual rerun; the earlier failed result remains evidence, not a pass.
+
+Fullscreen controls now use the shared glyph-only pill and translated accessible
+labels, with the inline control positioned over the text surface rather than
+adding another row (presentation.tsx:109-124,145-162). Pointer-down preserves
+editor focus; compact targets retain the shared44px hit area. Fullscreen uses
+surface1 as the reference. Final geometry/captures remain unverified.
+
+The draft command adapter cannot construct an authorized DraftCommandConfig yet:
+W3 confirms no checked root/config snapshot accessor (scope intentionallyNone),
+and W11 authoritative WorkspaceLookup is not live. COMPOSER_COMMANDS remainsNone.
+No cwd-derived authority or Workspace-to-New fallback is used. Native clipboard
+supports text/image/files but no HTML representation, so copy currently supplies
+semantic Markdown/raw code as text; rich text/html clipboard parity is unavailable.

@@ -7,7 +7,7 @@ use vessel_app_kit::field::composer_layout::ComposerLayout;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, point, px,
+    StatefulInteractiveElement as _, Styled as _, Window, div, point, px,
 };
 use vessel_app_kit::{PillParts, SendKind, Tokens, pill_parts, send_button};
 use vessel_app_view::composer::drafts::DraftKey;
@@ -44,20 +44,17 @@ pub(crate) fn render(
         "composer-collapse",
         PillParts {
             leading: Some(Glyph::Minimize),
-            label: Some(
-                shell
-                    .words
-                    .composer_shell()
-                    .exit_fullscreen()
-                    .to_owned()
-                    .into(),
-            ),
             ..PillParts::default()
         },
         false,
         true,
         tokens,
     )
+    .role(gpui::Role::Button)
+    .aria_label(shell.words.composer_shell().exit_fullscreen().to_owned())
+    .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
+        window.prevent_default()
+    })
     .on_click(cx.listener(move |shell, _, window, cx| shell.composer_collapse(target, window, cx)));
     let send = send_button("fullscreen-send", SendKind::Send, enabled, true, tokens).on_click(
         cx.listener(move |shell, _, window, cx| {
@@ -71,7 +68,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .occlude()
-        .bg(tokens.neutral.surface4)
+        .bg(tokens.neutral.surface1)
         .text_color(tokens.neutral.foreground)
         .child(
             div()

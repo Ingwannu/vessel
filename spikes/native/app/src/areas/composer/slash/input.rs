@@ -6,7 +6,7 @@ use vessel_app_kit::field::composer_layout::ComposerLayout;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{PillParts, Tokens, pill_parts};
 use vessel_app_view::composer::drafts::DraftKey;
@@ -84,22 +84,28 @@ fn inline(
             "composer-expand",
             PillParts {
                 leading: Some(Glyph::Maximize),
-                label: Some(shell.words.composer_shell().fullscreen().to_owned().into()),
                 ..PillParts::default()
             },
             false,
             touch,
             tokens,
         )
+        .role(gpui::Role::Button)
+        .aria_label(shell.words.composer_shell().fullscreen().to_owned())
+        .absolute()
+        .top(px(spacing::S0))
+        .right(px(-spacing::S1_5))
+        .on_mouse_down(gpui::MouseButton::Left, |_, window, _| {
+            window.prevent_default()
+        })
         .on_click(
             cx.listener(move |shell, _, window, cx| shell.composer_expand(target, window, cx)),
         )
     });
     div()
-        .flex()
-        .flex_col()
+        .relative()
         .child(input)
-        .children(expand.map(|button| div().flex().justify_end().child(button)))
+        .children(expand)
         .into_any_element()
 }
 
