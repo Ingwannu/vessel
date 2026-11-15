@@ -360,3 +360,10 @@ deadline and no polling. A held-gate regression refuses before creating the
 primary lock. On Windows the next named-pipe instance is listening before the
 current request receives its acknowledgment, avoiding a consecutive-launch
 PIPE_BUSY window. Windows runtime validation is still owed.
+
+OS intent retention uses one bounded per-window Inbox with a latest session and
+a latest project directory. Their handler readiness is independent: an arriving
+session cannot erase a project waiting for exact managed-local identity, and an
+unavailable project adapter cannot hide the session owner's bounded unknown-host
+refusal. Only the installed owner consumes its intent; no directory is trusted or
+registered automatically. Regression exercises replacement and independent drains.

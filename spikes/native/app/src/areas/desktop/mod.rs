@@ -21,7 +21,7 @@ pub(crate) use menus::{render, trigger};
 /// Per-window UI state does not own process-wide lifecycle resources.
 pub(crate) struct DesktopArea {
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) pending: Option<vessel_app_link::desktop::instance::Launch>,
+    pub(crate) pending: vessel_app_link::desktop::instance::Inbox,
     #[cfg(not(target_arch = "wasm32"))]
     menu: vessel_app_kit::menu::MenuState,
     #[cfg(not(target_arch = "wasm32"))]
@@ -46,7 +46,7 @@ impl DesktopArea {
         let _browser = cx;
         Self {
             #[cfg(not(target_arch = "wasm32"))]
-            pending: None,
+            pending: vessel_app_link::desktop::instance::Inbox::default(),
             #[cfg(not(target_arch = "wasm32"))]
             menu: vessel_app_kit::menu::MenuState::new(cx),
             #[cfg(not(target_arch = "wasm32"))]

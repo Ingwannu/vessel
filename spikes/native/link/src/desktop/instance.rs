@@ -1,9 +1,11 @@
 //! User-local launch forwarding uses an OS lock and bounded local IPC, never TCP.
 
+mod inbox;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]
 mod windows;
+pub use inbox::Inbox;
 
 use serde::{Deserialize, Serialize};
 use std::fs::File;

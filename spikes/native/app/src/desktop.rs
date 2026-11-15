@@ -95,7 +95,6 @@ pub(crate) fn drain_pending(
     window: &mut gpui::Window,
     cx: &mut gpui::Context<'_, Shell>,
 ) {
-    use vessel_app_link::desktop::instance::Launch;
     use vessel_app_view::desktop::NavigationTarget;
     if !shell.loaded {
         return;
@@ -105,23 +104,16 @@ pub(crate) fn drain_pending(
     };
     let session = desktop.session;
     let project = desktop.project;
-    match shell.areas.desktop.pending.as_ref() {
-        Some(Launch::Session(_)) if session.is_none() => return,
-        Some(Launch::Project(_)) if project.is_none() => return,
-        Some(Launch::Session(_) | Launch::Project(_) | Launch::NewWindow) | None => {}
+    if let Some(open) = session
+        && let Some(NavigationTarget::Session { node, session }) =
+            shell.areas.desktop.pending.take_session()
+    {
+        open(shell, node, session, window, cx);
     }
-    match shell.areas.desktop.pending.take() {
-        Some(Launch::Session(NavigationTarget::Session { node, session: id })) => {
-            if let Some(open) = session {
-                open(shell, node, id, window, cx);
-            }
-        }
-        Some(Launch::Project(directory)) => {
-            if let Some(open) = project {
-                open(shell, directory.path(), window, cx);
-            }
-        }
-        Some(Launch::NewWindow) | None => {}
+    if let Some(open) = project
+        && let Some(directory) = shell.areas.desktop.pending.take_project()
+    {
+        open(shell, directory.path(), window, cx);
     }
 }
 

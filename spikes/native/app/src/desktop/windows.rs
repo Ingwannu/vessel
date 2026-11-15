@@ -110,8 +110,9 @@ fn open(placement: Placement, launch: Option<Launch>, cx: &mut App) {
             if primary {
                 watch_window(shell, window, cx);
             }
-            shell.areas.desktop.pending =
-                launch.filter(|intent| !matches!(intent, Launch::NewWindow));
+            if let Some(launch) = launch {
+                shell.areas.desktop.pending.push(launch);
+            }
         });
         vessel_app_kit::root(shell, window, cx)
     }) {
@@ -149,7 +150,7 @@ pub(super) fn deliver(launch: Launch, cx: &mut App) {
                     window.activate_window();
                     if let Some(shell) = record.shell.upgrade() {
                         shell.update(cx, |shell, cx| {
-                            shell.areas.desktop.pending = Some(session);
+                            shell.areas.desktop.pending.push(session);
                             cx.notify();
                         });
                     }
