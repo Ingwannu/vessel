@@ -18,7 +18,7 @@ struct Probe {
     presses: Rc<Cell<usize>>,
 }
 impl Render for Probe {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(self.scheme);
         let presses = Rc::clone(&self.presses);
         let outer = Rc::clone(&self.outer);
@@ -199,12 +199,12 @@ fn workspace_row_selected_hover_and_drag_backdrops_match_the_source_precedence()
 struct DragProbe;
 struct DragGhost;
 impl Render for DragGhost {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         gpui::Empty
     }
 }
 impl Render for DragProbe {
-    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<'_, Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
         use gpui::AppContext as _;
         SidebarWorkspaceRow::new("workspace-drag", "Workspace")
             .element(Density::Desktop, &Tokens::of(Scheme::Dark), |_, _, _| {})

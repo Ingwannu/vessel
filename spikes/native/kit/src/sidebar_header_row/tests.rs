@@ -96,12 +96,12 @@ struct SlotsProbe {
     row_presses: Rc<Cell<usize>>,
     child_presses: Rc<Cell<usize>>,
 }
-fn slot(place: &Place) -> gpui::Div {
+fn slot(place: &Place) -> Div {
     div()
         .relative()
         .w(px(40.0))
         .h(px(20.0))
-        .child(crate::picker::anchor_probe(place))
+        .child(picker::anchor_probe(place))
 }
 impl Render for SlotsProbe {
     fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {

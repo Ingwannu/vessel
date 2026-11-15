@@ -224,6 +224,8 @@ fn contents(row: SidebarWorkspaceRow, density: Density, tokens: &Tokens, paints:
         .child(main)
         .children(shortcut.map(|label| badge(label, tokens)))
 }
+// sidebar-workspace-row-content.tsx:299; theme.ts:613 borderRadius.sm.
+const BADGE_RADIUS: f32 = 2.0;
 fn badge(label: SharedString, tokens: &Tokens) -> Div {
     div()
         .absolute()
@@ -232,7 +234,7 @@ fn badge(label: SharedString, tokens: &Tokens) -> Div {
         .min_w(px(18.0))
         .h(px(18.0))
         .px(px(spacing::S1))
-        .rounded(px(radius::SM))
+        .rounded(px(BADGE_RADIUS))
         .border_1()
         .border_color(tokens.neutral.surface2)
         .bg(tokens.neutral.surface0)

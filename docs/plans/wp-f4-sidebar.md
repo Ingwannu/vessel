@@ -476,3 +476,15 @@ This remains preparation. Renderer installation, path/timer/keyboard/geometry
 regressions, actual flyout and compact Sidebar use, the final F4 gate and
 capture matrix are still owed. Source fill/text-form pages must remain an
 explicit separate capability until a shared typed content slot actually exists.
+
+### Exact remote return and row correction
+
+The immutable `636cb39f4` strict Kit/View/App run
+`shell2-narrow-20261115T104115Z-636cb39f` finished native-fonts 0 and
+native-cargo 101. It reached actual Kit compilation and returned a nonexistent
+`radius::SM` name in the numeric workspace badge plus five unnecessary path
+qualifications in the new header/workspace-row tests. The source badge is
+`borderRadius.sm == 2` (`sidebar-workspace-row-content.tsx:299`,
+`styles/theme.ts:613`); use one named control constant with that exact value,
+not a nearby token or an icon-size constant. Remove only the reported redundant
+test paths. Tests did not execute; this is not a control or app pass.
