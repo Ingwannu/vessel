@@ -132,6 +132,7 @@ pub(super) fn project(node: NodeId, entry: InboxEntry) -> Entry {
             seq: entry.key.seq,
         },
         title: entry.title,
+        project: entry.project_name,
         at: entry.at,
         read: match entry.read {
             InboxRead::Read => Read::Read,

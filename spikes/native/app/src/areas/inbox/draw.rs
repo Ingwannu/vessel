@@ -161,6 +161,20 @@ fn row(
                     words::kind(&entry.content, shell.words)
                 )),
         )
+        .children(
+            entry
+                .project
+                .as_ref()
+                .map(|project| note(project.as_str(), tokens)),
+        )
+        .child(note(
+            &shell
+                .t
+                .lang
+                .conversation()
+                .when(entry.at, chrono::Local::now().fixed_offset()),
+            tokens,
+        ))
         .when(entry.read == Read::Unread, |row| {
             row.border_color(tokens.accent)
         })

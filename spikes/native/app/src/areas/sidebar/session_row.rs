@@ -31,7 +31,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
-use vessel_app_view::sidebar::SessionMark;
+use vessel_app_view::inbox::buckets::Bucket;
 
 use super::INSET;
 use crate::areas::session::Open;
@@ -76,11 +76,12 @@ pub(super) fn session_row(
             .as_ref()
             .is_some_and(|open| open.session == card.session && open.machine == card.machine);
     let unread = shell.inbox_unread(card);
+    let bucket = shell.inbox_bucket(card);
     let open = Open::of(card);
     let group: SharedString = format!("session-row-{}-{}", card.machine, card.session).into();
     let menu_open = shell.areas.sidebar.rows.is_for(card);
     let pressed = card.clone();
-    let title = if active || unread {
+    let title = if active || unread || bucket == Bucket::NeedsInput {
         tokens.text_primary
     } else {
         tokens.text_secondary
@@ -111,7 +112,7 @@ pub(super) fn session_row(
                 .flex()
                 .items_center()
                 .justify_center()
-                .child(mark(card, unread, tokens)),
+                .child(mark(card, bucket, tokens)),
         )
         .child(
             div()
@@ -187,25 +188,27 @@ fn dots(
 }
 
 /// What the session is doing, as the page's `SessionMark` draws it.
-fn mark(card: &Card, unread: bool, tokens: &Tokens) -> AnyElement {
-    let doing = card.session_mark();
-    if unread && matches!(doing, SessionMark::Idle | SessionMark::Ended) {
-        return dot()
-            .bg(tokens.text_secondary.opacity(0.6))
-            .into_any_element();
-    }
-    match doing {
-        SessionMark::NeedsYou => dot().bg(tokens.st_needs_you).into_any_element(),
-        SessionMark::Working => vessel_app_kit::slider::spinner(
+fn mark(card: &Card, bucket: Bucket, tokens: &Tokens) -> AnyElement {
+    match bucket {
+        Bucket::NeedsInput => dot()
+            .bg(tokens.status().warning.foreground)
+            .into_any_element(),
+        Bucket::Failed => dot()
+            .bg(tokens.status().error.foreground)
+            .into_any_element(),
+        Bucket::Working => vessel_app_kit::slider::spinner(
             ElementId::Name(format!("session-spin-{}", card.session).into()),
             SPIN,
-            tokens.st_building,
+            tokens.status().running_dot,
         ),
-        SessionMark::Idle => dot()
+        Bucket::Review => dot()
+            .bg(tokens.status().success.foreground)
+            .into_any_element(),
+        Bucket::Done if card.live => dot()
             .border_1()
             .border_color(tokens.text_secondary.opacity(0.6))
             .into_any_element(),
-        SessionMark::Ended => div()
+        Bucket::Done => div()
             .w(px(DOT))
             .h(px(DASH))
             .bg(tokens.text_disabled)

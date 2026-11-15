@@ -33,6 +33,7 @@ impl FakeNode {
                 seq: EventSeq::new(position),
             },
             title: None,
+            project: None,
             at: Utc::now(),
             read: Read::Unread,
             content: Content::Finished,

@@ -63,6 +63,7 @@ mod tests {
                 seq: EventSeq::new(1),
             },
             title: None,
+            project: None,
             at: chrono::DateTime::UNIX_EPOCH,
             read: Read::Unread,
             content,

@@ -20,7 +20,7 @@ struct Inner {
     pending: Mutex<Pending>,
     wake: Notify,
 }
-/// Dropping the last Connected clone closes its worker, even while RPC or UI delivery waits.
+/// Dropping the last `Connected` clone closes its worker, even while RPC or UI delivery waits.
 #[derive(Debug, Clone)]
 pub(crate) struct PresenceHub {
     inner: Arc<Inner>,

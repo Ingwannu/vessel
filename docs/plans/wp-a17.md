@@ -291,3 +291,28 @@ our temporary private incarnation with that value and selected.call boundary
 then; do not import the unreviewed G4 branch. W12's bounded shared source1720 is
 announced; C2 D1 focused-target/renderer handoff and W21 reviewed open routing
 remain dependencies. No pane manager or resident parser is duplicated here.
+
+## Five status buckets and identifying metadata
+
+The sidebar now uses a pure typed priority model under view::inbox::buckets:
+NeedsInput, Failed, Working, Review, Done. It reuses sidebar::listed filters,
+computes each status once, then bounds each displayed group. The existing
+keyboard first-nine and next/previous actions consume those same groups; no
+parallel shortcut registration or pane tree is added. Dot colours come from
+kit semantic warning/error/running/success tokens. Current failed outcome counts
+are independent of read state, so a seen failure cannot look like a finished
+result. Pending requests still win after they are read. Existing SessionMark
+compatibility APIs and their tests are retained; new regressions cover the
+five priorities and bounded-group overflow.
+
+Status sort currently uses the node's existing Card.detail.active_at followed
+by machine/title for stable ties. Exact workspace statusEnteredAt/project sort
+awaits W11's reviewed registry/context; no cwd-derived project or workspace id
+is fabricated. Inbox rows now retain the node's project_name and use the shared
+conversation local-time formatter, rather than dropping their source metadata.
+
+For old peers, passive read retains the existing Operate-scoped Mark::Read path
+only after explicit device.self Operate and a live conversation request veto.
+The observed exclusive watermark still excludes new attention. Read-only peers
+remain unsupported for this fallback; the new Read-scoped ingress is used only
+when actually assigned and supported. No offline write is replayed.

@@ -99,3 +99,18 @@ inbox-newest = 최신 항목
 
 # An older node can list inbox entries without supporting the newer authoritative session rollup.
 inbox-badges-legacy = 공유 알림 수를 확인할 수 없어 세션 배지에 기존 읽음 상태를 표시합니다.
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-input = 입력 필요
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-failed = 실패
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-working = 작업 중
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-review = 검토할 준비됨
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-done = 완료

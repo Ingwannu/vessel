@@ -9,8 +9,28 @@ pub(super) async fn clear(
     session: SessionId,
     through: EventSeq,
 ) -> Result<(), Problem> {
+    if vessel_proto::Method::ReadInboxThrough
+        .since()
+        .is_some_and(|since| since <= client.protocol())
+    {
+        return client
+            .read_inbox_through(session, through)
+            .await
+            .map_err(problem);
+    }
+    // Existing Operate peers retain the old safe watermark path. Read-only
+    // clients are never promoted to Operate while waiting for the new ingress.
+    let authority = client.device_self().await.map_err(problem)?;
+    if !authority.scopes.contains(&vessel_proto::Scope::Operate) {
+        return Err(Problem::Refused(vessel_proto::ErrorCode::Unsupported));
+    }
+    let current = client.conversation(session).await.map_err(problem)?;
+    if !current.permissions.is_empty() || !current.questions.is_empty() {
+        return Err(Problem::Refused(vessel_proto::ErrorCode::Conflict));
+    }
     client
-        .read_inbox_through(session, through)
+        .mark(session, vessel_proto::Mark::Read { through })
         .await
+        .map(|_info| ())
         .map_err(problem)
 }

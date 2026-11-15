@@ -99,3 +99,18 @@ inbox-newest = Newest entries
 
 # An older node can list inbox entries without supporting the newer authoritative session rollup.
 inbox-badges-legacy = Shared attention counts are unavailable; session badges show legacy read status.
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-input = Needs input
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-failed = Failed
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-working = Working
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-review = Ready to review
+
+# Sidebar status heading; priority matches keyboard session navigation.
+inbox-bucket-done = Done

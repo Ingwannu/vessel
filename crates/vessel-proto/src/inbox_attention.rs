@@ -12,7 +12,7 @@ pub const ATTENTION_BATCH: usize = 256;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct GetInboxAttention {
-    /// At most ATTENTION_BATCH distinct session identities on this node.
+    /// At most `ATTENTION_BATCH` distinct session identities on this node.
     pub sessions: Vec<SessionId>,
 }
 

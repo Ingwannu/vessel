@@ -37,3 +37,17 @@ pub fn problem(problem: Problem, words: &Translator) -> &str {
         },
     }
 }
+
+/// Shared status headings for the sidebar and its keyboard ordering.
+#[must_use]
+pub fn bucket(bucket: super::buckets::Bucket, words: &Translator) -> &str {
+    use super::buckets::Bucket;
+    let words = words.inbox();
+    match bucket {
+        Bucket::NeedsInput => words.bucket_input(),
+        Bucket::Failed => words.bucket_failed(),
+        Bucket::Working => words.bucket_working(),
+        Bucket::Review => words.bucket_review(),
+        Bucket::Done => words.bucket_done(),
+    }
+}

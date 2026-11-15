@@ -1,6 +1,6 @@
 //! The sidebar grouped by status (the Display menu's "Status"; Paseo's
-//! status buckets in the board's words): Needs you, Working, Idle, and
-//! Ended when ended sessions are listed, each session naming its machine,
+//! five attention buckets): Needs input, Failed, Working, Ready to review,
+//! Done, each session naming its machine,
 //! each group's "N more" opening the board (the page's
 //! `sidebar-statuses.tsx`, `Fleet::sidebar_statuses`).
 
@@ -10,8 +10,8 @@ use vessel_app_kit::ui::{
     px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, kicker};
+use vessel_app_view::inbox::buckets::Group;
 use vessel_app_view::prefs::SidebarView;
-use vessel_app_view::sidebar::{SIDEBAR_STATUS_SESSIONS, SidebarStatus};
 
 use super::layout::EndTarget;
 use super::{INSET, more_row};
@@ -28,7 +28,7 @@ pub(super) fn groups(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let words = shell.t.lang.sidebar();
-    let groups = shell.fleet.sidebar_statuses(view, SIDEBAR_STATUS_SESSIONS);
+    let groups = shell.inbox_status_groups(view);
     let mut list = div().flex().flex_col().gap(px(spacing::S3_5));
     if groups.is_empty() && shell.loaded {
         list = list.child(
@@ -49,19 +49,18 @@ pub(super) fn groups(
 
 /// Retains one status renderer while the final existing row gains reveal.
 fn status_group(
-    group: &SidebarStatus<'_>,
+    group: &Group<'_>,
     end: EndTarget,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
-    let words = shell.t.lang.sidebar();
     let mut rows = div().flex().flex_col().gap(px(spacing::S0_5)).child(
-        div()
-            .px(px(INSET))
-            .pb(px(spacing::S0_5))
-            .child(kicker(words.mark(group.mark), tokens)),
+        div().px(px(INSET)).pb(px(spacing::S0_5)).child(kicker(
+            vessel_app_view::inbox::words::bucket(group.bucket, shell.words),
+            tokens,
+        )),
     );
     let last = group.sessions.len().checked_sub(1);
     for (index, card) in group.sessions.iter().enumerate() {
@@ -84,7 +83,7 @@ fn status_group(
         rows = rows.child(
             end.wrap(
                 more_row(
-                    ElementId::Name(format!("more-{:?}", group.mark).into()),
+                    ElementId::Name(format!("more-{:?}", group.bucket).into()),
                     group.more,
                     shell,
                     tokens,

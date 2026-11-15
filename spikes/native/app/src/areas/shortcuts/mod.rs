@@ -284,7 +284,7 @@ impl Shell {
     /// Open the session one `step` from the one on screen, in the
     /// sidebar's order.
     fn step_to(&mut self, step: Step, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
-        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
+        let order = self.inbox_sidebar_order();
         let open = step_session(&order, self.session_in_view(), step).map(Open::of);
         open.is_some_and(|open| {
             self.open_session(open, window, cx);
@@ -299,7 +299,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        let order = self.fleet.sidebar_order(self.prefs.settings.sidebar);
+        let order = self.inbox_sidebar_order();
         let open = index
             .and_then(|index| usize::from(index).checked_sub(1))
             .and_then(|at| order.get(at).copied())

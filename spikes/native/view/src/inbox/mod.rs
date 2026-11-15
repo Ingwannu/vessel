@@ -3,6 +3,7 @@
 //! It never reconstructs an inbox entry from a session's status.
 
 pub mod admission;
+pub mod buckets;
 pub mod delivery;
 mod detail;
 pub mod notices;
@@ -165,6 +166,8 @@ pub struct Entry {
     pub key: Key,
     /// The current session's optional title.
     pub title: Option<SessionTitle>,
+    /// Current project name, when the node can resolve it.
+    pub project: Option<vessel_proto::workspace::ProjectName>,
     /// When the source first requested attention.
     pub at: DateTime<Utc>,
     /// Shared read state, authoritative on the node.
