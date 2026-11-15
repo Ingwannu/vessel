@@ -374,3 +374,9 @@ presentation keys, not another epoch allocator or approval authority.
 The extracted command card uses the existing kit spacing scale rather than
 transferring a legacy pixel literal to a new file. Its original detail leaf's
 remaining literal allowance shrinks with the extraction; no token budget grows.
+
+Until joint assignment, `ProjectCommands::for_protocol` projects new declared
+ports, terminal commands and allocation blocks to an invalid set on every
+approval-bearing reply. The app adds no independent version guess or bypass.
+Its full declaration renderer is prepared for the reviewed joint adoption;
+current protocol replies do not activate allocator or environment behavior.
