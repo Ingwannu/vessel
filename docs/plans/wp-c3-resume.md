@@ -431,3 +431,31 @@ recorded after they arrive. No package/whole gate/capture pass is implied.
 Prior1541 View142/0/0 is complete, with four generation cases actually run.
 The4be Node TS run is still the sole queued replacement for34bb's real alias
 classification failure; do not duplicate it or claim a fresh wire patch.
+
+## 18:14 UTC: new file-page connection, actual tests and remaining queues
+
+Committed480f84d3e closes legacy reads before Git owner initialization, then
+its strict check returned101 on question_mark plus an overlong unchanged words
+fixture. ad96564f3 binds the successful borrowed status and moves exact word
+cases into a module constant. The713 ordinary test was cancelled143 while still
+queued, evidence retained; its sole ordinary replacement480 remains queued.
+
+New a38656def connects FilePages/continuation lineage to existing PanelReads and
+Link. Exactad9 View/Link git tests completed200/0/0 (6 Link+194 View,90+830 filtered)
+with actual changed-crate compilation; all nine page cases and the framed nonzero
+continuation ran. Exactad9 strict Clippy separately returned101 on four own lint
+items. 7bf553b18 fixes those without changed expectations/page semantics. Its ONE
+short/no-priority all4-crate Clippy submission is pending a receipt due submit.lock;
+keep that process, never duplicate. AD9 logs/result source pins remain external.
+No App owner runtime, latest whole/consumer/capture/authority pass exists.
+
+Node4be TS remains the sole queued generation attempt. No new node source was
+installed. The naive borrowed file-cache guard was rejected in external analysis
+because lower blocking work can outlive its caller. W13 authorizes the join but
+its frozena2 source adds an existing retained run_file_work owner for new file
+operations; legacy four mutation wrappers still call directly. Prefer extending
+that SAME owner to those wrappers and holding cache guards inside actual tracked
+operations (plus DuplicateFileEntry), after its announced node head lands. Avoid
+an extra comparison Jobs queue or inverted permit order. The external draft is
+not a checked producer. C5 shown-context and W11 runtime root mapping still wait.
+C3 remains skeleton/incomplete, C4 unstarted; no owned fleets/displays/app run.

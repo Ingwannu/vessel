@@ -1073,3 +1073,19 @@ TooLarge instead of narrowing. No node/transport diagnostic is discarded.
 The correction changes no fixture expectation or production page semantics.
 App checking has not yet been reached in this run. The ad9 View/Link git tests
 are already running; keep their original source assignment and do not cancel.
+
+## Exactad9 file-page runtime result
+
+Run wp-git-view-tests-20261115T180414Z-ad96564f completed native-fonts0 and
+native-cargo0, no skips, actual View/Link compilation. Selected git libraries:
+Link6/0/0 (90 filtered) and View194/0/0 (830 filtered), total200 passed. All nine
+new page-model cases and the actual framed nonzero continuation case are named
+ok in the raw log. The bounded byte/line, parent generation, duplicate, retry,
+metadata/content and bilingual recovery assertions actually ran.
+
+The separate exactad9 Clippy remains RED101. Its four diagnostics are corrected
+in7bf553b18; that newer source does not inherit this exact runtime result. The
+current App owner union still has no runtime/compile pass; its480 ordinary tests
+remain queued. No unchanged whole rerun, body mount, global cache bound, real
+node, authority, OS, captures or C3 completion is claimed. Full immutable source
+and log digests are in the external file-pages-ad9-result.json evidence record.
