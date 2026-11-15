@@ -176,7 +176,7 @@ struct HeldAccept {
     finished: Arc<AtomicUsize>,
 }
 impl HeldAccept {
-    fn new() -> (impl Fn(WsCarrier) + Send + Sync + 'static, Self) {
+    fn prepare() -> (impl Fn(WsCarrier) + Send + Sync + 'static, Self) {
         const RELEASE_CAPACITY: usize = 1;
         let (entered, entry) = oneshot::channel();
         let (release, wait) = std::sync::mpsc::sync_channel::<()>(RELEASE_CAPACITY);
@@ -241,7 +241,7 @@ async fn the_public_run_cannot_acknowledge_while_its_accept_callback_is_held() {
         Box::pin(async {
             let mut relay = Relay::start().await;
             let key = Arc::new(NodeKeypair::generate().unwrap());
-            let (callback, mut held) = HeldAccept::new();
+            let (callback, mut held) = HeldAccept::prepare();
             let mut registration = registered(&relay.url, &key, callback).await;
             let id = routing_id(key.public());
             let transport = tls();
