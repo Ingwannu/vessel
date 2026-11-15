@@ -12,6 +12,14 @@ const ENUMERATION_BYTES: usize =
     CHECKPOINT_PATHS.saturating_mul(CHECKPOINT_PATH_BYTES.saturating_add(1));
 
 pub(super) async fn paths(git: &Git, root: &Path) -> Result<Vec<CheckpointPath>, Error> {
+    cancellable(git, root, &tokio_util::sync::CancellationToken::new()).await
+}
+
+pub(super) async fn cancellable(
+    git: &Git,
+    root: &Path,
+    cancellation: &tokio_util::sync::CancellationToken,
+) -> Result<Vec<CheckpointPath>, Error> {
     let output = git
         .command(root)
         .args([
@@ -22,6 +30,7 @@ pub(super) async fn paths(git: &Git, root: &Path) -> Result<Vec<CheckpointPath>,
             "-z",
         ])
         .limits(Limits::LOCAL.with_stdout(ENUMERATION_BYTES))
+        .cancel_on(cancellation.clone())
         .output()
         .await?;
     if output.stdout_cut {

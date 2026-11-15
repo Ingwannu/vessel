@@ -55,10 +55,21 @@ impl Sandbox {
     /// The node's `Git` as [`git`](Self::git) makes it, running `program`
     /// instead of the `git` on `PATH` (a test's wrapper around it).
     pub(crate) async fn git_through(&self, program: PathBuf) -> Git {
+        self.git_through_env(program, Vec::new()).await
+    }
+
+    /// Policy tests explicitly replace HOME/XDG as well as global Git config.
+    pub(crate) async fn git_through_env(
+        &self,
+        program: PathBuf,
+        additional: Vec<(String, OsString)>,
+    ) -> Git {
+        let mut env = self.env.clone();
+        env.extend(additional);
         Git::probe(Some(GitSetup {
             program,
             no_hooks: self.temp.path().join("no-hooks"),
-            env: self.env.clone(),
+            env,
         }))
         .await
         .git

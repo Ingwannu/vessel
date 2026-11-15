@@ -146,3 +146,19 @@ proto TS derivation) passed on `c580d9eb`. This includes physical-observation
 capture and the rebased pending handler seam, but precedes journal FULL-sync,
 metadata pagination and root admission. The new later behavior tests remain
 queued; no whole gate or production activation is claimed.
+
+A complete capture scope now discovers local ancestor ignore files, the actual
+Git administrative exclude file, explicit core.excludesFile and an edge-supplied
+HOME/XDG default. It hashes bounded policy bytes without archiving external
+policy inputs, then re-enumerates paths and re-discovers/re-hashes policy before
+acceptance. Git subprocess cancellation uses the same capture cancellation token.
+The synchronous assembly runs on the already admitted blocking worker and uses
+an explicit runtime handle only for Git I/O; it creates no extra filesystem
+worker. New isolated HOME/XDG fixtures and a fake Git wrapper exercise policy
+changes and a file appearing only at the second enumeration. They remain
+unverified until the next scoped run. The binary default-path adapter is owed.
+
+On `dad520f2`, checkpoint-filtered tests passed 66, zero failed, six ignored;
+this includes real FULL-sync policy admission/rollback, garbage reservations,
+non-root permissions and full observation association. It precedes metadata
+listing/root admission/full-scope policy discovery and is not product proof.

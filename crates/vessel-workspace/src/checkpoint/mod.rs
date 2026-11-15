@@ -14,9 +14,13 @@ mod fingerprint;
 #[cfg(target_os = "linux")]
 mod inspect;
 #[cfg(target_os = "linux")]
+mod policy;
+#[cfg(target_os = "linux")]
 mod restore;
 #[cfg(target_os = "linux")]
 mod rooted;
+#[cfg(target_os = "linux")]
+mod scope;
 
 #[cfg(test)]
 mod tests;
