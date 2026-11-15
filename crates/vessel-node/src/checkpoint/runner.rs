@@ -1,7 +1,9 @@
 //! A single nonblocking owner fences candidates; admitted I/O jobs retain capacity.
 
+mod availability;
+
 use super::{
-    capture::Captures,
+    capture::{Captures, RootState},
     quota::ReservedBytes,
     workers::{WorkerLease, Workers},
 };
@@ -78,6 +80,7 @@ pub(crate) struct Client {
     #[cfg(test)]
     lifecycle: watch::Receiver<Lifecycle>,
     cleanup_faults: watch::Receiver<Option<CleanupFault>>,
+    roots: watch::Receiver<std::collections::BTreeMap<PhysicalRoot, RootState>>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct CleanupFault {
@@ -147,6 +150,7 @@ impl Client {
         key: CaptureKey,
         deadline: Instant,
     ) -> Result<AcceptedCapture, CheckpointError> {
+        self.wait_for_root(physical, deadline).await?;
         self.capture_reserved(physical, key, ReservedBytes::capture(), deadline)
             .await
     }
@@ -221,6 +225,7 @@ where
     let (events, mut completed) = mpsc::channel::<Event>(CHECKPOINT_WORKERS);
     let (state, _lifecycle) = watch::channel(Lifecycle::Accepting);
     let (faults, cleanup_faults) = watch::channel(None);
+    let (root_state, roots) = watch::channel(std::collections::BTreeMap::new());
     let read = Arc::new(read);
     let persist = Arc::new(persist);
     let cleanup = Arc::new(cleanup);
@@ -228,6 +233,7 @@ where
         let mut captures = Captures::new(workers);
         let mut requests_open = true;
         loop {
+            let _previous = root_state.send_replace(captures.roots());
             if !requests_open && captures.drained() {
                 break;
             }
@@ -268,6 +274,7 @@ where
             #[cfg(test)]
             lifecycle: _lifecycle,
             cleanup_faults,
+            roots,
         },
         task,
     )

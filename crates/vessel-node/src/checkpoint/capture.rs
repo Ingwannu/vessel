@@ -13,6 +13,13 @@ use vessel_proto::checkpoint::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum RootState {
+    Reading { until: Instant },
+    Publishing,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum WorkerState {
     Running,
     CleanupFailed,
@@ -36,6 +43,24 @@ pub(super) struct Captures {
     workers: Workers,
 }
 impl Captures {
+    pub(super) fn roots(&self) -> BTreeMap<PhysicalRoot, RootState> {
+        self.jobs
+            .values()
+            .map(|job| {
+                let state = if job.worker == WorkerState::CleanupFailed || job.cancel.is_cancelled()
+                {
+                    RootState::Unavailable
+                } else if job.reply.is_some() {
+                    RootState::Reading {
+                        until: job.deadline,
+                    }
+                } else {
+                    RootState::Publishing
+                };
+                (job.physical, state)
+            })
+            .collect()
+    }
     pub(super) fn new(workers: Workers) -> Self {
         Self {
             workers,

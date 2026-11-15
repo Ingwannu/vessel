@@ -122,6 +122,8 @@ async fn handle(
             .checkpoint_anchor(session, anchor, deadline)
             .await?;
         let worktree = worktree(&info)?;
+        let bound = sessions.checkpoint_root(session)?;
+        client.wait_for_root(bound, deadline).await?;
         let guard = workspaces.checkpoint_admission(worktree).await?;
         // Starts cannot register another process while this physical guard is
         // held. A renamed/replaced cwd must not become the running agent's root.
@@ -158,12 +160,20 @@ async fn handle(
     {
         Ok(accepted) => {
             let delivered = request.acknowledge(Ok(accepted.key));
-            match delivered.await {
+            let outcome = delivered.await;
+            // Actual provider delivery has settled. Release the common root
+            // before signalling activation; availability then cannot race this
+            // old guard when the next boundary starts. The separate capture
+            // worker/root/quota lease still spans durable activation and cleanup.
+            drop(guard);
+            match outcome {
                 Ok(outcome) => accepted.complete(outcome),
                 Err(_lost) => drop(accepted),
             }
         }
-        Err(reason) => drop(request.acknowledge(Err(reason))),
+        Err(reason) => {
+            drop(guard);
+            drop(request.acknowledge(Err(reason)));
+        }
     }
-    drop(guard);
 }

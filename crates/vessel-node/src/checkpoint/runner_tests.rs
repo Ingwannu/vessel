@@ -457,3 +457,80 @@ async fn checkpoint_actor_receipt_gates_ready_and_refused_or_lost_delivery_disca
         owner.await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn checkpoint_next_boundary_waits_for_accepted_publication_without_spawning_another_read() {
+    use vessel_session::CheckpointAdvance;
+    let first = key();
+    let physical = super::capture::model_root(first.worktree);
+    let reads = Arc::new(AtomicUsize::new(0));
+    let reader = Arc::clone(&reads);
+    let (release, held) = oneshot::channel();
+    let held = std::sync::Mutex::new(Some(held));
+    let (entered, entry) = oneshot::channel();
+    let entered = std::sync::Mutex::new(Some(entered));
+    let (client, owner) = runner::start(
+        move |_key, _root, _cancel| {
+            let _old = reader.fetch_add(1, Ordering::SeqCst);
+            empty()
+        },
+        move |key, phase| {
+            let held = match phase {
+                Publication::Activate if key == first => {
+                    entered.lock().unwrap().take().unwrap().send(()).unwrap();
+                    Some(held.lock().unwrap().take().unwrap())
+                }
+                Publication::Reserve(_) | Publication::Candidate(_) | Publication::Activate => None,
+            };
+            async move {
+                if let Some(held) = held {
+                    held.await.unwrap();
+                }
+                Ok(())
+            }
+        },
+        |_key, _disposition| Ok(()),
+    );
+    let accepted = client
+        .capture_reserved(
+            physical,
+            first,
+            ReservedBytes::new(1).unwrap(),
+            tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE,
+        )
+        .await
+        .unwrap();
+    accepted.complete(CheckpointAdvance::TurnComplete);
+    entry.await.unwrap();
+    let next = CaptureKey {
+        capture: CaptureId::random(),
+        boundary: Boundary::BeforeTurn {
+            prompt: EventSeq::new(2),
+        },
+        generation: first.generation.next().unwrap(),
+        ..first
+    };
+    let accepted = {
+        let next_capture = client.capture_candidate(
+            physical,
+            next,
+            tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE,
+        );
+        tokio::pin!(next_capture);
+        assert!(futures_util::poll!(next_capture.as_mut()).is_pending());
+        assert_eq!(reads.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            client
+                .wait_for_root(physical, tokio::time::Instant::now())
+                .await,
+            Err(CheckpointError::CaptureTimedOut)
+        );
+        release.send(()).unwrap();
+        next_capture.await.unwrap()
+    };
+    assert_eq!(accepted.key, next);
+    assert_eq!(reads.load(Ordering::SeqCst), 2);
+    accepted.complete(CheckpointAdvance::TurnComplete);
+    drop(client);
+    owner.await.unwrap();
+}

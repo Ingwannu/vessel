@@ -944,3 +944,18 @@ filesystem fixture covers deleted untracked files, private creation metadata,
 and refusal without replacing currently ignored data. The node account defaults
 come from actual effective UID/GID and private0600, not project or checkpoint
 ownership. No runtime controller claim follows from this worker mechanism.
+
+### Consecutive-boundary publication handoff (source; unrun)
+
+A watch contains at most the two admitted physical roots and their bounded
+Reading/Publishing/Unavailable states. A production bridge request waits for a
+prior accepted capture's activation/cleanup inside its existing bounded handler
+and original actor deadline, before acquiring the common root. It creates no
+new read, waiter task or timeout budget. Expired reads and cleanup faults remain
+Busy; a stuck kernel job never permits a replacement worker. After actual actor
+advancement, the bridge drops its common root before allowing Ready activation,
+so the next availability notification cannot race that old common guard. The
+separate capture root/worker/quota ownership still lasts through actual cleanup.
+The held-publication regression checks a following boundary waits with only one
+read, honors an already-expired deadline, and reads only after actual release.
+The real two-turn runtime fixture remains owed remotely.
