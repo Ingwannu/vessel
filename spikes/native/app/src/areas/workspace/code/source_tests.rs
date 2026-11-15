@@ -123,13 +123,7 @@ fn queued_summary_cannot_install_after_original_retirement(cx: &mut TestAppConte
             )
             .unwrap();
         let held = answer(&mut scene, shell);
-        assert!(
-            held.guard
-                .as_ref()
-                .unwrap()
-                .validate(&scene.context())
-                .is_ok()
-        );
+        assert!(held.is_current());
         scene.retire(shell.fixture_link()).unwrap();
         shell.code_source_answer(held);
         assert!(shell.shown_changes_context().is_none());
@@ -201,7 +195,7 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
             path: path.clone(), old_path: None, status: ChangeStatus::Modified,
             mode: None, content: DiffContent::Unchanged, more_from: None }))).unwrap();
         let page = answer(&mut scene, shell);
-        let request = page.request.clone();
+        let request = page.request().clone();
         shell.code_source_answer(page);
         let shown = shell.shown_diff_context(&path).unwrap();
         assert_eq!(shown.connection(), &scene.context());
@@ -271,12 +265,14 @@ fn actual_git_retirement_delegation_invalidates_without_another_owner(cx: &mut T
             .update_layout(
                 &key,
                 |layout| {
-                    layout.retarget(RetargetRequest {
-                        tab,
-                        target: Target::Files,
-                        intent: OpenIntent::Reveal,
-                        role: AgentRole::Unknown,
-                    })
+                    layout
+                        .retarget(RetargetRequest {
+                            tab,
+                            target: Target::Files,
+                            intent: OpenIntent::Reveal,
+                            role: AgentRole::Unknown,
+                        })
+                        .map(|_tab| ())
                 },
                 cx,
             )

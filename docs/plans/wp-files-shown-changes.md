@@ -82,3 +82,25 @@ existing exact-target and visible-panel queries and explicitly excludes logical
 Workspace projection. While Explorer is unmounted it remains None. Switching
 legacy tabs or closing the host invalidates stamp metadata before another read;
 it never aborts the detached readonly request or replays a write.
+
+
+## Reference and intentional boundary
+
+Paseo's `packages/app/src/git/use-working-diff.ts:16-24,51-85` keys the
+comparison and review draft by server/workspace/cwd/comparison. Its
+`git/use-diff-query.ts:44-97` includes comparison/query scope and retained-panel
+activity in the read route; `git/diff-pane.tsx:1551-1583` draws the returned files
+and publishes that same review attachment. Vessel reuses its existing typed
+root, summary and paged-diff controller rather than introducing another replica.
+The added irreversible admitted-epoch guard is a deliberate Vessel boundary: an
+alias, equal counts or a cwd cannot authorize re-stamping already drawn data.
+
+
+Before the first queued preparation check acquired a slot, a static pass found
+an unused RetargetRequest result and needless ownership in the root/diff
+installation helpers. The queued run was verified and cancelled terminal143
+before one replacement. The helpers now borrow their original requests and
+the closed Link Answer exposes only read-only request facts, currentness and
+consuming decomposition; callers cannot manufacture a successful envelope by
+attaching a guard. The actual guard still comes only from G4's selected client.
+No original assertion, correlation fence or G4 export was changed.

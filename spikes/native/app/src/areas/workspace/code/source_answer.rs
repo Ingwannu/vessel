@@ -14,27 +14,23 @@ use vessel_proto::{
 };
 impl Shell {
     pub(crate) fn code_source_answer(&mut self, answer: Answer) {
-        let Answer {
-            request,
-            guard,
-            body,
-        } = answer;
+        let (request, guard, body) = answer.into_parts();
         let live = guard
             .as_ref()
             .is_some_and(|guard| guard.validate(request.context()).is_ok());
         match body {
-            Body::Root(result) => self.source_root_answer(request, guard, checked(result, live)),
+            Body::Root(result) => self.source_root_answer(&request, guard, &checked(result, live)),
             Body::Summary(result) => {
                 self.source_summary_answer(request, guard, checked(result, live))
             }
-            Body::Diff(result) => self.source_diff_answer(request, guard, checked(result, live)),
+            Body::Diff(result) => self.source_diff_answer(&request, guard, checked(result, live)),
         }
     }
     fn source_root_answer(
         &mut self,
-        request: Request,
+        request: &Request,
         guard: Option<DeliveryGuard>,
-        result: Result<Box<SessionInfo>, Problem>,
+        result: &Result<Box<SessionInfo>, Problem>,
     ) {
         let Request::Root {
             context,
@@ -50,17 +46,17 @@ impl Shell {
             return;
         };
         let Some(origin) = target.receipt.as_mut().filter(|origin| {
-            origin.context == context && origin.session == session && origin.ticket == ticket
+            origin.context == *context && origin.session == *session && origin.ticket == *ticket
         }) else {
             return;
         };
-        origin.guard = guard.filter(|guard| guard.validate(&context).is_ok());
-        target.place = match &result {
+        origin.guard = guard.filter(|guard| guard.validate(context).is_ok());
+        target.place = match result {
             Ok(info) => session_root(info).map_or(Place::Outside, Place::Root),
             Err(problem) => Place::Failed(words.problem(problem)),
         };
         target.cwd = result.as_ref().ok().and_then(|info| info.spec.cwd.clone());
-        self.finder_session_read(session, &result);
+        self.finder_session_read(*session, result);
         self.code_read_tab();
     }
     fn source_summary_answer(
@@ -112,7 +108,7 @@ impl Shell {
     }
     fn source_diff_answer(
         &mut self,
-        request: Request,
+        request: &Request,
         guard: Option<DeliveryGuard>,
         result: Result<FileDiff, Problem>,
     ) {
@@ -122,7 +118,7 @@ impl Shell {
             summary,
             ticket,
             scope,
-        } = &request
+        } = request
         else {
             return;
         };
@@ -146,7 +142,7 @@ impl Shell {
             .sources
             .diffs
             .get_mut(&ask.path)
-            .filter(|source| source.request == request)
+            .filter(|source| &source.request == request)
         else {
             return;
         };
