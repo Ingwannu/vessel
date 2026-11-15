@@ -216,14 +216,14 @@ fn context_only_creation_freezes_history_and_rejects_only_the_matching_ticket(
         let card = card("fixture");
         shell.started_draft_files(ticket, &card, cx);
         assert!(shell.areas.session.open.is_none());
-        let pending = shell.areas.composer.sends.get(&card.session).unwrap();
+        let pending = &shell.areas.composer.sends[&card.session];
         assert_eq!(
             pending
                 .context
                 .as_ref()
                 .unwrap()
                 .attachments()
-                .map(|item| item.text())
+                .map(vessel_app_view::composer::context::ContextAttachment::text)
                 .collect::<Vec<_>>(),
             ["first"]
         );
@@ -235,7 +235,7 @@ fn context_only_creation_freezes_history_and_rejects_only_the_matching_ticket(
                 .get(DraftKey::New)
                 .unwrap()
                 .visible()
-                .map(|item| item.text())
+                .map(vessel_app_view::composer::context::ContextAttachment::text)
                 .collect::<Vec<_>>(),
             ["newer"]
         );
