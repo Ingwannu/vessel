@@ -1205,3 +1205,9 @@ trigger_presented takes typed Closed/Open with ButtonState. Existing entries
 keep Schedule/Git defaults. trigger_visual_size/trigger_space derive the same
 visual footprint; passive size has no identity, input, glyph or anchor.
 See docs/plans/backend-m12-g2-trigger-profiles.md for source and pending proof.
+
+Menu Content's typed Layer keeps Screen/priority1 as default and offers
+AboveDialog/priority3 through the same renderer. Its transparent viewport
+input boundary consumes only the nested menu's outside press, preserving
+its host dialog; no second scrim or area popup is drawn. See
+`docs/plans/backend-m12-g2-modal-menu.md` for source and pending proof.

@@ -34,12 +34,14 @@ mod feedback_tests;
 mod focus_tests;
 mod item;
 #[cfg(test)]
+mod modal_tests;
+#[cfg(test)]
 mod presentation_tests;
 #[cfg(test)]
 mod tests;
 mod trigger;
 pub use crate::select::Anchor as TriggerAnchor;
-pub use draw::{Content, Width, menu, menu_right, menu_with};
+pub use draw::{Content, Layer, Width, menu, menu_right, menu_with};
 pub use item::{Dismissal, ItemStatus, LeadingSize, MenuItem, Presentation, Tone};
 pub use trigger::{
     TriggerPresentation, TriggerProfile, TriggerSizing, trigger, trigger_presented, trigger_space,
