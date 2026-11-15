@@ -11,7 +11,9 @@ pub use requests::{
     WorkspaceLabelFailure, WorkspaceLabelUpdated,
 };
 pub use sync::{CatalogCursor, CatalogDelta, CatalogList, CatalogMode, CatalogUpdate};
-pub use values::{Assignment, Label, LabelColor, LabelCount, LabelKey, LabelName, LabelNameError};
+pub use values::{
+    Assignment, Label, LabelColor, LabelCount, LabelKey, LabelName, LabelNameError, trim_whitespace,
+};
 
 use crate::ProtocolVersion;
 

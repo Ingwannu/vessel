@@ -102,6 +102,12 @@ WORKSPACE_LABELS omission gate after the reviewed producer is available.
 - The new ordered-shutdown regression has not run. No full gate, RPC runtime,
   inspected native capture, review or production flow is claimed.
 
+The validated name module also exposes the existing ECMAScript whitespace
+predicate through one edge-trim helper for native query matching. Both sides
+share that grammar: FEFF trims, 0085 remains, internal query spaces retain
+their meaning. Boundary assertions were added to the existing proto test;
+their new execution remains pending with the ordered-shutdown regression.
+
 ## Remaining work
 
 Consume only the reviewed W11 producer; append one named schema migration at
