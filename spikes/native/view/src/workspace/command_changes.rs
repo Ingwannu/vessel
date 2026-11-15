@@ -29,7 +29,8 @@
 use chrono::{DateTime, Utc};
 use vessel_proto::scripts::ScriptEntry;
 use vessel_proto::workspace::{
-    ApprovedCommands, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands,
+    ApprovedCommands, CommandsDigest, FileTerminal, ProjectCommand, ProjectCommands, ServicePorts,
+    ServicePortsView,
 };
 
 /// A set of commands as the node lists it, borrowed from its answer.
@@ -47,6 +48,8 @@ pub struct Listed<'a> {
     pub scripts: &'a [ScriptEntry],
     /// Terminal commands covered by the digest, not yet drawn by this card.
     pub terminals: &'a [FileTerminal],
+    /// Every project allocation choice, refused until the card shows all of it.
+    pub service_ports: Option<ServicePortsView<'a>>,
     /// The set approved last, when the node kept it.
     pub last_approved: Option<&'a ApprovedCommands>,
 }
@@ -57,6 +60,13 @@ impl<'a> Listed<'a> {
     /// # Errors
     /// Returns the unsupported approved field instead of permitting unseen work.
     pub fn approval(&self) -> Result<(), ApprovalRefusal> {
+        if self.service_ports.is_some()
+            || self
+                .last_approved
+                .is_some_and(|last| last.commands.service_ports.is_some())
+        {
+            return Err(ApprovalRefusal::ServicePorts);
+        }
         if self.terminals.is_empty()
             && self
                 .last_approved
@@ -84,6 +94,7 @@ impl<'a> Listed<'a> {
                 approved,
                 scripts,
                 terminals,
+                service_ports,
                 last_approved,
             } => Some(Self {
                 setup,
@@ -92,6 +103,7 @@ impl<'a> Listed<'a> {
                 approved: *approved,
                 scripts,
                 terminals,
+                service_ports: service_ports.as_ref().map(allocation_view),
                 last_approved: last_approved.as_deref(),
             }),
             ProjectCommands::None | ProjectCommands::Invalid { .. } => None,
@@ -99,9 +111,19 @@ impl<'a> Listed<'a> {
     }
 }
 
+/// Deliberately re-project every approved field. A new allocation choice must
+/// break the consumer even while the current card refuses the whole block.
+fn allocation_view(ports: &ServicePorts) -> ServicePortsView<'_> {
+    let ServicePortsView { range, port_script } = ports.view();
+    ServicePortsView { range, port_script }
+}
+
 /// Why this card must not approve a command digest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum ApprovalRefusal {
+    /// Current or previously approved allocation choices cannot be fully shown.
+    #[error("service port allocation cannot be shown by this approval card")]
+    ServicePorts,
     /// The digest includes terminal commands the card cannot draw yet.
     #[error("terminal commands cannot be shown by this approval card")]
     Terminals,
@@ -345,6 +367,8 @@ pub enum Compared {
         teardown: Vec<CommandLine>,
         /// The scripts and services.
         scripts: Vec<ScriptLine>,
+        /// Earlier executable fields this card cannot display completely.
+        unshown: Option<ApprovalRefusal>,
     },
     /// No approved set is known to compare with.
     None,
@@ -356,12 +380,14 @@ fn against(
     teardown: &[ProjectCommand],
     scripts: &[ScriptEntry],
     basis: ComparedWith,
+    unshown: Option<ApprovalRefusal>,
 ) -> Compared {
     Compared::Changed {
         against: basis,
         setup: compare_commands(setup, asked.setup),
         teardown: compare_commands(teardown, asked.teardown),
         scripts: compare_scripts(scripts, asked.scripts),
+        unshown,
     }
 }
 
@@ -379,6 +405,7 @@ pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) ->
             ComparedWith::LastApproved {
                 at: last.approved_at,
             },
+            asked.approval().err(),
         );
     }
     match folder.and_then(Listed::of) {
@@ -388,8 +415,25 @@ pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) ->
             folder.teardown,
             folder.scripts,
             ComparedWith::Folder,
+            folder.approval().err(),
         ),
         Some(_) | None => Compared::None,
+    }
+}
+
+impl Compared {
+    /// A fallback comparison must not make removed, unshown fields approvable.
+    /// # Errors
+    /// Refuses either the current set or fields retained from its approved basis.
+    pub fn approval(&self, asked: &Listed<'_>) -> Result<(), ApprovalRefusal> {
+        asked.approval()?;
+        match self {
+            Self::Changed {
+                unshown: Some(reason),
+                ..
+            } => Err(*reason),
+            Self::Changed { unshown: None, .. } | Self::None => Ok(()),
+        }
     }
 }
 

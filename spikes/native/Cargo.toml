@@ -184,7 +184,10 @@ debug = "line-tables-only"
 # README). Only Linux and FreeBSD builds compile it.
 # gpui-kit's input base with a steady caret while motion is held (the same
 # README, "gpui-base").
+# GPUI's core with a per-element distance before a drag starts (the same
+# README, "gpui-pre"); every element that names none keeps GPUI's 2 points.
 [patch.crates-io]
+gpui-pre = { path = "../release/patches/gpui-pre" }
 gpui-pre-windows = { path = "../release/patches/gpui-pre-windows" }
 gpui-pre-linux = { path = "../release/patches/gpui-pre-linux" }
 gpui-base = { path = "../release/patches/gpui-base" }

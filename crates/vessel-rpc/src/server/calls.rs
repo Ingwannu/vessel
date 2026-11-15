@@ -49,6 +49,7 @@ use vessel_proto::{
 };
 
 use super::outbound::Outgoing;
+use crate::decode::DecodeFailure;
 use crate::error::{ProtocolViolation, ServeError};
 
 /// The calls in flight on one connection.
@@ -216,10 +217,11 @@ where
                         }
                     }
                     Inbound::Cancel(id) => calls.cancel(id),
-                    Inbound::Invalid { id, error } => {
+                    Inbound::Invalid { id, failure } => {
+                        // Where and what kind, never a value (`DecodeFailure`).
                         let error = WireError::new(
                             ErrorCode::InvalidRequest,
-                            format!("invalid request: {error}"),
+                            format!("invalid request: {failure}"),
                         );
                         let answer = Outgoing::Response { id, outcome: Box::new(Outcome::Err(error)) };
                         if queue.send(answer).await.is_err() {
@@ -282,31 +284,52 @@ enum Inbound {
     /// parameters, for example from a newer client); answerable by id.
     Invalid {
         id: RequestId,
-        error: serde_json::Error,
+        failure: DecodeFailure,
     },
     /// Not a client frame at all; there is no id to answer.
-    Garbage(serde_json::Error),
+    Garbage(DecodeFailure),
 }
 
-/// Just enough of a frame to answer a request whose call did not decode.
+/// Just enough of a frame to answer a request whose call did not decode,
+/// and to name its method when that is one this node knows. The method's
+/// name is read as text and kept only if it matches a known method.
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum RequestHeader {
     Request {
         id: RequestId,
+        #[serde(default)]
+        call: Option<HeaderCall>,
     },
     #[serde(other)]
     Other,
 }
 
+#[derive(Deserialize)]
+struct HeaderCall {
+    #[serde(default)]
+    method: Option<String>,
+}
+
 fn decode(text: &str) -> Inbound {
-    match serde_json::from_str::<ClientFrame>(text) {
+    match crate::decode::whole::<ClientFrame>(text) {
         Ok(ClientFrame::Request { id, call }) => Inbound::Call { id, call },
         Ok(ClientFrame::Cancel { id }) => Inbound::Cancel(id),
         Ok(ClientFrame::Hello(_)) => Inbound::Hello,
-        Err(error) => match serde_json::from_str::<RequestHeader>(text) {
-            Ok(RequestHeader::Request { id }) => Inbound::Invalid { id, error },
-            Ok(RequestHeader::Other) | Err(_) => Inbound::Garbage(error),
+        Err(undecoded) => match serde_json::from_str::<RequestHeader>(text) {
+            Ok(RequestHeader::Request { id, call }) => {
+                let method = call.and_then(|call| call.method).and_then(|name| {
+                    vessel_proto::Method::ALL
+                        .iter()
+                        .copied()
+                        .find(|known| known.as_str() == name)
+                });
+                Inbound::Invalid {
+                    id,
+                    failure: undecoded.failure(method),
+                }
+            }
+            Ok(RequestHeader::Other) | Err(_) => Inbound::Garbage(undecoded.failure(None)),
         },
     }
 }

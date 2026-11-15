@@ -16,3 +16,33 @@
   white-space: normal;
   text-align: right;
 }
+
+/* A historical profile's name must remain distinguishable at phone width. */
+.usage-scope {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.usage-scope .select-trigger.sm {
+  height: auto;
+  min-height: var(--h-sm);
+}
+
+.usage-scope .select-value > .label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* The kit's popup is a portal. Wrap only this feature's open choice
+   list so profiles that differ near their ends stay distinguishable. */
+body:has(.usage-scope .select-trigger[data-popup-open])
+  .select-popup
+  .menu-item
+  > .label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

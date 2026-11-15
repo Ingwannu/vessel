@@ -1,13 +1,28 @@
 //! Request identity and page states. A late answer must not put one
 //! machine's credential under another's name (or restore a replaced link).
+//!
+//! [Decision Log]
+//! - Purpose: keep confirmation intent attached to its physical target.
+//! - Constraint: cancel/reopen and same-node reconnect can reuse a device id.
+//! - Alternatives: store an optional intent beside a mutable selection.
+//! - Choice: one private-field record holds context, intent and device, and
+//!   travels unchanged into Sending. The guarded factory owns its creation.
+//! - Why: even an accidentally retained record cannot confirm on another node.
+//! - Cost: the screen reads its public metadata through getters, not fields.
 
 use vessel_proto::{DeviceId, DeviceInfo, ErrorCode};
 
-use super::Pairing;
+use super::{ConnectionContext, Pairing, RevokeIntent};
 
 /// A page request's identity; never reused during the page's lifetime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ticket(u64);
+
+impl std::fmt::Display for Ticket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
 
 /// A bounded source of identities. Exhaustion refuses a request rather
 /// than reusing an old identity and accepting an old answer.
@@ -29,6 +44,9 @@ impl Tickets {
 /// the UI or a log. The link maps codes at the untrusted boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum Problem {
+    /// A callback or queued request belongs to a retired admission.
+    #[error("the selected machine connection changed")]
+    TargetChanged,
     /// No live connection.
     #[error("the machine is not connected")]
     Offline,
@@ -51,7 +69,8 @@ impl Problem {
     #[must_use]
     pub const fn notice(self) -> crate::alert::Variant {
         match self {
-            Self::Offline
+            Self::TargetChanged
+            | Self::Offline
             | Self::Refused(_)
             | Self::NoRoute
             | Self::InvalidReply
@@ -142,6 +161,15 @@ impl Inviting {
     }
 }
 
+/// An immutable confirmed target. Keeping context, intent and device together
+/// prevents an old selection being reattached to a replacement admission.
+#[derive(Debug)]
+pub struct Confirmation {
+    pub(super) context: ConnectionContext,
+    pub(super) intent: RevokeIntent,
+    pub(super) device: DeviceInfo,
+}
+
 /// Revocation requires an explicit confirmation before a call is sent.
 #[derive(Debug, Default)]
 pub enum Revoking {
@@ -149,13 +177,13 @@ pub enum Revoking {
     #[default]
     Empty,
     /// The kit's confirmation is open for this device.
-    Confirm(DeviceInfo),
+    Confirm(Confirmation),
     /// Confirmed, waiting for the node.
     Sending {
         /// The request identity.
         ticket: Ticket,
         /// Keep the confirmation's public name while its button is disabled.
-        device: DeviceInfo,
+        confirmation: Confirmation,
     },
     /// The call failed, shown next to the revoke controls.
     Failed(Problem),
@@ -176,19 +204,56 @@ impl Revoking {
     #[must_use]
     pub const fn confirmation(&self) -> Option<&DeviceInfo> {
         match self {
-            Self::Confirm(device) | Self::Sending { device, .. } => Some(device),
+            Self::Confirm(confirmation) | Self::Sending { confirmation, .. } => {
+                Some(&confirmation.device)
+            }
             Self::Empty | Self::Failed(_) => None,
         }
     }
 
-    /// Confirm once; repeated presses cannot send a second request.
-    pub fn confirm(&mut self, ticket: Ticket) -> Option<DeviceId> {
-        let Self::Confirm(info) = self else {
+    /// The admission the immutable selection came from, including while sending.
+    #[must_use]
+    pub const fn context(&self) -> Option<&ConnectionContext> {
+        match self {
+            Self::Confirm(confirmation) | Self::Sending { confirmation, .. } => {
+                Some(&confirmation.context)
+            }
+            Self::Empty | Self::Failed(_) => None,
+        }
+    }
+    /// The intent cannot exist independently of its selected device/context.
+    #[must_use]
+    pub const fn intent(&self) -> Option<RevokeIntent> {
+        match self {
+            Self::Confirm(confirmation) | Self::Sending { confirmation, .. } => {
+                Some(confirmation.intent)
+            }
+            Self::Empty | Self::Failed(_) => None,
+        }
+    }
+    /// Confirm once, on the exact admission and intent the button captured.
+    pub fn confirm(
+        &mut self,
+        context: &ConnectionContext,
+        intent: RevokeIntent,
+        ticket: Ticket,
+    ) -> Option<DeviceId> {
+        let Self::Confirm(selected) = self else {
             return None;
         };
-        let device = info.clone();
-        let id = device.id;
-        *self = Self::Sending { ticket, device };
+        if selected.context != *context || selected.intent != intent {
+            return None;
+        }
+        let confirmation = Confirmation {
+            context: selected.context.clone(),
+            intent: selected.intent,
+            device: selected.device.clone(),
+        };
+        let id = confirmation.device.id;
+        *self = Self::Sending {
+            ticket,
+            confirmation,
+        };
         Some(id)
     }
 
