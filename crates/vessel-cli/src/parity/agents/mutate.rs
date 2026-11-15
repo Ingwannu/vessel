@@ -144,7 +144,11 @@ pub(super) async fn mode(
 ) -> Result<(), CliError> {
     let client = connect(target).await?.client;
     let info = id.resolve(&client).await?;
-    let options = client.session_options(info.id).await?;
+    structured(&info)?;
+    let options = match &action {
+        ModeAction::List => observe::snapshot(&client, info.id).await?.options,
+        ModeAction::Set(_) => client.session_options(info.id).await?,
+    };
     match action {
         ModeAction::List => {
             let rows = options
@@ -164,8 +168,9 @@ pub(super) async fn mode(
         }
         ModeAction::Set(mode) => {
             let choice = choice(&options, OptionCategory::Mode, &mode)?;
+            let option_id = choice.id.clone();
             let options = client.set_option(info.id, choice).await?;
-            if super::selected(&options, OptionCategory::Mode) != Some(&mode) {
+            if !options.iter().any(|option| option.id == option_id && matches!(&option.kind, OptionKind::Select { current, .. } if current == &mode)) {
                 return Err(CliError::ParityInvalidReceipt(
                     "mode acknowledgement did not report the requested selection",
                 ));
@@ -214,26 +219,27 @@ pub(super) fn choice(
     category: OptionCategory,
     value: &OptionValueId,
 ) -> Result<OptionChoice, CliError> {
-    let option = options
+    let mut matching = options
         .iter()
-        .find(|option| option.category == category)
-        .ok_or(CliError::Usage("the agent does not advertise this setting"))?;
-    match &option.kind {
-        OptionKind::Select { values, .. } if values.iter().any(|offered| &offered.id == value) => {
-            Ok(OptionChoice {
-                id: option.id.clone(),
-                value: ChoiceValue::Select {
-                    value: value.clone(),
-                },
-            })
-        }
-        OptionKind::Select { .. } => Err(CliError::Usage(
-            "the requested value is not among the agent's offered values",
-        )),
-        OptionKind::Toggle { .. } | OptionKind::Unknown => Err(CliError::Usage(
-            "the agent does not advertise a selectable setting",
-        )),
+        .filter(|option| option.category == category)
+        .filter(|option| match &option.kind {
+            OptionKind::Select { values, .. } => values.iter().any(|offered| &offered.id == value),
+            OptionKind::Toggle { .. } | OptionKind::Unknown => false,
+        });
+    let option = matching.next().ok_or(CliError::Usage(
+        "the requested value is not among the agent's selectable settings",
+    ))?;
+    if matching.next().is_some() {
+        return Err(CliError::Usage(
+            "the advertised value is ambiguous across settings; no option was changed",
+        ));
     }
+    Ok(OptionChoice {
+        id: option.id.clone(),
+        value: ChoiceValue::Select {
+            value: value.clone(),
+        },
+    })
 }
 
 #[derive(serde::Serialize)]
@@ -292,4 +298,48 @@ impl output::Row for ModeRow {
 struct ModeSet {
     agent_id: super::row::ShortId,
     mode: OptionValueId,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn offered(id: &str, value: &str) -> vessel_proto::SessionOption {
+        vessel_proto::SessionOption {
+            id: vessel_proto::OptionId::new(id),
+            name: id.to_owned(),
+            description: None,
+            category: OptionCategory::Mode,
+            kind: OptionKind::Select {
+                current: OptionValueId::new(value),
+                values: vec![vessel_proto::OptionValue {
+                    id: OptionValueId::new(value),
+                    name: value.to_owned(),
+                    description: None,
+                    group: None,
+                }],
+            },
+        }
+    }
+    #[test]
+    fn value_resolution_uses_the_actual_option_identity_and_refuses_ambiguity() {
+        let options = [offered("first", "read"), offered("second", "plan")];
+        let selected = choice(&options, OptionCategory::Mode, &OptionValueId::new("plan")).unwrap();
+        assert_eq!(selected.id, vessel_proto::OptionId::new("second"));
+        assert!(
+            choice(
+                &[offered("first", "same"), offered("second", "same")],
+                OptionCategory::Mode,
+                &OptionValueId::new("same")
+            )
+            .is_err()
+        );
+        assert!(
+            choice(
+                &options,
+                OptionCategory::Mode,
+                &OptionValueId::new("unknown")
+            )
+            .is_err()
+        );
+    }
 }

@@ -222,12 +222,27 @@ impl Inspection {
             ),
             ("ParentAgentId", "null".to_owned()),
         ];
-        fields
+        let mut rows = fields
             .into_iter()
             .map(|(key, value)| Field {
                 key,
                 value: Text(value),
             })
-            .collect()
+            .collect::<Vec<_>>();
+        if let Some(modes) = &self.available_modes
+            && !modes.is_empty()
+        {
+            rows.push(Field {
+                key: "AvailableModes",
+                value: Text(
+                    modes
+                        .iter()
+                        .map(|mode| format!("{} ({})", mode.id, mode.label))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ),
+            });
+        }
+        rows
     }
 }

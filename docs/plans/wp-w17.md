@@ -452,3 +452,9 @@ merge and compiled mixed old/new ScriptEntry APIs; current source matches base3'
 API. That attempt is invalid generation evidence, and generation is rerun on stable source.
 W22 confirmed output-schema belongs to atomic create+initial prompt/per-turn transport,
 not durable SessionSpec configuration; W17 retains CLI semantic validation/retry ownership.
+
+Mode setting resolves a value across all advertised options in its category and retains
+the selected OptionId for acknowledgement validation. A duplicated value across settings
+refuses before mutation; list uses logged options so ended sessions remain inspectable.
+The pure selection regression includes a value present only in the second option, which
+the earlier first-category lookup incorrectly refused.
