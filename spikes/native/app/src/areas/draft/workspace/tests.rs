@@ -9,7 +9,6 @@ use vessel_app_view::machine_book::Name;
 use vessel_app_view::{Machine, Reach};
 use vessel_proto::{NodeId, WorkspaceId};
 
-#[expect(clippy::unwrap_used, reason = "the fixed fixture book alias is valid")]
 fn connect(shell: &mut Shell, node: NodeId) -> DraftDestination {
     shell.fleet.machines.push(Machine {
         connection_epoch: None,
@@ -26,10 +25,6 @@ fn connect(shell: &mut Shell, node: NodeId) -> DraftDestination {
         node,
     }
 }
-#[expect(
-    clippy::unwrap_used,
-    reason = "callers supply short bounded literal fixture text"
-)]
 fn seed(destination: DraftDestination, workspace: WorkspaceId, text: &str) -> DraftSeed {
     DraftSeed {
         destination,
