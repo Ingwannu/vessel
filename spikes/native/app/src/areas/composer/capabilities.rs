@@ -16,7 +16,7 @@ use vessel_app_view::{
 };
 use vessel_proto::{NodeId, SessionId};
 #[derive(Debug, Clone)]
-enum State {
+pub(super) enum State {
     Reading(CapabilityAsk),
     Ready { ask: CapabilityAsk, target: Target },
     Failed(CapabilityAsk),

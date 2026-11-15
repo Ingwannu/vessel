@@ -24,6 +24,9 @@ mod pictures;
 mod prepared;
 mod preview;
 mod retention;
+// W12 alone promotes the sole resident bundle with the coordinated owner cutover.
+#[cfg(test)]
+pub(crate) mod resident;
 pub(crate) mod running;
 mod sent;
 mod slash;
