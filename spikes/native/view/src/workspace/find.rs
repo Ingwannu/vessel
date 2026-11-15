@@ -37,6 +37,25 @@ impl SearchKeys {
     }
 }
 
+/// Concurrent fields waiting on the shared file acquisition controller.
+pub const MAX_FILE_SEARCH_OWNERS: usize = 32;
+/// Bounded picker result count shared with the explorer UI.
+pub const FILE_SEARCH_LIMIT: u32 = 100;
+
+/// Acquisition refuses before network work when a caller exceeds its budget.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum FileSearchRefusal {
+    /// A request identity must never wrap and accept a stale response.
+    #[error("file request identities are exhausted")]
+    Exhausted(#[source] super::file_ticket::TicketsExhausted),
+    /// A closing or cleared field frees its pending registration.
+    #[error("at most {MAX_FILE_SEARCH_OWNERS} file search fields may wait at once")]
+    Capacity,
+    /// A caller requested more results than the UI can retain.
+    #[error("file search returns at most {FILE_SEARCH_LIMIT} entries")]
+    Limit,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

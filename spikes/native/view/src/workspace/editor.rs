@@ -23,6 +23,7 @@
 //! - Cost: a change on disk while nothing is saved or re-read is seen only
 //!   at the next save (Paseo sees it at once through its watch).
 
+use super::text_format::{TextFormat, normalize_lines};
 use vessel_proto::workspace::FileVersion;
 
 /// Paseo's editor statuses.
@@ -110,6 +111,7 @@ pub struct EditorModel {
     status: EditorStatus,
     content: String,
     persisted: String,
+    format: TextFormat,
     version: Option<FileVersion>,
     conflict: Option<ConflictKind>,
     error: Option<String>,
@@ -155,6 +157,7 @@ impl EditorModel {
             status: EditorStatus::Loading,
             content: String::new(),
             persisted: String::new(),
+            format: TextFormat::DEFAULT,
             version: None,
             conflict: None,
             error: None,
@@ -211,8 +214,8 @@ impl EditorModel {
         self.writing.as_ref().map(|(sequence, _)| *sequence)
     }
 
-    /// The read last asked for, by number (an answer to an older one is
-    /// taken for it: reads of one file come back in order).
+    /// The read last asked for; the caller must echo this number with
+    /// the response because concurrent reads can finish out of order.
     #[must_use]
     pub const fn reading(&self) -> u64 {
         self.read_sequence
@@ -236,10 +239,11 @@ impl EditorModel {
 
     /// The person typed: the buffer is now `content`.
     pub fn edit(&mut self, content: &str) -> Step {
+        let content = normalize_lines(content);
         if !self.loaded() || content == self.content {
             return Step::None;
         }
-        content.clone_into(&mut self.content);
+        self.content = content;
         self.error = None;
         if self.status == EditorStatus::Conflict {
             return Step::None;
@@ -255,7 +259,9 @@ impl EditorModel {
 
     /// The autosave came due, or the person saved.
     pub fn save(&mut self) -> Step {
-        if !matches!(self.status, EditorStatus::Dirty | EditorStatus::Error) {
+        if self.writing.is_some()
+            || !matches!(self.status, EditorStatus::Dirty | EditorStatus::Error)
+        {
             return Step::None;
         }
         self.write(self.version.clone())
@@ -296,7 +302,11 @@ impl EditorModel {
     /// Leaving the file: a modified buffer not in conflict is written
     /// first, guarded (Paseo's `dispose({ flush: true })`).
     pub fn flush(&mut self) -> Step {
-        if self.modified() && self.loaded() && self.status != EditorStatus::Conflict {
+        if self.writing.is_none()
+            && self.modified()
+            && self.loaded()
+            && self.status != EditorStatus::Conflict
+        {
             self.write(self.version.clone())
         } else {
             Step::None
@@ -313,7 +323,7 @@ impl EditorModel {
         self.error = None;
         Step::Write {
             sequence,
-            text: self.content.clone(),
+            text: self.format.encode(&self.content),
             base,
         }
     }
@@ -361,7 +371,7 @@ impl EditorModel {
         }
         if !self.loaded() {
             return match read {
-                Read::Text(text, version) => self.apply(text, version),
+                Read::Text(text, version) => self.apply(&text, version),
                 Read::Deleted | Read::Failed(_) => {
                     self.status = EditorStatus::Failed;
                     self.error = match read {
@@ -379,7 +389,7 @@ impl EditorModel {
         if std::mem::take(&mut self.reloading)
             && let Read::Text(text, version) = read
         {
-            return self.apply(text, version);
+            return self.apply(&text, version);
         }
         match read {
             Read::Deleted => self.enter_conflict(ConflictKind::Deleted),
@@ -387,7 +397,9 @@ impl EditorModel {
             // ignores a failed read).
             Read::Failed(_) => Step::None,
             Read::Text(text, version) => {
-                if text == self.persisted {
+                let (format, normalized) = TextFormat::decode(&text);
+                if normalized == self.persisted {
+                    self.format = format;
                     self.version = Some(version);
                     if self.status == EditorStatus::Conflict {
                         self.conflict = None;
@@ -402,7 +414,7 @@ impl EditorModel {
                     }
                     Step::None
                 } else if !self.modified() {
-                    self.apply(text, version)
+                    self.apply(&text, version)
                 } else {
                     self.enter_conflict(ConflictKind::Changed)
                 }
@@ -411,7 +423,9 @@ impl EditorModel {
     }
 
     /// The read on a reload or after a conflict: the buffer is the disk's.
-    fn apply(&mut self, text: String, version: FileVersion) -> Step {
+    fn apply(&mut self, text: &str, version: FileVersion) -> Step {
+        let (format, text) = TextFormat::decode(text);
+        self.format = format;
         self.write_sequence = self.write_sequence.saturating_add(1);
         self.writing = None;
         self.persisted.clone_from(&text);

@@ -1192,6 +1192,7 @@ prompt is sent first. The same upload, progress and retry tray is used
 for new, running and resumed conversations. System file selection and
 file-manager clipboard/drop delivery depend on the platform integration;
 virtual-display captures cannot prove a desktop portal or URI-list paste.
+
 Settings Overview keeps its page and book-edit commands in
 `app/src/areas/settings/overview.rs`; `overview/dialogs.rs` only renders
 rename/removal dialogs and delegates actions to that parent. The browser

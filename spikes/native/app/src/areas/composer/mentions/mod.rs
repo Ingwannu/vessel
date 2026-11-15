@@ -76,17 +76,19 @@ impl Shell {
                     .as_ref()
                     .filter(|open| open.session == session)?;
                 let machine = Name::parse(&open.machine).ok()?;
-                match &*self.areas.composer.mention_root.borrow() {
-                    Root::Ready(ask, Ok(Some(root)))
-                        if ask.machine == machine && ask.session == session =>
-                    {
-                        Some(ContextScope {
-                            machine,
-                            root: *root,
-                        })
-                    }
-                    Root::Missing | Root::Exhausted | Root::Reading(_) | Root::Ready(_, _) => None,
-                }
+                let root = self
+                    .code_workspace_scope(&machine, session)
+                    .or_else(|| match &*self.areas.composer.mention_root.borrow() {
+                        Root::Ready(ask, Ok(Some(root)))
+                            if ask.machine == machine && ask.session == session =>
+                        {
+                            Some(*root)
+                        }
+                        Root::Missing | Root::Exhausted | Root::Reading(_) | Root::Ready(_, _) => {
+                            None
+                        }
+                    })?;
+                Some(ContextScope { machine, root })
             }
         }
     }

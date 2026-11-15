@@ -116,3 +116,42 @@ composer-context-plugin = Plugin resource
 
 # A new or background session did not provide attachment capabilities in time.
 composer-file-capabilities-failed = The agent's attachment support couldn't be read. Click to retry.
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-paste-image = Paste image
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-clipboard-empty = There is no image on the clipboard
+
+# Native attachment menu action or clipboard acquisition failure; a complete label.
+composer-image-format-unsupported = This image format cannot be pasted yet. Choose a PNG, JPEG, GIF or WebP image.
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-busy = An attachment submission is already pending
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-scope = This attachment belongs to a different workspace
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-capacity = There are too many context attachments
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-unavailable = Context attachments are unavailable right now
+
+# Context intake rejection, shared by file/browser/review/history/plugin producers.
+composer-context-invalid = This context attachment is invalid or too large
+
+# Retained attachment delivery status; uncertainty never authorizes automatic retry.
+composer-file-submission-retained = The attachment message is retained because delivery is unconfirmed. It will not be sent again automatically.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-preparing = Preparing attachments…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-sending = Sending the retained attachment message…
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-not-sent = The message was not sent. Its prepared attachments are retained.
+
+# Attachment delivery status or explicit retry of a request never sent.
+composer-file-submission-retry = Retry this message

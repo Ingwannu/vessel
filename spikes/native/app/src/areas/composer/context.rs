@@ -31,6 +31,45 @@ impl Preview {
     }
 }
 impl Shell {
+    /// Until resident contexts land, this is the explicit route-to-draft bridge.
+    pub(crate) fn composer_destination(&self) -> Option<DraftKey> {
+        match self.route {
+            crate::routes::Route::Draft => Some(DraftKey::New),
+            crate::routes::Route::Session => self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .filter(|open| open.structured)
+                .map(|open| DraftKey::Session {
+                    session: open.session,
+                }),
+            crate::routes::Route::Board
+            | crate::routes::Route::Archive
+            | crate::routes::Route::Settings
+            | crate::routes::Route::Pair => None,
+        }
+    }
+    /// Producers use one localized presentation for a rejected context intake.
+    pub(crate) fn composer_context_refused(
+        &mut self,
+        problem: ContextProblem,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let words = self.words.composer();
+        let message = match problem {
+            ContextProblem::Busy => words.context_busy(),
+            ContextProblem::Scope => words.context_scope(),
+            ContextProblem::Capacity => words.context_capacity(),
+            ContextProblem::Exhausted => words.context_unavailable(),
+            ContextProblem::Identity
+            | ContextProblem::Title
+            | ContextProblem::Text
+            | ContextProblem::Url
+            | ContextProblem::Lines => words.context_invalid(),
+        };
+        self.toast(message, vessel_app_view::toasts::ToastTone::Error, cx);
+    }
     /// File/browser/review/forge/plugin owners adapt their canonical values
     /// here. A producer cannot redirect context into another workspace.
     pub(crate) fn composer_attach_context(
@@ -41,7 +80,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> Result<(), ContextProblem> {
-        if self.composer_context_scope(target).as_ref() != Some(scope) {
+        if self.composer_destination() != Some(target)
+            || self.composer_context_scope(target).as_ref() != Some(scope)
+        {
             return Err(ContextProblem::Scope);
         }
         if let ContextAttachment::WorkspaceFile(file) = &item {
@@ -58,6 +99,13 @@ impl Shell {
     }
     /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "fully implemented seed intake is staged until the creation/history producer integrates"
+        )
+    )]
     pub(crate) fn composer_seed_history(
         &mut self,
         target: DraftKey,
@@ -67,6 +115,9 @@ impl Shell {
     ) -> Result<(), ContextProblem> {
         if target != DraftKey::New {
             return Err(ContextProblem::Scope);
+        }
+        if self.draft_has_payload(cx) {
+            return Err(ContextProblem::Busy);
         }
         self.areas
             .composer
@@ -79,7 +130,41 @@ impl Shell {
         cx.notify();
         Ok(())
     }
-    pub(super) fn composer_has_context(&self, target: DraftKey) -> bool {
+    /// Seeding must not overwrite whitespace, suppressed context, or pending work.
+    pub(crate) fn draft_has_payload(&self, cx: &vessel_app_kit::ui::App) -> bool {
+        !self.areas.draft.composer.text(cx).is_empty()
+            || !self.areas.composer.drafts.text(DraftKey::New).is_empty()
+            || self.composer_has_files(DraftKey::New)
+            || self
+                .areas
+                .composer
+                .contexts
+                .get(DraftKey::New)
+                .is_some_and(vessel_app_view::composer::context::ContextTray::has_retained)
+            || self.areas.composer.starting.borrow().is_some()
+            || !self.areas.draft.creation.flow.may_submit()
+    }
+
+    pub(super) fn prepare_session_context(
+        &mut self,
+        session: vessel_proto::SessionId,
+        cx: &mut Context<'_, Self>,
+    ) -> Result<Option<vessel_app_view::composer::context::Submission>, ContextProblem> {
+        let result = self
+            .areas
+            .composer
+            .contexts
+            .get_mut(DraftKey::Session { session })
+            .map(vessel_app_view::composer::context::ContextTray::prepare)
+            .transpose()
+            .map(Option::flatten);
+        if let Err(problem) = result {
+            self.composer_context_refused(problem, cx);
+        }
+        result
+    }
+
+    pub(crate) fn composer_has_context(&self, target: DraftKey) -> bool {
         self.areas
             .composer
             .contexts
@@ -187,10 +272,10 @@ pub(super) fn tray(
     touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let tray = shell.areas.composer.contexts.get(target)?;
-    if tray.is_empty() {
+    if !shell.composer_has_context(target) {
         return None;
     }
+    let tray = shell.areas.composer.contexts.get(target)?;
     let (id, open, remove): (
         &str,
         vessel_app_kit::attachment::PillClick<Shell>,

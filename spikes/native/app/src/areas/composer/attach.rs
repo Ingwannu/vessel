@@ -14,10 +14,10 @@ use std::sync::Arc;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
-use vessel_app_link::attachments::{Attach, Files, Step, WithFiles};
+use vessel_app_link::attachments::{Files, Step};
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
-use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Readiness, Target};
+use vessel_app_view::composer::tray::{ItemKey, ItemState, Origin, Target};
 use vessel_proto::{AttachmentLimits, Delivery, SessionId};
 
 use crate::shell::Shell;
@@ -82,8 +82,10 @@ pub(super) enum LocalFileProblem {
 pub(crate) struct Waiting {
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
-    text: String,
-    delivery: Delivery,
+    pub(super) text: String,
+    pub(super) context: Option<vessel_app_view::composer::context::Submission>,
+    pub(super) phase: super::transmission::Phase,
+    pub(super) delivery: Delivery,
     pub(super) creation: Option<vessel_app_view::creation::Ticket>,
 }
 
@@ -95,6 +97,7 @@ pub(crate) struct Starting {
     pub(super) text: String,
     pub(super) ticket: Option<vessel_app_view::creation::Ticket>,
     pub(super) files: vessel_app_view::composer::tray::Tray,
+    pub(super) context: Option<vessel_app_view::composer::context::Submission>,
 }
 
 impl Shell {
@@ -106,6 +109,15 @@ impl Shell {
         files: Vec<Incoming>,
         cx: &mut Context<'_, Self>,
     ) {
+        if let DraftKey::Session { session } = key
+            && self.areas.composer.sends.contains_key(&session)
+        {
+            self.composer_context_refused(
+                vessel_app_view::composer::context::ContextProblem::Busy,
+                cx,
+            );
+            return;
+        }
         let target = self.composer_target(key);
         let tray = self.areas.composer.trays.tray(key);
         tray.target(target);
@@ -127,12 +139,12 @@ impl Shell {
     /// Whether the open session's composer holds files.
     pub(crate) fn session_has_files(&self) -> bool {
         self.session_tray_key()
-            .is_some_and(|key| self.composer_has_files(key))
+            .is_some_and(|key| self.composer_has_files(key) || self.composer_has_context(key))
     }
 
     /// Whether the new chat's composer holds files.
     pub(crate) fn draft_has_files(&self) -> bool {
-        self.composer_has_files(DraftKey::New)
+        self.composer_has_files(DraftKey::New) || self.composer_has_context(DraftKey::New)
     }
 
     /// Whether Send goes in the open session's composer with `text`: there
@@ -154,13 +166,17 @@ impl Shell {
                 .any(|item| matches!(item.state, ItemState::Refused(_)))
         });
         let waiting = composer.sends.contains_key(&session)
-            || files
+            || (files || self.composer_has_context(DraftKey::Session { session }))
                 && composer
                     .sends
                     .len()
                     .saturating_add(usize::from(composer.starting.borrow().is_some()))
                     >= vessel_app_view::composer::trays::Trays::MAX;
-        (files || !text.trim().is_empty()) && !refused && !waiting
+        (files
+            || self.composer_has_context(DraftKey::Session { session })
+            || !text.trim().is_empty())
+            && !refused
+            && !waiting
     }
 
     /// The session composer's tray key, when a session is open.
@@ -222,7 +238,7 @@ impl Shell {
         let Some(open) = self.areas.session.open.as_ref() else {
             return false;
         };
-        if !self.composer_has_files(DraftKey::Session { session }) {
+        if !self.session_has_files() {
             return false;
         }
         let Ok(machine) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
@@ -237,7 +253,12 @@ impl Shell {
             );
             return true;
         };
+        let Ok(context) = self.prepare_session_context(session, cx) else {
+            return true;
+        };
         let waiting = Waiting {
+            phase: super::transmission::Phase::Preparing,
+            context,
             machine,
             expected_node,
             text: text.to_owned(),
@@ -280,9 +301,14 @@ impl Shell {
             );
             return;
         };
+        let Ok(context) = self.prepare_session_context(session, cx) else {
+            return;
+        };
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
+                phase: super::transmission::Phase::Preparing,
+                context,
                 machine: key.clone(),
                 expected_node,
                 text: text.to_owned(),
@@ -344,7 +370,19 @@ impl Shell {
             }
         }
         *composer.trays.tray(DraftKey::Session { session }) = starting.files;
+        if let Some(context) = &starting.context {
+            if let Some(draft) = composer.contexts.get_mut(DraftKey::New) {
+                let _settled = draft.settle(
+                    context,
+                    vessel_app_view::composer::context::SubmissionOutcome::Sent,
+                );
+            }
+            *composer.contexts.tray(DraftKey::Session { session }) =
+                vessel_app_view::composer::context::ContextTray::captured(context);
+        }
         let waiting = Waiting {
+            phase: super::transmission::Phase::Preparing,
+            context: starting.context,
             machine: starting.machine,
             expected_node: starting.expected_node,
             text: starting.text,
@@ -384,58 +422,5 @@ impl Shell {
             }
         }
         self.composer_pump(session, cx);
-    }
-
-    /// Move `session`'s waiting prompt on: its files wait for Send, start
-    /// two at a time, and once all are in the prompt goes with them.
-    pub(crate) fn composer_pump(&mut self, session: SessionId, cx: &mut Context<'_, Self>) {
-        let composer = &mut self.areas.composer;
-        if composer.capabilities.blocked(session) {
-            cx.notify();
-            return;
-        }
-        let Some(waiting) = composer.sends.get(&session).cloned() else {
-            cx.notify();
-            return;
-        };
-        let Some(tray) = composer.trays.get_mut(DraftKey::Session { session }) else {
-            drop(composer.sends.remove(&session));
-            return;
-        };
-        tray.send();
-        let mut commands: Vec<Command> = tray
-            .starts()
-            .into_iter()
-            .map(|(item, resume)| {
-                Command::Files(Files::Send(Attach {
-                    machine: waiting.machine.clone(),
-                    expected_node: waiting.expected_node,
-                    session,
-                    key: item.key,
-                    name: item.name,
-                    mime: item.mime,
-                    size: item.size,
-                    origin: item.origin,
-                    resume,
-                }))
-            })
-            .collect();
-        if let Readiness::Ready(attachments) = tray.readiness() {
-            super::sent::seed(&composer.sent, waiting.machine.as_str(), session, tray);
-            tray.clear();
-            drop(composer.sends.remove(&session));
-            commands.push(Command::Files(Files::Prompt(WithFiles {
-                machine: waiting.machine,
-                expected_node: waiting.expected_node,
-                session,
-                text: waiting.text,
-                attachments,
-                delivery: waiting.delivery,
-            })));
-        }
-        for command in commands {
-            self.command(command);
-        }
-        cx.notify();
     }
 }

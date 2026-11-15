@@ -128,26 +128,42 @@ async fn git_ask(client: &NodeClient, ask: GitAsk) -> Answer {
 
 async fn file(client: &NodeClient, ask: FileAsk) -> Answer {
     match ask {
+        FileAsk::Intelligence(ask) => Answer::Intelligence {
+            result: super::intelligence::run(client, &ask).await,
+            ask,
+        },
         FileAsk::List(ask) => Answer::Listed {
             result: call(client, ask.clone()).await,
             ask,
         },
-        FileAsk::Read(ask) => Answer::Read {
+        FileAsk::Read { ask, ticket } => Answer::Read {
             result: call(client, ask.clone()).await,
             ask,
+            ticket,
+        },
+        FileAsk::EditorRead { ask, ticket } => Answer::EditorRead {
+            result: call(client, ask.clone()).await,
+            ask,
+            ticket,
         },
         FileAsk::Save(save) => saved(client, save).await,
         FileAsk::Find(ask) => Answer::Found {
             result: call(client, ask.clone()).await,
             ask,
         },
+        FileAsk::TrackedFind { ask, ticket } => Answer::TrackedFound {
+            result: call(client, ask.clone()).await,
+            ask,
+            ticket,
+        },
         FileAsk::Grep(ask) => Answer::Grepped {
             result: call(client, ask.clone()).await,
             ask,
         },
-        FileAsk::Path(change) => Answer::PathChanged {
+        FileAsk::Path { change, ticket } => Answer::PathChanged {
             result: path_change(client, change.clone()).await,
             change,
+            ticket,
         },
     }
 }
@@ -182,6 +198,7 @@ async fn saved(client: &NodeClient, save: Save) -> Answer {
     )
     .await;
     Answer::Saved {
+        ticket: save.ticket,
         root: save.root,
         path: save.path,
         saved,

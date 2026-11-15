@@ -170,19 +170,6 @@ impl State {
             .await;
     }
 
-    /// A prompt with its files (track P's row c).
-    async fn prompt_files(&self, prompt: attachments::WithFiles) {
-        let content = attachments::content(prompt.text, prompt.attachments);
-        self.deliver(
-            prompt.machine.as_str(),
-            prompt.session,
-            content,
-            prompt.delivery,
-            Some(prompt.expected_node),
-        )
-        .await;
-    }
-
     async fn deliver(
         &self,
         machine: &str,
