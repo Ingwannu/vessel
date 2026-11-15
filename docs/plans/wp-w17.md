@@ -1722,3 +1722,30 @@ at30–37 and repeatable --label at79–82; native --listing stays a declared ad
 The workspace.list method is assigned25; its remaining CLI blocker is the
 canonical display projection, not method assignment. No new RPC or code is added
 by these status corrections.
+
+### Host acknowledgement and observation are separate cuts
+
+[Decision Log]
+- Purpose: a successful metadata write must not print another writer's later edit,
+  and one route authority must not certify a different route kind.
+- Existing assets: HostRegistration equality includes identity/source/revision and
+  all public metadata; HostDestination already carries Fleet versus Paired. The
+  normal CLI follows a mutation ack with a directory read to obtain connectivity.
+- Alternatives: inventing connectivity from the ack is false; silently substituting
+  the later registration loses which mutation was acknowledged. Joining only NodeId
+  can mark an unresolved paired route online using a fleet observation.
+- Choice: require the observed record to equal the acknowledged one before rendering.
+  A later changed record is a typed Conflict explicitly saying the write was already
+  acknowledged and is not retried; a target/source mismatch is an invalid receipt.
+  Fleet observations match only Fleet destinations, and the public name-enrichment
+  callback receives the typed destination rather than discarding its authority kind.
+- Impact: metadata edits may succeed while their later observation conflicts; the CLI
+  emits no misleading success row and makes no retry/rollback claim. Disabled rows
+  remain inventory. Paired trust resolution stays unavailable on this head. No wire
+  field, authority scope, method row, credential store or book route is added.
+
+New regressions stage changed-revision/label, destination rebinding and wrong-id
+observations; same-node Fleet/Paired names and connectivity; and the explicit CLI
+Conflict code. They have not executed. The already queued strict8a92 remains
+unchanged and cannot validate these subsequent host edits; changed-source lint and
+actual tests are owed before package handoff.

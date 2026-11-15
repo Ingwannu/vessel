@@ -90,3 +90,26 @@ fn public_inventory_is_read_only_pending_and_nonforwardable() {
     assert_eq!(call.method().scope(), Some(crate::Scope::Read));
     assert!(!call.method().forwardable());
 }
+
+#[test]
+fn observed_names_preserve_destination_authority_kind_instead_of_only_node_identity() {
+    let fleet = row();
+    let mut paired = fleet.clone();
+    paired.registration_id = HostRegistrationId::random();
+    paired.destination = HostDestination::Paired {
+        node: fleet.destination.node(),
+    };
+    let mut hosts: SharedHostRegistrations = vec![fleet.clone(), paired].try_into().unwrap();
+    hosts.observe_names(|destination| {
+        (destination == fleet.destination).then(|| "fleet name".parse().unwrap())
+    });
+    assert_eq!(
+        hosts.entries()[0]
+            .destination_name
+            .as_ref()
+            .unwrap()
+            .as_str(),
+        "fleet name"
+    );
+    assert!(hosts.entries()[1].destination_name.is_none());
+}

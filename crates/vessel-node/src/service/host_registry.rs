@@ -119,7 +119,9 @@ fn summary(
     let known = nodes.as_ref().ok().and_then(|nodes| {
         nodes
             .iter()
-            .find(|node| node.node == registration.destination.node())
+            // A fleet observation cannot certify a paired route, even when
+            // both references name the same authenticated node identity.
+            .find(|node| registration.destination == HostDestination::Fleet { node: node.node })
     });
     let (mut status, mut error) = if registration.enabled == HostEnabled::Disabled {
         (HostStatus::Disabled, None)
@@ -183,3 +185,6 @@ fn wire(error: &RegistryError) -> WireError {
     };
     WireError::new(code, error.to_string())
 }
+
+#[cfg(test)]
+mod tests;

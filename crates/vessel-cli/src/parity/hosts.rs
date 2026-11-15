@@ -158,8 +158,28 @@ async fn show_record(
     presentation: Presentation,
     record: HostRegistration,
 ) -> Result<(), CliError> {
-    // Do not fabricate connection status after a metadata-only ack.
-    show(presentation, find(client, record.registration_id).await?).await
+    // Connectivity is a later observation. A concurrent edit must not replace
+    // the acknowledged mutation's metadata in the success receipt.
+    let observed = find(client, record.registration_id).await?;
+    show(presentation, checked_summary(&record, observed)?).await
+}
+fn checked_summary(
+    acknowledged: &HostRegistration,
+    observed: HostSummary,
+) -> Result<HostSummary, CliError> {
+    if observed.registration.registration_id != acknowledged.registration_id
+        || observed.registration.source != acknowledged.source
+    {
+        return Err(CliError::ParityInvalidReceipt(
+            "host observation target/source differ from mutation acknowledgement",
+        ));
+    }
+    if observed.registration != *acknowledged {
+        return Err(CliError::ParityHostObservationChanged(
+            acknowledged.registration_id,
+        ));
+    }
+    Ok(observed)
 }
 async fn show(presentation: Presentation, host: HostSummary) -> Result<(), CliError> {
     let row = HostRow::from(host);
@@ -229,3 +249,6 @@ impl Row for HostRow {
         ]
     }
 }
+
+#[cfg(test)]
+mod tests;

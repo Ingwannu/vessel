@@ -24,7 +24,9 @@ runtime proof. Those source defects are corrected without exposing private field
 changed-source strict and actual execution remain owed. The latest strict target
 is8a92af01, run wp-cli-narrow-20261115T184714Z-8a92af01, queued once in the short
 lane; it also compiles the PTY/testkit fixtures. No newer Rust source is introduced
-by this invocation-map documentation correction.
+by that invocation-map documentation correction. A subsequent host observation
+fix now stages exact-ack equality and kind-aware connectivity/name matching; it
+is outside8a92 and needs its own changed-source lint and actual tests.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an

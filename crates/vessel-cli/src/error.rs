@@ -27,6 +27,10 @@ pub(crate) enum CliError {
     },
     #[error("node acknowledgement violated the command contract: {0}")]
     ParityInvalidReceipt(&'static str),
+    #[error(
+        "host {0} was changed after the mutation was acknowledged; no mutation is retried, inspect before retrying"
+    )]
+    ParityHostObservationChanged(vessel_proto::host_registry::HostRegistrationId),
     #[error(transparent)]
     ParityCron(#[from] vessel_proto::automation::InvalidCron),
     #[error(transparent)]

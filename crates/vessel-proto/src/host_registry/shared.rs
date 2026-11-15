@@ -54,9 +54,9 @@ impl SharedHostRegistrations {
         &self.0
     }
     /// Enrich public names using existing observations, without adding connectivity claims.
-    pub fn observe_names(&mut self, mut name: impl FnMut(NodeId) -> Option<HostLabel>) {
+    pub fn observe_names(&mut self, mut name: impl FnMut(HostDestination) -> Option<HostLabel>) {
         for row in &mut self.0 {
-            row.destination_name = name(row.destination.node());
+            row.destination_name = name(row.destination);
         }
     }
 }

@@ -1,6 +1,8 @@
 //! Direct local Read authority exposes only the actor's public inventory projection.
 use super::{Connection, NodeService, Principal, wire};
-use vessel_proto::host_registry::{ListSharedHostRegistrations, SharedHostDirectory};
+use vessel_proto::host_registry::{
+    HostDestination, ListSharedHostRegistrations, SharedHostDirectory,
+};
 use vessel_proto::{ErrorCode, ListNodes, Method, NodeId, WireError};
 
 impl NodeService {
@@ -16,7 +18,10 @@ impl NodeService {
             .await
             .map_err(|error| wire(&error))?;
         let nodes = self.list_nodes(connection, ListNodes).await;
-        hosts.observe_names(|id| {
+        hosts.observe_names(|destination| {
+            let HostDestination::Fleet { node: id } = destination else {
+                return None;
+            };
             nodes.as_ref().ok().and_then(|nodes| {
                 nodes
                     .iter()

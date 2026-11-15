@@ -63,6 +63,8 @@ fn code(error: &CliError) -> vessel_proto::ErrorCode {
             | CliError::ParityImageTimeout { .. }
     ) {
         vessel_proto::ErrorCode::Unavailable
+    } else if matches!(error, CliError::ParityHostObservationChanged(_)) {
+        vessel_proto::ErrorCode::Conflict
     } else if matches!(error, CliError::NoSuchSession(_)) {
         vessel_proto::ErrorCode::NotFound
     } else if let CliError::Call(failure)
@@ -77,6 +79,14 @@ fn code(error: &CliError) -> vessel_proto::ErrorCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn acknowledged_mutation_with_a_later_observation_conflict_has_an_explicit_code() {
+        let id = vessel_proto::host_registry::HostRegistrationId::random();
+        assert_eq!(
+            code(&CliError::ParityHostObservationChanged(id)),
+            vessel_proto::ErrorCode::Conflict
+        );
+    }
     #[test]
     fn pending_and_older_sdk_preflight_keep_unsupported_in_cli_errors() {
         use vessel_client::CallError;
