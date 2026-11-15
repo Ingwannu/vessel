@@ -30,6 +30,8 @@ tracing.workspace = true
 # rustls, files on disk), none of which a browser has.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 vessel-client.workspace = true
+# Preserve the typed cause of an attachment RPC read.
+vessel-rpc.workspace = true
 dirs.workspace = true
 hostname.workspace = true
 tokio.workspace = true

@@ -60,6 +60,7 @@ pub mod creation;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
 pub mod devices;
+pub mod mentions;
 pub mod node_settings;
 pub mod search;
 pub mod sync;
@@ -189,6 +190,7 @@ impl Link {
             book_path: machines::BookPath::discover(),
             workspace: workspace::Hub::default(),
             agents: agents::Hub::default(),
+            mentions: mentions::Hub::default(),
 
             device_calls: devices::Hub::default(),
             sync_calls: sync::Hub::default(),
@@ -253,6 +255,7 @@ struct State {
     book_path: machines::BookPath,
     workspace: workspace::Hub,
     agents: agents::Hub,
+    mentions: mentions::Hub,
 
     device_calls: devices::Hub,
     sync_calls: sync::Hub,

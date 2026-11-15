@@ -1,0 +1,339 @@
+//! File suggestions share the kit list and keep the text field's focus.
+//! Captured draft/node/root/token identities guard debounce and late replies.
+mod draw;
+use crate::shell::Shell;
+pub(super) use draw::menu;
+use std::{cell::RefCell, time::Duration};
+use vessel_app_kit::field::composer_hooks::{ComposerKey, KeyAnswer};
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::{TextField, autocomplete::AutocompleteState};
+use vessel_app_link::{
+    Command,
+    mentions::{Answer, RootAnswer, RootAsk},
+};
+use vessel_app_view::composer::{
+    context::ContextScope,
+    drafts::DraftKey,
+    mentions::{self, Menu, Scope},
+    slash::Step,
+};
+use vessel_app_view::machine_book::Name;
+use vessel_proto::workspace::WorkspaceRoot;
+
+#[derive(Debug, Default)]
+pub(super) struct FileMenu {
+    model: Menu,
+    list: AutocompleteState,
+    drawn: std::rc::Rc<
+        std::cell::Cell<Option<vessel_app_kit::ui::Bounds<vessel_app_kit::ui::Pixels>>>,
+    >,
+    reveal: RefCell<vessel_app_view::composer::reveal::Reveal>,
+    last: RefCell<Option<(vessel_app_kit::autocomplete::Listing, Option<usize>)>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(super) enum Root {
+    #[default]
+    Missing,
+    Reading(RootAsk),
+    Exhausted,
+    Ready(RootAsk, Result<Option<WorkspaceRoot>, mentions::Failure>),
+}
+impl Shell {
+    pub(super) fn composer_field(&self, target: DraftKey) -> Option<&TextField> {
+        match target {
+            DraftKey::New => Some(&self.areas.draft.composer),
+            DraftKey::Session { session } => self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .filter(|open| open.session == session)
+                .map(|_| &self.areas.session.composer),
+        }
+    }
+    pub(super) fn file_menu(&self, target: DraftKey) -> &RefCell<FileMenu> {
+        match target {
+            DraftKey::New => &self.areas.composer.draft_files,
+            DraftKey::Session { .. } => &self.areas.composer.session_files,
+        }
+    }
+    pub(super) fn composer_context_scope(&self, target: DraftKey) -> Option<ContextScope> {
+        match target {
+            DraftKey::New => {
+                let machine = Name::parse(self.areas.draft.machine.as_deref()?).ok()?;
+                let project = self.chosen_place()?.project;
+                Some(ContextScope {
+                    machine,
+                    root: WorkspaceRoot::Project { project },
+                })
+            }
+            DraftKey::Session { session } => {
+                let open = self
+                    .areas
+                    .session
+                    .open
+                    .as_ref()
+                    .filter(|open| open.session == session)?;
+                let machine = Name::parse(&open.machine).ok()?;
+                match &*self.areas.composer.mention_root.borrow() {
+                    Root::Ready(ask, Ok(Some(root)))
+                        if ask.machine == machine && ask.session == session =>
+                    {
+                        Some(ContextScope {
+                            machine,
+                            root: *root,
+                        })
+                    }
+                    Root::Missing | Root::Exhausted | Root::Reading(_) | Root::Ready(_, _) => None,
+                }
+            }
+        }
+    }
+    fn resolve_mention_root(&self, target: DraftKey, token: &mentions::Mention) {
+        let DraftKey::Session { session } = target else {
+            return;
+        };
+        let Some(open) = self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .filter(|open| open.session == session)
+        else {
+            return;
+        };
+        let Ok(machine) = Name::parse(&open.machine) else {
+            return;
+        };
+        let mut state = self.areas.composer.mention_root.borrow_mut();
+        let unchanged = match &*state {
+            Root::Reading(old) => old.machine == machine && old.session == session,
+            Root::Ready(old, result) => {
+                old.machine == machine
+                    && old.session == session
+                    && (result.is_ok()
+                        || self.areas.composer.mention_root_token.borrow().as_ref() == Some(token))
+            }
+            Root::Missing => false,
+            Root::Exhausted => return,
+        };
+        if unchanged {
+            return;
+        }
+        let Some(ticket) = self.areas.composer.mention_root_clock.get().checked_next() else {
+            *state = Root::Exhausted;
+            return;
+        };
+        self.areas.composer.mention_root_clock.set(ticket);
+        let ask = RootAsk {
+            machine,
+            session,
+            ticket,
+        };
+        *self.areas.composer.mention_root_token.borrow_mut() = Some(token.clone());
+        *state = Root::Reading(ask.clone());
+        drop(state);
+        self.command(Command::MentionRoot(ask));
+    }
+    pub(super) fn active_file_token(
+        &self,
+        target: DraftKey,
+        cx: &vessel_app_kit::ui::App,
+    ) -> Option<mentions::Mention> {
+        let field = self.composer_field(target)?;
+        let token = mentions::active(&field.text(cx), field.caret(cx))
+            .ok()
+            .flatten()?;
+        if self.areas.composer.mention_dismissed.borrow().as_ref() == Some(&(target, token.clone()))
+        {
+            None
+        } else {
+            Some(token)
+        }
+    }
+    /// Rendering observes both edits and caret-only movement without polling.
+    pub(super) fn observe_file_menu(&self, target: DraftKey, cx: &mut Context<'_, Self>) {
+        let Some(field) = self.composer_field(target) else {
+            return;
+        };
+        let text = field.text(cx);
+        let caret = field.caret(cx);
+        let token = mentions::active(&text, caret).ok().flatten();
+        {
+            let mut dismissed = self.areas.composer.mention_dismissed.borrow_mut();
+            if dismissed.as_ref().is_some_and(|(draft, previous)| {
+                *draft == target && token.as_ref() != Some(previous)
+            }) {
+                *dismissed = None;
+            }
+        }
+        if self.active_file_token(target, cx).is_none() && token.is_some() {
+            let _observed = self.file_menu(target).borrow_mut().model.observe(
+                None,
+                &text,
+                caret,
+                Duration::from_secs_f32(self.areas.composer.now()),
+            );
+            return;
+        }
+        if let Some(token) = token {
+            self.resolve_mention_root(target, &token);
+        }
+        let scope = self.composer_context_scope(target).map(|scope| Scope {
+            draft: target,
+            machine: scope.machine,
+            root: scope.root,
+        });
+        let now = Duration::from_secs_f32(self.areas.composer.now());
+        let request = self
+            .file_menu(target)
+            .borrow_mut()
+            .model
+            .observe(scope, &text, caret, now);
+        let Ok(Some(request)) = request else {
+            return;
+        };
+        cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(mentions::DEBOUNCE).await;
+            let _closed = this.update(cx, |shell, cx| {
+                // Re-observe before dispatch: the caret may have moved without
+                // an edit while the timer was waiting.
+                shell.observe_file_menu(target, cx);
+                let ready = shell
+                    .file_menu(target)
+                    .borrow_mut()
+                    .model
+                    .begin(request.ticket);
+                if let Some(ready) = ready {
+                    shell.command(Command::Mentions(ready));
+                    cx.notify();
+                }
+            });
+        })
+        .detach();
+    }
+    pub(crate) fn composer_mention_root(&mut self, answer: RootAnswer, cx: &mut Context<'_, Self>) {
+        let matches = matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if ask == &answer.ask);
+        if matches {
+            *self.areas.composer.mention_root.borrow_mut() = Root::Ready(answer.ask, answer.result);
+            cx.notify();
+        }
+    }
+    pub(crate) fn composer_mention_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        let now = Duration::from_secs_f32(self.areas.composer.now());
+        let changed = self
+            .file_menu(answer.request.scope.draft)
+            .borrow_mut()
+            .model
+            .arrived(answer.request.ticket, answer.result, now);
+        if changed {
+            cx.notify();
+        }
+    }
+    /// W12b delegates before slash handling so an active @ token wins.
+    pub(crate) fn composer_file_key(
+        &mut self,
+        target: DraftKey,
+        key: ComposerKey,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> KeyAnswer {
+        self.observe_file_menu(target, cx);
+        let visible = !matches!(
+            self.file_menu(target).borrow().model.phase(),
+            mentions::Phase::Hidden
+        ) || (self.active_file_token(target, cx).is_some()
+            && matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session)));
+        if !visible {
+            return KeyAnswer::Pass;
+        }
+        if key == ComposerKey::Escape {
+            *self.areas.composer.mention_dismissed.borrow_mut() = self
+                .active_file_token(target, cx)
+                .map(|token| (target, token));
+            self.file_menu(target).borrow_mut().model.dismiss();
+            cx.notify();
+            return KeyAnswer::Taken;
+        }
+        if self.file_menu(target).borrow().model.rows().is_empty() {
+            return KeyAnswer::Pass;
+        }
+        match key {
+            ComposerKey::Up => {
+                let _chosen = self.file_menu(target).borrow_mut().model.step(Step::Up);
+            }
+            ComposerKey::Down => {
+                let _chosen = self.file_menu(target).borrow_mut().model.step(Step::Down);
+            }
+            ComposerKey::Enter | ComposerKey::Tab => {
+                let selected = self.file_menu(target).borrow().model.selected();
+                if let Some(index) = selected {
+                    self.choose_mention(target, index, window, cx);
+                }
+            }
+            ComposerKey::Escape => {}
+        }
+        cx.notify();
+        KeyAnswer::Taken
+    }
+    fn choose_mention(
+        &mut self,
+        target: DraftKey,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let choice = {
+            let state = self.file_menu(target).borrow();
+            state
+                .model
+                .request()
+                .zip(state.model.row(index))
+                .map(|(request, row)| (request.clone(), row.path.clone()))
+        };
+        let Some((request, path)) = choice else {
+            return;
+        };
+        let Some(field) = self.composer_field(target) else {
+            return;
+        };
+        // The exact token still has to be under the caret at commit time.
+        let text = field.text(cx);
+        if mentions::active(&text, field.caret(cx))
+            .ok()
+            .flatten()
+            .as_ref()
+            != Some(&request.mention)
+        {
+            return;
+        }
+        field.replace_range(
+            request.mention.range(),
+            &mentions::quoted(&path),
+            window,
+            cx,
+        );
+        field.focus(window, cx);
+        self.file_menu(target).borrow_mut().model.dismiss();
+        cx.notify();
+    }
+    fn draft_mention_clicked(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.choose_mention(DraftKey::New, index, window, cx);
+    }
+    fn session_mention_clicked(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(target) = self.session_tray_key() {
+            self.choose_mention(target, index, window, cx);
+        }
+    }
+}

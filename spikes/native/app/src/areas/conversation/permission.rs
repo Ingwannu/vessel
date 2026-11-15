@@ -347,6 +347,7 @@ fn body(
         forks: None,
         fork_headers: &shell.areas.conversation.forking.headers,
         above: super::origin::Above::Nothing,
+        files: crate::areas::composer::SentFiles::new(shell, None),
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

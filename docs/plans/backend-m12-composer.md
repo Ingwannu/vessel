@@ -395,6 +395,22 @@ On screen (`app/src/areas/composer/{attach,files}.rs`, the kit's
   session without its prompt; once the session exists its tray is the
   session's, once its agent has said what it takes (its first records)
   the files go, and the prompt follows.
+- A sent message shows its files as Paseo's user message does
+  (`components/message.tsx`: `UserMessageImagePill` in a row, then the
+  other files' `AttachmentLabel` in a row, each row 8 apart that wraps,
+  8 above the text), in the kit's `attachment_frame`
+  (`app/src/areas/composer/sent.rs`, through the rows' `Paint`). An image
+  is its picture once its bytes are in, an empty frame until then (Paseo's
+  placeholder), and its name over its kind when it could not be read.
+- An image's bytes are read back from its node (`attachment.read`, a
+  mebibyte at a time, `link/src/attachments/read.rs`) when its message is
+  drawn, by the page's rules (`web/src/data/images.ts`, kept in
+  `view::composer::sent`): two reads at a time, the most recently drawn
+  first; one read per image however often it is drawn; at most 48 pictures
+  or 64 MiB kept, the least recently drawn dropped; a failed read not
+  tried again while kept. An image pasted here is kept from the bytes the
+  composer held when its prompt went, never read back; a file picked on
+  this device is read back (it may have changed since).
 
 Deliberate differences:
 
@@ -408,17 +424,21 @@ Deliberate differences:
   Files added in that time go with the waiting prompt.
 - **Removing a file looks at the refused ones again** (the page keeps them
   refused until its session changes).
-- **No image viewer yet.** A click on Paseo's image pill opens the image;
-  here a click does nothing but retry a failed file.
+- **Sent images read when drawn.** Paseo's message carries its images'
+  data with it; Vessel's record names the attachment, so the app reads it
+  back, and only for messages on screen.
+- Image viewing is completed by the attachment parity extension
+  (`wp-a8.md`): both tray and sent-image frames open the same zoomable
+  overlay. Failed upload pills keep their retry action.
 - **The menu's rows have no icons** (the kit's menu has none), and both
   rows open the same dialog: GPUI's file dialog takes no type filter.
   Paseo's issue, pull request and plugin rows are not Vessel's yet.
 - **The node's limits are this build's.** The app does not read a
   conversation's own limits; the node checks again at `attachment.begin`
   and its refusal shows on the pill.
-- **An ended session's files wait.** Send in a session that is not running
-  starts it again with the text (as before); its files go with the next
-  send once it runs.
+- An ended session is resumed without a prompt before its attachments
+  upload; the pending text follows the files. Resume failure keeps the
+  tray and restores the text (`wp-a8.md`).
 
 
 Not seen on screen: the three ways a file reaches the composer besides an

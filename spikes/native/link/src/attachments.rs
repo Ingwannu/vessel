@@ -1,7 +1,8 @@
 //! A composer's file sent to its session (track P's row c): begun, written
 //! a piece at a time from what the node says it has, finished, and each
-//! step told to the app (`Event::Upload`). Runs beside the link's other
-//! commands, as a 50 MiB file takes a while.
+//! step told to the app (`Event::Files`, `Answer::Upload`). Runs beside the
+//! link's other commands, as a 50 MiB file takes a while. A sent image is
+//! read back the same way, a piece at a time (`read`, `Answer::Read`).
 //!
 //! [Decision Log]
 //! - Purpose: the composer's attached files reach the node before the
@@ -20,14 +21,25 @@
 //!   be tried again (`Again`).
 //! - Cost: one round trip a piece.
 
+use std::sync::Arc;
+
+use vessel_app_view::composer::sent::Sent;
 use vessel_app_view::composer::tray::{Again, Begun, ItemKey, Origin, Problem};
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionChoice, SessionId};
 
-// The task needs tokio's files and the node's connection, which a browser
+// The tasks need tokio's files and the node's connection, which a browser
 // has not.
 #[cfg(not(target_arch = "wasm32"))]
+mod capabilities;
+#[cfg(not(target_arch = "wasm32"))]
+mod read;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use capabilities::spawn as spawn_capabilities;
+#[cfg(not(target_arch = "wasm32"))]
 mod send;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use read::spawn as spawn_read;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use send::{content, spawn};
 
@@ -35,14 +47,57 @@ pub(crate) use send::{content, spawn};
 /// command loop stays one screen of dispatch).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Files {
+    /// Read this created session's own abilities and limits without selecting it.
+    Capabilities(CapabilityAsk),
     /// Send a file to its session beside the other commands; each step
-    /// answered `Event::Upload`.
+    /// answered `Answer::Upload`.
     Send(Attach),
     /// Start a conversation without its first prompt, which follows once
     /// its files are in; answered `Event::Started` (or `Event::Failed`).
     Create(Create),
     /// A prompt with the files already sent for it.
     Prompt(WithFiles),
+    /// Read a sent image back from its node beside the other commands;
+    /// answered `Answer::Read`.
+    Read(Sent),
+    /// Resume an ended session without sending its pending attachment prompt yet.
+    Wake(Wake),
+}
+
+/// What the link says of the files (`Event::Files`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Answer {
+    /// Capabilities belong to the captured creation ticket and session.
+    Capabilities {
+        /// Original destination.
+        ask: CapabilityAsk,
+        /// Authoritative conversation facts or a typed refusal.
+        result: Result<vessel_app_view::composer::tray::Target, CapabilityFailure>,
+    },
+    /// A session resumed before its files upload; failure is translated by the area.
+    Woke {
+        /// The session whose composer waits.
+        session: SessionId,
+        /// The node accepted the resume or the files remain in the tray.
+        outcome: WakeOutcome,
+    },
+    /// A step of a composer's file on its way to its session.
+    Upload {
+        /// The session.
+        session: SessionId,
+        /// The file's place in the composer's tray.
+        key: ItemKey,
+        /// What happened.
+        step: Step,
+    },
+    /// A sent image read back: its bytes, or `None` when it could not be
+    /// read (the log says why).
+    Read {
+        /// Which image.
+        sent: Sent,
+        /// Its bytes.
+        bytes: Option<Arc<[u8]>>,
+    },
 }
 
 /// A conversation to start whose first prompt waits for its files.
@@ -109,4 +164,67 @@ pub struct WithFiles {
     pub attachments: Vec<AttachmentRef>,
     /// What it does while a turn runs.
     pub delivery: Delivery,
+}
+
+/// Why an image download was refused before its bytes reached the UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadProblem {
+    /// The connected peer did not finish within the named operation deadline.
+    TimedOut,
+    /// Zero bytes cannot decode as an image.
+    Empty,
+    /// The source reports an image above the node's bound.
+    TooLarge,
+    /// The total changed between chunks.
+    Changed,
+    /// A chunk crosses the reported total.
+    Overrun,
+    /// No progress before the end of the image.
+    Stopped,
+}
+
+/// An existing session must be live before the node will accept files.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Wake {
+    /// Validated book identity, rather than a display label.
+    pub machine: vessel_app_view::machine_book::Name,
+    /// The original conversation, whose log continues after resume.
+    pub session: SessionId,
+}
+
+/// No prompt is sent during resume; a refusal leaves the tray recoverable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WakeOutcome {
+    /// Resume succeeded; follow the session before validating file capabilities.
+    Ready,
+    /// The node or link refused the resume.
+    Refused,
+}
+
+/// Creation correlation remains independent of the selected conversation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapabilityAsk {
+    /// The validated node book key.
+    pub machine: vessel_app_view::machine_book::Name,
+    /// The actual created session, even when it is not selected.
+    pub session: SessionId,
+    /// The local creation which retained the files.
+    pub ticket: vessel_app_view::creation::Ticket,
+}
+/// Read failures do not fabricate an agent capability or erase retained files.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum CapabilityFailure {
+    /// All bounded preparation slots are retained by other submissions.
+    #[error("attachment preparation capacity reached")]
+    Capacity,
+    /// No connected peer accepted the read.
+    #[error("attachment capability peer is offline")]
+    Offline,
+    /// The handshake/read did not finish within its bound.
+    #[error("attachment capability read timed out")]
+    TimedOut,
+    /// Preserve the node/transport cause; no message-string dispatch.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Call(#[from] vessel_rpc::CallError),
 }

@@ -13,6 +13,8 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::Creation(answer) => self.creation_answer(answer, cx),
+            Event::Mentions(answer) => self.composer_mention_answer(answer, cx),
+            Event::MentionRoot(answer) => self.composer_mention_root(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -81,7 +83,7 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
-            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
+            Event::Files(answer) => self.composer_answered(answer, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);

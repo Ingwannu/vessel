@@ -129,16 +129,37 @@ impl Link {
                 self.emit(Event::Sent { session });
             }
             // A browser has no files to send yet (track P's row c).
-            Command::Files(crate::attachments::Files::Send(attach)) => self.emit(Event::Upload {
-                session: attach.session,
-                key: attach.key,
-                step: crate::attachments::Step::Failed {
-                    problem: vessel_app_view::composer::tray::Problem::Node(
-                        "The browser's demo takes no files".to_owned(),
-                    ),
-                    again: vessel_app_view::composer::tray::Again::Never,
-                },
-            }),
+            Command::Files(crate::attachments::Files::Send(attach)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Upload {
+                    session: attach.session,
+                    key: attach.key,
+                    step: crate::attachments::Step::Failed {
+                        problem: vessel_app_view::composer::tray::Problem::Node(
+                            "The browser's demo takes no files".to_owned(),
+                        ),
+                        again: vessel_app_view::composer::tray::Again::Never,
+                    },
+                }));
+            }
+            // Nor any sent file to read back.
+            Command::Files(crate::attachments::Files::Capabilities(ask)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Capabilities {
+                    ask,
+                    result: Err(crate::attachments::CapabilityFailure::Offline),
+                }))
+            }
+            Command::Files(crate::attachments::Files::Wake(wake)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Woke {
+                    session: wake.session,
+                    outcome: crate::attachments::WakeOutcome::Refused,
+                }));
+            }
+            Command::Files(crate::attachments::Files::Read(sent)) => {
+                self.emit(Event::Files(crate::attachments::Answer::Read {
+                    sent,
+                    bytes: None,
+                }));
+            }
             Command::Files(crate::attachments::Files::Create(_)) => self.emit(Event::Failed(
                 "The browser's demo takes no files".to_owned(),
             )),
@@ -187,6 +208,16 @@ impl Link {
             )),
             // The demo fleet keeps no search index: every machine finds
             // nothing.
+            Command::MentionRoot(ask) => {
+                self.emit(Event::MentionRoot(crate::mentions::RootAnswer {
+                    ask,
+                    result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
+                }))
+            }
+            Command::Mentions(request) => self.emit(Event::Mentions(crate::mentions::Answer {
+                request,
+                result: Err(vessel_app_view::composer::mentions::Failure::Unsupported),
+            })),
             Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
                 machine: ask.machine,
                 ticket: ask.ticket,

@@ -29,7 +29,7 @@ impl Render for Probe {
 }
 
 impl Shell {
-    fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
             // No receiver: a command given back goes nowhere in these tests.
@@ -40,7 +40,11 @@ impl Shell {
             fleet: Fleet::default(),
             route: Route::Draft,
             brand: crate::brand::Brand::default(),
-            areas: Areas::new(window, cx),
+            areas: Areas::with_drafts(
+                vessel_app_view::composer::drafts::Drafts::default(),
+                window,
+                cx,
+            ),
             prefs: Prefs::default(),
             notice: None,
             notice_detail: None,

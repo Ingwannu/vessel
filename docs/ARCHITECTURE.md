@@ -1312,6 +1312,19 @@ not read is set aside, never overwritten). Up and Down in an empty session
 composer walk the messages sent in it (`view::composer::recall`, Paseo's
 `ComposerRecall`); a recalled message is not a draft until it is edited.
 
+A composer's files (track P's row c) are its tray (`view::composer::tray`,
+one per composer in `trays`): checked against the session's agent and the
+node's limits as they come, uploaded at Send two at a time by the link
+(`link::attachments`, `attachment.begin`/`write`/`finish`, each step
+answered `Event::Files`), and the prompt goes once every file is in; the new
+chat first starts its session without the prompt (`Files::Create`). A sent
+message's images are read back with `attachment.read` when the message is
+drawn (`Files::Read`), by the page's rules (`view::composer::sent`: two at a
+time, at most 48 pictures or 64 MiB, an image pasted here kept from its
+bytes); the conversation's rows draw them through `SentFiles`, which their
+`Paint` carries. `docs/plans/backend-m12-composer.md` has the rules and
+what was followed from Paseo.
+
 ## Protocol 13: schedule preview (N3)
 
 `NodeInfo.timezone` carries the startup-detected system IANA name; unknown
@@ -1384,6 +1397,21 @@ available, and `fleet sync` always addresses the selected node (ADR 0044).
 The CLI's existing test-only `serde_json` dependency is now a normal one:
 encoding the already-confirmed invitation uses the protocol's formatter and
 retains its concrete error source rather than inventing a string error.
+
+The native attachment preview extends that existing pipeline:
+`view::composer::sent` keys displayed images by validated book name,
+session and attachment id; `link::attachments::read` checks an immutable,
+bounded total before appending chunks. Typed RPC causes remain in
+`LinkError` through the link's direct `vessel-rpc` error-type edge. The
+composer's `pictures` module bridges bytes to GPUI image sources, while
+`lightbox` reuses GPUI's asynchronous decoder and the view's pure
+`composer::viewer` fit/zoom/pan rules. The shell registers only the
+attachment event and overlay. An ended session is resumed without a
+plain-text prompt before its attachments upload. File selection captures
+the destination before background inspection, so changing conversations
+cannot redirect a delayed dialog, drop or clipboard result. UI tests
+supply decoded empty drafts to the area constructor rather than reading
+the person's on-device drafts.
 
 ## Caller authority query (N3 row 3, protocol 20)
 

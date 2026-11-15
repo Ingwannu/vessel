@@ -57,7 +57,7 @@ px-step spikes/native/app/src/areas/board/card.rs 19
 px-step spikes/native/app/src/areas/board/mod.rs 19
 px-step spikes/native/app/src/areas/common.rs 4
 px-step spikes/native/app/src/areas/conversation/bar.rs 15
-px-step spikes/native/app/src/areas/conversation/bubbles.rs 12
+px-step spikes/native/app/src/areas/conversation/bubbles.rs 8
 px-step spikes/native/app/src/areas/conversation/dock.rs 2
 px-step spikes/native/app/src/areas/conversation/ended.rs 5
 px-step spikes/native/app/src/areas/conversation/entries.rs 14

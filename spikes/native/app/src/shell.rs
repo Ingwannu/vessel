@@ -393,7 +393,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
-            .child(vessel_app_kit::frame_log::drawn(started));
+            .child(areas::composer::overlay(self, &tokens, window, cx, started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }

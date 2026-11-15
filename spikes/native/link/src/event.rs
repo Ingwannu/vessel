@@ -22,6 +22,10 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// A correlated creation transition.
     Creation(super::creation::Answer),
+    /// An existing session's registered file root.
+    MentionRoot(crate::mentions::RootAnswer),
+    /// File suggestions, correlated to their original composer and token.
+    Mentions(crate::mentions::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
@@ -51,15 +55,8 @@ pub enum Event {
     },
     /// A session started from the app, to open.
     Started(Card),
-    /// A step of a composer's file on its way to its session.
-    Upload {
-        /// The session.
-        session: SessionId,
-        /// The file's place in the composer's tray.
-        key: vessel_app_view::composer::tray::ItemKey,
-        /// What happened.
-        step: attachments::Step,
-    },
+    /// A composer's file on its way, or a sent image read back.
+    Files(attachments::Answer),
     /// A prompt was delivered.
     Sent {
         /// The session.

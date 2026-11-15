@@ -11,7 +11,7 @@ use vessel_client::CallError;
 use vessel_client::NodeClient;
 use vessel_proto::{AttachmentRef, BlobChunk, ContentBlock, ErrorCode};
 
-use super::{Attach, Step};
+use super::{Answer, Attach, Step};
 use crate::Event;
 
 /// The bytes an image's type is checked by.
@@ -30,7 +30,8 @@ pub(crate) fn spawn(
         let tell = |step: Step| {
             let events = events.clone();
             async move {
-                let _closed = events.send(Event::Upload { session, key, step }).await;
+                let upload = Answer::Upload { session, key, step };
+                let _closed = events.send(Event::Files(upload)).await;
             }
         };
         let step = match client {

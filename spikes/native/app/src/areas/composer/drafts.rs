@@ -26,8 +26,12 @@ const SETTLE: Duration = Duration::from_secs(1);
 
 /// The drafts kept on the device, the new chat's put back, and both
 /// composers' edits followed (called once, when the areas are made).
-pub(crate) fn keep_drafts(areas: &mut Areas, window: &mut Window, cx: &mut Context<'_, Shell>) {
-    let drafts = vessel_app_link::drafts::load();
+pub(crate) fn keep_drafts(
+    areas: &mut Areas,
+    drafts: vessel_app_view::composer::drafts::Drafts,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) {
     let new_chat = drafts.text(DraftKey::New);
     if !new_chat.is_empty() {
         areas.draft.composer.set_text(new_chat, window, cx);

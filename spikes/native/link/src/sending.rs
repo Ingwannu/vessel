@@ -66,6 +66,13 @@ impl State {
     /// What a composer's files ask (track P's row c).
     pub(super) async fn files(&mut self, files: attachments::Files) {
         match files {
+            attachments::Files::Capabilities(ask) => {
+                let client = self
+                    .clients
+                    .get(ask.machine.as_str())
+                    .map(|connected| connected.client.clone());
+                attachments::spawn_capabilities(client, ask, self.events.clone());
+            }
             attachments::Files::Send(attach) => self.attach(attach),
             attachments::Files::Create(create) => {
                 let attachments::Create {
@@ -77,6 +84,11 @@ impl State {
                 self.start(&machine, harness, folder, None, options).await;
             }
             attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
+            attachments::Files::Wake(wake) => self.wake_files(wake).await,
+            attachments::Files::Read(sent) => {
+                let client = self.client(sent.machine.as_str()).cloned();
+                attachments::spawn_read(client, sent, self.events.clone());
+            }
         }
     }
 
@@ -88,6 +100,31 @@ impl State {
             .cloned()
             .map_err(|error| error.to_string());
         attachments::spawn(client, attach, self.events.clone());
+    }
+
+    /// The attachment prompt follows only once capability records are read.
+    async fn wake_files(&mut self, wake: attachments::Wake) {
+        let result = async {
+            let client = self.client(wake.machine.as_str())?.clone();
+            tokio::time::timeout(WAKE_FILES_DEADLINE, client.resume_session(wake.session))
+                .await
+                .map_err(|_| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
+                .map_err(LinkError::AttachmentCall)
+        }
+        .await;
+        let outcome = match result {
+            Ok(_) => attachments::WakeOutcome::Ready,
+            Err(why) => {
+                tracing::info!(%why, session = %wake.session, "a session could not resume for attachments");
+                attachments::WakeOutcome::Refused
+            }
+        };
+        self.emit(Event::Files(attachments::Answer::Woke {
+            session: wake.session,
+            outcome,
+        }))
+        .await;
+        self.refresh().await;
     }
 
     /// Start `session` again, then send it `text`, and list the fleet
@@ -176,3 +213,6 @@ impl State {
         }
     }
 }
+
+/// A resume that never replies cannot keep the composer waiting forever.
+const WAKE_FILES_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
