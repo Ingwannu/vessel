@@ -28,14 +28,14 @@ pub(super) fn refusal(error: &RegistryError) -> WireError {
 fn preparation(error: &PrepareError) -> (ErrorCode, Option<DictationReason>) {
     match error {
         PrepareError::Configuration(_) => (ErrorCode::Unsupported, None),
-        PrepareError::Disabled => (ErrorCode::Conflict, Some(DictationReason::Disabled)),
+        PrepareError::Disabled => (ErrorCode::Unsupported, Some(DictationReason::Disabled)),
         PrepareError::LocalNotBuilt { model } => (
             ErrorCode::Unsupported,
             Some(DictationReason::LocalNotBuilt {
                 model: model.clone(),
             }),
         ),
-        PrepareError::KeyAbsent => (ErrorCode::Conflict, Some(DictationReason::KeyAbsent)),
+        PrepareError::KeyAbsent => (ErrorCode::Unavailable, Some(DictationReason::KeyAbsent)),
         PrepareError::Secret(_) | PrepareError::Endpoint(_) => {
             (ErrorCode::Unavailable, Some(DictationReason::Upstream))
         }
@@ -59,14 +59,12 @@ fn stream(error: &StreamError) -> (ErrorCode, Option<DictationReason>) {
             | DictationReason::TooLong
             | DictationReason::ReorderOverflow
             | DictationReason::NoAudio => ErrorCode::InvalidRequest,
-            DictationReason::Replaced
-            | DictationReason::Cancelled
-            | DictationReason::Disabled
-            | DictationReason::KeyAbsent => ErrorCode::Conflict,
-            DictationReason::LocalNotBuilt { .. } | DictationReason::Unknown => {
-                ErrorCode::Unsupported
-            }
-            DictationReason::TranscriptTooLong
+            DictationReason::Replaced | DictationReason::Cancelled => ErrorCode::Conflict,
+            DictationReason::Disabled
+            | DictationReason::LocalNotBuilt { .. }
+            | DictationReason::Unknown => ErrorCode::Unsupported,
+            DictationReason::KeyAbsent
+            | DictationReason::TranscriptTooLong
             | DictationReason::TimedOut
             | DictationReason::Upstream
             | DictationReason::TooMany => ErrorCode::Unavailable,
@@ -131,6 +129,26 @@ mod tests {
         assert!(!wire.to_string().contains(MARKER));
         assert!(!format!("{wire:?}").contains(MARKER));
         assert!(wire.source().is_none());
+    }
+
+    #[test]
+    fn disabled_and_missing_key_use_the_adrs_distinct_refusal_classes() {
+        for (source, code, reason) in [
+            (
+                PrepareError::Disabled,
+                ErrorCode::Unsupported,
+                DictationReason::Disabled,
+            ),
+            (
+                PrepareError::KeyAbsent,
+                ErrorCode::Unavailable,
+                DictationReason::KeyAbsent,
+            ),
+        ] {
+            let wire = refusal(&RegistryError::Prepare(source));
+            assert_eq!(wire.code, code);
+            assert_eq!(wire.detail, Some(ErrorDetail::Dictation { reason }));
+        }
     }
 
     #[test]

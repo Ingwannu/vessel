@@ -107,7 +107,7 @@ async fn deletion_between_selection_and_save_keeps_only_a_reference_and_start_re
             )
             .await
             .unwrap_err();
-        assert_eq!(error.code, ErrorCode::Conflict);
+        assert_eq!(error.code, ErrorCode::Unavailable);
         assert_eq!(
             error.detail,
             Some(ErrorDetail::Dictation {

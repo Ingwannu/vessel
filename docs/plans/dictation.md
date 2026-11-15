@@ -911,3 +911,15 @@ result. These are corrected without message, transport, assertion or deadline
 changes. The run remains nonzero evidence; actual CLI/actor execution and the
 current merged-head package gate are still owed. The signal is internal to the
 same driver task; it is not a discarded remote refusal.
+
+
+### Contract-code alignment before package validation
+
+A source audit found two mapper classes that contradicted the passed ADR:
+disabled start must be Unsupported with Disabled; missing-key start must be
+Unavailable with KeyAbsent. The mapper now follows those existing promises,
+including the exhaustive reason classification. A direct contract regression
+asserts both code/reason pairs; the real-service deletion-race assertion now
+expects the ADR's Unavailable rather than mirroring the earlier incorrect
+Conflict. No input, deadline, refusal reason or admission policy is relaxed.
+The new tests remain unexecuted until the checked-writer integration runtime.
