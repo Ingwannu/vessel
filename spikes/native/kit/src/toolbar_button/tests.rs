@@ -166,3 +166,93 @@ fn actual_frame_hitboxes_refuse_disabled_callbacks_and_reenable_on_owner_update(
         });
     }
 }
+
+#[derive(Clone, Copy)]
+enum LoadingPhase {
+    Busy,
+    Ready,
+}
+struct LoadingProbe {
+    phase: LoadingPhase,
+    sizing: ControlSizing,
+    calls: usize,
+}
+impl Render for LoadingProbe {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        let config = ToolbarConfig::new(self.sizing, ButtonState::Enabled);
+        let mut button = match self.phase {
+            LoadingPhase::Busy => ToolbarButton::loading(
+                "refresh",
+                "Refresh reports",
+                ToolbarInk::ExtraMuted,
+                config,
+                &tokens,
+            ),
+            LoadingPhase::Ready => ToolbarButton::new(
+                "refresh",
+                "Refresh reports",
+                ToolbarIcon::new(Glyph::RotateCw, ToolbarInk::ExtraMuted).adaptive(),
+                config,
+                &tokens,
+            ),
+        };
+        button.element = button
+            .element
+            .debug_selector(|| "source-refresh".to_owned());
+        div()
+            .size_full()
+            .child(button.on_click(cx.listener(|this, _, _, _| {
+                this.calls = this.calls.saturating_add(1);
+            })))
+    }
+}
+#[gpui::test]
+fn loading_uses_the_same_source_frame_and_forces_no_handler_until_owner_ready(
+    cx: &mut TestAppContext,
+) {
+    cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap());
+    for (sizing, edge) in [(ControlSizing::Pointer, 20.0), (ControlSizing::Touch, 32.0)] {
+        let (view, cx) = cx.add_window_view(move |_, _| LoadingProbe {
+            phase: LoadingPhase::Busy,
+            sizing,
+            calls: 0,
+        });
+        cx.run_until_parked();
+        let bounds = cx.debug_bounds("source-refresh").unwrap();
+        assert_eq!(bounds.size, gpui::size(px(edge), px(edge)));
+        cx.simulate_click(bounds.center(), Modifiers::none());
+        view.read_with(cx, |probe, _| assert_eq!(probe.calls, 0));
+        view.update(cx, |probe, cx| {
+            probe.phase = LoadingPhase::Ready;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        assert_eq!(cx.debug_bounds("source-refresh").unwrap(), bounds);
+        cx.simulate_click(bounds.center(), Modifiers::none());
+        view.read_with(cx, |probe, _| assert_eq!(probe.calls, 1));
+    }
+}
+
+#[test]
+fn loading_has_canonical_numeric_points_ink_and_disabled_opacity() {
+    assert_eq!(crate::loading::Points::FOURTEEN.pixels(), px(14.0));
+    assert_eq!(crate::loading::Points::EIGHTEEN.pixels(), px(18.0));
+    let tokens = Tokens::of(Scheme::Dark);
+    let mut busy = ToolbarButton::loading(
+        "busy",
+        "Refresh",
+        ToolbarInk::ExtraMuted,
+        ToolbarConfig::new(ControlSizing::Pointer, ButtonState::Enabled),
+        &tokens,
+    );
+    assert_eq!(busy.config.availability(), ButtonState::Disabled);
+    assert_eq!(
+        busy.element.style().opacity.unwrap().to_bits(),
+        0.5_f32.to_bits()
+    );
+    assert_eq!(
+        ToolbarInk::ExtraMuted.colour(&tokens),
+        tokens.neutral.foreground_extra_muted
+    );
+}
