@@ -1,4 +1,4 @@
-//! Request shapes remain staged until Quality B registers their pending rows.
+//! Typed pending requests; shared client admission refuses an unassigned contract.
 
 use serde::{Deserialize, Deserializer, Serialize};
 

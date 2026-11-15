@@ -9,6 +9,7 @@ mod resume;
 mod secure;
 mod stream;
 mod websocket;
+mod workspace_labels;
 
 use std::num::NonZeroUsize;
 use std::path::PathBuf;

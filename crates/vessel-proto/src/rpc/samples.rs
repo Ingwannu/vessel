@@ -79,6 +79,14 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SetNodeSettings
         | Method::ListInbox
         | Method::Diagnostics => json!({}),
+        Method::ListWorkspaceLabels => json!({}),
+        Method::AssignWorkspaceLabel => {
+            json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})
+        }
+        Method::UpdateWorkspaceLabel => json!({"name":"Ready","color":"sky"}),
+        Method::InspectWorkspaceLabelDelete | Method::DeleteWorkspaceLabel => {
+            json!({"name":"Ready"})
+        }
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),

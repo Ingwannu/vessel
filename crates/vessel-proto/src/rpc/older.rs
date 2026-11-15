@@ -47,6 +47,7 @@ impl Reply {
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
+            Self::GetRegistry(snapshot) => snapshot.for_protocol(protocol).map(Self::GetRegistry),
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
@@ -215,7 +216,11 @@ impl Reply {
             | Self::WriteUpload(_)
             | Self::FinishUpload(_)
             | Self::ReadAttachment(_)
-            | Self::GetRegistry(_)
+            | Self::ListWorkspaceLabels(_)
+            | Self::AssignWorkspaceLabel(_)
+            | Self::UpdateWorkspaceLabel(_)
+            | Self::InspectWorkspaceLabelDelete(_)
+            | Self::DeleteWorkspaceLabel(_)
             | Self::ListWorkspaces(_)
             | Self::GetWorkspace(_)
             | Self::RenameWorkspace(_)

@@ -469,9 +469,12 @@ const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt
 /// Provisional next migration; integration re-points this one constant.
 const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
 
+/// One label append follows the announced registry head; integration rebinds here.
+const WORKSPACE_LABELS_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; REGISTRY_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; WORKSPACE_LABELS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -492,4 +495,5 @@ pub(super) const MIGRATIONS: &[&str; REGISTRY_SCHEMA] = &[
     TITLE_ORIGIN,
     SUBAGENT_RELATIONS,
     super::workspace_registry::SQL,
+    crate::workspace_labels::MIGRATION,
 ];

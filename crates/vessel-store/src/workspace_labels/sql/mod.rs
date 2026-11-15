@@ -1,4 +1,4 @@
-//! Staged real SQL operations. The caller supplies the reviewed registry
+//! Transactional SQL operations. The caller supplies the canonical registry
 //! adapter; tests use an explicit fake, never an inferred cwd/session owner.
 
 mod read;
@@ -14,7 +14,7 @@ use rusqlite::Connection;
 use vessel_proto::{WorkspaceId, workspace_labels::CatalogDelta};
 
 /// The integration seam owns admission and invalidation in this same savepoint.
-/// Production implementation is added only with the reviewed registry package.
+/// The production adapter uses the registry writer's canonical helpers.
 pub(super) trait Registry {
     fn require_active(
         &self,

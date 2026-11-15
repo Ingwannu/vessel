@@ -44,8 +44,7 @@ Read reference sources, relative to the Paseo 0.15.4 source root:
 ## Decision
 
 Add `vessel_proto::workspace_labels` values, typed requests/responses and one
-`WORKSPACE_LABELS: Option<ProtocolVersion> = None`. No method is registered
-before the shared method-table machinery is available; integrator assigns
+`WORKSPACE_LABELS: Option<ProtocolVersion> = None`. Five unary rows now register as pending in the shared method table; integrator assigns
 the number only after every direct/nested/forwarded consumer is covered.
 
 Use catalog and ordered assignment tables in the existing SQLite database.
@@ -68,7 +67,7 @@ fact. The real writer must map it to the registry's after-commit watch effect;
 incrementing a durable revision alone would leave existing observers asleep.
 Recolor-only and idempotent mutations do not invalidate workspace assignments.
 
-Planned method rows (not registered by this document):
+Pending method rows:
 
 | Call | Scope | Result |
 | --- | --- | --- |
@@ -79,8 +78,8 @@ Planned method rows (not registered by this document):
 | `workspace.label.delete` | operate | committed affected count |
 
 All calls use the existing paired connection and its scope intersection;
-agent-origin catalog mutations are refused unless an explicit agent policy
-permits them. They are host-local and forward only through the existing
+all label calls refuse agent-origin requests through the existing exhaustive
+person-only policy. They are host-local and forward only through the existing
 forwarding scope checks. No credentials, process, external service or helper
 is introduced; platform behavior is identical on Windows and Unix.
 
@@ -139,18 +138,17 @@ fake-node tests are updated when wiring lands, never weakened to stage types.
 
 ## Validation and current state
 
-Value contract and test-only SQL/service implementations are staged. The
-`81a07c0f` scoped run passed 27 tests (node 11, proto 4, store 12), including
-real SQL against an explicit fake registry and the accepted-write shutdown
-regression. Strict proto/store/node alltarget clippy passed on `3bd691bc`
-after the gate42 base merge. The announced gate44 base was then merged without
-changing the staged labels implementation. These checks do not establish the
-real registry/store adapter or a whole-package gate.
+The staged core previously passed 27 scoped tests (node 11, proto 4, store 12),
+including scripted accepted-write cancellation/drain and real SQL with a fake
+registry. It also passed earlier proto/store/node strict checks.
 
-The W11 registry dependency `1057336b` has a coordinator-accepted whole result
-with two named integrator-owned base timing failures, but V3 row 213 is still
-pending and the transaction helpers are not consumer-ready. Its review packet
-is the authority for that limited producer evidence; A6 has not adopted it or
-claimed a green Rust whole suite. Keep the typed registry boundary/fake until
-the exact reviewed hash is supplied. Session-label calls remain owned by ADR
-0063. No RPC, whole A6 gate, capture or production flow is claimed complete.
+The reviewed metadata registry `0140ac0a` is now adopted through announced node
+`9c150c6e` (gate 50c: all 18 steps pass, Rust 2549/0/12). This wiring reuses its
+real Store helpers, watch and read transaction. Test-only staging is removed only
+where those real callers now exist. Added real Store/actor tests, five pending
+method rows, SDK admission and direct/nested projection coverage still await
+current execution, TS regeneration, whole A6 gate and V3 review. The constant
+remains None. Native takes only the lead's announced base and has no real label
+consumer-ready adoption from this unreviewed adapter. Session metadata remains
+the lifecycle owner's separate contract. No capture or production parity is
+claimed.

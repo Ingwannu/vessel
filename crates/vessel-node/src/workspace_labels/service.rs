@@ -8,7 +8,7 @@
 //! - Choice: one bounded actor awaits each commit and publishes before replying;
 //!   observation subscribes before asking that actor for its current cursor.
 //! - Effect: disconnected callers release their poll, not accepted mutations.
-//!   The reviewed store adapter is deliberately separate from this staged core.
+//!   The real store adapter and scripted timing fixtures share this boundary.
 
 use std::future::Future;
 use std::time::Duration;
@@ -26,10 +26,7 @@ use super::journal::Journal;
 const COMMANDS: usize = 32;
 const OBSERVE_LIMIT: Duration = Duration::from_secs(30);
 
-pub(super) struct Committed<T> {
-    pub(super) result: T,
-    pub(super) delta: Option<CatalogDelta>,
-}
+pub(super) type Committed<T> = vessel_store::WorkspaceLabelCommit<T>;
 
 /// The real adapter only returns after the existing store writer commits.
 pub(super) trait Backend: Send + 'static {
@@ -73,8 +70,8 @@ enum Command {
     ),
 }
 
-#[derive(Clone)]
-pub(super) struct Labels {
+#[derive(Debug, Clone)]
+pub(crate) struct Labels {
     commands: mpsc::Sender<Command>,
     changed: watch::Receiver<CatalogCursor>,
 }
@@ -91,7 +88,7 @@ impl Labels {
         })
     }
 
-    pub(super) async fn list(
+    pub(crate) async fn list(
         &self,
         request: ListWorkspaceLabels,
     ) -> Result<CatalogList, StoreError> {
@@ -111,7 +108,7 @@ impl Labels {
 
     /// Drain changes accepted before this marker before the node closes its
     /// store. Later commands refuse Closed, as the store writer's close does.
-    pub(super) async fn close(&self) -> Result<(), StoreError> {
+    pub(crate) async fn close(&self) -> Result<(), StoreError> {
         let (answer, reply) = oneshot::channel();
         self.commands
             .send(Command::Close(answer))
@@ -131,7 +128,7 @@ impl Labels {
         reply.await.map_err(|_closed| StoreError::Closed)
     }
 
-    pub(super) async fn assign(
+    pub(crate) async fn assign(
         &self,
         request: AssignWorkspaceLabel,
     ) -> Result<WorkspaceLabelAssigned, StoreError> {
@@ -143,7 +140,7 @@ impl Labels {
         reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
-    pub(super) async fn update(
+    pub(crate) async fn update(
         &self,
         request: UpdateWorkspaceLabel,
     ) -> Result<WorkspaceLabelUpdated, StoreError> {
@@ -155,7 +152,7 @@ impl Labels {
         reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
-    pub(super) async fn inspect(
+    pub(crate) async fn inspect(
         &self,
         request: InspectWorkspaceLabelDelete,
     ) -> Result<WorkspaceLabelDeleted, StoreError> {
@@ -167,7 +164,7 @@ impl Labels {
         reply.await.map_err(|_closed| StoreError::Closed)?
     }
 
-    pub(super) async fn delete(
+    pub(crate) async fn delete(
         &self,
         request: DeleteWorkspaceLabel,
     ) -> Result<WorkspaceLabelDeleted, StoreError> {

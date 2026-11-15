@@ -1,6 +1,10 @@
-//! Staged catalog observation (ADR 0086). Remove cfg(test) when the reviewed
-//! registry storage and shared method table make the RPC wiring available.
+//! Catalog actor and committed observation over the canonical registry/Store.
+//! Pending methods expose no capability before the integrator assigns a version.
 
+mod backend;
 mod errors;
+pub(crate) use service::Labels;
 mod journal;
+#[cfg(test)]
+mod real_tests;
 mod service;

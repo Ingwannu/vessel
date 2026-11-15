@@ -80,7 +80,6 @@ mod token;
 mod usage;
 mod usage_lookup;
 mod workspace;
-#[cfg(test)]
 mod workspace_labels;
 mod writer;
 
@@ -103,6 +102,7 @@ pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};
+pub use workspace_labels::WorkspaceLabelCommit;
 
 /// Explicit workspace registry records shared by create/lifecycle services.
 pub use registry::{

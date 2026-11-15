@@ -46,7 +46,7 @@ Read Paseo 0.15.4 sources, relative to the reference source root:
 - `vessel-proto::workspace_labels`: one validated name/key/color grammar,
   checked counts, ordered assignment replies, snapshot/delta/cursor values,
   typed semantic refusals and request shapes. `WORKSPACE_LABELS` is None;
-  requests have no registered method yet.
+  five unary requests have pending method rows.
 - `vessel-store::workspace_labels`: mutation planners and real SQL behind a
   typed `Registry` trait. Admission precedes writes in the same savepoint.
   Catalog keys cascade rename/delete into ordered assignments; names resolve
@@ -64,15 +64,15 @@ Read Paseo 0.15.4 sources, relative to the reference source root:
   use actual answered NodeId ownership. Unary mutation replies settle forms;
   the ordered observer is the catalog's only update path.
 
-The store and actor modules remain cfg(test), per A10, until the real registry
-adapter/writer and RPC wiring commit removes staging. Their explicit fakes
-are timing/admission fixtures, never installed into a product build.
+The store and actor now have real registry/writer/RPC callers, so their exact
+cfg(test) staging attributes are removed. Explicit fakes remain test-only timing
+and admission fixtures, never installed into a product build.
 
 ## Agreed registry integration
 
 Reviewed identity-only `e45a5d89` is adopted. Announced node gate-40 head
-`ba45a6e3` merged cleanly; protocol 23, schema 18. The registry producer itself
-is still unreviewed and is not adopted.
+`ba45a6e3` merged cleanly; protocol 23, schema 18. The reviewed registry producer is now adopted through announced node head
+`9c150c6e` (gate 50c). Native adoption still waits for the lead's base 9.
 
 The agreed producer seams are `registry::write::{require_active,bump_revision}`
 inside the writer savepoint, typed Missing versus Inactive refusal, and
@@ -121,3 +121,36 @@ wait-share downgrade for Observe, generated TypeScript and SDK boundaries.
 Then run the node whole gate once and submit the complete node package to V3.
 The native package waits for that reviewed consumer boundary for picker/create
 entry, observation and final V4 gate/captures; it does not invent RPCs.
+
+## Real adapter integration checkpoint
+
+Merged announced node `9c150c6e` as `2a30c0385`. Additive conflict resolutions
+retain both workspace-label and diagnostic ErrorDetail variants, both Store
+error groups and generated declaration groups. Generated TS remains owed from
+the remote generator; its standard trailing whitespace is not hand-reformatted.
+
+The real adapter uses canonical require_active/bump_revision in the same writer
+savepoint, with Missing/Inactive mapped to typed label reasons. Results and
+deltas wait for the outer commit before the actor publishes. Registry labels
+join the same held snapshot read transaction; descriptors stay byte-identical.
+Assignment/name changes record the existing post-commit registry invalidation,
+while recolor/no-op writes leave that watch untouched. The additive migration
+follows REGISTRY_SCHEMA through one derived constant; no numeric version is
+invented or released entry edited. The existing rollback helper drops only the
+new label tables before its unchanged registry predecessor rollback.
+
+Five pending method rows append after the announced table. Shared scope/agent
+checks, typed targets, SDK refusal and nested version projection remain the sole
+boundaries. Snapshot labels are omitted for unassigned/older peers, including
+Forward/Relay/Deliver nesting. All label calls remain person-only and unavailable
+until their version is assigned. Observe reuses the existing wait shares and
+downgrades delegated/exhausted shares to immediate reads. Startup opens the actor
+on the existing Store, and shutdown drains it after callers finish and before
+Store::close. Push/limits initialization moved unchanged into the existing setup
+child beside that new actor initialization; the shrinking node size record drops
+by one line instead of raising its allowance.
+
+Authored verification now includes three real Store tests, one real actor/Store
+reopen test, typed direct/nested capability/projection tests and an in-memory SDK
+no-request-frame test. These new tests and current strict compilation have NOT
+executed yet. No A6 whole gate or reviewer acceptance is claimed.

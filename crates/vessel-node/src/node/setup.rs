@@ -126,6 +126,34 @@ pub(super) fn listening(id: NodeId, address: Option<std::net::SocketAddr>, local
     );
 }
 
+/// Feature actors share the existing store and startup task/cancellation owners.
+/// Kept here so node assembly remains registrations rather than growing setup logic.
+pub(super) struct FeatureState {
+    pub(super) push: Arc<crate::push::Push>,
+    pub(super) limits: crate::limits::Limits,
+    pub(super) labels: crate::workspace_labels::Labels,
+}
+
+pub(super) async fn feature_state(
+    config: &Config,
+    store: &vessel_store::Store,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &tokio_util::sync::CancellationToken,
+) -> Result<FeatureState, NodeError> {
+    let push = crate::push::Push::started(config, store.clone(), tasks, stop.clone())
+        .await
+        .map_err(NodeError::Store)?;
+    let limits = crate::limits::Limits::configured(config, stop.clone(), tasks).await;
+    let labels = crate::workspace_labels::Labels::open(store.clone())
+        .await
+        .map_err(NodeError::Store)?;
+    Ok(FeatureState {
+        push,
+        limits,
+        labels,
+    })
+}
+
 /// The checked disk/config phase, kept separate from transport assembly.
 /// The caller captures its monotonic start clock before this I/O begins.
 pub(super) struct Startup {

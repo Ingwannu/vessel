@@ -404,6 +404,16 @@ macro_rules! method_table {
             GitCompareFile / git_compare_file / "git.compare_file" [Read, (staged $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
             /// Collect bounded content-free diagnostics (protocol 24).
             Diagnostics / diagnostics / "node.diagnostics" [Read, (pending $crate::diagnostics::DIAGNOSTICS_PROTOCOL), unary]: $crate::diagnostics::GetDiagnostics => $crate::diagnostics::DiagnosticReport;
+            /// Observe the node-local catalog with a bounded optional wait.
+            ListWorkspaceLabels / list_workspace_labels / "workspace.label.list" [Read, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::ListWorkspaceLabels => $crate::workspace_labels::CatalogList;
+            /// Set one active workspace assignment and optional new definition atomically.
+            AssignWorkspaceLabel / assign_workspace_label / "workspace.label.assign" [Operate, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::AssignWorkspaceLabel => $crate::workspace_labels::WorkspaceLabelAssigned;
+            /// Atomically rename and recolor one host definition.
+            UpdateWorkspaceLabel / update_workspace_label / "workspace.label.update" [Operate, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::UpdateWorkspaceLabel => $crate::workspace_labels::WorkspaceLabelUpdated;
+            /// Inspect an advisory affected count without locking later deletion.
+            InspectWorkspaceLabelDelete / inspect_workspace_label_delete / "workspace.label.inspect_delete" [Read, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::InspectWorkspaceLabelDelete => $crate::workspace_labels::WorkspaceLabelDeleted;
+            /// Delete a definition and every assignment in one commit.
+            DeleteWorkspaceLabel / delete_workspace_label / "workspace.label.delete" [Operate, (pending $crate::workspace_labels::WORKSPACE_LABELS), unary]: $crate::workspace_labels::DeleteWorkspaceLabel => $crate::workspace_labels::WorkspaceLabelDeleted;
         }
     };
 }

@@ -324,6 +324,11 @@ impl Method {
             | Self::FinishUpload
             | Self::ReadAttachment
             | Self::GetRegistry
+            | Self::ListWorkspaceLabels
+            | Self::AssignWorkspaceLabel
+            | Self::UpdateWorkspaceLabel
+            | Self::InspectWorkspaceLabelDelete
+            | Self::DeleteWorkspaceLabel
             | Self::ListWorkspaces
             | Self::GetWorkspace
             | Self::RenameWorkspace
