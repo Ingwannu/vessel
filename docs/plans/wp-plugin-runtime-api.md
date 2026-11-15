@@ -62,3 +62,23 @@ checkpoint8cafce576 is NOT adopted here. The plugin prepared-launch boundary
 will consume the reviewed exact API/head when available; no producer code or
 process identity/reaping implementation is copied or edited in this slice.
 Actual Windows/macOS/helper installation and all F6 product/UI work remain owed.
+
+
+## Exact portable execution and map correction
+
+Exact1cbafe18b4104fbc0974ecd52e4778c63162edf6 strict Proto/Plugin/Node all-target
+fixture+TS checking passed in wp-plugins-runtime-api-check-20261115T164548Z-1cbafe18.
+Actual Proto/Plugin checked and Node compiled; Finished2m00s. The separate same-head
+wp-plugins-runtime-api-test-20261115T164548Z-1cbafe18 executed all A5 preparations
+successfully, then22 library units,6 actual helper process cases,388 proto units
+and1 proto doctest:417/0/0 with0filtered. Empty fixture/doc groups are not passes.
+Held stderr after real checked cleanup, prefix/noEOF drain, Ready deadline and
+request-received cancellation regressions ran by name.
+
+The first portable quality run passed fmt/size then refused boundaries because
+this package recorded its edge in ADR0001 but omitted ARCHITECTURE's executable
+crate table. No source/runtime test failed in that run; TS did not execute after
+the blocking refusal. Adding the identical proto/proc row to that actual source
+of truth changes no Rust, manifest or lock bytes. The corrected quality run and
+V3 upgrade plus integrator combined gate remain owed. Old417/strict source hashes
+remain their exact evidence; no complete F6/NodeHost/platform approval follows.
