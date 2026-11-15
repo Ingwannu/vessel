@@ -1,6 +1,7 @@
 # A8 CLI permit
 
-Status: proposed; parser and selection skeleton only. Product registration
+Status: staged parser, typed selection, complete read-only collection/preflight,
+question-input decoding and exact-outcome confirmation. Product registration
 waits for the reviewed ADR 0084 rich response contract and W17 output helper.
 W4 owns these CLI files; W23 owns permission/question proto and node runtime.
 
