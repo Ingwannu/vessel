@@ -62,7 +62,7 @@ async fn prompt_index_reads_one_snapshot_and_survives_reopen_without_a_new_schem
                 4,
                 SessionEvent::Rewound {
                     after: EventSeq::new(1),
-                    harness_session: "fake-history".parse().unwrap(),
+                    harness_session: vessel_proto::HarnessSessionId::new("fake-history"),
                     files_changed: 0,
                 },
             )],
