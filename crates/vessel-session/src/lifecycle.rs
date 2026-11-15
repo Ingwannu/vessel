@@ -121,7 +121,7 @@ impl Lifecycle {
         let slot = loop {
             tokio::select! {
                 biased;
-                step = self.stop.next() => self.apply(process, step),
+                step = self.stop.next() => self.apply_stop(process, step).await,
                 slot = self.out.slot() => break slot,
             }
         };
@@ -196,6 +196,19 @@ impl Lifecycle {
     /// Publish a status change.
     pub(crate) async fn status<P: Stoppable>(&mut self, process: &mut P, status: SessionStatus) {
         self.publish(process, SessionEvent::Status { status }).await;
+    }
+
+    /// A clean shutdown captures intent before signalling the provider; a
+    /// person's kill never captures a continuation. Failure stops the session
+    /// anyway and is reported rather than pretending recovery was recorded.
+    pub(crate) async fn apply_stop<P: Stoppable>(&mut self, process: &mut P, step: Step) {
+        if self.stop.is_idle()
+            && self.stop.interrupted()
+            && let Err(error) = self.out.capture_restart().await
+        {
+            tracing::error!(%error, "cannot commit the shutdown recovery boundary");
+        }
+        self.apply(process, step);
     }
 
     /// Carry out a stop step and remember it.

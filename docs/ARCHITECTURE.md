@@ -1495,15 +1495,15 @@ events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
 
-### Startup recovery values (ADR 0059)
+### Startup recovery values (ADR 0098)
 
 `vessel-proto::restart` defines the disabled/reference-prompt policy and partial
 patch values using the existing bounded `PromptText`. The feature protocol is
 unassigned. Both settings replies pass through peer projection, including the
 existing recursive envelope walker; an unassigned field stays hidden from every
-peer. The node's existing response builder supplies only the disabled default.
-There is no recovery settings engine, request registration or startup service
-in this value-only slice; those remain for the staged and wiring slices.
+peer. The ordinary response builder preserves legacy reads; an explicit
+recovery read has its own canonical field requirement. These values now feed
+the owned settings and product startup flow described below.
 
 ## Ended conversations in the page (ADR 0036 amendment)
 
@@ -1554,3 +1554,56 @@ selected-file kernel query to proc through `lock/query`. Its public
 this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
+
+## Startup recovery: shared saved-file and settings ownership
+
+ADR 0098 extends the existing settings owners. Store's
+`settings_record` reads the complete local record; its legacy wire-patch view
+uses the same private codec, coverage check and atomic/private replacement.
+Node reads one validated snapshot off-thread before opening the Store. An
+ordinary parking/driver change preserves the saved recovery policy even
+when its optional recovery patch is absent. Both response paths still
+use R1's per-peer projection, including for the current unassigned protocol.
+
+Node's existing settings engine is the only writer/apply owner. A bounded FIFO
+contains one active operation and `Settings::QUEUED_CHANGES` waiting changes;
+full or closed admission refuses before mutation. A reply future may disappear after
+admission, but the tracked node task retains the saved-value lock through the
+actual atomic write and runtime setters. Shutdown closes admission and drains
+that task while its runtime is still available. This replaces cancellable
+handler ownership; it does not add another parser, settings engine or RPC.
+
+Off cleanup and fresh-grant admission extend this same owner. The full
+startup flow remains subject to its separate implementation gate and review;
+the earlier saved-file source verdict alone does not certify it.
+
+ADR 0098's ordered journal extends that same persistence path: Session emits
+typed internal checkpoints beside events, Node batches only through the first
+barrier, and Store's existing writer commits the preceding events and passive
+projection atomically before replying. Internal checkpoints have no public
+EventSeq and never become conversation history. Store owns the projection and
+its append-only migration; no new dependency edge, RPC or protocol assignment
+is introduced. Checkpoint batches share the ordinary append's retention,
+search and post-commit attention effects. Node bootstrap and operation
+admission consume this journal through the same existing runtime.
+
+
+### Restart recovery product wiring (ADR 0098)
+
+Node startup reads Settings::Opening before Store recovery normalizes live
+rows. The same snapshot initializes the one owned Settings engine. Store's
+restart projection, independent of transcript retention, selects eligible
+committed active turns; the node's bounded boot coordinator consumes each
+intent before ordinary conversation loading. Session journal checkpoints share
+the existing event persistence lane and actual commit acknowledgements, without
+public event sequence numbers or a second log. A person's stop is suppressed
+before its effect; global shutdown captures only its current active turn.
+
+The boot owner and ordinary operations share admission, but release all grant
+and policy fences during provider waits. Devices' current stored grant plus
+policy/stop generations are checked again immediately before each launch or
+prompt enqueue. Failed cleanup is limited to the same unprompted run. Settings
+Off applies and invalidates generation before consuming pending intents; its
+FIFO owner survives caller cancellation and prevents later On overtaking an
+unsettled save or cleanup. Existing per-peer reply projection and canonical
+field requirements keep the unassigned recovery feature off the wire.

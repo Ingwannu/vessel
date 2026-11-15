@@ -3179,7 +3179,11 @@ export type GetNode = null;
 /**
  * `node.settings`: the node's settings in force. Needs `read`.
  */
-export type GetNodeSettings = Record<symbol, never>;
+export type GetNodeSettings = { 
+/**
+ * Explicit capability read; unavailable until recovery's protocol is assigned.
+ */
+include_restart_recovery?: boolean, };
 
 /**
  * `project.get`: one project, at once or after its next change.
@@ -5046,8 +5050,8 @@ park_after: ParkAfter,
  */
 drivers?: AgentDrivers, 
 /**
- * Startup policy, hidden until its protocol is assigned (ADR 0059).
- * This value-only field does not enable an engine or register input.
+ * Startup policy, hidden until its protocol is assigned (ADR 0098).
+ * An explicit settings read requests it; older replies omit it.
  */
 restart_recovery?: RestartRecovery, };
 
@@ -6898,7 +6902,7 @@ session: SessionId,
 side: SessionId, };
 
 /**
- * Node-level startup continuation policy (ADR 0059).
+ * Node-level startup continuation policy (ADR 0098).
  */
 export type RestartRecovery = { 
 /**
@@ -8352,7 +8356,24 @@ park_after?: ParkAfter | null,
  * is refused, and so is `direct` for an agent whose driver this node
  * does not offer yet.
  */
-drivers?: SetAgentDrivers | null, };
+drivers?: SetAgentDrivers | null, 
+/**
+ * Startup policy patch. An absent patch preserves every saved choice.
+ */
+restart_recovery?: SetRestartRecovery | null, };
+
+/**
+ * A partial startup-policy change; omission preserves either saved field.
+ */
+export type SetRestartRecovery = { 
+/**
+ * Enable or disable without replacing the configured prompt.
+ */
+enabled?: boolean | null, 
+/**
+ * Replace the prompt, also while recovery is disabled.
+ */
+prompt?: PromptText | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

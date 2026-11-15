@@ -4,6 +4,8 @@
 //! file budget (docs/QUALITY.md) as migrations are appended; a released
 //! entry is never edited, only followed by a new one.
 
+use super::restart_migration::RESTART;
+
 /// Version 1: sessions and their event log.
 ///
 /// - Times are nanoseconds since the Unix epoch (`i64`), so a record's
@@ -461,9 +463,12 @@ const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
+/// Recovery follows the head's latest migration; integration changes this one fact.
+pub(super) const RESTART_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; RESTART_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -482,4 +487,5 @@ pub(super) const MIGRATIONS: &[&str; TITLE_ORIGIN_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    RESTART,
 ];

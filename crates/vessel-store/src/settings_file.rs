@@ -10,6 +10,9 @@
 //!   changed keeps following its flag. The same type as the wire's
 //!   change (`SetNodeSettings`), so a later setting is one more optional
 //!   field here too.
+//! - Recovery's unregistered local policy has a full saved-record view in
+//!   `settings_record`. The legacy wire-patch APIs remain compatible, while
+//!   both views share the private codec/coverage/replace implementation here.
 //! - It is written owner-only and atomically, as `agents.toml` is, so a
 //!   reader sees the old file or the new one.
 //! - A file from a later build parses here: the type never refuses fields
@@ -30,7 +33,10 @@
 //!   person repairs the file, which leaves a node whose file was damaged
 //!   unable to change any setting from the app.
 
+use std::fmt;
 use std::io;
+
+use serde::{Serialize, de::DeserializeOwned};
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
@@ -58,13 +64,13 @@ pub enum SetAside {
 }
 
 /// Why `settings.json` was not read.
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 pub enum SettingsFileError {
     /// It could not be read.
     #[error(transparent)]
     Read(#[from] StoreError),
     /// It is not the settings' JSON.
-    #[error("{}: {source}", path.display())]
+    #[error("{}: the saved settings could not be parsed", path.display())]
     Parse {
         /// The file.
         path: PathBuf,
@@ -72,6 +78,43 @@ pub enum SettingsFileError {
         #[source]
         source: serde_json::Error,
     },
+    /// A full saved record did not parse. Its prompt must not enter
+    /// diagnostics; the original error remains available as the source.
+    #[error("{}: the saved settings could not be parsed", path.display())]
+    RecordParse {
+        /// The file, without any of its contents.
+        path: PathBuf,
+        /// The decoder's error, retained without formatting its input.
+        #[source]
+        source: serde_json::Error,
+    },
+}
+
+impl SettingsFileError {
+    pub(super) fn for_record(self) -> Self {
+        match self {
+            Self::Read(_) | Self::RecordParse { .. } => self,
+            Self::Parse { path, source } => Self::RecordParse { path, source },
+        }
+    }
+}
+
+impl fmt::Debug for SettingsFileError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Read(error) => f.debug_tuple("Read").field(error).finish(),
+            Self::Parse { path, source: _ } => f
+                .debug_struct("Parse")
+                .field("path", path)
+                .field("source", &"[redacted]")
+                .finish(),
+            Self::RecordParse { path, source: _ } => f
+                .debug_struct("RecordParse")
+                .field("path", path)
+                .field("source", &"[redacted]")
+                .finish(),
+        }
+    }
 }
 
 impl DataDir {
@@ -86,6 +129,13 @@ impl DataDir {
     /// # Errors
     /// The file exists but cannot be read, or does not parse.
     pub fn read_settings(&self) -> Result<Option<SetNodeSettings>, SettingsFileError> {
+        self.read_settings_as()
+    }
+
+    // Both the compatibility patch and full record share this decoding edge.
+    pub(super) fn read_settings_as<T: DeserializeOwned>(
+        &self,
+    ) -> Result<Option<T>, SettingsFileError> {
         let path = self.settings_path();
         let text = match std::fs::read(&path) {
             Ok(text) => text,
@@ -156,6 +206,14 @@ impl DataDir {
     /// # Errors
     /// The file exists but cannot be read, or is not JSON.
     pub fn settings_hold_more_than(&self, known: &SetNodeSettings) -> Result<bool, StoreError> {
+        self.settings_contain_more_than(known)
+    }
+
+    // Keep the head's recursive coverage rule identical for both views.
+    pub(super) fn settings_contain_more_than<T: Serialize>(
+        &self,
+        known: &T,
+    ) -> Result<bool, StoreError> {
         let path = self.settings_path();
         let text = match std::fs::read(&path) {
             Ok(text) => text,
@@ -173,6 +231,11 @@ impl DataDir {
     /// # Errors
     /// The file cannot be written.
     pub fn write_settings(&self, settings: &SetNodeSettings) -> Result<(), StoreError> {
+        self.write_settings_as(settings)
+    }
+
+    // There is still one private, atomic replacement implementation.
+    pub(super) fn write_settings_as<T: Serialize>(&self, settings: &T) -> Result<(), StoreError> {
         let path = self.settings_path();
         let text = serde_json::to_vec_pretty(settings)
             .map_err(|error| StoreError::io(&path)(io::Error::other(error)))?;
@@ -208,6 +271,7 @@ mod tests {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
             drivers: None,
+            ..SetNodeSettings::default()
         };
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));

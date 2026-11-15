@@ -142,6 +142,16 @@ impl NodeService {
             .launcher
             .options(&self.profiles, &spec, principal)
             .map_err(|error| wire(&error))?;
+        // Imported display metadata can hide a remote origin. Retain the
+        // authenticated creation principal and explicit unattended intent,
+        // rather than reconstructing provenance from message text later.
+        let restart_eligible = if unattended.is_none()
+            && matches!(principal, Principal::Owner | Principal::Device { .. })
+        {
+            vessel_store::RestartEligibility::Person
+        } else {
+            vessel_store::RestartEligibility::Never
+        };
         if let Some(line) = unattended {
             options.questions = false;
             options.notices.push(line);
@@ -181,7 +191,16 @@ impl NodeService {
             }
         }
         options.fork = fork.map(Box::new);
-        let created = self.sessions.create(spec, options, lease).await;
+        let created = match restart_eligible {
+            vessel_store::RestartEligibility::Person => {
+                self.sessions.create(spec, options, lease).await
+            }
+            vessel_store::RestartEligibility::Never => {
+                self.sessions
+                    .create_without_recovery(spec, options, lease)
+                    .await
+            }
+        };
         if created.is_err() {
             self.agents.forget(id);
             self.models.retire(id);
@@ -199,9 +218,23 @@ impl NodeService {
 
     pub(crate) async fn send_input(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: SendInput,
     ) -> Result<Ack, WireError> {
+        if matches!(
+            &request.input,
+            vessel_proto::SessionInput::CancelTurn { .. }
+        ) {
+            let sessions = std::sync::Arc::clone(&self.sessions);
+            return self
+                .sessions
+                .hold(connection.operation(), async move {
+                    sessions.send(request.session, request.input).await
+                })
+                .await
+                .map(|()| Ack)
+                .map_err(|error| wire(&error));
+        }
         self.sessions
             .send(request.session, request.input)
             .await
@@ -211,11 +244,14 @@ impl NodeService {
 
     pub(crate) async fn kill_session(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: KillSession,
     ) -> Result<Ack, WireError> {
+        let sessions = std::sync::Arc::clone(&self.sessions);
         self.sessions
-            .kill(request.session)
+            .hold(connection.operation(), async move {
+                sessions.kill(request.session).await
+            })
             .await
             .map(|()| Ack)
             .map_err(|error| wire(&error))

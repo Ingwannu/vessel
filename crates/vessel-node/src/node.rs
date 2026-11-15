@@ -1,7 +1,7 @@
 //! Starting a node and stopping it.
 
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -12,15 +12,14 @@ use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_harness::HarnessEnv;
-use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
 use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_session::{AttachmentLoader, SessionRuntime};
+use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -53,7 +52,9 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
+mod runtime;
 mod setup;
+mod storage;
 
 use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
 
@@ -114,26 +115,28 @@ impl Node {
             models,
             dirs,
         } = prepare_off_thread(&config).await?;
-        let store = open_store(&config).await?;
+        let settings_opening = crate::settings::Opening::read(&config)
+            .await
+            .map_err(NodeError::Task)?;
+        let store = storage::open(&config, settings_opening.restart_enabled()).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
-        let Core {
-            runtime,
-            lifecycle,
-            stop,
-            tasks,
-            forwarders,
-            devices,
-            agents,
-            service,
-            relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
-        drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
+        let core = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relaying,
+            session_setup,
+            settings_opening,
+        )
+        .await?;
+        drop(tokio::spawn(serve_models(models, proxy, core.stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
-            Arc::clone(&service),
-            lifecycle.watch_info(),
+            Arc::clone(&core.service),
+            core.lifecycle.watch_info(),
             config.rpc.clone(),
             closing.clone(),
         ));
@@ -144,22 +147,13 @@ impl Node {
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
 
-        let secure = SecureGateway {
-            keypair,
-            channel: vessel_secure::Config::default(),
-            service,
-            lifecycle: lifecycle.clone(),
-            devices,
-            config: config.rpc.clone(),
-            closing: closing.clone(),
-            connections: connections.clone(),
-            unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
-            unadmitted_per_address: Arc::default(),
-        };
+        crate::service::recovery::start(&core.service, &core.tasks, core.stop.clone());
+        let secure = secure_gateway(&config, keypair, &core, &closing, &connections);
         let teardown = Teardown {
-            runtime,
-            tasks,
-            forwarders,
+            runtime: core.runtime,
+            settings: core.settings,
+            tasks: core.tasks,
+            forwarders: core.forwarders,
             closing,
             connections: connections.clone(),
             store,
@@ -177,17 +171,17 @@ impl Node {
                 }),
             )
         });
-        relays.serve(secure.clone(), connections.clone());
+        core.relays.serve(secure.clone(), connections.clone());
         let gateway = LocalGateway {
             rpc,
             token,
             connections,
-            agents: AgentGateway::new(agents, &secure, config.rpc.clone()),
+            agents: AgentGateway::new(core.agents, &secure, config.rpc.clone()),
         };
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
-            stop.clone(),
+            core.stop.clone(),
             teardown,
             lock,
         ));
@@ -195,11 +189,11 @@ impl Node {
         Ok(Self {
             address,
             local: local_endpoint,
-            lifecycle,
+            lifecycle: core.lifecycle,
             #[cfg(test)]
             secure,
-            relays,
-            stop,
+            relays: core.relays,
+            stop: core.stop,
             task,
         })
     }
@@ -261,23 +255,10 @@ fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
     );
 }
 
-/// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
-        .await
-        .map_err(NodeError::Store)?;
-    if !interrupted.is_empty() {
-        tracing::info!(
-            sessions = interrupted.len(),
-            "sessions from the previous run are now interrupted"
-        );
-    }
-    Ok(store)
-}
-
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
+    settings: Arc<crate::settings::Settings>,
     lifecycle: Lifecycle,
     /// Cancelled to stop the node.
     stop: CancellationToken,
@@ -307,6 +288,28 @@ fn lsp_config(config: &Config) -> vessel_lsp::Config {
     lsp
 }
 
+/// Bind transport authentication to the already-created node core.
+fn secure_gateway(
+    config: &Config,
+    keypair: Arc<NodeKeypair>,
+    core: &Core,
+    closing: &CancellationToken,
+    connections: &TaskTracker,
+) -> SecureGateway {
+    SecureGateway {
+        keypair,
+        channel: vessel_secure::Config::default(),
+        service: Arc::clone(&core.service),
+        lifecycle: core.lifecycle.clone(),
+        devices: Arc::clone(&core.devices),
+        config: config.rpc.clone(),
+        closing: closing.clone(),
+        connections: connections.clone(),
+        unadmitted: Arc::new(Semaphore::new(MAX_UNADMITTED)),
+        unadmitted_per_address: Arc::default(),
+    }
+}
+
 /// Build the session runtime, the lifecycle, the devices and the service.
 #[expect(
     clippy::too_many_lines,
@@ -319,20 +322,23 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    settings_opening: crate::settings::Opening,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone());
+    let stop = CancellationToken::new();
+    let runtime = runtime::open(config, loader, setup.private_dir.clone(), stop.clone());
+    let tasks = TaskTracker::new();
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(crate::settings::Settings::open(
-        config.data_dir.clone(),
+        settings_opening,
         Arc::clone(&runtime),
-        ParkAfter::from_duration(config.park_after),
-        config.park_after_given,
+        store.clone(),
+        &tasks,
+        &stop,
     ));
-    let stop = CancellationToken::new();
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -341,7 +347,6 @@ async fn core(
         .await
         .map_err(NodeError::Task)?;
     let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
-    let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
         Arc::clone(&runtime),
@@ -499,7 +504,7 @@ async fn core(
         catalogue: crate::catalogue::Catalogues::new(&config.registry_url),
         schedules,
         push,
-        settings,
+        settings: Arc::clone(&settings),
         limits,
     })));
     automation::schedules::start(
@@ -516,6 +521,7 @@ async fn core(
     .await;
     Ok(Core {
         runtime,
+        settings,
         lifecycle,
         stop,
         tasks,
@@ -525,27 +531,6 @@ async fn core(
         service,
         relays,
     })
-}
-
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
-    Arc::new(
-        SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: config.harness_lookup.clone(),
-                harness_env: config.harness_env.clone(),
-                ring_capacity: config.ring_capacity,
-                durable_capacity: config.durable_capacity,
-                agent_handshake_timeout: config.agent_handshake_timeout,
-                park_after: config.park_after,
-                private_dir: Some(private_dir),
-            },
-            CancellationToken::new(),
-        )
-        .with_attachments(loader),
-    )
 }
 
 /// How many prompts' attachment loads may wait for the node's loader; a
