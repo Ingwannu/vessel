@@ -84,9 +84,9 @@ counts, indices, byte lengths, timings and exit codes have typed owners.
 Existing equivalents are reused; external ids are not assumed to be node ids.
 
 `ToolCallStatus::Canceled` is separate from Failed. `ToolFailure` holds display
-text rather than untyped error objects. Provenance preserves sender identity,
-optional remote identity/title and message identity using typed external ids;
-it never grants that sender authority. ACP/provider decoders own all field
+text rather than untyped error objects. Provenance follows `protocol/src/agent-message.ts:4-14`: typed event
+Message/Finished/Errored/PermissionRequired/Closed, sender identity, optional
+remote identity/title and message text. It never grants that sender authority. ACP/provider decoders own all field
 inspection. Unknown tool inputs stay opaque; missing detail is not fabricated.
 
 ### Permissions and question presentation

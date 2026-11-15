@@ -31,10 +31,16 @@ Paseo 0.15.4, paths relative to packages:
 - Surveys read: parts/C-timeline.md, parts/D-messaging.md, gaps.md first sections;
   CATALOGUE.md and CONNECTIONS.md links inspected for cross-area ownership.
 
-Remaining pointers are survey-only until opened before implementation:
-protocol agent-message provenance definition; server/session.ts permission reply
-and timeline feature filters; codex-app-server-agent.ts response active-turn guard;
-app question-form-card-core.ts empty/custom/preview semantics. The local driver
+- protocol/src/agent-message.ts:4-14: provenance event/sender/text, no separate
+  message id in this structure.
+- server/src/server/session.ts:1360-1370 and :5181-5220: capability filtering
+  and direct modern permission acknowledgements.
+- server/src/server/agent/providers/codex-app-server-agent.ts:4797-4823:
+  async answer dispatch targets exact active foreground turn, otherwise follow-up.
+- app/src/components/question-form-card-core.ts:30-177: custom/option pairing,
+  preview, allow-empty and dismiss behavior.
+
+These pointers were opened after the initial contract draft. The local driver
 schema is pinned to Codex 0.166.0; unsupported incoming kinds must not be invented.
 
 ## Current ownership and planned modules
