@@ -52,6 +52,9 @@
 //! - `session/list` (protocol 17; offered unless `FAKE_ACP_NO_LIST` is
 //!   set, "method not found" then): three earlier conversations over two
 //!   pages (`history` module); no session is started by it.
+//! - With `FAKE_ACP_LOAD_GATE` set to a loopback socket, `session/load`
+//!   reports its id there and waits for the test's one-byte acknowledgement.
+//!   It cannot load or accept a recovery prompt before that boundary.
 //! - `session/load`: replays the conversation as a user message chunk
 //!   `earlier question` (then, with `FAKE_ACP_REPLAY` set to a number,
 //!   that many agent message chunks `replayed line <n>`, a long
@@ -66,6 +69,8 @@
 //! - `session/set_config_option`: sets an option to a value it offers
 //!   (`mode` never to `locked`), rejects anything else; `session/set_mode`
 //!   the same for the older modes.
+//! - `FAKE_ACP_PROMPT_GATE` holds the actual prompt response on the same
+//!   framed loopback barrier as the load gate, after the fake handles the turn.
 //! - `session/prompt`, by prompt text:
 //!   - `plain`: one message chunk `echo: plain` with a message id
 //!     (`msg-<n>`, new each time), then `end_turn`;
@@ -176,6 +181,8 @@ use tokio_util::sync::CancellationToken;
 mod ask;
 #[path = "fake_acp/describe.rs"]
 mod describe;
+#[path = "fake_acp/gate.rs"]
+mod gate;
 #[path = "fake_acp/history.rs"]
 mod history;
 #[path = "fake_acp/options.rs"]
@@ -521,6 +528,12 @@ async fn serve() -> ExitCode {
             {
                 let state = Arc::clone(&state);
                 async move |request: LoadSessionRequest, responder, cx| {
+                    if let Err(error) = gate::wait(&request.session_id.0).await {
+                        complain(&format!("fake-acp: its test load gate closed: {error}"));
+                        return responder.respond_with_error(
+                            Error::internal_error().data("the test load barrier closed"),
+                        );
+                    }
                     if load_fails {
                         return responder.respond_with_error(
                             Error::invalid_params()
@@ -749,6 +762,9 @@ async fn serve() -> ExitCode {
                                 (&turn, &finish),
                             )
                             .await?;
+                            gate::prompt(&request.session_id.0)
+                                .await
+                                .map_err(|error| Error::internal_error().data(error.to_string()))?;
                             lock(&state).steerable = None;
                             responder.respond(PromptResponse::new(reason))
                         }

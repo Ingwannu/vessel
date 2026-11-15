@@ -79,7 +79,28 @@ pub(crate) enum NodeCommand {
         /// until this build offers it). Repeat for several agents.
         #[arg(long, value_name = "AGENT=acp|direct", value_parser = driver)]
         driver: Vec<(HarnessKind, AgentDriver)>,
+        /// Continue interrupted active turns at daemon start (default: off).
+        #[arg(long, value_enum)]
+        resume_on_startup: Option<ResumeOnStartup>,
+        /// Exact nonblank continuation text, also editable while off.
+        #[arg(long)]
+        resume_prompt: Option<vessel_proto::automation::PromptText>,
     },
+}
+
+/// A parsed startup-policy switch; command code never branches on raw text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum ResumeOnStartup {
+    On,
+    Off,
+}
+impl ResumeOnStartup {
+    pub(crate) const fn enabled(self) -> bool {
+        match self {
+            Self::On => true,
+            Self::Off => false,
+        }
+    }
 }
 
 /// `--driver`: an agent's name, `=`, then `acp` or `direct`.
@@ -205,3 +226,6 @@ mod tests {
         assert!(driver("gemini=acp").is_err(), "no protocol of its own");
     }
 }
+
+#[cfg(test)]
+mod restart_tests;

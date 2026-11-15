@@ -11,7 +11,7 @@ use vessel_proto::{
 use vessel_pty::WindowSize;
 
 use super::{Input, SessionHandle, current};
-use crate::delivery::{Cancel, Change, Deliver};
+use crate::delivery::{Change, Deliver};
 use crate::error::{DeliveryError, InputKind, ParkRefusal, SessionError};
 use crate::moving::Control;
 use crate::parking::Route;
@@ -29,9 +29,7 @@ impl SessionHandle {
     /// [`SessionError::Input`] when the agent refuses it (for example a
     /// second answer to a permission request).
     pub async fn send(&self, input: SessionInput) -> Result<(), SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
+        self.accepting_input()?;
         match (&self.0.input, input) {
             (Input::Terminal(pty), SessionInput::Terminal { input }) => {
                 let sent = match input {
@@ -52,6 +50,7 @@ impl SessionHandle {
                 let _started = self
                     .order(route, |reply| {
                         Control::Deliver(Deliver {
+                            generation: self.restart_generation(),
                             content,
                             delivery: Delivery::Start,
                             by: Creator::Owner,
@@ -62,9 +61,8 @@ impl SessionHandle {
                     .await?;
                 Ok(())
             }
-            (Input::Structured(route), SessionInput::CancelTurn { turn }) => {
-                self.order(route, |reply| Control::Cancel(Cancel { turn, reply }))
-                    .await
+            (Input::Structured(_), SessionInput::CancelTurn { turn }) => {
+                self.stop(super::SessionStop::Cancel { turn }).await
             }
             (Input::Structured(route), SessionInput::AnswerPermission { id, outcome }) => {
                 Ok(current(route)?.answer(id, outcome).await?)
@@ -111,6 +109,7 @@ impl SessionHandle {
         let route = self.structured("a queue")?;
         self.order(route, |reply| {
             Control::Deliver(Deliver {
+                generation: self.restart_generation(),
                 content,
                 delivery,
                 by,
@@ -144,6 +143,7 @@ impl SessionHandle {
         let delivered = self
             .order(route, |reply| {
                 Control::Deliver(Deliver {
+                    generation: self.restart_generation(),
                     content,
                     delivery,
                     by,
@@ -173,8 +173,14 @@ impl SessionHandle {
             return Err(DeliveryError::Empty.into());
         }
         let route = self.structured("a queue")?;
-        self.order(route, |reply| Control::Queue(Change { change, reply }))
-            .await
+        self.order(route, |reply| {
+            Control::Queue(Change {
+                generation: self.restart_generation(),
+                action: change,
+                reply,
+            })
+        })
+        .await
     }
 
     /// The input route of a live structured session; a terminal session
@@ -183,9 +189,7 @@ impl SessionHandle {
         &self,
         terminal: ParkRefusal,
     ) -> Result<&watch::Receiver<Route>, SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
+        self.accepting_input()?;
         match &self.0.input {
             Input::Terminal(_) => Err(terminal.into()),
             Input::Structured(route) => Ok(route),
@@ -197,9 +201,7 @@ impl SessionHandle {
         &self,
         what: &'static str,
     ) -> Result<&watch::Receiver<Route>, SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
+        self.accepting_input()?;
         match &self.0.input {
             Input::Terminal(_) => Err(SessionError::Terminal(what)),
             Input::Structured(route) => Ok(route),
@@ -219,10 +221,17 @@ impl SessionHandle {
         }
         let control = self.0.control.as_ref().ok_or(SessionError::Ended)?;
         let (reply, answer) = oneshot::channel();
-        control
-            .send(order(reply))
+        let permit = control
+            .reserve()
             .await
             .map_err(|_ended| SessionError::Ended)?;
+        // Reserve capacity before the lock, then capture generation at the
+        // actual enqueue. A stop holds the same lock through its commit and
+        // effect; no newer input can slip between those two operations.
+        let input = self.0.input_admission.lock().await;
+        self.accepting_input()?;
+        permit.send(order(reply));
+        drop(input);
         answer.await.map_err(|_ended| SessionError::Ended)?
     }
 
@@ -242,5 +251,84 @@ impl SessionHandle {
             Input::Structured(route) if matches!(*route.borrow(), Route::Parked) => Ok(false),
             Input::Structured(route) => Ok(current(route)?.turn_running().await?),
         }
+    }
+}
+
+/// Reserved bounded actor capacity, before a node awaits fresh authority.
+/// Sending consumes it synchronously; dropping it starts no turn.
+#[derive(Debug)]
+pub struct PromptPermit {
+    handle: SessionHandle,
+    permit: tokio::sync::mpsc::OwnedPermit<Control>,
+    _input: tokio::sync::OwnedMutexGuard<()>,
+}
+impl PromptPermit {
+    /// Admit a Start-only prompt without another await.
+    ///
+    /// # Errors
+    /// The session ended or moved while capacity/authority was awaited.
+    pub fn send(
+        self,
+        content: Vec<ContentBlock>,
+        by: Creator,
+    ) -> Result<oneshot::Receiver<Result<Delivered, SessionError>>, SessionError> {
+        if content.is_empty() {
+            return Err(DeliveryError::Empty.into());
+        }
+        let route = self.handle.structured("a conversation")?;
+        if matches!(*route.borrow(), Route::Moving) {
+            return Err(SessionError::Moving);
+        }
+        let (reply, answer) = oneshot::channel();
+        let generation = self.handle.restart_generation();
+        drop(self.permit.send(Control::Deliver(Deliver {
+            generation,
+            content,
+            delivery: Delivery::Start,
+            by,
+            turn: None,
+            reply,
+        })));
+        Ok(answer)
+    }
+}
+impl SessionHandle {
+    /// Reserve the actor's bounded input lane without admitting a prompt.
+    ///
+    /// # Errors
+    /// As [`prompt`](Self::prompt).
+    pub async fn reserve_prompt(&self) -> Result<PromptPermit, SessionError> {
+        let _route = self.structured("a conversation")?;
+        let control = self.0.control.clone().ok_or(SessionError::Ended)?;
+        let permit = control
+            .reserve_owned()
+            .await
+            .map_err(|_ended| SessionError::Ended)?;
+        let input = std::sync::Arc::clone(&self.0.input_admission)
+            .lock_owned()
+            .await;
+        self.accepting_input()?;
+        Ok(PromptPermit {
+            handle: self.clone(),
+            permit,
+            _input: input,
+        })
+    }
+}
+
+impl SessionHandle {
+    pub(super) fn accepting_input(&self) -> Result<(), SessionError> {
+        if self
+            .0
+            .admission
+            .as_ref()
+            .is_some_and(tokio_util::sync::CancellationToken::is_cancelled)
+        {
+            return Err(SessionError::ShuttingDown);
+        }
+        if self.0.kill.is_cancelled() || !self.0.info.borrow().status.is_live() {
+            return Err(SessionError::Ended);
+        }
+        Ok(())
     }
 }

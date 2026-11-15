@@ -28,7 +28,7 @@ use crate::handle::Shared;
 pub(crate) struct Publisher {
     shared: Arc<Shared>,
     /// `None` once the node dropped its receiver.
-    durable: Option<mpsc::Sender<Arc<EventRecord>>>,
+    durable: Option<mpsc::Sender<crate::JournalEntry>>,
     info: watch::Sender<SessionInfo>,
     next: EventSeq,
     /// What the agent is doing, read off every committed record; the
@@ -39,7 +39,7 @@ pub(crate) struct Publisher {
 /// Room for one record in the durable channel.
 #[derive(Debug)]
 pub(crate) enum Slot {
-    Durable(mpsc::OwnedPermit<Arc<EventRecord>>),
+    Durable(mpsc::OwnedPermit<crate::JournalEntry>),
     /// The node no longer receives records (it dropped the channel).
     Gone,
 }
@@ -57,7 +57,7 @@ impl Publisher {
     /// record after its stored log for one started again (protocol 10).
     pub(crate) fn new(
         shared: Arc<Shared>,
-        durable: mpsc::Sender<Arc<EventRecord>>,
+        durable: mpsc::Sender<crate::JournalEntry>,
         info: watch::Sender<SessionInfo>,
         activity: Tracker,
     ) -> Self {
@@ -82,6 +82,30 @@ impl Publisher {
             Ok(permit) => Slot::Durable(permit),
             Err(_closed) => Slot::Gone,
         }
+    }
+
+    pub(crate) fn input_closed(&self) -> bool {
+        self.shared
+            .admission
+            .as_ref()
+            .is_some_and(tokio_util::sync::CancellationToken::is_cancelled)
+    }
+    pub(crate) fn restart_enabled(&self) -> bool {
+        self.shared.journal.enabled()
+    }
+    pub(crate) async fn checkpoint_restart(
+        &self,
+        change: vessel_proto::restart::RestartCheckpoint,
+    ) -> Result<(), crate::JournalError> {
+        let _matched = self.shared.journal.checkpoint(change).await?;
+        Ok(())
+    }
+
+    /// Capture the actor boundary before a shutdown signal can cancel a turn.
+    pub(crate) async fn capture_restart(&self) -> Result<(), crate::JournalError> {
+        let change = self.shared.journal.shutdown_snapshot();
+        let _matched = self.shared.journal.checkpoint(change).await?;
+        Ok(())
     }
 
     /// The sequence number the next record committed gets.
@@ -177,8 +201,11 @@ impl Publisher {
         if record.event.asks_for_attention() {
             self.shared.marks().asked(seq);
         }
+        let mut journal = self.shared.journal.publication();
         match slot {
-            Slot::Durable(permit) => drop(permit.send(Arc::clone(&record))),
+            Slot::Durable(permit) => {
+                drop(permit.send(crate::JournalEntry::Event(Arc::clone(&record))));
+            }
             Slot::Gone => {
                 if self.durable.take().is_some() {
                     tracing::warn!(
@@ -188,6 +215,8 @@ impl Publisher {
                 }
             }
         }
+        journal.observe(&record);
+        drop(journal);
         self.shared.ring().append(record);
         self.next = next;
         let _notified = self.info.send_if_modified(|info| {
@@ -250,6 +279,7 @@ fn place(info: &mut SessionInfo, board: SessionBoard) -> bool {
 /// sender drops with it) and the node (the durable sender drops with it).
 impl Drop for Publisher {
     fn drop(&mut self) {
+        self.shared.journal.close();
         self.shared.ring().close();
     }
 }

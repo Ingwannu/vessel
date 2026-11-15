@@ -7,7 +7,7 @@
 //! handles and its lifetime.
 
 mod agent;
-mod claims;
+pub(crate) mod claims;
 mod drivers;
 mod launch;
 mod parts;
@@ -18,13 +18,13 @@ mod diagnostics;
 
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::{Arc, PoisonError, RwLock};
+use std::sync::{PoisonError, RwLock};
 use std::time::Duration;
 
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_proto::{EventRecord, SessionId, SessionInfo};
+use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
 pub use launch::{ForkStart, LaunchOptions};
@@ -71,6 +71,8 @@ pub struct SessionRuntime {
     /// Which protocol drives each agent's new sessions (protocol 18,
     /// `drivers`).
     drivers: drivers::Drivers,
+    restart_journal: bool,
+    admission: Option<CancellationToken>,
 }
 
 /// A session that was just started.
@@ -78,12 +80,13 @@ pub struct SessionRuntime {
 pub struct Created {
     /// The session.
     pub handle: SessionHandle,
-    /// Every record, in order, exactly once. The node must drain it into the
+    /// Public records and enabled internal commit barriers, in order.
+    /// The node must persist records and acknowledge barriers through its
     /// store. Bounded: if the node stops draining, the session applies
     /// backpressure (its output pump pauses) rather than dropping records.
     /// Closes after the final status record. The records are shared with
     /// the ring and live followers, not copies.
-    pub durable: mpsc::Receiver<Arc<EventRecord>>,
+    pub durable: mpsc::Receiver<crate::JournalEntry>,
 }
 
 impl SessionRuntime {
@@ -100,7 +103,25 @@ impl SessionRuntime {
             park_after,
             claims: claims::Claims::default(),
             drivers: drivers::Drivers::default(),
+            restart_journal: false,
+            admission: None,
         }
+    }
+
+    /// Stop new launch/input admission separately from stopping actors.
+    /// The node first drains settings, then captures actors' shutdown state.
+    #[must_use]
+    pub fn with_admission(mut self, stopping: CancellationToken) -> Self {
+        self.admission = Some(stopping);
+        self
+    }
+
+    /// Enable ordered node-store recovery checkpoints on this runtime.
+    /// A consumer must persist and acknowledge every journal item.
+    #[must_use]
+    pub fn with_restart_journal(mut self) -> Self {
+        self.restart_journal = true;
+        self
     }
 
     /// How long an idle structured session runs before its agent is
@@ -142,6 +163,10 @@ impl SessionRuntime {
     /// Whether shutdown began: no session starts any more.
     pub(crate) fn is_shutting_down(&self) -> bool {
         self.shutdown.is_cancelled()
+            || self
+                .admission
+                .as_ref()
+                .is_some_and(CancellationToken::is_cancelled)
     }
 
     /// How long an agent's handshake may take.

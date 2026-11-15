@@ -15,10 +15,27 @@ use crate::error::ServiceError;
 
 impl Sessions {
     pub(crate) async fn send(
-        &self,
+        self: &std::sync::Arc<Self>,
         id: SessionId,
         input: SessionInput,
     ) -> Result<(), ServiceError> {
+        if let SessionInput::CancelTurn { turn } = input {
+            let sessions = std::sync::Arc::clone(self);
+            return self
+                .tasks
+                .spawn(async move {
+                    match sessions.find(id).await? {
+                        Found::Live { handle, .. } => {
+                            sessions
+                                .stop(&handle, vessel_session::SessionStop::Cancel { turn })
+                                .await
+                        }
+                        Found::Stored(_) => Err(ServiceError::Ended(id)),
+                    }
+                })
+                .await
+                .map_err(ServiceError::Task)?;
+        }
         match self.find(id).await? {
             Found::Live { handle, .. } => {
                 let input = match input {

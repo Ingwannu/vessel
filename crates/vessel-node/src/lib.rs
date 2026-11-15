@@ -92,6 +92,7 @@ mod probes;
 mod profiles;
 mod push;
 mod readiness;
+mod recovery;
 mod relays;
 mod secret_copy;
 mod secure;
