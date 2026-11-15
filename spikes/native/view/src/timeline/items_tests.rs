@@ -1,4 +1,4 @@
-//! Direct typed projection fixtures before canonical AgentEvent activation.
+//! Direct typed projection fixtures before canonical `AgentEvent` activation.
 //! The parent module admits the exact source cursor without a fake wire event.
 
 use super::*;

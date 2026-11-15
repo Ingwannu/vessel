@@ -36,7 +36,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Type, TypeExt as _};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted, Command};
 use vessel_app_view::fork::{Notice, PreparedNotice};
-use vessel_app_view::timeline::{Until, empty_fork, origin_of};
+use vessel_app_view::timeline::{Folds, Until, empty_fork, origin_of};
 use vessel_proto::{ErrorCode, EventRecord, SessionId};
 
 use super::entries::Paint;

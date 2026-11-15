@@ -14,7 +14,7 @@ pub(crate) struct UnappliedProjection {
 }
 
 impl ConversationArea {
-    /// Install a moved provider-child projection without a fabricated SessionId.
+    /// Install a moved provider-child projection without a fabricated `SessionId`.
     /// The owner first checks its parent binding/read generation and UI holds; a
     /// later query must never target this receiver through an old keyed Seat.
     ///
