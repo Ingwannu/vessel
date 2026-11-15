@@ -13,9 +13,10 @@ whole gate and V3 acceptance remain incomplete. `WORKSPACE_LABELS` stays None;
 no public RPC capability or consumer-ready source is claimed.
 
 Adopted reviewed W11 registry `0140ac0a` through announced node `9c150c6e`
-(gate 50c), then announced `1c762ccf` (gate 52, protocol 25, schema 20).
-The latter assigns six registry metadata methods; it assigns none of this
-package's label methods. W11's later membership-read leaf remains source-only
+(gate 50c), `1c762ccf` (gate 52, protocol 25, schema 20), then `93970acb`
+(gate 53, protocol 25, schema 21). The current base includes the canonical
+listing append. Six registry metadata methods are assigned; none of this
+package's label methods is assigned. W11's later membership-read leaf remains source-only
 and was not adopted. Native adoption uses only the lead's announced app bases.
 
 ## Reference and existing assets
@@ -109,7 +110,7 @@ both direct handler and nested Forward/Relay/Deliver reply hops. The existing
 pinned forwarding set and exhaustive version/sample/agent classifiers are
 extended; no unrelated assertion or policy is weakened.
 
-One migration appends after REGISTRY_SCHEMA through a derived constant; the
+One migration appends after BACKGROUND_SCHEMA through a derived constant; the
 integrator assigns merge order. Released SQL is unchanged. The existing rollback
 fixture drops only the two new tables before its unchanged registry predecessors.
 There is no second database, compound JSON writer or descriptor copy.
