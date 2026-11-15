@@ -514,3 +514,22 @@ and wait for the required metadata head before product assembly, observation
 or call registration. The diagnostic feature number remains `None`. The
 actual report, five-second response budget and other D4/D5 obligations remain
 unimplemented; this merge gate is not diagnostic feature completion.
+
+
+### Merged staged-source review accepted
+
+The merge base/staged-source and its exact gate are accepted at `ec1e4121`
+with result notes `39c664c9`. Review verified the twelve component files
+against the prior accepted checkpoint, the private owner overlays, all
+1,899 selected input blobs and the recorded whole-gate results. This is
+merge-base/staged-source acceptance only; it does not authorize product
+integration or approve a working diagnostic report. The canonical generated
+whitespace and remote-environment attestation limits remain as recorded.
+
+Resume point: keep D3 private under `cfg(test)` on this branch. The shared
+accessor is consumed, but canonical envelope-category metadata and the
+single-table representation of an unassigned requirement are still owed by
+their owner. Do not add a dummy version, local Method classification or
+second table. Product collection, observation and call/CLI wiring continue
+to wait for that reviewed prerequisite. No source or generated file changes
+in this acceptance note; no unchanged whole-gate rerun is needed.
