@@ -501,3 +501,12 @@ The reviewed values-only carrier has source/blob identity evidence for all
 actor or native runtime. The next combined node base may legitimately contain
 newer content in shared files, in which case the landed node files replace the
 carrier. The unregistered projection remains excluded from current checks.
+
+
+The unregistered root projection now delegates identity mapping to the canonical
+`WorkspaceDescriptor::root()` after checking explicit catalog ids/path consistency.
+Its registered Git fact is available only for a supported exact placement; a
+managed backing also requires a Ready Git project in the catalog. Missing or
+contradictory catalogs and unsupported nested placement remain unavailable. This
+is metadata from the node's record, not a filesystem inspection or physical-root
+continuity claim. The new pure regression remains uncompiled with the skeleton.

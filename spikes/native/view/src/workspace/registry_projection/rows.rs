@@ -13,7 +13,7 @@ use vessel_proto::{
         WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle, WorkspaceResource,
         WorkspaceVisibility,
     },
-    workspace::{BranchName, ProjectInfo, ProjectState, WorkspaceRoot},
+    workspace::{BranchName, ProjectInfo, ProjectState},
 };
 
 /// Native project grouping key; a display fact, never permission to call a node.
@@ -91,6 +91,21 @@ impl WorkspaceRow<'_> {
             .branch
             .as_ref()
     }
+    /// The node's registered Git fact for this exact supported placement.
+    /// Actual panel I/O still resolves and checks the root on the node.
+    ///
+    /// # Errors
+    /// Absent/inconsistent catalogs and unsupported nested placement remain unknown.
+    pub fn is_git(&self) -> Result<bool, LookupProblem> {
+        match self.location()? {
+            WorkspaceLocation::External => Err(LookupProblem::Unavailable),
+            WorkspaceLocation::Root(_) => self
+                .project()
+                .map(|project| project.git)
+                .ok_or(LookupProblem::Unavailable),
+        }
+    }
+
     /// Default home/sidebar visibility, preserving background and archived records in data.
     #[must_use]
     pub fn visible(&self) -> bool {
@@ -204,7 +219,7 @@ fn location(
     if !matches!(workspace.lifecycle, WorkspaceLifecycle::Active) {
         return Err(LookupProblem::Unavailable);
     }
-    let root = match workspace.backing {
+    match workspace.backing {
         WorkspaceBacking::Local => {
             let project = data
                 .projects
@@ -218,11 +233,17 @@ fn location(
             if project.root != workspace.path {
                 return Ok(WorkspaceLocation::External);
             }
-            WorkspaceRoot::Project {
-                project: workspace.project,
-            }
         }
         WorkspaceBacking::Managed { worktree } => {
+            let project = data
+                .projects
+                .projects
+                .iter()
+                .find(|project| project.id == workspace.project)
+                .ok_or(LookupProblem::Unavailable)?;
+            if !project.git || !matches!(project.state, ProjectState::Ready) {
+                return Err(LookupProblem::Unavailable);
+            }
             let backing = data
                 .worktrees
                 .worktrees
@@ -232,8 +253,7 @@ fn location(
             if backing.path != workspace.path {
                 return Ok(WorkspaceLocation::External);
             }
-            WorkspaceRoot::Worktree { worktree }
         }
-    };
-    Ok(WorkspaceLocation::Root(root))
+    }
+    Ok(WorkspaceLocation::Root(workspace.root()))
 }

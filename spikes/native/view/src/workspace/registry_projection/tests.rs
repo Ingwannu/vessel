@@ -250,3 +250,57 @@ fn host_and_content_capacity_never_evict_another_hosts_current_snapshot() {
     assert_eq!(cache.hosts.len(), MAX_REGISTRY_HOSTS);
     assert_eq!(cache.phase(&protected), Some(RegistryPhase::Ready));
 }
+
+#[test]
+fn git_facts_use_the_explicit_project_and_managed_backing_consistency() {
+    let mut epochs = ConnectionEpochs::default();
+    let node = NodeId::random();
+    let context = context(&mut epochs, "fixture", node);
+    let mut data = data(node);
+    let mut cache = RegistryProjection::default();
+    let key = cache.begin(context.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(data.clone())).unwrap());
+    assert_eq!(
+        cache.rows(&context).unwrap().next().unwrap().is_git(),
+        Ok(false)
+    );
+    let id = vessel_proto::WorktreeId::random();
+    data.registry.revision = RegistryRevision::from(1);
+    data.registry.workspaces[0].revision = RegistryRevision::from(1);
+    data.registry.workspaces[0].backing = WorkspaceBacking::Managed { worktree: id };
+    data.worktrees
+        .worktrees
+        .push(vessel_proto::workspace::WorktreeInfo {
+            id,
+            project: data.registry.workspaces[0].project,
+            path: data.registry.workspaces[0].path.clone(),
+            branch: None,
+            created_branch: None,
+            base: None,
+            created_at: chrono::DateTime::UNIX_EPOCH,
+            created_by: vessel_proto::Creator::Owner,
+            created_for: None,
+            sessions: Vec::new(),
+            setup: vessel_proto::workspace::SetupState::None,
+            kept: None,
+        });
+    let key = cache.begin(context.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(data.clone())).unwrap());
+    assert_eq!(
+        cache.rows(&context).unwrap().next().unwrap().is_git(),
+        Err(LookupProblem::Unavailable)
+    );
+    data.registry.revision = RegistryRevision::from(2);
+    data.registry.workspaces[0].revision = RegistryRevision::from(2);
+    data.projects.projects[0].git = true;
+    let key = cache.begin(context.clone()).unwrap();
+    assert!(cache.finish(&key, Ok(data)).unwrap());
+    let row = cache.rows(&context).unwrap().next().unwrap();
+    assert_eq!(row.is_git(), Ok(true));
+    assert_eq!(
+        row.location(),
+        Ok(WorkspaceLocation::Root(WorkspaceRoot::Worktree {
+            worktree: id
+        }))
+    );
+}
