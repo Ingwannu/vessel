@@ -138,6 +138,7 @@ impl Shell {
         tracing::warn!(why = %unsent.why, "the link did not take a command");
         let words = self.t.unsent;
         match crate::unsent::settle(unsent, words) {
+            crate::unsent::Settle::Ignore => {}
             crate::unsent::Settle::Answer(event) => self.on_event(*event, cx),
             crate::unsent::Settle::Prompt { session, text } => {
                 self.prompt_unsent(session, text);

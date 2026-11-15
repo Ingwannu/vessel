@@ -81,7 +81,7 @@ use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]
-use vessel_app_view::devices::ConnectionEpochs;
+use vessel_app_view::connection::ConnectionEpochs;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;

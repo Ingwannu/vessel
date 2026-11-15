@@ -14,7 +14,7 @@ impl State {
                     let tag = connected.context.tag();
                     connected.retire();
                     if let Ok(context) = self.admissions.admit(
-                        vessel_app_view::devices::MachineKey::from_book(to.as_str()),
+                        vessel_app_view::connection::MachineKey::from_book(to.as_str()),
                         connected.client.node().id,
                     ) {
                         let _old = self

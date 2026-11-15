@@ -22,7 +22,8 @@ pub(crate) enum RequestFailure {
     Refused(#[from] Refusal),
     // Preserve structured peer detail for each feature, never raw Display/Debug.
     #[error("the selected node refused the request")]
-    Call(#[source] CallError),
+    // Do not expose a raw peer message through an automatic error source chain.
+    Call(CallError),
 }
 impl std::fmt::Debug for RequestFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -126,3 +127,19 @@ impl SelectedConnection {
 // this exact attribute; Unary remains a real Devices product path above.
 #[cfg(test)]
 mod follow;
+
+#[cfg(test)]
+mod privacy_tests {
+    use super::*;
+    #[test]
+    fn peer_messages_cannot_escape_redaction_through_an_error_source() {
+        let canary = "synthetic-invitation-credential";
+        let failure = RequestFailure::Call(CallError::Remote(vessel_proto::WireError::new(
+            vessel_proto::ErrorCode::Conflict,
+            canary,
+        )));
+        assert!(!format!("{failure:?}").contains(canary));
+        assert!(!failure.to_string().contains(canary));
+        assert!(std::error::Error::source(&failure).is_none());
+    }
+}

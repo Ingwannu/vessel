@@ -10,7 +10,7 @@
 use crate::{Event, State};
 use tokio::sync::watch;
 use vessel_app_view::Agent;
-use vessel_app_view::devices::ConnectionContext;
+use vessel_app_view::connection::ConnectionContext;
 use vessel_client::{NodeClient, book::BookEntry};
 
 /// A physical client and its actor-owned, publicly exportable admission.

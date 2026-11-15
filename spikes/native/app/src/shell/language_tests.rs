@@ -29,15 +29,19 @@ impl Render for Probe {
 }
 
 impl Shell {
-    pub(crate) fn without_io(
+    pub(crate) fn with_test_link(
         window: &mut Window,
         cx: &mut Context<'_, Self>,
-        link: Option<Link>,
+        link: Link,
     ) -> Self {
+        let mut shell = Self::without_io(window, cx);
+        shell.link = Some(link);
+        shell
+    }
+
+    pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
-            link,
-            // Language checks pass None; device checks supply a detached link
-            // with an owned recording receiver, never a live connection.
+            link: None,
             unsent: mpsc::unbounded_channel().0,
             t: vessel_app_view::Lang::En.text(),
             words: Translator::get(ENGLISH).unwrap(),
@@ -72,7 +76,7 @@ pub(crate) fn init(cx: &mut TestAppContext) {
 pub(crate) fn preserves(cx: &mut TestAppContext, setup: Setup, field: Field, check: fn(&Shell)) {
     let (view, cx) = cx.add_window_view(move |window, cx| {
         let shell = cx.new(|cx| {
-            let mut shell = Shell::without_io(window, cx, None);
+            let mut shell = Shell::without_io(window, cx);
             setup(&mut shell, window, cx);
             shell
         });

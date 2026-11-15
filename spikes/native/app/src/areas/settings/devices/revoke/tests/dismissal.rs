@@ -88,7 +88,7 @@ fn old_escape_scrim_and_glyph_cannot_dismiss_another_intent_or_connection(cx: &m
                 let renders = Rc::clone(&renders);
                 move |window, cx| {
                     let shell = cx.new(|cx| {
-                        let mut shell = Shell::without_io(window, cx, None);
+                        let mut shell = Shell::without_io(window, cx);
                         let page = &mut shell.areas.settings.devices.page;
                         page.target(Target::Online(first.machine().clone()));
                         let _change = page.bind(Some(first.clone()));
