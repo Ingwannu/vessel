@@ -49,6 +49,7 @@ pub mod settings;
 pub mod shortcuts;
 pub mod sidebar;
 pub mod slider;
+pub mod subagents;
 pub mod sync;
 pub mod terminal;
 #[cfg(test)]

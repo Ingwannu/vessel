@@ -65,3 +65,29 @@ W10/W23 tool presentation can enrich this once their common type is integrated.
 Tests cover the full wrapper, Unicode, recent selection, near-budget last
 message retention, source identity/revision, metadata bounds and excluded raw
 input. Source/fixtures are staged pending narrow execution; no fork UI claim.
+
+## Shared managed-child projection
+
+Existing view/board/tree.rs was audited first: it keys only SessionId, derives
+parentage from immutable Creator and sorts children newest-first. It cannot be
+the current relationship source after detach and conflates equal session UUIDs
+on different nodes. The new view::subagents::ManagedTree<W> prepares one index
+for sidebar order, the child track and command-center reveal. W preserves W11's
+actual WorkspaceId at callers; it adds no workspace registry or cwd/title key.
+Existing board Row/origin compatibility will delegate once node hydration is
+integrated; no second lasting tree source is intended.
+
+Snapshots require explicit Known(current parent) or Unknown hydration. Detached
+and original roots both resolve Known(None); unsupported/old/conflicting data
+remains Unknown and cannot authorize archive/hide. Full SessionRef deduplicates
+book aliases. Conflicting snapshots fail; cycles become Unknown/Partial while
+remaining visible. Active children are oldest-first and exclude archive intent.
+Same-workspace children nest; cross-workspace children are normal rows in their
+own workspace. rows and reveal use the same index, so keyboard/sidebar jumps
+expand the same ancestor chain. Labels/status remain canonical card projections.
+
+Preparation caps16384 snapshot records and64 visible ancestry levels as named
+UI resource bounds; over-limit input refuses rather than dropping rows, and
+invalid/deeper relationships flatten with Unknown/Partial confidence. Source
+completeness is explicit. This pure view seam is staged; authoritative link
+hydration, root/provider actions and native track controls are still owed.
