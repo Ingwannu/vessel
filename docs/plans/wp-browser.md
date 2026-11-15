@@ -825,3 +825,23 @@ candidate-test-executable). It compiles but does not execute tests on the VM.
 Its explicit approved-host bundle fixture reads only the runtime bundle and
 starts no browser; passing that component will not qualify a supported engine.
 Later source changes cannot inherit its exact-SHA evidence.
+
+## Development-only checked wait dependency (coordinator exception)
+
+The coordinator explicitly authorized merging EXACT b37a3ee836c96951061c4006897eb80ac72bb2e0
+in this private node tree for development. The only conflict was append-only
+ADR0001: retained both the browser boundary/launch sections and the producer's
+checked-cleanup section verbatim. No Proc implementation or producer assertion
+was changed. This is not adoption, a gated union or a current package head.
+
+Before ANY new gate, review handoff or adoption request on this union, merge the
+announced gate49 node head carrying the same producer. Nothing built on this
+pre-announced dependency merge goes to the integrator/lead. Already pinned
+bba strict/d378 export precede the dependency and keep their own evidence scope.
+NoEngine remains. OwnedGroupExit is leader reap+accepted original cleanup, never
+an all-descendant OS-death proof or permission for premature profile/slot release.
+
+Exactbba strict failed only one proto documentation backtick at14:38 before later
+crate analysis; corrected00bb27a7f without weakening code/tests. Current combined
+strict remains owed after the required announced-head merge. Do not treat that
+blocked broad check as evidence for the later cursor/bundle additions.
