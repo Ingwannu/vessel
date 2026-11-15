@@ -28,6 +28,14 @@ fn explicit_directory_shape_is_preserved_without_using_client_os_or_filesystem()
             panic!("directory");
         };
         assert_eq!(input.0.as_str(), raw);
+        let nested = format!("{raw}:plugins/main");
+        let Source::Directory { input, subpath } =
+            parse(&nested, None).expect("directory subpath input")
+        else {
+            panic!("directory");
+        };
+        assert_eq!(input.0.as_str(), raw);
+        assert_eq!(subpath.as_ref().expect("subpath").as_str(), "plugins/main");
     }
 }
 
