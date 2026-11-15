@@ -120,7 +120,10 @@ pub(super) fn request(
     Ok(Prompt(neutral))
 }
 
-fn neutral(model: &ModelId, effort: Option<MetadataEffort>) -> Result<ir::Request, TextError> {
+pub(super) fn neutral(
+    model: &ModelId,
+    effort: Option<MetadataEffort>,
+) -> Result<ir::Request, TextError> {
     Ok(ir::Request {
         model: model.as_str().to_owned(),
         system: Vec::new(),

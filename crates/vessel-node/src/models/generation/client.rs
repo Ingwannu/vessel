@@ -12,6 +12,8 @@ use vessel_llm::{
 #[cfg(test)]
 use vessel_llm::client::Redactor;
 
+use super::prepare::Prepared;
+
 /// The whole exchange includes response headers and body in this clock.
 pub(super) const TITLE_CALL_LIMIT: Duration = Duration::from_secs(20);
 /// Connection establishment is also inside the whole exchange clock.
@@ -57,6 +59,8 @@ impl std::error::Error for ProviderFailure {}
 pub(super) enum ClientError {
     #[error("metadata client does not use the required bounds and attempt policy")]
     Policy,
+    #[error("metadata request does not match the endpoint API")]
+    ApiMismatch,
     #[error("metadata call exceeded {} seconds", TITLE_CALL_LIMIT.as_secs())]
     Deadline(#[from] tokio::time::error::Elapsed),
     #[error("metadata transport failed")]
@@ -95,9 +99,12 @@ impl Client {
     pub(super) async fn complete(
         &self,
         endpoint: &Endpoint,
-        body: Bytes,
+        request: Prepared,
     ) -> Result<Completion, ClientError> {
-        tokio::time::timeout(TITLE_CALL_LIMIT, self.read(endpoint, body)).await?
+        if request.api() != endpoint.api {
+            return Err(ClientError::ApiMismatch);
+        }
+        tokio::time::timeout(TITLE_CALL_LIMIT, self.read(endpoint, request.into_body())).await?
     }
 
     async fn read(&self, endpoint: &Endpoint, body: Bytes) -> Result<Completion, ClientError> {

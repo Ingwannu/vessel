@@ -55,6 +55,9 @@ pub(super) enum SelectError {
     /// No current route resolves, without falling out of manual mode.
     #[error("no model route is available for generated names")]
     NoRoute,
+    /// A manual setting must resolve before it is kept.
+    #[error("metadata route {0} is not available")]
+    MissingRoute(ModelRouteName),
     /// A newer saved effort is readable but cannot be acted on.
     #[error("metadata requests an unknown effort")]
     UnknownEffort,
@@ -95,6 +98,17 @@ pub(super) fn select<'a>(
         .and_then(|name| catalog.get(name))
         .ok_or(SelectError::NoRoute)?;
     checked(route, provider, default_model(route), None)
+}
+
+/// Validate one stored manual entry without automatic fallback or I/O.
+pub(super) fn candidate<'a>(
+    catalog: &'a Routes,
+    entry: &'a MetadataProvider,
+) -> Result<Selection<'a>, SelectError> {
+    let (route, provider) = catalog
+        .get(&entry.route)
+        .ok_or_else(|| SelectError::MissingRoute(entry.route.clone()))?;
+    manual(route, provider, entry)
 }
 
 fn manual<'a>(

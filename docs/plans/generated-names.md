@@ -721,3 +721,11 @@ and convert to the canonical strict wire value through the same constructor.
 Known bad types/values still fail; future effort remains Unknown. No file
 keeping mechanism or setting field is added here. Store wiring will select
 this decoder while retaining the shared later/unreadable set-aside rules.
+
+Prepared request implementation checkpoint: every manual candidate uses
+the same model/effort constructor and actual encoded-cap check as title
+preparation. Prepared carries API identity and redacts its body; transport
+consumes it and refuses mismatch before an attempt. Five preflight cases,
+seven transport cases and six text cases pass (18 total), with node
+all-targets Clippy passing. The title output budget has one definition.
+No settings state or file is mutated by this module; wiring remains next.

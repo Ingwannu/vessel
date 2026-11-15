@@ -14,6 +14,10 @@ use vessel_llm::{
     completion::CompletionError,
 };
 
+fn prepared() -> Prepared {
+    Prepared::fixture(Api::AnthropicMessages, Bytes::from_static(b"{}"))
+}
+
 fn endpoint() -> Endpoint {
     Endpoint {
         api: Api::AnthropicMessages,
@@ -62,10 +66,7 @@ fn a_proxy_or_retrying_client_is_refused_before_use() {
 #[tokio::test]
 async fn one_recorded_call_keeps_accounting_and_normal_text() {
     let (client, record) = recorded(Ok(body(r#"{"title":"Repair fixtures"}"#)));
-    let result = client
-        .complete(&endpoint(), Bytes::from_static(b"{}"))
-        .await
-        .unwrap();
+    let result = client.complete(&endpoint(), prepared()).await.unwrap();
     assert_eq!(record.calls.load(Ordering::SeqCst), TITLE_ATTEMPTS);
     assert_eq!(result.usage.input, 17);
     assert_eq!(result.usage.output, 7);
@@ -84,7 +85,7 @@ async fn content_and_byte_refusals_do_not_retry_the_exchange() {
     ];
     for (bytes, expected) in cases {
         let (client, record) = recorded(Ok(bytes));
-        let result = client.complete(&endpoint(), Bytes::new()).await.unwrap();
+        let result = client.complete(&endpoint(), prepared()).await.unwrap();
         assert_eq!(record.calls.load(Ordering::SeqCst), TITLE_ATTEMPTS);
         assert_eq!(
             std::mem::discriminant(&result.text.unwrap_err()),
@@ -92,7 +93,7 @@ async fn content_and_byte_refusals_do_not_retry_the_exchange() {
         );
     }
     let (client, record) = recorded(Ok(body("")));
-    let result = client.complete(&endpoint(), Bytes::new()).await.unwrap();
+    let result = client.complete(&endpoint(), prepared()).await.unwrap();
     assert_eq!(result.usage.input, 17);
     assert_eq!(result.usage.output, 7);
     assert_eq!(record.calls.load(Ordering::SeqCst), TITLE_ATTEMPTS);
@@ -104,10 +105,7 @@ async fn provider_failure_is_typed_and_sealed_without_a_retry() {
         ir::FailureClass::RateLimited,
         "private-provider-marker",
     )));
-    let error = client
-        .complete(&endpoint(), Bytes::new())
-        .await
-        .unwrap_err();
+    let error = client.complete(&endpoint(), prepared()).await.unwrap_err();
     assert_eq!(record.calls.load(Ordering::SeqCst), TITLE_ATTEMPTS);
     let ClientError::Provider(cause) = &error else {
         panic!("expected provider failure");
@@ -124,7 +122,7 @@ async fn the_total_deadline_bounds_a_stalled_exchange() {
         transport: Transport::Stalled(Arc::clone(&entered)),
     };
     let start = tokio::time::Instant::now();
-    let call = tokio::spawn(async move { client.complete(&endpoint(), Bytes::new()).await });
+    let call = tokio::spawn(async move { client.complete(&endpoint(), prepared()).await });
     entered.notified().await;
     let error = call.await.unwrap().unwrap_err();
     assert!(matches!(error, ClientError::Deadline(_)));
@@ -142,8 +140,18 @@ async fn the_endpoint_key_checks_the_complete_body_without_logging_it() {
     let (client, record) = recorded(Ok(body(&format!("{{\"title\":\"{key}\"}}"))));
     let mut endpoint = endpoint();
     endpoint.key = Some(ApiKey::new(key.to_owned()));
-    let result = client.complete(&endpoint, Bytes::new()).await.unwrap();
+    let result = client.complete(&endpoint, prepared()).await.unwrap();
     assert!(matches!(result.text, Err(CompletionError::QuotedKey)));
     assert!(!format!("{result:?}").contains(key));
     assert_eq!(record.calls.load(Ordering::SeqCst), TITLE_ATTEMPTS);
+}
+
+#[tokio::test]
+async fn an_api_mismatch_is_refused_without_an_attempt() {
+    let (client, record) = recorded(Ok(body("unused")));
+    let mut endpoint = endpoint();
+    endpoint.api = Api::OpenAiChat;
+    let error = client.complete(&endpoint, prepared()).await.unwrap_err();
+    assert!(matches!(error, ClientError::ApiMismatch));
+    assert_eq!(record.calls.load(Ordering::SeqCst), 0);
 }
