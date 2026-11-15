@@ -167,3 +167,6 @@ shortcuts-group-session = Agent Input
 
 # Conflict confirmation. $key and $action are displayed shortcut and action labels.
 shortcuts-conflict = { $key } is assigned to { $action }. Reassign it?
+
+# Recording exceeded the shared sequence bound; Backspace removes the last step.
+shortcuts-too-long = That shortcut is too long. Remove a step or cancel and try again.

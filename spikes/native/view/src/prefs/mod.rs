@@ -46,9 +46,9 @@ pub use send::{EnterPress, send_key_label, sends, sends_other};
 /// The most keys kept for one action.
 pub const MAX_BINDINGS: usize = 2;
 /// The most shortcut edits in one change.
-pub const MAX_EDITS: usize = 16;
+pub const MAX_EDITS: usize = MAX_ACTIONS;
 /// The most actions with keys kept.
-pub const MAX_ACTIONS: usize = 64;
+pub const MAX_ACTIONS: usize = 128;
 /// The most machines with defaults kept.
 pub const MAX_MACHINES: usize = 32;
 /// The most choices kept for one agent on one machine.

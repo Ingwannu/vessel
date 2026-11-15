@@ -5,12 +5,15 @@
 use std::time::Duration;
 
 use super::context::{Admission, FocusScope, ShortcutContext, When};
+use super::input::{InputConversion, ShortcutInput};
 use super::sequence::KeySequence;
-use super::{Chord, Platform, same_chord};
+use super::{Chord, KeyPress};
 use crate::prefs::ActionId;
 
 /// Paseo's fixed timeout, measured from the most recent accepted chord step.
-pub const CHORD_TIMEOUT: Duration = Duration::from_millis(1500);
+pub const CHORD_TIMEOUT: Duration = Duration::from_millis(CHORD_TIMEOUT_MS);
+/// Reference timeout in milliseconds for compatibility callers.
+pub const CHORD_TIMEOUT_MS: u64 = 1500;
 
 /// Keyboard repeat is explicit because sending/voice/mode changes act once.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,7 +109,7 @@ impl ShortcutIndex {
 }
 
 /// A press's outcome; waiting consumes the prefix without dispatching an action.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Resolution<A> {
     /// Leave the press with the focused control.
     Pass,
@@ -140,7 +143,7 @@ struct Pending {
 }
 
 /// Pure engine state; the app supplies monotonic elapsed time without I/O here.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Engine {
     pending: Option<Pending>,
 }
@@ -151,8 +154,43 @@ impl Engine {
         self.pending = None;
     }
 
-    /// Resolve a non-modifier chord. Modifier-only events never call this method,
-    /// so pressing Control between chord steps does not cancel a pending sequence.
+    /// Whether an admitted prefix awaits another step. Browser and UI policy
+    /// can query this without exposing candidate ids or duplicating the state.
+    #[must_use]
+    pub const fn is_pending(&self) -> bool {
+        self.pending.is_some()
+    }
+
+    /// Resolve a platform key event with logical-first and permitted physical
+    /// fallbacks. Modifier-only events preserve pending chords; IME cancels them.
+    #[must_use]
+    pub fn resolve_keypress<A: Clone>(
+        &mut self,
+        press: &KeyPress,
+        repeat: KeyRepeat,
+        now: Duration,
+        context: ShortcutContext,
+        bindings: &[EffectiveBinding<A>],
+    ) -> Resolution<A> {
+        match ShortcutInput::from_press(press, context.platform) {
+            InputConversion::Input(input) => {
+                self.resolve_input(&input, repeat, now, context, bindings)
+            }
+            InputConversion::Modifier => {
+                if context.admission != Admission::Available {
+                    self.reset();
+                }
+                Resolution::Pass
+            }
+            InputConversion::Composing | InputConversion::Unsupported => {
+                self.reset();
+                Resolution::Pass
+            }
+        }
+    }
+
+    /// Compatibility callers already have a normalized chord; matching still
+    /// goes through the exact same state machine and context policy.
     #[must_use]
     pub fn resolve<A: Clone>(
         &mut self,
@@ -162,11 +200,30 @@ impl Engine {
         context: ShortcutContext,
         bindings: &[EffectiveBinding<A>],
     ) -> Resolution<A> {
+        self.resolve_input(
+            &ShortcutInput::from_chord(chord.clone()),
+            repeat,
+            now,
+            context,
+            bindings,
+        )
+    }
+
+    fn resolve_input<A: Clone>(
+        &mut self,
+        input: &ShortcutInput,
+        repeat: KeyRepeat,
+        now: Duration,
+        context: ShortcutContext,
+        bindings: &[EffectiveBinding<A>],
+    ) -> Resolution<A> {
         if context.admission != Admission::Available
             || (matches!(
                 context.focus,
                 FocusScope::MessageInput | FocusScope::Editable
-            ) && super::refusal(chord, context.platform) == Some(super::Refusal::Editing))
+            ) && input.editing_chord().is_some_and(|chord| {
+                super::refusal(chord, context.platform) == Some(super::Refusal::Editing)
+            }))
         {
             self.reset();
             return Resolution::Pass;
@@ -193,7 +250,7 @@ impl Engine {
             let Some(wanted) = binding.keys.step(step) else {
                 continue;
             };
-            if !matches_step(wanted, chord, context.platform) {
+            if !input.matches(wanted, context.platform) {
                 continue;
             }
             if step.saturating_add(1) == binding.keys.len() {
@@ -215,7 +272,7 @@ impl Engine {
         if pending.is_some()
             && let Some(binding) = completed
         {
-            return run(binding, chord);
+            return run(binding, input);
         }
         if !advancing.is_empty() {
             self.pending = Some(Pending {
@@ -225,30 +282,14 @@ impl Engine {
             });
             return Resolution::Waiting;
         }
-        completed.map_or(Resolution::Pass, |binding| run(binding, chord))
+        completed.map_or(Resolution::Pass, |binding| run(binding, input))
     }
 }
 
-fn matches_step(wanted: &Chord, pressed: &Chord, platform: Platform) -> bool {
-    if wanted.key != "Digit" {
-        return same_chord(wanted, pressed, platform);
-    }
-    let Some(_) = digit(pressed) else {
-        return false;
-    };
-    let mut wanted = wanted.clone();
-    wanted.key.clone_from(&pressed.key);
-    same_chord(&wanted, pressed, platform)
-}
-
-fn digit(chord: &Chord) -> Option<ShortcutIndex> {
-    ShortcutIndex::from_key(&chord.key)
-}
-
-fn run<A: Clone>(binding: &EffectiveBinding<A>, chord: &Chord) -> Resolution<A> {
+fn run<A: Clone>(binding: &EffectiveBinding<A>, input: &ShortcutInput) -> Resolution<A> {
     let index = match binding.payload {
         Payload::None => None,
-        Payload::Index => digit(chord),
+        Payload::Index => input.index(),
     };
     Resolution::Run {
         action: binding.action.clone(),

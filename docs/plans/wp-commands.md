@@ -52,7 +52,7 @@ Paseo source paths below are relative to packages/app/src.
   view shortcut/palette modules. No I/O or GPUI in those modules.
 - A keyboard press resolves through the single shortcut registry and context,
   then a typed action reaches the owning feature's adapter. Pane actions use
-  W15's `pane_command`; provider choices use the composer setters; file results
+  W12's `run_layout_action`; provider choices use the composer setters; file results
   use the file owner's API. Missing owners are reported, never silently faked.
 - The command registry holds source-owned contributions and typed targets.
   Its projection reuses `view::matcher::Query`; a presentation is an action or
@@ -136,3 +136,33 @@ The interrupted second submission had no registered run; the build-tools owner
 confirmed its exact SHA and authorized one pinned resubmission. Its result is
 recorded under the package scratch logs, not treated as an app/package pass.
 No keyboard/command-center tracker row is passed from these model checks.
+
+## Canonical keyboard slice (2026-11-15)
+
+The registry now contains the 76 reference binding variants in their original
+order, with typed predicates and payloads. Native desktop additions and unbound
+non-Mac pane entries are named separately. Persisted action aliases migrate in
+memory; writes normalize aliases atomically so resetting a canonical row cannot
+resurrect its historical alias. Unknown ids and other-platform settings survive.
+The view production-library Clippy command passed in canonical-view-clippy-r2;
+all-target checks, tests and app wiring remain pending at this checkpoint.
+
+Default assertion migration: `/` and `N` are no longer product defaults; `G S`
+is only an explicit sequence fixture; workspace digits use the primary modifier,
+not fixed Alt; the inspector is primary+E, with Control+backquote as a hidden
+alias. Jump actions are rebindable and captures normalize a final digit to Digit.
+Question-mark input retains its logical identity. Legacy parser adapters remain
+for existing consumers; the active interceptor delegates to the shared engine.
+
+Settings uses canonical per-binding rows. Its recorder keeps multiple steps,
+Backspace removes one, Escape is recordable, and the visible Cancel button or
+navigation cancels recording. Confirmation lists every overlapping binding;
+reassignment preserves unrelated alternatives and checks changed conflicts again.
+The native host/editing refusal floor is explicit in sequence_capture.rs. The
+popup key-context marker is applied by existing kit popup/dialog/picker controls,
+so their focused controls retain keys without another listener or overlay guess.
+
+S2's exact theme/input dependency eddce254 is now V1 PASS and remains in history.
+The three GPUI guard regressions remain, with an explicit G S fixture for pending
+sequence setup. The announced next shared base is 6c782cb6; merge is pending this
+checkpoint. No tracker rows are passed and no whole package gate has run.

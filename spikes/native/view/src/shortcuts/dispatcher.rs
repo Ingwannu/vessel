@@ -234,7 +234,11 @@ mod tests {
         let new = dispatcher.register(handler("workspace", 1)).unwrap();
         dispatcher.remove(&old);
         assert_eq!(
-            dispatcher.dispatch(&1, |_| false, |_, _| unreachable!()),
+            dispatcher.dispatch(
+                &1,
+                |_| false,
+                |_, _| panic!("an inactive or removed handler must not run")
+            ),
             Handled::No
         );
         assert_eq!(
@@ -243,7 +247,11 @@ mod tests {
         );
         dispatcher.remove(&new);
         assert_eq!(
-            dispatcher.dispatch(&1, |_| true, |_, _| unreachable!()),
+            dispatcher.dispatch(
+                &1,
+                |_| true,
+                |_, _| panic!("an inactive or removed handler must not run")
+            ),
             Handled::No
         );
     }

@@ -4,6 +4,9 @@
 //! `text/mod.rs` for the convention.
 
 use super::Lang;
+/// Old table consumers remain isolated while screens migrate to typed Fluent getters.
+const LEGACY_ACTION_COUNT: usize = 17;
+
 use crate::shortcuts::{Action, Clash, Platform, Refusal, ShortcutGroup};
 
 impl Lang {
@@ -24,7 +27,7 @@ pub struct ShortcutWords {
     pub lang: Lang,
     /// Between a sequence's two chords ("G then S").
     pub then: &'static str,
-    labels: [&'static str; Action::ALL.len()],
+    labels: [&'static str; LEGACY_ACTION_COUNT],
     groups: [&'static str; 4],
     mac_modifier: &'static str,
     other_modifier: &'static str,
@@ -61,20 +64,22 @@ impl ShortcutWords {
     /// An action's name, as Settings and the palette show it.
     #[must_use]
     pub fn label(&self, action: Action) -> &'static str {
-        let at = Action::ALL
-            .iter()
-            .position(|one| *one == action)
-            .unwrap_or_default();
+        let Some(at) = action.legacy_index() else {
+            return self.unassigned;
+        };
         self.labels.get(at).copied().unwrap_or_default()
     }
 
     /// A Settings group's heading.
     #[must_use]
     pub fn group(&self, group: ShortcutGroup) -> &'static str {
-        let at = ShortcutGroup::ALL
-            .iter()
-            .position(|one| *one == group)
-            .unwrap_or_default();
+        let at = match group {
+            ShortcutGroup::General => 0,
+            ShortcutGroup::Navigation => 1,
+            ShortcutGroup::Session => 2,
+            ShortcutGroup::Panels => 3,
+            ShortcutGroup::TabsPanes => return self.unassigned,
+        };
         self.groups.get(at).copied().unwrap_or_default()
     }
 

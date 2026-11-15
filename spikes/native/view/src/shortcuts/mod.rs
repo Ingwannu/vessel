@@ -14,10 +14,12 @@ mod edit;
 pub mod engine;
 mod held;
 pub mod help;
+pub mod input;
 mod keys;
 mod labels;
 mod listing;
 mod matching;
+pub mod rebinding;
 mod registry;
 pub mod sequence;
 pub mod sequence_capture;
@@ -33,5 +35,7 @@ pub use labels::{action_label, group_label};
 pub use listing::{ShortcutFilter, ShortcutRow, modified_count, shortcut_row, shortcut_rows};
 pub use matching::{Matched, Pending, SEQUENCE_MS, matched};
 pub use registry::{
-    Action, ShortcutGroup, ShortcutScope, bindings_of, jump_of, jump_shown, modified,
+    Action, PASEO_BINDING_COUNT, RegistryError, ShortcutGroup, ShortcutScope, binding_id,
+    bindings_of, default_context, definitions, effective_bindings, jump_of, jump_shown,
+    migrated_overrides, modified, primary_keys, visible_definitions,
 };

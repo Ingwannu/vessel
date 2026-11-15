@@ -35,15 +35,13 @@ fn binding(id: &str, text: &str, when: When) -> EffectiveBinding<u8> {
 fn capture_appends_chords_backspace_removes_one_and_escape_is_recordable() {
     let mut capture = SequenceCapture::new("target".parse().unwrap(), CaptureRole::Ordinary);
     assert_eq!(
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>]),
+        capture.verdict::<u8>(When::ANY, CONTEXT, &[]),
         CaptureVerdict::Waiting
     );
     capture.press(chord("Ctrl+K"), CONTEXT);
     capture.press(chord("Ctrl+J"), CONTEXT);
     capture.press(chord("Escape"), CONTEXT);
-    let CaptureVerdict::Ready { keys, .. } =
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>])
-    else {
+    let CaptureVerdict::Ready { keys, .. } = capture.verdict::<u8>(When::ANY, CONTEXT, &[]) else {
         panic!("expected ready")
     };
     assert_eq!(keys.text(), "Ctrl+K Ctrl+J Escape");
@@ -56,13 +54,11 @@ fn index_capture_requires_a_digit_and_normalizes_the_whole_index_group() {
     let mut capture = SequenceCapture::new("jump".parse().unwrap(), CaptureRole::Index);
     capture.press(chord("Ctrl+K"), CONTEXT);
     assert_eq!(
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>]),
+        capture.verdict::<u8>(When::ANY, CONTEXT, &[]),
         CaptureVerdict::IndexRequired
     );
     capture.press(chord("Alt+3"), CONTEXT);
-    let CaptureVerdict::Ready { keys, .. } =
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>])
-    else {
+    let CaptureVerdict::Ready { keys, .. } = capture.verdict::<u8>(When::ANY, CONTEXT, &[]) else {
         panic!("expected index group")
     };
     assert_eq!(keys.text(), "Ctrl+K Alt+Digit");
@@ -99,19 +95,19 @@ fn native_editing_refusal_keeps_the_last_capture_and_backspace_clears_it() {
     capture.press(chord("Ctrl+K"), CONTEXT);
     capture.press(chord("Ctrl+C"), CONTEXT);
     assert_eq!(
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>]),
+        capture.verdict::<u8>(When::ANY, CONTEXT, &[]),
         CaptureVerdict::Refused(CaptureFault::Editing)
     );
     assert_eq!(capture.chords().count(), 1);
     capture.back();
     assert_eq!(
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>]),
+        capture.verdict::<u8>(When::ANY, CONTEXT, &[]),
         CaptureVerdict::Waiting
     );
     // Native workspace/tab shortcuts are intentionally bindable.
     capture.press(chord("Ctrl+N"), CONTEXT);
     assert!(matches!(
-        capture.verdict(When::ANY, CONTEXT, &[] as &[EffectiveBinding<u8>]),
+        capture.verdict::<u8>(When::ANY, CONTEXT, &[]),
         CaptureVerdict::Ready { .. }
     ));
 }

@@ -98,7 +98,6 @@ fn parse_step(text: &str) -> Result<Chord, SequenceError> {
         "ArrowRight" => "Right",
         "ArrowUp" => "Up",
         "ArrowDown" => "Down",
-        "?" => "/",
         "Digit" => "1",
         other => other,
     };
