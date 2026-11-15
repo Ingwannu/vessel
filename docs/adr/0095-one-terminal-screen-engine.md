@@ -223,3 +223,19 @@ separate route. Exactly-once is not claimed for that exception. This limitation
 is necessary while preserving the approved unchanged legacy span; tickets
 alone cannot constrain old clients that never send a settlement acknowledgement.
 NodeAuthority remains off until the reviewed responder contract and whole pass.
+
+## Program cursor and physical row endings
+
+Authoritative frames expose independent optional shape/blink overrides and
+outgoing hard/soft row endings from the same borrowed engine cut. Unset cursor
+presentation belongs to each renderer's configured defaults; metadata is never
+inferred from text, a raw scanner, event sequence or a reconstructed decoder.
+Recorded pinned-headless controls exposed lost blink-only state, wrong1049
+alternate entry coordinates, and restore retaining a pending-wrap column.
+Minimal numbered engine patches preserve decoded u32 parameters, reset cursor
+presentation/modes on soft reset without erasing/moving cells, inherit physical
+alternate coordinates, and clamp an explicit cursor restore. The actual34-case
+metadata/cell oracle supplements the unchanged original cell/mode/marker corpus.
+This remains a pure producer extension; actor/transport/native/CLI renderer
+adoption and enclosing consumer qualification are separate. NodeAuthority stays
+off; no universal Unicode or malformed-stream parity is inferred.
