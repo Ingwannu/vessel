@@ -59,6 +59,19 @@ pub(crate) enum Settle {
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
     let event = match *unsent.command {
+        Command::SessionAccess(access) => access.refused(ActFailed {
+            code: None,
+            message: words.to_owned(),
+        }),
+        Command::SessionLifecycle(request) => {
+            Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
+                ticket: request.ticket,
+                result: Err(vessel_app_link::sessions::lifecycle::Failure::Unsent),
+            })
+        }
+        Command::Sessions(ask) => {
+            Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
+        }
         // As the devices page: a full queue is the page's own "busy, try
         // again", a stopped link the machine's lost connection.
         Command::Agents {

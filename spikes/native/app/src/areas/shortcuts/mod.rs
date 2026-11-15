@@ -250,7 +250,9 @@ impl Shell {
         let composer = match self.route {
             Route::Session => &self.areas.session.composer,
             Route::Draft => &self.areas.draft.composer,
-            Route::Board | Route::Archive | Route::Pair | Route::Settings => return false,
+            Route::Board | Route::Sessions | Route::Archive | Route::Pair | Route::Settings => {
+                return false;
+            }
         };
         composer.focus(window, cx);
         true
@@ -267,7 +269,7 @@ impl Shell {
                 .as_ref()
                 .map(|open| open.machine.clone()),
             Route::Board | Route::Archive => self.board_scope().map(str::to_owned),
-            Route::Draft | Route::Pair | Route::Settings => None,
+            Route::Draft | Route::Sessions | Route::Pair | Route::Settings => None,
         }
     }
 

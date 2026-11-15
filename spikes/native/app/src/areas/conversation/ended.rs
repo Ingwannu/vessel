@@ -140,23 +140,36 @@ fn ended_banner(
     let area = &shell.areas.conversation;
     let words = shell.t.lang.conversation();
     let (can, archived) = (can_start_again(info), is_archived(info));
-    let state = if area.restarting {
+    let state = if area.restarting || shell.sessions_lifecycle_busy() {
         ButtonState::Disabled
     } else {
         ButtonState::Enabled
     };
-    let button = can.then(|| {
+    let button = (can || archived).then(|| {
         button_with_kind(
             "ended-start-again",
-            words.mark_action(MarkAction::StartAgain),
+            if archived {
+                shell.words.sessions().unarchive()
+            } else {
+                words.mark_action(MarkAction::StartAgain)
+            },
             ButtonKind::Secondary,
             state,
             tokens,
         )
         .flex_none()
         .when(state == ButtonState::Enabled, |button| {
-            button.on_click(cx.listener(|shell, _event, _window, cx| {
-                shell.conversation_start_again(cx);
+            button.on_click(cx.listener(move |shell, _event, window, cx| {
+                if archived {
+                    let action = if can {
+                        vessel_app_view::sessions::LifecycleAction::Resume
+                    } else {
+                        vessel_app_view::sessions::LifecycleAction::Unarchive
+                    };
+                    shell.prepare_session_lifecycle(action, window, cx);
+                } else {
+                    shell.conversation_start_again(cx);
+                }
             }))
         })
     });
@@ -242,10 +255,16 @@ impl Shell {
         let area = &self.areas.conversation;
         // An empty fork's records say so before its description does.
         area.empty_fork()
-            || area
-                .info
-                .as_deref()
-                .is_some_and(|info| !is_live(info) && !can_start_again(info))
+            || area.info.as_deref().map_or_else(
+                || {
+                    self.areas
+                        .session
+                        .open
+                        .as_ref()
+                        .is_some_and(|open| open.archived_at.is_some())
+                },
+                |info| is_archived(info) || (!is_live(info) && !can_start_again(info)),
+            )
     }
 
     /// Start the session shown again (the banner's button, the menu's

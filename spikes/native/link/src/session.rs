@@ -18,6 +18,11 @@
 //!   (a pin and an archive clicked in one breath); each answers with the
 //!   session as it then stands, and the list's next read settles it.
 
+#[cfg(not(target_arch = "wasm32"))]
+mod stream;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use stream::follow;
+
 use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
@@ -243,6 +248,7 @@ impl State {
         let kind = act.kind();
         let terminal = act.terminal_opening().cloned();
         let events = self.events.clone();
+        let projection = self.session_projection.clone();
         let machine = machine.to_owned();
         let client = self
             .clients
@@ -250,7 +256,11 @@ impl State {
             .map(|connected| connected.client.clone());
         drop(tokio::spawn(async move {
             let result = match client {
-                Some(client) => run(&client, session, act).await,
+                Some(client) => {
+                    let result = run(&client, session, act).await;
+                    projection.after(kind);
+                    result
+                }
                 None => Err(ActFailed {
                     code: None,
                     message: LinkError::NotConnected(machine.clone()).to_string(),
@@ -305,7 +315,11 @@ async fn read_until(
     }
 }
 
-async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted, ActFailed> {
+pub(crate) async fn run(
+    client: &NodeClient,
+    session: SessionId,
+    act: Act,
+) -> Result<Acted, ActFailed> {
     let boxed = |info: SessionInfo| Acted::Session(Box::new(info));
     let done = match act {
         Act::Info => client.session(session).await.map(boxed),

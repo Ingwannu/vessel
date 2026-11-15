@@ -114,6 +114,23 @@ The node remains authoritative; preparation never runs a local git
 command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
 repository root.
 
+## Durable session history and lifecycle
+
+`view::sessions` selects chronological metadata history, date buckets, local page
+windows and correlated lifecycle/navigation requests. History opts into the
+shared matcher's bounded typo mode; command and catalog defaults remain exact. `link::sessions` resolves
+an authenticated node ID to a saved connection and reads `session.get` without
+starting an agent. Its lifecycle worker reuses the existing session RPC dispatcher
+and adds a correlation ID and finite outer deadline. An uncertain mutation result
+never causes automatic retry or local tab removal.
+
+`app/areas/sessions` owns the Sessions screen, host selector and lifecycle
+confirmation. Existing board archive and pin actions retain their owner. Manual
+navigation invalidates pending deep-link and post-archive navigation, while a
+successful acknowledgement still updates the target's fleet metadata. Composer
+exit/fresh operations archive before changing screens. Package validation uses the native gate and an isolated fake fleet; current
+package evidence is recorded in `docs/plans/wp-sessions.md`.
+
 ## The app's layout
 
 ```
@@ -292,6 +309,15 @@ existing semantic/neutral colours and palette blue 300 / amber 500 in
 returns `view::alert::Variant`, mapped once by `app::badge::alert_variant`.
 Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 
+
+`kit/dialog.rs` accepts a clonable close closure so Escape, the scrim and
+the close glyph retain the caller's decision identity. Function-item callers
+keep their existing behavior; stale-decision policy stays with the feature.
+
+`kit/focus.rs` provides one weak, once-per-open return policy for controls.
+`DialogState::dismissed` acknowledges an actual close after the feature's
+pending/stale guards; it preserves a newer focus and clears the old cycle.
+Unadopted unit-close callers keep their prior behavior until they call it.
 
 `kit/dialog.rs` keeps a fitting dialog at its natural size. When its
 content exceeds the card's existing height limit, only the body scrolls;
