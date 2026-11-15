@@ -251,3 +251,26 @@ optional recovery field. Ordinary Get uses its default capability selection.
 No existing assertion or budget is weakened. Isolated settings fixtures keep
 a separate real Store directory with worker state, preserving the original
 file-layout/no-op assertions while retaining SQL resources through final drain.
+
+The active assembly now shares the same Policy Arc between the settings hook
+and Recovery. Node startup opens Store with the original Opening policy before
+interruption/retention. The runtime uses the node admission token separately
+from its final shutdown token and enables its one restart journal. Recovery
+starts once after the scheduler is installed. Ordinary Get clears the optional
+policy unless explicitly requested; both reply paths retain peer projection.
+
+Now and draining requests synchronously close settings admission and seal the
+Policy arbiter. Settings closes before the final effect seal linearizes; an
+accepted racing intent remains owned and drains, and later saved On cannot
+reopen sealed effects. Node::stop routes through that lifecycle path. Teardown
+settles accepted writes/publication/SQL before runtime shutdown and closes Store
+last. Existing lifecycle fact fixtures retain their constructor; live nodes bind
+the canonical owner by a weak reference without an ownership cycle.
+
+New fixtures hold post-save/pre-SQL cleanup after caller abort, queue On behind
+it, and drive actual Teardown while checking that runtime and Store remain
+available until release. Synchronous Now/drain seal, canonical recovery private
+cause and actual Opening startup-log cases are authored. Original head privacy
+cases remain intact. All of this joined code is still uncompiled/unexecuted;
+the portable runtime's own fixture adapters and qualified physical preparation
+prerequisite remain separate obligations before the joint checks and gate.

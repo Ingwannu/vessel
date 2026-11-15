@@ -101,6 +101,10 @@ impl State {
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
         self.recovery.saved(in_force.restart_recovery.clone());
+        #[cfg(test)]
+        if let Some(gate) = self.cleanup_gate.take() {
+            gate.wait().await;
+        }
         self.recovery
             .settle_saved(&in_force.restart_recovery)
             .await?;

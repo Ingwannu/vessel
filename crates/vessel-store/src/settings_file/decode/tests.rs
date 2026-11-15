@@ -72,3 +72,22 @@ fn deeply_nested_paths_are_bounded_without_printing_map_keys() {
     assert!(error.path.0.ends_with(".…"));
     assert!(settings::<Tree>(b"{}").unwrap().0.is_empty());
 }
+
+#[test]
+fn recovery_field_keeps_its_concrete_private_cause_behind_the_same_boundary() {
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    let bytes = format!(r#"{{"restart_recovery":{{"enabled":"{MARKER}"}}}}"#);
+    std::fs::write(data.settings_path(), &bytes).unwrap();
+    let error = data.read_settings().unwrap_err();
+    safe_chain(&error);
+    let SettingsFileError::Parse { source, .. } = error else {
+        panic!("expected the canonical typed decode refusal");
+    };
+    assert!(source.cause.to_string().contains(MARKER));
+    assert!(source.source().is_none());
+    assert_eq!(
+        std::fs::read(data.settings_path()).unwrap(),
+        bytes.as_bytes()
+    );
+}

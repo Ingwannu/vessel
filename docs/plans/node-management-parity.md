@@ -6,6 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Portable recovery leaves are composed with the canonical owner, without their
+  former saved record/FIFO. Opaque recovery field, actual SQL settlement/no-op
+  debt retry, shared Policy, one-read boot and early lifecycle/shutdown seal are
+  wired. New physical writer/cleanup/teardown/privacy fixtures remain unexecuted.
+  Recovery fixture adapters, qualified preparation and joint strict/tests/whole
+  are still owed; no consumer-ready or activation claim follows from source.
+
+
 - Drafted the one-read startup handoff: canonical Store snapshot computes
   preservation from the same bytes, Opening carries it across Store startup,
   and Settings consumes it without file I/O. Compatibility coverage diagnostics

@@ -33,6 +33,11 @@ pub(super) struct Gate {
 }
 
 impl Gate {
+    pub(super) async fn wait(self) {
+        self.entered.send(()).unwrap();
+        self.released.await.unwrap();
+    }
+
     pub(super) fn pause(self) {
         self.entered.send(()).unwrap();
         // This runs inside spawn_blocking, before the actual file replacement.
@@ -41,6 +46,13 @@ impl Gate {
 }
 
 pub(super) fn runtime(root: &std::path::Path) -> Arc<SessionRuntime> {
+    runtime_with_stop(root, tokio_util::sync::CancellationToken::new())
+}
+
+pub(super) fn runtime_with_stop(
+    root: &std::path::Path,
+    stop: tokio_util::sync::CancellationToken,
+) -> Arc<SessionRuntime> {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
@@ -51,7 +63,7 @@ pub(super) fn runtime(root: &std::path::Path) -> Arc<SessionRuntime> {
             park_after: ParkAfter::DEFAULT.duration(),
             private_dir: None,
         },
-        tokio_util::sync::CancellationToken::new(),
+        stop,
     );
     Arc::new(runtime)
 }

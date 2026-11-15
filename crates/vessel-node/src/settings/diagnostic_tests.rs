@@ -62,3 +62,39 @@ fn startup_recovery_logs_safe_parse_diagnostics_on_move_success_and_failure() {
         }
     }
 }
+
+#[test]
+fn actual_opening_logs_no_recovery_value_and_preserves_the_original_invalid_file() {
+    let root = tempfile::tempdir().unwrap();
+    let data = DataDir::new(root.path());
+    let bytes = format!(r#"{{"restart_recovery":{{"enabled":"{MARKER}"}}}}"#);
+    std::fs::write(data.settings_path(), &bytes).unwrap();
+    let config = crate::Config::new(
+        data.clone(),
+        vessel_harness::HarnessEnv::new(root.path().to_owned()),
+    );
+    let captured = Captured(Arc::default());
+    let output = Arc::clone(&captured.0);
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_writer(move || captured.clone())
+        .finish();
+    let opening = tracing::subscriber::with_default(subscriber, || super::Opening::read(&config));
+    let text = String::from_utf8(output.lock().unwrap().clone()).unwrap();
+    assert!(text.contains("settings.json could not be used"));
+    assert!(text.contains("invalid field at $.<field>.<field>"));
+    assert!(!text.contains(MARKER));
+    assert!(!opening.recovery_policy().enabled);
+    assert!(opening.kept.is_none());
+    assert!(!data.settings_path().exists());
+    let files = std::fs::read_dir(root.path())
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect::<Vec<_>>();
+    assert_eq!(files.len(), 1);
+    assert_eq!(
+        std::fs::read(files.first().unwrap()).unwrap(),
+        bytes.as_bytes()
+    );
+}

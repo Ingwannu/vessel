@@ -12,9 +12,13 @@ impl NodeService {
     pub(crate) async fn node_settings(
         &self,
         _: &Connection,
-        _: GetNodeSettings,
+        request: GetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        Ok(self.settings.current().await)
+        let mut settings = self.settings.current().await;
+        if !request.include_restart_recovery {
+            settings.restart_recovery = Default::default();
+        }
+        Ok(settings)
     }
 
     /// `node.set_settings`: change, keep and apply what the request names.

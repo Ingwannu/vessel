@@ -35,7 +35,6 @@ use crate::error::NodeError;
 use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
 use crate::guard::Guarded;
-use crate::identity;
 use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
@@ -255,7 +254,7 @@ impl Node {
     /// # Errors
     /// The HTTP server had failed.
     pub async fn stop(self) -> Result<(), NodeError> {
-        self.stop.cancel();
+        self.lifecycle.stop(vessel_proto::StopWhen::Now);
         self.task.await.map_err(NodeError::Task)?
     }
 }
@@ -297,7 +296,8 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = setup::runtime(config, loader, setup.private_dir.clone());
+    let stop = CancellationToken::new();
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let policy = Arc::new(crate::recovery::policy::Policy::new(
@@ -308,15 +308,9 @@ async fn core(
         Arc::clone(&runtime),
         crate::settings::RecoveryApply::new(Arc::clone(&policy), store.clone()),
     ));
-    let stop = CancellationToken::new();
-    // System zone detection may read OS configuration; keep startup I/O
-    // off the async workers just as data-directory preparation is.
-    let name = config.name.clone();
-    let public_key = *key;
-    let info = tokio::task::spawn_blocking(move || identity::node_info(id, name, public_key))
-        .await
-        .map_err(NodeError::Task)?;
-    let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
+    let info = setup::node_info(config, id, keypair).await?;
+    let lifecycle =
+        Lifecycle::new(info, stop.clone(), Arc::clone(&runtime)).with_settings(&settings);
     let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
@@ -497,6 +491,7 @@ async fn core(
         },
     )
     .await;
+    crate::service::recovery::start(&service, &tasks, stop.clone());
     Ok(Core {
         runtime,
         settings,

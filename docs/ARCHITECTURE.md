@@ -1812,3 +1812,11 @@ from one Store file read, under the directory lock and before Store startup,
 through Node's Opening into the mutation owner. Coverage trees and concrete
 serde causes stay at the Store boundary. This snapshot is not a recovery
 activation or a new settings writer; policy assembly remains the joint package.
+
+
+The shared accepted settings lane spans file persistence, publication and the
+concrete RecoveryApply SQL obligation. The service's Recovery and this hook
+share one Policy Arc. Stop/drain seals its final enqueue arbiter and settings
+admission before settlement; accepted work drains while runtime and Store are
+available, then runtime closes and Store closes last. A saved desired On cannot
+reopen stopping effects or certify that a helper/session actually started.

@@ -221,6 +221,7 @@ pub(super) fn runtime(
     config: &Config,
     loader: AttachmentLoader,
     private_dir: PathBuf,
+    admission: CancellationToken,
 ) -> Arc<SessionRuntime> {
     Arc::new(
         SessionRuntime::new(
@@ -235,6 +236,22 @@ pub(super) fn runtime(
             },
             CancellationToken::new(),
         )
-        .with_attachments(loader),
+        .with_attachments(loader)
+        .with_restart_journal()
+        .with_admission(admission),
     )
+}
+
+/// OS identity and timezone reads stay off async workers, preserving startup
+/// diagnostics while the settings lane is composed before serving.
+pub(super) async fn node_info(
+    config: &Config,
+    id: NodeId,
+    keypair: &Arc<vessel_secure::NodeKeypair>,
+) -> Result<vessel_proto::NodeInfo, NodeError> {
+    let name = config.name.clone();
+    let public_key = *keypair.public();
+    tokio::task::spawn_blocking(move || crate::identity::node_info(id, name, public_key))
+        .await
+        .map_err(NodeError::Task)
 }
