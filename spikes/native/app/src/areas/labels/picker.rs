@@ -12,8 +12,9 @@ mod draw;
 #[cfg(test)]
 mod tests;
 
+use vessel_app_kit::field::FieldId;
 use vessel_app_kit::ui::{AnyElement, Context, Window};
-use vessel_app_kit::{DialogState, FieldId, TextField};
+use vessel_app_kit::{DialogState, TextField};
 use vessel_app_link::labels::{Answer, Command, Event};
 use vessel_app_view::labels::{
     Assignment, EditAccess, Failure, HostState, Label, Name, Picker, PickerPage, WorkspaceTarget,

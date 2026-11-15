@@ -395,3 +395,11 @@ private async save_prefs(Box<Prefs>), with unchanged await/logging/order and no
 Labels/Projects arms. The normalized body matches its source exactly. Commit
 and remote strict check await that head's green announcement; it is not an A6
 handoff or approval to activate registry code.
+
+The 898508 remote alltarget check reached App: shared dispatch and link passed
+that compilation stage. It then found FieldId imported from kit's root instead
+of kit::field and redundant qualified paths in owned callback tests. Corrected
+those paths and passed the prepared Request directly to global dispatch. The
+red log remains retained; this is not current app clippy or GPUI execution PASS.
+The next run is deferred until the extraction-only shared slice can use the
+announced c3429952 base, so the one owned warm lane is not duplicated.

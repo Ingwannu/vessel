@@ -131,19 +131,7 @@ impl Shell {
             return;
         }
         match self.areas.labels.prepare(action) {
-            Ok(Request {
-                context,
-                ticket,
-                ask,
-            }) => {
-                self.command(vessel_app_link::Command::Labels(
-                    vessel_app_link::labels::Request {
-                        context,
-                        ticket,
-                        ask,
-                    },
-                ));
-            }
+            Ok(request) => self.command(vessel_app_link::Command::Labels(request)),
             Err(failure) => self.areas.labels.error = Some(failure),
         }
         self.settle_labels(cx);

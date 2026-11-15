@@ -75,7 +75,7 @@ fn labels_shell_fences_stale_callbacks_and_settles_original_retired_requests(
             "Ready".parse().unwrap(),
         );
         shell.label_action(&Action::Save(current), cx);
-        let vessel_app_link::Command::Labels(vessel_app_link::labels::Request {
+        let vessel_app_link::Command::Labels(Request {
             context,
             ticket,
             ask: Command::Update { .. },
@@ -135,7 +135,7 @@ fn labels_shell_keeps_inspection_and_final_delete_on_the_same_admission(cx: &mut
     shell.update(cx, |shell, cx| {
         let target = edit(shell, &first);
         shell.label_action(&Action::Inspect(target.clone()), cx);
-        let vessel_app_link::Command::Labels(vessel_app_link::labels::Request {
+        let vessel_app_link::Command::Labels(Request {
             context,
             ticket,
             ask: Command::InspectDelete(name),

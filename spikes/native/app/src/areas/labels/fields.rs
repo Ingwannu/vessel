@@ -8,8 +8,9 @@
 //! - Cost: a new form target gets a new input identity, not a second renderer.
 
 use crate::shell::Shell;
+use vessel_app_kit::TextField;
+use vessel_app_kit::field::FieldId;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_kit::{FieldId, TextField};
 use vessel_app_view::labels::{EditAccess, HostState};
 
 pub(super) fn manager(

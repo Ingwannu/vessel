@@ -54,7 +54,7 @@ fn labels_workspace_picker_stays_open_and_waits_for_registry_assignment_projecti
         );
         let opening = shell.areas.labels.picker.as_ref().unwrap().opening;
         assert!(
-            super::overlay(
+            overlay(
                 shell,
                 &vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark),
                 window,
@@ -126,7 +126,7 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
         draft.set_color(Color::Blue);
         picker.name.set_text("  New  label ", window, cx);
         assert!(
-            super::overlay(
+            overlay(
                 shell,
                 &vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark),
                 window,
@@ -174,7 +174,7 @@ fn labels_workspace_create_is_atomic_and_retains_failed_text_and_color(cx: &mut 
         assert_eq!(picker.name.text(cx), "  New  label ");
         shell.labels_picker_close(opening, window, cx);
         assert!(
-            super::overlay(
+            overlay(
                 shell,
                 &vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark),
                 window,
@@ -240,7 +240,7 @@ fn labels_workspace_create_success_reopens_list_without_claiming_assignment_stat
                 .return_to_list
                 .get()
         );
-        let _element = super::overlay(
+        let _element = overlay(
             shell,
             &vessel_app_kit::Tokens::of(vessel_app_kit::Scheme::Dark),
             window,
@@ -281,7 +281,7 @@ fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
         shell.labels_picker_create(first, window, cx);
         let source = shell.areas.labels.picker.as_ref().unwrap().name.id();
         cx.defer_in(window, move |shell, _window, cx| {
-            super::field_changed(shell, source, "stale editor text".to_owned(), cx);
+            field_changed(shell, source, "stale editor text".to_owned(), cx);
         });
         shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
         let next = shell.areas.labels.picker.as_ref().unwrap().opening;
