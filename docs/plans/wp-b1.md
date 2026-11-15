@@ -4,7 +4,7 @@ Status: implementation; based on native head 1d1f11df.
 
 ## Reference and existing assets
 
-Paseo 0.15.4, read-only in `~/refs/paseo-latest`:
+Paseo 0.15.4, read-only reference checkout:
 - `packages/app/src/screens/workspace/scripts/workspace-scripts-button.tsx:307-447`:
   named rows, a terminal link, exit badge, Run while stopped and Restart/Stop while running;
   service URLs under each row. Pending lifecycle actions are disabled.
@@ -78,3 +78,14 @@ this node has no health report and the shared badge has no running-specific vari
 
 Entry access is isolated in `scripts::Entry`; Step 0 replaces it with the complete
 five-field `ScriptEntryView` and displays declared port separately from listeners.
+
+
+## Resume point
+
+First implementation is committed as a skeleton; it has not yet passed the native
+compile/gate or visual review. Focused view tests passed before the retained-run
+regression was added. Next: finish changed-crate clippy/tests, merge the centrally
+announced Step 0 base, consume ScriptEntryView when its node change is included,
+then one whole native gate, private fake-fleet interaction/capture proof and review.
+The private fixture seeder is `scripts/script-fixtures.py`; it leaves approval,
+Run, Restart and Stop to the app rather than performing those actions through CLI.
