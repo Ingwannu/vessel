@@ -8,8 +8,8 @@ use vessel_app_kit::output::{Line, Lines, Tone};
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _, Window,
-    div, px,
+    AnyElement, Context, Div, ElementId, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, version_of};
 use vessel_app_view::timeline::{
