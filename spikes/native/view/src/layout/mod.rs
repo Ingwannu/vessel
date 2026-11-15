@@ -32,6 +32,8 @@ mod state;
 mod target;
 mod tree;
 mod values;
+mod viewport;
+pub use viewport::COMPACT_LAYOUT_WIDTH;
 
 pub use catalog::{Availability, Launch, LaunchPurpose, catalog};
 pub use close::{CloseApproval, CloseEffect, ClosePlan, Modified};
