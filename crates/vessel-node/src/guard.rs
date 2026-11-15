@@ -148,6 +148,7 @@ macro_rules! untargeted {
 // upload's later pieces name the upload, whose holder check keeps them to
 // the caller that began it (`uploads`).
 targets!(
+    vessel_proto::voice::StartVoice,
     // Protocol 12: parking and waking act on a session as a prompt does;
     // protocol 14: forking reads it and rewinding acts on it (ADR 0052).
     vessel_proto::parking::ParkSession,
@@ -181,6 +182,12 @@ targets!(
 // scheduler's rule (ADR 0033), and a run is checked as its definer.
 // Saved prompts name none either: agents may only read them.
 untargeted!(
+    vessel_proto::voice::CaptureVoice,
+    vessel_proto::voice::NextVoice,
+    vessel_proto::voice::PlayedVoice,
+    vessel_proto::voice::AbortVoice,
+    vessel_proto::voice::StopVoice,
+    vessel_proto::voice::SpeakVoice,
     vessel_proto::GetDeviceSelf,
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,

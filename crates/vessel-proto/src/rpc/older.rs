@@ -293,6 +293,8 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
+            | Self::StartVoice(_) | Self::CaptureVoice(_) | Self::NextVoice(_) | Self::PlayedVoice(_)
+            | Self::AbortVoice(_) | Self::StopVoice(_) | Self::SpeakVoice(_)
             | Self::GetAgentHistory(_) => None,
         }
     }

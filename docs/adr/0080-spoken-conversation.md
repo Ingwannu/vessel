@@ -81,7 +81,11 @@ files receive registration lines only.
 actor owns connection-bound leases, STT/VAD/TTS providers and transient
 outbound updates. Service methods authorize before work. Session input,
 reload and interrupt use the existing session service, not an alternate
-harness or prompt sender. The MCP path exposes `speak` only to the agent
+harness or prompt sender. The provider owner supplies the typed transient
+AgentSetup field and per-driver capability; the lifecycle owner supplies
+the one reload actor. Voice owns only bounded policy text and generation-
+fenced enable/restore state. Unsupported drivers are explicitly refused;
+there is no ordinary user-prompt or arbitrary environment fallback. The MCP path exposes `speak` only to the agent
 whose session currently has a live voice lease. It cannot open a microphone
 or select another session. Agent tools and direct person calls have
 separate request types and authority checks.
@@ -234,6 +238,7 @@ are deliberate resource floors, never silent truncation:
 | HTTP | connect 10 s, request 60 s; no redirects, env proxy or automatic retry |
 | STT response | 512 KiB before decoding; text at most 64 KiB UTF-8 |
 | Speech input | 64 KiB UTF-8; split at sentences/clauses/words, 260 UTF-16 units |
+| Composite transient prompt | existing 16 KiB AutomationText transport cap, including base and policy; refuse before reload |
 | TTS prefetch | 2 segments, matching Paseo; 8 MiB decoded PCM per segment |
 | Playback receipt | PCM duration + 30 s, bounded by 210 s; timeout fails speak |
 | Closed receipts | 10 s TTL, 256 ids maximum; unknown/foreign id refused |

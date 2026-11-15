@@ -79,6 +79,7 @@ mod parking;
 mod search;
 mod settings;
 mod side_questions;
+mod voice;
 
 /// The node's protocol implementation.
 #[derive(Debug)]

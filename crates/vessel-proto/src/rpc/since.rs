@@ -267,6 +267,13 @@ impl Call {
             | Self::GetNodeSettings(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
+            | Self::StartVoice(_)
+            | Self::CaptureVoice(_)
+            | Self::NextVoice(_)
+            | Self::PlayedVoice(_)
+            | Self::AbortVoice(_)
+            | Self::StopVoice(_)
+            | Self::SpeakVoice(_)
             | Self::GetAgentHistory(_) => None,
         };
         Some(fields.map_or(method, |since| method.max(ProtocolVersion::new(since))))

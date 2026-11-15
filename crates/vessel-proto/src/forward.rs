@@ -469,6 +469,8 @@ impl Method {
             | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
+            | Self::StartVoice | Self::CaptureVoice | Self::NextVoice | Self::PlayedVoice
+            | Self::AbortVoice | Self::StopVoice | Self::SpeakVoice
             | Self::Unsubscribe => false,
         }
     }

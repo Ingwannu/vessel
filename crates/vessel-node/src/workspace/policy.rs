@@ -98,7 +98,9 @@ const fn refused(method: Method) -> bool {
     match method {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
-        Method::AddProject
+        Method::StartVoice | Method::CaptureVoice | Method::NextVoice | Method::PlayedVoice
+        | Method::AbortVoice | Method::StopVoice
+        | Method::AddProject
         | Method::CloneProject
         | Method::InitProject
         | Method::RemoveProject
@@ -153,7 +155,7 @@ const fn refused(method: Method) -> bool {
         | Method::GetAgentHistory => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
-        Method::ListProjects
+        Method::SpeakVoice | Method::ListProjects
         // Side-question policy refuses agents before reading a parent;
         // its typed reason belongs to that domain, not file/git policy.
         | Method::OpenSideQuestion

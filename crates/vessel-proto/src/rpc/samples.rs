@@ -18,7 +18,15 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
     let cadence = json!({"kind":"cron","expr":"* * * * *","zone":"UTC"});
     let definition =
         json!({"cadence":cadence,"target":{"kind":"session","session":id},"prompt":"sample"});
+    let voice_lease = json!({"id":id,"epoch":crate::voice::VoiceEpoch::random()});
     let params = match method {
+        Method::StartVoice => json!({"id":id,"session":id}),
+        Method::CaptureVoice => json!({"lease":voice_lease,"seq":0,"pcm":"AAA="}),
+        Method::NextVoice | Method::AbortVoice | Method::StopVoice => json!({"lease":voice_lease}),
+        Method::PlayedVoice => {
+            json!({"lease":voice_lease,"playback":crate::voice::PlaybackId::random(),"outcome":"interrupted"})
+        }
+        Method::SpeakVoice => json!({"text":"fictional speech"}),
         Method::NodeInfo
         | Method::ListHarnesses
         | Method::ListSessions

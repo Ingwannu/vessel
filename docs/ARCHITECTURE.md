@@ -1541,8 +1541,9 @@ alone would otherwise expose the owner's unrelated process operations.
 
 `vessel-proto::voice` defines transient lease/epoch ids, bounded capture and
 playback PCM, redacted synthesis input, typed receipts and updates. Its one
-protocol gate is unassigned; the method table has no voice calls yet, and
-these values do not advertise runtime support. The existing base64 codec
+protocol gate is unassigned; the method table now has pending unary voice
+rows, which every peer refuses until assignment. The skeleton service
+returns typed runtime-unavailable and advertises no support. The existing base64 codec
 has an opt-in bounded decoder so audio is capped before decoded allocation.
 `vessel-node::voice` is staged under tests until service wiring; its outer
 VAD boundary counts Silero windows without wall-clock drift, and does not

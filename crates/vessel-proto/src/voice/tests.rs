@@ -2,13 +2,23 @@ use super::*;
 use base64::Engine as _;
 
 #[test]
-fn feature_is_unassigned_and_not_in_the_method_table() {
+fn one_pending_feature_cannot_be_sent_or_forwarded() {
+    use crate::{Method, MethodShape, Scope};
+    for method in [
+        Method::StartVoice,
+        Method::CaptureVoice,
+        Method::NextVoice,
+        Method::PlayedVoice,
+        Method::AbortVoice,
+        Method::StopVoice,
+        Method::SpeakVoice,
+    ] {
+        assert_eq!(method.since(), SINCE);
+        assert_eq!(method.scope(), Some(Scope::Operate));
+        assert_eq!(method.shape(), MethodShape::Unary);
+        assert!(!method.forwardable());
+    }
     assert_eq!(SINCE, None);
-    assert!(
-        crate::Method::ALL
-            .iter()
-            .all(|method| !method.as_str().starts_with("voice."))
-    );
 }
 
 #[test]

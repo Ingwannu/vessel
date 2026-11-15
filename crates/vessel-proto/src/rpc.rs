@@ -142,6 +142,20 @@ macro_rules! method_table {
             PromptSideQuestion / prompt_side_question / "session.side_prompt" [Operate, 19, unary]: $crate::side_questions::PromptSideQuestion => $crate::Delivered;
             /// Replace the expected side conversation (protocol 19).
             ResetSideQuestion / reset_side_question / "session.side_reset" [Operate, 19, unary]: $crate::side_questions::ResetSideQuestion => $crate::SessionInfo;
+            /// Enable a person's spoken conversation (ADR 0080; version assigned at merge).
+            StartVoice / start_voice / "voice.start" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::StartVoice => $crate::voice::ReadyVoice;
+            /// Upload contiguous bounded microphone PCM to the owning connection.
+            CaptureVoice / capture_voice / "voice.chunk" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::CaptureVoice => $crate::voice::CaptureAck;
+            /// Wait for one transient update; this does not create an RPC subscription.
+            NextVoice / next_voice / "voice.next" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::NextVoice => $crate::voice::VoiceUpdate;
+            /// Acknowledge actual playback, failure or interruption.
+            PlayedVoice / played_voice / "voice.played" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::PlayedVoice => $crate::Ack;
+            /// Interrupt speech and the voice session's running turn.
+            AbortVoice / abort_voice / "voice.abort" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::AbortVoice => $crate::Ack;
+            /// Retire remote voice ownership after immediate local Stop.
+            StopVoice / stop_voice / "voice.stop" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::StopVoice => $crate::voice::StopVoiceResult;
+            /// Speak only for the authenticated agent's own active voice session.
+            SpeakVoice / speak_voice / "voice.speak" [Operate, (pending $crate::voice::SINCE), unary]: $crate::voice::SpeakVoice => $crate::voice::PlaybackOutcome;
             /// Send input to a session.
             SendInput / send_input / "session.send" [Operate, 2, unary]: $crate::SendInput => $crate::Ack;
             /// Kill a session.

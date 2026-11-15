@@ -72,6 +72,11 @@ pub enum ErrorDetail {
         /// The stable pairing setup reason.
         reason: crate::DeviceInviteError,
     },
+    /// A spoken-conversation refusal contains no provider diagnostic or audio.
+    Voice {
+        /// A closed public reason, never credential or transcript content.
+        reason: crate::voice::VoiceFailure,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,

@@ -125,3 +125,27 @@ Next: finish narrow skeleton checks; implement node and app skeletons
 against a fake adapter without sending missing calls; amend dependency
 measurements before adding crates. App-base and Quality B announcement
 must precede wire registration. No gates/captures/runtime proof yet.
+
+
+### Pending registration draft after the shared-table head
+
+The node branch merged the shared method-table head. Seven pending unary
+rows use the single unassigned voice gate; next is one long-poll reply,
+not an RPC subscription. All methods are nonforwardable and operate;
+agent capture/control is refused, and speak is agent-only. Skeleton
+handlers return typed runtime-unavailable without opening any provider,
+changing a prompt or advertising readiness. The live own-session lease
+check belongs to the real implementation before any speak success.
+Generated declarations and compile evidence for this draft remain owed.
+
+Voice policy now reuses the existing 16 KiB PromptText transport bound
+(including the base and policy), retains redacted transient restoration
+state, and refuses replacement while a restore is uncertain. The provider
+owner's new setup field/capability must land before the lifecycle owner's
+reload and this package's real enable/restore bridge. No driver or reload
+actor is duplicated and no user-message/env fallback exists.
+
+The seven rows initially exceeded the shared rpc.rs 500-line budget.
+The coordinator directed consuming the already isolated Request/UnexpectedReply
+extraction, then awaiting the integrator's lasting table seam; no size
+record is raised. New drafts are preserved as WIP before that merge.
