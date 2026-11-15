@@ -131,7 +131,7 @@ mod tests {
             }),
         ];
         for call in calls {
-            assert_eq!(call.since(), SIDE_QUESTIONS);
+            assert_eq!(call.since(), Some(SIDE_QUESTIONS));
             let encoded = serde_json::to_string(&call).unwrap();
             let decoded: Call = serde_json::from_str(&encoded).unwrap();
             assert_eq!(decoded, call);
@@ -156,7 +156,7 @@ mod tests {
                 }),
             ];
             for envelope in envelopes {
-                assert_eq!(envelope.since(), SIDE_QUESTIONS);
+                assert_eq!(envelope.since(), Some(SIDE_QUESTIONS));
             }
         }
     }
