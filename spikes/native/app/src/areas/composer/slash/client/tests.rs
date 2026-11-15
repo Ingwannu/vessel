@@ -65,8 +65,9 @@ fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_life
             assert_eq!(shell.areas.session.composer.text(cx), "/exit");
             assert_eq!(shell.areas.session.open.as_ref().unwrap().session, session);
             if case == 2 {
-                // No admitted binding: lifecycle refuses visibly, with no navigation.
-                assert!(shell.notice.is_some());
+                // No link delivers an acknowledgement in this fixture. The real
+                // lifecycle is pending, so command handling cannot navigate early.
+                assert!(shell.sessions_lifecycle_busy());
                 assert_eq!(shell.route, Route::Session);
             } else {
                 assert!(shell.notice.is_none());

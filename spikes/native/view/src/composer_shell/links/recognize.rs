@@ -27,7 +27,7 @@ pub fn tokens(text: &str, kind: Kind) -> Vec<Token> {
     if kind == Kind::Code {
         return classify(text, Origin::Inferred, Workspace::Known)
             .is_some()
-            .then(|| Token {
+            .then_some(Token {
                 range: 0..text.len(),
             })
             .into_iter()
