@@ -136,3 +136,14 @@ The same eight old-render cases and all current-input assertions are preserved
 while setup/interception/input/positive-control helpers are split below the
 strict function-size bound. Loaded scope is borrowed and every unit closure
 terminates explicitly; no lint allowance, timing relaxation or assertion removal.
+
+The executed d45 callback case then reached current-row input but could not
+locate the submission button: unlike the dialog glyph, the shared button only
+registers ElementId. Owned import buttons now expose that same ID as their debug
+selector, as the row already does. The fixture root observes Shell notifications
+because it renders the child's controls directly; this lets accepted current
+intentions rebuild their captures. The positive control reacquires the rendered
+row and asserts selection is restored before actual submission. The eight stale
+render scenarios, focus preservation, no-RPC checks and real current dismissal
+remain required. The redundant child trait import is removed; no shared control,
+transport or product behavior changes. Corrected-source execution remains owed.

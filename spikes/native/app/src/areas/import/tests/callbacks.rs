@@ -1,8 +1,8 @@
 //! Retain actual rendered controls across replacement in a real dispatcher.
 use super::*;
 use gpui::{
-    AppContext as _, FocusHandle, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton,
-    MouseDownEvent, MouseUpEvent, Pixels, Point, Subscription, VisualTestContext, px, size,
+    FocusHandle, InputEvent as _, KeyDownEvent, Keystroke, Modifiers, MouseButton, MouseDownEvent,
+    MouseUpEvent, Pixels, Point, Subscription, VisualTestContext, px, size,
 };
 use std::cell::RefCell;
 
@@ -144,7 +144,16 @@ fn current_input(
             assert!(!shell.areas.import.model.has_selection());
         });
     });
+    let row = cx
+        .debug_bounds("history-row-native")
+        .expect("current production history row")
+        .center();
     cx.simulate_click(row, Modifiers::default());
+    probe.read_with(cx, |probe, cx| {
+        probe.shell.read_with(cx, |shell, _| {
+            assert!(shell.areas.import.model.has_selection());
+        });
+    });
     let submit = cx.debug_bounds("history-submit").unwrap().center();
     cx.simulate_click(submit, Modifiers::default());
     assert!(matches!(
@@ -173,6 +182,9 @@ fn run_case(cx: &mut TestAppContext, case: Case) {
                 loaded(&mut shell, &original);
                 shell
             });
+            // The fixture renders the child's controls directly, so its root
+            // must observe child notifications to rebuild captured intentions.
+            cx.observe(&shell, |_, _, cx| cx.notify()).detach();
             Probe { shell, renders }
         }
     });
