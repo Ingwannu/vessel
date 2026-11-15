@@ -332,7 +332,10 @@ live output (`logs.ts:362-363,402`). Vessel writes no boundary banner on
 either stream: stdout remains session output and stderr remains status and
 real stream notices, preserving the same capture contract for follow.
 
-### MCP
+### MCP consumer contract (separately integrated)
+
+The tools consumer owns decoding/schema/facade integration; this node package
+exposes the typed spec and selection boundary without shipping another decoder.
 
 MCP discovery follows the same negotiated default as the CLI. If an older fleet
 hop refuses an implicit Shown read with Unsupported, that implicit default alone

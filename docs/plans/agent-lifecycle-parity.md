@@ -750,25 +750,17 @@ The first core narrow lint refused redundant SessionSpec qualifications in
 the template rule and its test. They are removed without changing behavior
 or expectations; a fresh corrected-source check remains owed.
 
-### MCP metadata and discovery consumer
+### MCP consumer boundary
 
-MCP decodes labels/listing/scope before resolving even a node name. Borrowed
-map deserialization avoids cloning unrelated prompt text and retains the serde
-error until the MCP invalid-params boundary. Existing-session schedules and
-heartbeats refuse creation metadata instead of dropping it. Shared schema bounds
-come directly from label validators. Create/schedule input stays typed through
-the shared admission check. No new tool name or endpoint is registered.
-
-Implicit discovery uses Shown when the metadata assignment and negotiated peer
-support it; otherwise it retains the legacy full-list request. A remote older
-fleet hop may still refuse that implicit selected call with Unsupported. Only
-that implicit default may retry once using null; explicit scope or labels never
-fall back, and no other error is retried. This compatibility difference has no
-Paseo forwarding counterpart. All paths still use the one shared SDK/server
-protocol guard; the default chooser introduces no second admission rule.
+This node package supplies validated creation metadata and the nullable discovery
+request. MCP decoding, schema and facade integration belong with the tools
+consumer, so no second decoder or fallback implementation is shipped here.
+The existing MCP full-list call only changes its Rust unit-value spelling to
+`ListSessions::default()`, preserving null and its behavior. The consumer must
+use the shared admission accessor after its integrated head, and explicit
+selectors must never disappear. Its metadata ingress tests remain consumer work.
 
 The discovery fixture gives stored rows distinct fixed timestamps. The existing
 canonical sort promises newest-first, not an order among equal timestamps, so
 this prevents a test from depending on a fresh hash map's tie order. Expected
-selection contents and ordering requirements are unchanged. The MCP key-cap
-case also verifies that a refused map leaves the previous spec untouched.
+selection contents and ordering requirements are unchanged. Key-cap atomicity remains covered beside the shared label map itself.

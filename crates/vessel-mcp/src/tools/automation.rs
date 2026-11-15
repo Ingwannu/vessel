@@ -28,12 +28,9 @@ impl VesselTools {
         match name {
             "create_schedule" => {
                 let target = match text(args, "session")? {
-                    Some(session) => {
-                        super::discovery::existing_target(args)?;
-                        ScheduleTarget::Session {
-                            session: parse(session, "session")?,
-                        }
-                    }
+                    Some(session) => ScheduleTarget::Session {
+                        session: parse(session, "session")?,
+                    },
                     None => ScheduleTarget::NewSession {
                         spec: Box::new(Self::spec(args)?),
                         after: if flag(args, "keep")? {
@@ -47,7 +44,6 @@ impl VesselTools {
                 Ok(json!(self.client.create_schedule(definition, false).await?))
             }
             "create_heartbeat" => {
-                super::discovery::existing_target(args)?;
                 let session = self.own_session().ok_or_else(|| {
                     ToolError::Arguments("this tool server does not know its session".to_owned())
                 })?;
@@ -187,8 +183,6 @@ pub(super) fn tools() -> Vec<Tool> {
             when(json!({
                 "session": { "type": "string", "description": "A session of yours to prompt." },
                 "harness": { "type": "string", "description": "claude, codex, gemini or opencode." },
-                "labels": super::discovery::labels_property(),
-                "listing": super::discovery::listing_property(),
                 "profile": { "type": "string", "description": "One of the node's profiles." },
                 "project": { "type": "string", "description": "A project id (`list_projects`)." },
                 "dir": { "type": "string", "description": "With `project`: a folder in it." },

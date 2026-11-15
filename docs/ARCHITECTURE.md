@@ -1598,5 +1598,7 @@ alone would otherwise expose the owner's unrelated process operations.
 process state and archival. The store appends a default-Shown column; it does
 not rewrite original specs or change the migration runner. Protocol projection
 hides both fields while the lifecycle assignment is pending, including reusable
-templates and transfers. Creation inheritance and discovery consumers are the
-remaining wiring; these types alone do not enable background creation.
+templates and transfers. The existing creation and discovery service paths
+consume these types for legacy/unbound sessions; explicit inputs remain refused
+while assignment is pending. Canonical bound workspace mirroring and the
+separately integrated CLI/MCP consumers remain outside this node package.
