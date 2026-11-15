@@ -896,3 +896,8 @@ reply projection changes. The ADR states the necessary non-starting export
 refusal and the difference from Paseo's caller-labelled history import.
 Tests precede the fix: real-node source refusal, default metadata unchanged,
 synthetic assignment/older visibility and the three-hop return boundary.
+
+The first source-export regression seeds durable labels and Background without
+a provider conversation. The exact typed protocol refusal must precede the
+otherwise-later missing-history error, and the stored metadata must remain
+unchanged. This test is committed before the guard; its red run is still owed.
