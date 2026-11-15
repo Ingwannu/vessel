@@ -5,7 +5,9 @@
 //! Node/engine lifetime owns all incoming, upstream and upgraded connections.
 //! Preview will need its separate reviewed runtime capability adapter first.
 
+mod closing;
 mod forwarding;
+pub(crate) use closing::ClosingProxy;
 mod request;
 #[cfg(test)]
 mod tests;
@@ -51,6 +53,9 @@ pub(crate) enum ProxyError {
     /// Shutdown never waits indefinitely for page traffic.
     #[error("browser policy proxy shutdown timed out")]
     Shutdown(#[source] tokio::time::error::Elapsed),
+    /// An earlier actor failure can never become a successful second wait.
+    #[error("browser policy proxy cleanup could not be confirmed")]
+    Unconfirmed,
 }
 
 /// Private node-owned proxy; Debug deliberately omits its control endpoint.
@@ -102,15 +107,20 @@ impl PublicProxy {
     ///
     /// # Errors
     /// Actor failure or a shutdown deadline is explicit to the engine supervisor.
-    pub(crate) async fn close(mut self) -> Result<(), ProxyError> {
+    pub(crate) async fn close(self) -> Result<(), ProxyError> {
+        let mut closing = self.begin_close();
+        tokio::time::timeout(SHUTDOWN_TIMEOUT, closing.wait())
+            .await
+            .map_err(ProxyError::Shutdown)
+            .map(|result| result.map(|_stopped| ()))?
+    }
+
+    /// Hand off actual cleanup ownership before applying an outer caller deadline.
+    /// The process supervisor must retain this until its wait produces a receipt;
+    /// an error/timeout never grants permission to release the profile or slot.
+    pub(crate) fn begin_close(mut self) -> ClosingProxy {
         self.cancel.cancel();
-        if let Some(actor) = self.actor.take() {
-            return tokio::time::timeout(SHUTDOWN_TIMEOUT, actor)
-                .await
-                .map_err(ProxyError::Shutdown)?
-                .map_err(ProxyError::Task)?;
-        }
-        Ok(())
+        ClosingProxy::new(self.actor.take(), self.cancel.clone())
     }
 }
 impl Drop for PublicProxy {

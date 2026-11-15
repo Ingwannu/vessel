@@ -616,3 +616,30 @@ instance data, make its fixed path accessor associated, put the bounded read
 buffer on heap and correct tests/docs. Candidate::FIXTURE is explicitly test-only
 launch data and cannot grant runtime qualification. New snapshot+union strict
 must execute on the changed head; source-fast checks only are complete here.
+
+## Actual cleanup receipt before process supervision
+
+[Decision Log]
+- Purpose: a process/profile owner must keep cleanup join ownership after a caller
+  deadline, rather than infer network quiescence from the completed outer future.
+- Existing asset: the proxy actor already cancels and joins streams, upgrades and
+  finite Preparation work. Its consuming bounded close was unsuitable for a
+  process owner that must retain and resume the actual join on an outer timeout.
+- Alternatives: extend that deadline, or separate caller result from real cleanup.
+- Choice: modify the existing proxy with begin_close and a retained ClosingProxy.
+  Its cancel-safe mutable wait returns an opaque receipt only after actual actor
+  success. Failure remains unconfirmed on later waits; no false idempotent success.
+- Reason: the future process actor can retain this value with profile lock and
+  capacity, apply the existing outer command deadline to its caller, and continue
+  actual cleanup without admitting a replacement profile early.
+- Impact: no new timeout, permission, listener, connector or product export. Existing
+  close still uses the same5s caller deadline. Its timeout is not a cleanup receipt.
+  A held-worker fixture drops and resumes the wait while proving preparation
+  admission stays occupied. This source is A10-staged and execution is owed.
+
+The process supervisor itself remains next: reuse vessel-proc group/job ownership,
+private actual-child pipe handles, finite runtime inspection and bounded discarded
+stderr; hold profile/capacity through child wait plus real proxy drain. Candidate
+identity and scoped diagnostics cannot qualify a supported engine. Do not release
+on a wait/actor failure without cleanup evidence. No new generic spawn/raw CDP
+surface or process identity implementation is introduced by this prerequisite.

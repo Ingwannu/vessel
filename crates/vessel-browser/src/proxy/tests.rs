@@ -102,3 +102,43 @@ async fn profile_close_cannot_finish_or_replace_capacity_while_preparation_is_al
     .await
     .unwrap();
 }
+
+#[tokio::test]
+async fn cancelled_drain_wait_keeps_the_actual_preparation_and_can_resume() {
+    use crate::preparation::{Preparation, PreparationError};
+    use std::sync::{Arc, mpsc as blocking};
+    use tokio::sync::{Semaphore, oneshot};
+    use tokio_util::sync::CancellationToken;
+    tokio::time::timeout(FIXTURE_DEADLINE,async {
+        let gate = Arc::new(Semaphore::new(1));
+        let cancel = CancellationToken::new();
+        let preparation = Preparation::with_gate(cancel.clone(),Arc::clone(&gate));
+        let proxy = PublicProxy::start_scope(cancel.clone(),preparation.clone()).await.unwrap();
+        let (started,entered) = oneshot::channel();
+        let (release,held) = blocking::channel();
+        let worker = tokio::spawn(async move {
+            preparation.run(move || { let _notified=started.send(()); held.recv().unwrap(); }).await
+        });
+        entered.await.unwrap();
+        let mut closing = proxy.begin_close();
+        cancel.cancelled().await;
+        assert!(matches!(worker.await.unwrap(),Err(PreparationError::Closed)));
+        {
+            let wait = closing.wait();
+            tokio::pin!(wait);
+            tokio::select! {
+                biased;
+                _finished = &mut wait => panic!("cleanup completed while the real closure was held"),
+                () = tokio::task::yield_now() => {},
+            }
+            // This outer caller stops waiting, but ClosingProxy still owns its JoinHandle.
+        }
+        let replacement = Preparation::with_gate(CancellationToken::new(),Arc::clone(&gate));
+        assert!(matches!(replacement.run(|| ()).await,Err(PreparationError::Busy)));
+        release.send(()).unwrap();
+        let _actual = closing.wait().await.unwrap();
+        let _same_completed_scope = closing.wait().await.unwrap();
+        replacement.run(|| ()).await.unwrap();
+        replacement.finish().await;
+    }).await.unwrap();
+}
