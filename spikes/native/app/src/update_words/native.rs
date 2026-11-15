@@ -31,7 +31,8 @@ fn open(error: &OpenError) -> Problem {
         OpenError::Envelope(_)
         | OpenError::Manifest(_)
         | OpenError::Channel { .. }
-        | OpenError::Duplicate { .. } => Problem::FeedInvalid,
+        | OpenError::Duplicate { .. }
+        | OpenError::CompanionTwice { .. } => Problem::FeedInvalid,
         OpenError::Signature(_) => Problem::FeedUnverified,
         OpenError::Schema { .. } => Problem::FeedNewFormat,
     }
@@ -41,9 +42,15 @@ fn stage(error: &StageError) -> Problem {
     match error {
         StageError::Fetch(_) => Problem::Download,
         StageError::Write(_) => Problem::DownloadWrite,
-        StageError::TooLarge | StageError::Short { .. } | StageError::Digest => {
-            Problem::DownloadIntegrity
-        }
+        // Another copy of the app holds the download; what arrived is kept
+        // and the next attempt goes on from it, so this is an interruption,
+        // not a connection or a write problem.
+        StageError::Busy => Problem::Interrupted,
+        // A signed gzip copy that does not unpack is bytes not to install.
+        StageError::TooLarge
+        | StageError::Short { .. }
+        | StageError::Digest
+        | StageError::Unpack(_) => Problem::DownloadIntegrity,
     }
 }
 
@@ -59,7 +66,9 @@ fn install(error: &InstallError) -> Problem {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vessel_app_updater::{Channel, MAX_ENVELOPE_BYTES, Packaging, PublicKey, SCHEMA, Target};
+    use vessel_app_updater::{
+        Channel, MAX_ENVELOPE_BYTES, Packaging, PublicKey, Role, SCHEMA, Target,
+    };
 
     fn io() -> std::io::Error {
         std::io::Error::other("isolated fixture")
@@ -150,6 +159,13 @@ mod tests {
             }),
             Problem::FeedInvalid
         );
+        assert_eq!(
+            open(&OpenError::CompanionTwice {
+                target: Target::LinuxX86_64,
+                role: Role::Node
+            }),
+            Problem::FeedInvalid
+        );
         for error in [
             StageError::TooLarge,
             StageError::Short {
@@ -157,9 +173,11 @@ mod tests {
                 expected: 2,
             },
             StageError::Digest,
+            StageError::Unpack(io()),
         ] {
             assert_eq!(stage(&error), Problem::DownloadIntegrity);
         }
+        assert_eq!(stage(&StageError::Busy), Problem::Interrupted);
         for error in [
             InstallError::MoveAside(io()),
             InstallError::Permissions(io()),

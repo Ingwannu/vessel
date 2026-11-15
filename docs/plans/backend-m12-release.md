@@ -13,7 +13,10 @@ are signed and installed), ADR 0014 (what may be linked), and
 
 ```
 spikes/release/
-  build.sh               every artifact of one label, on Linux
+  build.sh               every artifact of one label, on Linux, in two steps
+                         (--compile-only on the build VM, --package-from where
+                         the secrets are; ADR 0099)
+  update-key.pub         the release key's public half, compiled into the app
   hello/                 the smallest GPUI window (a target's first proof)
   updater/               vessel-app-updater: the app's updater, no GPUI
   feed/                  vessel-app-feed: release key, signed feed, sums
@@ -22,6 +25,8 @@ spikes/release/
                          gpui-base 0.8.1 (a steady caret while motion is held)
   tools/fxc-wine         Microsoft's fxc.exe under wine, for GPUI's shaders
   tools/fetch-fxc.py     fetches fxc.exe and d3dcompiler_47.dll from the SDK
+  tools/patch-feed.py    writes the feed's address into a built app (ADR 0099)
+  tools/feed-slot-proof.sh  runs a built Linux app to show it reads that slot
   windows/installer.nsi  the per-user installer
   windows/README.txt, linux/README.txt   what each package says
   ci/app-release.yml     the hosted-runner workflow (not under .github: not run)
@@ -45,17 +50,24 @@ cargo-xwin fetches Microsoft's CRT and SDK libraries into
 fetches the HLSL compiler. Both are Microsoft's files under Microsoft's
 terms (see "Left for the owner").
 
-A build:
+A build, since 2026-11-15 in two steps on two machines (ADR 0099, and
+"Labels compiled without secrets" below):
 
 ```bash
-VESSEL_DIST_DIR=<dist root> VESSEL_TOOLS_DIR=<tools> \
+# the build VM (no secret; the remote gate's release compile mode runs this)
+VESSEL_TOOLS_DIR=<tools> spikes/release/build.sh 0.0.0.0.21 windows-x64 linux-x64 --compile-only DIR
+# the machine with the secrets, in a checkout of the same commit; no compiler
+VESSEL_DIST_DIR=<dist root> VESSEL_UPDATE_FEED_FILE=<address file> \
 VESSEL_UPDATE_SECRET=<secret key file> \
-spikes/release/build.sh 0.0.0.0.1 windows-x64 linux-x64
+spikes/release/build.sh 0.0.0.0.21 windows-x64 linux-x64 --package-from DIR [--publish]
 ```
 
-With `VESSEL_UPDATE_FEED` and `VESSEL_UPDATE_KEY` set, the app is built
-to update itself from that feed; `--publish` then writes the channel's
-signed manifest (the moment every installed copy sees the new build).
+The compile step compiles in the label and the release key's public half
+(`update-key.pub`); the package step writes the feed's address into the
+built app and signs. `--publish` then writes the channel's signed manifest
+(the moment every installed copy sees the new build). Labels up to
+0.0.0.0.20 were built in one step with the address compiled in
+(`VESSEL_UPDATE_FEED`, now refused).
 
 ## Step 1: a GPUI window built for Windows on Linux
 
@@ -1059,6 +1071,83 @@ never rebuilt.
     a byte range since 09:08 UTC (the preview proxy, its README says how),
     and the updater resumes, downloads a compressed file and shows a
     broken-off download (ADR 0094's branch).
+
+## The command line and the node in the package (ADR 0094, 2026-11-15)
+
+The coordinator decided that the package carries `vessel` and `vesseld`
+beside the app (W15's local-node controller needs the node; Paseo's desktop
+ships its daemon and command line), and that updates replace the three as
+one set. `docs/adr/0094-package-contents-and-whole-set-self-update.md` has
+the reasons and the trade-offs. Where it stands:
+
+- Built behind `VESSEL_PACKAGE_NODE=1` (`build.sh`, off by default): the
+  zip, the installer and the tarball get the two programs in a `bin`
+  folder beside the app (`bin\vessel.exe` and `bin\vesseld.exe`,
+  `bin/vessel` and `bin/vesseld`; only `bin` goes on `PATH`, the layout W15
+  and W19's getter use), and the dist folder gets each alone as the
+  update's companions; `--publish` names them with `--companion`.
+- The manifest stays schema 1; companions are an optional field the
+  published apps (0.0.0.0.3 to 0.0.0.0.18) skip, and the first build with
+  them puts in the companions an old app could not.
+- The updater: the whole set downloaded and verified before any swap,
+  companions first and the app last, every placed file put back when one
+  fails; tests listed in the ADR.
+- Resuming, a gzip copy of every update file, and a failed state that
+  says what was kept and when the next try is (the ADR's addendum, after
+  the owner's slow Windows update of 2026-11-15): these need no flag and
+  reach the owner with the first label built from this branch; the gzip
+  copies are made by every build from then on.
+- Not shipped in any label until the local-node controller is in a build.
+  Shown on 2026-11-15: `vessel-cli` and `vessel-node` build for Windows
+  with `cargo-xwin` (console programs, 74.4 MB and 56.9 MB) and import
+  only DLLs Windows ships. Not shown: that they run there.
+
+## Labels compiled without secrets (ADR 0099, 2026-11-15)
+
+The operator ruled that no compiler runs on the machine with the feed's
+token and the signing key, and the build VM keeps no secret. The
+coordinator chose to compile labels on the build VM with a fixed slot for
+the feed's address and to write the address into the built executables
+here. `docs/adr/0099-release-builds-compile-without-secrets.md` has the
+reasons, the checks and the tests. Where it stands:
+
+- Built on `backend/m12-release-adr0094` (commit 364b9345d), on top of ADR
+  0094's branch. The first label built from it also brings ADR 0094's
+  resuming and gzip updates. Its companions stay behind
+  `VESSEL_PACKAGE_NODE`.
+- The updater reads the address from a 512-byte slot through
+  `black_box`. `build.rs` and `build.sh` refuse `VESSEL_UPDATE_FEED`.
+- `build.sh --compile-only DIR` runs on the build VM.
+  `build.sh --package-from DIR` runs here: it checks DIR, proves the slot,
+  writes, verifies, packages, signs and checks with the compiled-in key.
+  It signs with the feed tool that the compile step built, so nothing
+  here runs `cargo`.
+- The build VM's Windows cross tools were installed by this track on
+  2026-11-15 and checked against this machine:
+  - fxc gives the same shader bytes.
+  - make-icons gives the same 18 files.
+  - Where they are is recorded with the VM's provisioning notes.
+- Shown without compiling, 2026-11-15:
+  - `tools/test_patch_feed.py`: 13 of 13 pass.
+  - A dry run of `--package-from` on stand-ins (no compiler, a throwaway
+    key, a loopback feed) passed. Its 13 refusal cases each stopped in
+    their place.
+  - The proof script's own run: a stand-in that reads its slot asked the
+    test feed after 4 s.
+- Gates on the build VM, 2026-11-15:
+  - The native gate of e3ae1c1ae is green: fmt, quality, clippy, build,
+    and tests 1253 passed, 0 failed, 2 ignored.
+  - That gate also found two non-exhaustive matches in the app's update
+    words on ADR 0094's new errors, fixed in e3ae1c1ae. Earlier heads of
+    the branch do not build the app.
+- The first real compile was trial label 0.0.0.99.1, never published:
+  - `--release-compile 0.0.0.99.1 linux-x64` of e3ae1c1ae took 605 s.
+    The slot was found once, at 0xcc0da4.
+  - Packaged here with the real address and no signing key, into a
+    scratch directory that was then removed. The compiled app asked a test
+    feed written into its slot after 6 s. The shipped app read the real
+    feed's signed manifest after 6 s.
+  - The package log holds neither the address nor its token.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 
