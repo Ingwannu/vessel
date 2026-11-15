@@ -32,10 +32,12 @@ use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::tabs::{tab, tab_head};
+use vessel_app_kit::theme::COMMAND_SCRIM;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, canvas, div, px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement, MouseButton,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, canvas, div, px,
+    rgba,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph, popup};
 use vessel_app_view::panels::{CODE_PANEL, Placement, SIDEBAR, code_placement, over_width};
@@ -147,6 +149,23 @@ pub(crate) fn code_beside(
         return screen;
     };
     let row = Rc::clone(&shell.areas.workspace.code.row);
+    // Over the conversation, the conversation is dimmed and a press on it
+    // closes the panel and returns to it: Paseo's panel backdrop on its
+    // compact layout (`mobile-panels/presentation.tsx`, black at 50 %,
+    // `onPress={showMobileAgent}`). A panel as wide as the row covers it
+    // all, as Paseo's does; its close button is then the way back.
+    let over = shell.code_placement(window) == Some(Placement::Over);
+    let scrim = over.then(|| {
+        div()
+            .absolute()
+            .inset_0()
+            .bg(rgba(COMMAND_SCRIM))
+            .cursor_pointer()
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(|this, _event, window, cx| this.toggle_code(window, cx)),
+            )
+    });
     div()
         .size_full()
         .relative()
@@ -168,6 +187,7 @@ pub(crate) fn code_beside(
                 .flex_basis(px(CODE_PANEL.beside))
                 .min_w(px(0.0)),
         )
+        .children(scrim)
         .child(panel)
 }
 
@@ -295,6 +315,10 @@ fn over(frame: Div, width: f32, tokens: &Tokens) -> Div {
         .border_l_1()
         .border_color(tokens.neutral.border)
         .shadow(popup::shadow_md(tokens))
+        // The scrim under it closes the panel on a press; without this a
+        // press on the panel's own controls reached it too (a link's
+        // on_click lost its element before the click ended).
+        .occlude()
 }
 
 /// A line where the panel has nothing else to show.

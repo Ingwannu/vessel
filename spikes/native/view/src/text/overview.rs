@@ -1,9 +1,11 @@
-//! The words of Settings › Overview (Paseo's `settings.host`: `badges`,
-//! `appearance`, `daemon.rename`, `daemon.dangerZone`, `daemon.remove`),
-//! in English and Korean, "machine" where Paseo says "host" (see
-//! `text/mod.rs` for the convention).
+//! The words of Settings › Overview and Settings › Connections (Paseo's
+//! `settings.host`: `badges`, `appearance`, `daemon.rename`,
+//! `daemon.dangerZone`, `daemon.remove`, `connections`), in English and
+//! Korean, "machine" where Paseo says "host" (see `text/mod.rs` for the
+//! convention).
 
 use super::Lang;
+use crate::connections::Route;
 
 impl Lang {
     /// The words of Settings › Overview in this language.
@@ -43,6 +45,9 @@ pub struct OverviewText {
     pub remove_title: &'static str,
     pub remove_hint: &'static str,
     pub remove: &'static str,
+    // Settings › Connections: its section's title (Paseo's
+    // `connections.title`).
+    pub connections: &'static str,
 }
 
 const EN: OverviewText = OverviewText {
@@ -61,6 +66,7 @@ const EN: OverviewText = OverviewText {
     remove_title: "Remove machine",
     remove_hint: "Removes this machine and its saved connection from this device",
     remove: "Remove",
+    connections: "Connections",
 };
 
 const KO: OverviewText = OverviewText {
@@ -79,6 +85,7 @@ const KO: OverviewText = OverviewText {
     remove_title: "머신 제거",
     remove_hint: "이 머신과 저장된 연결을 이 기기에서 제거합니다",
     remove: "제거",
+    connections: "연결",
 };
 
 impl OverviewText {
@@ -91,5 +98,25 @@ impl OverviewText {
             Lang::En => format!("Remove {machine}? This will delete its saved connection."),
             Lang::Ko => format!("{machine} 머신을 제거할까요? 저장된 연결이 삭제됩니다."),
         }
+    }
+}
+
+impl OverviewText {
+    /// A route's row title, as Paseo's `formatHostConnectionLabel`: its
+    /// kind, then its endpoint in brackets ("Relay (relay.example:443)").
+    /// A direct route is "TCP" whether or not it is a paired machine's
+    /// (Paseo names every direct endpoint so); the kinds are Paseo's
+    /// `badges.relay` and `badges.remoteSsh`. No particle follows the
+    /// endpoint in Korean.
+    #[must_use]
+    pub fn route(&self, route: &Route) -> String {
+        let kind = match (route, self.lang) {
+            (Route::Tcp(_) | Route::Direct(_), _) => "TCP",
+            (Route::Relay(_), Lang::En) => "Relay",
+            (Route::Relay(_), Lang::Ko) => "릴레이",
+            (Route::Ssh(_), Lang::En) => "Remote SSH",
+            (Route::Ssh(_), Lang::Ko) => "원격 SSH",
+        };
+        format!("{kind} ({})", route.endpoint().as_str())
     }
 }

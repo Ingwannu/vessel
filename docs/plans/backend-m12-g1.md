@@ -852,6 +852,133 @@ below an 800x600 window.
   unreachable, at its watch limit, session ended) each have their own
   sentence in Paseo's voice, where Paseo has one "isn't connected".
 
+## G1b, slice 3: merging a session's pull request, its feedback, and the fake forge (2026-11-15)
+
+### What is drawn, and from which reference file
+
+| Part | Reference followed | Where |
+|---|---|---|
+| Merge PR (squash), (merge), (rebase) after View PR, shown only when a merge would be taken | Paseo `git/policy.ts` `canMergePr` (560-591), `shouldShowPullRequestAction` (753-770), `buildDirectPullRequestMergeAction` (444-462) | `view/src/workspace/pull/{merge,menu}.rs`, `app/src/areas/pulls/merge.rs`, `app/src/areas/git/menu.rs` |
+| Why a merge was refused | Paseo `getMergePrUnavailableMessage` (712-747) and its `unavailable.mergePr*` words; the node's closed `MergeRefusal` | `view/src/workspace/pull/merge_words.rs` |
+| The feedback switch | The node's `pr.feedback` (`SetFeedback`); a row in the facts dialog | `app/src/areas/pulls/feedback.rs` |
+| The facts header | Paseo `pull-request-panel/pane.tsx` 524-552 and its styles 1216-1224 (the title at the body size and weight, the number muted in the same run) | `app/src/areas/pulls/facts.rs` |
+
+### Differences from the references, each with its reason
+
+- **The rule reads what the node sends**: Paseo's `mergeCapability`
+  (direct merge ready, auto-merge, merge queue) is the node's
+  `mergeable` (Unstable counts as ready: only checks that are not
+  required fail) and its refusals (`MergeQueue`, `NotMergeable`); its
+  `aheadCount > 0` applies only where the node knows the base (a
+  worktree made from a branch).
+- **The pull request is pinned**: `pr.merge` carries the number and the
+  head seen; a push since is refused as `HeadMoved`. Paseo merges on
+  one choice without a confirmation, and so does this.
+- **A merge row is a consent**: `merge_methods` takes the pull request
+  and its summary apart whole (README's rule for types a person
+  accepts), so a field a newer node adds stops the build until the rule
+  reads it.
+- **Auto-merge is not offered**: the node has no auto-merge call.
+
+### Found on the fake forge fleet (ADR 0060, the node line's `vessel-forge-fixture`)
+
+- The form showed, and would have sent, the base `origin/main`. The node
+  measures a project against its default as it marks it, and sends
+  `pr.open`'s base to the forge as written; it strips `origin/` only for
+  its own default. Fixed in `view` (`start_base`): absent (the node's
+  default, `gh pr create` without `--base`) for the project's default
+  in either spelling, and a remote-tracking branch without its remote's
+  name.
+- The facts title put its number on a line of its own when it wrapped.
+  It now follows Paseo's pane.
+- At 800x600 the code panel sits over the conversation, above a scrim
+  that closes it on a press. The panel did not occlude, so a press on the
+  pull request link reached the scrim, the panel closed, and the facts
+  never opened. Fixed with one line (`.occlude()`) in the panel's
+  `over()` (`app/src/areas/workspace/code/frame.rs`, the lead's 0.0.0.0.17
+  change), as the kit menu, the palette and search already do.
+
+### Captures
+
+At 1280x800 in both themes and both languages:
+- The empty case: the menu, the form, the base list, and the refusals
+  for a blank title and a title too long.
+- The ready case: the link, the menu, the facts, and the feedback switch
+  turned on and off.
+- The refused merge.
+- The failing checks.
+- No access.
+
+In dark en and light ko:
+- Changes requested, rate-limited, draft (no merge rows), conflicting
+  (no merge rows), pending and unknown.
+- The read-only person, whose merge and open the node answers Forbidden.
+
+Also captured:
+- Dark en and light ko at scales 1.25, 1.5 and 2: the empty case's menu
+  and form, and the ready case's link, menu and facts. The link's glyph
+  is enlarged at the four scales.
+- 1024x700, 800x600 and 390x844 in dark en and light ko: the form and
+  its blank refusal, the link, the menu, the ready and failing facts, and
+  the refused merge.
+- The 800x600 facts shots were taken before the occlusion seam. They show
+  the bug (the panel closes and no dialog appears), not the fix.
+
+Not yet captured (the session was paused):
+1. 800x600 again with an app built at or after the seam: the ready and
+   failing facts.
+2. Last, because they change the fleet's forge: `pr.open` on the empty
+   case and a squash merge of #301 on the ready case. Both are at 1280x800,
+   in dark en, followed by the board's card lines.
+
+Not drawn: `OpenOutcome::Exists`. It needs a pull request opened between
+the menu's read and the form's send, which the fixture cannot stage.
+
+### Resume
+
+- The branch is the lead's `f54b3633` with this track's work as one
+  commit per area (view: start base; view: merge and feedback; link;
+  native; docs), then the occlusion seam, then this note. The pre-split
+  history is kept as `backend/m12-app-git-presplit`.
+- Gates: the native gate runs on the second build machine
+  (`vessel-remote-gate ... --only native`, label `gitpr`). Its run id and
+  totals for the committed head are in the track's notes outside the
+  repository, and in the report to the coordinator.
+- Next: the two capture items above, then hand the slices to the lead
+  with the capture folder. The project-wide pull request page waits on
+  ADR 0061.
+- Seen, not mine: from the sidebar, "All projects (14)" opens
+  build-server's Projects page, which says "No projects yet" (the
+  projects are on laptop).
+
+### Resume (2026-11-14 15:50 UTC, paused by the coordinator for the account windows)
+
+- Slice 3 (merge and feedback) is a WIP commit on this branch, after the
+  hand-off head `0036db7c`: `view::workspace::pull::{merge, merge_words}`
+  with tests, the merge rows in `pull::menu`, the words in `pulls.ftl`,
+  `PullAsk::Merge`/`Feedback` and their answers in the link,
+  `app/src/areas/pulls/{merge,feedback}.rs`, the menu's merge rows and
+  the facts' feedback switch. Clippy is clean on it (gate p4); its tests
+  were not run (the gate was stopped at the pause). Resume: run the whole
+  gate, fix what it finds, then split the WIP commit by responsibility
+  as slice 2 was.
+- On waking (the coordinator, once track N3's fake forge is on the node
+  line): first merge the lead's line at or after `ae8c1d38` (0.0.0.0.16,
+  which holds `0036db7c`), then capture the Create PR form, then the
+  facts, the link, the card line, and slice 3's rows and switch.
+- What the lead changed while merging `0036db7c`:
+  - The picker keeps both `Leading` forms (Mark and SmallGlyph). The
+    combobox draws the row tooltips, its row arguments are bundled in
+    one `Listing`, and combo rows moved to `kit/src/picker/rows.rs`.
+  - `code_git_width` is the width the frame draws (`PANEL.width`, for
+    word 29's edges), not the field.
+  - The screens' literal sizes in git/head, menu, stashes and commit, and
+    in pulls/facts, form and card, became named constants and spacing
+    steps.
+  - The form summary's colour is `theme::SUMMARY_LIGHT`.
+  - The WIP commit `76fedfb7` will conflict where it touches those
+    files: resolve toward the lead's names.
+
 ### Resume (2026-11-14 15:00 UTC)
 
 - Done: slice 1 with its matrix fixes and the idle fix; slice 2's rules,
@@ -861,8 +988,30 @@ below an 800x600 window.
   pane but captured only up to "Create PR isn't available" until a node
   can read a forge); track S3's kit transitions for the menu, the
   switcher, the dialogs and the tooltips; G2's kit menu controls.
-- Next: the merge slice (`pr.merge`, pinned number, head and method,
-  Paseo's confirmation) and the feedback switch (`pr.feedback`).
+- Next: the merge slice and the feedback switch. Design, from Paseo's
+  `git/policy.ts` (`canMergePr`, `buildDirectPullRequestMergeAction`) and
+  the node's contract (`forge/calls.rs`):
+  - Paseo merges on one choice, with no confirmation: "Merge PR
+    (squash)", "(merge)", "(rebase)" (ko "PR 병합(스쿼시)" …), pending
+    "Merging PR...", done "PR merged". The rows show only when the pull
+    request is open, not a draft, not conflicting, and the branch is
+    clean and in step with its remote (Paseo's `aheadOfOrigin` and
+    `behindOfOrigin` zero, `hasUncommittedChanges` false); each method
+    only when the repository allows it.
+  - The allowed methods are in `pr.get`'s whole pull request
+    (`merge_methods`), not in the card's summary: the git area reads it
+    when its session has one and again after each refresh that changed
+    the summary's `updated_at`.
+  - `pr.merge` pins the number and the head the person looked at
+    (`summary.head_commit`); a push since is `MergeRefusal::HeadMoved`.
+    Each refusal gets Paseo's sentence where it has one (`mergePrDraft`,
+    `mergePrClosed`, `mergePrConflicts`, `mergePrQueue`,
+    `mergePrNotReady`), else its own in Paseo's voice; the forge's own
+    words go under it as for `pr.open`.
+  - Feedback (`pr.feedback`, `SetFeedback`): a switch in the facts dialog
+    ("Send failing checks and reviews to the session"), its state from
+    `SessionPullRequest.feedback`.
+  - Captures wait for track N3's fake forge, as slice 2's facts do.
 - Capture helpers (outside the repository): `app.sh` (own display, own
   authority file), `drive.py`, `matrix*.sh`, `idle-cpu.sh`. The menu's
   rows below Fetch move down by one group when Create PR is offered:

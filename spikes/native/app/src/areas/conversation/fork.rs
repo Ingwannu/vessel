@@ -44,7 +44,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{MenuHandlers, MenuItem, MenuState, Tooltips};
 use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Acted};
 use vessel_app_view::Card;
-use vessel_app_view::timeline::fork_point;
+use vessel_app_view::timeline::{fork_point, origin_of};
 use vessel_proto::EventSeq;
 
 use super::entries::{Paint, id};
@@ -62,8 +62,11 @@ pub(crate) struct Forking {
     target: Option<(usize, EventSeq)>,
     /// The footer whose fork is on its way.
     pending: Option<usize>,
-    /// The new session, to open on the next frame.
+    /// The new session, to open on the next frame (or, once an empty
+    /// fork is removed, the session it was forked from).
     opening: Option<Open>,
+    /// An empty fork's Remove is on its way (F2).
+    removing: bool,
     /// The marks' tooltip (one shown at a time).
     pub(super) tips: Tooltips,
     /// Where each footer's mark was last drawn, by entry.
@@ -86,9 +89,15 @@ impl Forking {
             target: None,
             pending: None,
             opening: None,
+            removing: false,
             tips: Tooltips::new(),
             places: RefCell::default(),
         }
+    }
+
+    /// Whether an empty fork's Remove is on its way.
+    pub(super) const fn removing(&self) -> bool {
+        self.removing
     }
 
     /// Whether a new session waits to be opened.
@@ -102,6 +111,7 @@ impl Forking {
         self.menu.close();
         self.target = None;
         self.pending = None;
+        self.removing = false;
         self.tips = Tooltips::new();
         self.places.borrow_mut().clear();
     }
@@ -239,6 +249,53 @@ impl Shell {
                 | Acted::Deleted(_)
                 | Acted::Done
                 | Acted::Conversation(_)
+                | Acted::Log(_),
+            ) => {}
+        }
+    }
+
+    /// Remove the empty fork shown (its banner's button, F2): it never
+    /// held a conversation, so nothing is lost and no confirm is asked.
+    pub(super) fn empty_fork_remove(&mut self, cx: &mut Context<'_, Self>) {
+        let forking = &mut self.areas.conversation.forking;
+        if forking.removing {
+            return;
+        }
+        forking.removing = true;
+        self.act(Act::Delete);
+        cx.notify();
+    }
+
+    /// An empty fork's Remove answered, for the session shown: once it is
+    /// gone, the session it was forked from opens on the next frame, when
+    /// the list holds it (where the person forked from); a refusal is
+    /// said under the banner.
+    pub(super) fn empty_fork_removed(&mut self, answer: &ActAnswer) {
+        if answer.kind != ActKind::Delete || !self.areas.conversation.forking.removing {
+            return;
+        }
+        self.areas.conversation.forking.removing = false;
+        match &answer.result {
+            Ok(Acted::Deleted(_)) => {
+                let origin =
+                    origin_of(self.areas.conversation.timeline.entries()).map(|(from, _)| from);
+                let card = self
+                    .fleet
+                    .machines
+                    .iter()
+                    .filter(|machine| machine.name == answer.machine)
+                    .flat_map(|machine| machine.sessions.iter())
+                    .find(|card| Some(card.session) == origin);
+                self.areas.conversation.forking.opening = card.map(Open::of);
+            }
+            // A refusal is said under the banner (the conversation's
+            // `refused`); a lost connection is the bar's.
+            Err(_)
+            | Ok(
+                Acted::Session(_)
+                | Acted::Done
+                | Acted::Conversation(_)
+                | Acted::Forked(_)
                 | Acted::Log(_),
             ) => {}
         }
