@@ -1280,3 +1280,9 @@ red800,white), no hover or pressed override. Loading uses shared Small20 and
 refuses clicks. Existing button_control and every legacy signature stay intact.
 Button::aria_label forwards an explicit role/name without creating a keymap;
 consumer accessibility/OS/first-use evidence remains unverified.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.
