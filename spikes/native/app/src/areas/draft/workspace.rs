@@ -110,6 +110,8 @@ impl Shell {
             .and_then(|entry| entry.scope.clone())
     }
     /// Stage selections/editor before `layout_open_target`; a failed open retains it.
+    /// The opener must mark the returned tab dirty synchronously before yielding.
+    /// Layout close alone never authorizes discarding this retained content.
     #[cfg_attr(
         not(test),
         expect(

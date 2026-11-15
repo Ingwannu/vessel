@@ -357,3 +357,13 @@ worktree exists and setup may be executing. Its original Node/Gone problem now
 reaches the conservative placement failure projection and retains the draft.
 The refusal card is still shown; this changes the lifecycle result, not approval
 or setup execution. Changed-source Link verification remains owed.
+
+Scoped draft opening uses W12's checked local mutation seam: after content
+intake, the caller obtains a real tab from layout_open_target, confirms its
+existence under the exact key, then sets Modified::Dirty in the same Shell
+update before yielding. The layout deduplicates an exact DraftId per key,
+including pane and sheet moves. Pending or uncertain content remains dirty.
+The central owner-close callback is not available yet, so layout close never
+retires the content map or frees capacity by evicting unsent input. This is a
+required consumer condition; the live canonical workspace route/minter remains
+separate from the seeded content API and is not claimed by its narrow checks.
