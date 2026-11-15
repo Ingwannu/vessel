@@ -51,6 +51,12 @@ pub struct ClosePlan {
     modified: Modified,
 }
 impl ClosePlan {
+    /// Immutable original resource for owner routing. A later retarget must not
+    /// replace this snapshot or authorize closing the successor's content.
+    #[must_use]
+    pub const fn target(&self) -> &Target {
+        &self.target
+    }
     pub(super) fn of(tab: &Tab) -> Self {
         let effect = match (&tab.target, tab.role) {
             (Target::Agent(id), AgentCloseRole::Unknown) => CloseEffect::ResolveAgent(*id),
