@@ -126,3 +126,50 @@ fn explicit_stored_option_wins_legacy_display_without_rewriting_the_opened_spec(
     assert_eq!(save.definition, original);
     assert_eq!(save.revision, info().revision);
 }
+
+#[test]
+fn preferences_use_only_first_named_slots_and_preserve_the_offered_order() {
+    let mut options = choices::options();
+    let template = options.options.first().unwrap().clone();
+    let mut effort = template.clone();
+    effort.id = "reasoning".parse().unwrap();
+    effort.category = vessel_proto::OptionCategory::ThoughtLevel;
+    let mut duplicate = template.clone();
+    duplicate.id = "second-model".parse().unwrap();
+    let mut mode = template;
+    mode.id = "permission-mode".parse().unwrap();
+    mode.category = vessel_proto::OptionCategory::Mode;
+    options.options.insert(0, effort);
+    options.options.push(duplicate);
+    options.options.push(mode);
+    let (mut model, opened) = fresh(options);
+    let named = |id: &str| OptionChoice {
+        id: id.parse().unwrap(),
+        value: ChoiceValue::Select {
+            value: "new-model".parse().unwrap(),
+        },
+    };
+    assert_eq!(
+        model.remembered_choices(),
+        Some(vec![
+            named("reasoning"),
+            named("model"),
+            named("permission-mode")
+        ])
+    );
+    let duplicate = OptionChoice {
+        id: "second-model".parse().unwrap(),
+        value: ChoiceValue::Select {
+            value: "old-model".parse().unwrap(),
+        },
+    };
+    assert!(!model.restore_choices(opened.visit, &[duplicate]));
+    assert_eq!(
+        model.remembered_choices(),
+        Some(vec![
+            named("reasoning"),
+            named("model"),
+            named("permission-mode")
+        ])
+    );
+}
