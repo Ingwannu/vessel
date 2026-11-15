@@ -7,7 +7,7 @@ use vessel_app_kit::theme::{
     spacing::S2,
 };
 use vessel_app_kit::ui::{
-    Context, Div, ElementId, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    Context, Div, ElementId, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
     Styled as _, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind, dot};

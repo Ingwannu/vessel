@@ -48,7 +48,11 @@ fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         .and_then(|key| state.hosts.iter().find(|host| &host.key == key));
     body = body.child(hosts(shell, tokens, cx));
     let Some(host) = host else {
-        return body.child(words.no_hosts());
+        return body.child(if state.unresolved.is_empty() {
+            words.no_hosts()
+        } else {
+            words.connect()
+        });
     };
     if let Some(message) = availability(host.state, shell) {
         body = body.child(notice(message, tokens));
@@ -123,9 +127,13 @@ fn list(
             .on_click(cx.listener(move |shell, _, window, cx| {
                 let state = &mut shell.areas.labels;
                 match state.manager.edit(label.clone()) {
-                    Ok(()) => state.name.set_text(label.name.as_str(), window, cx),
+                    Ok(()) => {
+                        state.name.set_text(label.name.as_str(), window, cx);
+                        state.name.focus(window, cx);
+                    }
                     Err(failure) => state.error = Some(failure),
                 }
+                shell.settle_labels(cx);
                 cx.notify();
             })),
         );
@@ -133,17 +141,17 @@ fn list(
     body
 }
 
-use vessel_app_kit::ui::InteractiveElement as _;
+use vessel_app_kit::ui::StatefulInteractiveElement as _;
 
 fn hosts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let state = &shell.areas.labels;
     let mut row = div().flex().flex_wrap().gap(px(S2));
     for host in &state.hosts {
-        let key = host.key.clone();
+        let key = host.key;
         row = row.child(
             button_with_kind(
-                key.as_str().to_owned(),
-                key.as_str().to_owned(),
+                key.to_string(),
+                host.route.as_str().to_owned(),
                 if state.manager.selected() == Some(&key) {
                     ButtonKind::Primary
                 } else {
@@ -157,12 +165,21 @@ fn hosts(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
                 tokens,
             )
             .on_click(cx.listener(move |shell, _, _window, cx| {
-                if let Err(failure) = shell.areas.labels.manager.select(key.clone()) {
+                if let Err(failure) = shell.areas.labels.manager.select(key) {
                     shell.areas.labels.error = Some(failure);
                 }
                 cx.notify();
             })),
         );
+    }
+    for route in &state.unresolved {
+        row = row.child(button_with_kind(
+            route.as_str().to_owned(),
+            route.as_str().to_owned(),
+            ButtonKind::Secondary,
+            ButtonState::Disabled,
+            tokens,
+        ));
     }
     row
 }

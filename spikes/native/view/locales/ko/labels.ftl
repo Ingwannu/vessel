@@ -25,6 +25,8 @@ labels-empty = 라벨 없음
 labels-no-matches = 일치하는 라벨 없음
 # Label manager no hosts text; shown inside the adaptive dialog.
 labels-no-hosts = 라벨을 관리하려면 호스트를 추가하세요.
+# 노드 신원을 확인하지 못한 별칭만 있을 때 표시합니다.
+labels-connect = 라벨을 불러오려면 호스트에 연결하세요.
 # Label manager loading text; shown inside the adaptive dialog.
 labels-loading = 라벨 불러오는 중…
 # Label manager offline text; shown inside the adaptive dialog.

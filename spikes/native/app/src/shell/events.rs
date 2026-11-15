@@ -41,6 +41,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.labels_fleet(cx);
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);

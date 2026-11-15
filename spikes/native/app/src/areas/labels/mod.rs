@@ -3,10 +3,11 @@
 
 mod colors;
 mod draw;
+mod hosts;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
 use vessel_app_kit::{ButtonKind, ButtonState, DialogState, TextField, Tokens, button_with_kind};
-use vessel_app_view::labels::{Catalog, Failure, Host, HostKey, HostState, Manager};
+use vessel_app_view::labels::{EditAccess, Failure, Host, HostState, Manager};
 
 use crate::shell::Shell;
 
@@ -19,6 +20,8 @@ pub(crate) struct Labels {
     pub(super) dialog: DialogState,
     pub(super) error: Option<Failure>,
     pub(super) color_turn: colors::ColorTurn,
+    pub(super) unresolved: Vec<vessel_app_view::machine_book::Name>,
+    applied_editability: Option<EditAccess>,
 }
 
 impl Labels {
@@ -52,6 +55,8 @@ impl Labels {
             dialog: DialogState::new(cx),
             error: None,
             color_turn: colors::ColorTurn::default(),
+            unresolved: Vec::new(),
+            applied_editability: None,
         }
     }
 }
@@ -73,7 +78,7 @@ pub(crate) fn entry(
     .into_any_element()
 }
 
-use vessel_app_kit::ui::InteractiveElement as _;
+use vessel_app_kit::ui::StatefulInteractiveElement as _;
 
 impl Shell {
     fn labels_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -89,30 +94,8 @@ impl Shell {
             return;
         }
         state.error = None;
-        state.hosts.clear();
-        for machine in &self.fleet.machines {
-            let key = match HostKey::parse(&machine.name) {
-                Ok(key) => key,
-                Err(_invalid_book_name) => {
-                    state.error = Some(Failure::Load);
-                    continue;
-                }
-            };
-            let availability = match machine.reach {
-                vessel_app_view::Reach::Online => HostState::Unsupported,
-                vessel_app_view::Reach::Unreachable(_) => HostState::Offline,
-            };
-            state.hosts.push(Host {
-                key,
-                state: availability,
-                catalog: Catalog::default(),
-            });
-        }
-        if let Some(host) = state.hosts.first() {
-            if let Err(failure) = state.manager.select(host.key.clone()) {
-                state.error = Some(failure);
-            }
-        }
+        hosts::bind(state, &self.fleet);
+        state.manager.sync_hosts(&state.hosts);
         state.search.clear(window, cx);
         state
             .search
@@ -137,6 +120,39 @@ impl Shell {
             }
         }
         cx.notify();
+    }
+
+    /// Apply the shared editor policy only on transitions; no render-notify loop.
+    pub(crate) fn settle_labels(&mut self, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.labels;
+        if !state.open {
+            return;
+        }
+        let host = state
+            .manager
+            .selected()
+            .and_then(|key| state.hosts.iter().find(|host| &host.key == key));
+        let access = state
+            .manager
+            .edit_access(host.map_or(HostState::Offline, |host| host.state));
+        if state.applied_editability != Some(access) {
+            state.name.set_editability(
+                match access {
+                    EditAccess::Editable => vessel_app_kit::Editability::Editable,
+                    EditAccess::ReadOnly => vessel_app_kit::Editability::ReadOnly,
+                },
+                cx,
+            );
+            state.applied_editability = Some(access);
+        }
+    }
+
+    /// Fleet metadata may change while the manager is already open.
+    pub(crate) fn labels_fleet(&mut self, cx: &mut Context<'_, Self>) {
+        let state = &mut self.areas.labels;
+        hosts::bind(state, &self.fleet);
+        state.manager.sync_hosts(&state.hosts);
+        self.settle_labels(cx);
     }
 }
 

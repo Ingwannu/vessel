@@ -25,6 +25,8 @@ labels-empty = No labels
 labels-no-matches = No matching labels
 # Label manager no hosts text; shown inside the adaptive dialog.
 labels-no-hosts = Add a host to manage labels.
+# A book alias has not yet answered with a verified node identity.
+labels-connect = Connect to a host to load its labels.
 # Label manager loading text; shown inside the adaptive dialog.
 labels-loading = Loading labels…
 # Label manager offline text; shown inside the adaptive dialog.

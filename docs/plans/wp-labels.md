@@ -98,10 +98,10 @@ and the package review remain pending.
 
 Manager name/color editing is a pure `EditAccess` policy: only an idle editor
 on an authoritative online host accepts input. A regression traverses every
-async phase. The shared field owner is supplying `Editability` and
-`TextField::set_editability` in the next base; no local field renderer is
-introduced. Until that base lands, wiring this policy into the name field
-remains owed.
+async phase. Package base `6036eeb8` supplied the shared `Editability` and
+`TextField::set_editability` API; it is wired once per policy transition,
+including immediate changes after opening an editor. No local field renderer
+was introduced and no render-notify loop is used. The merge was conflict-free.
 
 Color choices reuse kit buttons and dots with generic identity ink. Selection
 has a one-shot QUICK fade and uses the kit motion hold policy. Deliberate
@@ -174,3 +174,15 @@ work in a separate node branch; that branch currently stages values, mutation
 plans and a bounded observer journal, with no registered RPC or persistence. Full native gate and inspected capture
 matrix occur once at package completion. No whole gate, node RPC test,
 service-account/customer flow or UI capture is claimed at this point.
+
+### Current binding and resume update
+
+The second package base also supplied `Machine.node`. Catalog ownership now
+uses that answered `NodeId`, while validated book names are routing/display
+metadata. A never-answered alias stays unresolved instead of manufacturing a
+node identity. Alias rename retains the node's colors; alias reuse by another
+node cannot transfer them. Multiple routes to one node share one catalog.
+Four new binding regressions cover these cases. Fleet events update bindings
+while the manager is open, and a removed host cannot retarget a pending write.
+The name-field policy is wired to the shared editor API. Narrow compilation
+and the expanded model tests are still pending; no full gate/capture is claimed.

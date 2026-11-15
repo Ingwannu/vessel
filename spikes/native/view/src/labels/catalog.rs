@@ -79,8 +79,10 @@ impl HostState {
 /// A host's last known catalog is retained independently of reachability.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Host {
-    /// Existing node-book identity; not a new server-id protocol.
+    /// Welcome identity of the node owning this catalog.
     pub key: HostKey,
+    /// Existing validated book alias is display/routing metadata only.
+    pub route: crate::machine_book::Name,
     /// Reachability and authority.
     pub state: HostState,
     /// Last successfully loaded definitions.

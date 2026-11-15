@@ -297,6 +297,7 @@ impl Render for Shell {
             routes::arrive(self.route, self, window, cx);
         }
         self.settle_settings(window);
+        self.settle_labels(cx);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and

@@ -138,6 +138,17 @@ pub struct Manager {
 }
 
 impl Manager {
+    /// A removed host resets idle drafts; a pending operation keeps its owner.
+    pub fn sync_hosts(&mut self, hosts: &[super::Host]) {
+        if self.state.busy() {
+            return;
+        }
+        if !hosts.iter().any(|host| Some(host.key) == self.selected) {
+            self.selected = hosts.first().map(|host| host.key);
+            self.state = ManagerState::Listing;
+            self.error = None;
+        }
+    }
     /// Name/color input stays locked across every asynchronous phase.
     #[must_use]
     pub fn edit_access(&self, host: HostState) -> super::EditAccess {

@@ -6,7 +6,14 @@ fn name(raw: &str) -> Name {
     raw.parse::<Name>().unwrap()
 }
 fn key(raw: &str) -> HostKey {
-    HostKey::parse(raw).unwrap()
+    let id = match raw {
+        "a" => "00000000-0000-4000-8000-000000000001",
+        "b" => "00000000-0000-4000-8000-000000000002",
+        "offline" => "00000000-0000-4000-8000-000000000003",
+        "failed" => "00000000-0000-4000-8000-000000000004",
+        other => panic!("unexpected fixture host: {other}"),
+    };
+    id.parse().unwrap()
 }
 fn label(raw: &str, color: Color) -> Label {
     Label {
@@ -74,21 +81,25 @@ fn projections_choose_target_then_host_order_and_exclude_offline_or_failed() {
     let hosts = vec![
         Host {
             key: key("b"),
+            route: crate::machine_book::Name::parse("b").unwrap(),
             state: HostState::Online,
             catalog: Catalog::snapshot([label("ready", Color::Sky)]),
         },
         Host {
             key: key("a"),
+            route: crate::machine_book::Name::parse("a").unwrap(),
             state: HostState::Online,
             catalog: Catalog::snapshot([label("Ready", Color::Pink), label("alpha", Color::Blue)]),
         },
         Host {
             key: key("offline"),
+            route: crate::machine_book::Name::parse("offline").unwrap(),
             state: HostState::Offline,
             catalog: Catalog::snapshot([label("hidden", Color::Red)]),
         },
         Host {
             key: key("failed"),
+            route: crate::machine_book::Name::parse("failed").unwrap(),
             state: HostState::Failed(Failure::Load),
             catalog: Catalog::snapshot([label("failed", Color::Red)]),
         },
@@ -324,4 +335,31 @@ fn field_policy_is_read_only_for_unavailable_hosts_and_every_async_phase() {
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
     assert!(manager.completed(ticket, Ok(())));
     assert_eq!(manager.edit_access(HostState::Online), EditAccess::ReadOnly);
+}
+
+#[test]
+fn removed_host_does_not_retarget_a_pending_write_and_idle_sync_preserves_search() {
+    let host = |raw| Host {
+        key: key(raw),
+        route: crate::machine_book::Name::parse(raw).unwrap(),
+        state: HostState::Online,
+        catalog: ready_catalog(),
+    };
+    let mut manager = Manager::default();
+    manager.sync_hosts(&[host("a")]);
+    manager.search("ready");
+    manager.edit(label("Ready", Color::Violet)).unwrap();
+    manager.draft_mut().unwrap().set_color(Color::Sky);
+    let ticket = ticket(&mut Tickets::default());
+    manager
+        .save(HostState::Online, &ready_catalog(), ticket)
+        .unwrap();
+    manager.sync_hosts(&[host("b")]);
+    assert_eq!(manager.selected(), Some(&key("a")));
+    assert!(matches!(manager.state(), ManagerState::Saving { .. }));
+    assert!(manager.completed(ticket, Err(Failure::Offline)));
+    manager.sync_hosts(&[host("b")]);
+    assert_eq!(manager.selected(), Some(&key("b")));
+    assert_eq!(manager.state(), &ManagerState::Listing);
+    assert_eq!(manager.query(), "ready");
 }
