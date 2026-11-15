@@ -64,4 +64,8 @@ mod dispatch;
 #[cfg(test)]
 pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
 #[cfg(test)]
+mod enumeration;
+#[cfg(test)]
+pub(crate) use enumeration::{Unavailable, shells};
+#[cfg(test)]
 mod tests;
