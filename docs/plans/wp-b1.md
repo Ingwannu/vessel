@@ -260,3 +260,5 @@ Upload and resume envelopes now carry the same existing canonical ClientMessageI
 
 
 Portable consumer packet: this isolated commit composes only the Node-pinned read prerequisite, canonical Upload/Woke identity envelopes, mention-ticket high-water, permitted immutable connection Hash leaves, helper visibility and original-admission changes on the creation owner snapshot. It preserves that snapshot's existing direct sent-image read completion; image normalization and plugin attachment variants are not prerequisites or included. No new protocol/client/runtime leaf is introduced. The packet is staged until its own combined VM check runs.
+
+Creation now calls prepare_draft_input_on with its original ConnectionContext directly. The name/node compatibility wrapper is literal cfg(test) for the two recovered-intake refusal fixtures; no product caller can rehydrate an admission through it.

@@ -24,7 +24,8 @@ impl PreparedSubmission {
 pub(crate) use vessel_app_view::composer::attach::PrepareProblem;
 
 impl Shell {
-    /// Creation retains one canonical identity before preparing its first payload.
+    /// Recovery tests exercise the retired node/name wrapper without live I/O.
+    #[cfg(test)]
     pub(crate) fn prepare_draft_input(
         &mut self,
         ticket: Ticket,
