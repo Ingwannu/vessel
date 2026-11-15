@@ -270,7 +270,7 @@ struct State {
 #[derive(Clone)]
 struct Connected {
     inbox_connection: vessel_app_view::inbox::ConnectionId,
-    inbox_presence: crate::inbox::PresenceHub,
+    inbox_presence: inbox::PresenceHub,
     client: NodeClient,
     agents: Vec<Agent>,
 }
