@@ -258,3 +258,9 @@ the response type rather than the canonical method variant. It now uses
 `Reply::Diagnostics`; no product method/DTO/number changes. The first queued
 strict attempt remains pinned to its original test source; no result is
 claimed from the correction before its own remote check.
+
+The obsolete first strict ticket was still queued and was cancelled before
+slot admission under the standing supersession rule (terminal 143, no compiler
+result). Its source had the known reply-variant error. One changed-source
+replacement follows; the previous-protocol CLI responder also advertises its
+actual reduced maximum rather than claiming the current range.

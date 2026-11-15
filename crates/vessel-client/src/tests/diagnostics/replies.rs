@@ -13,6 +13,8 @@ use vessel_proto::{
 };
 use vessel_rpc::{ClientConfig, memory::MemoryTransport};
 
+const RESPONDER_CAPACITY: usize = 4;
+
 fn unavailable<T>() -> DiagnosticSection<T> {
     DiagnosticSection::Unavailable {
         reason: DiagnosticUnavailable::NotChecked,
@@ -47,7 +49,8 @@ async fn phase<F: std::future::Future>(name: &str, work: F) -> F::Output {
         .unwrap_or_else(|error| panic!("diagnostic responder {name}: {error}"))
 }
 async fn open(version: ProtocolVersion) -> (NodeClient, MemoryTransport) {
-    let (client_end, mut peer) = vessel_rpc::memory::pair(std::num::NonZeroUsize::new(4).unwrap());
+    let (client_end, mut peer) =
+        vessel_rpc::memory::pair(std::num::NonZeroUsize::new(RESPONDER_CAPACITY).unwrap());
     let serving = tokio::spawn(async move {
         let hello = phase("hello", peer.next()).await.unwrap().unwrap();
         assert!(matches!(
