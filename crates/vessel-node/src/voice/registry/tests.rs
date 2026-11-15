@@ -116,7 +116,10 @@ async fn a_held_start_reply_cannot_publish_ready_after_stop_or_hide_uncertain_re
             },
         )
         .unwrap();
-    assert_eq!(registry.entries[&request.id].phase, Phase::Uncertain);
+    assert_eq!(
+        registry.entries[&request.id].phase,
+        Phase::Uncertain(VoiceFailure::TimedOut)
+    );
     assert!(matches!(
         registry.reserve(&connection, start(request.session)),
         Err(Refusal::Busy)

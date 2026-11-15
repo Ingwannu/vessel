@@ -11,7 +11,8 @@ use tokio_util::sync::CancellationToken;
 use vessel_proto::{
     SessionId,
     voice::{
-        ReadyVoice, StartVoice, StopVoiceResult, VoiceEpoch, VoiceId, VoiceLease, VoiceStopTarget,
+        ReadyVoice, StartVoice, StopVoiceResult, VoiceEpoch, VoiceFailure, VoiceId, VoiceLease,
+        VoiceStopTarget,
     },
 };
 
@@ -46,7 +47,7 @@ enum Phase {
     Starting,
     Active,
     Stopping,
-    Uncertain,
+    Uncertain(VoiceFailure),
     Retired,
 }
 impl Phase {
@@ -260,7 +261,7 @@ impl Registry {
         entry.reservation.cancel.cancel();
         entry.phase = match outcome {
             StopVoiceResult::Stopped => Phase::Retired,
-            StopVoiceResult::Uncertain { .. } => Phase::Uncertain,
+            StopVoiceResult::Uncertain { reason } => Phase::Uncertain(reason),
         };
         self.reap();
         Ok(())
