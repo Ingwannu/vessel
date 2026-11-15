@@ -72,6 +72,15 @@ F4 HeaderRow/menu/prefs work. Coordinator545 still requires eight new exact
 comparison captures before lead adoption; source unionc4cb6468 is gate
 pending, not an announced checked base.
 
+Correction qualification: V1 c5aefdcb and S2 909e490e supersede any
+current-adoption reading of that receipt. Source d95e9911..6d00a04f separates
+Workspace(None) admission zero from its400 width target. It has SOURCE
+PRECHECK CLEAR only; corrected strict/runtime/captures remain owed and
+adoption is held. The old5901187 pass proves prior source only. Settings720,
+PHONE/autohide exceptions and placement policy remain unchanged. Do not
+consume old590/c4cb as corrected parity. The exact correction was forwarded
+to W22; no part of it entered the frozen selection package.
+
 E2 must derive list/back versus split from shared SidebarLayout/Sharing,
 without another width constant. Remove Settings PHONE/TooNarrow exceptions
 atomically with that fallback so hiding navigation cannot strand the page.
