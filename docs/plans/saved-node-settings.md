@@ -1,9 +1,9 @@
 # Private saved node settings envelope
 
 Status: proposed. This package does not define a service consent schema or a
-service activation engine. The shared tracked settings writer must be on the
-accepted node base before implementation. No implementation or runtime evidence
-is claimed by this plan.
+service activation engine. The reviewed shared tracked settings writer is the prerequisite for this model
+change. The implementation below is prepared on that repair and the announced
+base; changed-tree checks and review are still required before publication.
 
 ## Existing assets and choice
 
@@ -96,7 +96,23 @@ remains unavailable and this package invents no substitute identifier or payload
 
 ## Resume point
 
-Done: read current Store/Node/Paseo ownership and record the separation contract.
-Pending: accepted node base with the tracked writer, concrete private service
-schema/canonical incarnation contract, source review and exact changed-source
-checks. No disk-model code, private slot or setter has been implemented here.
+Prepared: Store now exposes a private-field non-Copy SavedNodeSettings envelope,
+without public serde/TS implementation. public_settings projects the existing
+complete generic snapshot; consuming with_public_settings builds a candidate
+without granting live mutation authority. The internal transparent document
+preserves the current typed generic codec. Store's disk methods and Node's
+retained mutex use the envelope; wire requests/replies remain unchanged.
+
+The actual blocking writer returns its owned candidate with the set-aside result
+so it can publish that same value after I/O without an extra document clone. The
+existing validation, token/lock lifetime, set-aside/write/apply order and I/O
+causes remain. Existing assertions need only typed envelope/projection adapters.
+New fixtures compare current canonical bytes and semantics, prove the opaque
+envelope cannot be wire-serialized, and keep a no-op's original bytes/future
+fields without creating a set-aside copy. These are not executed evidence yet.
+
+Pending: exact changed-source strict/tests/whole review, later combined-base
+checks, and the concrete private schema/canonical incarnation contract. No
+private slot, consent setter or service/plugin activation has been implemented.
+The separate config reload owner join also needs adaptation and verification
+when these branches meet; it is not silently included in this P2 range.

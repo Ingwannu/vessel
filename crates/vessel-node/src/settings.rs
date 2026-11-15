@@ -59,7 +59,7 @@ use vessel_proto::settings::{
     AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_session::SessionRuntime;
-use vessel_store::{DataDir, SetAside};
+use vessel_store::{DataDir, SavedNodeSettings, SetAside};
 
 /// Why a change was refused or not kept.
 #[derive(Debug, thiserror::Error)]
@@ -98,7 +98,7 @@ pub(crate) struct Settings {
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Arc<Mutex<SetNodeSettings>>,
+    saved: Arc<Mutex<SavedNodeSettings>>,
     /// Writes outlive a cancelled RPC and are joined at node shutdown.
     writers: TaskTracker,
     #[cfg(test)]
@@ -141,9 +141,10 @@ impl Settings {
             }
             Err(error) => {
                 let kept = set_aside(&data_dir, &error);
-                (SetNodeSettings::default(), kept, false)
+                (SavedNodeSettings::default(), kept, false)
             }
         };
+        let public = saved.public_settings();
         let settings = Self {
             data_dir,
             runtime,
@@ -155,8 +156,8 @@ impl Settings {
             kept,
             later: AtomicBool::new(later),
         };
-        let in_force = settings.in_force(saved);
-        if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
+        let in_force = settings.in_force(public);
+        if flag_given && public.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
                 "--park-after is overridden by the value saved with node.set_settings"
@@ -200,8 +201,8 @@ impl Settings {
 
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
-        let saved = *self.saved.lock().await;
-        self.in_force(saved)
+        let public = self.saved.lock().await.public_settings();
+        self.in_force(public)
     }
 
     /// Change what `change` names, keep it, then apply it; answers what is
@@ -223,13 +224,15 @@ impl Settings {
             }
         }
         let saved = Arc::clone(&self.saved).lock_owned().await;
-        let mut next = *saved;
+        let mut next = saved.public_settings();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
         if let Some(drivers) = change.drivers {
             next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
         }
+        // Keep the old document intact until the candidate is durable.
+        let next = saved.clone().with_public_settings(next);
         self.persist(saved, next).await
     }
 }

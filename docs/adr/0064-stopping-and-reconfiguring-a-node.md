@@ -1098,8 +1098,8 @@ unverified by Linux fixtures.
   services slot requires its own qualified canonical schema/bounds and dedicated
   Admin setter; generic set/reset/reload cannot become a route to that setter,
   and Read cannot expose it. No slot payload or service activation is introduced
-  by this proposal. Implementation waits for the shared retained writer on the
-  accepted node base. See docs/plans/saved-node-settings.md for the dependency
+  by this proposal. Implementation builds on the reviewed retained writer and the
+  announced base; changed-tree checks and review still gate publication. See docs/plans/saved-node-settings.md for the dependency
   boundary and remaining proof.
 
 
@@ -1109,3 +1109,16 @@ preserve the private record; future namespaces are introduced under their own
 reviewed ADRs. This separation does not freeze a wire-patch flattening strategy,
 an opaque JSON placeholder or a public callback API. The saved settings plan
 records why same-key flattening is insufficient before those schemas join.
+
+
+The initial implementation keeps a non-Copy opaque Store envelope, with no
+public serde/TypeScript implementation, and an internal transparent document
+that delegates to today's generic codec. A complete generic projection and a
+consuming candidate update are the only cross-crate data accessors. Node's same
+owned saved guard/task now carries that envelope. The blocking writer returns
+the owned candidate after successful persistence, rather than relying on Copy
+or cloning the complete document again for the blocking thread. File path,
+set-aside behavior, no-op ordering and write-before-apply are unchanged.
+Canonical-byte/semantic fixtures and a no-op original-byte fixture are added;
+source/compile/runtime evidence remains pending. No private schema or setter is
+introduced, and this model separation is not service activation qualification.

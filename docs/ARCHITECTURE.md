@@ -1668,3 +1668,12 @@ through atomic file replacement and runtime application. RPC cancellation drops
 only the waiter. After connections finish, teardown closes settings mutation
 admission and joins admitted writers before the store closes (ADR 0064). This
 adds no crate edge, setting, format or wire method.
+
+
+The saved settings disk API and Node's saved mutex carry Store's opaque
+`SavedNodeSettings` (ADR 0064). Disk serialization remains internal to Store;
+only the typed generic saved projection and an owned candidate update cross the
+boundary. Generic wire requests and Read replies keep their existing types.
+The retained settings task still owns validation/persistence/publication order,
+and a non-Copy candidate returns from blocking I/O before publication. No
+private payload, extra writer, file or crate edge is added by this separation.
