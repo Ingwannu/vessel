@@ -31,7 +31,7 @@ actual public-host authorization/DTO/client tests, latest CLI processes and A12 
 | `logs <id>` | log ID | Other owner | lifecycle (logs) | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `stop [id]` | stop | Source | session.send(CancelTurn) | Interrupt active turns; idle is a no-op. Actual interrupted IDs/count only. |
 | `delete [id]` | delete | Source | session.mark(Archive) + session.delete | Explicit delete first waits for live termination; acknowledged deleted IDs/count. |
-| `send [prompt] <id>` | send | Source + pending policy | session.prompt + existing bounded attachment upload | Prompt argument/flag/file required. W23 atomic SteerOrInterrupt awaited; no read-then-interrupt fallback. |
+| `send <id> [prompt]` | send (flagged parity), otherwise native | Source + pending policy | session.prompt + existing bounded attachment upload | Native root delivery/output is retained without parity/output flags. Prompt argument/flag/file required. W23 atomic SteerOrInterrupt awaited; no read-then-interrupt fallback. |
 | `inspect <id>` | inspect | Source | session.get + bounded event/options replay | Typed known fields; unknown parent/provider/usage fields are not inferred. |
 | `wait <id>` | wait | Source | session.subscribe/read event state | Idle/permission/error/timeout receipt; finite safety ceiling documented. No process-running=busy shortcut. |
 | `archive <id>` | archive | Source Force / pending IfIdle | explicit Force: session.mark(Archive) | ALL no-force effects withheld until W21 actor+stored/reopen admission; no ended-snapshot force fallback. |
@@ -50,7 +50,7 @@ actual public-host authorization/DTO/client tests, latest CLI processes and A12 
 | `agent open <agent-id>` | agent open | Pending | none activated | W21 desktop deep-link contract awaited. |
 | `agent stop [id]` | agent stop | Source | session.send(CancelTurn) | Interrupt active turns; idle is a no-op. Actual interrupted IDs/count only. |
 | `agent delete [id]` | agent delete | Source | session.mark(Archive) + session.delete | Explicit delete first waits for live termination; acknowledged deleted IDs/count. |
-| `agent send [prompt] <id>` | agent send | Source + pending policy | session.prompt + existing bounded attachment upload | Prompt argument/flag/file required. W23 atomic SteerOrInterrupt awaited; no read-then-interrupt fallback. |
+| `agent send <id> [prompt]` | agent send | Source + pending policy | session.prompt + existing bounded attachment upload | Prompt argument/flag/file required. W23 atomic SteerOrInterrupt awaited; no read-then-interrupt fallback. |
 | `agent inspect <id>` | agent inspect | Source | session.get + bounded event/options replay | Typed known fields; unknown parent/provider/usage fields are not inferred. |
 | `agent wait <id>` | agent wait | Source | session.subscribe/read event state | Idle/permission/error/timeout receipt; finite safety ceiling documented. No process-running=busy shortcut. |
 | `agent mode <id> [mode]` | agent mode | Source | session.options + session.set_option | Advertised mode choices and exact option/value acknowledgement; ambiguous choices refuse before mutation. |

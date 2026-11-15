@@ -8,9 +8,9 @@ fn complete_command_graph_has_no_duplicate_flags_or_invalid_groups() {
     Cli::command().debug_assert();
 }
 #[test]
-fn prompt_sources_keep_the_final_agent_id_unambiguous() {
+fn prompt_sources_keep_the_agent_id_first_and_unambiguous() {
     for args in [
-        vec!["vessel", "agent", "send", "hello", "ab12"],
+        vec!["vessel", "agent", "send", "ab12", "hello"],
         vec!["vessel", "agent", "send", "ab12", "--prompt", "hello"],
         vec![
             "vessel",
@@ -31,7 +31,7 @@ fn prompt_sources_keep_the_final_agent_id_unambiguous() {
     }
     for args in [
         vec![
-            "vessel", "agent", "send", "hello", "ab12", "--prompt", "other",
+            "vessel", "agent", "send", "ab12", "hello", "--prompt", "other",
         ],
         vec!["vessel", "agent", "send", "ab12"],
         vec!["vessel", "stop"],
@@ -39,6 +39,18 @@ fn prompt_sources_keep_the_final_agent_id_unambiguous() {
     ] {
         assert!(Cli::try_parse_from(args).is_err());
     }
+    let cli = Cli::try_parse_from(["vessel", "agent", "send", "ab12", "cafe"]).unwrap();
+    let Command::Parity(ParityCommand::Agent {
+        command: AgentCommand::Send(args),
+    }) = cli.command
+    else {
+        panic!("wrong command")
+    };
+    assert_eq!(
+        args.id,
+        "ab12".parse::<crate::selector::SessionSelector>().unwrap()
+    );
+    assert_eq!(args.text.as_deref(), Some("cafe"));
 }
 #[test]
 fn global_precedence_and_connection_alias_conflicts_are_explicit() {

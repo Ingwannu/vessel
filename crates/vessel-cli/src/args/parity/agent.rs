@@ -105,12 +105,11 @@ impl From<Behavior> for vessel_proto::Delivery {
 }
 
 #[derive(Debug, Args)]
-#[command(allow_missing_positional = true)]
 pub(crate) struct AgentSend {
-    /// Positional order matches Paseo: prompt first, then agent ID.
+    /// Pinned addSendOptions registers the agent ID before its optional prompt.
+    pub(crate) id: SessionSelector,
     #[arg(required_unless_present_any = ["prompt", "prompt_file"])]
     pub(crate) text: Option<String>,
-    pub(crate) id: SessionSelector,
     #[arg(long, conflicts_with_all = ["text", "prompt_file"])]
     pub(crate) prompt: Option<String>,
     #[arg(long, conflicts_with = "text")]

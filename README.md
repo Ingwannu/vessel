@@ -1450,8 +1450,8 @@ there is no new startup setting or automatic resume behavior in this slice.
 
 The CLI parity work adds an `agent` group and the `ls`, `inspect`, `wait`, `stop`,
 `delete`, and `archive` shortcuts. For example, `vessel agent run "explain this project"
---provider claude --json` starts a structured conversation; `vessel agent send "follow up"
-ID --no-wait` returns its delivery receipt. The original `vessel run HARNESS` and
+--provider claude --json` starts a structured conversation; `vessel agent send ID "follow up"
+--no-wait` returns its delivery receipt. The original `vessel run HARNESS` and
 `vessel send ID TEXT` forms remain available. `stop` cancels active turns, while `kill`
 terminates the process. New typed handlers accept `--json`, `--format table|json|yaml|cli`,
 `--quiet`, and `--no-headers`; YAML uses JSON-compatible flow syntax.

@@ -76,6 +76,60 @@ async fn ended_agents_are_not_force_archived_from_a_stale_idle_snapshot() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn positional_send_keeps_the_first_id_as_recipient_even_when_the_prompt_is_an_id() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let mut sessions = Vec::new();
+        for _ in 0..2 {
+            sessions.push(
+                owner
+                    .create_session(
+                        SessionSpec::new(
+                            vessel_proto::HarnessKind::ClaudeCode,
+                            SessionMode::Structured {
+                                model: None,
+                                resume: None,
+                                options: Vec::new(),
+                            },
+                        )
+                        .with_cwd(fixture.data()),
+                    )
+                    .await
+                    .unwrap(),
+            );
+        }
+        for (prefix, flags, recipient, message) in [
+            (
+                vec!["agent", "send"],
+                vec!["--no-wait", "--json"],
+                sessions[0].id,
+                sessions[1].id.to_string(),
+            ),
+            (
+                vec!["--json", "send"],
+                vec!["--no-wait"],
+                sessions[1].id,
+                sessions[0].id.to_string(),
+            ),
+        ] {
+            let id = recipient.to_string();
+            let mut args = prefix;
+            args.extend([id.as_str(), message.as_str()]);
+            args.extend(flags);
+            let sent = fixture.vessel(&args, b"").await;
+            assert!(sent.ok, "{}", sent.stderr);
+            let receipt: Waited = serde_json::from_str(&sent.stdout).unwrap();
+            assert_eq!(receipt.agent_id, recipient);
+            assert_eq!(receipt.status, "sent");
+            assert_started_content(&owner, recipient, &message).await;
+        }
+        fixture.stop().await;
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknowledgements() {
     within(async {
         let fixture = Fixture::start().await;
@@ -492,4 +546,30 @@ async fn selected_loopback_destination_never_borrows_cli_project_cwd() {
         fixture.stop().await;
     })
     .await;
+}
+
+// The event log proves which recipient admitted the literal ID-shaped prompt.
+async fn assert_started_content(
+    owner: &vessel_client::NodeClient,
+    recipient: SessionId,
+    message: &str,
+) {
+    let mut stream = owner
+        .follow(recipient, vessel_proto::EventSeq::ZERO)
+        .await
+        .unwrap();
+    loop {
+        let record = stream.next().await.expect("prompt turn missing").unwrap();
+        if let vessel_proto::SessionEvent::Agent {
+            event: vessel_proto::AgentEvent::TurnStarted { content },
+        } = record.event
+        {
+            assert!(
+                content
+                    .iter()
+                    .any(|block| matches!(block, ContentBlock::Text { text } if text == message))
+            );
+            break;
+        }
+    }
 }

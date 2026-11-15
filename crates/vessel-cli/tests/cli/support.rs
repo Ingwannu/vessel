@@ -419,6 +419,7 @@ fn book_command(data: &Path, dir: &Path, args: &[&str]) -> Command {
         .env("XDG_CONFIG_HOME", data.join("config"))
         .env_remove("VESSEL_TOKEN")
         .env_remove("VESSEL_NODE")
+        .env_remove("VESSEL_AGENT_SESSION")
         .env_remove("VESSEL_SSH");
     command
 }

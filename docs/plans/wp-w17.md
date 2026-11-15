@@ -69,7 +69,7 @@ The Vessel column names the baseline equivalent, including meaningful difference
 | `logs <id>` | `--since <time>`: Show logs since timestamp<br>`--filter <type>`: Filter by event type (tools, text, errors, permissions)<br>`--tail <n>`: Show last n entries<br>`-f, --follow`: Follow log output (streaming) | log ID | lifecycle (logs) | Owned elsewhere; W17 does not modify this handler. | R: human transcript/event text only; --json/--format do not change this handler; 0/1 | `packages/cli/src/cli.ts:93` |
 | `stop [id]` | `--cwd <path>`: Stop all agents in directory<br>`--all`: Stop all agents | send ID TEXT --interrupt (requires a new prompt) | W17 | Different argument/output contract; not full parity. | W; stopSchema; 0/1 | `packages/cli/src/cli.ts:97` |
 | `delete [id]` | `--cwd <path>`: Delete all agents in directory<br>`--all`: Delete all agents | session delete ID --yes | W17 | Different argument/output contract; not full parity. | W; deleteSchema; 0/1 | `packages/cli/src/cli.ts:101` |
-| `send [prompt] <id>` | `--no-wait`: Return immediately without waiting for completion<br>`new Option("--behavior <behavior>", "Active-turn behavior (agent default: steer; otherwise: interrupt)").choices(["interrupt", "steer"])`<br>`--image <path>`: Attach image(s) to the message; default=[]<br>`--prompt-file <path>`: Read the message from a UTF-8 text file<br>`--prompt <text>`: Provide the message inline as a flag | send ID TEXT | W17 | Different argument/output contract; not full parity. | W; agentSendSchema; 0/1 | `packages/cli/src/cli.ts:105` |
+| `send <id> [prompt]` | `--no-wait`: Return immediately without waiting for completion<br>`new Option("--behavior <behavior>", "Active-turn behavior (agent default: steer; otherwise: interrupt)").choices(["interrupt", "steer"])`<br>`--image <path>`: Attach image(s) to the message; default=[]<br>`--prompt-file <path>`: Read the message from a UTF-8 text file<br>`--prompt <text>`: Provide the message inline as a flag | send ID TEXT | W17 | Different argument/output contract; not full parity. | W; agentSendSchema; 0/1 | `packages/cli/src/cli.ts:105` |
 | `inspect <id>` | — | none | W17 | Missing entry point or backend contract; see dependencies below. | W; createInspectSchema(inspectData); 0/1 | `packages/cli/src/cli.ts:109` |
 | `wait <id>` | `--timeout <seconds>`: Maximum wait time (default: no limit) | none | W17 | Missing entry point or backend contract; see dependencies below. | W; agentWaitSchema; 0/1 | `packages/cli/src/cli.ts:113` |
 | `archive <id>` | `--force`: Force archive running agent (interrupts active run first) | session archive ID | W17 | Different argument/output contract; not full parity. | W; archiveSchema; 0/1 | `packages/cli/src/cli.ts:117` |
@@ -88,7 +88,7 @@ The Vessel column names the baseline equivalent, including meaningful difference
 | `agent open <agent-id>` | `--server <server-id>`: Server ID (defaults to the local daemon) | none | W17 | Missing entry point or backend contract; see dependencies below. | W; openAgentSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:48` |
 | `agent stop [id]` | `--cwd <path>`: Stop all agents in directory<br>`--all`: Stop all agents | send ID TEXT --interrupt (requires a new prompt) | W17 | Different argument/output contract; not full parity. | W; stopSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:52` |
 | `agent delete [id]` | `--cwd <path>`: Delete all agents in directory<br>`--all`: Delete all agents | session delete ID --yes | W17 | Different argument/output contract; not full parity. | W; deleteSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:56` |
-| `agent send [prompt] <id>` | `--no-wait`: Return immediately without waiting for completion<br>`new Option("--behavior <behavior>", "Active-turn behavior (agent default: steer; otherwise: interrupt)").choices(["interrupt", "steer"])`<br>`--image <path>`: Attach image(s) to the message; default=[]<br>`--prompt-file <path>`: Read the message from a UTF-8 text file<br>`--prompt <text>`: Provide the message inline as a flag | send ID TEXT | W17 | Different argument/output contract; not full parity. | W; agentSendSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:60` |
+| `agent send <id> [prompt]` | `--no-wait`: Return immediately without waiting for completion<br>`new Option("--behavior <behavior>", "Active-turn behavior (agent default: steer; otherwise: interrupt)").choices(["interrupt", "steer"])`<br>`--image <path>`: Attach image(s) to the message; default=[]<br>`--prompt-file <path>`: Read the message from a UTF-8 text file<br>`--prompt <text>`: Provide the message inline as a flag | send ID TEXT | W17 | Different argument/output contract; not full parity. | W; agentSendSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:60` |
 | `agent inspect <id>` | — | none | W17 | Missing entry point or backend contract; see dependencies below. | W; createInspectSchema(inspectData); 0/1 | `packages/cli/src/commands/agent/index.ts:64` |
 | `agent wait <id>` | `--timeout <seconds>`: Maximum wait time (default: no limit) | none | W17 | Missing entry point or backend contract; see dependencies below. | W; agentWaitSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:68` |
 | `agent mode <id> [mode]` | `--list`: List available modes for this agent | session option (none; options are client calls only) | W17 | Missing entry point or backend contract; see dependencies below. | W; modeListSchema, setModeSchema; 0/1 | `packages/cli/src/commands/agent/index.ts:73` |
@@ -292,7 +292,7 @@ refuse None requirements, including wrapped/old-peer paths. Host administration 
 follows terminal ownership and may forward like terminal.read. Browser policy explicitly
 allows the unary requests subject to the node's normal admission/scope checks.
 
-Root `run PROMPT --provider PROVIDER` and prompt-first `send PROMPT ID` now decode into the
+Root `run PROMPT --provider PROVIDER` and flagged `send ID PROMPT` decode into the
 same agent grammar. Legacy `run HARNESS` and hex-ID-first `send ID TEXT` remain available;
 a prompt consisting only of hex/dashes is ambiguous in the latter spelling, so use
 `agent send` or `send ID --prompt TEXT` to select the Paseo form explicitly. Root selectors'
@@ -1086,3 +1086,31 @@ wire gate is not disabled or assigned a pretend protocol. It tests admission and
 composition, not credential authentication or a live pending RPC. The separate client
 no-frame test keeps pending admission covered. This fixture is drafted after queued8545
 strict and still needs execution with the host_ suite; no new runtime pass is claimed.
+
+
+### Pinned-source send argument correction (2026-11-15 14:19 UTC)
+
+[Decision Log]
+- Purpose: the first argument must remain the recipient even when the prompt looks like
+  another session ID. Source takes precedence over an erroneous survey/table row.
+- Existing constraints: area-7 survey rows49/75 had send [prompt] <id>; W17 followed
+  that table. Exact pinned1c00b365 agent/send.ts39-43 instead registers <id> then
+  [prompt], reused by agent/index.ts60 and cli.ts105. The coordinator confirmed and
+  corrected the survey; its docs/parity mirror follows the normal sync.
+- Alternatives: guess argument roles from whether text is hexadecimal (can mutate the
+  wrong recipient), or keep a source-incompatible group (rejected).
+- Choice: AgentSend is ID-first, then optional prompt, with the same single-source
+  prompt validation. Remove text-based root guessing. Explicit prompt/behavior/image/
+  no-wait or presentation flags select the parity handler, including global output
+  flags before the root command; unflagged root send retains native behavior.
+- Reason/consequences: native root delivery/output remains a declared compatibility
+  difference until W23's atomic policy is ready, as the coordinator approved. No
+  new delivery call, fallback, source authority or recipient inference is added.
+
+Updated README, both full/current117 path spellings and parser assertions. The real
+CLI regression uses two fake sessions and sends one session's full UUID as the other
+session's literal prompt, through both agent send and flagged root send; it checks the
+actual recipient receipt AND recorded TurnStarted content. It fails under the inverted
+order. The fixture now clears inherited VESSEL_AGENT_SESSION in its CHILD process, so
+an unrelated caller environment cannot steer default policy. These are unexecuted
+changed-source tests; earlier134 units and queued8545 strict do not validate this fix.
