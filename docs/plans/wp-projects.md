@@ -131,3 +131,9 @@ exact remove target/ticket, queue refusal correlation, and read-only node refusa
 No real host, agent or filesystem project mutation is involved. Checks are still
 pending; source is not called passed. The package base merge follows the central
 announcement rather than independently merging root node code into the app.
+
+The first native narrow Clippy (d84449ca) stopped on one doc-markdown lint in the
+new deadline comment; that comment is corrected. The package then merged the
+announced app package base 8d5513e4 without conflicts. The projects size exception
+remains removed; shared registration files follow the new base split. No capture
+or runtime completion is inferred from this source merge.

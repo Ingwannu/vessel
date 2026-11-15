@@ -10,7 +10,7 @@ use vessel_app_view::workspace::projects::actions::{
 use vessel_client::NodeClient;
 use vessel_proto::workspace::RemoveProject;
 
-/// Paseo SDK DEFAULT_SESSION_RPC_TIMEOUT_MS (daemon-client.ts:1125), in seconds.
+/// Paseo SDK `DEFAULT_SESSION_RPC_TIMEOUT_MS` (daemon-client.ts:1125), in seconds.
 const PROJECT_MUTATION_DEADLINE: Duration = Duration::from_secs(60);
 
 /// Meaning travels with the form ticket; machine selection is never read again at completion.
