@@ -140,11 +140,18 @@ impl Workspaces {
             },
             kept: None,
         };
-        drop(
-            self.state()
-                .worktrees
-                .insert(id, WorktreeEntry::new(info.clone())),
-        );
+        {
+            let (written, _) = tokio::sync::watch::channel(0);
+            drop(self.state().worktrees.insert(
+                id,
+                WorktreeEntry {
+                    info: info.clone(),
+                    written: Arc::new(written),
+                    running: None,
+                    starting: 0,
+                },
+            ));
+        }
         self.save_worktree(info.clone()).await?;
         let info = match setup {
             Planned::Run(commands) => self.start_setup(id, commands)?,

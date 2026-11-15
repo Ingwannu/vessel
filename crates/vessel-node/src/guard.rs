@@ -287,8 +287,6 @@ untargeted!(
     vessel_proto::workspace::CreateWorktree,
     vessel_proto::workspace::ReadSetupOutput,
     vessel_proto::workspace::RunSetup,
-    vessel_proto::workspace::ReadSetupProgress,
-    vessel_proto::workspace::CancelSetup,
     vessel_proto::workspace::RemoveWorktree,
     vessel_proto::workspace::ListSnapshots,
     vessel_proto::workspace::DropSnapshot,

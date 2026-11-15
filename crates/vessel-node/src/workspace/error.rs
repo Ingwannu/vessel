@@ -32,9 +32,6 @@ pub(crate) enum WorkspaceError {
     /// The request asks for something the rules refuse.
     #[error("{0}")]
     Invalid(String),
-    /// An internal setup plan exceeds the parser's command bound.
-    #[error("setup plan exceeds the command bound")]
-    SetupPlanTooLarge,
     /// The target is in the wrong state.
     #[error("{0}")]
     Conflict(String),
@@ -118,7 +115,7 @@ impl WorkspaceError {
             | Self::UnknownWorktree(_)
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
-            Self::Invalid(_) | Self::SetupPlanTooLarge => ErrorCode::InvalidRequest,
+            Self::Invalid(_) => ErrorCode::InvalidRequest,
             Self::Conflict(_) => ErrorCode::Conflict,
             Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
             Self::Git(_) | Self::Store(_) | Self::Io(_) => ErrorCode::Internal,

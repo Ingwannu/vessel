@@ -482,8 +482,6 @@ impl Handler for FakeNode {
         create_worktree: vessel_proto::workspace::CreateWorktree => vessel_proto::workspace::CreateWorktreeOutcome;
         setup_output: vessel_proto::workspace::ReadSetupOutput => vessel_proto::workspace::SetupOutput;
         run_setup: vessel_proto::workspace::RunSetup => vessel_proto::workspace::WorktreeInfo;
-        setup_progress: vessel_proto::workspace::ReadSetupProgress => vessel_proto::workspace::SetupProgressReply;
-        cancel_setup: vessel_proto::workspace::CancelSetup => vessel_proto::workspace::CancelSetupOutcome;
         remove_worktree: vessel_proto::workspace::RemoveWorktree => vessel_proto::workspace::RemoveWorktreeOutcome;
         list_snapshots: vessel_proto::workspace::ListSnapshots => vessel_proto::workspace::SnapshotList;
         drop_snapshot: vessel_proto::workspace::DropSnapshot => Ack;

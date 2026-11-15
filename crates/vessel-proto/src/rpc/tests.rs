@@ -634,8 +634,6 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
-    "worktree.setup_progress",
-    "worktree.cancel_setup",
 ];
 
 #[test]

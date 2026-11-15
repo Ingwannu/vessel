@@ -16,14 +16,6 @@
 //!   `running`; `worktree.setup`, `worktree.remove` and `session.create`
 //!   see it and refuse, so two runs never share a folder.
 
-mod observation;
-mod progress;
-// Staged until the reviewed registry gate/start-lease adapter can authorize it.
-#[cfg(test)]
-mod bootstrap;
-
-pub(super) use progress::Observation;
-
 use std::ffi::OsString;
 use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
@@ -92,8 +84,6 @@ impl Workspaces {
         commands: Vec<ProjectCommand>,
     ) -> Result<WorktreeInfo, WorkspaceError> {
         let cancel = self.stop.child_token();
-        let observation =
-            Observation::new(worktree, &commands).ok_or(WorkspaceError::SetupPlanTooLarge)?;
         let (info, written) = {
             let mut state = self.state();
             let entry = state
@@ -106,7 +96,6 @@ impl Workspaces {
                 ));
             }
             entry.running = Some(cancel.clone());
-            entry.observation = Some(observation);
             entry.info.setup = SetupState::Running {
                 started_at: Utc::now(),
             };
@@ -118,7 +107,6 @@ impl Workspaces {
             let failure = workspaces
                 .run_commands(&running, &commands, Kind::Setup, cancel, &written)
                 .await;
-            let succeeded = failure.is_none();
             let finished_at = Utc::now();
             let setup = match failure {
                 None => SetupState::Succeeded { finished_at },
@@ -132,9 +120,6 @@ impl Workspaces {
                 state.worktrees.get_mut(&worktree).map(|entry| {
                     entry.running = None;
                     entry.info.setup = setup;
-                    if let Some(observation) = &mut entry.observation {
-                        observation.finish(succeeded);
-                    }
                     entry.info.clone()
                 })
             };
@@ -172,22 +157,7 @@ impl Workspaces {
             },
             cancel,
         };
-        let generation = if kind == Kind::Setup {
-            self.state()
-                .worktrees
-                .get(&info.id)
-                .and_then(|entry| entry.observation.as_ref())
-                .map(|observation| observation.snapshot.cursor.run)
-        } else {
-            None
-        };
-        match commands::run_observed(commands, &run, written, |event| {
-            if let Some(generation) = generation {
-                self.observe_setup(info.id, generation, event);
-            }
-        })
-        .await
-        {
+        match commands::run(commands, &run, written).await {
             Ok(failure) => failure,
             Err(error) => {
                 tracing::warn!(%error, "a worktree's log cannot be written");

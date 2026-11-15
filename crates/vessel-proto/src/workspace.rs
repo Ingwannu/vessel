@@ -20,7 +20,6 @@ mod project;
 mod project_text;
 mod service_port;
 mod service_ports;
-mod setup_progress;
 mod support;
 mod text;
 mod url;
@@ -69,11 +68,4 @@ pub use worktree::{
     SessionPlace, SessionWorkspace, SetupChoice, SetupFailure, SetupOutput, SetupState, Snapshot,
     SnapshotList, WorktreeBase, WorktreeBranch, WorktreeInfo, WorktreeList, WorktreeRefusal,
     WorktreeStart,
-};
-
-pub use setup_progress::{
-    CancelSetup, CancelSetupOutcome, InvalidSetupCommandIndex, MAX_SETUP_PROGRESS_COMMANDS,
-    ReadSetupProgress, SetupCommandIndex, SetupCommandProgress, SetupCommandResult,
-    SetupCommandState, SetupCursor, SetupProgress, SetupProgressReply, SetupRunState,
-    WORKTREE_SETUP_OBSERVATION,
 };

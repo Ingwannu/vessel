@@ -219,8 +219,6 @@ impl Reply {
             | Self::ListWorktrees(_)
             | Self::SetupOutput(_)
             | Self::RunSetup(_)
-            | Self::SetupProgress(_)
-            | Self::CancelSetup(_)
             | Self::RemoveWorktree(_)
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)

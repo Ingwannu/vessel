@@ -134,10 +134,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         }
         Method::ApproveCommands => json!({"project":id,"digest":hash,"approved":true}),
         Method::CreateWorktree => json!({"project":id,"branch":{"kind":"new"}}),
-        Method::SetupOutput | Method::RunSetup | Method::SetupProgress | Method::RemoveWorktree => {
-            json!({"worktree":id})
-        }
-        Method::CancelSetup => json!({"worktree":id,"run":id}),
+        Method::SetupOutput | Method::RunSetup | Method::RemoveWorktree => json!({"worktree":id}),
         Method::DropSnapshot => json!({"project":id,"worktree":id}),
         Method::GitStatus
         | Method::GitBranches
