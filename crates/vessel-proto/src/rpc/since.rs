@@ -165,6 +165,7 @@ impl Call {
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
             | Self::ArchiveSession(_)
+            | Self::ArchiveChildSession(_)
             | Self::DeleteSession(_)
             | Self::BeginUpload(_)
             | Self::WriteUpload(_)

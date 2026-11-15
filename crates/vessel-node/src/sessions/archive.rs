@@ -10,6 +10,8 @@ use std::{
 use vessel_proto::{Mark, SessionId, SessionInfo, session_archive::ArchiveCondition};
 use vessel_session::{ArchiveRefusal, SessionError};
 
+mod child;
+
 enum ExistingArchive {
     Keep,
     Refuse,

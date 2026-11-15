@@ -114,6 +114,7 @@ impl Reply {
             // agent or only one of the four.
             Self::ListSessions(_)
             | Self::ArchiveSession(_)
+            | Self::ArchiveChildSession(_)
             | Self::ListHarnesses(_)
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)

@@ -1,10 +1,10 @@
-//! Finished-child archive shapes; no Request implementation until current parentage is wired.
+//! Finished-child archive request; current parent and actor idle are checked atomically.
 use crate::{Activity, SessionInfo, SessionRef, SessionStatus};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Route to the child's node and compare the complete current parent locally.
-/// This describes a staged operation, not an assigned/registered RPC yet.
+/// The pending method remains unavailable until integration assigns its protocol.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ArchiveChildSession {

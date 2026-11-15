@@ -82,3 +82,35 @@ fn cross_node_parent_identity_and_unknown_outcomes_remain_explicit() {
         ChildArchiveSkip::Unknown
     );
 }
+
+#[test]
+fn conditional_child_method_keeps_typed_identity_and_pending_admission() {
+    use crate::Request as _;
+    let request = ArchiveChildSession {
+        parent: SessionRef {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        },
+        child: SessionRef {
+            node: NodeId::random(),
+            session: SessionId::random(),
+        },
+    };
+    let call = request.into_call();
+    assert_eq!(
+        call.required_protocol(),
+        crate::workspace::WORKSPACE_LIFECYCLE
+    );
+    assert_eq!(
+        ArchiveChildSession::METHOD.scope(),
+        Some(crate::Scope::Operate)
+    );
+    assert!(ArchiveChildSession::METHOD.forwardable());
+    let outcome = ChildArchiveOutcome::Skipped {
+        child: request.child,
+        reason: ChildArchiveSkip::ParentChanged,
+    };
+    let reply = crate::Reply::ArchiveChildSession(outcome);
+    let reply = serde_json::from_slice(&serde_json::to_vec(&reply).unwrap()).unwrap();
+    assert_eq!(ArchiveChildSession::response_from(reply).unwrap(), outcome);
+}

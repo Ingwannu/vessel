@@ -4,6 +4,8 @@ use std::time::Duration;
 use vessel_proto::{ContentBlock, SessionInput, session_archive::ArchiveCondition};
 use vessel_session::{ArchiveRefusal, SessionError};
 
+mod child;
+
 const SAFETY_NET: Duration = Duration::from_secs(30);
 
 #[tokio::test]

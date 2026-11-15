@@ -39,8 +39,12 @@ impl Sessions {
         Err(ServiceError::NotOwned(target))
     }
 
-    /// Called only while the whole ancestry admission holds the metadata lock.
-    async fn current_parent(&self, live: &SessionInfo) -> Result<Option<SessionRef>, ServiceError> {
+    /// Call only while holding marking: ancestry and conditional child archive
+    /// share the same committed-parent boundary rather than racing a detach.
+    pub(super) async fn current_parent(
+        &self,
+        live: &SessionInfo,
+    ) -> Result<Option<SessionRef>, ServiceError> {
         let stored = self.store.session(live.id).await?;
         // A newly visible creation may not have a committed row yet. No detach
         // can commit before that row exists, so its initial audit is authoritative.

@@ -115,6 +115,12 @@ trait Target {
     fn target(&self) -> Option<SessionId>;
 }
 
+impl Target for vessel_proto::session_archive::ArchiveChildSession {
+    fn target(&self) -> Option<SessionId> {
+        Some(self.child.session)
+    }
+}
+
 macro_rules! targets {
     ($( $request:ty ),* $(,)?) => {
         $(

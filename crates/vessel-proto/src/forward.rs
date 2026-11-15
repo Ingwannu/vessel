@@ -319,6 +319,7 @@ impl Method {
             | Self::ResumeSession
             | Self::MarkSession
             | Self::ArchiveSession
+            | Self::ArchiveChildSession
             | Self::DeleteSession
             | Self::BeginUpload
             | Self::WriteUpload

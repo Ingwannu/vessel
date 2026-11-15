@@ -382,6 +382,8 @@ macro_rules! method_table {
             ArchiveSession / archive_session / "session.archive" [Operate, (pending $crate::workspace::WORKSPACE_LIFECYCLE), unary]: $crate::session_archive::ArchiveSession => $crate::session_archive::ArchivedSession;
             /// Make a managed child independent without changing its process or conversation.
             DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
+            /// Archive a finished managed child only while its current parent still matches.
+            ArchiveChildSession / archive_child_session / "session.archive_child" [Operate, (pending $crate::workspace::WORKSPACE_LIFECYCLE), unary]: $crate::session_archive::ArchiveChildSession => $crate::session_archive::ChildArchiveOutcome;
         }
     };
 }

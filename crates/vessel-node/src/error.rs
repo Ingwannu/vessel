@@ -204,6 +204,9 @@ pub(crate) enum ServiceError {
         /// The log's length.
         next: EventSeq,
     },
+    /// Archive completion failed its durable-mark postcondition.
+    #[error("session {0} archive completed without a durable timestamp")]
+    ArchiveUnmarked(SessionId),
     /// The node is draining for an update and starts no new sessions.
     #[error("the node is draining for an update and starts no new sessions")]
     Draining,
@@ -455,7 +458,8 @@ impl ServiceError {
             | Self::AgentTools(_)
             | Self::AgentToolsPath
             | Self::Unrouted(_)
-            | Self::ModelProxyDown => ErrorCode::Internal,
+            | Self::ModelProxyDown
+            | Self::ArchiveUnmarked(_) => ErrorCode::Internal,
         };
         let mut message = self.to_string();
         let mut source = std::error::Error::source(self);

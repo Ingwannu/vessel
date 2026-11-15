@@ -277,6 +277,7 @@ const fn refused(method: Method) -> bool {
         | Method::ResumeSession
         | Method::MarkSession
         | Method::ArchiveSession
+        | Method::ArchiveChildSession
         | Method::DeleteSession
         | Method::BeginUpload
         | Method::WriteUpload

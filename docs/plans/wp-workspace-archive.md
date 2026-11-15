@@ -151,7 +151,7 @@ belongs to actual I/O until it settles, including after caller timeout; partial
 outcomes leave the durable non-active claim. This seam is planned, with no
 production adapter or root-exclusion implementation adopted in this package yet.
 
-## Conditional finished-child contract (staged value types only)
+## Conditional finished-child contract (pending node method)
 
 Paseo `subagents/archive-finished.ts:38-52,167-199` selects managed idle/error,
 not archived and still attached to the expected parent; `select.ts:74-99`
@@ -166,9 +166,24 @@ not proof of a managed idle/error row. Final live actor IfIdle admission still
 fences a prompt racing the snapshot. A live TUI cannot prove a turn boundary
 and will retain the existing explicit Unsupported refusal rather than force.
 
-These are DTOs and a pure predicate only, with no Request/table/client/handler
-for conditional children until reviewed W2 current parentage is adopted. The
-ordinary explicit ArchiveSession remains the path for ended stored sessions.
+The checked W2 current-parent core is now staged on the node tree. Its one
+committed-parent lookup is reused under Sessions.marking (pub(super), with W2's
+agreement); no second ancestry algorithm or lock is introduced. The pending
+session.archive_child method has typed Request/Reply, client and guarded handler.
+The child's full NodeId must equal the receiving node before mutation. This is a
+person's archive-finished action, refused to local and delegated agents. The
+tracked task checks current parent, durable mark and shared finished predicate
+under marking, then uses actor IfIdle admission and the existing cancellation-safe
+service completion. A prompt admitted after snapshot selection becomes NotFinished;
+TUI Unsupported remains an explicit refusal. Detach cannot publish between parent
+validation and stop/mark completion. Unknown future outcomes never count as success.
+
+The method's feature threshold remains None, so pending admission blocks wire use
+until integration. Real fake-backed tests cover committed timestamps, repeated
+archive skip, full remote parent mismatch, a committed detach ahead of its live
+publication and active turns without forced stop. Execution and final V3 evidence
+are still owed for this new union. The ordinary explicit ArchiveSession remains
+the path for ended stored sessions.
 
 Node archive unit tests prepare their fake harness fixture before entering the
 named safety deadline. The deadline then covers actor readiness, persistence,

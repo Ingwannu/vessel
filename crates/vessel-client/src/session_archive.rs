@@ -19,3 +19,16 @@ impl NodeClient {
         self.call(ArchiveSession { session, condition }).await
     }
 }
+
+impl NodeClient {
+    /// Archive only an idle/error child still attached to the exact expected parent.
+    /// Route this request to child.node; a different node with that UUID is refused.
+    /// # Errors
+    /// Pending/older protocol, unsupported TUI idle admission or original RPC failure.
+    pub async fn archive_child_session(
+        &self,
+        request: vessel_proto::session_archive::ArchiveChildSession,
+    ) -> Result<vessel_proto::session_archive::ChildArchiveOutcome, CallError> {
+        self.call(request).await
+    }
+}
