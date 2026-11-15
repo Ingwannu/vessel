@@ -10,6 +10,53 @@ use vessel_app_view::layout::{OpenIntent, Placement, Position, Target};
 use vessel_proto::SessionId;
 
 struct Probe(Entity<Shell>);
+
+#[gpui::test]
+fn retargeted_tab_keeps_its_id_but_refuses_the_original_resource_callback(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let key = LayoutKey::Workspace {
+            node: vessel_proto::NodeId::random(),
+            workspace: vessel_proto::WorkspaceId::random(),
+        };
+        let tab = shell
+            .layout_open_target(
+                &key,
+                Target::Scripts,
+                OpenIntent::Reveal,
+                Placement::Focused,
+                window,
+                cx,
+            )
+            .unwrap();
+        assert!(shell.layout_tab_matches(&key, tab, &Target::Scripts));
+        shell
+            .update_layout(
+                &key,
+                |layout| {
+                    layout.retarget(vessel_app_view::layout::RetargetRequest {
+                        tab,
+                        target: Target::WorkingDiff,
+                        intent: OpenIntent::Reveal,
+                        role: vessel_app_view::layout::AgentRole::Unknown,
+                    })
+                },
+                cx,
+            )
+            .unwrap();
+        assert!(shell.layout_tab_exists(&key, tab));
+        assert!(!shell.layout_tab_matches(&key, tab, &Target::Scripts));
+        assert!(shell.layout_tab_matches(&key, tab, &Target::WorkingDiff));
+        let missing = LayoutKey::Workspace {
+            node: vessel_proto::NodeId::random(),
+            workspace: vessel_proto::WorkspaceId::random(),
+        };
+        let before = shell.areas.layout.book.borrow().clone();
+        assert!(!shell.layout_tab_matches(&missing, tab, &Target::Scripts));
+        assert_eq!(*shell.areas.layout.book.borrow(), before);
+    });
+}
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.0.update(cx, |shell, cx| {
