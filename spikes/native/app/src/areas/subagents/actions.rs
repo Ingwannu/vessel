@@ -216,7 +216,7 @@ impl Shell {
     }
     pub(super) fn subagent_hide(&mut self, child: &ProviderChildId) {
         if let Some(track) = self.areas.subagents.track.as_mut() {
-            track.hide_provider(child);
+            let _hidden = track.hide_provider(child);
         }
         self.areas.subagents.reproject(self.words);
     }

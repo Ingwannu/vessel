@@ -231,7 +231,7 @@ fn mixed_fanout_retains_separate_failed_and_working_counts_without_unknown_statu
             }
         ]
     );
-    track.hide_provider(&"failed".parse().unwrap());
+    let _hidden = track.hide_provider(&"failed".parse().unwrap());
     assert_eq!(
         track.pill_counts(),
         vec![PillCount {
@@ -239,7 +239,7 @@ fn mixed_fanout_retains_separate_failed_and_working_counts_without_unknown_statu
             count: 1
         }]
     );
-    track.hide_provider(&"running".parse().unwrap());
+    let _hidden = track.hide_provider(&"running".parse().unwrap());
     assert!(track.pill_counts().is_empty());
     assert_eq!(track.counts().total, 2);
 }

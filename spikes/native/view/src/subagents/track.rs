@@ -348,18 +348,18 @@ impl Track {
             .map(|row| row.id.clone())
             .collect::<Vec<_>>();
         for id in ids {
-            self.hide_provider(&id);
+            let _hidden = self.hide_provider(&id);
         }
     }
     /// Unknown, idle and completed children contribute no invented active mark.
     #[must_use]
     pub fn pill_counts(&self) -> Vec<PillCount> {
         use vessel_proto::{Activity, SessionStatus};
-        let mut failed = 0;
-        let mut working = 0;
+        let mut failed: usize = 0;
+        let mut working: usize = 0;
         for row in &self.managed {
             if matches!(row.info.status, SessionStatus::Failed { .. }) {
-                failed += 1;
+                failed = failed.saturating_add(1);
             } else if matches!(row.info.status, SessionStatus::Running)
                 && row
                     .info
@@ -367,13 +367,13 @@ impl Track {
                     .as_ref()
                     .is_some_and(|board| board.activity == Activity::Active)
             {
-                working += 1;
+                working = working.saturating_add(1);
             }
         }
         for row in self.providers(None) {
             match row.status {
-                Some(ChildStatus::Failed) => failed += 1,
-                Some(ChildStatus::Running) => working += 1,
+                Some(ChildStatus::Failed) => failed = failed.saturating_add(1),
+                Some(ChildStatus::Running) => working = working.saturating_add(1),
                 Some(ChildStatus::Completed | ChildStatus::Canceled) | None => {}
             }
         }
@@ -400,7 +400,12 @@ impl Track {
             .filter(|row| self.visible_under(row, None) && !self.hidden.contains(&row.id))
             .collect::<Vec<_>>();
         TrackCounts {
-            total: self.managed.len() + providers.len(),
+            total: self
+                .managed
+                .iter()
+                .map(|_| ())
+                .chain(providers.iter().map(|_| ()))
+                .count(),
             running: providers
                 .iter()
                 .filter(|row| row.status == Some(ChildStatus::Running))
@@ -409,11 +414,16 @@ impl Track {
                 .managed
                 .iter()
                 .filter(|row| row.finished == Some(true))
-                .count()
-                + providers
-                    .iter()
-                    .filter(|row| self.visible_under(row, None) && finished_provider(row.status))
-                    .count(),
+                .map(|_| ())
+                .chain(
+                    providers
+                        .iter()
+                        .filter(|row| {
+                            self.visible_under(row, None) && finished_provider(row.status)
+                        })
+                        .map(|_| ()),
+                )
+                .count(),
         }
     }
 }

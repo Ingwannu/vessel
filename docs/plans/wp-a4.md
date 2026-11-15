@@ -191,3 +191,14 @@ UI publication. Rejected admission/full capacity uses actor backpressure before
 spawning, so rapid navigation cannot create an unbounded refusal task queue.
 The actor regression replaces the same-node admission then proves the old A4
 request refuses before any framed RPC, without a real node/credential or browser.
+
+## First executed summary/view regression
+
+Remote exact71a7 view tests executed997 passed/1 failed: reserving the omission
+notice could pop the only selected recent message. The correction preserves the
+newest message by truncating its middle after dropping whole older messages, then
+reserves the same complete marker/wrapper budget. The failing regression stays
+unchanged; no broader test pass is claimed until the corrected immutable run.
+Strict frame a78 separately returned unused-result/arithmetic findings, corrected
+with explicit outcomes, bounded count iteration and panic-free access; no lint
+allowance or weakened assertions were added.

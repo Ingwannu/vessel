@@ -182,7 +182,7 @@ impl ChildPane {
             if proposed.get(&record.seq).is_some_and(|old| old != record) {
                 return Err(TrackProblem::InvalidReply);
             }
-            proposed.insert(record.seq, record.clone());
+            let _previous = proposed.insert(record.seq, record.clone());
         }
         if proposed.len() > bounds::MAX_SCAN_RECORDS {
             return Err(TrackProblem::RetentionLimit);
@@ -194,7 +194,7 @@ impl ChildPane {
                 .map_err(|_error| TrackProblem::RetentionLimit)?;
         }
         let mut timeline = Timeline::default();
-        timeline.apply(&proposed.values().cloned().collect::<Vec<_>>());
+        let _change = timeline.apply(&proposed.values().cloned().collect::<Vec<_>>());
         self.records = proposed;
         self.timeline = timeline;
         self.projection_ready = true;

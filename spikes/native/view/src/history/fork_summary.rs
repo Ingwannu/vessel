@@ -308,12 +308,30 @@ fn omitted(
         );
     }
     if prefix.is_empty() {
-        while remaining < marker_size {
+        while remaining < marker_size && selected.len() > 1 {
             let Some(oldest) = selected.pop() else { break };
             remaining = remaining
                 .saturating_add(units(oldest.chars(), budget))
                 .saturating_add(1);
         }
+    }
+    // Reserving the disclosure must never erase the newest selected message.
+    // Shrink that one message at both ends after dropping whole older messages.
+    if remaining < marker_size
+        && prefix.is_empty()
+        && let Some(newest) = selected.first()
+    {
+        let activity = Activity {
+            prefix: "",
+            text: Cow::Borrowed(newest),
+        };
+        return (
+            format!(
+                "{marker}{}",
+                activity.cut(budget.saturating_sub(marker_size))
+            ),
+            true,
+        );
     }
     selected.reverse();
     (format!("{marker}{}", selected.join("\n")), true)

@@ -248,7 +248,8 @@ fn old_and_unassigned_peers_never_turn_audit_creator_into_a_root_fact() {
         );
     }
     let mut json = serde_json::to_value(&legacy).unwrap();
-    json.get_mut("detail")
+    let _legacy_relation = json
+        .get_mut("detail")
         .unwrap()
         .as_object_mut()
         .unwrap()

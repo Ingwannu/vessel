@@ -30,7 +30,7 @@ fn admitted(
         credential: None,
         id: None,
     };
-    state.clients.insert(
+    let _previous = state.clients.insert(
         "fixture".into(),
         crate::Connected::new(peer.client.clone(), vec![], binding, context.clone()),
     );
