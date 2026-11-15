@@ -44,3 +44,20 @@ the shared request accessor, and test nested/forwarded replies as well.
 No platform-specific service or signal operation is added by the policy layer.
 Command resolution uses the existing cross-platform Lookup. No provider is
 started, installed, authenticated or contacted by the manifest or resolver.
+
+## Native Codex permission dialect increment
+
+[Decision Log]
+- Purpose: match Paseo's offered native modes while retaining existing native
+  callers' explicit policies without reinterpreting actual ACP observations.
+- Constraint: auto-review requires observed Codex0.115 or later; unknown/below
+  versions must not select a reviewer the native process cannot support.
+- Alternatives: always offer the reviewer, or silently fall back/escalate;
+  neither preserves the caller's explicit security policy.
+- Choice: offer auto/auto-review/full-access with version-gated default; accept
+  unoffered read-only and explicit legacy native spellings with identical policy.
+- Reason: the typed already-observed version supplies compatibility without a
+  second executable probe, invented ACP mapping or shell environment flag.
+- Effects: unknown versions default auto and reject auto-review before a thread
+  mutation. The same projection drives live and prompt-free catalogue options.
+  Goal version support remains only a floor, never command availability.

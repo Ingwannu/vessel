@@ -4,11 +4,11 @@
 //! [Decision Log]
 //! - Purpose: the mode decides which approvals reach a person, so the
 //!   permissions slice carries it; the other options are slice 3's.
-//! - Choice: codex-acp's option, id and values (`mode`: `read-only`,
-//!   `workspace-write`, `agent`, `agent-full-access`) with codex-acp's
-//!   presets, so a session's choices mean the same whichever driver runs
-//!   it, and a session moved between drivers keeps its mode. `agent` is
-//!   the default, as codex-acp's.
+//! - Choice: native options use Paseo's `auto`, `auto-review`, `full-access`.
+//!   `read-only` is accepted but not offered. Old native spellings remain decode
+//!   aliases with their original policy; actual ACP observations stay opaque.
+//!   Auto-review is offered/default only at the observed 0.115.0 floor. Unknown
+//!   versions use Default Permissions and cannot select auto-review.
 //! - Full access (`never` asking, `danger-full-access`) is set only by
 //!   its own value: no other value maps to either.
 //! - A change applies from the next turn (`turn/start` carries the
@@ -19,6 +19,7 @@ use vessel_proto::{
     SessionOption,
 };
 
+use super::policy::CodexVersionPolicy;
 use super::protocol::{ApprovalsReviewer, AskForApproval, SandboxMode, SandboxPolicy};
 use crate::options::{KindName, OptionError};
 
@@ -35,7 +36,8 @@ pub(super) enum Mode {
 }
 
 impl Mode {
-    /// Every mode, in codex-acp's order.
+    /// Every accepted native policy, including the unoffered read-only preset.
+    #[cfg(test)]
     pub(super) const ALL: [Self; 4] = [
         Self::ReadOnly,
         Self::WorkspaceWrite,
@@ -43,27 +45,50 @@ impl Mode {
         Self::AgentFullAccess,
     ];
 
-    /// The default, as codex-acp's.
-    pub(super) const DEFAULT: Self = Self::Agent;
+    /// Conservative fallback before version observation.
+    pub(super) const DEFAULT: Self = Self::WorkspaceWrite;
+
+    pub(super) fn default_for(policy: CodexVersionPolicy) -> Self {
+        if policy.auto_review() {
+            Self::Agent
+        } else {
+            Self::WorkspaceWrite
+        }
+    }
+
+    fn offered(policy: CodexVersionPolicy) -> impl Iterator<Item = Self> {
+        [Self::WorkspaceWrite, Self::Agent, Self::AgentFullAccess]
+            .into_iter()
+            .filter(move |mode| *mode != Self::Agent || policy.auto_review())
+    }
 
     /// Its value's id.
     pub(super) const fn id(self) -> &'static str {
         match self {
             Self::ReadOnly => "read-only",
-            Self::WorkspaceWrite => "workspace-write",
-            Self::Agent => "agent",
-            Self::AgentFullAccess => "agent-full-access",
+            Self::WorkspaceWrite => "auto",
+            Self::Agent => "auto-review",
+            Self::AgentFullAccess => "full-access",
         }
     }
 
-    /// The mode whose value id is `id`.
+    /// Native value or an explicit legacy native alias, never an ACP remap.
     pub(super) fn named(id: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|mode| mode.id() == id)
+        match id {
+            "read-only" => Some(Self::ReadOnly),
+            "auto" | "workspace-write" => Some(Self::WorkspaceWrite),
+            "auto-review" | "agent" => Some(Self::Agent),
+            "full-access" | "agent-full-access" => Some(Self::AgentFullAccess),
+            _ => None,
+        }
     }
 
     /// The mode `choice` picks: an error, as an ACP agent's, for another
     /// option, another value or a toggle.
-    pub(super) fn chosen(choice: &OptionChoice) -> Result<Self, OptionError> {
+    pub(super) fn chosen(
+        choice: &OptionChoice,
+        policy: CodexVersionPolicy,
+    ) -> Result<Self, OptionError> {
         let id = &choice.id;
         if id.as_str() != OPTION {
             return Err(OptionError::Unknown {
@@ -72,16 +97,15 @@ impl Mode {
             });
         }
         match &choice.value {
-            ChoiceValue::Select { value } => {
-                Self::named(value.as_str()).ok_or_else(|| OptionError::NotOffered {
+            ChoiceValue::Select { value } => Self::named(value.as_str())
+                .filter(|mode| *mode != Self::Agent || policy.auto_review())
+                .ok_or_else(|| OptionError::NotOffered {
                     id: id.clone(),
                     value: value.clone(),
-                    offered: Self::ALL
-                        .into_iter()
+                    offered: Self::offered(policy)
                         .map(|mode| OptionValueId::new(mode.id()))
                         .collect(),
-                })
-            }
+                }),
             ChoiceValue::Toggle { .. } => Err(OptionError::WrongKind {
                 id: id.clone(),
                 kind: KindName::Select,
@@ -92,9 +116,9 @@ impl Mode {
     const fn name(self) -> &'static str {
         match self {
             Self::ReadOnly => "Read-only",
-            Self::WorkspaceWrite => "Workspace access",
-            Self::Agent => "Auto review",
-            Self::AgentFullAccess => "Full access",
+            Self::WorkspaceWrite => "Default Permissions",
+            Self::Agent => "Auto-review",
+            Self::AgentFullAccess => "Full Access",
         }
     }
 
@@ -153,7 +177,7 @@ impl Mode {
     }
 
     /// The option, with this mode current.
-    pub(super) fn option(self) -> SessionOption {
+    pub(super) fn option(self, policy: CodexVersionPolicy) -> SessionOption {
         SessionOption {
             id: OptionId::new(OPTION),
             name: "Mode".to_owned(),
@@ -161,8 +185,7 @@ impl Mode {
             category: OptionCategory::Mode,
             kind: OptionKind::Select {
                 current: OptionValueId::new(self.id()),
-                values: Self::ALL
-                    .into_iter()
+                values: Self::offered(policy)
                     .map(|mode| OptionValue {
                         id: OptionValueId::new(mode.id()),
                         name: mode.name().to_owned(),
@@ -211,19 +234,32 @@ mod tests {
             value: OptionValueId::new(value),
         };
         assert_eq!(
-            Mode::chosen(&choose(OPTION, select("read-only"))).ok(),
+            Mode::chosen(
+                &choose(OPTION, select("read-only")),
+                CodexVersionPolicy::default()
+            )
+            .ok(),
             Some(Mode::ReadOnly)
         );
         assert!(matches!(
-            Mode::chosen(&choose("model", select("read-only"))),
+            Mode::chosen(
+                &choose("model", select("read-only")),
+                CodexVersionPolicy::default()
+            ),
             Err(OptionError::Unknown { .. })
         ));
         assert!(matches!(
-            Mode::chosen(&choose(OPTION, select("full"))),
+            Mode::chosen(
+                &choose(OPTION, select("full")),
+                CodexVersionPolicy::default()
+            ),
             Err(OptionError::NotOffered { .. })
         ));
         assert!(matches!(
-            Mode::chosen(&choose(OPTION, ChoiceValue::Toggle { on: true })),
+            Mode::chosen(
+                &choose(OPTION, ChoiceValue::Toggle { on: true }),
+                CodexVersionPolicy::default()
+            ),
             Err(OptionError::WrongKind { .. })
         ));
     }

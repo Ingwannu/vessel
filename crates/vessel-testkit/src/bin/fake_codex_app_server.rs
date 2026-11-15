@@ -342,6 +342,7 @@ impl Server {
     }
 
     fn turn(&mut self, id: &Value, params: &Value) -> Result<(), Exit> {
+        launch_audit::turn(params).map_err(|_failed| Exit::Closed)?;
         self.turns = self.turns.saturating_add(1);
         let turn = format!("turn-{}", self.turns);
         let prompt = first_text(params);

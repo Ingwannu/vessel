@@ -43,7 +43,6 @@ use std::collections::{HashMap, HashSet};
 use serde_json::Value;
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
-use vessel_proto::agents::AgentVersion;
 use vessel_proto::{
     AgentEvent, ContentBlock, ContextUsage, PermissionOutcome, QuestionOutcome, ToolCallUpdate,
     ToolKind,
@@ -52,6 +51,7 @@ use vessel_proto::{
 use super::asks::{self, Approvals, Asking, Questions, Settled};
 use super::mapper;
 use super::mode::Mode;
+use super::policy::version_of;
 use super::protocol::{
     ClientInfo, CommandApproval, DeltaNotification, ErrorNotification, FileChangeApproval,
     InitializeCapabilities, InitializeParams, ItemNotification, PermissionsApproval,
@@ -144,6 +144,7 @@ struct Session {
     context: Option<ContextUsage>,
     /// The mode the next turn runs in.
     mode: Mode,
+    version_policy: super::policy::CodexVersionPolicy,
     /// What waits on a person.
     approvals: Approvals,
     questions: Questions,
@@ -170,6 +171,7 @@ impl Session {
             before: TokenUsageBreakdown::default(),
             context: None,
             mode: Mode::DEFAULT,
+            version_policy: super::policy::CodexVersionPolicy::default(),
             approvals: Approvals::default(),
             questions: Questions::default(),
             announced: HashSet::new(),
@@ -746,17 +748,20 @@ impl Session {
                 let _gone = reply.send(self.turn != TurnState::Idle);
             }
             Command::Options { reply } => {
-                let _gone = reply.send(vec![self.mode.option()]);
+                let _gone = reply.send(vec![self.mode.option(self.version_policy)]);
             }
             Command::SetOption { choice, reply } => {
                 // Kept here, sent with the next `turn/start`.
-                let result = match Mode::chosen(&choice) {
+                let result = match Mode::chosen(&choice, self.version_policy) {
                     Ok(mode) => {
                         if mode != self.mode {
                             self.mode = mode;
-                            self.output(AgentOutput::Options(vec![mode.option()])).await;
+                            self.output(AgentOutput::Options(vec![
+                                mode.option(self.version_policy),
+                            ]))
+                            .await;
                         }
-                        Ok(vec![mode.option()])
+                        Ok(vec![mode.option(self.version_policy)])
                     }
                     Err(error) => Err(InputError::Option(error)),
                 };
@@ -922,13 +927,6 @@ fn handshake_failed(message: String) -> Disconnect {
         refused: None,
         fork_refused: None,
     }
-}
-
-/// The version in Codex's user agent (`codex_cli_rs/0.166.0 (...)`).
-fn version_of(user_agent: &str) -> Option<AgentVersion> {
-    let first = user_agent.split_whitespace().next()?;
-    let version = first.split_once('/').map_or(first, |(_, version)| version);
-    version.parse().ok()
 }
 
 fn answer(reply: Reply, result: Result<(), InputError>) {

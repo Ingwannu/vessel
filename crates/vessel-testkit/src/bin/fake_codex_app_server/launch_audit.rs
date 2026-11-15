@@ -2,7 +2,15 @@
 use std::io::Write as _;
 
 pub(super) fn record(params: &serde_json::Value) -> std::io::Result<()> {
-    let Some(path) = std::env::var_os("FAKE_CODEX_LAUNCH_AUDIT") else {
+    write("FAKE_CODEX_LAUNCH_AUDIT", params)
+}
+
+pub(super) fn turn(params: &serde_json::Value) -> std::io::Result<()> {
+    write("FAKE_CODEX_TURN_AUDIT", params)
+}
+
+fn write(variable: &str, params: &serde_json::Value) -> std::io::Result<()> {
+    let Some(path) = std::env::var_os(variable) else {
         return Ok(());
     };
     let mut options = std::fs::OpenOptions::new();

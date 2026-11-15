@@ -211,7 +211,7 @@ async fn a_thread_starts_and_a_turn_streams_its_reply() {
         let AgentOutput::Options(options) = &handshake[1] else {
             panic!("options second: {handshake:?}");
         };
-        assert_eq!(current(options), Some("agent"));
+        assert_eq!(current(options), Some("auto-review"));
         let AgentOutput::Event(AgentEvent::Ready {
             harness_session,
             abilities,
@@ -605,8 +605,8 @@ async fn the_mode_goes_with_the_thread_and_each_turn() {
             "turn on-request user readOnly thread on-request user read-only"
         );
         let options = input.set_option(mode("agent-full-access")).await.unwrap();
-        assert_eq!(current(&options), Some("agent-full-access"));
-        assert_eq!(current(&input.options().await.unwrap()), Some("agent-full-access"));
+        assert_eq!(current(&options), Some("full-access"));
+        assert_eq!(current(&input.options().await.unwrap()), Some("full-access"));
         let refused = OptionChoice {
             id: OptionId::new("model"),
             value: ChoiceValue::Select {
@@ -625,7 +625,7 @@ async fn the_mode_goes_with_the_thread_and_each_turn() {
         assert!(
             events.iter().any(|output| matches!(
                 output,
-                AgentOutput::Options(options) if current(options) == Some("agent-full-access")
+                AgentOutput::Options(options) if current(options) == Some("full-access")
             )),
             "{events:?}"
         );
@@ -774,7 +774,7 @@ async fn a_probe_reads_the_introduction() {
         let probed = vessel_agent::probe_with(Driver::CodexAppServer, &command(), setup(None))
             .await
             .unwrap();
-        assert_eq!(current(&probed.options), Some("agent"));
+        assert_eq!(current(&probed.options), Some("auto-review"));
         assert!(probed.abilities.steer);
         assert_eq!(
             probed

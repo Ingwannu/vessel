@@ -34,6 +34,57 @@ struct Effort {
     reasoning_effort: String,
 }
 
+/// Charge decoded owned metadata across every page, not only model count.
+/// Otherwise individually bounded frames could accumulate gigabytes before the
+/// final checked model conversion. Unknown native fields are not retained.
+const MAX_NATIVE_METADATA_BYTES: usize = 4 * 1024 * 1024;
+
+#[derive(Default)]
+pub(super) struct MetadataBudget(usize);
+
+impl MetadataBudget {
+    pub(super) fn admit(
+        &mut self,
+        page: &ModelPage,
+    ) -> Result<(), super::catalogue::CatalogueProbeError> {
+        let owned = page.data.iter().fold(
+            page.next_cursor.as_ref().map_or(0, String::capacity),
+            |bytes, model| bytes.saturating_add(model.owned_bytes()),
+        );
+        self.0 = self
+            .0
+            .checked_add(owned)
+            .filter(|bytes| *bytes <= MAX_NATIVE_METADATA_BYTES)
+            .ok_or(super::catalogue::CatalogueProbeError::Invalid)?;
+        Ok(())
+    }
+}
+
+impl NativeModel {
+    fn owned_bytes(&self) -> usize {
+        let efforts = self
+            .supported_reasoning_efforts
+            .as_ref()
+            .map_or(0, |efforts| {
+                efforts.iter().fold(
+                    efforts
+                        .capacity()
+                        .saturating_mul(std::mem::size_of::<Effort>()),
+                    |bytes, effort| bytes.saturating_add(effort.reasoning_effort.capacity()),
+                )
+            });
+        std::mem::size_of::<Self>()
+            .saturating_add(self.id.capacity())
+            .saturating_add(self.display_name.as_ref().map_or(0, String::capacity))
+            .saturating_add(
+                self.default_reasoning_effort
+                    .as_ref()
+                    .map_or(0, String::capacity),
+            )
+            .saturating_add(efforts)
+    }
+}
+
 #[derive(Default, Deserialize)]
 pub(super) struct ConfigResponse {
     pub(super) config: Defaults,
@@ -61,6 +112,10 @@ pub(super) fn models(
     native: Vec<NativeModel>,
     defaults: &Defaults,
 ) -> Result<Models, super::catalogue::CatalogueProbeError> {
+    let has_known_default = defaults
+        .model
+        .as_ref()
+        .is_some_and(|configured| native.iter().any(|model| &model.id == configured));
     let models = native
         .into_iter()
         .map(|native| {
@@ -92,10 +147,11 @@ pub(super) fn models(
                 .display_name
                 .filter(|label| !label.trim().is_empty())
                 .unwrap_or_else(|| native.id.clone());
-            let is_default = defaults
-                .model
-                .as_ref()
-                .map_or(native.is_default, |model| Some(model == &native.id));
+            let is_default = if has_known_default {
+                Some(defaults.model.as_ref() == Some(&native.id))
+            } else {
+                native.is_default
+            };
             Ok(Model::new(ModelSpec {
                 id: ModelId::new(native.id),
                 label: label
@@ -183,5 +239,53 @@ mod tests {
         );
         let page: ModelPage = serde_json::from_str(r#"{"data":[{"id":"bad\n"}]}"#).unwrap();
         assert!(models(page.data, &Defaults::default()).is_err());
+    }
+    #[test]
+    fn a_retired_configured_model_does_not_erase_the_native_default() {
+        let page: ModelPage = serde_json::from_str(
+            r#"{"data":[{"id":"a","isDefault":false},{"id":"b","isDefault":true}]}"#,
+        )
+        .unwrap();
+        let config: ConfigResponse =
+            serde_json::from_str(r#"{"config":{"model":"retired"}}"#).unwrap();
+        let observed = models(page.data, &config.config).unwrap();
+        assert_eq!(observed.all()[0].spec().default, Some(DefaultChoice::No));
+        assert_eq!(observed.all()[1].spec().default, Some(DefaultChoice::Yes));
+    }
+
+    #[test]
+    fn individually_small_valid_native_fields_cannot_accumulate_unbounded_pages() {
+        let mut budget = MetadataBudget::default();
+        let mut refused = false;
+        for number in 0..64 {
+            let data = (0..64)
+                .map(|model| {
+                    let efforts: Vec<_> = (0..32)
+                        .map(|effort| Effort {
+                            reasoning_effort: format!("effort-{effort:02}-{}", "x".repeat(48)),
+                        })
+                        .collect();
+                    NativeModel {
+                        id: format!("model-{number}-{model}"),
+                        display_name: Some("Native model".into()),
+                        is_default: Some(false),
+                        default_reasoning_effort: Some(efforts[0].reasoning_effort.clone()),
+                        supported_reasoning_efforts: Some(efforts),
+                    }
+                })
+                .collect();
+            let page = ModelPage {
+                data,
+                next_cursor: None,
+            };
+            if budget.admit(&page).is_err() {
+                refused = true;
+                break;
+            }
+        }
+        assert!(
+            refused,
+            "model-count and per-frame limits alone do not bound retained metadata"
+        );
     }
 }

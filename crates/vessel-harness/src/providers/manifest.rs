@@ -52,7 +52,7 @@ pub fn builtin_manifest() -> Result<Vec<Builtin>, ManifestError> {
             "Codex",
             ProviderKind::Codex,
             Enabled::On,
-            Some("auto-review"),
+            Some("auto"),
             &[
                 ("auto", "Default Permissions", Moderate, Ask),
                 ("auto-review", "Auto-review", Moderate, Ask),
@@ -170,7 +170,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 Some("auto"),
-                Some("auto-review"),
+                Some("auto"),
                 Some(COPILOT_AGENT),
                 None,
                 None,
