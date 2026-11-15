@@ -122,10 +122,12 @@ impl ToolView {
                 .kind
                 .or_else(|| existing.map(|tool| tool.kind))
                 .unwrap_or(ToolKind::Other),
-            status: update
-                .status
-                .or_else(|| existing.map(|tool| tool.status))
-                .unwrap_or(ToolCallStatus::Pending),
+            status: match (existing.map(|tool| tool.status), update.status) {
+                (Some(old), Some(incoming)) => super::tool_status::merge_status(old, incoming),
+                (Some(old), None) => old,
+                (None, Some(incoming)) => incoming,
+                (None, None) => ToolCallStatus::Pending,
+            },
             content: update
                 .content
                 .clone()

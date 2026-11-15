@@ -53,6 +53,7 @@ mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod tool_status;
 mod turn_footer;
 mod turns;
 mod usage;

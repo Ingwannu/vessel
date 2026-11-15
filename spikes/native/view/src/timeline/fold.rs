@@ -442,7 +442,10 @@ impl Timeline {
 
     /// A tool call as it now stands: its entry replaced in place, or a new
     /// one keyed by its id.
-    pub(super) fn tool(&mut self, record: &EventRecord, tool: ToolView) {
+    pub(super) fn tool(&mut self, record: &EventRecord, mut tool: ToolView) {
+        if let Some(existing) = self.find_tool(&tool.id) {
+            tool.status = super::tool_status::merge_status(existing.status, tool.status);
+        }
         self.touch(&tool.locations);
         if let Some(index) = self.tools.get(&tool.id).copied() {
             if let Some(entry) = self.change(index) {

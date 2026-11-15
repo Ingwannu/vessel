@@ -357,3 +357,19 @@ missing per-key translator comments, an ambiguous asset-test string type and
 an app test attempting JSON decoding without a dependency. These are corrected:
 every new Fluent key owns context, asset expectations name SharedString, and
 the app fixture constructs typed events without adding a JSON dependency.
+
+### Settled tool outcomes and turn-scoped identity
+
+Paseo `types/stream.ts:1147-1163` keeps failure sticky and completion stronger
+than late running updates. Native tool updates and repeat announcements now do
+the same; pending cannot regress an observed running call. The canceled case
+awaits the reviewed enum variant. Tests cover terminal outcome preservation.
+W23 confirmed that whole-session ToolCallId uniqueness is not established:
+Codex drops provider turnId and reused/late Claude ids are not constrained.
+Canonical turn scope is a node gap now owned by W23. Native must consume the
+announced typed scope when available; inferring a late update's turn from only
+the latest local EventSeq would be an unsupported claim. The legacy identity
+fallback remains explicitly unscoped until then.
+W23 also confirmed the compaction reducer rule: completion upgrades earliest
+outstanding loading, even nonadjacent; loading always creates a row. Its node
+comment is being corrected, not a new competing presentation union.

@@ -12,7 +12,7 @@ fn records() -> Vec<EventRecord> {
             }],
         },
         AgentEvent::ToolCall(ToolCall {
-            id: "read".parse().unwrap(),
+            id: vessel_proto::ToolCallId::new("read"),
             title: "Read".to_owned(),
             kind: ToolKind::Read,
             status: ToolCallStatus::Completed,
