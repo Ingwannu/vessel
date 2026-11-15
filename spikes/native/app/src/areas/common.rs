@@ -1,9 +1,7 @@
-//! Pieces more than one area draws: a frame's title bar and foot, a
-//! session's colour.
+//! Pieces more than one area draws: a frame's title bar and foot.
 
 use vessel_app_kit::ui::{Div, IntoElement, ParentElement as _, Styled as _, div, px};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::{Attention, Card};
 
 /// The frame's title bar: a heading and a line under it.
 pub(crate) fn title_bar(title: String, detail: Option<String>, tokens: &Tokens) -> Div {
@@ -36,13 +34,4 @@ pub(crate) fn foot(notice: impl IntoElement, tokens: &Tokens) -> Div {
         .type_(Type::Meta)
         .text_color(tokens.text_secondary)
         .child(notice)
-}
-
-/// A session's colour: needs-you first, then working, else at rest.
-pub(crate) fn card_color(card: &Card, tokens: &Tokens) -> vessel_app_kit::ui::Hsla {
-    match card.attention {
-        Attention::NeedsYou => tokens.st_needs_you,
-        Attention::Working => tokens.st_building,
-        Attention::AtRest => tokens.text_tertiary,
-    }
 }
