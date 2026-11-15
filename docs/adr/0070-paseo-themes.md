@@ -544,6 +544,36 @@ The arms are the existing picture helper and the existing name
 function, plus the words. That is not a new screen. Settings ›
 Appearance itself stays the screen it is.
 
+The app has one preference-to-palette adapter. System has no fixed
+palette; it resolves through the existing window appearance mapping.
+The apply guard compares the actual token set, since Dark, Zinc and
+every other variant share `Scheme::Dark`. Comparing only the scheme
+would silently keep the previous variant. The same adapter supplies
+each named tile's picture; System keeps its split picture. The existing
+run override remains outside that adapter and keeps its current meaning.
+
+The command palette retains Vessel's direct preset entries, expanded to
+eight. Its generic entry builder receives each typed choice with its
+localized name, removing the three-name parallel array in `PaletteWords`.
+Names come from Settings' existing `theme(Theme)` API; the app does not
+guess a name from an index. This also makes the existing palette labels
+use the same capitalization and Korean names as Appearance.
+
+Cycling follows the catalogue rather than the System-first chooser:
+`theme.ts:884-888`, called by `app/_layout.tsx:388-391`. The pure transition
+lives on the preference type. Shortcut registration is the existing
+shortcut registry's responsibility: `keyboard/keyboard-shortcuts.ts:1028-1050`
+binds Cmd+Alt+T on Mac and Ctrl+Alt+T elsewhere, outside the command center;
+the non-Mac binding is also disabled inside a terminal. A new palette
+does not create an independent key listener.
+
+The existing tile geometry and interface label tier stay. That label is
+currently the native Body tier (14/20 at the default interface size),
+whereas Paseo's `theme-picker.tsx:235-238` uses its small 12-point tier.
+This is a retained chooser difference, not a new typography or layout
+control. New labels follow the source; the existing Korean Light/Dark
+labels remain as recorded above.
+
 ## What this does not reach
 
 No browser, no HTTP listener, no helper process, no script at start.

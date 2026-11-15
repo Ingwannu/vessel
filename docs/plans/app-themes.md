@@ -105,7 +105,8 @@ Do not start a second theme type in the app.
   Paseo's own bytes.
 - Done: slice 2's kit-only palette source at `c67925e5` passes the full
   native gate: 1,043 passed, zero failed, one existing ignored capture.
-  V1's implementation disposition and first-use evidence remain pending.
+  V1 passed this producer's source and A13 native gate on 2026-11-15;
+  the full ADR and consumer/first-use evidence remain pending.
 - Half-done: no preference or app change has started.
 - Next: submit that source and its exact gate evidence to review, then
   extend the existing theme preference, single app adapter and Appearance
@@ -211,9 +212,47 @@ changed and no root gate is claimed.
 
 The run's `steps.log`, `steps.tsv`, individual logs and their hashes are
 retained with its run id. The first cancelled run and earlier narrow lint
-failure remain separate evidence. V1 review remains pending. There is no
+failure remain separate evidence. V1 passed the producer source and this
+gate; ADR 0070 as a whole remains proposed. There is no
 capture folder yet: this producer is not applied by the app, and neither
 new-theme selection, same-scheme redraw, persistence, System following nor
 fractional-scale artwork is certified by this gate. Those are the next
 consumer slice's checks. No fleet, display, permission or ownership change,
 push or release was performed for this producer.
+
+### Consumer contract before implementation
+
+Reuse `Theme`, `appearance.theme`, `PreferenceChange::Theme` and the
+existing file store. Add the five named variants without new fields,
+defaults, wire calls or a new preference type. `Theme::ALL` has the actual
+System-first chooser order; `Theme::next` has the separate source catalogue
+order, including System to Zinc. The serde names stay snake_case. File
+loading retains its per-field lenient fallback; an explicit change still
+uses the closed enum.
+
+The single app adapter supplies fixed palettes to both the apply path and
+tile pictures. System alone resolves from window appearance. Applying a
+preference compares actual tokens, so a Dark-to-Zinc switch refreshes even
+though the scheme stays Dark. The component layer uses the same setter.
+The existing override and the split System preview stay. The retained
+14-point tile label differs from Paseo's 12-point label, recorded in ADR
+0070; no new tile or preview control is introduced.
+
+The palette builder will take typed choices paired with localized labels,
+with no fixed three-entry capacity or second name table. The two existing
+generic palette fixtures retain their original three fake choices and
+assertions through that input signature; an additional case covers the
+real eight-entry theme registry. Settings owns their localized names.
+
+The shortcut registry owns `theme.cycle` registration. Its source is
+Paseo `keyboard/keyboard-shortcuts.ts:1028-1050`, with callback routing in
+`hooks/use-keyboard-shortcuts.ts:157` and `_layout.tsx:388-391`. Its existing
+owner has been given the typed transition contract; no second key listener
+is added here. Runtime cycling remains pending until that route exists.
+
+Validation: pure ordering/cycle/serde/fallback/name tests beside the
+preference, actual preference-file round trips, adapter/System tests and
+same-scheme global/component token changes. The full native gate runs
+remotely. The app build and authenticated display captures run locally;
+saved selection, reload, same-Dark changes and all four scales require
+their own inspected evidence. None is claimed at this contract commit.
