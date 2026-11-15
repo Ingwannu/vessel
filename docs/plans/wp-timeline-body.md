@@ -93,3 +93,15 @@ The large-input line-cap assertions remain intact. No expectation is removed or
 weakened. No separate production-crate pass is inferred from that interrupted
 combined check. This result proves neither a successful strict run nor new runtime;
 corrected-source checks are owed.
+
+Correctedae256 run wp-timeline-narrow-20261115T175159Z-ae25633b stopped before
+tests on two missing closure dependencies: the existing kit size facade export
+was absent from the isolated cut, and ToolFailure lives in the unadopted rich
+item vocabulary rather than the approved body-only module. The facade export is
+now included. The kernel no longer imports that unnecessary error container:
+BorrowedDetail.failure is Option<&str> and its alert helper takes reported prose.
+Canonical callers retain their typed ToolFailure and borrow its message at the
+existing wrapper; proposed callers still pass None. Detail itself remains the
+canonical ToolCallDetail. No copied DTO or new root dependency is introduced;
+the narrow text-only body capability is intentional. These checks remain red,
+and the corrected source requires fresh strict/runtime evidence.
