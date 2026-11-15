@@ -418,6 +418,10 @@ async fn a_conversation_is_copied_to_another_profile_and_resumed_there() {
         client.kill(copy).await.unwrap();
         client.kill(source.id).await.unwrap();
         node.stop().await.unwrap();
+        assert_eq!(
+            fixture.saved_title_origin(copy).await,
+            vessel_proto::TitleOrigin::Unknown
+        );
     })
     .await;
 }

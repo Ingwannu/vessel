@@ -110,7 +110,9 @@ failed fill becomes fixed fallback text.
 
 ## The choice
 
-The number is `GENERATED_NAMES`, given at merge. Every new field is
+The threshold is `GENERATED_NAMES: Option<ProtocolVersion>`, assigned at
+merge. `None` means no negotiated peer supports it; it is not a reserved
+numeric sentinel. Every new field is
 optional and skipped when absent, so a peer that ignores unknown JSON
 fields keeps working. A peer below that constant is not sent the new
 methods (`since` refuses them, as every method since protocol 5).
@@ -181,11 +183,17 @@ that route's model or its `small_model` (ADR 0015, decision 5);
 anything else is a refused setting, not a call. An entry's `effort`,
 when set, is a closed set (`minimal`, `low`, `medium`, `high`, `max`),
 mapped in the node onto `vessel-llm`'s effort. A value outside that set
-is refused on write, as an unknown `park_after` is. Paseo instead keeps
-the string and, at generation, replaces a thinking id the model does
-not offer with the model's default (`resolveThinkingOptionId`,
-263–276). The same outcome is used here for a value the provider's API
-cannot say: Anthropic's wire effort is `low`, `medium`, `high` and
+is refused on write, as an unknown `park_after` is. Paseo's manual
+candidate with an explicit model on a top-level provider passes that
+model and thinking string through unchanged
+(`structured-generation-providers.ts` 136–160). When the model is
+omitted it selects the default model, or the first model, and resolves
+the thinking id against that model (162–169, 259–276); nested matches
+also resolve it. Vessel instead validates the model against the route's
+allowed pair and uses a closed effort type, so an unsupported choice can
+be refused before saving. This is a deliberate security and cost bound,
+not a reproduction of Paseo's explicit-model pass-through. An effort that
+the provider's API cannot represent is omitted: Anthropic's wire effort is `low`, `medium`, `high` and
 `max` (`wire/anthropic.rs` 376–385), so `minimal` is omitted on that
 call and the provider's default stands. When the entry omits effort,
 the provider's default stands, except the automatic `gpt-5.4-mini`
@@ -196,16 +204,53 @@ logs the class (`no route`), never the prompt.
 
 The model id sent upstream is the route's `small_model` when the entry
 did not name a model and the route has a small model, otherwise the
-route's model. Paseo prefers a small model; `small_model` is that field.
+route's model. Preferring `small_model` here is a Vessel cost choice.
+Paseo's manual candidate without a model uses the default or first model
+(`selectDefaultModel`, 262–264); its automatic path uses the model that
+matched the substring, not a separate small-model field.
+
+### Strict complete-response decoding
+
+The model API crate owns response grammar. It will reuse its existing
+Anthropic Message and Responses Response types and add the missing whole
+Chat completion shape beside that API's existing wire types. A bounded
+complete-response decoder returns text, reported usage and a known stop;
+the node alone interprets the returned text as the generated-name JSON.
+No provider response structs or string-based API parsing live in the node.
+
+The existing streaming decoders deliberately tolerate missing or unknown
+end reasons for proxy compatibility. They cannot alone prove that a
+structured metadata answer completed normally. Changing their policy would
+change unrelated harness traffic; parsing all streamed events a second time
+would add another state machine. Instead, metadata uses the existing typed
+request encoders with streaming off and buffers one small, bounded reply.
+There is no metadata token stream shown to a person, so this loses no
+visible progress. Existing proxy decoder behavior remains unchanged.
+
+`MAX_COMPLETION_BYTES` is the one response-byte bound, shared with the
+caller's HTTP limit. A normal explicit end/status is required; missing,
+unknown or incomplete endings, declared errors, tool/refusal content,
+non-text output and multiple Chat choices are unusable. Successfully
+decoded API envelopes retain reported usage and known stops when output is
+refused, rather than fabricating an end turn. A body that cannot decode as
+its API has unknown counts and stop; partial fields are not inferred. A contradictory
+tool/refusal block makes the text unusable but does not overwrite the
+provider's reported stop. The typed text error carries that refusal. Credentials are checked on both the raw envelope and decoded
+text with the existing Redactor; node schema decoding checks the final
+value too. Completion text and errors have safe Debug output. JSON causes
+stay typed behind a safe diagnostic wrapper because serde messages may
+quote provider content; only category, never quoted text, crosses it.
+This decoder reads no file, opens no socket and adds no dependency.
 
 ### Settings
 
 `NodeSettings.metadata` and `SetNodeSettings.metadata`:
 
-- `providers`: at most eight entries. Each is `{ route, model?, effort? }`.
+- `providers`: at most `MAX_METADATA_PROVIDERS` entries. Each is
+  `{ route, model?, effort? }`.
   An empty list is automatic, the default, and what an older
   `settings.json` becomes. A non-empty list is manual: those entries
-  only, nothing appended. Nine entries, an unknown route name, a model
+  only, nothing appended. An oversized list, an unknown route name, a model
   the route does not allow, or an unknown effort is a typed refusal and
   the file is not written (ADR 0038: a failed change changes nothing).
 - Kept in the same `settings.json`, as one more optional field of
@@ -239,44 +284,164 @@ is a bound Paseo does not have. Both are stated below.
 The settings screen is not part of this change. It calls the methods
 in the plan's "What a screen calls".
 
+### Bounded value contracts
+
+The protocol crate extends its existing parsed route/model identifiers and
+`SessionTitle`; no provider SDK or new dependency is needed. A separate
+`GeneratedTitle` preserves the model-output contract: its raw UTF-16 unit
+count is checked against `MAX_GENERATED_TITLE_UNITS` before trimming or
+ordinary title validation. Paseo checks its schema before trimming too
+(`worktree-branch-name-generator.ts` 39–42, 132–135). Vessel additionally
+keeps ADR 0022's one-line and control-character refusals; allowing a model
+to bypass the title rules would make stored and user-supplied titles
+disagree. A bad model title is refused, never truncated.
+
+`MetadataSettings` owns its private ordered candidate list and one
+constructor. In this value-only slice, `MetadataSettings` (through
+`RawMetadataSettings`) and `MetadataProvider` are the strict wire/patch
+forms: unknown keys are refused at the decoding edge, so a misspelled
+preference cannot silently choose automatic defaults. This reproduces
+Paseo's strict persisted schemas (`persisted-config.ts` 172–186) at the
+patch boundary only. These strict deserializers must not be used to read
+`settings.json`. Its decoder stops
+constructing candidates at
+`MAX_METADATA_PROVIDERS` and refuses an extra element, rather than
+allocating an unbounded list before checking its length. Duplicate entries
+count towards that storage bound and stay in order; selection deduplicates
+later. The cap is a Vessel bound, absent from Paseo's provider array.
+Future effort values decode as typed `Unknown` for reading and are refused
+by settings validation when the setting is wired. This value-only slice
+adds neither settings fields nor registered calls: availability checks and
+persistent writes belong to the following settings slice.
+
+The settings wiring slice adds a separate lenient file view, including its
+nested metadata and candidate objects. Unknown keys are ignored at every
+level while known values are retained; known invalid values still fail
+validation, and a later effort reads as `MetadataEffort::Unknown`. The
+file view converts through the same bounded constructor and parsed ids,
+not through the strict wire deserializers. This is a deliberate difference
+from Paseo's strict file schema, required by Vessel's existing settings
+compatibility rule: a newer candidate key must not reset unrelated node
+settings. No metadata-specific keeping mechanism is added. The shared
+settings store owns the `settings.json.later-<UTC>` copy before the first
+replacing write when unread fields exist, and the
+`settings.json.unreadable-<UTC>` move for an unparseable file.
+
+That slice owes file tests with an unknown metadata key and an unknown
+nested candidate key, checking that the route and other node settings
+survive read, an unrelated patch and reopen. It also checks a future effort
+reading as Unknown, known invalid values still being refused, and strict
+wire patches refusing those same unknown keys before write or model work.
+The value-only slice has no file reader and does not claim these tests.
+
+### Project style reader
+
+The style reader reuses the existing `ProjectFile::read_in` file-opening
+policy through one shared byte reader: regular file, contained path and
+`MAX_BYTES`, with ADR 0027's same-user check/open race unchanged. It must
+not parse or run commands, alter their approval digest, walk ancestors or
+claim a stronger sandbox. It blocks; the node calls it through
+`spawn_blocking` when generation is wired. Each known table is decoded
+independently, so one malformed style does not erase valid siblings.
+Unknown project keys, including the legacy key, remain ignored.
+
+A nonblank instruction is limited by `MAX_STYLE_CHARS` Unicode scalar
+values before trimming; padding cannot repair an oversized instruction.
+Blank instructions select the default style. The cap is a Vessel cost
+bound, absent from Paseo's style schema. Errors retain typed parser causes
+inside this edge but only table and failure classes are logged, never
+project text; style values redact their Debug representation too.
+
+Root resolution is a stated difference when the node wires this reader.
+Vessel will use the actual checkout root, or the session's working folder
+outside Git, consistently with its existing project-file policy. Paseo's
+`resolveRepoRoot` prefers the main repository for its own worktrees and
+throws outside Git (`workspace-git-service.ts` 924–933); its prompt helper
+then skips overrides (`build-metadata-prompt.ts` 45–57). Keeping a worktree's
+own checked-out `vessel.toml` avoids reading another checkout's policy.
+A non-repository folder can already contain Vessel project instructions;
+only the style is consumed, with the output and tool-safety contract fixed.
+The reader itself accepts an already resolved folder; it does not implement
+or verify the node's later root-selection path.
+
 ### A session title's origin
 
 `TitleOrigin` is `typed`, `given`, `generated`, or `unknown`.
 
-- `typed`: `SessionSpec.title`, or the last `session.rename`. A person
-  wrote it. Generation does not replace it, even when the text equals
+- `typed`: a person supplied `SessionSpec.title`, a schedule name the
+  person wrote, or the last `session.rename`. Generation does not replace
+  it, even when the text equals
   the prompt's first line.
 - `given`: Vessel derived it by cutting text (`SessionTitle::from_prompt`),
-  including the first prompt's line (ADR 0022) and a fork's derived
-  title. Only the given title of a **new structured session that had no
+  including the first prompt's line (ADR 0022), a side chat's
+  inherited label and a fork's derived title. Only the given title of a
+  **new structured session that had no
   `spec.title`** is eligible to be replaced, and only while it is still
   that title.
 - `generated`: this generator's title, after it parsed.
-- `unknown`: the field was absent (a record from before `GENERATED_NAMES`,
+- `unknown`: an imported specification whose author cannot be attested,
+  or the field was absent (a record from before `GENERATED_NAMES`,
   or a newer origin). Generation does not replace an unknown title. A
   person's old typed title and an old prompt line cannot be told apart,
   so neither is overwritten.
 
 The field is `SessionInfo.title_origin` and `SessionEvent::Renamed.origin`,
-both optional. Absent decodes as `unknown`. A `renamed` event stays
-protocol 9, because a peer of 9 that ignores an unknown field still
-reads `title`. The node still sends the field to an older peer: the
-workspace's event decoder does not refuse unknown fields, and a hop must
-not drop one (protocol 20). `since` of the event does not move.
-`SessionInfo` from a node below `GENERATED_NAMES` omits the field.
+both optional. Absent decodes as `unknown`. The durable log keeps known
+origins without depending on this build's protocol number. At the wire
+edge, both `SessionInfo::for_protocol` and `SessionEvent::for_protocol`
+replace the origin with `unknown` for a peer below the assigned threshold,
+or while it is `None`; serialization then omits the unknown field. A
+`renamed` event stays protocol 9 because its title remains readable.
+An older fleet hop decodes and re-encodes a typed `Forwarded.reply`
+(`forward.rs`), so it can discard additive reply fields too. The next
+reader sees `unknown`, never an inferred person or generated title.
+Protocol 20's envelope rule protects request fields; it does not preserve
+unknown reply fields. Tests cover old-shaped decoding and re-encoding,
+and the same adaptation with unassigned and synthetic assigned thresholds.
+A mixed-version binary fleet remains a manual verification.
 
-Generation is scheduled only after `session.create` has published the
-given title and returned. It is not scheduled for a terminal session, a
-fork, a rewind, an import, or a resume. The task that generates does
-not hold the create. Before it writes, it reads the title again: a
-`typed` rename that landed in between wins, and so does any title that
-is no longer the given one. A success publishes `renamed` with
-`generated`. A refusal publishes nothing (the given title stays) and
-logs the class.
+A fresh structured runtime can arm generation after it has been created;
+creation has no prompt, so the task waits for the first actual
+`AgentEvent::TurnStarted` that produces its given title. Arming does not
+hold create or prove that the wire acknowledgement has arrived first.
+Terminal sessions, forks, rewinds, imports and resumes are excluded; node
+wiring chooses fresh paths explicitly rather than treating every internal
+create as fresh.
 
-A generated title must parse as a `SessionTitle` and be at most 80
-characters, Paseo's schema bound, which is inside the typed bound of
-120. The branch, when one is asked for in the same call, must parse as
+A session without a given title is left unchanged by design. The task
+waits for the accepted turn text that produces that given title; it does
+not synthesize an expected title or fill an empty one directly.
+
+An external read followed by an ordinary rename is racy. A generated
+proposal therefore carries the expected title to the session actor. The
+actor compares its live, unparked, structured, non-resuming session's given origin,
+exact title and absent explicit specification title, then publishes the
+rename in that same serialized order. A typed rename, even to identical
+words, wins. A successful proposal returns `Applied`; a mismatch returns
+`Kept` and publishes nothing. No watch borrow crosses the publish await.
+
+The actor also refuses a generated proposal when the current session is
+parked or its origin is Imported. Task cancellation alone cannot decide a
+proposal already queued with the actor; these guards keep a late proposal
+from changing a parked/imported session. A fresh Remote origin is allowed:
+forwarding a new create is not an import. The origin match is exhaustive,
+so another origin must decide the rule. Ordinary manual renames keep their
+existing behavior. Node arming still excludes imports and cancels on park;
+the actor check is a second defense, not a replacement for that routing.
+
+The existing rename API is live-only, and the actor's final status must
+remain its last record. A session that ends before the proposal is
+committed keeps its given title; the task is cancelled. This differs from
+Paseo's persistent workspace title and preserves Vessel's actor lifecycle
+and final-log rule instead of adding a second writer. The existing
+`ModelCall` API is also best effort while live: an ended actor cannot
+record a late cancelled attempt. Such an outcome is classified in the node
+log without content, rather than claimed as a durable usage record.
+Actual provider billing after cancellation is not known by the node.
+
+A generated title satisfies `MAX_GENERATED_TITLE_UNITS` raw UTF-16 units
+before trimming, then the ordinary `SessionTitle` parser and
+`SessionTitle::MAX_CHARS`. The branch, when one is asked for in the same call, must parse as
 a `BranchName` and as Paseo's slug: lower-case letters, digits, hyphens
 and slashes, no leading or trailing hyphen, no `--`, at most 100
 characters. The branch is not the title rewritten into a slug. When the session's
@@ -288,9 +453,17 @@ call: the given title stays, and the placeholder branch stays. There is
 no second call to repair it. Paseo's provisional line is cut at 60 and
 an explicit title may be 200 (`create-agent-title.ts` 3,
 `agent-title-limits.ts` 1). Those stay 80 and 120 here, because ADR
-0022 already published them: a stored title of 80 characters would
-become illegal if the cut moved to 60, and a typed title of 121
-characters is already refused.
+0022 already published them. Moving the provisional cut would change
+how new sessions are named; it would not invalidate an already stored
+title. Increasing the typed bound would admit titles that older peers
+refuse, including a title of 121 characters. This feature preserves both
+existing rules.
+The existing constructors count Unicode scalar values and retain inner
+prompt whitespace (control characters become spaces). Paseo collapses
+that whitespace and its provisional clamp uses UTF-16 code units
+(`create-agent-title.ts` 4–18). This decision preserves ADR 0022's
+constructors rather than renormalizing a session's current title.
+
 
 ### Branch names
 
@@ -356,7 +529,7 @@ Bounds on a generated answer, all refusals rather than cuts:
 
 | Text | Bound | Fallback |
 | --- | --- | --- |
-| Title | one line, 1 to 80 characters, a `SessionTitle` | the given title stays |
+| Title | nonblank line, `MAX_GENERATED_TITLE_UNITS` raw UTF-16 units, then `SessionTitle` | the given title stays |
 | Branch | the slug above, and a `BranchName` | the placeholder stays |
 | Commit message | one line, 1 to 72 characters, a `CommitMessage` | `Update files` |
 | Pull-request title | one line, 1 to 72 characters, a `PullTitle` | `Update changes` |
@@ -380,8 +553,9 @@ failed its bound. Nothing is dropped without that class in the log.
 The log and the `ModelCall` record carry the route, the model, the
 token counts, the stop, the failure class and the duration. They do
 not carry the prompt, the diff, the completion, or a key (ADR 0015,
-decision 10). A title or branch generation records a `ModelCall` on
-that session. The record's route is the route the generation called,
+decision 10). A title or branch generation publishes a `ModelCall` through
+that session's live actor. The live-only and bounded-channel recording
+limits above still apply; a record after the actor ended is not promised. The record's route is the route the generation called,
 which may not be the route the session was launched with. A
 `text.commit` or `text.pull` names a root, not a session, so it does not
 append a `ModelCall`; the answer's `source` is what the caller has, and

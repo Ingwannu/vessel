@@ -27,6 +27,8 @@
 use std::io::Read as _;
 use std::path::Path;
 
+/// Bounded prompt styles kept separate from executable project commands.
+pub mod metadata;
 mod scripts;
 mod terminals;
 
@@ -185,39 +187,9 @@ impl ProjectFile {
     /// # Errors
     /// As [`ProjectFileError`] says.
     pub fn read_in(folder: &Path) -> Result<Option<Self>, ProjectFileError> {
-        let Ok(root) = Root::open(folder) else {
-            return Ok(None);
-        };
-        let Ok(name) = FILE_NAME.parse::<RelPath>() else {
-            return Ok(None);
-        };
-        let path = match root.existing(&name) {
-            Ok(path) => path,
-            Err(PathError::NotFound(_)) => return Ok(None),
-            // As if there were none, as for a link that leads nowhere: an
-            // answer of its own would tell whoever planted the link what
-            // exists outside the folder.
-            Err(PathError::Outside(_) | PathError::GitDir(_)) => {
-                tracing::warn!("a project's vessel.toml leads out of its folder; not read");
-                return Ok(None);
-            }
-            Err(PathError::Root | PathError::Platform(_) | PathError::Io(_)) => {
-                return Err(ProjectFileError::NotAFile);
-            }
-        };
-        let Some(file) = crate::regular::open(&path).map_err(ProjectFileError::Unreadable)? else {
-            return Err(ProjectFileError::NotAFile);
-        };
-        let mut bytes = Vec::new();
-        let _read = file
-            .take(
-                u64::try_from(MAX_BYTES)
-                    .unwrap_or(u64::MAX)
-                    .saturating_add(1),
-            )
-            .read_to_end(&mut bytes)
-            .map_err(ProjectFileError::Unreadable)?;
-        Self::parse(&bytes).map(Some)
+        read_bytes(folder)?
+            .map(|bytes| Self::parse(&bytes))
+            .transpose()
     }
 
     /// Whether nothing in the file requires approval.
@@ -301,6 +273,47 @@ fn commands(list: &'static str, raw: Commands) -> Result<Vec<ProjectCommand>, Pr
                 .map_err(|source| ProjectFileError::Command { list, source })
         })
         .collect()
+}
+
+// Both decoders share the same file authority and byte budget; styles must
+// not gain a less constrained path just because commands use another parser.
+fn read_bytes(folder: &Path) -> Result<Option<Vec<u8>>, ProjectFileError> {
+    let Ok(root) = Root::open(folder) else {
+        return Ok(None);
+    };
+    let Ok(name) = FILE_NAME.parse::<RelPath>() else {
+        return Ok(None);
+    };
+    let path = match root.existing(&name) {
+        Ok(path) => path,
+        Err(PathError::NotFound(_)) => return Ok(None),
+        // As if there were none, as for a link that leads nowhere: an
+        // answer of its own would tell whoever planted the link what
+        // exists outside the folder.
+        Err(PathError::Outside(_) | PathError::GitDir(_)) => {
+            tracing::warn!("a project's vessel.toml leads out of its folder; not read");
+            return Ok(None);
+        }
+        Err(PathError::Root | PathError::Platform(_) | PathError::Io(_)) => {
+            return Err(ProjectFileError::NotAFile);
+        }
+    };
+    let Some(file) = crate::regular::open(&path).map_err(ProjectFileError::Unreadable)? else {
+        return Err(ProjectFileError::NotAFile);
+    };
+    let mut bytes = Vec::new();
+    let _read = file
+        .take(
+            u64::try_from(MAX_BYTES)
+                .unwrap_or(u64::MAX)
+                .saturating_add(1),
+        )
+        .read_to_end(&mut bytes)
+        .map_err(ProjectFileError::Unreadable)?;
+    if bytes.len() > MAX_BYTES {
+        return Err(ProjectFileError::TooLarge);
+    }
+    Ok(Some(bytes))
 }
 
 #[cfg(test)]

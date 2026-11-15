@@ -15,20 +15,51 @@ macro_rules! method_scope {
     };
 }
 
-/// Declares every RPC method in one table.
+// A row's protocol column: a number, `{expression}` for a named version
+// constant, or `(pending FEATURE)` for a method whose number is not
+// assigned yet. `FEATURE` is the feature's `Option<ProtocolVersion>`
+// constant (A6): a pending method has a row like any other, and both ends
+// refuse it while the constant is None, so no track invents a version to
+// make its row compile.
+macro_rules! method_protocol {
+    ((pending $feature:path)) => {
+        $feature
+    };
+    ({ $since:expr }) => {
+        Some(ProtocolVersion::new($since))
+    };
+    ($since:literal) => {
+        Some(ProtocolVersion::new($since))
+    };
+}
+
+// A row's shape column (see `MethodShape`).
+macro_rules! method_shape {
+    (unary) => {
+        MethodShape::Unary
+    };
+    (stream) => {
+        MethodShape::Stream
+    };
+    (envelope) => {
+        MethodShape::Envelope
+    };
+}
+
+/// Generates this crate's per-method code from the method table's rows
+/// (`method_table!` in the parent module, which documents the row).
 ///
-/// Each row: `Variant / handler_fn / "wire.name" [Scope, since]: Request => Response;`
 /// The scope column (protocol 4, ADR 0010) is what a paired device must hold
 /// to call the method; `Authenticated` explicitly requires no extra scope.
 /// Every call still requires an admitted connection. Adding an unclassified
-/// method does not compile. `since`
-/// (protocol 5) is the first protocol version with the method: the client
-/// refuses to send it on an older connection and the node refuses to run it
-/// there, so neither side relies on the other ignoring what it cannot know.
+/// method does not compile. The protocol column (protocol 5) is the first
+/// protocol version with the method: the client refuses to send it on an
+/// older connection and the node refuses to run it there, so neither side
+/// relies on the other ignoring what it cannot know.
 macro_rules! rpc_methods {
     ($(
         $(#[$doc:meta])*
-        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $since:expr] : $request:ty => $response:ty;
+        $variant:ident / $handler:ident / $wire:literal [$scope:ident, $protocol:tt, $shape:ident] : $request:ty => $response:ty;
     )*) => {
         /// Every RPC method.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -59,11 +90,22 @@ macro_rules! rpc_methods {
                 }
             }
 
-            /// The first protocol version with this method.
+            /// The first protocol version with this method, or None while
+            /// its number is pending: such a method is refused on every
+            /// connection rather than given a stand-in version.
             #[must_use]
-            pub const fn since(self) -> ProtocolVersion {
+            pub const fn since(self) -> Option<ProtocolVersion> {
                 match self {
-                    $( Self::$variant => ProtocolVersion::new($since), )*
+                    $( Self::$variant => method_protocol!($protocol), )*
+                }
+            }
+
+            /// How this method is answered, and whether it carries another
+            /// call.
+            #[must_use]
+            pub const fn shape(self) -> MethodShape {
+                match self {
+                    $( Self::$variant => method_shape!($shape), )*
                 }
             }
 

@@ -356,3 +356,10 @@ retries; this primitive does not claim to reserve a socket or a plan.
 Existing explicit declarations are checked only against the same place,
 matching Paseo; dynamic choices also exclude other dynamic owners. No
 new dependency, wire field, protocol number or product caller is added.
+
+Quality B integration: merge the assigned node head `29eebb8b` after the
+primitive checks. The exported method table now owns pending protocol rows
+and method shape; no parallel method list or feature number is added here.
+The node head's existing protocol, schema, method entries and tests are
+preserved. No conflict resolution was required. The per-package whole gate
+will cover this join after runtime wiring; narrow joined checks come first.

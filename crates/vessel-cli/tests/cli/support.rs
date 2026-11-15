@@ -15,6 +15,11 @@ use vessel_node::{Config, DataDir, Node};
 use vessel_proto::HarnessKind;
 use vessel_testkit::Fake;
 
+mod signals;
+pub(super) use signals::ChildGuard;
+#[cfg(target_os = "linux")]
+pub(super) use signals::interrupt;
+
 const SAFETY_NET: Duration = Duration::from_secs(60);
 
 /// The safety net starts after the fakes are built: the first build of

@@ -5044,7 +5044,12 @@ park_after: ParkAfter,
  * Which protocol drives each agent's new sessions (protocol 18);
  * absent when every agent runs over ACP.
  */
-drivers?: AgentDrivers, };
+drivers?: AgentDrivers, 
+/**
+ * Startup policy, hidden until its protocol is assigned (ADR 0059).
+ * This value-only field does not enable an engine or register input.
+ */
+restart_recovery?: RestartRecovery, };
 
 /**
  * Whether a node is taking new work.
@@ -6893,6 +6898,19 @@ session: SessionId,
 side: SessionId, };
 
 /**
+ * Node-level startup continuation policy (ADR 0059).
+ */
+export type RestartRecovery = { 
+/**
+ * Whether interrupted, eligible turns are continued at startup.
+ */
+enabled: boolean, 
+/**
+ * Exact text sent after restoring the provider's conversation.
+ */
+prompt: PromptText, };
+
+/**
  * `script.restart`: run a script's run again (in place while it runs, in
  * a new terminal once it ended).
  */
@@ -7763,7 +7781,14 @@ options: Array<SessionOption>, } | { "type": "renamed",
 /**
  * The title now.
  */
-title: SessionTitle, } | { "type": "queue_changed", 
+title: SessionTitle, 
+/**
+ * Who produced it (ADR 0062). Absent decodes as unknown. The
+ * event stays protocol 9: a peer that ignores an unknown field
+ * still reads `title`. A typed older hop may omit the origin;
+ * the next reader then keeps the title with unknown origin.
+ */
+origin?: TitleOrigin, } | { "type": "queue_changed", 
 /**
  * The queue now.
  */
@@ -7917,6 +7942,13 @@ title?: SessionTitle | null,
  * and stripped for a peer that predates them.
  */
 labels?: SessionLabels, 
+/**
+ * Who produced [`title`](Self::title) (ADR 0062). Absent means
+ * [`TitleOrigin::Unknown`](crate::title::TitleOrigin::Unknown): this
+ * build does not speak the field yet, or the row was stored before
+ * it. A `renamed` event carries the same origin.
+ */
+title_origin?: TitleOrigin, 
 /**
  * What a person marked on it: pinned, archived, unread (protocol 10,
  * ADR 0026). Kept by the node, so every client sees the same; left
@@ -9115,6 +9147,14 @@ reasons: Array<KeptReason>, });
  * An IANA time zone's name, as a person chose it (`Asia/Seoul`).
  */
 export type TimeZoneName = string;
+
+/**
+ * Who produced the session's current title (ADR 0062). Absent on the wire
+ * decodes as [`Unknown`](Self::Unknown): a record from before generated
+ * names, or an origin this build does not know. Generation replaces only
+ * [`Given`](Self::Given).
+ */
+export type TitleOrigin = "typed" | "given" | "generated" | "unknown";
 
 /**
  * Saturation is explicit; a capped counter is never presented as exact.

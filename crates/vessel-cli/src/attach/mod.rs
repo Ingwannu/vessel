@@ -108,13 +108,17 @@ pub(crate) async fn attach_terminal(
 /// ends; Ctrl-C leaves it running.
 async fn print_output<L: Log>(mut stream: Stream<L>) -> Result<Ended, CliError> {
     let mut last: Option<SessionStatus> = None;
+    // Retain the receiver while output awaits; an interrupt must stay pending.
+    let interrupt = tokio::signal::ctrl_c();
+    tokio::pin!(interrupt);
     loop {
         let item = tokio::select! {
-            item = stream.next() => item,
-            interrupted = tokio::signal::ctrl_c() => {
+            biased;
+            interrupted = &mut interrupt => {
                 interrupted?;
                 return Ok(Ended::Detached);
             }
+            item = stream.next() => item,
         };
         match item {
             None => return Ok(Ended::Session(last)),
