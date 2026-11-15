@@ -1424,9 +1424,10 @@ clock's live publication. No extra read path, timestamp source or permission is
 introduced. Later passive attention joins use this same acknowledgement rule.
 
 The fake-node regression waits for the exact TurnEnded record to be durable,
-marks its entry and checks live time. It then polls a second call while metadata
-is held, confirms its owned task exists, drops the caller and drains normal
-shutdown tasks; the canonical mark/time remain committed. The shared inbox
+marks its entry and checks live time. A cancelled call while metadata is held
+creates no retained task and leaves the entry unchanged. A separately admitted
+call owns that same metadata lease before caller loss; normal shutdown drains
+its task and the canonical mark/time remain committed. The shared inbox
 handler change is only this delegation/error-boundary adjustment; its original
 authority checks and messages are untouched.
 
@@ -1438,3 +1439,10 @@ lease to a retained task. Existing lock calls dereference the same mutex; no
 ordering, condition, operation, permission or test expectation changes here.
 The following inbox cancellation correction obtains that lease before spawning,
 instead of retaining arbitrarily many cancelled waiters. This is no new fence.
+
+
+The inbox task acquires the owned metadata lease before spawning. This keeps
+cancelled admission waiters within the existing RPC lifetime rather than
+creating an unbounded detached wait queue. After admission, the single lease
+travels with the already-authorized operation through commit/publication.
+No deadline, numeric limit, permission, Origin or execution fence is added.

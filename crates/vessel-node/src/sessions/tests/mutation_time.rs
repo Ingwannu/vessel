@@ -126,7 +126,7 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
             let seq = loop {
                 let record = follow.live.recv().await.unwrap();
                 if matches!(
-                    record.event,
+                    &record.event,
                     SessionEvent::Agent {
                         event: AgentEvent::TurnEnded { .. }
                     }
@@ -172,11 +172,32 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
             let before_cancel = handle.info().updated_at;
             let held = fixture.sessions.marking.lock().await;
             let task_count = fixture.tasks.len();
+            let waker = std::task::Waker::noop();
+            let mut waiting = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
+                key,
+                read: InboxRead::Read,
+            }));
+            assert!(
+                waiting
+                    .as_mut()
+                    .poll(&mut std::task::Context::from_waker(waker))
+                    .is_pending()
+            );
+            assert_eq!(
+                fixture.tasks.len(),
+                task_count,
+                "no retained task before admission"
+            );
+            drop(waiting);
+            drop(held);
+            assert_eq!(
+                fixture.store.inbox_entry(key).await.unwrap().unwrap().read,
+                InboxRead::Unread
+            );
             let mut call = Box::pin(fixture.sessions.mark_inbox(MarkInbox {
                 key,
                 read: InboxRead::Read,
             }));
-            let waker = std::task::Waker::noop();
             assert!(
                 call.as_mut()
                     .poll(&mut std::task::Context::from_waker(waker))
@@ -184,10 +205,13 @@ async fn exact_inbox_marks_publish_live_time_and_survive_caller_cancellation() {
             );
             assert!(
                 fixture.tasks.len() > task_count,
-                "the owned task exists before caller loss"
+                "the admitted task exists before caller loss"
+            );
+            assert!(
+                fixture.sessions.marking.try_lock().is_err(),
+                "the task owns the same metadata order"
             );
             drop(call);
-            drop(held);
             fixture.runtime.shutdown().await;
             fixture.settle().await;
             assert_eq!(
