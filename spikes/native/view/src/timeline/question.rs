@@ -187,7 +187,7 @@ fn starting_draft(field: &QuestionField) -> Draft {
         FieldKind::Integer { default, .. } => {
             Draft::Text(default.map(|number| number.to_string()).unwrap_or_default())
         }
-        FieldKind::Boolean { default } => Draft::Boolean(*default),
+        FieldKind::Boolean { default, .. } => Draft::Boolean(*default),
         FieldKind::Choice { default, .. } => Draft::Picked(default.clone()),
         FieldKind::Unknown => Draft::Text(String::new()),
     }
@@ -440,7 +440,7 @@ pub fn answered_lines(
     outcome: &QuestionOutcome,
     (yes, no): (&str, &str),
 ) -> Vec<AnsweredLine> {
-    let QuestionOutcome::Answered { values } = outcome else {
+    let QuestionOutcome::Answered { values, .. } = outcome else {
         return Vec::new();
     };
     steps_of(question)
