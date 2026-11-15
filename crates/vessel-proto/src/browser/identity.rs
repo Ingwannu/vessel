@@ -1,7 +1,7 @@
 //! A browser id must match the reference grammar, not merely parse as a UUID.
 //!
 //! The legacy timestamp form is accepted for compatibility. Node-created ids
-//! always use canonical UUIDv4; element refs retain their exact spelling so a
+//! always use canonical `UUIDv4`; element refs retain their exact spelling so a
 //! caller cannot turn an unrelated decimal spelling into a current snapshot ref.
 
 use std::fmt;
