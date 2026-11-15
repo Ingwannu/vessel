@@ -388,3 +388,14 @@ is inserted; explicitly authored build executables remain trusted account code.
 Validated Manifest wraps a private deserializable input; callers cannot use its
 Deserialize implementation to bypass whole-manifest validation because the
 validated wrapper deliberately implements no Deserialize.
+
+R resolved the helper-target boundary11:2x UTC: author labels may recognize
+the eight triples, but only x86_64-unknown-linux-gnu and
+x86_64-pc-windows-msvc are initially eligible for selection. Target::compiled
+uses the node build.rs Cargo TARGET export VESSEL_TARGET, including libc/ABI;
+no updater feed OS/arch identity or SSH discovery is reused. Adding a third
+eligible target follows R's release matrix/qualification, not a manifest edit.
+R's evidence is limited: Linux is built on Ubuntu24.04 without a claimed
+minimum glibc; Windows is static-CRT, Windows10 1703+/11 build/system-DLL proof,
+not real plugin/node execution proof. Test-only labels imply no platform
+qualification, download, installation or successful helper start.
