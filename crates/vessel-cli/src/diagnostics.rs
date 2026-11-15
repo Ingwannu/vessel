@@ -2,11 +2,10 @@
 //! Never render an RPC/connection error's Display or cause chain for this command.
 use crate::{args::Target, connect::connect};
 mod error;
+mod text;
 pub(crate) use error::CommandError;
 use std::fmt::{self, Write as _};
-use vessel_proto::diagnostics::{
-    DiagnosticAgentId, DiagnosticCount, DiagnosticReport, DiagnosticSection,
-};
+use vessel_proto::diagnostics::{DiagnosticCount, DiagnosticReport, DiagnosticSection};
 
 /// Complete single-node text/JSON export budget, excluding shell framing.
 const MAX_EXPORT_BYTES: usize = 128 * 1024;
@@ -73,129 +72,16 @@ fn section<T>(
     }
 }
 fn render(report: &DiagnosticReport, output: Output) -> Result<String, OutputError> {
-    if let Output::Json = output {
-        let value = serde_json::to_string(report)?;
-        if value.len() > MAX_EXPORT_BYTES {
-            return Err(fmt::Error.into());
-        }
-        return Ok(value);
-    }
-    let fields = report.fields();
-    let mut out = Text::default();
-    writeln!(
-        out,
-        "Vessel diagnostics\n  Collected at: {}\n  Node: {}\n  Version: {:?}\n  Platform: {:?} / {:?}\n  State: {:?}\n  Uptime: {:?}\n  Home: ~",
-        fields.collected_at,
-        fields.node.id,
-        fields.node.version,
-        fields.node.os,
-        fields.node.arch,
-        fields.node.state,
-        fields.node.uptime
-    )?;
-    section(&mut out, "Daemon process", &fields.process, |out, value| {
-        writeln!(
-            out,
-            "  PID: {}\n  Parent: {:?}",
-            value.pid.get(),
-            value.parent.map(|id| id.get())
-        )?;
-        section(out, "  Memory", &value.memory, |out, memory| {
-            writeln!(
-                out,
-                "    Resident bytes: {}\n    Virtual bytes: {}",
-                count(memory.resident_bytes),
-                count(memory.virtual_bytes)
-            )
-        })
-    })?;
-    section(&mut out, "Store", &fields.store, |out, value| {
-        writeln!(
-            out,
-            "  Supported schema: {:?}\n  Observed schema: {:?}\n  Sessions: {} total / {} live / {} ended",
-            value.expected_schema,
-            value.observed_schema,
-            count(value.sessions.total),
-            count(value.sessions.live),
-            count(value.sessions.ended)
-        )
-    })?;
-    section(&mut out, "Agents", &fields.agents, |out, values| {
-        for value in values.as_slice() {
-            let id = match value.id {
-                DiagnosticAgentId::Builtin { harness } => harness.to_string(),
-                DiagnosticAgentId::Custom { slot } => format!("Custom {}", slot.get()),
-            };
-            writeln!(
-                out,
-                "  {id}\n    Program: {:?}\n    Conversation: {:?}\n    Terminal: {:?}\n    Sign-in: {:?}\n    Cached version: {:?}\n    Cached at: {:?}\n    Stale: {}",
-                value.executable,
-                value.structured,
-                value.terminal,
-                value.sign_in,
-                value.version,
-                value.checked_at,
-                value.stale
-            )?;
-        }
-        Ok(())
-    })?;
-    section(
-        &mut out,
-        "Runtime sessions",
-        &fields.sessions,
-        |out, value| {
-            writeln!(
-                out,
-                "  Live: {}\n  Parked: {}",
-                count(value.live),
-                count(value.parked)
-            )
-        },
-    )?;
-    section(&mut out, "Listeners", &fields.listeners, |out, value| {
-        writeln!(
-            out,
-            "  Local kind: {:?}\n  Local: {:?}\n  Direct: {:?}",
-            value.local_kind, value.local, value.direct
-        )
-    })?;
-    section(&mut out, "Relays", &fields.relays, |out, value| {
-        for (label, counts) in [
-            ("Configured", &value.configured),
-            ("Callback", &value.callback),
-        ] {
-            writeln!(
-                out,
-                "  {label}: {} connecting / {} registered / {} refused / {} stopped / {} unknown",
-                count(counts.connecting),
-                count(counts.registered),
-                count(counts.refused),
-                count(counts.stopped),
-                count(counts.unrecognized)
-            )?;
-        }
-        Ok(())
-    })?;
-    section(
-        &mut out,
-        "Recent failures",
-        &fields.recent_failures,
-        |out, value| {
-            writeln!(
-                out,
-                "  Coverage: {:?}\n  Since: {}\n  Omitted: {}",
-                value.coverage,
-                value.observed_since,
-                count(value.omitted)
-            )?;
-            for failure in value.entries.as_slice() {
-                writeln!(out, "  {}: {:?}", failure.at, failure.code)?;
+    match output {
+        Output::Json => {
+            let value = serde_json::to_string(report)?;
+            if value.len() > MAX_EXPORT_BYTES {
+                return Err(fmt::Error.into());
             }
-            Ok(())
-        },
-    )?;
-    Ok(out.0)
+            Ok(value)
+        }
+        Output::Text => Ok(text::report(report)?),
+    }
 }
 
 #[cfg(test)]

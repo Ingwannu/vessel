@@ -1,5 +1,6 @@
 //! Pending diagnostics must never send a frame, including wrapped calls.
 use super::*;
+use crate::CallError;
 use futures_util::{SinkExt as _, StreamExt as _};
 use vessel_proto::diagnostics::GetDiagnostics;
 use vessel_proto::{Method, Origin, OriginBy, Request as _, ServerFrame, Welcome};

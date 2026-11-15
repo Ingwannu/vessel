@@ -86,12 +86,13 @@ impl State {
             store,
         }
     }
-    /// Called only after actual successful local/TCP binding, before serving.
-    pub(crate) fn bound(&self, direct: bool) {
+    /// Borrow the actual successful bind result before serving. Neither the
+    /// endpoint nor the listener is copied or retained in report state.
+    pub(crate) fn bound(&self, direct: Option<&(tokio::net::TcpListener, std::net::SocketAddr)>) {
         self.listeners.send_modify(|(at, state)| {
             *at = Utc::now();
             state.local = DiagnosticBinding::Bound;
-            state.direct = if direct {
+            state.direct = if direct.is_some() {
                 DiagnosticBinding::Bound
             } else {
                 DiagnosticBinding::Disabled

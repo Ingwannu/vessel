@@ -685,3 +685,13 @@ owner will supply the canonical root Proc ProcessId; after its reviewed
 integration hash arrives, self-process facts reuse that observation type.
 No unchecked carrier branch is consumed and no process-control authority is
 obtained from a diagnostic pid.
+
+The next narrow run `diagnostics-20261115T071731Z-65537b1f` also remains
+red: Cargo rc 101 after 25 seconds; the public Store ReadAdmission enum
+lacked Debug. It stopped before a complete product check. The follow-up adds
+Debug, passes the actual bound TCP result instead of a boolean, and separates
+CLI section renderers into short functions with numeric schema/uptime and
+normalized version text. The guard fixture owns its transport in a separate
+helper; checks/assertions and all named deadlines remain unchanged. These
+changes still require compilation and focused tests, and generated types
+remain stale. No red run is described as a pass.

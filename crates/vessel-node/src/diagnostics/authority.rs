@@ -23,57 +23,8 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         let node = phase("start authority fixture", Node::start(config))
             .await
             .unwrap();
-        let guard = Arc::clone(&node.secure.service);
-        let (client_end, server_end) =
-            vessel_rpc::memory::pair(std::num::NonZeroUsize::new(4).unwrap());
-        let shutdown = tokio_util::sync::CancellationToken::new();
-        let server = Server::new(
-            Arc::clone(&guard),
-            node.secure.lifecycle.watch_info(),
-            ServerConfig::default(),
-            shutdown.clone(),
-        );
-        let (sender, captured) = tokio::sync::oneshot::channel();
-        let sender = std::sync::Mutex::new(Some(sender));
-        let task = tokio::spawn(async move {
-            server
-                .serve(server_end, |peer| {
-                    let copy = Peer {
-                        client: peer.client.clone(),
-                        protocol: peer.protocol,
-                        outbound: peer.outbound.clone(),
-                    };
-                    if let Some(sender) = sender.lock().unwrap().take() {
-                        sender.send(copy).unwrap();
-                    }
-                    Connection::new(peer, Principal::Owner)
-                })
-                .await
-        });
-        let client = phase(
-            "admit authority fixture",
-            vessel_client::NodeClient::over(
-                client_end,
-                ClientInfo {
-                    name: "diagnostic-authority".to_owned(),
-                    version: "0".to_owned(),
-                },
-                &ClientConfig::default(),
-            ),
-        )
-        .await
-        .unwrap();
-        let peer = phase("capture admitted peer", captured).await.unwrap();
-        let context = |principal| {
-            Connection::new(
-                Peer {
-                    client: peer.client.clone(),
-                    protocol: peer.protocol,
-                    outbound: peer.outbound.clone(),
-                },
-                principal,
-            )
-        };
+        let transport = transport(&node).await;
+        let guard = &node.secure.service;
         let id = node.info().id;
         let mut leases = Vec::new();
         for _ in 0..MAX_DIAGNOSTIC_COLLECTIONS {
@@ -92,7 +43,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         ] {
             let error = phase(
                 "no Read before source admission",
-                guard.diagnostics(&context(principal), GetDiagnostics {}),
+                guard.diagnostics(&transport.context(principal), GetDiagnostics {}),
             )
             .await
             .unwrap_err();
@@ -112,7 +63,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         ] {
             let error = phase(
                 "Read reaches bounded collector",
-                guard.diagnostics(&context(principal), GetDiagnostics {}),
+                guard.diagnostics(&transport.context(principal), GetDiagnostics {}),
             )
             .await
             .unwrap_err();
@@ -128,7 +79,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         let report = phase(
             "agent Read collects real source report",
             guard.diagnostics(
-                &context(Principal::Agent {
+                &transport.context(Principal::Agent {
                     node: id,
                     session: SessionId::random(),
                     scopes: vec![Scope::Read],
@@ -142,7 +93,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         let error = phase(
             "self wrapper is not forwardable",
             guard.forward(
-                &context(Principal::Owner),
+                &transport.context(Principal::Owner),
                 vessel_proto::Forward {
                     node: id,
                     call: Box::new(vessel_proto::Request::into_call(GetDiagnostics {})),
@@ -152,9 +103,9 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
         .await
         .unwrap_err();
         assert_eq!(error.code, ErrorCode::InvalidRequest);
-        shutdown.cancel();
-        drop(client);
-        phase("authority transport shuts down", task)
+        transport.shutdown.cancel();
+        drop(transport.client);
+        phase("authority transport shuts down", transport.task)
             .await
             .unwrap()
             .unwrap();
@@ -163,4 +114,70 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
             .unwrap();
     })
     .await;
+}
+
+struct Transport {
+    client: vessel_client::NodeClient,
+    peer: Peer,
+    shutdown: tokio_util::sync::CancellationToken,
+    task: tokio::task::JoinHandle<
+        Result<(), vessel_rpc::ServeError<vessel_rpc::memory::Disconnected>>,
+    >,
+}
+impl Transport {
+    fn context(&self, principal: Principal) -> Connection {
+        Connection::new(
+            Peer {
+                client: self.peer.client.clone(),
+                protocol: self.peer.protocol,
+                outbound: self.peer.outbound.clone(),
+            },
+            principal,
+        )
+    }
+}
+async fn transport(node: &Node) -> Transport {
+    let (client_end, server_end) =
+        vessel_rpc::memory::pair(std::num::NonZeroUsize::new(4).unwrap());
+    let shutdown = tokio_util::sync::CancellationToken::new();
+    let server = Server::new(
+        Arc::clone(&node.secure.service),
+        node.secure.lifecycle.watch_info(),
+        ServerConfig::default(),
+        shutdown.clone(),
+    );
+    let (sender, captured) = tokio::sync::oneshot::channel();
+    let task = tokio::spawn(async move {
+        server
+            .serve(server_end, |peer| {
+                let copy = Peer {
+                    client: peer.client.clone(),
+                    protocol: peer.protocol,
+                    outbound: peer.outbound.clone(),
+                };
+                sender.send(copy).unwrap();
+                Connection::new(peer, Principal::Owner)
+            })
+            .await
+    });
+    let client = phase(
+        "admit authority fixture",
+        vessel_client::NodeClient::over(
+            client_end,
+            ClientInfo {
+                name: "diagnostic-authority".to_owned(),
+                version: "0".to_owned(),
+            },
+            &ClientConfig::default(),
+        ),
+    )
+    .await
+    .unwrap();
+    let peer = phase("capture admitted peer", captured).await.unwrap();
+    Transport {
+        client,
+        peer,
+        shutdown,
+        task,
+    }
 }

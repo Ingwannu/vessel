@@ -153,7 +153,7 @@ impl Node {
         let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
-        service.0.diagnostics.bound(tcp.is_some());
+        service.0.diagnostics.bound(tcp.as_ref());
 
         let secure = SecureGateway {
             keypair,

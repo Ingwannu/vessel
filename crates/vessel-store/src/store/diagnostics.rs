@@ -41,6 +41,7 @@ enum Cause {
 }
 // This is queued-work cancellation, never a permission grant or wire scope.
 /// Caller cancellation policy checked before queued source I/O starts.
+#[derive(Debug)]
 pub enum ReadAdmission {
     /// The caller still permits queued work to start.
     Continue,
