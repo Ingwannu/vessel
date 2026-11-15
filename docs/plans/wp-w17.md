@@ -345,3 +345,8 @@ token consumption are not mislabeled as provider snapshots or quota reports. Usa
 silently choose one scope. Legacy explicit usage scopes remain available with their existing
 output. The full reference table above is the baseline; these status sections describe staged
 work and do not claim 117 paths have passed parity checks.
+
+The second narrow check (70385962) compiled the product protocol and reached downstream
+crates, then stopped on two denied integer-division lints in the UTF-16 boundary test.
+The fixture now uses checked arithmetic. This is compilation evidence only; unit tests
+and package review have not passed yet.

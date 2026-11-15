@@ -140,10 +140,11 @@ mod tests {
     use super::*;
     #[test]
     fn zod_utf16_bounds_and_aggregate_admission_are_preserved() {
-        assert!("😀".repeat(LABEL_CHARS / 2).parse::<HostLabel>().is_ok());
+        let emoji_count = LABEL_CHARS.checked_div(2).unwrap();
+        assert!("😀".repeat(emoji_count).parse::<HostLabel>().is_ok());
         assert!(
             "😀"
-                .repeat(LABEL_CHARS / 2 + 1)
+                .repeat(emoji_count.checked_add(1).unwrap())
                 .parse::<HostLabel>()
                 .is_err()
         );
