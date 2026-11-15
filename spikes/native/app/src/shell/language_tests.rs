@@ -29,7 +29,7 @@ impl Render for Probe {
 }
 
 impl Shell {
-    fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
+    pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
             // No receiver: a command given back goes nowhere in these tests.
@@ -50,10 +50,7 @@ impl Shell {
             ),
             loaded: true,
             arrive_pending: false,
-            updates: None,
-            update_state: crate::update::UpdateState::Idle,
-            update_asked: false,
-            updated: None,
+            updates: crate::update_words::UpdateUi::new(Translator::get(ENGLISH).unwrap()),
             sidebar_sheet: None,
         }
     }

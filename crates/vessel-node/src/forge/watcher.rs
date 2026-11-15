@@ -16,6 +16,28 @@
 //!   back here; nothing here awaits the network.
 //! - A session leaves when it is archived or deleted (told), or when its
 //!   handle says it ended (seen at its next turn in the schedule).
+//!
+//! [Decision Log] A refresh before a session's first folder read
+//! - Purpose: a session starts on no watch until its folder is read (its
+//!   branch and remote), and that read is a job of its own. A person's
+//!   refresh that came before it was answered at once with the empty view,
+//!   so the card said "no pull request" while one existed, and the refresh
+//!   stamped `refreshed`, so the next one within 10 s was held to that
+//!   empty view too. A loaded node made this common (the e2e
+//!   `a_forge_that_is_down_holds_nothing_and_an_end_clears_it` lost it).
+//! - Choice: until the first read is done (`read_once`) a refresh waits on
+//!   the session (`waiting`, at most [`MAX_WAITING`]; past that it is
+//!   answered with the view as it is) and stamps nothing. The read answers
+//!   them: on a watch they join its next look, made now, as a refresh
+//!   does; on none they get the view, which says why (no branch, no
+//!   remote, signed out). A session that leaves answers them `None`.
+//! - Bounded: every job's task id names what it was for (`running`), so a
+//!   job that panics still frees its slot and answers whoever waited on
+//!   it (a folder read's or a look's refreshes) with the view as it is;
+//!   before, such a job left its session or watch busy for good.
+//! - Alternatives: reading the folder inside the refresh call (a second
+//!   reader racing the watcher's own); answering "not read yet" (the
+//!   person asks again for no reason).
 
 use std::collections::hash_map::RandomState;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -51,6 +73,27 @@ pub(super) const FOLDERS: usize = 2;
 /// Looks at once (each a few requests; the HTTP client has its own
 /// slots).
 pub(super) const POLLS: usize = 4;
+/// Refreshes one session keeps waiting for its first folder read.
+pub(super) const MAX_WAITING: usize = 16;
+
+/// Where a refresh's answer goes.
+pub(super) type Reply = oneshot::Sender<Option<PullRequestView>>;
+
+/// A refresh that came before its session's first folder read.
+#[derive(Debug)]
+pub(super) struct Waiting {
+    /// A person asked (the look goes first).
+    pub(super) person: bool,
+    pub(super) reply: Reply,
+}
+
+/// What a running job is for, so one that fails is still accounted for.
+#[derive(Debug, Clone)]
+pub(super) enum Job {
+    Folder(SessionId),
+    Look(Key),
+    Feed(SessionId),
+}
 
 /// A session the watcher holds.
 #[derive(Debug)]
@@ -86,6 +129,11 @@ pub(super) struct Session {
     pub(super) refreshed: Option<Instant>,
     /// A feedback job runs for it.
     pub(super) feeding: bool,
+    /// Its folder has been read once (see the module's second Decision
+    /// Log).
+    pub(super) read_once: bool,
+    /// Refreshes waiting for that first read.
+    pub(super) waiting: Vec<Waiting>,
 }
 
 /// One repository's branch, and its pull request.
@@ -119,7 +167,7 @@ pub(super) struct Watch {
     pub(super) changed_at: Instant,
     pub(super) failures: u32,
     /// Refreshes waiting for the next look.
-    pub(super) replies: Vec<(SessionId, oneshot::Sender<Option<PullRequestView>>)>,
+    pub(super) replies: Vec<(SessionId, Reply)>,
 }
 
 /// The watcher's state.
@@ -133,6 +181,8 @@ pub(crate) struct Watcher {
     pub(super) sessions: HashMap<SessionId, Session>,
     pub(super) watches: HashMap<Key, Watch>,
     pub(super) jobs: JoinSet<Done>,
+    /// What each running job is for, by its task id.
+    pub(super) running: HashMap<tokio::task::Id, Job>,
     pub(super) folders: usize,
     pub(super) polls: usize,
     pub(super) writers: Arc<Writers>,
@@ -156,6 +206,7 @@ impl Watcher {
             sessions: HashMap::new(),
             watches: HashMap::new(),
             jobs: JoinSet::new(),
+            running: HashMap::new(),
             folders: 0,
             polls: 0,
             writers: Arc::new(Writers::default()),
@@ -174,9 +225,17 @@ impl Watcher {
                     Some(command) => self.command(command),
                     None => break,
                 },
-                Some(done) = self.jobs.join_next(), if !self.jobs.is_empty() => match done {
-                    Ok(done) => self.done(done),
-                    Err(error) => tracing::warn!(%error, "a pull request job failed"),
+                Some(done) = self.jobs.join_next_with_id(), if !self.jobs.is_empty() => match done {
+                    Ok((id, done)) => {
+                        let _job = self.running.remove(&id);
+                        self.done(done);
+                    }
+                    Err(error) => {
+                        tracing::warn!(%error, "a pull request job failed");
+                        if let Some(job) = self.running.remove(&error.id()) {
+                            self.failed(job);
+                        }
+                    }
                 },
                 () = tokio::time::sleep_until(next) => {}
             }
@@ -228,6 +287,13 @@ impl Watcher {
             vessel_proto::SessionMode::Structured { .. }
         );
         let id = handle.id();
+        // Started again: refreshes still waiting wait for this start's
+        // first read.
+        let waiting = self
+            .sessions
+            .get_mut(&id)
+            .map(|held| std::mem::take(&mut held.waiting))
+            .unwrap_or_default();
         self.forget(id);
         let _previous = self.sessions.insert(
             id,
@@ -247,22 +313,24 @@ impl Watcher {
                 busy: false,
                 refreshed: None,
                 feeding: false,
+                read_once: false,
+                waiting,
             },
         );
     }
 
-    /// Drop `session` at once (archived, deleted, ended).
+    /// Drop `session` at once (archived, deleted, ended); a refresh still
+    /// waiting for its first read is answered: not held.
     pub(super) fn forget(&mut self, session: SessionId) {
         self.detach(session);
-        let _gone = self.sessions.remove(&session);
+        if let Some(gone) = self.sessions.remove(&session) {
+            for waiting in gone.waiting {
+                drop(waiting.reply.send(None));
+            }
+        }
     }
 
-    fn refresh(
-        &mut self,
-        session: SessionId,
-        person: bool,
-        reply: Option<oneshot::Sender<Option<PullRequestView>>>,
-    ) {
+    pub(super) fn refresh(&mut self, session: SessionId, person: bool, reply: Option<Reply>) {
         let now = Instant::now();
         let Some(held) = self.sessions.get_mut(&session) else {
             if let Some(reply) = reply {
@@ -270,6 +338,20 @@ impl Watcher {
             }
             return;
         };
+        if !held.read_once {
+            // Its first read is still to come: read it as soon as a slot is
+            // free, and answer with what that read finds (module's second
+            // Decision Log). Nothing is stamped: no look happened.
+            held.due = held.due.min(now);
+            match reply {
+                Some(reply) if held.waiting.len() < MAX_WAITING => {
+                    held.waiting.push(Waiting { person, reply });
+                }
+                Some(reply) => drop(reply.send(self.view(session))),
+                None => {}
+            }
+            return;
+        }
         let recent = reply.is_some()
             && held
                 .refreshed
@@ -289,6 +371,37 @@ impl Watcher {
             }
             (_, Some(reply)) => drop(reply.send(self.view(session))),
             (_, None) => {}
+        }
+    }
+
+    /// `session`'s folder was read for the first time: the refreshes that
+    /// waited for it join its watch's next look, made now; on no watch they
+    /// get the view, which says why.
+    pub(super) fn first_read(&mut self, session: SessionId) {
+        let now = Instant::now();
+        let Some(held) = self.sessions.get_mut(&session) else {
+            return;
+        };
+        held.read_once = true;
+        let waiting = std::mem::take(&mut held.waiting);
+        if waiting.is_empty() {
+            return;
+        }
+        held.refreshed = Some(now);
+        let person = waiting.iter().any(|waiting| waiting.person);
+        match held.key.clone().and_then(|key| self.watches.get_mut(&key)) {
+            Some(watch) => {
+                watch.due = now;
+                watch.urgent |= person;
+                watch
+                    .replies
+                    .extend(waiting.into_iter().map(|waiting| (session, waiting.reply)));
+            }
+            None => {
+                for waiting in waiting {
+                    drop(waiting.reply.send(self.view(session)));
+                }
+            }
         }
     }
 
@@ -332,3 +445,6 @@ impl Watcher {
         PullRequestList { entries }
     }
 }
+
+#[cfg(test)]
+mod tests;

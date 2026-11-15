@@ -17,8 +17,8 @@ use crate::wire::responses::{
     self as wire, CallOutputItem, ContentPart, CustomFormat, CustomTool, CustomToolCallItem,
     ErrorCode, FunctionCallItem, FunctionTool, Grammar, GrammarSyntax, Include, IncompleteReason,
     InputFile, InputImage, Item, MessageItem, NamedToolChoice, OutputText, Reasoning,
-    ReasoningEffort, ReasoningItem, ReasoningSummary, ResponseError, ResponseUsage, Role,
-    StreamEvent, SummaryPart, ToolChoiceMode, ToolName,
+    ReasoningEffort, ReasoningItem, ReasoningSummary, ResponseError, Role, StreamEvent,
+    SummaryPart, ToolChoiceMode, ToolName,
 };
 use crate::wire::{Nothing, StrOr, TextOr, TextPart};
 
@@ -370,7 +370,7 @@ impl StreamDecoder {
             StreamEvent::Completed(end) | StreamEvent::Incomplete(end) => {
                 let response = end.response;
                 if let Some(usage) = response.usage {
-                    out.push(ir::Event::Usage(usage_of(&usage)));
+                    out.push(ir::Event::Usage(super::usage::responses(&usage)));
                 }
                 let reason = response
                     .incomplete_details
@@ -490,17 +490,6 @@ impl StreamDecoder {
                 out,
             );
         }
-    }
-}
-
-fn usage_of(usage: &ResponseUsage) -> ir::Usage {
-    let cached = usage.input_tokens_details.cached_tokens;
-    ir::Usage {
-        input: usage.input_tokens.saturating_sub(cached),
-        cache_read: cached,
-        cache_write: 0,
-        output: usage.output_tokens,
-        reasoning: usage.output_tokens_details.reasoning_tokens,
     }
 }
 

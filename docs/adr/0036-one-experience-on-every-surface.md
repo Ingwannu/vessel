@@ -143,6 +143,19 @@ and option 3 inside it removes the cost entirely where it holds.
   to WebAssembly, which would make behaviour one code and not two
   checked against each other. Not before the port is complete.
 
+## Native composed-content scrolling (proposed, 2026-11-15)
+
+The sidebar repair extends the one-control rule with a shared bounded
+viewport over GPUI's scroll handle. Fixed navigation and footer surround one
+scrolling body containing projects and sessions, as Paseo's sidebar does;
+there is no section-specific height budget. This fixes content displacing
+the footer without copying scroll handling into an area. The existing
+virtualized list remains for indexed row delegates; private dialog and
+autocomplete scrolling are later consumers, not part of this change. The
+contract and limited focus-reveal evidence are recorded in
+`docs/plans/backend-m12-sidebar-layout.md`; complete row keyboard and
+accessibility behavior remain separate work.
+
 ## References
 
 - ADR 0017 (the page), ADR 0020 (the shells), ADR 0028 (preferences
@@ -150,3 +163,21 @@ and option 3 inside it removes the cost entirely where it holds.
 - `docs/plans/backend-m12.md`, `docs/plans/backend-m12-phone.md`
   (what was seen on Android), `docs/plans/backend-m11.md` (the feature
   tables).
+
+
+## Amendment: ended conversations stay visible by default (2026-11-15)
+
+Ending or interrupting an agent process does not archive its conversation.
+Hiding ended sessions by default leaves a machine with only stopped agents
+looking empty even though its conversations remain. Paseo retains ended
+conversations until they are archived; Vessel's page and bridge now start
+with “Show ended sessions” on for the same reason. This changes the default
+of the existing sidebar preference, not its format or a protocol version.
+
+The bridge's existing field-aware document reader uses that default only
+when the field is absent or unreadable. A stored false is an explicit
+choice and stays false, including after an unrelated preference change.
+The page's initial copy and sidebar fallback use the same on default.
+Archived sessions remain excluded regardless of the ended-session choice.
+The shared default is a behavior contract for every surface; this page
+change does not claim that a native client was changed or validated here.

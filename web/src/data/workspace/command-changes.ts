@@ -30,10 +30,17 @@
 //   which it is to the digest.
 
 import type {
+  CommandSet,
   ProjectCommand,
   ProjectCommands,
-  ScriptEntry,
 } from "../../wire/proto";
+import {
+  compareScripts,
+  hasDeclaredPorts,
+  type ScriptLine,
+} from "./script-changes";
+
+export { compareScripts, type ScriptLine };
 
 /** A set of commands as the node lists it. */
 export type ListedCommands = Extract<ProjectCommands, { state: "listed" }>;
@@ -49,11 +56,6 @@ export type CommandLine =
   | ListLine
   /** In the place of `was`: one command edited. */
   | { change: "changed"; command: ProjectCommand; was: ProjectCommand };
-
-/** One script or service compared with the approved set, by name. */
-export type ScriptLine =
-  | { change: "same" | "added" | "removed"; script: ScriptEntry }
-  | { change: "changed"; script: ScriptEntry; was: ScriptEntry };
 
 /** `after` compared with `before`, in order, removed lines before the
  * added ones that took their place. */
@@ -138,41 +140,6 @@ export function compareCommands(
   return paired;
 }
 
-/** Whether two entries of one name run the same thing in the same way. */
-function sameScript(a: ScriptEntry, b: ScriptEntry): boolean {
-  return (
-    a.kind === b.kind &&
-    a.command === b.command &&
-    (a.dir ?? null) === (b.dir ?? null)
-  );
-}
-
-/** `after`'s scripts against `before`'s, by name, in name order. */
-export function compareScripts(
-  before: readonly ScriptEntry[],
-  after: readonly ScriptEntry[],
-): ScriptLine[] {
-  const old = new Map(before.map((script) => [script.name, script]));
-  const names = new Set(after.map((script) => script.name));
-  const lines: ScriptLine[] = after.map((script) => {
-    const was = old.get(script.name);
-    if (was === undefined) {
-      return { change: "added", script };
-    }
-    return sameScript(was, script)
-      ? { change: "same", script }
-      : { change: "changed", script, was };
-  });
-  for (const script of before) {
-    if (!names.has(script.name)) {
-      lines.push({ change: "removed", script });
-    }
-  }
-  return lines.sort((a, b) =>
-    a.script.name < b.script.name ? -1 : a.script.name > b.script.name ? 1 : 0,
-  );
-}
-
 /** What the set asked for is compared with. */
 export type ComparedWith =
   /** The set the node says was approved last, and when. */
@@ -190,27 +157,72 @@ export type Compared =
       scripts: readonly ScriptLine[];
     }
   /** No approved set is known to compare with. */
-  | { kind: "none" };
+  | { kind: "none" }
+  /** A partial comparison must never claim hidden terminal commands are unchanged. */
+  | { kind: "unsupported_terminals" }
+  /** A declared port cannot disappear from a partial comparison. */
+  | { kind: "unsupported_ports" };
+
+/** A refusal the dialog can explain without offering partial approval. */
+export type ApprovalRefusal = Extract<
+  Compared,
+  { kind: "unsupported_terminals" | "unsupported_ports" }
+>;
+
+/** Whether this page covers all fields in both snapshots. */
+export type ApprovalCoverage = "complete" | ApprovalRefusal["kind"];
 
 /** A set's lists, as both an approval and a listing carry them. */
-interface SetOf {
-  setup: readonly ProjectCommand[];
-  teardown: readonly ProjectCommand[];
-  scripts?: readonly ScriptEntry[];
+function setOf(commands: CommandSet): Required<CommandSet> {
+  // Required makes even an optional new wire field a compile error here.
+  return {
+    setup: commands.setup,
+    teardown: commands.teardown,
+    scripts: commands.scripts ?? [],
+    terminals: commands.terminals ?? [],
+  };
+}
+
+/** Refuse approval while a current or previous set contains commands this page cannot show. */
+export function approvalCoverage(asked: ListedCommands): ApprovalCoverage {
+  const now = setOf(asked);
+  const previous = asked.last_approved?.commands;
+  const before = previous === undefined ? null : setOf(previous);
+  if (
+    now.terminals.length > 0 ||
+    (before !== null && before.terminals.length > 0)
+  ) {
+    return "unsupported_terminals";
+  }
+  if (
+    hasDeclaredPorts(now.scripts) ||
+    (before !== null && hasDeclaredPorts(before.scripts))
+  ) {
+    return "unsupported_ports";
+  }
+  return "complete";
 }
 
 /** `asked` against an approved set. */
 function against(
   asked: ListedCommands,
-  approved: SetOf,
+  approved: CommandSet,
   basis: ComparedWith,
 ): Compared {
+  const before = setOf(approved);
+  const after = setOf(asked);
+  if (before.terminals.length > 0 || after.terminals.length > 0) {
+    return { kind: "unsupported_terminals" };
+  }
+  if (hasDeclaredPorts(before.scripts) || hasDeclaredPorts(after.scripts)) {
+    return { kind: "unsupported_ports" };
+  }
   return {
     kind: "changed",
     against: basis,
-    setup: compareCommands(approved.setup, asked.setup),
-    teardown: compareCommands(approved.teardown, asked.teardown),
-    scripts: compareScripts(approved.scripts ?? [], asked.scripts ?? []),
+    setup: compareCommands(before.setup, after.setup),
+    teardown: compareCommands(before.teardown, after.teardown),
+    scripts: compareScripts(before.scripts, after.scripts),
   };
 }
 
@@ -221,6 +233,10 @@ export function compareApproved(
   asked: ListedCommands,
   folder: ProjectCommands | null,
 ): Compared {
+  const coverage = approvalCoverage(asked);
+  if (coverage !== "complete") {
+    return { kind: coverage };
+  }
   const last = asked.last_approved ?? null;
   if (last !== null) {
     return against(asked, last.commands, {

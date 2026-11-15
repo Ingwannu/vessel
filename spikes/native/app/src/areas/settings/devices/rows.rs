@@ -126,21 +126,12 @@ pub(super) fn message(text: impl Into<gpui::SharedString>, tokens: &Tokens) -> D
 
 fn loading(shell: &Shell, tokens: &Tokens) -> Div {
     let words = shell.t.lang.devices();
-    div()
-        .p(px(spacing::S4))
-        .child(busy(
-            "devices-listing",
-            words.loading_badge,
-            shell.areas.settings.devices.page.listing.variant(),
-            tokens,
-        ))
-        .child(
-            div()
-                .mt(px(spacing::S1))
-                .type_(Type::Meta)
-                .text_color(tokens.neutral.foreground_muted)
-                .child(words.loading),
-        )
+    div().p(px(spacing::S4)).child(busy(
+        "devices-listing",
+        words.loading_badge,
+        shell.areas.settings.devices.page.listing.variant(),
+        tokens,
+    ))
 }
 
 fn device_row(
@@ -164,6 +155,9 @@ fn device_row(
     )
     .when(!pending, |button| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
+            // Revoke opens its confirmation only, never the enclosing
+            // row's read-only details on the same bubbling click.
+            cx.stop_propagation();
             shell.devices_choose_revoke(id, window, cx);
         }))
     });
@@ -187,7 +181,13 @@ fn device_row(
         compact,
         tokens,
     )
-    .id(format!("device-row-{id}"));
+    .id(format!("device-row-{id}"))
+    .when(!pending, |row| {
+        row.cursor_pointer()
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.devices_inspect(id, window, cx);
+            }))
+    });
     let row = match state.places.get(&id) {
         Some(place) => state.tips.on(
             row,

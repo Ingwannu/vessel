@@ -992,6 +992,41 @@ never rebuilt.
     or path in the build log. Not measured this time (the budget was
     tight): CPU on Xvfb.
 
+- **0.0.0.0.19**:
+  - Built from exactly `d28d7551` (`backend/m12-spike`, native gate
+    1253 passed and 2 ignored; the root gate of the package base
+    `719bbba1` stands, as nothing outside `spikes/native` but plans
+    changed), through `cargo-slot`'s priority lane (5 jobs, 164 s in
+    line: the machine has 2 slots now). Windows took 8 min 9 s, Linux
+    14 min 4 s.
+  - New code faces: `scripts/fonts.sh` ran before the build (the build
+    only fetches when a face it knows is missing) and added Geist Mono
+    Bold, Italic and BoldItalic from `geist` 1.9.2; every face and
+    licence text already there came out byte for byte the same. All
+    four Geist Mono faces are inside both executables. The kit's only
+    fallback after Geist and Geist Mono is Pretendard (no generic
+    `monospace` or `serif`, TYPE-07).
+  - The set went into place at 07:27:08 UTC on 2026-11-15 and was
+    published to `preview` at 07:33:26 UTC, after the coordinator's
+    smoke test on the real node. The notes say S2's `0690faed` fixes the
+    sidebar's known problem of 0.0.0.0.18, carry two known problems
+    (the Settings pencil can overlap its neighbour; a terminal's wrapped
+    lines may not be rejoined after its width changes) and what was not
+    checked on screen.
+  - From outside, the public feed serves the manifest (equal to the
+    local one) and all seven files, byte for byte the dist folder's,
+    with matching sums and signature. The published 0.0.0.0.18 Linux
+    build took 0.0.0.0.19 by itself 12 s after its start (ERROR 0, no
+    leftover `.part`). `/dl/` on loopback lists 0.0.0.0.19 first with
+    its seven files; from outside it answers 302.
+  - Sizes, with the change against 0.0.0.0.18: setup 13,956,153
+    (+354,167), exe 51,661,312 (+1,669,120), zip 20,524,176 (+636,306),
+    linux 88,784,040 (+1,862,712), tar.gz 30,743,512 (+639,655).
+  - Checks: icons the same as 0.0.0.0.18, the Windows version resource
+    0.0.0.0.19, the debuglink read from a copy (CRC matches, mtime
+    unchanged), the four licence texts in both archives, no feed token
+    or path in the build log.
+
 ## The command line and the node in the package (ADR 0094, 2026-11-15)
 
 The coordinator decided that the package carries `vessel` and `vesseld`

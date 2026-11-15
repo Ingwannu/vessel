@@ -29,6 +29,7 @@ mod unsent;
 // A browser build does not update itself: `update_off.rs` stands in.
 #[cfg_attr(target_arch = "wasm32", path = "update_off.rs")]
 mod update;
+mod update_words;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
@@ -153,4 +154,12 @@ fn pairing_browser_words_capture() {
                 .unwrap();
             cx.activate(true);
         });
+}
+
+/// Visual fixture; the installed app contains no terminal-state override.
+#[cfg(all(test, target_os = "linux"))]
+#[test]
+#[ignore = "requires a private display and a disposable fake fleet"]
+fn terminal_states_capture() {
+    areas::terminal::capture::run();
 }

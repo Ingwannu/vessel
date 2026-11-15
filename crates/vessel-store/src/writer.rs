@@ -21,6 +21,8 @@
 //! stored before the index existed), it indexes one bounded step of it in
 //! a transaction of its own before looking at the queue again.
 
+mod apply;
+
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -32,15 +34,13 @@ use vessel_proto::{
     DeviceId, DeviceInfo, EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo,
 };
 
-use crate::attachments::KeptAttachment;
-use crate::codec::time_to_sql;
+use self::apply::{apply, isolated};
+use crate::attachments::{self, KeptAttachment};
 use crate::config::Retention;
-use crate::devices::{self, CredentialHash};
+use crate::devices::CredentialHash;
 use crate::error::StoreError;
-use crate::log::{self, Appended};
+use crate::log;
 use crate::search::idle::Indexer;
-use crate::search::index;
-use crate::{again, attachments, marks};
 
 /// Most operations committed in one transaction. Bounds how long one
 /// commit takes (and so the latency of the first operation in it).
@@ -114,6 +114,16 @@ pub(crate) enum Write {
         at: DateTime<Utc>,
         done: Done,
     },
+    /// Mark one exact inbox entry; a read never answers a request.
+    Inbox {
+        mark: vessel_proto::inbox::MarkInbox,
+        done: Done,
+    },
+    /// Device-scoped subscription changes; lease and scope checked atomically.
+    Push {
+        write: crate::push::PushWrite,
+        done: Done,
+    },
     /// Change the record of projects and worktrees (protocol 10).
     Workspace {
         write: crate::workspace::WorkspaceWrite,
@@ -146,6 +156,8 @@ pub(crate) struct Setup {
     /// a watch keeps only the latest value and never fills, and the node
     /// looks for every worktree whose session is gone anyway.
     pub(crate) pruned: watch::Sender<u64>,
+    /// Coalesced wake-up after a committed attention event, never raw output.
+    pub(crate) inbox: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
     /// while the writer catches up, false once it waits on its queue with
     /// nothing behind.
@@ -187,6 +199,8 @@ fn after<T>(
 struct Effects {
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
+    /// A committed batch introduced attention.
+    attention: bool,
     /// A session ended, so retention may prune ended sessions.
     ended: bool,
     /// Sessions removed (deleted or pruned), whose attachment folders go
@@ -316,6 +330,9 @@ fn commit(
         for &session in &effects.removed {
             attachments::remove_folder(&setup.attachments, session);
         }
+        if effects.attention {
+            setup.inbox.send_replace(());
+        }
         if effects.pruned > 0 {
             // A count of events, so wrapping is harmless: readers only look
             // for a change.
@@ -328,143 +345,6 @@ fn commit(
     for answer in answers {
         answer.send(failed.as_ref());
     }
-}
-
-/// Apply one write in its own savepoint, so a failing write leaves no
-/// partial rows and does not affect the rest of the batch.
-fn apply(
-    transaction: &mut Transaction<'_>,
-    write: Write,
-    effects: &mut Effects,
-    indexer: &mut Indexer,
-) -> Answer {
-    match write {
-        Write::Create { info, done } => {
-            let applied = isolated(transaction, |connection| {
-                log::create_session(connection, &info)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Append {
-            session,
-            records,
-            done,
-        } => {
-            let applied = append(transaction, session, &records, effects, indexer);
-            Answer::Done(done, applied)
-        }
-        Write::AddDevice {
-            device,
-            credential,
-            done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                devices::insert(connection, &device, &credential)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::DeviceSeen { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::seen(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::RevokeDevice { device, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                devices::revoke(connection, device, at)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Mark {
-            session,
-            mark,
-            at,
-            done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                marks::mark(connection, session, mark, at)
-            });
-            Answer::Marked(done, applied)
-        }
-        Write::Delete { session, done } => {
-            let applied = isolated(transaction, |connection| marks::delete(connection, session));
-            if applied.is_ok() {
-                effects.removed.push(session);
-            }
-            Answer::Done(done, applied)
-        }
-        Write::Reopen {
-            session,
-            next,
-            done,
-        } => {
-            let applied = isolated(transaction, |connection| {
-                again::reopen(connection, session, next)
-            });
-            Answer::Marked(done, applied)
-        }
-        Write::Attach { kept, at, done } => {
-            let applied = isolated(transaction, |connection| {
-                attachments::insert(connection, &kept, time_to_sql(at)?)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Workspace { write, done } => {
-            let applied = isolated(transaction, |connection| {
-                crate::workspace::apply(connection, &write)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Forge { write, done } => {
-            let applied = isolated(transaction, |connection| {
-                crate::forge::apply(connection, &write)
-            });
-            Answer::Done(done, applied)
-        }
-        Write::Automation { writes, done } => {
-            let applied = isolated(transaction, |connection| {
-                writes
-                    .iter()
-                    .try_for_each(|write| crate::automation::apply(connection, write))
-            });
-            Answer::Done(done, applied)
-        }
-    }
-}
-
-/// Append a session's records and index them, in one savepoint. The
-/// session's open run leaves the indexer's cache for the savepoint and
-/// comes back only if it commits, so a rolled-back append never leaves a
-/// run ahead of its row.
-fn append(
-    transaction: &mut Transaction<'_>,
-    session: SessionId,
-    records: &[Arc<EventRecord>],
-    effects: &mut Effects,
-    indexer: &mut Indexer,
-) -> Result<(), StoreError> {
-    let cached = indexer.take(session);
-    let (now_ended, advanced) = isolated(transaction, |connection| {
-        let Appended { ended } = log::append(connection, session, records.iter().map(Arc::as_ref))?;
-        Ok((
-            ended,
-            index::on_append(connection, session, cached, records),
-        ))
-    })?;
-    indexer.keep(session, advanced);
-    let _first = effects.touched.insert(session);
-    effects.ended |= now_ended;
-    Ok(())
-}
-
-fn isolated<T>(
-    transaction: &mut Transaction<'_>,
-    operation: impl FnOnce(&Connection) -> Result<T, StoreError>,
-) -> Result<T, StoreError> {
-    let savepoint = transaction.savepoint()?;
-    let done = operation(&savepoint)?;
-    savepoint.commit()?;
-    Ok(done)
 }
 
 /// Retention for this batch. Failures are logged, not returned: keeping a

@@ -11,7 +11,8 @@ use super::ttl_secs;
 
 /// `vessel fleet ...`. Without --node, join/leave/status retain offline
 /// data-directory behavior. With --node they use authenticated RPC. Sync,
-/// invite/members/forget always call the selected node; init/restore stay local.
+/// invite/members/published/forget always call the selected node;
+/// init/restore stay local.
 #[derive(Debug, Subcommand)]
 pub(crate) enum FleetCommand {
     /// Make this node the fleet's home: write `fleet.toml`, naming the
@@ -64,6 +65,10 @@ pub(crate) enum FleetCommand {
     Status,
     /// The home's members and what each last applied (needs `admin`).
     Members,
+    /// What the selected machine shares through its fleet, or last
+    /// received: files, tool servers and the secrets they name, by name
+    /// only, never contents or values (needs `admin`).
+    Published,
     /// Let a member node grant again under a new key (it was reinstalled)
     /// or a new name (needs `admin` on the home).
     ///

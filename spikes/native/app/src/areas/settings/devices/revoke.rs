@@ -12,7 +12,7 @@ use vessel_app_kit::{
 };
 use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_link::devices::Ask;
-use vessel_app_view::devices::{Listing, Revoking, Target};
+use vessel_app_view::devices::{Revoking, Target};
 use vessel_proto::DeviceId;
 
 impl Shell {
@@ -23,19 +23,9 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let state = &mut self.areas.settings.devices;
-        let Listing::Ready(devices) = &state.page.listing else {
-            return;
-        };
-        if matches!(state.page.revoking, Revoking::Sending { .. }) {
+        if state.page.choose_revoke(id).is_err() {
             return;
         }
-        let Some(device) = devices
-            .iter()
-            .find(|device| device.id == id && device.revoked_at.is_none())
-        else {
-            return;
-        };
-        state.page.revoking = Revoking::Confirm(device.clone());
         state.dialog.focus(window, cx);
         cx.notify();
     }

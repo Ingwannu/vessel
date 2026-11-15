@@ -222,3 +222,7 @@ fn redact_word(word: &str) -> String {
 fn names_a_secret(name: &str) -> bool {
     SECRET_KEYS.iter().any(|key| name.contains(key))
 }
+
+#[cfg(test)]
+#[path = "diagnostics/words_tests.rs"]
+mod words_tests;
