@@ -43,6 +43,14 @@ impl ComparisonTicket {
     }
 }
 
+/// Source generation for retained diff cells. A visual row index alone must
+/// never authorize a comment after another file read replaced the document.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct FileStamp {
+    repository: RepositoryKey,
+    key: RequestKey,
+}
+
 /// File body identity also includes its relative path; counts are not a version.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileTicket {
@@ -51,6 +59,13 @@ pub struct FileTicket {
 }
 
 impl FileTicket {
+    pub(super) const fn stamp(&self) -> FileStamp {
+        FileStamp {
+            repository: self.comparison.repository,
+            key: self.comparison.key,
+        }
+    }
+
     /// Original query identity, echoed intact through the link.
     #[must_use]
     pub const fn comparison(&self) -> &ComparisonTicket {

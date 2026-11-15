@@ -10,6 +10,7 @@
 //! - Cost: registry/layout binding arrives through their owners' contracts.
 
 mod comparison;
+mod document;
 mod failure;
 mod history;
 mod options;
@@ -19,6 +20,9 @@ mod tree;
 mod words;
 
 pub use comparison::{Comparison, ComparisonMode, RepositoryKey, Whitespace};
+pub use document::{
+    DiffCell, DiffDocument, DisplayRow, ReviewKey, ReviewSide, SourceLine, SourceRow,
+};
 pub use failure::{PanelRead, ReadFailure};
 pub use history::{
     COMMIT_FILE_RETAIN_FOR, CommitLocation, CommitPublication, HISTORY_FRESH_FOR, HistoryCache,

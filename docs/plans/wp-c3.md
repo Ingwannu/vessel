@@ -200,3 +200,30 @@ the connection owner's still-pending actor seam.
 Split source atdd6ad9c5 passed all-target App+Kit narrow clippy (run
 `wp-git-narrow-20261115T075117Z-dd6ad9c5`); kit library tests are separately
 running. This is no rendered first-use or package approval.
+
+## Source-preserving diff layout
+
+Paseo `utils/diff-layout.ts` and every case in `diff-layout.test.ts` define
+replacement pairing, context duplication and review-side/source-line identity.
+The new document packs the existing `workspace::diff_rows` authority into
+unified or split cells; it retains the original Arc rows/text and never runs a
+second numbering or text engine. A retained cell is tied to the full repository
+and file-read key, so another read cannot turn its visual index into a comment
+target. Switching layout within the same read preserves canonical review keys.
+Keys are typed path/side/positive source-line records, not concatenated paths.
+Zero cannot be serialized into a valid review line.
+
+Vessel's wire hunks omit header-line objects, so source line indices refer to
+actual hunk lines. The source number/side/path key has the reference meaning.
+Vessel also retains the node's explicit missing-newline/truncation notices in
+both layouts, with no review target; these have no matching reference line kind.
+Tests use the reference replacement/unmatched/context/header/numbering/hunk
+cases, plus actual source sharing and stale-cell rejection. Drawing, measured
+wrapping, selection, virtualization and C4 draft publication remain separate
+work; this is not a document renderer or completed package skeleton.
+
+Typed-local-failure source c0eb84e5 passed view all-target clippy in
+`wp-git-narrow-20261115T080003Z-c0eb84e5`; its new tests still need execution.
+Split dd6ad9c5 kit tests passed117/0/0 in
+`wp-git-narrow-20261115T075426Z-dd6ad9c5`, with the changed kit compiled.
+No unchanged-tree whole gate was run, and no first-use pixels are approved.
