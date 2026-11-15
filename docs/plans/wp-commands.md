@@ -444,7 +444,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Browser focus/forwarding | W14 exact resident browser revision | Owner renderer/admission callback pending, no guessed browser context |
 | Desktop shortcuts and persistence receipts | W19b shared dispatcher and preferences coordinator | Recorder admission/helper8c052697 and receipts remain unchecked; no second writer or duplicate failure toast |
 | Git/PR command effects | G1 captured owner target, row policy and physical admission | Existing47e compiled adapter is explicitly unpassed; checked original-connection/root/ticket admission correction still pending |
-| Messages mode | W1 existing Searching controller | Announced base8b window lifetime adopted; F4 immediate invalidation and prepared selection preserved; union checks pending |
+| Messages mode | W1 existing Searching controller + W12 session-open admission | Base8b window lifetime adopted; prepared selection is UI-only; checked original-connection opening carrier absent, activation acceptance blocked |
 
 Owner-integration rows above remain skeleton. View/Kit/App source and behavioral tests must pass on
 the combined actual head before the final frozen gate/captures/V4 submission.
@@ -833,3 +833,12 @@ without its unrelated staged close routing. Automatic merge also retained two
 identical language_tests::with_commands definitions; kept one unchanged helper.
 These are integration errors, not passing tests or infrastructure failures.
 The shared field/multiline/composition code is unchanged by this correction.
+
+W1/W12 clarified Messages navigation authority after base8b: prepared Destination
+retains query/row selection but its alias-only Open/Command::Open cannot fence
+physical successor resolution at the actor queue. The intended SessionOpening
+resolve with original ConnectionContext, admit_session_open, real claim/context
+and FollowBinding before hydration is not a checked live API yet. No weak UI
+guard, current alias lookup or new open manager substitutes for that carrier.
+Current Messages lifetime tests are source/UI evidence only; full navigation
+acceptance stays blocked on the owner union. Commands remain independent.
