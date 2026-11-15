@@ -121,11 +121,11 @@ pub(crate) async fn worktree(target: &Target, command: WorktreeCommand) -> Resul
     command.require_contract()?;
     let client = connect(target).await?.client;
     match command {
-        WorktreeCommand::Create(_) | WorktreeCommand::Archive { .. } => {
-            Err(CliError::ParityBlocked(
-                "worktree source/archival awaits the canonical workspace registry",
-            ))
-        }
+        WorktreeCommand::Ls { .. }
+        | WorktreeCommand::Create(_)
+        | WorktreeCommand::Archive { .. } => Err(CliError::ParityBlocked(
+            "worktree source/archival awaits the canonical workspace registry",
+        )),
         WorktreeCommand::List { project, cwd: _cwd } => {
             let project = match project {
                 Some(project) => Some(find_project(&client, &project).await?.id),

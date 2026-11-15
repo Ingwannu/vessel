@@ -988,3 +988,19 @@ content continues to refuse before opening images or connecting, now consistentl
 with images too. This intentionally remains stricter than Paseo's unvalidated
 empty-file return, retaining the existing CLI empty-input admission rule. Parser
 regressions cover missing source vs a prompt+image without touching the file.
+
+### Repository worktree list admission (2026-11-15 13:31 UTC)
+
+[Decision Log]
+- Purpose: Paseo worktree ls defaults to the current repository; it must not quietly
+  list every registered worktree when the repository/ownership contract is missing.
+- Existing assets: the native worktree list accepts an optional project and intentionally
+  lists broadly without one. An ls alias discarded which contract the caller requested.
+- Alternatives: guess a workspace from cwd/project IDs, or change native list's scope.
+- Choice: split typed WorktreeCommand::Ls from the native List variant. Both default and
+  explicit --cwd ls require W11's canonical registry/ownership before connection; native
+  worktree list retains its established behavior.
+- Reason/consequences: no broader read is substituted for a repository query. The new
+  root/dispatch regression uses an invalid node URI to prove the dependency refusal
+  precedes connection parsing, and checks native list remains admitted. No new call,
+  workspace ID inference or parser-only parity claim is made.

@@ -78,6 +78,12 @@ pub(crate) enum ProjectCommand {
 /// `vessel worktree …`. A worktree is named by its id or a unique prefix.
 #[derive(Debug, Subcommand)]
 pub(crate) enum WorktreeCommand {
+    /// List this repository's worktrees through canonical workspace ownership.
+    #[command(hide = true)]
+    Ls {
+        #[arg(long)]
+        cwd: Option<PathBuf>,
+    },
     /// Create from a repository path through the canonical workspace registry.
     Create(super::parity::WorktreeCreate),
     /// Archive a named owned worktree through the canonical workspace registry.
@@ -87,7 +93,6 @@ pub(crate) enum WorktreeCommand {
         cwd: Option<PathBuf>,
     },
     /// List worktrees, or a project's.
-    #[command(alias = "ls")]
     List {
         #[arg(long, conflicts_with = "project")]
         cwd: Option<PathBuf>,
@@ -158,9 +163,11 @@ impl WorktreeCommand {
                     "path-based worktree creation awaits W11's reviewed workspace source/registry contract",
                 ))
             }
-            Self::Archive { .. } | Self::List { cwd: Some(_), .. } => Err(CliError::ParityBlocked(
-                "repository-scoped worktree list/archive awaits W11's reviewed workspace ownership contract",
-            )),
+            Self::Ls { .. } | Self::Archive { .. } | Self::List { cwd: Some(_), .. } => {
+                Err(CliError::ParityBlocked(
+                    "repository-scoped worktree list/archive awaits W11's reviewed workspace ownership contract",
+                ))
+            }
             Self::List { cwd: None, .. }
             | Self::New { .. }
             | Self::Output { .. }

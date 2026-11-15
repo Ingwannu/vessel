@@ -266,3 +266,24 @@ fn images_do_not_replace_the_required_send_prompt_source() {
         .is_ok()
     );
 }
+
+#[tokio::test]
+async fn repository_worktree_ls_never_falls_back_to_legacy_global_list() {
+    for args in [
+        vec!["vessel", "--node", "ws://[", "worktree", "ls"],
+        vec![
+            "vessel", "--node", "ws://[", "worktree", "ls", "--cwd", "/repo",
+        ],
+    ] {
+        let cli = Cli::try_parse_from(args).unwrap();
+        assert!(matches!(
+            crate::commands::run(cli).await,
+            Err(crate::error::CliError::ParityBlocked(_))
+        ));
+    }
+    let cli = Cli::try_parse_from(["vessel", "worktree", "list"]).unwrap();
+    let Command::Worktree { command } = cli.command else {
+        panic!("wrong command")
+    };
+    assert!(command.require_contract().is_ok());
+}
