@@ -161,3 +161,11 @@ It does not turn an empty workspace or a shell into a legacy chat. The
 legacy chat consumer now handles the context preparation refusal exhaustively.
 Existing-workspace tab seeding and working workspace/terminal submission are
 still owed. No whole gate, capture or runtime completion is claimed.
+
+The canonical ClientMessageId (W23's standalone checked values) is allocated
+once before attachment/context preparation, retained by the creation ticket
+and carried by the link Ask and W6 PreparedSubmission. A known first-input
+retry keeps that identity and SessionId; a new ticket receives another id.
+The legacy text transport still lacks submit_prompt activation, so retaining
+this id does not claim server-side prompt deduplication. Pending local byte
+acquisition/recovered uncertainty disables submission before preparation.

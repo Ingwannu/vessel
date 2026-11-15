@@ -47,6 +47,8 @@ impl std::fmt::Debug for FirstInput {
 pub struct Ask {
     /// Local correlation, not a connection's request counter.
     pub ticket: Ticket,
+    /// Canonical first-input identity retained across preparation and child retry.
+    pub message: vessel_proto::timeline::ClientMessageId,
     /// Existing node-book entry, parsed once by the app.
     pub machine: Name,
     /// Pin the welcome identity, so reusing a book name cannot retarget effects.

@@ -351,7 +351,10 @@ pub(crate) fn render(
     let neutral = tokens.neutral;
 
     let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
-    let can_send = typed && draft.agent.is_some() && draft.creation.flow.may_submit();
+    let can_send = typed
+        && draft.agent.is_some()
+        && draft.creation.flow.may_submit()
+        && !shell.composer_attachments_blocked(vessel_app_view::composer::drafts::DraftKey::New);
     let attach = attach_button(draft.creation.flow.may_submit(), touch, tokens, cx);
     let card = draft_card(shell, tokens, touch, window, cx).child(
         // Paseo's button row bleeds 6 past the card's padding.

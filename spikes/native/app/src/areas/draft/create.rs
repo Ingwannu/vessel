@@ -14,6 +14,7 @@ pub(crate) struct CreationState {
     pub(crate) workspace: Option<vessel_app_view::creation::WorkspaceForm>,
     pub(crate) plan: Option<vessel_app_view::creation::LaunchPlan>,
     next: Option<Ticket>,
+    input: Option<(Ticket, vessel_proto::timeline::ClientMessageId)>,
 }
 impl Default for CreationState {
     fn default() -> Self {
@@ -24,10 +25,22 @@ impl Default for CreationState {
             workspace: None,
             plan: None,
             next: Some(Ticket::new(0)),
+            input: None,
         }
     }
 }
 impl CreationState {
+    /// A rejected first input retains its identity when retried on the same child.
+    pub(super) fn message(&mut self, ticket: Ticket) -> vessel_proto::timeline::ClientMessageId {
+        if let Some((current, message)) = self.input
+            && current == ticket
+        {
+            return message;
+        }
+        let message = vessel_proto::timeline::ClientMessageId::random();
+        self.input = Some((ticket, message));
+        message
+    }
     pub(super) fn allocate(&mut self) -> Option<Ticket> {
         let ticket = self.next?;
         self.next = ticket.checked_next();
@@ -145,5 +158,20 @@ impl Shell {
             let text = self.areas.draft.sending.take();
             *self.areas.draft.restore.borrow_mut() = text;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn first_input_identity_survives_preparation_and_same_child_retry() {
+        let mut state = CreationState::default();
+        let first = state.allocate().unwrap();
+        let message = state.message(first);
+        assert_eq!(state.message(first), message);
+        let next = state.allocate().unwrap();
+        assert_ne!(state.message(next), message);
     }
 }
