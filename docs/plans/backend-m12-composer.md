@@ -292,7 +292,13 @@ What the app does (`view::composer::{drafts, recall}`,
 - What is typed in a session's composer stays that session's draft, and
   the new chat's its own; another session opening puts the one open's
   text away and brings the other's back. A sent prompt empties the
-  composer, and so its draft.
+  composer, and so its draft: a session's when it is sent, the new
+  chat's once its session has started (until then a failed start's text,
+  put back in the composer, is still the draft). The emptying is written
+  to the draft by the app itself: the field reports only what is typed
+  (gpui-base's `set_value` turns its events off), which at first left a
+  sent prompt behind as the draft, back after a restart (found in slice
+  c's captures).
 - Kept on the device a second after the last edit (one write for a burst
   of typing): `drafts.json` beside the agents' lists, owner-only (0600 in
   a 0700 folder, checked by a test), versioned. Read once at start; the
@@ -380,8 +386,12 @@ On screen (`app/src/areas/composer/{attach,files}.rs`, the kit's
   along its pill's foot; a refused or failed one has a red edge and says
   why in its second line, and a click on a failed one tries it again.
 - Send in a session's composer with files takes the text with them: the
-  composer empties, the message shows in the conversation, and the prompt
-  goes once every file is in. Send in the new chat with files starts the
+  composer's text empties, the message shows in the conversation, and the
+  prompt goes once every file is in. Until then the files stay in the
+  tray with their progress, and Send takes nothing more (what is typed
+  meanwhile stays): a second send would take the waiting prompt's place.
+  Nor does Send go while a file is refused (the send button is off).
+  Send in the new chat with files starts the
   session without its prompt; once the session exists its tray is the
   session's, once its agent has said what it takes (its first records)
   the files go, and the prompt follows.
@@ -391,6 +401,11 @@ Deliberate differences:
 - **Uploaded at Send.** Paseo keeps a picked file on the device and sends
   it with the message in one call; Vessel's node takes a file only into a
   live session, in pieces, before the prompt names it.
+- **One waiting prompt a session.** Paseo empties its composer, files and
+  all, at Send and can take the next message at once; here the waiting
+  prompt's files are the composer's tray until they are in (the tray is
+  the composer's, not the message's), so the next send waits for them.
+  Files added in that time go with the waiting prompt.
 - **Removing a file looks at the refused ones again** (the page keeps them
   refused until its session changes).
 - **No image viewer yet.** A click on Paseo's image pill opens the image;
