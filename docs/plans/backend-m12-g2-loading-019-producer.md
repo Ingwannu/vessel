@@ -30,3 +30,21 @@ other backends and optical period are not claimed.
 This producer is prepared with an alternate Git index over the immutable lead
 parent; it does not alter the active schedules working tree or its build.
 No native gate or real-agent/fleet action was performed by its construction.
+
+
+## Exact producer gate and independent disposition
+
+Run schedules-20261115T035351Z-434933b3 checked this exact producer. All six
+native steps returned zero with no skip. Ten raw summaries total1171 ordinary
+plus2 documentation tests passed, zero failed, one inherited ignored; all four
+native crates were actually checked/compiled. The steps-log SHA256 is
+0f5ebd79c7d4c6d02b58b99cf4705e7faeb188f9f17581dd1e4cea8b07aeaa91.
+
+V1 independently checked all eight changed paths, source parity, registrations
+and gate logs and passed this isolated producer's SOURCE/A13 scope. Small20
+may be provisionally consumed on the assigned base. This is not a new0.19
+binary-alpha or Models first-use pass. Historical matching-code e282 probe
+facts remain historical, with their original Linux/App-flag/phase bounds.
+Keyboard focus restoration, other backends, OS preference integration, four
+scales and optical period remain outside this disposition. No unchanged Rust
+gate was rerun for this documentary result.
