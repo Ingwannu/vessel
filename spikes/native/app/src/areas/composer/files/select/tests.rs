@@ -26,7 +26,7 @@ fn clipboard_menu_attaches_the_image_and_restores_the_target_field(cx: &mut Test
         );
     });
     cx.run_until_parked();
-    shell.update_in(cx, |shell, _window, cx| {
+    shell.update_in(cx, |shell, _window, _cx| {
         assert!(!shell.composer_attachments_blocked(DraftKey::New));
         let tray = shell.areas.composer.trays.get(DraftKey::New).unwrap();
         assert_eq!(tray.items().len(), 1);

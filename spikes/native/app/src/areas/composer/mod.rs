@@ -94,7 +94,7 @@ pub(crate) struct ComposerArea {
     /// A new chat started for its files, until its session exists (set
     /// while the start is made, which reads the shell only).
     pub(crate) starting: RefCell<Option<attach::Starting>>,
-    workspace_starting: std::collections::HashMap<
+    workspace_starting: HashMap<
         (
             vessel_app_view::composer::drafts::DraftKey,
             vessel_app_view::creation::Ticket,
@@ -148,7 +148,7 @@ impl ComposerArea {
             local: local::LocalState::default(),
             sends: HashMap::new(),
             starting: RefCell::new(None),
-            workspace_starting: std::collections::HashMap::new(),
+            workspace_starting: HashMap::new(),
             attach_menu: MenuState::new(cx),
             attach_for: None,
             pictures: pictures::Pictures::default(),

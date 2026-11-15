@@ -19,7 +19,7 @@ use vessel_app_link::attachments::Files;
 use vessel_app_view::Card;
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::composer::tray::{ItemState, Origin, Target};
-use vessel_proto::{AttachmentLimits, Delivery, SessionId};
+use vessel_proto::{AttachmentLimits, Delivery};
 
 use crate::shell::Shell;
 

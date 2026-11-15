@@ -291,7 +291,7 @@ mod tests {
                 );
                 assert!(
                     shell
-                        .prepare_workspace_draft_input(crate::areas::composer::WorkspaceInput {
+                        .prepare_workspace_draft_input(WorkspaceInput {
                             target,
                             ticket,
                             message: ClientMessageId::random(),
