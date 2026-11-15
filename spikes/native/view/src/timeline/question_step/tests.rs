@@ -1,7 +1,7 @@
 //! Selection must navigate without bypassing explicit final submission.
 
 use super::*;
-use crate::timeline::{starting_drafts, steps_of};
+use crate::timeline::{answer_of, starting_drafts, steps_of};
 use serde_json::json;
 
 fn question(multiple: bool) -> Question {
@@ -70,4 +70,31 @@ fn offered_schema_defaults_do_not_preanswer_the_native_card() {
     let steps = steps_of(&question);
     assert!(!step_ready(steps[0], &drafts));
     assert!(!crate::timeline::step_answered(steps[0], &drafts));
+}
+
+#[test]
+fn whitespace_is_not_an_answer_and_encoding_trims_without_changing_the_draft() {
+    let question = question(false);
+    let steps = steps_of(&question);
+    let mut drafts = empty_drafts(&question);
+    for blank in [" \t\r\n", "\u{feff}\u{2003}"] {
+        typed(steps[1], &mut drafts, blank.to_owned());
+        assert!(!step_ready(steps[1], &drafts));
+    }
+    let raw = " \t useful answer\n";
+    typed(steps[1], &mut drafts, raw.to_owned());
+    assert!(step_ready(steps[1], &drafts));
+    assert_eq!(
+        drafts.get(&"last".parse().unwrap()),
+        Some(&Draft::Text(raw.to_owned()))
+    );
+    let vessel_proto::QuestionAnswer::Accept { values } = answer_of(&question, &drafts) else {
+        panic!("accepted answer")
+    };
+    assert_eq!(
+        values.get(&"last".parse().unwrap()),
+        Some(&vessel_proto::conversation::AnswerValue::Text(
+            "useful answer".to_owned()
+        ))
+    );
 }

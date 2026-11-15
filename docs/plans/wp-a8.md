@@ -211,3 +211,13 @@ rich refusals, async active/idle/restart. Existing seams are vessel-testkit
 fake-acp/fake-codex and vessel-agent integration tests. Native captures may add
 private test-only typed seeds after the exact reviewed hash, without changing
 root provider adapters. Runtime fixtures and names are still owed with that hash.
+
+
+Question text readiness/encoding now mirrors Paseo's otherTexts.trim(): whitespace
+alone does not enable Next/Submit; encoding trims outer whitespace while retained
+editor text/caret remain unchanged. The narrow trim helper matches ECMAScript's
+WhiteSpace + LineTerminator set, including FEFF and excluding0085, rather than
+silently taking Rust's different Unicode White_Space set. Primary reference:
+[ECMA-262 TrimString](https://tc39.es/ecma262/multipage/text-processing.html#sec-trimstring)
+and [White Space/Line Terminators](https://tc39.es/ecma262/multipage/ecmascript-language-lexical-grammar.html#sec-white-space).
+Unit fixtures cover ASCII/Unicode blanks, inner text retention and encoded values.

@@ -26,6 +26,9 @@
 
 use std::collections::BTreeMap;
 
+mod trim;
+use trim::answer_text;
+
 use vessel_proto::conversation::{AnswerValue, FieldKind, FieldName, FiniteNumber, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionOutcome};
 
@@ -233,6 +236,7 @@ pub fn read_field(field: &QuestionField, draft: Option<&Draft>) -> Read {
 }
 
 fn read_text(text: &str, min_length: Option<u32>, max_length: Option<u32>) -> Read {
+    let text = answer_text(text);
     if text.is_empty() {
         return Read::Empty;
     }
