@@ -14,9 +14,9 @@ def prepare(root: Path, _target: Path) -> None:
     source = Path(__file__).resolve().parents[3] / "crates/vessel-testkit/fixtures"
     for stem in ["replace", "options"]:
         (fixture_dir / f"{stem}.json").write_text(
-            (source / f"launch-profiles-{stem}.json").read_text())
+            (source / f"launch-profiles-{stem}.json").read_text(encoding="utf-8"), encoding="utf-8")
     (fixture_dir / "apply.json").write_text(
-        '{"session":"131d469e-0b08-4596-bb5a-93b5c0ce9cc0","options":[]}')
+        '{"session":"131d469e-0b08-4596-bb5a-93b5c0ce9cc0","options":[]}', encoding="utf-8")
     # Existing Settings sources make laptop the home. Only disposable
     # harness homes are materialized; never the operator's real profiles.
     for name in ["laptop", "build-server"]:
