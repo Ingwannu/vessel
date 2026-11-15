@@ -45,7 +45,6 @@
 //!   kit does not build).
 
 use std::ops::Range;
-use std::sync::Arc;
 
 pub mod actions;
 
@@ -197,7 +196,6 @@ impl std::fmt::Debug for FindMarks<'_> {
 /// A reply's renderer state, kept across frames by the reply's id.
 struct Kept {
     state: Entity<TextViewState>,
-    source: Arc<str>,
     /// The version of the text it holds.
     version: u64,
     /// The marks' key it shows; `None`: none shown.
@@ -247,14 +245,12 @@ pub fn chat_markdown_with(
     let palette = FindPalette::of(tokens);
     let kept = window.use_keyed_state(id.into(), cx, |_, cx| Kept {
         state: cx.new(|cx| TextViewState::markdown(text, cx)),
-        source: Arc::from(text),
         version,
         marked: None,
     });
-    let (state, source) = kept.update(cx, |kept, cx| {
+    let state = kept.update(cx, |kept, cx| {
         if kept.version != version {
             kept.version = version;
-            kept.source = Arc::from(text);
             kept.state.update(cx, |state, cx| state.set_text(text, cx));
             kept.marked = None;
         }
@@ -269,7 +265,7 @@ pub fn chat_markdown_with(
             }
             Some(_) | None => {}
         }
-        (state, Arc::clone(&kept.source))
+        state
     });
     let list = marks.map(|marks| (marks.list.clone(), marks.clear_top));
     let view = TextView::new(&state)
@@ -282,7 +278,7 @@ pub fn chat_markdown_with(
         .code_block_actions(move |code, window, cx| {
             corner(code.code(), code.lang(), look, window, cx)
         });
-    actions::finish(view, state, source, options.actions, options.copy)
+    actions::finish(view, state, options.actions, options.copy)
 }
 
 /// Component installs its theme on the same Base renderer. Refine that installed

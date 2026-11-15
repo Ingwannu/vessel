@@ -415,6 +415,7 @@ impl TextViewState {
 
     /// Raw rendered code only when selection stays in one code region.
     /// Mixed prose, multiple regions and stale replacements return None.
+    /// Whole-view Select All keeps message-level Markdown, including fences.
     /// Trailing line breaks are removed; leading code indentation is preserved.
     pub fn selected_code_text(&self) -> Option<String> {
         if self.format != TextViewFormat::Markdown

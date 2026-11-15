@@ -39,7 +39,6 @@ fn recognize(text: &str, _: InlineLinkKind) -> Vec<RecognizedLink> {
 }
 
 struct Probe {
-    source: &'static str,
     state: Entity<TextViewState>,
     clicks: Arc<Mutex<Vec<(String, Source)>>>,
 }
@@ -59,7 +58,6 @@ impl Render for Probe {
             .child(finish(
                 TextView::new(&self.state),
                 self.state.clone(),
-                Arc::from(self.source),
                 Some(actions),
                 CopyStyle::MarkdownCodeAware,
             ))
@@ -78,7 +76,6 @@ fn inferred_token_keeps_partial_selection_and_find_source_offsets(cx: &mut TestA
         let clicks = Arc::new(Mutex::new(Vec::new()));
         let captured = Arc::clone(&clicks);
         let (probe, window) = cx.add_window_view(move |_, cx| Probe {
-            source,
             state: cx.new(|cx| TextViewState::markdown(source, cx)),
             clicks,
         });
@@ -147,7 +144,6 @@ fn explicit_links_keep_authored_provenance_and_fenced_code_is_not_recognized(
         let clicks = Arc::new(Mutex::new(Vec::new()));
         let captured = Arc::clone(&clicks);
         let (_, window) = cx.add_window_view(move |_, cx| Probe {
-            source,
             state: cx.new(|cx| TextViewState::markdown(source, cx)),
             clicks,
         });
@@ -176,7 +172,6 @@ fn code_copy_uses_parsed_inline_and_fenced_regions(cx: &mut TestAppContext) {
         ("```sh\necho one\n```\n\n```sh\necho two\n```", None),
     ] {
         let (probe, window) = cx.add_window_view(move |_, cx| Probe {
-            source,
             state: cx.new(|cx| TextViewState::markdown(source, cx)),
             clicks: Arc::default(),
         });

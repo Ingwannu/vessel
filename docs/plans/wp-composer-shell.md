@@ -189,3 +189,7 @@ be reinterpreted as an inside-code drag. The readonly query now refuses Select A
 and uses only actual retained per-node selections. GPUI fixtures check full-view
 Markdown clipboard first, then a real inside-code drag/raw clipboard. This removes
 unneeded duplicate all-document AST reconstruction. New source awaits rerun.
+
+The obsolete retained source clone and private finish source argument are removed:
+the same versioned TextViewState already owns source and parsed selection. Find
+marks, revision updates and the public Options/Actions API remain unchanged.

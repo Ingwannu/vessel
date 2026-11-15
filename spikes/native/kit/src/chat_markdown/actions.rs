@@ -133,7 +133,6 @@ pub enum CopyStyle {
 pub(super) fn finish(
     mut view: TextView,
     state: Entity<TextViewState>,
-    _source: Arc<str>,
     actions: Option<Actions>,
     copy: CopyStyle,
 ) -> AnyElement {
