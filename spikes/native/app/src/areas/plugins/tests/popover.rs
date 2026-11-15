@@ -26,7 +26,7 @@ fn popup_fixture() -> (Rc<RefCell<Registry>>, ContributionAddress) {
 
 #[gpui::test]
 fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut TestAppContext) {
-    use gpui::Modifiers;
+    use gpui::{Modifiers, px};
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).expect("kit");
     });
@@ -53,7 +53,10 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
     let trigger = cx
         .debug_bounds("plugin-surface-button")
         .expect("actual trigger");
-    cx.simulate_click(trigger.center(), Modifiers::none());
+    cx.simulate_click(
+        trigger.inset(px(vessel_app_kit::theme::spacing::S2)).origin,
+        Modifiers::none(),
+    );
     cx.run_until_parked();
     let (old, lease) = view.read_with(cx, |view, _| {
         let opening = view
@@ -70,7 +73,10 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
         cx.notify();
     });
     cx.run_until_parked();
-    cx.simulate_click(trigger.center(), Modifiers::none());
+    cx.simulate_click(
+        trigger.inset(px(vessel_app_kit::theme::spacing::S2)).origin,
+        Modifiers::none(),
+    );
     cx.run_until_parked();
     let fresh = view.read_with(cx, |view, _| {
         view.shown_popover
@@ -134,5 +140,34 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
         view.read_with(cx, |view, _| view.subscriptions.len()),
         0,
         "opening subscriptions are held only by the current owner"
+    );
+    captured.borrow_mut().clear();
+    view.update_in(cx, |view, window, cx| {
+        view.queue_popover(
+            "trigger".parse().expect("identity"),
+            vec![],
+            Some(trigger),
+            window,
+            cx,
+        );
+        // Hold the invalidation before the deferred open's first owner check.
+        registry
+            .borrow_mut()
+            .offline(view.state.address().installation.node);
+    });
+    cx.run_until_parked();
+    view.read_with(cx, |view, _| {
+        assert!(view.shown_popover.is_none());
+        assert!(!view.popover.is_open());
+    });
+    assert!(captured.borrow().iter().any(|event| matches!(
+        event,
+        SurfaceEvent::Rejected(SurfaceProblem::Catalog(Problem::Offline))
+    )));
+    assert!(
+        !captured
+            .borrow()
+            .iter()
+            .any(|event| matches!(event, SurfaceEvent::Requested(_)))
     );
 }

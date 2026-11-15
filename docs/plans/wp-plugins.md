@@ -536,3 +536,9 @@ actual measured-trigger opening, close/reopen with different real editor IDs,
 retained old-body Submit refusal, stale old close, successor real Enter and
 constant root subscription ownership. They are NOT executed proof, retained
 pointer-frame tests, Node authorization, final rendered captures or F6 acceptance.
+
+The probe is attached to the actual kit button, not its full-width wrapper.
+The popup fixture clicks the same inset geometry as existing button tests.
+A deterministic deferred-open case takes the host offline before the first
+scheduled owner check; no new body/lease may be published afterward. This
+case is authored, with execution still owed alongside the opening cases.
