@@ -626,3 +626,14 @@ socket ownership, a verified canonical origin/scheme and revocation on
 lifecycle changes. No wire candidate or client URL can construct this
 observation. The service runtime and browser wiring are separate consumers;
 this carrier adds no proxy or browser capability by itself.
+
+An explicit cleanup-authority release is also a revocation boundary. When
+a release-capable child is integrated, refusing release must retain the
+still-owned observation; successful release must revoke it before transferring
+the direct OS handle. A detached reaper's separate exit observation reports
+the actual direct-child wait result. It must not reinterpret this carrier's
+revocation as OS death or mint a replacement live carrier from a retained PID.
+The joint release integration must test both cases: refused release keeps
+the owned observation live, and successful release revokes while the child
+continues until its independently observed exit. The assigned carrier base
+has no release operation; those joint tests remain with that integration.

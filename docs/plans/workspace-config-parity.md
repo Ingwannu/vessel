@@ -266,3 +266,9 @@ returning std::io::Error rather than the existing WaitError wrapper. The
 revision keeps revocation first and restores the existing source-preserving
 From conversion. No test or deadline changed; the failed build log is kept,
 and no tests ran in that build.
+
+The release-capable child integration has a separate obligation: reject a
+bound release without revocation, but revoke before successful ownership
+release. Its detached direct-child wait remains the actual exit observation.
+This carrier's assigned base has no release operation; these joint tests
+belong to the later combined lifecycle integration and are not claimed here.
