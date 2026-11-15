@@ -134,12 +134,14 @@ fn native_wheel_packets_over_the_document_scroll_its_outer_owner(cx: &mut TestAp
         });
         cx.run_until_parked();
         owner.read_with(cx, |owner, cx| {
+            let state = owner.editor.editor.editor.state.read(cx);
             assert_ne!(
                 owner.files.top(),
                 before,
-                "vertical wheel reaches the actual VirtualList, including trackpad drift"
+                "outer owner must scroll: mode={wrapping:?}, x={horizontal_drift}, inner={:?}, input={:?}",
+                state.scroll_offset(),
+                state.input_bounds(),
             );
-            let state = owner.editor.editor.editor.state.read(cx);
             assert_eq!(
                 state.scroll_offset().y,
                 px(0.),

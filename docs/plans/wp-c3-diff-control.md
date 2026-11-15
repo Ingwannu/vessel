@@ -174,3 +174,12 @@ and pixel arithmetic. Offsets/counts use saturation; the three finite test-only
 pixel operations use smallest-item expects with reasons, matching existing kit
 pixel geometry policy, not file-wide allows or a production lint waiver. Current
 corrections need their own exact source test/lint selections. No pass/handoff.
+
+## Pre-fix wheel attribution fixture
+
+The exact0813 window selection executes15/1/0: only the native wheel owner
+assertion fails. The lead requires the failing drift case to be named, not
+guessed. This isolated diagnostic keeps ALL production bytes from0813 and the
+same original assertion; it only prints mode/x/inner offset/input bounds on
+failure and removes an unused import. No wheel hunk or selection-alpha change
+is installed here. This is deliberately a pre-fix reproduction, not a pass.
