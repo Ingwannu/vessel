@@ -1,6 +1,7 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on gated shared base d18bb794 (merged612b26df6;
+Status: implementation in progress on gated shared base c5263270 (merged8c69b8243;
+prior d18bb794 merged612b26df6,
 prior dd13ce378 merged5a54c0aca and18eedad4 merged7e9cc3d09),
 with exact
 canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
@@ -660,5 +661,11 @@ conflict retains both complete documentation additions. Field's combined product
 size is567, ratcheted down from587; picker remains828, never raised to the incoming
 older829 record. W12 effective target getter now arrives from the official line;
 it grants no authority or global Draft fallback. This base's gate is prerequisite
-evidence only; changed F4 union checks still remain open. Lead's next c526 staged
-delivery/menu union is not consumed while its gate is running.
+evidence only; changed F4 union checks still remain open.
+
+Lead subsequently announced c5263270 native1431/0/2; adopted exact shared line
+as8c69b8243. S2 menu commits already present merge cleanly without replay. The
+additional delivery guard/export, follow and queue modules retain their literal
+cfg(test) staging attributes. F4 activates none of them and gains no live
+resident/follow/connection delivery authority from this merge. The announced
+next node-only base8 remains under gate and is not consumed yet.
