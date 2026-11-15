@@ -29,6 +29,13 @@ impl ShellEnvironment {
         }
     }
 
+    /// App-only restart markers must not turn later child launches into relaunches.
+    #[must_use]
+    pub fn without(mut self, name: impl Into<OsString>) -> Self {
+        self.overrides.push((name.into(), EnvValue::Remove));
+        self
+    }
+
     /// Pass captured values only to an explicitly owned child, without unsafe `set_var`.
     #[must_use]
     pub fn apply(&self, mut command: CommandSpec) -> CommandSpec {
@@ -170,6 +177,19 @@ mod tests {
         assert!(!format!("{environment:?}").contains("hidden-value"));
         assert!(decode(b"missing markers", "mark").is_err());
         assert!(decode(b"\0mark\0BROKEN\0\0mark\0", "mark").is_err());
+    }
+
+    #[test]
+    fn app_only_markers_are_removed_even_from_an_inherited_or_captured_environment() {
+        for environment in [
+            ShellEnvironment::inherited(),
+            decode(b"\0m\0APP_MARKER=old\0\0m\0", "m").unwrap(),
+        ] {
+            let child = environment
+                .without("APP_MARKER")
+                .apply(CommandSpec::new("/unused").env("APP_MARKER", "new"));
+            assert_eq!(child.env_change("APP_MARKER"), Some(&EnvValue::Remove));
+        }
     }
 
     #[cfg(unix)]

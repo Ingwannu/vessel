@@ -344,3 +344,10 @@ values, stale runtime-directory exclusion, bounded output and hung-shell timeout
 The existing vessel-proc group/job guard owns cancellation cleanup; no duplicate
 process primitive or root fake-binary build is added. Execution is pending the
 next immutable remote test suite.
+
+The updater relaunch marker is app-only: the binary removes it from captured
+child environments and CLI passthrough using the updater’s public constant.
+Otherwise a CLI/node child could propagate it into a later ordinary app launch,
+which would wrongly wait for the active primary to exit. This uses CommandSpec
+removal overrides, never process-global environment mutation. Regression covers
+both inherited and captured values overriding earlier child assignments.

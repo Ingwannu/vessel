@@ -73,7 +73,7 @@ fn start(
     else {
         return Ok(ExitCode::SUCCESS);
     };
-    let environment = resolve_environment();
+    let environment = resolve_environment().without(vessel_app_updater::RESTARTED_FROM);
     let (sender, mut requests) = mpsc::channel(OS_LAUNCH_CAPACITY);
     let application = application().with_assets(vessel_app_kit::Assets);
     let _url_handler = application.on_open_urls(move |urls| {
@@ -137,6 +137,7 @@ fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, DesktopError> {
     }
     let status = std::process::Command::new(binary)
         .args(arguments)
+        .env_remove(vessel_app_updater::RESTARTED_FROM)
         .status()?;
     Ok(status
         .code()
