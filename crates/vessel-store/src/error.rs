@@ -340,9 +340,9 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::PromptIndexBusy(_)
-            | Self::PromptIndexRecords
-            | Self::PromptIndexPrompts => ErrorCode::Unavailable,
+            Self::PromptIndexBusy(_) | Self::PromptIndexRecords | Self::PromptIndexPrompts => {
+                ErrorCode::Unavailable
+            }
             Self::RegistryRevisionRange(_)
             | Self::RegistryRevisionExhausted
             | Self::RegistryDecode(_)
