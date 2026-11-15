@@ -300,10 +300,17 @@ at the top and `Vessel patch` at the change.
 
 - Document viewport hunk (same change7): mapped **readonly** editors intersect
   their full bounds with the parent mask when choosing shape/paint rows only.
-  Empty masks shape zero lines; full layout height, display map and scroll
-  metrics remain unchanged. This permits one outer scrolling document instead
+  Empty masks project zero source rows. When its width cache is empty, the
+  existing engine measures one longest-line candidate once for horizontal scroll
+  metrics, then caches it; ordinary None paths and gutter/space samples remain
+  unchanged. Full layout height, display map and scroll metrics are retained. This permits one outer scrolling document instead
   of nested fixed-height cards. The ordinary None branch and token-measure
   projection keep their old viewport. No notify is issued during paint.
+- Known extent cost: the cold longest-line measurement scales with that line's
+  length (for example a minified file). A stable width-cache key reuses it; no
+  per-frame repeat is claimed or accepted. Its key includes document revision,
+  font/size, wrapping and tabs. This is a documented lead-approved distinction,
+  not a measured performance pass or a total shape-call assertion.
 - Position lookup: only mapped readonly buffers require a requested buffer row
   to be in the shaped cache. Both line_and_position_for_offset and the separate
   TextInputHandler::bounds_for_range endpoint loop refuse unshaped positions;

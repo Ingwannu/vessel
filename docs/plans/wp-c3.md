@@ -733,3 +733,11 @@ bounded extent-measurement distinction versus the earlier empty-mask wording.
 The empty fixture's name is restricted to zero row projections/direct IME
 bounds, not a total shape-call count. No runtime result or silent geometry
 change is asserted.
+
+The lead accepted the cold-extent exception: zero projected rows for an empty
+mask, one longest-line measurement only on a cold width-cache key to preserve
+horizontal metrics, unchanged gutter/space samples and ordinary None path. The
+existing element takes/reuses and stores that width with revision/font/size/wrap/
+tab identity. A minified very long line has a proportional first-measurement cost;
+there is no measured performance pass or total shape-call count claim. README
+wording now states this explicitly; no extra vendor correction/API was added.
