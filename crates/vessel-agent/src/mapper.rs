@@ -65,6 +65,7 @@ pub(crate) fn session_update(update: acp::SessionUpdate) -> Update {
     use acp::SessionUpdate as U;
     let event = match update {
         U::UserMessageChunk(chunk) => AgentEvent::UserMessageChunk {
+            provenance: None,
             content: content(chunk.content),
         },
         U::AgentMessageChunk(chunk) => AgentEvent::MessageChunk {

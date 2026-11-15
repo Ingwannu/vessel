@@ -71,6 +71,7 @@ fn question(lifetime: QuestionLifetime) -> Question {
 fn queued() -> PromptQueue {
     PromptQueue {
         entries: vec![QueuedPrompt {
+            provenance: None,
             id: QueueEntryId::random(),
             content: vec![],
             queued_at: chrono::DateTime::UNIX_EPOCH,
@@ -252,10 +253,12 @@ fn echo_mask_and_attachment_downgrade_compose_for_the_oldest_peer() {
         size: 4,
     };
     let event = AgentEvent::TurnStarted {
+        provenance: None,
         content: vec![crate::ContentBlock::Attachment { attachment }],
         client_message_id: Some(ClientMessageId::random()),
     };
     let AgentEvent::TurnStarted {
+        provenance: None,
         content,
         client_message_id,
     } = event.for_protocol(ProtocolVersion::new(2)).unwrap()

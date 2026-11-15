@@ -31,6 +31,7 @@ fn says(record: &EventRecord, words: &[&str]) -> bool {
     if let SessionEvent::Agent {
         event:
             AgentEvent::TurnStarted {
+                provenance: None,
                 content,
                 client_message_id: None,
             },

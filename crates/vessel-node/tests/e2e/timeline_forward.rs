@@ -32,6 +32,7 @@ async fn seed(fixture: &Fixture) -> (SessionId, Vec<Arc<EventRecord>>) {
     let permission = serde_json::from_value(json!({"event":"permission_requested","id":PermissionId::random(),"tool_call":"x","tool_scope":{"kind":"session_turn","started":0},"options":[]})).unwrap();
     let agent_events = [
         AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![],
             client_message_id: None,
         },
@@ -42,6 +43,7 @@ async fn seed(fixture: &Fixture) -> (SessionId, Vec<Arc<EventRecord>>) {
             point: None,
         },
         AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![],
             client_message_id: None,
         },

@@ -25,11 +25,14 @@ pub(super) enum Said<'a> {
 /// Read one record.
 pub(super) fn said(event: &SessionEvent) -> Said<'_> {
     match event {
+        SessionEvent::Agent { event } if event.prompt_provenance().is_some() => Said::Ends,
         SessionEvent::Agent { event } => match event {
             AgentEvent::TurnStarted { content, .. } | AgentEvent::Steered { content, .. } => {
                 Said::Prompt(content)
             }
-            AgentEvent::UserMessageChunk { content } => Said::Chunk(MessageRole::Prompt, content),
+            AgentEvent::UserMessageChunk { content, .. } => {
+                Said::Chunk(MessageRole::Prompt, content)
+            }
             AgentEvent::MessageChunk { content } => Said::Chunk(MessageRole::Reply, content),
             // A line on stderr can land between two chunks of one reply.
             AgentEvent::HarnessLog { .. }
@@ -79,6 +82,26 @@ pub(super) fn text_of(block: &ContentBlock) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn local_notice_words_end_the_previous_run_without_becoming_user_search_text() {
+        for value in ["turn_started", "steered", "user_message_chunk"] {
+            let content = if value == "user_message_chunk" {
+                serde_json::json!({"type":"text","text":"private notice"})
+            } else {
+                serde_json::json!([{"type":"text","text":"private notice"}])
+            };
+            let event = serde_json::from_value(serde_json::json!({
+                "event": value, "content": content,
+                "provenance": {"kind":"internal_notice","notice":5}
+            }))
+            .unwrap();
+            assert_eq!(
+                super::said(&vessel_proto::SessionEvent::Agent { event }),
+                super::Said::Ends
+            );
+        }
+    }
+
     use super::*;
     use vessel_proto::{SessionStatus, StopReason};
 
@@ -92,6 +115,7 @@ mod tests {
     fn prompts_chunks_and_what_ends_a_run() {
         let prompt = SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
+                provenance: None,
                 content: vec![text("hello")],
 
                 client_message_id: None,
@@ -106,6 +130,7 @@ mod tests {
         assert!(matches!(said(&chunk), Said::Chunk(MessageRole::Reply, _)));
         let replayed = SessionEvent::Agent {
             event: AgentEvent::UserMessageChunk {
+                provenance: None,
                 content: text("before"),
             },
         };

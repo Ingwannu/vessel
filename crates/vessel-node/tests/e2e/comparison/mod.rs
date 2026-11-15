@@ -81,6 +81,7 @@ async fn turns(client: &NodeClient, session: SessionId) -> Vec<Vec<vessel_proto:
             if let vessel_proto::SessionEvent::Agent {
                 event:
                     vessel_proto::AgentEvent::TurnStarted {
+                        provenance: None,
                         content,
                         client_message_id: None,
                     },

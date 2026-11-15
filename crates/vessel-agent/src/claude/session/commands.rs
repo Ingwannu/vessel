@@ -121,6 +121,7 @@ impl Session {
             failure: None,
         };
         self.emit(AgentEvent::TurnStarted {
+            provenance: None,
             content,
             client_message_id,
         })

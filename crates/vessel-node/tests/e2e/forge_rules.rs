@@ -27,7 +27,7 @@ fn feedback_prompts(records: &[EventRecord]) -> usize {
             matches!(
                             &record.event,
                             SessionEvent::Agent {
-                                event: AgentEvent::TurnStarted { content ,
+                                event: AgentEvent::TurnStarted { provenance: None, content ,
             client_message_id: None,
             },
                             } if format!("{content:?}").contains("Vessel: pull request feedback")

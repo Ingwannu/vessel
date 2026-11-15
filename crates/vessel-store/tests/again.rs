@@ -47,6 +47,7 @@ mod support {
     pub(crate) fn queue() -> PromptQueue {
         PromptQueue {
             entries: vec![QueuedPrompt {
+                provenance: None,
                 id: QueueEntryId::random(),
                 content: vec![ContentBlock::Text {
                     text: "later".to_owned(),

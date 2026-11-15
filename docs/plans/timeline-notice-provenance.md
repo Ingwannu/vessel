@@ -93,3 +93,30 @@ its ordinary prompt row. No fabricated Prompt, turn or new presentation union
 can replace that boundary. Positive private admission remains Unsupported while
 any required reader or ingress join is owed. The one store migration repoints to
 22 after lifecycle's listing schema21; numbering stays the integrator's merge order.
+
+
+## First source implementation checkpoint
+
+The agreed optional field is now on the three canonical user-input events and
+QueuedPrompt, with default/omitted ordinary serialization and the one existing
+TIMELINE_PARITY gate. Existing producers explicitly supply None. The existing
+single compatibility traversal clears both a tagged payload and its field; queue
+entries keep identity/order and event records keep real lifecycle/seq/time/cursors.
+Encoded Forward/Relay/Deliver fixtures cover an old middle and modern ends, plus
+modern canonical preservation and the None staging boundary. Public submit,
+creation/first-input and queue change fixtures cannot select the output field.
+
+StructuredActor clears associations from every provider output before replay or
+publication handling. Session/memory/fleet import moves native provider files,
+not local canonical records; their replay enters this same boundary. Canonical
+local retained reads keep their association. A committed user content edit clears
+the queue association; rejected/stale edits restore it, and move/send-now retain
+it. Search treats tagged input as a run boundary without indexing its words.
+
+This checkpoint does NOT attach a new positive notice producer. Exact changed
+compile/tests/TS/review are still owed. Title generation, inbox/push previews,
+MCP tool text, CLI/web/native transcript/group/copy/footer and export-snapshot
+readers remain owed before positive private production. Their existing readers
+are not claimed qualified by outgoing wire masking. The execution/grant capsule
+and atomic notice/queue/receipt transaction also remain unavailable; private
+admission stays Unsupported. No second body id, method, number or store is added.

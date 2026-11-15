@@ -140,6 +140,7 @@ fn reads_do_not_answer_and_late_marks_do_not_consume_new_attention() {
         id,
         4,
         AgentEvent::TurnStarted {
+            provenance: None,
             content: Vec::new(),
 
             client_message_id: None,

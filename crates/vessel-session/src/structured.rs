@@ -238,7 +238,13 @@ impl StructuredActor {
         }
     }
 
-    pub(crate) async fn output(&mut self, output: AgentOutput) {
+    pub(crate) async fn output(&mut self, mut output: AgentOutput) {
+        // All driver/history outputs are foreign to the local receipt owner,
+        // including replay after session/memory import or a fleet transfer.
+        // Only the future local queue owner may attach a committed association.
+        if let AgentOutput::Event(event) = &mut output {
+            event.clear_foreign_prompt_provenance();
+        }
         if let AgentOutput::Event(AgentEvent::QuestionAsked(question)) = &output
             && question.lifetime == vessel_proto::timeline::QuestionLifetime::Session
         {

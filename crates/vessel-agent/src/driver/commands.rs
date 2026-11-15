@@ -156,6 +156,7 @@ impl Driver {
         self.cancelling = false;
         self.tail.reset();
         self.emit(AgentEvent::TurnStarted {
+            provenance: None,
             content,
             client_message_id,
         })

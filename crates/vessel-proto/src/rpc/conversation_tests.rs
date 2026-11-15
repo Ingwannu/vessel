@@ -135,6 +135,7 @@ fn the_new_calls_need_protocol_ten() {
 #[test]
 fn session_events_of_ten_reach_older_clients_as_log_lines() {
     let entry = QueuedPrompt {
+        provenance: None,
         id: QueueEntryId::random(),
         content: vec![text("next")],
         queued_at: DateTime::UNIX_EPOCH,
@@ -195,6 +196,7 @@ fn session_events_of_ten_reach_older_clients_as_log_lines() {
 fn agent_events_of_ten_reach_older_clients_too() {
     let agent = |event| SessionEvent::Agent { event };
     let steered = agent(AgentEvent::Steered {
+        provenance: None,
         content: vec![text("\n  also run the tests\nplease")],
 
         client_message_id: None,
@@ -231,6 +233,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     let image = attachment();
     let id = image.id;
     let started = agent(AgentEvent::TurnStarted {
+        provenance: None,
         content: vec![text("look"), ContentBlock::Attachment { attachment: image }],
 
         client_message_id: None,
@@ -239,6 +242,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
     assert_eq!(
         started.for_protocol(V9),
         Some(agent(AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![
                 text("look"),
                 ContentBlock::ResourceLink {
@@ -251,6 +255,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
         }))
     );
     let plain = agent(AgentEvent::TurnStarted {
+        provenance: None,
         content: vec![text("look")],
 
         client_message_id: None,

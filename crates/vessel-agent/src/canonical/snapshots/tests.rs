@@ -25,6 +25,7 @@ fn announced(event: AgentEvent) -> ToolCall {
 }
 fn start(snapshots: &mut Snapshots) {
     snapshots.observe(&mut AgentEvent::TurnStarted {
+        provenance: None,
         content: vec![],
         client_message_id: None,
     });

@@ -140,6 +140,7 @@ impl Session {
         self.cancelling = false;
         self.before = self.total;
         self.emit(AgentEvent::TurnStarted {
+            provenance: None,
             content,
             client_message_id,
         })

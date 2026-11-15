@@ -466,6 +466,7 @@ async fn resuming_loads_the_session_and_replays_its_history() {
         assert_eq!(
             agent.next().await,
             Some(AgentEvent::UserMessageChunk {
+                provenance: None,
                 content: ContentBlock::Text {
                     text: "earlier question".to_owned()
                 }

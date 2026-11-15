@@ -310,6 +310,7 @@ impl Session {
                 let outcome = match answer {
                     Ok(_) => {
                         self.emit(AgentEvent::Steered {
+                            provenance: None,
                             content,
                             client_message_id,
                         })

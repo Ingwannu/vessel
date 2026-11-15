@@ -74,7 +74,7 @@ async fn comparison_binary_uploads_once_and_prints_every_independent_outcome() {
             let session = target.resources.session.unwrap();
             let history = owner.read(session, EventSeq::ZERO, 1000).await.unwrap();
             let turns: Vec<_> = history.records.iter().filter_map(|record| if let SessionEvent::Agent {
-                event: AgentEvent::TurnStarted { content ,
+                event: AgentEvent::TurnStarted { provenance: None, content ,
 client_message_id: None,
 } } = &record.event { Some(content) } else { None }).collect();
             assert_eq!(turns.len(), 1);

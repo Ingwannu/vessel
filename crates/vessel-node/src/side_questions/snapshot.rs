@@ -141,7 +141,9 @@ fn message(event: &AgentEvent) -> Option<(&'static str, &[ContentBlock])> {
             Some(("user", content))
         }
         AgentEvent::MessageChunk { content } => Some(("assistant", std::slice::from_ref(content))),
-        AgentEvent::UserMessageChunk { content } => Some(("user", std::slice::from_ref(content))),
+        AgentEvent::UserMessageChunk { content, .. } => {
+            Some(("user", std::slice::from_ref(content)))
+        }
         AgentEvent::Ready { .. }
         | AgentEvent::ThoughtChunk { .. }
         | AgentEvent::ToolCall(_)

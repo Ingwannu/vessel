@@ -188,7 +188,7 @@ impl Shared {
 fn started_with(record: &EventRecord, text: &str) -> bool {
     matches!(
             agent_of(record),
-            Some(AgentEvent::TurnStarted { content ,
+            Some(AgentEvent::TurnStarted { provenance: None, content ,
     client_message_id: None,
     })
                 if content == &[ContentBlock::Text { text: text.to_owned() }]

@@ -24,10 +24,14 @@ fn original_messages() -> Vec<AgentEvent> {
             abilities: None,
         },
         AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![text()],
             client_message_id: None,
         },
-        AgentEvent::UserMessageChunk { content: text() },
+        AgentEvent::UserMessageChunk {
+            provenance: None,
+            content: text(),
+        },
         AgentEvent::MessageChunk { content: text() },
         AgentEvent::ThoughtChunk { content: text() },
         AgentEvent::Plan { entries: vec![] },
@@ -96,6 +100,7 @@ fn tool_events() -> Vec<AgentEvent> {
 fn newer_events() -> Vec<AgentEvent> {
     vec![
         AgentEvent::Steered {
+            provenance: None,
             content: vec![text()],
             client_message_id: None,
         },
@@ -184,10 +189,14 @@ fn attachment_content_propagates_and_projects_without_losing_the_cursor() {
     let content = attachment();
     for event in [
         AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![text(), content.clone()],
             client_message_id: None,
         },
-        AgentEvent::UserMessageChunk { content },
+        AgentEvent::UserMessageChunk {
+            provenance: None,
+            content,
+        },
     ] {
         assert_eq!(event.required_protocol(), Some(ProtocolVersion::new(10)));
         let enclosing = SessionEvent::Agent { event };

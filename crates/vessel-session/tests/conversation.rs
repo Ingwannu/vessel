@@ -113,7 +113,7 @@ fn text(text: &str) -> Vec<ContentBlock> {
 
 fn turn_started(text: &str) -> impl Fn(&SessionEvent) -> bool {
     move |event| {
-        matches!(event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content ,
+        matches!(event, SessionEvent::Agent { event: AgentEvent::TurnStarted { provenance: None, content ,
 client_message_id: None,
 } }
             if *content == self::text(text))

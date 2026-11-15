@@ -135,12 +135,15 @@ pub(crate) fn queue(
     if !queue
         .entries
         .iter()
-        .any(|entry| entry.client_message_id.is_some())
+        .any(|entry| entry.client_message_id.is_some() || entry.provenance.is_some())
     {
         return None;
     }
     let mut adapted = queue.clone();
     for entry in &mut adapted.entries {
+        if entry.provenance.take().is_some() {
+            entry.content.clear();
+        }
         entry.client_message_id = None;
     }
     Some(adapted)
@@ -218,25 +221,49 @@ pub(crate) fn event_with_reference(
         AgentEvent::TurnStarted {
             content,
             client_message_id,
+            provenance,
         } => {
-            let _identity = client_message_id.as_ref()?;
+            if client_message_id.is_none() && provenance.is_none() {
+                return None;
+            }
             AgentEvent::TurnStarted {
-                content: content.clone(),
+                content: if provenance.is_some() {
+                    Vec::new()
+                } else {
+                    content.clone()
+                },
                 client_message_id: None,
+                provenance: None,
             }
         }
         AgentEvent::Steered {
             content,
             client_message_id,
+            provenance,
         } => {
-            let _identity = client_message_id.as_ref()?;
+            if client_message_id.is_none() && provenance.is_none() {
+                return None;
+            }
             AgentEvent::Steered {
-                content: content.clone(),
+                content: if provenance.is_some() {
+                    Vec::new()
+                } else {
+                    content.clone()
+                },
                 client_message_id: None,
+                provenance: None,
+            }
+        }
+        AgentEvent::UserMessageChunk { provenance, .. } => {
+            let _local_association = provenance.as_ref()?;
+            AgentEvent::UserMessageChunk {
+                content: crate::ContentBlock::Text {
+                    text: String::new(),
+                },
+                provenance: None,
             }
         }
         AgentEvent::Ready { .. }
-        | AgentEvent::UserMessageChunk { .. }
         | AgentEvent::MessageChunk { .. }
         | AgentEvent::ThoughtChunk { .. }
         | AgentEvent::PermissionResolved { .. }
@@ -306,7 +333,7 @@ pub(crate) fn conversation_with_reference(
                 .queue
                 .entries
                 .iter()
-                .any(|entry| entry.client_message_id.is_some()));
+                .any(|entry| entry.client_message_id.is_some() || entry.provenance.is_some()));
     if composer.is_none() && !has_timeline_change {
         return None;
     }

@@ -204,6 +204,7 @@ async fn a_steer_joins_the_running_turn_or_comes_back() {
                 if text == "steered: also this"
         )));
         let Some(AgentOutput::Event(AgentEvent::Steered {
+            provenance: None,
             content,
             client_message_id: None,
         })) = seen.last()

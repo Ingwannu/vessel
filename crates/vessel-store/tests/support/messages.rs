@@ -26,6 +26,7 @@ pub(crate) fn prompt(seq: u64, words: &str) -> Arc<EventRecord> {
     agent(
         seq,
         AgentEvent::TurnStarted {
+            provenance: None,
             content: vec![text(words)],
 
             client_message_id: None,

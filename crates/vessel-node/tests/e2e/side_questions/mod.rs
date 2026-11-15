@@ -95,7 +95,7 @@ async fn side_questions_leave_a_running_parent_unchanged_and_refresh_context() {
         assert_eq!(code(client.send(side.id, prompt("plain")).await), ErrorCode::Unsupported);
         assert_eq!(code(client.prompt(side.id, vec![ContentBlock::Text { text: "plain".to_owned() }], Delivery::Queue).await), ErrorCode::Unsupported);
         assert_eq!(code(client.change_queue(side.id, vessel_proto::QueueChange::Hold).await), ErrorCode::Unsupported);
-        let started = first.iter().find_map(|record| if let Some(AgentEvent::TurnStarted { content ,
+        let started = first.iter().find_map(|record| if let Some(AgentEvent::TurnStarted { provenance: None, content ,
 client_message_id: None,
 }) = agent_of(record) { Some(content) } else { None }).unwrap();
         assert_eq!(started, &vec![ContentBlock::Text { text: "What is running?".to_owned() }]);

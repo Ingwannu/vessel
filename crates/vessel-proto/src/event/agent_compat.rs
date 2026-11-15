@@ -20,7 +20,7 @@ impl AgentEvent {
             Self::TurnStarted { content, .. } if content.iter().any(is_attachment) => {
                 Some(ProtocolVersion::new(10))
             }
-            Self::UserMessageChunk { content } if is_attachment(content) => {
+            Self::UserMessageChunk { content, .. } if is_attachment(content) => {
                 Some(ProtocolVersion::new(10))
             }
             Self::Ready { .. }
@@ -98,11 +98,13 @@ impl AgentEvent {
             }
             .to_owned()),
             Self::TurnStarted { content, .. } => Some(Self::TurnStarted {
+                provenance: None,
                 content: content.iter().map(link_for_attachment).collect(),
 
                 client_message_id: None,
             }),
-            Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
+            Self::UserMessageChunk { content, .. } => Some(Self::UserMessageChunk {
+                provenance: None,
                 content: link_for_attachment(content),
             }),
             Self::Ready { .. }

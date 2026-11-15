@@ -146,7 +146,7 @@ impl Conversation {
                 harness_session, ..
             } => self.line(format!("[ready: harness session {harness_session}]")),
             AgentEvent::TurnStarted { content, .. } => self.line(format!("> {}", text(content))),
-            AgentEvent::UserMessageChunk { content } => {
+            AgentEvent::UserMessageChunk { content, .. } => {
                 self.stream(Streaming::UserReplay, "> ", content)
             }
             AgentEvent::MessageChunk { content } => self.stream(Streaming::Reply, "", content),
@@ -409,6 +409,7 @@ mod tests {
         let mut view = Conversation::default();
         let user = |text: &str| {
             agent(AgentEvent::UserMessageChunk {
+                provenance: None,
                 content: ContentBlock::Text {
                     text: text.to_owned(),
                 },

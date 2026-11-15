@@ -223,6 +223,7 @@ mod tests {
 
     fn entry(content: Vec<ContentBlock>, by: Creator) -> QueuedPrompt {
         QueuedPrompt {
+            provenance: None,
             id: QueueEntryId::random(),
             content,
             queued_at: DateTime::UNIX_EPOCH,

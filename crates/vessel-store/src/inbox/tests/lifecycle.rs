@@ -192,6 +192,7 @@ fn backfill_never_revives_attention_before_a_new_turn_or_rewind() {
     for moved in [
         SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
+                provenance: None,
                 content: Vec::new(),
 
                 client_message_id: None,

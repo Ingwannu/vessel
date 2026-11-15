@@ -29,7 +29,7 @@ fn text(text: &str) -> Vec<ContentBlock> {
 /// The seq of the `turn_started` record of `prompt`'s turn, once read.
 async fn turn_of(log: &mut Log, prompt: &str) -> Option<EventSeq> {
     let started = |event: &SessionEvent| {
-        matches!(event, SessionEvent::Agent { event: AgentEvent::TurnStarted { content ,
+        matches!(event, SessionEvent::Agent { event: AgentEvent::TurnStarted { provenance: None, content ,
 client_message_id: None,
 } }
             if *content == text(prompt))

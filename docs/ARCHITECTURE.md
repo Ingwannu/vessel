@@ -1941,3 +1941,13 @@ The existing forwarding TaskTracker owns cleanup across caller cancellation;
 Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
+
+The timeline's optional PromptProvenance links a locally committed notice to its
+queue entry and real user-input lifecycle records. It is output correlation, not
+a public submission selector. The single protocol projection clears tagged
+internal payloads as well as the field for legacy readers, preserving actual
+record/queue identity and ordering. Provider/history output is scrubbed before
+actor interpretation; canonical local retained reads are distinct. Content edits
+clear the link, while queue moves retain it. Positive private notice admission
+remains unsupported until the execution/grant fence, retained transaction and all
+internal derived-text/transcript readers are qualified (ADR0084).

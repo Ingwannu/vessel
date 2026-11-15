@@ -240,6 +240,7 @@ async fn a_session_is_ready_with_its_conversation_and_a_turn_streams_its_reply()
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
+                provenance: None,
                 content: text("hello"),
                 client_message_id: None,
             }
@@ -343,6 +344,7 @@ async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
+                provenance: None,
                 content: text("echo what now?"),
                 client_message_id: None,
             },
@@ -366,6 +368,7 @@ async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
         assert_eq!(
             events[0],
             AgentEvent::TurnStarted {
+                provenance: None,
                 content: text("echo after"),
                 client_message_id: None,
             },

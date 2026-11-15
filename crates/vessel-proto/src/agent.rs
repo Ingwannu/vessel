@@ -58,6 +58,9 @@ pub enum AgentEvent {
     },
     /// A user turn began (echoes the prompt as the harness received it).
     TurnStarted {
+        /// Local canonical notice association; foreign input cannot mint it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provenance: Option<crate::timeline::PromptProvenance>,
         /// Caller identity for optimistic reconciliation, absent on legacy prompts.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         client_message_id: Option<crate::timeline::ClientMessageId>,
@@ -77,6 +80,9 @@ pub enum AgentEvent {
     /// session is resumed. Prompts sent through Vessel appear as
     /// `TurnStarted` instead.
     UserMessageChunk {
+        /// Local canonical notice association; foreign input cannot mint it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provenance: Option<crate::timeline::PromptProvenance>,
         /// The chunk.
         content: ContentBlock,
     },
@@ -149,6 +155,9 @@ pub enum AgentEvent {
     /// A message added to the running turn (protocol 10): a prompt
     /// delivered `steer`, which the agent took into its turn.
     Steered {
+        /// Local canonical notice association; foreign input cannot mint it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provenance: Option<crate::timeline::PromptProvenance>,
         /// Caller identity for optimistic reconciliation, absent on legacy prompts.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         client_message_id: Option<crate::timeline::ClientMessageId>,

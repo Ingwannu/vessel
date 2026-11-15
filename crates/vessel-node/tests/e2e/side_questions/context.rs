@@ -66,6 +66,7 @@ async fn serialized_provider_limit_rejects_without_a_turn_or_sticky_context() {
             .iter()
             .filter_map(|record| {
                 if let Some(AgentEvent::TurnStarted {
+                    provenance: None,
                     content,
                     client_message_id: None,
                 }) = agent_of(record)
@@ -114,7 +115,7 @@ async fn generated_context_replayed_by_load_does_not_become_user_history() {
         let _answer = client.resume_session(side.id).await.unwrap();
         let records = read_all(&client, side.id).await;
         assert!(!records.iter().any(|record| matches!(agent_of(record), Some(AgentEvent::UserMessageChunk { .. }))));
-        let questions: Vec<_> = records.iter().filter_map(|record| if let Some(AgentEvent::TurnStarted { content ,
+        let questions: Vec<_> = records.iter().filter_map(|record| if let Some(AgentEvent::TurnStarted { provenance: None, content ,
 client_message_id: None,
 }) = agent_of(record) { Some(content.clone()) } else { None }).collect();
         assert_eq!(questions, vec![

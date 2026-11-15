@@ -37,6 +37,7 @@ fn prompt_seq(seen: &[EventRecord], text: &str) -> vessel_proto::EventSeq {
         if let SessionEvent::Agent {
             event:
                 AgentEvent::TurnStarted {
+                    provenance: None,
                     content,
                     client_message_id: None,
                 },

@@ -49,6 +49,7 @@ fn ended(reason: StopReason) -> SessionEvent {
 
 fn started() -> SessionEvent {
     agent(AgentEvent::TurnStarted {
+        provenance: None,
         content: Vec::new(),
 
         client_message_id: None,

@@ -11,6 +11,7 @@ mod measure;
 mod notice;
 mod permission;
 mod plan;
+mod provenance;
 mod question;
 mod question_reply;
 mod receipt;
@@ -35,6 +36,7 @@ pub use permission::{
 };
 
 pub use notice::{NoticeCheckpoint, NoticeKey, NoticeRequest};
+pub use provenance::PromptProvenance;
 pub use question::{
     EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
     QuestionReference,

@@ -238,6 +238,7 @@ mod tests {
         tickets.give(sender, Delivered::Queued { entry: removed }, 0);
         let queue = PromptQueue {
             entries: vec![vessel_proto::QueuedPrompt {
+                provenance: None,
                 id: kept,
                 content: Vec::new(),
                 queued_at: chrono::DateTime::UNIX_EPOCH,

@@ -98,6 +98,7 @@ impl Queue {
         client_message_id: Option<vessel_proto::timeline::ClientMessageId>,
     ) -> Result<QueueEntryId, QueueError> {
         let entry = QueuedPrompt {
+            provenance: None,
             id: QueueEntryId::random(),
             content,
             queued_at: Utc::now(),
@@ -195,12 +196,14 @@ impl Queue {
                 current: found.revision,
             });
         }
+        let provenance = found.provenance.take();
         let before = std::mem::replace(&mut found.content, content);
         let queued_at = std::mem::replace(&mut found.queued_at, Utc::now());
         found.revision = revision.saturating_add(1);
         if self.too_heavy() {
             if let Some(found) = self.0.entries.get_mut(place) {
                 found.content = before;
+                found.provenance = provenance;
                 found.queued_at = queued_at;
                 found.revision = revision;
             }
@@ -285,6 +288,62 @@ impl Queue {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_committed_content_edit_clears_the_local_notice_association() {
+        let mut queue = Queue::default();
+        let id = queue.push(text("notice"), Creator::Owner).unwrap();
+        let other = queue.push(text("ordinary"), Creator::Owner).unwrap();
+        let provenance = Some(vessel_proto::timeline::PromptProvenance::InternalNotice {
+            notice: vessel_proto::EventSeq::new(5),
+        });
+        queue.0.entries[0].provenance = provenance;
+        queue
+            .apply(QueueChange::Move {
+                entry: id,
+                before: None,
+            })
+            .unwrap();
+        assert_eq!(queue.get().entries[1].provenance, provenance);
+        let Applied::Taken { entry, place, .. } = queue
+            .apply(QueueChange::SendNow {
+                entry: id,
+                delivery: Delivery::Start,
+            })
+            .unwrap()
+        else {
+            panic!("taken");
+        };
+        assert_eq!(entry.provenance, provenance);
+        queue.insert(place, entry).unwrap();
+        assert!(matches!(
+            queue.apply(QueueChange::Edit {
+                entry: id,
+                revision: 0,
+                content: text(&"x".repeat(PromptQueue::MAX_BYTES)),
+            }),
+            Err(QueueError::TooLarge)
+        ));
+        assert_eq!(queue.get().entries[1].provenance, provenance);
+        assert!(matches!(
+            queue.apply(QueueChange::Edit {
+                entry: id,
+                revision: 1,
+                content: text("stale"),
+            }),
+            Err(QueueError::Stale { .. })
+        ));
+        assert_eq!(queue.get().entries[1].provenance, provenance);
+        queue
+            .apply(QueueChange::Edit {
+                entry: id,
+                revision: 0,
+                content: text("person edited"),
+            })
+            .unwrap();
+        assert_eq!(queue.get().entries[1].provenance, None);
+        assert_eq!(queue.get().entries[0].id, other);
+    }
 
     fn text(text: &str) -> Vec<ContentBlock> {
         vec![ContentBlock::Text {

@@ -304,6 +304,7 @@ mod tests {
         assert!(!running.asks_for_attention());
         let started = SessionEvent::Agent {
             event: AgentEvent::TurnStarted {
+                provenance: None,
                 content: Vec::new(),
 
                 client_message_id: None,

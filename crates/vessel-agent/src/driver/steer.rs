@@ -160,6 +160,7 @@ impl Driver {
                 outcome: Outcome::Injected,
             })) => {
                 self.emit(AgentEvent::Steered {
+                    provenance: None,
                     content,
                     client_message_id,
                 })
