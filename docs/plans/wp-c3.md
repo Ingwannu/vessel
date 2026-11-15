@@ -235,3 +235,23 @@ punctuation fixture now uses a colon below a directory, preserving the existing
 relative-path rule that an initial single-letter drive prefix is invalid.
 Added a replacement-run/context boundary case. Changed-source checks and test
 execution are still pending; no visual or review publication claim.
+
+
+## Shared-base integration and remaining connections
+
+App base4(3cd0d3fc) is merged at83f79cd13 after base3. Only README appendices
+and size ratchets conflicted: both descriptions were retained; slider stays711
+and the lead's extracted demo stays517, with no raised record. The combined
+binary has not yet passed its changed-source checks.
+
+The split caller now carries the view's existing ControlDensity enum all the
+way to the kit's Density, rather than projecting it through a public labelled
+boolean. Its full localized action label remains available in either density.
+The menu-only shape has no redundant primary half. The document model and typed
+local failures remain SOURCE/narrow-only; no current C3 capture exists.
+
+The current pane renderer/context, authenticated connection epoch/preflight,
+and refreshed shared menu have not supplied consumer SOURCE handoffs yet.
+Their owners were asked; no duplicate pane registry, alias resolver or menu
+renderer is created here. Independent node/model work continues. C3 is still
+neither a complete skeleton nor built/passed; no tracker row is upgraded.

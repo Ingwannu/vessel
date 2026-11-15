@@ -16,7 +16,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::workspace::git::{
-    PanelWidth, PrimaryControl, Reading, head_activity, primary_control,
+    ControlDensity, PanelWidth, PrimaryControl, Reading, head_activity, primary_control,
 };
 use vessel_proto::workspace::WorkspaceRoot;
 
@@ -221,8 +221,8 @@ fn actions(
         PrimaryState::Ready
     };
     let label = match chosen {
-        Some(action) if control.labelled => lang.git_primary_label(action, status),
-        Some(_) | None => "",
+        Some(action) => lang.git_primary_label(action, status),
+        None => "",
     };
     let phase = if git.menu.is_open() {
         MenuPhase::Open
@@ -233,10 +233,9 @@ fn actions(
         Some(action) => Content::Split(SplitContent {
             label: label.into(),
             icon: menu::glyph(action),
-            density: if control.labelled {
-                Density::Labelled
-            } else {
-                Density::IconOnly
+            density: match control.density {
+                ControlDensity::Labelled => Density::Labelled,
+                ControlDensity::IconOnly => Density::IconOnly,
             },
             state,
             menu: phase,
@@ -255,7 +254,9 @@ fn actions(
     // Without room for its words, the primary half's action is named by
     // its tooltip (Paseo's `hideLabels` keeps it in the accessibility label).
     let tip = match chosen {
-        Some(action) if !control.labelled => lang.git_primary_label(action, status),
+        Some(action) if control.density == ControlDensity::IconOnly => {
+            lang.git_primary_label(action, status)
+        }
         Some(_) | None => lang.git_labels().options_tip,
     };
     git.tips

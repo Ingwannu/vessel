@@ -149,7 +149,7 @@ pub struct PrimaryControl {
     /// (Paseo's runner keeps the button live and explains).
     pub running: bool,
     /// The panel has room for its words beside its glyph.
-    pub labelled: bool,
+    pub density: ControlDensity,
 }
 
 /// The primary half from the shown facts, the write out and the panel's width.
@@ -165,7 +165,10 @@ pub fn primary_control(
     PrimaryControl {
         action,
         running,
-        labelled: action.is_some() && width.density() == ControlDensity::Labelled,
+        density: match action {
+            Some(_) => width.density(),
+            None => ControlDensity::IconOnly,
+        },
     }
 }
 

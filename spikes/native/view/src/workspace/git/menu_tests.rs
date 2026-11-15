@@ -196,7 +196,7 @@ fn the_primary_half_names_its_action_only_with_room_and_spins_only_for_its_own_w
         PrimaryControl {
             action: Some(Action::Quick(GitAction::Commit)),
             running: false,
-            labelled: true,
+            density: ControlDensity::Labelled,
         }
     );
     assert_eq!(
@@ -204,7 +204,7 @@ fn the_primary_half_names_its_action_only_with_room_and_spins_only_for_its_own_w
         PrimaryControl {
             action: Some(Action::Quick(GitAction::Commit)),
             running: false,
-            labelled: false,
+            density: ControlDensity::IconOnly,
         }
     );
     let mut keys = RequestKeys::default();
@@ -240,7 +240,7 @@ fn nothing_needed_leaves_the_primary_half_to_open_the_menu() {
         PrimaryControl {
             action: None,
             running: false,
-            labelled: false,
+            density: ControlDensity::IconOnly,
         }
     );
 }
