@@ -60,7 +60,7 @@ async fn reload_during_actual_selected_probe_refuses_publication_then_recovers()
                 });
                 let (mut gate, _pid) = accepted(&listener).await;
                 let profiles = Arc::clone(&service.0.profiles);
-                phase(
+                let _reloaded = phase(
                     "reload retained account generation",
                     tokio::task::spawn_blocking(move || profiles.reload()),
                 )

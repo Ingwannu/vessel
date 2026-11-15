@@ -103,6 +103,22 @@ impl Fixture {
             task: Some(task),
         }
     }
+    pub(super) async fn delegated_agent(&self, origin_node: vessel_proto::NodeId) -> Context {
+        self.context(Principal::delegated(
+            vessel_proto::DeviceId::random(),
+            &vessel_proto::Scope::ALL,
+            vessel_proto::Origin {
+                node: origin_node,
+                by: vessel_proto::OriginBy::Agent {
+                    session: SessionId::random(),
+                    depth: 0,
+                },
+                scopes: vessel_proto::Scope::ALL.to_vec(),
+            },
+            vessel_proto::NodeId::random(),
+        ))
+        .await
+    }
     pub(super) async fn running(&self, context: &Connection) -> vessel_session::SessionHandle {
         use vessel_proto::Handler as _;
         let spec = SessionSpec::new(

@@ -32,10 +32,6 @@ impl ServiceError {
         error
     }
     // One exhaustive classification remains the error-code owner.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one arm per service failure preserves the existing exhaustive wire classification"
-    )]
     fn code(&self) -> ErrorCode {
         match self {
             Self::NotFound(_) | Self::UnknownAgent(_) | Self::NoRecord { .. } => {
