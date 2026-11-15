@@ -383,3 +383,11 @@ unrelated ActFailed queue-refusal message. That field is restored byte-for-byte
 from the announced base. Only search failures use A3's safe typed facts; ordinary
 session act failures keep their existing contract. This is an owned correction,
 not a base defect, and the red receipt is retained.
+
+The fourth wider strict check (167ae6af6) compiled the App test target and found
+only three owned test-style diagnostics: two unchecked Duration divisions and
+one missing unit-return semicolon. The deadline test uses checked division with
+the same half-deadline intervals, and the callback now has its required
+semicolon. Test semantics and deadlines are unchanged. Its receipt remains red;
+changed-source strict/tests are still required, after the approved node review
+correction qualification.
