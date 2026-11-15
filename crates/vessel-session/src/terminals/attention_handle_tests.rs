@@ -21,6 +21,7 @@ fn terminal() -> TerminalHandle {
     TerminalHandle(Arc::new(Shared {
         info: tokio::sync::watch::Sender::new(info),
         attention_claim: Mutex::new(None),
+        process: Mutex::new(None),
         ring: Mutex::new(Ring::bounded(
             super::Scrollback::DEFAULT.records,
             super::Scrollback::DEFAULT.bytes,
