@@ -1217,7 +1217,7 @@ button and clipped-parent cases. Counters distinguish the action, its
 parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.
 
-### Per-project scripts and previews (WP-B1)
+### Scripts and previews (D2 legacy surfaces)
 
 Settings › Projects › a project shows its configured scripts/services and latest
 supervised runs. Review the exact commands in the existing approval card before
@@ -1225,18 +1225,31 @@ Run. Restart and Stop address the current terminal; the node owns supervision,
 so closing the detail or app leaves services running. A timed-out mutation is
 never retried automatically: refresh and inspect its state before acting again.
 
-The visible detail refreshes every two seconds. Discovered TCP listeners come
+The visible detail or Scripts tab refreshes every two seconds while its OS
+window is active. Discovered TCP listeners come
 from `port.list` and are matched to the exact live script terminal. Pending,
 unavailable and truncated scans are explicit. A declared service port is not
 proof of a listening socket or health. Old runs remain reachable when the file
 entry is removed or invalid.
 
-Open preview displays an HTTP URL and opens the system browser. A saved direct
-WebSocket route can suggest its host; secure/relay/SSH routes require the Service
-host field. A remote loopback listener needs an operator-managed tunnel and its
-explicit local host. The app creates no tunnel or proxy and sends no node token
-to the browser. The preview callback rechecks the current observed socket.
-See `docs/plans/wp-b1.md` for the Paseo references and intentional differences.
+Open preview displays an HTTP URL and delegates to the system browser; Copy URL
+uses the same final destination check. The Service host field is explicit: a
+mutable saved-book route is not the admitted connection preimage and supplies
+no host suggestion. Changing admission clears the entered host. Remote loopback
+requires an operator-managed tunnel and explicit local host. The app creates no
+tunnel/proxy and sends no node token to the browser. Callbacks recheck admission,
+terminal publication and the current observed socket.
+
+The shared new-tab launcher opens Scripts passively in W12's registry. State is
+keyed by exact layout/tab plus an app-only reply incarnation. Legacy session
+layouts use their captured ScriptPlace::Session and filter foreign session runs.
+Their terminal reveal uses the same layout and exact TerminalId; C2 owns its
+renderer. Closing Scripts releases display state and leaves processes running.
+Canonical WorkspaceId execution stays unavailable pending W11/D2 runtime APIs.
+Drawn lifecycle actions also capture their successful read, so refresh cannot
+retarget an old Run button to a changed approved command. Every node call uses
+the shared SelectedConnection before-poll/after-result guard, with no replay.
+See `docs/plans/wp-b1.md` and `docs/plans/wp-d2.md` for references and limits.
 
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
