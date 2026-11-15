@@ -634,6 +634,8 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "git.compare",
+    "git.compare_file",
 ];
 
 #[test]

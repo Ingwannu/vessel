@@ -338,6 +338,8 @@ impl Method {
             | Self::ListSnapshots
             | Self::DropSnapshot
             | Self::GitStatus
+            | Self::GitCompare
+            | Self::GitCompareFile
             | Self::GitChanges
             | Self::GitDiff
             | Self::GitShow

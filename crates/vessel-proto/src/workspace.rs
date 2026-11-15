@@ -13,6 +13,7 @@ mod exec_path;
 mod file_terminals;
 mod files;
 mod git;
+mod panel;
 mod path;
 mod port_range;
 mod port_script;
@@ -43,6 +44,10 @@ pub use git::{
     ListStashes, PathSet, Pull, PullOutcome, Push, PushOutcome, ReadLog, RenameBranch,
     RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction, StashChanges, StashEntry,
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
+};
+pub use panel::{
+    CompareGit, CompareGitFile, GIT_PANEL, GitCompared, GitComparison, GitHunkOffset,
+    GitReadReason, GitWhitespace,
 };
 pub use path::{InvalidRelPath, RelPath, is_git_dir};
 pub use port_range::{InvalidPortRange, PortRange};
