@@ -176,7 +176,7 @@ pub struct SetupProgressReply {
 }
 
 /// Stop only the generation the person actually saw.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CancelSetup {
     /// Backing worktree resource.

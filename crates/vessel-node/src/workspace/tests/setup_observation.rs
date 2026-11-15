@@ -48,9 +48,7 @@ async fn until(
     panic!("setup observation never reached expected state: {progress:?}");
 }
 
-#[tokio::test]
-async fn cancellation_is_generation_specific_and_restart_does_not_invent_command_history() {
-    let fixture = Fixture::new().await;
+async fn approved_worktree(fixture: &Fixture) -> WorktreeInfo {
     let project = fixture
         .project(
             "setup-observation",
@@ -71,7 +69,13 @@ async fn cancellation_is_generation_specific_and_restart_does_not_invent_command
         .approve(project.id, digest, true)
         .await
         .unwrap();
-    let worktree = fixture.created(project.id).await;
+    fixture.created(project.id).await
+}
+
+#[tokio::test]
+async fn cancellation_is_generation_specific_and_restart_does_not_invent_command_history() {
+    let fixture = Fixture::new().await;
+    let worktree = approved_worktree(&fixture).await;
     let running = until(&fixture.workspaces, worktree.id, |progress| {
         progress
             .commands
@@ -110,17 +114,17 @@ async fn cancellation_is_generation_specific_and_restart_does_not_invent_command
     })
     .await;
     assert_eq!(stopped.state, SetupRunState::Cancelled);
+    let [first, second] = stopped.commands.as_slice() else {
+        panic!("unexpected command rows");
+    };
     assert!(matches!(
-        stopped.commands.first().unwrap().state,
+        first.state,
         SetupCommandState::Finished {
             result: SetupCommandResult::Cancelled,
             ..
         }
     ));
-    assert_eq!(
-        stopped.commands.get(1).unwrap().state,
-        SetupCommandState::Waiting
-    );
+    assert_eq!(second.state, SetupCommandState::Waiting);
     assert!(!worktree.path.join("never").exists());
     assert_eq!(
         fixture

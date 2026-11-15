@@ -49,7 +49,7 @@ impl CommandOutcome {
 
 /// Borrowed events delivered inline. Consumers copy only bounded state;
 /// they must not do disk or network I/O in this synchronous callback.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum CommandEvent<'a> {
     /// The runner is preparing this command; spawning can still fail.
     Started {

@@ -135,6 +135,19 @@ struct WorktreeEntry {
     starting: usize,
 }
 
+impl WorktreeEntry {
+    fn new(info: WorktreeInfo) -> Self {
+        let (written, _) = watch::channel(0);
+        Self {
+            info,
+            observation: None,
+            written: Arc::new(written),
+            running: None,
+            starting: 0,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct State {
     projects: HashMap<ProjectId, ProjectEntry>,

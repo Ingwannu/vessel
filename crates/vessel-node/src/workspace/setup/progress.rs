@@ -139,14 +139,13 @@ impl Observation {
     }
 
     fn advance(&mut self) {
-        match self.snapshot.cursor.revision.next() {
-            Some(revision) => self.snapshot.cursor.revision = revision,
-            None => {
-                // A new generation prevents wraparound and wakes every old cursor.
-                self.snapshot.cursor.run = SetupRunId::random();
-                self.snapshot.cursor.revision = SetupRevision::ZERO;
-                self.snapshot.state = SetupRunState::Unknown;
-            }
+        if let Some(revision) = self.snapshot.cursor.revision.next() {
+            self.snapshot.cursor.revision = revision;
+        } else {
+            // A new generation prevents wraparound and wakes every old cursor.
+            self.snapshot.cursor.run = SetupRunId::random();
+            self.snapshot.cursor.revision = SetupRevision::ZERO;
+            self.snapshot.state = SetupRunState::Unknown;
         }
     }
 }

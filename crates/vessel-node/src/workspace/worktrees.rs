@@ -13,8 +13,6 @@ mod removal;
 mod snapshots;
 mod start;
 
-use std::sync::Arc;
-
 use chrono::Utc;
 use vessel_proto::workspace::{SetupFailure, SetupState, WorktreeInfo, WorktreeList};
 use vessel_proto::{ProjectId, WorktreeId};
@@ -44,17 +42,7 @@ impl Workspaces {
                     };
                     rewrite.push(info.clone());
                 }
-                let (written, _) = tokio::sync::watch::channel(0);
-                drop(state.worktrees.insert(
-                    info.id,
-                    WorktreeEntry {
-                        info,
-                        observation: None,
-                        written: Arc::new(written),
-                        running: None,
-                        starting: 0,
-                    },
-                ));
+                drop(state.worktrees.insert(info.id, WorktreeEntry::new(info)));
             }
         }
         for info in rewrite {
