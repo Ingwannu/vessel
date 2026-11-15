@@ -139,3 +139,18 @@ fn node_messages_do_not_reach_history_failures() {
         Problem::Refused(vessel_proto::ErrorCode::Forbidden)
     );
 }
+
+#[tokio::test]
+async fn reusing_a_book_alias_for_a_different_node_refuses_before_any_create() {
+    let peer = peer::connect(vec![]).await;
+    let request = batch(vessel_proto::NodeId::random());
+    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+        panic!("batch");
+    };
+    assert!(
+        outcomes
+            .iter()
+            .all(|outcome| matches!(outcome.result, Err(Problem::IdentityChanged)))
+    );
+    assert!(peer.calls.lock().unwrap().is_empty());
+}

@@ -80,13 +80,22 @@ impl ImportArea {
     }
 
     fn reproject(&mut self) {
-        self.visible = self
+        let visible: Vec<_> = self
             .model
             .filtered(&self.query)
             .into_iter()
             .map(|entry| entry.id.clone())
             .collect();
-        self.list.reset(self.visible.len());
+        // Appending an older page must not put the person back at the top.
+        if visible.starts_with(&self.visible) {
+            let old = self.visible.len();
+            self.list
+                .splice(old..old, visible.len().saturating_sub(old));
+            self.list.changed(0..old);
+        } else {
+            self.list.reset(visible.len());
+        }
+        self.visible = visible;
     }
 }
 

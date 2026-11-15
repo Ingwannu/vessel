@@ -161,3 +161,84 @@ impl Shell {
         self.history_refresh();
     }
 }
+
+/// Three controls share one typed picker while retaining separate anchors.
+pub(super) fn controls(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> vessel_app_kit::ui::Div {
+    use vessel_app_kit::theme::spacing::S2;
+    use vessel_app_kit::ui::{ParentElement as _, Styled as _, div, px};
+    let area = &shell.areas.import;
+    let words = shell.words.history();
+    let scope = area.model.scope();
+    let machine = scope
+        .map_or(words.choose_machine(), |scope| scope.machine.as_str())
+        .to_owned();
+    let agent = scope.map_or_else(
+        || words.choose_agent().to_owned(),
+        |scope| vessel_app_view::agent_name(&scope.harness),
+    );
+    let profile = scope
+        .and_then(|scope| scope.profile.as_ref())
+        .map_or_else(|| words.default_account().to_owned(), ToString::to_string);
+    let fields = [
+        (Picker::Machine, words.machine(), machine),
+        (Picker::Agent, words.agent(), agent),
+        (Picker::Account, words.account(), profile),
+    ];
+    div().flex().flex_col().gap(px(S2)).children(
+        fields
+            .into_iter()
+            .map(|(which, label, value)| field((which, label, value), shell, tokens, window, cx)),
+    )
+}
+
+fn field(
+    (which, label, value): (Picker, &str, String),
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> vessel_app_kit::ui::Div {
+    use vessel_app_kit::theme::spacing::{S2, S11};
+    use vessel_app_kit::ui::{
+        ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    };
+    use vessel_app_kit::{Type, TypeExt as _};
+    let area = &shell.areas.import;
+    let anchor = match which {
+        Picker::Machine => &area.machine_anchor,
+        Picker::Agent => &area.agent_anchor,
+        Picker::Account => &area.account_anchor,
+    };
+    div()
+        .flex()
+        .flex_wrap()
+        .items_center()
+        .justify_between()
+        .gap(px(S2))
+        .child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .child(label.to_owned()),
+        )
+        .child(
+            vessel_app_kit::select::trigger(
+                format!("history-{which:?}"),
+                value,
+                anchor,
+                area.choosing == Some(which) && area.picker.is_open(),
+                !area.model.importing(),
+                crate::areas::draft::compact(window),
+                tokens,
+            )
+            .min_h(px(S11))
+            .on_click(
+                cx.listener(move |shell, _, window, cx| shell.history_picker(which, window, cx)),
+            ),
+        )
+}

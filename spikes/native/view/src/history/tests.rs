@@ -233,3 +233,65 @@ fn a_batch_receipt_must_match_scope_and_cover_every_selected_id_once() {
         &Problem::InvalidReply
     );
 }
+
+#[test]
+fn successful_and_failed_imports_remain_attributed_to_their_rows() {
+    let mut h = loaded();
+    for entry in h.entries().to_vec() {
+        h.toggle(&entry.id);
+    }
+    let Ask::Import(batch) = h.import().unwrap().unwrap() else {
+        panic!("batch");
+    };
+    let first = batch.entries.first().unwrap();
+    let created = SessionId::random();
+    let outcomes = batch
+        .entries
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| Outcome {
+            id: entry.id.clone(),
+            result: if index == 0 {
+                Ok(Box::new(vessel_proto::SessionInfo::new(
+                    created,
+                    entry.spec(&batch.scope),
+                    chrono::DateTime::UNIX_EPOCH,
+                )))
+            } else {
+                Err(Problem::Refused(vessel_proto::ErrorCode::Conflict))
+            },
+        })
+        .collect();
+    assert!(h.answer(Reply::Imported {
+        scope: batch.scope,
+        ticket: batch.ticket,
+        outcomes
+    }));
+    assert_eq!(h.selection(&first.id), Selection::Existing(created));
+    assert!(!h.importing());
+    assert_eq!(h.outcomes().len(), batch.entries.len());
+    assert!(!h.has_selection());
+}
+
+#[test]
+fn a_new_authenticated_node_cannot_append_to_the_previous_nodes_page() {
+    let mut h = History::default();
+    h.choose(scope());
+    let ask = h.refresh().unwrap().unwrap();
+    assert!(h.answer(page(
+        ask,
+        vec![entry("original")],
+        Some(Cursor::parse("next".into()).unwrap())
+    )));
+    let ask = h.more().unwrap().unwrap();
+    let mut changed = page(ask, vec![entry("wrong-node")], None);
+    if let Reply::Listed {
+        result: Ok(page), ..
+    } = &mut changed
+    {
+        page.node = vessel_proto::NodeId::random();
+    }
+    assert!(h.answer(changed));
+    assert_eq!(h.loading(), &Loading::Failed(Problem::IdentityChanged));
+    assert_eq!(h.entries().first().unwrap().id.as_str(), "original");
+}

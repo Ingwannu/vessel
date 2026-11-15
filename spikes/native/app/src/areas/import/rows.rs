@@ -2,7 +2,7 @@
 
 use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::theme::spacing::{S1, S2, S3, S11};
+use vessel_app_kit::theme::spacing::{S1, S2, S3, S4, S11};
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, ElementId, FluentBuilder as _, IntoElement as _, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -50,20 +50,6 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         Selection::Available => (Glyph::Circle, words.select()),
         Selection::Existing(_) => (Glyph::ChevronRight, words.open()),
     };
-    let title = entry
-        .title
-        .as_ref()
-        .map_or_else(|| words.untitled().to_owned(), ToString::to_string);
-    let activity = entry.updated_at.map_or_else(
-        || words.unknown_time().to_owned(),
-        |at| {
-            shell
-                .t
-                .lang
-                .machines()
-                .ago(vessel_app_view::ago::Ago::of(at, chrono::Utc::now()))
-        },
-    );
     let id = entry.id.clone();
     div()
         .id(ElementId::Name(
@@ -86,37 +72,10 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         })
         .child(vessel_app_kit::glyph(
             icon,
-            S4_ICON,
+            S4,
             tokens.neutral.foreground_muted,
         ))
-        .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .flex()
-                .flex_col()
-                .gap(px(S1))
-                .child(
-                    div()
-                        .type_(Type::Body)
-                        .text_color(tokens.neutral.foreground)
-                        .truncate()
-                        .child(title),
-                )
-                .child(
-                    div()
-                        .type_(Type::Meta)
-                        .text_color(tokens.neutral.foreground_muted)
-                        .truncate()
-                        .child(entry.cwd.to_string_lossy().into_owned()),
-                )
-                .child(
-                    div()
-                        .type_(Type::Meta)
-                        .text_color(tokens.neutral.foreground_extra_muted)
-                        .child(activity),
-                ),
-        )
+        .child(details(shell, entry, tokens))
         .child(
             div()
                 .flex_shrink_0()
@@ -128,5 +87,60 @@ fn row(shell: &Shell, entry: &Entry, tokens: &Tokens, cx: &mut Context<'_, Shell
         .into_any_element()
 }
 
-/// The kit spacing scale's normal icon size.
-const S4_ICON: f32 = vessel_app_kit::theme::spacing::S4;
+fn details(shell: &Shell, entry: &Entry, tokens: &Tokens) -> Div {
+    let words = shell.words.history();
+    let title = entry
+        .title
+        .as_ref()
+        .map_or_else(|| words.untitled().to_owned(), ToString::to_string);
+    let activity = entry.updated_at.map_or_else(
+        || words.unknown_time().to_owned(),
+        |at| {
+            shell
+                .t
+                .lang
+                .machines()
+                .ago(vessel_app_view::ago::Ago::of(at, chrono::Utc::now()))
+        },
+    );
+    let failure = shell
+        .areas
+        .import
+        .model
+        .outcomes()
+        .iter()
+        .find(|outcome| outcome.id == entry.id)
+        .and_then(|outcome| outcome.result.as_ref().err());
+    div()
+        .flex_1()
+        .min_w_0()
+        .flex()
+        .flex_col()
+        .gap(px(S1))
+        .child(
+            div()
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground)
+                .truncate()
+                .child(title),
+        )
+        .child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_muted)
+                .truncate()
+                .child(entry.cwd.to_string_lossy().into_owned()),
+        )
+        .child(
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.foreground_extra_muted)
+                .child(activity),
+        )
+        .children(failure.map(|problem| {
+            div()
+                .type_(Type::Meta)
+                .text_color(tokens.neutral.destructive)
+                .child(problem.words(shell.words).to_owned())
+        }))
+}

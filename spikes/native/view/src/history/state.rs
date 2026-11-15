@@ -153,7 +153,11 @@ impl History {
         let Some(scope) = self.scope.clone() else {
             return Ok(None);
         };
-        let ticket = self.tickets.next_ticket().map_err(|_| Problem::Exhausted)?;
+        // Tickets only returns the fieldless Exhausted variant; preserve its meaning.
+        let ticket = self
+            .tickets
+            .next_ticket()
+            .map_err(|_exhausted| Problem::Exhausted)?;
         self.loading = Loading::Pending(ticket);
         // A fresh request only replaces rows after success; the answer remembers
         // whether it was a continuation through the cursor retained here.
@@ -221,7 +225,11 @@ impl History {
         if entries.is_empty() {
             return Ok(None);
         }
-        let ticket = self.tickets.next_ticket().map_err(|_| Problem::Exhausted)?;
+        // Tickets only returns the fieldless Exhausted variant; preserve its meaning.
+        let ticket = self
+            .tickets
+            .next_ticket()
+            .map_err(|_exhausted| Problem::Exhausted)?;
         self.importing = Some(PendingImport {
             scope: scope.clone(),
             ticket,
@@ -240,62 +248,64 @@ impl History {
     #[must_use]
     pub fn answer(&mut self, reply: Reply) -> bool {
         match reply {
-            Reply::Profiles { .. } => return false,
+            Reply::Profiles { .. } => false,
             Reply::Listed {
                 scope,
                 ticket,
                 result,
-            } => {
-                if self.scope.as_ref() != Some(&scope) || self.loading != Loading::Pending(ticket) {
-                    return false;
-                }
-                match result {
-                    Ok(page)
-                        if self.next.is_some()
-                            && self.node.is_some_and(|node| node != page.node) =>
-                    {
-                        self.loading = Loading::Failed(Problem::IdentityChanged);
-                    }
-                    Ok(page) => {
-                        self.node = Some(page.node);
-                        self.page(page);
-                        self.loading = Loading::Idle;
-                    }
-                    Err(problem) => self.loading = Loading::Failed(problem),
-                }
-            }
+            } => self.listed(&scope, ticket, result),
             Reply::Imported {
                 scope,
                 ticket,
                 outcomes,
-            } => {
-                let Some(pending) = &self.importing else {
-                    return false;
-                };
-                if pending.ticket != ticket || pending.scope != scope {
-                    return false;
-                }
-                let complete = outcomes.len() == pending.ids.len()
-                    && pending
-                        .ids
-                        .iter()
-                        .all(|id| outcomes.iter().filter(|outcome| &outcome.id == id).count() == 1);
-                let outcomes = if complete {
-                    outcomes
-                } else {
-                    pending
-                        .ids
-                        .iter()
-                        .cloned()
-                        .map(|id| Outcome {
-                            id,
-                            result: Err(Problem::InvalidReply),
-                        })
-                        .collect()
-                };
-                self.apply_receipts(outcomes);
-            }
+            } => self.imported(&scope, ticket, outcomes),
         }
+    }
+
+    fn listed(&mut self, scope: &Scope, ticket: Ticket, result: Result<Listed, Problem>) -> bool {
+        if self.scope.as_ref() != Some(scope) || self.loading != Loading::Pending(ticket) {
+            return false;
+        }
+        match result {
+            Ok(page) if self.next.is_some() && self.node.is_some_and(|node| node != page.node) => {
+                self.loading = Loading::Failed(Problem::IdentityChanged);
+            }
+            Ok(page) => {
+                self.node = Some(page.node);
+                self.page(page);
+                self.loading = Loading::Idle;
+            }
+            Err(problem) => self.loading = Loading::Failed(problem),
+        }
+        true
+    }
+
+    fn imported(&mut self, scope: &Scope, ticket: Ticket, outcomes: Vec<Outcome>) -> bool {
+        let Some(pending) = &self.importing else {
+            return false;
+        };
+        if pending.ticket != ticket || &pending.scope != scope {
+            return false;
+        }
+        let complete = outcomes.len() == pending.ids.len()
+            && pending
+                .ids
+                .iter()
+                .all(|id| outcomes.iter().filter(|outcome| &outcome.id == id).count() == 1);
+        let outcomes = if complete {
+            outcomes
+        } else {
+            pending
+                .ids
+                .iter()
+                .cloned()
+                .map(|id| Outcome {
+                    id,
+                    result: Err(Problem::InvalidReply),
+                })
+                .collect()
+        };
+        self.apply_receipts(outcomes);
         true
     }
 
