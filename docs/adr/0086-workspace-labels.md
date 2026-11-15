@@ -97,7 +97,7 @@ do, instead of adding unrelated catalog payloads to the session-only event
 frame. Subscribe to a watch cursor before taking the catalog snapshot, wait
 only when the supplied cursor is current, and drop that watch receiver when
 the RPC is cancelled. A changed cursor re-enters the actor for an atomic
-snapshot/catch-up. One actor owns mutation -> durable reply -> journal publish,
+snapshot/catch-up. One actor owns mutation -> durable commit -> journal publish -> caller reply,
 so request cancellation cannot reorder or skip publication. This transport
 difference preserves the reference's user-visible observation semantics.
 
@@ -139,14 +139,18 @@ fake-node tests are updated when wiring lands, never weakened to stage types.
 
 ## Validation and current state
 
-Value contract and test-only SQL/service implementations are staged. Eight
-real-SQL tests passed with an explicit fake registry. The new service core
-serializes accepted writes independently of caller lifetime; scripted timing
-regressions cover cancellation after acceptance, failure/no-op publication,
-observer wakeup/timeout and observer receiver cleanup. All four passed in the
-26-test narrow run on `29c075fa8`; strict clippy on the merged head is still
-pending. This does not establish the real registry/store adapter.
+Value contract and test-only SQL/service implementations are staged. The
+`81a07c0f` scoped run passed 27 tests (node 11, proto 4, store 12), including
+real SQL against an explicit fake registry and the accepted-write shutdown
+regression. Strict proto/store/node alltarget clippy passed on `3bd691bc`
+after the gate42 base merge. The announced gate44 base was then merged without
+changing the staged labels implementation. These checks do not establish the
+real registry/store adapter or a whole-package gate.
 
-Registry identity alone is reviewed; transaction helpers are not yet
-consumer-ready. Session-label calls remain owned by ADR 0063. No RPC, whole
-gate, capture or production flow is claimed complete.
+The W11 registry dependency `1057336b` has a coordinator-accepted whole result
+with two named integrator-owned base timing failures, but V3 row 213 is still
+pending and the transaction helpers are not consumer-ready. Its review packet
+is the authority for that limited producer evidence; A6 has not adopted it or
+claimed a green Rust whole suite. Keep the typed registry boundary/fake until
+the exact reviewed hash is supplied. Session-label calls remain owned by ADR
+0063. No RPC, whole A6 gate, capture or production flow is claimed complete.
