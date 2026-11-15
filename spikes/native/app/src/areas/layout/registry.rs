@@ -36,7 +36,7 @@ pub(super) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if !shell.layout_tab_exists(panel.workspace, panel.tab)
+    if !shell.layout_tab_matches(panel.workspace, panel.tab, panel.target)
         || !shell.layout_panel_visible(panel.workspace, panel.tab, window)
     {
         return div().into_any_element();
