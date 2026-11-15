@@ -89,6 +89,16 @@ Exact method and notice names belong to the reviewed source amendment. There is
 no public bypass flag, second completion map, raw client or admission-from-reply.
 W21 and W12 must consume the same policy in one checked carrier/call-site union.
 
+### Bilateral owner confirmation
+
+The lifecycle call-site/carrier owner (W21) and the sole resident/layout owner
+(W12) have both read and accepted this exact handoff. W21 owns the original
+selected call, envelope and outcome classification; W12 owns prewire arming,
+ordered-end classification and canonical consumption. Both preserve the original
+guard/context/binding through acknowledgement and the separately held exact
+Window commit. This signoff closes ownership ambiguity only; source, runtime,
+promotion and the counterfactual producer/owner evidence are still required.
+
 ## W21 call-site and carrier agreement
 
 W21 confirms the direction above. This section identifies existing code and the
