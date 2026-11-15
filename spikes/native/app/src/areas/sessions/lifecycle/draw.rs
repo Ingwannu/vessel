@@ -75,6 +75,7 @@ pub(crate) fn error(shell: &Shell, tokens: &Tokens) -> Option<AnyElement> {
         Problem::Offline => words.navigation_offline(),
         Problem::WrongReply => words.navigation_refused(),
         Problem::DestinationChanged => words.destination_changed(),
+        Problem::IdentityUnavailable => words.identity_unavailable(),
     };
     Some(
         div()

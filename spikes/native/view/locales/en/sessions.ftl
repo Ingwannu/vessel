@@ -63,3 +63,6 @@ sessions-destination-changed = The session connection changed. Refresh to check 
 
 # Closing an unknown child must not accidentally archive it.
 sessions-parentage-unavailable = Current session parent information is unavailable. Refresh before closing this tab.
+
+# Reopening admits the original node identity before a lifecycle mutation.
+sessions-identity-unavailable = This session’s host identity is unavailable. Reopen the session before changing it.

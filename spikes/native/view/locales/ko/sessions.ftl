@@ -63,3 +63,6 @@ sessions-destination-changed = 세션 연결이 변경되었습니다. 새로고
 
 # Closing an unknown child must not accidentally archive it.
 sessions-parentage-unavailable = 현재 세션의 부모 정보를 확인할 수 없습니다. 탭을 닫기 전에 새로고침해 주세요.
+
+# Reopening admits the original node identity before a lifecycle mutation.
+sessions-identity-unavailable = 이 세션의 호스트 ID를 확인할 수 없습니다. 변경하기 전에 세션을 다시 여세요.

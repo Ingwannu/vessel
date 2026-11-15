@@ -190,3 +190,10 @@ cannot cancel or confirm a later decision, even on the same session. Actual
 accepted dismissal calls `DialogState::dismissed`; navigation invalidates the
 pending decision without recycling its ticket. The renderer remains the one kit
 dialog. This addresses delayed UI events without a second modal or identity map.
+
+The legacy selected-session mutation bridge requires a retained Open.binding.
+An unbound target cannot borrow the latest Fleet NodeId to authorize archive,
+delete, resume or a slash-command close. It shows a localized reopen requirement
+before any confirmation/request is issued. W3's creation receipt and W12's
+resident context will supply the original admitted address for new/resident
+sessions; until cutover a legacy unbound open must be reopened to admit it.

@@ -20,14 +20,7 @@ fn info() -> SessionInfo {
     )
 }
 
-fn pending_exit(
-    shell: &mut Shell,
-) -> (
-    SessionInfo,
-    Name,
-    NodeId,
-    vessel_app_view::sessions::LifecycleTicket,
-) {
+fn pending_exit(shell: &mut Shell) -> (SessionInfo, Name, NodeId, LifecycleTicket) {
     let info = info();
     let card = Card::from_session("fixture", &info);
     let admitted = NodeId::random();
@@ -194,5 +187,24 @@ fn stale_confirmation_callbacks_cannot_dismiss_or_submit_a_newer_decision(cx: &m
                 .action,
             LifecycleAction::Delete
         );
+    });
+}
+
+#[gpui::test]
+fn unbound_open_cannot_borrow_latest_fleet_identity_for_a_mutation(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let (_, _, _, pending) = pending_exit(shell);
+        let _cancelled = shell.areas.sessions.lifecycle.running.finish(pending);
+        shell.areas.sessions.lifecycle.after = None;
+        shell.areas.session.open.as_mut().unwrap().binding = None;
+        shell.prepare_session_lifecycle(LifecycleAction::Archive, window, cx);
+        assert!(shell.areas.sessions.lifecycle.asking.is_none());
+        assert!(!shell.sessions_lifecycle_busy());
+        assert!(matches!(
+            shell.areas.sessions.lifecycle.error,
+            Some((_, Problem::IdentityUnavailable))
+        ));
     });
 }

@@ -33,6 +33,7 @@ enum Problem {
     Offline,
     WrongReply,
     DestinationChanged,
+    IdentityUnavailable,
 }
 #[derive(Clone)]
 struct Prepared {
@@ -138,9 +139,19 @@ impl Shell {
             cx.notify();
             return None;
         };
-        let node = self
-            .opened_session_address(&host, open.session)
-            .map(|address| address.node);
+        let Some(address) = self.opened_session_address(&host, open.session) else {
+            self.areas.sessions.lifecycle.error = Some((
+                LifecycleTarget {
+                    host,
+                    session: open.session,
+                    node: None,
+                },
+                Problem::IdentityUnavailable,
+            ));
+            cx.notify();
+            return None;
+        };
+        let node = Some(address.node);
         let seed = self.areas.conversation.info.clone();
         if let Some(problem) = self.fresh_lifecycle_problem(action, seed.as_deref(), cx) {
             self.areas.sessions.lifecycle.error = Some((
