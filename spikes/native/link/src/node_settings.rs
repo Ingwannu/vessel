@@ -90,6 +90,7 @@ async fn call(
             client
                 .call(SetNodeSettings {
                     park_after: Some(park_after),
+                    ..SetNodeSettings::default()
                 })
                 .await
         }
@@ -104,7 +105,10 @@ fn problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        vessel_client::CallError::NotInProtocol { .. } => Problem::Refused(ErrorCode::Unsupported),
+        vessel_client::CallError::NotInProtocol { .. }
+        | vessel_client::CallError::UnassignedProtocol { .. } => {
+            Problem::Refused(ErrorCode::Unsupported)
+        }
         vessel_client::CallError::UnexpectedReply(_)
         | vessel_client::CallError::RequestIdsExhausted => Problem::Refused(ErrorCode::Internal),
     }
@@ -116,6 +120,15 @@ mod tests {
     use vessel_app_view::idle_release::Problem;
     use vessel_proto::ErrorCode;
 
+    #[test]
+    fn an_unassigned_call_is_unsupported() {
+        assert_eq!(
+            problem(vessel_client::CallError::UnassignedProtocol {
+                method: vessel_proto::Method::NodeInfo,
+            }),
+            Problem::Refused(ErrorCode::Unsupported)
+        );
+    }
     #[test]
     fn a_refusal_crosses_as_its_code_only() {
         let raw = "a node's own words that may not reach the screen";

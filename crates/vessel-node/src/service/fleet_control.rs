@@ -8,8 +8,8 @@ use crate::principal::Principal;
 use std::sync::Arc;
 use tokio::sync::OwnedSemaphorePermit;
 use vessel_proto::{
-    Ack, ErrorCode, ErrorDetail, FleetControlError, FleetRole, FleetSyncStatus, GetFleetStatus,
-    JoinFleet, JoinedFleet, LeaveFleet, Scope, SyncFleet, WireError,
+    Ack, ErrorCode, ErrorDetail, FleetControlError, FleetPublished, FleetRole, FleetSyncStatus,
+    GetFleetStatus, GetPublished, JoinFleet, JoinedFleet, LeaveFleet, Scope, SyncFleet, WireError,
 };
 
 fn refusal(reason: FleetControlError, code: ErrorCode) -> WireError {
@@ -67,6 +67,17 @@ fn join_refusal(error: &JoinError) -> WireError {
         JoinError::AfterPairing(_) => {
             refusal(FleetControlError::JoinUncertain, ErrorCode::Conflict)
         }
+    }
+}
+
+/// A refused `fleet.published`: as `fleet.status`'s, but its own words when
+/// the list is over a bound.
+fn published_refusal(error: &ProjectionError) -> WireError {
+    match error {
+        ProjectionError::TooLarge | ProjectionError::Reply(_) => {
+            refusal(FleetControlError::PublishedTooLarge, ErrorCode::Unavailable)
+        }
+        ProjectionError::File(_) | ProjectionError::Decode(_) => projection_refusal(error),
     }
 }
 
@@ -213,5 +224,26 @@ impl NodeService {
         .await
         .map_err(|error| wire(&crate::error::ServiceError::Task(error)))?
         .map_err(|error| projection_refusal(&error))
+    }
+
+    /// `fleet.published` (protocol 16, ADR 0056): what this machine shares
+    /// or last received, by name. `admin` (the guard), never forwarded;
+    /// every role answers with a value, a standalone machine's included.
+    pub(crate) async fn fleet_published(
+        &self,
+        _: &Connection,
+        _: GetPublished,
+    ) -> Result<FleetPublished, WireError> {
+        let permit = Arc::clone(&self.fleet_reads)
+            .try_acquire_owned()
+            .map_err(|_busy| refusal(FleetControlError::Busy, ErrorCode::Unavailable))?;
+        let files = self.fleet.files().clone();
+        tokio::task::spawn_blocking(move || {
+            let _permit = permit;
+            crate::fleet::read_published(&files)
+        })
+        .await
+        .map_err(|error| wire(&crate::error::ServiceError::Task(error)))?
+        .map_err(|error| published_refusal(&error))
     }
 }

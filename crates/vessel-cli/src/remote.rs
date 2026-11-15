@@ -158,12 +158,12 @@ pub(crate) async fn update(target: &Target, args: Update) -> Result<(), CliError
     } else if args.when_idle {
         StopWhen::WhenIdle
     } else if args.now {
-        if !args.yes && !confirm(&label, live.len()).await? {
+        if !args.yes && confirm(&resolved, &live).await? == ConfirmationReply::Declined {
             return Err(CliError::Usage("not confirmed; nothing was stopped"));
         }
         StopWhen::Now
     } else {
-        io::out(live_list(&label, &live).as_bytes()).await?;
+        io::out(live_list(&resolved, &live).as_bytes()).await?;
         return Err(CliError::LiveSessions(live.len()));
     };
     match client.stop_node(when).await {
@@ -203,8 +203,9 @@ pub(crate) async fn update(target: &Target, args: Update) -> Result<(), CliError
     Ok(io::out(text.as_bytes()).await?)
 }
 
-/// The live sessions that keep `update` from stopping the node.
-fn live_list(label: &str, live: &[SessionInfo]) -> String {
+/// Preserve the same live-session refusal for stop and update.
+pub(crate) fn live_list(resolved: &Resolved, live: &[SessionInfo]) -> String {
+    let label = nodes::label(resolved);
     let mut text = format!(
         "{label} has {} live session(s); nothing was changed:\n",
         live.len()
@@ -225,9 +226,25 @@ fn live_list(label: &str, live: &[SessionInfo]) -> String {
     text
 }
 
-/// Ask before interrupting `count` sessions; only a person at a terminal
-/// can answer.
-async fn confirm(label: &str, count: usize) -> Result<bool, CliError> {
+/// A shutdown confirmation is a decision, separate from the request to ask.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ConfirmationReply {
+    /// The person authorized interruption of the listed sessions.
+    Confirmed,
+    /// The person declined or supplied no affirmative answer.
+    Declined,
+}
+
+/// Ask before interrupting the target's live sessions; a pipe cannot consent.
+///
+/// # Errors
+/// No terminal is available, or reading/writing the prompt failed.
+pub(crate) async fn confirm(
+    resolved: &Resolved,
+    live: &[SessionInfo],
+) -> Result<ConfirmationReply, CliError> {
+    let label = nodes::label(resolved);
+    let count = live.len();
     if !std::io::stdin().is_terminal() {
         return Err(CliError::Usage(
             "--now interrupts live sessions; confirm with --yes when not at a terminal",
@@ -239,7 +256,11 @@ async fn confirm(label: &str, count: usize) -> Result<bool, CliError> {
     .await?;
     let mut lines = io::input_lines()?;
     let answer = lines.recv().await.unwrap_or_default();
-    Ok(matches!(answer.trim(), "y" | "Y" | "yes"))
+    Ok(if matches!(answer.trim(), "y" | "Y" | "yes") {
+        ConfirmationReply::Confirmed
+    } else {
+        ConfirmationReply::Declined
+    })
 }
 
 /// The `vesseld` next to this `vessel`.

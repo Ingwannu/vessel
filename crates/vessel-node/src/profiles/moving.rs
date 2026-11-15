@@ -79,7 +79,9 @@ pub(crate) async fn plan(
         .ok_or_else(|| ServiceError::HomeUnknown(target.name().clone()))?;
     logged_in(lookup, profiles.env(), &target).await?;
     let (mcp_servers, notices) = launcher.mcp_servers(&info.spec, Some(&target));
+    let limits = launcher.limits(profiles, &info.spec.harness, Some(&target));
     Ok(ProfileMove {
+        limits,
         mcp_servers,
         notices,
         profile: target,

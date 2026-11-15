@@ -84,3 +84,14 @@ finalization are owned by the local-node package.
 The new `vessel-proc` dependency reuses an existing internal process primitive,
 including kill-on-drop groups/jobs. No new external library is selected. The
 native dependency table records this edge.
+
+
+## Package-base merge
+
+Merged the announced package base. In `link/src/lib.rs` the base extraction and
+registrations win byte for byte; the desktop module is registered afterward.
+In `areas/about.rs` the base's Fluent migration is retained, including the old
+release-note renderer in the merge. The desktop changelog renderer remains the
+registered entry, and the superseded renderer will be removed in the following
+implementation commit. No base test expectation was edited. Root changes in this
+merge are inherited from the announced base, not desktop wire additions.

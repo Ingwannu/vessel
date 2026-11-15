@@ -131,7 +131,7 @@ async fn options_change_and_a_rename_survives_a_restart() {
         let renamed = client.rename(id, title.clone()).await.unwrap();
         assert_eq!(renamed.title.as_ref(), Some(&title));
         read_until(&mut stream, &mut seen, |record| {
-            matches!(&record.event, SessionEvent::Renamed { title: logged } if *logged == title)
+            matches!(&record.event, SessionEvent::Renamed { title: logged, .. } if *logged == title)
         })
         .await;
 

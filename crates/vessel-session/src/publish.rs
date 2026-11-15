@@ -45,6 +45,12 @@ pub(crate) enum Slot {
 }
 
 impl Publisher {
+    /// Updated only once a new agent successfully starts; publish the
+    /// profile event afterward so its readers see the matching binding.
+    pub(crate) fn set_limit_association(&self, association: crate::LimitAssociation) {
+        let _previous = self.shared.limits.send_replace(association);
+    }
+
     /// `activity` must be the tracker `info`'s first board came from, so
     /// the board changes only with what the session publishes. The first
     /// record is numbered `info`'s `next_seq`: zero for a new session, the
@@ -83,6 +89,12 @@ impl Publisher {
         self.next
     }
 
+    /// Borrow only during the actor's comparison, before its durable
+    /// publish await, so a conditional title change stays in actor order.
+    pub(crate) fn current(&self) -> watch::Ref<'_, SessionInfo> {
+        self.info.borrow()
+    }
+
     /// The session it publishes for.
     pub(crate) fn session(&self) -> SessionId {
         self.shared.id
@@ -91,11 +103,6 @@ impl Publisher {
     /// The session's program is now `pid` (a move started another agent).
     pub(crate) fn running(&self, pid: u32) {
         self.shared.pid.store(pid, Ordering::Release);
-    }
-
-    /// How many follow the session live now (protocol 12).
-    pub(crate) fn followers(&self) -> usize {
-        self.shared.ring().followers()
     }
 
     /// Whether a permission or a question waits for an answer (protocol
@@ -242,7 +249,7 @@ enum InfoChange {
     /// it can do, which the info carries as the store's row does.
     Ready(HarnessSessionId, Option<AgentAbilities>),
     Profile(Option<ProfileName>),
-    Title(SessionTitle),
+    Title(SessionTitle, vessel_proto::TitleOrigin),
     /// Its agent was parked (`Some`) or woken (protocol 12).
     Parked(Option<vessel_proto::parking::ParkReason>),
 }
@@ -259,7 +266,7 @@ impl InfoChange {
                     },
             } => Self::Ready(harness_session.clone(), *abilities),
             SessionEvent::ProfileChanged { to, .. } => Self::Profile(to.clone()),
-            SessionEvent::Renamed { title } => Self::Title(title.clone()),
+            SessionEvent::Renamed { title, origin } => Self::Title(title.clone(), *origin),
             SessionEvent::Parked { reason } => Self::Parked(Some(reason.clone())),
             SessionEvent::Woken => Self::Parked(None),
             // The agent's conversation from a rewind on (protocol 14): the
@@ -307,8 +314,9 @@ impl InfoChange {
                 info.profile = profile;
                 true
             }
-            Self::Title(title) => {
+            Self::Title(title, origin) => {
                 info.title = Some(title);
+                info.title_origin = origin;
                 true
             }
             Self::Parked(reason) => {

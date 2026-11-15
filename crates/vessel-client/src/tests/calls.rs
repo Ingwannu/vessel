@@ -108,3 +108,275 @@ async fn fleet_controls_are_refused_before_their_declared_protocol() {
     drop(client);
     assert!(old_node.await.unwrap().is_none(), "no new control was sent");
 }
+
+/// Protocol 15 has no `fleet.published`: the client refuses it locally.
+#[tokio::test]
+async fn published_is_refused_locally_before_protocol_16() {
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        let welcome = ServerFrame::Welcome(Welcome {
+            protocol: ProtocolVersion::new(15),
+            node: node(),
+        });
+        node_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    assert_eq!(
+        client.fleet_published().await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    drop(client);
+    assert!(old_node.await.unwrap().is_none(), "nothing was sent");
+}
+
+/// Protocol 16 has no `agent.history` (track A2 wrote it at 14; it is 17
+/// on the node line): the client refuses it locally.
+#[tokio::test]
+async fn agent_history_is_refused_locally_before_protocol_17() {
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        let welcome = ServerFrame::Welcome(Welcome {
+            protocol: ProtocolVersion::new(16),
+            node: node(),
+        });
+        node_end
+            .send(serde_json::to_string(&welcome).unwrap())
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let asked = vessel_proto::history::GetAgentHistory {
+        harness: "claude-code".parse().unwrap(),
+        profile: None,
+        cwd: None,
+        cursor: None,
+    };
+    assert_eq!(
+        client.call(asked).await.unwrap_err().code(),
+        Some(ErrorCode::Unsupported)
+    );
+    drop(client);
+    assert!(old_node.await.unwrap().is_none(), "nothing was sent");
+}
+
+#[tokio::test]
+async fn self_authority_is_refused_locally_on_an_older_direct_or_routed_connection() {
+    use vessel_proto::{GetDeviceSelf, Request as _};
+    let previous =
+        ProtocolVersion::new(GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap());
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: previous,
+                    node: node(),
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    assert!(matches!(
+        client.device_self().await,
+        Err(vessel_rpc::CallError::NotInProtocol { .. })
+    ));
+    assert!(matches!(
+        client.call_on(NodeId::random(), GetDeviceSelf {}).await,
+        Err(vessel_rpc::CallError::NotInProtocol { .. })
+    ));
+    drop(client);
+    assert!(
+        old_node.await.unwrap().is_none(),
+        "no query was sent and no authority was guessed"
+    );
+}
+
+/// The old hop itself cannot decode a new inner call, even for its own id.
+#[tokio::test]
+async fn usage_direct_and_every_envelope_are_refused_locally_on_an_old_hop() {
+    use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
+    use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall, Request as _};
+    use vessel_rpc::{CallError, UnaryCall};
+    let needed = QueryUsage::METHOD.since();
+    let previous = ProtocolVersion::new(needed.get().checked_sub(1).unwrap());
+    let hop = node();
+    let target = hop.id;
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: previous,
+                    node: hop,
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let query = QueryUsage {
+        scope: UsageScope::Machine,
+        period: UsagePeriod::Day,
+        after: None,
+    };
+    let direct = client.usage(query.clone()).await.unwrap_err();
+    assert!(
+        matches!(direct, CallError::NotInProtocol { method: vessel_proto::Method::QueryUsage, needs, negotiated } if needs == needed && negotiated == previous)
+    );
+    let forwarded = client.call_on(target, query.clone()).await.unwrap_err();
+    assert!(
+        matches!(forwarded, CallError::NotInProtocol { method: vessel_proto::Method::Forward, needs, negotiated } if needs == needed && negotiated == previous)
+    );
+    let origin = Origin {
+        node: target,
+        by: OriginBy::Owner,
+        scopes: vec![],
+    };
+    for call in [
+        Forward {
+            node: target,
+            call: Box::new(query.clone().into_call()),
+        }
+        .into_call(),
+        RelayCall {
+            node: target,
+            call: Box::new(query.clone().into_call()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        Deliver {
+            call: Box::new(query.into_call()),
+            origin,
+        }
+        .into_call(),
+    ] {
+        let method = call.method();
+        let error = client
+            .call_any(UnaryCall::try_from(call).unwrap())
+            .await
+            .unwrap_err();
+        assert!(
+            matches!(error, CallError::NotInProtocol { method: actual, needs, negotiated } if actual == method && needs == needed && negotiated == previous)
+        );
+    }
+    drop(client);
+    assert!(
+        old_node.await.unwrap().is_none(),
+        "no direct or wrapped usage frame was sent"
+    );
+}
+
+#[tokio::test]
+async fn limits_policy_and_reads_send_no_frames_to_an_old_hop() {
+    use vessel_proto::{Deliver, Forward, Origin, OriginBy, RelayCall, Request as _, limits::*};
+    use vessel_rpc::{CallError, UnaryCall};
+    let needed = GetUsageLimits::METHOD.since();
+    assert_eq!(needed, SetUsageLookup::METHOD.since());
+    let previous = ProtocolVersion::new(needed.get().checked_sub(1).unwrap());
+    let hop = node();
+    let target = hop.id;
+    let (client_end, mut node_end) = vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
+    let old_node = tokio::spawn(async move {
+        let _hello = node_end.next().await.unwrap().unwrap();
+        node_end
+            .send(
+                serde_json::to_string(&ServerFrame::Welcome(Welcome {
+                    protocol: previous,
+                    node: hop,
+                }))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        node_end.next().await
+    });
+    let client = NodeClient::over(client_end, client_info(), &ClientConfig::default())
+        .await
+        .unwrap();
+    let query = GetUsageLimits {
+        scope: LimitsScope::Account {
+            account: LimitAccount {
+                harness: HarnessKind::Codex.into(),
+                profile: None,
+            },
+        },
+        refresh: LimitRefresh::Refresh,
+    };
+    let policy = SetUsageLookup {
+        policy: ExternalLookup::On,
+    };
+    // Cover both typed conveniences and the typed call_on-self seam.
+    for error in [
+        client.usage_limits(query.clone()).await.unwrap_err(),
+        client.usage_lookup(policy).await.unwrap_err(),
+        client.call_on(target, query.clone()).await.unwrap_err(),
+        client.call_on(target, policy).await.unwrap_err(),
+    ] {
+        assert!(
+            matches!(error,CallError::NotInProtocol {needs,negotiated,..} if needs==needed && negotiated==previous)
+        );
+    }
+    let origin = Origin {
+        node: target,
+        by: OriginBy::Owner,
+        scopes: vec![],
+    };
+    for inner in [query.into_call(), policy.into_call()] {
+        for call in [
+            Forward {
+                node: target,
+                call: Box::new(inner.clone()),
+            }
+            .into_call(),
+            RelayCall {
+                node: target,
+                call: Box::new(inner.clone()),
+                origin: origin.clone(),
+            }
+            .into_call(),
+            Deliver {
+                call: Box::new(inner),
+                origin: origin.clone(),
+            }
+            .into_call(),
+        ] {
+            let method = call.method();
+            let error = client
+                .call_any(UnaryCall::try_from(call).unwrap())
+                .await
+                .unwrap_err();
+            assert!(
+                matches!(error,CallError::NotInProtocol {method:actual,needs,negotiated} if actual==method && needs==needed && negotiated==previous)
+            );
+        }
+    }
+    drop(client);
+    assert!(
+        old_node.await.unwrap().is_none(),
+        "no direct or enveloped limit frame was sent"
+    );
+}
+
+mod inbox;

@@ -74,3 +74,42 @@ async fn a_changed_set_shows_the_one_last_approved() {
     let (_, approved, none) = parts(restarted.approve(project.id, changed, true).await.unwrap());
     assert!(approved && none.is_none());
 }
+
+#[tokio::test]
+async fn terminal_approval_survives_restart_and_a_changed_command_asks_again() {
+    let fixture = Fixture::new().await;
+    let text = "[[worktree.terminals]]\nname = 'logs'\ncommand = 'echo first'\n";
+    let project = fixture.project("terminal-approval", Some(text)).await;
+    let (digest, approved, _) = parts(fixture.workspaces.commands(project.id, None).await.unwrap());
+    assert!(!approved);
+    let _approved = fixture
+        .workspaces
+        .approve(project.id, digest.clone(), true)
+        .await
+        .unwrap();
+    let changed = text.replace("echo first", "echo second");
+    std::fs::write(project.root.join("vessel.toml"), changed).unwrap();
+    let restarted = fixture.restart().await;
+    let current = restarted.commands(project.id, None).await.unwrap();
+    let ProjectCommands::Listed {
+        approved,
+        terminals,
+        last_approved,
+        digest: next,
+        ..
+    } = current
+    else {
+        panic!("terminal-only file was not described");
+    };
+    assert!(!approved);
+    assert_ne!(next, digest);
+    assert_eq!(terminals[0].command.as_str(), "echo second");
+    let last = last_approved.unwrap();
+    assert_eq!(last.digest, digest);
+    assert_eq!(last.commands.terminals.len(), 1);
+    assert_eq!(
+        last.commands.terminals[0].name.as_ref().unwrap().as_str(),
+        "logs"
+    );
+    assert_eq!(last.commands.terminals[0].command.as_str(), "echo first");
+}

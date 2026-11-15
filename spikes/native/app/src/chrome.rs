@@ -12,7 +12,6 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 
 use crate::shell::Shell;
-use crate::update::percent;
 
 pub(crate) fn title_bar(
     shell: &Shell,
@@ -90,8 +89,8 @@ pub(crate) fn update_status(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<Div> {
-    let words = shell.t.lang.update();
-    let quiet = |text: String| {
+    let words = shell.words.update();
+    let quiet = |text: vessel_app_kit::ui::SharedString| {
         if narrow {
             div().child(icon(tokens.text_tertiary))
         } else {
@@ -101,14 +100,10 @@ pub(crate) fn update_status(
                 .child(text)
         }
     };
-    match &shell.update_state {
+    match &shell.updates.state {
         UpdateState::Idle | UpdateState::UpToDate { .. } => None,
-        UpdateState::Checking => Some(quiet(words.checking.to_owned())),
-        UpdateState::Downloading {
-            received, total, ..
-        } => Some(quiet(
-            words.downloading(percent(received.get(), total.get())),
-        )),
+        UpdateState::Checking => Some(quiet(words.checking().into())),
+        UpdateState::Downloading { .. } => Some(quiet(shell.updates.progress(shell.words))),
         UpdateState::Ready { .. } => {
             let button = div()
                 .id("restart-to-update")
@@ -127,7 +122,7 @@ pub(crate) fn update_status(
             let button = if narrow {
                 button
             } else {
-                button.child(words.restart)
+                button.child(words.restart())
             };
             Some(
                 div().child(button.on_click(cx.listener(|this, _event, _window, cx| {
@@ -155,9 +150,9 @@ pub(crate) fn update_status(
                         div()
                             .type_(Type::Tiny)
                             .text_color(tokens.text_tertiary)
-                            .child(words.failed),
+                            .child(words.failed()),
                     )
-                    .child(retry.underline().child(words.try_again))
+                    .child(retry.underline().child(words.try_again()))
             })
         }
     }

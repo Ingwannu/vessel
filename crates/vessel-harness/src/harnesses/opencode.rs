@@ -27,6 +27,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
     },
+    limits: Some(vessel_proto::limits::LimitLoginStore::OpenCode),
     login: None,
     install: "npm install -g opencode-ai",
     login_command: Some(&["auth", "login"]),

@@ -31,6 +31,7 @@ mod unsent;
 // A browser build does not update itself: `update_off.rs` stands in.
 #[cfg_attr(target_arch = "wasm32", path = "update_off.rs")]
 mod update;
+mod update_words;
 #[cfg(target_arch = "wasm32")]
 mod web;
 

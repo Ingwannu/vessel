@@ -46,10 +46,9 @@ The questions:
 - A structured session whose agent can resume (its handshake said
   `loadSession`) and has a harness session id is parked after the node's
   `park_after` (an hour by default, `vesseld --park-after`, 0 never)
-  without activity, when no turn runs, nothing waits on an answer, its
-  queue is empty or held, and nobody follows it live (a page that has it
-  open, `vessel attach`, an agent's `wait_turn`: agent-orchestrator's view
-  lease). `session.park` parks it now, whoever follows it.
+  without activity, when no turn runs, nothing waits on an answer and its
+  queue is empty or held. Whoever follows it does not matter (amended
+  2026-11-14, below). `session.park` parks it now.
 - Its process is stopped as a move stops the old agent, without ACP
   `session/close` (which may delete what resume needs). The session stays
   live and `running`; `SessionInfo.parked` says since when and why; the log
@@ -92,8 +91,19 @@ What a person changed is kept in `settings.json` in the data directory
 (only what was changed, owner-only, replaced atomically) and wins over
 `--park-after` at start, field by field, so a service started with the
 flag does not undo a change at its next restart; the node logs when it
-does. A file that cannot be read or parsed, or a saved choice this build
-does not know, leaves the flag's value. A change is written first and
+does. A saved choice this build does not know leaves the flag's value,
+and fields it does not know are ignored at every level, so a file from a
+later build still parses after a downgrade; such a file (anything this
+build did not read from it, found by comparing the two at start) is
+copied to `settings.json.later-<UTC time>` before the first change this
+build writes, so the later build's settings can be recovered from the
+copy (nothing is merged back on its own). A file that cannot be read or
+parsed leaves the flag's value too, and is first moved aside as
+`settings.json.unreadable-<UTC time>` (owner-only, never over an earlier
+copy), so the next change cannot replace it (2026-11-14; before, it did,
+and every saved setting was lost). If the move fails, the node refuses
+any change that would replace the file (`conflict`, with the reason)
+rather than destroy it. A change is written first and
 applied after, under one lock; a change that changes nothing writes
 nothing. Applied live: the session runtime holds the value in a watch,
 and every structured session's actor re-arms its idle timer from its
@@ -117,3 +127,32 @@ shows it.
   `session/load` (bounded by the handshake timeout).
 - A parent session is parked while sessions it started work, unlike
   Paseo, which keeps a family awake; a starter's notice wakes it.
+
+## Amendment, 2026-11-14: followers do not keep an agent awake
+
+- Was: nobody following the session live (a page that had it open,
+  `vessel attach`, an agent's `wait_turn`: agent-orchestrator's view
+  lease) was a condition of the idle park.
+- Found staging the node line: sessions an app had shown stayed awake for
+  minutes after the app was gone. Releasing depended on every client's
+  subscriptions ending, and the node's token `/rpc` connections had no
+  keepalive, so a client gone without closing (asleep, its network
+  dropped) held its subscriptions, and the sessions they followed, for
+  good.
+- Paseo, the owner's reference ("the setup exactly as Paseo's"), collects
+  an idle runtime whether or not a client watches it: its eligibility
+  (`AgentManager.runtimeHasNoPendingWork` and the idle-runtime-cleanup
+  module) is the foreground turn, permissions and their answers, queued
+  deliveries, lifecycle operations and running children, plus each
+  provider's veto; client subscriptions are not among them.
+- Decision: the same. A follower loses nothing: the session stays live,
+  its subscription goes on through `parked` and `woken`, and its next
+  prompt wakes the agent. What still holds the agent: a running turn, a
+  permission or question waiting, a moving queue, a move, an agent that
+  cannot resume, and activity within `park_after`.
+- And the node pings `/rpc` connections as it pings `/secure` ones (10 s,
+  dropped after 30 s of silence, `vessel_relay::Liveness`), so a vanished
+  client's subscriptions end within the silence limit.
+- `park_after` is whole minutes on the wire and in the flag
+  (`ParkAfter`), one at least: a test of the idle park below a minute is
+  the session runtime's, not the node's.
