@@ -86,6 +86,12 @@ pub(super) fn render(
             .child(shell.words.layout().panel_unavailable().to_owned())
             .into_any_element(),
     };
+    frame(panel, body)
+}
+
+// Keep the registry's one exhaustive target match readable as owners register.
+// The host frame remains byte-for-byte the same styling and input boundary.
+fn frame(panel: &PanelContext<'_>, body: AnyElement) -> AnyElement {
     div()
         .id(vessel_app_kit::ui::ElementId::Name(
             format!(

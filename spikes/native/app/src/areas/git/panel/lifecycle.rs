@@ -37,34 +37,8 @@ impl Shell {
             return;
         }
         let context = self.git_panel_context(&address);
-        let mut entry = Entry::new(target, context.clone());
-        let request = match (&address.workspace, context) {
-            (LayoutKey::Workspace { .. }, _) => {
-                entry.problem = Some(ReadFailure::WorkspaceUnavailable);
-                None
-            }
-            (LayoutKey::Session { .. }, None) => {
-                entry.problem = Some(ReadFailure::DestinationClosed);
-                None
-            }
-            (LayoutKey::Session { .. }, Some(context)) => match self.areas.git.keys.issue() {
-                Ok(key) => match entry.binding.begin(address.clone(), context, key) {
-                    Ok(ticket) => Some(Ask::Locate(ticket)),
-                    Err(LocationRefusal::NeedsRegistry) => {
-                        entry.problem = Some(ReadFailure::WorkspaceUnavailable);
-                        None
-                    }
-                    Err(LocationRefusal::DestinationChanged) => {
-                        entry.problem = Some(ReadFailure::DestinationChanged);
-                        None
-                    }
-                },
-                Err(_exhausted) => {
-                    entry.problem = Some(ReadFailure::KeysExhausted);
-                    None
-                }
-            },
-        };
+        let mut entry = Entry::new(target, context);
+        let request = discover(&mut entry, &address, &mut self.areas.git.keys);
         let _old = self.areas.git.panels.entries.insert(address, entry);
         if let Some(ask) = request {
             self.command(vessel_app_link::Command::GitPanel(ask));
@@ -213,4 +187,38 @@ fn retire(entry: &mut Entry) {
     }
     entry.context = None;
     entry.problem = Some(ReadFailure::DestinationChanged);
+}
+
+fn discover(
+    entry: &mut Entry,
+    address: &PanelAddress,
+    keys: &mut vessel_app_view::workspace::git::RequestKeys,
+) -> Option<Ask> {
+    match (&address.workspace, entry.context.clone()) {
+        (LayoutKey::Workspace { .. }, _) => {
+            entry.problem = Some(ReadFailure::WorkspaceUnavailable);
+            None
+        }
+        (LayoutKey::Session { .. }, None) => {
+            entry.problem = Some(ReadFailure::DestinationClosed);
+            None
+        }
+        (LayoutKey::Session { .. }, Some(context)) => match keys.issue() {
+            Ok(key) => match entry.binding.begin(address.clone(), context, key) {
+                Ok(ticket) => Some(Ask::Locate(ticket)),
+                Err(LocationRefusal::NeedsRegistry) => {
+                    entry.problem = Some(ReadFailure::WorkspaceUnavailable);
+                    None
+                }
+                Err(LocationRefusal::DestinationChanged) => {
+                    entry.problem = Some(ReadFailure::DestinationChanged);
+                    None
+                }
+            },
+            Err(_exhausted) => {
+                entry.problem = Some(ReadFailure::KeysExhausted);
+                None
+            }
+        },
+    }
 }
