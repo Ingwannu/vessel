@@ -31,6 +31,7 @@
 //!   the session screen moves to this one when its area is drawn.
 
 mod agent;
+mod append;
 mod approval;
 mod diff;
 mod disclosures;
@@ -56,8 +57,8 @@ mod runs;
 mod tool_display;
 mod tool_sections;
 mod tool_source;
-mod tool_words;
 mod tool_status;
+mod tool_words;
 mod turn_footer;
 mod turns;
 mod usage;

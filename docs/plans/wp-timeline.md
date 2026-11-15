@@ -568,3 +568,8 @@ generation matched and the selection was actually removed. The screen-local
 strong prior-focus handle is removed. Stale dismissals return without consuming
 the shared focus cycle, and newer focus cannot be stolen by old sheet cleanup.
 The existing local generation regression is preserved with the narrower state.
+
+Row mutations moved unchanged from the 497-line `fold.rs` into `append.rs` before
+the remaining canonical item adapters are added. Admission/public queries stay
+in `fold.rs`; there is still one push/change path and the same exclusive source
+bound. `touch` remains with its private file index; no size record is raised.
