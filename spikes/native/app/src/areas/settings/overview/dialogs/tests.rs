@@ -1,5 +1,5 @@
 //! Actual dialog, field callbacks and matching book answers over a detached link.
-use gpui::{AppContext as _, Entity, Render, TestAppContext};
+use gpui::{AppContext as _, Entity, IntoElement, Render, TestAppContext};
 use vessel_app_kit::{Scheme, Tokens};
 use vessel_app_link::{Command, Link, machines};
 use vessel_app_view::machine_book::{Edit, Failure, Name};

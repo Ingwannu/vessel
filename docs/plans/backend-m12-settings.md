@@ -935,3 +935,16 @@ Its execution and changed-source checks/export/affected scenes are owed;
 no unchanged whole gate or full matrix is requested by the return. The
 earlier sibling policy and disclosed typography/label adaptations stay
 separate.
+
+The first changed-source repair run
+settings2-20261115T153816Z-5344a764 actually returned101 at native-clippy:
+the new regression used `impl IntoElement` without its named import.
+Fonts and quality returned zero; no test, normal build or export ran.
+The source issue was identified while queued and a queued-only amendment
+was requested. When the coordinator's standing own-queued approval
+arrived, the run had already acquired a slot, so it was kept through its
+actual result, not cancelled or relabelled. The original log remains in
+`/tmp/work/m12-settings4/rg-selection-repair` (Clippy75seconds,
+SHA prefix943ce885e0818a55). The correction is one named trait import;
+product behavior and every assertion remain unchanged. A new exact
+changed-source check/export is owed; no successful repair is claimed.
