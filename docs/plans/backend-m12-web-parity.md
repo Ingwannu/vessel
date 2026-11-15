@@ -1,6 +1,6 @@
 # Web page parity
 
-Status: A1 and paired page corrections accepted; A2a round-trip correction passes its whole gate, review pending, 2026-11-15. ADR 0075.
+Status: A1, paired page corrections and A2a accepted; feedback package narrow checks pass, whole/browser/captures pending, 2026-11-15. ADR 0075.
 
 ## Scope and evidence
 
@@ -128,7 +128,7 @@ new wire number or native modification.
 | F80 / m11:212 / Sidebar: group, sort, filter, pin | Session marks; bridge preferences | shell/sidebar-view-menu.tsx; data/sidebar.ts | sidebar.rs | [P05](#reference-p05); [P37](#reference-p37) | Ended default, stored off and archive exclusion covered by the paired follow-up; broader grouping/pinning/nesting parity remains unverified. |
 | F81 / m11:213 / A notification inbox that survives a reload | inbox.list/get/mark22 with durable shared read state | notifications/use-notices.ts is transient; no durable inbox | No inbox renderer registered | [P32](#reference-p32); [P06](#reference-p06) | Implement B1 durable list/read cursor, loading/offline/partial/refusal states; no local fake inbox. |
 | F82 / m11:214 / Desktop notification and sound | Client preferences; browser Notification API | notifications/use-notices.ts; sound.ts; settings/notifications-section.tsx | toasts.rs; no OS-notification integration verified | [P32](#reference-p32) | Existing web desktop alerts/sound; compare focus/privacy defaults before changing. |
-| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a round-trip whole run passes and prior bounded captures are retained; review pending; A2b session reports and A3/A4 limit controls/notices remain. |
+| F83 / m11:215 / Usage: tokens, cost, each account's limits | usage.query21; usage.limits/lookup23 | usage/usage-section.tsx A1 accepted; scope-picker.tsx A2a verified checkpoint; routed turn/proxy counts retained | conversation/footer.rs/meter.rs; settings Usage=None | [P26](#reference-p26); [P27](#reference-p27); [P28](#reference-p28); [P29](#reference-p29); [P44](#reference-p44) | A1 machine day/week is accepted. A2a agent/profile selection is accepted after its round-trip correction; A2b session reports and A3/A4 limit controls/notices remain. |
 | F84 / m11:216 / Pull requests page | pr.list/get | No dedicated pull-requests route | pulls/mod.rs session dialogs only | [P21](#reference-p21) | Add project-aware list and facts after schedules; do not claim all-PR coverage from watched sessions only. |
 | F85 / m11:222 / Light, dark, system | Bridge preference theme | settings/appearance.tsx; data/theme.ts | settings/appearance.rs | [P38](#reference-p38) | Existing three schemes; preserve system/reduced-motion and tokens. |
 | F86 / m11:223 / More themes | Client themes; no node RPC required | Only light/dark/system tokens | settings/appearance.rs three choices; extra theme branch not integrated | [P38](#reference-p38) | Wait for shared theme decision/data; do not invent new purple/gradient theme. |
@@ -160,7 +160,7 @@ assignments as current implementation proof.
 | m12:369 / Board/sidebar/palette/notices (F79–F82,F90) | session board/marks plus client preferences | board/board-page.tsx; shell/sidebar.tsx; palette/palette.tsx | board/mod.rs; sidebar.rs; palette.rs | [P05](#reference-p05) [P32](#reference-p32) [P37](#reference-p37) | Durable inbox; regress existing controls rather than replacing their design. |
 | m12:370 / Settings (F85–F89,F91–F92) | Existing preferences; node.info/settings/stop; staged diagnostics, no assigned report/update RPC | settings/{appearance,shortcuts-section,about}.tsx | settings/{appearance,language}.rs; update.rs | [P24](#reference-p24) [P30](#reference-p30) [P31](#reference-p31) [P38](#reference-p38) [P39](#reference-p39) [P40](#reference-p40) | Translation/themes remain; diagnostics and remote update still need callable assigned contracts. |
 | m12:371 / History/lifecycle (F13–F18,F20) | session.rewind/fork/search/park/wake; agent.history; no cross-agent handoff | No these action surfaces; session resume exists | conversation/rewind.rs; search.rs partial | [P10](#reference-p10) [P11](#reference-p11) [P12](#reference-p12) [P14](#reference-p14) [P24](#reference-p24) | Wire existing history/lifecycle actions incrementally; no file restore promise. |
-| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a scope round-trip whole gate passes pending review, then A3/A4 consent/windows/factual notices on assigned limits calls. |
+| m12:372 / Usage/limits (F24,F83) | usage.query21; usage.limits/lookup23 | A1 usage/usage-section.tsx; routed inspector/turn counts retained | Usage unregistered; conversation meter/footer only | [P26](#reference-p26) [P27](#reference-p27) [P28](#reference-p28) [P29](#reference-p29) [P44](#reference-p44) | A1 totals accepted; A2a agent/profile selection is accepted; next A3/A4 consent/windows/factual notices on assigned limits calls. |
 | m12:373 / Phone/push (F71–F72) | Shared node transport; push.key/subscribe/unsubscribe/presence22 | Responsive page only | Phone build/runtime unverified | [P24](#reference-p24) [P36](#reference-p36) | Do not claim installed-app/push parity from a narrow viewport. |
 | m12:374 / Browser as surface | Local bridge serves page; GPUI browser is separate spike | app.tsx; routes/; loopback bridge | Wasm experiment is not connected-client parity proof | [P13](#reference-p13) [P23](#reference-p23) [P24](#reference-p24) | This track maintains the existing page; no new native/Wasm/browser engine. |
 
@@ -1114,3 +1114,316 @@ new visual/translation/cold-phone/native/combined claim is made. The remote
 tool's commit/checkout and step logs identify this new execution; a custom
 remote pre/post manifest is not claimed. The source return awaits review
 closure; integration approval is separate.
+
+
+## Feedback package: narrow toasts and modal ownership (test checkpoint)
+
+Reuse the existing toast host, Base UI dialog and new-session lifecycle.
+The reported problems are lower toasts covering the composer/question
+buttons, a late-mounted new prompt taking an open dialog's focus, and
+Escape before a dialog's initial focus. The focus cases begin as page
+regressions before a product change. One holds only the real lazy new-page
+asset until the modal owns focus; the other holds the initial-focus frame
+and sends a real keyboard Escape. The toast fixture uses the existing
+Copy session id action while a real fake-agent question remains open;
+it checks the same toast host's separation from prompt and question buttons.
+Its temporary clipboard-write permission belongs only to that disposable
+browser context and synthetic id. No service or OS permission is changed.
+The original test-only checkpoint is preserved, and then restored after
+the A2a review correction. Its first baseline had two real toast geometry
+failures (bottom 828 exceeds composer top 699), an incorrect assumption
+that the first focused control was the paste field, and a passing ordinary
+pre-focus Escape case. The focus fixture now checks ownership of the whole
+dialog, waits for the new view to render and waits for route handlers when
+releasing its held asset; the original failure is not called a product proof.
+
+Separate old-product diagnostics confirm late-mounted prompt focus leaves
+the dialog, and confirm a distinct early-Escape defect: the background
+ShortcutRecorder's window capture listener prevents and stops the key before
+the modal receives it. Its isolated recorder/palette page case fails before
+any fix. Ordinary palette/menu/first-connected snapshot cases already pass;
+there is no reason to add another Escape listener to the dialog. Temporary
+frame control fixes the event order; these are controlled regressions rather
+than a claim that every historical occurrence was naturally reproduced.
+The three fixes, changed-package gate and affected captures remain pending.
+
+
+### Feedback implementation checkpoint
+
+`ui/page-focus` guards background draft focus and shortcut recording against
+the kit's current modal. `use-draft-presence` preserves the draft lifetime
+while moving the mount focus into that policy; the new-session file remains
+within its budget. Base UI still owns dismissal, composition, nested controls
+and focus return. The recorder's pending edit pauses instead of consuming
+keys from a modal, including before initial focus. No new control or second
+overlay stack was added.
+
+The toast viewport is top-centred below the header across sizes, because a
+wide lower-right toast can also reach the composer. Existing wide card width
+is preserved; narrow width follows Paseo. The scrolling stack is bounded,
+text wraps and shadow padding is retained. The browser cases cover 390,
+800 and 1280 widths in both themes, individual clearance and eight actual
+UI-generated messages with access to the last message by scrolling. Color,
+status roles and notification lifetimes remain unchanged. Both typechecks, full lint/fonts/controls/size and the bundle pass. The first
+frontend run also passes all 451 pure units; later edits only share browser
+fixtures and hide the empty toast host. Corrected browser behavior, affected
+captures and the complete package gate remain pending at this checkpoint.
+
+### Feedback boundary correction and base test receipt
+
+The first feedback package execution passed all nine new browser cases,
+the pure units and its 24 captures, but its whole gate was red on the
+existing history/security storage check: the sidebar painted before the
+verified welcome stored its tab-session receipt. The separately reviewed
+test correction waits for the same receipt as the existing page opener.
+It preserves every original assertion, reload and replay check and adds a
+bounded real-handshake delay test. No product authentication change,
+deadline increase or retry is part of that correction.
+
+Inspection also found a narrower toast defect: the initial card cleared
+the header, but its scroll viewport began seven pixels inside that header.
+A separate actual-page assertion fails at host top 44 versus header bottom
+51. The host now uses the existing larger spacing token and its shared
+browser fixture checks the host itself. Earlier images and runs remain
+evidence of their original source; they are not approvals of this fix.
+Affected captures and the changed-tree whole gate are still owed.
+
+The assigned node quality base is merged without conflicts. All incoming
+non-document changed blobs are preserved exactly, including generated
+types and their formatting; both existing README and architecture texts
+are retained. This page package adds no method, protocol or schema number.
+
+### Additional short-phone acceptance boundary
+
+The immutable `1a8a63ab` whole run passes every selected stage: 2,267 Rust
+tests with twelve ignored, four TypeScript checks, 451 web units, 76
+browser cases and four forge fixtures. Its local nine focus/toast cases
+and twelve capture cases also pass. All 24 original normal-state images
+were opened; their 2,644 selected inputs match before and after, and all
+2,475 tracked contents match that commit. Its ten recorded fleet processes
+and two observer/runner identities are gone; private fixture data is empty.
+
+That evidence does not close the package. A subsequent actual 390 by 600
+page probe finds the eight-toast stack intercepting the question's collapse
+button at x328/y170 despite leaving Next clear. The earlier cases checked
+Next and did not cover this shorter phone. The retained hit test fails on
+that immutable product. The host now follows the actual prompt dock's
+boundary, and new resize/fold/click cases guard the missed interaction.
+Changed-source browser, captures and whole evidence remain pending.
+
+The shared package base is merged after the earlier whole run completes;
+all incoming changed blobs except the auto-merged architecture document
+remain exact, including the incoming native base. This page correction
+authors no native change or native approval. No earlier failure or normal
+matrix is relabelled as evidence of the new clearance behavior.
+
+### Final contract-base composition
+
+The corrected feedback renderer is carried onto node head `ba45a6e3` in a
+separate checkout while its local capture checkout stays frozen. The only
+merge conflict is the architecture document: the head's process-mechanism
+paragraph and the page-feedback section are both retained unchanged.
+Exact incoming-blob claims apply to code and tests; the architecture, this
+plan and ADR 0075 retain head text plus local page additions. The plan
+and ADR match Git's automatic merge; the architecture conflict retains
+both incoming and local paragraphs unchanged. Their full differences
+against the head include earlier wording and status updates, so they are
+not described as exclusively additive. The earlier audit used that overly
+broad comparison and its shell continued after the failed check. A separate
+merge-tree reconstruction verifies the actual resolutions and all 106
+incoming non-document changed blobs. This corrects the evidence claim
+without changing executable code.
+Captures still identify their original renderer commit; the merged tree
+requires its own whole gate, and no rendered latest-head claim is inferred.
+
+
+### Menu ownership follow-up
+
+The latest-head whole run on `774f41b8` is red: 2,307 Rust tests pass
+(twelve ignored), four TypeScript checks, 464 web units and four forge
+fixtures pass; browser cases are 76 passed and two failed. The unchanged
+Display grouping case loses its Machine menu item while clicking, and the
+following reconnect case cannot find its initial Connected mark. Neither
+failure is waived, and no head assertion, deadline or retry is changed.
+
+A new controlled browser test against the retained renderer first puts
+keyboard focus inside Display, then releases the actual lazy new-session
+asset. The menu stays painted but loses focus. The modal-only guard was
+incomplete; the same public role/open boundary now includes menus. The
+regression shares the existing real lazy-route harness with the dialog
+case. This proves a menu ownership defect, without claiming it alone
+explains both intermittent whole-run failures. Changed-source checks and
+whole evidence remain pending.
+
+
+### Feedback package executed result
+
+Executed source `dac4965996491e214bc6f5391df6cce8e012359e` passes all
+eighteen whole-gate stages on the merged contract base. Independent raw-log
+sums are 116 Rust summaries, 2,307 passed / zero failed / twelve ignored;
+two TypeScript-generation summaries total four passed, with no diff; 464
+web unit tests, 79 browser cases and four forge fixtures pass. Format,
+boundary/size checks, all three Clippy modes, lint, typecheck, fonts and
+fresh bundle/binary builds pass. Both fixture prebuilds precede tests in
+the same environment. The changed web, node and CLI crates actually compile.
+A separate six-case browser run passes the dialog/menu/early-Escape/recorder
+regressions and the unchanged Display and reconnect cases.
+
+The new controlled menu counterfactual fails on the retained old renderer:
+Display first owns keyboard focus; releasing the held lazy page leaves the
+menu painted and activates Prompt instead. Its frozen source and asset
+record are retained. The corrected whole run closes the current gate; it
+does not erase the earlier security-receipt failure, the short-phone hit
+failure after the earlier green run, the capture-title collection failure,
+or the two `774f41b8` browser failures. Existing head assertions, deadlines
+and retries remain unchanged.
+
+The visual evidence is deliberately separate. Sixteen capture cases produce
+32 originals across en-US/ko-KR, light/dark, and 1280x900, 390x844, 390x600,
+800x600, showing a normal copy toast and a scrolled stack. Every original
+was opened and rehashed; all sixteen capture cases check horizontal
+overflow, page errors and console errors. Their renderer
+is `7e3418d8`; harness `37a723ba` changes only the duplicate viewport title.
+All 3,385 selected inputs match before/after; 3,216 tracked contents match
+that harness commit. The eighteen served static assets match its bundle.
+That matrix proves its submitted short-text states, not a new latest-head
+render or a rendered long error, permission card, cold phone bootstrap,
+physical device, IME or accessibility audit. Browser locale varies; the
+existing English UI labels are not a complete Korean translation. The toast
+renderer and tests
+remain unchanged by the later menu-only correction.
+
+Five capture fleet identities were recorded and are gone. The two capture
+helper launch snapshots were missed; only current PID absence is claimed
+for those helpers. Current owned-runtime/browser-profile scans are empty;
+private fixture data is empty with the original owner and mode 0700. The
+final cleanup sends no additional signals after normal test teardown. No
+live services, OS permission changes, real agent prompts, real accounts,
+vendor account calls, native authored changes or deployment are part of this
+work.
+The remote whole is identified by its immutable commit, checkout/spec and
+logs; no bespoke remote pre/post source manifest is claimed.
+
+### Resume point after feedback
+
+Done: the feedback source above and its full gate; review submission carries
+the exact source, historical adverse evidence and original capture scope.
+Review/integration approval is separate from this author's executed result.
+No new node method, field, protocol or store schema is authored here.
+
+Next: the assigned F3 web usage package, preserving reported accounting and
+context when external lookup is off. The source owner's report/inspect/
+source-consent calls remain pending until a reviewed, assigned node head
+contains them. Do not consume drafts, invent a number or simulate working
+quota data in the browser. Same-binding success, refresh origin, explicit
+source disclosure and unsupported session associations must remain typed.
+Pure formatting/time preparation has not been installed into this tree and
+is not part of this package's gate or review.
+
+
+### Returned narrow-width correction
+
+Review of `dac496599` finds one remaining reference mismatch. Paseo's
+`components/toast-host.tsx:283–295` applies 16px container insets before
+its 92%/480px width boundary. The earlier viewport-relative width measured
+358.796875px at 390px; a new real-page counterfactual expects the literal
+329.36px and fails on that retained renderer. This is a porting error,
+not a deliberate difference. The narrow card now uses the inset-relative
+formula, with the literal measured assertion shared by its browser and
+capture cases. The declared existing 320px wide-layout choice is unchanged.
+
+The earlier whole result and inspected images remain evidence of their
+original source. Corrected-source checks and the affected narrow image
+states are owed before this return closes; they are not inferred from the
+old gate. The correction is isolated on the exact review candidate rather
+than the next feature's moving base.
+
+### Narrow-width correction: executed result
+
+Source `811c18d53a8443fe94e3a0aa6817e61b9be99fb9` fixes the returned width.
+The independent literal is 329.36px at a 390px viewport; the retained old
+renderer fails it at 358.796875px. No existing assertion, retry or deadline
+is weakened.
+
+Whole-web run `webparity-20261115T143312Z-811c18d5` passes eight stages:
+fresh bundle/binaries, both fixture prebuilds, lint, both typechecks, 464
+units in 87 files and fonts. Its full E2E remains 78 passed / one failed.
+All twelve feedback focus/toast cases pass. The sole timeout is the
+unchanged Usage scope test at `openUi`'s verified-tab-receipt wait, before
+any usage seeding, navigation or scope assertion. Its retained DOM reports
+“The UI was restarted or its identity could not be verified”. This is an
+actual identity-verification refusal, not a merely slow receipt.
+
+The explicitly authorized single same-source replay,
+`webparity-20261115T153059Z-811c18d5`, passes all five stages and that exact
+case: 7.0s for the case, 26.3s including the fixture. It rebuilds the same
+source's web/CLI and runs both prebuilds. Whole-run load is 34.06 at start,
+40.43 at end; replay load is 35.07 at start, 35.26 at end. Acceptance counts
+this one named intermittent under the explicit ruling; neither the first
+failure nor its observed refusal is erased. A second unchanged replay is
+not permitted. The investigation below stays open whatever that pass shows.
+
+The source differs from the preceding executed feedback source only in the
+stylesheet, shared feedback helper and two documents. Rust, manifests,
+lockfiles, toolchains and gate scripts are byte-identical. The prior exact
+2,307 passed / zero failed / twelve ignored Rust result is retained for that
+unchanged source under the changed-web verification scope. It is not a new
+Root run; latest-line combined integration remains separate.
+
+A successful managed export builds the exact source's CLI, node and eight
+fake executables. Source/features/recipes, hashes, sizes and owner/modes are
+verified before use; the modified web and CLI crates actually compile.
+Eight real-page capture cases pass across en-US/ko-KR browser locales,
+light/dark and 390x844/390x600. All sixteen normal/stack original PNGs are
+opened and rehashed. Width, header/host clearance, prompt/question-button
+clearance, horizontal overflow and page/console errors are checked. The
+stack stays bounded above the question. This supersedes only the earlier
+narrow-width visual claim; earlier wide frames retain their original source.
+
+All 3,239 selected capture inputs match before/after, including exported
+binaries and their manifest; 3,235 tracked contents independently match Git.
+Local capture performs no Rust compilation or bundle build. Eighteen served
+static hashes are observations tied to the verified CLI, not an inferred
+comparison with local dist. Both helper exe/start identities are recorded
+immediately at launch, as are five runtime identities after setup. All seven
+are gone, the owned-runtime scan is empty and the private mode-0700 fixture
+root is emptied by its original owner after normal teardown. No additional
+signals or live-service permission changes are made. Completed export/
+log OUT top directories are restored to private 0700 without changing
+source, log or binary bytes.
+
+The older scratch counterfactual pins tracked helpers and the old bundle,
+but excludes its external spec/config files. Its raw measured failure is
+retained without a stronger executed-test identity claim. The corrected
+actual-page test and config are tracked and pinned before/after. The earlier
+helper-snapshot limitation and all earlier adverse results remain history;
+this new capture does not repair their historical provenance.
+
+Browser locale is not complete UI translation. Desktop authentication then
+resize is not cold-phone bootstrap. No physical device, long-error or
+permission-card rendering, OS IME, accessibility, native app, live vendor,
+real account, deployment or combined latest-line approval is claimed.
+
+### Web UI identity refusal investigation
+
+| Investigation | State | Evidence | Next |
+|---|---|---|---|
+| WEB-IDENTITY-1: intermittent web UI identity refusal under build-VM load | Open; cause unknown. Investigate after the feedback package; no further unchanged replays. | Source `811c18d53`; whole `webparity-20261115T143312Z-811c18d5` (78 passed / one timeout); authorized single replay `webparity-20261115T153059Z-811c18d5` (one passed; 7.0s case, 26.3s including fixture). Error-context SHA256 `d5667e687c89c749f2099486637274d897e513c613cc08343de913e0494fb783`. | Follow the one-use bootstrap, challenge/hello/welcome proof, socket refusal/drop and receipt-persistence paths from source; identify the cause before changing behavior. |
+
+The retained DOM says “The UI was restarted or its identity could not be
+verified”. This is an actual identity-verification refusal, not evidence
+that the receipt was merely slow. The helper times out waiting for the
+verified tab receipt before any usage seeding or scope interaction. The
+helper and usage test are byte-identical to the preceding green feedback
+source. High build-machine load is observed; a causal explanation is still
+unverified. The approved error context is preserved privately without
+frames, capabilities or stored credential values.
+
+The authorized replay is evidence for the package's named intermittent
+only if it passes. It never erases the original failure or closes this
+investigation. If it fails, the package remains blocked and no further
+unchanged replay is permitted. Subsequent work traces the receipt path and
+uses a controlled regression from the confirmed cause, not repeated
+unexplained browser runs. This investigation precedes the next usage-page
+implementation; the new account-report contract remains gated on its
+reviewed, assigned and merged node source.
