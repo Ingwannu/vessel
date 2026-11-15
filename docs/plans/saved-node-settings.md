@@ -47,6 +47,23 @@ of one mutation owner; it does not define Vessel's private service-consent data.
 Vessel's private envelope is an explicit authority separation, not a claimed
 Paseo wire or file format.
 
+## Public and private parts of one namespace
+
+A later namespace can contain a safe generic choice and private metadata in the
+same disk key. For example, the plugin namespace belongs to ADR 0079 and is added
+at its reviewed merge; this proposal does not adopt its schema. The private
+stored record must own that complete namespace, with an explicit typed generic
+projection/merge. Naively flattening both a wire patch and another private record
+with the same key would create duplicate ownership or discard private fields.
+The initial P2 does not freeze that representation or promise a callback API.
+
+The envelope therefore remains opaque outside its disk edge. New typed private
+namespaces join the existing mutation owner under their owning contracts, without
+a Store-to-Node dependency, an untyped placeholder or a second writer. Their
+ordinary generic changes and resets must preserve all private fields; reload
+must not bypass the dedicated metadata setter. Unknown/future data continues to
+use the existing set-aside policy, rather than an invented partial merge.
+
 ## Protected services follow-up
 
 `services` is reserved for a separately reviewed private schema and a dedicated

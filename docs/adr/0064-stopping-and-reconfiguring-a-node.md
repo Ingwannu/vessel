@@ -1067,3 +1067,11 @@ unverified by Linux fixtures.
   by this proposal. Implementation waits for the shared retained writer on the
   accepted node base. See docs/plans/saved-node-settings.md for the dependency
   boundary and remaining proof.
+
+
+A namespace with both public choices and private metadata has one disk owner,
+not two flattened fields with the same key. Its generic projection/merge must
+preserve the private record; future namespaces are introduced under their own
+reviewed ADRs. This separation does not freeze a wire-patch flattening strategy,
+an opaque JSON placeholder or a public callback API. The saved settings plan
+records why same-key flattening is insufficient before those schemas join.
