@@ -219,3 +219,11 @@ remain distinct states. A missing deny-policy adapter refuses before spawn.
 The producer exposes the generic owner hook to a future plugin runtime without
 executing an inert plugin definition. Fake Codex request audits cover this
 whole lookup/launch/probe boundary. These tests and service wiring are pending.
+
+## Startup assembly preparation
+
+Before provider service wiring, existing blocking startup preparation and
+attachment construction are moved intact into node/prepare.rs and
+node/attachment_setup.rs. This is a responsibility split with no initialization
+order, behaviour or assertion change. node.rs falls below the regular budget,
+so its shrinking-size allowance is removed rather than increased.

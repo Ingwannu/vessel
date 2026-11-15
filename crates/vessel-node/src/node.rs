@@ -4,14 +4,12 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_harness::HarnessEnv;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::ports::PortOwner;
 use vessel_proto::{NodeId, NodeInfo, RelayToken, RouteUrl};
@@ -20,12 +18,9 @@ use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, Opened, Store};
 
 use crate::agents::Agents;
-use crate::attachments::staging;
-use crate::attachments::uploads::{self, Uploads};
-use crate::attachments::{Attachments, Verified, load};
 use crate::automation;
 use crate::automation::schedules::node_runner::NodeRunner;
 use crate::automation::schedules::{Schedules, SystemClock};
@@ -41,7 +36,6 @@ use crate::lifecycle::Lifecycle;
 use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
-use crate::profiles::NodeProfiles;
 use crate::relays::{self, Relays};
 use crate::secure::{MAX_UNADMITTED, SecureGateway};
 use crate::server::{self, Gateway};
@@ -53,9 +47,13 @@ use crate::tidying::Tidying;
 use crate::transfers::{self, Transfers};
 use crate::workspace::{Opening, Workspaces};
 
+mod attachment_setup;
+mod prepare;
 mod setup;
 
-use self::setup::{SessionSetup, SetupDirs};
+use self::attachment_setup::{ATTACHMENT_LOADS, attachments};
+use self::prepare::{Prepared, prepare_off_thread};
+use self::setup::SessionSetup;
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -72,22 +70,6 @@ pub struct Node {
     relays: Arc<Relays>,
     stop: CancellationToken,
     task: JoinHandle<Result<(), NodeError>>,
-}
-
-/// What the blocking part of start-up produces.
-struct Prepared {
-    id: NodeId,
-    token: NodeToken,
-    /// From `node.key` (ADR 0009), shared by the gateway and the relay
-    /// links.
-    keypair: Arc<NodeKeypair>,
-    lock: NodeLock,
-    /// From `profiles.toml` (ADR 0011).
-    profiles: NodeProfiles,
-    /// From `models.toml` (ADR 0015).
-    models: Models,
-    /// The directories sessions, probes and worktrees use.
-    dirs: SetupDirs,
 }
 
 impl Node {
@@ -548,31 +530,6 @@ fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> A
     )
 }
 
-/// How many prompts' attachment loads may wait for the node's loader; a
-/// session finding no room waits (each has at most one in flight).
-const ATTACHMENT_LOADS: usize = 16;
-
-/// The node's attachments (protocol 10): its uploads and their idle sweep,
-/// and the loader that answers the sessions' `loads`.
-fn attachments(
-    config: &Config,
-    store: &Store,
-    sessions: &Arc<Sessions>,
-    loads: tokio::sync::mpsc::Receiver<vessel_session::LoadAttachments>,
-    (tasks, stop): (&TaskTracker, &CancellationToken),
-) -> Arc<Attachments> {
-    let verified = Arc::new(Verified::default());
-    load::serve(store.clone(), Arc::clone(&verified), loads, tasks, stop);
-    let uploads = Arc::new(Uploads::new(staging::root(&config.data_dir), uploads::IDLE));
-    uploads.sweep(tasks, stop);
-    Arc::new(Attachments::new(
-        store.clone(),
-        Arc::clone(sessions),
-        uploads,
-        verified,
-    ))
-}
-
 /// Bind the local socket, and the TCP address if the config has one.
 async fn bind(
     config: &Config,
@@ -617,66 +574,6 @@ fn relaying(config: &Config) -> Result<Option<(RelayToken, TlsConfig)>, NodeErro
     Ok(Some((token, relays::relay_tls(&config.relays)?)))
 }
 
-/// The blocking part of start-up: directory, identity, token, key, lock.
-fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
-    dir.prepare().map_err(NodeError::DataDir)?;
-    let id = dir.load_or_create_node_id().map_err(NodeError::DataDir)?;
-    let token = dir.load_or_create_token().map_err(NodeError::DataDir)?;
-    // Created on the first start of every node, new or existing (ADR 0009),
-    // so its identity exists before any device pairs.
-    let key = dir.load_or_create_node_key().map_err(NodeError::DataDir)?;
-    let keypair = NodeKeypair::from_secret(*key.expose());
-    let owner = NodeOwner {
-        pid: std::process::id(),
-        executable: std::env::current_exe().unwrap_or_default(),
-        version: env!("CARGO_PKG_VERSION").to_owned(),
-        started_at: Utc::now(),
-    };
-    let lock = NodeLock::acquire(dir, &owner).map_err(NodeError::AlreadyRunning)?;
-    // After the lock: the MCP directory is emptied, which only the node
-    // owning the data directory may do.
-    let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;
-    let probe_dir = dir.prepare_probe_dir().map_err(NodeError::ProbeDir)?;
-    let workspace_dir = dir
-        .prepare_workspace_dir()
-        .map_err(NodeError::WorkspaceDir)?;
-    // Transfers expire at restart (protocol 6), and so do uploads (protocol
-    // 10); same reason to wait for the lock.
-    transfers::clear(dir);
-    staging::clear(dir);
-    let profiles = NodeProfiles::load(dir.clone(), env).map_err(NodeError::Profiles)?;
-    let models = Models::load(dir.clone(), FleetFiles::new(dir), model_client()?)
-        .map_err(NodeError::Models)?;
-    // A profile naming a route that is not there is not fatal: its
-    // sessions are refused, with the route named, until the file has it.
-    models.check_profiles(&profiles.list(None));
-    Ok(Prepared {
-        id,
-        token,
-        keypair: Arc::new(keypair),
-        lock,
-        profiles,
-        models,
-        dirs: SetupDirs {
-            mcp: mcp_dir,
-            probe: probe_dir,
-            workspace: workspace_dir,
-        },
-    })
-}
-
-/// The client model calls go out with: the operating system's roots, or
-/// none (with a warning) on a machine that has none, where only `http`
-/// providers (a local server) can then be reached.
-/// [`prepare`], on a thread that may block.
-async fn prepare_off_thread(config: &Config) -> Result<Prepared, NodeError> {
-    let dir = config.data_dir.clone();
-    let env = config.harness_env.clone();
-    tokio::task::spawn_blocking(move || prepare(&dir, env))
-        .await
-        .map_err(NodeError::Task)?
-}
-
 /// The model proxy's listener, on a port of loopback's the system picks
 /// (harnesses learn it from their environment). It is served from `core`'s
 /// stop: model calls end with the node, a harness still calling gets its
@@ -687,16 +584,6 @@ async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeE
         .map_err(NodeError::ModelProxy)?;
     models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
     Ok((Arc::new(models), listener))
-}
-
-fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
-    let limits = vessel_llm::client::Limits::default();
-    vessel_llm::client::Client::new(limits)
-        .or_else(|error| {
-            tracing::warn!(%error, "model calls to https providers will fail");
-            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
-        })
-        .map_err(NodeError::ModelClient)
 }
 
 /// Bind the TCP listen address.
