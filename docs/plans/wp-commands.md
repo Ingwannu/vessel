@@ -435,7 +435,7 @@ regression checks the empty defaults, Settings rank and searchable Appearance.
 | Workspace rows, navigation, project create | W11 registry plus S2 visible projection | Canonical values present, no checked native activation packet |
 | Numeric sidebar badges/order/grouping | S2 owner handler and projection | One effective modifier timer written; targets and both-sidebar adapter pending |
 | Pane palette actions / focus-mode exit | W12 LayoutActionContext/run_at | Checked30a context/exit source adopted in sharedline; native owner source and dispatcher wired, union checks pending |
-| Root Import | W2 open_import | Source0eb3 all3clippy0, owner tests/review pending; not adopted |
+| Root Import | W2 open_import | Current c625 strict + App/Link checks pending; root registration reserved and blocked on a checked portable owner range; not adopted |
 | Root History | W21 Route::Sessions | Screen owner packet pending; no Archive substitute |
 | Root Schedules | G2 Route::Schedules | Source-only, physical admission repair pending; no Settings substitute |
 | Files search/open | W13 FileScope + FileLocation | Pure UI state and existing C5 acquisition available; checked actual connection-scoped opener pending |
@@ -794,3 +794,11 @@ not edited to call an absent method. A concrete current-recorder/three-supported
 actions refusal regression is prepared in package evidence; native admission
 assertion awaits the owner's normal production predicate, not a test-only hook.
 The test is unexecuted and does not imply E3 capture/persistence readiness.
+
+Exact02e4567ac37086dc438326d7693b6a20eab4d349 App binary regression run
+wp-commands-20261115T145941Z-02e4567a is GREEN:114pass/0fail/2ignore.
+The actual missing/dead-opener and canonical FocusComposer missing-owner cases
+executed under the corrected B2 policy. Same-source View/App strict run
+wp-commands-narrow-20261115T145941Z-02e4567a failed only doc_markdown on
+TextField in the Backspace-order comment; corrected the markup without changing
+behavior. Current union strict checking remains owed; no whole/UI/OS claim.

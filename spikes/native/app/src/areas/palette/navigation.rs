@@ -62,7 +62,7 @@ impl Shell {
     }
 
     /// The sole interceptor has already admitted IME/capture/overlay input.
-    /// GPUI resolves TextField Backspace actions before raw key listeners, so
+    /// GPUI resolves `TextField` Backspace actions before raw key listeners, so
     /// invoke the existing page operation before that action can delete text.
     pub(in crate::areas) fn command_center_backspace(
         &mut self,
