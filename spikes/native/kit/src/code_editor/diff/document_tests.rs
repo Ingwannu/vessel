@@ -32,37 +32,8 @@ fn keyboard_end_and_shift_selection_reveal_the_real_document_owner(cx: &mut Test
         .map(|row| format!("source {row}"))
         .collect::<Vec<_>>()
         .join("\n");
-    let (owner, cx) = cx.add_window_view(|window, cx| {
-        let input = DiffText::new(
-            Arc::from(source.as_str()),
-            (1..=2500)
-                .map(|line| super::super::DiffLine {
-                    number: NonZeroU32::new(line),
-                    tone: super::super::DiffTone::Context,
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )
-        .unwrap();
-        let files = VirtualList::new(false);
-        files.reset(1);
-        Owner {
-            editor: DiffDocumentEditor::new(
-                input,
-                Plain,
-                DiffWrapping::Scroll,
-                |owner: &mut Owner, bounds, _window, cx| {
-                    owner.files.reveal_bounds(bounds, px(0.));
-                    owner.reveals = owner.reveals.saturating_add(1);
-                    cx.notify();
-                },
-                window,
-                cx,
-            ),
-            files,
-            reveals: 0,
-        }
-    });
+    let (owner, cx) =
+        cx.add_window_view(|window, cx| document_owner(&source, DiffWrapping::Scroll, window, cx));
     cx.update(|window, cx| {
         window.activate_window();
         owner.update(cx, |owner, cx| owner.editor.editor.focus(window, cx));
@@ -102,4 +73,82 @@ fn keyboard_end_and_shift_selection_reveal_the_real_document_owner(cx: &mut Test
         assert_eq!(state.value(), source);
         assert!(state.is_readonly());
     });
+}
+
+fn document_owner(
+    source: &str,
+    wrapping: DiffWrapping,
+    window: &mut Window,
+    cx: &mut Context<'_, Owner>,
+) -> Owner {
+    let input = DiffText::new(
+        Arc::from(source),
+        source
+            .split('\n')
+            .enumerate()
+            .map(|(index, _)| super::super::DiffLine {
+                number: NonZeroU32::new(u32::try_from(index + 1).unwrap()),
+                tone: super::super::DiffTone::Context,
+            })
+            .collect::<Vec<_>>()
+            .into(),
+    )
+    .unwrap();
+    let files = VirtualList::new(false);
+    files.reset(1);
+    Owner {
+        editor: DiffDocumentEditor::new(
+            input,
+            Plain,
+            wrapping,
+            |owner: &mut Owner, bounds, _window, cx| {
+                owner.files.reveal_bounds(bounds, px(0.));
+                owner.reveals = owner.reveals.saturating_add(1);
+                cx.notify();
+            },
+            window,
+            cx,
+        ),
+        files,
+        reveals: 0,
+    }
+}
+
+#[gpui::test]
+fn native_wheel_packets_over_the_document_scroll_its_outer_owner(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    let source = std::iter::repeat_n("wide source ".repeat(40), 2500)
+        .collect::<Vec<_>>()
+        .join("\n");
+    for (wrapping, horizontal_drift) in [
+        (DiffWrapping::Scroll, 0.),
+        (DiffWrapping::Scroll, -0.5),
+        (DiffWrapping::Wrap, 0.),
+    ] {
+        let (owner, cx) =
+            cx.add_window_view(|window, cx| document_owner(&source, wrapping, window, cx));
+        cx.run_until_parked();
+        let before = owner.read_with(cx, |owner, _cx| owner.files.top());
+        cx.simulate_event(gpui::ScrollEvent {
+            position: point(px(100.), px(100.)),
+            delta: gpui::ScrollDelta::Pixels(point(px(horizontal_drift), px(-80.))),
+            touch_phase: gpui::TouchPhase::Moved,
+            ..Default::default()
+        });
+        cx.run_until_parked();
+        owner.read_with(cx, |owner, cx| {
+            assert_ne!(
+                owner.files.top(),
+                before,
+                "vertical wheel reaches the actual VirtualList, including trackpad drift"
+            );
+            let state = owner.editor.editor.editor.state.read(cx);
+            assert_eq!(
+                state.scroll_offset().y,
+                px(0.),
+                "the full-height editor has no inner vertical card scroll"
+            );
+            assert_eq!(state.value(), source);
+        });
+    }
 }

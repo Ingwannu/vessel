@@ -590,3 +590,10 @@ The malformed metadata diagnostic carries kit's own zero-based DiffRowIndex.
 The vendor BufferRow constructor stays crate-private; no engine API is widened
 just to construct an owner-side diagnostic. This is a static source correction
 to the new syntax/admission slice, not an executed compile result.
+
+The document-window test source now also sends actual ScrollEvent packets over
+the full-height editor (pure vertical, small trackpad horizontal drift, and
+wrapped content), asserting the real parent VirtualList moves while the inner
+vertical offset stays zero. This supplements direct ListState and keyboard
+reveal tests; it has not run and does not establish wheel behavior. No vendor
+scroll-routing change was made from a source-only suspicion.
