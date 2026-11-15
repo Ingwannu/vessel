@@ -335,7 +335,10 @@ fn explicit_source_and_account_ids_cannot_disagree_with_the_opaque_handle() {
 
 #[test]
 fn source_methods_stay_pending_with_explicit_authority_and_unary_shape() {
-    use crate::rpc::{Method, MethodShape, Scope};
+    use crate::{
+        Scope,
+        rpc::{Method, MethodShape},
+    };
     for (method, scope) in [
         (Method::ListUsageReports, Scope::Read),
         (Method::InspectUsageReport, Scope::Read),
