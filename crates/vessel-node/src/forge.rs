@@ -30,6 +30,9 @@ mod feedback;
 mod folder;
 mod hosts;
 mod poll;
+// ADR 0061 stages real service tests before transport wiring is assigned.
+#[cfg(test)]
+mod project;
 mod schedule;
 mod view;
 mod watcher;

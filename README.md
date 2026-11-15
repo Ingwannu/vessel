@@ -1167,6 +1167,11 @@ where the code stands against them, and
 
 ## Development
 
+ADR 0061 adds a provider-level repository-page read. Its node cache/service
+is staged under `cfg(test)` until protocol and client/CLI wiring are ready;
+`pr.list` still reports watched sessions, and there is no project-listing
+command yet. See the ADR for credential/cache and cancellation boundaries.
+
 ```bash
 cargo fmt --all
 node scripts/gate.mjs

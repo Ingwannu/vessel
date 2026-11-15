@@ -1,6 +1,6 @@
 # Project pull requests without a session
 
-Status: contract accepted; bounded value stage validated. ADR 0061 records
+Status: value stage validated; provider/service implementation staged. ADR 0061 records
 the decision before code. Project listing is not callable; `pr.list` still
 lists watched sessions.
 
@@ -95,10 +95,40 @@ opaque host-bound generation, and stage an actor with bounded admission,
 cache slots and refresh ordering. No new HTTP client, credential source,
 dependency, protocol assignment or product endpoint is introduced.
 
-Unbuilt preparation covers the provider and identity helpers; it has not
-been executed or claimed as runtime evidence. The node entry remains a
-test-only stage until shared protocol admission and the connection request
-budget are ready for reviewed wiring. Product integration, exact transport
-consumers and their gate remain separate work. The next checks must run
-the changed crates narrowly before a whole gate; the prior passing value
-gate is retained and is not repeated on an unchanged source tree.
+The source now extends the actual GitHub and FakeForge implementations.
+Whole reads and repository pages share the typed summary decoder and fixed
+query limits. Credential cache identities retain allocations rather than
+deriving a token hash, and current identity is selected before a cache hit.
+The staged node owner bounds admission, retained keys and completion work;
+registered-root resolution holds an owned guard through queued/running
+blocking work. Refresh ordering and coalesced cancellation are explicit.
+
+The node entry remains test-only until shared protocol admission and the
+connection request budget are ready for reviewed wiring. No new method,
+request, client/CLI behavior, existing reply/event field, version, store or
+dependency edge is added. Exact transport consumers and product-configuration
+validation remain separate work. Validation results for this changed source
+are recorded separately; the prior passing value gate remains retained.
+
+## Running the staged checks
+
+```sh
+cargo build -p vessel-testkit --bins
+cargo clippy -p vessel-forge -p vessel-node -p vessel-workspace --all-targets -- -D warnings
+cargo test -p vessel-forge --features fake --lib
+cargo test -p vessel-node --lib forge::project
+node scripts/gate.mjs
+```
+
+The selected tests use actual FakeForge operations, loopback GitHub requests
+and temporary registered git projects. A test-only host constructor pairs
+the real provider and credential cache without using the custom fake's
+credential bypass; the product configuration gains no selector or API
+address override. Owner admission and publication both revalidate queued
+credential association without I/O. A failed owner job drains its child
+service while the parent node continues.
+
+These selected commands do not replace the whole root runner. Its two
+binary prebuilds and explicit fixture-feature Clippy/test steps remain
+required. Wire permissions, old peers, client/CLI/fleet consumers and the
+product configuration are still the following transport stage.

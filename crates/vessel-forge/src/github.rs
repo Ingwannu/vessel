@@ -20,6 +20,7 @@
 
 mod facts;
 mod graphql;
+mod project;
 mod reads;
 mod rest;
 mod writes;
@@ -29,7 +30,8 @@ use std::sync::Arc;
 use reqwest::{Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use vessel_proto::forge::{
-    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason, RepoRef,
+    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, OpenPullPage, PullCursor, PullNumber,
+    RefusedReason, RepoRef,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -166,6 +168,23 @@ impl GitHub {
         }
     }
 
+    // Every observed refusal invalidates page associations, including
+    // NoAccess decoded from a 404 or a null GraphQL repository. Preserve
+    // the exact result and all token/retry rules. send already handles
+    // Unauthorized through the existing credential-forgetting policy.
+    async fn observed<T>(
+        &self,
+        read: impl Future<Output = Result<T, ForgeError>>,
+    ) -> Result<T, ForgeError> {
+        let result = read.await;
+        if let Err(ForgeError::Refused { reason }) = &result
+            && !matches!(reason, RefusedReason::Unauthorized)
+        {
+            self.credentials.invalidate();
+        }
+        result
+    }
+
     /// One request to `host`, its 401 dropping the cached token.
     async fn send(&self, host: &ForgeHost, ask: Ask) -> Result<Reply, ForgeError> {
         let token = self.token(host).await?;
@@ -237,6 +256,14 @@ fn no_access(status: StatusCode) -> Option<ForgeError> {
 }
 
 impl Forge for GitHub {
+    fn list_open<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        after: Option<&'a PullCursor>,
+        priority: Priority,
+    ) -> Answer<'a, OpenPullPage> {
+        Box::pin(self.observed(self.project_page(repo, after, priority)))
+    }
     fn kind(&self) -> ForgeKind {
         ForgeKind::Github
     }
@@ -248,7 +275,7 @@ impl Forge for GitHub {
     }
 
     fn whoami<'a>(&'a self, host: &'a ForgeHost) -> Answer<'a, Option<ForgeLogin>> {
-        Box::pin(self.login(host))
+        Box::pin(self.observed(self.login(host)))
     }
 
     fn find<'a>(
@@ -257,7 +284,7 @@ impl Forge for GitHub {
         branch: &'a BranchName,
         priority: Priority,
     ) -> Answer<'a, Fresh<Vec<Found>>> {
-        Box::pin(self.pulls_of(repo, branch, priority))
+        Box::pin(self.observed(self.pulls_of(repo, branch, priority)))
     }
 
     fn changed<'a>(
@@ -267,7 +294,7 @@ impl Forge for GitHub {
         head: &'a CommitId,
         priority: Priority,
     ) -> Answer<'a, bool> {
-        Box::pin(self.moved(repo, number, head, priority))
+        Box::pin(self.observed(self.moved(repo, number, head, priority)))
     }
 
     fn read<'a>(
@@ -276,11 +303,11 @@ impl Forge for GitHub {
         number: PullNumber,
         priority: Priority,
     ) -> Answer<'a, Read> {
-        Box::pin(self.whole(repo, number, priority))
+        Box::pin(self.observed(self.whole(repo, number, priority)))
     }
 
     fn open<'a>(&'a self, repo: &'a RepoRef, opening: &'a Opening) -> Answer<'a, Opened> {
-        Box::pin(self.create(repo, opening))
+        Box::pin(self.observed(self.create(repo, opening)))
     }
 
     fn merge<'a>(
@@ -290,11 +317,11 @@ impl Forge for GitHub {
         method: MergeMethod,
         head: &'a CommitId,
     ) -> Answer<'a, Merged> {
-        Box::pin(self.merge_at(repo, number, method, head))
+        Box::pin(self.observed(self.merge_at(repo, number, method, head)))
     }
 
     fn can_write<'a>(&'a self, repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool> {
-        Box::pin(self.writes_to(repo, login))
+        Box::pin(self.observed(self.writes_to(repo, login)))
     }
 }
 

@@ -56,7 +56,7 @@ and 0013).
 | `vessel-fleet` | Fleet bundles (milestone 4, ADR 0012): the home's sources into a manifest and a content-addressed blob store; plan and apply into harness homes with recorded hashes (`managed.json`), local edits kept with the incoming version beside them, symlinks never followed, targets linked to the sources left alone; skills named by `SKILL.md`; MCP secret references resolved at launch; transfers as file sets (`snapshot` into a staging store within protocol 6's limits, `place` into a home never overwriting: a session whole or not at all, memory beside what differs). | proto, harness |
 | `vessel-mcp` | `vessel mcp` (milestone 4, ADR 0013): the MCP server (stdio, on `rmcp`) a node attaches to every session as `vessel`; each tool is one call through the session's agent principal; `list_projects`, `list_worktrees`, `create_worktree` (following setup) and `create_session`'s `project`/`worktree` (protocol 10); `get_pull_request` and `open_pull_request` (protocol 11: an agent's open never pushes; merging and feedback are not offered); `create_terminal`, `list_terminals`, `read_terminal`, `write_terminal` (marked destructive and open-world), `close_terminal` and `list_ports` (protocol 11, ADR 0031: only where both profiles set `agent_terminals`, only its own; scripts are not offered); the schedule tools, `list_saved_prompts` and `notify` on a prompt, on the agent's own node (protocol 11, ADR 0033). | proto, client |
 | `vessel-llm` | Model APIs for the node's routing proxy (milestone 5, ADR 0015): Server-Sent Events decoded from any chunking and encoded (`sse`); the Anthropic Messages, `OpenAI` Responses and Chat Completions wire types, open to kinds Vessel does not know yet (`wire`); a neutral request and stream, the translators between them, a same-API passthrough and the upstream client (`client`: rustls with the platform's roots, no redirects or proxies, timeouts to connect, to the first byte and between bytes, bounded bodies, retries only before the first byte, errors classified with the key stripped). Nothing about sessions, nodes or harnesses. | proto |
-| `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, one GraphQL read, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). ADR 0060 adds `fake/seed`: bounded, versioned files seed that same provider, with per-repository failures and refused merges. The separate `vessel-forge-fixture` node executable requires `vessel-node/forge-fixture`, explicit scratch paths and loopback listeners; product `vesseld` has no fake-provider selector. No new crate dependency edge. Nothing about sessions, the store or principals. | proto, proc |
+| `vessel-forge` | Pull requests on a forge (milestone 11, track B2, ADR 0029): one object-safe trait (`Forge`), GitHub behind it (REST for conditional reads and writes, GraphQL detail and repository-page reads, a merge pinned to its head), a remote's URL read into its repository, signing in with a token the binary found or the machine's `gh` (a token only in a sensitive header, never logged, kept five minutes), one bounded HTTP client (four slots, one kept for a person; same-origin redirects; 4 MiB bodies; per-host token bucket, quota floor and cooldowns), and an in-memory forge for tests (feature `fake`). ADR 0060 adds `fake/seed`: bounded, versioned files seed that same provider, with per-repository failures and refused merges. The separate `vessel-forge-fixture` node executable requires `vessel-node/forge-fixture`, explicit scratch paths and loopback listeners; product `vesseld` has no fake-provider selector. No new crate dependency edge. Nothing about sessions, the store or principals. | proto, proc |
 | `vessel-web` | `vessel ui`'s server (milestone 7, ADR 0017): loopback only, one-use bootstrap and mutual session proofs, bounded pre-auth transport, `Host`/`Origin` checks and security headers, the single-page app embedded at build time (`web/dist`, or a placeholder page; each text file with the brotli and gzip forms the web build made, one chosen per request by `Accept-Encoding`, milestone 11), the browser's websocket, and the bridge to the book's nodes: one shared connection per node with its state pushed to every tab, calls forwarded as typed `Call`s, session streams (and terminals', `follow_terminal`, protocol 11) that resume, and the bridge's own ops (the book's nodes, pairing, QR codes, and the book's edits: forget, rename, default, milestone 10; the page's preferences and drafts, kept in files and pushed to every tab, and the index's first paint, milestone 11, ADR 0028). The CLI gives it the nodes, and makes the book's edits with `BookFile`, through `NodeSource`. | proto, client |
 | `vessel-cli` | `vessel` binary: commands, interactive attach, `vessel mcp`, `vessel init` (first-run setup, milestone 4); `vessel models`, each profile's route in `vessel profiles` and model calls in `vessel log` (milestone 5); `vessel ui` (milestone 7); `vessel project`, `vessel worktree` and `vessel run --project/--worktree/--new-worktree` (milestone 11); `vessel pr` (list, show, open, merge, feedback, status), `vessel shell`, `vessel script`, `vessel ports`, `vessel schedule` and `vessel prompt` (protocol 11); `vessel search`, `vessel session park/wake/fork/rewind`, `vessel node settings` (`--driver`, protocol 18) and `vessel history` (protocol 12); `vessel session compare` (ADR 0046), a bounded manifest and one common input with complete partial-result reporting. | proto, client, node, remote, mcp, harness, web |
 | `vessel-testkit` | Fake harnesses (`fake-tui`, `fake-acp`, which also make one model call through a routed session's proxy on `model <text>`, milestone 5), `fake-ssh` for tests and `fake-provider` for the model routing smoke; with the `relay` feature, a relay that misbehaves on command; with the `upstream` feature, a model provider on loopback answering with scripted streams, errors, drops, silences and hangs (milestone 5). The fakes report the environment, arguments, MCP servers, loaded session id and working directory they got (milestone 4). With the `authority-fixtures` feature, typed caller-authority fixtures built from `vessel-proto`'s types (protocol 20); the fake binaries keep no wire dependency. | proto |
@@ -1311,7 +1311,7 @@ first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
 
-## Project pull-request values (ADR 0061, transport pending)
+## Project pull requests (ADR 0061, transport pending)
 
 `vessel-proto::forge` owns an opaque bounded provider cursor, a cursor's
 source-repository association and a validated page of open PR summaries.
@@ -1320,5 +1320,40 @@ duplicate numbers, another repository, non-open entries and empty
 continuations fail the whole page. Cursor diagnostics omit provider text.
 These values register no call and add no fields to existing replies or
 events. Their feature version remains unassigned; `pr.list` continues to
-mean watched sessions. Project resolution, provider listing and client/CLI
-transport are a following stage, not exposed by these value definitions.
+mean watched sessions. `vessel-forge::Forge::list_open` now reads one bounded open page through
+GitHub or the actual shared fake. GraphQL whole/detail and page reads share
+one summary decoder, preserving checks, review and mergeability policy and
+whole-read error precedence. Both use typed query variables and the same
+head/context limits; API addressing, HTTP budgets and token policy remain
+owned by the existing provider.
+
+`Credentials::identity` associates a cached credential with opaque allocation
+markers. Host, current cached value/source, eviction and every observed
+refusal determine association; no token-derived hash or serializable id is
+created. The existing environment/gh selection, cache expiry and refusal
+retry cooldown are unchanged. External login edits are known only when the
+existing credential policy observes them.
+
+The unconnected node `forge/project` service is staged under `cfg(test)`.
+Its owner admits `MAX_ACTIVE` callers before root/credential/network work,
+holds `MAX_KEYS` cache slots, coalesces flights and applies `FRESH` to the
+original load completion time. Every request re-resolves the registered
+root and hardened remote, including cache hits. Default, detached and
+unborn checkouts can identify a repository without a session. The shared
+root resolver retains an admission guard in its blocking closure; its typed
+join failure preserves the source. The ordinary root and git checks remain
+shared rather than copied into a project-only resolver.
+
+Requests, coalesced waiters and queued completions own admission even after
+caller cancellation. A load identity prevents an older completion from
+publishing over a newer refresh or resurrecting success after refresh
+failure. A fresh ordinary hit may be served during refresh; failure removes
+that stored success. Pages retain their original `read_at`. Credential
+selection governs every hit, is rechecked without I/O when a prepared
+request reaches the owner, after loading and before publishing a queued
+completion.
+
+This staged service has no product field or call registration. The shared
+protocol admission, connection request budget, reviewed client/CLI/fleet
+wiring, authority fixtures and older-peer checks must land before removing
+`cfg(test)` and integrating the service into the product configuration.

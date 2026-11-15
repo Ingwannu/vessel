@@ -5,6 +5,7 @@
 //! what it was asked.
 
 mod behaviour;
+mod project;
 pub mod seed;
 
 use serde::{Deserialize, Serialize};
@@ -149,7 +150,7 @@ impl FakeForge {
     }
 
     /// How many times `method` (`find`, `changed`, `read`, `open`,
-    /// `merge`, `can_write`, `whoami`) was called.
+    /// `merge`, `can_write`, `whoami`, `list_open`) was called.
     #[must_use]
     pub fn calls(&self, method: &str) -> usize {
         self.state().calls.get(method).copied().unwrap_or(0)

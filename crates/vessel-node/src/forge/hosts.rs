@@ -51,6 +51,15 @@ enum Cached {
     Login(Option<ForgeLogin>),
 }
 
+/// A cache association shared only by the staged project reader and the
+/// host credential selector; custom providers have no host credentials.
+#[cfg(test)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum ProjectIdentity {
+    Custom,
+    Credential(vessel_forge::CredentialIdentity),
+}
+
 /// The provider, the credentials and every host's sign-in.
 #[derive(Debug)]
 pub(crate) struct Hosts {
@@ -64,6 +73,19 @@ pub(crate) struct Hosts {
 }
 
 impl Hosts {
+    /// Pair a loopback provider with its actual credentials in node tests.
+    /// This fixture preserves normal host authorization; it is deliberately
+    /// separate from custom `FakeForge` injection, which needs no credential.
+    #[cfg(test)]
+    pub(super) fn for_provider_test(credentials: Arc<Credentials>, forge: Arc<dyn Forge>) -> Self {
+        Self {
+            forge: Some(forge),
+            custom: false,
+            credentials,
+            known: Mutex::new(BTreeMap::new()),
+        }
+    }
+
     /// The provider and credentials `setup` describes; `gh` runs in `data`,
     /// the node's own folder, never in a repository.
     pub(crate) fn new(setup: ForgeSetup, data: PathBuf) -> Self {
@@ -95,6 +117,32 @@ impl Hosts {
             credentials,
             known: Mutex::new(hosts),
         }
+    }
+
+    /// Project caches are bound to the credential selected by the existing
+    /// token policy, including on a cache hit. Test providers need no token.
+    /// Transport wiring removes this staging attribute with the service's.
+    #[cfg(test)]
+    pub(super) async fn project_identity(&self, host: &ForgeHost) -> Option<ProjectIdentity> {
+        if self.custom {
+            return Some(ProjectIdentity::Custom);
+        }
+        self.credentials
+            .identity(host)
+            .await
+            .map(ProjectIdentity::Credential)
+    }
+
+    /// Revalidate queued preparation without starting a credential lookup
+    /// in the cache owner. Expired/refused generations cannot hit a page.
+    #[cfg(test)]
+    pub(super) fn cached_project_identity(&self, host: &ForgeHost) -> Option<ProjectIdentity> {
+        if self.custom {
+            return Some(ProjectIdentity::Custom);
+        }
+        self.credentials
+            .cached_identity(host)
+            .map(ProjectIdentity::Credential)
     }
 
     /// The provider, when there is one.
@@ -217,6 +265,10 @@ pub(crate) fn denied(
             until: *until,
         },
         ForgeError::Unreachable(_)
+        | ForgeError::Page(_)
+        | ForgeError::PageCursor(_)
+        | ForgeError::ListingValue(_)
+        | ForgeError::ListingInteger(_)
         | ForgeError::Down
         | ForgeError::Server { .. }
         | ForgeError::NotFound

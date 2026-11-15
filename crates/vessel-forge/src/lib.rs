@@ -25,4 +25,6 @@ pub use provider::{
     Answer, Author, Comment, Discussion, FailedCheck, Forge, ForgeError, Found, Fresh, ItemId,
     Merged, Opened, Opening, Priority, Read, Review, ReviewVerdict, Thread,
 };
-pub use token::{Credentials, EnvTokens, Found as TokenFound, SIGN_IN_VARIABLES, Token};
+pub use token::{
+    CredentialIdentity, Credentials, EnvTokens, Found as TokenFound, SIGN_IN_VARIABLES, Token,
+};

@@ -1,6 +1,6 @@
 # ADR 0061: Open pull requests of a project without a session
 
-Status: accepted value contract; provider/service staging amendment proposed.
+Status: accepted value and provider/service staging contract; transport pending.
 Amends ADR 0029's session-only discovery, not its watch or write rules.
 
 ## Context and existing assets
@@ -160,7 +160,7 @@ checks apply; adding a callable wire contract also requires both older-peer
 directions and the web checks. No stage claims project listing works until
 the actual node/client/CLI path is executed.
 
-## Proposed provider and service staging
+## Provider and service staging
 
 [Decision Log]
 - Purpose and intent: exercise the actual provider, registered-root checks
@@ -230,3 +230,46 @@ registered git folders including base, detached and unborn checkouts.
 Transport permissions, forwarding, older peers and client/CLI/fleet
 consumers remain the following wiring stage. The unassigned feature constant
 and method table remain unchanged throughout service staging.
+
+## Staged implementation boundary
+
+The provider extension is ordinary library code with real GitHub and fake
+implementations. The node owner, cache and registered-root reader remain
+reachable only in node unit tests. This intentionally defers product service
+integration rather than adding a second feature or suppressing dead code.
+The shared root resolver carries a generic owned guard through its existing
+blocking open and retains a typed join error; ordinary file/git callers use
+that same resolver with no admission guard. Git's optional checkout remote
+reuses its existing branch-remote selection and falls back to origin.
+
+Tests drive actual fake provider jobs and hold their completions at the
+owner boundary to reverse publication order. This is deterministic owner
+state coverage; it does not claim that a live external forge supplies an
+atomic snapshot. A channel barrier with one blocking worker proves the
+queued-root cancellation lifetime. Actual root, remote and loopback-provider
+fixtures complement those state tests. Transport permissions and cancellation
+at a real RPC boundary remain wiring-stage evidence.
+
+After asynchronous preparation, cache admission rechecks the currently cached
+credential synchronously. A refusal, expiry or replacement while preparation
+waited in the completion queue therefore cannot hit an old page. This check
+starts no credential subprocess in the owner; uncertainty refuses the read
+and a later caller can resolve again under the existing credential policy.
+
+Provider operations also invalidate page association on a decoded repository
+refusal (for example a forbidden response or GitHub's hidden/missing
+repository), without forgetting credentials or changing retry timing. The
+existing unauthorized-response path remains the only path that asks the
+credential cache to forget a token. Whole-read facts and error results are
+unchanged; this new observation affects only page-cache association.
+
+Successful load completions are revalidated at owner publication too. The
+credential may have been refused while that completion waited in the
+owner's queue; such a result becomes CredentialChanged rather than a page,
+and cannot populate the cache or answer a waiter with old-account facts.
+
+A failed async job closes this service's child cancellation token and drains
+all owned waiters/jobs. A lost job result has no reliable key to publish;
+continuing with its flight retained would strand admission indefinitely.
+The parent node remains running. Tests exercise this owner failure path and
+check that another service on the same node token still answers.

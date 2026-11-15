@@ -10,6 +10,15 @@ use super::{Ask, GitHub, decode, graphql, no_access, owner_name, rest};
 use crate::http::{Reply, Resource};
 use crate::provider::{ForgeError, Found, Fresh, Priority, Read};
 
+#[derive(serde::Serialize)]
+struct WholeVariables<'a> {
+    owner: &'a str,
+    name: &'a str,
+    number: PullNumber,
+    contexts: graphql::QueryLimit,
+    heads: graphql::QueryLimit,
+}
+
 impl GitHub {
     /// `GET /user`: `None` for an installation's token, which has no user.
     pub(super) async fn login(&self, host: &ForgeHost) -> Result<Option<ForgeLogin>, ForgeError> {
@@ -95,10 +104,16 @@ impl GitHub {
         priority: Priority,
     ) -> Result<Read, ForgeError> {
         let (owner, name) = owner_name(repo)?;
-        let query = serde_json::json!({
-            "query": graphql::READ,
-            "variables": { "owner": owner, "name": name, "number": number.get() },
-        });
+        let query = graphql::Query {
+            query: graphql::READ,
+            variables: WholeVariables {
+                owner,
+                name,
+                number,
+                contexts: graphql::MAX_CONTEXTS,
+                heads: graphql::HEAD_COMMITS,
+            },
+        };
         let url = self.graphql(&repo.host)?;
         let ask = Ask::json(Method::POST, url, Resource::Graphql, priority, &query)?;
         let Reply::Body { status, body } = self.send(&repo.host, ask).await? else {

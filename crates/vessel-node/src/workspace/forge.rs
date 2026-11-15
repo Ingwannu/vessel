@@ -27,6 +27,17 @@ impl Workspaces {
         Ok(self.git()?.remote_address(folder, branch).await?)
     }
 
+    /// Repository reads use origin when no branch/head exists. This is
+    /// staged with the project listing; wiring removes the attribute.
+    #[cfg(test)]
+    pub(crate) async fn project_remote_address(
+        &self,
+        folder: &Path,
+        branch: Option<&BranchName>,
+    ) -> Result<Option<(RemoteName, RemoteAddress)>, WorkspaceError> {
+        Ok(self.git()?.remote_for_checkout(folder, branch).await?)
+    }
+
     /// Where `remote` was last seen to have `branch`.
     pub(crate) async fn tracking(
         &self,

@@ -28,8 +28,8 @@ use std::pin::Pin;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::forge::{
-    CheckName, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod, PullBody,
-    PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoRef,
+    CheckName, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod, OpenPullPage,
+    PullBody, PullCursor, PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoRef,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -233,6 +233,20 @@ pub enum Merged {
 /// Why a request to a forge failed.
 #[derive(Debug, thiserror::Error)]
 pub enum ForgeError {
+    /// A fixture's cursor is not a decimal integer; the parse error
+    /// carries its kind, never the opaque input text.
+    #[error("the forge returned an invalid listing integer")]
+    ListingInteger(#[source] std::num::ParseIntError),
+    /// A provider returned a page whose open/repository/number invariants
+    /// do not hold. No partial page is admitted.
+    #[error("the forge returned an invalid project pull-request page")]
+    Page(#[source] vessel_proto::forge::InvalidOpenPullPage),
+    /// A provider's continuation cannot fit the bounded opaque value.
+    #[error("the forge returned an invalid project pull-request cursor")]
+    PageCursor(#[source] vessel_proto::forge::InvalidPullCursor),
+    /// A fixture's opaque cursor contains an invalid typed number.
+    #[error("the forge returned an invalid listing value")]
+    ListingValue(#[source] vessel_proto::forge::InvalidForgeValue),
     /// No token for the host.
     #[error("not signed in to the forge")]
     SignedOut {
@@ -280,6 +294,15 @@ pub enum ForgeError {
 
 /// A forge: one per host (ADR 0029).
 pub trait Forge: Send + Sync + fmt::Debug {
+    /// One repository-wide page of open requests, without a branch
+    /// selector. The cursor is opaque and the page validates its whole
+    /// repository/number/state contract before it is returned.
+    fn list_open<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        after: Option<&'a PullCursor>,
+        priority: Priority,
+    ) -> Answer<'a, OpenPullPage>;
     /// Its kind.
     fn kind(&self) -> ForgeKind;
 

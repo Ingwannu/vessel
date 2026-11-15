@@ -254,6 +254,10 @@ fn after_error(error: &ForgeError, failures: u32) -> Duration {
             .max(Duration::from_secs(1)),
         ForgeError::SignedOut { .. } | ForgeError::Refused { .. } => DENIED_AGAIN,
         ForgeError::Unreachable(_)
+        | ForgeError::ListingInteger(_)
+        | ForgeError::Page(_)
+        | ForgeError::PageCursor(_)
+        | ForgeError::ListingValue(_)
         | ForgeError::Down
         | ForgeError::Server { .. }
         | ForgeError::NotFound
