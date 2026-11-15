@@ -100,3 +100,18 @@ unoffered option or an invalid empty form is unconfirmed. The private helpers
 are staged under the same cfg(test) module until W23's checked RPC and W17's
 reviewed output seam arrive. They neither invent a wire method nor turn the
 legacy Ack into durable proof. Regression fixtures explicitly cover these cases.
+
+
+Envelope-key presence is distinct from JSON null. Serde Option<IgnoredAny> would
+map both missing and explicit null to None, accidentally accepting mixed header
+and canonical layouts such as {answers:{},answer:null}. The strict outer decoder
+now tracks answer/values key presence explicitly and requires any present answers
+key to decode as its real map. Null/mixed-envelope regression fixtures refuse
+before header mapping, connection or response effects. Canonical field-value
+decoding still belongs to QuestionAnswer; no duplicate answer schema is added.
+
+Schema decode failures preserve their typed serde source through DecodeFailure,
+while its Debug and user-facing Display redact the answer content. Semantic
+mixed-layout refusal remains a separate cause-free policy category. A regression
+checks both source retention and Debug privacy; the shared output adapter must
+render the safe top-level category rather than expanding untrusted source text.

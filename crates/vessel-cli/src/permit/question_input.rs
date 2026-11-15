@@ -21,12 +21,25 @@ impl fmt::Debug for QuestionInput {
 }
 
 /// Input-free semantic errors; provider or answer text never enters diagnostics.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub(crate) enum InputError {
     #[error("question --input needs an answers object or an accepted answer with field values")]
     Layout,
+    #[error("question --input needs an answers object or an accepted answer with field values")]
+    Decode(#[source] DecodeFailure),
     #[error("permit allow cannot submit a declined question answer; use permit deny")]
     Decline,
+}
+
+/// Retain the parser cause without including answer data in routine Debug output.
+#[derive(thiserror::Error)]
+#[error("the question input does not match the answer schema")]
+pub(crate) struct DecodeFailure(#[source] serde_json::Error);
+
+impl fmt::Debug for DecodeFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("DecodeFailure([redacted])")
+    }
 }
 
 // This checks the envelope's keys, not the provider schema or answer values.
@@ -34,25 +47,39 @@ pub(crate) enum InputError {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Envelope {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "headers")]
     answers: Option<BTreeMap<String, String>>,
-    #[serde(default)]
-    answer: Option<serde::de::IgnoredAny>,
-    #[serde(default)]
-    values: Option<serde::de::IgnoredAny>,
+    #[serde(default, rename = "answer", deserialize_with = "present")]
+    has_answer: bool,
+    #[serde(default, rename = "values", deserialize_with = "present")]
+    has_values: bool,
+}
+
+// A present JSON null must not be mistaken for an absent envelope key.
+fn present<'de, D: serde::Deserializer<'de>>(input: D) -> Result<bool, D::Error> {
+    serde::de::IgnoredAny::deserialize(input)?;
+    Ok(true)
+}
+
+fn headers<'de, D: serde::Deserializer<'de>>(
+    input: D,
+) -> Result<Option<BTreeMap<String, String>>, D::Error> {
+    BTreeMap::deserialize(input).map(Some)
 }
 
 impl ModifiedInput {
     /// Parse after the selected request is known to be a question, before effects.
     /// Header ambiguity and field validation are the shared codec's next step.
     pub(crate) fn question(&self) -> Result<QuestionInput, InputError> {
-        let envelope: Envelope =
-            serde_json::from_str(self.raw().as_text()).map_err(|_shape| InputError::Layout)?;
-        match (envelope.answers, envelope.answer, envelope.values) {
-            (Some(headers), None, None) => Ok(QuestionInput::Headers(headers)),
-            (None, Some(_), _) => {
+        let envelope: Envelope = serde_json::from_str(self.raw().as_text())
+            .map_err(DecodeFailure)
+            .map_err(InputError::Decode)?;
+        match (envelope.answers, envelope.has_answer, envelope.has_values) {
+            (Some(headers), false, false) => Ok(QuestionInput::Headers(headers)),
+            (None, true, _) => {
                 let answer: QuestionAnswer = serde_json::from_str(self.raw().as_text())
-                    .map_err(|_shape| InputError::Layout)?;
+                    .map_err(DecodeFailure)
+                    .map_err(InputError::Decode)?;
                 match answer {
                     accepted @ QuestionAnswer::Accept { .. } => {
                         Ok(QuestionInput::Canonical(accepted))
@@ -60,7 +87,7 @@ impl ModifiedInput {
                     QuestionAnswer::Decline => Err(InputError::Decline),
                 }
             }
-            (Some(_), Some(_), _) | (Some(_), None, Some(_)) | (None, None, _) => {
+            (Some(_), true, _) | (Some(_), false, true) | (None, false, _) => {
                 Err(InputError::Layout)
             }
         }
@@ -105,6 +132,10 @@ mod tests {
     fn contradictory_or_extra_edit_envelopes_are_refused_before_mapping() {
         for json in [
             r#"{"answers":{},"answer":"accept","values":{}}"#,
+            r#"{"answers":{},"answer":null}"#,
+            r#"{"answers":{},"values":null}"#,
+            r#"{"answer":"accept","values":{},"answers":null}"#,
+            r#"{"answers":null}"#,
             r#"{"answers":{},"updatedPermissions":["arbitrary"]}"#,
             r#"{"answers":{"Header":["not a string"]}}"#,
             r#"{"answer":"accept","values":null}"#,
@@ -115,7 +146,10 @@ mod tests {
             "[]",
         ] {
             let input: ModifiedInput = json.parse().unwrap();
-            assert_eq!(input.question().err(), Some(InputError::Layout));
+            assert!(matches!(
+                input.question(),
+                Err(InputError::Layout | InputError::Decode(_))
+            ));
             assert_eq!(
                 input.raw().as_text(),
                 json,
@@ -123,6 +157,16 @@ mod tests {
             );
         }
         let input: ModifiedInput = r#"{"answer":"decline"}"#.parse().unwrap();
-        assert_eq!(input.question().err(), Some(InputError::Decline));
+        assert!(matches!(input.question(), Err(InputError::Decline)));
+    }
+
+    #[test]
+    fn schema_failure_keeps_its_source_without_debugging_the_answer_payload() {
+        let input: ModifiedInput = r#"{"answer":"synthetic-private-invalid-answer","values":{}}"#
+            .parse()
+            .unwrap();
+        let error = input.question().unwrap_err();
+        assert!(std::error::Error::source(&error).is_some());
+        assert!(!format!("{error:?}").contains("synthetic-private-invalid-answer"));
     }
 }
