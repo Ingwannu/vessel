@@ -1562,3 +1562,6 @@ neither. In-memory ProcessLifetime revocation and Detached exit observation
 retain their distinct meanings. On Linux a pidfd is opened before verification
 and held through signal delivery; unsupported facilities never fall back to
 bare-PID signalling. Active tables/manifests remain unchanged in this contract.
+Initial capture requires the opt-in seeded spawn under Vessel's sole SIGCHLD/
+reaping discipline; ordinary Running children cannot be upgraded from a delayed
+PID. ADR 0001 records cached-registration limits and failure/cancellation cleanup.

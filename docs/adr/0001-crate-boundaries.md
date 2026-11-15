@@ -435,3 +435,39 @@ and [proc documentation](https://docs.kernel.org/filesystems/proc.html).
 Paseo daemon-instance.ts 149 and 197-218 uses an instance PID, replacement
 checks and tree cleanup. Vessel deliberately uses a verified root process
 and pidfd, with explicit unsupported outcomes instead of a name/group guess.
+
+
+### Supported initial identity issuer
+
+Initial identity capture is opt-in. `identity::spawn` establishes Tokio's safe
+SIGCHLD registration before creating the actual Child, retains the registration,
+obtains a pidfd and initial evidence, and retains that seed before exposing the
+child. Ordinary
+spawn, a missing seed and already reaped/released ownership cannot be upgraded
+by reading a delayed numeric PID. `capture` accepts only a seeded Running child.
+Ordinary spawn/drop/detach behavior remains unchanged.
+
+This uses Vessel's explicitly owned single SIGCHLD/reaping environment. Exclusive
+signal and reaping ownership is an integration precondition, not inferred from
+Running. Tokio caches registration; its first installation replaces inherited
+SIG_IGN/SA_NOCLDWAIT behavior. An embedding that changes dispositions after that
+installation, or independently reaps this child, is outside the support scope.
+Creating another Tokio signal stream cannot repair a mutated cached registration.
+No post-spawn pidfd_open is described as atomic process creation.
+
+Registration, seed or evidence failure returns a typed error while retaining
+ordinary owned-child cleanup. No failed or cancelled preparation can publish a
+seed, leak an owned child, or signal later. Read-only preparation may briefly
+retain bounded handles after cancellation; the live caller owns any later effect.
+The implementation reuses the existing spawn/group/job engine through an internal
+option, rather than creating a second spawn implementation. Its issuer and detach
+hooks must preserve the other process owners' lifetime revocation and cleanup.
+The initial issuer is Bound only; no current caller requires identity capture of
+a releasable child. Ordinary releasable spawn remains unseeded and Unsupported.
+
+Owed tests additionally cover registration/seed/evidence failure cleanup, a cached
+registration within the supported environment, short-lived children, unseeded/
+auto-reaped boundary refusal, release/reap refusal and cancellation after held
+read preparation. The generic embedding case remains explicitly unsupported.
+A separate atomic pidfd-spawn OS wrapper is not introduced; stable standard
+library support may be considered when it exists.

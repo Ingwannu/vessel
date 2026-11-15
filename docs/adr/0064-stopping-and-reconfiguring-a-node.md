@@ -997,3 +997,7 @@ future force caller still owes its authenticated directory, owner/executable
 and live-session consent checks; a serializable identity does not grant those.
 Its signal mechanism must use the same pidfd-verified boundary, never a
 check followed by bare-PID kill. This contract adds no signal or force caller.
+The initial issuer is an opt-in Bound spawn that installs and retains Tokio's
+SIGCHLD registration before creation and seeds identity before exposing Child.
+Ordinary/reaped/released children cannot gain a seed later. This relies on the
+explicit sole-owner reaping environment in ADR 0001, not generic embedding.

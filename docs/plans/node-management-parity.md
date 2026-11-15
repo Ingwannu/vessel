@@ -6,6 +6,13 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Initial issuer contract refined: opt-in identity::spawn prepares the safe
+  Tokio SIGCHLD path and retained seed before returning. Capture refuses an
+  ordinary/unseeded, reaped or released Child. External disposition changes
+  after Tokio registration are outside the stated support scope. This is a
+  contract refinement, not implemented behavior.
+
+
 - Contract in progress: durable helper identity belongs in proc, with typed
   capture/verify and a later pidfd signal boundary. The node owns persistence
   and reaping policy. No identity implementation or new dependency has landed.
