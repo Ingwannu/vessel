@@ -17,6 +17,7 @@ pub(crate) mod conversation;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
+pub(crate) mod import;
 pub(crate) mod layout;
 pub(crate) mod pair;
 pub(crate) mod palette;
@@ -36,6 +37,7 @@ use crate::shell::Shell;
 
 /// Every area's state.
 pub(crate) struct Areas {
+    pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
     pub(crate) session: session::SessionView,
@@ -63,6 +65,7 @@ pub(crate) struct Areas {
 impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
+            import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),
             session: session::SessionView::new(window, cx),
