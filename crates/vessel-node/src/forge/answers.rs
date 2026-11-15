@@ -19,7 +19,7 @@ use super::schedule::{
     BACKOFF_CAP, BACKOFF_FIRST, DENIED_AGAIN, Done, FIND_EVERY, FOLDER_EVERY, FolderRead,
     QUIET_AFTER, QUIET_EVERY, WATCH_EVERY,
 };
-use super::watcher::{Watch, Watcher};
+use super::watcher::{Job, Watch, Watcher};
 use std::sync::Arc;
 
 impl Watcher {
@@ -81,7 +81,48 @@ impl Watcher {
                 held.access = why;
             }
         }
+        self.first_read(session);
         self.publish(session);
+    }
+
+    /// A job that failed (panicked) without an answer: its slot is freed
+    /// and whoever waited on it gets the view as it is, so nothing waits
+    /// for good (`watcher`'s second Decision Log).
+    pub(super) fn failed(&mut self, job: Job) {
+        let now = Instant::now();
+        match job {
+            Job::Folder(session) => {
+                self.folders = self.folders.saturating_sub(1);
+                let again = now.checked_add(self.jitter(FOLDER_EVERY)).unwrap_or(now);
+                let Some(held) = self.sessions.get_mut(&session) else {
+                    return;
+                };
+                held.busy = false;
+                held.due = again;
+                let waiting = std::mem::take(&mut held.waiting);
+                for waiting in waiting {
+                    drop(waiting.reply.send(self.view(session)));
+                }
+            }
+            Job::Look(key) => {
+                self.polls = self.polls.saturating_sub(1);
+                let again = now.checked_add(self.jitter(BACKOFF_FIRST)).unwrap_or(now);
+                let Some(watch) = self.watches.get_mut(&key) else {
+                    return;
+                };
+                watch.busy = false;
+                watch.due = again;
+                let replies = std::mem::take(&mut watch.replies);
+                for (session, reply) in replies {
+                    drop(reply.send(self.view(session)));
+                }
+            }
+            Job::Feed(session) => {
+                if let Some(held) = self.sessions.get_mut(&session) {
+                    held.feeding = false;
+                }
+            }
+        }
     }
 
     fn polled(&mut self, key: &Key, polled: Polled) {
@@ -176,12 +217,13 @@ impl Watcher {
         if let Some(held) = self.sessions.get_mut(&session) {
             held.feeding = true;
         }
-        drop(self.jobs.spawn(async move {
+        let job = self.jobs.spawn(async move {
             Done::Fed {
                 session,
                 sent: feedback::feed(feed).await,
             }
-        }));
+        });
+        let _none = self.running.insert(job.id(), Job::Feed(session));
     }
 }
 

@@ -12,17 +12,31 @@ each one's reason, its check, and how many places break it today.
 
 ## 1. Gate before claiming anything works
 
-Run all three, in this order, and paste the result summary in your report:
+Run these, in this order, and paste the result summary in your report:
 
 ```bash
 cargo fmt --all
+node scripts/check-rust-size.mjs     # file budget (docs/QUALITY.md M3)
+node scripts/check-boundaries.mjs    # crate map (docs/QUALITY.md M2)
+cargo build -p vessel-testkit --bins
+cargo build -p vessel-node --bin vesseld
 cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo clippy -p vessel-node --features forge-fixture --all-targets -- -D warnings
+cargo test --workspace --no-fail-fast
+cargo test -p vessel-node --features forge-fixture --test forge_fixture
 ```
 
-CI runs exactly these on Linux, Windows and macOS for every push to `main`
-and `backend/**` and every pull request (the repository is public, so
-hosted runners cost nothing).
+`node scripts/gate.mjs` runs this sequence with a format check. It keeps
+prebuilds and tests in one environment; on a shared machine, wrap the whole
+runner in the local build scheduler. The explicit feature steps compile the
+separate forge fixture binary and run its feature-only tests; normal product
+and release builds keep the feature disabled.
+
+The two scripts build nothing and take about a second, so a violation
+fails before the compile starts. CI runs exactly these on Linux, Windows
+and macOS (the two scripts on Linux; their answer is the same on every OS)
+for every push to `main` and `backend/**` and every pull request (the
+repository is public, so hosted runners cost nothing).
 
 Changes under `web/` (the web UI, ADR 0017) add its checks, which CI runs
 on Linux: in `web/`, `npm run lint`, `npm run typecheck`, `npm test`,
@@ -30,6 +44,11 @@ on Linux: in `web/`, `npm run lint`, `npm run typecheck`, `npm test`,
 wire types also regenerate the TypeScript declarations: `VESSEL_WRITE_TS=1
 cargo test -p vessel-proto -p vessel-web --features ts --lib typescript`,
 and commit `web/src/wire/`.
+With a Codex of at least the version `crates/vessel-agent/src/codex/contract.rs`
+names installed, a change to the Codex driver adds `VESSEL_CODEX_CONTRACT=1
+cargo test -p vessel-agent --lib codex::contract`: it regenerates the
+app-server schema from that Codex and fails when a definition the driver
+follows changed.
 CI does not replace the local gate: run it before pushing, and report both.
 Code that only builds on Linux must be behind `cfg(unix)` with a working (or
 explicitly erroring) Windows path.
@@ -143,7 +162,10 @@ the table and the manifests (QUALITY M2).
 - Decoders are tested against recorded fixtures under `tests/fixtures/`
   (real harness output, trimmed, with secrets removed).
 - Process-level tests use a small fake harness binary built from the
-  workspace, never the real `claude`/`codex`, and never the network.
+  workspace, never the real `claude`/`codex`, and never the network. One
+  exception, opt-in (`VESSEL_CODEX_CONTRACT`, section 1): the Codex
+  driver's contract test runs the installed `codex` to generate its
+  schema, nothing else, in an empty environment with temporary homes.
 - A node started in a test gets a temporary home and no harness home
   variables (`HarnessEnv::new(temp)` in `Config::new`); library code never
   reads the user's home or `CLAUDE_CONFIG_DIR`/`CODEX_HOME`/`HOME` from the
@@ -153,6 +175,12 @@ the table and the manifests (QUALITY M2).
   through an in-memory transport.
 - Tests are deterministic: no wall-clock sleeps to wait for something; wait on
   the event.
+- A script a test writes and then runs (a fake program, a git hook) is
+  created by another process (`cp` from a side file:
+  `vessel_testkit::write_executable`, the one helper every crate's tests
+  call), never with `std::fs::write`: a child forked by a test
+  on another thread holds the write descriptor until it execs, and running
+  the script then fails with `ETXTBSY`.
 - A test's safety-net timeout (which only turns a hang into a failure) is
   `vessel_testkit::within`: it builds the fakes first and starts the clock
   after. The first fake build of a run can take a minute on a cold runner.

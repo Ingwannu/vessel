@@ -68,6 +68,7 @@ pub(super) fn foot(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) 
                 false,
                 tokens,
             )
+            .track_focus(&shell.areas.sidebar.layout.footer)
             .on_click(cx.listener(|this, _event, window, cx| {
                 this.open_settings(None, window, cx);
             })),

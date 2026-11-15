@@ -109,25 +109,10 @@ pub(crate) fn fake_vesseld(path: &Path, version: &str, triple: &str, remote: OnR
     executable(path, &script);
 }
 
-/// Write an executable script at `path`.
-///
-/// Not with `std::fs::write`: while this process holds the file open for
-/// writing, a test on another thread may fork, and until that child execs
-/// it holds the descriptor too; running the script then fails with
-/// `ETXTBSY` ("Text file busy"). So the text goes to a side file and `cp`,
-/// a process of its own, creates the executable; no descriptor for it is
-/// ever open in this process.
+/// Write an executable script at `path` (never with `std::fs::write`; see
+/// `vessel_testkit::write_executable`).
 pub(crate) fn executable(path: &Path, text: &str) {
-    let mut source = path.as_os_str().to_owned();
-    source.push(".source");
-    std::fs::write(&source, text).unwrap();
-    let copied = std::process::Command::new("cp")
-        .arg(&source)
-        .arg(path)
-        .status()
-        .unwrap();
-    assert!(copied.success());
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    vessel_testkit::write_executable(path, text).unwrap();
 }
 
 pub(crate) fn mode(path: &Path) -> u32 {

@@ -145,6 +145,9 @@ pub enum ProjectCommands {
         /// 0031); the digest covers them. Left out when there are none.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         scripts: Vec<crate::scripts::ScriptEntry>,
+        /// Terminal commands the client must show before approval (ADR 0066).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        terminals: Vec<super::FileTerminal>,
         /// The set last approved for this project, to show what changed
         /// (protocol 11): only while this set is not approved, and only
         /// when the node kept what that approval covered (approvals given

@@ -1,4 +1,518 @@
+## Settings package: bounded independent source, gate and visual pass
+
+Diagnostics `205f1e01` and Chat `b3ef8338` form this vocabulary package over
+`df11d9d5`. Exact product source `b3ef8338a09079319b4d4e03055e8865c0a4f530`
+passed A13 run `i18n-20261115T051353Z-b3ef8338`: all six native steps exit
+zero, no skips. Raw totals are 1,203 passed (1,201 ordinary plus two
+compile-fail doctests), zero failed, one existing ignored explicit display
+harness. App 50, kit 110, link 56, view 855, contract 10, matcher 3, page 117
+and doctests two. All four native crates actually recompiled. The gate took
+4m25 after its queue; sampled load started at 8.92 and ended at 21.92,
+with 29.01 before tests; no failure or saturation replay was needed.
+The released-catalog completeness and both directions of the one-language-only
+key rejection tests passed. Earlier failed test setup logs remain preserved.
+
+The author directly inspected 140 originals: 32 English/Korean before frames,
+48 English/Korean/pseudo after frames in both themes and four viewport sizes,
+24 picker/report popup frames at desktop/phone sizes, 24 English/Korean glyph
+frames at scales 1.25, 1.5 and two, and 12 actual copied-notice frames.
+All 32 before/after base-screen pairs are pixel-identical. The normal app's
+Run/Copy paths produced the report dialog and translated notice; its technical
+report schema/data remains intentionally English and unchanged. The isolated
+report has zero saved machines; these are no new node-probe or network tests.
+Capture manifests retain the exact binary/source hashes and rejected early
+navigation frames separately. The app and scratch data run under one ordinary
+development UID/GID with private config/home/runtime directories and an
+owner-only authority file. No production account or permissions changed.
+
+Unverified: current browser/wasm/Windows/real-GPU/accessibility and new actual
+persisted-preference I/O. The native input tests exercise the real language
+ dispatcher, selected display preference and composer caret, plus collected
+report/clipboard retention; they are not parent act-routing or real-node proof.
+Unmigrated neighboring Settings labels remain plain in pseudo mode. About's
+previous bounded reviewer pass stays separate; real fork/rewind and updater
+I/O evidence from that earlier package remains owed.
+
+The independent reviewer returned a bounded source/native/inspected visual pass
+on this exact package and its two docs-only follow-ups. All 140 PNG hashes and
+dimensions and the retained app hash were independently verified; all 32
+English/Korean base-page before/after pixel encodings match. The reviewer
+personally opened 32 risk-selected originals, not all 140, and found no new
+overlap or clipping in that sample. The report generator remains unchanged.
+This is no approval of the latest combined application or the excluded flows
+above. No unchanged gate or additional capture matrix was requested.
+
+Resume point: coordinator acceptance and lead merge remain separate from that
+bounded reviewer pass. The next requested area is Appearance,
+awaiting the lead's ownership ruling; no Appearance source is changed. Other
+Settings sections, Sidebar/Palette, Agents and Overview retain their owners.
+The authenticated display and isolated current fleet remain available for the
+older live fork/rewind proof; inspect the private process inventory and stop
+only verified owned PIDs when that work ends. No compiler or gate remains
+running for this package.
+
+## Capture documentation correction
+
+The capture instructions now require a private authenticated display and the
+same HOME/config for the app and paired fixture CLI. A mismatched scratch
+home was observed to make stored credentials unavailable; that rejected run
+was replaced with a correctly connected isolated fleet, without changing the
+app or credential handling. The browser-only wording harness reads a FIFO
+through its existing file reader, so the instructions no longer recommend
+keeping a pairing link in a regular file. This docs-only correction changes
+no product source or gate result and makes no new browser-transport claim.
+
+## Settings vocabulary package: Diagnostics and Chat
+
+Source checkpoint: Diagnostics `205f1e01`; native format, size, boundaries and
+tokens were repeated successfully after the interrupted outer check session.
+Chat is next; the package receives one whole native gate and one review under
+the common brief's package rule. Earlier exact-source approvals remain scoped.
+
+[Decision Log]
+- Purpose: let translators own every visible Chat sentence, including its
+  navigation title and both values of the display picker.
+- Existing assets: generated Fluent plain getters and the exhaustive About
+  role adapter already borrow prepared strings without frame-time formatting.
+- Alternatives: a new formatter/dependency or a Fluent selector for this closed
+  enum would add work during rendering without improving translation context.
+- Choice: extend the existing catalog with six whole messages and a typed
+  ConversationDisplay adapter. Keep the existing picker and preference path.
+- Why: labels have separate context from Appearance's content-width Full;
+  the shared width label stays in its current table until that area moves.
+- Effect: no dependency, behavior, default or geometry change. Paseo's
+  screens/settings/chat/chat-section.tsx lines 13–79 were read: its third
+  display and reasoning/outline switches remain the previously stated native
+  gaps, not changes made by this vocabulary package.
+
+Narrow view/app all-target Clippy passes, as do 855 view library tests and
+ten contract tests, including rejection of a key present in only English or
+only Korean. The native picker regression covers actual pseudo-language and
+Korean refresh with the preference/checked row and live composer caret intact.
+The final pseudo/Korean native picker test and repeated all-target Clippy pass.
+An initial test setup incorrectly tried to look up the pseudo tag in the public
+chooser registry; its intentional rejection exposed that setup error. The test
+now resolves pseudo through the checking override, exactly as the app does;
+the failed run remains in the evidence. Source coverage has no missing keys
+in either shipped language. Before Settings captures are retained from the
+previous exact binary; eight draft-screen frames were rejected and replaced
+by inspected captures of the intended screens.
+The later package result at the top of this plan supersedes this source-only
+checkpoint: the whole native gate and after screen comparisons are complete.
+
+The Settings owner released chat.rs/diagnostics.rs words, the Display arms
+in choices.rs, their view fields/adapters/catalogs and the transitional
+SettingsText::section catalog argument. Other Settings sections and the
+sidebar/palette vocabulary remain outside this package.
+
+## About visual appendix: bounded reviewer pass
+
+For exact `0ca69ede`, independent review now passed the translated About
+labels, roles and licence rows within the inspected empty-state captures.
+All 252 original image hashes/dimensions and the retained app hash were
+verified independently; the reviewer personally opened 41 risk-selected
+originals, not all 252. The author opened all 252. Four viewport sizes,
+English/Korean/pseudo and both themes are covered at scale one; extra
+English/Korean top and initial-role frames cover scales 1.25, 1.5 and two.
+The existing source/native gate disposition is unchanged.
+
+This is not a blanket layout pass: About BEFORE/geometry parity is absent,
+and the known pseudo phone log-path column remains the layout owner's
+follow-up. It gives no updater I/O/install/restart, real-node fork/rewind,
+new Diagnostics/Chat, browser/wasm/Windows/real-GPU, accessibility or
+independent licence-audit approval. No unchanged gate/capture rerun was
+requested. The first failed scale-navigation attempt remains rejected.
+
+## Diagnostics vocabulary (source ready; whole gate/UI owed)
+
+The lead released Diagnostics and Chat; Sidebar Display/palette vocabulary
+remain held for the layout repair, Agents and Overview stay with their owners.
+`1d1f11df` is merged as `df11d9d5` without conflicts before this next slice.
+Root crates/lock still match `56a7cbd3`; the required `d30804b2` fixture is
+already an ancestor. Proven shared root binaries were hash-checked before a
+fresh isolated standard fleet finished successfully. The older failed attempt
+remains rejected; its processes were stopped without using it for UI evidence.
+
+Decision: reuse generated plain getters and the retained-notice ownership
+pattern. Seven Diagnostics interface messages move intact from the mixed
+Settings table to `diagnostics.ftl`: navigation/page title, report title/hint,
+Run/Copy/Refresh and copied notice. The report schema/data remains unchanged,
+including its original English labels and redaction tests: this is Paseo's
+fixed technical report, not interface labels. A live language change rewords
+only the still-owned copy notice; it never recollects, translates or replaces
+the collected report or clipboard contents. Existing geometry is unchanged.
+
+References read: Paseo `components/app-diagnostic-sheet.tsx`,
+`diagnostics/app-diagnostic-report.ts` and `DiagnosticsSection` in
+`screens/settings-screen.tsx`; the existing view report's decision log.
+Unlike Paseo's host probes/progress, Vessel's existing Run collects already
+held facts synchronously; that behavior stays unchanged.
+
+The Settings owner approved the mixed-table seam: `SettingsText::section`
+takes the already prepared static catalog, and only Diagnostics uses its new
+getter in this slice. Remaining section labels keep their exact old sentences.
+Actual mechanical callers are General, Settings title/frame, navigation,
+host-agents and palette (the latter separately approved by its owner);
+Diagnostics reads its generated title directly. Existing four section-test
+expressions gain the catalog argument, with cases/expected labels unchanged.
+The language dispatcher adds the one-purpose copied-notice refresh. No other
+Settings/Sidebar/Palette strings, behavior or styles are changed.
+
+Narrow app all-target Clippy passes. View library tests (854), catalog-contract
+tests (10), and both actual native copy-handler/language/input tests pass; the
+clipboard retains the same report bytes and a later unrelated notice is not
+replaced. Native format/size/boundaries/tokens pass without new allowances;
+explicit-root source coverage reports zero missing keys in en/ko. The whole
+native gate and before/after screen checks of this slice remain owed. The
+existing technical-report/redaction suite is unchanged.
+
+
+## Current checkpoint: full native batch gate passed
+
+Product source is fixed at `0ca69edeb5846944b7aa9394e21553883ed4a005`.
+The corrected A13 run `i18n-20261115T040137Z-0ca69ede` passed all six
+native steps without skips: fonts, format, quality, all-target Clippy, app
+build and tests. The raw summaries total 1,176 ordinary tests plus two
+compile-fail doctests: 1,178 passed, zero failed, one existing ignored
+explicit pairing display harness. App 47, kit 110, link 56, view 833,
+contract 10, matcher 3 and page 117 all passed. View/kit/link/app actually
+recompiled; the run took 59 seconds after its queue, load 10.85 to 10.36.
+The prior failed run remains a failure; its one Copy-argument lint is fixed
+by this final commit. No unchanged gate rerun is required by these notes.
+
+Independent review passed SOURCE/NATIVE GATE ONLY for exact `0ca69ede`,
+before coordinator/lead acceptance. No blocker was found in the member
+inventory, updater cache/typed errors, rewind/fork notices or caption cache.
+The reviewer verified the six-step log and totals independently and inspected
+zero new capture PNGs: this is no UI, real-node, platform, security or
+independent licence-audit approval. The previously accepted About move/role
+pair is separate from this follow-up inventory/update/rewind/fork batch. The native tests now
+execute the added updater, rewind and fork/origin language-retention paths;
+they are synthetic inner-handler inputs, not real-node or parent-routing proof.
+
+The final product source also built locally for captures. Normal About
+runs against a new empty config produced after-captures for en/ko/en-XA,
+dark/light, 1280×800, 390×844, 800×600 and 1024×700 on software Vulkan.
+Image inspection is in progress; generated files alone are not a UI pass.
+The inherited 390-wide log row becomes a very tall narrow path column with
+pseudo-expanded buttons and a long scratch path; the layout owner was told.
+Settings headings/sidebar and Agent artwork still use their owners' tables
+and remain plain English in pseudo mode. Before comparisons, remaining
+inspection/scales and live rewind/fork/update failure captures remain owed.
+The incompatible shared test-fleet attempt was rejected and all eight
+verified owned node/fake processes stopped. No production node was used.
+Windows, real GPU, full browser, current standalone wasm and actual updater
+network/install/restart behavior were not verified in this batch.
+
+Sidebar Display remains held for its layout repair. Settings Diagnostics and
+Chat were subsequently released by the lead and Settings owner, with narrow
+shared caller seams agreed before editing; this later work is outside the
+exact reviewed `0ca69ede` snapshot. The PR title change remains on its own area's
+line: `175491aa`, reported final `3c48fd4b`/gate `d230934a`. Its supplied
+Korean 390/800 captures were independently opened and both heading and
+button say “PR 생성”; its independent review is pending, not merged here.
+
+## Batch gate correction
+
+The first full native run on `c3ad12fd` passed fonts, format and quality, then
+stopped in native Clippy: the newly one-byte Copy `EmptyFork` was still passed
+by reference to its banner. Pass it by value in that private helper and its one
+caller. There is no message/layout/state change. Native build/test did not run
+in that failed attempt; no full pass is claimed from it. Re-run the full gate
+on this correction. The preceding fork move's native narrow Clippy was green.
+
+The local capture build of `c3ad12fd` passed. Initial inspected About captures
+use an isolated empty config and private authenticated display, proving only
+that normal empty-state page. Shared newer-node fixture binaries failed the
+standard fleet's shape preflight; that fleet was rejected without weakening
+its assertions and all eight verified owned node/fake processes were stopped.
+Those failed fixtures provide no UI/current-node evidence. Before/after,
+remaining language/theme/size combinations and live fork screens remain owed.
+
+## Fork typed-recovery correction (source ready; full gate/screens owed)
+
+The diagnostic-preserving fork move is `ec544b88`. This independent correction
+projects all wire codes to safe fork recoveries; origin reads have removed,
+access, version, unavailable and generic recovery messages. Original diagnostics
+stay in host logs/authoritative session state. Unknown empty-fork failures now
+carry a typed `Other` reason rather than copying diagnostic text into each frame;
+existing protocol classification of the two known empty-fork reasons is unchanged.
+No protocol or node behavior changes. An uncertain fork result asks the person to
+check the session list before retrying, avoiding an unqualified duplicate retry.
+
+The final fork catalog has 24 messages per language. Tests cover whole English/
+Korean recoveries and all eleven wire-code classifications plus absent transport
+code. Three native input regressions feed actual fork/origin inner handlers, then
+apply the language change while preserving composer text/caret/selection/focus,
+retained origin target/retry state and ownership of another area's later notice.
+They do not run a node/agent or independently prove the parent act-routing guard.
+All-target view Clippy, 833 library tests and ten contract tests pass. Native
+format, size, boundaries and tokens pass with no allowance increase; candidate
+source coverage has zero missing keys in both languages. Initial generated-doc
+Clippy warnings came from two CamelCase translator comments; they now use plain
+words. The preceding vocabulary move also passed remote all-target native
+Clippy. Full native gate and captures are still owed; no completion claim yet.
+
+## Fork vocabulary migration (source ready; full gate/screens owed)
+
+Reuses the generated catalog, retained-notice pattern and existing fleet events;
+no new parser or dependency. Ten whole messages replace the fork table. Source
+captions retain one formatted sentence per listed session, refreshed only for
+changed titles or language, with first-listed UUID semantics matching the old
+`Fleet::title_of`; removed sources are evicted. Rows borrow these captions and
+plain getters. A changed caption invalidates cached timeline rows/measurements.
+Origin/fork failure text is prepared at the response or language event, not a
+frame. Retained global notices keep their ownership check after navigation.
+
+Reference: Paseo's `components/assistant-fork-menu.tsx` and
+`hooks/use-fork-agent.ts`. The existing one new-session target, lock, mark/menu
+geometry, origin log, remove behavior and navigation are preserved. As with the
+rewind move, this first commit retains diagnostic interpolation; typed refusal,
+origin-read and unknown empty-fork corrections follow separately before any
+complete UI submission. The staged move does not make node diagnostics Korean.
+
+Lead approved the one fallback seam in legacy `conversation/entries.rs`:
+`spoken` takes the prepared `Translator`; only the Forked branch changes its
+words. Actual callers: three app expressions, three existing failure-test
+expressions and eight page-word assertions (the latter were additional callers). No other spoken sentence changes. Paint's former fleet borrow is
+replaced by the prepared caption cache in the two existing constructors.
+Fork/origin modules, the empty-fork banner, language registration and fleet/act
+refresh lines are the other app seams. C's terminal and spacing work are untouched.
+
+All-target view Clippy and 831 library + ten contract tests pass, including
+whole English/Korean sentences, rename/language/duplicate/removed-source cache
+behavior and zero allocations over 10,000 prepared reads/unchanged refreshes.
+Native format, size, boundaries and tokens pass; no allowance was added. The
+standalone coverage reporter reads the candidate root with zero missing keys
+in either language; this is source-preview coverage, not a compiled registry
+claim. App tests, whole native gate and screen evidence remain owed. The first
+Clippy attempt's three source warnings were fixed; a later format check found
+page assertion wrapping, corrected before committing.
+
+G1's exact Korean PR form-title correction is `175491aa64320833ebff65eeebde4015904462a2`.
+Its whole gate and Korean screen evidence remain with G1; no L PR key edit.
+
 # Track L: the app's words as translation data
+
+## Rewind typed-refusal correction
+
+The staged diagnostic interpolation is replaced independently of its move.
+All eleven wire error codes map exhaustively to ten safe rewind recoveries;
+the node's diagnostic is logged at the host boundary and never interpolated
+into the notice. Access, version, missing conversation, current state,
+unsupported agent, missing/failed agent launch, unavailability and uncertain
+internal failure have complete English/Korean messages. No new wire detail or
+protocol is invented. No-code transport failures keep the existing lost-link
+path, without a second rewind error signal.
+
+The retained notice now carries its typed recovery and cached text, so its
+language refresh cannot expose a diagnostic. The source-language corpus has
+14 keys per language. Tests compare every whole recovery and all error-code
+classifications. A native GPUI regression feeds a real typed `ActAnswer` to
+the actual rewind handler, then uses the existing composer-input preservation
+helper to check the Korean notice, cleared pending act, typed value, caret,
+selection and focus. This test executes no node or agent; its app execution
+remains owed. All-target view Clippy, 828 library tests, ten catalog-contract
+tests and native source checks pass. Full native gate and captures remain owed.
+
+The preceding `4380e565` vocabulary move passed remote all-target native
+Clippy. The updater correction's two doc-markdown diagnostics were fixed by
+`02bbff30`, whose remote native Clippy also passed. Neither narrow check is
+reported as executing the app's regression tests.
+
+Later PR wording is coordinated with its active owner: the one Korean
+`pulls-form-title` change to “PR 생성” belongs to that area's current slice;
+the duplicate Approved fact is its drawing/view correction. This branch does
+not edit those same keys while that slice is open. Take the resulting commit
+before the later PR vocabulary work.
+
+## Rewind vocabulary migration
+
+The instructed conversation-file split is merged before this migration.
+Five rewind messages move from `text/conversation/rewind.rs` to complete
+English/Korean `rewind.ftl`: tooltip, warning, mode, copy label and failure
+notice. The retired table module is deleted. Reference: Paseo 0.15.4
+`components/rewind/rewind-menu.tsx` lines 38–151,
+`rewind/use-rewind-agent-mutation.ts` lines 25–65, and
+`rewind/composer-restore.test.ts`. Keep the existing one conversation-only
+mode, menu/tooltip geometry and composer-restoration behavior. The existing
+timeline point/restoration fixtures are unchanged.
+
+Decision: reuse generated getters and the prepared-notice pattern. Plain
+labels borrow the shell's prepared catalog; a retained failure formats only
+at the answer or language event and keeps shared text. A frame notice that
+still belongs to this failure can reword after navigation without resetting
+the pending target, composer, selection or focus. Its cache is deliberately
+not cleared by navigation, since the global frame notice is not cleared then.
+
+This is a wording-preserving move. It deliberately retains the former node
+diagnostic interpolation in the whole failure sentence, including the empty
+diagnostic branch; Fluent adds its normal Unicode argument isolation. The
+typed-error correction follows separately, before a complete UI submission.
+The staged notice is not claimed to make an English node diagnostic Korean.
+Tests compare every label and whole notice in both languages, including
+rewording the retained outcome. All-target view Clippy, 827 library tests,
+ten catalog-contract tests and native source checks pass. App and full native
+checks/screens remain owed. No new dependency, protocol, control or token.
+
+Other conversation-file seams: `entries.rs` adds one prepared-catalog field
+to `Paint`, with its one-line initialization in `timeline.rs` and
+`permission.rs`. The field avoids initializing/resolving a locale in a draw.
+The language-change path adds the one-purpose notice refresh. Rewind's own
+state/callback holds its cache; no unrelated conversation table is moved.
+
+## Source ready: typed update recovery
+
+The updater's English Display strings previously reached About directly, and
+a failed restart copied its Display into the frame notice. This correction
+projects the updater's closed typed errors into 13 safe recovery choices,
+with complete English/Korean messages in `update.ftl` (now 50 messages per
+language). Native classification matches every outer and nested error variant;
+original update errors remain in the authoritative state, and restart causes
+are logged with their source chain. No diagnostic is interpolated into UI text.
+No fetch, signature verification, installation or restart behavior changes.
+
+The pure view projection retains shared recovery text alongside status,
+action and progress; a new check clears an earlier recovery. It separates a
+small private status-text projection so constructors remain short. The
+restart notice is retained separately and retranslated only while it is still
+the notice displayed, preserving a later unrelated notice. Language changes
+refresh both paths through the existing one-purpose host method. The browser
+keeps its idle adapter; an unreachable failed-browser state has a safe
+Unsupported classification rather than a raw diagnostic.
+
+Whole-sentence tests cover all 13 recoveries in both languages, including the
+prepared error value. The allocation test now includes Failed and its recovery
+getter. Native-only synthetic error fixtures cover each update recovery
+category and constructible alternate variants without downloads or process
+launches; restart ownership and actual cached-problem clearing have their own
+host tests. The latter app tests still await execution by the native gate.
+Local all-target view Clippy and 825 library tests plus ten catalog-contract
+tests pass. Native source checks pass. Status: **source ready, gate owed**;
+app compilation, whole native tests, wasm and screens remain unverified for
+this correction. There is no installed-app preview hook or fake transport.
+The first remote native Clippy run on `802c51a6` reported two doc-markdown
+diagnostics on the native classifier's header. Its type names are marked as
+code in a separate documentation correction; the failed run is retained.
+The instructed conversation split is merged at `fb7f7f2a` (`32eae9f4`, including
+`aaae7a03`); rewind/fork source work can now start on that layout.
+
+The About renderer also now borrows static licence values and the unavailable
+log-path label through its existing SharedString value slot, avoiding a fresh
+String copy of those constants while drawing. Real filesystem-path formatting
+is unchanged. No geometry, control, theme token or allowance changes.
+
+V1 reviewed exactly `46ff1c13..7c99ae1f..73fd0c49` as SOURCE/A13 GATE PASS:
+all six native steps passed, 1,147 ordinary and two compile-fail tests passed,
+zero failed, one existing display fixture ignored. Its scope explicitly
+excludes UI approval, a complete About screen, inventory completeness,
+`75c4d8dc`'s strengthened guard, and the later updater work. The updater's first
+remote Clippy failure on `75cf3b4a` remains recorded; the test-module correction
+`bf9f5e77` passed a new remote native Clippy check. No unchanged gate is rerun.
+
+## About inventory: member-local declarations
+
+The self-review found a pre-existing gap in the inventory guard: its normal
+dependency traversal was correct, but its final ordered comparison considered
+only declarations in the shared workspace manifest. Four already-shipped
+member-local dependencies escaped it: `ashpd` 0.13.13 (MIT), `futures-lite`
+2.6.1 (Apache-2.0 OR MIT), `image` 0.25.10 (MIT OR Apache-2.0), and `resvg`
+0.46.0 (Apache-2.0 OR MIT). Their declarations and licences were checked
+against the pinned lockfile and each downloaded package's own manifest.
+No dependency, version, feature or lockfile is changed.
+
+The strengthened test retains the former shared-manifest ordering and normal
+transitive traversal without changing either helper. It additionally requires
+every native member's direct external normal declaration, on every target.
+Previously unlisted member-local names follow the shared names alphabetically;
+fonts still follow the crates. Development/build-only declarations stay
+excluded; a declaration used both normally and for development stays required.
+The original fixtures remain, with two additional fixtures proving inline
+normal/both membership, dev-only exclusion and a browser-only inline normal
+dependency. The old comparison's passing-but-incomplete list is explicitly
+compared with the strengthened required list. This adds coverage; it does not
+narrow the original comparison or its runtime set.
+
+The list grows from 28 to 32 entries. It is a borrowed static slice instead
+of carrying a manually repeated array length. New Desktop, Tasks and Images
+roles describe desktop-setting reads, following setting changes, and drawing
+the app's images respectively. The complete vocabulary is now 27 messages
+per language, with whole-sentence checks. The role fixture is moved outside
+the assertion function to keep the function short; no expected sentence is
+removed. Native source checks and all-target view Clippy pass; 823 library
+tests and ten catalog-contract tests pass. Whole native gate and captures
+remain owed for this follow-up. The earlier whole About run on `73fd0c49`
+does not include this strengthened guard and cannot prove its coverage.
+
+## Source ready: title-bar and update vocabulary
+
+The About move and role fix are committed as `7c99ae1f` and `73fd0c49`.
+Their whole native gate is now submitted against the immutable latter commit;
+no current-update working-tree source travels with it. The role fix's local
+contract tests have also passed (10), and the compiled coverage command has
+exited zero: English/Korean complete, zero missing. V1 has not received a
+complete submission or approved these changes.
+
+The next area is the shared updater vocabulary, including the title bar's
+four labels, About's card/dialogs/log actions and the updated-on-start banner.
+Reference: Paseo 0.15.4 `packages/app/src/screens/settings-screen.tsx`
+lines 621–747 (`DesktopAppUpdateRow`), and its English/Korean
+`desktop.updates.status` / `settings.about.updates` resources. Keep the
+existing deliberate differences: one update feed, the automatic-check switch,
+the existing Zed-inspired title-bar labels and the running build's notes only.
+
+[Decision Log]
+- Purpose: translate the existing messages without formatting in a frame.
+- Existing assets: generated Fluent getters, the updater's typed watch state,
+  the normal language-change dispatch and shared kit rows/buttons.
+- Alternatives: calling dynamic Fluent messages in the render functions would
+  allocate every frame; adding the updater dependency to view would bring in
+  native I/O and break the standalone browser boundary.
+- Choice: a pure `view::updates::PreparedUpdate` projection, shared Arc text,
+  and a host `UpdateUi` that retains the authoritative runtime/state/notice
+  and refreshes its text on events and language changes.
+- Why: both About and the title bar borrow the same prepared values; the
+  browser uses the same idle projection without an updater I/O dependency.
+- Cost: a small explicit state projection at the host boundary and one cache
+  refresh registration in the language-change path.
+
+The host's four updater fields are grouped with the prepared projection,
+shrinking `shell.rs` from 500 to 486 product lines (the repository's size
+checker); no allowance grows. Host call sites, a GPUI regression, the pure
+view model and 37 messages in each language are installed. Narrow all-target
+view Clippy passes, with 821 library and ten catalog-contract tests passing;
+the new shared-text allocation test reports zero allocations. Native source
+checks pass. The first narrow attempt failed on six test lints (constant
+placement and unused black-box results); they were corrected, with the failed
+run kept separately. No assertion or deadline changed.
+The shared validator also accepts the explicit candidate root, with zero missing
+keys in both languages; this is a source-candidate check, not a compiled API
+or current-binary claim. App compilation, its new GPUI regression, the whole
+native gate and current screens are owed. Status: **source ready, gate owed**.
+The first remote all-target native Clippy run on `75cf3b4a` failed on the
+new GPUI test's private find access (and its unused import). The regression
+moves into find's existing language-test module, where that access belongs;
+no production visibility is widened and no assertion is removed. This is a
+separate correction to the source-ready commit, with the failing run retained.
+
+The model preserves numbered-build prefixes and plain developer build names;
+whole Fluent branches select either presentation. Numeric progress stays a
+number. Its getters share Arc values; allocation tests and whole-message tests
+cover both languages and the pseudo locale. A new whole-sentence fallback is
+used only if message preparation fails, with the formatter's diagnostic in logs.
+Fluent's Unicode argument-isolation markers surround variable values; visible
+sentences and version-prefix rules are preserved, and the tests compare the
+complete returned strings including those markers.
+The existing raw updater error and restart-notice Display paths are explicitly
+deferred to a separate typed-error correction, not hidden by this migration.
+
+Additional seams approved for this area: `language.rs` one refresh call,
+`main.rs` one module line, the `Shell` field grouping and its no-I/O test
+fixture, the browser adapter's field access, and General's one `copy_path`
+getter. No layout/control/token change. The next rewind/fork migration is
+owned here but must start after the conversation-file split `aaae7a03` is
+merged. Its raw node-error boundaries also belong to this track; their owner
+has no parallel correction planned. Do not touch the terminal work.
 
 ## About role correction (after `7c99ae1f`)
 

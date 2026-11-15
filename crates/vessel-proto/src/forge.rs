@@ -1,6 +1,8 @@
 //! Pull requests on a forge (protocol 11, milestone 11, track B2, ADR
 //! 0029): what a session's pull request is, whether the node can see it,
 //! and the calls that read, open and merge one.
+//! ADR 0061's project-page values are also defined here, without a
+//! registered project-list call until its protocol admission is ready.
 //!
 //! [Decision Log]
 //! - Purpose: agent-orchestrator, GOAT and Paseo all follow a session's
@@ -21,6 +23,7 @@
 mod access;
 mod calls;
 mod names;
+mod project;
 mod pull;
 
 pub use access::{
@@ -34,6 +37,10 @@ pub use calls::{
 pub use names::{
     CheckName, ForgeHost, ForgeLogin, ForgeUrl, InvalidForgeValue, PullBody, PullNumber, PullTitle,
     RepoPath, is_format,
+};
+pub use project::{
+    InvalidOpenPullPage, InvalidPullCursor, OpenPullPage, PROJECT_PULL_REQUESTS, ProjectPullCursor,
+    PullCursor,
 };
 pub use pull::{
     CheckRun, CheckState, Checks, ChecksState, ForgeKind, MergeMethod, Mergeable, PullRequest,

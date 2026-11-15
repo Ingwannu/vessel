@@ -375,6 +375,13 @@ fn ring_path(bounds: Bounds<Pixels>, percent: f32) -> Option<gpui::Path<Pixels>>
     for next in rest {
         path.line_to(*next);
     }
+    // The whole track is Paseo's closed circle. Left open, its two square
+    // ends met at twelve with a notch, and with no context data (the track
+    // alone, as an ended session shows it) the ring read as a loading
+    // spinner beside Send (the coordinator's 0.0.0.0.18 smoke).
+    if percent >= 100.0 {
+        path.close();
+    }
     path.build().ok()
 }
 

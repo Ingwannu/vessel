@@ -72,6 +72,10 @@ unset it when checking that General's language change applies immediately.
 Use dark/light themes and desktop/phone sizes as described in the native README.
 
 
+During the staged migration, published languages are English and Korean.
+Coverage counts the Fluent catalog. Finish the remaining legacy-table
+migration before publishing a third language for the whole app.
+
 ## Move an area
 
 Audit each string's callers first. Move only that area's own messages; shared
@@ -97,3 +101,17 @@ Register it in `app/src/language.rs`'s `PLACEHOLDERS` list. Refresh only the
 placeholder; retain the typed value, caret, selection, current step and focus.
 Test that retention with the actual language-change dispatch and input keys
 (the find, question, queued-edit and project-form tests are examples).
+
+For value messages, retain the input facts and shared prepared text at state and
+language events; invalidate cached rows/measurements when that text changes.
+`view::updates` and `view::fork::Headers` are examples. A frame reads the
+prepared value instead of formatting it again. Evict cache entries with their
+source data, and test unchanged refreshes as well as renames/language changes.
+
+Project errors from typed variants/codes into complete recovery messages.
+Keep original diagnostics in the host's logs or authoritative state, never in a
+translated sentence's argument. Test every variant in both languages. When a
+wording-preserving move exposes this old defect, make its typed correction a
+separate commit before submitting the screen as complete. Retained global
+notices refresh only while they still own the visible notice, preserving any
+later message from another area. A language change must not resend a request.

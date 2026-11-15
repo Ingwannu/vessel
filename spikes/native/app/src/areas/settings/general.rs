@@ -77,7 +77,7 @@ pub(crate) fn render(
             let copied = path.clone();
             let copy = outline_button(
                 "settings-copy-prefs-path",
-                shell.t.lang.update().copy_path,
+                shell.words.update().copy_path(),
                 true,
                 tokens,
             )
@@ -115,7 +115,7 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .child(settings::section(
-            words.section(Section::General),
+            words.section(Section::General, shell.words),
             general,
             tokens,
         ))

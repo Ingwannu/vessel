@@ -16,16 +16,24 @@ mod base64_bytes;
 mod board;
 pub mod conversation;
 mod device;
+pub mod diagnostics;
+pub mod dictation;
 mod error;
 mod event;
 mod fleet;
 mod fleet_control;
+mod fleet_published;
 pub mod forge;
 pub mod forking;
 mod forward;
 mod harness;
+pub mod history;
 mod id;
+pub mod inbox;
 mod key;
+pub mod labels;
+pub mod lifecycle_version;
+pub mod limits;
 pub mod lsp;
 mod model;
 mod name;
@@ -36,20 +44,24 @@ pub mod parking;
 pub mod ports;
 mod profile;
 mod proxy;
+pub mod push;
 mod raw;
 mod relay;
+pub mod restart;
 mod rpc;
 pub mod scripts;
 pub mod search;
 mod secret;
 mod session;
 pub mod settings;
+pub mod side_questions;
 mod terminal;
 pub mod terminals;
 mod title;
 mod transfer;
 #[cfg(feature = "ts")]
 pub mod ts;
+pub mod usage;
 pub mod workspace;
 
 pub use agent::{
@@ -65,8 +77,9 @@ pub use conversation::{
     QuestionAnswer, QuestionOutcome, QueueChange, QueueHold, QueuedPrompt, SessionMarks, TurnUsage,
 };
 pub use device::{
-    DeviceInfo, DeviceSecret, Invitation, InvitationSecret, InviteDevice, ListDevices, Preamble,
-    PreambleReply, RefusalReason, RevokeDevice, Scope,
+    DeviceInfo, DeviceInviteError, DeviceSecret, DeviceSelf, GetDeviceSelf, Invitation,
+    InvitationSecret, InviteDevice, ListDevices, Preamble, PreambleReply, RefusalReason,
+    RevokeDevice, Scope,
 };
 pub use error::{ErrorCode, ErrorDetail, WireError};
 pub use event::{EventRecord, SessionEvent};
@@ -80,6 +93,9 @@ pub use fleet_control::{
     FleetApplied, FleetControlError, FleetRole, FleetSyncProblem, FleetSyncStatus, GetFleetStatus,
     JoinFleet, JoinedFleet, LeaveFleet, SyncFleet,
 };
+pub use fleet_published::{
+    FleetPublished, GetPublished, PublishedBundle, SharedFile, SharedFileKind,
+};
 pub use forward::{
     Callback, Deliver, FleetNode, ForgetNode, Forward, Forwarded, GetCallback, GrantHome,
     ListNodes, ListPeers, NodeForgotten, Origin, OriginBy, RelayCall,
@@ -92,6 +108,7 @@ pub use id::{
     ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
+pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,
@@ -101,7 +118,8 @@ pub use name::{
     ProviderName, SecretName,
 };
 pub use node::{
-    MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange, ProtocolVersion,
+    GENERATED_NAMES, MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange,
+    ProtocolVersion, speaks_generated_names,
 };
 pub use options::{
     ChoiceValue, GetHarnessOptions, GetSessionOptions, HarnessOptions, OptionCategory,
@@ -129,7 +147,10 @@ pub use session::{
     SessionStatus,
 };
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
-pub use title::{InvalidTitle, SessionTitle};
+pub use title::{
+    GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,
+    TitleOrigin,
+};
 pub use transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MAX_TRANSFER_FILE,
     MAX_TRANSFER_TOTAL, MemoryImported, MemoryRef, ReadTransfer, SessionImported, SessionRef,
