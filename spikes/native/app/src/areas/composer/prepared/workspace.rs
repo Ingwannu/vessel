@@ -21,6 +21,11 @@ pub(crate) struct WorkspaceInput<'a> {
     pub(crate) machine: &'a str,
     pub(crate) text: &'a str,
 }
+impl std::fmt::Debug for WorkspaceInput<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("WorkspaceInput([redacted])")
+    }
+}
 #[cfg_attr(
     not(test),
     expect(

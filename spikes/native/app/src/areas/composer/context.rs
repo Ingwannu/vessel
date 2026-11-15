@@ -265,16 +265,18 @@ pub(super) fn tray(
     }
     let tray = shell.areas.composer.contexts.get(target)?;
     let pills = tray.visible().enumerate().map(|(index, item)| {
-        let open = (!matches!(item, ContextAttachment::WorkspaceFile(_))).then(|| {
-            std::rc::Rc::new(
-                move |shell: &mut Shell,
-                      index,
-                      window: &mut Window,
-                      cx: &mut Context<'_, Shell>| {
-                    shell.context_opened(target, index, window, cx)
-                },
-            ) as vessel_app_kit::attachment::ScopedPillClick<Shell>
-        });
+        let open = (!matches!(item, ContextAttachment::WorkspaceFile(_))).then(
+            || -> vessel_app_kit::attachment::ScopedPillClick<Shell> {
+                std::rc::Rc::new(
+                    move |shell: &mut Shell,
+                          index,
+                          window: &mut Window,
+                          cx: &mut Context<'_, Shell>| {
+                        shell.context_opened(target, index, window, cx)
+                    },
+                )
+            },
+        );
         let remove = std::rc::Rc::new(
             move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
                 shell.context_removed(target, index, cx)
