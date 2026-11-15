@@ -22,7 +22,7 @@ use vessel_proto::{
 };
 use vessel_testkit::Fake;
 
-const SAFETY_NET: Duration = Duration::from_secs(60);
+pub(crate) const SAFETY_NET: Duration = Duration::from_secs(60);
 
 /// How long one awaited step may take ([`step`], [`collect_until`]): well
 /// under [`SAFETY_NET`], so a hang fails naming the step it is in rather
@@ -161,14 +161,12 @@ impl Fixture {
         Self::with_adapter(|bin, acp| {
             #[cfg(unix)]
             {
-                use std::os::unix::fs::PermissionsExt as _;
                 let wrapper = bin.join("claude-agent-acp");
                 let script = format!(
                     "#!/bin/sh\nFAKE_ACP_HANG=initialize exec '{}' \"$@\"\n",
                     acp.display()
                 );
-                std::fs::write(&wrapper, script).unwrap();
-                std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755)).unwrap();
+                vessel_testkit::write_executable(&wrapper, &script).unwrap();
             }
             #[cfg(windows)]
             std::fs::write(
@@ -209,6 +207,18 @@ impl Fixture {
 
     pub(crate) fn data_dir(&self) -> DataDir {
         DataDir::new(self.data.path())
+    }
+
+    /// Read only after stop: the wire intentionally hides origin until
+    /// its version is assigned, while the durable fact must already agree.
+    pub(crate) async fn saved_title_origin(&self, id: SessionId) -> vessel_proto::TitleOrigin {
+        let opened =
+            vessel_store::Store::open(&self.data_dir(), vessel_store::StoreConfig::default())
+                .await
+                .unwrap();
+        let info = opened.store.session(id).await.unwrap().unwrap();
+        opened.store.close().await;
+        info.title_origin
     }
 
     pub(crate) async fn start(&self) -> Node {

@@ -47,4 +47,15 @@ impl NodeClient {
     pub async fn fleet_status(&self) -> Result<FleetSyncStatus, CallError> {
         self.call(GetFleetStatus {}).await
     }
+
+    /// `fleet.published` (protocol 16): what the machine shares through its
+    /// fleet, or last received, by name; a standalone machine answers that
+    /// it shares nothing.
+    ///
+    /// # Errors
+    /// `NotInProtocol` before 16; `forbidden` without admin; a typed
+    /// refusal when the list is over its bound or cannot be read.
+    pub async fn fleet_published(&self) -> Result<vessel_proto::FleetPublished, CallError> {
+        self.call(vessel_proto::GetPublished {}).await
+    }
 }

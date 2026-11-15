@@ -1,15 +1,22 @@
 //! Protocol 12's parking over the wire (milestone 11, track A2, ADR 0038):
 //! `session.park` and `session.wake`, the session's info and its records,
 //! a prompt waking it, a wake that fails, an automatic prompt then waiting
-//! in the queue, and the calls refused on an older connection.
+//! in the queue, the calls refused on an older connection, and a silent
+//! client dropped with what it follows.
 
+use std::time::Duration;
+
+use vessel_client::NodeClient;
 use vessel_proto::parking::{ParkReason, ParkSession, WakeSession};
 use vessel_proto::{
     ContentBlock, Delivered, Delivery, ErrorCode, EventSeq, SessionEvent, SessionId, SessionStatus,
 };
 
+use vessel_relay::Keepalive;
+
 use crate::agents::code;
-use crate::support::{Fixture, ask, read_until, status_of, structured_spec, within};
+use crate::freezer::Freezer;
+use crate::support::{Fixture, ask, client, read_until, status_of, step, structured_spec, within};
 
 const PROFILES: &str = r#"
 [profiles.breaks]
@@ -144,6 +151,51 @@ async fn a_failed_wake_stays_parked_and_queues_what_the_node_sends() {
             code(client.prompt(id, text("plain"), Delivery::Start).await),
             ErrorCode::SpawnFailed
         );
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+
+/// A token client whose path went half-open (a laptop asleep, a network
+/// gone) is dropped by the node's pings, as a `/secure` one is, and with it
+/// the subscription it held. Until 2026-11-14 `/rpc` had no keepalive, so
+/// such a client kept its subscriptions, and the sessions they follow,
+/// for good. A quiet client that answers is kept. (Keepalive in
+/// milliseconds here; 10 s and 30 s by default.)
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_silent_client_is_dropped_with_what_it_follows() {
+    within(async {
+        // Short, with room for a loaded machine.
+        let fast = Keepalive {
+            ping: Duration::from_millis(200),
+            silence: Duration::from_secs(1),
+        };
+        let fixture = Fixture::new();
+        let node = fixture.start_with(|config| config.keepalive = fast).await;
+        let owner = fixture.connect(&node).await;
+        let id = owner
+            .create_session(structured_spec(&fixture, None))
+            .await
+            .unwrap()
+            .id;
+        let mut path = Freezer::start(node.address().unwrap()).await;
+        let viewer = NodeClient::connect(&path.url(), &fixture.token(), client())
+            .await
+            .unwrap();
+        let _watching = viewer.follow(id, EventSeq::ZERO).await.unwrap();
+        // Quiet past the silence limit: the client answers the pings.
+        tokio::time::sleep(fast.silence.saturating_mul(2)).await;
+        assert!(
+            path.closed_by_node.try_recv().is_err(),
+            "a quiet client that answers was dropped"
+        );
+        path.freeze();
+        let closed = step(
+            "the node dropping the silent client",
+            path.closed_by_node.recv(),
+        )
+        .await;
+        assert!(closed.is_some(), "the node dropped the silent client");
         node.stop().await.unwrap();
     })
     .await;

@@ -382,6 +382,15 @@ async fn run_here(
         Call::CreateSession(request) => {
             Reply::CreateSession(guard.create_session(connection, request).await?)
         }
+        Call::OpenSideQuestion(request) => {
+            Reply::OpenSideQuestion(guard.open_side_question(connection, request).await?)
+        }
+        Call::PromptSideQuestion(request) => {
+            Reply::PromptSideQuestion(guard.prompt_side_question(connection, request).await?)
+        }
+        Call::ResetSideQuestion(request) => {
+            Reply::ResetSideQuestion(guard.reset_side_question(connection, request).await?)
+        }
         Call::SendInput(request) => Reply::SendInput(guard.send_input(connection, request).await?),
         Call::KillSession(request) => {
             Reply::KillSession(guard.kill_session(connection, request).await?)
@@ -609,8 +618,14 @@ async fn run_here(
             Reply::LeaveFleet(guard.leave_fleet(connection, request).await?)
         }
         Call::SyncFleet(request) => Reply::SyncFleet(guard.sync_fleet(connection, request).await?),
+        Call::GetDeviceSelf(request) => {
+            Reply::GetDeviceSelf(guard.device_self(connection, request).await?)
+        }
         Call::GetFleetStatus(request) => {
             Reply::GetFleetStatus(guard.fleet_status(connection, request).await?)
+        }
+        Call::GetPublished(request) => {
+            Reply::GetPublished(guard.fleet_published(connection, request).await?)
         }
         Call::PreviewSchedule(request) => {
             Reply::PreviewSchedule(guard.preview_schedule(connection, request).await?)
@@ -640,6 +655,15 @@ async fn run_here(
             Reply::DeleteSchedule(guard.delete_schedule(connection, request).await?)
         }
         Call::ListRuns(request) => Reply::ListRuns(guard.list_runs(connection, request).await?),
+        Call::GetUsageLimits(request) => {
+            Reply::GetUsageLimits(guard.get_usage_limits(connection, request).await?)
+        }
+        Call::SetUsageLookup(request) => {
+            Reply::SetUsageLookup(guard.set_usage_lookup(connection, request).await?)
+        }
+        Call::QueryUsage(request) => {
+            Reply::QueryUsage(guard.query_usage(connection, request).await?)
+        }
         Call::ListPrompts(request) => {
             Reply::ListPrompts(guard.list_prompts(connection, request).await?)
         }
@@ -648,6 +672,23 @@ async fn run_here(
         }
         Call::UpdatePrompt(request) => {
             Reply::UpdatePrompt(guard.update_prompt(connection, request).await?)
+        }
+        Call::ListInbox(request) => Reply::ListInbox(guard.list_inbox(connection, request).await?),
+        Call::GetInboxEntry(request) => {
+            Reply::GetInboxEntry(guard.get_inbox_entry(connection, request).await?)
+        }
+        Call::MarkInbox(request) => Reply::MarkInbox(guard.mark_inbox(connection, request).await?),
+        Call::GetPushKey(request) => {
+            Reply::GetPushKey(guard.get_push_key(connection, request).await?)
+        }
+        Call::SubscribePush(request) => {
+            Reply::SubscribePush(guard.subscribe_push(connection, request).await?)
+        }
+        Call::UnsubscribePush(request) => {
+            Reply::UnsubscribePush(guard.unsubscribe_push(connection, request).await?)
+        }
+        Call::ReportPushPresence(request) => {
+            Reply::ReportPushPresence(guard.report_push_presence(connection, request).await?)
         }
         Call::DeletePrompt(request) => {
             Reply::DeletePrompt(guard.delete_prompt(connection, request).await?)
@@ -666,6 +707,9 @@ async fn run_here(
         }
         Call::RewindSession(request) => {
             Reply::RewindSession(guard.rewind_session(connection, request).await?)
+        }
+        Call::GetAgentHistory(request) => {
+            Reply::GetAgentHistory(guard.agent_history(connection, request).await?)
         }
         Call::StopNode(_)
         | Call::GetNodeSettings(_)

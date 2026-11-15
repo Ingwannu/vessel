@@ -350,7 +350,8 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             vessel_client::CallError::Disconnected
             | vessel_client::CallError::UnexpectedReply(_)
             | vessel_client::CallError::RequestIdsExhausted
-            | vessel_client::CallError::NotInProtocol { .. } => error.to_string(),
+            | vessel_client::CallError::NotInProtocol { .. }
+            | vessel_client::CallError::UnassignedProtocol { .. } => error.to_string(),
         },
     })
 }

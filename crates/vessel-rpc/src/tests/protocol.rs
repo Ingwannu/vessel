@@ -1,12 +1,17 @@
 //! Protocol 5 against older connections: a raw client that offers only one
 //! version, so the server cannot negotiate up.
 
-use vessel_proto::{CreateSession, GetManifest, Hello};
+use vessel_proto::{CreateSession, GetManifest, Hello, Method, Reply};
 
 use super::*;
 
 /// A raw client speaking only `version`, past the welcome.
 async fn raw_client(version: u32) -> (MemoryTransport, Served) {
+    let (client, served, _) = raw_client_with_node(version).await;
+    (client, served)
+}
+
+async fn raw_client_with_node(version: u32) -> (MemoryTransport, Served, NodeId) {
     let (mut client_end, server_end) = pair();
     let served = serve(server_end);
     let version = ProtocolVersion::new(version);
@@ -26,7 +31,7 @@ async fn raw_client(version: u32) -> (MemoryTransport, Served) {
         panic!("expected a welcome, got {welcome}");
     };
     assert_eq!(welcome.protocol, version);
-    (client_end, served)
+    (client_end, served, welcome.node.id)
 }
 
 /// Send one call and return the text of the next frame.
@@ -133,7 +138,7 @@ async fn an_already_built_call_newer_than_the_connection_is_not_sent() {
     assert!(matches!(
         client.call_any(call).await,
         Err(CallError::NotInProtocol {
-            method: vessel_proto::Method::ListProfiles,
+            method: Method::ListProfiles,
             ..
         })
     ));
@@ -154,3 +159,211 @@ async fn a_protocol_12_connection_refuses_preview_before_dispatch() {
     assert_eq!(error.code, ErrorCode::Unsupported);
     assert!(served.seen.try_recv().is_err());
 }
+
+#[tokio::test]
+async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
+    use vessel_proto::{Deliver, Forward, GetDeviceSelf, Origin, OriginBy, RelayCall};
+    let previous = GetDeviceSelf::METHOD.since().get().checked_sub(1).unwrap();
+    let (mut client, mut served) = raw_client(previous).await;
+    let query = GetDeviceSelf {}.into_call();
+    let origin = Origin {
+        node: NodeId::random(),
+        by: OriginBy::Owner,
+        scopes: vec![],
+    };
+    for call in [
+        query.clone(),
+        Forward {
+            node: NodeId::random(),
+            call: Box::new(query.clone()),
+        }
+        .into_call(),
+        RelayCall {
+            node: NodeId::random(),
+            call: Box::new(query.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        Deliver {
+            call: Box::new(query),
+            origin,
+        }
+        .into_call(),
+    ] {
+        assert_eq!(
+            refusal(&call_raw(&mut client, 1, call).await).code,
+            ErrorCode::Unsupported
+        );
+        assert!(served.seen.try_recv().is_err());
+    }
+}
+
+#[tokio::test]
+async fn usage_is_refused_before_dispatch_on_a_pre_usage_connection() {
+    use vessel_proto::usage::{QueryUsage, UsagePeriod, UsageScope};
+    let previous = QueryUsage::METHOD.since().get().saturating_sub(1);
+    let (mut client, mut served, target) = raw_client_with_node(previous).await;
+    let call = QueryUsage {
+        scope: UsageScope::Machine,
+        period: UsagePeriod::Day,
+        after: None,
+    }
+    .into_call();
+    for wrapped in usage_envelopes(call, target) {
+        let expected = WireError::new(
+            ErrorCode::Unsupported,
+            format!(
+                "`{}` as sent needs protocol {}; this connection speaks {}",
+                wrapped.method().as_str(),
+                QueryUsage::METHOD.since(),
+                previous
+            ),
+        );
+        assert_eq!(refusal(&call_raw(&mut client, 1, wrapped).await), expected);
+        assert!(
+            served.seen.try_recv().is_err(),
+            "no unsupported envelope reached dispatch"
+        );
+    }
+    // Supported envelopes reach the handler unchanged on the same older
+    // connection. This fake deliberately refuses their payloads, recording
+    // them first; a version refusal must never substitute for that dispatch.
+    for supported in usage_envelopes(GetNode.into_call(), target)
+        .into_iter()
+        .skip(1)
+    {
+        let actual = refusal(&call_raw(&mut client, 1, supported.clone()).await);
+        assert_eq!(
+            actual,
+            WireError::new(ErrorCode::Unsupported, "not in this fake")
+        );
+        assert_eq!(served.seen.recv().await.unwrap(), supported);
+    }
+    let response = call_raw(&mut client, 2, GetNode.into_call()).await;
+    assert!(matches!(
+        serde_json::from_str::<ServerFrame>(&response).unwrap(),
+        ServerFrame::Response {
+            outcome: Outcome::Ok(Reply::NodeInfo(_)),
+            ..
+        }
+    ));
+    assert_eq!(served.seen.recv().await.unwrap().method(), Method::NodeInfo);
+    assert!(
+        served.seen.try_recv().is_err(),
+        "usage never reached the handler"
+    );
+}
+
+fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
+    let origin = vessel_proto::Origin {
+        node,
+        by: vessel_proto::OriginBy::Owner,
+        scopes: vec![],
+    };
+    [
+        call.clone(),
+        vessel_proto::Forward {
+            node,
+            call: Box::new(call.clone()),
+        }
+        .into_call(),
+        vessel_proto::RelayCall {
+            node,
+            call: Box::new(call.clone()),
+            origin: origin.clone(),
+        }
+        .into_call(),
+        vessel_proto::Deliver {
+            call: Box::new(call),
+            origin,
+        }
+        .into_call(),
+    ]
+}
+
+#[tokio::test]
+async fn forced_limit_policy_and_reads_are_refused_before_old_server_dispatch() {
+    use vessel_proto::limits::*;
+    let needed = GetUsageLimits::METHOD.since();
+    assert_eq!(needed, SetUsageLookup::METHOD.since());
+    let previous = needed.get().checked_sub(1).unwrap();
+    let (mut client, mut served, target) = raw_client_with_node(previous).await;
+    let query = GetUsageLimits {
+        scope: LimitsScope::Account {
+            account: LimitAccount {
+                harness: HarnessKind::Codex.into(),
+                profile: None,
+            },
+        },
+        refresh: LimitRefresh::Refresh,
+    };
+    for inner in [
+        query.into_call(),
+        SetUsageLookup {
+            policy: ExternalLookup::On,
+        }
+        .into_call(),
+    ] {
+        for wrapped in usage_envelopes(inner, target) {
+            let expected = WireError::new(
+                ErrorCode::Unsupported,
+                format!(
+                    "`{}` as sent needs protocol {}; this connection speaks {}",
+                    wrapped.method().as_str(),
+                    needed,
+                    previous
+                ),
+            );
+            assert_eq!(refusal(&call_raw(&mut client, 1, wrapped).await), expected);
+            assert!(
+                served.seen.try_recv().is_err(),
+                "an unsupported limit call reached dispatch"
+            );
+        }
+    }
+    for supported in usage_envelopes(GetNode.into_call(), target)
+        .into_iter()
+        .skip(1)
+    {
+        assert_eq!(
+            refusal(&call_raw(&mut client, 1, supported.clone()).await),
+            WireError::new(ErrorCode::Unsupported, "not in this fake")
+        );
+        assert_eq!(served.seen.recv().await.unwrap(), supported);
+    }
+}
+
+#[tokio::test]
+async fn malformed_creation_labels_are_refused_before_dispatch() {
+    let (mut raw, mut served) = raw_client(vessel_proto::PROTOCOL_VERSION.get()).await;
+    let too_many: std::collections::BTreeMap<_, _> = (0..vessel_proto::SessionLabels::MAX
+        .saturating_add(1))
+        .map(|index| (format!("key{index}"), "value"))
+        .collect();
+    let maps = [
+        serde_json::json!({"": "v"}),
+        serde_json::json!({"vessel.reserved": "v"}),
+        serde_json::json!({"a=b": "v"}),
+        serde_json::json!({"\u{0085}": "v"}),
+        serde_json::json!({"a": "\u{0085}"}),
+        serde_json::json!({"a": "x".repeat(vessel_proto::LabelValue::MAX_CHARS.saturating_add(1))}),
+        serde_json::json!({"a": null}),
+        serde_json::json!(too_many),
+    ];
+    for (index, labels) in maps.into_iter().enumerate() {
+        let request = serde_json::json!({"type":"request", "id":index, "call":{
+            "method":"session.create", "params":{"spec":{
+                "harness":"claude-code", "mode":"structured", "labels":labels
+            }}
+        }});
+        raw.send(request.to_string()).await.unwrap();
+        let response = raw.next().await.unwrap().unwrap();
+        assert_eq!(refusal(&response).code, ErrorCode::InvalidRequest);
+    }
+    assert!(
+        served.seen.try_recv().is_err(),
+        "no malformed input reached the node handler"
+    );
+}
+
+mod inbox;

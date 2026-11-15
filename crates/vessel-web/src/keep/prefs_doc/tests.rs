@@ -281,3 +281,33 @@ fn a_document_past_its_size_takes_only_changes_that_do_not_grow_it() {
         Err(Refused::Size)
     );
 }
+
+#[test]
+fn missing_ended_preference_lists_ended_sessions_without_rewriting_the_document() {
+    for text in [
+        "{}",
+        r#"{"sidebar":{}}"#,
+        r#"{"sidebar":{"group":"status"}}"#,
+    ] {
+        let doc = read(text);
+        assert!(doc.values().sidebar.ended, "{text}");
+        assert!(read(&written(&doc)).values().sidebar.ended);
+        assert!(
+            !written(&doc).contains("ended"),
+            "a missing choice stays absent"
+        );
+    }
+}
+
+#[test]
+fn an_explicit_false_ended_preference_survives_reads_and_other_changes() {
+    let doc = read(r#"{"sidebar":{"ended":false}}"#);
+    assert!(!doc.values().sidebar.ended);
+    let changed = doc.changed(&PreferenceChange::Theme(Theme::Dark)).unwrap();
+    assert!(!read(&written(&changed)).values().sidebar.ended);
+    assert!(compact(&written(&changed)).contains(r#""ended":false"#));
+    let on = changed
+        .changed(&PreferenceChange::SidebarEnded(true))
+        .unwrap();
+    assert!(read(&written(&on)).values().sidebar.ended);
+}
