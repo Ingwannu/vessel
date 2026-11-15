@@ -1540,3 +1540,16 @@ removed to hide a failure. Heartbeat remains Edit/Delete, and the existing
 read-only history addition stays explicitly beyond the Paseo source.
 Old78 source and the pre-correction notes were wrong, not an accepted parity
 exception. Current compiler/actual menu input/first-use evidence is still owed.
+
+
+### No implicit form submission from field Enter
+
+Immutable schedule-form-sheet.tsx499–548 and cadence-editor.tsx106–121 pass
+onChangeText but NO onSubmitEditing to form inputs; the sheet wires its
+footer onPress (383–432). F1 had incorrectly supplied its save dispatcher as
+the required identified editor submit callback. That was an extra write
+shortcut, not a necessary part of the shared engine.
+The F1 callback now deliberately has no effect; only explicit footer Create/
+Save dispatches the existing guarded save. Line/multiline Enter/IME handling
+and callbacks in all other areas are untouched. Actual ready-form field Enter
+no-write and explicit-footer-first-use evidence is still owed.

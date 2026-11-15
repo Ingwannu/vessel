@@ -165,26 +165,16 @@ fn change(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_,
         cx.notify();
     }
 }
+// The identified engine requires a submit callback. Source schedule form fields
+// (schedule-form-sheet.tsx499–548/cadence-editor.tsx106–121) set no onSubmitEditing;
+// only the explicit footer action may write. Preserve that absence here.
 fn submit(
-    shell: &mut Shell,
-    source: FieldId,
+    _shell: &mut Shell,
+    _source: FieldId,
     _text: String,
-    window: &mut Window,
-    cx: &mut Context<'_, Shell>,
+    _window: &mut Window,
+    _cx: &mut Context<'_, Shell>,
 ) {
-    if shell.route != crate::routes::Route::Schedules
-        || !shell.areas.schedules.ui.editor.is_mounted()
-    {
-        return;
-    }
-    let Some(inputs) = &shell.areas.schedules.ui.editor.inputs else {
-        return;
-    };
-    if inputs.source(source).is_none() {
-        return;
-    }
-    let visit = inputs.visit;
-    super::save(shell, visit, window, cx);
 }
 
 #[cfg(test)]
