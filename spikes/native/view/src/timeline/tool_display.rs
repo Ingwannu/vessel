@@ -4,8 +4,10 @@
 use std::borrow::Cow;
 use std::path::Path;
 
+use vessel_proto::ToolKind;
 use vessel_proto::timeline::{AgentMessageEvent, ToolCallDetail, ToolIcon};
-use vessel_proto::{RawJson, ToolKind};
+
+use super::tool_sections::opaque_present;
 
 /// Closed captions are translated; provider prose retains its original spelling.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -225,11 +227,6 @@ fn contents(detail: &ToolCallDetail) -> DetailContents {
 
 fn text_present(text: Option<&str>) -> bool {
     text.is_some_and(|text| !text.is_empty())
-}
-
-/// This formatting edge recognizes only empty JSON spellings, never tool fields.
-pub(super) fn opaque_present(raw: Option<&RawJson>) -> bool {
-    raw.is_some_and(|raw| !["null", "{}", "[]", "\"\""].contains(&raw.as_text().trim()))
 }
 
 #[cfg(test)]

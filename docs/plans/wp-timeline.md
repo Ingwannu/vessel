@@ -1173,3 +1173,16 @@ The shared-kernel extraction also removes the legacy diff's now-unused fluent
 builder import and keeps its bounded-preview documentation independent of a
 removed local MAX_LINES import. No stale body import or Rustdoc link is kept in
 the activation artifact. The artifact is source-only and cannot activate A8 alone.
+
+Portable-body dependency audit found the empty-JSON predicate still referenced
+header-only tool_display. The existing predicate is moved once into tool_sections
+and imported by the header model, rather than importing the entire header/
+provenance/source-trait graph into A8 or copying a second JSON classifier. Existing
+unknown null/string/object tests cover that unchanged formatting rule. This is
+native-only source; no protocol decoder, field or approval action is added.
+
+W1's source10a8a905 recursively aggregates navigation_held/retired through every
+existing Origin::Shown level. It remains unexecuted/literal cfg(test) on W1's
+branch, not adopted here. When that owner's checked source joins the resident
+union, the external navigation vote passed to this snapshot must use that same
+recursive query; A7 still owns its separate loading/overlay/pending checks.
