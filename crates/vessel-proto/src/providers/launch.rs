@@ -210,7 +210,7 @@ impl DisallowedTools {
             return Err(LaunchConfigError::TooMany);
         }
         patterns
-            .iter()
+            .into_iter()
             .map(|pattern| pattern.parse())
             .collect::<Result<Vec<_>, _>>()
             .map(Self)

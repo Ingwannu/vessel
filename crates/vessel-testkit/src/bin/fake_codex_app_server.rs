@@ -67,6 +67,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use serde_json::{Value, json};
 
+#[path = "fake_codex_app_server/catalogue.rs"]
+mod catalogue;
+
 /// The version printed when `FAKE_CODEX_VERSION` is unset: the one the
 /// driver's schema was generated from.
 const VERSION: &str = "0.166.0";
@@ -171,7 +174,11 @@ impl Server {
     }
 
     fn request(&mut self, id: &Value, method: &str, params: &Value) -> Result<(), Exit> {
+        catalogue::record(method);
         match method {
+            "model/list" | "config/read" | "getUserSavedConfig" => {
+                self.send(&json!({"id": id, "result": catalogue::response(method, params)}))
+            }
             "initialize" => {
                 let agent = format!("codex_cli_rs/{} (fake; x86_64) vessel", self.version);
                 self.send(&json!({"id": id, "result": {

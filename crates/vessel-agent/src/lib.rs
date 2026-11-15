@@ -77,6 +77,7 @@ mod stderr;
 mod transport;
 
 pub use attached::{AttachmentBody, Attachments};
+pub use codex::catalogue::CatalogueProbeError as CodexCatalogueError;
 pub use context::PromptContext;
 pub use drivers::Driver;
 pub use error::{AgentError, Disconnect, InputError, LaunchRefusal};

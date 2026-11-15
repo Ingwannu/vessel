@@ -24,6 +24,8 @@
 //!   own process, so a listing shapes its own command there).
 
 mod asks;
+pub(crate) mod catalogue;
+mod catalogue_data;
 mod mapper;
 mod mode;
 mod protocol;

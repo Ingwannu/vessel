@@ -143,3 +143,23 @@ list is absent. This helper grants no execution authority; RPC/create wiring
 must supply the node's own current catalogue. Scoped tests are pending.
 
 The OpenCode provider kind serializes as `opencode`, matching the manifest ID.
+
+## Native Codex catalogue transaction
+
+Paseo codex-app-server-agent.ts:3213-3250 and 7700-7935 initialize one native
+process, read model/list and saved defaults, and build per-model thinking
+choices. Reusing the existing session probe would open a throwaway thread and
+only report mode choices. A dedicated transaction therefore reuses the existing
+Codex wire/protocol codec, without changing session or option-completion arms.
+It follows pagination under fixed page/model/message bounds, reads defaults,
+and cleans up the process group and readers under the supplied finite deadline.
+The fake process's request audit must contain only initialization, model pages
+and configuration reads. No live Codex or account is used.
+
+Deliberate differences: required malformed model data refuses the observation
+instead of producing a successful empty catalogue. Optional config methods may
+be absent only through typed method-not-found; other failures remain failures.
+Native runtime mode IDs retain the driver's existing codex-acp-compatible
+dialect. The catalogue metadata boundary ignores unknown additive fields and
+does not introduce SDK/dependency or real-agent schema generation. Execution
+of the added codec and process tests is pending.

@@ -21,6 +21,9 @@ pub struct ProviderObservation {
 /// reader diagnostic message. The node maps them to safe failure classes.
 #[derive(Debug, thiserror::Error)]
 pub enum ProviderProbeError {
+    /// Native Codex uses model/list rather than opening a throwaway thread.
+    #[error("native provider catalogue probe failed")]
+    Codex(#[from] crate::CodexCatalogueError),
     /// Process or protocol handshake failed.
     #[error("provider catalogue probe failed")]
     Probe(#[source] ProbeError),
@@ -41,6 +44,9 @@ pub async fn probe_provider_with(
     setup: AgentSetup,
     definition: &ProviderDefinition,
 ) -> Result<ProviderObservation, ProviderProbeError> {
+    if driver == Driver::Codex {
+        return Ok(crate::codex::catalogue::probe(command, &setup, definition).await?);
+    }
     let setup = AgentSetup {
         model: None,
         resume: None,
