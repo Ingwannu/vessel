@@ -2,7 +2,7 @@
 //! touched at the right and its state in a word), opened into the page's
 //! card body: the input, the content (diffs line by line, numbered) and
 //! the output (the page's `features/session/tool-card.tsx`). Ordinary calls
-//! start closed as Paseo's ToolCall does; explicit choices survive updates.
+//! start closed as Paseo's `ToolCall` does; explicit choices survive updates.
 
 use vessel_app_kit::output::{Line, Lines, Tone};
 use vessel_app_kit::ui::FluentBuilder as _;
@@ -11,7 +11,9 @@ use vessel_app_kit::ui::{
     div, px,
 };
 use vessel_app_kit::{Start, Type, TypeExt as _, lines_box, output_box, version_of};
-use vessel_app_view::timeline::{MAX_LINES, Side, ToolView, block_text, diff_lines, json_text};
+use vessel_app_view::timeline::{
+    MAX_LINES, Side, ToolDetailSource, ToolView, block_text, diff_lines, json_text,
+};
 use vessel_proto::{ToolCallContent, ToolCallStatus};
 
 use super::entries::{Paint, work_row};
@@ -21,34 +23,44 @@ use crate::shell::Shell;
 pub(super) fn card(
     paint: &Paint<'_>,
     index: usize,
-    tool: &ToolView,
+    source: &impl ToolDetailSource,
     open: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if let Some(text) = vessel_app_view::timeline::plan_text(tool) {
-        let seat = paint.seat;
-        return super::plan_card::card(
-            super::plan_card::PlanCard {
-                id: ElementId::NamedInteger("stream-plan".into(), super::entries::id(index)),
-                text: &text,
-                title: None,
-                description: None,
-                outcome: vessel_app_view::timeline::plan_outcome(paint.entries, &tool.id),
-                expansion: if open {
-                    vessel_app_view::timeline::PlanExpansion::Expanded
-                } else {
-                    vessel_app_view::timeline::PlanExpansion::Collapsed
-                },
-                footer: None,
-            },
-            move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
-            paint.catalog.timeline_plan(),
-            paint.tokens,
-            window,
-            cx,
+    use std::borrow::Cow;
+    use vessel_proto::timeline::ToolCallDetail;
+    let tool = source.tool();
+    let plan = match source.detail() {
+        Some(ToolCallDetail::Plan(plan)) => Some(Cow::Borrowed(plan.text.as_str())),
+        Some(_) => None,
+        None => vessel_app_view::timeline::plan_text(tool).map(Cow::Owned),
+    };
+    if let Some(text) = plan {
+        return proposal(paint, index, (tool, &text), open, window, cx);
+    }
+    let head = match source.detail() {
+        Some(detail) => super::tool_detail::header(paint, index, source, detail, open, cx),
+        None => legacy_head(paint, index, tool, open, cx),
+    };
+    let mut row = div().flex().flex_col().child(head);
+    if open && super::tool_detail::can_open(source) {
+        row = row.child(
+            div()
+                .ml(px(28.0))
+                .child(body(paint, index, source, window, cx)),
         );
     }
+    row.into_any_element()
+}
+
+fn legacy_head(
+    paint: &Paint<'_>,
+    index: usize,
+    tool: &ToolView,
+    open: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let words = paint.words;
     let title = if tool.title.is_empty() {
         words.tool_call().to_owned()
@@ -56,25 +68,51 @@ pub(super) fn card(
         tool.title.clone()
     };
     let state = words.tool_status(tool.status).to_owned();
-    let color = match tool.status {
-        ToolCallStatus::Pending | ToolCallStatus::InProgress => paint.tokens.st_building,
-        ToolCallStatus::Completed => paint.look.secondary,
-        ToolCallStatus::Failed => paint.tokens.neutral.destructive,
-    };
+    let color = state_color(paint, tool.status);
     let detail = match tool.path() {
         Some(path) => format!("{} · {state}", tail(&path.to_string_lossy())),
         None => state,
     };
-    let head = work_row(paint, index, title, Some((detail, color)), open, cx);
-    let mut row = div().flex().flex_col().child(head);
-    if open {
-        row = row.child(
-            div()
-                .ml(px(28.0))
-                .child(body(paint, index, tool, window, cx)),
-        );
+    work_row(paint, index, title, Some((detail, color)), open, cx)
+}
+
+pub(super) fn state_color(paint: &Paint<'_>, status: ToolCallStatus) -> vessel_app_kit::ui::Hsla {
+    match status {
+        ToolCallStatus::Pending | ToolCallStatus::InProgress => paint.tokens.st_building,
+        ToolCallStatus::Completed => paint.look.secondary,
+        ToolCallStatus::Failed => paint.tokens.neutral.destructive,
     }
-    row.into_any_element()
+}
+
+fn proposal(
+    paint: &Paint<'_>,
+    index: usize,
+    (tool, text): (&ToolView, &str),
+    open: bool,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let seat = paint.seat;
+    super::plan_card::card(
+        super::plan_card::PlanCard {
+            id: ElementId::NamedInteger("stream-plan".into(), super::entries::id(index)),
+            text,
+            title: None,
+            description: None,
+            outcome: vessel_app_view::timeline::plan_outcome(paint.entries, &tool.id),
+            expansion: if open {
+                vessel_app_view::timeline::PlanExpansion::Expanded
+            } else {
+                vessel_app_view::timeline::PlanExpansion::Collapsed
+            },
+            footer: None,
+        },
+        move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
+        paint.catalog.timeline_plan(),
+        paint.tokens,
+        window,
+        cx,
+    )
 }
 
 /// A path's last two segments: what a narrow row has room for (the page
@@ -93,10 +131,14 @@ fn tail(path: &str) -> String {
 pub(super) fn body(
     paint: &Paint<'_>,
     index: usize,
-    tool: &ToolView,
+    source: &impl ToolDetailSource,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    if let Some(detail) = source.detail() {
+        return super::tool_detail::body(paint, index, source, detail, window, cx);
+    }
+    let tool = source.tool();
     // Each box's id: the entry and the box's place in the card, so a box
     // keeps its scroll while the card grows.
     let key = |part: usize| {
@@ -191,7 +233,7 @@ fn label(paint: &Paint<'_>, text: &str) -> Div {
 
 /// A diff in a box of numbered lines, at most the view's
 /// [`MAX_LINES`]; a word under it when it was cut.
-fn diff(
+pub(super) fn diff(
     paint: &Paint<'_>,
     id: ElementId,
     old: Option<&str>,

@@ -149,10 +149,10 @@ fn thought(
     open: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let head = work_row(
+    let head = marked_work_row(
         paint,
         index,
-        paint.words.thought().to_owned(),
+        (Some(Glyph::Brain), paint.words.thought().to_owned()),
         None,
         open,
         cx,
@@ -204,6 +204,18 @@ pub(super) fn work_row(
     open: bool,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    marked_work_row(paint, index, (None, label), detail, open, cx)
+}
+
+/// Canonical semantic marks share the existing disclosure/hit surface.
+pub(super) fn marked_work_row(
+    paint: &Paint<'_>,
+    index: usize,
+    (mark, label): (Option<Glyph>, String),
+    detail: Option<(String, vessel_app_kit::ui::Hsla)>,
+    open: bool,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     let hover = paint.tokens.neutral.foreground;
     let seat = paint.seat;
     div()
@@ -231,6 +243,7 @@ pub(super) fn work_row(
             shell.toggle_entry(seat, index, cx);
         }))
         .child(disclosure(open, paint.look.secondary))
+        .children(mark.map(|mark| glyph(mark, 14.0, paint.look.secondary)))
         .child(div().min_w(px(0.0)).truncate().child(label))
         .children(detail.map(|(detail, color)| {
             div()

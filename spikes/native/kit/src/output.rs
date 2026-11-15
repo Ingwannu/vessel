@@ -307,9 +307,11 @@ pub fn output_box(
 /// texts of one length shown one after the other (two errors, two tool
 /// outputs) left the first on screen. Hashing reads the text each frame:
 /// about a tenth of a millisecond for 100 KB.
+/// Typed formatting inputs may be included in a tuple: missing numbering and
+/// an explicitly reported line zero must not reuse the same cached rows.
 #[must_use]
-pub fn version_of(text: &str) -> u64 {
-    use std::hash::{DefaultHasher, Hash as _, Hasher as _};
+pub fn version_of<T: std::hash::Hash + ?Sized>(text: &T) -> u64 {
+    use std::hash::{DefaultHasher, Hasher as _};
     let mut hasher = DefaultHasher::new();
     text.hash(&mut hasher);
     hasher.finish()
@@ -424,5 +426,14 @@ mod tests {
         let lines = Lines::text("가나다라마바\nabcdefghij\nabc");
         assert_eq!(widest(&lines.lines), 1);
         assert_eq!(widest(&[]), 0);
+    }
+
+    #[test]
+    fn typed_numbering_inputs_invalidate_equal_text() {
+        let text = "same body";
+        assert_ne!(
+            version_of(&(text, None::<u64>)),
+            version_of(&(text, Some(0_u64)))
+        );
     }
 }

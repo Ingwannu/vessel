@@ -31,9 +31,13 @@ mod tests {
     #[test]
     fn canonical_categories_keep_complete_english_and_korean_labels() {
         let en = Translator::get(ENGLISH).unwrap().timeline_tool();
-        let ko = Translator::get(resolve_language(LanguagePreference::System, Some("ko"), None))
-            .unwrap()
-            .timeline_tool();
+        let ko = Translator::get(resolve_language(
+            LanguagePreference::System,
+            Some("ko"),
+            None,
+        ))
+        .unwrap()
+        .timeline_tool();
         for (kind, english, korean) in [
             (ToolLabelKind::Shell, "Shell", "셸"),
             (ToolLabelKind::Read, "Read", "읽기"),

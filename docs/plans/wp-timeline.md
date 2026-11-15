@@ -2,7 +2,7 @@
 
 Status: A7 native rendering is being filled in on package base4 `3cd0d3fc`;
 canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T08:43Z.
+verified hashes. A8 approvals/questions belong to W4. Updated2026-11-15T09:08Z.
 
 ## Reference and asset check
 
@@ -105,8 +105,9 @@ components/message.tsx:2251; survey C §§1.2-1.3,14.5-14.7.
 5. Capabilities / since constants assigned by the integrator; old peers refuse the
    unsupported action by type. No provisional numeric protocol/schema assignment.
 
-No `crates/` modifications in this package tree. New node contracts are implemented
-in the separate timeline protocol package (ADR 0084) and consumed after review.
+No W10-authored `crates/` edits. Node contracts belong to the separate timeline
+protocol package (ADR 0084); only its committed standalone DTO dependency is
+consumed here so far, as described below. Runtime/field activation remains pending.
 
 ## Structure and decision log
 
@@ -531,3 +532,28 @@ canonical DTOs. W23's checked field/scope handoff will replace the compatibility
 implementation directly. This is source-contract work, not activated canonical
 provider rendering. The category labels use one cached Fluent enum adapter;
 the source's hardcoded English categories gain complete EN/KO labels here.
+
+The existing tool card/body now accepts `ToolDetailSource`, retaining the legacy
+producer path while typed in-memory fixtures exercise the canonical path. The
+same kit output/numbered lines and shared diff control render command/output,
+read offsets, writes, replacement/unified diffs, prose and opaque Input/Output.
+Plan uses the already shared Plan renderer. Semantic icons use only shared kit
+assets. Marker/empty-settled rows do not advertise a dead disclosure; explicit
+failure text remains readable, and empty running details retain the loading UI.
+The scoped file-open hook remains absent until W13/W12/G4 provide the authorized
+context; a provider path never becomes file access authority in A7.
+
+Read/unified previews keep the named line bound, a localized truncation notice,
+and full-text copy. The kit's existing `version_of` now accepts typed Hash values
+without changing string call sites; `(text, Option<DetailOffset>)` distinguishes
+write/no numbering from read/explicit zero without allocating cache-key strings.
+One cache regression covers that edge. These bodies have no syntax highlighting
+beyond the shared output controls; this remains an explicit presentation gap.
+Strict canonical-model run `wp-timeline-narrow-20261115T085643Z-a66f1bf5` reached
+the app and failed only a documentation backtick lint, now corrected. The new
+native body/typed fake affordance tests still need a checked run.
+
+W2 requested the entry-source prerequisite without the unreviewed A7 screen
+stack. Isolated bridge `20ae7edac` (parent base4) contains seven files/98 lines;
+its exact extraction has diff/size evidence only, while original `9fbda65af`
+passed all 1,059 view all-target tests. W2 owns its exact integration check.

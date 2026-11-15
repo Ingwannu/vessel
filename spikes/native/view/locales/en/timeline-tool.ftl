@@ -2,6 +2,8 @@
 
 # Empty result in a tool detail body, including the compact sheet. Whole short sentence.
 timeline-tool-empty = No additional details available
+# Tool detail preview hit the client's line limit; copying retains the full text.
+timeline-tool-preview-cut = Preview truncated
 
 # Canonical tool category: command execution. Short tool row label.
 timeline-tool-shell = Shell

@@ -2,6 +2,8 @@
 
 # Empty result in a tool detail body, including the compact sheet. Whole short sentence.
 timeline-tool-empty = 추가 세부 정보가 없습니다
+# Tool detail preview hit the client's line limit; copying retains the full text.
+timeline-tool-preview-cut = 미리보기가 잘렸습니다
 
 # Canonical tool category: command execution. Short tool row label.
 timeline-tool-shell = 셸
