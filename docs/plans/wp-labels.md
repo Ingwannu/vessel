@@ -136,6 +136,10 @@ Follow-up behavior: create failure retains its safe error and exact draft;
 a later successful toggle of a different label cannot erase an earlier
 concurrent failure; hiding/reopening a manager preserves in-flight work.
 Regression assertions cover both error-retention cases. Checks are pending.
+Local narrow clippy subsequently required one explicit unit-return semicolon
+in the replica and two link documentation/discard fixes; no lint was
+suppressed. Local font assets were absent, so the base's licensed font files
+were prepared in the ignored font directory before repeating the check.
 
 Merged app package base `8d5513e4` into `058d380b` without conflicts.
 The node branch merged Quality B `29eebb8b` into `a6ff863c`, also without

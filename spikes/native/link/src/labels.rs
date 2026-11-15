@@ -1,5 +1,5 @@
 //! Typed catalog UI seam. No RPC is invented before ADR 0086 is integrated.
-//! Workspace assignment is added only with ADR 0082's reviewed WorkspaceId.
+//! Workspace assignment is added only with ADR 0082's reviewed `WorkspaceId`.
 
 use vessel_app_view::labels::{Catalog, Count, Failure, HostKey, Label, Name, Ticket};
 
@@ -68,7 +68,7 @@ impl crate::Link {
         ticket: Ticket,
         command: Command,
     ) -> Result<(), Failure> {
-        let _request = (host, ticket, command);
+        drop((host, ticket, command));
         Err(Failure::Unsupported)
     }
 }
