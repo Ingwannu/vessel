@@ -355,3 +355,9 @@ TerminalId. Passive visible-terminal clearing and direct pane reveal remain
 unverified/unwired owner integration work; explicit row clearing is staged here.
 Workspace bulk marking still requires W11's authoritative membership and W2's
 capability-gated root relationships; retained membership alone is insufficient.
+
+Presence compatibility: optional OS idle age and Terminal focus are included
+only when the feature constant has been assigned and the original selected
+peer supports it. Otherwise basic session/elsewhere/background presence still
+uses its existing call; an unassigned optional field must not disable the
+ordinary heartbeat. The older-peer projection regression checks both fields.

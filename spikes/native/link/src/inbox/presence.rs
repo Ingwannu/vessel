@@ -94,7 +94,7 @@ async fn run(
             continue;
         };
         let call = async {
-            let report = wire(&source, report);
+            let report = wire(&source, report, client.protocol());
             client.call(report).await.map_err(problem)
         };
         let result = tokio::select! {
@@ -113,10 +113,16 @@ async fn run(
         }
     }
 }
-fn wire(source: &Source, report: Report) -> ReportPushPresence {
+fn wire(
+    source: &Source,
+    report: Report,
+    protocol: vessel_proto::ProtocolVersion,
+) -> ReportPushPresence {
+    let supports_attention = vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL
+        .is_some_and(|since| since <= protocol);
     let focus = match report.focus {
         Focus::Session { node, session } if node == source.node() => PushFocus::Session { session },
-        Focus::Terminal { node, terminal } if node == source.node() => {
+        Focus::Terminal { node, terminal } if node == source.node() && supports_attention => {
             PushFocus::Terminal { terminal }
         }
         Focus::Session { .. } | Focus::Terminal { .. } | Focus::Elsewhere => PushFocus::Elsewhere,
@@ -128,9 +134,12 @@ fn wire(source: &Source, report: Report) -> ReportPushPresence {
             Activity::Active => PushActivity::Active,
             Activity::Unchanged => PushActivity::Unchanged,
         },
-        idle_age: report.idle.map(|sample| {
-            vessel_proto::push::PushIdleAge::new(sample.age_at(std::time::Instant::now()).get())
-        }),
+        idle_age: report
+            .idle
+            .filter(|_sample| supports_attention)
+            .map(|sample| {
+                vessel_proto::push::PushIdleAge::new(sample.age_at(std::time::Instant::now()).get())
+            }),
     }
 }
 
@@ -149,6 +158,7 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
+        let protocol = vessel_proto::Method::ReportPushPresence.since().unwrap();
         let foreign = Report {
             focus: Focus::Session {
                 node: vessel_proto::NodeId::random(),
@@ -157,8 +167,11 @@ mod tests {
             activity: Activity::Unchanged,
             idle: None,
         };
-        assert_eq!(wire(&source, foreign).focus, PushFocus::Elsewhere);
-        assert_eq!(wire(&source, foreign).activity, PushActivity::Unchanged);
+        assert_eq!(wire(&source, foreign, protocol).focus, PushFocus::Elsewhere);
+        assert_eq!(
+            wire(&source, foreign, protocol).activity,
+            PushActivity::Unchanged
+        );
         let terminal = vessel_proto::TerminalId::random();
         assert_eq!(
             wire(
@@ -170,10 +183,24 @@ mod tests {
                     },
                     activity: Activity::Active,
                     idle: None
-                }
+                },
+                protocol
             )
             .focus,
-            PushFocus::Terminal { terminal }
+            PushFocus::Elsewhere
         );
+        let idle = wire(
+            &source,
+            Report {
+                idle: Some(vessel_app_view::inbox::presence::IdleSample::new(
+                    vessel_app_view::inbox::presence::IdleAge::new(42),
+                    std::time::Instant::now(),
+                )),
+                ..foreign
+            },
+            protocol,
+        );
+        assert_eq!(idle.idle_age, None);
+        assert_eq!(idle.focus, PushFocus::Elsewhere);
     }
 }
