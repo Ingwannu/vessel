@@ -185,3 +185,11 @@ foreign tags, failed/uncertain acceptance, direct/steered input and legacy None
 APIs. The existing single outgoing compatibility traversal remains the only wire
 mask; the same TIMELINE_PARITY=None still controls the output fields. No new
 number, method, receipt namespace or authority registry is proposed.
+
+
+Exact e2c9 provenance proto strict stopped on two newly authored fixture lints:
+a helper always returned Some, and a small fixture sequence used unchecked
+addition. The helper now returns the closed value and its callers wrap the
+optional field explicitly; fixture numbering uses checked_add. No assertion,
+product bound or wire shape changes. The failed strict remains failed and the
+separate e2c9 runtime result does not prove this corrected source.

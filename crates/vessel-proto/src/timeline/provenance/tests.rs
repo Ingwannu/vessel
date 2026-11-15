@@ -10,10 +10,10 @@ use serde_json::json;
 const MODERN: ProtocolVersion = ProtocolVersion::new(30);
 const OLD: ProtocolVersion = ProtocolVersion::new(29);
 
-fn association() -> Option<PromptProvenance> {
-    Some(PromptProvenance::InternalNotice {
+fn association() -> PromptProvenance {
+    PromptProvenance::InternalNotice {
         notice: EventSeq::new(5),
-    })
+    }
 }
 fn text() -> Vec<ContentBlock> {
     vec![ContentBlock::Text {
@@ -23,7 +23,7 @@ fn text() -> Vec<ContentBlock> {
 fn queue() -> PromptQueue {
     PromptQueue {
         entries: vec![QueuedPrompt {
-            provenance: association(),
+            provenance: Some(association()),
             client_message_id: None,
             id: QueueEntryId::random(),
             content: text(),
@@ -37,17 +37,17 @@ fn queue() -> PromptQueue {
 fn events() -> Vec<AgentEvent> {
     vec![
         AgentEvent::TurnStarted {
-            provenance: association(),
+            provenance: Some(association()),
             content: text(),
             client_message_id: None,
         },
         AgentEvent::Steered {
-            provenance: association(),
+            provenance: Some(association()),
             content: text(),
             client_message_id: None,
         },
         AgentEvent::UserMessageChunk {
-            provenance: association(),
+            provenance: Some(association()),
             content: text().remove(0),
         },
     ]
@@ -56,7 +56,7 @@ fn events() -> Vec<AgentEvent> {
 #[test]
 fn ordinary_json_is_unchanged_and_provider_history_cannot_mint_an_association() {
     for mut event in events() {
-        assert_eq!(event.prompt_provenance(), association());
+        assert_eq!(event.prompt_provenance(), Some(association()));
         event.clear_foreign_prompt_provenance();
         assert_eq!(event.prompt_provenance(), None);
         let wire = serde_json::to_value(&event).unwrap();
@@ -145,7 +145,7 @@ fn page() -> EventPage {
         .into_iter()
         .enumerate()
         .map(|(index, event)| EventRecord {
-            seq: EventSeq::new(10 + u64::try_from(index).unwrap()),
+            seq: EventSeq::new(10_u64.checked_add(u64::try_from(index).unwrap()).unwrap()),
             at: chrono::DateTime::UNIX_EPOCH,
             event: SessionEvent::Agent { event },
         })
@@ -251,7 +251,7 @@ fn typed_reader_leaves_keep_the_link_and_identity_without_an_extra_privacy_walk(
     for mut event in events() {
         let kind = std::mem::discriminant(&event);
         event.clear_internal_notice_words();
-        assert_eq!(event.prompt_provenance(), association());
+        assert_eq!(event.prompt_provenance(), Some(association()));
         assert_eq!(std::mem::discriminant(&event), kind);
         assert!(
             !serde_json::to_string(&event)
