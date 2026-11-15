@@ -95,6 +95,15 @@ writes debounce 400 ms, serialize, and flush the latest state at exit; malformed
 newer documents are preserved. macOS reopen uses the latest in-memory geometry.
 Capture-only size overrides do not relax normal product minimums.
 
+GPUI0.3.10 cancels on_app_quit observer futures after200ms, so that observer is
+only a best-effort backstop. desktop::flush_state captures canonical preference
+flush plus the latest geometry checkpoint for the lifecycle owner to await before
+ordinary quit/updater restart. WindowWriter::flush acknowledges a serial save
+without stopping the worker; a later document veto or failed restart leaves it
+usable. Final receipts close the queue before waking their waiter. Checkpoint
+success/failure/retry tests are added, with new-head execution still pending.
+W15 must consume this facade; no second quit manager or owned-node policy is added.
+
 The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.
 Visibility is read from GPUI, without a second cached window registry.
@@ -318,7 +327,7 @@ and dark/light captures at 1280×900, 390×844 and 800×600. Submit one V4 revie
 with precise works/does-not/unverified evidence; only reviewed results advance
 tracker rows or reach the release lead.
 
-The lead approved read-only protocol 23 shared root binaries from 6036 on base 5
+The lead reapproved read-only protocol 23 shared root binaries from 6036 on dd13/base6
 for E3 windows/menus/changelog/session navigation: protocol and 178 wire names are
 unchanged. They omit base 5 service-port/allocation approval, strict decode-failure
 handling, session.delete handover wait and pending-label admission. Exclude those

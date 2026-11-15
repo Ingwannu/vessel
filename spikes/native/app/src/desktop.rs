@@ -209,20 +209,12 @@ fn install(
     })
     .detach();
     cx.on_app_quit(|cx| {
-        let desktop = cx.global::<Desktop>();
-        let flush = flush_preferences(cx);
-        let final_write = desktop
-            .writer
-            .as_ref()
-            .map(|writer| writer.finalize(desktop.latest));
+        // GPUI cancels shutdown observers after 200ms. This is a backstop;
+        // the quit owner must await flush_state before normal quit/restart.
+        let flush = flush_state(cx);
         async move {
             if let Err(error) = flush.await {
-                tracing::warn!(%error,"preferences could not finish saving before quit");
-            }
-            if let Some(final_write) = final_write
-                && let Err(error) = final_write.await
-            {
-                tracing::warn!(%error,"final window state could not be saved");
+                tracing::warn!(%error,"desktop state could not finish saving before quit");
             }
         }
     })
@@ -242,6 +234,27 @@ pub(crate) fn flush_preferences(
             Some(flush) => flush.await,
             None => Ok(()),
         }
+    }
+}
+
+/// The lifecycle owner awaits both stores before calling quit or updater restart.
+/// Geometry checkpoint keeps its worker alive if a later guard/restart refuses.
+pub(crate) fn flush_state(
+    cx: &App,
+) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static + use<> {
+    let preferences = flush_preferences(cx);
+    let geometry = cx.try_global::<Desktop>().and_then(|desktop| {
+        desktop
+            .writer
+            .as_ref()
+            .map(|writer| writer.flush(desktop.latest))
+    });
+    async move {
+        preferences.await?;
+        if let Some(geometry) = geometry {
+            geometry.await?;
+        }
+        Ok(())
     }
 }
 
