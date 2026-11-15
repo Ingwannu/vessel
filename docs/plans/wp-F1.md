@@ -836,3 +836,14 @@ The reserved multiline identified constructor is the next control-only change.
 FieldId remains real editor identity, not form visit, backend admission or
 permission. F1 must retain original visit/context alongside current source id;
 reusing an engine alone is not old-form safety. The consumer remains unverified.
+
+
+### Identified multiline producer source
+
+After the checked shared FieldId handoff, the reserved additive textarea
+constructor now passes Identified into the same factory/listen/TextareaState,
+with explicit FormMinimum and all old Plain constructors/defaults preserved.
+The constructor/SendOn move lowers field.rs to485 product lines, removing its
+record instead of raising it. Scope and new unexecuted keyboard/Unicode/readonly
+cases are in shared-multiline-source.md. G3 remains waiting until the exact
+minimal producer is narrow-green and handed off; no parallel field writer.

@@ -151,7 +151,7 @@ mod tests {
                 cx.run_until_parked();
                 let height = seen.borrow()[0].size.height;
                 assert!(height > px(96.0));
-                assert!(height <= px(256.0));
+                assert!(height <= px(super::super::FORM_MAX));
             }
         }
     }

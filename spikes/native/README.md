@@ -1500,3 +1500,14 @@ rather than cascading into its parent. No public constructor, width, row,
 geometry or callback signature changes. New rendered-retirement cases are
 source-only until the final changed package checks; no native OS/F5 pass follows
 from this source guard.
+
+
+`TextField::form_multiline_with_source(placeholder, on_submit, on_change,
+FormMinimum, window, cx)` adds the same real FieldId callback contract to a
+form textarea. It feeds Identified into the existing multiline factory/listen,
+not another input engine. Plain constructors/signatures/Enter behavior and
+FormMinimum::Default stay unchanged. SendOn is re-exported at its original
+field path after its move with the multiline constructors. Field's root now
+fits the normal product budget and is removed from the size record. The
+caller still owns form-visit, source-id, current connection and authority checks;
+FieldId alone is not a stale-form or backend admission capability.
