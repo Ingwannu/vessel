@@ -18,6 +18,7 @@ const FRAME_LIMIT: usize = 65_536;
 pub(super) enum Behaviour {
     Success,
     Page(vessel_proto::history::AgentHistoryPage),
+    Session(Box<SessionInfo>),
     Refuse(ErrorCode),
     Disconnect,
 }
@@ -115,6 +116,11 @@ pub(super) async fn connect_at(
                 let outcome = match behaviours.pop_front().unwrap_or(Behaviour::Success) {
                     Behaviour::Success => result(call),
                     Behaviour::Page(page) => Outcome::Ok(Reply::GetAgentHistory(page)),
+                    Behaviour::Session(info) => Outcome::Ok(match call {
+                        Call::GetSession(_) => Reply::GetSession(*info),
+                        Call::ResumeSession(_) => Reply::ResumeSession(*info),
+                        other => panic!("unexpected activation call: {other:?}"),
+                    }),
                     Behaviour::Refuse(code) => {
                         Outcome::Err(WireError::new(code, "untrusted peer message"))
                     }

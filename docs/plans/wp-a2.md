@@ -62,16 +62,28 @@ old list answers. Creation receipts remain independent of subsequent selection.
 
 ## Validation and resume point
 
-Done: reference/asset analysis, typed state and import boundary, EN/KO words,
-area registration and controls, profile.list and create-resume adapters.
-The initial pure-state run passed 12 tests before the final node-identity guard;
-its updated tests and the changed crates' Clippy are pending. Fast size,
-boundary and token checks passed. This is a skeleton, not a working or gated
-history-import claim: the current agent.history adapter explicitly returns
-Unsupported until the central native base supplies its existing contract.
-No fake fleet or capture has been started.
+The native tree now merges the assigned8d5513e4 package base. agent.history is
+wired to its existing typed request, not an Unsupported stub. Exact a53eb8ad
+link all-target strict Clippy passed remotely. New framed paging/old-peer and
+activation tests plus final app/view checks remain pending. Earlier12 state
+tests passed before later identity/activation coverage was added; that is not
+proof of the current complete package. No fake fleet/captures/whole gate yet.
 
-Next: finish narrow checks, merge the centrally supplied base (never merge the
-node line independently), map agent.history, test the real framed boundary,
-inspect fake-fleet captures, run one native gate and submit one package review.
-Cross-machine move is the following package.
+## Existing-history activation
+
+Existing rows use the same pinned batch receipt state as new imports. The link
+fetches the original session and verifies full node identity, native transcript,
+harness and account (including implicit default aliases) before resuming an ended
+one. session.resume reopens that same row and clears its archive mark; a live
+session opens directly. Lost resume receipts require refresh and never create a
+replacement. Tests use the actual framed in-memory transport.
+
+Paseo restores an archive flag after a failed activation. The existing Vessel
+resume contract can reopen before its agent handshake fails; that session may
+then remain unarchived. This adapter reports that refusal and preserves the
+original id. It does not perform a racy compensating archive RPC, which could
+kill a successful concurrent resume. Full transactional restore parity would
+need a node-owned activation operation, not a client-side check/then/kill.
+
+Expanded A4 scope and dependencies are recorded in wp-a4.md. Cross-machine move
+is beyond the complete parity package, after its gates and review.

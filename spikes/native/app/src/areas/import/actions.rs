@@ -173,49 +173,17 @@ impl Shell {
     pub(super) fn history_row(
         &mut self,
         id: &HarnessSessionId,
-        window: &mut Window,
+        _window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         if self.areas.import.model.importing() {
             return;
         }
         match self.areas.import.model.selection(id) {
-            Selection::Existing(session) => {
-                let Some(scope) = self.areas.import.model.scope() else {
-                    return;
-                };
-                let Some(entry) = self
-                    .areas
-                    .import
-                    .model
-                    .entries()
-                    .iter()
-                    .find(|entry| &entry.id == id)
-                else {
-                    return;
-                };
-                let open = self
-                    .fleet
-                    .machines
-                    .iter()
-                    .find(|machine| machine.name == scope.machine.as_str())
-                    .and_then(|machine| {
-                        machine.sessions.iter().find(|card| card.session == session)
-                    })
-                    .map(Open::of)
-                    .unwrap_or_else(|| Open {
-                        machine: scope.machine.as_str().to_owned(),
-                        session,
-                        title: entry.title.as_ref().map_or_else(
-                            || self.words.history().untitled().to_owned(),
-                            ToString::to_string,
-                        ),
-                        agent: vessel_app_view::agent_name(&scope.harness),
-                        structured: true,
-                        live: false,
-                    });
-                self.close_import(window, cx);
-                self.open_session(open, window, cx);
+            Selection::Existing(_) => {
+                let ask = self.areas.import.model.activate(id);
+                self.history_submit(ask);
+                cx.notify();
             }
             Selection::Available | Selection::Selected => {
                 self.areas.import.model.toggle(id);

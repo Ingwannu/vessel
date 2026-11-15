@@ -158,3 +158,6 @@ async fn reusing_a_book_alias_for_a_different_node_refuses_before_any_create() {
 
 #[path = "listing_tests.rs"]
 mod listing;
+
+#[path = "activation_tests.rs"]
+mod activation;

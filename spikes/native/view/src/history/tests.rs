@@ -295,3 +295,42 @@ fn a_new_authenticated_node_cannot_append_to_the_previous_nodes_page() {
     assert_eq!(h.loading(), &Loading::Failed(Problem::IdentityChanged));
     assert_eq!(h.entries().first().unwrap().id.as_str(), "original");
 }
+
+#[test]
+fn existing_rows_reactivate_through_a_pinned_receipt_instead_of_a_create_selection() {
+    let mut history = History::default();
+    history.choose(scope());
+    let ask = history.refresh().unwrap().unwrap();
+    let mut existing = entry("old");
+    let session = SessionId::random();
+    existing.in_vessel = Some(session);
+    assert!(history.answer(page(ask, vec![existing.clone()], None)));
+    assert!(!history.has_selection());
+    let Ask::Import(batch) = history.activate(&existing.id).unwrap().unwrap() else {
+        panic!("activation batch")
+    };
+    assert_eq!(batch.entries, vec![existing]);
+    assert_eq!(batch.entries.first().unwrap().in_vessel, Some(session));
+    assert!(history.importing());
+    assert!(
+        history
+            .activate(&HarnessSessionId::new("old"))
+            .unwrap()
+            .is_none()
+    );
+    assert!(history.answer(Reply::Imported {
+        scope: batch.scope,
+        ticket: batch.ticket,
+        outcomes: vec![Outcome {
+            id: HarnessSessionId::new("old"),
+            result: Err(Problem::Uncertain)
+        }]
+    }));
+    assert!(history.requires_refresh());
+    assert!(
+        history
+            .activate(&HarnessSessionId::new("old"))
+            .unwrap()
+            .is_none()
+    );
+}

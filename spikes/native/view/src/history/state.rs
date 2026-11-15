@@ -210,18 +210,42 @@ impl History {
         {
             return Ok(None);
         }
-        let Some(scope) = self.scope.clone() else {
-            return Ok(None);
-        };
-        let Some(node) = self.node else {
-            return Ok(None);
-        };
         let entries: Vec<_> = self
             .entries
             .iter()
             .filter(|entry| entry.in_vessel.is_none() && self.selected.contains(&entry.id))
             .cloned()
             .collect();
+        self.begin(entries)
+    }
+
+    /// Open an existing native conversation by reactivating its original session.
+    /// # Errors
+    /// Ticket identities are exhausted; no request was issued.
+    pub fn activate(&mut self, id: &HarnessSessionId) -> Result<Option<Ask>, Problem> {
+        if self.importing()
+            || self.requires_refresh()
+            || matches!(self.loading, Loading::Pending(_))
+        {
+            return Ok(None);
+        }
+        let entries = self
+            .entries
+            .iter()
+            .find(|entry| &entry.id == id && entry.in_vessel.is_some())
+            .cloned()
+            .into_iter()
+            .collect();
+        self.begin(entries)
+    }
+
+    fn begin(&mut self, entries: Vec<Entry>) -> Result<Option<Ask>, Problem> {
+        let Some(scope) = self.scope.clone() else {
+            return Ok(None);
+        };
+        let Some(node) = self.node else {
+            return Ok(None);
+        };
         if entries.is_empty() {
             return Ok(None);
         }

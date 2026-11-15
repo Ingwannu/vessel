@@ -4,6 +4,9 @@
 pub use vessel_app_view::history::{Ask, Reply};
 
 #[cfg(not(target_arch = "wasm32"))]
+mod activate;
+
+#[cfg(not(target_arch = "wasm32"))]
 use vessel_app_view::history::{Batch, Cursor, Entry, Listed, Outcome, Problem};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -108,14 +111,17 @@ async fn import(client: &vessel_client::NodeClient, batch: Batch) -> Reply {
     }
     let mut outcomes = Vec::with_capacity(batch.entries.len());
     for entry in batch.entries {
-        let result = tokio::time::timeout(
-            CREATE_DEADLINE,
-            client.create_session(entry.spec(&batch.scope)),
-        )
-        .await
-        .map_or(Err(Problem::Uncertain), |result| {
-            result.map(Box::new).map_err(create_problem)
-        });
+        let result = match entry.in_vessel {
+            Some(session) => activate::existing(client, &batch.scope, &entry, session).await,
+            None => tokio::time::timeout(
+                CREATE_DEADLINE,
+                client.create_session(entry.spec(&batch.scope)),
+            )
+            .await
+            .map_or(Err(Problem::Uncertain), |result| {
+                result.map(Box::new).map_err(create_problem)
+            }),
+        };
         outcomes.push(Outcome {
             id: entry.id,
             result,
