@@ -314,12 +314,13 @@ No row of the crate table changes.
 - Selection slice 5b's first narrow compile found two test-only errors: a
   failure fixture bypassed the existing status constructor, and a turn cursor
   was unused. Both are corrected without changing assertions; the narrow
-  checks and complete gate still need to pass.
+  clippy, ten log units and two fake-node CLI cases now pass. The complete
+  gate is the remaining verification.
 - Implementation slice 5b, verification pending: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
-  and fake-node selection tests have not run yet. Existing render expectations
-  stay unchanged. A no-match CLI assertion also checks that no banner is
+  and fake-node selection tests passed in the narrow runs. Existing render
+  expectations stay unchanged. A no-match CLI assertion also checks that no banner is
   fabricated. Follow and its transition test remain a protected draft for
   slice 5c, which must reuse these predicates and the raw history cursor.
   The inherited stream-end wait and the new turn-end wait share one named
@@ -327,8 +328,8 @@ No row of the crate table changes.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: run narrow checks and the complete Rust gate for selection slice 5b
-  on the independent build runner while
+- Next: run the complete Rust gate for selection slice 5b on the independent
+  build runner, then check the follow draft against the verified predicates while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. Both slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
