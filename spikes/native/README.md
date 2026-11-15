@@ -73,9 +73,10 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
-The kit field keeps its editor factories, weak IME registry and events in
-`field.rs`; `field/presentation.rs` draws the existing form/composer shells
-and `field/styles.rs` projects tokens onto the same engines. Original public
+The kit field keeps its editor factories and weak IME registry in
+`field.rs`; the shared `field/events.rs` owns its original subscription,
+`field/editability.rs` its one editability API, `field/presentation.rs` the
+form/composer shells, and `field/styles.rs` token projection. Original public
 entry points are re-exported unchanged; composer hooks retain their contract.
 
 Machine presentation policy lives in pure `view::hosts`: an explicit badge

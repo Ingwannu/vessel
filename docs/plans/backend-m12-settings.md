@@ -830,3 +830,18 @@ selection/profile experiment was preserved as a patch and per-file hashes
 and removed from the working tree. After that base is announced, retain
 the rendering/style move, reuse W4's Editability and add E2 select_all
 separately. Do not restore the duplicate E2 editability implementation.
+
+### Combining the shared field base
+
+Merged announced package base 2 `6036eeb8` on the existing render/style
+work. The root now imports the one shared events and Editability modules;
+no E2 duplicate setter is restored. All original 32 field function bodies
+remain equal, with only W4's shared setter added. Measured product sizes:
+field root 415, events 75, editability 27; the field stays off the size
+list. The merged demo shrinks from its 523 ceiling to 517, which is
+recorded. Format/size/boundary/token checks pass. No function or test
+expectation was changed to resolve the module conflicts.
+
+The independent display-label narrow check found a wrong test fixture
+constructor and a documentation lint. Their original red log is kept;
+they are corrected separately, not disguised as part of the field move.

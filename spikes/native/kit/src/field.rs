@@ -1,5 +1,6 @@
 //! Text editing state shared by every kit presentation: one factory, the
-//! weak composing-field registry, focus queries and engine event subscription.
+//! weak composing-field registry and focus queries. Engine events stay shared
+//! in `events`; editability comes from its sole shared child module.
 //! Presentation and color projection live in the child modules; they do not
 //! create another editor or subscribe to its events.
 //!
@@ -7,7 +8,7 @@
 //! - Purpose: leave room for the reserved rename/select-all and composer
 //!   extensions without growing the listed field module.
 //! - Choice: move existing presentation and theme projection unchanged;
-//!   keep factories, line registration, IME and composer hooks together.
+//!   keep factories, line registration, IME and composer hooks unchanged.
 //! - Constraint: one Entity remains the editing state on every surface.
 //!   Public entry points and all existing event behavior stay unchanged.
 
@@ -18,9 +19,13 @@ use gpui::prelude::*;
 use gpui::{App, Context, Entity, Focusable as _, Window};
 #[cfg(test)]
 use gpui::{div, px};
-use gpui_base::input::{InputEvent, InputState, TextareaState};
+use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+mod editability;
+mod events;
+pub use editability::Editability;
+use events::{Handlers, listen};
 mod presentation;
 mod styles;
 
@@ -408,68 +413,6 @@ impl TextField {
         };
         handle.focus(window, cx);
     }
-}
-
-/// Follow a field's events: Enter, edits, and whether it holds the keys.
-/// What a field's events call.
-struct Handlers<V: 'static> {
-    on_submit: fn(&mut V, String, &mut Window, &mut Context<'_, V>),
-    on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
-    focused: Rc<Cell<bool>>,
-    /// A composer's send press; `None` for a form field (Enter submits).
-    send: Option<Rc<Cell<SendOn>>>,
-}
-
-fn listen<V: 'static, M: gpui_base::input::InputModeKind>(
-    state: &Entity<gpui_base::input::InputBaseState<M>>,
-    handlers: Handlers<V>,
-    window: &mut Window,
-    cx: &mut Context<'_, V>,
-) {
-    let Handlers {
-        on_submit,
-        on_change,
-        focused,
-        send,
-    } = handlers;
-    cx.subscribe_in(
-        state,
-        window,
-        move |owner, state, event: &InputEvent, window, cx| match event {
-            InputEvent::PressEnter {
-                shift: false,
-                secondary,
-            } => {
-                if send
-                    .as_ref()
-                    .is_some_and(|send| !send.get().sends(*secondary))
-                {
-                    // Enter starts a line here (in place of a selection,
-                    // as typing does).
-                    state.update(cx, |state, cx| state.replace("\n", window, cx));
-                } else {
-                    let text = state.read(cx).value().to_string();
-                    on_submit(owner, text, window, cx);
-                }
-            }
-            InputEvent::Change => {
-                if let Some(on_change) = on_change {
-                    let text = state.read(cx).value().to_string();
-                    on_change(owner, text, cx);
-                }
-            }
-            InputEvent::Focus => {
-                focused.set(true);
-                cx.notify();
-            }
-            InputEvent::Blur => {
-                focused.set(false);
-                cx.notify();
-            }
-            InputEvent::PressEnter { .. } => {}
-        },
-    )
-    .detach();
 }
 
 #[cfg(test)]
