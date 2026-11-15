@@ -241,15 +241,6 @@ impl Agents {
     /// agent's open connections close.
     pub(crate) fn retire(&self, id: SessionId) {
         self.invalidate_execution(id, vessel_proto::timeline::ExecutionInvalidation::Ended);
-        let Some(entry) = self.lock().remove(&id) else {
-            return;
-        };
-        for closing in entry.connections.values() {
-            closing.cancel();
-        }
-        if !entry.connections.is_empty() {
-            tracing::info!(session = %id, connections = entry.connections.len(), "the session ended; closed its agent's connections");
-        }
     }
 
     /// Check a presented credential. Admitted, the connection is
