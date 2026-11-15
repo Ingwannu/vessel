@@ -35,3 +35,13 @@ collections, serde and existing RPC/store crates suffice. No dependency adoption
 
 Resume: ADR recorded, implementation not started. Base is the reviewed node head
 named in the working brief; later central merges follow A8 without rewriting it.
+
+## Own-history account correctness
+
+Inspection found that agent.history's existing in_vessel map keyed native id
+across every profile. Copies in another account could therefore be shown as an
+existing session in the account being imported. The map now filters by the
+resolved account, treating its default's absent and explicit canonical name as
+one account. This preserves ADR 0053's account boundary; unit fixtures use two
+accounts sharing the same native id and retain newest-only within each account.
+No wire addition or provider process is involved in this correction.
