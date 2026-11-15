@@ -24,6 +24,8 @@
 //!   whole after redaction; a sentence naming a path keeps the path.
 
 pub mod collection;
+mod daemon;
+pub use daemon::DaemonSnapshot;
 mod format;
 pub mod words;
 

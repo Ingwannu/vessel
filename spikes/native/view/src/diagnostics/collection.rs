@@ -1,6 +1,7 @@
 //! One explicit collection run, with a hard combined text budget.
 //! Refresh and close replace the run identity, so late replies cannot revive it.
 
+use super::DaemonSnapshot;
 use crate::devices::{MachineKey, Ticket};
 use vessel_proto::{NodeId, NodeState, ProtocolVersion};
 
@@ -102,6 +103,8 @@ pub struct HostResult {
     pub admitted: NodeId,
     /// A fresh safe projection.
     pub facts: Result<NodeFacts, Problem>,
+    /// Independent safe daemon result, even if the basic node read failed.
+    pub daemon: DaemonSnapshot,
 }
 
 /// Every row remains explicit until answered; no missing source becomes zero.
@@ -112,7 +115,9 @@ pub enum Progress {
     /// A request is in flight.
     Running,
     /// A successful safe projection; full daemon diagnostics remain independent.
-    Done(NodeFacts),
+    Done(HostResult),
+    /// Independent sources settled but some facts remain unavailable.
+    Partial(HostResult),
     /// The source failed or is unavailable.
     Failed(Problem),
 }
@@ -216,10 +221,29 @@ impl Collection {
         row.progress = match result {
             Ok(answer) => {
                 row.admitted = Some(answer.admitted);
-                match answer.facts {
-                    Ok(facts) if facts.node == answer.admitted => Progress::Done(facts),
-                    Ok(_) => Progress::Failed(Problem::InvalidReply),
-                    Err(problem) => Progress::Failed(problem),
+                let wrong_basic = answer
+                    .facts
+                    .as_ref()
+                    .is_ok_and(|facts| facts.node != answer.admitted);
+                let wrong_report = answer
+                    .daemon
+                    .node()
+                    .is_some_and(|node| node != answer.admitted);
+                if wrong_basic || wrong_report {
+                    Progress::Failed(Problem::InvalidReply)
+                } else {
+                    match (&answer.facts, &answer.daemon) {
+                        (Err(problem), DaemonSnapshot::Unavailable(_)) => {
+                            Progress::Failed(*problem)
+                        }
+                        (Ok(_), DaemonSnapshot::Report(_)) if answer.daemon.complete() => {
+                            Progress::Done(answer)
+                        }
+                        (
+                            Ok(_) | Err(_),
+                            DaemonSnapshot::Unavailable(_) | DaemonSnapshot::Report(_),
+                        ) => Progress::Partial(answer),
+                    }
                 }
             }
             Err(problem) => Progress::Failed(problem),

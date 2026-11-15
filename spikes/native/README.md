@@ -1052,3 +1052,10 @@ no provider executable is started by this page. Session and terminal logs
 remain in their own views. ADR 0074 owns the future safe daemon report, and
 the app collection model lives in `view/src/diagnostics/`; link calls live in
 `link/src/diagnostics/`, drawing in `app/src/areas/settings/diagnostics/`.
+
+The immutable ADR 0074 daemon report is consumed independently of the basic
+node-info result. Its full/partial typed fixtures are test-only until the real
+producer is registered. Nested technical section data uses canonical JSON to
+retain saturation, omission and observation timestamps; a missing section is
+never represented by zero. Node identity is verified before any report joins
+the copyable result.

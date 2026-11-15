@@ -19,6 +19,7 @@ fn result(node: NodeId) -> HostResult {
     HostResult {
         admitted: node,
         facts: Ok(facts(node)),
+        daemon: crate::diagnostics::DaemonSnapshot::Unavailable(Problem::Unavailable),
     }
 }
 
@@ -42,7 +43,9 @@ fn every_source_outcome_is_independent_and_unavailable_is_not_healthy() {
     let text = run.report().unwrap().as_str();
     assert!(text.contains("Protocol: 13"));
     assert!(text.contains("host is not connected"));
-    assert!(text.contains("Daemon diagnostic: API unavailable"));
+    assert!(
+        text.contains("Daemon diagnostic\n  Status: diagnostic API is not available in this build")
+    );
     assert!(!text.contains("secret.example"));
     assert!(!text.contains("no errors"));
 }
@@ -97,6 +100,7 @@ fn duplicate_unrequested_and_mismatched_answers_are_refused() {
         Ok(HostResult {
             admitted,
             facts: Ok(facts(NodeId::random())),
+            daemon: crate::diagnostics::DaemonSnapshot::Unavailable(Problem::Unavailable),
         }),
     );
     assert!(matches!(

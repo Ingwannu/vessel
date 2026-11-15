@@ -102,3 +102,27 @@ The new unassigned-protocol client error maps to explicit unavailability.
 Native format, size, boundary and token checks pass after the merge. The prior
 package compile check passed on `6f6dac4f`; the merged code still needs its
 updated narrow check and diagnostics tests. Shared file budget blocker resolved.
+
+### Approved typed daemon report consumer
+
+The announced base makes ADR 0074's immutable DiagnosticReport root available.
+`DaemonSnapshot` now retains that root independently of the basic node-info
+read. A partial typed report preserves successful sources and observation
+times; unavailable sections stay explicit. Both the basic result and report
+identity are checked against the admitted node. Combined report bounds apply
+after every host. The product link still returns Unavailable for the unregistered
+full report; only cfg(test) fixtures populate typed report values.
+
+The technical renderer uses English section labels and canonical JSON for
+nested allowlisted DTO rows, rather than flattening each scalar into a separate
+English label. This deliberate formatting difference preserves saturation,
+omission and cached/stale/unknown distinctions without a second wire schema.
+Monotonic uptime, normalized version, closed OS/architecture and redacted home
+are rendered directly. Recent failures are explicitly scoped local node-call
+observations, never described as a daemon log or absence of errors. Extended
+process metrics, provider diagnostics and raw daemon logs remain unavailable.
+
+Resume: shared ratchets now pass, independent approved DTO consumer and typed
+partial fixtures are written. Run updated changed-crate Clippy and diagnostics
+tests, then connect L's accepted framing when its head is announced. Captures
+and the one full native gate remain owed.

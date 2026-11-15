@@ -50,7 +50,11 @@ async fn collect(client: &NodeClient) -> HostResult {
         Ok(Err(error)) => Err(problem(error)),
         Err(_elapsed) => Err(Problem::TimedOut),
     };
-    HostResult { admitted, facts }
+    HostResult {
+        admitted,
+        facts,
+        daemon: vessel_app_view::diagnostics::DaemonSnapshot::Unavailable(Problem::Unavailable),
+    }
 }
 fn problem(error: CallError) -> Problem {
     match error {

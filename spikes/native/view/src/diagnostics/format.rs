@@ -13,23 +13,32 @@ pub(super) fn combined(
         let ordinal = index.saturating_add(1);
         let _written = writeln!(text, "\n\nHost {ordinal}");
         match &row.progress {
-            Progress::Done(facts) => {
-                let state = match facts.state {
-                    NodeState::Serving => "serving",
-                    NodeState::Draining => "draining",
-                };
-                let _written = writeln!(
-                    text,
-                    "  Node ID: {}\n  Protocol: {}\n  Lifecycle: {state}",
-                    facts.node, facts.protocol
-                );
+            Progress::Done(answer) | Progress::Partial(answer) => {
+                match &answer.facts {
+                    Ok(facts) => {
+                        let state = match facts.state {
+                            NodeState::Serving => "serving",
+                            NodeState::Draining => "draining",
+                        };
+                        let _written = writeln!(
+                            text,
+                            "  Node ID: {}\n  Protocol: {}\n  Lifecycle: {state}",
+                            facts.node, facts.protocol
+                        );
+                    }
+                    Err(problem) => {
+                        let _written = writeln!(text, "  Node info: {problem}");
+                    }
+                }
+                text.push_str(answer.daemon.render()?.as_str());
+                text.push('\n');
             }
             Progress::Failed(problem) => {
                 let _written = writeln!(text, "  Node info: {problem}");
             }
             Progress::Pending | Progress::Running => return Err(Problem::Failed),
         }
-        text.push_str("  Daemon diagnostic: API unavailable\n  Provider diagnostic: API unavailable\n  Process diagnostic: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
+        text.push_str("  Provider diagnostic: API unavailable\n  Extended process metrics: API unavailable\n  Daemon log: API unavailable (session and terminal logs are separate)");
         if text.len() > MAX_REPORT_BYTES {
             return Err(Problem::TooLarge);
         }

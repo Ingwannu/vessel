@@ -60,3 +60,6 @@ diagnostic-flow-no-hosts = No hosts are saved. You can still copy the client rep
 
 # Short source availability badge; the row description carries the full explanation.
 diagnostic-flow-unavailable-badge = Unavailable
+
+# A settled host read whose independent sources are incomplete.
+diagnostic-flow-collected-partial = Collected with unavailable sections

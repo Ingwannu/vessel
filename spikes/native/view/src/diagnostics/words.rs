@@ -27,6 +27,7 @@ pub fn progress(progress: &Progress, words: &'static Translator) -> &'static str
         Progress::Pending => labels.pending(),
         Progress::Running => labels.running(),
         Progress::Done(_) => labels.done(),
+        Progress::Partial(_) => labels.collected_partial(),
         Progress::Failed(failure) => problem(*failure, words),
     }
 }

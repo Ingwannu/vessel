@@ -60,3 +60,6 @@ diagnostic-flow-no-hosts = 저장된 머신이 없습니다. 클라이언트 보
 
 # Short source availability badge; the row description carries the full explanation.
 diagnostic-flow-unavailable-badge = 제공 안 됨
+
+# A settled host read whose independent sources are incomplete.
+diagnostic-flow-collected-partial = 일부 항목 수집 완료
