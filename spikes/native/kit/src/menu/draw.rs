@@ -45,6 +45,23 @@ impl Width {
         }
     }
 }
+/// Deferred ordering and outside-input boundary for the containing surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Layer {
+    /// Existing screen menus retain priority1 and outside-click behavior.
+    Screen,
+    /// A menu inside the existing priority2 dialog, above it at priority3.
+    /// Its outside press dismisses only the menu, never the dialog underneath.
+    AboveDialog,
+}
+impl Layer {
+    pub(super) const fn priority(self) -> usize {
+        match self {
+            Self::Screen => 1,
+            Self::AboveDialog => 3,
+        }
+    }
+}
 /// Menu data and width; grouped so the extended entry stays small.
 #[derive(Debug)]
 pub struct Content<'a> {
@@ -54,6 +71,8 @@ pub struct Content<'a> {
     pub items: &'a [MenuItem],
     /// Content size or explicit reference width.
     pub width: Width,
+    /// Default screen ordering, or an explicit menu inside a dialog.
+    pub layer: Layer,
 }
 impl<'a> Content<'a> {
     /// Legacy content width, with all labels and states retained.
@@ -63,7 +82,13 @@ impl<'a> Content<'a> {
             id: id.into(),
             items,
             width: Width::Content,
+            layer: Layer::Screen,
         }
+    }
+    /// Choose the containing surface without another menu renderer.
+    #[must_use]
+    pub fn with_layer(self, layer: Layer) -> Self {
+        Self { layer, ..self }
     }
     /// Set the menu's reference width, without affecting the legacy entry.
     #[must_use]
@@ -167,7 +192,12 @@ fn draw<V: 'static>(
         pointer_corner,
     } = placement;
     let (at, corner) = state.at?.geometry(pointer_corner);
-    let Content { id, items, width } = content;
+    let Content {
+        id,
+        items,
+        width,
+        layer,
+    } = content;
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
     let key_handlers = MenuHandlers {
@@ -179,6 +209,10 @@ fn draw<V: 'static>(
     });
     let on_outside = cx.listener(move |view: &mut V, _event, window, cx| {
         get(view).close_and_restore(window, cx);
+        if layer == Layer::AboveDialog {
+            // Dismissing a nested menu is one decision, not also a scrim press.
+            cx.stop_propagation();
+        }
         cx.notify();
     });
     let surfaces = Surfaces::of(tokens);
@@ -215,24 +249,48 @@ fn draw<V: 'static>(
         }
         panel = panel.child(row(index, item, state, handlers, &surfaces, narrow, cx));
     }
-    Some(
-        deferred(
-            anchored()
-                .anchor(corner)
-                .position(at)
-                .offset(gpui::point(px(0.0), px(OFFSET)))
-                .snap_to_window_with_margin(px(spacing::S2))
-                // Word 39: the menu arrives as Paseo's does (150 ms,
-                // `menu-overlay.tsx`): the kit's quick length.
-                .child(popup::appear(
-                    ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
-                    panel,
-                    crate::motion::QUICK,
-                )),
-        )
-        .with_priority(1)
+    let surface = anchored()
+        .anchor(corner)
+        .position(at)
+        .offset(gpui::point(px(0.0), px(OFFSET)))
+        .snap_to_window_with_margin(px(spacing::S2))
+        // All entries retain the published QUICK arrival and one panel.
+        .child(popup::appear(
+            ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
+            panel,
+            crate::motion::QUICK,
+        ));
+    let overlay = match layer {
+        Layer::Screen => surface.into_any_element(),
+        Layer::AboveDialog => ModalBoundary {
+            surface: surface.into_any_element(),
+        }
         .into_any_element(),
+    };
+    Some(
+        deferred(overlay)
+            .with_priority(layer.priority())
+            .into_any_element(),
     )
+}
+
+// A nested deferred element still participates in its parent's layout. Read
+// the actual Window here: size_full inside a dialog would cover only its body,
+// leaving the scrim and sibling actions reachable by the same outside press.
+#[derive(gpui::IntoElement)]
+struct ModalBoundary {
+    surface: AnyElement,
+}
+impl RenderOnce for ModalBoundary {
+    fn render(self, window: &mut Window, _: &mut gpui::App) -> impl IntoElement {
+        let size = window.viewport_size();
+        anchored().position(gpui::point(px(0.0), px(0.0))).child(
+            popup::layer(div())
+                .w(size.width)
+                .h(size.height)
+                .child(self.surface),
+        )
+    }
 }
 
 fn row<V: 'static>(
