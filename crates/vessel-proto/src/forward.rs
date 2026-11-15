@@ -384,9 +384,8 @@ impl Method {
             | Self::OpenPullRequest
             | Self::MergePullRequest
             | Self::SetFeedback
-            // Protocol 11: terminals, scripts and ports, on the machine
-            // they run on (a terminal's stream is not forwarded: it is
-            // read with `terminal.read` from another node).
+            // Protocol 11: remote terminals, scripts and ports. Streams use
+            // `terminal.read` pulls; capture is unary, not a forwarded stream.
             | Self::CreateTerminal
             | Self::CaptureTerminal
             | Self::ListTerminals

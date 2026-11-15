@@ -1,7 +1,7 @@
 # W17 current invocation map
 
-Product checkpoint: announced gate53 node head
-`93970acbb5c44cfc9649e2e93c3889575592f0cd`, schema21, merged after gate52, with move-only startup seam
+Product checkpoint: announced gate54 node head
+`2750243693543a8469477a3586eda472423079c3`, schema21, merged after gate53, with move-only startup seam
 `7489af9ed`, separate registry startup `ece8d0913`, sealed EOF owner `63fba65a5`,
 and the unexecuted real-queue prerequisite fixture `8ddd99ae5`. Conditional C2
 source integration remains `0d7cf46e` product / `c0abda32` docs; full consumer
@@ -17,7 +17,7 @@ Latest source additionally includes metadata protocol25, bounded screen-inbox wo
 at c3966e380, pending atomic detach consumption and native lifecycle metadata flags.
 The latter source is not covered by the queued immutable8447 suite. The queued467 consumer run was cancelled before a slot (terminal143)
 because it predated these changes. Its ONE same-lane latest replacement is
-wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723, queued ordinary.
+wp-cli-narrow-20261115T172916Z-8447cf72, exact8447cf723.
 The replacement completed rc1 before tests (two private-field E0616 errors in
 sealed-owner test placement; one unused read count warning). Setup3 steps0 is not
 runtime proof. Those source defects are corrected without exposing private fields;

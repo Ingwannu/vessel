@@ -1683,3 +1683,31 @@ Also scope the newer native test's Unix-only SessionId import explicitly for
 cross-platform strict. The original red logs remain; no runtime fairness/queue/EOF,
 rename or CLI unit result is claimed from this invocation. New source awaits strict
 and execution, including changes that were outside8447. No unchanged retry/duplicate.
+
+### Gate54 integration and corrected-source strict boundary
+
+Merge announced27502436 without rebasing. Keep upstream file/skills method rows
+and append this package's six pending rows after skills.import_selection. Retain
+the exact Admin assertion, including upstream skills entries and only the three
+approved host writes. Preserve the new file forwarding inventory before capture.
+The client call fixture and upstream file_panels module are both retained.
+
+The protocol forwarding file reaches its hard500-line cap with the combined rows.
+Clarify its existing terminal comment in two lines: streams use terminal.read pulls;
+capture is a unary call. This preserves policy and explains the added capture arm
+without moving shared code or raising a size exception. Cargo.lock parses and no
+package identity from the announced base was removed; additional identities belong
+to the previously recorded jsonschema closure and terminal screen dependencies.
+
+Exact8447 stopped before tests; its setup success is not consumer evidence. The
+next selected strict includes CLI/proto/rpc/client/store/session/screen/node/web,
+plus PTY and testkit to compile the corrected actual-queue and EOF fixtures. All
+latest runtime and full-package qualification remain owed.
+
+Coordinator approved the two-line forwarding comment once; the next new arm must
+first extract a cohesive policy section. No further growth at this boundary is
+authorized. Local source preflight also caught the RepoDisplay declaration after
+a unit module and a long integration-test body. Move the declaration before the
+test module and extract the existing idle-stop presentation assertions unchanged;
+format that integration fixture. Vendor source-length candidates are retained
+as third-party-source diagnostics, not treated as Clippy execution evidence.

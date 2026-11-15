@@ -228,6 +228,10 @@ impl Row for ProjectRow {
         ]
     }
 }
+#[derive(Serialize)]
+#[serde(transparent)]
+struct RepoDisplay(String);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,7 +248,3 @@ mod tests {
         assert!(remote("owner/../repo", Some(CloneProtocol::Https)).is_err());
     }
 }
-
-#[derive(Serialize)]
-#[serde(transparent)]
-struct RepoDisplay(String);

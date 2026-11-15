@@ -211,14 +211,7 @@ async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() 
         let owner = fixture.owner().await;
         let before = owner.session(waited.agent_id).await.unwrap();
         assert!(before.status.is_live());
-        let stopped = fixture.vessel(&["stop", &id, "--json"], b"").await;
-        assert!(stopped.ok, "{}", stopped.stderr);
-        let no_ids = fixture.vessel(&["stop", &id, "--quiet"], b"").await;
-        assert!(no_ids.ok, "{}", no_ids.stderr);
-        assert!(no_ids.stdout.is_empty(), "{}", no_ids.stdout);
-        let count = fixture.vessel(&["stop", &id, "--no-headers"], b"").await;
-        assert!(count.ok, "{}", count.stderr);
-        assert_eq!(count.stdout, "0\n");
+        assert_idle_stop_formats(&fixture, &id).await;
         assert!(
             owner
                 .session(waited.agent_id)
@@ -290,6 +283,17 @@ async fn agent_shortcuts_wait_cancel_without_killing_and_protect_live_archive() 
         fixture.stop().await;
     })
     .await;
+}
+
+async fn assert_idle_stop_formats(fixture: &Fixture, id: &str) {
+    let stopped = fixture.vessel(&["stop", id, "--json"], b"").await;
+    assert!(stopped.ok, "{}", stopped.stderr);
+    let no_ids = fixture.vessel(&["stop", id, "--quiet"], b"").await;
+    assert!(no_ids.ok, "{}", no_ids.stderr);
+    assert!(no_ids.stdout.is_empty(), "{}", no_ids.stdout);
+    let count = fixture.vessel(&["stop", id, "--no-headers"], b"").await;
+    assert!(count.ok, "{}", count.stderr);
+    assert_eq!(count.stdout, "0\n");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
