@@ -180,13 +180,15 @@ that already uses `..` is left alone.
   metadata, while a supported empty provider list means Automatic. No method
   is added. Existing title constructors and the person's rename remain in force.
 - **Validation:** the previous executable snapshot completed the full gate,
-  including Rust, TypeScript and web E2E/forge. Source review returned the
-  physical preparation lifetime: logical cancellation released admission
-  before a blocking closure finished. Green tests did not prove that boundary.
-- **Next:** retain the original admission and node hard-drain token through
-  actual style/secret completion, add held-real-closure regressions, and obtain
-  the returned source review and validation before handover. No unchanged
-  whole-gate replay is requested. Real providers, credentials, native execution
+  including Rust, TypeScript and web E2E/forge. The physical preparation
+  correction now retains original admission and hard-drain tracking through
+  actual style/secret completion; keyless preparation remains immediate.
+  Source review passed the package and correction. The new held-real-closure
+  regressions and current strict checks are queued, not yet proved by execution.
+- **Next:** finish current correction validation before handover. On consuming
+  the announced checked settings repairs, verify that their privacy and writer
+  lifetime rules retain the metadata file adapter and runtime apply behavior.
+  No unchanged whole-gate replay is requested. Real providers, credentials, native execution
   and other platforms remain unverified. Branch, commit-message and pull-request
   generation are later slices and have not started.
 
