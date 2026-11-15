@@ -32,6 +32,7 @@
 //! is, the last rows stay drawn while it closes, and frames are asked only
 //! while it moves; held motion (`motion::held`) is the end at once.
 
+mod client;
 mod input;
 pub(crate) use input::{draft_text, text};
 

@@ -11,6 +11,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_client_command(&text, window, cx) {
+            return;
+        }
         let Some(open) = &self.areas.session.open else {
             return;
         };

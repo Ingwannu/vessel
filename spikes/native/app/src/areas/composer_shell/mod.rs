@@ -13,12 +13,18 @@ pub(crate) struct ComposerShellArea {
 }
 
 impl ComposerShellArea {
+    pub(crate) fn surface(&self, target: DraftKey) -> Surface {
+        self.surfaces.get(&target).copied().unwrap_or_default()
+    }
+
+    pub(crate) fn collapse(&mut self, target: DraftKey) {
+        if let Some(surface) = self.surfaces.get_mut(&target) {
+            surface.collapse();
+        }
+    }
+
     /// Preserve the ordinary chat behavior until a host supplies another policy.
     pub(crate) fn permits_menu(&self, target: DraftKey) -> bool {
-        self.surfaces
-            .get(&target)
-            .copied()
-            .unwrap_or_default()
-            .autocomplete()
+        self.surface(target).autocomplete()
     }
 }

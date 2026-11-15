@@ -84,18 +84,10 @@ impl Shell {
     }
 
     /// Composer built-ins delegate here so they cannot close before archive succeeds.
-    #[expect(
-        dead_code,
-        reason = "composer command dispatcher consumes this compiled lifecycle seam"
-    )]
     pub(crate) fn composer_exit(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.prepare_session_lifecycle(LifecycleAction::Exit, window, cx);
     }
     /// Preserve the current launch config while starting a separate conversation.
-    #[expect(
-        dead_code,
-        reason = "composer command dispatcher consumes this compiled lifecycle seam"
-    )]
     pub(crate) fn composer_fresh(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.prepare_session_lifecycle(LifecycleAction::Fresh, window, cx);
     }
