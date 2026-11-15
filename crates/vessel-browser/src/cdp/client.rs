@@ -82,6 +82,9 @@ pub(crate) enum CdpError {
     /// Actor failure is not swallowed by shutdown.
     #[error("CDP driver task failed")]
     Task(#[source] tokio::task::JoinError),
+    /// The same actual driver failure remains available after a cancelled waiter.
+    #[error("CDP driver cleanup could not be confirmed")]
+    Cleanup(#[source] Arc<CdpError>),
 }
 impl std::fmt::Debug for CdpError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -104,11 +107,15 @@ struct Pending {
     session: Option<SessionId>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
+enum DriverState {
+    Waiting(JoinHandle<Result<(), CdpError>>),
+    Done(Result<(), Arc<CdpError>>),
+}
 struct Shared {
     commands: mpsc::Sender<Command>,
     next: AtomicU64,
     cancel: CancellationToken,
-    driver: Mutex<Option<JoinHandle<Result<(), CdpError>>>>,
+    driver: Mutex<DriverState>,
 }
 impl Drop for Shared {
     fn drop(&mut self) {
@@ -171,7 +178,7 @@ impl Client {
             commands,
             next: AtomicU64::new(1),
             cancel,
-            driver: Mutex::new(Some(driver)),
+            driver: Mutex::new(DriverState::Waiting(driver)),
         });
         (Self { shared }, Events(event_receive))
     }
@@ -258,29 +265,35 @@ impl Client {
         Ok(Queued { caller, result })
     }
 
-    /// Close the connection before profile cleanup; joining retains the driver's original error.
-    ///
-    /// # Errors
-    /// The engine sees socket/protocol/task failure, never an invented successful close.
-    pub(crate) async fn shutdown(self) -> Result<(), CdpError> {
+    /// Retain the real driver join in the connection owner across cancelled waiters.
+    /// Caller deadlines do not become cleanup receipts; after an abort request a
+    /// later shutdown still joins the same task before confirming its outcome.
+    pub(crate) async fn shutdown(&self) -> Result<(), CdpError> {
         self.shared.cancel.cancel();
-        let driver = self.shared.driver.lock().await.take();
-        match driver {
-            Some(mut driver) => match tokio::time::timeout(SHUTDOWN_TIMEOUT, &mut driver).await {
-                Ok(result) => result.map_err(CdpError::Task)?,
-                Err(source) => {
-                    // This task owns only this CDP socket/pending map. Aborting
-                    // it cannot signal any unrelated process or connection.
-                    driver.abort();
-                    let _stopped = driver.await;
-                    Err(CdpError::TimedOut {
-                        effect: BrowserEffect::Uncertain,
-                        source,
-                    })
+        // Tokio lock intentionally spans the join: concurrent close callers must
+        // neither remove this handle nor observe a fabricated empty success.
+        let mut state = self.shared.driver.lock().await;
+        let result = match &mut *state {
+            DriverState::Done(result) => return result.clone().map_err(CdpError::Cleanup),
+            DriverState::Waiting(driver) => {
+                match tokio::time::timeout(SHUTDOWN_TIMEOUT, &mut *driver).await {
+                    Ok(result) => result.map_err(CdpError::Task).and_then(|result| result),
+                    Err(source) => {
+                        // This task owns only this CDP socket/pending map. Keep
+                        // its join even after asking it to abort; no process or
+                        // profile cleanup proof follows from the abort request.
+                        driver.abort();
+                        return Err(CdpError::TimedOut {
+                            effect: BrowserEffect::Uncertain,
+                            source,
+                        });
+                    }
                 }
-            },
-            None => Ok(()),
+            }
         }
+        .map_err(Arc::new);
+        *state = DriverState::Done(result.clone());
+        result.map_err(CdpError::Cleanup)
     }
 
     /// Supervision can wait for loss without polling or inspecting raw CDP errors.
@@ -308,8 +321,12 @@ async fn run<T: Transport>(
                 // A caller told NotDelivered can no longer become a late send.
                 if !command.attempt.start() {continue;}
                 let _old=pending.insert(command.id,Pending{session:command.session,answer:command.answer});
-                match tokio::time::timeout(WRITE_TIMEOUT,socket.send(command.text)).await {
-                    Ok(Ok(()))=>{},Ok(Err(error))=>break Err(error),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
+                tokio::select! {
+                    biased;
+                    ()=cancel.cancelled()=>break Ok(()),
+                    sent=tokio::time::timeout(WRITE_TIMEOUT,socket.send(command.text))=>match sent {
+                        Ok(Ok(()))=>{},Ok(Err(error))=>break Err(error),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
+                    }
                 }
             },
             message=socket.next()=> {

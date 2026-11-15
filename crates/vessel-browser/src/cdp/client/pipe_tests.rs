@@ -68,3 +68,79 @@ async fn withdrawn_queued_command_cannot_write_after_its_not_delivered_timeout()
         assert!(writes.try_recv().is_err());
     }).await.unwrap();
 }
+
+fn held_driver() -> (Client, oneshot::Sender<()>) {
+    const COMMANDS: usize = 1;
+    let (release, hold) = oneshot::channel();
+    let driver = tokio::spawn(async move {
+        hold.await.unwrap();
+        Err(CdpError::Protocol)
+    });
+    let (commands, _receiver) = mpsc::channel(COMMANDS);
+    (
+        Client {
+            shared: Arc::new(Shared {
+                commands,
+                next: AtomicU64::new(1),
+                cancel: CancellationToken::new(),
+                driver: Mutex::new(DriverState::Waiting(driver)),
+            }),
+        },
+        release,
+    )
+}
+#[tokio::test]
+async fn cancelled_close_waiter_retains_actual_join_and_original_failure() {
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (client, release) = held_driver();
+        let mut close = Box::pin(client.shutdown());
+        tokio::select! {
+            biased;
+            result=&mut close=>panic!("held driver completed early: {result:?}"),
+            ()=tokio::task::yield_now()=>{},
+        }
+        drop(close);
+        assert!(matches!(
+            *client.shared.driver.lock().await,
+            DriverState::Waiting(_)
+        ));
+        release.send(()).unwrap();
+        let CdpError::Cleanup(first) = client.shutdown().await.unwrap_err() else {
+            panic!("lost original driver error")
+        };
+        assert!(matches!(*first, CdpError::Protocol));
+        let CdpError::Cleanup(second) = client.shutdown().await.unwrap_err() else {
+            panic!("second close invented success")
+        };
+        assert!(Arc::ptr_eq(&first, &second));
+    })
+    .await
+    .unwrap();
+}
+#[tokio::test]
+async fn shutdown_cancels_a_blocked_write_before_waiting_for_its_command_deadline() {
+    const PEER_CAPACITY: usize = 1;
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (sent, mut writes) = mpsc::channel(PEER_CAPACITY);
+        let (_reply, replies) = mpsc::channel(PEER_CAPACITY);
+        let (client, _events) = Client::start(HeldWrite {
+            sent,
+            release: Arc::new(tokio::sync::Semaphore::new(0)),
+            replies,
+        });
+        let caller = client.clone();
+        let pending = tokio::spawn(async move { caller.execute(None, requests::Version {}).await });
+        let _started = writes.recv().await.unwrap();
+        client.shutdown().await.unwrap();
+        assert!(matches!(
+            pending.await.unwrap(),
+            Err(CdpError::Disconnected {
+                effect: BrowserEffect::Uncertain
+            })
+        ));
+        // The already-joined owner returns its retained successful stop again.
+        client.shutdown().await.unwrap();
+    })
+    .await
+    .unwrap();
+}

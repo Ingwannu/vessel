@@ -890,3 +890,23 @@ The command enqueue/typed result wait are separated by a private Queued value;
 its caller guard remains alive through result decoding and withdraws on drop.
 This keeps the delivery-state owner explicit without changing the public sealed
 request vocabulary or selecting a different ordinary command deadline.
+
+
+## Retained debugger close ownership
+
+[Decision Log]
+- Purpose: caller cancellation must not remove the actual debugger driver's join
+  and let another close report success from an empty slot.
+- Existing constraint: Client.shutdown took the JoinHandle out of Shared before
+  awaiting it; a dropped shutdown future detached that handle. ClosingProxy already
+  distinguishes its retained task from the caller's deadline.
+- Choice: retain Waiting/Done inside the same connection's Tokio mutex while
+  joining, including across cancellation. Store the first completed typed result
+  with its original error source for all later callers. A close deadline asks only
+  this socket driver to abort and retains its join for actual later confirmation.
+- Why: one connection owner and one task outcome prevent an invented second close
+  acknowledgement. Closing also cancels an in-progress transport write directly;
+  an already-started request remains uncertain rather than being replayed.
+- Impact: controlled task and held-write fixtures exercise cancellation, repeated
+  failure/success and delivered-request uncertainty. These are staged transport
+  ownership fixtures, not process/profile/Preview cleanup or engine qualification.
