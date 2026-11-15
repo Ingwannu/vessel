@@ -136,3 +136,5 @@ scripts-retained = Runs no longer in the project file
 scripts-setup-unknown = This app cannot interpret the setup state. No session was started; update the app and inspect the worktree.
 # A listed command set contains approved fields this app cannot fully display.
 scripts-unsupported-config = This command set contains configuration this app cannot fully show. Update the app before approving or running it.
+# A read of invalid configuration does not imply that prior supervised runs stopped.
+scripts-invalid-config = The project file is invalid. No new run is authorized; existing runs remain available below.

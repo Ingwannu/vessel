@@ -136,3 +136,5 @@ scripts-retained = 프로젝트 파일에서 제거된 실행
 scripts-setup-unknown = 이 앱이 설정 상태를 해석할 수 없어 세션을 시작하지 않았습니다. 앱을 업데이트하고 워크트리를 확인하세요.
 # A listed command set contains approved fields this app cannot fully display.
 scripts-unsupported-config = 이 앱이 모두 보여 줄 수 없는 설정이 명령 묶음에 있습니다. 승인하거나 실행하기 전에 앱을 업데이트하세요.
+# A read of invalid configuration does not imply that prior supervised runs stopped.
+scripts-invalid-config = 프로젝트 파일이 올바르지 않습니다. 새 실행은 허용하지 않으며 기존 실행은 아래에서 확인할 수 있습니다.

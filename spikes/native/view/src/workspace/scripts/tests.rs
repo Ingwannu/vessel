@@ -37,6 +37,7 @@ fn snapshot(_target: &Target) -> Snapshot {
             commands: ProjectCommands::Listed {
                 setup: vec![],
                 teardown: vec![],
+                terminals: vec![],
                 scripts: vec![ScriptEntry {
                     name: "dev".parse().unwrap(),
                     kind: ScriptKind::Service,
