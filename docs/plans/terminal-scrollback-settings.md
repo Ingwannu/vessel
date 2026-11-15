@@ -48,3 +48,11 @@ increasing while the executor owns the model must still discard the old history.
 Keeping only the final desired capacity loses the intermediate trim intent.
 The new test requires zero old history after return, then future output may grow
 under the final capacity. It has not been executed on the old prototype yet.
+
+The owner now retains the minimum intermediate trim separately from the final
+desired capacity during a handover. A matching completion applies that trim
+first, then the final capacity; increasing cannot revive old rows. Closing or
+replacing an opening discards only its pending trim, retaining the preference.
+A second regression checks new-opening history and stale completion rejection.
+These changes are staged on top of the original immutable producer checks;
+neither the new regressions nor this repair has a runtime result yet.

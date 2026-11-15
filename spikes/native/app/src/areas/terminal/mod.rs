@@ -80,6 +80,7 @@ pub(crate) struct TerminalArea {
     model: Option<TerminalModel>,
     log: TerminalLog,
     scrollback: ScrollbackLines,
+    trim_to: Option<ScrollbackLines>,
     held: Vec<EventRecord>,
     pending: Vec<u8>,
     grid: Entity<TerminalGrid>,
@@ -104,6 +105,7 @@ impl TerminalArea {
             model: None,
             log: TerminalLog::default(),
             scrollback: ScrollbackLines::default(),
+            trim_to: None,
             held: Vec::new(),
             pending: Vec::new(),
             grid: cx.new(|_cx| TerminalGrid::empty()),
@@ -129,6 +131,15 @@ impl TerminalArea {
 
     fn owns(&self, opening: &TerminalOpening) -> bool {
         self.shown.as_ref() == Some(opening)
+    }
+
+    fn apply_scrollback(&mut self, model: &mut TerminalModel) {
+        // An intermediate shrink must not be forgotten by a later increase
+        // while the executor owns the model. Only the matching opening consumes it.
+        if let Some(floor) = self.trim_to.take() {
+            model.set_scrollback(floor);
+        }
+        model.set_scrollback(self.scrollback);
     }
 }
 
@@ -167,6 +178,7 @@ impl Shell {
         let opening = TerminalOpening::new(machine, session);
         area.shown = Some(opening.clone());
         area.phase = Phase::Loading;
+        area.trim_to = None;
         area.model = Some(TerminalModel::new(size, area.scrollback));
         area.log = TerminalLog::default();
         area.held.clear();
@@ -194,6 +206,7 @@ impl Shell {
         area.shown = None;
         area.phase = Phase::Idle;
         area.model = None;
+        area.trim_to = None;
         area.held.clear();
         area.pending.clear();
         area.settling = None;

@@ -14,6 +14,15 @@ impl Shell {
         area.scrollback = limit;
         if let Some(model) = area.model.as_mut() {
             model.set_scrollback(limit);
+            area.trim_to = None;
+        } else if area.shown.is_some() {
+            area.trim_to = Some(area.trim_to.map_or(limit, |previous| {
+                if previous.get() < limit.get() {
+                    previous
+                } else {
+                    limit
+                }
+            }));
         }
         self.terminal_draw(cx);
     }
