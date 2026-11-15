@@ -327,7 +327,7 @@ fn old_raw_id_folds_keep_reused_scoped_calls_and_permission_references_distinct(
         else {
             panic!("permission")
         };
-        assert_eq!(request.tool_call, Some(b.id));
+        assert_eq!(request.tool_call, Some(b.id.clone()));
         let mut collision = first.clone();
         collision.id = a.id.clone();
         collision.scope = None;
