@@ -69,15 +69,24 @@ fn control_and_empty_state_words_are_complete_in_both_languages() {
         (ko.add(), "추가"),
         (en.adding(), "Adding…"),
         (ko.adding(), "추가 중…"),
-        (en.empty(), "No registry providers were listed by this machine."),
-        (ko.empty(), "이 머신에서 표시할 레지스트리 프로바이더가 없습니다."),
+        (
+            en.empty(),
+            "No registry providers were listed by this machine.",
+        ),
+        (
+            ko.empty(),
+            "이 머신에서 표시할 레지스트리 프로바이더가 없습니다.",
+        ),
         (en.no_matches(), "No providers match your search."),
         (ko.no_matches(), "검색과 일치하는 프로바이더가 없습니다."),
         (
             en.not_read(),
             "The provider registry has not been read yet.",
         ),
-        (ko.not_read(), "아직 프로바이더 레지스트리를 읽지 않았습니다."),
+        (
+            ko.not_read(),
+            "아직 프로바이더 레지스트리를 읽지 않았습니다.",
+        ),
         (en.reading(), "Reading the provider registry…"),
         (ko.reading(), "프로바이더 레지스트리를 읽는 중…"),
     ] {
