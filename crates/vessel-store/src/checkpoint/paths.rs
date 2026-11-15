@@ -6,10 +6,15 @@ use vessel_proto::checkpoint::{CheckpointError, CheckpointPath, FileState, Resto
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum Phase {
+/// Durable per-path progress; terminal outcomes verify the complete set.
+pub enum Phase {
+    /// Intent committed before filesystem mutation.
     Pending,
+    /// Desired path installed and verified.
     Applied,
+    /// Original path verified after rollback.
     Restored,
+    /// External change prevents safe rollback.
     Conflict,
 }
 impl Phase {
@@ -33,11 +38,16 @@ impl Phase {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Entry {
-    pub(super) path: CheckpointPath,
-    pub(super) before: FileState,
-    pub(super) desired: FileState,
-    pub(super) phase: Phase,
+/// One immutable intent and its current durable progress.
+pub struct Entry {
+    /// Approved relative path.
+    pub path: CheckpointPath,
+    /// Pre-restore state.
+    pub before: FileState,
+    /// Frozen effective target.
+    pub desired: FileState,
+    /// Current durable progress.
+    pub phase: Phase,
 }
 
 fn encode<T: Serialize>(value: &T) -> Result<String, Error> {

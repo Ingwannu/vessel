@@ -24,3 +24,43 @@ pub(super) fn activate(
     }
     Ok(())
 }
+
+/// The immutable boundary must exist in SQL before capture admission or file I/O.
+pub(super) fn boundary_persisted(connection: &Connection, key: CaptureKey) -> Result<(), Error> {
+    use rusqlite::OptionalExtension as _;
+    use vessel_proto::{
+        AgentEvent, SessionEvent,
+        checkpoint::{Boundary, CheckpointEvent},
+    };
+    let seq = match key.boundary {
+        Boundary::BeforeTurn { prompt } => prompt,
+        Boundary::AfterTurn { ended } => ended,
+    };
+    let seq = i64::try_from(seq.get()).map_err(|_large| CheckpointError::StaleCapture)?;
+    let event: Option<String> = connection
+        .query_row(
+            "SELECT event FROM events WHERE session_id=?1 AND seq=?2",
+            params![key.session.to_string(), seq],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let event: SessionEvent = serde_json::from_str(&event.ok_or(CheckpointError::StaleCapture)?)?;
+    let valid = match key.boundary {
+        Boundary::BeforeTurn { .. } => matches!(
+            event,
+            SessionEvent::Checkpoint {
+                event: CheckpointEvent::PromptAccepted
+            }
+        ),
+        Boundary::AfterTurn { .. } => matches!(
+            event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnEnded { .. }
+            }
+        ),
+    };
+    if !valid {
+        return Err(CheckpointError::StaleCapture.into());
+    }
+    Ok(())
+}

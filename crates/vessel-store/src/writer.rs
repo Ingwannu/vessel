@@ -22,7 +22,6 @@
 //! a transaction of its own before looking at the queue again.
 
 mod apply;
-#[cfg(test)]
 mod durability;
 
 use std::collections::HashSet;
@@ -65,8 +64,7 @@ pub(crate) enum WriteOp {
 /// A change to the database.
 #[derive(Debug)]
 pub(crate) enum Write {
-    /// Staged checkpoints share this writer's savepoint and commit acknowledgement.
-    #[cfg(test)]
+    /// Checkpoints share this writer's savepoint and commit acknowledgement.
     Checkpoint {
         write: Box<crate::checkpoint::CheckpointWrite>,
         done: Done,
@@ -316,7 +314,6 @@ fn commit(
 ) {
     let mut answers = Vec::new();
     let mut effects = Effects::default();
-    #[cfg(test)]
     let previous = match durability::begin(connection, writes) {
         Ok(previous) => previous,
         Err(error) => {
@@ -336,7 +333,6 @@ fn commit(
         &mut answers,
         &mut effects,
     );
-    #[cfg(test)]
     let committed = committed.and(durability::finish(connection, previous));
     let failed = committed.err().map(Arc::new);
     if let Some(error) = &failed {

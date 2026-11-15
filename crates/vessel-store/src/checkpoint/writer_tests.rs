@@ -125,6 +125,15 @@ async fn shared_writer_admits_all_path_intents_before_reply_and_keeps_idempotent
     let plan = plan(info.id);
     publish_capture(&store, &plan).await;
     store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: super::Allocation::Preview { plan: plan.id },
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
         .checkpoint_write(CheckpointWrite::Plan {
             plan: Box::new(plan.clone()),
             at: DateTime::UNIX_EPOCH,
@@ -357,6 +366,15 @@ async fn checkpoint_shared_writer_commits_verified_recovery_and_idempotent_statu
     let plan = plan(info.id);
     publish_capture(&store, &plan).await;
     store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: super::Allocation::Preview { plan: plan.id },
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
         .checkpoint_write(CheckpointWrite::Plan {
             plan: Box::new(plan.clone()),
             at: DateTime::UNIX_EPOCH,
@@ -577,6 +595,19 @@ async fn checkpoint_capture_escrow_releases_only_after_terminal_cleanup_and_keep
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let plan = plan(info.id);
+    store
+        .append(
+            info.id,
+            vec![std::sync::Arc::new(vessel_proto::EventRecord {
+                seq: EventSeq::ZERO,
+                at: DateTime::UNIX_EPOCH,
+                event: vessel_proto::SessionEvent::Checkpoint {
+                    event: vessel_proto::checkpoint::CheckpointEvent::PromptAccepted,
+                },
+            })],
+        )
+        .await
+        .unwrap();
     store
         .checkpoint_write(CheckpointWrite::ReserveCapture {
             key: plan.key,

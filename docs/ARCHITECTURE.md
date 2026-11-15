@@ -1620,9 +1620,9 @@ alone would otherwise expose the owner's unrelated process operations.
 
 `vessel-proto::checkpoint` holds validated immutable file images, metadata
 policy, boundary identities and typed outcomes; its protocol gate is None.
-The checkpoint modules in `vessel-node`, `vessel-store`, `vessel-session` and
-`vessel-workspace` are test-only staging under A10, not advertised product
-capabilities. The node owns admission/fencing, store owns SQL, workspace owns
+The node capture coordinator and workspace filesystem mechanisms remain
+staged under A10. Session pause/turn hooks and the typed store boundary compile
+in production, without advertising a capability or installing a node controller. The node owns admission/fencing, store owns SQL, workspace owns
 filesystem operations and the session only waits for a bounded node
 acknowledgement. No dependency edge changes. After consuming Quality B, the
 five files-only unary methods are registered as pending in the canonical
@@ -1752,8 +1752,8 @@ checkpoint, with its EventSeq saved on the restore row atomically. Ended targets
 use a storage-only writer command guarded by the stored live flag; live targets
 use actor append under their owned pause. Neither path changes conversation,
 queue, status or ended_at. Checkpoint-bearing append batches require FULL sync.
-These store operations/projection remain staged under cfg(test) until controller
-wiring and recovery admission are complete; they are not an enabled capability.
+The store operations/projection compile in production; controller wiring and
+physical recovery admission remain incomplete and the capability is not enabled.
 
 
 The staged checkpoint startup reconciles candidate/Prepared rows before retention,
@@ -1762,3 +1762,14 @@ eligible captures/private allocations into independent garbage accounting before
 removing a session, while pending worker/recovery/result-metadata obligations pin
 it. Startup retention is transactional as well as writer-batch retention. Actual
 filesystem GC and recovery-root hydration remain controller integration work.
+
+
+`vessel-store::checkpoint` is the trusted node/storage seam for typed commands,
+selected evidence, principal-bound previews/status, path journals, event markers
+and bounded reconciliation pages. It reuses the existing store writer/read pool.
+Capture admission checks that its exact prompt/turn boundary already exists in
+SQL. Preview publication requires pre-reserved private storage; restore admission
+reserves its private envelope and all Pending intents atomically. Fixed capture
+reservations cannot be bypassed through the test-only small accounting command.
+Actual filesystem ownership, physical GC and node controller activation remain
+separate integration work; this API does not authenticate RPC callers.

@@ -3,7 +3,6 @@
 
 mod attached;
 mod automation;
-#[cfg(test)]
 mod checkpoints;
 mod conversation;
 mod forge;
@@ -83,7 +82,6 @@ impl Store {
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
-            #[cfg(test)]
             crate::checkpoint::retention::startup(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
             // Checkpoint garbage transfer and its parent session deletion must

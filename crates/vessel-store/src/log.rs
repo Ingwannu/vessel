@@ -216,7 +216,6 @@ pub(crate) fn append<'a>(
         crate::usage::note_profile(connection, session, record)?;
         crate::usage::observe(connection, session, record)?;
         crate::inbox::observe(connection, session, record)?;
-        #[cfg(test)]
         crate::checkpoint::metadata::observe(connection, session, record)?;
         projection.observe(record, event.len());
         // Records past u64::MAX cannot exist: the runtime ends a session
@@ -366,30 +365,6 @@ pub(crate) const KEPT_FIRST: &str = "ORDER BY pinned DESC, (archived_at IS NULL)
 ///
 /// Bounded: it runs when a session ends, with at most the cap and the
 /// sessions that ended since the last run to walk.
-#[cfg(not(test))]
-pub(crate) fn prune_ended(
-    connection: &Connection,
-    retention: &Retention,
-) -> Result<Vec<SessionId>, StoreError> {
-    let mut statement = connection.prepare_cached(&format!(
-        "DELETE FROM sessions WHERE id IN (
-             SELECT id FROM sessions WHERE live = 0 AND ended_at IS NOT NULL
-             {KEPT_FIRST}
-             LIMIT -1 OFFSET ?1)
-         RETURNING id"
-    ))?;
-    let mut rows = statement.query([retention.max_ended_sessions])?;
-    let mut deleted = Vec::new();
-    while let Some(row) = rows.next()? {
-        deleted.push(session_id_from_sql(&row.get::<_, String>(0)?)?);
-    }
-    if !deleted.is_empty() {
-        tracing::debug!(deleted = deleted.len(), "pruned ended sessions");
-    }
-    Ok(deleted)
-}
-
-#[cfg(test)]
 pub(crate) fn prune_ended(
     connection: &Connection,
     retention: &Retention,

@@ -16,9 +16,18 @@ const RESTORE_BYTES: u64 = CHECKPOINT_IMAGE_BYTES.saturating_mul(4);
 const TOMBSTONE_BYTES: u64 = 64 * 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub(crate) enum Allocation {
-    Preview { plan: RestorePlanId },
-    Restore { restore: RestoreId },
+/// Non-reusable identity of a private filesystem allocation and its fixed escrow.
+pub enum Allocation {
+    /// Current-image and preview staging.
+    Preview {
+        /// Owning preview.
+        plan: RestorePlanId,
+    },
+    /// Before-image, desired stage, displaced originals and restore journal.
+    Restore {
+        /// Owning restore.
+        restore: RestoreId,
+    },
 }
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -153,4 +162,17 @@ pub(crate) fn cleaned(
         return Err(CheckpointError::RestoreIdConflict.into());
     }
     Ok(())
+}
+
+/// Publishing cannot allocate its first escrow after private file I/O already ran.
+pub(super) fn preview_reserved(connection: &Connection, plan: &super::Plan) -> Result<(), Error> {
+    match owned(
+        connection,
+        plan.key,
+        Allocation::Preview { plan: plan.id },
+        plan.owner,
+    )? {
+        Phase::Reserved => Ok(()),
+        Phase::Attached | Phase::Cleaned => Err(CheckpointError::RestoreIdConflict.into()),
+    }
 }

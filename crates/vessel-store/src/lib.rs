@@ -52,10 +52,8 @@ mod again;
 mod agents_file;
 mod attachments;
 mod automation;
+pub mod checkpoint;
 mod codec;
-// ADR 0077: staged until its schema predecessor and Quality B wiring exist.
-#[cfg(test)]
-mod checkpoint;
 mod config;
 mod data_dir;
 mod devices;
@@ -87,7 +85,6 @@ pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
 pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
-#[cfg(test)]
 pub use checkpoint::CheckpointStoreError;
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile};

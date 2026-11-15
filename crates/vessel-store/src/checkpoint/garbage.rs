@@ -17,16 +17,23 @@ use vessel_proto::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
-pub(crate) enum Object {
+/// Typed private object awaiting physical cleanup; independent of session FKs.
+pub enum Object {
+    /// A capture and all private allocations it owned.
     Capture {
+        /// Worktree storage namespace.
         worktree: WorktreeId,
+        /// Capture storage namespace.
         capture: CaptureId,
     },
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Garbage {
-    pub(crate) object: Object,
-    pub(crate) reserved: crate::ByteCount,
+/// Accounted bytes cannot be released until this object's physical cleanup ends.
+pub struct Garbage {
+    /// Typed object identity; never a caller-supplied filesystem path.
+    pub object: Object,
+    /// Charge retained until verified physical cleanup.
+    pub reserved: crate::ByteCount,
 }
 fn id<T: serde::de::DeserializeOwned>(raw: &str) -> Result<T, Error> {
     Ok(serde_json::from_str(&serde_json::to_string(raw)?)?)
@@ -39,6 +46,14 @@ pub(crate) fn retire_session(
     at: DateTime<Utc>,
 ) -> Result<(), Error> {
     let session = session.to_string();
+    let present: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1)",
+        [&session],
+        |row| row.get(0),
+    )?;
+    if !present {
+        return Ok(());
+    }
     let recovering:bool=connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_restores WHERE session=?1 AND phase IN ('prepared','recovery'))",
         [&session],|row|row.get(0),

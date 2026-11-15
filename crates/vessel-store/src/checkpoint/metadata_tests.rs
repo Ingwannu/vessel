@@ -20,6 +20,15 @@ async fn completed(store: &Store) -> Operation {
     let plan = plan(info.id);
     publish_capture(store, &plan).await;
     store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: super::Allocation::Preview { plan: plan.id },
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
         .checkpoint_write(CheckpointWrite::Plan {
             plan: Box::new(plan.clone()),
             at: DateTime::UNIX_EPOCH,

@@ -28,7 +28,6 @@ pub(super) fn apply(
     indexer: &mut Indexer,
 ) -> Answer {
     match write {
-        #[cfg(test)]
         Write::Checkpoint { write, done } => write_answer(transaction, done, |connection| {
             crate::checkpoint::apply(connection, *write)
         }),
@@ -78,7 +77,6 @@ pub(super) fn apply(
         }
         Write::Delete { session, done } => {
             let applied = isolated(transaction, |connection| {
-                #[cfg(test)]
                 crate::checkpoint::retire_session(connection, session, chrono::Utc::now())?;
                 marks::delete(connection, session)
             });

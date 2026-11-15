@@ -4,7 +4,7 @@ ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes the reviewed integration
 head `ede20014` (Quality B and gate 44); pending rows live at the end of
 `rpc/table.rs`. The separate app branch consumes package base 6 `18eedad4`
-and awaits its fixed-lock line update; no app feature is implemented yet.
+and fixed-lock update `dd13ce37`; no app feature is implemented yet.
 
 ## References and existing assets
 
@@ -38,7 +38,7 @@ staging. No provider SDK, tool-call-count inference or new crate edge.
   Guarded authorization and agent refusal remain in front of the seam. Ordinary
   human forwarding preserves destination checks. Pending calls refuse locally
   and at dispatch; no feature capability is advertised.
-- store/checkpoint: test-only SQL operations and one production schema append
+- store/checkpoint: typed operations on the production writer and one schema append
   after this base's title-origin schema. The migration runner is unchanged;
   the integrator adjusts its one schema constant in merge order. Restore
   admission reloads the capture's full key/session and frozen effective target.
@@ -520,3 +520,33 @@ and recovery pins before pruning, and an expired successful restore remaining
 pinned until its event marker is stored. They are unrun. Store checkpoint
 operations/startup/pruning still use cfg(test) staging; the production startup
 retention transaction is active but the checkpoint-specific path is not enabled.
+
+
+### Production store boundary (source; not yet compiled)
+
+Quality B and the local schema predecessor are already consumed, so the store
+checkpoint module, error family, closed CheckpointWrite command and typed reads
+now compile outside cfg(test). Commands use the sole existing writer, bounded
+queue, savepoints and FULL sync; there is no second DB connection/writer. Public
+records carry typed identities/images rather than SQL/JSON. Internal reads use
+the existing blocking read pool and expose selected immutable evidence, bound
+preview/change pages, owned operation/path journal/event marker, garbage and
+bounded recovery/unpublished pages for startup reconciliation. These Rust APIs
+are trusted node/storage seams, not RPC authorization or provider interfaces.
+
+ReserveCapture now proves the exact PromptAccepted/Agent TurnEnded boundary is
+already present in SQL before it can reserve/read files. Preview publication
+requires its private reservation to predate allocation; restore admission reserves
+its fixed private envelope and every Pending path inside the same savepoint.
+Identical Admit retries do not charge a second envelope. Arbitrary-byte Reserve
+remains cfg(test), never a product escape hatch around fixed capture admission.
+The startup/pruning/result projection now use this production store boundary.
+Filesystem/controller/GC ownership is still unwired and unreviewed; gate remains
+None, so no call/capability claims a restored image.
+
+A public integration fixture compiles the actual non-test store API and exercises
+boundary refusal/success, Ready selection, missing preview reservation refusal,
+owned preview/pages, idempotent admission, result-marker commit and ended reopen
+retry. It uses synthetic file evidence and performs no filesystem restoration;
+it has not run. Unit fixture changes reserve the same private envelopes as the
+production writer. Current source needs VM compilation and behavioral checks.

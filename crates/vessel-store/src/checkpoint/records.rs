@@ -8,23 +8,39 @@ use vessel_proto::checkpoint::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct Plan {
-    pub(crate) id: RestorePlanId,
-    pub(crate) key: CaptureKey,
-    pub(crate) owner: CheckpointOwner,
-    pub(crate) current: FileImage,
-    pub(crate) evidence: SnapshotEvidence,
-    pub(crate) desired: EffectiveDesiredImage,
-    pub(crate) expires: DateTime<Utc>,
+/// Immutable preview evidence and effective target; this is not authentication.
+/// The node derives this under root admission; the store reloads it at admission.
+pub struct Plan {
+    /// Immutable preview or restore identity.
+    pub id: RestorePlanId,
+    /// Exact capture boundary and generation.
+    pub key: CaptureKey,
+    /// Full authenticated human principal, including delegated origin.
+    pub owner: CheckpointOwner,
+    /// Whole before-image used by the preview.
+    pub current: FileImage,
+    /// Root, ignore policy and stable object evidence at preview time.
+    pub evidence: SnapshotEvidence,
+    /// Frozen effective image after applying the metadata policy.
+    pub desired: EffectiveDesiredImage,
+    /// Absolute preview expiry.
+    pub expires: DateTime<Utc>,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct Operation {
-    pub(crate) session: vessel_proto::SessionId,
-    pub(crate) id: RestoreId,
-    pub(crate) plan: RestorePlanId,
-    pub(crate) owner: CheckpointOwner,
-    pub(crate) outcome: RestoreOutcome,
-    pub(crate) before: FileImage,
+/// A snapshot of one durable restore; retries reload its authoritative row.
+pub struct Operation {
+    /// Session owning the restore, independent of any current runtime.
+    pub session: vessel_proto::SessionId,
+    /// Immutable preview or restore identity.
+    pub id: RestoreId,
+    /// Consumed preview identity.
+    pub plan: RestorePlanId,
+    /// Full authenticated human principal, including delegated origin.
+    pub owner: CheckpointOwner,
+    /// Durable result as read from this operation snapshot.
+    pub outcome: RestoreOutcome,
+    /// Retained pre-restore image for verification/recovery.
+    pub before: FileImage,
 }
 /// Typed checkpoint storage failure; SQL/JSON sources never cross the RPC boundary.
 #[derive(Debug, thiserror::Error)]
