@@ -132,9 +132,12 @@ impl Shell {
         &mut self,
         target: DraftKey,
     ) -> Result<&mut vessel_app_view::composer::context::ContextTray, ContextProblem> {
+        self.prune_empty_attachment_slots();
+        let reserved = self.reserved_attachment_slots().1;
         let contexts = &mut self.areas.composer.contexts;
         if contexts.get(target).is_none()
-            && contexts.len() >= vessel_app_view::composer::trays::Trays::MAX
+            && contexts.len().saturating_add(reserved)
+                >= vessel_app_view::composer::trays::Trays::MAX
         {
             return Err(ContextProblem::Capacity);
         }
