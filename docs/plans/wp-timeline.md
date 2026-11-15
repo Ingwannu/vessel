@@ -781,3 +781,43 @@ Fixed `fcddc1c8` now passed all 1,131 view all-target tests in
 membership/user-chunk continuity and the earlier canonical item/prose model. It
 excludes later canonical Plan/provenance changes, open-sheet rebasing and base6.
 The pending app/kit replacement and newer strict run remain separate evidence.
+
+
+### Staged concrete resident owner adapters
+
+Consumed W12's exact isolated1d93a10d resource producer, with its literal cfg(test)
+module/storage boundaries unchanged. Only the shared app line, W1 checked search
+extraction and that staged owner are included; no second live manager is enabled.
+A7's own resident module is likewise test-only. Its borrowed view/input accessors
+use the same full-context resources/resources_mut pair; input additionally requires
+current Visible/Focused metadata. Records use original FollowBinding through
+receive (including hidden fresh records); operation completion settles a Timeline
+ticket before its owner closure can mutate. Actual G4 lease validation is still
+required before these receivers; the adapters do not authorize or launch I/O.
+
+The legacy session guard now delegates to one identity-free fold_records method;
+the scoped receiver reaches that same fold only after admission. There is no
+fabricated Shown/session identity, cloned transcript or selected-global fallback.
+A typed snapshot moves the concrete Area unchanged, retaining rows, scroll,
+disclosures and controller identity. It is not serialization or a claim of byte
+memory reclamation. W1's navigation hold is an explicit input; active find/edit,
+overlays and own in-flight work refuse transfer and return the original object.
+A8/lifecycle owners must independently vote Ready in W12's same owner before any
+retirement. Concrete ticket-correlated fork/rewind/read retirement UI transitions
+and the scoped Seat/render/follow cutover remain pending the coordinated carriers;
+no placeholder uncertainty marker is claimed as that behavior.
+
+Staged GPUI regressions populate two real timeline resources, apply hidden data,
+reject old-context input, consume one effect once, reject old-follow records, and
+preserve the other timeline/global. A separate moved-snapshot regression retains
+actual disclosure and scroll data and refuses a navigation hold. Product storage,
+raw follow and permission/question handlers remain untouched until W12 cutover.
+
+Snapshot data additionally carries the original ResidentToken. Restore compares
+window RegistryId and the full authenticated node/session address; a mismatch
+returns the unchanged snapshot. A later epoch of the same admitted resource may
+reuse the local data, but the comparison does not admit or refresh that token.
+This prevents accidentally installing a retained transcript or GPUI entities in
+another session or window. Old transport callbacks still require their original
+binding and fail the registry fence after retirement. These are staged owner
+adapters and source regressions, not a live resource cutover verdict.

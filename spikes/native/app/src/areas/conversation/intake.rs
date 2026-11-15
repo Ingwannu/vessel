@@ -94,6 +94,12 @@ impl ConversationArea {
         {
             return false;
         }
+        self.fold_records(records)
+    }
+
+    /// The identity-owning ingress has already admitted this exact resource.
+    /// Legacy callers guard in take; resident callers guard their original binding.
+    pub(super) fn fold_records(&mut self, records: &[EventRecord]) -> bool {
         // Records arriving for this session: the connection is back.
         self.lost = None;
         self.follow_parking(records);

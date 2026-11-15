@@ -57,6 +57,14 @@ pub(crate) struct ReadMarks {
     scheduled: Cell<bool>,
 }
 
+#[cfg(test)]
+impl ReadMarks {
+    /// The resident snapshot cannot discard this owner's live work/UI state.
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.in_flight || self.scheduled.get()
+    }
+}
+
 impl ConversationArea {
     /// The mark due now, by the view's rule.
     fn read_due(&self, front: bool) -> Option<EventSeq> {

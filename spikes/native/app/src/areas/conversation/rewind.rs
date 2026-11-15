@@ -85,6 +85,14 @@ impl std::fmt::Debug for Rewinding {
     }
 }
 
+#[cfg(test)]
+impl Rewinding {
+    /// The resident snapshot cannot discard this owner's live work/UI state.
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.pending.is_some() || self.restore.is_some()
+    }
+}
+
 impl Rewinding {
     pub(super) fn new(cx: &mut App) -> Self {
         Self {

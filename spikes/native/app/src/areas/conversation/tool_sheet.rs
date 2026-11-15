@@ -46,6 +46,14 @@ pub(super) struct SheetState {
     shown: Option<Shown>,
 }
 
+#[cfg(test)]
+impl SheetState {
+    /// The resident snapshot cannot discard this owner's live work/UI state.
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.shown.is_some()
+    }
+}
+
 impl SheetState {
     pub(super) fn clear(&mut self) {
         self.shown = None;
