@@ -323,3 +323,19 @@ per-name duplicate suppression and observer-owned assignments, atomic create
 with retained failure draft, and successful return to the list. They construct
 the actual kit elements; execution, full layout captures and V4 review remain
 owed. Nothing here claims a live canonical workspace menu entry or persistence.
+
+Scoped evidence recovered at 11:31 UTC: native 05dd210b passed exactly 36 owned
+filter-selected tests (view 28, app 6, link 1, kit identity 1). This predates
+WorkspaceTarget, the Reach correction, actual Shell dispatch and staged picker
+regressions, plus package base 6. Node 3bd691bc (gate42 merge, shutdown core)
+passed strict alltarget clippy for proto/store/node. Node then merged announced
+gate44 ede20014 cleanly, without a whole gate or registry adoption.
+
+The published app line's lock correction dd13ce378 and checked G2 menu updates
+are merged. Latest app source 5584eb427 now has a fresh remote alltarget clippy
+registered; it is queued, not green. Inactive/read-only workspace hints explain
+that target policy rather than telling the person to reconnect to unlock it.
+The native create form uses the existing adaptive Dialog because typed combobox
+rows cannot embed the persistent name field; Back and async success return to
+the original picker. This deliberate presentation difference avoids a second
+menu/input renderer while retaining the reference workflow.
