@@ -84,6 +84,7 @@ impl Shell {
         self.updates.translate(self.words, &mut self.notice);
         self.translate_rewind_notice();
         self.translate_fork_words();
+        let _changed = self.schedules_rebuild();
         self.areas
             .conversation
             .list

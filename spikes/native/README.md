@@ -109,7 +109,7 @@ implies that the corresponding screen has been wired or visually reviewed.
 The new `link::schedules` bridge uses existing typed client calls with the same
 named request bound, retaining permits through event delivery. Local rejection
 and browser no-transport replies settle through the same app area boundary;
-no route or fixture data is implied. The one generic `nodes::connection_ready`
+no fixture data is implied by the bridge. The one generic `nodes::connection_ready`
 hook hands kept offers first, then typed area notices; identical Fleet snapshots
 cannot hide a fresh connection. The target-line resolver borrows existing node
 facts, never infers deletion from a cache miss or joins remote platform paths.
@@ -1164,3 +1164,13 @@ focused field/dialog is never displaced, and a removed return target is not
 retained. Actual window-key regressions exercise Enter, Escape, pointer/outside
 close and the root F5 witness. Passing those tests would not replace the final
 Linux first-use evidence or settle the historical UI HOLD by declaration.
+
+
+The `Route::Schedules` area draws the node-backed aggregate list from prepared
+View rows and forwards explicit pause/resume/run/delete requests. Its state is
+split between an initialized control owner and a testable answer/presentation
+cache; formatting stays outside paint. New form/history entry points remain
+hidden until wired. This source checkpoint has not passed F1 UI review; the
+package plan records remaining clock/scopes/idle/focus/producer work and the
+one final gate/capture boundary. The legacy sidebar slot delegates to the
+area's opener; S2 owns the forthcoming canonical sidebar inventory.

@@ -1,53 +1,69 @@
-//! Schedule reply boundary. The view owns all list/permission/pending decisions;
-//! drawing/route entry are a following part of the list slice, not fake data.
-use vessel_app_link::schedules::{Answer, ListValue, Message, Value};
-use vessel_app_view::schedules::{
-    load::Failure,
-    page::{Ask, Page, Snapshot},
-};
-
-#[derive(Debug, Default)]
-pub(crate) struct Area {
-    pub(crate) page: Page,
-}
-impl Area {
-    pub(crate) fn message(&mut self, message: Message) {
-        match message {
-            Message::Connected(key) => self.page.connected(&key),
-            Message::Replied(answer) => self.answered(answer),
-        }
-    }
-
-    pub(crate) fn answered(&mut self, answer: Answer) {
-        let ask = answer.request.ask;
-        let result = answer.result.map_err(|error| error.failure(ask));
-        match ask {
-            Ask::List => self.page.listed(
-                &answer.request,
-                result.and_then(|value| match value {
-                    Value::List(list) => Ok(snapshot(*list)),
-                    Value::Written(_) => Err(Failure::Unexpected),
-                }),
-            ),
-            Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => {
-                self.page.written(
-                    &answer.request,
-                    result.and_then(|value| match value {
-                        Value::Written(written) => Ok(written),
-                        Value::List(_) => Err(Failure::Unconfirmed),
-                    }),
-                );
-            }
-        }
-    }
-}
-fn snapshot(list: ListValue) -> Snapshot {
-    Snapshot {
-        schedules: list.schedules,
-        read_at: list.read_at,
-        projects: list.projects.map_err(|error| error.failure(Ask::List)),
-        worktrees: list.worktrees.map_err(|error| error.failure(Ask::List)),
-    }
-}
+//! Node-backed schedules screen. View owns every decision, Link every call;
+//! this area owns the shared controls, their anchors and cached display inputs.
+mod controller;
+mod data;
+mod draw;
+mod filters;
+mod overlays;
+mod row;
+mod state;
 #[cfg(test)]
 mod tests;
+use crate::shell::Shell;
+pub(crate) use controller::{arrive, leaving, sidebar};
+use data::Data;
+pub(crate) use draw::render;
+use std::collections::BTreeMap;
+use vessel_app_kit::{
+    ComboboxState,
+    dialog::DialogState,
+    menu::MenuState,
+    select::Anchor,
+    ui::{Context, SharedString, Window},
+};
+use vessel_app_view::schedules::page::RowKey;
+
+#[derive(Debug)]
+pub(crate) struct Area {
+    pub(super) data: Data,
+    pub(super) ui: Ui,
+    pub(super) ticking: bool,
+}
+#[derive(Debug)]
+pub(super) struct Ui {
+    picker: ComboboxState,
+    anchor: Anchor,
+    menu: MenuState,
+    selected: Option<RowKey>,
+    deleting: Option<DeletePrompt>,
+    dialog: DialogState,
+    anchors: BTreeMap<RowKey, RowControl>,
+}
+#[derive(Debug)]
+pub(super) struct RowControl {
+    anchor: Anchor,
+    id: SharedString,
+}
+#[derive(Debug)]
+pub(super) struct DeletePrompt {
+    key: RowKey,
+    title: SharedString,
+    body: SharedString,
+}
+impl Area {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        Self {
+            data: Data::default(),
+            ui: Ui {
+                picker: ComboboxState::new(window, cx),
+                anchor: Anchor::default(),
+                menu: MenuState::new(cx),
+                selected: None,
+                deleting: None,
+                dialog: DialogState::new(cx),
+                anchors: BTreeMap::new(),
+            },
+            ticking: false,
+        }
+    }
+}

@@ -12,7 +12,11 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
-            Event::Schedules(message) => self.areas.schedules.message(message),
+            Event::Schedules(message) => {
+                if !self.schedules_message(message) {
+                    return;
+                }
+            }
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -42,6 +46,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.schedules_fleet();
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);

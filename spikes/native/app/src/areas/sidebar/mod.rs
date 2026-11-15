@@ -276,13 +276,13 @@ pub(crate) fn frame(
 /// side of the slot.
 /// The row to draw there is [`nav_row`] with `Some(Glyph::CalendarClock)`
 /// and the sidebar's `touch`.
-const fn schedules(
-    _shell: &Shell,
-    _tokens: &Tokens,
-    _touch: bool,
-    _cx: &mut Context<'_, Shell>,
+fn schedules(
+    shell: &Shell,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
 ) -> Option<vessel_app_kit::ui::AnyElement> {
-    None
+    super::schedules::sidebar(shell, tokens, touch, cx)
 }
 
 /// The slot between the navigation rows and the machines: the projects

@@ -1,9 +1,11 @@
 //! Unsent/local replies traverse the same correlation path as a real answer.
 use super::*;
+use vessel_app_link::schedules::{Answer, Message, Value};
 use vessel_app_link::{Command, Rejected, Unsent, schedules::ScheduleError};
+use vessel_app_view::schedules::load::Failure;
 use vessel_app_view::schedules::{load::MachineKey, page::Body};
-fn initial() -> Option<(Area, vessel_app_view::schedules::page::Request)> {
-    let mut area = Area::default();
+fn initial() -> Option<(Data, vessel_app_view::schedules::page::Request)> {
+    let mut area = Data::default();
     area.page.machines(&[MachineKey::of("laptop")?]);
     let request = area
         .page

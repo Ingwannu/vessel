@@ -24,6 +24,8 @@ pub(crate) enum Route {
     /// Settings: its sections listed in the sidebar's place, the chosen
     /// one beside them (`areas/settings`).
     Settings,
+    /// The aggregate schedule list.
+    Schedules,
 }
 
 impl Route {
@@ -40,6 +42,7 @@ impl Route {
             Self::Session => t.app,
             Self::Pair => t.add_machine,
             Self::Settings => t.lang.settings().settings,
+            Self::Schedules => t.lang.schedules().title,
         }
     }
 }
@@ -53,6 +56,7 @@ pub(crate) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     match route {
+        Route::Schedules => areas::schedules::render(shell, tokens, window, cx),
         Route::Draft => areas::draft::render(shell, tokens, window, cx).into_any_element(),
         // The archive is a dialog over the board.
         Route::Board | Route::Archive => areas::board::render(shell, tokens, window, cx),
@@ -84,7 +88,12 @@ pub(crate) fn sidebar_inner(
 ) -> AnyElement {
     match shell.route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
-        Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
+        Route::Draft
+        | Route::Board
+        | Route::Archive
+        | Route::Session
+        | Route::Pair
+        | Route::Schedules => {
             areas::sidebar::render(shell, tokens, false, window, cx).into_any_element()
         }
     }
@@ -97,7 +106,9 @@ pub(crate) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    areas::schedules::leaving(route, shell, window, cx);
     match route {
+        Route::Schedules => areas::schedules::arrive(shell, window, cx),
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
         Route::Archive => areas::archive::arrive(shell, window, cx),
