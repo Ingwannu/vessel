@@ -12,10 +12,13 @@ use crate::NodeId;
 pub const CHALLENGE_BYTES: usize = 32;
 const ENCODED_BYTES: usize = 43;
 const CHALLENGE_PREFIX: &str = "vessel-local-challenge/1 ";
+const PIPE_PREFIX: &str = "vessel-local-pipe/1 ";
 const READY_PREFIX: &str = "vessel-local-ready/2 ";
 const NODE_BYTES: usize = 36;
 /// Fixed size lets the child read exactly one challenge without buffering auth.
 pub const CHALLENGE_RECORD_BYTES: usize = CHALLENGE_PREFIX.len() + ENCODED_BYTES + 1;
+/// Child stdin carries one launch-private name seed, followed by EOF.
+pub const PIPE_RECORD_BYTES: usize = PIPE_PREFIX.len() + ENCODED_BYTES + 1;
 /// Includes the exact final newline; readers cap allocation before decoding.
 pub const MAX_BOOTSTRAP_READY_BYTES: usize =
     READY_PREFIX.len() + NODE_BYTES + 1 + ENCODED_BYTES + 1;
@@ -23,6 +26,52 @@ pub const MAX_BOOTSTRAP_READY_BYTES: usize =
 /// A public, single-use correlation value. Never compare it with ordinary `==`.
 #[derive(Clone, Copy)]
 pub struct BootstrapChallenge([u8; CHALLENGE_BYTES]);
+
+/// A fresh pipe-name seed, unrelated to the later connection's challenge.
+///
+/// Naming is not peer proof. This type is neither persisted nor serialized into
+/// an RPC or argv; only the managed child's dedicated stdin receives its record.
+#[derive(Clone, Copy)]
+pub struct BootstrapPipe([u8; CHALLENGE_BYTES]);
+
+impl std::fmt::Debug for BootstrapPipe {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("BootstrapPipe(<redacted>)")
+    }
+}
+
+impl BootstrapPipe {
+    /// The caller fills a new seed from the OS RNG for every child launch.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; CHALLENGE_BYTES]) -> Self {
+        Self(bytes)
+    }
+
+    /// Used only to bind/open the one private Windows server instance.
+    #[must_use]
+    pub fn path(self) -> std::path::PathBuf {
+        format!(
+            r"\\.\pipe\vessel-desktop-{}",
+            URL_SAFE_NO_PAD.encode(self.0)
+        )
+        .into()
+    }
+
+    /// The inherited child stdin record; never log it or put it in argv/env.
+    #[must_use]
+    pub fn encode(self) -> String {
+        format!("{PIPE_PREFIX}{}\n", URL_SAFE_NO_PAD.encode(self.0))
+    }
+
+    /// Decode the complete bounded stdin record, including its final newline.
+    ///
+    /// # Errors
+    /// Unknown markers, aliases, extra bytes and malformed name seeds fail.
+    pub fn decode(record: &str) -> Result<Self, TranscriptError> {
+        let raw = body(record, PIPE_PREFIX, PIPE_RECORD_BYTES)?;
+        Ok(Self(BootstrapChallenge::encoded(raw)?.0))
+    }
+}
 
 impl std::fmt::Debug for BootstrapChallenge {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

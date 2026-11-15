@@ -47,7 +47,9 @@ Other local users are in scope. Same-user processes are excluded because they
 can read the private home token. Pipe names can be enumerated, so their random
 spelling is not a secret capability and default DACLs are not process-private.
 
-1. Each launch gets a fresh OS-random private pipe name. It is child-only, never
+1. Each launch gets a fresh OS-random private pipe name. A bounded typed name
+   seed travels only through the managed child's dedicated stdin, followed by
+   EOF, rather than argv or an inherited environment variable. It is never
    persisted or logged. Canonical IPC remains unchanged and has no challenge path.
 2. The child creates its dedicated bootstrap server with first_pipe_instance,
    reject_remote_clients and max_instances(1). Creation conflict refuses startup.
@@ -73,7 +75,7 @@ existing readiness record. `BootstrapChallenge` contains 32 caller-supplied OS
 random bytes; its exact URL-safe unpadded representation has a fixed width.
 `BootstrapReady` contains the public NodeId and the echoed challenge. Neither
 value grants process authority, creates entropy, authenticates a connection or
-compares a response on the launcher's behalf. Debug output redacts the challenge.
+compares a response on the launcher's behalf. Debug output redacts the challenge and the separate `BootstrapPipe` name seed.
 Strict decoders reject alternate markers, widths, UUID spelling, padding and
 extra lines before a consumer can use the data. The launcher must compare its
 own challenge in constant time after correlating the retained stdout and pipe.

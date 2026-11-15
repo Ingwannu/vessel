@@ -7,8 +7,8 @@ use crate::NodeId;
 
 mod bootstrap;
 pub use bootstrap::{
-    BootstrapChallenge, BootstrapReady, CHALLENGE_BYTES, CHALLENGE_RECORD_BYTES,
-    MAX_BOOTSTRAP_READY_BYTES, TranscriptError,
+    BootstrapChallenge, BootstrapPipe, BootstrapReady, CHALLENGE_BYTES, CHALLENGE_RECORD_BYTES,
+    MAX_BOOTSTRAP_READY_BYTES, PIPE_RECORD_BYTES, TranscriptError,
 };
 
 /// Both ends share this single marker and local-record format version.

@@ -65,3 +65,25 @@ fn a_stale_record_preserves_its_own_challenge_for_caller_validation() {
     // time after correlating this record with the retained child stdout.
     assert_eq!(decoded.node(), node);
 }
+
+#[test]
+fn dedicated_stdin_carries_one_name_seed_without_path_aliases_or_debug_output() {
+    let pipe = BootstrapPipe::from_bytes([0x7c; CHALLENGE_BYTES]);
+    let record = pipe.encode();
+    assert_eq!(record.len(), PIPE_RECORD_BYTES);
+    assert_eq!(BootstrapPipe::decode(&record).unwrap().path(), pipe.path());
+    assert_eq!(format!("{pipe:?}"), "BootstrapPipe(<redacted>)");
+    for bad in [
+        record.trim_end().to_owned(),
+        record.replace("/1 ", "/2 "),
+        format!("{record}extra"),
+        format!("log\n{record}"),
+        pipe.path().to_str().unwrap().to_owned(),
+    ] {
+        assert!(BootstrapPipe::decode(&bad).is_err());
+    }
+    assert_ne!(
+        pipe.path(),
+        BootstrapPipe::from_bytes([0x81; CHALLENGE_BYTES]).path()
+    );
+}
