@@ -64,6 +64,7 @@ const DEBOUNCE: Duration = Duration::from_millis(120);
 const REVEAL_DEADLINE: Duration = Duration::from_millis(5_000);
 
 /// Escape returns to its opening surface; deactivation must not focus hidden UI.
+#[derive(Debug, Clone, Copy)]
 enum FindExit {
     Restore,
     Deactivate,
