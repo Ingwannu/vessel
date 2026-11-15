@@ -78,6 +78,7 @@ mod http_tls;
 mod identity;
 mod install;
 mod ipc;
+mod label_ingress;
 mod lifecycle;
 mod limits;
 mod lsp;

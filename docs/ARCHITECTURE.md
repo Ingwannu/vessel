@@ -1431,3 +1431,14 @@ the synchronous root loading on a blocking worker.
 returning the existing non-serializable `ResolvedValue` for internal header
 consumers. The `secret_value` wire-copy wrapper delegates to it; no new RPC
 can read a secret and storage/refusal behaviour is unchanged.
+
+## Session creation labels (ADR 0063)
+
+`vessel-proto::labels` validates the bounded label map before creation.
+`SessionSpec.labels` retains what creation asked; `SessionInfo.labels`
+starts with it, while the store keeps a distinct current-label column.
+Import copies that current map. While the protocol is unassigned, every peer
+receives infos without labels; after assignment, older peers do,
+including nested transfer replies and saved/scheduled session specs. One
+optional version constant is assigned at integration; no dependency edge changes.
+Filtering and patch/event ingress follow in the next slices.

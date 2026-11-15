@@ -333,4 +333,37 @@ async fn forced_limit_policy_and_reads_are_refused_before_old_server_dispatch() 
     }
 }
 
+#[tokio::test]
+async fn malformed_creation_labels_are_refused_before_dispatch() {
+    let (mut raw, mut served) = raw_client(vessel_proto::PROTOCOL_VERSION.get()).await;
+    let too_many: std::collections::BTreeMap<_, _> = (0..vessel_proto::SessionLabels::MAX
+        .saturating_add(1))
+        .map(|index| (format!("key{index}"), "value"))
+        .collect();
+    let maps = [
+        serde_json::json!({"": "v"}),
+        serde_json::json!({"vessel.reserved": "v"}),
+        serde_json::json!({"a=b": "v"}),
+        serde_json::json!({"\u{0085}": "v"}),
+        serde_json::json!({"a": "\u{0085}"}),
+        serde_json::json!({"a": "x".repeat(vessel_proto::LabelValue::MAX_CHARS.saturating_add(1))}),
+        serde_json::json!({"a": null}),
+        serde_json::json!(too_many),
+    ];
+    for (index, labels) in maps.into_iter().enumerate() {
+        let request = serde_json::json!({"type":"request", "id":index, "call":{
+            "method":"session.create", "params":{"spec":{
+                "harness":"claude-code", "mode":"structured", "labels":labels
+            }}
+        }});
+        raw.send(request.to_string()).await.unwrap();
+        let response = raw.next().await.unwrap().unwrap();
+        assert_eq!(refusal(&response).code, ErrorCode::InvalidRequest);
+    }
+    assert!(
+        served.seen.try_recv().is_err(),
+        "no malformed input reached the node handler"
+    );
+}
+
 mod inbox;

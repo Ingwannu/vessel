@@ -30,6 +30,8 @@ pub mod history;
 mod id;
 pub mod inbox;
 mod key;
+pub mod labels;
+pub mod lifecycle_version;
 pub mod limits;
 pub mod lsp;
 mod model;
@@ -104,6 +106,7 @@ pub use id::{
     ToolCallId, TransferId, UploadId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
+pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};
 pub use model::{
     DurationMs, ListModels, ModelApi, ModelCall, ModelFailure, ModelRoute, ModelStop, SessionModel,
     TokenCount, TokenUsage,

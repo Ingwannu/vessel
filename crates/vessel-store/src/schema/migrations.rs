@@ -446,9 +446,17 @@ CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
 END;
 ";
 
+/// The labels' schema (lifecycle, ADR 0063): 16 on its track, 17 on the
+/// node line after the inbox's 16. The one assignment integration changes
+/// when another migration lands first; the table's length checks it.
+pub(super) const LABELS_SCHEMA: usize = 17;
+
+/// Current labels are separate from the original creation specification.
+const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
+
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str] = &[
+pub(super) const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -465,4 +473,5 @@ pub(super) const MIGRATIONS: &[&str] = &[
     SIDE_CONTEXT,
     USAGE_LEDGER,
     INBOX,
+    LABELS,
 ];
