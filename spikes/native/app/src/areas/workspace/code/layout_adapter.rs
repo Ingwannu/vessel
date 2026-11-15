@@ -7,6 +7,17 @@ use vessel_app_kit::ui::{AnyElement, Context, IntoElement as _, Window};
 use super::{Place, Tab};
 use crate::shell::Shell;
 
+impl Shell {
+    /// Reuse an already resolved session root only for its exact node and
+    /// session. A composer may resolve session.get itself when absent.
+    pub(crate) fn code_workspace_scope(&self, machine: &vessel_app_view::machine_book::Name, session: vessel_proto::SessionId) -> Option<vessel_proto::workspace::WorkspaceRoot> {
+        let panel = &self.areas.workspace.code;
+        let target = panel.target.as_ref()?;
+        if target.machine != machine.as_str() || target.session != session { return None; }
+        panel.root().map(|(_,root)|*root)
+    }
+}
+
 /// Explorer singleton selection shared with the layout owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ExplorerKind {

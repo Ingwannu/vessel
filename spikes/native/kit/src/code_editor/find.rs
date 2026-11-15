@@ -87,14 +87,14 @@ impl CodeEditor {
 
     /// End highlights and return focus to this document's editor.
     pub fn close_find(&self, window: &mut Window, cx: &mut App) {
-        self.state.update(cx, |state, cx| state.close_search(cx));
+        self.state.update(cx, gpui_base::input::EditorState::close_search);
         self.focus(window, cx);
     }
 
     /// Update a literal query and its case policy in the engine.
     pub fn find_query(&self, query: &str, case: FindCase, cx: &mut App) {
         self.state.update(cx, |state, cx| {
-            state.set_search_query(query, case == FindCase::Insensitive, cx)
+            state.set_search_query(query, case == FindCase::Insensitive, cx);
         });
     }
 
