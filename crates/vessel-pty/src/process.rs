@@ -57,6 +57,12 @@ impl PtyProcess {
     /// an I/O thread cannot be started. The program is stopped before an
     /// error is returned.
     pub fn spawn(spec: &CommandSpec, size: WindowSize) -> Result<(Self, PtyOutput), PtyError> {
+        Self::spawn_command(spec, size).map_err(|error| error.with_diagnostics(spec))
+    }
+
+    // Keep the existing ordered spawn/cleanup lifecycle together. The public
+    // wrapper seals every returned diagnostic without changing that lifecycle.
+    fn spawn_command(spec: &CommandSpec, size: WindowSize) -> Result<(Self, PtyOutput), PtyError> {
         let program = || spec.program.display().to_string();
         let pair = native_pty_system()
             .openpty(size.to_pty())
@@ -100,7 +106,7 @@ impl PtyProcess {
         );
         match started {
             Ok(threads) => {
-                tracing::debug!(pid, program = %spec.program.display(), "pty spawned");
+                tracing::debug!(pid, program = %spec.diagnostic_program().display(), "pty spawned");
                 Ok((
                     Self {
                         pid,
