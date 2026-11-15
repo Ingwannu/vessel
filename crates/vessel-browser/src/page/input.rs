@@ -1,14 +1,12 @@
 //! Input is confined to the owned page and its current CSS viewport.
-use super::{DeliveryState, Page, PageError};
+use super::{Page, PageError};
 use crate::cdp::requests::{InsertText, MouseEvent};
 use vessel_proto::browser::{HumanInput, KeyModifiers};
 
 impl Page {
     /// The node must first admit principal, resource and displayed-document revision.
     pub(crate) async fn human_input(&mut self, input: HumanInput) -> Result<(), PageError> {
-        if self.delivery == DeliveryState::Uncertain {
-            return Err(PageError::Uncertain);
-        }
+        self.active()?;
         match input {
             HumanInput::Pointer {
                 position,

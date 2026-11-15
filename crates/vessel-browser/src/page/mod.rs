@@ -20,6 +20,8 @@ pub(crate) enum PageError {
     Cdp(#[source] CdpError),
     #[error("browser target must be closed after an uncertain command")]
     Uncertain,
+    #[error("browser target is already closed")]
+    Closed,
     #[error("browser history has no permitted entry in that direction")]
     NoHistory,
     #[error("browser history contains an unsupported destination")]
@@ -42,6 +44,7 @@ pub(crate) enum PageError {
 enum DeliveryState {
     Active,
     Uncertain,
+    Closed,
 }
 
 /// Backend identity stays inside the execution crate; public `BrowserId` is owned above it.
@@ -146,6 +149,9 @@ impl Page {
 
     /// The owner invalidates its element references at this same boundary.
     pub(crate) fn invalidate(&mut self) -> Result<BrowserRevision, PageError> {
+        if self.delivery == DeliveryState::Closed {
+            return Err(PageError::Closed);
+        }
         if let Err(error) = self.references.invalidate() {
             self.delivery = DeliveryState::Uncertain;
             return Err(crate::snapshot::SnapshotError::from(error).into());
@@ -162,19 +168,31 @@ impl Page {
         &mut self,
         request: R,
     ) -> Result<R::Response, PageError> {
-        if self.delivery == DeliveryState::Uncertain {
-            return Err(PageError::Uncertain);
-        }
+        self.active()?;
+        // A cancelled future never reaches an error arm. Quarantine before the
+        // first await and restore only after its real typed acknowledgement.
+        self.delivery = DeliveryState::Uncertain;
         match self
             .client
             .execute(Some(self.session.clone()), request)
             .await
         {
-            Ok(result) => Ok(result),
+            Ok(result) => {
+                self.delivery = DeliveryState::Active;
+                Ok(result)
+            }
             Err(source) => {
                 self.delivery = DeliveryState::Uncertain;
                 Err(PageError::Cdp(source))
             }
+        }
+    }
+
+    fn active(&self) -> Result<(), PageError> {
+        match self.delivery {
+            DeliveryState::Active => Ok(()),
+            DeliveryState::Uncertain => Err(PageError::Uncertain),
+            DeliveryState::Closed => Err(PageError::Closed),
         }
     }
 
@@ -256,18 +274,26 @@ impl Page {
     ) -> Result<requests::Evaluated, PageError> {
         self.execute(requests::Evaluate::new(expression)).await
     }
-    pub(crate) async fn close(self) -> Result<(), PageError> {
+    pub(crate) async fn close(&mut self) -> Result<(), PageError> {
+        if self.delivery == DeliveryState::Closed {
+            return Ok(());
+        }
+        self.references.discard();
+        // The resident owner must keep this value/slot through acknowledgement;
+        // cancelling close cannot consume the handle to a still-live target.
+        self.delivery = DeliveryState::Uncertain;
         let result = self
             .client
             .execute(
                 None,
                 requests::CloseTarget {
-                    target_id: self.target,
+                    target_id: self.target.clone(),
                 },
             )
             .await
             .map_err(PageError::Cdp)?;
         if result.success {
+            self.delivery = DeliveryState::Closed;
             Ok(())
         } else {
             Err(PageError::CloseRefused)
@@ -289,3 +315,6 @@ fn surface(size: ViewportSize) -> Result<(), PageError> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod cancellation_tests;

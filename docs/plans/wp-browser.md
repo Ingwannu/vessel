@@ -957,3 +957,29 @@ qualified launch, isolation, Preview permission, rendering or supported engine.
 The three new forwarding fixtures are UNEXECUTED source at this checkpoint;
 changed-source Rust checks wait for the required announced gate49 dependency
 join. Source-only rustfmt/size/diff checks pass; no policy/runtime result follows.
+
+
+## Target cancellation before acknowledgement
+
+[Decision Log]
+- Purpose: dropping a page operation after CDP delivery must not leave its target
+  Active and permit another mutation against an uncertain document/input state.
+- Existing constraint: handling only execute's Err result misses future drop,
+  because cancellation never reaches that match arm. The new atomic CDP queue
+  prevents late NotDelivered writes but cannot restore a target's known state.
+- Choice: mark Uncertain before the first awaited command and restore Active only
+  after a typed acknowledgement. Reuse this single execute path for operations.
+  Close borrows the resident target instead of consuming it before its ACK; only
+  acknowledged closure makes it Closed, and later non-close commands refuse.
+- Why: page lifetime and target capacity belong to the retained profile actor,
+  not the caller's waiter. Cancelled close must not lose the only owned target
+  handle. A repeated acknowledged close reports the same completed fact without
+  another backend mutation; an uncertain close does not fabricate that fact.
+- Impact: controlled delayed-reply fixtures cover cancelled reload/close, refused
+  subsequent operations and idempotent acknowledged close. They are unexecuted
+  staged source, not a qualified actor, actual browser close or cleanup proof.
+
+Close discards current references without allocating a new generation, so
+exhaustion cannot block terminal cleanup. The Closed state cannot be moved back
+to Uncertain by revision invalidation. The delayed-close fixture waits for its
+late peer ACK before confirming the cancelled operation did not restore state.

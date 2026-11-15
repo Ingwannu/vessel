@@ -9,7 +9,7 @@ use tokio_tungstenite::tungstenite::Message;
 use vessel_proto::browser::{BrowserHistory, ViewportSide};
 const FIXTURE_DEADLINE: Duration = Duration::from_secs(20);
 
-fn viewport(width: u32, height: u32) -> ViewportSize {
+pub(super) fn viewport(width: u32, height: u32) -> ViewportSize {
     ViewportSize {
         width: ViewportSide::try_from(width).unwrap(),
         height: ViewportSide::try_from(height).unwrap(),

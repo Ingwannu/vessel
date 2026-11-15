@@ -81,12 +81,18 @@ impl<T> Default for References<T> {
     }
 }
 impl<T> References<T> {
+    /// Closing can discard all bindings even after the generation is exhausted.
+    /// No new reference is published by this terminal cleanup operation.
+    pub(crate) fn discard(&mut self) {
+        self.current.clear();
+    }
+
     /// Call before snapshot traversal, navigation, close or failed selection.
     ///
     /// # Errors
     /// A generation overflow requires closing the target, never reusing a generation.
     pub(crate) fn invalidate(&mut self) -> Result<SnapshotGeneration, ReferenceError> {
-        self.current.clear();
+        self.discard();
         let generation = self
             .generation
             .0
@@ -180,6 +186,20 @@ impl<T> References<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn terminal_discard_does_not_require_another_generation_or_retain_old_bindings() {
+        let mut refs = References::default();
+        let old = refs.assign("terminal-fixture-value").unwrap();
+        refs.generation = SnapshotGeneration(u64::MAX);
+        refs.discard();
+        assert!(matches!(refs.resolve(&old), Err(ReferenceError::Stale)));
+        assert!(matches!(
+            refs.begin_snapshot(),
+            Err(ReferenceError::Exhausted)
+        ));
+        assert!(refs.current.is_empty());
+    }
 
     #[test]
     fn replacement_never_aliases_an_old_ref_and_failed_traversal_stays_empty() {

@@ -5,6 +5,7 @@ use crate::snapshot::{self, Config, Snapshot, SnapshotError};
 impl Page {
     /// This is not runtime qualification. Actual profile/workspace/tool admission is above it.
     pub(crate) async fn snapshot(&mut self) -> Result<Snapshot, PageError> {
+        self.active()?;
         let namespace = match self.references.begin_snapshot() {
             Ok(namespace) => namespace,
             Err(error) => {
