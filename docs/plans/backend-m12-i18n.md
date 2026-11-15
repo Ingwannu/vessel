@@ -1,3 +1,48 @@
+## Settings package: gated and author-inspected, independent review pending
+
+Diagnostics `205f1e01` and Chat `b3ef8338` form this vocabulary package over
+`df11d9d5`. Exact product source `b3ef8338a09079319b4d4e03055e8865c0a4f530`
+passed A13 run `i18n-20261115T051353Z-b3ef8338`: all six native steps exit
+zero, no skips. Raw totals are 1,203 passed (1,201 ordinary plus two
+compile-fail doctests), zero failed, one existing ignored explicit display
+harness. App 50, kit 110, link 56, view 855, contract 10, matcher 3, page 117
+and doctests two. All four native crates actually recompiled. The gate took
+4m25 after its queue; sampled load started at 8.92 and ended at 21.92,
+with 29.01 before tests; no failure or saturation replay was needed.
+The released-catalog completeness and both directions of the one-language-only
+key rejection tests passed. Earlier failed test setup logs remain preserved.
+
+The author directly inspected 140 originals: 32 English/Korean before frames,
+48 English/Korean/pseudo after frames in both themes and four viewport sizes,
+24 picker/report popup frames at desktop/phone sizes, 24 English/Korean glyph
+frames at scales 1.25, 1.5 and two, and 12 actual copied-notice frames.
+All 32 before/after base-screen pairs are pixel-identical. The normal app's
+Run/Copy paths produced the report dialog and translated notice; its technical
+report schema/data remains intentionally English and unchanged. The isolated
+report has zero saved machines; these are no new node-probe or network tests.
+Capture manifests retain the exact binary/source hashes and rejected early
+navigation frames separately. The app and scratch data run under one ordinary
+development UID/GID with private config/home/runtime directories and an
+owner-only authority file. No production account or permissions changed.
+
+Unverified: current browser/wasm/Windows/real-GPU/accessibility and new actual
+persisted-preference I/O. The native input tests exercise the real language
+ dispatcher, selected display preference and composer caret, plus collected
+report/clipboard retention; they are not parent act-routing or real-node proof.
+Unmigrated neighboring Settings labels remain plain in pseudo mode. About's
+previous bounded reviewer pass stays separate; real fork/rewind and updater
+I/O evidence from that earlier package remains owed.
+
+Resume point: submit this package's exact source/gate/capture index to the
+independent reviewer first; fix any returned defect before new work. Only then
+coordinator acceptance and lead merge. The next requested area is Appearance,
+awaiting the lead's ownership ruling; no Appearance source is changed. Other
+Settings sections, Sidebar/Palette, Agents and Overview retain their owners.
+The authenticated display and isolated current fleet remain available for the
+older live fork/rewind proof; inspect the private process inventory and stop
+only verified owned PIDs when that work ends. No compiler or gate remains
+running for this package.
+
 ## Capture documentation correction
 
 The capture instructions now require a private authenticated display and the
