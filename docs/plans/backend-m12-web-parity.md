@@ -1065,3 +1065,19 @@ one whole gate and one combined review/capture submission at package end.
 The next package is the three assigned toast/modal defects listed above;
 its focus regressions begin with failing page tests. Their source is not
 part of this executed A2a checkpoint.
+
+## Feedback package: narrow toasts and modal ownership (test checkpoint)
+
+Reuse the existing toast host, Base UI dialog and new-session lifecycle.
+The reported problems are lower toasts covering the composer/question
+buttons, a late-mounted new prompt taking an open dialog's focus, and
+Escape before a dialog's initial focus. The focus cases begin as page
+regressions before a product change. One holds only the real lazy new-page
+asset until the modal owns focus; the other holds the initial-focus frame
+and sends a real keyboard Escape. The toast fixture uses the existing
+Copy session id action while a real fake-agent question remains open;
+it checks the same toast host's separation from prompt and question buttons.
+Its temporary clipboard-write permission belongs only to that disposable
+browser context and synthetic id. No service or OS permission is changed.
+These tests have passed type/lint checks; baseline behavior, fixes, final
+package gate and affected captures are not yet verified at this checkpoint.
