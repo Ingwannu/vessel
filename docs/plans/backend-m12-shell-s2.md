@@ -6,13 +6,14 @@ The previous shell worktree belongs to the continuing sidebar slice. This
 continuation uses a separate branch and local Cargo target directories; it
 does not modify that worktree. The sidebar handoff has now been read and
 its completed source integrated at `22025b12`. Width captures are complete,
-with the historical release's layout failures below retained. A separate
-sidebar-height package is under review; it is not mixed into this branch.
+with the historical release's layout failures below retained. The separate
+sidebar-height package `0690faed` received bounded source/gate/inspected-height
+visual approval; it is not mixed into this branch.
 This branch now addresses the theme-cycle input-boundary return through the
 existing action registry. The producer's bounded source/native gate passed;
 actual native terminal focus and complete platform input behavior remain
-outside that evidence. Machine
-filtering, notifications and message search follow afterwards.
+outside that evidence. The next package is the sidebar part of F4; command
+center and keyboard ownership transfers to its package owner after this action.
 
 ## Paired-book fixture verification
 
@@ -192,8 +193,8 @@ that preference or focused composition applies. It does not consume the
 event, run an action or save a preference on this path. A real GPUI platform
 key event with a focused kit input tests the interceptor preference, raw
 event propagation, unchanged theme and cleared sequence; separate real key
-events exercise the eight-step cycle and palette exclusion. These new
-checks are not yet compiled at this checkpoint. Actual OS AltGr and Mac
+events exercise the eight-step cycle and palette exclusion. These three checks passed through real GPUI input dispatch, and the changed
+app passed narrow Clippy. Actual OS AltGr and Mac
 keyboard behavior are not implied by the GPUI probe.
 
 There is no terminal focus surface in this native integration yet. Its
@@ -202,3 +203,25 @@ lands, rather than interpreting an invented toolkit context substring. The
 view's non-Mac terminal refusal and Mac allowance remain policy tests only.
 The existing test-only isolated shell constructor becomes crate-visible to
 reuse its no-I/O setup; no production factory or API is added.
+
+
+### Runtime evidence and package base
+
+The immutable capture executable was built from `4d7ab106` (ELF build ID
+`62992542b682e5dbc5d2db4bfd8edd7fdfbdff73`). Nineteen original frames were
+opened individually: desktop EN/KO and phone-width EN/KO show the General
+row, Light to Dark after Control+Alt+T, and desktop palette-open suppression
+followed by Escape and transition to System. Each saved preference projection
+matches the visible state, with no custom binding or forced theme variable.
+The first desktop KO navigation attempt remained on Draft; those five frames
+are retained and excluded from settings-row proof. The corrected desktop KO
+set supplies that proof. The capture manifest records each original's hash,
+size, role and the limited platform scope. System resolved to light in this
+isolated run; this is not proof of OS setting change delivery.
+
+The announced package base `8d5513e4` was merged cleanly at `961e55b4` before
+the final package gate. Shortcut, policy and theme product sources are unchanged
+from the capture source; the inherited isolated test factory now constructs the
+base's extracted update state. Captures are evidence for that exact executable,
+not a claim that the newly combined application's other areas were inspected.
+The one final combined native gate and review follow this checkpoint.
