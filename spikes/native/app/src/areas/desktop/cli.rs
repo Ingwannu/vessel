@@ -2,7 +2,9 @@
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
-use vessel_app_kit::ui::{Div, InteractiveElement as _, IntoElement as _, ParentElement as _};
+use vessel_app_kit::ui::{
+    Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
+};
 use vessel_app_kit::{Tokens, outline_button, settings};
 use vessel_app_link::desktop::{
     Error,
@@ -189,16 +191,19 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         Operation::Install => words.install_cli(),
         Operation::Remove => words.remove_cli(),
     };
-    let control = outline_button(
-        "desktop-cli-operation",
-        label.to_owned(),
-        state.allows(operation),
-        tokens,
-    )
-    .on_click(
-        cx.listener(move |shell, _event, _window, cx| shell.desktop_cli_operation(operation, cx)),
-    )
-    .into_any_element();
+    let control =
+        outline_button(
+            "desktop-cli-operation",
+            label.to_owned(),
+            state.allows(operation),
+            tokens,
+        )
+        .when(state.allows(operation), |control| {
+            control.on_click(cx.listener(move |shell, _event, _window, cx| {
+                shell.desktop_cli_operation(operation, cx)
+            }))
+        })
+        .into_any_element();
     let mut card = settings::card(tokens).child(settings::row(
         words.cli(),
         Some(hint.to_owned().into()),
@@ -231,7 +236,9 @@ pub(crate) fn section(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
         !matches!(state, State::Working(_)),
         tokens,
     )
-    .on_click(cx.listener(|shell, _event, _window, cx| shell.desktop_cli_refresh(cx)))
+    .when(!matches!(state, State::Working(_)), |control| {
+        control.on_click(cx.listener(|shell, _event, _window, cx| shell.desktop_cli_refresh(cx)))
+    })
     .into_any_element();
     card = card.child(settings::row(
         words.refresh(),

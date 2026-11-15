@@ -110,10 +110,13 @@ impl PathSetup {
         if let Some(parent) = rc.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut file = std::fs::OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(rc)?;
+        let mut file = match std::fs::OpenOptions::new().append(true).open(rc) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                crate::prefs::new_private_file(rc)?
+            }
+            Err(error) => return Err(error.into()),
+        };
         file.write_all(format!("\n{MARKER}\n{line}\n").as_bytes())?;
         Ok(PathStatus::Configured)
     }
