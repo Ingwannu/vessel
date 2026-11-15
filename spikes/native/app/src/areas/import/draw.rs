@@ -3,8 +3,8 @@
 use crate::shell::Shell;
 use vessel_app_kit::theme::spacing::{S2, S3, S4};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, DialogContent, DialogSize, Tokens, Type, TypeExt as _,
