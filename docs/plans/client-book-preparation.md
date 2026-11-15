@@ -1,10 +1,10 @@
 # Client book preparation on the node line
 
-This root-only chain starts at announced node1c762ccf. It carries the
-existing E2 route model and Unix private-file test staging frome98896f1a
+This root-only chain starts at announced node `1c762ccf`. It carries the
+existing E2 route model and Unix private-file test staging from `e98896f1a`
 without app ancestry, native files or an alternative public-values carrier.
 The nine pure BookRouteId/appearance/ManagedLocalAlias producer tests are
-already on the node base through gate50c; this does not duplicate them.
+already on the node base through gate 50c; this does not duplicate them.
 
 [Decision Log]
 - Purpose: keep the root client implementation single-sourced for later
@@ -17,15 +17,15 @@ already on the node base through gate50c; this does not duplicate them.
 - Why: moving the old app-derived branch would import unrelated native work
   and split the root's source evidence. A second store/connector would break
   the declared client ownership and authenticated identity boundaries.
-- Cost: previous client strict0 applies only toe988; this receiving tree
+- Cost: previous client strict rc 0 applies only to `e988`; this receiving tree
   must compile and execute its own tests before integration is requested.
 
 ## What exists
 
 The pure Connections/ConnectionSpec collection and legacy adapter expose
 checked configuration only. Four collection plus four legacy regressions
-are retained unchanged. V3's route source verdict row229 remains bounded;
-there is no format2 decoder, allocator/mutator, route failover or identity
+are retained unchanged. V3's route source verdict row 229 remains bounded;
+there is no format 2 decoder, allocator/mutator, route failover or identity
 association proof. The retained counter validates the current value;
 transactional historical nonreuse is a later obligation.
 
@@ -35,14 +35,14 @@ read/write call, lock, worker permit, retained redemption outcome or Windows
 safe backend is implemented by this preparation. Symlink/FIFO/cap/error
 cases are drafted regressions until actually executed on this tree.
 
-The existing approved ADR0097 contract is copied unchanged. Architecture,
-ADR0001 and the client module header name the approved rustix/fs dependency
+The existing approved ADR 0097 contract is copied unchanged. Architecture,
+ADR 0001 and the client module header name the approved rustix/fs dependency
 and its current staging limit. There is no client-to-store/fleet edge.
 
 ## Evidence and next steps
 
-Nine source files, including all new model/private-files tests and ADR0097,
-compare byte-identically toe988; the external proof is
+Nine source files, including all new model/private-files tests and ADR 0097,
+compare byte-identically to `e988`; the external proof is
 /tmp/work/m12-settings4/portable/root-preparation/source-proof.json.
 This is source identity, not a runtime or new-base PASS.
 
