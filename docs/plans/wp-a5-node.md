@@ -449,3 +449,12 @@ and calls snapshots are unchanged. Rust proto/web source is byte-identical to
 the tested commit. This settles the earlier named LimitPercent alias defect
 via announced9c, not an A5 assertion change. A clean-diff confirmation remains
 part of the owning whole gate; no whole/runtime/adoption result is implied.
+
+The announced gate52 node head1c762ccf is merged cleanly after the five-crate
+b028 unit result955/0/0 and the seven Store integration binaries42/0/0. The
+head assigns only six registry metadata methods to protocol25; A5's five
+methods and optional fields retain None. Store schema and own migration order
+are unchanged. New lifecycle candidate/listing schema is not consumed before
+its green announcement. The queued c957 strict run was superseded only after
+verified cancelled143; one normal-short replacement checks this merged source.
+No running unit/rollback execution was cancelled, and their b028 scope remains.
