@@ -1051,3 +1051,8 @@ and checks the complete file and effective settings after a refused endpoint
 switch. This would catch an implementation that persisted a provider reset before
 checking the new key, even if its same-provider key test passed. Production
 validation and writer code are unchanged; execution of this case is still owed.
+
+The buffered-start change imports Retention for its guard. The existing cancel
+path now uses that same imported name instead of its redundant qualified path;
+this removes unused_qualifications without changing stop selection or teardown.
+The preceding strict failure is retained; a changed-source strict check is owed.

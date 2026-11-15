@@ -267,10 +267,11 @@ impl Registry {
             Err(error) if matches!(error.as_ref(), RegistryError::Gone) => return Ok(()),
             Err(error) => return Err(error),
         };
-        let _first = entry.phase.borrow().control().stop(
-            Arc::new(StreamError::Cancelled),
-            super::control::Retention::Forget,
-        );
+        let _first = entry
+            .phase
+            .borrow()
+            .control()
+            .stop(Arc::new(StreamError::Cancelled), Retention::Forget);
         entry.stop.cancel();
         entry.finished.cancelled().await;
         Ok(())
