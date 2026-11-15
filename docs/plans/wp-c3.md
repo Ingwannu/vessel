@@ -107,3 +107,6 @@ The words are unverified pending a fresh changed-tree narrow check.
 Next: complete typed link/screen/words skeleton, node All private index,
 classified history, observation/cache and the write policy. No C3 row is claimed
 built or passed. Existing bounded Git/PR approval is not package parity.
+The new Fluent build rejected missing per-key translator context comments;
+every new key now names its actual place and intended meaning. This correction
+has not been claimed green before the changed-tree narrow check.
