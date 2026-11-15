@@ -84,8 +84,8 @@ pub use drivers::Driver;
 pub use error::{AgentError, Disconnect, InputError, LaunchRefusal};
 pub use handshake::{AgentSetup, DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom, ForkRefusal};
 pub use history::{
-    HistoryEntry, HistoryError, HistoryFrom, HistoryPage, MAX_ENTRIES as HISTORY_MAX_ENTRIES,
-    NotACursor, history, history_with,
+    HistoryEntry, HistoryError, HistoryFrom, HistoryPage, HistoryTimestamp,
+    MAX_ENTRIES as HISTORY_MAX_ENTRIES, NotACursor, history, history_with,
 };
 pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};

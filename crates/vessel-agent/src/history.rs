@@ -45,10 +45,20 @@ const STOP_GRACE: Duration = Duration::from_secs(2);
 pub const MAX_ENTRIES: usize = 1000;
 
 /// The most pages of the agent's one listing asks while they hold nothing.
-const MAX_PAGES: usize = 10;
+pub(crate) const MAX_PAGES: usize = 10;
 
 /// How many of the agent's last stderr lines a failure carries.
 const LOG_LINES: usize = 5;
+
+/// Provider time before the node's calendar conversion. Keeping the source format
+/// avoids a second calendar dependency or a fabricated timestamp in a driver.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HistoryTimestamp {
+    /// ACP's original RFC 3339 value; invalid dates stay unknown at projection.
+    Rfc3339(String),
+    /// Native Codex's observed Unix seconds.
+    UnixSeconds(i64),
+}
 
 /// One conversation the agent keeps.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,8 +69,8 @@ pub struct HistoryEntry {
     pub cwd: PathBuf,
     /// Its title, as the agent gives it.
     pub title: Option<String>,
-    /// When it was last active, as the agent says it (ISO 8601).
-    pub updated_at: Option<String>,
+    /// When it was last active, in the provider's observed format.
+    pub updated_at: Option<HistoryTimestamp>,
 }
 
 /// A page of conversations and where the next one starts.
@@ -121,9 +131,9 @@ pub enum HistoryError {
     /// The agent could not be started.
     #[error("cannot start the agent")]
     Spawn(#[source] AgentError),
-    /// The agent does not list its conversations (`sessionCapabilities.list`)
-    /// or cannot load one (`loadSession`).
-    #[error("the agent does not list its conversations over ACP")]
+    /// The native listing method is absent, or ACP does not advertise listing
+    /// and loading conversations.
+    #[error("the agent does not list its conversations over this protocol")]
     CannotList,
     /// The agent refused the request as invalid (`invalid_params`): a
     /// cursor it no longer knows, or a folder it does not take.
@@ -329,7 +339,7 @@ async fn list(
                 session: HarnessSessionId::new(session.session_id.0),
                 cwd: session.cwd,
                 title: session.title,
-                updated_at: session.updated_at,
+                updated_at: session.updated_at.map(HistoryTimestamp::Rfc3339),
             })
             .collect();
         if entries.len() > MAX_ENTRIES {

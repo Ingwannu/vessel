@@ -119,3 +119,30 @@ click from corrupting a transcript.
 - Not offered: previews; a search over the agent's list (a client's
   filter over pages it loaded); copying a transcript into Vessel without
   the agent.
+
+## Native Codex listing (A4, 2026-11-15)
+
+[Decision Log]
+- Purpose: the selectable native Codex driver must list the same provider-owned
+  conversations through `agent.history`, rather than always returning unsupported.
+- Existing boundary: `session.create(resume)` remains the only import path; native
+  files, credentials, provider configuration and process cwd are not read to invent
+  history. W22 already owns a prompt-free catalogue probe.
+- Choice: extract its bounded stdio transaction into `codex/read_probe.rs`; history
+  and catalogue share initialization, response identity checks, cancellation-owned
+  readers and process teardown. Only `initialize`, `initialized`, `thread/list` are
+  emitted by history. Unexpected server requests end the probe without approval.
+- Native `thread/list` requests use updated-at order, optional original cwd and
+  provider cursor. Empty filtered pages advance at most ten times, returning a real
+  continuation; cycles/malformed metadata fail. At most 1000 rows, 512-byte native
+  ids, 4096-byte absolute folders, 64-KiB titles and the existing bounded wire line
+  are accepted. Unknown folder rows are omitted, never assigned the process cwd.
+- Tradeoffs: exact native folder matching does not canonicalize symlinks. Missing
+  metadata remains unknown; native seconds and ACP RFC3339 values are validated by
+  the node's existing calendar owner through `HistoryTimestamp`, avoiding a second
+  date library or handwritten calendar conversion in the agent crate. Invalid
+  native dates stay unknown, and observed epoch zero remains a valid date.
+- Validation: typed in-memory peer tests exercise actual request emission, empty
+  filter paging, unknown time/folder, cursor cycles, malformed identity, explicit
+  method-not-found and refusal of unsolicited approval. Remote compilation and
+  actual fake-process integration evidence are recorded separately when completed.

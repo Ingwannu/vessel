@@ -67,6 +67,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use serde_json::{Value, json};
 
+#[path = "fake_codex_app_server/history.rs"]
+mod history;
+
 /// The version printed when `FAKE_CODEX_VERSION` is unset: the one the
 /// driver's schema was generated from.
 const VERSION: &str = "0.166.0";
@@ -156,6 +159,7 @@ impl Server {
             let id = message.get("id").cloned();
             let method = message.get("method").and_then(Value::as_str);
             let params = message.get("params").cloned().unwrap_or(Value::Null);
+            history::audit(method);
             let done = match (id, method) {
                 (Some(id), Some(method)) => self.request(&id, method, &params),
                 (Some(id), None) => self.answered(&id, &message),
@@ -179,6 +183,7 @@ impl Server {
                     "platformOs": "linux"
                 }}))
             }
+            "thread/list" => self.send(&history::page(id, params)),
             "thread/start" => {
                 let thread = format!("fake-thread-{}", std::process::id());
                 self.opened(id, &thread, params)
