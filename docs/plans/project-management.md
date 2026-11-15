@@ -189,3 +189,21 @@ Uncertain outcomes remain distinct, with no repeat filesystem effect on replay.
 This is a scope/ownership update only. The three files remain staged and have
 no current checked-adapter adoption claim. The frozen minimal registry delivery
 excludes them and continues its independent final gate and source review.
+
+
+## Admission producer extraction and current validation limits
+
+Project admission and the reserved backing primitive are being reviewed as a
+separate small dependency on the announced node base. The isolated producer
+preserves legacy NotGit/NotReady outcomes and excludes duplicate in-flight fixed
+ids even when callers share one admission. The older draft in this continuation
+is source reference only and must be reconciled to the reviewed producer before
+use; its older check is not evidence for the isolated dependency.
+
+The original continuation strict check stopped in a canonical-budget doc comment
+before compiling the project changes. The reviewed comment-only correction is
+now present. The primitive alias table also stops classifying WorkspaceOperationId
+until an actual wire declaration reaches it, matching the node integration fix;
+this changes no generated declaration. Fresh strict and TypeScript checks remain
+owed. No provisioning, config or membership adapter becomes checked by these
+source corrections.
