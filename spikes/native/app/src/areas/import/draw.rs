@@ -126,6 +126,7 @@ fn button(
     let enabled = state(&action, &shell.areas.import.model);
     let listener = super::intent::listener(shell, action);
     button_with_kind(id, label, kind, enabled, tokens)
+        .debug_selector(move || id.to_owned())
         .on_click(cx.listener(move |shell, _, window, cx| listener(shell, window, cx)))
         .into_any_element()
 }
