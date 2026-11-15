@@ -22,7 +22,7 @@ const SILENCE_PEAK: u16 = 300;
 
 /// Preserve numeric causes without retaining any audio in an error.
 #[derive(Debug, thiserror::Error)]
-enum AudioError {
+pub(super) enum AudioError {
     /// Typed PCM guarantees complete samples; retain a decoder defect's cause.
     #[error("dictation PCM did not contain complete samples")]
     SampleWidth(#[source] std::array::TryFromSliceError),
@@ -122,7 +122,7 @@ fn interpolate(left: i16, right: i16, phase: u32) -> Result<i16, AudioError> {
 
 /// One commit's audio is detached before HTTP can await or another chunk arrives.
 #[derive(Clone)]
-struct Segment(Bytes);
+pub(super) struct Segment(Bytes);
 
 impl fmt::Debug for Segment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -131,8 +131,14 @@ impl fmt::Debug for Segment {
 }
 
 impl Segment {
+    /// Form fixtures use parsed PCM without depending on silence or resampling.
+    #[cfg(test)]
+    pub(super) fn from_test_pcm(pcm: DictationPcm) -> Self {
+        Self(pcm.into_bytes())
+    }
+
     /// Encode WAV directly into the multipart body, avoiding a second WAV copy.
-    fn append_wav(&self, output: &mut Vec<u8>) -> Result<(), AudioError> {
+    pub(super) fn append_wav(&self, output: &mut Vec<u8>) -> Result<(), AudioError> {
         let length = u32::try_from(self.0.len()).map_err(AudioError::Count)?;
         let header = u32::try_from(WAV_HEADER_BYTES.saturating_sub(RIFF_PREFIX_BYTES))
             .map_err(AudioError::Count)?;
@@ -156,7 +162,7 @@ impl Segment {
     }
 
     /// Multipart framing checks its generated delimiter against binary content.
-    fn as_slice(&self) -> &[u8] {
+    pub(super) fn as_slice(&self) -> &[u8] {
         &self.0
     }
 }

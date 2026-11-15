@@ -326,8 +326,8 @@ First stage the independent TLS-only cache and fixed multipart encoder. Each
 owns its typed error; neither depends on the HTTP client's error or destination.
 The cache test cancels its first waiter while one initializer continues. Form
 tests check independent framing, UTF-8 fields, one binary WAV, bounded delimiter
-collisions and an entropy failure that keeps its cause. Then stage the HTTP
-client and foreign JSON decoder, whose errors wrap those lower causes once.
+collisions and an entropy failure that keeps its cause. Then stage the foreign JSON decoder and HTTP client in separate review slices;
+the client wraps those lower causes once.
 
 The client tests use only loopback, covering the fixed header/body, redirect
 refusal, a chunked response over its cap, invalid/empty credentials before work,
@@ -355,9 +355,16 @@ loader. Preserve unknown fields if the common policy preserves them. Selection
 is not a secret-store transaction and caches no credential. Read/start errors
 must not expose a secret name through an existing store error's diagnostic.
 
-Next: finish the returned no-retry contract correction, then stage the independent
-root cache and multipart code, HTTP/JSON, and
-the actor. Wiring waits for the shared protocol accessor and call-table refactor,
+Half-done: the independent TLS-root cache and fixed multipart encoder are staged
+beside audio. The form uses the real WAV encoder; only its test fixture bypasses
+resampling and silence to keep framing tests independent. The cancelled-waiter,
+form framing, collision and entropy-cause tests are beside those rules. Narrow
+node clippy passes; this commit still needs its whole gate for runtime evidence.
+The returned endpoint contract now explicitly chooses one upload with retries
+disabled; the HTTP implementation and request-count tests are still owed.
+
+Next: finish the root/form whole gate, then stage JSON decoding, the HTTP
+client and the actor in small review slices. Wiring waits for the shared protocol accessor and call-table refactor,
 removes staging, and gets a whole product gate with actual transport close and
 scope tests. Name the one-second input-chunk duration beside the segment bound
 when wiring it; the segment limit must keep following the proto chunk rule.

@@ -5,4 +5,6 @@
 //! tests exercise the real audio/identity code without widening its API.
 
 mod audio;
+mod multipart;
 mod owner;
+mod roots;
