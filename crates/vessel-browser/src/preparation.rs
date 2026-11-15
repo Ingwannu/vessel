@@ -8,7 +8,7 @@
 
 use std::sync::{Arc, OnceLock};
 
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 
@@ -31,6 +31,11 @@ pub(crate) struct Preparation {
     gate: Arc<Semaphore>,
     tasks: TaskTracker,
     cancel: CancellationToken,
+    registration: Arc<Mutex<Admission>>,
+}
+enum Admission {
+    Open,
+    Closed,
 }
 impl Preparation {
     pub(crate) fn for_profile(cancel: CancellationToken) -> Self {
@@ -44,6 +49,7 @@ impl Preparation {
             gate,
             tasks: TaskTracker::new(),
             cancel,
+            registration: Arc::new(Mutex::new(Admission::Open)),
         }
     }
 
@@ -59,23 +65,29 @@ impl Preparation {
         if self.is_cancelled() {
             return Err(PreparationError::Closed);
         }
-        let permit = Arc::clone(&self.gate)
-            .try_acquire_owned()
-            .map_err(|_| PreparationError::Busy)?;
-        if self.is_cancelled() {
-            return Err(PreparationError::Closed);
-        }
-        let cancel = self.cancel.clone();
-        // TaskTracker::spawn_blocking moves its token into this same OS-work
-        // closure. Dropping/aborting the caller's JoinHandle cannot release it.
-        let task = self.tasks.spawn_blocking(move || {
-            let _permit = permit;
-            if cancel.is_cancelled() {
-                Err(PreparationError::Closed)
-            } else {
-                Ok(work())
+        let task = {
+            // Registration and tracker closing must serialize: close cannot
+            // observe empty and return just before an admitted job is tracked.
+            // No guard is retained across OS work or any later await.
+            let registration = self.registration.lock().await;
+            if matches!(*registration, Admission::Closed) || self.is_cancelled() {
+                return Err(PreparationError::Closed);
             }
-        });
+            let permit = Arc::clone(&self.gate)
+                .try_acquire_owned()
+                .map_err(|_| PreparationError::Busy)?;
+            let cancel = self.cancel.clone();
+            // The tracker token and permit live in the actual OS-work closure,
+            // including when its caller drops the detached JoinHandle.
+            self.tasks.spawn_blocking(move || {
+                let _permit = permit;
+                if cancel.is_cancelled() {
+                    Err(PreparationError::Closed)
+                } else {
+                    Ok(work())
+                }
+            })
+        };
         let result = tokio::select! {
             ()=self.cancel.cancelled()=>return Err(PreparationError::Closed),
             result=task=>result.map_err(PreparationError::Task)??,
@@ -88,7 +100,11 @@ impl Preparation {
 
     pub(crate) async fn finish(&self) {
         self.cancel.cancel();
-        let _closed = self.tasks.close();
+        {
+            let mut registration = self.registration.lock().await;
+            *registration = Admission::Closed;
+            let _closed = self.tasks.close();
+        }
         self.tasks.wait().await;
     }
 }
@@ -195,6 +211,39 @@ mod tests {
             scope.finish().await;
             assert_eq!(gate.available_permits(), 1);
             assert!(!published.load(std::sync::atomic::Ordering::Acquire));
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn close_cannot_miss_a_registration_waiting_at_its_boundary() {
+        tokio::time::timeout(FIXTURE_DEADLINE, async {
+            let gate = Arc::new(Semaphore::new(1));
+            let scope = Preparation::with_gate(CancellationToken::new(), Arc::clone(&gate));
+            let registration = scope.registration.lock().await;
+            let used = Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let marker = Arc::clone(&used);
+            let caller_scope = scope.clone();
+            let (started, entered) = oneshot::channel();
+            let caller = tokio::spawn(async move {
+                let _gone = started.send(());
+                caller_scope
+                    .run(move || marker.store(true, std::sync::atomic::Ordering::Release))
+                    .await
+            });
+            entered.await.unwrap();
+            let finish_scope = scope.clone();
+            let closing = tokio::spawn(async move { finish_scope.finish().await });
+            scope.cancel.cancelled().await;
+            drop(registration);
+            assert!(matches!(
+                caller.await.unwrap(),
+                Err(PreparationError::Closed)
+            ));
+            closing.await.unwrap();
+            assert!(!used.load(std::sync::atomic::Ordering::Acquire));
+            assert_eq!(gate.available_permits(), 1);
         })
         .await
         .unwrap();
