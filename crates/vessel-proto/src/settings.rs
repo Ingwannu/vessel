@@ -53,8 +53,8 @@ impl NodeSettings {
     pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
         let recovery =
             self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL);
-        let hide_mcp = self.mcp.is_some()
-            && !crate::mcp::MCP_PARITY.is_some_and(|required| protocol >= required);
+        let hide_mcp =
+            self.mcp.is_some() && crate::mcp::MCP_PARITY.is_none_or(|required| protocol < required);
         match (recovery, hide_mcp) {
             (Some(mut adapted), _) => {
                 if hide_mcp {

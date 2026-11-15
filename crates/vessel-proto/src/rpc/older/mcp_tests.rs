@@ -1,7 +1,8 @@
 //! Agent tool settings stay hidden on direct, legacy mutation and routed replies.
 
 use super::*;
-use crate::mcp::{Injection, MCP_PARITY, McpSettings, McpSettingsPatch};
+use crate::mcp::{Injection, MCP_PARITY, McpSettings, McpSettingsPatch, ProviderPolicies};
+use crate::restart::RestartRecovery;
 use crate::settings::{AgentDrivers, NodeSettings, SetNodeSettings};
 use crate::{Outcome, Request, RequestId, ServerFrame};
 
@@ -17,7 +18,7 @@ fn a_pending_settings_edit_cannot_be_silently_sent_as_an_old_method() {
     .into_call();
     assert_eq!(
         call.required_protocol(),
-        MCP_PARITY.map(|version| version.max(crate::ProtocolVersion::new(12)))
+        MCP_PARITY.map(|version| version.max(ProtocolVersion::new(12)))
     );
     let node = crate::NodeId::random();
     let forwarded = crate::Forward {
@@ -27,7 +28,7 @@ fn a_pending_settings_edit_cannot_be_silently_sent_as_an_old_method() {
     .into_call();
     assert_eq!(
         forwarded.required_protocol(),
-        MCP_PARITY.map(|version| version.max(crate::ProtocolVersion::new(12)))
+        MCP_PARITY.map(|version| version.max(ProtocolVersion::new(12)))
     );
 }
 
@@ -36,16 +37,16 @@ fn settings_projection_covers_every_routed_and_direct_reply() {
     let original = NodeSettings {
         park_after: crate::parking::ParkAfter::Never,
         drivers: AgentDrivers::default(),
-        restart_recovery: Default::default(),
+        restart_recovery: RestartRecovery::default(),
         mcp: Some(McpSettings {
             inject: Injection::On,
-            policy: Default::default(),
+            policy: ProviderPolicies::default(),
         }),
     };
     let mut expected = original.clone();
     expected.mcp = None;
     for number in crate::MIN_PROTOCOL_VERSION.get()..=crate::PROTOCOL_VERSION.get() {
-        let version = crate::ProtocolVersion::new(number);
+        let version = ProtocolVersion::new(number);
         if MCP_PARITY.is_some_and(|required| version >= required) {
             continue;
         }
