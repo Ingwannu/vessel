@@ -781,3 +781,52 @@ The joint release integration must test both cases: refused release keeps
 the owned observation live, and successful release revokes while the child
 continues until its independently observed exit. The assigned carrier base
 has no release operation; those joint tests remain with that integration.
+
+### Service health observation clock preparation
+
+[Decision Log]
+
+- Purpose and intent: preserve the reference health transitions independently
+  of process launch and socket ownership, so a later route owner can consume
+  one tested rule rather than reimplementing the grace and failure counter.
+- Existing assets and constraints: the terminal service actor exposes launch
+  and backoff status but no TCP health state. The listener scan and the new
+  process observer do not prove an eligible route. Paseo's
+  `server/script-health-monitor.ts:33–52,89–125,144–160,209–226` starts grace
+  when the route is first observed, skips probes during grace, retains the
+  previous health after an isolated failure, resets failures on success and
+  emits only when health changes. Its scheduler and TCP timeout are separate
+  from that transition rule.
+- Alternatives: equate running with healthy; start grace at process spawn;
+  duplicate the transition logic in a proxy and in Preview; or keep a private
+  observation clock next to the staged service runtime. The first two do not
+  match the reference, and the third gives ownership policy multiple sources.
+- Choice: add a private `health` module under the node terminal boundary,
+  staged with the existing test-only mechanism until its approved route
+  caller is wired. `HealthClock` owns pending/healthy/unhealthy, first
+  observation time and a saturating consecutive-failure count. Its single
+  lazy probe operation checks `GRACE` before invoking the callback and applies
+  only the completed probe outcome; `FAILURES_BEFORE_UNHEALTHY` names the one
+  threshold. The operation returns an optional changed state, so an unchanged
+  poll does not request publication. A mutable borrow prevents overlapping
+  polls on the same clock; dropping a pending poll commits no result.
+- Reuse decision: new focused module using existing Tokio time and standard
+  futures. No dependency, crate edge, wire state, RPC or client authority is
+  added. The pure clock neither opens sockets nor accepts a hostname, URL,
+  port or PID, and cannot construct a route or process observation.
+- Differences and required integration: Paseo retains its clock by hostname
+  while that hostname remains registered. Vessel's future route owner must
+  discard the clock when the actual process run is replaced or ownership is
+  revoked, even if the hostname is unchanged. This conservative difference
+  prevents a replacement inheriting a predecessor's healthy status. It must
+  cancel the old probe before replacing its clock and recheck the exact run
+  and fresh eligible route before publishing a result. An old callback result
+  is never Preview authority. Observation time means first eligible route
+  observation, not declared port allocation, process spawn or UI publication.
+- Costs and limits: this step implements no route registry, poll scheduler,
+  TCP connector, probe timeout, health event projection or Preview admission.
+  Those remain with the approval-checked runtime package and its full gate.
+  Tests use synthetic instants, a lazy fake callback and a pending future;
+  they owe grace-boundary, repeated-state, recovery/failure-reset, saturation,
+  cancellation and independent replacement-clock coverage without real
+  sockets, processes or sleep-based coordination.

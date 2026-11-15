@@ -450,3 +450,17 @@ remains test-only and does not qualify allocator, proxy or health execution.
 Archive and editor targets belong to the registry package (ADR 0082); this
 track has handed over no implementation for either. Focused composition checks
 remain owed before further runtime wiring.
+
+
+## Health clock preparation
+
+Reference reopened: `server/script-health-monitor.ts:33–52,89–125,144–160,
+209–226`. The existing actor, scanner and observer do not own TCP health.
+Add the focused test-only observation clock defined in ADR 0066, using the
+reference first-observation grace and consecutive-failure transitions. No
+networking or route authority is introduced. The future route owner must
+cancel pending probes and replace this clock on actual run replacement;
+Paseo's retained-hostname behavior is deliberately stricter here as stated
+in the ADR. Scheduler, real probe, eligibility, projection and consumer
+integration remain owed. Resume: contract committed before clock code;
+focused checks and the runtime package gate are still pending.
