@@ -308,8 +308,8 @@ impl Shell {
 }
 
 /// The session composer's text with its keys offered to the menu first
-/// (`field::composer_hooks`). Pastes are the text's until the attachments
-/// slice takes images.
+/// (`field::composer_hooks`); pasted images and files are attached
+/// (`files.rs`).
 pub(crate) fn text(
     shell: &Shell,
     tokens: &Tokens,
@@ -340,6 +340,8 @@ fn hooked_text(
     let field = shell.slash_field(over);
     let element = field.element(tokens, touch, cx);
     let weak = cx.entity().downgrade();
+    let pasting = weak.clone();
+    let new_chat = over == Over::Draft;
     hooked(
         field,
         element,
@@ -347,7 +349,12 @@ fn hooked_text(
             weak.update(cx, |shell, cx| shell.slash_key(over, key, window, cx))
                 .unwrap_or(KeyAnswer::Pass)
         },
-        |_pasted, _window, _cx| KeyAnswer::Pass,
+        // Pasted images and files are the composer's attachments.
+        move |pasted, _window, cx: &mut App| {
+            pasting
+                .update(cx, |shell, cx| shell.composer_pasted(new_chat, pasted, cx))
+                .unwrap_or(KeyAnswer::Pass)
+        },
     )
 }
 
