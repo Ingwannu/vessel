@@ -14,12 +14,19 @@ use vessel_app_view::layout::{
 use vessel_proto::InvalidTitle;
 
 pub(super) struct Rename {
+    workspace: vessel_app_view::layout::LayoutKey,
     machine: HostAlias,
     node: vessel_proto::NodeId,
     target: RenameTarget,
     field: TextField,
     phase: RenamePhase,
     invalid: Option<InvalidTitle>,
+}
+impl Rename {
+    #[cfg(test)]
+    pub(super) const fn workspace(&self) -> &vessel_app_view::layout::LayoutKey {
+        &self.workspace
+    }
 }
 impl Shell {
     pub(super) fn layout_start_rename(
@@ -30,7 +37,8 @@ impl Shell {
     ) {
         // The legacy route cannot supply original-node authority until its
         // lifecycle binding adapter lands. Never bless it from the latest fleet.
-        let Ok(vessel_app_view::layout::LayoutKey::Workspace { node, .. }) = super::key(self)
+        let Ok(workspace @ vessel_app_view::layout::LayoutKey::Workspace { node, .. }) =
+            super::key(self)
         else {
             return;
         };
@@ -70,6 +78,7 @@ impl Shell {
         field.focus(window, cx);
         self.areas.layout.rename_ticket = ticket;
         self.areas.layout.rename = Some(Rename {
+            workspace,
             machine,
             node,
             target: RenameTarget::Agent(session),
@@ -131,9 +140,10 @@ impl Shell {
         answer: vessel_app_link::workspace::layout::Answer,
         cx: &mut Context<'_, Self>,
     ) {
-        let active_node = match super::key(self) {
-            Ok(vessel_app_view::layout::LayoutKey::Workspace { node, .. }) => Some(node),
-            Ok(vessel_app_view::layout::LayoutKey::Session { .. }) | Err(_) => None,
+        let active_workspace = super::key(self).ok();
+        let active_node = match &active_workspace {
+            Some(vessel_app_view::layout::LayoutKey::Workspace { node, .. }) => Some(*node),
+            Some(vessel_app_view::layout::LayoutKey::Session { .. }) | None => None,
         };
         let Some(form) = self.areas.layout.rename.as_mut() else {
             return;
@@ -168,6 +178,7 @@ impl Shell {
                     open.session == session
                         && open.machine == form.machine.as_str()
                         && active_node == Some(form.node)
+                        && active_workspace.as_ref() == Some(&form.workspace)
                 }) {
                     title.as_str().clone_into(&mut open.title);
                 }
