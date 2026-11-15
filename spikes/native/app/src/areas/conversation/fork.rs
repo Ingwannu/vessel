@@ -359,5 +359,13 @@ impl Shell {
     }
 }
 
+// Owner snapshot preparation; no staged exemption in the product path.
+#[cfg(test)]
+impl Forking {
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.pending.is_some() || self.opening.is_some() || self.removing
+    }
+}
+
 #[cfg(test)]
 mod language_tests;

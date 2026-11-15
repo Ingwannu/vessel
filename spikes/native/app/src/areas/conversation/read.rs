@@ -167,3 +167,11 @@ impl Shell {
         self.act(Act::Mark(Mark::Read { through }));
     }
 }
+
+// Owner snapshot preparation; no staged exemption in the product path.
+#[cfg(test)]
+impl ReadMarks {
+    pub(super) fn snapshot_busy(&self) -> bool {
+        self.in_flight || self.scheduled.get()
+    }
+}
