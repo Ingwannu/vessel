@@ -134,7 +134,9 @@ refuses unsupported/unassigned calls before sending; it never falls back to
 an unkeyed prompt automatically. The original `session.prompt` is unchanged.
 
 The authorized node path validates the entire prompt and session ownership
-before making a receipt. Store admission is atomic on `(session, message)`.
+before making a receipt. All new tables use one migration, newest schema plus one on the branch; the
+integrator re-points this migration at merge. Store admission is atomic on
+`(session, message)`.
 A canonical fingerprint covers validated content, delivery and authenticated
 creator (not request/transport ids). A different fingerprint conflicts;
 completed returns the stored result; pending returns OutcomeUnknown and
@@ -179,16 +181,18 @@ session-owned records; moving/reloading rehydrates them rather than cancels them
 
 ## Versioning, activation and older peers
 
-Use three `Option<ProtocolVersion>` constants, all `None` until integration:
-`TIMELINE_DETAILS`, `PROMPT_RECEIPTS`, `DURABLE_QUESTIONS`. Documentation on each
-names its required consumers (native app, web, CLI and inbox/forwarding). Calls
+Use one `TIMELINE_PARITY: Option<ProtocolVersion> = None` until integration.
+Its documentation names the required consumers (native app, web, CLI and
+inbox/forwarding). All package fields, events and calls share this gate. Calls
 use the shared required-protocol accessor and, after the announced method-table
 head, pending rows. No parallel registry. Call registration waits for that head.
 
-The central event adaptation must apply even when legacy `since()` would allow
-the enclosing event. New item variants become an inert `HarnessLog` stand-in
+Events use the shared `SessionEvent::required_protocol() ->
+Option<ProtocolVersion>` shape introduced by the lifecycle prerequisite. None
+means unassigned, never a sentinel or the current version. The central event
+adaptation must apply even when the enclosing legacy variant is supported. New item variants become an inert `HarnessLog` stand-in
 with the same sequence; optional details/identities/presentation are stripped;
-Canceled becomes the legacy Failed status. Before DURABLE_QUESTIONS is assigned,
+Canceled becomes the legacy Failed status. Before TIMELINE_PARITY is assigned,
 no product driver emits session-lifetime requests. Older peers must not receive
 a falsely actionable version of a nonblocking/uncertain question: its event is
 an inert stand-in and it is omitted from actionable snapshot/inbox lists.

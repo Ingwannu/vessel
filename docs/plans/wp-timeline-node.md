@@ -61,8 +61,10 @@ schema is pinned to Codex 0.166.0; unsupported incoming kinds must not be invent
 ## Differences and activation
 
 The ADR lists every deliberate difference and bidirectional old-peer behavior.
-TIMELINE_DETAILS, PROMPT_RECEIPTS, DURABLE_QUESTIONS remain None; no provisional
-numbers. Whole package root gate only at completion; narrow per-crate checks
+The single TIMELINE_PARITY constant remains None; no provisional protocol
+number. One migration holds all tables, newest schema plus one locally and
+re-pointed by integration. New events use the shared optional required-protocol
+shape from the lifecycle prerequisite. Whole package root gate only at completion; narrow per-crate checks
 while implementing. Schema number and shared method-table head are dependencies.
 Node fake fixtures only; no real agent, preview, production config or service.
 No native UI files are owned by this package.
@@ -71,7 +73,9 @@ No native UI files are owned by this package.
 
 Done: fresh worktree from the announced node head, source/survey inventory,
 existing assets checked, ADR and contract written.
-In progress: contract review and schema allocation requested.
+In progress: contract review. Integration ruling: one optional protocol constant;
+one newest-plus-one migration, re-pointed at merge; shared event accessor.
+Quality B head is still awaited.
 Next: resolve review; send exact approved types to native/CLI consumers; value
 modules, adapter fixtures, persistence/state machines, typed client/service
 wiring once the shared head is announced; regenerate TS; one complete root gate.
