@@ -330,18 +330,6 @@ pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
         .open(path)
 }
 
-/// The dispatcher's existing off-thread save and warning boundary. It waits for
-/// the same task as before; it does not add another persistence owner or retry.
-#[cfg(not(target_arch = "wasm32"))]
-pub(super) async fn persist(prefs: Box<Prefs>) {
-    let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
-    match saved {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => tracing::warn!(%error, "could not save the app's choices"),
-        Err(error) => tracing::warn!(%error, "could not save the app's choices"),
-    }
-}
-
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;

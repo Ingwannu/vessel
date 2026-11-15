@@ -1,4 +1,6 @@
 //! One typed panel registration point. Resource state belongs to the owning area.
+#[cfg(test)]
+pub(crate) mod retirement;
 use crate::shell::Shell;
 use vessel_app_kit::Tokens;
 use vessel_app_kit::theme::spacing;
@@ -36,7 +38,7 @@ pub(super) fn render(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    if !shell.layout_tab_exists(panel.workspace, panel.tab)
+    if !shell.layout_tab_matches(panel.workspace, panel.tab, panel.target)
         || !shell.layout_panel_visible(panel.workspace, panel.tab, window)
     {
         return div().into_any_element();

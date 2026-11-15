@@ -705,3 +705,14 @@ words and terminal states); they are not new A8 exclusions. This is a narrow
 runtime suite, including baseline tests, not a whole gate or review. It proves
 neither full rich receipt/provider activation nor live resident/lease ingress,
 OS IME, visual captures or private CLI behavior. Those remain incomplete.
+
+## Official base 82ca07a7 union
+
+The full A8 tree now merges announced package base 8e, after the native730
+runtime run completed and before any final whole-package gate. The only source
+conflict was two identical preference-save extractions. The union keeps the
+line's canonical dispatch::save_prefs helper and removes A8's private
+prefs::persist copy; the same existing boxed preferences and awaited blocking
+save/warning body remain. The Respond arm remains in the one dispatch table.
+The resource/minter staging attributes remain unchanged. This union requires
+fresh narrow verification; native730's1492/0/2 is prior-source evidence.
