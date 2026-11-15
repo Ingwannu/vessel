@@ -12,7 +12,9 @@ mod tests;
 
 use crate::references::{ReferenceError, References, SnapshotNamespace};
 use graph::{Graph, Node};
-use vessel_proto::browser::{CappedText, ElementRef, SnapshotMetric, SnapshotStats, TextByteCount};
+use vessel_proto::browser::{
+    CappedText, ElementRef, SnapshotDocument, SnapshotMetric, SnapshotStats, TextByteCount,
+};
 
 /// Count work while traversing, not just the number of visible output lines.
 pub(crate) const MAX_SNAPSHOT_NODES: usize = 1500;
@@ -54,6 +56,7 @@ impl std::fmt::Debug for Binding {
 /// The measured result is not evidence of a complete DOM, paint or live engine.
 #[derive(Debug)]
 pub(crate) struct Snapshot {
+    pub(crate) document: SnapshotDocument,
     pub(crate) content: CappedText,
     pub(crate) stats: SnapshotStats,
 }
@@ -90,6 +93,7 @@ fn complete(
     let content = render::render(graph)?;
     let count = retain(graph, namespace, references)?;
     Ok(Snapshot {
+        document: graph.document.clone(),
         stats: SnapshotStats {
             nodes: SnapshotMetric::new(graph.visited),
             references: SnapshotMetric::new(count),

@@ -5,6 +5,18 @@ use vessel_proto::browser::{CappedText, MAX_PAGE_TEXT_BYTES, PageText, TextCompl
 const TRUNCATION_MARKER: &str = "- text: \"Snapshot truncated.\"";
 
 pub(super) fn render(graph: &Graph) -> Result<CappedText, SnapshotError> {
+    let metadata_bytes = graph
+        .document
+        .address
+        .as_str()
+        .len()
+        .saturating_add(graph.document.title.as_str().len());
+    let budget = MAX_PAGE_TEXT_BYTES
+        .checked_sub(metadata_bytes)
+        .ok_or(SnapshotError::Graph)?;
+    if budget < TRUNCATION_MARKER.len() {
+        return Err(SnapshotError::Graph);
+    }
     let mut result = String::new();
     let mut truncated = graph.truncated;
     for node in &graph.nodes.0 {
@@ -14,7 +26,7 @@ pub(super) fn render(graph: &Graph) -> Result<CappedText, SnapshotError> {
             .saturating_add(line.len())
             .saturating_add(TRUNCATION_MARKER.len())
             .saturating_add(2);
-        if reserved > MAX_PAGE_TEXT_BYTES {
+        if reserved > budget {
             truncated = true;
             break;
         }

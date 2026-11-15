@@ -44,8 +44,26 @@ pub(super) fn render(
             let tabs = tabs.as_slice().iter().map(tab_metadata).collect::<Vec<_>>();
             (json!({"tabs":tabs}), None)
         }
+        BrowserResult::Snapshot {
+            browser_id,
+            revision,
+            document,
+            content,
+            stats,
+        } => (
+            json!({
+                "browserId": browser_id, "revision": revision,
+                "url": document.address, "title": document.title,
+                "format": "aria-yaml", "snapshot": content.text,
+                "truncated": content.completeness == vessel_proto::browser::TextCompleteness::Truncated,
+                "stats": {
+                    "nodeCount": stats.nodes.get(), "refCount": stats.references.get(),
+                    "textLength": stats.text_bytes.get(), "iframeCount": stats.frames.get()
+                }
+            }),
+            None,
+        ),
         other @ (BrowserResult::Applied { .. }
-        | BrowserResult::Snapshot { .. }
         | BrowserResult::Evaluation { .. }
         | BrowserResult::Logs { .. }
         | BrowserResult::Matched { .. }
@@ -231,5 +249,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
+mod snapshot_tests;
 #[cfg(test)]
 mod tab_tests;

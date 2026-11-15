@@ -60,7 +60,7 @@ pub use requests::{
 };
 pub use result::{
     BrowserResult, ConsoleEntry, ConsoleLevel, HttpStatus, InvalidHttpStatus, NetworkEntry,
-    NetworkMethod, NetworkOutcome,
+    NetworkMethod, NetworkOutcome, SnapshotDocument,
 };
 pub use state::{
     BrowserHistory, BrowserIcon, BrowserLoad, BrowserProfile, BrowserRevision, BrowserTab,

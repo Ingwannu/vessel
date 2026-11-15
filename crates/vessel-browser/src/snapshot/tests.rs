@@ -10,7 +10,70 @@ fn element(depth: u8, role: &str, name: &str, reference: Option<&str>) -> Value 
 }
 fn encoded(nodes: Vec<Value>, visited: usize, truncated: bool) -> String {
     let nodes = Value::Array(nodes);
-    json!({"nodes":nodes,"visited":visited,"frames":0,"truncated":truncated}).to_string()
+    json!({"document":{"address":"","title":""},"nodes":nodes,"visited":visited,"frames":0,"truncated":truncated}).to_string()
+}
+
+#[test]
+fn document_content_is_required_redacted_and_shares_the_graph_text_budget() {
+    let source = encoded(vec![element(0, "document", "Own", None)], 1, false);
+    let mut input: Value = serde_json::from_str(&source).unwrap();
+    input["document"] =
+        json!({"address":"data:display-only-private-fixture","title":"private-title-fixture"});
+    let mut refs = References::default();
+    let namespace = refs.begin_snapshot().unwrap();
+    let snapshot = finish(&input.to_string(), namespace, &mut refs).unwrap();
+    assert_eq!(
+        snapshot.document.address.as_str(),
+        "data:display-only-private-fixture"
+    );
+    assert!(!format!("{snapshot:?}").contains("private-fixture"));
+    assert!(!format!("{snapshot:?}").contains("private-title-fixture"));
+
+    input["document"]["address"] = json!("x".repeat(MAX_PAGE_TEXT_BYTES));
+    let namespace = refs.begin_snapshot().unwrap();
+    assert!(matches!(
+        finish(&input.to_string(), namespace, &mut refs),
+        Err(SnapshotError::Graph)
+    ));
+    let _removed = input.as_object_mut().unwrap().remove("document");
+    let namespace = refs.begin_snapshot().unwrap();
+    assert!(matches!(
+        finish(&input.to_string(), namespace, &mut refs),
+        Err(SnapshotError::Decode(_))
+    ));
+}
+
+#[test]
+fn rendered_escaping_cannot_spend_the_document_metadata_budget_again() {
+    const TITLE_BYTES: usize = 60_000;
+    const TEXT_BYTES: usize = 10_000;
+    let source = encoded(
+        vec![json!({"kind":"text","depth":0,"text":"\0".repeat(TEXT_BYTES)})],
+        1,
+        false,
+    );
+    let mut input: Value = serde_json::from_str(&source).unwrap();
+    input["document"]["title"] = json!("x".repeat(TITLE_BYTES));
+    let mut refs = References::default();
+    let namespace = refs.begin_snapshot().unwrap();
+    let snapshot = finish(&input.to_string(), namespace, &mut refs).unwrap();
+    assert_eq!(snapshot.content.completeness, TextCompleteness::Truncated);
+    assert!(
+        snapshot
+            .content
+            .text
+            .as_str()
+            .len()
+            .saturating_add(TITLE_BYTES)
+            <= MAX_PAGE_TEXT_BYTES
+    );
+    assert!(
+        snapshot
+            .content
+            .text
+            .as_str()
+            .contains("Snapshot truncated.")
+    );
 }
 #[test]
 fn own_graph_renders_escaped_lines_and_keeps_private_fingerprints_out_of_debug() {

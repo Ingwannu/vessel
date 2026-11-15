@@ -206,10 +206,16 @@ function (config) {
     else children(element, nextDepth, domDepth + 1);
   }
   if (!document.body) throw new Error("snapshot_document_unavailable");
+  // These content facts are read in the same synchronous traversal. Addresses
+  // are never shortened into a different apparent destination or used to dial.
+  const address = measured(document.URL, remaining);
+  if (!address) throw new Error("snapshot_address_exceeds_budget");
+  remaining -= address.bytes;
+  const descriptor = { address: address.text, title: text(document.title) };
   if (!takeWork()) throw new Error("snapshot_budget_unavailable");
-  nodes.push({ kind:"element", depth:0, role:"document", name:text(document.title),
+  nodes.push({ kind:"element", depth:0, role:"document", name:text(descriptor.title),
     reference:null, fingerprint:{ tag:"", id:"", input_type:"", name:"", value:"" },
     state:{ checked:null, expanded:null, selected:null, disabled:false, readonly:false, level:null } });
   children(document.body, 1, 1);
-  return { nodes, visited, frames, truncated };
+  return { document: descriptor, nodes, visited, frames, truncated };
 }

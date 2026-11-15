@@ -25,7 +25,7 @@ caller-selected cwd or control endpoint.
 | --- | --- | --- |
 | List tabs | Scoped tab records include address/title, active/loading and history eligibility | Typed inventory exists; no real inventory/focus observation. MCP currently projects richer internal load/history enums rather than the reference flags. |
 | New tab | Flat id/workspace/address facts from the created tab | Staged projection now flattens the completed Tab id/workspace/address; actual creation and changed-source checks remain owed. |
-| Snapshot | Address/title/workspace, ARIA-YAML marker, text, truncation and named measured stats | Content/stats/revision exist. Add same-document descriptor facts and explicit reference output projection; do not query a later document and join it to an old snapshot. |
+| Snapshot | Address/title/workspace, ARIA-YAML marker, text, truncation and named measured stats | Staged traversal now returns same-document address/title under the loader fence, and MCP explicitly projects aria-yaml/text/truncation/named stats. Actual engine execution, owner workspace context and changed-source checks remain owed; no later-document lookup is joined. |
 | Click | Selected current ref and optional actual point | Applied has only id; typed action completion/projection remains owed. |
 | Fill | Current element ref on successful fill | Applied is insufficient for the final result projection; no executor yet. |
 | Wait | Which condition matched | Matched currently has id only. Actual predicate execution and matched-kind result remain owed. |

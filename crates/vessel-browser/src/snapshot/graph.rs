@@ -3,11 +3,12 @@ use super::{MAX_SNAPSHOT_DEPTH, MAX_SNAPSHOT_NODES, SnapshotError};
 use serde::de::{self, DeserializeSeed, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use std::fmt;
-use vessel_proto::browser::{ElementRef, MAX_PAGE_TEXT_BYTES, PageText};
+use vessel_proto::browser::{ElementRef, MAX_PAGE_TEXT_BYTES, PageText, SnapshotDocument};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Graph {
+    pub(super) document: SnapshotDocument,
     pub(super) nodes: Nodes,
     pub(super) visited: u32,
     pub(super) frames: u32,
@@ -144,7 +145,12 @@ impl Graph {
             return Err(SnapshotError::Graph);
         }
         let mut previous = 0_u8;
-        let mut bytes = 0_usize;
+        let mut bytes = self
+            .document
+            .address
+            .as_str()
+            .len()
+            .saturating_add(self.document.title.as_str().len());
         for (index, node) in self.nodes.0.iter().enumerate() {
             let depth = node.depth();
             if depth > MAX_SNAPSHOT_DEPTH

@@ -46,6 +46,11 @@ async fn actual_target_requests_check_history_surface_and_uncertain_delivery() {
             .unwrap();
         assert_eq!(page.revision(), BrowserRevision::ZERO);
         let snapshot = page.snapshot().await.unwrap();
+        assert_eq!(
+            snapshot.document.address.as_str(),
+            "https://example.test/snapshot-document"
+        );
+        assert_eq!(snapshot.document.title.as_str(), "Own traversal title");
         assert!(
             snapshot
                 .content
@@ -219,7 +224,7 @@ fn snapshot_result(call: &serde_json::Value) -> serde_json::Value {
     let first = call["params"]["arguments"][0]["value"]["firstRef"]
         .as_str()
         .unwrap();
-    json!({"result":{"value":{"nodes":[{
+    json!({"result":{"value":{"document":{"address":"https://example.test/snapshot-document","title":"Own traversal title"},"nodes":[{
         "kind":"element","depth":0,"role":"button","name":"Own protocol fixture",
         "reference":format!("@e{first}"),
         "fingerprint":{"tag":"button","id":"","input_type":"","name":"","value":""},

@@ -1118,3 +1118,35 @@ are not interpreted as diagnostic collector evidence. No wildcard or private
 error text is exposed. The announced gate52 head1c762ccf is merged before the
 corrected strict run; the earlier functional and TS jobs retain their exact
 source provenance and do not qualify this later union.
+
+
+## Same-traversal snapshot document facts
+
+[Decision Log]
+- Purpose: snapshot address/title must describe the same traversal, rather than
+  a later document joined to older element references.
+- Existing assets: independently authored isolated-world script and typed graph,
+  PageText redaction/UTF-8 cap, host reference namespace and before/after loader fence.
+- Choice: modify/reuse the single graph return to carry a required document
+  descriptor captured synchronously with traversal. Its address is display-only
+  PageText, never BrowserUrl authorization, and is refused rather than shortened.
+  Title and node text share the existing aggregate budget and truncation flag.
+- Alternatives: a later Runtime evaluation or tab inventory lookup would not
+  establish the descriptor's association with the old snapshot. No extra CDP
+  endpoint, dependency or copied reference implementation is needed.
+- Impact: MCP explicitly projects aria-yaml/text/truncation/named stats and these
+  observed facts. Workspace context remains the authenticated owner adapter's
+  responsibility. This staged result does not provide a browser, authority,
+  actionability, complete accessibility tree or runtime qualification.
+
+Reference behavior: packages/protocol/src/browser-automation/rpc-schemas.ts:292–301
+requires URL/title/aria-yaml plus measured snapshot fields. The stronger combined
+UTF-8 budget and display-only address keep ADR0078's bounded/private data rule.
+
+The same source's minimal-DOM Node fixtures execute the independently authored
+script:4 passed/0 failed. They check one read of address/title, a display-only
+non-HTTP address, oversized address refusal and shared UTF-8 truncation. This
+is script semantics only, not browser DOM/CDP or Rust runtime evidence. New Rust
+fixtures also require metadata, reject aggregate overflow and prevent YAML
+escaping from spending the metadata budget a second time; their execution and
+updated TS generation remain owed at the next changed-source narrow batch.
