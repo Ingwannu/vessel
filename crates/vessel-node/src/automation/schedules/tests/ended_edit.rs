@@ -173,3 +173,48 @@ async fn active_definition_edit_still_keeps_its_due_time_when_cadence_is_unchang
     })
     .await;
 }
+
+#[tokio::test]
+async fn an_active_edit_retains_the_existing_max_runs_completion_precedence() {
+    hang_guard("active edit completion precedence", async {
+        let mut fixture = seeded(ScheduleState::Active {
+            next_due: at("2026-01-01T10:15:00Z"),
+        })
+        .await;
+        let mut definition = fixture.info.definition.clone();
+        // A shorter expiry can end an Active record during this update. It is
+        // not an originally Ended record whose old reason must be retained.
+        definition.ends_at = Some(at("2026-01-01T10:10:00Z"));
+        definition.max_runs = Some(MaxRuns::try_from(1).unwrap());
+        let changed = fixture
+            .node
+            .schedules
+            .update(
+                fixture.info.id,
+                fixture.info.revision,
+                definition.clone(),
+                person(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            changed.state,
+            ScheduleState::Ended {
+                at: at("2026-01-01T10:00:00Z"),
+                reason: EndReason::MaxRuns,
+            }
+        );
+        assert_eq!(changed.definition, definition);
+        assert_eq!(changed.runs, fixture.info.runs);
+        assert_eq!(changed.revision, 1);
+        assert_eq!(
+            fixture.node.schedules.get(fixture.info.id).await.unwrap(),
+            changed
+        );
+        assert!(matches!(
+            fixture.jobs.try_recv(),
+            Err(mpsc::error::TryRecvError::Empty)
+        ));
+    })
+    .await;
+}

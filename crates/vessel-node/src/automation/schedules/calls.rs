@@ -207,6 +207,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         node_anchor(asker, &mut definition);
         let first = settle(&self.zones, &mut definition, now)?;
         let cadence_changed = definition.cadence != info.definition.cadence;
+        let was_ended = matches!(info.state, ScheduleState::Ended { .. });
         info.state = match info.state {
             ScheduleState::Active { next_due } => {
                 let next = if cadence_changed { first } else { next_due };
@@ -217,7 +218,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             | ScheduleState::Unknown) => other,
         };
         // Updating limits must not rewrite an already completed reason/time.
-        if !matches!(info.state, ScheduleState::Ended { .. })
+        if !was_ended
             && let Some(max) = definition.max_runs
             && info.runs >= max.get()
         {

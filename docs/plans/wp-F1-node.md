@@ -127,3 +127,16 @@ store refusal test covers both unknown outer state and unknown end reason.
 Only the four existing known reasons become editable, all preserved exactly.
 The queued25e source was superseded only if queued under standing WORKER
 approval; retain its143 record and never call it a compiler result.
+
+
+### Original-state guard precision
+
+Before an actual check, source audit found the initial guard read the state
+AFTER Active's advance/expiry transition. That could change the pre-existing
+max-runs reason precedence for a formerly Active record. It now captures
+was_ended BEFORE the state transition. Only originally completed records retain
+their old reason/time; the original Active update and max-runs ordering stays
+unchanged. A bounded real scheduler/store regression uses unchanged cadence,
+an earlier new expiry and an already reached run cap to assert the original
+MaxRuns reason. This is a source-found correction, not an executed failure.
+The older265 queued proof must not be relabelled as this source.
