@@ -97,7 +97,7 @@ mod tests {
     fn failed_readiness_pipe_is_fatal_only_for_explicit_managed_launch() {
         // A full slice deterministically refuses writes without changing the
         // process-wide stdout used by concurrently running binary tests.
-        let mut full = &mut [][..];
+        let mut full: &mut [u8] = &mut [];
         let node = vessel_proto::NodeId::random();
         let legacy = Args::try_parse_from(["vesseld", "--detached"]).unwrap();
         assert!(legacy.run.launch.announce_to(true, node, &mut full).is_ok());

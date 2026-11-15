@@ -174,3 +174,10 @@ The approved node dev dependency is integration wiring through public controller
 API only. The real Keep→Attached regression preserves observer/authority separation;
 changed-source execution is owed. Root54 whole/focused results are predecessor
 proof, not validation of this rebuilt join or the announced head's combined union.
+
+The first rebuilt join ef01 passes strict all-target Clippy for Proc, the local
+controller, node, Store, Proto and testkit in run
+wp-desktop-node-portable-20261115T162337Z-ef01b4d4. This is compile/lint evidence
+only and predates the legacy broken-pipe regression above. The final combined
+gate must execute that regression, controller integration and release/reaping
+tests together on the frozen updated source before implementation handoff.
