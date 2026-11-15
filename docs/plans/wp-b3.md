@@ -304,3 +304,16 @@ a closed receipt fixture covers automatic release. Remote proof is pending.
 Remote terminal clippy 78bd7d16 and merged session-start suite 27f2a27c were both
 cancelled rc143 while queued, before compilation. These are not compiler results;
 the build-tools owner has been asked for the recovery/retry disposition.
+
+A deterministic workspace fixture now holds every real root-metadata worker,
+cancels all requesting tasks, and proves new starts are refused as MetadataBusy
+until the held I/O is released. Shutdown refuses new probes independently and
+drains the original workers. This fixture is not included in the currently
+registered 448e2550 remote source; its execution remains owed.
+
+The build-tools owner confirmed the simultaneous queued rc143 results were an
+operator-approved build-VM restart. Original logs are retained. The obsolete runs
+are superseded once by immutable 448e2550 in fresh output folders: the eight-crate
+all-target clippy (with proto TypeScript feature) and the workspace/session/node
+library+integration suite, both in the remote ordinary lane. Neither is a PASS
+until terminal logs are collected; no duplicate or local compile was started.

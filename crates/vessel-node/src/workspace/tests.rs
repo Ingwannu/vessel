@@ -1049,4 +1049,6 @@ mod approvals;
 mod git_apart;
 
 #[cfg(target_os = "linux")]
+mod checkpoint_starting;
+#[cfg(target_os = "linux")]
 mod checkpoint_writing;
