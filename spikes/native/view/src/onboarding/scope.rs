@@ -56,7 +56,8 @@ impl Scope {
     pub fn binding(&self) -> Option<(&Target, Visit)> {
         self.0.as_ref().map(|(target, visit)| (target, *visit))
     }
-    /// Bind after the link compared this target with its live client.
+    /// Fence the intended target after comparing it with the live client.
+    /// A failed comparison still guards the visit; it never enables controls.
     pub fn bind(&mut self, target: Target, visit: Visit) {
         self.0 = Some((target, visit));
     }

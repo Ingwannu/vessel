@@ -130,9 +130,10 @@ impl crate::State {
                             Err(Problem::Changed)
                         }
                     });
-                if result.is_ok() {
-                    self.onboarding_scope.bind(target.clone(), visit);
-                }
+                // Even a refused binding owns this visit's protective fence.
+                // Otherwise closing a failed new visit would leave the old
+                // visit's guard installed, because stale release is refused.
+                self.onboarding_scope.bind(target.clone(), visit);
                 Answer::Bound {
                     target,
                     visit,
