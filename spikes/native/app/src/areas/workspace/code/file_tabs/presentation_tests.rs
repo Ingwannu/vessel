@@ -17,6 +17,7 @@ impl Probe {
         let shell = cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
             shell.areas.workspace.code.open = true;
+            shell.areas.workspace.code.tab = super::super::Tab::Files;
             shell.route = crate::routes::Route::Session;
             let root = io_tests::root();
             let (origin, workspace) = tests::opening(&mut shell, root);
@@ -90,7 +91,7 @@ fn explorer_keeps_the_tree_while_bound_file_paints_the_existing_editor(cx: &mut 
     cx.update(|window, _| window.activate_window());
     cx.run_until_parked();
     assert!(
-        cx.debug_bounds("code-search-name").is_some(),
+        cx.debug_bounds("code-file-tree").is_some(),
         "Explorer must remain the tree"
     );
     assert!(
@@ -227,4 +228,29 @@ fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestApp
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&b));
         });
     });
+}
+
+#[gpui::test]
+fn the_legacy_unbound_viewer_records_its_actual_back_control(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(Probe::new);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
+    probe.update_in(cx, |probe, _, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let _binding = shell
+                .areas
+                .workspace
+                .code
+                .file_tabs
+                .bindings
+                .remove(&(probe.workspace.clone(), probe.tab));
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    assert!(
+        cx.debug_bounds("code-back").is_some(),
+        "the negative pane assertion has a real Explorer control"
+    );
+    assert!(cx.debug_bounds("code-file-tree").is_none());
 }

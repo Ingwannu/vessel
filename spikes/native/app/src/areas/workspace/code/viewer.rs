@@ -95,6 +95,7 @@ fn header(
         .children((surface == ViewerSurface::Explorer).then(|| {
             div()
                 .id("code-back")
+                .debug_selector(|| "code-back".to_owned())
                 .flex()
                 .flex_row()
                 .items_center()

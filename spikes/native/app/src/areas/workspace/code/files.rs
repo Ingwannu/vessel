@@ -440,6 +440,7 @@ pub(super) fn render(
             .into_any_element()
     });
     div()
+        .debug_selector(|| "code-file-tree".to_owned())
         .flex_1()
         .min_h(px(0.0))
         .flex()

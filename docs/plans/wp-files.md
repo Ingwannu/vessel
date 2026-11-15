@@ -1070,3 +1070,17 @@ corrected source so the next actual execution and strict check share a head.
 - Limits: the reducer allocates the existing text snapshot, not another buffer
   manager or a whole-process memory bound. Registration remains test-staged.
   Its real-engine barrier does not prove the final desktop phase/OS exit union.
+
+
+Tests10 on exact4fbbe4d8 executed App149 passed/2 failed/2 ignored, then Cargo
+stopped before other selected package suites. Existing actual pending-close,
+unknown-write, scope/ticket and accepted-input barriers passed on that source.
+The two new fixture failures were not a green suite: the tree assertion used
+an element id that never entered debug bounds, and the rejection case assumed
+File could not use Explorer although the canonical layout explicitly permits it.
+The existing tree branch/legacy Back control now record debug selectors; a
+positive legacy-control case makes the pane's negative assertion meaningful.
+The rejection fixture creates/removes a real pane through Layout, then asserts
+MissingPane plus unchanged active owner and binding count. No product host
+policy or original restoration assertion is weakened. New readiness work and
+base9b have separate current-union checks pending.

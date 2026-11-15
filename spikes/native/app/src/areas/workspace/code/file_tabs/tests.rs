@@ -89,7 +89,7 @@ fn rejected_placement_restores_original_active_owner_without_new_binding(cx: &mu
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(900.0)));
     shell.update_in(cx, |shell, window, cx| {
         let root = io_tests::root();
-        let (origin, _) = opening(shell, root);
+        let (origin, workspace) = opening(shell, root);
         let first = shell
             .open_workspace_file(
                 &origin,
@@ -101,15 +101,37 @@ fn rejected_placement_restores_original_active_owner_without_new_binding(cx: &mu
             )
             .unwrap();
         let file = shell.areas.workspace.code.file_key().unwrap();
+        // File supports Explorer in the canonical layout; create and retire an
+        // actual pane to exercise a genuine rejected placement instead.
+        let missing = shell
+            .update_layout(
+                &workspace,
+                |layout| {
+                    let pane = layout.split(
+                        vessel_app_view::layout::PaneId::MAIN,
+                        vessel_app_view::layout::Position::Right,
+                        vessel_app_view::layout::LayoutMode::SplitPanes,
+                    )?;
+                    layout.close_empty_pane(pane)?;
+                    Ok(pane)
+                },
+                cx,
+            )
+            .unwrap();
         let result = shell.open_workspace_file(
             &origin,
             "b.txt".parse().unwrap(),
             None,
-            Placement::Explorer,
+            Placement::Pane(missing),
             window,
             cx,
         );
-        assert!(matches!(result, Err(FileOpenRefusal::Layout(_))));
+        assert_eq!(
+            result,
+            Err(FileOpenRefusal::Layout(
+                vessel_app_view::layout::LayoutError::MissingPane
+            ))
+        );
         assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&file));
         assert_eq!(shell.areas.workspace.code.file_tabs.bindings.len(), 1);
         assert_eq!(
