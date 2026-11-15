@@ -109,3 +109,14 @@ import used a private module instead of the protocol crate's existing
 public re-export. The correction changes that import only; no visibility
 or dependency is widened. The failed run remains red evidence, and no
 runtime test or UI result is inferred from it.
+
+## Package base 2 integration
+
+Merged the assigned `6036eeb8` after cancelling the still-queued local
+narrow check; its exit 143 is not a compiler result. Root source is
+unchanged by this base update. The shared `Machine.node` now carries the
+welcome identity for a new page selection; actual reconnect invalidation
+continues to use the single connection-ready fan-out. The shared field's
+event extraction and typed Editability API are retained, not reimplemented.
+The size-list merge preserves this branch's measured slider 711 and the
+new base's lower field 635/demo 583. No allowance is raised.
