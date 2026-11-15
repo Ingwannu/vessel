@@ -35,6 +35,9 @@ with whole sentences in every branch; do not join translated fragments. A
 translator may change the selector and sentence order. Give separate keys to
 places with different meanings even if their English words happen to match.
 Keep context comments and mark buttons, badges and other short labels.
+English context comments become generated Rust documentation. Put Rust
+identifiers such as `MAX_ACTIONS` in Markdown backticks; a comment-only typo
+can fail the same strict Clippy gate as handwritten documentation.
 
 A Korean particle whose sound depends on a value uses `PARTICLE($value, "topic")`
 (or `subject`, `object`, `with`, `direction`). The [grammar table](../src/text/localization/grammar.rs) states the Hangul, digit and Latin rules.
