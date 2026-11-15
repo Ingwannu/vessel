@@ -1,0 +1,94 @@
+# ADR 0087: git panel runtime and observation
+
+Status: proposed
+
+## Purpose and intent
+
+Provide the node behaviour needed by the three git panel targets in Paseo
+0.15.4: distinct Uncommitted/Committed/All comparisons, classified history,
+merge to/from base, generated commits, branch-owned stashes and live status/diff
+updates. The existing git runner and root validation remain authoritative.
+
+## Existing implementation and constraints
+
+`git.status`, `git.changes`, `git.diff`, `git.log`, branch/write/stash calls
+already resolve WorkspaceRoot before I/O. Legacy DiffScope::Base includes
+working changes; it cannot represent committed-only. Commit requires a message;
+there are no merge-to/from-base or generated-commit calls. Stash entries have
+commit/index/message/time but no owning branch. Reads are bounded/paged and
+git execution protects against repository-controlled helper configuration.
+New protocol registration waits for Quality B; no provisional integer or
+second method table is introduced. Registry identity belongs to ADR 0082.
+
+## Alternatives
+
+- Reimplement git through shell commands in the app: breaks authorization,
+  paths, credential redaction and platform behaviour.
+- Relabel Base as Committed: returns the wrong changes.
+- Poll every individual file and status from every panel: duplicate work,
+  lost invalidation, transient false empty states and high process counts.
+- New filesystem/git dependencies: existing workspace/file observation and
+  process ownership suffice; no new dependency is proposed.
+
+## Choice
+
+One node-owned runtime per validated checkout, with a shared comparison cache
+and bounded observation demand. Typed query keys include root, comparison,
+optional base and whitespace policy. Uncommitted drops irrelevant base state;
+Committed resolves merge-base..HEAD; All resolves merge-base..worktree including
+untracked paths without altering the person's index. Existing paged file diffs
+remain usable; additions preserve binary/too-large/refusal information.
+
+Pending method families (names validated against the single table at wiring):
+
+| Call | Scope | Result |
+|---|---|---|
+| git.compare | Read | comparison summary with revision/coverage |
+| git.compare_file | Read | bounded typed file hunks for that comparison |
+| git.observe | Read | cancellable revision-based observation snapshot |
+| git.history | Read | branch/base/remote classification and changed files |
+| git.merge_to_base | Operate | typed outcome/conflicts, original checkout restored |
+| git.merge_from_base | Operate | typed outcome/conflicts, failed merge aborted |
+| git.commit_generated | Operate | bounded internal generation + add-all commit outcome |
+| git.branch_stashes | Read | owned branch metadata with pinned entry identity |
+
+Observation reuses the node's bounded cancellable watch pattern, not another
+WebSocket transport. A lost connection ends demand; revisions/correlation reject
+late replies. Deep diff changes invalidate bodies even when line counts match.
+Status-only branch changes invalidate history and dependent forge state.
+
+Paseo limits are named once beside their owners: 150 ms diff debounce; 64-entry
+LRU; 15 s freshness and 2 s read suppression; 4 snapshot computations and 2
+observation setups; 5–60 s degraded polling; 30–300 s recovery; 180 s passive
+fetch without interactive authentication. No timing sleep is test coordination.
+
+Generated commit input uses the bounded uncommitted diff, the existing internal
+structured-generation service, a 72-character message and two retries. Failure
+uses Paseo's documented "Update files" fallback. Fake generation tests never
+invoke an installed real agent. A model may not choose commands, paths or roots.
+
+## Safety and platform boundaries
+
+All new reads/writes resolve WorkspaceRoot and effective scope before cache/I/O.
+No absolute or escaping client path is accepted; renames retain both paths for
+discard. No raw git stderr decides UI state. Existing configuration isolation,
+credential redaction, execution deadlines and repository serialization remain.
+Merge targets are resolved/validated under the same worktree ownership rules;
+conflict cleanup cannot act on another checkout. Passive fetch cannot prompt.
+Each correlated rejection settles a typed failure, including unsent/full/closed.
+No service files, permissions or platform-specific signals are introduced.
+
+## Compatibility and costs
+
+Calls are pending until the integrator assigns admission in the one method
+table. Old calls retain their existing semantics; older clients see no new
+fields without protocol gating. New clients get an explicit unavailable state
+on old nodes rather than a false Committed view or an unbounded pending read.
+Method and older-peer round-trip tests cover direct/nested/forwarded paths at
+wiring. Root and native gates run once for the completed package (A14).
+
+The chosen bounded watch transport differs from Paseo's push-event envelope;
+observable ordering, cancellation, freshness and ownership are preserved and
+tested. Runtime/cache ownership adds state on the node but avoids per-panel
+pollers and duplicate subprocesses. No stronger atomic filesystem snapshot is
+claimed than the git reads can provide; changed revisions supersede old data.
