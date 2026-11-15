@@ -141,6 +141,32 @@ selectors require equality with JavaScript-edge-trimmed text rather than
 normalizing it, so BOM-only or BOM-wrapped matchers refuse at direct and serde
 construction boundaries.
 
+### Shared checked process cleanup prerequisite
+
+The current `vessel-proc::Child::wait` reaps the leader and requests a group
+sweep, but logs a sweep failure and still returns the leader's status. Later
+`signal` on Reaped is intentionally a no-op. Therefore F6 cannot acknowledge
+disable/remove as fully stopped solely from that legacy success. No product
+caller is enabled until an owned checked cleanup result exists.
+
+Proposed additive proc-owned seam (requires its single writer's agreement):
+`Child::wait_checked() -> Result<OwnedGroupExit, CheckedWaitError>`. Proc retains
+the **first** sweep outcome on the owned Child, including when legacy wait
+already ran. OwnedGroupExit has a private constructor and a code accessor;
+CheckedWaitError retains concrete WaitError or an Arc of the first SignalError.
+The existing wait signature/behavior stays compatible. Never retry a delayed
+numeric group id after reaping: it may have been reused. The receipt covers
+the originally owned group/job and its platform primitive, not deliberately
+escaped processes or all account processes; the helper remains unsandboxed.
+Linux/macOS/Windows proof belongs with this common primitive, with fake-helper
+caller tests here. Restart ledgers/pidfd identity are separate and do not mint
+this in-process receipt. W22 agrees on this boundary and will reuse it.
+
+Until that seam is reviewed and consumed, the staged supervisor can prove its
+framing/actor transitions and fake-child behavior but cannot stand in for a
+complete node disable/remove cleanup acknowledgement. Keep that node path
+Unavailable/unknown rather than promoting a leader-only receipt.
+
 ### Node-side helper protocol and contribution API
 
 The private helper protocol has its own negotiated version, independent of
