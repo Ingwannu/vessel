@@ -63,7 +63,12 @@ fn retained_agent(
     _window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> gpui::Div {
-    cx.defer(|shell, _cx| shell.notice = Some("agent body constructed".to_owned()));
+    cx.defer(|shell, _cx| {
+        shell
+            .notice
+            .get_or_insert_with(String::new)
+            .push_str("agent body constructed");
+    });
     div()
         .size_full()
         .debug_selector(|| "layout-survivor".to_owned())
@@ -72,6 +77,8 @@ fn retained_agent(
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.0.update(cx, |shell, cx| {
+            // Count builder invocations within this render pass, not earlier frames.
+            shell.notice = None;
             let tokens = vessel_app_kit::tokens(cx);
             super::super::draw::frame(shell, retained_agent, &tokens, window, cx)
         })
@@ -152,6 +159,45 @@ fn cover_agent(shell: &mut Shell, cx: &mut Context<'_, Shell>) {
             cx,
         )
         .unwrap();
+}
+
+fn agent_sheet_probe(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
+    let probe = probe(window, cx);
+    probe.0.update(cx, |shell, cx| {
+        let key = super::super::key(shell).unwrap();
+        let session = shell.areas.session.open.as_ref().unwrap().session;
+        let _tab = shell
+            .update_layout(
+                &key,
+                |layout| {
+                    layout.open(
+                        Target::Agent(session),
+                        OpenIntent::Reveal,
+                        Placement::Focused,
+                        vessel_app_view::layout::AgentRole::Child,
+                        LayoutMode::Compact,
+                    )
+                },
+                cx,
+            )
+            .unwrap();
+    });
+    probe
+}
+
+#[gpui::test]
+fn the_current_agent_in_a_top_compact_sheet_builds_and_paints_once(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(agent_sheet_probe);
+    cx.simulate_resize(gpui::size(gpui::px(390.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        assert_eq!(
+            probe.0.read(cx).notice.as_deref(),
+            Some("agent body constructed")
+        );
+    });
+    assert!(cx.debug_bounds("layout-survivor").is_some());
 }
 
 #[gpui::test]
