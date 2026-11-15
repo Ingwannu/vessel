@@ -110,6 +110,9 @@ impl Link {
                     vessel_proto::ErrorCode::Unsupported,
                 ),
             ))),
+            Command::Orchestration(task) => self.emit(Event::Orchestration(
+                task.refused(vessel_app_view::orchestration::Problem::Unsupported),
+            )),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);

@@ -79,6 +79,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Devices { ticket, ask, .. } => {
             Event::Devices(ask.refused(ticket, devices::rejected(unsent.why)))
         }
+        Command::Orchestration(task) => {
+            Event::Orchestration(task.refused(vessel_app_link::orchestration::rejected(unsent.why)))
+        }
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(match unsent.why {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,

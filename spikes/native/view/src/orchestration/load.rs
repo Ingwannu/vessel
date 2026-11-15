@@ -7,7 +7,12 @@ pub enum Load<T> {
     /// No request in this visit.
     Empty,
     /// In flight; prior values are informational, never acknowledgement.
-    Pending { previous: Option<T>, task: Task },
+    Pending {
+        /// Last confirmed data, not optimistic state.
+        previous: Option<T>,
+        /// Exact outstanding attempt.
+        task: Task,
+    },
     /// Last confirmed node result.
     Ready(T),
     /// Last confirmed value plus safe recovery cause.
