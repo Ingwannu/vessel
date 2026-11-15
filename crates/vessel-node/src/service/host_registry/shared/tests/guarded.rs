@@ -8,7 +8,7 @@ use tokio::{
     sync::{oneshot, watch},
     task::JoinHandle,
 };
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_client::{ClientConfig, NodeClient};
 use vessel_proto::{
     ClientInfo, DeviceId, ErrorCode, Handler, NodeId, Scope, SessionId,
@@ -24,12 +24,24 @@ async fn guarded_public_inventory_reads_across_sources_without_widening_private_
     vessel_testkit::within(Duration::from_secs(60), async {
         let root = tempfile::tempdir().unwrap();
         let data = DataDir::new(root.path().join("data"));
+        let registry_tasks = TaskTracker::new();
+        let registry_stop = CancellationToken::new();
+        // A failed assertion must cancel this separately tracked fixture actor too.
+        let _registry_lifetime = registry_stop.clone().drop_guard();
+        let registry = crate::host_registry::HostRegistry::start(
+            data.clone(),
+            registry_stop.clone(),
+            &registry_tasks,
+        )
+        .await
+        .unwrap();
         let mut config = Config::new(
             data.clone(),
             vessel_harness::HarnessEnv::new(root.path().join("user")),
         );
         config.bind = None;
         config.harness_lookup = vessel_harness::Lookup::new(Vec::<PathBuf>::new());
+        config.test_host_registry = Some(registry);
         let node = Node::start(config).await.unwrap();
         let device = DeviceId::random();
         let expected = seed(&node, device).await;
@@ -46,6 +58,9 @@ async fn guarded_public_inventory_reads_across_sources_without_widening_private_
         closing.cancel();
         serving.await.unwrap();
         node.stop().await.unwrap();
+        registry_stop.cancel();
+        registry_tasks.close();
+        registry_tasks.wait().await;
     })
     .await
     .unwrap();

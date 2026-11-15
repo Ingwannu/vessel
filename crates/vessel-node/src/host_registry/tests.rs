@@ -40,7 +40,7 @@ async fn shared_inventory_projects_all_sources_and_retains_disabled_records() {
             )
             .await
             .unwrap();
-        registry
+        let disabled = registry
             .update(
                 source,
                 UpdateHostRegistration {
@@ -56,6 +56,7 @@ async fn shared_inventory_projects_all_sources_and_retains_disabled_records() {
             )
             .await
             .unwrap();
+        assert_eq!(disabled.enabled, HostEnabled::Disabled);
         ids.push(record.registration_id);
         assert_eq!(registry.list(source).await.unwrap().len(), 1);
     }

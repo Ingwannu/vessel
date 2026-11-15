@@ -118,6 +118,9 @@ pub struct Config {
     pub(crate) push_test_origin: Option<url::Url>,
     #[cfg(test)]
     pub(crate) push_preparation: Option<std::sync::Arc<crate::push::Preparation>>,
+    /// Exercise pending registry handlers without assigning a wire protocol or changing startup.
+    #[cfg(test)]
+    pub(crate) test_host_registry: Option<crate::host_registry::HostRegistry>,
     /// Explicit quota backend; the library default accesses no saved sign-in.
     pub limits: vessel_harness::LimitProbe,
     /// Nonsecret inherited route facts captured only by the binaries.
@@ -194,6 +197,8 @@ impl Config {
             push_test_origin: None,
             #[cfg(test)]
             push_preparation: None,
+            #[cfg(test)]
+            test_host_registry: None,
             limits: vessel_harness::LimitProbe::Disabled,
             limit_environment: vessel_harness::LimitEnvironment::new(),
         }

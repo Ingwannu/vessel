@@ -1296,3 +1296,39 @@ contains only that exhaustive attach notice arm, its corrected comment and a sco
 note. rustfmt/diff-check pass; no Cargo or readiness is claimed, and the unreviewed
 SDK has NOT been merged into this main feature tree. W21/integrator received the
 leaf for SDK/caller joint strict verification and review before adoption.
+
+### Public guard fixture return and correction
+
+Exact257fc41c run wp-cli-narrow-20261115T151233Z-257fc41c completed rc1.
+Locked compilation and web-ci/nested builds passed. Client units80/0/0 passed;
+node units257/1/0 returned at the new public guard fixture: its seed unwrapped
+None because production startup deliberately leaves the registry uninstalled while
+the feature has no protocol number. Cargo stopped there; proto/rpc/store/session/
+terminal-screen tests did not execute and are not counted as passing. A separate
+test-only unused update result warning was also retained in cargo.log.
+
+Reuse HostRegistry::start in the fixture and pass it through a cfg(test)-only
+Config injection, like the existing private unit fixtures. Its actor owns a separate
+bounded tracker/cancellation lifetime, including assertion unwind. This changes no
+production field, startup gate, RPC admission, feature constant, authority check or
+transport behavior. The actual Guarded/service/actor chain still runs; it remains
+an already-authenticated context fixture, not credential or live pending-RPC proof.
+The registry update fixture now checks the returned disabled value instead of
+discarding it. Exact changed-source execution/strict validation remains owed.
+
+### Coordinator AmbiguousOverlap limitation ruling
+
+The coordinator chose legacy compatibility (A). Exactly-once node response proof
+applies ONLY to normal queries suppressed from presentation/history. An ambiguous
+overlap remains unchanged for old raw clients; several raw clients or history
+replay can emit duplicate replies, best-effort as existing multi-attach behavior.
+Old CPR bytes cannot be distinguished from real keys; stdin filtering is forbidden.
+A frame-only consumer gets no answer for that overlap: the pure typed
+UnansweredReplies candidate is retained but not answered until a separate future
+route is designed. No exclusive responder routing or overlap rewriting now.
+
+C2 must retain that limitation in ADR0095 with candidate-preservation regression
+and whole proof. W17 owns the node responder contract for BOTH typed target kinds.
+Normal NodeAuthority activation requires that contract plus C2 whole PASS; current
+capture/helper remains Silent and OFF. No universal exactly-once claim or speculative
+ticket-based proof is made, and no unreviewed engine extension has been adopted.
