@@ -135,15 +135,23 @@ impl SurfaceMap {
     ///
     /// # Errors
     /// Invalid/underflowed computed geometry disables input rather than clamping a click.
-    pub fn fit(raster: RasterSize, page: PageSize, pane: PaneSize) -> Result<Self, InvalidSurface> {
-        let scale = (pane.width.get() / f64::from(raster.width.get()))
-            .min(pane.height.get() / f64::from(raster.height.get()));
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "aspect-ratio projection is continuous geometry; divisors are nonzero and every retained result is checked finite and positive"
+    )]
+    pub fn fit(
+        raster: RasterSize,
+        viewport: PageSize,
+        container: PaneSize,
+    ) -> Result<Self, InvalidSurface> {
+        let scale = (container.width.get() / f64::from(raster.width.get()))
+            .min(container.height.get() / f64::from(raster.height.get()));
         let width = LogicalLength::new(f64::from(raster.width.get()) * scale)?;
         let height = LogicalLength::new(f64::from(raster.height.get()) * scale)?;
         let left =
-            FiniteNumber::new((pane.width.get() - width.get()) / 2.0).ok_or(InvalidSurface)?;
-        let top =
-            FiniteNumber::new((pane.height.get() - height.get()) / 2.0).ok_or(InvalidSurface)?;
+            FiniteNumber::new((container.width.get() - width.get()) / 2.0).ok_or(InvalidSurface)?;
+        let top = FiniteNumber::new((container.height.get() - height.get()) / 2.0)
+            .ok_or(InvalidSurface)?;
         if left.get() < 0.0 || top.get() < 0.0 {
             return Err(InvalidSurface);
         }
@@ -152,7 +160,7 @@ impl SurfaceMap {
             top,
             width,
             height,
-            page,
+            page: viewport,
         })
     }
 
@@ -175,6 +183,10 @@ impl SurfaceMap {
 
     /// Reject borders/letterboxing; right/bottom edges are outside the page.
     #[must_use]
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "CSS projection uses continuous coordinates; outside points are rejected before positive-divisor scaling and outputs remain finite"
+    )]
     pub fn page_point(self, point: PanePoint) -> Option<PagePoint> {
         let local_x = point.x.get() - self.left.get();
         let local_y = point.y.get() - self.top.get();
@@ -197,6 +209,14 @@ impl SurfaceMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const CSS_ERROR_BOUND: f64 = 1e-9;
+    #[expect(
+        clippy::float_arithmetic,
+        reason = "the absolute-error bound tests subpixel projection without requiring exact floating equality"
+    )]
+    fn close(actual: PageOffset, expected: f64) {
+        assert!((actual.get() - expected).abs() <= CSS_ERROR_BOUND);
+    }
     fn pane(width: f64, height: f64) -> PaneSize {
         PaneSize {
             width: LogicalLength::new(width).unwrap(),
@@ -220,7 +240,7 @@ mod tests {
         .unwrap();
         assert_eq!(map.drawn_size(), pane(375.0, 667.0));
         assert_eq!(map.origin(), point(312.5, 0.0));
-        assert_eq!(map.page_point(point(500.0, 333.5)).unwrap().x.get(), 187.5);
+        close(map.page_point(point(500.0, 333.5)).unwrap().x, 187.5);
         assert!(map.page_point(point(312.0, 10.0)).is_none());
         assert!(map.page_point(point(687.5, 10.0)).is_none());
         assert!(map.page_point(point(500.0, 667.0)).is_none());
@@ -235,8 +255,8 @@ mod tests {
         )
         .unwrap();
         let center = map.page_point(point(195.0, 200.0)).unwrap();
-        assert_eq!(center.x.get(), 960.0);
-        assert_eq!(center.y.get(), 540.0);
+        close(center.x, 960.0);
+        close(center.y, 540.0);
         assert!(map.page_point(point(100.0, 1.0)).is_none());
         assert!(LogicalLength::new(f64::INFINITY).is_err());
         assert!(LogicalLength::new(0.0).is_err());
