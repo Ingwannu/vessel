@@ -1358,3 +1358,10 @@ capture obligation. Vendor patch7 and its precise source/runtime/paint limitatio
 spikes/release/patches/README.md. The optional `mapped_diff_audit` example is a
 control-only capture surface, unbuilt/unrun; it cannot prove C3 first-use. This
 isolated producer does not include C3 View/Link/app or any root-runtime changes.
+
+`kit::segmented::segmented_at` and `segment_at` take the shared `ControlSizing`
+for source MD32/44 (inner28/40), with unchanged SM28/24. They share the legacy
+renderer; source opt-ins add unselected pressed surface3 after hover surface2.
+Existing `segmented`/`segment` remain pointer-sized with their original paint.
+The caller owns the value and refuses disabled/current-value actions. Why and
+pinned lines: `docs/plans/shared-segmented-sizing.md`.
