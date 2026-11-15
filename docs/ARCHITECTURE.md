@@ -1498,10 +1498,12 @@ keep, set and reset, validate provider options against the merged choice, and
 redact reference diagnostics. Their read view reports only key presence. They
 resolve no credential and provide no file codec or callable settings field.
 
-The staged node helpers own provider PCM conversion, bounded segments,
-in-memory WAV encoding and opaque connection ownership. Their tests are compiled
-under a test-only module until the RPC wiring removes staging; helper tests do
-not establish a live service or the transport-close path.
+The staged dictation adapter owns bounded segments, silence and detached commit
+audio. Shared speech_audio owns provider-rate conversion and in-memory WAV;
+connection_life owns the canonical opaque connection identity. The duplicated
+private codec/owner implementations are removed. These modules remain test-only
+until product consumers remove staging; helper tests do not establish a live
+service or the transport-close path.
 
 The planned endpoint layers keep a TLS-only root cache and fixed multipart
 encoding independent of the HTTP client. Their typed errors flow up to the

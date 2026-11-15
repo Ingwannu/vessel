@@ -558,3 +558,17 @@ exists. Reading then allocates at most one input second. Later growth is ignored
 later truncation is an I/O failure. No audio is logged or written by the command.
 Seven synthetic-file cases cover these boundaries. Narrow checks are pending;
 there is no command registration, RPC, cancellation or end-to-end claim yet.
+
+## Consuming shared speech primitives
+
+The staged dictation adapter now calls speech_audio for conversion and WAV
+framing; only the feature's validated input adaptation, 15-second commit policy,
+silence peak and detached segment bound remain here. The duplicated integer
+converter/WAV block is removed. Their three arithmetic fixtures and WAV-field
+assertions are covered by the shared codec's already passing eight cases; the
+three dictation policy cases remain beside the adapter and preserve their commit,
+silence and pre-mutation refusal assertions. Allocation is reserved before a
+bounded segment changes. The duplicated private owner module is removed; the
+shared connection_life keeps its two passing identity/lifetime cases. Real context
+setup and transport observation still await the service caller. This consumer
+adaptation has not yet passed its own narrow check or product gate.

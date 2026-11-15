@@ -16,7 +16,6 @@ mod endpoint;
 mod input;
 mod jobs;
 mod multipart;
-mod owner;
 mod provider_json;
 mod roots;
 mod text;
