@@ -12,6 +12,7 @@ use std::path::PathBuf;
 pub(crate) struct ConnectionOptions {
     #[arg(long, global = true, conflicts_with = "node")]
     host: Option<String>,
+    /// Node data directory; native init keeps --home as its account-scan root.
     #[arg(long, global = true)]
     home: Option<PathBuf>,
 }
