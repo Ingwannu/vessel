@@ -25,6 +25,8 @@ pub struct ProjectChange {
 /// A finite wait does not imply that the node rolled back its side effect.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectFailure {
+    /// Captured identity no longer matches the authenticated target; no RPC was sent.
+    HostChanged,
     /// Typed transport, scope or node refusal.
     Call(Problem),
     /// Refresh authoritative projects before a person decides whether to retry.
@@ -37,6 +39,12 @@ pub(super) async fn run(
     reply: &Reply,
     change: ProjectChange,
 ) -> Answer {
+    if client.node().id != change.key.node() {
+        return Answer::ProjectChanged {
+            key: change.key,
+            result: Err(ProjectFailure::HostChanged),
+        };
+    }
     let result = tokio::time::timeout(PROJECT_MUTATION_DEADLINE, send(client, change.action)).await;
     let result = match result {
         Ok(result) => result.map_err(ProjectFailure::Call),

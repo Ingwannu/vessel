@@ -3,7 +3,7 @@
 
 use crate::machine_book::Name;
 use vessel_proto::{
-    ProjectId,
+    NodeId, ProjectId,
     workspace::{AddProject, CloneProject, InitProject, ProjectInfo},
 };
 
@@ -11,6 +11,7 @@ use vessel_proto::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectActionKey {
     host: Name,
+    node: NodeId,
     serial: u64,
 }
 impl ProjectActionKey {
@@ -18,6 +19,11 @@ impl ProjectActionKey {
     #[must_use]
     pub const fn host(&self) -> &Name {
         &self.host
+    }
+    /// Exact authenticated welcome identity; an alias alone cannot authorize a mutation.
+    #[must_use]
+    pub const fn node(&self) -> NodeId {
+        self.node
     }
 }
 
@@ -74,7 +80,11 @@ impl ProjectActions {
     ///
     /// # Errors
     /// A pending action or exhausted identifier space refuses duplicate dispatch.
-    pub fn begin(&mut self, host: Name) -> Result<ProjectActionKey, ProjectActionError> {
+    pub fn begin(
+        &mut self,
+        host: Name,
+        node: NodeId,
+    ) -> Result<ProjectActionKey, ProjectActionError> {
         if self.pending.is_some() {
             return Err(ProjectActionError::Busy);
         }
@@ -84,6 +94,7 @@ impl ProjectActions {
             .ok_or(ProjectActionError::Exhausted)?;
         let key = ProjectActionKey {
             host,
+            node,
             serial: self.serial,
         };
         self.pending = Some(key.clone());
@@ -119,16 +130,19 @@ mod tests {
     #[test]
     fn repeated_submission_does_not_allocate_or_dispatch_another_action() {
         let mut state = ProjectActions::default();
-        let key = state.begin(host("laptop")).unwrap();
-        assert_eq!(state.begin(host("laptop")), Err(ProjectActionError::Busy));
+        let key = state.begin(host("laptop"), NodeId::random()).unwrap();
+        assert_eq!(
+            state.begin(host("laptop"), NodeId::random()),
+            Err(ProjectActionError::Busy)
+        );
         assert_eq!(state.pending(), Some(&key));
     }
     #[test]
     fn cancelled_completion_cannot_close_a_new_form_on_the_same_host() {
         let mut state = ProjectActions::default();
-        let old = state.begin(host("laptop")).unwrap();
+        let old = state.begin(host("laptop"), NodeId::random()).unwrap();
         state.cancel();
-        let new = state.begin(host("laptop")).unwrap();
+        let new = state.begin(host("laptop"), NodeId::random()).unwrap();
         assert_eq!(state.settle(&old), ProjectReply::Stale);
         assert_eq!(state.pending(), Some(&new));
         assert_eq!(state.settle(&new), ProjectReply::Current);
@@ -136,9 +150,9 @@ mod tests {
     #[test]
     fn switching_hosts_never_settles_the_other_hosts_form() {
         let mut state = ProjectActions::default();
-        let old = state.begin(host("laptop")).unwrap();
+        let old = state.begin(host("laptop"), NodeId::random()).unwrap();
         state.cancel();
-        let new = state.begin(host("build-server")).unwrap();
+        let new = state.begin(host("build-server"), NodeId::random()).unwrap();
         assert_eq!(state.settle(&old), ProjectReply::Stale);
         assert_eq!(new.host().as_str(), "build-server");
         assert_eq!(state.pending(), Some(&new));
@@ -150,7 +164,7 @@ mod tests {
             pending: None,
         };
         assert_eq!(
-            state.begin(host("laptop")),
+            state.begin(host("laptop"), NodeId::random()),
             Err(ProjectActionError::Exhausted)
         );
         assert!(state.pending().is_none());

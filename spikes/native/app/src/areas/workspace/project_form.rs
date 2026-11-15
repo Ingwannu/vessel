@@ -38,10 +38,14 @@ impl Shell {
         let host = self
             .projects_machine()
             .and_then(|host| Name::parse(&host).ok());
+        let node = host
+            .as_ref()
+            .and_then(|name| self.project_node(name.as_str()));
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
         page.actions.cancel();
         page.form_host = host;
+        page.form_node = node;
         page.menu = false;
         page.adding = Some(form);
         page.error = None;
@@ -64,16 +68,18 @@ impl Shell {
         let Some(host) = self.areas.workspace.page.form_host.clone() else {
             return;
         };
-        if !self
-            .fleet
-            .online()
-            .any(|machine| machine.name == host.as_str())
-        {
+        let Some(node) = self
+            .areas
+            .workspace
+            .page
+            .form_node
+            .filter(|node| self.project_node(host.as_str()) == Some(*node))
+        else {
             self.areas.workspace.page.error =
                 Some(self.words.projects().host_unavailable().to_owned());
             cx.notify();
             return;
-        }
+        };
         let page = &self.areas.workspace.page;
         let Some(form) = page.adding else {
             return;
@@ -111,7 +117,7 @@ impl Shell {
                 }
             }
         };
-        let key = match self.areas.workspace.page.actions.begin(host.clone()) {
+        let key = match self.areas.workspace.page.actions.begin(host.clone(), node) {
             Ok(key) => key,
             Err(error) => {
                 self.project_action_refused(error);
@@ -248,6 +254,7 @@ pub(super) fn add_form(
                         let page = &mut this.areas.workspace.page;
                         page.adding = None;
                         page.form_host = None;
+                        page.form_node = None;
                         page.actions.cancel();
                         cx.notify();
                     },

@@ -38,11 +38,23 @@ fn a_cancelled_reply_cannot_hydrate_a_rebound_host_or_settle_the_new_form(
         |shell, window, cx| {
             shell.open_add(AddForm::Clone, window, cx);
             let page = &mut shell.areas.workspace.page;
-            let old = page.actions.begin(Name::parse("laptop").unwrap()).unwrap();
+            let old = page
+                .actions
+                .begin(
+                    Name::parse("laptop").unwrap(),
+                    vessel_proto::NodeId::random(),
+                )
+                .unwrap();
             shell.project_host_detached("laptop");
             shell.open_add(AddForm::Clone, window, cx);
             let page = &mut shell.areas.workspace.page;
-            let new = page.actions.begin(Name::parse("laptop").unwrap()).unwrap();
+            let new = page
+                .actions
+                .begin(
+                    Name::parse("laptop").unwrap(),
+                    vessel_proto::NodeId::random(),
+                )
+                .unwrap();
             let _previous = shell.areas.workspace.projects.insert(
                 "laptop".to_owned(),
                 ProjectsView::Ready(ProjectList {

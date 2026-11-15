@@ -13,12 +13,13 @@ use vessel_app_view::machine_book::Name;
 use vessel_app_view::workspace::projects::actions::{
     ProjectAction, ProjectActionError, ProjectActionKey, ProjectChanged, ProjectReply,
 };
-use vessel_proto::{ProjectId, workspace::ProjectName};
+use vessel_proto::{NodeId, ProjectId, workspace::ProjectName};
 
 /// The confirmation retains exact host/id even if Settings selection changes behind it.
 pub(super) struct Removing {
     host: Name,
     project: ProjectId,
+    node: NodeId,
     name: ProjectName,
     path: PathBuf,
     pending: Option<ProjectActionKey>,
@@ -32,15 +33,7 @@ impl Shell {
         key: &ProjectActionKey,
         result: Result<ProjectChanged, ProjectFailure>,
     ) {
-        if machine != key.host().as_str() {
-            return;
-        }
-        let current = self.areas.workspace.page.actions.settle(key) == ProjectReply::Current;
-        if !current {
-            // A book alias may now name a different node: never hydrate from an old reply.
-            if self.areas.workspace.projects.contains_key(machine) {
-                self.ask(machine, Ask::Project(ProjectAsk::List));
-            }
+        if !self.accept_project_reply(machine, key) {
             return;
         }
         match result {
@@ -48,10 +41,9 @@ impl Shell {
                 if let Some(view) = self.areas.workspace.projects.get_mut(machine) {
                     view.took(project);
                 }
-                if current {
-                    self.areas.workspace.page.adding = None;
-                    self.areas.workspace.page.form_host = None;
-                }
+                self.areas.workspace.page.adding = None;
+                self.areas.workspace.page.form_host = None;
+                self.areas.workspace.page.form_node = None;
             }
             Ok(ProjectChanged::Removed(project)) => {
                 self.forgot_project(machine, project, Ok(()));
@@ -68,9 +60,7 @@ impl Shell {
             }
             Err(failure) => {
                 let said = project_failure(self, &failure);
-                if current {
-                    self.areas.workspace.page.error = Some(said);
-                }
+                self.areas.workspace.page.error = Some(said);
                 if let Some(remove) = self.areas.workspace.page.removing.as_mut()
                     && remove.pending.as_ref() == Some(key)
                 {
@@ -80,6 +70,43 @@ impl Shell {
             }
         }
         self.ask(machine, Ask::Project(ProjectAsk::List));
+    }
+
+    /// Settlement never grants a rebound alias authority to hydrate an old node's payload.
+    fn accept_project_reply(&mut self, machine: &str, key: &ProjectActionKey) -> bool {
+        if machine != key.host().as_str() {
+            return false;
+        }
+        let current = self.areas.workspace.page.actions.settle(key) == ProjectReply::Current;
+        let changed_node = self
+            .fleet
+            .machines
+            .iter()
+            .find(|host| host.name == machine)
+            .and_then(|host| host.node)
+            .is_some_and(|node| node != key.node());
+        if changed_node {
+            if current {
+                self.project_host_detached(machine);
+            }
+            return false;
+        }
+        if !current {
+            // A book alias may now name a different node: never hydrate from an old reply.
+            if self.areas.workspace.projects.contains_key(machine) {
+                self.ask(machine, Ask::Project(ProjectAsk::List));
+            }
+            return false;
+        }
+        true
+    }
+
+    /// Only an authenticated online welcome can provide a new mutation's node identity.
+    pub(super) fn project_node(&self, host: &str) -> Option<NodeId> {
+        self.fleet
+            .online()
+            .find(|machine| machine.name == host)
+            .and_then(|machine| machine.node)
     }
 
     /// A forgotten/renamed alias cannot retain mutation authority for its former target.
@@ -98,6 +125,7 @@ impl Shell {
             .is_some_and(|name| name.as_str() == host)
         {
             page.form_host = None;
+            page.form_node = None;
             page.adding = None;
         }
         if page
@@ -121,6 +149,12 @@ impl Shell {
         let Ok(host) = Name::parse(&machine) else {
             return;
         };
+        let Some(node) = self.project_node(&machine) else {
+            self.areas.workspace.page.error =
+                Some(self.words.projects().host_unavailable().to_owned());
+            cx.notify();
+            return;
+        };
         let Some(info) = self
             .areas
             .workspace
@@ -133,6 +167,7 @@ impl Shell {
         self.areas.workspace.page.removing = Some(Removing {
             host,
             project,
+            node,
             name: info.name.clone(),
             path: info.root.clone(),
             pending: None,
@@ -147,7 +182,13 @@ impl Shell {
         };
         let host = remove.host.clone();
         let project = remove.project;
-        let Ok(key) = self.areas.workspace.page.actions.begin(host.clone()) else {
+        let node = remove.node;
+        if self.project_node(host.as_str()) != Some(node) {
+            self.project_host_detached(host.as_str());
+            cx.notify();
+            return;
+        }
+        let Ok(key) = self.areas.workspace.page.actions.begin(host.clone(), node) else {
             return;
         };
         if let Some(remove) = self.areas.workspace.page.removing.as_mut() {
@@ -178,6 +219,7 @@ impl Shell {
 pub(super) fn project_failure(shell: &Shell, failure: &ProjectFailure) -> String {
     match failure {
         ProjectFailure::Call(problem) => shell.words().problem(problem),
+        ProjectFailure::HostChanged => shell.words.projects().host_unavailable().to_owned(),
         ProjectFailure::TimedOut => shell.words.projects().outcome_unknown().to_owned(),
     }
 }

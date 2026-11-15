@@ -80,7 +80,9 @@ async fn the_real_remove_rpc_returns_its_exact_form_key_and_target() {
         let (client, peer) = peer(Outcome::Ok(WireReply::RemoveProject(Ack))).await;
         let project = vessel_proto::ProjectId::random();
         let mut tracker = ProjectActions::default();
-        let key = tracker.begin(Name::parse("laptop").unwrap()).unwrap();
+        let key = tracker
+            .begin(Name::parse("laptop").unwrap(), client.node().id)
+            .unwrap();
         let (events, _received) = tokio::sync::mpsc::channel(1);
         let reply = Reply {
             machine: "laptop".to_owned(),
@@ -118,7 +120,9 @@ async fn the_real_remove_rpc_returns_its_exact_form_key_and_target() {
 #[test]
 fn unsent_dispatch_preserves_correlation_and_never_reports_removal_success() {
     let mut tracker = ProjectActions::default();
-    let key = tracker.begin(Name::parse("laptop").unwrap()).unwrap();
+    let key = tracker
+        .begin(Name::parse("laptop").unwrap(), NodeId::random())
+        .unwrap();
     let answer = super::super::Ask::ProjectChange(ProjectChange {
         key: key.clone(),
         action: ProjectAction::Remove(vessel_proto::ProjectId::random()),
@@ -145,7 +149,9 @@ async fn a_readonly_node_refusal_is_not_an_acknowledged_change() {
         )))
         .await;
         let mut tracker = ProjectActions::default();
-        let key = tracker.begin(Name::parse("laptop").unwrap()).unwrap();
+        let key = tracker
+            .begin(Name::parse("laptop").unwrap(), client.node().id)
+            .unwrap();
         let (events, _received) = tokio::sync::mpsc::channel(1);
         let reply = Reply {
             machine: "laptop".to_owned(),
@@ -175,4 +181,48 @@ async fn a_readonly_node_refusal_is_not_an_acknowledged_change() {
     })
     .await
     .expect("bounded in-memory RPC");
+}
+
+#[tokio::test]
+async fn a_rebound_alias_never_sends_the_old_projects_mutation_to_another_node() {
+    tokio::time::timeout(TEST_WAIT, async {
+        let (client, peer) = peer(Outcome::Ok(WireReply::RemoveProject(Ack))).await;
+        let mut tracker = ProjectActions::default();
+        let key = tracker
+            .begin(Name::parse("laptop").unwrap(), NodeId::random())
+            .unwrap();
+        assert_ne!(key.node(), client.node().id);
+        let (events, _received) = tokio::sync::mpsc::channel(1);
+        let reply = Reply {
+            machine: "laptop".to_owned(),
+            events,
+        };
+        let answer = run(
+            &Hub::default(),
+            &client,
+            &reply,
+            ProjectChange {
+                key: key.clone(),
+                action: ProjectAction::Remove(vessel_proto::ProjectId::random()),
+            },
+        )
+        .await;
+        let Answer::ProjectChanged {
+            key: returned,
+            result,
+        } = answer
+        else {
+            panic!("wrong answer kind")
+        };
+        assert_eq!(returned, key);
+        assert_eq!(result, Err(ProjectFailure::HostChanged));
+        assert!(
+            !peer.is_finished(),
+            "the peer must still be waiting for a request"
+        );
+        peer.abort();
+        assert!(peer.await.unwrap_err().is_cancelled());
+    })
+    .await
+    .expect("bounded refused in-memory RPC");
 }

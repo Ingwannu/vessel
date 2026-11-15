@@ -40,6 +40,7 @@ pub(crate) struct Page {
     /// Whether the form's call is out.
     pub(super) actions: vessel_app_view::workspace::projects::actions::ProjectActions,
     pub(super) form_host: Option<vessel_app_view::machine_book::Name>,
+    pub(super) form_node: Option<vessel_proto::NodeId>,
     pub(super) removing: Option<super::project_actions::Removing>,
     /// Why the form's last call failed.
     pub(super) error: Option<String>,
@@ -57,6 +58,7 @@ impl Page {
             url: super::field(window, cx),
             actions: vessel_app_view::workspace::projects::actions::ProjectActions::default(),
             form_host: None,
+            form_node: None,
             removing: None,
             error: None,
             failure: None,

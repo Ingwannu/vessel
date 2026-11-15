@@ -175,3 +175,12 @@ Fresh source decisions for the next stage:
   reader has a fixed byte cap and typed schema validation; generic file.write
   cannot stand in for project registration/revision authority. Saving never
   releases an external-source gate or approves a command digest.
+
+Package base 2 supplies Machine.node from the authenticated welcome. Project
+mutation keys now capture that NodeId as well as the name and local serial;
+link refuses a mismatching NodeClient before sending any mutation. Forms and
+removal confirmations retain their original node. Rebinding an alias does not
+retarget an existing path draft, and a response from the old node cannot hydrate
+a different current node. A framed in-memory test verifies no request is sent
+to the replacement peer. The earlier import cleanup accidentally removed part
+of a trait name; it is corrected explicitly rather than by substring editing.
