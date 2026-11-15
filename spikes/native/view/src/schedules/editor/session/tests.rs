@@ -279,3 +279,67 @@ fn retirement_without_a_write_removes_choices_and_cannot_rebind_the_visit() {
     }));
     assert!(model.close(opened.visit));
 }
+
+#[test]
+fn known_grants_and_actual_refusal_are_preserved_without_guessing_missing_scopes() {
+    for authority in [
+        Authority::Unknown,
+        Authority::Scopes(vec![vessel_proto::Scope::Read]),
+        Authority::Scopes(vec![
+            vessel_proto::Scope::Read,
+            vessel_proto::Scope::Operate,
+        ]),
+    ] {
+        let (mut model, opened) = active();
+        let _changed = model.reported_authority(opened.visit, &authority);
+        assert_eq!(model.blocked(), !authority.allows_actions());
+        assert_eq!(model.authority(), Some(&authority));
+        assert!(!model.reported_authority(opened.visit, &Authority::Unknown));
+        assert_eq!(model.authority(), Some(&authority));
+    }
+    let (mut model, opened) = active();
+    let request = model.preview(opened.visit, at()).unwrap().unwrap();
+    assert!(matches!(
+        model.received(
+            &request,
+            Err(Failure::Node(vessel_proto::WireError::new(
+                vessel_proto::ErrorCode::Forbidden,
+                "private diagnostic"
+            )))
+        ),
+        Received::Changed
+    ));
+    assert_eq!(model.authority(), Some(&Authority::OperationForbidden));
+    assert!(!model.reported_authority(
+        opened.visit,
+        &Authority::Scopes(vec![vessel_proto::Scope::Operate])
+    ));
+    assert_eq!(
+        model.authority().unwrap().explanation(crate::Lang::En),
+        Some("This device can only view this machine's schedules.")
+    );
+    assert_eq!(
+        model.authority().unwrap().explanation(crate::Lang::Ko),
+        Some("이 머신의 예약은 이 기기에서 조회만 할 수 있습니다.")
+    );
+}
+#[test]
+fn an_old_visit_cannot_change_grants_or_the_archive_switch() {
+    let (mut model, opened) = active();
+    let next = model
+        .select_host(opened.visit, rebound(&MachineKey::of("laptop").unwrap()))
+        .unwrap();
+    assert!(!model.reported_authority(opened.visit, &Authority::Scopes(vec![])));
+    assert_eq!(model.authority(), Some(&Authority::Unknown));
+    assert!(model.target(next.visit, target()));
+    assert!(!model.finish(opened.visit, Finish::Archive));
+    assert_eq!(
+        model.draft().unwrap().target().unwrap().finish(),
+        Finish::Keep
+    );
+    assert!(model.finish(next.visit, Finish::Archive));
+    assert_eq!(
+        model.draft().unwrap().target().unwrap().finish(),
+        Finish::Archive
+    );
+}

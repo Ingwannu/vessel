@@ -10,6 +10,7 @@
 //!   needs W4's source FieldId to carry its original visit through its callback.
 use super::{definition::Draft, io};
 use crate::connection::ConnectionContext;
+use crate::schedules::authority::Authority;
 use crate::schedules::load::{Failure, Ticket, Tickets};
 use vessel_proto::automation::{Cadence, ScheduleInfo, TimeZoneName};
 
@@ -39,6 +40,7 @@ struct Active {
     connection: ConnectionContext,
     draft: Draft,
     project: Option<vessel_proto::ProjectId>,
+    authority: Authority,
     targets: io::Mailbox,
     options: io::Mailbox,
     preview: io::Mailbox,
@@ -59,6 +61,7 @@ impl Active {
             connection,
             draft,
             project,
+            authority: Authority::default(),
             targets: io::Mailbox::default(),
             options: io::Mailbox::default(),
             preview: io::Mailbox::default(),
@@ -66,7 +69,8 @@ impl Active {
         }
     }
     fn blocked(&self) -> bool {
-        self.saving.pending()
+        !self.authority.allows_actions()
+            || self.saving.pending()
             || [&self.targets, &self.options, &self.preview, &self.saving]
                 .into_iter()
                 .filter_map(io::Mailbox::failure)
@@ -280,5 +284,51 @@ impl Model {
             changed |= slot.reconcile(fleet);
         }
         changed
+    }
+}
+
+impl Model {
+    /// Apply only the same visit's existing page grant, without erasing a node
+    /// refusal or treating a failed scope report as a read-only device.
+    pub fn reported_authority(&mut self, expected: Visit, authority: &Authority) -> bool {
+        let State::Active(active) = &mut self.state else {
+            return false;
+        };
+        if active.visit != expected {
+            return false;
+        }
+        let before = active.authority.clone();
+        match authority {
+            Authority::Unknown => {}
+            Authority::Scopes(scopes) => active.authority.reported(Some(scopes)),
+            Authority::OperationForbidden => {
+                active.authority.refused(vessel_proto::ErrorCode::Forbidden)
+            }
+        }
+        active.authority != before
+    }
+    /// The caller shows the existing bilingual read-only sentence once.
+    #[must_use]
+    pub fn authority(&self) -> Option<&Authority> {
+        match &self.state {
+            State::Active(active) => Some(&active.authority),
+            State::Closed | State::ChoosingHost { .. } => None,
+        }
+    }
+    /// Only this explicit switch changes archive policy; untouched specs remain
+    /// exact when another field changes.
+    pub fn finish(&mut self, expected: Visit, finish: super::definition::Finish) -> bool {
+        if self.visit() != Some(expected) || self.blocked() {
+            return false;
+        }
+        let Some(target) = self
+            .draft_mut()
+            .and_then(Draft::target_mut)
+            .and_then(Option::as_mut)
+        else {
+            return false;
+        };
+        target.set_finish(finish);
+        true
     }
 }

@@ -618,3 +618,22 @@ Gauge/PackagePlus selected producer has since received bounded SOURCE/exact
 Kit-narrow pass (Clippy0;128/0/0). Consumers were handed only the two appended
 variants; newer inventories must be retained. Source librsvg comparisons are not
 native UI evidence. No unchanged Rust check is repeated for those reviewed blobs.
+
+### Grant evidence for form wiring
+
+The form now owns the SAME existing Authority type as a list row. The app must
+report Page::authority_for for the exact original admission (and original id on
+edit), before admitting an action. A create reuses the host's authenticated
+self-report; edit also preserves a genuine row-local Forbidden. Unknown never
+means read-only; a later missing report or grant cannot erase a refusal. Stale
+visits cannot change this evidence, nor change archive policy. No second access
+type, extra self-query, grant inference from Admin, or alias lookup is added.
+These new pure tests are not executed yet; final source/changed-head checks and
+actual consumer wiring remain owed. Actual Forbidden still uses the existing
+bilingual table once rather than a duplicate FTL error or diagnostic message.
+
+Circle producer has now received V1's bounded SOURCE/requested Kit-narrow pass
+on exact825..2b080afd (Clippy0;137/0/0); selected range/API was handed to the
+voice consumer and shared-line owner. This is not an App/latest-combined/native
+consumer/OS/accessibility or whole F1 pass. The voice consumer still owns final
+mic/filled-square artwork and switching/first-use proof.

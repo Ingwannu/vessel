@@ -172,6 +172,12 @@ impl Model {
         if request.connection() != &active.connection {
             return Received::Ignored;
         }
+        // A rendered caller must not be able to clear genuine refusal evidence
+        // by refreshing options or by reporting an unknown grant afterwards.
+        let refused = match &answer {
+            Err(Failure::Node(wire)) => Some(wire.code),
+            Ok(_) | Err(_) => None,
+        };
         let slot = match request.operation() {
             io::Operation::Targets => &mut active.targets,
             io::Operation::Options(_) => &mut active.options,
@@ -180,6 +186,9 @@ impl Model {
         };
         if !slot.settle(request, answer) {
             return Received::Ignored;
+        }
+        if let Some(code) = refused {
+            active.authority.refused(code);
         }
         if let Some(io::Value::Saved(info)) = slot.value() {
             let saved = Received::Saved {

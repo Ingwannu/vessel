@@ -75,3 +75,43 @@ fn a_self_grant_cannot_erase_a_resource_refusal_or_cross_a_reconnect() {
     assert_eq!(page.row(&row).unwrap().authority, &Authority::Unknown);
     assert!(!page.row(&row).unwrap().actions().is_empty());
 }
+
+#[test]
+fn form_authority_is_scoped_to_the_original_admission_and_original_row() {
+    let (mut page, row) = loaded();
+    let connection = page.row(&row).unwrap().connection.unwrap().clone();
+    assert_eq!(
+        page.authority_for(&connection, None),
+        Some(Authority::Unknown)
+    );
+    page.refresh();
+    let request = page.due(now()).remove(0);
+    let mut answer = snapshot(vec![info()]);
+    answer.scopes = Ok(vec![Scope::Read, Scope::Operate]);
+    page.listed(&request, Ok(answer));
+    let pause = page.act(&row, Action::Pause).unwrap();
+    page.written(
+        &pause,
+        Err(Failure::Node(WireError::new(
+            ErrorCode::Forbidden,
+            "diagnostic",
+        ))),
+    );
+    assert_eq!(
+        page.authority_for(&connection, Some(row.schedule)),
+        Some(Authority::OperationForbidden)
+    );
+    assert_eq!(
+        page.authority_for(&connection, None),
+        Some(Authority::Scopes(vec![Scope::Read, Scope::Operate]))
+    );
+    let replacement = rebound(&row.machine);
+    assert_eq!(page.authority_for(&replacement, None), None);
+    page.connected(&row.machine);
+    let _changed = page.admitted(replacement.clone());
+    assert_eq!(page.authority_for(&connection, None), None);
+    assert_eq!(
+        page.authority_for(&replacement, None),
+        Some(Authority::Unknown)
+    );
+}

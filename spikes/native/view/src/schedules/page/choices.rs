@@ -80,3 +80,30 @@ mod tests {
         assert!(page.machine_choices(en(), "not-here").is_empty());
     }
 }
+
+impl super::Page {
+    /// Grant evidence for this exact admission. New forms reuse the host's
+    /// self-report; edits also keep any actual refusal recorded for that row.
+    #[must_use]
+    pub fn authority_for(
+        &self,
+        connection: &crate::connection::ConnectionContext,
+        schedule: Option<vessel_proto::ScheduleId>,
+    ) -> Option<super::super::authority::Authority> {
+        let cache = self.caches.get(connection.machine().as_str())?;
+        if cache.connection.as_ref() != Some(connection) {
+            return None;
+        }
+        if let Some(row) = schedule.and_then(|id| cache.rows.get(&id)) {
+            return Some(row.authority.clone());
+        }
+        Some(
+            cache
+                .scopes
+                .as_ref()
+                .map_or(super::super::authority::Authority::Unknown, |scopes| {
+                    super::super::authority::Authority::Scopes(scopes.clone())
+                }),
+        )
+    }
+}
