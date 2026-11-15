@@ -168,3 +168,21 @@ A pending plan is hidden in-stream while the approval dock owns it, and is exclu
 from tool groups. Legacy detection is restricted to SwitchMode + typed input.plan;
 canonical Plan detail will replace that fallback when available. The 44-point phone
 header is a touch-target accessibility difference from Paseo's 24-point pointer row.
+
+### Diff presentation decision (before implementation)
+
+Reference read directly: `utils/tool-call-parsers.ts:1-240`; old/new text uses a
+line edit script with unchanged context and preserved blank lines; unified diff
+headers and add/remove/context lines retain their meaning. Existing native
+`timeline/diff.rs` instead removed every nonempty old line and added the whole new
+file; `workspace/diff_rows.rs` consumes already parsed node hunks and cannot diff
+agent text. Reuse the existing timeline output contract, extend its side enum, and
+use `similar` 2.7.0 without default features for the bounded line edit script.
+`similar` is Apache-2.0, approximately 508 KiB of unpacked source, already in the
+native lockfile through another dependency; the direct dependency adds no new
+package or transitive dependency. Standard Rust has no diff algorithm; a fresh
+quadratic LCS table or hand-written Myers implementation duplicates a tested
+library and adds review cost. Use bounded input and output line counts; no I/O,
+wall-clock timeout, new crate edge or provider-specific matching in the screen.
+Difference: word-level syntax segments remain a later enhancement; line changes
+and blank/context lines must be correct first.

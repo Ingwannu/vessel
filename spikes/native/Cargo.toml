@@ -92,6 +92,8 @@ str_to_string = "warn"
 wildcard_enum_match_arm = "warn"
 
 [workspace.dependencies]
+# Bounded line edit scripts; see docs/plans/wp-timeline.md.
+similar = { version = "2.7.0", default-features = false }
 # ADR 0039: maintained Fluent AST/runtime and pseudo transformation.
 fluent-bundle = "0.16"
 fluent-syntax = "0.12"

@@ -31,7 +31,7 @@ pub(crate) struct PlanCard<'a> {
 pub(crate) fn card(
     card: PlanCard<'_>,
     on_toggle: impl Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) + 'static,
-    words: &ConversationWords,
+    words: ConversationWords,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,

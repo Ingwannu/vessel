@@ -43,7 +43,7 @@ pub(super) fn card(
                 footer: None,
             },
             move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
-            paint.words,
+            *paint.words,
             paint.tokens,
             window,
             cx,
@@ -215,8 +215,9 @@ fn diff(
                         tone: match line.side {
                             Side::Removed => Tone::Removed,
                             Side::Added => Tone::Added,
+                            Side::Context | Side::Header => Tone::Plain,
                         },
-                        number: Some(line.number),
+                        number: line.number,
                     })
                     .collect(),
                 copy: None,
