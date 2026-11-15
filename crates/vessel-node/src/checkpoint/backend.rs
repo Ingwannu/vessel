@@ -47,6 +47,7 @@ pub(super) fn start_shared(
             cleanup_runtime.block_on(async {
                 match disposition {
                     Disposition::Keep => {}
+                    Disposition::NoReservation => return Ok(()),
                     Disposition::Discard(failure) => {
                         cleanup_store
                             .checkpoint_write(CheckpointWrite::Unavailable {

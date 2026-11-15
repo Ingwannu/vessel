@@ -23,6 +23,8 @@ use vessel_session::CheckpointAdvance;
 pub(super) enum Disposition {
     Keep,
     Discard(CheckpointError),
+    /// ReserveCapture refused before its INSERT; no filesystem read was started.
+    NoReservation,
     /// Ready activation may have committed; keep bytes until reconciliation.
     Recovery,
 }
@@ -356,8 +358,16 @@ async fn work<Read, Persist, Cleanup, Stored>(
         }
         Err(reason) => {
             let _closed = events.send(Event::Failed { key, reason }).await;
-            // A lost writer acknowledgement cannot prove the reservation absent.
-            Disposition::Recovery
+            // These ReserveCapture refusals occur before INSERT and before any
+            // filesystem callback. Other storage failures remain uncertain.
+            if matches!(
+                reason,
+                CheckpointError::StorageFull | CheckpointError::StaleCapture
+            ) {
+                Disposition::NoReservation
+            } else {
+                Disposition::Recovery
+            }
         }
     };
     // Cleanup is deliberately awaited here, never by the session/deadline owner.
@@ -465,6 +475,7 @@ where
             }
         },
         Disposition::Discard(reason) => Disposition::Discard(reason),
+        Disposition::NoReservation => Disposition::NoReservation,
         Disposition::Recovery => Disposition::Recovery,
     }
 }

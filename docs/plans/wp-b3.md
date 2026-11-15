@@ -959,3 +959,17 @@ separate capture root/worker/quota ownership still lasts through actual cleanup.
 The held-publication regression checks a following boundary waits with only one
 read, honors an already-expired deadline, and reads only after actual release.
 The real two-turn runtime fixture remains owed remotely.
+
+### Confirmed reservation refusal versus ambiguity (source; unrun)
+
+ReserveCapture can return StorageFull from quota admission or StaleCapture from
+its boundary proof before INSERT. Neither path has begun a filesystem callback.
+The runner now distinguishes these confirmed no-reservation outcomes, returns
+the typed error, and releases its memory/root/worker admission after the no-I/O
+cleanup acknowledgement. Other storage/commit failures remain uncertain and keep
+recovery ownership. This classification applies only to the reserve phase, never
+to a candidate or Ready publication error. The repeated-refusal fixture checks
+more attempts than worker slots with no file read; the real managed backend
+also refuses an uncommitted anchor, creates no checkpoint directory, then accepts
+a valid capture. This prevents ordinary quota exhaustion permanently occupying
+both worker slots without weakening ambiguous-commit handling.

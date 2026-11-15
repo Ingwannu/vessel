@@ -67,6 +67,28 @@ async fn checkpoint_backend_commits_anchor_before_io_and_waits_for_actual_actor_
             fixture.store.clone(),
             IgnoreDefaults::new(fixture.path().join("absent-global-ignore")).unwrap(),
         );
+        let missing = CaptureKey {
+            capture: CaptureId::random(),
+            boundary: Boundary::BeforeTurn {
+                prompt: EventSeq::new(1),
+            },
+            ..key
+        };
+        assert!(matches!(
+            client
+                .capture_candidate(
+                    physical,
+                    missing,
+                    tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE
+                )
+                .await,
+            Err(vessel_proto::checkpoint::CheckpointError::StaleCapture)
+        ));
+        client.wait_released(physical).await.unwrap();
+        assert!(
+            !fixture.data.root().join("checkpoints").exists(),
+            "uncommitted anchor cannot start filesystem work"
+        );
         let accepted = client
             .capture_candidate(
                 physical,

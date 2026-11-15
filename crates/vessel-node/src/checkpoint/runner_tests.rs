@@ -534,3 +534,46 @@ async fn checkpoint_next_boundary_waits_for_accepted_publication_without_spawnin
     drop(client);
     owner.await.unwrap();
 }
+
+#[tokio::test]
+async fn checkpoint_confirmed_preinsert_reservation_refusals_do_not_permanently_exhaust_workers() {
+    vessel_testkit::within(std::time::Duration::from_secs(60), async {
+        for failure in [CheckpointError::StorageFull, CheckpointError::StaleCapture] {
+            let (client, owner) = runner::start(
+                |_key, _root, _cancel| panic!("preinsert refusal must not read files"),
+                move |_key, publication| {
+                    assert!(matches!(publication, Publication::Reserve(_)));
+                    async move { Err(failure) }
+                },
+                |_key, disposition| {
+                    assert_eq!(disposition, Disposition::NoReservation);
+                    Ok(())
+                },
+            );
+            let first = key();
+            let physical = super::capture::model_root(first.worktree);
+            for _attempt in 0..3 {
+                let key = CaptureKey {
+                    capture: CaptureId::random(),
+                    ..first
+                };
+                assert_eq!(
+                    client
+                        .capture_at_root(
+                            physical,
+                            key,
+                            ReservedBytes::new(1).unwrap(),
+                            tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE
+                        )
+                        .await,
+                    Err(failure)
+                );
+                client.wait_released(physical).await.unwrap();
+            }
+            drop(client);
+            owner.await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
+}
