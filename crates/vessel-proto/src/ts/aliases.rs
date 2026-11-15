@@ -313,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn an_observed_commit_abbreviation_stays_plain_display_content() {
+    fn typescript_observed_commit_abbreviation_is_plain_display_content() {
         assert_eq!(classify("CommitAbbreviation"), Some(Alias::Content));
         assert_eq!(
             <crate::workspace::CommitAbbreviation as ts_rs::TS>::decl(),
