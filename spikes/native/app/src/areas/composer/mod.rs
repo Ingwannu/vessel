@@ -35,7 +35,7 @@ pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use lightbox::overlay;
 pub(crate) use local::restore_local;
-pub(crate) use prepared::{PrepareProblem, PreparedSubmission};
+pub(crate) use prepared::PrepareProblem;
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
 pub(crate) use slash::{draft_menu, draft_text, menu, text};

@@ -239,6 +239,49 @@ impl Shell {
             cx.notify();
         }
     }
+    /// Global shortcut routing reads admission without changing selection/input.
+    pub(crate) fn composer_file_menu_owns_key(
+        &self,
+        target: DraftKey,
+        key: ComposerKey,
+        cx: &vessel_app_kit::ui::App,
+    ) -> bool {
+        if self.composer_destination() != Some(target) {
+            return false;
+        }
+        let state = self.file_menu(target).borrow();
+        let token = self.active_file_token(target, cx);
+        let current = token.as_ref().is_some_and(|token| {
+            state.model.request().is_some_and(|request| {
+                request.mention == *token
+                    && self.composer_context_scope(target).is_some_and(|scope| {
+                        request.scope.draft == target
+                            && request.scope.machine == scope.machine
+                            && request.scope.root == scope.root
+                    })
+            })
+        });
+        if key != ComposerKey::Escape {
+            return current && !state.model.rows().is_empty();
+        }
+        let root_popup = token.is_some()
+            && match &*self.areas.composer.mention_root.borrow() {
+                Root::Reading(ask) | Root::Ready(ask, Err(_)) => {
+                    self.areas.session.open.as_ref().is_some_and(|open| {
+                        target
+                            == (DraftKey::Session {
+                                session: open.session,
+                            })
+                            && open.session == ask.session
+                            && open.machine == ask.machine.as_str()
+                    })
+                }
+                Root::Exhausted => true,
+                Root::Missing | Root::Ready(_, Ok(_)) => false,
+            };
+        current || root_popup || matches!(state.model.phase(), mentions::Phase::Invalid(_))
+    }
+
     /// The composer shell delegates before slash handling so an active @ token wins.
     pub(crate) fn composer_file_key(
         &mut self,
@@ -248,12 +291,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
         self.observe_file_menu(target, cx);
-        let visible = !matches!(
-            self.file_menu(target).borrow().model.phase(),
-            mentions::Phase::Hidden
-        ) || (self.active_file_token(target, cx).is_some()
-            && matches!(&*self.areas.composer.mention_root.borrow(), Root::Reading(ask) if matches!(target, DraftKey::Session { session } if session == ask.session)));
-        if !visible {
+        if !self.composer_file_menu_owns_key(target, key, cx) {
             return KeyAnswer::Pass;
         }
         if key == ComposerKey::Escape {

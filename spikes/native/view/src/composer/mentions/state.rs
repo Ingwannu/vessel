@@ -165,6 +165,11 @@ impl Menu {
         caret: usize,
         now: Duration,
     ) -> Result<Option<Request>, Problem> {
+        let Some(scope) = scope else {
+            self.phase = Phase::Hidden;
+            self.dismissed = None;
+            return Ok(None);
+        };
         let mention = match active(text, caret) {
             Ok(mention) => mention,
             Err(problem) => {
@@ -172,7 +177,7 @@ impl Menu {
                 return Err(problem);
             }
         };
-        let Some((scope, mention)) = scope.zip(mention) else {
+        let Some(mention) = mention else {
             self.phase = Phase::Hidden;
             self.dismissed = None;
             return Ok(None);
@@ -205,7 +210,15 @@ impl Menu {
             self.set_rows(request, rows);
             return Ok(None);
         }
-        let previous = self.phase.rows().to_vec();
+        let previous = if self
+            .phase
+            .request()
+            .is_some_and(|old| old.scope == request.scope)
+        {
+            self.phase.rows().to_vec()
+        } else {
+            Vec::new()
+        };
         self.phase = Phase::Debouncing {
             request: request.clone(),
             previous,
