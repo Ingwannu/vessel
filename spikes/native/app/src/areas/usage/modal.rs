@@ -63,7 +63,8 @@ pub(super) fn hosts(shell: &Shell) -> Vec<UsageHost> {
             let node = machine.node?;
             let support = if machine
                 .protocol
-                .is_some_and(|protocol| protocol >= vessel_proto::Method::GetUsageLimits.since())
+                .zip(vessel_proto::Method::GetUsageLimits.since())
+                .is_some_and(|(protocol, needed)| protocol >= needed)
             {
                 HostSupport::Limits
             } else {

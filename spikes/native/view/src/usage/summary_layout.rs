@@ -26,8 +26,11 @@ impl SummaryWindowCount {
 /// Every meter is shown or omitted together; a row never mixes densities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SummaryLayout {
+    /// Every window includes a quiet meter and its short label.
     Meters,
+    /// Percentages and short names fit without meters.
     Labels,
+    /// Only percentages are shorter than the short names.
     Percents,
 }
 /// Measurements can arrive independently; incomplete measurement stays stable.
