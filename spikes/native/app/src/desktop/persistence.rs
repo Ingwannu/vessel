@@ -13,7 +13,13 @@ use vessel_app_view::desktop::window::WindowState;
 #[derive(Debug)]
 pub(crate) struct StateReceipt {
     preferences: Option<Checkpoint>,
-    geometry: Option<WindowState>,
+    geometry: Option<GeometryReceipt>,
+}
+
+#[derive(Debug)]
+struct GeometryReceipt {
+    state: WindowState,
+    publication: Arc<()>,
 }
 
 impl StateReceipt {
@@ -47,10 +53,15 @@ pub(crate) fn flush_state(
         .try_global::<Desktop>()
         .map(|desktop| desktop.preferences.checkpoint());
     let geometry = cx.try_global::<Desktop>().and_then(|desktop| {
-        desktop
-            .writer
-            .as_ref()
-            .map(|writer| (desktop.latest, writer.flush(desktop.latest)))
+        desktop.writer.as_ref().map(|writer| {
+            (
+                GeometryReceipt {
+                    state: desktop.latest,
+                    publication: Arc::clone(&desktop.geometry_publication),
+                },
+                writer.flush(desktop.latest),
+            )
+        })
     });
     async move {
         let preferences = match preferences {
@@ -85,9 +96,10 @@ pub(crate) fn flush_current(receipt: &StateReceipt, cx: &App) -> StateReadiness 
         return StateReadiness::Changed;
     };
     if !desktop.preferences.is_current(preferences)
-        || receipt
-            .geometry
-            .is_some_and(|state| state != desktop.latest)
+        || receipt.geometry.as_ref().is_some_and(|geometry| {
+            geometry.state != desktop.latest
+                || !Arc::ptr_eq(&geometry.publication, &desktop.geometry_publication)
+        })
         || receipt.geometry.is_some() != desktop.writer.is_some()
     {
         return StateReadiness::Changed;

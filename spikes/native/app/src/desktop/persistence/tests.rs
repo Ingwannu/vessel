@@ -19,8 +19,7 @@ impl Drop for Temp {
     }
 }
 
-#[gpui::test]
-fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut TestAppContext) {
+fn owner(cx: &mut TestAppContext) -> (Temp, Store) {
     language_tests::init(cx);
     let root = Temp(std::env::temp_dir().join(format!(
         "vessel-state-fence-{}",
@@ -34,6 +33,12 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
         desktop.writer = Some(writer);
         cx.set_global(desktop);
     });
+    (root, store)
+}
+
+#[gpui::test]
+fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut TestAppContext) {
+    let (_root, store) = owner(cx);
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     shell.update_in(cx, crate::desktop::preferences::start);
     cx.update(|window, cx| {
@@ -47,9 +52,7 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
     let flushing = cx.update(|_, cx| flush_state(cx));
     let moved = WindowState::new(Some((40.0, 50.0)), 900.0, 700.0, Presentation::Windowed).unwrap();
     cx.update(|_, cx| {
-        let desktop = cx.global_mut::<Desktop>();
-        desktop.latest = moved;
-        desktop.writer.as_ref().unwrap().changed(moved).unwrap();
+        cx.global_mut::<Desktop>().remember(moved);
     });
     let old = futures_lite::future::block_on(flushing).unwrap();
     cx.update(|_, cx| assert!(matches!(flush_current(&old, cx), StateReadiness::Changed)));
@@ -86,4 +89,31 @@ fn app_fence_rejects_late_geometry_and_unreconciled_preference_edits(cx: &mut Te
             StateReadiness::LaunchOnly
         ))
     });
+}
+
+#[gpui::test]
+fn equal_bounds_after_intervening_publications_still_require_a_fresh_receipt(
+    cx: &mut TestAppContext,
+) {
+    let (_root, store) = owner(cx);
+    let flushing = cx.update(|cx| flush_state(cx));
+    let old = futures_lite::future::block_on(flushing).unwrap();
+    let moved = WindowState::new(Some((40.0, 50.0)), 900.0, 700.0, Presentation::Windowed).unwrap();
+    cx.update(|cx| {
+        let desktop = cx.global_mut::<Desktop>();
+        desktop.remember(moved);
+        desktop.remember(WindowState::default());
+        // Value equality alone would admit exit while a different state can
+        // still be in the writer; the same A requires a new acknowledgment.
+        assert!(matches!(flush_current(&old, cx), StateReadiness::Changed));
+    });
+    let flushing = cx.update(|cx| flush_state(cx));
+    let current = futures_lite::future::block_on(flushing).unwrap();
+    cx.update(|cx| {
+        assert!(matches!(
+            flush_current(&current, cx),
+            StateReadiness::LaunchOnly
+        ));
+    });
+    assert_eq!(store.load_window().unwrap(), Some(WindowState::default()));
 }

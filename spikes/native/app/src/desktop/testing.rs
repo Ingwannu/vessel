@@ -9,6 +9,7 @@ pub(super) fn desktop(preferences: Coordinator) -> Desktop {
         records: Vec::new(),
         saved: None,
         latest: WindowState::default(),
+        geometry_publication: std::sync::Arc::new(()),
         writer: None,
         environment: ShellEnvironment::inherited(),
         environment_broadcast: None,

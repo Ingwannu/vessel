@@ -122,6 +122,11 @@ The lifecycle owner performs one bounded retry phase after Changed and no await
 between final document admission, this App-level fence and quit/restart. Node
 finalization is not repeated by desktop. New queue/checkpoint and real App late
 resize/preference tests are source-only pending their next combined execution.
+Geometry also retains an opaque publication identity rotated on every remembered
+input, including equal bounds. A -> B -> A can otherwise equal an old receipt
+while the writer still has B in flight. The same App-level fence now requires
+the captured identity as well as value equality; no second writer or lifecycle
+manager is introduced. An actual App regression covers that equal-value cycle.
 
 The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.

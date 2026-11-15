@@ -241,12 +241,5 @@ fn remember(window: &Window, cx: &mut App) {
     ) else {
         return;
     };
-    let desktop = cx.global_mut::<Desktop>();
-    desktop.saved = Some(state);
-    desktop.latest = state;
-    if let Some(writer) = &desktop.writer
-        && let Err(error) = writer.changed(state)
-    {
-        tracing::warn!(%error,"window position could not be queued for saving");
-    }
+    cx.global_mut::<Desktop>().remember(state);
 }

@@ -10,6 +10,7 @@ mod windows;
 
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Global, WeakEntity};
+use std::sync::Arc;
 use vessel_app_link::desktop::{
     environment::ShellEnvironment, preferences::Coordinator, store::Store,
     window_writer::WindowWriter,
@@ -41,6 +42,7 @@ pub(crate) struct Desktop {
     records: Vec<WindowRecord>,
     saved: Option<WindowState>,
     latest: WindowState,
+    geometry_publication: Arc<()>,
     writer: Option<WindowWriter>,
     environment: ShellEnvironment,
     environment_broadcast: Option<EnvironmentBroadcast>,
@@ -81,6 +83,7 @@ impl Desktop {
             records: Vec::new(),
             saved,
             latest: saved.unwrap_or_default(),
+            geometry_publication: Arc::new(()),
             writer,
             environment,
             environment_broadcast,
@@ -90,6 +93,19 @@ impl Desktop {
             project: None,
             preferences,
         })
+    }
+
+    fn remember(&mut self, state: WindowState) {
+        self.saved = Some(state);
+        self.latest = state;
+        // Value equality cannot fence A -> B -> A while B is still in the
+        // blocking writer. Every input publication invalidates old receipts.
+        self.geometry_publication = Arc::new(());
+        if let Some(writer) = &self.writer
+            && let Err(error) = writer.changed(state)
+        {
+            tracing::warn!(%error,"window position could not be queued for saving");
+        }
     }
 }
 
