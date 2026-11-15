@@ -408,18 +408,18 @@ spaces, commas and equals signs. This accessor does not add the pending
 
 ## Proposed session discovery request contract
 
-This existing-wire-type change awaits protocol-owner acceptance and the named
-method-table integration head. The following is the exact proposed shape;
-no request conversion is implemented by this document.
+The protocol owner accepted this existing-wire-type change with required wire
+scope and named Rust constructors. It still awaits the named method-table
+integration head before wiring. This is the revised contract; no request
+conversion is implemented by this document.
 
 ```rust
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ListSessions(Option<SessionSelection>);
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SessionSelection {
-    #[serde(default)]
     pub scope: ListingScope,
     #[serde(default)]
     pub labels: SessionLabels,
@@ -428,16 +428,23 @@ pub struct SessionSelection {
 
 `ListSessions::default()` is `None`; its wire body remains `null`.
 `ListSessions::selected(selection)` constructs `Some(selection)` and
-`selection()` borrows it. `SessionSelection::default()` means `Shown` and
-an empty label filter. Present selection, including `{}`, requests the new
-feature. Unknown scope values and invalid labels fail during decoding.
-No second request type, method row or boolean scope is introduced.
+`selection()` borrows it. `SessionSelection::shown()` and `all()` are
+named Rust constructors with empty label filters; `with_labels(labels)` adds
+the validated predicate. The selection has no Rust Default and its wire
+`scope` is required: `{}` or a labels-only object is invalid. A valid present
+selection requests the new feature. Missing or unknown scope and invalid
+labels fail during decoding. No second request type, row or boolean scope is
+introduced. On the method-table integration head the field rule belongs in
+`Call::since() -> Option<ProtocolVersion>`: a present selection contributes the
+feature constant, and an unassigned constant makes the whole call None.
+`required_protocol()` delegates to since; it gets no second field check.
 
 | Caller or body | Meaning | Admission and compatibility |
 |---|---|---|
 | Existing Rust unit-value caller | Complete only the value to `ListSessions::default()` | Existing assertions unchanged in the field-introducing commit |
 | `params: null` / `ListSessions::default()` | Legacy full list, background included | Existing method requirement; works with old nodes and preserves the wire shape |
-| `params: {}` / present default selection | Shown sessions, no label predicate | Unassigned feature is refused; after assignment requires its threshold |
+| `params: {}` / labels-only object | Invalid: required scope is missing | Decoding refuses before dispatch; no silent Shown choice |
+| Present `scope: shown` | Shown sessions, no label predicate by default | Unassigned feature is refused; after assignment requires its threshold |
 | Present `scope: all` | Both listing kinds | Same feature gate; explicit unsupported requests are never discarded |
 | Present nonempty labels | Every pair must match current labels, after scope | Same feature gate; filtering preserves existing list order |
 | Existing SDK `sessions()` | Keep the legacy full-collection API | Only its Rust value expression changes, not its behavior |
@@ -450,8 +457,9 @@ No second request type, method row or boolean scope is introduced.
   breaking old `params: null` callers or treating omission as an explicit flag.
 - Existing assets: extend the current `ListSessions` row and shared optional
   field admission, the validated label map and the existing list service.
-- Choice: an optional typed selection in the same request; the typed scope
-  owns inclusion, and labels are an AND predicate. No dependency is needed.
+- Choice: an optional typed selection in the same request; its required
+  scope owns inclusion, and labels are an AND predicate. Named constructors
+  keep Rust choices explicit. No dependency is needed.
 - Alternatives: changing null to Shown would silently change old clients;
   sending an empty object to an old unit request would break decoding; a new
   method or second request alias would duplicate protocol knowledge.

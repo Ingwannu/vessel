@@ -190,15 +190,17 @@ filter, a background listing or any labels to an older node
 (the shared `required_protocol()` accessor returns the assigned threshold,
 or `None` while the feature is unassigned).
 `params: null` remains the legacy full-list request. A present typed
-selection, including an empty object, instead asks for Shown by default and
-requires the feature's assignment. The SDK's existing full-collection method
+selection instead requires an explicit wire scope and the feature's
+assignment. An empty object or labels-only object is invalid; Rust callers
+use named Shown/All constructors. The SDK's existing full-collection method
 keeps the null path. CLI default discovery uses Shown when the assigned feature
 is supported, and the legacy path before assignment or on an older connection.
 This compatibility difference is necessary because an older peer cannot supply
 listing metadata. Explicit background inclusion or label predicates never
 fall back: unsupported or unassigned requests are refused. The exact nullable
-request shape and compatibility table are in the plan and await protocol-owner
-acceptance before implementation.
+request shape and compatibility table are in the plan. The protocol owner
+accepted the required-scope form; implementation still awaits the named
+method-table integration head.
 
 `session.get`, attach, log, send, kill, rename, labels and reload do
 not care about the listing. A background session is still there.
