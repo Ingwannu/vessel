@@ -227,3 +227,43 @@ fallback versus propagated root errors, cancellation without another paid call,
 and workspace-scoped accounting without a session. Original-root validation and
 normal repository mutation reservation still apply before a generated commit;
 no atomic filesystem snapshot against external edits is claimed.
+
+## Merge cleanup implementation boundary (still unimplemented)
+
+Paseo checkout-git.ts:3866–4035 operates in the worktree holding the base when
+there is one, otherwise temporarily checks out the base in the current tree.
+Merge-to-base restores the original branch only for the same checkout;
+merge-from-base requires a clean checkout by default and chooses the most-ahead
+usable base. Both detect conflicts and attempt merge abort. The source catches
+and ignores some abort/restore failures; Vessel must retain those failures.
+
+The existing project-wide Git writer reservation and same-snapshot root resolver
+are reused. A worktree path printed by Git is not new filesystem authority:
+the node must resolve a matching admitted project/worktree before running a
+mutation there. An unregistered external checkout cannot silently become the
+target. This is a safety refusal, not support for all arbitrary Git worktrees.
+Pinned-base mismatch and qualified-missing base retain the same admission
+distinction as the comparison/history reader; no new fallback resolver.
+
+The node task tracker owns checkout/merge/cleanup through result publication,
+even when the RPC caller disappears. Cancellation stops the mutation command,
+then bounded cleanup uses the same original runner/root and retained reservation;
+it must not inherit an already-cancelled command token and instantly skip
+restoration. Node shutdown still waits for this tracked cleanup. No second
+process pool, temporary session or detached untracked cleanup is introduced.
+
+A failed operation and failed cleanup must both survive in a typed result.
+Never report a clean refusal or success when abort/restore could not be proved;
+the app must keep the original sent intent/receipt and explain the unresolved
+repository state. The current reservation does not fence external CLI/agent
+processes or registry lifecycle edits, so root snapshots are revalidated after
+waiting and before each checkout mutation. It is not an atomic filesystem lease.
+
+Before wiring, port the actual checkout-git.test.ts merge fixtures: base already
+checked out elsewhere, restoration of a temporary checkout, same branch no-op,
+dirty target, local/remote base choice, normal merge and squash conflicts. Add
+Vessel regressions for unregistered targets, moved queued roots, caller drop,
+node cancellation, abort failure, restore failure and project-wide writer/cache
+invalidation. Fake commands use the existing testkit executable helper. These
+are required tests, not executed claims. No merge RPC, method row, protocol
+assignment or successful merge implementation is added by this amendment.
