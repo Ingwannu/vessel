@@ -1,3 +1,6 @@
+// MODIFIED by Vessel (Team-WICKED), 2026-11-15: an element may choose the
+// distance a press moves before its drag starts (spikes/release/patches/
+// README.md, "gpui-pre"); see the lines marked "Vessel patch".
 //! Div is the central, reusable element that most GPUI trees will be built from.
 //! It functions as a container for other elements, and provides a number of
 //! useful features for laying out and styling its children as well as binding
@@ -684,6 +687,15 @@ impl Interactivity {
         drag_listener.external_payload = Some(Box::new(move |value, window, cx| {
             resolver(value.downcast_ref::<T>()?, window, cx)
         }));
+    }
+
+    // Vessel patch: the distance a press moves before this element's drag
+    // starts; without it, `DRAG_THRESHOLD` (2 points) as upstream.
+    /// How far the pointer moves from the press before this element's drag
+    /// starts (the default is 2 points).
+    /// The imperative API equivalent to [`StatefulInteractiveElement::drag_threshold`].
+    pub fn drag_threshold(&mut self, distance: Pixels) {
+        self.drag_threshold = Some(distance);
     }
 
     /// Bind the given callback on the hover start and end events of this element. Note that the boolean
@@ -1695,6 +1707,15 @@ pub trait StatefulInteractiveElement: InteractiveElement {
         self
     }
 
+    // Vessel patch: see `Interactivity::drag_threshold`.
+    /// How far the pointer moves from the press before this element's drag
+    /// starts (the default is 2 points).
+    /// The fluent API equivalent to [`Interactivity::drag_threshold`].
+    fn drag_threshold(mut self, distance: Pixels) -> Self {
+        self.interactivity().drag_threshold(distance);
+        self
+    }
+
     /// Bind the given callback on the hover start and end events of this element. Note that the boolean
     /// passed to the callback is true when the hover starts and false when it ends.
     /// Transitions caused by layout changes under a stationary mouse also invoke the callback.
@@ -2231,6 +2252,8 @@ pub struct Interactivity {
     pub(crate) click_listeners: Vec<ClickListener>,
     pub(crate) aux_click_listeners: Vec<ClickListener>,
     pub(crate) drag_listener: Option<DragListener>,
+    // Vessel patch: `None` keeps `DRAG_THRESHOLD`.
+    pub(crate) drag_threshold: Option<Pixels>,
     pub(crate) hover_listener: Option<Box<dyn Fn(&bool, &mut Window, &mut App)>>,
     pub(crate) hover_listener_mode: HoverListenerMode,
     pub(crate) tooltip_builder: Option<TooltipBuilder>,
@@ -2954,6 +2977,8 @@ impl Interactivity {
         let drag_cursor_style = self.base_style.as_ref().mouse_cursor;
 
         let mut drag_listener = mem::take(&mut self.drag_listener);
+        // Vessel patch: this element's distance, or upstream's.
+        let drag_threshold = self.drag_threshold.map_or(DRAG_THRESHOLD, f64::from);
         let drop_listeners = mem::take(&mut self.drop_listeners);
         let click_listeners = mem::take(&mut self.click_listeners);
         let aux_click_listeners = mem::take(&mut self.aux_click_listeners);
@@ -3038,7 +3063,7 @@ impl Interactivity {
                         let mut pending_mouse_down = pending_mouse_down.borrow_mut();
                         if let Some(mouse_down) = pending_mouse_down.clone()
                             && !cx.has_active_drag()
-                            && (event.position - mouse_down.position).magnitude() > DRAG_THRESHOLD
+                            && (event.position - mouse_down.position).magnitude() > drag_threshold
                             && let Some(listener) = drag_listener.take()
                             && mouse_down.button == MouseButton::Left
                         {
