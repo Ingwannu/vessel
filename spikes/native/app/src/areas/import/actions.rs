@@ -1,6 +1,5 @@
 //! User actions retain the scope before sending any request.
 
-use super::Picker;
 use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
@@ -76,8 +75,6 @@ impl Shell {
         let area = &mut self.areas.import;
         area.open = false;
         area.visit = None;
-        area.picker.close();
-        area.choosing = None;
         area.profile_request = None;
         if !area.model.importing() {
             area.model.close();
@@ -192,25 +189,5 @@ impl Shell {
             self.areas.import.reproject();
             self.history_refresh();
         }
-    }
-
-    pub(super) fn history_picker(
-        &mut self,
-        which: Picker,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        if self.areas.import.model.importing() {
-            return;
-        }
-        let anchor = match which {
-            Picker::Machine => &self.areas.import.machine_anchor,
-            Picker::Agent => &self.areas.import.agent_anchor,
-            Picker::Account => &self.areas.import.account_anchor,
-        };
-        self.areas.import.picker.set_anchor(anchor.get());
-        self.areas.import.choosing = Some(which);
-        self.areas.import.picker.open(None, window, cx);
-        cx.notify();
     }
 }

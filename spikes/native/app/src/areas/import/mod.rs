@@ -11,22 +11,13 @@ pub(crate) use draw::{entry, render};
 
 use crate::shell::Shell;
 use gpui::FocusHandle;
-use std::rc::Rc;
 use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_kit::{ComboboxState, TextField, VirtualList};
+use vessel_app_kit::{TextField, VirtualList};
 use vessel_app_view::devices::{Ticket, Tickets};
 use vessel_app_view::history::{History, Problem, Scope};
 use vessel_app_view::matcher::Query;
 use vessel_proto::{HarnessSessionId, ProfileInfo};
-
-/// A picker never routes on a string label supplied by a node.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Picker {
-    Machine,
-    Agent,
-    Account,
-}
 
 /// The sheet's controls and prepared projection, independent from a route.
 pub(crate) struct ImportArea {
@@ -37,11 +28,6 @@ pub(crate) struct ImportArea {
     pub(super) visible: Vec<HarnessSessionId>,
     pub(super) list: VirtualList,
     pub(super) dialog: DialogState,
-    pub(super) picker: ComboboxState,
-    pub(super) choosing: Option<Picker>,
-    pub(super) machine_anchor: vessel_app_kit::select::Anchor,
-    pub(super) agent_anchor: vessel_app_kit::select::Anchor,
-    pub(super) account_anchor: vessel_app_kit::select::Anchor,
     pub(super) profiles: Result<Vec<ProfileInfo>, Problem>,
     pub(super) profile_request: Option<(Scope, Ticket)>,
     pub(super) tickets: Tickets,
@@ -70,11 +56,6 @@ impl ImportArea {
             visible: Vec::new(),
             list: VirtualList::new(false),
             dialog: DialogState::new(cx),
-            picker: ComboboxState::new(window, cx),
-            choosing: None,
-            machine_anchor: Rc::default(),
-            agent_anchor: Rc::default(),
-            account_anchor: Rc::default(),
             profiles: Ok(Vec::new()),
             profile_request: None,
             tickets: Tickets::default(),

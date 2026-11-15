@@ -54,12 +54,7 @@ pub(crate) fn render(
         super::intent::listener(shell, Action::Cancel),
         cx,
     );
-    Some(
-        div()
-            .child(modal)
-            .children(super::pickers::render(shell, tokens, window, cx))
-            .into_any_element(),
-    )
+    Some(div().child(modal).into_any_element())
 }
 
 fn body(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
@@ -69,7 +64,7 @@ fn body(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Sh
         .flex_col()
         .min_w_0()
         .gap(px(S3))
-        .child(super::pickers::controls(shell, tokens, window, cx))
+        .child(super::pickers::controls(shell, tokens))
         .child(scope(shell, tokens, cx))
         .child(
             area.search
@@ -87,7 +82,7 @@ fn body(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Sh
 pub(super) fn state(action: &Action, model: &History) -> ButtonState {
     let ready = match action {
         Action::Cancel => true,
-        Action::Row { .. } | Action::Picker(_) | Action::ShowAll => !model.importing(),
+        Action::Row { .. } | Action::ShowAll => !model.importing(),
         Action::Refresh | Action::More => {
             !model.importing() && !matches!(model.loading(), Loading::Pending(_))
         }
@@ -126,7 +121,7 @@ fn button(
         ),
         Action::More => ("history-more", words.more(), ButtonKind::Ghost),
         Action::ShowAll => ("history-show-all", words.show_all(), ButtonKind::Ghost),
-        Action::Row { .. } | Action::Picker(_) => return div().into_any_element(),
+        Action::Row { .. } => return div().into_any_element(),
     };
     let enabled = state(&action, &shell.areas.import.model);
     let listener = super::intent::listener(shell, action);
