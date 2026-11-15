@@ -48,21 +48,32 @@ impl Shell {
         state.dialog.dismissed(window, cx);
         cx.notify();
     }
-    fn open_usage_hosts(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn open_usage_hosts(
+        &mut self,
+        opening: vessel_app_view::devices::Ticket,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let state = &mut self.areas.usage;
+        if state.modal.current() != Some(opening) {
+            return;
+        }
         state.host_list.set_anchor(state.host_anchor.get());
         state.host_list.open(None, window, cx);
         cx.notify();
     }
-    fn choose_usage_host(&mut self, index: usize, window: &mut Window, cx: &mut Context<'_, Self>) {
+    fn choose_usage_host(
+        &mut self,
+        opening: vessel_app_view::devices::Ticket,
+        node: NodeId,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let hosts = hosts(self);
-        let selected = hosts
-            .into_iter()
-            .filter(|host| host.availability == HostAvailability::Connected)
-            .nth(index);
-        if let Some(host) = selected {
-            self.prefer(&PreferenceChange::UsageHost(Some(host.node)), window, cx);
-        }
+        let Some(node) = self.areas.usage.modal.choose_host(opening, node, &hosts) else {
+            return;
+        };
+        self.prefer(&PreferenceChange::UsageHost(Some(node)), window, cx);
         self.areas.usage.host_list.close();
         cx.notify();
     }
@@ -144,7 +155,9 @@ pub(crate) fn dialogs(
         body = body.child(
             outline_button("usage-host-filter", label, true, tokens)
                 .child(vessel_app_kit::anchor_probe(&state.host_anchor))
-                .on_click(cx.listener(|shell, _, window, cx| shell.open_usage_hosts(window, cx))),
+                .on_click(cx.listener(move |shell, _, window, cx| {
+                    shell.open_usage_hosts(opening, window, cx);
+                })),
         );
     }
     body = match state.target {
@@ -170,13 +183,14 @@ pub(crate) fn dialogs(
                 move |shell: &mut Shell, window, cx| shell.close_usage(opening, window, cx),
                 cx,
             ))
-            .children(host_list(shell, &connected, tokens, window, cx))
+            .children(host_list(shell, &connected, opening, tokens, window, cx))
             .into_any_element(),
     )
 }
 fn host_list(
     shell: &Shell,
     hosts: &[UsageHost],
+    opening: vessel_app_view::devices::Ticket,
     tokens: &Tokens,
     window: &Window,
     cx: &mut Context<'_, Shell>,
@@ -190,10 +204,13 @@ fn host_list(
             row
         })
         .collect();
+    let identities: Vec<_> = hosts.iter().map(|host| host.node).collect();
     let handlers = ComboHandlers {
         state: |shell: &mut Shell| &mut shell.areas.usage.host_list,
-        chose: Rc::new(|shell: &mut Shell, index, window, cx| {
-            shell.choose_usage_host(index, window, cx);
+        chose: Rc::new(move |shell: &mut Shell, index, window, cx| {
+            if let Some(node) = identities.get(index) {
+                shell.choose_usage_host(opening, *node, window, cx);
+            }
         }),
         back: None,
     };

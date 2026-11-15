@@ -285,3 +285,13 @@ Options beside the title. The native first version retains accessible controls i
 the body at the correct shared Wide width (640), but this title-row geometry is
 still a shared-producer gap. An additive header-actions seam is requested from
 one assigned owner; the area must not redraw or override the shared header.
+
+### Host picker receipts keep rendered identity
+The host filter previously recomputed an index against the latest fleet. A reorder
+between render and click could persist another machine. Capture each rendered
+NodeId and the existing ModalCycle ticket instead. The pure admission checks that
+the exact opening is current and that this node remains connected before any
+preference or picker mutation. A table-like regression reorders equal-labelled
+hosts, disconnects the captured node, closes/reopens the modal and verifies that
+old receipts cannot select the replacement. This changes no shared picker engine
+or connection authority; the selected node's real context still admits usage RPCs.
