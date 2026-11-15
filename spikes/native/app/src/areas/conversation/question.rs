@@ -27,11 +27,9 @@
 //!   answer is checked by the node's own check (`Question::check`) before
 //!   it goes, and a refusal (another client answered first, a value the
 //!   node will not take) is said under the card with the node's words.
-//! - Differences, kept: a question and its options are plain text (Paseo
-//!   renders their Markdown); no option previews (Claude's `preview`
+//! - Differences, kept: option labels are plain text; no option previews (Claude's `preview`
 //!   reaches the node only under `_meta`, which the node does not keep);
-//!   no spinner while the answer goes (the buttons dim); the option rows
-//!   scroll inside the card past 360 (280 on a phone), where Paseo's card
+//!   the option rows scroll inside the card past 360 (280 on a phone), where Paseo's card
 //!   scrolls with the conversation.
 
 use vessel_app_kit::TextField;
@@ -39,7 +37,7 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::ActKind;
 use vessel_app_view::timeline::{
     Draft, Drafts, EntryKind, Pick, Step, answer_of, box_is_other, pick, refused_field,
-    starting_drafts, step_ready, steps_of, text_target, typed,
+    starting_drafts, step_after_pick, step_ready, steps_of, text_target, typed,
 };
 use vessel_proto::{Question, QuestionAnswer, QuestionId};
 
@@ -59,7 +57,14 @@ pub(crate) struct Answering {
     /// "Other".
     field: TextField,
     /// The answer went; the node has not settled the question yet.
-    sent: bool,
+    sending: Option<ResponseAction>,
+}
+
+/// Submit and dismiss share a request but show progress on their own button.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ResponseAction {
+    Submit,
+    Dismiss,
 }
 
 impl std::fmt::Debug for Answering {
@@ -67,7 +72,7 @@ impl std::fmt::Debug for Answering {
         f.debug_struct("Answering")
             .field("id", &self.id)
             .field("step", &self.step)
-            .field("sent", &self.sent)
+            .field("sending", &self.sending)
             .finish_non_exhaustive()
     }
 }
@@ -109,6 +114,20 @@ fn field_placeholder(step: Step<'_>, words: vessel_app_view::ConversationWords) 
 }
 
 impl Shell {
+    /// A submitted answer owns the form until its reply or inline refusal;
+    /// queued field callbacks must not change the answer already in flight.
+    fn question_editable<P: Place>(&self) -> bool {
+        (P::SEAT.get)(self).is_some_and(|area| {
+            area.answering.as_ref().is_some_and(|answering| {
+                answering.sending.is_none()
+                    || area
+                        .refused
+                        .as_ref()
+                        .is_some_and(|(kind, _)| *kind == ActKind::Answer)
+            })
+        }) && !P::busy(self)
+    }
+
     /// Update only this session's retained step hint; other places own theirs.
     pub(crate) fn refresh_question_words(
         &mut self,
@@ -164,7 +183,7 @@ impl Shell {
             drafts: starting_drafts(&question),
             step: 0,
             field,
-            sent: false,
+            sending: None,
         });
         self.question_show::<P>(0, window, cx);
     }
@@ -203,6 +222,9 @@ impl Shell {
     /// The text box changed: the step's text, and for a single choice the
     /// pick cleared (an option and a custom answer replace each other).
     fn question_typed<P: Place>(&mut self, text: String, cx: &mut Context<'_, Self>) {
+        if !self.question_editable::<P>() {
+            return;
+        }
         let Some(question) = waiting_at::<P>(self) else {
             return;
         };
@@ -235,6 +257,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !self.question_editable::<P>() {
+            return;
+        }
         let Some(question) = waiting_at::<P>(self) else {
             return;
         };
@@ -251,11 +276,17 @@ impl Shell {
             Pick::Picked => {}
             Pick::OtherCleared => answering.field.set_text("", window, cx),
         }
+        if let Some(next) = step_after_pick(&steps, answering.step, &answering.drafts) {
+            self.question_show::<P>(next, window, cx);
+        }
         cx.notify();
     }
 
     /// Next, or Submit on the last step.
     fn question_primary<P: Place>(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if !self.question_editable::<P>() {
+            return;
+        }
         let Some(question) = waiting_at::<P>(self) else {
             return;
         };
@@ -303,6 +334,9 @@ impl Shell {
 
     /// Decline the question.
     fn question_dismiss<P: Place>(&mut self, cx: &mut Context<'_, Self>) {
+        if !self.question_editable::<P>() {
+            return;
+        }
         if let Some(id) = (P::SEAT.get)(self)
             .and_then(|area| area.answering.as_ref())
             .map(|answering| answering.id)
@@ -319,7 +353,10 @@ impl Shell {
     ) {
         if let Some(area) = (P::SEAT.get_mut)(self) {
             if let Some(answering) = area.answering.as_mut() {
-                answering.sent = true;
+                answering.sending = Some(match &answer {
+                    QuestionAnswer::Accept { .. } => ResponseAction::Submit,
+                    QuestionAnswer::Decline => ResponseAction::Dismiss,
+                });
             }
             area.refused = None;
         }

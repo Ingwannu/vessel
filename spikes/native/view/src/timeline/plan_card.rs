@@ -22,7 +22,7 @@ pub enum PlanOutcome {
 }
 
 impl PlanOutcome {
-    /// Rejected and canceled plans start folded, as Paseo's PlanCard does.
+    /// Rejected and canceled plans start folded, as Paseo's `PlanCard` does.
     #[must_use]
     pub const fn expanded(self) -> bool {
         match self {

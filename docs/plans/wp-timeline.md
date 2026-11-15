@@ -1,6 +1,6 @@
 # Conversation stream parity
 
-Status: survey complete; implementation skeleton next. Updated 2026-11-15T05:47:13Z.
+Status: skeleton committed; question interactions implemented, narrow checks pending. Updated 2026-11-15T05:47:13Z.
 
 ## Reference and asset check
 
@@ -127,3 +127,20 @@ Done: item/status/detail inventory; current/native-node boundary survey.
 Next: skeleton commit; typed display and plan outcome; question interaction fixes;
 consume reviewed node contract; captures once; whole native gate once; one review.
 Not yet verified: compilation, runtime, captures, real provider behavior.
+
+### Question form implementation
+
+Paseo source read directly: `components/question-form-card.tsx:383-420`
+(single choice advances but final step requires Submit),
+`components/question-form-card-core.ts:82-177` (custom answer and dismiss rules).
+Question Markdown uses the existing kit renderer; the actual selected Submit or
+Dismiss action spins while both disable. Late text callbacks cannot mutate a
+submitted answer. Inline refusal preserves drafts and allows a retry.
+Tests cover single-select advance/deselect, multi-select staying put, no auto-submit
+on final step, invalid indices, and actual retained text input across navigation
+and locale change. Default values supplied by generic typed fields remain honored
+(a deliberate difference from Paseo's empty selections; do not discard provider defaults).
+
+Skeleton narrow run: native-fonts rc 0; clippy found one doc backtick omission in
+plan_card.rs, fixed with the question implementation. This was a narrow check,
+not the package gate. No whole gate or capture has been run yet.

@@ -46,6 +46,7 @@ fn prepare(shell: &mut Shell, choice: bool, window: &mut Window, cx: &mut Contex
     if choice {
         fields.push(field("question_1_custom", text()));
     }
+    fields.push(field("question_2", text()));
     let question = Question {
         id: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         message: "A retained second step".into(),
@@ -69,6 +70,33 @@ fn prepare(shell: &mut Shell, choice: bool, window: &mut Window, cx: &mut Contex
 }
 
 #[gpui::test]
+fn a_single_pick_advances_without_submitting_and_keeps_the_next_draft(
+    cx: &mut gpui::TestAppContext,
+) {
+    language_tests::init(cx);
+    language_tests::preserves(
+        cx,
+        |shell, window, cx| {
+            prepare(shell, true, window, cx);
+            shell.question_pick::<SessionPlace>("a", window, cx);
+            let answering = shell.areas.conversation.answering.as_ref().unwrap();
+            assert_eq!(answering.step, 2);
+            assert_eq!(answering.sending, None);
+            assert_eq!(
+                answering.drafts.get(&"question_1".parse().unwrap()),
+                Some(&Draft::Picked(vec!["a".to_owned()]))
+            );
+        },
+        |shell| &shell.areas.conversation.answering.as_ref().unwrap().field,
+        |shell| {
+            let answering = shell.areas.conversation.answering.as_ref().unwrap();
+            assert_eq!(answering.step, 2);
+            assert_eq!(answering.sending, None);
+        },
+    );
+}
+
+#[gpui::test]
 fn a_language_change_keeps_the_step_answer_caret_selection_and_focus(
     cx: &mut gpui::TestAppContext,
 ) {
@@ -85,7 +113,7 @@ fn a_language_change_keeps_the_step_answer_caret_selection_and_focus(
             |shell| {
                 let answering = shell.areas.conversation.answering.as_ref().unwrap();
                 assert_eq!(answering.step, 1);
-                assert!(!answering.sent);
+                assert_eq!(answering.sending, None);
             },
         );
     }
