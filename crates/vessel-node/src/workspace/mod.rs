@@ -22,6 +22,9 @@
 //!   any folder holding the node's data folder (a read-only device could
 //!   otherwise read the node's token and become its owner).
 
+#[cfg(test)]
+mod archive;
+
 mod error;
 mod files;
 mod forge;

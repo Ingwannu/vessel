@@ -1536,3 +1536,20 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+
+## Workspace lifecycle workflow (staged)
+
+`vessel-node::workspace::archive` sequences durable admission fencing, setup
+shutdown, earlier start-lease settlement, exact member drain, safe backing cleanup
+and a fresh archive commit. Recovery uses an exclusive restore claim before
+recreating backing and activates only after placement validation. The backend
+keeps canonical registry revision/ownership types opaque until that persistence
+dependency is reviewed. Typed partial failures retain their cause; a deadline
+retains the non-active claim because cancellation does not prove physical work
+stopped. Local/shared/dirty backing safety outcomes reuse `RemoveWorktreeOutcome`.
+
+This is an A10 test-only module, not a registered product RPC. Deterministic fake
+ports check failure and late-registration ordering without providers or network.
+The registry adapter and pending wire calls must remove staging and pass the root
+gate before product adoption; see `docs/plans/wp-workspace-archive.md`.
