@@ -40,6 +40,7 @@ pub(super) fn state(home: &Home) -> (State, mpsc::Receiver<Event>) {
     let (events, receiving) = mpsc::channel(256);
     (
         State {
+            usage_calls: crate::usage::Hub::default(),
             label: "test".to_owned(),
             events,
             clients: HashMap::new(),

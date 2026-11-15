@@ -86,3 +86,7 @@ Further coverage is added beside formatting and quota-notice rules.
 Only in-memory fakes or the isolated fake fleet are permitted.
 One whole native gate, inspected package captures and one review cover
 this complete package. Results are recorded after they run.
+
+The usage preference section is boxed within the shared preference document.
+Its JSON stays unchanged; the indirection keeps `Command::SavePrefs` below the
+shared enum's size threshold as the preference document gains feature sections.

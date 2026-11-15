@@ -109,7 +109,7 @@ where
 pub struct Preferences {
     /// Usage host and display choices, independent from sidebar visibility.
     #[serde(deserialize_with = "lenient")]
-    pub usage: UsagePreferences,
+    pub usage: Box<UsagePreferences>,
     /// The app language, or the operating system when System.
     #[serde(deserialize_with = "lenient")]
     pub language: crate::localization::LanguagePreference,
