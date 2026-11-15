@@ -264,7 +264,7 @@ Unknown. Confirmed Absent root + only Untracked uses the source's explicit empty
 workspace Done rule, not an inferred terminal lifecycle: Paseo server
 session.ts:5714,5811 seeds Done; workspace-directory.ts:424-429 skips null/no-bucket
 terminal activity and :478-493 defines empty Done; its test :525-530 explicitly
-covers no agent plus unknown terminal => Done. Unknown membership/root remains
+covers no agent plus an uninstrumented terminal with null activity => Done. Unknown membership/root remains
 Unknown. This policy is agreed with W11; checked/reviewed handoff is still owed.
 
 The portable policy producer is ed95028410d28dfb31a8001a9dfd4cf724ffcc3e,
@@ -272,8 +272,13 @@ based exactly on approved line dd13ce378. It adds only view::attention and its
 plan/module registration, with no root/Inbox/proto/registry dependency. This
 branch merges that exact producer and reexports its Bucket/workspace/badge
 policy; there is one implementation. Inbox-specific Card classification and
-terminal metadata projection remain A5 adapters. Exact narrow checks and bounded
-review of the producer are pending; consumers must not treat it as ready yet.
+terminal metadata projection remain A5 adapters. Portable successor911438d2
+changes only comments/plan to distinguish aggregate urgency from sidebar order.
+Its exact VM view all-target Clippy passed (run
+wp-inbox-projection-check-20261115T135741Z-911438d2, rc0/62s). Executable
+predecessor ed950 passed three focused tests (run
+wp-inbox-projection-20261115T131303Z-ed950284, 3/0/0, rc0/151s).
+Bounded source review is requested; consumer/whole/host evidence remains owed.
 
 The pre-adoption app DTO conflated explicit unknown and serde(other), so the Row
 adapter stayed conservative until c2dcebea's V3/integrator handoff below. Current
