@@ -44,8 +44,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetPullRequest
         | Method::ParkSession
         | Method::WakeSession
-        | Method::ForkSession => json!({"session": id}),
-        Method::ListCheckpoints => json!({"session":id}),
+        | Method::ForkSession
+        | Method::ListCheckpoints => json!({"session": id}),
         Method::PreviewCheckpoint => json!({"session":id,"checkpoint":id}),
         Method::ReadCheckpointChanges => json!({"plan":id}),
         Method::RestoreCheckpoint => json!({"session":id,"plan":id,"restore":id}),
