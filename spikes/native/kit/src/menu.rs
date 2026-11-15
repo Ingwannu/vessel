@@ -32,6 +32,7 @@ mod draw;
 mod feedback_tests;
 #[cfg(test)]
 mod focus_tests;
+pub mod hierarchy;
 mod item;
 #[cfg(test)]
 mod modal_tests;
@@ -49,7 +50,7 @@ pub use trigger::{
 };
 
 use gpui::{App, Bounds, Context, FocusHandle, Pixels, Point, Window};
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 /// A menu's state, kept by the screen that shows it.
 #[derive(Debug)]
@@ -58,6 +59,7 @@ pub struct MenuState {
     highlighted: Option<usize>,
     focus: FocusHandle,
     return_to: crate::focus::ReturnFocus,
+    path: RefCell<hierarchy::Path>,
 }
 
 impl MenuState {
@@ -68,12 +70,14 @@ impl MenuState {
             highlighted: None,
             focus: cx.focus_handle(),
             return_to: crate::focus::ReturnFocus::default(),
+            path: RefCell::default(),
         }
     }
 
     /// Open it at `at` (where its trigger was pressed), taking the keys.
     pub fn open(&mut self, at: Point<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
+        self.path.borrow_mut().reset();
         self.at = Some(Placement::Pointer(at));
         self.highlighted = None;
         self.focus.focus(window, cx);
@@ -125,9 +129,55 @@ impl MenuState {
     /// Open at a measured trigger's right/bottom corner, taking the keys.
     pub fn open_end(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
         self.capture_return_focus(window, cx);
+        self.path.borrow_mut().reset();
         self.at = Some(Placement::End(bounds));
         self.highlighted = None;
         self.focus.focus(window, cx);
+    }
+
+    /// Open a branch at its trigger's depth, replacing sibling descendants.
+    /// A submenu is navigation and never dispatches a close-on-select action.
+    #[must_use]
+    pub fn open_sub_page(&mut self, id: hierarchy::PageId, depth: hierarchy::PageDepth) -> bool {
+        self.is_open() && self.path.borrow_mut().open(id, depth)
+    }
+
+    /// Close one branch and all its children, leaving the root menu open.
+    #[must_use]
+    pub fn close_sub_page(&mut self, depth: hierarchy::PageDepth) -> bool {
+        self.is_open() && self.path.borrow_mut().close(depth)
+    }
+
+    /// Compact Back pops one page; false at the root, where the owner closes.
+    #[must_use]
+    pub fn back_page(&mut self) -> bool {
+        self.is_open() && self.path.borrow_mut().back()
+    }
+
+    /// The compact page, or None for a closed menu or the root page.
+    #[must_use]
+    pub fn current_page(&self) -> Option<hierarchy::PageId> {
+        if !self.is_open() {
+            return None;
+        }
+        self.path.borrow().current().cloned()
+    }
+
+    /// The same outward chain consumed by every pointer flyout.
+    #[must_use]
+    pub fn open_pages(&self) -> Vec<hierarchy::PageId> {
+        if self.is_open() {
+            self.path.borrow().pages().to_vec()
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// Drop a missing definition and its entire suffix before drawing. Interior
+    /// state preserves the published renderer's shared MenuState reference.
+    #[must_use]
+    pub fn prune_pages(&self, has_page: impl Fn(&hierarchy::PageId) -> bool) -> bool {
+        self.is_open() && self.path.borrow_mut().prune(has_page)
     }
 }
 

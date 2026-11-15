@@ -488,3 +488,25 @@ qualifications in the new header/workspace-row tests. The source badge is
 `styles/theme.ts:613`); use one named control constant with that exact value,
 not a nearby token or an icon-size constant. Remove only the reported redundant
 test paths. Tests did not execute; this is not a control or app pass.
+
+### Shared menu path state checkpoint
+
+Merged exact reviewed G2 producer `8158be6d..6ece4a76` plus result docs
+`36a84b9f`; its six Kit menu source/test blobs matched the reviewed head before
+this additive work. README conflict retained both base-5 allocation refusal
+and the shared trigger/modal descriptions. No full F1 branch was consumed.
+The coordinator's base 6 `18eedad4` is also merged after a clean checkpoint,
+including W12's checked action/focus/query follow-up. The native lock is known
+stale on that base; do not use --locked until the lead's correction.
+
+`menu::hierarchy::{PageId,PageDepth}` and the one private path now belong to
+existing MenuState, porting `menu-navigation.ts:11–71`. New public operations
+open/close a branch, pop Back, expose current/outward pages and prune missing
+definitions. Both original opening functions reset to root/fresh anchor. The
+legacy const close API is preserved: closed getters expose no page and a later
+open clears stored path, so a closed branch cannot reappear. Pure source
+regressions cover nesting, sibling replacement, same-branch no-op, depth, Back
+and missing parent; a real GPUI owner regression covers close/open_end cycles.
+The action/focus/flat row engine stays untouched. This is control-only state
+and API, not a page renderer, flyout, hover timer or compact-sheet completion.
+The additive row/page data and renderer are the next step on this same engine.
