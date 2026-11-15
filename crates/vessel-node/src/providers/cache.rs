@@ -214,7 +214,7 @@ impl Cache {
         }
         let (state, version) = observed_state(definition, observed, at);
         slot.state = state.clone();
-        slot.version = version.clone();
+        slot.version.clone_from(&version);
         slot.pending = None;
         Some(ProviderDiagnostic {
             entry: definition.snapshot_entry(state),

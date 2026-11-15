@@ -504,6 +504,10 @@ impl Handler for Fake {
     }
 
     unserved! {
+        get_providers: vessel_proto::providers::GetProviders => Vec<vessel_proto::providers::ProviderSnapshotEntry>;
+        get_provider_diagnostic: vessel_proto::providers::GetProviderDiagnostic => vessel_proto::providers::ProviderDiagnostic;
+        set_provider_enabled: vessel_proto::providers::SetProviderEnabled => vessel_proto::providers::ProviderSnapshotEntry;
+        draft_commands: vessel_proto::composer_commands::GetDraftCommands => vessel_proto::composer_commands::CommandCatalog;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;

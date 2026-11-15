@@ -424,6 +424,10 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        get_providers: vessel_proto::providers::GetProviders => Vec<vessel_proto::providers::ProviderSnapshotEntry>;
+        get_provider_diagnostic: vessel_proto::providers::GetProviderDiagnostic => vessel_proto::providers::ProviderDiagnostic;
+        set_provider_enabled: vessel_proto::providers::SetProviderEnabled => vessel_proto::providers::ProviderSnapshotEntry;
+        draft_commands: vessel_proto::composer_commands::GetDraftCommands => vessel_proto::composer_commands::CommandCatalog;
         open_side_question: vessel_proto::side_questions::OpenSideQuestion => SessionInfo;
         prompt_side_question: vessel_proto::side_questions::PromptSideQuestion => vessel_proto::Delivered;
         reset_side_question: vessel_proto::side_questions::ResetSideQuestion => SessionInfo;
