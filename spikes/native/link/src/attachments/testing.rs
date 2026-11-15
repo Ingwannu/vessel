@@ -3,6 +3,10 @@ use crate::{State, connections::SelectedConnection, testing::Home};
 use vessel_app_view::connection::ConnectionContext;
 use vessel_client::NodeClient;
 
+#[expect(
+    clippy::unwrap_used,
+    reason = "test-only fresh actor has admission capacity; static loopback address parses and the just-inserted exact context resolves"
+)]
 pub(super) fn selected(client: NodeClient) -> (Home, State, ConnectionContext, SelectedConnection) {
     let home = Home::new();
     let (mut state, _events) = crate::testing::state(&home);
