@@ -40,17 +40,18 @@ impl Shell {
             cx.notify();
             return;
         };
-        let Some(expected_node) = self
+        let Some(context) = self
             .fleet
             .machines
             .iter()
             .find(|entry| entry.name == machine.as_str())
-            .and_then(|entry| entry.node)
+            .and_then(vessel_app_view::Machine::connection_context)
         else {
             self.areas.draft.error = Some(self.words.creation().offline().to_owned());
             cx.notify();
             return;
         };
+        let expected_node = context.node();
         let Some((ticket, target)) = self.draft_creation_target(&machine, expected_node, &harness)
         else {
             cx.notify();
@@ -85,6 +86,7 @@ impl Shell {
         }
         let ask = Ask {
             source: vessel_app_view::composer::drafts::DraftKey::New,
+            context,
             ticket,
             message,
             machine: machine.clone(),

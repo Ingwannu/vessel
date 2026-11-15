@@ -19,6 +19,70 @@ const TICKET: Ticket = Ticket::new(7);
 
 mod peer;
 
+#[tokio::test]
+async fn reconnect_or_retirement_cannot_send_creation_on_an_old_admission() {
+    crate::testing::within(async {
+        for before_lookup in [true, false] {
+            let home = crate::testing::Home::new();
+            let (mut state, mut events) = crate::testing::state(&home);
+            let mut peer = crate::testing::peer::connect("fake").await;
+            let client = peer.client.take().unwrap();
+            let binding = vessel_client::book::BookEntry {
+                address: "ws://127.0.0.1:1/rpc".parse().unwrap(),
+                id: Some(client.node().id),
+                token: None,
+                credential: None,
+            };
+            let connected = state
+                .admit_connection("fake", &binding, client.clone(), Vec::new())
+                .unwrap();
+            let context = connected.context.clone();
+            let _old = state.clients.insert("fake".to_owned(), connected);
+            let ask = Ask {
+                source: vessel_app_view::composer::drafts::DraftKey::New,
+                context,
+                ticket: TICKET,
+                message: vessel_proto::timeline::ClientMessageId::random(),
+                machine: Name::parse("fake").unwrap(),
+                expected_node: client.node().id,
+                target: Target::New(SessionSpec::new(
+                    HarnessKind::Codex,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                )),
+                input: FirstInput::Deferred,
+            };
+            if before_lookup {
+                state.clients["fake"].retire();
+                let replacement = state
+                    .admit_connection("fake", &binding, client.clone(), Vec::new())
+                    .unwrap();
+                let _old = state.clients.insert("fake".to_owned(), replacement);
+                state.create(ask);
+            } else {
+                state.create(ask);
+                // No await: retire after selection but before its first poll.
+                state.clients["fake"].retire();
+            }
+            let expected = if before_lookup {
+                Failure::Refused(ErrorCode::Conflict)
+            } else {
+                Failure::OutcomeUnknown
+            };
+            assert!(
+                matches!(events.recv().await.unwrap(), Event::Creation(Answer::Failed {
+                ticket: TICKET, failure, ..
+            }) if failure == expected)
+            );
+            assert!(peer.calls.lock().unwrap().is_empty());
+        }
+    })
+    .await;
+}
+
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 #[derive(Clone, Copy)]
@@ -55,8 +119,21 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
     let source = vessel_app_view::composer::drafts::DraftKey::Session {
         session: SessionId::random(),
     };
+    let home = crate::testing::Home::new();
+    let (mut state, _events) = crate::testing::state(&home);
+    let binding = vessel_client::book::BookEntry {
+        address: "ws://127.0.0.1:1/rpc".parse()?,
+        id: Some(client.node().id),
+        token: None,
+        credential: None,
+    };
+    let connected = state.admit_connection("fake", &binding, client.clone(), Vec::new())?;
+    let context = connected.context.clone();
+    let _previous = state.clients.insert("fake".to_owned(), connected);
+    let selected = state.selected_connection(&context)?;
     let ask = Ask {
         source,
+        context,
         ticket: TICKET,
         message: vessel_proto::timeline::ClientMessageId::random(),
         expected_node: if matches!(scenario, Scenario::WrongNode) {
@@ -77,8 +154,10 @@ async fn execute(scenario: Scenario, input: FirstInput) -> TestResult<Vec<Answer
         input,
     };
     let (tx, mut rx) = mpsc::channel(EVENT_ROOM);
-    run::create(&client, ask, &tx).await;
+    run::create(&selected, ask, &tx).await;
     drop(tx);
+    drop(selected);
+    drop(state);
     drop(client);
     peer.await??;
     let mut answers = Vec::new();

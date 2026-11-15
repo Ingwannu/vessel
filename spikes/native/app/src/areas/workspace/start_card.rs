@@ -102,6 +102,17 @@ impl Shell {
                     .flow
                     .progress(start.ticket, vessel_app_view::creation::Stage::Resource);
             }
+            StartEnded::Refused(failure) => {
+                self.creation_answer(
+                    vessel_app_link::creation::Answer::Failed {
+                        source: vessel_app_view::composer::drafts::DraftKey::New,
+                        ticket: start.ticket,
+                        stage: vessel_app_view::creation::Stage::Workspace,
+                        failure,
+                    },
+                    cx,
+                );
+            }
             StartEnded::Stopped => {
                 if let Step::Refused(refusal) = &start.step {
                     self.areas.draft.error = Some(self.words().start_refusal(refusal));

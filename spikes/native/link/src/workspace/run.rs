@@ -12,7 +12,7 @@ use vessel_proto::workspace::{
 use super::calls::call;
 use super::{
     Answer, Ask, FileAsk, Form, GitAsk, GitWrite, GitWritten, Hub, PathChange, ProjectAsk, Reply,
-    Save, WorktreeAsk, follow, start,
+    Save, WorktreeAsk, follow,
 };
 
 /// Run one ask to its answer.
@@ -23,10 +23,10 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
         Ask::Worktree(ask) => worktree(client, ask).await,
         Ask::Git(ask) => git_ask(client, ask).await,
         Ask::File(ask) => file(client, ask).await,
-        Ask::Start(start) => {
-            start::walk(client, reply, *start).await;
-            return;
-        }
+        Ask::Start(start) => Answer::StartEnded {
+            key: start.key,
+            ended: super::StartEnded::Refused(vessel_app_view::creation::Failure::Unsupported),
+        },
         Ask::Pull(ask) => Answer::Pull(super::pulls::run(client, ask).await),
         Ask::Session(session) => Answer::Session {
             session,

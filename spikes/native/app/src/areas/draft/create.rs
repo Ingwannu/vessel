@@ -11,6 +11,7 @@ pub(crate) struct CreationState {
     pub(crate) flow: Flow,
     pub(crate) registered: Option<Card>,
     pub(crate) node: Option<vessel_proto::NodeId>,
+    pub(crate) context: Option<vessel_app_view::connection::ConnectionContext>,
     pub(crate) workspace: Option<vessel_app_view::creation::WorkspaceForm>,
     pub(crate) plan: Option<vessel_app_view::creation::LaunchPlan>,
     next: Option<Ticket>,
@@ -22,6 +23,7 @@ impl Default for CreationState {
             flow: Flow::default(),
             registered: None,
             node: None,
+            context: None,
             workspace: None,
             plan: None,
             next: Some(Ticket::new(0)),
@@ -59,11 +61,13 @@ impl Shell {
                 ticket,
                 machine,
                 node,
+                context,
                 session,
                 ..
             } => {
                 if self.areas.draft.creation.flow.ticket() == Some(ticket) {
                     self.areas.draft.creation.node = Some(node);
+                    self.areas.draft.creation.context = Some(context);
                     self.areas.draft.creation.registered =
                         Some(Card::from_session(machine.as_str(), &session));
                 }
@@ -95,7 +99,10 @@ impl Shell {
         }
         if let Some(card) = &self.areas.draft.creation.registered {
             let same_node = self.fleet.machines.iter().any(|machine| {
-                machine.name == card.machine && machine.node == self.areas.draft.creation.node
+                machine.name == card.machine
+                    && machine.connection_context().as_ref()
+                        == self.areas.draft.creation.context.as_ref()
+                    && machine.node == self.areas.draft.creation.node
             });
             if !same_node {
                 self.creation_answer(

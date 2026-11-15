@@ -246,3 +246,29 @@ retained field read-only. Blank/profile terminal targets retain the plain field
 and suppress agent attachment affordances. B2's font/send/fullscreen policy is
 a separate pending producer; no global New field is substituted. The scoped
 card's two temporary unused-item expectations are removed with this real caller.
+
+### Original connection admission for creation (staged)
+
+[Decision Log]
+- Intent: keep a captured create/first-input/worktree intent on its original
+  authenticated admission, including same-node reconnect and credential change.
+- Existing assets: G4 already owns Machine.connection_context(), the actor's
+  selected_connection(), and the before-poll/after-await typed RPC guard.
+- Alternatives: NodeId alone misses reconnect retirement; another epoch/map
+  would compete with the shared connection owner; no external API is needed.
+- Choice: reuse that exact context/SelectedConnection through the whole legacy
+  creation walk, and retain it beside the registered address for W12's handoff.
+- Effects: actor preflight refuses before dispatch; retirement during an awaited
+  call becomes outcome unknown with no replay. Protocol-9 prompt fallback is
+  allowed only after typed local NotInProtocol, never a remote refusal.
+
+Workspace actor entry moved out of the link root into workspace/entry.rs.
+Existing non-create routing is unchanged; Start asks require the captured
+admission, and the old raw-client Hub path refuses them. Every placement call
+uses the selected guard. Retry GetSession results must name the exact old
+session before first-input delivery. Isolated actor tests cover a replacement
+admission on the same node and retirement after selection before first poll.
+
+This does not establish final queued-delivery validity or a safe resident follow.
+W21's standalone started_at proposal remains held pending W12/G4's live slot
+and delivery capability; the app has not introduced a second resident registry.

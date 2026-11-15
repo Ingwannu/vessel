@@ -23,6 +23,7 @@
 
 use std::time::Instant;
 
+use crate::connections::SelectedConnection;
 use tokio::sync::mpsc;
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved, needs_folder};
 use vessel_app_view::workspace::pace::{QUIET, quiet_left};
@@ -32,14 +33,14 @@ use vessel_app_view::workspace::setup_log::OutputDecoder;
 use vessel_app_view::workspace::start::{
     ApprovalAnswer, FailedAnswer, Refusal, Step, TRIES, branch_of, setup_ended,
 };
-use vessel_client::NodeClient;
 use vessel_proto::workspace::{
     ApproveCommands, CreateWorktree, CreateWorktreeOutcome, GetProjectCommands, ProjectCommands,
     ReadSetupOutput, RunSetup, SessionPlace, SetupChoice, SetupState, WorktreeInfo,
 };
 
-use super::calls::call;
+mod calls;
 use super::{Answer, Reply};
+use calls::call;
 
 /// The longest a read of setup's output waits for more, in seconds (the
 /// node's own bound).
@@ -76,6 +77,8 @@ pub enum StartAnswer {
 pub enum StartEnded {
     /// Placement finished; correlated creation owns registration and first input.
     Prepared,
+    /// The actor refused the captured admission before any placement effect.
+    Refused(vessel_app_view::creation::Failure),
     /// Stopped by the person, by leaving, or after a refusal shown.
     Stopped,
     /// A call failed.
@@ -84,7 +87,7 @@ pub enum StartEnded {
 
 /// The walk's own state.
 struct Walk<'a> {
-    client: &'a NodeClient,
+    client: &'a SelectedConnection,
     reply: &'a Reply,
     key: StartKey,
     answers: mpsc::Receiver<StartAnswer>,
@@ -125,17 +128,35 @@ impl Walk<'_> {
     }
 }
 
+/// The actor passes one exact selected admission; no alias lookup happens later.
+pub(super) fn start_on(
+    client: SelectedConnection,
+    start: StartAsk,
+    events: mpsc::Sender<crate::Event>,
+) {
+    drop(tokio::spawn(async move {
+        let reply = Reply {
+            machine: start.creation.machine.as_str().to_owned(),
+            events,
+        };
+        walk(&client, &reply, start).await;
+    }));
+}
+
 /// Walk `start` to its end, then send how it ended.
-pub(super) async fn walk(client: &NodeClient, reply: &Reply, mut start: StartAsk) {
+async fn walk(client: &SelectedConnection, reply: &Reply, mut start: StartAsk) {
     let key = start.key;
-    if client.node().id != start.creation.expected_node {
+    if start.creation.context.node() != start.creation.expected_node
+        || start.creation.context.machine().as_str() != start.creation.machine.as_str()
+    {
         reply
             .send(Answer::StartEnded {
                 key,
-                ended: StartEnded::Prepared,
+                ended: StartEnded::Refused(vessel_app_view::creation::Failure::Refused(
+                    vessel_proto::ErrorCode::Conflict,
+                )),
             })
             .await;
-        crate::creation::perform(client, start.creation, &reply.events).await;
         return;
     }
     let mut walk = Walk {
