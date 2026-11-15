@@ -515,3 +515,22 @@ Actor compile correction: the validating constructors now compile. The next
 narrow check found nine documentation/style/checked-test-arithmetic lints; these
 are fixed without allowances, weaker assertions or longer deadlines. Runtime
 checks are still pending, so actor behavior is not yet claimed as verified.
+
+## Secret-reader and reservation implementation
+
+Decision: modify/reuse existing semaphore permit ownership and the existing
+FleetFiles::resolved_secret lookup; no new file format, storage reader, lock or
+dependency. A stream lease owns node and connection permits only. The independent
+read gate derives its capacity from the node reservation bound, and presence
+uses that gate without taking a stream reservation. Both permits and an optional
+stream lease move into the blocking closure, so dropping its async waiter cannot
+release capacity while real I/O continues. Values are resolved freshly; fixed
+read diagnostics keep typed store/worker causes without formatting their names,
+paths or payloads. No connection lifetime guard is retained by a lease.
+
+Four staged cases cover both admission bounds/partial failure, actual store
+edits/deletion/empty values, canceled blocking reads retaining the lease, and
+corrupt-store fixed diagnostics. Narrow checks are pending. This remains test-only
+source, not a service admission or RPC/permission proof; the registry and settings
+consumers follow. Credential/path code receives its security review separately
+from the eventual combined feature-package review.

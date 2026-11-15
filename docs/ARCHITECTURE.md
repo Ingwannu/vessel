@@ -1556,3 +1556,11 @@ name `vessel_proc` in store to `src/lock/`, which delegates the lock query
 only. The real CLI caller restricts proc's signal entry point to the force
 module. These rows belong in `Names only some files may use`; a graph edge
 alone would otherwise expose the owner's unrelated process operations.
+
+The staged dictation reservation and secret-read mechanisms (`quota`,
+`secret_read`) reuse owned semaphore permits and `FleetFiles::resolved_secret`.
+Read workers retain their gate permit and optional stream lease until actual
+completion, independent of async waiter cancellation. Presence shares the read
+gate without claiming a recording slot. The lease has no connection lifetime
+guard; fixed diagnostics keep store causes internal. These tests do not yet
+establish registry admission, settings integration or a callable speech service.
