@@ -391,3 +391,10 @@ The blue comes from the existing terminal palette, not a new colour table.
 A real-window kit fixture constructs DiffEditor, selects across Latin/Hangul
 rows, attempts text replacement and reflows the same buffer. It remains
 unexecuted until the exact remote test run; no live IME claim is made.
+
+Before vendor-test compilation, a static visibility audit corrected the new
+fixtures to use the editor's existing public style setter/current style instead
+of its private projected-style field, and its text_bounds accessor rather than
+a nonexistent layout bounds field. Production patch behaviour is unchanged.
+The queued8a342503 Kit/App Clippy does not compile vendor tests; actual Base/Kit
+library execution must use the corrected fixture source separately.

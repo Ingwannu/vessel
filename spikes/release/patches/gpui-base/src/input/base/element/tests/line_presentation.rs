@@ -35,7 +35,7 @@ fn no_mapping_keeps_the_original_actual_window_gutter(cx: &mut TestAppContext) {
         editor.update(cx, |state, _| {
             let style = InputEditorStyle {
                 line_presentation: None,
-                ..state.projected_editor_style.clone()
+                ..state.editor_style.clone()
             };
             state.set_editor_style(style);
         })
@@ -76,7 +76,7 @@ fn mapped_labels_use_actual_font_width_and_one_projection_per_visible_row(cx: &m
     cx.update(|_, cx| {
         editor.update(cx, |state, _| {
             state.editor_style.line_presentation = Some(mapping.clone());
-            state.projected_editor_style = state.editor_style.clone();
+            state.set_editor_style(state.editor_style.clone());
         })
     });
     calls.set(0);
@@ -138,7 +138,7 @@ fn row_tints_cover_wraps_and_fixed_scrolled_gutters_inside_horizontal_bounds(
                     calls: Rc::new(Cell::new(0)),
                     colour,
                 })),
-                ..state.projected_editor_style.clone()
+                ..state.editor_style.clone()
             };
             state.set_editor_style(style);
             cx.notify();
@@ -159,7 +159,11 @@ fn row_tints_cover_wraps_and_fixed_scrolled_gutters_inside_horizontal_bounds(
             quads.len() >= 2,
             "body and fixed gutter must both be tinted"
         );
-        let edge = layout.bounds.right().scale(window.scale_factor());
+        let edge = state
+            .text_bounds()
+            .unwrap()
+            .right()
+            .scale(window.scale_factor());
         assert!(
             quads
                 .iter()
@@ -237,7 +241,7 @@ fn mapped_readonly_rows_keep_cross_row_selection_and_copy_without_numbers(cx: &m
                 calls: Rc::new(Cell::new(0)),
                 colour: gpui::hsla(0.23, 0.91, 0.42, 0.31),
             }));
-            state.projected_editor_style = state.editor_style.clone();
+            state.set_editor_style(state.editor_style.clone());
             state.select_all(window, cx);
             state.copy(&Copy, window, cx);
             assert_eq!(
