@@ -628,3 +628,35 @@ panic in a Result function. No production body, expected state, acceptance
 condition, assertion elsewhere or timeout changes. The81 product runtime
 submission remains separate evidence; this test-only error-style correction
 requires its exact Clippy result and the final package gate remains owed.
+
+
+### Completed changed-crate checks (not the final package gate)
+
+Exactf0d3a533 strict View/Link/App all-target Clippy completed0 at
+agents-narrow-20261115T163650Z-f0d3a533, fonts0/cargo0/no skips. View, Kit and
+App actually checked; Link was cached. Exact81db2d78 View/Link/App tests
+completed0 at agents-20261115T161301Z-81db2d78, fonts0/cargo0/no skips, with
+actual View/Link/Kit/App compilation. Raw totals: App100/0/2 ignored, Link120/0/0,
+View1023/0/0, localization10, matcher3, page117 and View doctests2. This is
+1373 runtime tests plus2 docs passed,0 failed; the two ignored App capture
+helpers require a private display/fleet and are not screenshots or passes.
+
+All six new real screen-handler tests explicitly passed: stale Add form versus
+successor and focused read-only pending input; old-machine Add ACK with no
+follow-up; stale removal confirmation and one command; accepted old-machine
+List versus the new page; duplicate List; positive current List's one registry
+query. The existing Models row/copy and translation suites also passed. These
+are isolated GUI/memory-transport results, not actual native mouse/OS authority
+or the final EN/KO/theme/size capture family.
+
+Clippy steps SHA256:
+8b6381ff66563ab866259d971c6d4dff1037618cac0f3bb01693304e3278560f.
+Runtime steps SHA256:
+67a8cad04f5989ddae2035e42498d9913f208df187d2e6ef56bc46f7e4c5e400.
+
+The heads are intentionally distinguished: f0d3 changes only the failed
+fixture's error-report style and notes; product App/Link/View transition code
+is byte-identical to81. Runtime81 does not become an exact f0d3 whole-gate
+claim. Final package integration, modern provider RPC/binding and canonical
+queued-delivery guards remain prerequisites. No final A9 gate or new consumer
+capture matrix has been run.
