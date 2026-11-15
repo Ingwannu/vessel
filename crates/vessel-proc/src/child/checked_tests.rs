@@ -9,6 +9,8 @@ use super::*;
 
 const PROBE: &str = "VESSEL_CHECKED_WAIT_PROBE";
 const PROBE_TEST: &str = "child::checked_tests::child_probe";
+const CANCEL_WAIT_BUDGET: Duration = Duration::from_millis(20);
+const REAP_WAIT_BUDGET: Duration = Duration::from_secs(10);
 
 fn command(wait: bool) -> CommandSpec {
     let mut command = CommandSpec::new(std::env::current_exe().expect("test executable"))
@@ -116,12 +118,12 @@ async fn cancelling_wait_checked_preserves_owned_child_and_later_reap() {
         stderr: _stderr,
     } = spawn(&command(true)).expect("spawn controlled child");
     assert!(
-        tokio::time::timeout(Duration::from_millis(20), child.wait_checked())
+        tokio::time::timeout(CANCEL_WAIT_BUDGET, child.wait_checked())
             .await
             .is_err()
     );
     stdin.write_all(b"x").await.expect("finish child");
-    let receipt = tokio::time::timeout(Duration::from_secs(10), child.wait_checked())
+    let receipt = tokio::time::timeout(REAP_WAIT_BUDGET, child.wait_checked())
         .await
         .expect("reap deadline")
         .expect("checked reap");
