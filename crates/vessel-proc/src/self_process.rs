@@ -170,6 +170,7 @@ fn memory(raw: &str, field: Field) -> Result<MemoryBytes, SnapshotError> {
         .map(MemoryBytes)
         .ok_or(SnapshotError::Overflow(field))
 }
+#[cfg(any(target_os = "linux", test))]
 fn unique<T>(slot: &mut Option<T>, value: T, field: Field) -> Result<(), SnapshotError> {
     if slot.is_some() {
         return Err(SnapshotError::Duplicate(field));

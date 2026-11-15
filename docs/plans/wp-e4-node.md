@@ -22,9 +22,9 @@ Existing assets and reuse decision:
   accepted D3 source. They are not a public collector or a working RPC.
 - Node lifecycle, Store reader, profiles/readiness, runtime and relay watches:
   compose existing owners; do not enumerate private descriptions into text.
-- Provider diagnostics: consume the provider package's one collector/cache
-  contract. `agent.status` is not a pure cached diagnostic alternative:
-  even `refresh=false` reaches builtin version discovery.
+- Provider diagnostics belongs to A9, which owns its collector/cache and RPC.
+  This host report does not consume its unreviewed getter. `agent.status` is
+  not a pure cached alternative: even `refresh=false` probes builtin versions.
 - Ordinary node text and CLI cause-chain output include private descriptions;
   they are not diagnostic renderers. Add a bounded allowlist renderer and a
   deliberate output boundary when its actual caller is wired.
@@ -42,7 +42,8 @@ Existing assets and reuse decision:
 | Agent metadata/default-profile cached readiness | Metadata-only source tests; no agent invocation | Current immutable profile snapshot, bounded selection and actual caller |
 | Listener and configured/callback relay states | Owner-side watch projection | Publish actual bind state and aggregate without endpoint copies/cycles |
 | Provider diagnostics | Provider owner reports a proposed cached/refresh contract | Consume its reviewed API; do not duplicate or claim an existing endpoint |
-| Process/system metrics from the survey | Not implemented by the narrow report | Audit safe typed sources or obtain an explicit accepted difference; do not rename session counts as process diagnostics |
+| Self-process metrics | Fixed bounded Linux self-status source and typed process/memory values are implemented; runtime tests pending | Check the decoder and actual collector; other operating systems explicitly report Unsupported |
+| Broader system/tool metrics | CPU, heap allocation, disk capacity, workspace/socket counts, latency and external tool probes are absent | Preserve the explicit difference from Paseo; session counts do not substitute for these metrics |
 | Daemon status and local daemon logs | Existing node description; desktop/controller owners have separate responsibilities | Reuse those owners; no arbitrary remote log/path endpoint |
 | Recent failure summary | Private bounded typed-RPC journal tests | Common generated observation boundary; never claim a raw log tail |
 | Bundled web UI | Existing node-hosted web package and its gate | Preserve it; audit any advertised capability separately from report readiness |
@@ -63,7 +64,7 @@ relay transport is distinct from a fleet-forwarded call.
 The feature constant stays `DIAGNOSTICS_PROTOCOL: Option<ProtocolVersion>`.
 Only the integrator assigns its number. After the Quality B head is announced
 and consumed, the sole canonical method row uses the pending feature form in
-`method_table!`. Generated guard/envelope/client registrations are consumed,
+`rpc_methods!` in `rpc/table.rs`. Generated guard/envelope/client registrations are consumed,
 not copied into new hand lists. `Method::since()` supplies the nullable requirement; `Call::required_protocol()`
 includes the inner call and field requirements. `Method::shape()` classifies
 Unary, Stream and Envelope. The journal excludes Envelope through that
@@ -94,13 +95,11 @@ must state whether they exercised actual service source or wire admission.
 7. Validate the root and output budget before returning/rendering. A missing
    section is not zero or healthy. Runtime and durable counts are distinct.
 
-Provider integration uses the other package's proposed `DiagnosticRead`
-separation: Cached reads only prior observations with Read; explicit Refresh
-requires Operate and may execute checks. A cache miss never becomes Refresh.
-The concrete request/response and cache getter are not committed yet, so these
-are coordination requirements rather than an available API. A bounded free
-`AgentVersion` still needs normalization before a shareable report; custom
-provider identifiers likewise cannot become arbitrary export labels.
+Provider diagnostics belongs to A9. Its owner has committed an unreviewed
+cached getter proposal; no provider getter or provider RPC is consumed here.
+A future shareable composition must normalize free version text and private
+identifiers at this report boundary and preserve cache-miss-as-NotChecked.
+It must not refresh a provider during a Read-only host diagnostic request.
 
 ## Deliberate differences and remaining gaps
 
@@ -149,3 +148,12 @@ The canonical pending row and MethodShape now allow wiring; the pending diagnost
 row is registered, with execution refused until the integrator assigns it. Provider diagnostics is A9/W22, including tracker row 568; E4 does not
 implement its collector or RPC. No native sources changed and the package remains incomplete.
 Under A14 this merge receives narrow checks; the whole gate is at package end.
+
+## Product narrow checkpoint
+
+The product checkpoint after the current shared method-table move passed
+strict all-target Clippy for the eleven affected owner/client/CLI crates.
+This establishes compilation and lint acceptance on Linux, not runtime or
+whole-package acceptance. Focused tests, generated TypeScript freshness and
+the package gate remain pending. The pending method still refuses on the wire;
+an assigned-protocol successful request requires the integrator's assignment.

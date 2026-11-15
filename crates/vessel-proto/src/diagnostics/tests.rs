@@ -310,3 +310,34 @@ fn runtime_count_certainty_cannot_contradict_its_subset() {
         assert!(DiagnosticReport::try_from(source.clone()).is_ok());
     }
 }
+
+#[test]
+fn process_identity_round_trips_and_root_redacts_invalid_pid_input() {
+    let mut source = fields();
+    source.process = available(DiagnosticProcess {
+        pid: MIN_DIAGNOSTIC_PROCESS_ID.try_into().unwrap(),
+        parent: None,
+        memory: unavailable(),
+    });
+    let report = DiagnosticReport::try_from(source).unwrap();
+    let json = serde_json::to_string(&report).unwrap();
+    assert_eq!(
+        serde_json::from_str::<DiagnosticReport>(&json).unwrap(),
+        report
+    );
+    let key = format!("\"pid\":{MIN_DIAGNOSTIC_PROCESS_ID}");
+    assert!(json.contains(&key));
+    for invalid in [
+        MIN_DIAGNOSTIC_PROCESS_ID
+            .checked_sub(1)
+            .unwrap()
+            .to_string(),
+        u64::from(u32::MAX).checked_add(1).unwrap().to_string(),
+        format!("\"{PRIVATE_WORDS}\""),
+    ] {
+        let input = json.replacen(&key, &format!("\"pid\":{invalid}"), 1);
+        let error = serde_json::from_str::<DiagnosticReport>(&input).unwrap_err();
+        assert!(!error.to_string().contains(PRIVATE_WORDS));
+        assert!(!format!("{error:?}").contains(PRIVATE_WORDS));
+    }
+}
