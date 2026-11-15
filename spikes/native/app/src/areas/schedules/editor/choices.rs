@@ -1,8 +1,8 @@
 //! One shared combobox for field choices. Retained rows carry the actual form
 //! visit and, for agent options, the exact catalog request that offered them.
 use super::{
-    AnyElement, ConnectionContext, Context, Picker, Rc, Shell, TimeZoneName, Tokens, Visit, Weak,
-    Window, choose_host, inputs, install, io, kit, queue_preview,
+    AnyElement, Command, ConnectionContext, Context, Picker, Rc, Shell, TimeZoneName, Tokens,
+    Visit, Weak, Window, choose_host, inputs, install, io, kit, queue_preview,
 };
 use kit::{ComboHandlers, ComboHeader, ComboRow, ComboboxContent, ComboboxWidth, ui::SharedString};
 use vessel_app_view::schedules::editor::{IntervalUnit, cadence::Choice as CadenceChoice};
@@ -98,6 +98,19 @@ pub(super) fn open(
     ui.picker.set_anchor(Some(bounds));
     ui.picker
         .open(search.then_some(placeholder.as_str()), window, cx);
+    // A previous browse may have read another provider. The displayed header
+    // must name the same catalog request as these rows; never reuse it by index.
+    if let (Some(visit), Some(harness)) = (visit, initial)
+        && let Some(request) = shell
+            .areas
+            .schedules
+            .data
+            .editor
+            .browse_agent(visit, harness)
+    {
+        shell.command(Command::Schedules(request.into()));
+    }
+    let _changed = shell.schedules_changed(cx);
     cx.notify();
 }
 fn current(shell: &Shell, visit: Option<Visit>, bootstrap: Option<&Weak<()>>) -> bool {

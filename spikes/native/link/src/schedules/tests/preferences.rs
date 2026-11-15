@@ -216,3 +216,30 @@ fn assert_private(path: &std::path::Path) {
 }
 #[cfg(not(unix))]
 fn assert_private(_path: &std::path::Path) {}
+
+#[test]
+fn remembered_payload_redacts_preferences_and_preserves_the_refusal_envelope() {
+    let context = vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            vessel_app_view::connection::MachineKey::from_book("laptop"),
+            vessel_proto::NodeId::random(),
+        )
+        .unwrap();
+    let request = request(context, &mut Tickets::default(), target());
+    let mut preferences = crate::Prefs::default();
+    let _old = preferences.folders.insert(
+        "private-prefs-canary".into(),
+        "/private-preference-path-canary".into(),
+    );
+    let wrapped = super::super::Request::remembering(request.clone(), preferences);
+    let shown = format!("{wrapped:?}");
+    assert!(!shown.contains("private-prefs-canary"));
+    assert!(!shown.contains("/private-preference-path-canary"));
+    assert!(shown.contains("<redacted>"));
+    assert_eq!(wrapped.connection(), request.connection());
+    let Message::FormReplied(answer) = wrapped.refused(ScheduleError::Preferences) else {
+        panic!("not form");
+    };
+    assert_eq!(answer.request, request);
+    assert!(matches!(answer.result, Err(ScheduleError::Preferences)));
+}

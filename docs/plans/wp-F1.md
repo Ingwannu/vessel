@@ -1703,3 +1703,18 @@ retired admission must not poll persistence; a closed retired transport may
 close its empty request pipe and is not a received RPC. Outer/named phase
 guards and owned peer cleanup reuse the existing harness. These are authored
 scoped tests, NOT execution, real node authority, OS or consumer UI proof.
+
+
+Preference source cases now cover offered defaults, restoration only into a
+fresh create, unsupported-provider fallback, rejection of unrelated/unoffered
+choices, explicit-pick and old-visit guards, and exact edit metadata/revision
+preservation when an explicit option differs from a valid legacy model. A
+request debug test guards preference redaction and original refusal envelopes.
+All remain authored/unexecuted at this checkpoint.
+
+Reopening a model browser now requests the same provider named by its initial
+header. Another provider's retained options slot is not reused under that header;
+the existing browse_agent request/cache guard avoids a duplicate read when it
+is already the current ready/pending catalog. No selection or shared picker
+engine is changed merely by opening. Actual cancel/reopen first-use proof is
+still owed. This fixes an area-owned source wiring gap, not a new renderer.

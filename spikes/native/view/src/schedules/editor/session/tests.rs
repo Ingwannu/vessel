@@ -386,3 +386,5 @@ fn a_preview_read_refusal_cannot_claim_that_this_device_lacks_operate() {
     assert!(matches!(model.prepare_save(), Err(Issue::Preview)));
     assert!(model.preview(opened.visit, at()).unwrap().is_some());
 }
+
+mod preferences;
