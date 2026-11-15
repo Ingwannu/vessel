@@ -2,12 +2,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, expect, test, vi } from "vitest";
 import { Bridge } from "./client";
-import { Fleet } from "../data/fleet";
-import {
-  checkSubmit,
-  preparedUploads,
-  submitPrepared,
-} from "../data/submission-calls";
 import { fixtureId } from "../testing/ids";
 import type { ServerFrame } from "../wire/bridge";
 
@@ -238,7 +232,6 @@ test("prepared uploads and submission keep the captured recipient, without retry
   const { bridge, socket } = start();
   socket.message(await answer(socket));
   await vi.waitFor(() => expect(bridge.link.kind).toBe("open"));
-  const fleet = new Fleet(bridge);
   const node = fixtureId("NodeKey", "box");
   const expected = fixtureId("NodeId", "captured-machine");
   const session = fixtureId("SessionId", "session");
@@ -248,7 +241,12 @@ test("prepared uploads and submission keep the captured recipient, without retry
     content: [{ type: "text" as const, text: "original" }],
     delivery: "steer_or_interrupt" as const,
   };
-  const checking = checkSubmit(fleet, node, expected, request);
+  const checking = bridge.op({
+    op: "check_submit",
+    node,
+    expected_node: expected,
+    request,
+  });
   const checked = sentFrame(socket);
   expect(checked.op).toEqual({
     op: "check_submit",
@@ -273,17 +271,28 @@ test("prepared uploads and submission keep the captured recipient, without retry
     },
   });
   expect(await checking).toMatchObject({
-    ok: true,
-    value: { status: "unsupported" },
+    op: "check_submit",
+    check: { status: "unsupported" },
   });
   expect(socket.sent).toHaveLength(2); // Authentication and local preflight only.
-  const uploads = preparedUploads(fleet, node, expected, session);
   const upload = fixtureId("UploadId", "upload");
   const tasks = [
-    () => uploads.begin("file.txt", "text/plain", 1),
-    () => uploads.write(upload, 0, "YQ=="),
-    () => uploads.finish(upload),
-    () => submitPrepared(fleet, node, expected, request),
+    () =>
+      bridge.call(
+        node,
+        "attachment.begin",
+        { session, name: "file.txt", mime: "text/plain", size: 1 },
+        expected,
+      ),
+    () =>
+      bridge.call(
+        node,
+        "attachment.write",
+        { upload, offset: 0, data: "YQ==" },
+        expected,
+      ),
+    () => bridge.call(node, "attachment.finish", { upload }, expected),
+    () => bridge.call(node, "session.submit_prompt", request, expected),
   ];
   for (const task of tasks) {
     const before = socket.sent.length;
@@ -301,7 +310,7 @@ test("prepared uploads and submission keep the captured recipient, without retry
         },
       },
     });
-    expect(await pending).toMatchObject({ ok: false });
+    await expect(pending).rejects.toThrow("Selected machine changed");
     expect(socket.sent).toHaveLength(before + 1);
   }
 });
