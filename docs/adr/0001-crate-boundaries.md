@@ -366,3 +366,16 @@ verification or CLI edge is introduced. Those remain separate phases.
   do not advertise a product engine; the real proxy/CDP/profile/qualification gates remain.
 
 Pinned API reference: https://docs.rs/nix/0.31.3/nix/ifaddrs/fn.getifaddrs.html .
+
+
+### Browser candidate launch specification (ADR0078, staged)
+
+Purpose: the browser must use the existing supervised command/process owner,
+not add tokio/std process creation or a separate group/job implementation.
+The vessel-browser -> vessel-proc edge carries only CommandSpec and the actual
+owned Child for post-start executable identity checks. Candidate launch data
+clears environment, uses the fixed positional shell source and approved exact
+binary, and retains private profile ownership. Hashing is streamed with the
+workspace SHA-256 dependency. These are A10 test-staged primitives, not an
+installation or qualified runtime grant; Node principal/service admission and
+the complete runtime/proxy/Preview/input/platform qualification remain above.

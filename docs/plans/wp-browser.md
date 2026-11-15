@@ -466,3 +466,27 @@ browser is launched. The sync initializer must run under Preparation's finite
 actual-worker ownership. Its lock cannot be released/reused until the future
 supervisor has observed child/descendant cleanup. Windows ACL admission remains
 unimplemented/NoEngine; this module is test-staged on Linux only.
+
+
+## Staged candidate launch data
+
+Reuse vessel-proc CommandSpec instead of adding another spawn/group/job path.
+The plan clears inherited environment and supplies only private HOME/config/
+cache/temp, explicit C.UTF-8/UTC/PATH, fixed pipe/proxy/sandbox-preserving flags
+and about:blank. The fixed shell source receives positional argv only. Its
+profile is retained by the plan and passed with the command to the future
+supervisor; no profile/process lifetime is reported complete by this data type.
+The diagnostic candidate's actual browser and shell SHA-256 digests are pinned
+and checked with streamed reads, root ownership and nonwritable ancestry. A
+post-start check accepts the actual owned Child, not a caller/stored PID.
+These two executable hashes are NOT the complete immutable runtime asset/
+node-binary/launcher-policy qualification fingerprint. Candidate inspection or
+unit fixtures never grant a QualifiedRuntime or publish a ready engine.
+Actual process supervision, private pipe constructor and lifecycle evidence
+remain owed. Windows admission remains NoEngine until its handle/job/ACL proof.
+
+Candidate hashing also refuses nonregular/oversized files before reading and
+counts streamed bytes against one named executable-size ceiling, including a
+file growing during inspection. Actual service execute permission is required.
+A harmless owned shell-child fixture checks that an unrelated executable cannot
+inherit the candidate's post-start identity; it is never a browser fixture.

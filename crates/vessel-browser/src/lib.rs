@@ -10,6 +10,8 @@
 
 #[cfg(test)]
 mod cdp;
+#[cfg(all(test, target_os = "linux"))]
+mod launch;
 #[cfg(test)]
 mod network;
 #[cfg(test)]
