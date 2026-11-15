@@ -34,7 +34,13 @@ impl Shell {
         if waiting.phase != Phase::Preparing {
             return;
         }
-        let tray = composer.trays.tray(DraftKey::Session { session });
+        // Context-only input needs no persistent byte slot and must not evict
+        // another composer's retained files just to observe an empty tray.
+        let mut empty = vessel_app_view::composer::tray::Tray::default();
+        let tray = composer
+            .trays
+            .get_mut(DraftKey::Session { session })
+            .unwrap_or(&mut empty);
         tray.send();
         let mut commands: Vec<Command> = tray
             .starts()
