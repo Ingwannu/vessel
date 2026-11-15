@@ -408,3 +408,28 @@ cancellation/replacement was requested under the tool's explicit approval rule;
 no evidence from that immutable source is represented as a pass. Existing e50
 strict evidence precedes this defect and remains bounded to that earlier source.
 New corrected source and the regression still owe remote Clippy/runtime checks.
+
+### Approved shared Circle producer and staged overlay composition
+
+Consumed only G2's selected82584106..2b080afd Circle producer after V1's exact
+bounded SOURCE/Kit Clippy0+137/0/0 handoff. The README append conflict retained
+both current menu/base documentation and the Circle section. Current LG20,
+GREEN_500, broader glyph inventory, exports and palette were preserved; only
+the producer's RED_600/RED_800 additions came in. This producer proof does not
+cover W19's glyph first use or the latest combined workspace.
+
+The test-only areas::voice overlay uses that one Button renderer and the shared
+voice_meter. Source container75, padding16/15.5, radius2xl, border/surface1 and
+8-point action gap follow realtime-voice-overlay.tsx; both density layouts keep
+the same44-point circles/icon20. State::overlay owns switching/mute; switching
+disables both actions and only Stop loads. Current mute overrides stale meter
+telemetry, so muted bars remain static. Labels are typed Fluent EN/KO getters
+matching the reference accessible names. Caller-provided meter change identity
+must change only on a published meter update; a stable repaint is not a pulse.
+
+New actual-composition GPUI fakes cover390/800/1280 widths, light/dark, EN/KO,
+open/muted/starting/stopping, fixed touch geometry and input transitions. These
+checks have not executed yet. No Shell voice route, actual backend callback,
+physical microphone, native capture or OS accessibility claim is added. Final
+W19 Mic/MicOff2.5 and filled Square artwork/notice review, inspected captures,
+combined gates and real controller integration remain owed.

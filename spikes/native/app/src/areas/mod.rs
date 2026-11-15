@@ -28,6 +28,8 @@ pub(crate) mod sidebar;
 pub(crate) mod terminal;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
+#[cfg(test)]
+pub(crate) mod voice;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_proto::{EventRecord, SessionId};
