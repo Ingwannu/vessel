@@ -122,6 +122,10 @@ rustls-native-certs = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"
+# gzip for the compressed copy of each file the app downloads
+# (updater/src/stage.rs says why gzip): pure Rust, and already in the app's
+# tree through GPUI's image crates, so it adds no crate to the app.
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["rt", "fs", "time", "sync", "macros"] }

@@ -22,6 +22,10 @@
 #   vessel-LABEL-linux-x64.tar.gz       vessel-app, LICENSE.md, README.txt,
 #                                       licenses/
 #   vessel-LABEL-linux-x64              the executable alone: the update
+#   <each file the updater downloads>.gz   the same file, gzip -9 -n: the
+#                                       copy an app from 2026-11-15 on
+#                                       downloads (the manifest's
+#                                       `compressed`; older apps ignore it)
 #   SHA256SUMS (and SHA256SUMS.minisig when a signing key is given)
 # With VESSEL_PACKAGE_NODE=1 (ADR 0094), the command line and the node go
 # in a bin folder beside the app in the zip, the installer and the tarball
@@ -186,6 +190,13 @@ icons="$stage/icons"
 PATH="${VESSEL_TOOLS_DIR:+$VESSEL_TOOLS_DIR/bin:}$PATH" \
     python3 -I "$here/tools/make-icons.py" "$repo/docs/design/brand/vessel-mark.svg" "$icons"
 
+# The compressed copy of a file the updater downloads (updater/src/stage.rs
+# says why gzip, and why a copy rather than instead): -n leaves out the
+# name and time, so one file always gives the same bytes.
+gzip_copy() {
+    gzip -9 -n -c "$1" >"$1.gz"
+}
+
 readme() {
     sed -e "s/{LABEL}/$label/g" -e "s/{UPDATES_KO}/$updates_ko/" -e "s/{UPDATES_EN}/$updates_en/" "$1"
 }
@@ -323,6 +334,7 @@ build_windows() {
         for program in vessel vesseld; do
             cp "$built/$program.exe" "$dir/bin/$program.exe"
             cp "$built/$program.exe" "$out/vessel-$label-windows-x64-$program.exe"
+            gzip_copy "$out/vessel-$label-windows-x64-$program.exe"
         done
     fi
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
@@ -330,6 +342,7 @@ build_windows() {
     readme "$here/windows/README.txt" | sed 's/$/\r/' >"$dir/README.txt"
     (cd "$stage/windows" && TZ=UTC zip -q -X -r "$out/vessel-$label-windows-x64.zip" Vessel)
     cp "$exe" "$out/vessel-$label-windows-x64.exe"
+    gzip_copy "$out/vessel-$label-windows-x64.exe"
     makensis -V2 -DLABEL="$label" -DSTAGE="$dir" -DICONS="$icons" "${companions[@]}" \
         -DOUTFILE="$out/vessel-$label-windows-x64-setup.exe" "$here/windows/installer.nsi"
     echo "windows-x64: $(du -h "$exe" | cut -f1) executable"
@@ -377,7 +390,8 @@ build_linux() {
     (cd "$app_ws" && cargo build --release --locked -p "$app_pkg" -j "$jobs")
     [ "$package_node" = 1 ] && companions_linux
     local name="vessel-$label-linux-x64"
-    rm -f "$out/$name" "$out/$name.tar.gz" "$out/$name-vessel" "$out/$name-vesseld"
+    rm -f "$out/$name" "$out/$name.gz" "$out/$name.tar.gz" "$out/$name-vessel" "$out/$name-vessel.gz" \
+        "$out/$name-vesseld" "$out/$name-vesseld.gz"
     local dir="$stage/linux/$name"
     mkdir -p "$dir"
     local bin="$stage/linux/$app_bin"
@@ -390,6 +404,7 @@ build_linux() {
         for program in vessel vesseld; do
             install -m 0755 "$root_target/release/$program" "$dir/bin/$program"
             install -m 0755 "$root_target/release/$program" "$out/$name-$program"
+            gzip_copy "$out/$name-$program"
         done
     fi
     cp "$repo/LICENSE.md" "$dir/LICENSE.md"
@@ -406,6 +421,7 @@ build_linux() {
     tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@0' -C "$stage/linux" -czf "$out/$name.tar.gz" "$name"
     cp "$bin" "$out/$name"
     chmod 0755 "$out/$name"
+    gzip_copy "$out/$name"
     echo "linux-x64: $(du -h "$bin" | cut -f1) executable"
 }
 
@@ -460,7 +476,8 @@ if [ "$publish" = 1 ]; then
     done
     notes=()
     [ -f "$out/NOTES.txt" ] && notes=(--notes "$out/NOTES.txt")
-    feed_tool publish --key "$VESSEL_UPDATE_SECRET" --feed "$VESSEL_DIST_DIR" --channel "$channel" \
+    # Every file the manifest names has its gzip copy (gzip_copy above).
+    feed_tool publish --key "$VESSEL_UPDATE_SECRET" --feed "$VESSEL_DIST_DIR" --channel "$channel" --compressed gzip \
         --label "$label" "${notes[@]}" "${artifacts[@]}"
     feed_tool check --feed "$VESSEL_DIST_DIR" --public "$VESSEL_UPDATE_KEY" --channel "$channel"
 fi

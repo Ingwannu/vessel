@@ -333,19 +333,17 @@ impl Installation {
         Ok(())
     }
 
-    /// Remove what earlier updates left beside the app: downloads cut
-    /// short, and on Windows the builds moved aside (the app's and its
-    /// companions'). A file still in use (a build moved aside while it
-    /// runs) stays until a later start.
+    /// Remove what earlier updates left beside the app: on Windows the
+    /// builds moved aside (the app's and its companions'). A file still in
+    /// use (a build moved aside while it runs) stays until a later start.
+    /// Downloads cut short stay: the next attempt goes on from them, and
+    /// [`Self::prune_staging`] removes the ones a manifest no longer wants.
     ///
     /// Blocking file I/O: call it from a blocking thread.
     pub fn clean_leftovers(&self) {
         let mut aside_prefix = self.file_name();
         aside_prefix.push(".old-");
-        let app_prefixes = vec![
-            STAGING_PREFIX.to_owned(),
-            aside_prefix.to_string_lossy().into_owned(),
-        ];
+        let app_prefixes = vec![aside_prefix.to_string_lossy().into_owned()];
         clean_dir(self.staging_dir(), &app_prefixes);
         if let Some(target) = Target::current() {
             let companion_prefixes: Vec<String> = Role::KNOWN
@@ -354,6 +352,40 @@ impl Installation {
                 .map(|name| format!("{name}.old-"))
                 .collect();
             clean_dir(&self.companion_dir(), &companion_prefixes);
+        }
+    }
+}
+
+impl Installation {
+    /// Remove every staging file beside the app but those named in `keep`
+    /// (the files of the set the feed offers now): downloads of a build the
+    /// feed has moved past, and of the processes before resuming existed.
+    ///
+    /// Blocking file I/O: call it from a blocking thread.
+    pub(crate) fn prune_staging(&self, keep: &[String]) {
+        let Ok(entries) = std::fs::read_dir(self.staging_dir()) else {
+            return;
+        };
+        for entry in entries.take(MAX_CLEAN_SCAN).flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            let is_file = entry.file_type().is_ok_and(|kind| kind.is_file());
+            if !is_file
+                || !name.starts_with(STAGING_PREFIX)
+                || keep.iter().any(|kept| *kept == name)
+            {
+                continue;
+            }
+            match std::fs::remove_file(entry.path()) {
+                Ok(()) => {
+                    tracing::info!(file = %name, "a download the feed no longer offers is removed");
+                }
+                Err(error) => tracing::warn!(
+                    file = %name,
+                    error = %crate::report::chain(&error),
+                    "a staging file stays for now"
+                ),
+            }
         }
     }
 }
@@ -567,16 +599,16 @@ mod tests {
     fn leftovers_are_removed_and_nothing_else() {
         let dir = tempfile::tempdir().unwrap();
         let app = dir.path().join("vessel-app.exe");
+        // A download cut short is kept at start: the next attempt goes on
+        // from it (the manifest read prunes it if it is no longer wanted).
         let keep = [
             "vessel-app.exe",
             "notes.txt",
             "other.exe.old-0.0.0.0.1",
             "vessel-app.exe.older",
-        ];
-        let remove = [
             ".vessel-update-0.0.0.0.2.77.part",
-            "vessel-app.exe.old-0.0.0.0.1",
         ];
+        let remove = ["vessel-app.exe.old-0.0.0.0.1"];
         for name in keep.iter().chain(&remove) {
             std::fs::write(dir.path().join(name), b"x").unwrap();
         }
@@ -595,6 +627,44 @@ mod tests {
             dir.path().join(".vessel-update-dir").exists(),
             "a directory was removed"
         );
+    }
+
+    #[test]
+    fn pruning_keeps_only_the_staging_files_the_feed_still_wants() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = dir.path().join("vessel-app");
+        let wanted = ".vessel-update-0.0.0.0.20.0123456789abcdef.gz.part";
+        let names = [
+            "vessel-app",
+            wanted,
+            ".vessel-update-0.0.0.0.19.fedcba9876543210.part",
+            ".vessel-update-0.0.0.0.2.77.part",
+        ];
+        for name in names {
+            std::fs::write(dir.path().join(name), b"x").unwrap();
+        }
+        std::fs::create_dir(dir.path().join(".vessel-update-dir")).unwrap();
+        let installation = Installation::detect(Packaging::Executable, app, None).unwrap();
+
+        installation.prune_staging(&[wanted.to_owned()]);
+
+        assert_eq!(
+            names_of(dir.path()),
+            [
+                ".vessel-update-0.0.0.0.20.0123456789abcdef.gz.part",
+                ".vessel-update-dir",
+                "vessel-app"
+            ]
+        );
+    }
+
+    fn names_of(dir: &Path) -> Vec<String> {
+        let mut names: Vec<_> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        names.sort();
+        names
     }
 
     /// The names in `dir`, sorted.

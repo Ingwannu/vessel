@@ -167,3 +167,67 @@ the new one.
   repair. The installer with `-DCOMPANIONS=1` was compiled, installed and
   uninstalled silently under wine (dummy programs): `bin\vessel.exe` and
   `bin\vesseld.exe` beside `Vessel.exe`, all removed with the folder. `vessel-app-feed` tests cover `--companion` and check.
+
+## Addendum, 2026-11-15: resuming, the compressed copy, and a visible stop
+
+Approved by the coordinator the same day, after the owner's Windows copy
+of 0.0.0.0.14 took 0.0.0.0.19 over a slow line.
+- The preview proxy's log shows the 51.7 MB executable starting at
+  08:15:42 UTC and breaking off at 31.9 MB at 08:17:39, about 0.27 MB/s.
+- No retry reached the feed afterwards.
+- The same file came in 0.87 s from the build machine through the same
+  public path, so the line to the owner was the limit.
+- Every retry would have begun again at zero.
+
+The decision log is in `spikes/release/updater/src/stage.rs`. In short:
+
+- **Resuming.**
+  - Each staging file is named from the label and the digest of the bytes
+    it will hold, no longer from the process id. A later attempt, in this
+    run or after a restart, finds what an earlier one kept.
+  - The kept bytes are hashed again, and the rest is asked for with
+    `Range: bytes=<kept>-`.
+  - A server that answers the whole file (200) starts the file over. One
+    that answers 416, or another range, is asked for the whole file.
+  - A download whose line failed keeps its file. One whose bytes are
+    wrong (size or digest) loses it.
+  - The file being written is locked (`File::try_lock`).
+  - At start the app no longer removes staging files. Each manifest read
+    removes the ones the current set does not want (`prune_staging`).
+  - The feed side: since 09:08 UTC the preview proxy answers a single
+    byte range on `/feed`. Its README and its `feed_range` decision log
+    say how.
+- **The compressed copy.**
+  - `Artifact` and `Companion` gain an optional `compressed`
+    (`encoding`, `path`, `size`, `sha256` of the compressed bytes). It is
+    left out of the text when absent, so earlier apps read every manifest
+    as before and download the plain file.
+  - The newer updater downloads the gzip copy (resumably). It checks the
+    copy's digest before unpacking, and the unpacked file against the
+    file's own digest.
+  - An unknown `encoding` (a later build's zstd, say) falls back to the
+    plain file.
+  - gzip was chosen because `flate2` is already in the app's tree, so it
+    adds no crate. zstd would be about a quarter smaller but adds a
+    decoder.
+  - Measured on 0.0.0.0.20's update files with `gzip -9 -n`: Windows
+    51,643,904 → 20,415,014 bytes (39.5%), Linux 88,754,616 →
+    30,501,649 (34.4%). Compressing takes about a minute each on the
+    build machine.
+  - `build.sh` writes the copies beside every update file.
+    `vessel-app-feed publish --compressed gzip` offers them, after
+    proving each one unpacks to the signed file; `check` proves it again.
+- **A visible stop.**
+  - `UpdateState::Failed` gains `retry_in`, the wait before the updater
+    tries by itself (`None` with automatic checks off).
+  - It also gains `kept`, the bytes a broken-off download kept, with the
+    set's size as it travels.
+  - The app compiles with them and still shows its "try again" line.
+    Wording them ("62% kept, trying again in a minute") is W15's update
+    screen.
+- **What it does not change.**
+  - Apps published before it get no resuming and no compressed copy.
+    They send no range and read no `compressed`; their path stays the
+    `/dl/` installer when the line is slow.
+  - The feed's address, token, key and schema are unchanged.
+  - Between attempts, up to one set's files stay beside the app.

@@ -68,7 +68,9 @@ impl UpdateUi {
             UpdateState::Ready { label, .. } => Status::Ready {
                 build: BuildName::from(label.to_string().as_str()),
             },
-            UpdateState::Failed { error } => Status::Failed {
+            // `retry_in` and `kept` (a download that broke off, ADR 0094's
+            // resuming updater) are for the update screen to show.
+            UpdateState::Failed { error, .. } => Status::Failed {
                 problem: problem(error),
             },
         };
@@ -214,6 +216,8 @@ mod tests {
         let mut ui = UpdateUi::new(catalog);
         ui.state = UpdateState::Failed {
             error: std::sync::Arc::new(vessel_app_updater::UpdateError::Interrupted),
+            retry_in: None,
+            kept: None,
         };
         ui.refresh(catalog);
         assert_eq!(

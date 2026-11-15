@@ -1047,6 +1047,11 @@ the reasons and the trade-offs. Where it stands:
 - The updater: the whole set downloaded and verified before any swap,
   companions first and the app last, every placed file put back when one
   fails; tests listed in the ADR.
+- Resuming, a gzip copy of every update file, and a failed state that
+  says what was kept and when the next try is (the ADR's addendum, after
+  the owner's slow Windows update of 2026-11-15): these need no flag and
+  reach the owner with the first label built from this branch; the gzip
+  copies are made by every build from then on.
 - Not shipped in any label until the local-node controller is in a build.
   Not yet shown: that `vessel-cli` and `vessel-node` build for Windows
   with `cargo-xwin` and import only the DLLs Windows ships (the first

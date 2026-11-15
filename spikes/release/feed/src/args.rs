@@ -13,6 +13,7 @@ usage:
                           [--notes FILE] [--published TEXT]
                           --artifact TARGET:PACKAGING:PATH ...
                           [--companion TARGET:PACKAGING:ROLE:PATH ...]
+                          [--compressed gzip]
   vessel-app-feed sums --key FILE --label LABEL DIR
   vessel-app-feed check --feed DIR --public KEY --channel NAME
   vessel-app-feed check-sums --public KEY DIR";
@@ -45,6 +46,9 @@ pub(crate) struct Publish {
     pub(crate) notes: Option<PathBuf>,
     pub(crate) published: Option<String>,
     pub(crate) artifacts: Vec<ArtifactArg>,
+    /// `--compressed gzip`: every artifact and companion also has
+    /// `<path>.gz`, offered to the apps that read it.
+    pub(crate) gzip: bool,
 }
 
 /// A command.
@@ -120,6 +124,15 @@ pub(crate) fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Command,
                     &std::mem::take(&mut options.artifacts),
                     &std::mem::take(&mut options.companions),
                 )?,
+                gzip: match options.compressed.take().as_deref() {
+                    None => false,
+                    Some("gzip") => true,
+                    Some(other) => {
+                        return Err(bad(format!(
+                            "--compressed {other:?}: only gzip is made and read"
+                        )));
+                    }
+                },
             };
             options.none_left()?;
             if publish.artifacts.is_empty() {
@@ -168,6 +181,7 @@ struct Options {
     published: Option<String>,
     artifacts: Vec<String>,
     companions: Vec<String>,
+    compressed: Option<String>,
 }
 
 impl Options {
@@ -175,6 +189,7 @@ impl Options {
         match name {
             "artifact" => self.artifacts.push(value),
             "companion" => self.companions.push(value),
+            "compressed" => self.compressed = Some(value),
             "notes" => self.notes = Some(value),
             "published" => self.published = Some(value),
             "key" | "feed" | "channel" | "label" | "public" => {
@@ -206,6 +221,7 @@ impl Options {
             .chain(self.published.as_ref().map(|_| "published"))
             .chain((!self.artifacts.is_empty()).then_some("artifact"))
             .chain((!self.companions.is_empty()).then_some("companion"))
+            .chain(self.compressed.as_ref().map(|_| "compressed"))
             .next();
         match unused {
             Some(name) => Err(bad(format!("--{name} does not apply to this command"))),
@@ -314,6 +330,7 @@ mod tests {
                 .iter()
                 .all(|artifact| artifact.companions.is_empty())
         );
+        assert!(!publish.gzip);
     }
 
     #[test]
@@ -363,6 +380,8 @@ mod tests {
             "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion linux-x86_64:executable:b",
             "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --companion linux-x86_64:executable:Cli:b",
             "check --feed f --public p --channel preview --companion linux-x86_64:executable:cli:b",
+            "publish --key k --feed f --channel preview --label 1 --artifact linux-x86_64:executable:a --compressed zstd",
+            "check --feed f --public p --channel preview --compressed gzip",
             "check --feed f --public p",
             "sums --key",
             "sums --key k d",

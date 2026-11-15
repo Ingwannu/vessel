@@ -10,7 +10,7 @@ why is in `docs/plans/backend-m12-release.md`.
 | Crate | Owns | Must not | Depends on |
 | --- | --- | --- | --- |
 | `hello` (`vessel-release-hello`) | the smallest GPUI window, a target's first proof | be linked into the app | - |
-| `updater` (`vessel-app-updater`) | the app's updates: the signed feed read, a build and its companions (the command line and the node, ADR 0094) fetched, verified and swapped in as one set | use GPUI (the app links it on every desktop) | - |
+| `updater` (`vessel-app-updater`) | the app's updates: the signed feed read, a build and its companions (the command line and the node, ADR 0094) fetched (resumed, gzip when offered), verified and swapped in as one set | use GPUI (the app links it on every desktop) | - |
 | `feed` (`vessel-app-feed`) | the release key, the signed feed and the sums, for whoever releases | be linked into the app | `vessel-app-updater` |
 | `applog` (`vessel-app-log`) | the app's log: stderr and a rotated file in the platform's place for logs | use GPUI | - |
 

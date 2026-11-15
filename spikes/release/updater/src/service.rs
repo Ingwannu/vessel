@@ -106,7 +106,24 @@ pub enum UpdateState {
     Failed {
         /// Why.
         error: Arc<UpdateError>,
+        /// When the updater tries again by itself; `None` when automatic
+        /// checks are off (only "Check for updates" does then).
+        retry_in: Option<Duration>,
+        /// What a download that broke off kept: the next attempt goes on
+        /// from there (so the UI can say "62% kept" rather than nothing).
+        kept: Option<Kept>,
     },
+}
+
+/// What a download that broke off kept beside the app.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Kept {
+    /// The build being downloaded.
+    pub label: Label,
+    /// Bytes kept, over the whole set.
+    pub received: ByteCount,
+    /// The set's size as it travels.
+    pub total: ByteCount,
 }
 
 /// Why an attempt to update failed.
@@ -314,6 +331,23 @@ impl Task {
                     let _previous = self.state.send_replace(state);
                 }
                 Err(error) => {
+                    // What broke off stays on disk only when the line
+                    // failed ([`stage`]); the state says so then.
+                    let kept = match (&error, &*self.state.borrow()) {
+                        (
+                            UpdateError::Stage(StageError::Fetch(_)),
+                            UpdateState::Downloading {
+                                label,
+                                received,
+                                total,
+                            },
+                        ) => Some(Kept {
+                            label: label.clone(),
+                            received: *received,
+                            total: *total,
+                        }),
+                        _ => None,
+                    };
                     let wait = if error.is_transient() {
                         self.settings
                             .retry_after
@@ -331,8 +365,11 @@ impl Task {
                         next_check_in = ?wait,
                         "checking for an update failed"
                     );
+                    let retry_in = (*automatic.borrow()).then_some(wait);
                     let _previous = self.state.send_replace(UpdateState::Failed {
                         error: Arc::new(error),
+                        retry_in,
+                        kept,
                     });
                 }
             }
@@ -355,6 +392,7 @@ impl Task {
             "the manifest verifies"
         );
         if manifest.label < settings.running {
+            self.prune(Vec::new()).await;
             return Ok(UpdateState::UpToDate {
                 latest: manifest.label,
             });
@@ -362,6 +400,7 @@ impl Task {
         let newer = manifest.label > settings.running;
         let packaging = self.installation.packaging();
         let Some(artifact) = manifest.artifact(settings.target, packaging) else {
+            self.prune(Vec::new()).await;
             if !newer {
                 return Ok(UpdateState::UpToDate {
                     latest: manifest.label,
@@ -377,6 +416,11 @@ impl Task {
         if !newer {
             return self.repair(&manifest.label, companions).await;
         }
+        let keep = wanted_files(Some(artifact), &companions)
+            .iter()
+            .flat_map(|(_name, wanted)| wanted.staging_names(&manifest.label))
+            .collect();
+        self.prune(keep).await;
         tracing::info!(
             label = %manifest.label,
             artifact = %artifact.path,
@@ -434,6 +478,11 @@ impl Task {
                 missing.push((name, companion));
             }
         }
+        let keep = wanted_files(None, &missing)
+            .iter()
+            .flat_map(|(_name, wanted)| wanted.staging_names(label))
+            .collect();
+        self.prune(keep).await;
         if missing.is_empty() {
             return Ok(UpdateState::UpToDate {
                 latest: label.clone(),
@@ -451,18 +500,20 @@ impl Task {
     }
 
     /// Download and verify every file of a set beside the app, publishing
-    /// the progress over all of them. Nothing is put in place here; when
-    /// one file fails, the files already staged are removed.
+    /// the progress over all of them (in the bytes that travel: the
+    /// compressed copies' when there are some). Nothing is put in place
+    /// here. When one file fails, the files already staged stay: they are
+    /// whole and verified, and the next attempt takes them as they are.
     async fn download_set(
         &self,
         label: &Label,
         app: Option<&Artifact>,
         companions: &[(&'static str, &Companion)],
     ) -> Result<(Option<Staged>, Vec<StagedCompanion>), UpdateError> {
-        let sum = companions
+        let files = wanted_files(app, companions);
+        let sum = files
             .iter()
-            .map(|(_name, companion)| companion.size.get())
-            .chain(app.map(|artifact| artifact.size.get()))
+            .map(|(_name, wanted)| wanted.transfer_size())
             .fold(0_u64, u64::saturating_add);
         let total = ByteCount::try_from(sum.min(MAX_ARTIFACT_BYTES)).unwrap_or_default();
         let _previous = self.state.send_replace(UpdateState::Downloading {
@@ -473,36 +524,11 @@ impl Task {
         let mut done: u64 = 0;
         let mut staged = Vec::new();
         let mut app_staged = None;
-        let files = companions
-            .iter()
-            .map(|(name, companion)| {
-                (
-                    Some(*name),
-                    stage::Wanted {
-                        path: &companion.path,
-                        size: companion.size,
-                        sha256: companion.sha256,
-                        tag: Some(companion.role.to_string()),
-                    },
-                )
-            })
-            .chain(app.map(|artifact| {
-                (
-                    None,
-                    stage::Wanted {
-                        path: &artifact.path,
-                        size: artifact.size,
-                        sha256: artifact.sha256,
-                        tag: None,
-                    },
-                )
-            }));
-        for (companion, wanted) in files {
-            let size = wanted.size.get();
-            let result = stage::download_file(
+        for (companion, wanted) in &files {
+            let file = stage::download_file(
                 &self.client,
                 &self.settings.feed,
-                &wanted,
+                wanted,
                 label,
                 self.installation.staging_dir(),
                 |received| {
@@ -514,22 +540,8 @@ impl Task {
                     });
                 },
             )
-            .await;
-            let file = match result {
-                Ok(file) => file,
-                Err(error) => {
-                    remove_staged(
-                        app_staged.iter().chain(
-                            staged
-                                .iter()
-                                .map(|companion: &StagedCompanion| &companion.staged),
-                        ),
-                    )
-                    .await;
-                    return Err(error.into());
-                }
-            };
-            done = done.saturating_add(size);
+            .await?;
+            done = done.saturating_add(wanted.transfer_size());
             match companion {
                 Some(file_name) => staged.push(StagedCompanion {
                     file_name,
@@ -545,6 +557,18 @@ impl Task {
             "the download is complete, verified and on disk"
         );
         Ok((app_staged, staged))
+    }
+
+    /// Remove the staging files beside the app the feed no longer wants
+    /// (`keep`: the current set's).
+    async fn prune(&self, keep: Vec<String>) {
+        let installation = self.installation.clone();
+        if tokio::task::spawn_blocking(move || installation.prune_staging(&keep))
+            .await
+            .is_err()
+        {
+            tracing::debug!("pruning staged downloads was interrupted");
+        }
     }
 
     /// Put a staged set in place on a blocking thread; on failure, remove
@@ -582,18 +606,39 @@ impl Task {
     }
 }
 
-/// Remove staged files of a set that will not be installed; a failure
-/// leaves them for the next start's clean-up.
-async fn remove_staged(staged: impl Iterator<Item = &Staged>) {
-    for file in staged {
-        if let Err(error) = tokio::fs::remove_file(file.path()).await {
-            tracing::warn!(
-                error = %crate::report::chain(&error),
-                staged = %file_name(file.path()),
-                "a staged update was left for the next start"
-            );
-        }
-    }
+/// The files of a set as they are downloaded: the companions (with the
+/// file each becomes), then the app.
+fn wanted_files<'a>(
+    app: Option<&'a Artifact>,
+    companions: &[(&'static str, &'a Companion)],
+) -> Vec<(Option<&'static str>, stage::Wanted<'a>)> {
+    companions
+        .iter()
+        .map(|(name, companion)| {
+            (
+                Some(*name),
+                stage::Wanted {
+                    path: &companion.path,
+                    size: companion.size,
+                    sha256: companion.sha256,
+                    tag: Some(companion.role.to_string()),
+                    compressed: companion.compressed.as_ref(),
+                },
+            )
+        })
+        .chain(app.map(|artifact| {
+            (
+                None,
+                stage::Wanted {
+                    path: &artifact.path,
+                    size: artifact.size,
+                    sha256: artifact.sha256,
+                    tag: None,
+                    compressed: artifact.compressed.as_ref(),
+                },
+            )
+        }))
+        .collect()
 }
 
 /// A path's file name for the log: the directory around it is the

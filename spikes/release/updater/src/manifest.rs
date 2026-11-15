@@ -127,6 +127,63 @@ pub struct Artifact {
     /// ([`crate::service`]'s repair of the running label's set).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub companions: Vec<Companion>,
+    /// The same file compressed, for apps that read this field
+    /// ([`Compressed`]); published apps skip it and download `path`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compressed: Option<Compressed>,
+}
+
+/// A file of the set compressed for the download.
+///
+/// Why (2026-11-15): an update of the owner's Windows copy over a slow
+/// line broke off at 31.9 of 51.7 MB; gzip makes the executable about
+/// 40% of its size. The file's own digest stays the artifact's (or
+/// companion's) `sha256`; this one is the compressed bytes', checked
+/// before they are unpacked, so nothing unsigned is ever decompressed, and
+/// the unpacked file is checked against the file's digest again. An app
+/// that does not know `encoding` downloads the plain file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Compressed {
+    /// How it is compressed.
+    pub encoding: Encoding,
+    /// Where it is, relative to the feed's base.
+    pub path: ArtifactPath,
+    /// Its exact size.
+    pub size: ByteCount,
+    /// The SHA-256 of the compressed bytes.
+    pub sha256: Sha256,
+}
+
+/// A compression this build unpacks, or another (a later build's).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub enum Encoding {
+    /// gzip (RFC 1952), through `flate2`, already in the app's tree. zstd
+    /// would be about a quarter smaller and adds a decoder crate.
+    Gzip,
+    /// Another encoding: this build downloads the plain file instead.
+    Other(String),
+}
+
+impl TryFrom<String> for Encoding {
+    type Error = RoleError;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        if text == "gzip" {
+            return Ok(Self::Gzip);
+        }
+        // The same shape as a role's name: short, lowercase, plain.
+        text.parse::<Role>().map(|_shape| Self::Other(text))
+    }
+}
+
+impl From<Encoding> for String {
+    fn from(encoding: Encoding) -> Self {
+        match encoding {
+            Encoding::Gzip => "gzip".to_owned(),
+            Encoding::Other(name) => name,
+        }
+    }
 }
 
 /// A program shipped beside the app, downloaded and swapped together with
@@ -141,6 +198,9 @@ pub struct Companion {
     pub size: ByteCount,
     /// Its SHA-256.
     pub sha256: Sha256,
+    /// The same file compressed ([`Compressed`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compressed: Option<Compressed>,
 }
 
 /// The folder beside the app's executable that holds its companions.
@@ -620,6 +680,7 @@ mod tests {
                 size: ByteCount::try_from(3).unwrap(),
                 sha256: Sha256::of(b"exe"),
                 companions: Vec::new(),
+                compressed: None,
             }],
         }
     }
@@ -632,6 +693,7 @@ mod tests {
             role,
             size: ByteCount::try_from(u64::try_from(bytes.len()).unwrap()).unwrap(),
             sha256: Sha256::of(bytes),
+            compressed: None,
         }
     }
 
