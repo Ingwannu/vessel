@@ -144,3 +144,13 @@ The old unused view NoticeRoutes container and its implementation-shaped test
 are removed after moving the actual recipient map into the App Global. Opaque
 tag and destination value types remain in view. There is one active route map;
 its replacement consumer tests exercise actual platform callback ownership.
+
+Exact1432bb58 native routing checks completed: four native crates all-target
+strict rc0 (wp-inbox-app-root-20261115T164920Z-1432bb58), plus Inbox40/0/0
+(wp-inbox-routing-20261115T164918Z-1432bb58): App5 including four real registered
+platform callback/window cases and View35. These exercise original wrapped
+recipient, later window, consumed tag, closed/reopened handle, retained old
+Shell with root replacement, exact connection retirement and process cap.
+They do not prove W19 host fallback, real OS delivery, audible bell or full A5.
+The standalone portable helper993 Kit all-target strict also passes; its
+sequential GPUI test and V1 source review remain pending.
