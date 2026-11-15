@@ -110,7 +110,10 @@ impl Prepared {
 
     pub(super) fn start<P, F>(self, producer: P) -> Started
     where
-        P: Fn(super::cache::Work, CancellationToken) -> F + Send + Sync + 'static,
+        P: Fn(super::cache::Work, CancellationToken, super::lease::WorkLease) -> F
+            + Send
+            + Sync
+            + 'static,
         F: Future<Output = Observation> + Send + 'static,
     {
         let Self {
@@ -147,7 +150,10 @@ impl Configuration {
         producer: P,
     ) -> Result<Started, ConfigurationFailure>
     where
-        P: Fn(super::cache::Work, CancellationToken) -> F + Send + Sync + 'static,
+        P: Fn(super::cache::Work, CancellationToken, super::lease::WorkLease) -> F
+            + Send
+            + Sync
+            + 'static,
         F: Future<Output = Observation> + Send + 'static,
     {
         let prepared =

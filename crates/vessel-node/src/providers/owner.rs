@@ -2,12 +2,13 @@
 //! bounded producer futures support native transports and plugin connections.
 
 use super::cache::{Admission, Cache, CacheError, Observation, Refresh, Ticket, Work, WorkBudget};
+use super::lease::WorkLease;
 use futures_util::{StreamExt, stream::FuturesUnordered};
 use std::{collections::BTreeMap, future::Future, sync::Arc, time::Duration};
 #[cfg(test)]
 use tokio::sync::broadcast;
 use tokio::sync::{Semaphore, mpsc, oneshot};
-use tokio_util::sync::CancellationToken;
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_harness::providers::ProviderRegistry;
 use vessel_proto::providers::{
     CatalogueScope, DiscoveryFailure, DiscoveryPhase, ProviderDiagnostic, ProviderId,
@@ -121,7 +122,7 @@ impl Owner {
         producer: P,
     ) -> (Self, tokio::task::JoinHandle<()>)
     where
-        P: Fn(Work, CancellationToken) -> F + Send + Sync + 'static,
+        P: Fn(Work, CancellationToken, WorkLease) -> F + Send + Sync + 'static,
         F: Future<Output = Observation> + Send + 'static,
     {
         let (mail, commands) = mpsc::channel(MAILBOX);
@@ -215,13 +216,15 @@ async fn run<P, F>(
     #[cfg(test)] changes: broadcast::Sender<Change>,
     producer: Arc<P>,
 ) where
-    P: Fn(Work, CancellationToken) -> F + Send + Sync + 'static,
+    P: Fn(Work, CancellationToken, WorkLease) -> F + Send + Sync + 'static,
     F: Future<Output = Observation> + Send + 'static,
 {
     let mut pending = BTreeMap::<Ticket, Pending>::new();
     let mut permits = BTreeMap::<ProviderId, Arc<Semaphore>>::new();
     let mut jobs = FuturesUnordered::new();
-    loop {
+    let global = Arc::new(Semaphore::new(MAX_JOBS));
+    let workers = TaskTracker::new();
+    let stopped = loop {
         tokio::select! {
             command = commands.recv() => match command {
                 Some(Mail::Snapshot { scope, reply }) => {
@@ -242,20 +245,20 @@ async fn run<P, F>(
                             let cancel = CancellationToken::new();
                             let _old = pending.insert(work.ticket, Pending { cancel: cancel.clone(), waiters: vec![reply] });
                             let semaphore = Arc::clone(permits.entry(provider).or_insert_with(|| Arc::new(Semaphore::new(PER_PROVIDER))));
-                            jobs.push(execute(work, Arc::clone(&producer), semaphore, cancel));
+                            jobs.push(execute(work, Arc::clone(&producer), semaphore, cancel, Arc::clone(&global), workers.clone()));
                         }
                         Err(error) => { let _gone = reply.send(Err(error.into())); }
                     }
                 }
                 Some(Mail::Replace { registry, reply }) => {
-                    permits.retain(|id, _| registry.get(id).is_some());
+                    permits.retain(|id, semaphore| registry.get(id).is_some() || semaphore.available_permits() != PER_PROVIDER);
                     for ticket in cache.replace(registry) { cancel(&mut pending, ticket, &OwnerError::Superseded); }
                     #[cfg(test)]
                     let _unobserved = changes.send(Change::Registry);
                     let _gone = reply.send(());
                 }
-                Some(Mail::Stop(reply)) => { let _gone = reply.send(()); break; }
-                None => break,
+                Some(Mail::Stop(reply)) => break Some(reply),
+                None => break None,
             },
             Some((work, observation)) = jobs.next(), if !jobs.is_empty() => {
                 let waiters = pending.remove(&work.ticket);
@@ -270,9 +273,9 @@ async fn run<P, F>(
                 }
             }
         }
-    }
-    // No detached runtime task outlives the owner. Dropping a producer future
-    // also drops its owned process guard; cancellation is propagated first.
+    };
+    // Cancel async work first, then drain the actual blocking preparations.
+    // Process-guard drop is not proof of descendant termination.
     for (_, pending) in pending {
         pending.cancel.cancel();
         for reply in pending.waiters {
@@ -280,6 +283,11 @@ async fn run<P, F>(
         }
     }
     drop(jobs);
+    let _was_open = workers.close();
+    workers.wait().await;
+    if let Some(reply) = stopped {
+        let _gone = reply.send(());
+    }
     #[cfg(test)]
     let _unobserved = changes.send(Change::Stopped);
 }
@@ -310,18 +318,29 @@ async fn execute<P, F>(
     producer: Arc<P>,
     semaphore: Arc<Semaphore>,
     cancel: CancellationToken,
+    global: Arc<Semaphore>,
+    workers: TaskTracker,
 ) -> (Work, Observation)
 where
-    P: Fn(Work, CancellationToken) -> F + Send + Sync,
+    P: Fn(Work, CancellationToken, WorkLease) -> F + Send + Sync,
     F: Future<Output = Observation> + Send,
 {
     let operation = async {
-        let Ok(_permit) = semaphore.acquire_owned().await else {
+        let Ok(global) = global.acquire_owned().await else {
             return Observation::Failed(DiscoveryFailure::Stopped);
         };
-        producer(work.clone(), cancel.clone()).await
+        let Ok(provider) = semaphore.acquire_owned().await else {
+            return Observation::Failed(DiscoveryFailure::Stopped);
+        };
+        producer(
+            work.clone(),
+            cancel.clone(),
+            WorkLease::new(global, provider, workers),
+        )
+        .await
     };
     let observation = tokio::select! {
+        biased;
         () = cancel.cancelled() => Observation::Failed(DiscoveryFailure::Superseded),
         result = tokio::time::timeout(REFRESH_TIMEOUT, operation) => result.unwrap_or(Observation::Failed(DiscoveryFailure::TimedOut { phase: DiscoveryPhase::Catalogue })),
     };

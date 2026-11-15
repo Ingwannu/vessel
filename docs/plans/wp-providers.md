@@ -618,3 +618,33 @@ source until the genuine owner consumes them. The real pending RPC metadata,
 discovery, enabled configuration and startup/shutdown paths remain product.
 No dummy consumer or inferred A10 exception is introduced. SecureGateway's
 remaining Node field is test-only, so its import is test-only as well.
+
+## V3 row207 correction: actual preparation lifetime
+
+[Decision Log]
+- Purpose: cancellation/deadline must not free physical preparation capacity or
+  acknowledge owner stop while a queued/running blocking lookup still retains
+  definitions, homes or resolved secrets.
+- Constraint: dropping spawn_blocking's JoinHandle does not stop its closure.
+  The former future-local provider permit and async-job count were insufficient.
+- Alternatives: another probe engine/reaper or detached cleanup; rejected because
+  the existing owner must remain the single admission and shutdown authority.
+- Choice: the same owner issues a WorkLease holding global32 and per-provider4
+  permits; its tracked blocking closure retains a shared lease until real return
+  or unwind. The owner cancels/drops async waiters then closes/waits the physical
+  preparation TaskTracker before Stop acknowledgement. Removed provider IDs keep
+  their semaphore while physical work remains, preventing re-add bypass.
+- Reason: async cancellation can settle callers promptly without pretending that
+  physical filesystem work has completed. Late cancelled preparation is checked
+  before launch and cannot publish into a superseded cache generation.
+- Effects: two real Producer preparation-barrier regressions cover deadlines,
+  caller cancellation, supersession, remove/re-add, global/provider saturation
+  and stop blocked until the actual closures return. These tests are drafted,
+  not executed. A panic-safe test gate releases workers on assertion unwind.
+
+The subsequent process path was audited separately: normal Codex/ACP probes
+attempt terminate/wait then kill/wait, while cancellation drops their child
+guard and I/O futures. Child drop issues group termination and Tokio kill-on-drop;
+that is not a checked descendant-death receipt. This preparation correction
+claims physical blocking-work drain only; no whole-group cleanup proof or new
+reaper/ProcessLifetime-as-death claim is introduced.

@@ -8,7 +8,7 @@ use vessel_proto::providers::{
 };
 
 async fn open(directory: &DataDir) -> Started {
-    Configuration::open(directory.clone(), vec![], |_, _| async {
+    Configuration::open(directory.clone(), vec![], |_, _, _| async {
         Observation::Unavailable(UnavailableReason::NotInstalled)
     })
     .await

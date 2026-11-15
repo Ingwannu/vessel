@@ -1,7 +1,10 @@
 //! Explicit account/command inputs for catalogue work. This layer starts only
 //! admitted work; it never discovers at node startup or reads a login file.
 
-use super::cache::{Observation, Work};
+use super::{
+    cache::{Observation, Work},
+    lease::WorkLease,
+};
 use crate::profiles::launch::McpSource;
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc, time::Duration};
 use tokio_util::sync::CancellationToken;
@@ -26,6 +29,8 @@ pub(super) struct Producer {
     account: HarnessEnv,
     probe_dir: PathBuf,
     secrets: Arc<dyn McpSource>,
+    #[cfg(test)]
+    preparation: Option<Arc<tests::PreparationBarrier>>,
 }
 
 impl Producer {
@@ -40,10 +45,17 @@ impl Producer {
             account,
             probe_dir,
             secrets,
+            #[cfg(test)]
+            preparation: None,
         }
     }
 
-    pub(super) async fn observe(&self, work: Work, cancel: CancellationToken) -> Observation {
+    pub(super) async fn observe(
+        &self,
+        work: Work,
+        cancel: CancellationToken,
+        lease: WorkLease,
+    ) -> Observation {
         let Some(transport) = provider_transport(work.definition.kind) else {
             return Observation::Unavailable(UnavailableReason::DriverMissing);
         };
@@ -71,7 +83,10 @@ impl Producer {
                 let _previous = secrets.insert(name.clone(), value);
             }
         }
-        let command = match self.command(&work, transport, secrets).await {
+        let command = match self
+            .command(&work, transport, secrets, &lease, cancel.clone())
+            .await
+        {
             Ok(command) => command,
             Err(CommandError::Policy(ProviderLaunchError::Unavailable)) => {
                 return Observation::Unavailable(UnavailableReason::NotInstalled);
@@ -79,10 +94,16 @@ impl Producer {
             Err(CommandError::Policy(_unsupported)) => {
                 return Observation::Failed(DiscoveryFailure::ConfigurationUnavailable);
             }
+            Err(CommandError::Cancelled) => {
+                return Observation::Failed(DiscoveryFailure::Superseded);
+            }
             Err(CommandError::Task(_lost)) => {
                 return Observation::Failed(DiscoveryFailure::ProbeFailed);
             }
         };
+        if cancel.is_cancelled() {
+            return Observation::Failed(DiscoveryFailure::Superseded);
+        }
         let cwd = command
             .cwd
             .clone()
@@ -100,6 +121,7 @@ impl Producer {
             private_dir: None,
         };
         let observed = tokio::select! {
+            biased;
             () = cancel.cancelled() => return Observation::Failed(DiscoveryFailure::Superseded),
             observed = vessel_agent::probe_provider_with(driver, &command, setup, &work.definition) => observed,
         };
@@ -126,6 +148,8 @@ impl Producer {
         work: &Work,
         transport: vessel_harness::providers::ProviderTransport,
         secrets: BTreeMap<vessel_proto::SecretName, vessel_proto::ResolvedValue>,
+        lease: &WorkLease,
+        cancel: CancellationToken,
     ) -> Result<vessel_proc::CommandSpec, CommandError> {
         let (lookup, account, definition) = (
             self.lookup.clone(),
@@ -136,49 +160,61 @@ impl Producer {
             CatalogueScope::Global => self.probe_dir.clone(),
             CatalogueScope::Workspace(directory) => directory.path().to_path_buf(),
         };
-        let command = tokio::task::spawn_blocking(move || {
-            let default = transport
-                .program
-                .map(|program| -> Result<CommandPrefix, ProviderLaunchError> {
-                    Ok(CommandPrefix {
-                        program: program
-                            .parse()
-                            .map_err(|_invalid| ProviderLaunchError::NoDefault)?,
-                        args: Arguments::default(),
+        #[cfg(test)]
+        let preparation = self.preparation.clone();
+        let command = lease
+            .blocking(move || {
+                #[cfg(test)]
+                if let Some(preparation) = preparation {
+                    preparation.enter();
+                }
+                if cancel.is_cancelled() {
+                    return Ok(None);
+                }
+                let default = transport
+                    .program
+                    .map(|program| -> Result<CommandPrefix, ProviderLaunchError> {
+                        Ok(CommandPrefix {
+                            program: program
+                                .parse()
+                                .map_err(|_invalid| ProviderLaunchError::NoDefault)?,
+                            args: Arguments::default(),
+                        })
                     })
-                })
-                .transpose()?;
-            let launch = provider_launch(
-                default.as_ref(),
-                &definition.launch,
-                &lookup,
-                &account,
-                &secrets,
-                |_| None,
-            )?;
-            let (mut command, _denied) = launch.into_parts(ToolEnforcement::Unsupported)?;
-            // Account homes are explicit values, never read from the daemon's
-            // process; configured environment values keep final precedence.
-            if let Some(variable) = transport.home
-                && !definition
-                    .launch
-                    .env
-                    .values()
-                    .keys()
-                    .any(|name| name.as_str().eq_ignore_ascii_case(variable))
-                && let Some(home) = account.var(variable)
-            {
-                command = command.env(variable, home);
-            }
-            Ok::<_, ProviderLaunchError>(command.args(transport.arguments).cwd(cwd))
-        })
-        .await?;
-        Ok(command?)
+                    .transpose()?;
+                let launch = provider_launch(
+                    default.as_ref(),
+                    &definition.launch,
+                    &lookup,
+                    &account,
+                    &secrets,
+                    |_| None,
+                )?;
+                let (mut command, _denied) = launch.into_parts(ToolEnforcement::Unsupported)?;
+                // Account homes are explicit values, never read from the daemon's
+                // process; configured environment values keep final precedence.
+                if let Some(variable) = transport.home
+                    && !definition
+                        .launch
+                        .env
+                        .values()
+                        .keys()
+                        .any(|name| name.as_str().eq_ignore_ascii_case(variable))
+                    && let Some(home) = account.var(variable)
+                {
+                    command = command.env(variable, home);
+                }
+                Ok::<_, ProviderLaunchError>(Some(command.args(transport.arguments).cwd(cwd)))
+            })
+            .await?;
+        command?.ok_or(CommandError::Cancelled)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 enum CommandError {
+    #[error("provider command preparation was cancelled")]
+    Cancelled,
     #[error("provider command lookup task did not finish")]
     Task(#[from] tokio::task::JoinError),
     #[error("provider command policy cannot be honored")]

@@ -90,9 +90,9 @@ impl PreparedProviders {
             cache,
             task,
             catalogue_task,
-        } = self.0.start(move |work, cancel| {
+        } = self.0.start(move |work, cancel, lease| {
             let producer = producer.clone();
-            async move { producer.observe(work, cancel).await }
+            async move { producer.observe(work, cancel, lease).await }
         });
         drop(tasks.spawn(async move {
             if let Err(error) = task.await {

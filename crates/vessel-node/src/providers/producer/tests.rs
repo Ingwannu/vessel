@@ -52,7 +52,11 @@ async fn admitted_codex_probe_uses_its_override_and_never_starts_a_thread() {
             Arc::new(NoMcpServers),
         );
         let observed = producer
-            .observe(work(&overrides, "codex"), CancellationToken::new())
+            .observe(
+                work(&overrides, "codex"),
+                CancellationToken::new(),
+                lease().await,
+            )
             .await;
         let Observation::Ready { catalogue, version } = observed else {
             panic!("expected fake catalogue, got {observed:?}")
@@ -81,7 +85,8 @@ async fn unsupported_driver_missing_launcher_and_denied_policy_are_distinct_befo
         producer
             .observe(
                 work(&ProviderOverrides::default(), "pi"),
-                CancellationToken::new()
+                CancellationToken::new(),
+                lease().await,
             )
             .await,
         Observation::Unavailable(UnavailableReason::DriverMissing)
@@ -90,7 +95,8 @@ async fn unsupported_driver_missing_launcher_and_denied_policy_are_distinct_befo
         producer
             .observe(
                 work(&ProviderOverrides::default(), "codex"),
-                CancellationToken::new()
+                CancellationToken::new(),
+                lease().await,
             )
             .await,
         Observation::Unavailable(UnavailableReason::NotInstalled)
@@ -116,9 +122,70 @@ async fn unsupported_driver_missing_launcher_and_denied_policy_are_distinct_befo
     .unwrap();
     assert!(matches!(
         producer
-            .observe(work(&overrides, "codex"), CancellationToken::new())
+            .observe(
+                work(&overrides, "codex"),
+                CancellationToken::new(),
+                lease().await
+            )
             .await,
         Observation::Failed(DiscoveryFailure::ConfigurationUnavailable)
     ));
     assert!(!audit.exists());
 }
+
+async fn lease() -> WorkLease {
+    WorkLease::new(
+        Arc::new(tokio::sync::Semaphore::new(32))
+            .acquire_owned()
+            .await
+            .unwrap(),
+        Arc::new(tokio::sync::Semaphore::new(4))
+            .acquire_owned()
+            .await
+            .unwrap(),
+        tokio_util::task::TaskTracker::new(),
+    )
+}
+
+#[derive(Debug)]
+pub(super) struct PreparationBarrier {
+    entered: tokio::sync::mpsc::Sender<()>,
+    open: std::sync::Mutex<bool>,
+    changed: std::sync::Condvar,
+}
+
+impl PreparationBarrier {
+    pub(super) fn enter(&self) {
+        let _received = self.entered.blocking_send(());
+        let mut open = self.open.lock().unwrap();
+        while !*open {
+            open = self.changed.wait(open).unwrap();
+        }
+    }
+
+    fn release(&self) {
+        *self.open.lock().unwrap() = true;
+        self.changed.notify_all();
+    }
+}
+
+struct Gate(Arc<PreparationBarrier>);
+impl Drop for Gate {
+    fn drop(&mut self) {
+        self.0.release();
+    }
+}
+
+fn gate() -> (Gate, tokio::sync::mpsc::Receiver<()>) {
+    let (entered, calls) = tokio::sync::mpsc::channel(32);
+    (
+        Gate(Arc::new(PreparationBarrier {
+            entered,
+            open: std::sync::Mutex::new(false),
+            changed: std::sync::Condvar::new(),
+        })),
+        calls,
+    )
+}
+
+mod retained;

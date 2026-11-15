@@ -1689,10 +1689,10 @@ provider file under the data-directory lock before runtime tasks, then tracks
 both owners and their ordered shutdown alongside node tasks. Cached reads are
 passive; Discover joins/reuses cache work and Refresh supersedes an observation.
 Both active intents additionally need local person/Operate authority. Admin
-participation edits preserve other overrides. Trusted plugin supervision uses
-test-staged ProviderRegistrations (no product host consumer yet), with the same
-cache projection and inert definition
-replacement, rather than self-RPC or another collector. Missing native drivers,
+participation edits preserve other overrides. The future trusted plugin host can consume the test-staged registration/cache
+facade when that real consumer lands; no product getter or change-feed worker
+is installed yet. Physical preparation retains global/provider permits and a
+TaskTracker token through actual blocking return; stop drains that tracker. Missing native drivers,
 plugin session execution and atomic creation integration remain separate work. Existing ACP sessions and node
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.

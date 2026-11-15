@@ -11,7 +11,7 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
     let directory = DataDir::new(root.path());
     let probes = Arc::new(AtomicUsize::new(0));
     let observed = Arc::clone(&probes);
-    let started = Configuration::open(directory.clone(), vec![], move |_, _| {
+    let started = Configuration::open(directory.clone(), vec![], move |_, _, _| {
         let _ = observed.fetch_add(1, Ordering::SeqCst);
         async { Observation::Unavailable(UnavailableReason::NotInstalled) }
     })

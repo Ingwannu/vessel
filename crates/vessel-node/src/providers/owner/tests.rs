@@ -31,7 +31,7 @@ fn controlled() -> (
     mpsc::Receiver<Invocation>,
 ) {
     let (calls, receiver) = mpsc::channel(MAX_JOBS);
-    let (owner, task) = Owner::start(registry(), move |work, _cancel| {
+    let (owner, task) = Owner::start(registry(), move |work, _cancel, _lease| {
         let calls = calls.clone();
         async move {
             let (finish, answer) = oneshot::channel();
