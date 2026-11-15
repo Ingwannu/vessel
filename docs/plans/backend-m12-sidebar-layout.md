@@ -4,8 +4,11 @@
 
 The repair starts from native integration `1d1f11df`. The theme shortcut
 candidate is kept on a separate branch and its queued gate is not cancelled.
-This slice first supplies a shared viewport as a control-only change. The
-sidebar consumes it only in a subsequent change, after control review.
+The control-only producer now supplies a shared viewport and real GPUI
+geometry, wheel and Tab-focus probes. It has not yet been compiled. The
+sidebar consumes it only in a subsequent change, after control source review.
+Under the package gate policy, each commit receives narrow checks; the whole
+native gate and capture submission cover the completed layout package once.
 
 ## Reference and defect
 
