@@ -112,3 +112,20 @@ No owned fake fleet, virtual display or capture app is running. Only named
 remote gate jobs/log attachments remain. No live service, secret, OS opener,
 release or push was exercised. No ownership/mode change was made; no production
 account flow or platform UI/IME claim is made.
+
+## Later source/check delta at14:02 UTC
+
+- App latest Rust/test source: bc8c9bd8c plus c32db89bf's honest viewport-test
+  name.314206290 documents the lead-approved cold width-cache measurement.
+- Isolated producer: backend/wp-c3-diff-control at9664fa914,17 owned paths on
+  e1b73c9e, unchecked/no adoption. No additional control run was submitted.
+- Node now has ff6fcc8d6 shared-project cache invalidation and af78f4aed exact
+  queued-root lint corrections. New Node Clippy run
+  wp-git-writes-narrow-20261115T135839Z-af78f4ae is queued. The e103 Clippy was
+  actually red on three test lints, not green; its workspace tests still wait.
+- Values194 Clippy actually passed0 (Proto/Client/Node all-target,153s). Its
+  libraries have passed web-ci/fakes/vesseld prerequisites and are now running;
+  do not infer their result. Preserve old logs/source for all named attempts.
+- W11 confirmed no checked runtime registry projection. W13 confirmed no
+  competing comparison-cache hook: before/after file mutation invalidation is
+  one pending post-C3 integration connection, not implemented in C5 or imported.

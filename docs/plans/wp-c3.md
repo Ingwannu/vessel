@@ -64,7 +64,8 @@ commits/tree/document state. `link::git_panel` holds typed commands/results and
 finite deadlines. `areas::git::panel` draws through existing kit controls and
 the shared panel registry. ADR 0087 owns committed-only queries, merge to/from base,
 atomic generated commit, status/diff observation/cache, classified history and
-owned branch-stash metadata. Pending calls stay unregistered until Quality B.
+owned branch-stash metadata. New calls register staged or pending in Quality B,
+with admission None until the integrator assigns the completed runtime.
 No second transport, WorkspaceId, layout tree, file editor or attachment format.
 
 ## Package verification / resume
@@ -741,3 +742,12 @@ existing element takes/reuses and stores that width with revision/font/size/wrap
 tab identity. A minified very long line has a proportional first-measurement cost;
 there is no measured performance pass or total shape-call count claim. README
 wording now states this explicitly; no extra vendor correction/API was added.
+
+## Isolated control source prepared
+
+An independent control-only worktree now holds9664fa914 on announced e1b73c9e:
+17 paths, no C3 View/Link/app or root runtime. It retains the exact owned vendor
+patch7 and Kit profile/tests/example; only its README is narrowed to that scope.
+It is unchecked, not a consumer handoff. No extra build was launched while the
+approved0af App/Kit source batch is still queued. Its plan is
+wp-c3-diff-control.md on that isolated branch; current package proof remains owed.
