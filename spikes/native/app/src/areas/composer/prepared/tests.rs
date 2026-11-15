@@ -8,7 +8,7 @@ use vessel_app_view::{
 };
 use vessel_proto::{AgentAbilities, AttachmentLimits, NodeId, SessionId};
 
-pub(super) fn card(machine: &str) -> Card {
+pub(in crate::areas::composer) fn card(machine: &str) -> Card {
     Card {
         session: SessionId::random(),
         structured: true,
@@ -159,7 +159,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
     });
 }
 
-pub(super) fn history(text: &str) -> vessel_app_view::composer::context::ChatHistory {
+pub(in crate::areas::composer) fn history(text: &str) -> vessel_app_view::composer::context::ChatHistory {
     use vessel_app_view::composer::context::{
         ChatHistory, ContextId, ContextText, ContextTitle, Payload,
     };
