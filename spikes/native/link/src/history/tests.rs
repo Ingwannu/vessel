@@ -315,7 +315,7 @@ async fn a_mismatched_create_receipt_is_uncertain_instead_of_opening_another_con
             chrono::DateTime::UNIX_EPOCH,
         );
         wrong.spec.cwd = Some("/wrong-conversation".into());
-        let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(wrong))]).await;
+        let peer = peer::connect(vec![peer::Behaviour::Created(Box::new(wrong))]).await;
         let mut request = batch(peer.client.node().id);
         request.entries.truncate(1);
         let Reply::Imported { outcomes, .. } =
