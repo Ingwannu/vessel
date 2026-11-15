@@ -614,3 +614,19 @@ candidate proceeds to the corrected whole native package gate with app
 export, rather than paying another duplicate narrow before that same strict
 step. Every earlier red log stays red. The package gate and actual captures
 remain pending until their own results are inspected; no local Cargo runs.
+
+
+## Corrected whole gate and announced base9
+
+The package gate themes-20261115T170540Z-2c170f57 completed FAILED.
+Fonts/fmt/quality/full Clippy/build were0; native-test101 reported App99/0/2
+and Kit198/3/0, then stopped before Link/View tests. No app export was produced.
+The three new Kit failures are preview fractional width, the Appearance test
+fixture's stretched height, and a Unicode engine-event count assumption.
+These raw failures are retained; no whole-native or runtime pass is inferred.
+
+After that immutable run ended, announced base9 db42d9c5 (lead1510/0/2)
+is merged. The S2 glyph inventory's fixed95 prefix and canonical source/search
+field modules are preserved, alongside F5/E2 separation and Windowed callbacks.
+The base merge is not the final F5 union gate. Root changes are the announced
+base, not an F5 node/web implementation; the feature delta remains native.

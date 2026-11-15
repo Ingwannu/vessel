@@ -10,6 +10,8 @@ use std::fmt;
 /// A diagnostic value failed an allowlist or bound.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InvalidDiagnostic {
+    /// Process identity cannot be zero.
+    ProcessId,
     /// A saturated count is not at its ceiling.
     Count,
     /// Outside the agent protocol representation.
@@ -36,6 +38,11 @@ pub enum InvalidDiagnostic {
 impl fmt::Display for InvalidDiagnostic {
     fn fmt(&self, output: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ProcessId => write!(
+                output,
+                "diagnostic process id must be at least {}",
+                super::MIN_DIAGNOSTIC_PROCESS_ID
+            ),
             Self::Count => write!(
                 output,
                 "diagnostic counts are unsigned and a saturated count must equal {MAX_DIAGNOSTIC_COUNT}"
