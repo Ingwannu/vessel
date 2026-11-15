@@ -107,7 +107,7 @@ async fn changed_owner_or_operation_index_is_corruption_not_an_absent_or_replaya
             SessionId::random(),
             Key::parse("bound").unwrap(),
         );
-        store
+        let _admitted = store
             .admit_creation(agent_candidate(identity.clone()))
             .await
             .unwrap();

@@ -65,7 +65,7 @@ async fn colliding_claim_rolls_back_all_earlier_claims_in_the_admission() {
     let (_temp, _dir, store) = open().await;
     let session = SessionId::random();
     let first = candidate("first", 7, WorkspaceId::random(), session);
-    store.admit_creation(first).await.unwrap();
+    let _admitted = store.admit_creation(first).await.unwrap();
     let workspace = WorkspaceId::random();
     let colliding = candidate("second", 7, workspace, session);
     let identity = colliding.identity.clone();

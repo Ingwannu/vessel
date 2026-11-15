@@ -63,7 +63,7 @@ async fn concurrent_last_slot_has_one_winner_and_reconciliation_survives_full_re
     };
     assert_eq!(store.creation(loser).await.unwrap(), None);
     let operation = winner.snapshot().reserved.operation;
-    store
+    let _started = store
         .advance_creation(
             operation,
             winner.snapshot().revision,
