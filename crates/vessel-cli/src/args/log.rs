@@ -39,6 +39,7 @@ pub(crate) struct Log {
     #[arg(long, value_enum, ignore_case = true)]
     pub(crate) filter: Option<Filter>,
     /// Keep records at or after this RFC 3339 timestamp, including its timezone.
+    /// Raw records, like --from and --tail, can begin inside a message or tool lifecycle.
     #[arg(long)]
     pub(crate) since: Option<Since>,
 }
