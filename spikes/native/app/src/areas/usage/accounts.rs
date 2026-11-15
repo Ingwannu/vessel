@@ -149,7 +149,18 @@ fn account_card(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .child(message(text.account_disclosure(), tokens));
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .child(crate::agent_mark::mark(
+                    Some(account.harness()),
+                    vessel_app_kit::agent_mark::Size::Fourteen,
+                    vessel_app_kit::agent_mark::Space::Row,
+                    tokens,
+                ))
+                .child(message(text.account_disclosure(), tokens)),
+        );
     match &report.result {
         Err(reason) => {
             body = body.child(notice(

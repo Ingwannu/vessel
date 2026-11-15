@@ -122,7 +122,20 @@ fn card(
         .flex()
         .flex_col()
         .gap(px(spacing::S2))
-        .child(message(text.account_disclosure(), tokens));
+        .child(
+            div()
+                .flex()
+                .items_center()
+                .child(vessel_app_kit::agent_mark::agent_mark(
+                    crate::agent_mark::artwork(vessel_app_view::usage::builtin_source_mark(
+                        entry.builtin,
+                    )),
+                    vessel_app_kit::agent_mark::Size::Fourteen,
+                    vessel_app_kit::agent_mark::Space::Row,
+                    tokens,
+                ))
+                .child(message(text.account_disclosure(), tokens)),
+        );
     if let Some(status) = &view.status {
         body = body.child(message(status.clone(), tokens));
     }

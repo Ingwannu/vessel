@@ -131,20 +131,7 @@ pub fn source_mark(inventory: &Inventory, source: &UsageSourceId) -> AgentMark {
                     .find(|entry| entry.source() == source)
                     .and_then(|entry| entry.builtin)
             });
-        return match builtin {
-            Some(BuiltinUsageSource::Claude) => AgentMark::ClaudeCode,
-            Some(BuiltinUsageSource::Codex) => AgentMark::Codex,
-            Some(BuiltinUsageSource::Copilot) => AgentMark::Copilot,
-            Some(BuiltinUsageSource::OpenCodeGo) => AgentMark::OpenCode,
-            Some(
-                BuiltinUsageSource::Cursor
-                | BuiltinUsageSource::Grok
-                | BuiltinUsageSource::Kimi
-                | BuiltinUsageSource::MiniMax
-                | BuiltinUsageSource::Zai,
-            )
-            | None => AgentMark::Generic,
-        };
+        return builtin_source_mark(builtin);
     }
     inventory
         .accounts()
@@ -153,6 +140,26 @@ pub fn source_mark(inventory: &Inventory, source: &UsageSourceId) -> AgentMark {
         .map_or(AgentMark::Generic, |account| {
             AgentMark::of(account.account.harness())
         })
+}
+
+/// Match only the node's typed built-in source. New vendor artwork remains Generic
+/// until K/operator approval; labels and source-id spellings never select a brand.
+#[must_use]
+pub const fn builtin_source_mark(builtin: Option<BuiltinUsageSource>) -> AgentMark {
+    match builtin {
+        Some(BuiltinUsageSource::Claude) => AgentMark::ClaudeCode,
+        Some(BuiltinUsageSource::Codex) => AgentMark::Codex,
+        Some(BuiltinUsageSource::Copilot) => AgentMark::Copilot,
+        Some(BuiltinUsageSource::OpenCodeGo) => AgentMark::OpenCode,
+        Some(
+            BuiltinUsageSource::Cursor
+            | BuiltinUsageSource::Grok
+            | BuiltinUsageSource::Kimi
+            | BuiltinUsageSource::MiniMax
+            | BuiltinUsageSource::Zai,
+        )
+        | None => AgentMark::Generic,
+    }
 }
 
 #[cfg(test)]
@@ -167,6 +174,23 @@ mod tests {
             UsageWindow,
         },
     };
+    #[test]
+    fn only_existing_typed_artwork_is_selected() {
+        for (source, mark) in [
+            (BuiltinUsageSource::Claude, AgentMark::ClaudeCode),
+            (BuiltinUsageSource::Codex, AgentMark::Codex),
+            (BuiltinUsageSource::Copilot, AgentMark::Copilot),
+            (BuiltinUsageSource::OpenCodeGo, AgentMark::OpenCode),
+            (BuiltinUsageSource::Cursor, AgentMark::Generic),
+            (BuiltinUsageSource::Grok, AgentMark::Generic),
+            (BuiltinUsageSource::Kimi, AgentMark::Generic),
+            (BuiltinUsageSource::MiniMax, AgentMark::Generic),
+            (BuiltinUsageSource::Zai, AgentMark::Generic),
+        ] {
+            assert_eq!(builtin_source_mark(Some(source)), mark);
+        }
+        assert_eq!(builtin_source_mark(None), AgentMark::Generic);
+    }
     #[test]
     fn equal_labels_do_not_merge_accounts_and_retained_failures_never_enter_summary() {
         let report = AvailableUsageReport {

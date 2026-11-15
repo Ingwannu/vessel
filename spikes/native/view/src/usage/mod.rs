@@ -44,7 +44,7 @@ pub use source_values::{
     SourceWindowTiming, balance_percent, source_risk_label, source_window_timing,
 };
 mod summary;
-pub use source_summary::{saved_source, source_mark, summary_candidates};
+pub use source_summary::{builtin_source_mark, saved_source, source_mark, summary_candidates};
 pub use sources::{
     SourceView, balance_facts, source_availability, source_disclosure, source_failure,
     source_problem, source_view, source_window_tone,
