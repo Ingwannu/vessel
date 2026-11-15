@@ -29,8 +29,8 @@ use vessel_proto::{AttachmentId, AttachmentKind, AttachmentLimits, AttachmentRef
 /// Which sent image: its machine, its session and its id there.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Sent {
-    /// The machine the session is on.
-    pub machine: crate::machine_book::Name,
+    /// Exact admitted alias/node/epoch captured before the read.
+    pub connection: crate::connection::ConnectionContext,
     /// The session.
     pub session: SessionId,
     /// The image.

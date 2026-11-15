@@ -29,6 +29,9 @@ use vessel_proto::{AgentAbilities, AttachmentKind, AttachmentLimits, AttachmentN
 /// A destination address may disappear or be rebound to a different node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum TargetProblem {
+    /// Same node identity is insufficient after an admission retires.
+    #[error(transparent)]
+    Admission(#[from] crate::connection::Refusal),
     /// No verified peer is available under the captured address.
     #[error("the attachment destination is offline")]
     Offline,

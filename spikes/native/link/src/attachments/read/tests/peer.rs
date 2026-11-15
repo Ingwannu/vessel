@@ -76,6 +76,12 @@ pub(in crate::attachments) async fn connect(
             )
             .await;
         }
+        // A guarded result is observed only while its admitted transport lives.
+        // Keep the peer open until the test drops its actor/selected handle.
+        assert!(
+            receive(&mut remote).await.is_none(),
+            "unexpected request after scripted replies"
+        );
         calls
     });
     let (reader, writer) = tokio::io::split(local);

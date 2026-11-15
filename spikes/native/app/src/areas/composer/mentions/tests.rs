@@ -36,7 +36,20 @@ fn shortcut_admission_reads_exact_token_scope_without_mutating_the_menu(cx: &mut
                 cx,
             )
             .unwrap();
+        let connection =
+            crate::areas::composer::prepared::tests::connection(vessel_proto::NodeId::random());
+        shell.fleet.machines.push(vessel_app_view::Machine {
+            name: "fixture".to_owned(),
+            node: Some(connection.node()),
+            connection_epoch: Some(connection.epoch()),
+            reach: vessel_app_view::Reach::Online,
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        });
         let ask = RootAsk {
+            connection: connection.clone(),
             ticket: mentions::Ticket::default(),
             machine: machine.clone(),
             session,
@@ -48,6 +61,7 @@ fn shortcut_admission_reads_exact_token_scope_without_mutating_the_menu(cx: &mut
             .composer
             .replace_range(0..0, "@src", window, cx);
         let scope = Scope {
+            connection,
             draft: target,
             machine,
             root,

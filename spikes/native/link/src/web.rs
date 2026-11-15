@@ -142,6 +142,7 @@ impl Link {
             // A browser has no files to send yet (track P's row c).
             Command::Files(crate::attachments::Files::Send(attach)) => {
                 self.emit(Event::Files(crate::attachments::Answer::Upload {
+                    message: attach.message,
                     session: attach.session,
                     key: attach.key,
                     step: crate::attachments::Step::Failed {
@@ -161,6 +162,7 @@ impl Link {
             }
             Command::Files(crate::attachments::Files::Wake(wake)) => {
                 self.emit(Event::Files(crate::attachments::Answer::Woke {
+                    message: wake.message,
                     session: wake.session,
                     outcome: crate::attachments::WakeOutcome::Refused,
                 }));

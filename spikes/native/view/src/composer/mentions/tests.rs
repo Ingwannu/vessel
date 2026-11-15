@@ -9,6 +9,12 @@ use vessel_proto::{
 };
 fn scope() -> Scope {
     Scope {
+        connection: crate::connection::ConnectionEpochs::default()
+            .admit(
+                crate::connection::MachineKey::from_book("laptop"),
+                "00000000-0000-4000-8000-000000000002".parse().unwrap(),
+            )
+            .unwrap(),
         draft: DraftKey::New,
         machine: Name::parse("laptop").unwrap(),
         root: WorkspaceRoot::Project {
@@ -196,4 +202,36 @@ fn invalid_query_outside_a_registered_scope_remains_hidden() {
             .is_none()
     );
     assert_eq!(menu.phase(), &Phase::Hidden);
+}
+
+#[test]
+fn a_recreated_presentation_cannot_accept_a_late_ticket_from_its_previous_incarnation() {
+    let mut first = Menu::default();
+    let old = first
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    let clock = first.ticket_clock();
+    let mut replacement = Menu::default();
+    replacement.inherit_ticket_clock(clock);
+    let current = replacement
+        .observe(Some(scope()), "@src", 4, Duration::ZERO)
+        .unwrap()
+        .unwrap();
+    assert_ne!(old.ticket, current.ticket);
+    assert!(replacement.begin(current.ticket).is_some());
+    assert!(!replacement.arrived(
+        old.ticket,
+        Ok(vec![row("src/stale.rs", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    assert!(replacement.arrived(
+        current.ticket,
+        Ok(vec![row("src/current.rs", SuggestionKind::File)]),
+        Duration::ZERO
+    ));
+    assert_eq!(
+        replacement.rows(),
+        [row("src/current.rs", SuggestionKind::File)]
+    );
 }

@@ -28,6 +28,7 @@ pub(super) fn settle(files: Files, words: &str) -> Settle {
             result: Err(SubmitFailure::NotSent),
         },
         Files::Send(attach) => Answer::Upload {
+            message: attach.message,
             session: attach.session,
             key: attach.key,
             step: Step::Failed {
@@ -40,6 +41,7 @@ pub(super) fn settle(files: Files, words: &str) -> Settle {
             result: Err(CapabilityFailure::Offline),
         },
         Files::Wake(wake) => Answer::Woke {
+            message: wake.message,
             session: wake.session,
             outcome: WakeOutcome::Refused,
         },

@@ -99,11 +99,14 @@ impl Shell {
                     .as_ref()
                     .filter(|open| open.session == session)?;
                 let machine = Name::parse(&open.machine).ok()?;
+                let connection = self.attachment_context(&machine)?;
                 let root = self
                     .code_workspace_scope(&machine, session)
                     .or_else(|| match &*self.areas.composer.mention_root.borrow() {
                         Root::Ready(ask, Ok(Some(root)))
-                            if ask.machine == machine && ask.session == session =>
+                            if ask.machine == machine
+                                && ask.session == session
+                                && ask.connection == connection =>
                         {
                             Some(*root)
                         }
@@ -131,12 +134,18 @@ impl Shell {
         let Ok(machine) = Name::parse(&open.machine) else {
             return;
         };
+        let Some(connection) = self.attachment_context(&machine) else {
+            return;
+        };
         let mut state = self.areas.composer.mention_root.borrow_mut();
         let unchanged = match &*state {
-            Root::Reading(old) => old.machine == machine && old.session == session,
+            Root::Reading(old) => {
+                old.machine == machine && old.session == session && old.connection == connection
+            }
             Root::Ready(old, result) => {
                 old.machine == machine
                     && old.session == session
+                    && old.connection == connection
                     && (result.is_ok()
                         || self.areas.composer.mention_root_token.borrow().as_ref() == Some(token))
             }
@@ -152,6 +161,7 @@ impl Shell {
         };
         self.areas.composer.mention_root_clock.set(ticket);
         let ask = RootAsk {
+            connection,
             machine,
             session,
             ticket,
@@ -207,17 +217,26 @@ impl Shell {
         if let Some(token) = token {
             self.resolve_mention_root(target, &token);
         }
-        let scope = self.composer_context_scope(target).map(|scope| Scope {
-            draft: target,
-            machine: scope.machine,
-            root: scope.root,
+        let scope = self.composer_context_scope(target).and_then(|scope| {
+            self.attachment_context(&scope.machine)
+                .map(|connection| Scope {
+                    connection,
+                    draft: target,
+                    machine: scope.machine,
+                    root: scope.root,
+                })
         });
         let now = Duration::from_secs_f32(self.areas.composer.now());
-        let request = self
-            .file_menu(target)
-            .borrow_mut()
-            .model
-            .observe(scope, &text, caret, now);
+        let owner = self.file_menu(target);
+        let mut menu = owner.borrow_mut();
+        menu.model
+            .inherit_ticket_clock(self.areas.composer.mention_query_clock.get());
+        let request = menu.model.observe(scope, &text, caret, now);
+        self.areas
+            .composer
+            .mention_query_clock
+            .set(menu.model.ticket_clock());
+        drop(menu);
         let Ok(Some(request)) = request else {
             return;
         };
@@ -226,6 +245,9 @@ impl Shell {
             let _closed = this.update(cx, |shell, cx| {
                 // Re-observe before dispatch: the caret may have moved without
                 // an edit while the timer was waiting.
+                if shell.composer_field(target).is_none() {
+                    return;
+                }
                 shell.observe_file_menu(target, cx);
                 let ready = shell
                     .file_menu(target)
@@ -252,6 +274,9 @@ impl Shell {
         }
     }
     pub(crate) fn composer_mention_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if self.composer_field(answer.request.scope.draft).is_none() {
+            return;
+        }
         let now = Duration::from_secs_f32(self.areas.composer.now());
         let changed = self
             .file_menu(answer.request.scope.draft)
@@ -369,6 +394,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.composer_destination() != Some(target) {
+            return;
+        }
         let choice = {
             let owner = self.file_menu(target);
             let state = owner.borrow();
@@ -381,6 +409,16 @@ impl Shell {
         let Some((request, path)) = choice else {
             return;
         };
+        if self.attachment_context(&request.scope.machine).as_ref()
+            != Some(&request.scope.connection)
+        {
+            return;
+        }
+        if self.composer_context_scope(target).is_none_or(|scope| {
+            scope.machine != request.scope.machine || scope.root != request.scope.root
+        }) {
+            return;
+        }
         let Some(field) = self.composer_field(target) else {
             return;
         };

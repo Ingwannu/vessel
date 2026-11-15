@@ -61,6 +61,12 @@ fn request(text: &str) -> Request {
     Menu::default()
         .observe(
             Some(Scope {
+                connection: vessel_app_view::connection::ConnectionEpochs::default()
+                    .admit(
+                        vessel_app_view::connection::MachineKey::from_book("fixture"),
+                        vessel_proto::NodeId::random(),
+                    )
+                    .unwrap(),
                 draft: DraftKey::New,
                 machine: Name::parse("fixture").unwrap(),
                 root: WorkspaceRoot::Project {

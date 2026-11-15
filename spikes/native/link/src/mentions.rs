@@ -21,6 +21,8 @@ pub(crate) use native::Hub;
 /// Resolve an existing session's authoritative project/worktree once.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RootAsk {
+    /// Original admitted connection selected before debounce/read.
+    pub connection: vessel_app_view::connection::ConnectionContext,
     /// UI lookup generation, independent of a transport request id.
     pub ticket: vessel_app_view::composer::mentions::Ticket,
     /// Validated node book key.

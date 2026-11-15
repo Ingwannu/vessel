@@ -36,6 +36,34 @@ impl Shell {
         if self.composer_attachments_blocked(DraftKey::New) {
             return Err(PrepareProblem::Busy);
         }
+        let _name =
+            vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
+        if !self.draft_has_files() {
+            return Ok(None);
+        }
+        let connection = self
+            .fleet
+            .machines
+            .iter()
+            .find(|entry| entry.name == machine && entry.node == Some(expected_node))
+            .and_then(vessel_app_view::Machine::connection_context)
+            .ok_or(vessel_app_view::composer::attach::TargetProblem::Offline)?;
+        self.prepare_draft_input_on(ticket, message, connection, text)
+    }
+
+    /// A1 may pass the exact context it captured before selecting/creating a child.
+    pub(crate) fn prepare_draft_input_on(
+        &mut self,
+        ticket: Ticket,
+        message: vessel_proto::timeline::ClientMessageId,
+        connection: vessel_app_view::connection::ConnectionContext,
+        text: &str,
+    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
+        let machine = connection.machine().as_str();
+        let expected_node = connection.node();
+        if self.composer_attachments_blocked(DraftKey::New) {
+            return Err(PrepareProblem::Busy);
+        }
         let machine =
             vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
         if !self.draft_has_files() {
@@ -67,6 +95,7 @@ impl Shell {
             .transpose()?
             .flatten();
         *held = Some(Starting {
+            connection,
             message,
             context,
             machine,
@@ -100,20 +129,24 @@ impl Shell {
                 held.ticket == Some(ticket) && held.machine.as_str() == card.machine
             });
         if matches {
-            let retained = self
-                .areas
-                .composer
-                .starting
-                .borrow()
-                .as_ref()
-                .map(|held| (held.machine.clone(), held.expected_node));
-            let Some((machine, expected_node)) = retained else {
+            let retained = self.areas.composer.starting.borrow().as_ref().map(|held| {
+                (
+                    held.machine.clone(),
+                    held.expected_node,
+                    held.connection.clone(),
+                )
+            });
+            let Some((machine, expected_node, connection)) = retained else {
                 return;
             };
             self.composer_started(card, cx);
-            if let Err(why) =
-                self.read_creation_capabilities(ticket, machine, expected_node, card.session)
-            {
+            if let Err(why) = self.read_creation_capabilities(
+                ticket,
+                machine,
+                expected_node,
+                connection,
+                card.session,
+            ) {
                 self.fail_creation_preparation(card.session, &why, cx);
             }
         }
