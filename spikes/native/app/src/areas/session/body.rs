@@ -17,6 +17,7 @@ use vessel_app_kit::ui::{
 };
 
 use super::{column, composer, resume_note};
+use crate::areas::conversation;
 use crate::shell::Shell;
 
 // Retained source body, invoked only for the visible selected legacy agent.
@@ -43,7 +44,7 @@ pub(super) fn render_body(
         .size_full()
         .flex()
         .flex_col()
-        .child(crate::areas::conversation::bar(
+        .child(conversation::bar(
             shell,
             t.title(&open.title).to_owned(),
             detail,
@@ -56,7 +57,7 @@ pub(super) fn render_body(
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
-            let dock = crate::areas::conversation::dock(shell, tokens, window, cx);
+            let dock = conversation::dock(shell, tokens, window, cx);
             // An ended session its agent cannot pick up again has no
             // composer: the banner in the dock says so (Paseo's archived
             // agent shows only its callout); a send would only try to
@@ -74,5 +75,5 @@ pub(super) fn render_body(
                 })
                 .children(over.into_iter().flatten())
         })
-        .children(crate::areas::conversation::overlays(shell, tokens, window, cx))
+        .children(conversation::overlays(shell, tokens, window, cx))
 }
