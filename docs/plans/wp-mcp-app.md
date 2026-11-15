@@ -43,3 +43,8 @@ the pending MCP_PARITY and existing client methods; it never invents a wire
 call or changes provider policy while toggling inject. Error text is reduced
 to typed codes at the edge. Tokio test-util is enabled only in link's existing
 dev dependency for paused-time deadline tests; no new dependency is added.
+
+Existing idle-release fixtures explicitly use mcp=None after merging the
+additive settings field. Their parking values and assertions are unchanged.
+The controller keeps its previous node-settings call; the new orchestration
+owner patches only mcp.inject, so neither owner erases the other's setting.
