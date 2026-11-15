@@ -750,20 +750,44 @@ the node’s ordinary public catalogue fetch; all other fixture traffic is
 local. The current SDK cannot exercise older/newer-agent readiness over
 the wire; see `docs/plans/backend-m12-agents.md` for the source boundary.
 
-On a machine without a display: an Xvfb of your own on a free display
-number, Mesa's software Vulkan, and ImageMagick's `import`:
+On a machine without a display, use an Xvfb of your own on a free display
+number (`ls /tmp/.X11-unix`), a fresh private authority file, Mesa's software
+Vulkan, and ImageMagick's `import`. Run the app and fixture CLI as the same
+development account, with the **same HOME and config root**: stored device
+credential paths are relative to that home. A different app HOME can make a
+correctly paired fixture appear unreachable.
 
 ```bash
-Xvfb :140 -screen 0 1280x800x24 -nolisten tcp &
-DISPLAY=:140 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
-  VESSEL_CONFIG_DIR=/tmp/fleet/config VESSEL_APP_THEME=light <target>/debug/vessel-app &
-sleep 15; DISPLAY=:140 xdotool mousemove 390 380 click 1   # drive it
-DISPLAY=:140 import -window root shot.png
+umask 077
+fleet_root=/tmp/work/vessel-fleet
+capture_root=$(mktemp -d /tmp/work/vessel-capture.XXXXXX)
+export DISPLAY=:140 XAUTHORITY="$capture_root/authority" # choose a free display
+python3 - "$XAUTHORITY" "$DISPLAY" <<'PYAUTH'
+import pathlib, secrets, subprocess, sys
+path = pathlib.Path(sys.argv[1])
+path.touch(mode=0o600)
+subprocess.run(["xauth", "-f", str(path)],
+               input=f"add {sys.argv[2]} . {secrets.token_hex(16)}\n",
+               text=True, check=True, stdout=subprocess.DEVNULL)
+PYAUTH
+Xvfb "$DISPLAY" -screen 0 2880x1800x24 -auth "$XAUTHORITY" -nolisten tcp &
+xvfb_pid=$!
+HOME="$fleet_root" VESSEL_CONFIG_DIR="$fleet_root/config" \
+  VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
+  VESSEL_APP_THEME=light VESSEL_APP_SIZE=390x844 <target>/debug/vessel-app &
+app_pid=$!
+# Wait for the intended screen to appear before taking its capture.
+# Drive the normal app with xdotool; use --window coordinates after mapping.
+import -window <app-window-id> "$capture_root/shot.png"
 ```
 
-Pick a display nobody uses (`ls /tmp/.X11-unix`), stop what you started
-by its PID. A phone-sized capture: `VESSEL_APP_SIZE=390x844` and an Xvfb
-screen of that size.
+Record the app source/binary hashes, PIDs, viewport, theme, language and UI
+scale beside captures. Inspect every image: a mapped window or a successful
+capture command does not prove navigation reached the intended screen.
+For extra glyph scales set `GPUI_X11_SCALE_FACTOR` to 1.25, 1.5 or 2 at app
+startup; the physical window grows with that scale. Before stopping an owned
+process by PID, verify its executable under `/proc/<pid>/exe`. Stop your app,
+fake fleet and display when finished; keep the authority cookie private.
 
 ## Translation files (ADR 0039)
 
@@ -832,6 +856,15 @@ the answer boundary for live retranslation. Typed fork/origin-read failures and
 unknown empty-fork reasons choose whole recovery sentences; original diagnostics
 remain in logs/session state. An uncertain fork asks to check the session list
 before retrying.
+Settings Chat uses `chat.ftl` for its section title, display row and choices;
+the typed adapter borrows prepared labels. A live language change rewords the
+existing picker while preserving its selected preference. Content-width labels
+remain in their Appearance area until that area moves.
+
+Settings Diagnostics controls use `diagnostics.ftl`. Its copied notice rewords
+on a language change while the collected report and clipboard data stay fixed.
+The technical report keeps its stable English schema and existing redaction,
+as in the reference; collecting/refreshing remains an explicit action.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting
@@ -891,10 +924,12 @@ transport runs. It is compiled only into tests; the installed app has no
 preview option or event override. The ordinary gate reports this explicit
 display test as ignored.
 
-On your private Xvfb, prepare a protected file containing only the pairing
-link line from your private fleet (`pair.sh` output), set
-`VESSEL_TEST_PAIR_LINK_FILE` to it and `VESSEL_CONFIG_DIR` to an isolated,
-empty capture config, then run from this workspace:
+On your private authenticated Xvfb, create a FIFO in a private capture
+directory (`mkfifo -m 600 "$capture_root/offer.pipe"`). Pipe your private
+fleet's `pair.sh` stdout directly into that FIFO from a background writer;
+never print the link or keep it in a regular file. Set
+`VESSEL_TEST_PAIR_LINK_FILE` to the FIFO and `VESSEL_CONFIG_DIR` to an
+isolated empty capture config, then run from this workspace:
 
 ```bash
 VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
@@ -903,8 +938,8 @@ VESSEL_APP_NO_UPDATE=1 VESSEL_APP_LANG=ko VESSEL_APP_THEME=dark \
 ```
 
 Dismiss the pairing dialog with Escape, then close the window to finish the
-test. Remove the protected
-link file and stop your private display/fleet by their PIDs. Connection,
+test. Remove the FIFO and stop your verified owned writer/display/fleet
+processes by their PIDs. Connection,
 storage and name-error captures use the normal app and real isolated failure
 paths, without this harness.
 

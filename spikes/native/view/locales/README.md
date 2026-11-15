@@ -72,6 +72,10 @@ unset it when checking that General's language change applies immediately.
 Use dark/light themes and desktop/phone sizes as described in the native README.
 
 
+During the staged migration, published languages are English and Korean.
+Coverage counts the Fluent catalog. Finish the remaining legacy-table
+migration before publishing a third language for the whole app.
+
 ## Move an area
 
 Audit each string's callers first. Move only that area's own messages; shared
