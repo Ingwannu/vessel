@@ -492,6 +492,8 @@ impl Handler for FakeNode {
         list_snapshots: vessel_proto::workspace::ListSnapshots => vessel_proto::workspace::SnapshotList;
         drop_snapshot: vessel_proto::workspace::DropSnapshot => Ack;
         git_status: vessel_proto::workspace::GetStatus => vessel_proto::workspace::GitStatus;
+        git_compare: vessel_proto::workspace::CompareGit => vessel_proto::workspace::GitCompared<vessel_proto::workspace::DiffSummary>;
+        git_compare_file: vessel_proto::workspace::CompareGitFile => vessel_proto::workspace::GitCompared<vessel_proto::workspace::FileDiff>;
         git_changes: vessel_proto::workspace::GetChanges => vessel_proto::workspace::DiffSummary;
         git_diff: vessel_proto::workspace::GetFileDiff => vessel_proto::workspace::FileDiff;
         git_show: vessel_proto::workspace::ShowFile => vessel_proto::workspace::FileRead;

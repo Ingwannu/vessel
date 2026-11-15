@@ -152,6 +152,12 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GitPush
         | Method::GitPull
         | Method::ListDir => json!({"root":root}),
+        Method::GitCompare => {
+            json!({"root":root,"comparison":{"kind":"committed"},"whitespace":"show"})
+        }
+        Method::GitCompareFile => {
+            json!({"query":{"root":root,"comparison":{"kind":"all"}},"path":"sample.rs"})
+        }
         Method::GitChanges => json!({"root":root,"scope":{"kind":"unstaged"}}),
         Method::GitDiff => json!({"root":root,"scope":{"kind":"unstaged"},"path":"sample.rs"}),
         Method::GitShow => {

@@ -640,6 +640,8 @@ const FORWARDABLE: &[&str] = &[
     "workspace.rename",
     "workspace.pin",
     "workspace.release_automation",
+    "git.compare",
+    "git.compare_file",
 ];
 
 #[test]
