@@ -173,3 +173,6 @@ shortcuts-too-long = That shortcut is too long. Remove a step or cancel and try 
 
 # A source was replaced or removed before its command could execute.
 shortcuts-command-unavailable = This command is no longer available.
+
+# Command center control that returns to the parent choice page.
+shortcuts-back = Back

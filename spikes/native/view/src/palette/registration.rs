@@ -212,7 +212,7 @@ impl<T> Registry<T> {
     #[must_use]
     pub fn owner_of(&self, id: &ResultId) -> Option<Owner> {
         let registration = self.sources.get(&id.source)?;
-        registration
+        let _entry = registration
             .contributions
             .iter()
             .find(|entry| entry.id == id.entry)?;

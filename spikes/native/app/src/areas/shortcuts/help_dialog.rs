@@ -19,7 +19,7 @@ use vessel_app_kit::{TextField, Tokens, Type, TypeExt as _};
 pub(super) struct HelpDialog {
     motion: CommandState,
     search: TextField,
-    query: String,
+    pub(super) query: String,
     scroll: ScrollHandle,
     prior: Option<FocusHandle>,
 }
@@ -65,6 +65,8 @@ impl Shell {
         if f32::from(window.viewport_size().width) < vessel_app_kit::picker::COMPACT {
             return;
         }
+        self.close_palette(window, cx);
+        super::modal_opened(self);
         let help = &mut self.areas.shortcuts.help;
         if !help.is_open() {
             help.prior = window.focused(cx);
@@ -90,8 +92,11 @@ impl Shell {
         }
     }
 
-    fn close_shortcuts_help(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(crate) fn close_shortcuts_help(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let help = &mut self.areas.shortcuts.help;
+        if !help.is_open() {
+            return;
+        }
         help.motion.close();
         help.query.clear();
         help.search.clear(window, cx);

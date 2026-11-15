@@ -69,6 +69,7 @@ fn harness(cx: &mut TestAppContext) -> (Entity<Probe>, &mut VisualTestContext) {
 fn machine(name: &str) -> Machine {
     Machine {
         name: name.to_owned(),
+        node: None,
         reach: Reach::Online,
         sessions: Vec::new(),
         agents: Vec::new(),
@@ -336,4 +337,75 @@ fn a_keyboard_command_enters_messages_with_an_empty_query(cx: &mut TestAppContex
     });
     ready(cx);
     assert!(asks(&view, cx).is_empty());
+}
+
+// Source-owned commands use this existing palette harness, not another renderer.
+fn owned_command(
+    calls: std::rc::Rc<std::cell::Cell<usize>>,
+) -> vessel_app_view::palette::registration::Contribution<source::Command> {
+    use vessel_app_view::palette::registration::{Contribution, Presentation, Rank, Visibility};
+    Contribution {
+        id: "owned".parse().unwrap(),
+        group: "owned-group".parse().unwrap(),
+        group_rank: Rank::new(-10),
+        section_title: Some("Owned commands".to_owned()),
+        rank: Rank::default(),
+        keywords: Vec::new(),
+        visibility: Visibility::Always,
+        presentation: Presentation::Action {
+            title: "Owned callback".to_owned(),
+            subtitle: None,
+        },
+        target: source::Command::callback(None, None, move |_, _, _| {
+            calls.set(calls.get().saturating_add(1));
+            true
+        }),
+    }
+}
+
+#[gpui::test]
+fn replacement_refuses_the_old_projected_callback_and_fresh_enter_runs_once(
+    cx: &mut TestAppContext,
+) {
+    let (view, cx) = harness(cx);
+    let old_calls = std::rc::Rc::new(std::cell::Cell::new(0));
+    let new_calls = std::rc::Rc::new(std::cell::Cell::new(0));
+    let old_target = update(&view, cx, |shell, _, cx| {
+        let _owner = shell
+            .register_command_source(
+                "test-source".parse().unwrap(),
+                vec![owned_command(old_calls.clone())],
+                cx,
+            )
+            .unwrap();
+        shell.palette_searched("owned".to_owned(), cx);
+        snapshot::project(shell)
+            .sections
+            .into_iter()
+            .flat_map(|section| section.rows)
+            .find(|row| row.title == "Owned callback")
+            .unwrap()
+            .activate
+    });
+    update(&view, cx, |shell, window, cx| {
+        let _owner = shell
+            .register_command_source(
+                "test-source".parse().unwrap(),
+                vec![owned_command(new_calls.clone())],
+                cx,
+            )
+            .unwrap();
+        shell.activate_command(old_target, window, cx);
+        assert!(shell.areas.palette.is_open());
+    });
+    assert_eq!(old_calls.get(), 0);
+    assert_eq!(new_calls.get(), 0);
+    update(&view, cx, |shell, window, cx| {
+        shell.palette_key(CommandKey::Enter, window, cx)
+    });
+    assert_eq!(old_calls.get(), 0);
+    assert_eq!(new_calls.get(), 1);
+    update(&view, cx, |shell, _, _| {
+        assert!(!shell.areas.palette.is_open())
+    });
 }

@@ -85,6 +85,10 @@ pub(super) fn row(
             div().size(px(SLOT)).flex_none().child(
                 div()
                     .id(SharedString::from(format!("shortcut-menu-{id}")))
+                    .debug_selector({
+                        let id = id.clone();
+                        move || format!("shortcut-menu-{id}")
+                    })
                     .size(px(SLOT))
                     .flex()
                     .items_center()

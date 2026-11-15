@@ -64,6 +64,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let page = &mut self.areas.shortcuts.page;
+        page.capture = None;
         page.menu_for = Some(id);
         page.menu.open(at, window, cx);
         cx.notify();

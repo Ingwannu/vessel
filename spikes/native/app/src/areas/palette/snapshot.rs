@@ -6,7 +6,7 @@ use super::{
 };
 use crate::shell::Shell;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_view::palette::pages::{ChoiceLocation, ChoiceRow, choice_rows};
+use vessel_app_view::palette::pages::{ChoiceLocation, ChoiceRow, choice_rows_search};
 use vessel_app_view::palette::registration::{
     ChoicePath, Contribution, Owner, Presentation, Rank, ResultId, Selection, Visibility,
 };
@@ -92,10 +92,8 @@ pub(super) fn project(shell: &Shell) -> Snapshot {
         };
     }
     let query = &shell.areas.palette.query;
-    if query.is_empty()
-        && let Some(location) = &shell.areas.palette.page
-    {
-        let rows = choice_rows(&registry, location)
+    if let Some(location) = &shell.areas.palette.page {
+        let rows = choice_rows_search(&registry, location, query)
             .into_iter()
             .filter_map(|row| match row {
                 ChoiceRow::Page { title, location } => Some(Row {

@@ -173,3 +173,6 @@ shortcuts-too-long = 단축키가 너무 깁니다. 마지막 키를 지우거�
 
 # A source was replaced or removed before its command could execute.
 shortcuts-command-unavailable = 더 이상 사용할 수 없는 명령입니다.
+
+# Command center control that returns to the parent choice page.
+shortcuts-back = 뒤로

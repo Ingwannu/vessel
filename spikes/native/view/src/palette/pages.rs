@@ -66,6 +66,19 @@ pub fn choice_rows<'a, T>(
     registry: &'a Registry<T>,
     location: &ChoiceLocation,
 ) -> Vec<ChoiceRow<'a, T>> {
+    choice_rows_search(registry, location, "")
+}
+
+/// Search the current nested page with the same visible-before-keyword matcher
+/// as the global command list. A child page remains visible when a descendant
+/// matches, including a provider's hidden model id.
+#[must_use]
+pub fn choice_rows_search<'a, T>(
+    registry: &'a Registry<T>,
+    location: &ChoiceLocation,
+    text: &str,
+) -> Vec<ChoiceRow<'a, T>> {
+    let query = crate::matcher::Query::new(text);
     let mut seen = BTreeSet::new();
     let mut rows = Vec::new();
     for (id, entry) in registry.snapshot() {
@@ -76,6 +89,12 @@ pub fn choice_rows<'a, T>(
             continue;
         };
         let segments: Vec<_> = path.segments().collect();
+        if query
+            .score(&segments, Some(&entry.keywords.join(" ")))
+            .is_none()
+        {
+            continue;
+        }
         if !segments
             .iter()
             .take(location.prefix.len())

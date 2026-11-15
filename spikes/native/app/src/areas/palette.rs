@@ -13,6 +13,7 @@
 mod commands;
 mod entry;
 mod messages;
+mod navigation;
 mod rows;
 mod snapshot;
 pub(crate) mod source;
@@ -30,7 +31,8 @@ use vessel_app_kit::command::{
 };
 use vessel_app_kit::picker;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{TextField, Tokens};
 use vessel_app_view::palette::{
@@ -129,6 +131,8 @@ impl Shell {
     /// Open the palette with an empty search holding the keys; when it is
     /// open already, give its search the keys again.
     pub(crate) fn open_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.close_shortcuts_help(window, cx);
+        crate::areas::shortcuts::modal_opened(self);
         let placeholder = self.t.lang.palette().placeholder;
         let palette = &mut self.areas.palette;
         if !palette.motion.is_open() {
@@ -153,7 +157,7 @@ impl Shell {
     }
 
     /// Close the palette; the keys go back where they were.
-    fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(crate) fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Some(owner) = self.areas.palette.root_help.take() {
             self.remove_command_source(&owner, cx);
         }
@@ -453,6 +457,8 @@ pub(crate) fn render(
     let search = div()
         .flex()
         .flex_col()
+        .capture_key_down(cx.listener(navigation::key))
+        .children(navigation::scope(shell, tokens, cx))
         .child(messages::scope(shell, tokens, window, cx))
         .child(shell.areas.palette.search.bare(tokens, cx))
         .into_any_element();

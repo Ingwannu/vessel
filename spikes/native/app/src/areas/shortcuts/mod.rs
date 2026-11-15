@@ -44,6 +44,8 @@ use vessel_app_view::shortcuts::{
 mod core;
 pub(crate) mod dispatch;
 pub(crate) mod help_dialog;
+#[cfg(test)]
+mod interaction_tests;
 pub(crate) mod page;
 #[cfg(test)]
 mod tests;
@@ -316,4 +318,12 @@ pub(crate) fn navigation_changed(shell: &mut Shell) {
     if shell.route != Route::Settings || shell.areas.settings.section != Section::Shortcuts {
         shell.areas.shortcuts.page.leave();
     }
+}
+
+/// Opening a modal cancels a recorder/prefix before the new focused field can
+/// receive a key. This is used by the existing palette and shortcut-help openers.
+pub(crate) fn modal_opened(shell: &mut Shell) {
+    shell.areas.shortcuts.engine.reset();
+    shell.areas.shortcuts.held.release();
+    shell.areas.shortcuts.page.leave();
 }
