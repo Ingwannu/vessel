@@ -278,6 +278,8 @@ untargeted!(
     vessel_proto::registry::ReleaseWorkspaceAutomation,
     vessel_proto::project_management::RegisterProjectDirectory,
     vessel_proto::project_management::CreateProjectDirectory,
+    vessel_proto::project_management::ReadProjectConfig,
+    vessel_proto::project_management::WriteProjectConfig,
     vessel_proto::registry::GetRegistry,
     vessel_proto::registry::ListWorkspaces,
     vessel_proto::registry::GetWorkspace,

@@ -177,6 +177,8 @@ impl Call {
             | Self::PinWorkspace(_)
             | Self::RegisterProjectDirectory(_)
             | Self::CreateProjectDirectory(_)
+            | Self::ReadProjectConfig(_)
+            | Self::WriteProjectConfig(_)
             | Self::ListProjects(_)
             | Self::GetProject(_)
             | Self::AddProject(_)

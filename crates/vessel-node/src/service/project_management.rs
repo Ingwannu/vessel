@@ -1,6 +1,7 @@
 //! Exact project selection and settings routes; workspace creation remains separate.
 
 use super::{Connection, NodeService};
+use vessel_proto::registry::{ConfigDocument, ReadProjectConfig, WriteProjectConfig};
 use vessel_proto::{
     WireError,
     project_management::{
@@ -10,6 +11,22 @@ use vessel_proto::{
 };
 
 impl NodeService {
+    pub(crate) async fn read_project_config(
+        &self,
+        _: &Connection,
+        request: ReadProjectConfig,
+    ) -> Result<ConfigDocument, WireError> {
+        self.workspaces.read_project_config(request.project).await
+    }
+
+    pub(crate) async fn write_project_config(
+        &self,
+        _: &Connection,
+        request: WriteProjectConfig,
+    ) -> Result<ConfigDocument, WireError> {
+        self.workspaces.write_project_config(request).await
+    }
+
     pub(crate) async fn create_project_directory(
         &self,
         _: &Connection,

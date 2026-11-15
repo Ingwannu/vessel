@@ -83,3 +83,29 @@ store rollback, and nonempty-directory preservation. No test has run at this
 checkpoint. The existing framed test handler fakes now explicitly refuse both
 C1 calls and the separate registry methods. New project-family capability test
 entries await the integrator's announced method-table/family-test base.
+
+## Registered project config source checkpoint (unverified)
+
+Paseo's `session/project-config/project-config-session.ts:40-109,178-199`
+authorizes active registry roots and separates read/write from setup/approval.
+Its mtime/size revision and JSON projection are replaced by Vessel's existing
+content-hash WriteExpect and raw TOML. The same 64 KiB bound and ProjectFile
+schema used by execution apply; invalid TOML can be read for repair, while
+binary/NUL/oversized sources refuse. Missing differs from a present empty file.
+
+`vessel_workspace::project_config` reuses the bounded regular-file read and
+files::write's checked path, exclusive adjacent temporary, sync and atomic
+replacement with existing permissions retained. It preserves comments/unknown
+keys verbatim and never formats parser source into a user error. External
+processes can still race the optimistic content check and rename, as in the
+existing file editor and Paseo's stat/rename implementation. Node config writes
+are serialized with project registration/removal and task-tracked through IO,
+so two C1 saves with the same revision cannot both win. The root remains a
+registered ProjectId lookup; no arbitrary client path authorizes config access.
+
+No approval digest is added, no setup/service is started, and automation is not
+released. Tests cover missing/empty revisions, equal-length external changes,
+repair, invalid saves, raw unknown fields, bounded/binary reads, external links,
+retained file mode/uid and serialized saves/removed-project refusal. These
+source changes are not compiled/tested yet. New method table rows stay pending
+PROJECT_MANAGEMENT; no protocol/schema number assigned.

@@ -159,3 +159,63 @@ async fn registration_failure_removes_only_the_new_empty_directory() {
     assert!(fixture.workspaces.list_projects().await.projects.is_empty());
     fixture.stop.cancel();
 }
+
+#[tokio::test]
+async fn config_requires_current_registered_identity_and_two_saves_cannot_both_win() {
+    use vessel_proto::{
+        ProjectId,
+        registry::{ConfigRevision, ConfigText, WriteProjectConfig},
+    };
+    let fixture = Fixture::new().await;
+    let project = fixture.project("config", None).await;
+    let missing = fixture
+        .workspaces
+        .read_project_config(project.id)
+        .await
+        .unwrap();
+    assert_eq!(missing.revision, ConfigRevision::Missing);
+    assert_eq!(
+        fixture
+            .workspaces
+            .read_project_config(ProjectId::random())
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::NotFound
+    );
+    let a = WriteProjectConfig {
+        project: project.id,
+        expected: missing.revision.clone(),
+        text: ConfigText::parse("# first").unwrap(),
+    };
+    let b = WriteProjectConfig {
+        project: project.id,
+        expected: missing.revision,
+        text: ConfigText::parse("# second").unwrap(),
+    };
+    let (a, b) = tokio::join!(
+        fixture.workspaces.write_project_config(a),
+        fixture.workspaces.write_project_config(b)
+    );
+    let error = match (a, b) {
+        (Ok(_), Err(error)) | (Err(error), Ok(_)) => error,
+        result => panic!("only one CAS save may win: {result:?}"),
+    };
+    assert_eq!(error.code, ErrorCode::Conflict);
+    fixture
+        .workspaces
+        .remove_project(project.id, &[])
+        .await
+        .unwrap();
+    assert_eq!(
+        fixture
+            .workspaces
+            .read_project_config(project.id)
+            .await
+            .unwrap_err()
+            .code,
+        ErrorCode::NotFound
+    );
+    assert!(project.root.join("vessel.toml").is_file());
+    fixture.stop.cancel();
+}

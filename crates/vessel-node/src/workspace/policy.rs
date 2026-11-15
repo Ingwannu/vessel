@@ -98,7 +98,7 @@ const fn refused(method: Method) -> bool {
     match method {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
-        Method::CreateProjectDirectory | Method::RegisterProjectDirectory | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
+        Method::ReadProjectConfig | Method::WriteProjectConfig | Method::CreateProjectDirectory | Method::RegisterProjectDirectory | Method::ReleaseWorkspaceAutomation | Method::GetRegistry | Method::ListWorkspaces | Method::GetWorkspace | Method::RenameWorkspace | Method::PinWorkspace
         | Method::AddProject
         | Method::CloneProject
         | Method::InitProject

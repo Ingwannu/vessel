@@ -5,7 +5,7 @@ use crate::{ProtocolVersion, workspace::ProjectName};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-pub use crate::registry::CreateProjectDirectory;
+pub use crate::registry::{CreateProjectDirectory, ReadProjectConfig, WriteProjectConfig};
 
 /// Assigned at this project's wiring merge, independently of the registry dependency.
 /// Keeping a separate package gate prevents older registry peers claiming newer project methods.
@@ -54,4 +54,27 @@ pub enum ProjectDirectoryCleanup {
         /// Why nonrecursive cleanup was refused.
         error: crate::WireError,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Method, MethodShape, Scope};
+
+    #[test]
+    fn every_c1_method_has_its_own_pending_capability_scope_and_decodable_sample() {
+        for (method, scope) in [
+            (Method::RegisterProjectDirectory, Scope::Operate),
+            (Method::CreateProjectDirectory, Scope::Operate),
+            (Method::ReadProjectConfig, Scope::Read),
+            (Method::WriteProjectConfig, Scope::Operate),
+        ] {
+            assert_eq!(method.since(), PROJECT_MANAGEMENT);
+            assert_eq!(method.shape(), MethodShape::Unary);
+            assert_eq!(method.scope(), Some(scope));
+            let call = crate::rpc::samples::call(method).unwrap();
+            assert_eq!(call.method(), method);
+            assert_eq!(call.required_protocol(), PROJECT_MANAGEMENT);
+        }
+    }
 }

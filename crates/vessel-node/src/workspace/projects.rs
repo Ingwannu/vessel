@@ -6,6 +6,7 @@
 
 mod adding;
 mod commands;
+mod config;
 mod directory;
 
 use std::path::{Path, PathBuf};
@@ -155,6 +156,7 @@ impl Workspaces {
         project: ProjectId,
         live: &Live,
     ) -> Result<(), WorkspaceError> {
+        let _serial = self.project_registrations.lock().await;
         let cancel = {
             let mut state = self.state();
             let entry = state

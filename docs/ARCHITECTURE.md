@@ -1578,3 +1578,13 @@ exclusive persisted claim before backing recovery. Provisioning currently remain
 staged under tests while the create orchestration is developed. Project config,
 icons, editor integration and automatic archive remain separate incomplete work.
 No protocol number or full package acceptance follows from this architecture.
+
+### Project configuration source editing (pending C1)
+
+`vessel-workspace::project_config` adds conflict-aware raw vessel.toml editing
+by composing project_file's bounded safe reader/schema and files' existing
+atomic replacement. `vessel-node::workspace::projects::config` authorizes the
+registered project and serializes config IO with project mutations; tracked
+writes retain that admission until IO settles. `service::project_management`
+is the thin typed RPC boundary. No parser, approval store, execution runtime or
+independent project registry is duplicated by saving configuration.

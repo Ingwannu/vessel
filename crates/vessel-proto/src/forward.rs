@@ -330,6 +330,8 @@ impl Method {
             | Self::ReleaseWorkspaceAutomation
             | Self::RegisterProjectDirectory
             | Self::CreateProjectDirectory
+            | Self::ReadProjectConfig
+            | Self::WriteProjectConfig
             | Self::ListProjects
             | Self::GetProject
             | Self::AddProject

@@ -395,6 +395,10 @@ macro_rules! method_table {
             CreateProjectDirectory / create_project_directory / "project.create_directory" [Operate, (pending $crate::project_management::PROJECT_MANAGEMENT), unary]: $crate::project_management::CreateProjectDirectory => $crate::project_management::ProjectDirectoryOutcome;
             /// Register the selected directory without canonicalizing it to a Git top level.
             RegisterProjectDirectory / register_project_directory / "project.register_directory" [Operate, (pending $crate::project_management::PROJECT_MANAGEMENT), unary]: $crate::project_management::RegisterProjectDirectory => $crate::workspace::ProjectInfo;
+            /// Read the registered project's bounded vessel.toml source for editing.
+            ReadProjectConfig / read_project_config / "project.read_config" [Read, (pending $crate::project_management::PROJECT_MANAGEMENT), unary]: $crate::project_management::ReadProjectConfig => $crate::registry::ConfigDocument;
+            /// Save valid project source under an explicit content precondition, without approval.
+            WriteProjectConfig / write_project_config / "project.write_config" [Operate, (pending $crate::project_management::PROJECT_MANAGEMENT), unary]: $crate::project_management::WriteProjectConfig => $crate::registry::ConfigDocument;
         }
     };
 }

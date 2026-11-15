@@ -127,12 +127,14 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         Method::FinishUpload => json!({"upload":id}),
         Method::ReadAttachment => json!({"session":id,"attachment":id,"offset":0}),
         Method::GetWorkspace | Method::RenameWorkspace => json!({"workspace":id}),
+        Method::WriteProjectConfig => json!({"project":id,"expected":{"kind":"missing"},"text":""}),
         Method::CreateProjectDirectory => json!({"parent":"/fixture","name":"new-project"}),
         Method::ReleaseWorkspaceAutomation => {
             json!({"workspace":id,"expected":0,"source":{"kind":"change_request","number":1,"head_repository":{"kind":"github","host":"github.com","path":"sample/project"}}})
         }
         Method::PinWorkspace => json!({"workspace":id,"pin":"unpinned"}),
-        Method::GetProject
+        Method::ReadProjectConfig
+        | Method::GetProject
         | Method::RemoveProject
         | Method::ProjectCommands
         | Method::ListSnapshots => json!({"project":id}),

@@ -265,8 +265,12 @@ const PROTOCOL_TEN_WORKSPACE: &[&str] = &[
 
 /// Methods in the same families added after protocol 10 and assigned a
 /// number: each is checked by its package's own test, which adds it here.
-const WORKSPACE_FAMILIES_LATER: &[&str] =
-    &["project.register_directory", "project.create_directory"];
+const WORKSPACE_FAMILIES_LATER: &[&str] = &[
+    "project.register_directory",
+    "project.create_directory",
+    "project.read_config",
+    "project.write_config",
+];
 
 /// Every protocol 11 method and its scope, by track: B2's pull requests
 /// (ADR 0029) and C's terminals, scripts and ports (ADR 0031) read with

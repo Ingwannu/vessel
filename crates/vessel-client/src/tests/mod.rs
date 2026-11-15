@@ -424,6 +424,8 @@ impl Handler for FakeNode {
     }
 
     unserved! {
+        read_project_config: vessel_proto::project_management::ReadProjectConfig => vessel_proto::registry::ConfigDocument;
+        write_project_config: vessel_proto::project_management::WriteProjectConfig => vessel_proto::registry::ConfigDocument;
         get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
         list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
         get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;

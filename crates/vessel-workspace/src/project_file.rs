@@ -277,7 +277,7 @@ fn commands(list: &'static str, raw: Commands) -> Result<Vec<ProjectCommand>, Pr
 
 // Both decoders share the same file authority and byte budget; styles must
 // not gain a less constrained path just because commands use another parser.
-fn read_bytes(folder: &Path) -> Result<Option<Vec<u8>>, ProjectFileError> {
+pub(crate) fn read_bytes(folder: &Path) -> Result<Option<Vec<u8>>, ProjectFileError> {
     let Ok(root) = Root::open(folder) else {
         return Ok(None);
     };

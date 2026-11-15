@@ -17,6 +17,7 @@ pub mod files;
 pub mod find;
 pub mod git;
 pub mod paths;
+pub mod project_config;
 pub mod project_file;
 mod regular;
 #[cfg(test)]
