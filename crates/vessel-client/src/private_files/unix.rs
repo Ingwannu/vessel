@@ -34,7 +34,13 @@ impl Directory {
     pub(super) fn open(path: &Path) -> Result<Self, Error> {
         let fd = rustix::fs::openat(CWD, path, DIRECTORY, Mode::empty()).map_err(open_error)?;
         let file = File::from(fd);
-        let owner = DirectoryOwner(file.metadata().map_err(Error::Io)?.uid());
+        let metadata = file.metadata().map_err(Error::Io)?;
+        // Another user must not be able to replace entries in our trusted
+        // anchor. Preserve existing modes; refuse instead of chmod.
+        if metadata.mode() & 0o022 != 0 {
+            return Err(Error::UnsafeTarget);
+        }
+        let owner = DirectoryOwner(metadata.uid());
         Ok(Self { file, owner })
     }
 
@@ -48,6 +54,15 @@ impl Directory {
         let mut file = File::from(fd);
         let metadata = file.metadata().map_err(Error::Io)?;
         if !metadata.is_file() || DirectoryOwner(metadata.uid()) != self.owner {
+            return Err(Error::UnsafeTarget);
+        }
+        // Books can be shared read-only. Credentials contain bearer material
+        // and must not be exposed even read-only, matching store's push key.
+        let forbidden = match purpose {
+            Purpose::Book => 0o022,
+            Purpose::Credential => 0o077,
+        };
+        if metadata.mode() & forbidden != 0 || metadata.mode() & 0o400 == 0 {
             return Err(Error::UnsafeTarget);
         }
         let limit = purpose.limit();

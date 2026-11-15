@@ -1,6 +1,6 @@
 //! Real file-type boundaries and bounded decoding; no transport or real user files.
 use std::io::{self, Cursor};
-use std::os::unix::fs::symlink;
+use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _, symlink};
 
 use super::*;
 
@@ -172,6 +172,7 @@ fn metadata_size_and_read_limits_agree_for_real_files() {
     let path = temp.path().join("input");
     let limit = Purpose::Credential.limit();
     std::fs::write(&path, vec![b'x'; usize::try_from(limit.0).unwrap()]).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
     let directory = Directory::open(temp.path()).unwrap();
     let name = Name::parse("input").unwrap();
     assert_eq!(
@@ -190,4 +191,42 @@ fn metadata_size_and_read_limits_agree_for_real_files() {
         directory.read(name, Purpose::Credential),
         Err(Error::TooLarge { .. })
     ));
+}
+
+#[test]
+fn exposed_credentials_and_mutable_shared_targets_are_refused_without_chmod() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("input");
+    std::fs::write(&path, "synthetic-private-material").unwrap();
+    let name = Name::parse("input").unwrap();
+    let directory = Directory::open(temp.path()).unwrap();
+    for mode in [0o644, 0o660, 0o606] {
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+        assert!(matches!(
+            directory.read(name, Purpose::Credential),
+            Err(Error::UnsafeTarget)
+        ));
+        assert_eq!(std::fs::metadata(&path).unwrap().mode() & 0o777, mode);
+    }
+    // Sharing only a book's public configuration read-only is still allowed.
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(directory.read(name, Purpose::Book).unwrap().is_some());
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o660)).unwrap();
+    assert!(matches!(
+        directory.read(name, Purpose::Book),
+        Err(Error::UnsafeTarget)
+    ));
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(directory.read(name, Purpose::Credential).unwrap().is_some());
+
+    std::fs::set_permissions(temp.path(), std::fs::Permissions::from_mode(0o770)).unwrap();
+    assert!(matches!(
+        Directory::open(temp.path()),
+        Err(Error::UnsafeTarget)
+    ));
+    assert_eq!(
+        std::fs::metadata(temp.path()).unwrap().mode() & 0o777,
+        0o770
+    );
+    std::fs::set_permissions(temp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
 }

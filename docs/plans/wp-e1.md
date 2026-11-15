@@ -196,3 +196,11 @@ It is NOT wired to the legacy readers, writer, lock or worker/retention
 owner. No Windows/new upsert or production file-safety API is claimed.
 Actual narrow checks and V3 code review are still owed before integration;
 source preparation and direct rustfmt are not a compile/test pass.
+
+Private staging also distinguishes an existing read-only shared book from
+an exposed credential: refuse group/other-writable books and anchors;
+credentials require owner-read with no group/other permissions. Checks use
+the opened handle and anchor owner, following the existing store pattern;
+no current-process identity lookup or chmod of existing paths is implied.
+The eighth prepared test checks actual temporary modes and refusal without
+changing them. This remains uncompiled test staging, not production safety.
