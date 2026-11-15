@@ -377,9 +377,14 @@ count consistency. It does not deserialize every field of a recognized status
 payload; for example an exited tag with an invalid code payload is still
 counted ended. This is deliberately not a store integrity check.
 
-Resume point: the correction is prepared but has not compiled or run yet.
-Run narrow Clippy for the changed test owners, then one changed-tree whole
-gate through the approved remote runner before resubmitting staged source.
+The first narrow correction Clippy found two large future layouts in Store
+fixtures after adding timeout layers. The private deadline helpers now box
+the test and phase futures before constructing their async state, following
+the existing node e2e step helper; no lint is suppressed. The failed narrow
+run remains separate from later evidence.
+
+Resume point: rerun narrow Clippy on this changed source, then one changed-tree
+whole gate through the approved remote runner before resubmitting staged source.
 The original gate evidence above is retained and does not prove this correction.
 D4 remains blocked on consuming the announced shared compatibility accessor
 and method-metadata head; no wire registration or product assembly is added.
