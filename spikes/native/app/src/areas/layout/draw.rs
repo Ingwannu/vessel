@@ -95,7 +95,7 @@ pub(crate) fn frame(
         .relative()
         .child(content)
         .children(super::sheets::overlay(
-            shell, &layout, &key, tokens, window, cx,
+            shell, &layout, &key, &mut agent, tokens, window, cx,
         ))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::rename::overlay(shell, tokens, window, cx))
