@@ -10,6 +10,14 @@ use crate::error::ServiceError;
 use crate::persist;
 
 impl Sessions {
+    pub(crate) fn limit_association(&self, id: SessionId) -> vessel_session::LimitAssociation {
+        self.runtime
+            .get(id)
+            .map_or(vessel_session::LimitAssociation::Unavailable, |handle| {
+                handle.limit_association()
+            })
+    }
+
     /// A page of the log. For a live session, first waits until everything
     /// the session had produced when the call arrived is committed, so the
     /// page (and `at_end`) reflects the log as of the call, not the store's

@@ -1171,6 +1171,14 @@ mod tests {
     use super::*;
     use crate::fleet::bindings::Bindings;
 
+    impl Links {
+        /// Let real Forward and member-to-home Relay refusal arms use a raw fixture peer.
+        #[cfg(test)]
+        pub(crate) async fn connected_member_for_test(&self, client: NodeClient) {
+            drop(self.members.lock().await.insert(client.node().id, client));
+        }
+    }
+
     fn key(byte: u8) -> NodePublicKey {
         NodePublicKey::from_bytes([byte; 32])
     }

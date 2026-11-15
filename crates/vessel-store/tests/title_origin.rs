@@ -110,6 +110,9 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     connection.execute_batch("DROP TRIGGER timeline_admission_insert; DROP TRIGGER timeline_admission_delete; DROP TABLE timeline_admissions; DROP TABLE timeline_admission_usage; DROP TABLE timeline_admission_meta;").unwrap();
     // Gate40's existing title-origin append is schema18. Later appends must not
     // turn this into a fixture for the newest migration instead of that one.
+    connection
+        .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
+        .unwrap();
     fixtures::undo_registry_schema(&connection);
     connection
         .execute_batch(

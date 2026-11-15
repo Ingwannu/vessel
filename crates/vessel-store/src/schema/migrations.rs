@@ -1,8 +1,7 @@
 //! Every migration's SQL, oldest first, and the list that orders them.
 //!
-//! These are separate from `schema`'s runner so neither file outgrows the
-//! file budget (docs/QUALITY.md) as migrations are appended; a released
-//! entry is never edited, only followed by a new one.
+//! Kept apart from the runner for the file budget (docs/QUALITY.md).
+//! Released entries are immutable; append new migrations.
 
 /// Version 1: sessions and their event log.
 ///
@@ -446,16 +445,14 @@ CREATE TRIGGER usage_count_delete AFTER DELETE ON usage_samples BEGIN
 END;
 ";
 
-/// The labels' schema (lifecycle, ADR 0063): 16 on its track, 17 on the
-/// node line after the inbox's 16. The one assignment integration changes
-/// when another migration lands first; the table's length checks it.
+/// Labels follow the inbox (ADR 0063); integration assigns this version.
+/// The migration table length checks the assignment.
 pub(super) const LABELS_SCHEMA: usize = 17;
 
 /// Current labels are separate from the original creation specification.
 const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
-/// The provisional title-origin schema follows the newest head migration.
-/// Integration changes this one assignment if another migration lands first.
+/// Title origin follows the head; integration re-points this assignment.
 const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 
 /// NULL preserves unknown provenance on rows written before this addition.
@@ -469,8 +466,11 @@ const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt
 /// Provisional next migration; integration re-points this one constant.
 const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
 
+/// Schema 21 (`super::listing`), appended after the registry at the node-line merge.
+pub(super) const BACKGROUND_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
+
 /// One worker-owned admission append follows the announced head.
-const ADMISSION_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
+const ADMISSION_SCHEMA: usize = BACKGROUND_SCHEMA.saturating_add(1);
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
@@ -495,5 +495,6 @@ pub(super) const MIGRATIONS: &[&str; ADMISSION_SCHEMA] = &[
     TITLE_ORIGIN,
     SUBAGENT_RELATIONS,
     super::workspace_registry::SQL,
+    super::listing::SQL,
     crate::timeline_admission::SQL,
 ];

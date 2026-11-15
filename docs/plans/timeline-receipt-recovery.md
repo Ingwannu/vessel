@@ -155,3 +155,13 @@ Those exhaustive arms/default are now completed without a new authority/version.
 The actor barrier's test module also moves last and gains a named local testkit
 safety bound. Old run results remain failed; no generated wire artifact or
 runtime pass is inferred from them. Corrected execution is still owed.
+
+
+The gate-53 lifecycle head is merged before the next owner check. Its listing
+migration remains 21 and this package keeps one admission migration after it, at
+22. The inbox rollback fixture removes both in reverse order. The lifecycle
+route object keeps its listing inheritance and export cleanup behavior, while
+its home hop uses the existing connection-bound forwarding adapter so reference
+origin is classified from the exact client used for that response. The unchanged
+limit-association reader moves into the existing read module to respect the root
+module budget. These are receiving-union source joins, not new runtime evidence.

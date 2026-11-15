@@ -89,14 +89,6 @@ pub(crate) struct Sessions {
 const ENDED: usize = 64;
 
 impl Sessions {
-    pub(crate) fn limit_association(&self, id: SessionId) -> vessel_session::LimitAssociation {
-        self.runtime
-            .get(id)
-            .map_or(vessel_session::LimitAssociation::Unavailable, |handle| {
-                handle.limit_association()
-            })
-    }
-
     pub(crate) fn new(
         runtime: Arc<SessionRuntime>,
         store: Store,
@@ -491,6 +483,7 @@ impl Sessions {
 // the conversation's input; reading the log.
 pub(crate) mod again;
 mod conversation;
+mod discovery;
 mod identified;
 mod marks;
 mod permission;
