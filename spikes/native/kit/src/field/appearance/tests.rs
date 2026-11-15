@@ -18,6 +18,9 @@ impl Render for Probe {
             .w(px(390.0))
             .flex()
             .flex_row()
+            // Settings rows center controls; default flex stretch would turn
+            // this unconstrained test root into a window-height field.
+            .items_center()
             .on_children_prepainted(move |bounds, _, _| *seen.borrow_mut() = bounds)
             .child(self.field.appearance_element(
                 self.profile,

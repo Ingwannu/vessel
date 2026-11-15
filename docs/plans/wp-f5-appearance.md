@@ -630,3 +630,20 @@ is merged. The S2 glyph inventory's fixed95 prefix and canonical source/search
 field modules are preserved, alongside F5/E2 separation and Windowed callbacks.
 The base merge is not the final F5 union gate. Root changes are the announced
 base, not an F5 node/web implementation; the feature delta remains native.
+
+
+The three new Kit expectations are corrected without product changes or
+tolerance increases. The field fixture now centers its child as a real
+Settings row does, preventing the unconstrained test root's default flex
+stretch from forcing1080px height. GPUI0.3.10 taffy.rs295–311 pre-snaps
+authored absolute widths before borders:390×1.25=487.5dp rounds toward zero
+to487dp, so its inner width is485/1.25=388, not388.4. Other source dimensions
+and the0.02 geometry epsilon are unchanged.
+
+The event regression now independently observes actual engine Change count
+(test-only subscriptions) and requires exactly one hook per event, current
+text, focus flags already updated, one submit/blur, unchanged text and no
+legacy focus/blur hooks. Unicode simulation inserts scalars individually; a
+normalized Enter fallback can emit a same-value Change. The test no longer
+confuses that existing engine stream with a duplicate callback. No second
+production subscription, dedup cache or editing state is introduced.

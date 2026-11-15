@@ -51,13 +51,16 @@ fn near(actual: Pixels, expected: f32) {
 fn source_card_caption_and_full_rows_fit_both_schemes_and_four_scales(cx: &mut TestAppContext) {
     // Physical border snapping and measured text heights are calculated from
     // py8/px12/pb8/border1, content15/21 and code12/18, not from kit constants.
-    for (scale, edge, top, caption_height, row_height) in [
-        (1.0, 1.0, 9.0, 29.0, 18.0),
-        (1.25, 0.8, 8.8, 29.6, 18.4),
-        (1.5, 0.666_666_7, 8.666_667, 29.333_334, 18.0),
-        (2.0, 1.0, 9.0, 29.0, 18.0),
+    // GPUI Taffy pre-snaps authored absolute widths with half toward zero:
+    // 390 * 1.25 = 487.5 becomes487dp (389.6 logical). Each border is1dp,
+    // so the inner width is485/1.25 =388; subtracting borders from390 is wrong.
+    for (scale, edge, top, caption_height, row_height, small_outer) in [
+        (1.0, 1.0, 9.0, 29.0, 18.0, 390.0),
+        (1.25, 0.8, 8.8, 29.6, 18.4, 389.6),
+        (1.5, 0.666_666_7, 8.666_667, 29.333_334, 18.0, 390.0),
+        (2.0, 1.0, 9.0, 29.0, 18.0, 390.0),
     ] {
-        for width in [390.0, 1280.0] {
+        for (width, expected_outer) in [(390.0, small_outer), (1280.0, 1280.0)] {
             for scheme in [Scheme::Light, Scheme::Dark] {
                 let seen = Seen::default();
                 let (_, cx) = cx.add_window_view({
@@ -76,11 +79,11 @@ fn source_card_caption_and_full_rows_fit_both_schemes_and_four_scales(cx: &mut T
                 assert_eq!(bounds.len(), 4);
                 near(bounds[0].origin.x, edge);
                 near(bounds[0].origin.y, top);
-                near(bounds[0].size.width, edge.mul_add(-2.0, width));
+                near(bounds[0].size.width, edge.mul_add(-2.0, expected_outer));
                 near(bounds[0].size.height, caption_height);
                 for (index, row) in bounds.iter().skip(1).enumerate() {
                     near(row.origin.x, edge);
-                    near(row.size.width, edge.mul_add(-2.0, width));
+                    near(row.size.width, edge.mul_add(-2.0, expected_outer));
                     near(
                         row.origin.y,
                         f32::from(u16::try_from(index).unwrap())
