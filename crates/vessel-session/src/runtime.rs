@@ -15,6 +15,8 @@ mod parts;
 mod preparation;
 #[cfg(test)]
 mod private_dir;
+#[cfg(test)]
+mod registration;
 
 mod diagnostics;
 
@@ -73,6 +75,8 @@ pub struct SessionRuntime {
     /// Which protocol drives each agent's new sessions (protocol 18,
     /// `drivers`).
     drivers: drivers::Drivers,
+    #[cfg(test)]
+    before_registration: registration::RegistrationGate,
 }
 
 /// A session that was just started.
@@ -102,6 +106,8 @@ impl SessionRuntime {
             park_after,
             claims: Arc::new(claims::Claims::default()),
             drivers: drivers::Drivers::default(),
+            #[cfg(test)]
+            before_registration: registration::RegistrationGate::default(),
         }
     }
 

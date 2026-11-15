@@ -11,6 +11,8 @@ use vessel_proto::providers::{
     CommandEdit, DisallowedTools, ProviderEnvironment, ProviderOverride, ProviderOverrides,
 };
 
+const SAFETY_NET: Duration = Duration::from_secs(30);
+
 fn work(overrides: &ProviderOverrides, provider: &str) -> Work {
     let mut cache = Cache::new(ProviderRegistry::build(overrides, &[]).unwrap());
     let Admission::Start(work) = cache
@@ -28,7 +30,7 @@ fn work(overrides: &ProviderOverrides, provider: &str) -> Work {
 
 #[tokio::test]
 async fn admitted_codex_probe_uses_its_override_and_never_starts_a_thread() {
-    vessel_testkit::within(Duration::from_secs(30), async {
+    vessel_testkit::within(SAFETY_NET, async {
         let root = tempfile::tempdir().unwrap();
         let audit = root.path().join("requests");
         let fake = vessel_testkit::Fake::CodexAppServer.path().unwrap();

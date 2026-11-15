@@ -5,6 +5,8 @@ use crate::providers::{cache::Observation, configuration::Configuration};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use vessel_proto::providers::{ProviderState, UnavailableReason};
 
+const OWNER_STOP_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
+
 #[tokio::test]
 async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_the_owner() {
     let root = tempfile::tempdir().unwrap();
@@ -158,7 +160,7 @@ async fn prepared_product_owners_stop_under_the_node_task_tracker_with_retained_
             drop(manager);
         }
         let _first_close = tasks.close();
-        tokio::time::timeout(std::time::Duration::from_secs(2), tasks.wait())
+        tokio::time::timeout(OWNER_STOP_DEADLINE, tasks.wait())
             .await
             .unwrap();
         assert!(matches!(

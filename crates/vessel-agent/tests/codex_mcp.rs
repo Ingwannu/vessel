@@ -8,6 +8,9 @@ mod tests {
         AgentEvent, HarnessSessionId, McpTransport, ResolvedMcpServers, ResolvedValue,
     };
 
+    const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(5);
+    const SAFETY_NET: Duration = Duration::from_secs(30);
+
     fn servers() -> ResolvedMcpServers {
         BTreeMap::from([
             (
@@ -57,7 +60,7 @@ mod tests {
             } else {
                 ResolvedMcpServers::new()
             },
-            handshake_timeout: Duration::from_secs(5),
+            handshake_timeout: HANDSHAKE_TIMEOUT,
             questions: false,
             private_dir: None,
         };
@@ -82,7 +85,7 @@ mod tests {
 
     #[tokio::test]
     async fn native_mcp_config_is_exact_on_start_and_resume_and_absent_when_unconfigured() {
-        vessel_testkit::within(Duration::from_secs(30), async {
+        vessel_testkit::within(SAFETY_NET, async {
         let expected = serde_json::json!({"mcp_servers": {
             "local": {"command":"synthetic-helper","args":["literal argument"],"env":{"SYNTHETIC_TOKEN":"fake-stdio-value"}},
             "remote": {"url":"https://synthetic.invalid/mcp","http_headers":{"authorization":"Bearer fake-http-value"}}

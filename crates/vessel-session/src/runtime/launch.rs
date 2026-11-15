@@ -375,8 +375,10 @@ impl SessionRuntime {
             driver,
             notices: chosen,
         } = self
-            .agent_command_owned(spec.clone(), profile, proxy, claim)
+            .agent_command_owned(spec.clone(), profile, proxy, Arc::clone(&claim))
             .await?;
+        #[cfg(test)]
+        self.before_registration.wait().await;
         let setup = AgentSetup {
             cwd,
             model: start.model,
@@ -404,7 +406,7 @@ impl SessionRuntime {
                 })),
                 ..ActorStart::default()
             });
-        self.run_structured(
+        let created = self.run_structured(
             Launch {
                 command,
                 setup,
@@ -414,6 +416,10 @@ impl SessionRuntime {
             begin,
             notices,
             actor,
-        )
+        );
+        // A different executor can claim this conversation even without an
+        // await here. Retain the original until the live registry replaces it.
+        drop(claim);
+        created
     }
 }

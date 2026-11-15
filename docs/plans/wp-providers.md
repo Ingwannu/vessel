@@ -785,3 +785,11 @@ then release the lookup. A separate actual draft-handler test uses the node's
 canonical listing bound. The paused-clock case proves the preparation deadline
 without sleeping. No returned result or discarded lookup may start a late
 process. Execution evidence is owed until the corresponding VM checks finish.
+
+The resumed-create consumer retains its original shared conversation claim
+through actual spawn and registration and passes a clone into preparation.
+Synchronous code after an await is not atomic against a different executor
+thread. A test-only one-shot gate pauses that real post-preparation continuation
+before spawn; a second resumed create must still receive ConversationTaken.
+The gate releases on drop and exists only in runtime unit tests. Successful
+registration replaces the starting guard with the runtime's live entry.
