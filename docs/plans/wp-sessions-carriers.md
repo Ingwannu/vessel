@@ -1,7 +1,8 @@
 # Session carrier conversion behind the sole resident owner
 
-Status: preparation only. The frozen W12 single-slot amendment is not product
-admission code. No live resident or connection safety is claimed here.
+Status: preparation only. The shared `c3429952` base contains W12's staged sole
+resource map and single-slot minter, still literal cfg(test). No product resource,
+follow or queued-delivery safety is claimed here.
 
 ## Decision Log
 
@@ -43,6 +44,13 @@ delivery capability before W12 `receive` passes concrete resources to an owner
 adapter. That capability remains G4-owned, with no raw client or second validity
 cache. It is a required pending producer, not an API invented in this package.
 An old event cannot refresh visibility or manufacture a new slot.
+
+The staged minter does not automatically synchronize presentation after layout
+changes. The coordinated product union must refresh the same claim's visibility
+and focus before input or read tracking, and invoke an admitted agent body lazily
+only after target and context validation. A prebuilt legacy global screen can
+execute timeline rows before being hidden; placing it in a pane is insufficient.
+Entity/token identity remains stable through these presentation updates.
 
 Lifecycle mutations from an admitted session additionally carry the canonical
 OperationKind::Lifecycle and single-use OperationTicket. W12 settles admission
