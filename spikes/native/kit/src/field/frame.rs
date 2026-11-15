@@ -12,6 +12,6 @@ pub(crate) fn settings_frame(field: &TextField) -> Div {
     div()
         .cursor_text()
         .on_mouse_down(MouseButton::Left, move |_, window, cx| {
-            field.focus(window, cx)
+            field.focus(window, cx);
         })
 }
