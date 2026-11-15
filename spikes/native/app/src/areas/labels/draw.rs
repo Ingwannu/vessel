@@ -105,14 +105,9 @@ fn list(
         .flex_col()
         .gap(px(S3))
         .child(state.search.element(tokens, false, cx));
-    let query = state.manager.query().trim().to_lowercase();
-    let labels: Vec<_> = host
-        .catalog
-        .labels()
-        .filter(|label| label.name.as_str().to_lowercase().contains(&query))
-        .collect();
+    let labels = state.manager.filtered(&host.catalog);
     if labels.is_empty() && host.state == HostState::Online {
-        body = body.child(if query.is_empty() {
+        body = body.child(if !state.manager.has_query() {
             words.empty()
         } else {
             words.no_matches()

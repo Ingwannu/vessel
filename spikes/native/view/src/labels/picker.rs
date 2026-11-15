@@ -27,10 +27,10 @@ impl Picker {
     /// Draw server state until a fresh workspace descriptor arrives.
     #[must_use]
     pub fn rows(&self, catalog: &Catalog, assigned: &[Name], query: &str) -> Vec<PickerRow> {
-        let query = query.trim().to_lowercase();
+        let query = super::search::Query::new(query);
         catalog
             .labels()
-            .filter(|label| label.name.key().as_str().contains(&query))
+            .filter(|label| query.matches(&label.name))
             .map(|label| PickerRow {
                 label: label.clone(),
                 assignment: if assigned.iter().any(|name| name.key() == label.name.key()) {

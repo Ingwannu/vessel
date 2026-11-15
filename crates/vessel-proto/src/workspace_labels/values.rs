@@ -66,6 +66,13 @@ impl LabelKey {
     }
 }
 
+/// Trim only the reference's whitespace at the edges. Query matching reuses
+/// this predicate without collapsing the query's internal spaces.
+#[must_use]
+pub fn trim_whitespace(text: &str) -> &str {
+    text.trim_matches(is_reference_whitespace)
+}
+
 // Rust's Unicode whitespace differs from JavaScript \s at FEFF and 0085.
 // Match the reference grammar explicitly so imported identities do not drift.
 fn is_reference_whitespace(character: char) -> bool {
@@ -164,6 +171,8 @@ mod tests {
 
     #[test]
     fn name_validation_matches_ecmascript_whitespace_and_preserves_case() {
+        assert_eq!(trim_whitespace("\u{feff} Ready\u{feff}"), "Ready");
+        assert_eq!(trim_whitespace("\u{0085}Ready"), "\u{0085}Ready");
         let name: LabelName = "\u{feff}  In\tProgress\n\u{feff}".parse().unwrap();
         assert_eq!(name.as_str(), "In Progress");
         assert_eq!(

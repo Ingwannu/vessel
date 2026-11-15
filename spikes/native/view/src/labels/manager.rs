@@ -173,6 +173,20 @@ impl Manager {
     pub fn query(&self) -> &str {
         &self.query
     }
+    /// Search uses the same reference edge whitespace as the picker.
+    #[must_use]
+    pub fn filtered<'a>(&self, catalog: &'a Catalog) -> Vec<&'a Label> {
+        let query = super::search::Query::new(&self.query);
+        catalog
+            .labels()
+            .filter(|label| query.matches(&label.name))
+            .collect()
+    }
+    /// Empty-after-trim search has the catalog's empty state, not no-matches.
+    #[must_use]
+    pub fn has_query(&self) -> bool {
+        !super::search::Query::new(&self.query).is_empty()
+    }
     /// Last safe operation error; draft remains intact.
     #[must_use]
     pub const fn error(&self) -> Option<Failure> {

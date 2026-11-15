@@ -7,6 +7,7 @@ mod create;
 mod manager;
 mod picker;
 mod replica;
+mod search;
 mod values;
 
 pub use binding::{Bindings, bind_hosts};

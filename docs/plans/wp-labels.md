@@ -224,3 +224,11 @@ queue/refusal tests. This predates the final binding and captured-surface/action
 regressions. Node `e764f8a6` strict alltarget proto/store/node clippy passed.
 The newest native strict check and the added regressions are still pending;
 no whole gate, review or inspected capture is claimed.
+
+Search whitespace also follows the reference: trim FEFF, retain 0085, and do
+not collapse internal query spaces. The protocol's existing whitespace
+predicate now has one edge-trim helper reused by the view's private Query;
+picker and manager no longer use independent Rust trim/search expressions.
+The added regression distinguishes empty search from no matches at those
+Unicode edges. No name grammar, dependency, protocol number or wire field
+is duplicated or changed.

@@ -73,7 +73,7 @@ fn availability(
     if matches!(machine.reach, Reach::Unreachable(_)) {
         return HostState::Offline;
     }
-    if !since.is_some_and(|since| machine.protocol.is_some_and(|peer| peer >= since)) {
+    if since.is_none_or(|since| machine.protocol.is_none_or(|peer| peer < since)) {
         return HostState::Unsupported;
     }
     match previous {
