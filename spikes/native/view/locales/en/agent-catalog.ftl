@@ -198,3 +198,6 @@ agent-catalog-remove-changed = The machine or agent definition changed. Open the
 
 # Local method is unassigned; no frame was sent to the machine.
 agent-catalog-add-unassigned = This version of Vessel cannot add providers yet. Update Vessel on this device before trying again.
+
+# Local translation preparation failed; no confirmation/write was sent.
+agent-catalog-remove-words-failed = Could not prepare the removal confirmation. Change the app language, then try again.

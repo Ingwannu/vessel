@@ -114,8 +114,8 @@ mod tests {
             ),
             (
                 Problem::Call,
-                "The machine could not complete this action. See its message below.",
-                "머신에서 이 작업을 완료하지 못했습니다. 아래의 머신 메시지를 확인하세요.",
+                "The machine could not complete this action.",
+                "머신에서 이 작업을 완료하지 못했습니다.",
             ),
         ] {
             assert_eq!(Lang::En.agents().problem(problem), en);

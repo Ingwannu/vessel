@@ -6,11 +6,11 @@ use vessel_app_kit::{
     badge, button_control, glyph,
 };
 use vessel_app_view::agent_status::{
+    addition::{self, Control},
     catalogue::{
         Offer,
         grid::{Grid, Rail},
     },
-    pages::{Operation, RemovalFreshness},
 };
 use vessel_proto::agents::CatalogueEntry;
 
@@ -142,14 +142,11 @@ fn tile(
         .child(details);
     match offer {
         Offer::Add(_) => {
-            let pending = page.and_then(|page| page.pending());
-            let adding=pending.is_some_and(|pending|matches!(&pending.operation,Operation::Add {call,..} if matches!(&call.agent,vessel_proto::agents::AgentToAdd::Registry {id,..} if *id==entry.id)));
-            let available = page.is_some_and(|page| {
-                page.pending().is_none() && page.removal_freshness() == RemovalFreshness::Current
-            });
+            let control = addition::registry_control(page, entry);
+            let adding = control == Control::Adding;
             let config = ButtonConfig::new(
                 ButtonKind::Outline,
-                if available {
+                if control == Control::Ready {
                     ButtonState::Enabled
                 } else {
                     ButtonState::Disabled

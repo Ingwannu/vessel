@@ -102,7 +102,7 @@ async fn registry_refusals_preserve_their_wire_source_instead_of_becoming_empty(
             (ErrorCode::InvalidRequest, Problem::Read),
             (ErrorCode::Unavailable, Problem::Read),
         ] {
-            let peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::Refuse(code)).await;
+            let peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::RefuseCatalogue(code)).await;
             let error = phase(
                 "registry node refusal",
                 read(&peer.client, peer.client.node().id, Fetch::Refresh),
@@ -123,7 +123,7 @@ async fn registry_refusals_preserve_their_wire_source_instead_of_becoming_empty(
 #[tokio::test(start_paused = true)]
 async fn registry_deadline_ends_the_wait_without_replaying_the_request() {
     safety(async {
-        let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::Wait).await;
+        let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::WaitCatalogue).await;
         let client = peer.client.clone();
         let node = client.node().id;
         let pending = tokio::spawn(async move { read(&client, node, Fetch::Refresh).await });

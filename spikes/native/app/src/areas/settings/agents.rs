@@ -220,6 +220,13 @@ pub(crate) fn dialogs(
         .collect()
 }
 
+impl Shell {
+    pub(crate) fn refresh_agent_words(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        add::refresh_words(self, window, cx);
+        removal::refresh_words(self, window, cx);
+    }
+}
+
 fn section(
     title: String,
     content: Option<AnyElement>,

@@ -360,3 +360,42 @@ fn suggested_registry_names_keep_the_whole_valid_id_and_never_truncate() {
         assert!(suggested_name(&entry).is_none());
     }
 }
+
+#[test]
+fn controls_share_current_page_admission_and_only_spin_for_the_exact_registry_pin() {
+    assert_eq!(command_control::<()>(None), Control::Disabled);
+    let (mut pages, machine, node) = setup().unwrap();
+    let entry = registry().unwrap();
+    set_catalogue(&mut pages, &machine, node, entry.clone()).unwrap();
+    assert_eq!(command_control(pages.get(machine.as_str())), Control::Ready);
+    let intent = Intent::registry(&pages, machine.clone(), &entry).unwrap();
+    let (_, _, _, ticket) = intent
+        .submit(&machine, &mut pages, "custom", "", "")
+        .unwrap()
+        .into_parts();
+    assert_eq!(
+        command_control(pages.get(machine.as_str())),
+        Control::Disabled
+    );
+    assert_eq!(
+        registry_control(pages.get(machine.as_str()), &entry),
+        Control::Adding
+    );
+    let mut changed = entry.clone();
+    changed.version = "2.0.0".parse().unwrap();
+    assert_eq!(
+        registry_control(pages.get(machine.as_str()), &changed),
+        Control::Disabled
+    );
+    let mut changed = entry;
+    changed.id = "other-provider".parse().unwrap();
+    assert_eq!(
+        registry_control(pages.get(machine.as_str()), &changed),
+        Control::Disabled
+    );
+    assert!(pages.addition_uncertain(&machine, ticket, "lost ACK"));
+    assert_eq!(
+        command_control(pages.get(machine.as_str())),
+        Control::Disabled
+    );
+}

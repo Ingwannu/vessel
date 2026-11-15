@@ -75,3 +75,16 @@ pub(super) fn edit_only(
 pub(super) fn changed(_shell: &mut Shell, _text: String, cx: &mut Context<'_, Shell>) {
     cx.notify();
 }
+
+// Language changes update placeholders without replacing editors or typed text.
+pub(super) fn refresh_words(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let words = shell.words.agent_catalog();
+    if let Some(form) = shell.areas.settings.agents.addition.form.as_ref() {
+        form.name
+            .set_placeholder(words.name_placeholder(), window, cx);
+        form.program
+            .set_placeholder(words.program_placeholder(), window, cx);
+        form.arguments
+            .set_placeholder(words.arguments_placeholder(), window, cx);
+    }
+}

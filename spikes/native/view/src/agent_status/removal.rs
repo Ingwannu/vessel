@@ -166,3 +166,59 @@ fn current_inventory<E>(page: &Page<E>) -> Result<&Inventory, Refused> {
 
 #[cfg(test)]
 mod tests;
+
+/// One local confirmation notice; formatting failure outranks a stale refusal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Notice {
+    /// The view refused this exact local intent before dispatch.
+    Refused(Refused),
+    /// Both formatted-language paths failed; no confirmation may be drawn.
+    Words,
+}
+impl Notice {
+    /// Source notices use warning for changed intent and error for local faults.
+    #[must_use]
+    pub const fn variant(self) -> crate::alert::Variant {
+        match self {
+            Self::Words | Self::Refused(Refused::Request(StartProblem::Exhausted)) => {
+                crate::alert::Variant::Error
+            }
+            Self::Refused(
+                Refused::RefreshRequired
+                | Refused::Unavailable
+                | Refused::MachineChanged
+                | Refused::NodeChanged
+                | Refused::DefinitionChanged
+                | Refused::Request(StartProblem::Busy | StartProblem::Capacity),
+            ) => crate::alert::Variant::Warning,
+        }
+    }
+}
+/// A single translated notice; never draw two signals for a failed preparation.
+#[must_use]
+pub fn notice(
+    refused: Option<Refused>,
+    words: Option<&crate::localization::FormatError>,
+) -> Option<Notice> {
+    if words.is_some() {
+        Some(Notice::Words)
+    } else {
+        refused.map(Notice::Refused)
+    }
+}
+
+/// Removal changes only its action availability, not the readiness verdict.
+#[must_use]
+pub fn is_removing(agent: &HarnessRef, operation: Option<&Operation>) -> bool {
+    match operation {
+        Some(Operation::Remove { name, .. }) => *agent == HarnessRef::Added(name.clone()),
+        None
+        | Some(
+            Operation::Discovery
+            | Operation::Check(_)
+            | Operation::Install(_)
+            | Operation::Catalogue { .. }
+            | Operation::Add { .. },
+        ) => false,
+    }
+}

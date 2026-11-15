@@ -198,3 +198,6 @@ agent-catalog-remove-changed = 머신 또는 에이전트 정의가 바뀌었습
 
 # Local method is unassigned; no frame was sent to the machine.
 agent-catalog-add-unassigned = 현재 Vessel 버전에서는 아직 프로바이더를 추가할 수 없습니다. 이 기기의 Vessel을 업데이트한 뒤 다시 시도하세요.
+
+# Local translation preparation failed; no confirmation/write was sent.
+agent-catalog-remove-words-failed = 제거 확인 창의 문구를 준비하지 못했습니다. 앱 언어를 변경한 뒤 다시 시도하세요.

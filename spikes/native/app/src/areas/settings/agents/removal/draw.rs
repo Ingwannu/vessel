@@ -8,7 +8,7 @@ use vessel_app_kit::{
     ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize,
     Tokens, assets::Glyph, button_control, menu as menus,
 };
-use vessel_app_view::agent_status::{pages::Operation, removal::can_remove};
+use vessel_app_view::agent_status::removal::{can_remove, is_removing};
 const MENU_WIDTH: f32 = 220.0;
 pub(in crate::areas::settings::agents) fn trigger(
     agent: &HarnessRef,
@@ -27,7 +27,12 @@ pub(in crate::areas::settings::agents) fn trigger(
     let anchor = Rc::clone(state.anchors.borrow_mut().entry(key.clone()).or_default());
     let node = inventory.node;
     let target = agent.clone();
-    let pending=super::super::page(shell).and_then(|page|page.pending()).is_some_and(|pending|matches!(&pending.operation,Operation::Remove {name,..} if *agent==HarnessRef::Added(name.clone())));
+    let pending = is_removing(
+        agent,
+        super::super::page(shell)
+            .and_then(|page| page.pending())
+            .map(|pending| &pending.operation),
+    );
     let availability = if pending {
         ButtonState::Disabled
     } else {
@@ -135,7 +140,7 @@ pub(in crate::areas::settings::agents) fn dialog(
     Some(vessel_app_kit::dialog(
         &state.dialog,
         DialogContent {
-            title: words.remove_title(&target.label).into(),
+            title: target.title.borrow().clone(),
             body: div().child(words.remove_help()).into_any_element(),
             footer,
             size: DialogSize::Normal,
@@ -151,15 +156,19 @@ pub(in crate::areas::settings::agents) fn notice(
     shell: &Shell,
     tokens: &Tokens,
 ) -> Option<AnyElement> {
-    let error = shell.areas.settings.agents.removal.problem.as_ref()?;
+    let state = &shell.areas.settings.agents.removal;
+    let words = shell.words.agent_catalog();
+    let notice =
+        vessel_app_view::agent_status::removal::notice(state.problem, state.word_error.as_ref())?;
+    let message = words.removal_notice(notice);
     Some(
         vessel_app_kit::alert::alert(
             vessel_app_kit::alert::Content {
-                title: Some(shell.words.agent_catalog().removal_refused(*error).into()),
+                title: Some(message.into()),
                 description: None,
                 action: None,
             },
-            vessel_app_kit::alert::Variant::Warning,
+            crate::badge::alert_variant(notice.variant()),
             vessel_app_kit::alert::Size::Small,
             tokens,
         )

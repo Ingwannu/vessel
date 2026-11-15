@@ -5,17 +5,16 @@ use vessel_app_kit::{
     ButtonConfig, ButtonContent, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize,
     Tokens, Type, TypeExt as _, button_control, dialog as modal, theme::spacing,
 };
-use vessel_app_view::agent_status::pages::{Operation, RemovalFreshness};
+use vessel_app_view::agent_status::{
+    addition::{self, Control},
+    pages::Operation,
+};
 
 pub(in crate::areas::settings::agents) fn notice(shell: &Shell, tokens: &Tokens) -> Option<Div> {
     let state = &shell.areas.settings.agents.addition;
     let words = shell.words.agent_catalog();
     if let Some(error) = &state.refused {
-        return Some(alert(
-            words.form_problem(error),
-            vessel_app_view::alert::Variant::Error,
-            tokens,
-        ));
+        return Some(alert(words.form_problem(error), error.variant(), tokens));
     }
     if state.form.is_none()
         && let Some(issue) = page(shell)
@@ -81,7 +80,7 @@ fn body(
     if let Some(invalid) = &form.invalid {
         body = body.child(alert(
             words.form_problem(invalid),
-            vessel_app_view::alert::Variant::Error,
+            invalid.variant(),
             tokens,
         ));
     }
@@ -191,10 +190,7 @@ fn footer(
 ) -> Vec<AnyElement> {
     let words = shell.words.agent_catalog();
     let pending = matches!(form.phase, Phase::Sending(_));
-    let can_send = !pending
-        && page(shell).is_some_and(|page| {
-            page.pending().is_none() && page.removal_freshness() == RemovalFreshness::Current
-        });
+    let can_send = !pending && addition::command_control(page(shell)) == Control::Ready;
     let origin = Rc::clone(&form.intent);
     let submit = Rc::clone(&form.intent);
     let sizing = ControlSizing::from_compact(compact);

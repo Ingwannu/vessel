@@ -318,3 +318,27 @@ fn a_reused_book_name_does_not_redirect_confirmation_or_acknowledgement() {
     ));
     assert!(pages.removed(&machine(), request.ticket, request.node, &request.name));
 }
+
+#[test]
+fn a_removal_only_disables_its_exact_added_agent_action() {
+    let node = inventory().node;
+    let target = agent();
+    let operation = Operation::Remove {
+        node,
+        name: "custom".parse().unwrap(),
+    };
+    assert!(!is_removing(&target, None));
+    assert!(!is_removing(&target, Some(&Operation::Discovery)));
+    assert!(is_removing(
+        &HarnessRef::Added("custom".parse().unwrap()),
+        Some(&operation)
+    ));
+    assert!(!is_removing(
+        &HarnessRef::Added("sibling".parse().unwrap()),
+        Some(&operation)
+    ));
+    assert!(!is_removing(
+        &HarnessRef::Known(HarnessKind::Codex),
+        Some(&operation)
+    ));
+}

@@ -24,6 +24,7 @@ struct Decision {
     node: NodeId,
     agent: HarnessRef,
     label: String,
+    title: RefCell<vessel_app_kit::ui::SharedString>,
     confirmation: RefCell<Option<Confirmation>>,
 }
 pub(super) struct State {
@@ -33,6 +34,7 @@ pub(super) struct State {
     dialog: DialogState,
     confirmation: Option<Rc<Decision>>,
     problem: Option<Refused>,
+    word_error: Option<vessel_app_view::localization::FormatError>,
     restore: Cell<bool>,
 }
 impl State {
@@ -44,6 +46,7 @@ impl State {
             dialog: DialogState::new(cx),
             confirmation: None,
             problem: None,
+            word_error: None,
             restore: Cell::new(false),
         }
     }
@@ -55,6 +58,7 @@ impl State {
             self.restore.set(true);
         }
         self.problem = None;
+        self.word_error = None;
     }
 }
 impl Shell {
@@ -87,15 +91,27 @@ impl Shell {
                 else {
                     return;
                 };
+                let label = vessel_app_view::agent_status::agent_label(agent, &inventory.agents);
+                let title = match self.words.agent_catalog().remove_title(&label) {
+                    Ok(title) => title,
+                    Err(error) => {
+                        tracing::warn!(%error,"provider confirmation words could not be prepared");
+                        state.removal.word_error = Some(error);
+                        cx.notify();
+                        return;
+                    }
+                };
                 let decision = Rc::new(Decision {
                     machine: machine.clone(),
                     node,
                     agent: agent.clone(),
-                    label: vessel_app_view::agent_status::agent_label(agent, &inventory.agents),
+                    label,
+                    title: RefCell::new(title.into()),
                     confirmation: RefCell::new(Some(confirmation)),
                 });
                 state.removal.target = Some(decision);
                 state.removal.problem = None;
+                state.removal.word_error = None;
                 state.removal.menu.open_end(bounds, window, cx);
             }
             Err(problem) => state.removal.problem = Some(problem),
@@ -176,4 +192,23 @@ impl Shell {
         }
         cx.notify();
     }
+}
+
+// Reword the retained decision at the same language boundary as other dialogs.
+// A failed formatter cancels the local confirmation, never the remote machine.
+pub(super) fn refresh_words(shell: &mut Shell, _window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let words = shell.words.agent_catalog();
+    let state = &mut shell.areas.settings.agents.removal;
+    let Some(target) = state.target.as_ref() else {
+        return;
+    };
+    match words.remove_title(&target.label) {
+        Ok(title) => *target.title.borrow_mut() = title.into(),
+        Err(error) => {
+            tracing::warn!(%error,"provider confirmation words could not be refreshed");
+            state.reset();
+            state.word_error = Some(error);
+        }
+    }
+    cx.notify();
 }

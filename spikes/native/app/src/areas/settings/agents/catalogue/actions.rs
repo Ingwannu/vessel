@@ -4,8 +4,9 @@ use vessel_app_kit::{
 };
 use vessel_app_link::agents::{Ask, CatalogueFetch};
 use vessel_app_view::agent_status::{
+    addition::{self, Control},
     catalogue::Read,
-    pages::{MachineKey, RemovalFreshness},
+    pages::MachineKey,
 };
 impl Shell {
     pub(in crate::areas::settings::agents) fn agent_catalogue(
@@ -86,9 +87,7 @@ pub(super) fn command(
 ) -> AnyElement {
     let scope = shell.areas.settings.agents.machine.clone();
     let page = super::super::page(shell);
-    let ready = page.is_some_and(|page| {
-        page.pending().is_none() && page.removal_freshness() == RemovalFreshness::Current
-    });
+    let ready = addition::command_control(page) == Control::Ready;
     button_control(
         "provider-add-command",
         ButtonContent::Label(shell.words.agent_catalog().command_add().into()),

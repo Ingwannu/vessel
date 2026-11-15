@@ -98,3 +98,14 @@ impl<'a> AgentCatalog<'a> {
         }
     }
 }
+
+impl<'a> AgentCatalog<'a> {
+    /// The same typed notice chooses this whole sentence and its alert tone.
+    #[must_use]
+    pub fn removal_notice(self, notice: crate::agent_status::removal::Notice) -> &'a str {
+        match notice {
+            crate::agent_status::removal::Notice::Words => self.remove_words_failed(),
+            crate::agent_status::removal::Notice::Refused(problem) => self.removal_refused(problem),
+        }
+    }
+}

@@ -58,6 +58,7 @@ const PLACEHOLDERS: &[RefreshWords] = &[
     },
     |shell, window, cx| shell.refresh_find_words(window, cx),
     Shell::refresh_question_words,
+    Shell::refresh_agent_words,
     |shell, window, cx| shell.refresh_queue_words(window, cx),
     |shell, window, cx| shell.refresh_project_words(window, cx),
 ];

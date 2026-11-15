@@ -24,15 +24,7 @@ impl State {
                 machine,
                 request,
                 ask,
-            } => {
-                let client = self
-                    .clients
-                    .get(machine.as_str())
-                    .map(|connected| connected.client.clone());
-                self.agents
-                    .ask(client, machine, request, ask, self.events.clone())
-                    .await;
-            }
+            } => self.request_agents(machine, request, ask).await,
 
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,

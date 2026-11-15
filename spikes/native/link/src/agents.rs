@@ -251,3 +251,23 @@ impl AgentsError {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod testing;
+
+// Keep the real actor's owned Agents forwarding arm cohesive as its command
+// union grows. This is the former dispatch block, with no lookup/effect change.
+#[cfg(not(target_arch = "wasm32"))]
+impl crate::State {
+    pub(super) async fn request_agents(
+        &mut self,
+        machine: MachineKey,
+        request: vessel_proto::RequestId,
+        ask: Ask,
+    ) {
+        let client = self
+            .clients
+            .get(machine.as_str())
+            .map(|connected| connected.client.clone());
+        self.agents
+            .ask(client, machine, request, ask, self.events.clone())
+            .await;
+    }
+}

@@ -201,10 +201,13 @@ fn every_local_removal_refusal_names_a_real_recovery_control() {
         assert_eq!(ko.removal_refused(problem), korean);
     }
     assert_eq!(
-        en.remove_title("A long provider"),
-        "Remove A long provider?"
+        en.remove_title("A long provider").unwrap(),
+        "Remove \u{2068}A long provider\u{2069}?"
     );
-    assert_eq!(ko.remove_title("긴 프로바이더"), "긴 프로바이더 제거");
+    assert_eq!(
+        ko.remove_title("긴 프로바이더").unwrap(),
+        "\u{2068}긴 프로바이더\u{2069} 제거"
+    );
     assert_eq!(
         en.remove_help(),
         "This removes the added agent definition from this machine. It cannot be undone."
@@ -213,4 +216,98 @@ fn every_local_removal_refusal_names_a_real_recovery_control() {
         ko.remove_help(),
         "이 머신에 추가된 에이전트 정의를 제거합니다. 되돌릴 수 없습니다."
     );
+}
+
+#[test]
+fn a_format_failure_is_one_complete_error_and_never_a_partial_confirmation() {
+    use crate::agent_status::removal::{self, Notice};
+    let en = Translator::get(ENGLISH).unwrap().agent_catalog();
+    let ko = Translator::get(resolve_language(
+        LanguagePreference::System,
+        Some("ko"),
+        None,
+    ))
+    .unwrap()
+    .agent_catalog();
+    let error = crate::localization::FormatError::Missing("agent-catalog-remove-title");
+    assert_eq!(
+        removal::notice(Some(removal::Refused::Unavailable), Some(&error)),
+        Some(Notice::Words)
+    );
+    assert_eq!(removal::notice(None, None), None);
+    assert_eq!(
+        en.removal_notice(Notice::Words),
+        "Could not prepare the removal confirmation. Change the app language, then try again."
+    );
+    assert_eq!(
+        ko.removal_notice(Notice::Words),
+        "제거 확인 창의 문구를 준비하지 못했습니다. 앱 언어를 변경한 뒤 다시 시도하세요."
+    );
+    assert_eq!(Notice::Words.variant(), crate::alert::Variant::Error);
+    assert_eq!(
+        Notice::Refused(removal::Refused::Request(StartProblem::Exhausted)).variant(),
+        crate::alert::Variant::Error
+    );
+    for problem in [
+        removal::Refused::RefreshRequired,
+        removal::Refused::Unavailable,
+        removal::Refused::MachineChanged,
+        removal::Refused::NodeChanged,
+        removal::Refused::DefinitionChanged,
+        removal::Refused::Request(StartProblem::Busy),
+        removal::Refused::Request(StartProblem::Capacity),
+    ] {
+        assert_eq!(
+            Notice::Refused(problem).variant(),
+            crate::alert::Variant::Warning
+        );
+    }
+}
+#[test]
+fn form_validation_tones_distinguish_fields_from_context_and_capacity() {
+    let name = "has spaces"
+        .parse::<vessel_proto::agents::AgentName>()
+        .unwrap_err();
+    let program = ""
+        .parse::<vessel_proto::agents::AgentProgram>()
+        .unwrap_err();
+    for problem in [
+        Refused::Name(name),
+        Refused::Taken,
+        Refused::Program(program),
+        Refused::Request(StartProblem::Exhausted),
+    ] {
+        assert_eq!(problem.variant(), crate::alert::Variant::Error);
+    }
+    for problem in [
+        Refused::Unavailable,
+        Refused::Changed,
+        Refused::MachineChanged,
+        Refused::Request(StartProblem::Busy),
+        Refused::Request(StartProblem::Capacity),
+    ] {
+        assert_eq!(problem.variant(), crate::alert::Variant::Warning);
+    }
+}
+
+#[test]
+fn the_same_retained_name_rewords_as_a_whole_confirmation_without_changing_it() {
+    let en = Translator::get(ENGLISH).unwrap().agent_catalog();
+    let ko = Translator::get(resolve_language(
+        LanguagePreference::System,
+        Some("ko"),
+        None,
+    ))
+    .unwrap()
+    .agent_catalog();
+    let name = "Research · 한글";
+    assert_eq!(
+        en.remove_title(name).unwrap(),
+        "Remove \u{2068}Research · 한글\u{2069}?"
+    );
+    assert_eq!(
+        ko.remove_title(name).unwrap(),
+        "\u{2068}Research · 한글\u{2069} 제거"
+    );
+    assert_eq!(name, "Research · 한글");
 }

@@ -57,6 +57,24 @@ pub enum Refused {
     #[error(transparent)]
     Request(#[from] StartProblem),
 }
+impl Refused {
+    /// Invalid fields fail; changed context/busy state asks for renewed intent.
+    #[must_use]
+    pub const fn variant(&self) -> crate::alert::Variant {
+        match self {
+            Self::Name(_)
+            | Self::Taken
+            | Self::Program(_)
+            | Self::Request(StartProblem::Exhausted) => crate::alert::Variant::Error,
+            Self::MachineChanged
+            | Self::Unavailable
+            | Self::Changed
+            | Self::Request(StartProblem::Busy | StartProblem::Capacity) => {
+                crate::alert::Variant::Warning
+            }
+        }
+    }
+}
 /// A validated call and its already reserved page ticket. No public constructor.
 #[derive(Debug)]
 #[must_use = "dispatch this addition or settle its pending ticket"]
@@ -292,4 +310,38 @@ impl Failure {
 #[must_use]
 pub fn suggested_name(entry: &CatalogueEntry) -> Option<vessel_proto::agents::AgentName> {
     entry.id.as_str().parse().ok()
+}
+
+/// Shared command/tile admission presentation; actual submit rechecks intent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Control {
+    /// Current administrable definitions and no page operation.
+    Ready,
+    /// Another operation or an unconfirmed snapshot prevents dispatch.
+    Disabled,
+    /// This exact pinned registry entry is currently being recorded.
+    Adding,
+}
+/// Manual Add and form submit derive availability from the same page facts.
+#[must_use]
+pub fn command_control<E>(page: Option<&super::pages::Page<E>>) -> Control {
+    if page.is_some_and(|page| {
+        page.pending().is_none()
+            && page.removal_freshness() == RemovalFreshness::Current
+            && page
+                .inventory()
+                .is_some_and(|inventory| inventory.administration == Administration::Supported)
+    }) {
+        Control::Ready
+    } else {
+        Control::Disabled
+    }
+}
+/// A spinner labels only the exact id/version in the still-pending Add call.
+#[must_use]
+pub fn registry_control<E>(
+    page: Option<&super::pages::Page<E>>,
+    entry: &CatalogueEntry,
+) -> Control {
+    if page.and_then(|page|page.pending()).is_some_and(|pending|matches!(&pending.operation,Operation::Add{call,..} if matches!(&call.agent,AgentToAdd::Registry{id,version,..} if *id==entry.id && *version==entry.version))) {Control::Adding}else {command_control(page)}
 }

@@ -40,7 +40,7 @@ words! {
     options_loading, "Defaults card while probing; explains the agent startup. No values.", "Reading the agent's choices. This starts it once; no message is sent.", "에이전트를 한 번 실행해 선택값을 읽습니다. 메시지는 보내지 않습니다.";
     status_unread, "Details when the machine did not return cached status; check action follows. No values.", "The machine has not reported this agent’s status yet.", "머신이 아직 이 에이전트의 상태를 알려주지 않았습니다.";
     error_detail, "Attribution above raw node or transport diagnostics; keep short. No values.", "Details from the machine or connection", "머신 또는 연결의 상세 정보";
-    call_failed, "Inline call failure; its separately attributed diagnostic follows. No values.", "The machine could not complete this action. See its message below.", "머신에서 이 작업을 완료하지 못했습니다. 아래의 머신 메시지를 확인하세요.";
+    call_failed, "Inline call failure; original diagnostics are retained in a tooltip. No values.", "The machine could not complete this action.", "머신에서 이 작업을 완료하지 못했습니다.";
     disconnected, "Inline operation failure for a disconnected machine. No values.", "The machine is not connected. Connect it, then try again.", "머신에 연결되지 않았습니다. 연결한 뒤 다시 시도하세요.";
     busy, "Inline operation failure when all request slots are occupied. No values.", "Settings is busy. Try again when the current operation finishes.", "설정 작업이 진행 중입니다. 현재 작업이 끝난 뒤 다시 시도하세요.";
     no_transport, "Inline operation failure in the browser without a node transport. No values.", "This browser cannot connect to a machine yet.", "이 브라우저에서는 아직 머신에 연결할 수 없습니다.";

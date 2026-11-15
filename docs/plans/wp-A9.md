@@ -453,3 +453,31 @@ assertions and replace the obsolete65 rejection with literal65/67/256 acceptance
 and257 rejection. No product limit or assertion is weakened to mask a failure.
 Corrected current-source runtime remains owed; neither this red run nor the
 new consumer's queued Clippy is a whole A9 or current-feature pass.
+
+
+### First consumer compilation correction batch
+
+The exact cbb Clippy returned RED before App: the root command dispatcher
+crossed its100-line lint, one memory-test future crossed16KiB, and the fixture's
+root Call catch-all violated the wildcard enum lint. Move only the existing
+Agents forwarding block into its cohesive module (same real root caller and
+lookup/effects), box that test's safety future, and use a method-specific fixture
+whitelist. Read and Add refusal/wait modes are now distinct: an unexpected write
+cannot satisfy a registry error test. Every unexpected method still fails.
+No lint exception, product timeout, request bound or assertion was weakened.
+
+The5845 runtime then stopped at compilation: generated dynamic Fluent messages
+return Result, not String. Retain preparation failure as typed FormatError;
+prepare a confirmation title at its input event and cache only the resolved
+string. Do not format it in Render or discard its error. A failed preparation
+shows one whole translated local error and never creates a confirmation or write.
+Language changes reword that retained decision and update Add placeholders without
+replacing editors, input, focus or intent. The only non-area app registration is
+Shell::refresh_agent_words in language.rs's existing placeholder refresh list.
+
+View also owns Add control admission/pinned-entry progress, removal action busy
+state and notice tones; the app passes their typed result to shared controls.
+Whole translation/tone cases cover local refusal and formatting failure. Generic
+operation failure no longer promises a machine message “below”: original prose
+is retained only in the diagnostic tooltip, so that earlier sentence was false.
+These corrections require a new exact changed-head narrow; old reds remain red.

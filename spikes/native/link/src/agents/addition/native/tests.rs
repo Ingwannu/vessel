@@ -26,7 +26,7 @@ fn target(peer: &Peer) -> Result<Addition, Box<dyn std::error::Error>> {
 }
 #[tokio::test]
 async fn hub_add_echoes_route_ticket_and_actual_identity_without_discovery_or_install() {
-    safety(async {
+    Box::pin(safety(async {
         let mut peer=Peer::new(vessel_proto::PROTOCOL_VERSION,Mode::Add).await;
         let expected=target(&peer).unwrap();let node=expected.node;let call=expected.call.clone();
         let machine=MachineKey::from_book("original-add-route");let ticket=RequestId::ZERO.next().unwrap();
@@ -38,7 +38,7 @@ async fn hub_add_echoes_route_ticket_and_actual_identity_without_discovery_or_in
         peer.barrier().await;
         assert!(matches!(phase("addition ordered barrier",peer.seen.recv()).await,Some(Call::NodeInfo(_))));
         assert!(matches!(peer.seen.try_recv(),Err(mpsc::error::TryRecvError::Empty)));
-    }).await;
+    })).await;
 }
 #[tokio::test]
 async fn changed_node_and_older_protocol_emit_no_add_frame() {
@@ -86,7 +86,7 @@ async fn wire_refusals_keep_the_original_code_and_distinguish_uncertain_writes()
             (ErrorCode::Unavailable, Failure::Unknown),
             (ErrorCode::Internal, Failure::Unknown),
         ] {
-            let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::Refuse(code)).await;
+            let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::RefuseAdd(code)).await;
             let error = phase(
                 "addition node refusal",
                 add(&peer.client, target(&peer).unwrap()),
@@ -129,7 +129,7 @@ async fn wire_refusals_keep_the_original_code_and_distinguish_uncertain_writes()
 #[tokio::test(start_paused = true)]
 async fn deadline_ends_the_wait_and_never_replays_or_probes() {
     safety(async {
-        let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::Wait).await;
+        let mut peer = Peer::new(vessel_proto::PROTOCOL_VERSION, Mode::WaitAdd).await;
         let client = peer.client.clone();
         let request = target(&peer).unwrap();
         let task = tokio::spawn(async move { add(&client, request).await });

@@ -1,6 +1,6 @@
-//! A finite registry-only peer; real client admission and ordered read barriers.
-//! The peer refuses every mutation rather than sharing an Ack responder that
-//! could silently accept an accidental install/add during a catalog read.
+//! Finite method-specific peers; real admission and ordered read barriers.
+//! Read and write refusal/wait modes remain separate so a wrong-method
+//! mutation cannot satisfy a catalogue failure/deadline assertion.
 use std::{
     future::{Future, poll_fn},
     num::NonZeroUsize,
@@ -52,8 +52,10 @@ impl Drop for Abort {
 #[derive(Clone, Copy)]
 pub(in crate::agents) enum Mode {
     Catalogue,
-    Refuse(ErrorCode),
-    Wait,
+    RefuseCatalogue(ErrorCode),
+    WaitCatalogue,
+    RefuseAdd(ErrorCode),
+    WaitAdd,
     Add,
     WrongAdd,
 }
@@ -131,19 +133,29 @@ async fn serve(
         phase("registry peer observation", notice.send(call.clone()))
             .await
             .unwrap();
-        let outcome = match call {
-            Call::NodeInfo(_) => Outcome::Ok(Reply::NodeInfo(node.clone())),
-            Call::GetCatalogue(_) => match mode {
-                Mode::Catalogue => Outcome::Ok(Reply::GetCatalogue(Catalogue {
+        // This fixture owns a method whitelist, not a second copy of the
+        // entire root RPC table. Every unlisted call fails, including future
+        // methods; a read-mode refusal can never accept a write frame.
+        let outcome = if let Call::NodeInfo(_) = call {
+            Some(Outcome::Ok(Reply::NodeInfo(node.clone())))
+        } else if let Call::GetCatalogue(_) = call {
+            match mode {
+                Mode::Catalogue => Some(Outcome::Ok(Reply::GetCatalogue(Catalogue {
                     fetched_at: Some(chrono::DateTime::UNIX_EPOCH),
                     skipped: 1,
                     ..Catalogue::default()
-                })),
-                Mode::Refuse(code) => Outcome::Err(WireError::new(code, DIAGNOSTIC)),
-                Mode::Wait => continue,
-                Mode::Add | Mode::WrongAdd => panic!("addition peer received catalogue read"),
-            },
-            Call::AddAgent(call) => match mode {
+                }))),
+                Mode::RefuseCatalogue(code) => Some(Outcome::Err(WireError::new(code, DIAGNOSTIC))),
+                Mode::WaitCatalogue => None,
+                Mode::Add | Mode::WrongAdd | Mode::RefuseAdd(_) | Mode::WaitAdd => {
+                    panic!("an addition fixture received a catalogue read")
+                }
+            }
+        } else {
+            let Call::AddAgent(call) = call else {
+                panic!("unexpected registry fixture call: {call:?}")
+            };
+            match mode {
                 Mode::Add | Mode::WrongAdd => {
                     use vessel_proto::agents::{
                         AddedAgent, AgentDetail, AgentInfo, AgentSource, AgentToAdd,
@@ -154,7 +166,7 @@ async fn serve(
                             AgentSource::Registry { id, version }
                         }
                     };
-                    Outcome::Ok(Reply::AddAgent(AgentInfo {
+                    Some(Outcome::Ok(Reply::AddAgent(AgentInfo {
                         agent: vessel_proto::HarnessRef::Added(if matches!(mode, Mode::WrongAdd) {
                             "wrong-name".parse().unwrap()
                         } else {
@@ -172,15 +184,18 @@ async fn serve(
                                 source,
                             },
                         },
-                    }))
+                    })))
                 }
-                Mode::Refuse(code) => Outcome::Err(WireError::new(code, DIAGNOSTIC)),
-                Mode::Wait => continue,
-                Mode::Catalogue => panic!("a catalogue read sent an unauthorized mutation"),
-            },
-            other => panic!("unexpected registry fixture call: {other:?}"),
+                Mode::RefuseAdd(code) => Some(Outcome::Err(WireError::new(code, DIAGNOSTIC))),
+                Mode::WaitAdd => None,
+                Mode::Catalogue | Mode::RefuseCatalogue(_) | Mode::WaitCatalogue => {
+                    panic!("a catalogue fixture received an unauthorized mutation")
+                }
+            }
         };
-        send(&mut remote, ServerFrame::Response { id, outcome }).await;
+        if let Some(outcome) = outcome {
+            send(&mut remote, ServerFrame::Response { id, outcome }).await;
+        }
     }
 }
 impl Peer {
