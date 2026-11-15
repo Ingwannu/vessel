@@ -29,12 +29,16 @@
 //!   screen drops what does not match what it shows (each answer names
 //!   its root, path or project).
 
+#[cfg(not(target_arch = "wasm32"))]
+mod actor;
 mod answer;
 mod ask;
 mod calls;
 mod follow;
 mod pulls;
 mod run;
+mod script_host;
+mod scripts;
 mod start;
 
 use std::collections::HashMap;
@@ -50,6 +54,7 @@ use vessel_proto::ProjectId;
 pub use answer::{Answer, Form, GitWritten};
 pub use ask::{Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk};
 pub use pulls::{PullAnswer, PullAsk};
+pub use scripts::{ScriptAnswer, ScriptAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 
 use crate::Event;

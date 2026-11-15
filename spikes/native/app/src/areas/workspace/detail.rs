@@ -16,9 +16,9 @@ use vessel_app_link::workspace::{Ask, ProjectAsk, WorktreeAsk};
 use vessel_app_view::workspace::command_changes::{Listed, compare_approved};
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::{
-    ApproveCommands, CommandsDigest, DropSnapshot, GetProjectCommands, IfLost, ListWorktrees,
-    ProjectCommands, ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SetupState, Snapshot,
-    SnapshotList, WorktreeInfo, WorktreeList,
+    ApproveCommands, CommandsDigest, DropSnapshot, GetProjectCommands, IfLost, ProjectCommands,
+    ProjectInfo, RemoveWorktree, RemoveWorktreeOutcome, SetupState, Snapshot, SnapshotList,
+    WorktreeInfo, WorktreeList,
 };
 use vessel_proto::{ProjectId, WorktreeId};
 
@@ -85,26 +85,6 @@ impl Shell {
                     .as_ref()
                     .is_some_and(|removing| removing.worktree.id == worktree)
         })
-    }
-
-    /// Read the project's commands, worktrees and snapshots.
-    pub(super) fn load_detail(&self, machine: &str, project: &ProjectInfo) {
-        self.ask(
-            machine,
-            Ask::Project(ProjectAsk::Commands(GetProjectCommands {
-                project: project.id,
-                base: None,
-            })),
-        );
-        self.ask(
-            machine,
-            Ask::Worktree(WorktreeAsk::List(ListWorktrees {
-                project: Some(project.id),
-            })),
-        );
-        if project.git {
-            self.ask(machine, Ask::Worktree(WorktreeAsk::Snapshots(project.id)));
-        }
     }
 
     pub(super) fn project_commands(
@@ -430,6 +410,9 @@ pub(super) fn render(
         None,
         commands(shell, machine, project, detail, tokens, cx),
         tokens,
+    ));
+    column = column.child(super::scripts::render(
+        shell, machine, project.id, tokens, cx,
     ));
     if project.git {
         column = column.child(section(

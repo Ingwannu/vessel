@@ -44,9 +44,8 @@ is needed: typed wire calls, GPUI's browser opener and the existing kit suffice.
   healthy merely because it runs. There is no health probe on this base.
 - Only listeners attributed to this project's script terminal IDs are listed. Port scan
   pending/unavailable/truncated are explicit. No guessed or unrelated process port.
-- Browser preview requires an explicitly supplied HTTP origin; remote loopback or relay
-  routes are never silently redirected to the desktop's localhost. Unknown reachability
-  is a visible refusal. No proxy, credentials or tunnel is created by this package.
+- Browser preview uses a validated saved direct WebSocket host as a suggestion or an explicitly supplied host; remote loopback or relay
+  routes are never silently redirected to the desktop's localhost. Secure/relay/SSH hosts require an explicit host; a remote loopback socket is refused until the person supplies their tunnel host. No proxy, credentials or tunnel is created by this package.
 - Browser uses the operator's normal system browser/account after an explicit press;
   only an HTTP URL built from a validated host and nonzero discovered port is accepted.
   Windows/macOS/Linux use GPUI's opener; browser hosts use their platform opener.
@@ -58,3 +57,24 @@ preview reachability and IPv6, wire requests and refusals. Whole native gate and
 fake-fleet captures once at package end (A14), never the live preview or real agents.
 Node field integration must use ScriptEntryView with all fields named (no `..`), and
 show port changes in both current approval and last-approved comparison before handover.
+
+## Structure of the first working version
+
+`view::workspace::scripts` owns pure correlation, lifecycle mapping and preview
+validation. It reuses `git::Reading` / `RequestKeys` rather than duplicating their
+stale-open protection. `link::workspace::scripts` carries only existing protocol-11
+calls, bounded by one deadline with no automatic write retry. `script_host` reads
+only direct-host metadata from the existing book; raw errors and credentials stay
+at that file boundary. `workspace::actor` moves the prior workspace registration
+out of the shared link file, reducing its size. `detail_load` likewise isolates
+project opening from its already oversized presentation. No crate dependency changes.
+
+The service host field can override the direct suggestion (including a person's
+own local tunnel). The full computed HTTP URL is displayed before Open preview.
+The browser callback rechecks the latest terminal, exact listener, successful scan
+and ready read; a restart, failed refresh or different PID invalidates the old row.
+Service state is never called healthy. Running uses the kit's neutral badge, because
+this node has no health report and the shared badge has no running-specific variant.
+
+Entry access is isolated in `scripts::Entry`; Step 0 replaces it with the complete
+five-field `ScriptEntryView` and displays declared port separately from listeners.

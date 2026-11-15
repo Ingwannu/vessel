@@ -26,6 +26,7 @@ pub mod pull;
 pub mod reference;
 pub mod root;
 pub mod save;
+pub mod scripts;
 pub mod setup_log;
 pub mod size;
 pub mod start;

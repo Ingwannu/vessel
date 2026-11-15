@@ -41,6 +41,8 @@ pub enum GitWritten {
 /// What the node answered a workspace ask, with what was asked.
 #[derive(Debug)]
 pub enum Answer {
+    /// A correlated script read or lifecycle receipt.
+    Scripts(super::ScriptAnswer),
     /// The machine's projects.
     Projects(Result<ProjectList, Problem>),
     /// A project as it is now (a clone's progress, or its end).
@@ -246,6 +248,7 @@ impl Ask {
 /// The answer an ask gets when it could not be sent at all.
 pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
     match ask {
+        Ask::Scripts(ask) => Answer::Scripts(super::scripts::refused(ask, problem)),
         Ask::Project(ask) => project_refused(ask, problem),
         Ask::Worktree(ask) => worktree_refused(ask, problem),
         Ask::Git(ask) => git_refused(ask, problem),

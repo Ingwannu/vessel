@@ -1,0 +1,134 @@
+## Project detail: supervised scripts and observed listeners (WP-B1).
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-title = Scripts and services
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-refresh = Refresh
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-loading = Reading scripts…
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-empty = This project has no configured scripts or services.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-run = Run
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-restart = Restart
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-stop = Stop
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-preview = Open preview
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-host = Service host
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-host-hint = Enter the host your browser can reach; remote loopback ports may need your own tunnel.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-host-placeholder = localhost or a remote host
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-pending = Working…
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-idle = Not started
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-starting = Starting
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-running = Running
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-backoff = Waiting to restart
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-exited = Exited
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-failed = Failed
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-stopped = Stopped
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-unknown = Unknown state
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-ports = Discovered ports
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-no-ports = No listeners found for this run.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-scan-pending = The first port scan is pending.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-scan-failed = Port discovery is unavailable. Refresh to try again.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-scan-more = The node has more listeners than this list shows.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-approval = Review and approve this project’s current commands above before running scripts.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-read-failed = Scripts could not be read. Refresh to try again.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-call-failed = The request did not complete. Refresh before trying another action; a timed-out command may already have started.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-no-project = The run has no project.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-missing-script = The configured script no longer exists. Refresh the project.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-missing-dir = The configured working directory is unavailable.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-invalid-file = The project file is invalid; no script was started.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-already-running = The script is already running. Refresh to see it.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-refused = The node refused this action. Refresh the project.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-missing-host = Choose the service host before opening a preview.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-invalid-host = Use a DNS name or IP address without credentials, port or path.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-invalid-port = This listener has no usable TCP port.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-exhausted = Request identifiers are exhausted. Reopen the app.
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-script = Script
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-service = Service
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-root = Project root
+
+# Project scripts: short action/status, or complete explanatory notice.
+scripts-copy = Copy URL
+
+# Port row refusal for a remote loopback socket; a tunnel is operator-managed.
+scripts-remote-loopback = This listener is loopback-only on the remote machine. Set up a tunnel and enter its local host.
+# A preview callback must recheck its observed socket before opening the browser.
+scripts-stale = Refresh this listener before opening a preview.
+# Keep old supervised processes accessible after their configuration is removed.
+scripts-retained = Runs no longer in the project file

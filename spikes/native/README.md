@@ -997,3 +997,24 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Per-project scripts and previews (WP-B1)
+
+Settings › Projects › a project shows its configured scripts/services and latest
+supervised runs. Review the exact commands in the existing approval card before
+Run. Restart and Stop address the current terminal; the node owns supervision,
+so closing the detail or app leaves services running. A timed-out mutation is
+never retried automatically: refresh and inspect its state before acting again.
+
+The visible detail refreshes every two seconds. Discovered TCP listeners come
+from `port.list` and are matched to the exact live script terminal. Pending,
+unavailable and truncated scans are explicit. A declared service port is not
+proof of a listening socket or health. Old runs remain reachable when the file
+entry is removed or invalid.
+
+Open preview displays an HTTP URL and opens the system browser. A saved direct
+WebSocket route can suggest its host; secure/relay/SSH routes require the Service
+host field. A remote loopback listener needs an operator-managed tunnel and its
+explicit local host. The app creates no tunnel or proxy and sends no node token
+to the browser. The preview callback rechecks the current observed socket.
+See `docs/plans/wp-b1.md` for the Paseo references and intentional differences.

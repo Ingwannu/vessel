@@ -12,10 +12,12 @@ mod approval;
 mod book;
 mod code;
 mod detail;
+mod detail_load;
 mod place;
 mod place_rows;
 mod projects;
 mod remove;
+mod scripts;
 mod sidebar;
 mod start_card;
 mod start_header;
@@ -42,6 +44,8 @@ use crate::shell::Shell;
 
 /// Every workspace screen's state.
 pub(crate) struct Workspace {
+    /// Supervised per-project scripts, with lifetime-long request correlation.
+    scripts: scripts::Scripts,
     /// Each machine's projects as last read, by machine.
     pub(crate) projects: HashMap<String, ProjectsView>,
     /// Settings > Projects.
@@ -63,6 +67,7 @@ impl Workspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             projects: HashMap::new(),
+            scripts: scripts::Scripts::new(window, cx),
             page: projects::Page::new(window, cx),
             place: place::DraftPlace::new(window, cx),
             start: None,
@@ -124,6 +129,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) -> bool {
         match answer {
+            Answer::Scripts(answer) => self.scripts_answer(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
                     .areas

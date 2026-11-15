@@ -21,7 +21,7 @@ use vessel_app_view::workspace::words::AddForm;
 use vessel_proto::ProjectId;
 use vessel_proto::workspace::{AddProject, CloneProject, InitProject, ProjectInfo, ProjectState};
 
-use super::detail::{self, Detail};
+use super::detail;
 use super::widgets::{Tone, badge, banner, divided, empty, row, rows, section, title};
 use crate::shell::Shell;
 
@@ -224,23 +224,6 @@ impl Shell {
                     Some(words.not_removed(&name, &words.problem(&problem)));
             }
         }
-    }
-
-    fn open_project(&mut self, project: &ProjectInfo, cx: &mut Context<'_, Self>) {
-        let page = &mut self.areas.workspace.page;
-        if page
-            .detail
-            .as_ref()
-            .is_some_and(|open| open.project == project.id)
-        {
-            page.detail = None;
-        } else {
-            page.detail = Some(Detail::new(project.id));
-            if let Some(machine) = self.projects_machine() {
-                self.load_detail(&machine, project);
-            }
-        }
-        cx.notify();
     }
 }
 
