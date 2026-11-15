@@ -93,7 +93,7 @@ pub enum Link {
 #[must_use]
 pub fn classify(value: &str, origin: Origin, workspace: Workspace) -> Option<Link> {
     let value = value.trim();
-    if let Ok(url) = value.parse::<HttpUrl>() {
+    if let Some(url) = http_url(value) {
         return Some(Link::External(url));
     }
     let target = parse_file(value, origin)?;
@@ -108,6 +108,22 @@ pub fn classify(value: &str, origin: Origin, workspace: Workspace) -> Option<Lin
         Some(Link::Lookup(target))
     } else {
         Some(Link::File(target))
+    }
+}
+
+fn http_url(value: &str) -> Option<HttpUrl> {
+    let (scheme, rest) = value.split_once("://")?;
+    let normalized = if scheme.eq_ignore_ascii_case("http") {
+        "http"
+    } else if scheme.eq_ignore_ascii_case("https") {
+        "https"
+    } else {
+        return None;
+    };
+    if scheme == normalized {
+        value.parse().ok()
+    } else {
+        format!("{normalized}://{rest}").parse().ok()
     }
 }
 

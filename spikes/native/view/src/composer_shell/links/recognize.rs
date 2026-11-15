@@ -2,7 +2,6 @@
 //! Whole inline code is classified once; prose scans only bounded path-shaped words.
 
 use std::ops::Range;
-use vessel_proto::HttpUrl;
 
 use super::{EXTENSIONS, Origin, Workspace, classify};
 
@@ -50,7 +49,7 @@ pub fn tokens(text: &str, kind: Kind) -> Vec<Token> {
             };
             let candidate = candidate.trim_end_matches('.');
             let end = begin.saturating_add(candidate.len());
-            if candidate.parse::<HttpUrl>().is_ok() || prose_path(candidate) {
+            if super::http_url(candidate).is_some() || prose_path(candidate) {
                 result.push(Token { range: begin..end });
             }
         }
