@@ -1447,3 +1447,13 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+The shared CLI presentation boundary is described in
+[W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
+default listing and accepts explicit JSON/YAML, quiet and headerless output.
+
+`vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
+report over that node's existing authenticated connection. It is served from
+protocol 24 on. Against an older peer the command refuses before sending, so no
+local report stands in for the selected node.
+The command's safe error output omits private connection/source details.

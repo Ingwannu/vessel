@@ -1631,12 +1631,17 @@ It adds no crate edge or dependency; consumers remove its test gate when wiring
 real product callers. Payload-bearing Debug is redacted and no audio file is
 created by the codec.
 
-The staged node `connection_life` primitive owns an opaque Arc identity and
-context-lifetime close/drop signal. It contains no quota, presence id, transport
-or worker. The real connection setup will own one instance and acting-as contexts
-will clone it; resources retain only its identity/close observer and observe
-transport closure as well. Dictation, spoken conversation and later resources
-consume that connection accessor rather than creating another ownership key.
+The node `connection_life` primitive owns an opaque Arc identity and a close
+observer. It contains no quota, presence id, transport or worker. Every
+connection's context (`service::Connection`) makes one when the connection
+opens, over the transport's own closing token (`vessel_rpc::Outbound::closing_token`),
+and acting-as contexts clone it. The observer fires when the transport is closing
+or when the last context goes away, whichever comes first, so a call still
+running in the close grace does not keep it open. Resources reach it through
+`Connection::life()` and retain only `owner()` and `closed()`. Workspace preview,
+dictation, spoken conversation and later resources use this accessor rather than
+creating another ownership key. Until the first of them reads it, the non-test
+build expects the accessor to be unused; that consumer removes the expectation.
 
 ### Process observation boundary
 
@@ -1660,6 +1665,129 @@ The field does not enter SessionSpec, user messages, argv or environment.
 Reload orchestration and actual native override/restore transports are separate
 work; see docs/plans/provider-transient-context.md. No dependency edge changes.
 
+`vessel-proto::BookRouteId` is a client-minted, entry-scoped nonzero u32
+for the shared client-book model (ADR 0097). It is local data, not an RPC
+connection id or wire field; its lower-crate home lets the client and
+native view share it without a dependency between those layers. Checked
+allocation exposes exhaustion. This additive value changes no method,
+protocol version, book format or current consumer.
+
+The coordinator-approved local client-book appearance values live in
+vessel-proto::book_values (Label/EmptyLabel, Color, BadgePreference). They
+are copied from the exact source-reviewed pure move ccedd4860, without
+algorithm changes, tokens or locality inference. This lower boundary
+avoids a client/view dependency edge. It adds no RPC/method/version/TS,
+file format or storage limit behavior. E1 retains the native compatibility
+re-exports and consumer tests on its consuming branch; base6 itself never
+contained that unreleased hosts module.
+
+ManagedLocalAlias is the one pure reserved-name syntax in book_values.
+Client book destinations and native local-name wrappers use it without
+depending on each other. Only new mutation destinations are reserved;
+parsing this syntax grants no provenance or effect authority and changes
+no existing legacy book behavior. No writer/admission is added here.
+
+### Checked owned group cleanup
+
+Proc's additive Child::wait_checked distinguishes leader exit from the first
+owned group/job cleanup result. The immutable receipt or typed retained cause
+never retries a delayed numeric group id. Legacy wait and ProcessLifetime revocation remain compatible; neither an observer nor a stored
+PID supplies this receipt. Its accepted cleanup request does not assert every
+descendant's observed OS death (docs/plans/checked-process-cleanup.md).
+
+### Saved-settings diagnostic boundary
+
+The store's settings-file decoder owns safe parse diagnostics: only the file
+path, category and bounded path shape leave it; the raw serde cause is private.
+The node's startup recovery logger uses that diagnostic while retaining the
+existing set-aside behavior. It reuses serde_path_to_error already in the
+workspace; no workspace-crate edge changes (ADR 0038).
+
+### Independent workspace registry (ADR 0082, pending)
+
+`vessel-proto::registry` carries independent workspace identity, exact backing,
+lifecycle and atomic node/workspace/resource snapshots. Workspace and create
+operation ids are distinct UUID newtypes. No identity is inferred from cwd or a
+node-book alias. Existing project/worktree IO remains `workspace::WorkspaceRoot`.
+
+`vessel-store::registry` uses the existing writer savepoints and read pool. A
+single append migration retains descriptors, backing reservations, resource
+ownership/start leases and the global snapshot revision. Capacity reserves
+worst-case retained bytes before effects and never evicts ownership. Writer
+commit publishes a coalesced watch; readers hydrate descriptors and memberships
+in one transaction. `registry::write::{require_active,bump_revision}` is the
+in-transaction seam for catalog assignment extensions, not a second registry.
+
+`vessel-node::service::registry` handles person-only registry reads, bounded
+long-poll, rename and pin through the single pending method table. The separate
+create and lifecycle packages own actor launch and archive/recovery orchestration.
+Pre-spawn leases fence archive against late actor registration. Restoring is an
+exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
+create driver wires it; no unwired node service ships in this dependency. Project config,
+icons, editor integration and automatic archive remain separate incomplete work.
+No protocol number or full package acceptance follows from this architecture.
+
+### Settings writer lifetime
+
+The node settings owner retains an owned serialization guard in a tracked task
+through atomic file replacement and runtime application. RPC cancellation drops
+only the waiter. After connections finish, teardown closes settings mutation
+admission and joins admitted writers before the store closes (ADR 0064). This
+adds no crate edge, setting, format or wire method.
+
+## Bounded node diagnostics (ADR 0074)
+
+`vessel-proto::diagnostics` owns the validated report, closed section states,
+process values and named collection/output bounds. The canonical RPC table
+registers `node.diagnostics` as a Read-only unary call of protocol 24.
+A request to an older peer stops at the shared compatibility admission
+boundary before client transmission or server collection. Fleet forwarding is refused; direct
+authenticated agents retain their effective Read scope.
+
+The node composes facts from their existing owners: Store aggregates, runtime
+counts, immutable profile selection and cached readiness, relay watches, and
+`vessel-proc::self_process` for fixed bounded Linux metadata. It starts no
+agent, refreshes no provider and reads no arbitrary process, log or path.
+The node captures its monotonic startup clock before startup I/O and publishes
+listener state after successful binding. Sources have separate observation
+times; this is not an atomic snapshot of the whole machine.
+
+Collection capacity and shutdown tracking belong to retained leases. Each
+queued/running blocking job retains its lease after the response deadline or
+caller cancellation, so a timed-out request cannot bypass the resource bound
+or make shutdown overlook remaining work. Missing and timed-out sections are
+explicit. A bounded journal accepts only completed local call error codes and
+timestamps; canonical method shape excludes envelope duplication.
+
+`vessel-client` uses the existing connection, a named request deadline and the
+admitted node identity. The CLI renders typed fields into bounded text or JSON
+and prints safe error categories without private connection/source chains.
+Native rendering remains a separate consumer. Provider diagnostics belongs to
+its provider owner, while desktop logs/watchdogs belong to their lifecycle
+owners. This report deliberately excludes free log text, environment, endpoint
+addresses, keys, pairing links, private names/paths and version suffix text.
+
+The source assembly and authority/lifetime rules have real node and synthetic
+process regression fixtures. Package verification is recorded separately in
+its plan; a successful assigned-protocol request is not claimed before
+integration assigns the feature.
+
+## Retained project metadata admission
+
+The node's workspace projects own an opaque asynchronous admission hold shared
+by registration/removal and backing creation. Its semaphore bounds holders and
+waiters; the provisioner retains a clone through descriptor finalization.
+The existing worktree creator accepts the caller's reserved identity only through
+the admitted Skip path, with in-flight duplicate exclusion. This adds no crate
+edge, wire call or second registry. It does not attest config approval, physical
+root continuity or process lifetime; see `docs/plans/project-admission.md`.
+
+Standalone tool body values live in vessel-proto::timeline: a closed eleven-kind
+ToolCallDetail vocabulary, validated display identities and measurement units.
+The portable body kernel has no event/RPC attachment or execution path; native
+renderers borrow it without creating a competing provider model. No dependency
+edge changes. See docs/plans/timeline-body-values.md for exact source provenance
+and pending consumer-adoption checks.
 
 ## Page feedback and modal ownership
 
