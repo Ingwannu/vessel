@@ -1,6 +1,7 @@
 # ADR 0084: Canonical timeline and identified prompt delivery
 
-Status: proposed, 2026-11-15. Contract first; no implementation is claimed.
+Status: accepted, 2026-11-15 (contract review). Value types are staged;
+provider, session, store and call activation remain unimplemented.
 Protocol and store schema numbers are assigned at integration. This decision
 keeps `PROTOCOL_VERSION` unchanged. The companion plan is
 `docs/plans/wp-timeline-node.md`.
@@ -187,18 +188,16 @@ receipt map/files and async record map. They bound logical retained state;
 SQLite page/WAL overhead remains subject to the existing store lifecycle and
 is not claimed to equal the logical byte charge.
 
-| Named budget | Proposed fixed limit | What consumes it |
-| --- | --- | --- |
-| `MAX_SESSION_ADMISSIONS` | 8192 records | Every receipt and every source question identity retained for one session, including settled and uncertain records |
-| `MAX_NODE_ADMISSIONS` | 131072 records | The same records across all retained sessions |
-| `MAX_SESSION_ADMISSION_BYTES` | 16 MiB | Reserved maximum encoded state plus per-record charge for one session |
-| `MAX_NODE_ADMISSION_BYTES` | 256 MiB | Reserved maximum encoded state plus per-record charge across retained sessions |
-| `MAX_RECEIPT_STATE_BYTES` | 4 KiB | One receipt's key, fingerprint, creator and largest accepted result |
-| `MAX_QUESTION_STATE_BYTES` | 512 KiB | One question, stable source identity and all answer/admission/resolution fields |
-| `ADMISSION_ROW_CHARGE_BYTES` | 512 bytes | Additional logical accounting per record for fixed metadata |
-
-The constants are defined once beside the value types in the implementation;
-this table names the contract values until those definitions land. Limits are
+The canonical definitions are in
+`crates/vessel-proto/src/timeline/admission.rs`: `MAX_SESSION_ADMISSIONS`,
+`MAX_NODE_ADMISSIONS`, `MAX_SESSION_ADMISSION_BYTES`,
+`MAX_NODE_ADMISSION_BYTES`, `MAX_RECEIPT_STATE_BYTES`,
+`MAX_QUESTION_STATE_BYTES`, and `ADMISSION_ROW_CHARGE_BYTES`.
+Every receipt and source question identity consumes its session and node
+record budgets; each reserves its complete type envelope plus row charge.
+Settled and uncertain records still consume their reservation. The definitions
+carry the accepted contract values and are the sole source for implementation,
+error messages and tests. Limits are
 not settings and an untrusted caller cannot raise them. Input decoders refuse
 a record which cannot fit its per-record envelope before admission. Receipt
 fingerprints are fixed-size; the stored receipt never retains prompt content.
@@ -286,7 +285,9 @@ Differences from Paseo are explicit: SQLite receipts instead of individual JSON
 files, no compatibility with Paseo's disk layout; typed named errors instead
 of opaque objects; durable shared queue instead of its device-local human
 queue; typed refusals rather than ignoring unknown edits; bounded plugin data
-and typed validated identities; finite reserved retained-admission budgets; no claim to persist ordinary live approvals.
+and typed validated identities; finite reserved retained-admission budgets;
+public credential-free HTTP(S) detail URLs and positive plugin schema versions
+(where Paseo timeline payloads accept arbitrary numbers); no claim to persist ordinary live approvals.
 An uncertainty window remains between provider acceptance and durable commit;
 the design prevents automatic duplication, not exactly-once execution inside
 an external provider. Extending all exhaustive consumers and regenerating

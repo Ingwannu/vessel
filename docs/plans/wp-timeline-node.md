@@ -1,6 +1,6 @@
 # Canonical conversation protocol package
 
-Updated: 2026-11-15. Status: contract proposed; implementation not started.
+Updated: 2026-11-15. Status: contract accepted; standalone value skeleton prepared, runtime not wired.
 ADR: [0084](../adr/0084-canonical-timeline-and-prompt-receipts.md).
 
 ## Assets, reuse and alternatives
@@ -73,14 +73,28 @@ No native UI files are owned by this package.
 
 Done: fresh worktree from the announced node head, source/survey inventory,
 existing assets checked, ADR and contract written.
-In progress: contract review revision after retained-state capacity finding.
+Done: contract revision passed after retained-state capacity finding.
 ADR now fixes finite per-session/node count+byte reservations, capacity refusal
 before effects, replay-at-capacity and session-removal-only accounting release.
-The uncommitted timeline value skeleton is excluded from this docs revision.
+Standalone timeline value modules now define canonical tool/item/provenance,
+permission presentation, question lifetime/presentation, admission budgets and
+identified prompt request/reply. Existing events/calls/DTOs are unchanged.
  Integration ruling: one optional protocol constant;
 one newest-plus-one migration, re-pointed at merge; shared event accessor.
 Quality B head is still awaited.
-Next: resolve review; send exact approved types to native/CLI consumers; value
-modules, adapter fixtures, persistence/state machines, typed client/service
+Next: narrow value checks; share exact types/hash with consumers; event/field
+adapters, driver fixtures, persistence/state machines, typed client/service
 wiring once the shared head is announced; regenerate TS; one complete root gate.
-Unverified: all implementation, compilation, runtime and UI behavior.
+Checks: first narrow clippy found two documentation-markup errors, corrected.
+Narrow clippy/tests pending on current skeleton. Runtime, complete gate and UI
+behavior remain unverified.
+
+## Staged scalar choices
+
+Typed detail URLs reuse HttpUrl, rejecting credential-bearing/non-HTTP(S) targets;
+a provider lacking a valid target retains the opaque Unknown body. Plugin schema
+versions are positive typed integers, a deliberate resource/typing floor beyond
+Paseo's permissive number payload. Search durations use the existing DurationMs
+unit; the provider decoder will normalize seconds rather than expose two units.
+Compaction retains Paseo's Loading/Completed contract; ACP failed/canceled
+compaction needs an explicit failure-notice mapping before advertising support.
