@@ -728,3 +728,21 @@ No generated text is hand edited or whitespace-normalized. Its inherited
 trailing spaces are generator output. Static size1019/23 passed; all combined
 Cargo/boundary/TS/runtime/whole checks remain owed. Prior source/test gates are
 not relabeled as this combined head's proof.
+
+## Correlated native catalog decode diagnostics
+
+A successful `skills/list` response can still fail its typed decoder. Serde's
+concrete error may quote a native string, so logging its Display would expose
+response data. The agent now retains that concrete cause privately and exposes
+only category and numeric location through a small input-free error boundary;
+its Error source chain ends there. Reusing the node/store wrappers would reverse
+the crate dependency direction. The adjacent RPC failure still logs only its
+numeric code. No parser, configuration or command transport changes.
+
+The regression drives the actual correlated session handler through its existing
+detached output port with two malformed native values and a method-not-found
+reply. A scoped subscriber checks the handler's actual fields. The last valid
+catalog and native skill invocation must remain identical, with no replacement
+catalog emitted after failure. This requires no process, fake launch flag,
+credentials, global environment/subscriber mutation or new dependency. Execution
+and strict-check evidence remain owed until the VM runs on this source finish.

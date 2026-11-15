@@ -1,6 +1,11 @@
 //! Discovery shares the session's correlated request loop; no prompt is sent.
 
+use std::fmt;
+
 use serde_json::Value;
+
+#[cfg(test)]
+mod tests;
 
 use super::super::commands::{Catalog, SkillsListParams, SkillsListResponse};
 use super::super::wire::RpcError;
@@ -23,7 +28,8 @@ impl Session {
                     .await;
             }
             Ok(Err(error)) => {
-                tracing::warn!(%error, "Codex skills/list response did not read");
+                let failure = DecodeFailure(error);
+                tracing::warn!(%failure, "Codex skills/list response did not read");
             }
             Err(error) => {
                 tracing::info!(code = error.code, "Codex skills/list unavailable");
@@ -31,3 +37,32 @@ impl Session {
         }
     }
 }
+
+/// Serde retains native values in some errors. Keep the cause for local
+/// classification, but end its public chain before input can reach diagnostics.
+struct DecodeFailure(serde_json::Error);
+
+impl fmt::Display for DecodeFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "catalog decode {:?} at {}:{}",
+            self.0.classify(),
+            self.0.line(),
+            self.0.column()
+        )
+    }
+}
+
+impl fmt::Debug for DecodeFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DecodeFailure")
+            .field("category", &self.0.classify())
+            .field("line", &self.0.line())
+            .field("column", &self.0.column())
+            .finish()
+    }
+}
+
+impl std::error::Error for DecodeFailure {}
