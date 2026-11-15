@@ -72,7 +72,7 @@ async fn the_dispatch_future_is_small_and_calls_run_on_default_worker_stacks() {
     let kept = contexts.await.unwrap();
 
     // One type for every call: its size is the largest arm's.
-    let size = std::mem::size_of_val(&vessel_proto::dispatch(
+    let size = size_of_val(&vessel_proto::dispatch(
         &*guarded,
         &kept,
         GetNode.into_call(),
