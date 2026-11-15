@@ -274,7 +274,7 @@ Its glyphs are the kit's own embedded drawings, as in `assets.rs`.
 `alert::host_errors` is the same frame's named partial-host-error
 presentation, after Paseo's schedules screen: one wrapping message per
 host, neutral border, palette red 300, 12-point type and padding, 4-point
-stack gap, and no icon. The caller supplies localized messages and decides
+stack gap, 8-point radius, and no icon. The caller supplies localized messages and decides
 visibility; existing Alert variants and sizes keep their defaults.
 
 
