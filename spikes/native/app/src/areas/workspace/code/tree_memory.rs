@@ -53,7 +53,9 @@ impl Shell {
             self.areas.workspace.code.files.actions.refused = Some(error.to_string());
             return;
         }
-        self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
+        self.command(vessel_app_link::Command::SavePrefs(Box::new(
+            self.prefs.clone(),
+        )));
     }
 
     pub(super) fn restore_tree_children(&mut self, parent: &RelPath) {

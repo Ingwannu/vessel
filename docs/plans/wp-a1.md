@@ -375,3 +375,10 @@ existing navigation focus handle was still mounted only for Draft. The same
 handle is now mounted on NewWorkspace; no focus sentinel or test assertion is
 changed. The App failure stopped Cargo before Link tests ran, so Link execution
 is still owed. The full run remains recorded as failed pending this correction.
+
+Announced package base8b moves SavePrefs payload ownership into Box. The
+extracted creation submission and the retained C5 tree-memory/toolbar calls
+now use that same command representation (the three-code-hunk producer
+c59242bb2), without changing preferences or dispatch timing. This closes a
+mechanical union incompatibility; earlier309 compilation does not validate
+the new base or these adapters.
