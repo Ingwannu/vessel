@@ -916,7 +916,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         })
     };
     let changed = SessionEvent::OptionsChanged { options };
-    assert_eq!(changed.since(), V9);
+    assert_eq!(changed.required_protocol(), Some(V9));
     assert_eq!(changed.for_protocol(V9), None);
     assert_eq!(
         changed.for_protocol(V8),
@@ -933,7 +933,7 @@ fn options_and_renames_reach_older_clients_as_lines() {
         title: "Fix the build".parse().unwrap(),
         origin: crate::title::TitleOrigin::Unknown,
     };
-    assert_eq!(renamed.since(), V9);
+    assert_eq!(renamed.required_protocol(), Some(V9));
     assert_eq!(
         renamed.for_protocol(V4),
         line("vessel: renamed to Fix the build")
