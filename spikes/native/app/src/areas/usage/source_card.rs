@@ -4,7 +4,7 @@ use crate::shell::Shell;
 use vessel_app_kit::{
     Tokens, Type, TypeExt as _, settings,
     theme::spacing,
-    ui::{AnyElement, Context, Div, IntoElement as _, ParentElement as _, Styled as _, div, px},
+    ui::{Context, Div, IntoElement as _, ParentElement as _, Styled as _, div, px},
 };
 use vessel_app_view::usage::{
     Phase, source_freshness, source_login_errors, source_view, timestamp,

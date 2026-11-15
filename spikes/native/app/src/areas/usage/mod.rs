@@ -59,8 +59,8 @@ pub(super) struct SourcePending {
 pub(crate) struct State {
     pub(super) modal: vessel_app_view::usage::ModalCycle,
     pub(super) options: vessel_app_kit::popover::PopoverState,
-    pub(super) options_open: Option<options::Opening>,
-    pub(super) source_tips: source_tips::SourceTips,
+    options_open: Option<options::Opening>,
+    source_tips: source_tips::SourceTips,
     pub(super) options_anchor: vessel_app_kit::select::Anchor,
     pub(super) dialog: vessel_app_kit::DialogState,
     pub(super) host_list: vessel_app_kit::ComboboxState,

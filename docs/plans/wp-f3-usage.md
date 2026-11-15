@@ -141,3 +141,12 @@ reader regression verifies both views of the same failed read and preserved time
 Per-report Failed/Unavailable retention remains independent. N2 independently
 identified the distinction; this follows the opened code, not a stricter invented
 machine policy. Current combined execution is still owed.
+
+Exact c1679cc9 narrowed native execution passed 62 tests: app 3, link 6, view 53,
+including actual report-header theme/locale geometry and numeric relative-age,
+login-error and host-data/agent-error lifecycle cases. It emitted an unused card
+import and two private-interface warnings. The follow-up removes that import and
+narrows the two private field visibilities instead of widening their implementation
+types. No behavior or tested assertions changed. This does not close the shared
+large-catalog strict blocker, exact toolbar/footer profile, whole native gate,
+assigned-wire/capture or final package review requirements.
