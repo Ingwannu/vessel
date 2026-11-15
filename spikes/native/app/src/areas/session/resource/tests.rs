@@ -74,81 +74,80 @@ fn build(
     }
 }
 
-#[gpui::test]
-fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut TestAppContext) {
-    language_tests::init(cx);
-    let (harness, window) = cx.add_window_view(|window, cx| {
-        // Shell remains the callback owner; the harness only draws its exact
-        // retained field. No global editor is swapped or used as an adapter.
-        let shell = cx.new(|cx| Shell::without_io(window, cx));
-        let observed: Observed = Rc::default();
-        let (field, a, b, claim_a, claim_b, side) = shell.update(cx, |shell, cx| {
-            let node = NodeId::random();
-            let key = LayoutKey::Workspace {
-                node,
-                workspace: WorkspaceId::random(),
-            };
-            let mut layout = Layout::default();
-            let claim_a = claim(&mut layout, &key);
-            let claim_b = claim(&mut layout, &key);
-            let side = layout
-                .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
-                .unwrap();
-            let residents = &mut shell.areas.session_residents;
-            let a = residents
-                .claim_session(
-                    SessionAddress {
-                        node,
-                        session: SessionId::random(),
-                    },
-                    &claim_a,
-                    PaneId::MAIN,
-                    |context| build(context, Rc::clone(&observed), window, cx),
-                )
-                .unwrap();
-            let b = residents
-                .claim_session(
-                    SessionAddress {
-                        node,
-                        session: SessionId::random(),
-                    },
-                    &claim_b,
-                    PaneId::MAIN,
-                    |context| build(context, Rc::clone(&observed), window, cx),
-                )
-                .unwrap();
-            residents
-                .present(a, &claim_a, PaneId::MAIN, Visibility::Visible)
-                .unwrap();
-            residents.focus(a, &claim_a).unwrap();
-            let current = residents.context(a, &claim_a).unwrap();
-            let field = residents
-                .resources(&current)
-                .unwrap()
-                .session
-                .composer
-                .clone();
-            field.set_text("draft A", window, cx);
-            let other = residents.context(b, &claim_b).unwrap();
-            residents
-                .resources(&other)
-                .unwrap()
-                .session
-                .composer
-                .set_text("draft B", window, cx);
-            (field, a, b, claim_a, claim_b, side)
-        });
-        Harness {
-            shell,
-            field,
-            a,
-            b,
-            claim_a,
-            claim_b,
-            side,
-            observed,
-        }
+fn new_harness(window: &mut Window, cx: &mut Context<'_, Harness>) -> Harness {
+    // Shell remains the callback owner; the harness only draws its exact
+    // retained field. No global editor is swapped or used as an adapter.
+    let shell = cx.new(|cx| Shell::without_io(window, cx));
+    let observed: Observed = Rc::default();
+    let (field, a, b, claim_a, claim_b, side) = shell.update(cx, |shell, cx| {
+        let node = NodeId::random();
+        let key = LayoutKey::Workspace {
+            node,
+            workspace: WorkspaceId::random(),
+        };
+        let mut layout = Layout::default();
+        let claim_a = claim(&mut layout, &key);
+        let claim_b = claim(&mut layout, &key);
+        let side = layout
+            .split(PaneId::MAIN, Position::Right, LayoutMode::SplitPanes)
+            .unwrap();
+        let residents = &mut shell.areas.session_residents;
+        let a = residents
+            .claim_session(
+                SessionAddress {
+                    node,
+                    session: SessionId::random(),
+                },
+                &claim_a,
+                PaneId::MAIN,
+                |context| build(context, Rc::clone(&observed), window, cx),
+            )
+            .unwrap();
+        let b = residents
+            .claim_session(
+                SessionAddress {
+                    node,
+                    session: SessionId::random(),
+                },
+                &claim_b,
+                PaneId::MAIN,
+                |context| build(context, Rc::clone(&observed), window, cx),
+            )
+            .unwrap();
+        residents
+            .present(a, &claim_a, PaneId::MAIN, Visibility::Visible)
+            .unwrap();
+        residents.focus(a, &claim_a).unwrap();
+        let current = residents.context(a, &claim_a).unwrap();
+        let field = residents
+            .resources(&current)
+            .unwrap()
+            .session
+            .composer
+            .clone();
+        field.set_text("draft A", window, cx);
+        let other = residents.context(b, &claim_b).unwrap();
+        residents
+            .resources(&other)
+            .unwrap()
+            .session
+            .composer
+            .set_text("draft B", window, cx);
+        (field, a, b, claim_a, claim_b, side)
     });
+    Harness {
+        shell,
+        field,
+        a,
+        b,
+        claim_a,
+        claim_b,
+        side,
+        observed,
+    }
+}
+
+fn first_submit(harness: &Entity<Harness>, window: &mut gpui::VisualTestContext) {
     window.run_until_parked();
     harness.update_in(window, |harness, window, cx| {
         window.activate_window();
@@ -188,6 +187,37 @@ fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut T
             vessel_app_view::composer_shell::surface::Surface::default()
         );
     });
+}
+
+fn release_original(harness: &Entity<Harness>, window: &mut gpui::VisualTestContext) {
+    harness.update_in(window, |harness, _, cx| {
+        harness.shell.update(cx, |shell, _| {
+            let residents = &mut shell.areas.session_residents;
+            residents
+                .present(
+                    harness.a,
+                    &harness.claim_a,
+                    harness.side,
+                    Visibility::RetainedHidden,
+                )
+                .unwrap();
+            residents
+                .release_claim(harness.a, &harness.claim_a, Duration::ZERO)
+                .unwrap();
+        });
+    });
+    window.simulate_keystrokes("enter");
+    window.run_until_parked();
+    harness.read_with(window, |harness, _| {
+        assert_eq!(harness.observed.borrow().len(), 2);
+    });
+}
+
+#[gpui::test]
+fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (harness, window) = cx.add_window_view(new_harness);
+    first_submit(&harness, window);
     window.simulate_keystrokes("left shift-left");
     window.run_until_parked();
     let retained = harness.read_with(window, |harness, cx| {
@@ -267,27 +297,7 @@ fn scoped_submit_survives_moves_and_refuses_hidden_or_released_claims(cx: &mut T
             "draft B"
         );
     });
-    harness.update_in(window, |harness, _, cx| {
-        harness.shell.update(cx, |shell, _| {
-            let residents = &mut shell.areas.session_residents;
-            residents
-                .present(
-                    harness.a,
-                    &harness.claim_a,
-                    harness.side,
-                    Visibility::RetainedHidden,
-                )
-                .unwrap();
-            residents
-                .release_claim(harness.a, &harness.claim_a, Duration::ZERO)
-                .unwrap();
-        });
-    });
-    window.simulate_keystrokes("enter");
-    window.run_until_parked();
-    harness.read_with(window, |harness, _| {
-        assert_eq!(harness.observed.borrow().len(), 2)
-    });
+    release_original(&harness, window);
 }
 
 #[gpui::test]
