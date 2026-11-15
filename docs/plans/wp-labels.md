@@ -69,15 +69,26 @@ Reference sources read before implementation (relative to the reference source r
 
 ## Node contract dependency
 
-At node head `d954fa3a`, `crates/vessel-proto/src/labels.rs` exports
-`LabelKey`, `LabelValue`, `SessionLabels`; the method declarations contain no
-`session.labels` or workspace label calls. `lifecycle_version::SINCE` remains
-unassigned. Schema 17 does not establish RPC availability. Assignment/list,
-atomic rename/recolor, deletion inspection/deletion, catalog subscriptions,
-workspace assignment storage and metadata mutation still require the node owners. The lifecycle owner
-confirmed planned SetLabels merge-only semantics (no clear/delete), which is
-a documented difference from nullable manager-level Paseo patches. This was reported before implementation. Do not add root RPC
-or store code in this package without a routed contract.
+Session metadata and colored workspace labels have separate owners and contracts.
+The lifecycle owner reports on 2026-11-15 that no consumer-ready PASS head yet
+contains the borrowed ExactSizeIterator `SessionLabels::iter()`. The draft
+iterator returns `(&LabelKey, &LabelValue)`; A6 does not parse summaries or JSON
+as a substitute. `session.labels` / SetLabels is not implemented or registered,
+so the earlier planned merge-only shape is not an adopted request DTO. A6 adds
+no generic session metadata editor or speculative mutation call.
+
+The lifecycle owner's staged ListSessions selection preserves null as the legacy
+full list; an explicit selection has required Shown/All scope and AND labels.
+Its unassigned SINCE gate refuses explicit selections. These are producer status
+facts, not permission to adopt unreviewed query or iterator code. Session labels
+already stored at schema 17 do not establish RPC availability. The owner will
+supply an exact reviewed, whole-gated consumer head.
+
+A6 itself owns workspace catalog/colours/ordered assignments and their RPC gap
+under ADR 0086. Its SQL/actor implementation remains cfg(test), with typed fake
+registry admission only in tests, until the reviewed W11 registry transaction
+helpers and watches can support the real adapter. No dummy protocol number,
+handler or successful persistence response stands in for that dependency.
 
 ## Shared identity paint
 
