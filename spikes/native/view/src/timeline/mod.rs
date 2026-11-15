@@ -47,6 +47,7 @@ mod outline;
 mod permission;
 mod plan;
 mod plan_card;
+mod plan_words;
 mod question;
 mod question_step;
 mod rewind;

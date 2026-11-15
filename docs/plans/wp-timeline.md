@@ -293,3 +293,13 @@ without implying a geometry/licence/raster/gate/UI review.
 Each of the four attributed vectors also embeds that notice as SVG metadata,
 so an asset distributed without the source checkout retains its notice. The
 existing raster test checks that metadata survives the AssetSource boundary.
+
+### Shared Plan title localization
+
+The new decision titles live in `locales/{en,ko}/timeline-plan.ftl`, following
+`locales/README.md`, rather than extending legacy bilingual Rust tables. The
+shared renderer receives cached `catalog.timeline_plan()` words; its text,
+outcome, disclosure and footer ownership are unchanged. An exhaustive adapter
+and EN/KO whole-title test cover all five outcomes. Permission wording remains
+A8's. Existing translator generation supplies these getters without a second
+word table or render-time resource lookup.

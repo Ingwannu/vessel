@@ -7,7 +7,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, chat_markdown, version_of};
-use vessel_app_view::ConversationWords;
+use vessel_app_view::localization::TimelinePlan;
 use vessel_app_view::timeline::{PlanExpansion, PlanOutcome};
 
 use super::entries::disclosure;
@@ -31,7 +31,7 @@ pub(crate) struct PlanCard<'a> {
 pub(crate) fn card(
     card: PlanCard<'_>,
     on_toggle: impl Fn(&mut Shell, &mut Window, &mut Context<'_, Shell>) + 'static,
-    words: ConversationWords,
+    words: TimelinePlan<'_>,
     tokens: &Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -39,10 +39,10 @@ pub(crate) fn card(
     let open = card.expansion == PlanExpansion::Expanded;
     let title = match card.outcome {
         PlanOutcome::Proposed | PlanOutcome::Pending => {
-            card.title.unwrap_or(words.plan_title(card.outcome))
+            card.title.unwrap_or(words.title(card.outcome))
         }
         PlanOutcome::Approved | PlanOutcome::Rejected | PlanOutcome::Canceled => {
-            words.plan_title(card.outcome)
+            words.title(card.outcome)
         }
     };
     let header = div()

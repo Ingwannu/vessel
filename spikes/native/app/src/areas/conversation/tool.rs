@@ -43,7 +43,7 @@ pub(super) fn card(
                 footer: None,
             },
             move |shell, _window, cx| shell.toggle_entry(seat, index, cx),
-            *paint.words,
+            paint.catalog.timeline_plan(),
             paint.tokens,
             window,
             cx,
