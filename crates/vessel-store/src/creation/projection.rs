@@ -37,7 +37,7 @@ pub(crate) fn lookup(
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
-    raw.map(|(raw, reserved)| decode_reserved(raw, reserved))
+    raw.map(|(raw, reserved)| decode_reserved(&raw, reserved))
         .transpose()
 }
 
@@ -52,22 +52,22 @@ pub(crate) fn operation(
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
-    raw.map(|(raw, reserved)| decode_reserved(raw, reserved))
+    raw.map(|(raw, reserved)| decode_reserved(&raw, reserved))
         .transpose()
 }
 
-fn decode_reserved(raw: String, reserved: i64) -> Result<Receipt, StoreError> {
+fn decode_reserved(raw: &str, reserved: i64) -> Result<Receipt, StoreError> {
     if reserved != reservation_bytes()? {
         return Err(CreationError::CapacityCorrupt.into());
     }
     decode(raw)
 }
 
-fn decode(raw: String) -> Result<Receipt, StoreError> {
+fn decode(raw: &str) -> Result<Receipt, StoreError> {
     if raw.len() > MAX_RECEIPT_BYTES {
         return Err(CreationError::ReceiptTooLarge.into());
     }
-    serde_json::from_str(&raw).map_err(StoreError::CorruptCreation)
+    serde_json::from_str(raw).map_err(StoreError::CorruptCreation)
 }
 
 fn reservation_bytes() -> Result<i64, StoreError> {
@@ -167,7 +167,7 @@ fn admit(connection: &Connection, admission: Admission, budget: Budget) -> Resul
             )?,
         }
     }
-    connection.execute(
+    let _changed = connection.execute(
         "INSERT INTO creation_receipts(key_hash,operation,reserved_bytes,receipt) VALUES (?1,?2,?3,?4)",
         params![
             identity.digest().to_string(),
@@ -210,7 +210,7 @@ fn claim(
     if owner.is_some() {
         return Err(CreationError::ResourceClaimed.into());
     }
-    connection.execute(
+    let _changed = connection.execute(
         "INSERT INTO creation_claims(kind,resource,operation) VALUES (?1,?2,?3)",
         params![kind, resource, operation.to_string()],
     )?;
@@ -219,7 +219,7 @@ fn claim(
 
 fn save(connection: &Connection, receipt: &Receipt, row_limit: usize) -> Result<(), StoreError> {
     let encoded = encode(receipt, row_limit)?;
-    connection.execute(
+    let _changed = connection.execute(
         "UPDATE creation_receipts SET receipt=?1 WHERE operation=?2",
         params![encoded, receipt.snapshot().reserved.operation.to_string()],
     )?;
@@ -236,7 +236,7 @@ pub(crate) fn recover(connection: &mut Connection) -> Result<(), StoreError> {
             .collect::<Result<_, _>>()?
     };
     for (raw, reserved) in receipts {
-        let mut receipt = decode_reserved(raw, reserved)?;
+        let mut receipt = decode_reserved(&raw, reserved)?;
         receipt.advance(
             receipt.snapshot().revision,
             vessel_proto::creation::Advance::Recover,

@@ -1,4 +1,4 @@
-//! Durable creation admission/CAS on the existing SQLite writer (ADR 0091).
+//! Durable creation admission/CAS on the existing `SQLite` writer (ADR 0091).
 //! Store only normalized intent fingerprints, hashed keys and safe receipts.
 
 mod projection;

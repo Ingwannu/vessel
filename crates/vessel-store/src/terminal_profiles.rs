@@ -1,4 +1,4 @@
-//! One bounded settings row uses the existing SQLite transaction authority.
+//! One bounded settings row uses the existing `SQLite` transaction authority.
 
 use crate::{StoreError, codec};
 use rusqlite::{Connection, OptionalExtension as _, params};
@@ -32,7 +32,7 @@ pub(crate) fn read(db: &Connection) -> Result<ProfileSettings, StoreError> {
     })
 }
 
-pub(crate) fn apply(db: &Connection, request: SetTerminalProfiles) -> Result<(), StoreError> {
+pub(crate) fn apply(db: &Connection, request: &SetTerminalProfiles) -> Result<(), StoreError> {
     let current = read(db)?;
     if current.revision != request.expected {
         return Err(ProfileError::StaleRevision.into());
@@ -47,6 +47,6 @@ pub(crate) fn apply(db: &Connection, request: SetTerminalProfiles) -> Result<(),
     }
     let revision =
         i64::try_from(revision.get()).map_err(|_overflow| ProfileError::RevisionExhausted)?;
-    db.execute("INSERT INTO terminal_profile_settings(singleton,revision,profiles) VALUES (1,?1,?2) ON CONFLICT(singleton) DO UPDATE SET revision=excluded.revision,profiles=excluded.profiles", params![revision, raw])?;
+    let _changed = db.execute("INSERT INTO terminal_profile_settings(singleton,revision,profiles) VALUES (1,?1,?2) ON CONFLICT(singleton) DO UPDATE SET revision=excluded.revision,profiles=excluded.profiles", params![revision, raw])?;
     Ok(())
 }
