@@ -182,6 +182,10 @@ impl TextField {
             .text_size(px(fonts::ui(CONTENT_SIZE)))
             .line_height(px(fonts::ui(CONTENT_LINE)))
             .text_color(tokens.neutral.foreground)
+            // The same engine emits PressEnter and propagates. The existing
+            // submit listener already sent or inserted a line; native fallback
+            // must not insert another, just as for the shared form renderer.
+            .on_action(|_: &gpui_base::input::Enter, _window, cx| cx.stop_propagation())
             .map(|element| match layout.mode {
                 HeightMode::Grow => element.min_h(px(super::COMPOSER_MIN)).max_h(layout.height),
                 HeightMode::Fill => element.h(layout.height).min_h(px(0.0)).max_h(layout.height),

@@ -141,3 +141,11 @@ documents; it preserves leading indentation and strips trailing line breaks. The
 existing window selection aggregator still prevents a single-message override of
 a multi-message selection. This removes a second parser with different nested
 fence/inline-code behavior. Actual GPUI query fixtures are added, not yet passed.
+
+Exact3e kit tests137/2 failed: the inferred inline-code fixture reproduced
+duplicate source bytes (fixed by0293), and compact Enter inserted two newlines.
+The composer layout now retains the shared form renderer's bubble-phase Enter
+stop: the sole engine/listener has already inserted or submitted; allowing native
+fallback inserted a second newline. No second submit listener or key interceptor
+was added. Existing IME/menu captures still run before the engine. This correction
+awaits actual rerun; the earlier failed result remains evidence, not a pass.
