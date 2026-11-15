@@ -411,3 +411,15 @@ purposes initial plus up to two schema corrections per eligible candidate.
 No fake/borrowed session, second provider/key stack or fallback-only success is
 allowed. This is a documented contract; no reusable service is available yet,
 and no generation/paid-call test or parity claim has been made.
+
+## Exact mutation-reservation narrow finding
+
+Run wp-git-writes-narrow-20261115T122538Z-c840a586 returned cargo101/E0061
+in the new registered-root test: vessel_testkit::within requires both a Duration
+and its future. No mutation-reservation execution passed in that run. Correct
+that test and the later queued-read fixture to use named60-second safety nets
+and consume the Result; add a named10-second safety net to the pure lease tests.
+No sleeps coordinate any fixture: real mutex futures and Notify still control
+ordering. Only a missing timeout argument/test safety-net behavior changes;
+production reservation and root fencing are unchanged. Already queued21e/3be
+runs retain their earlier source, including this known test-only compile defect.

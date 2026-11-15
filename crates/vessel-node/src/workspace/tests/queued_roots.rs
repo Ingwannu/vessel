@@ -1,5 +1,7 @@
 //! Real owned comparison/history jobs revalidate after their execution queue.
 use super::*;
+
+const DEADLINE: std::time::Duration = std::time::Duration::from_secs(60);
 use vessel_proto::workspace::{
     CompareGit, GitComparison, GitReadReason, GitWhitespace, ReadGitHistory,
 };
@@ -17,14 +19,15 @@ enum Reader {
 
 #[tokio::test]
 async fn queued_reads_do_not_follow_replaced_paths_or_use_superseded_base_facts() {
-    vessel_testkit::within(async {
+    vessel_testkit::within(DEADLINE, async {
         for reader in [Reader::Comparison, Reader::History] {
             for changed in [ChangedFact::Path, ChangedFact::DefaultBranch] {
                 queued_change(reader, changed).await;
             }
         }
     })
-    .await;
+    .await
+    .expect("registered-root operation should settle after releasing its real queue barrier");
 }
 
 async fn queued_change(reader: Reader, changed: ChangedFact) {
