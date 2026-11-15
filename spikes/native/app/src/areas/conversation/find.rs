@@ -384,6 +384,8 @@ impl Shell {
         else {
             return;
         };
+        self.areas.conversation.reveal_turn(found);
+        let area = &self.areas.conversation;
         let folded_in = area
             .folds
             .as_ref()
