@@ -68,6 +68,8 @@ pub struct PreparedRow {
     pub notice: Option<Notice>,
     /// Only wired actions, with pending identity retained across polls.
     pub menu: Vec<MenuEntry>,
+    /// Read-only history entry, including ended and read-only rows.
+    pub history: Option<Arc<str>>,
 }
 /// Prepare all visible rows using cached target facts and the viewer calendar.
 #[must_use]
@@ -123,6 +125,9 @@ fn prepare(
         status: Status::of(&row.schedule.state),
         metadata: meta.unwrap_or_default().into(),
         notice,
+        history: row
+            .connection
+            .map(|_| catalog.schedules().history_menu().into()),
         menu: row
             .menu_entries()
             .into_iter()

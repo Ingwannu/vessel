@@ -266,3 +266,74 @@ schedules-preview-unknown = 머신의 미리보기 거절 사유를 보려면 �
 
 # Save waits for the exact current node preview, except an explicit older-node refusal.
 schedules-form-preview-required = 저장하기 전에 현재 규칙의 실행 시각을 미리 확인하세요.
+
+## Read-only schedule history
+
+# Read-only row-menu entry opening past runs; short.
+schedules-history-menu = 실행 기록 보기
+
+# History dialog title; $title is the original displayed schedule title.
+schedules-history-title = 실행 기록 · { $title }
+
+# History has loaded successfully but no run is retained.
+schedules-history-empty = 실행 기록이 없습니다
+
+# Close the read-only history dialog; short.
+schedules-history-close = 닫기
+
+# Explicit history reload; short.
+schedules-history-refresh = 새로고침
+
+# Run row button; present only if its outcome names a session.
+schedules-history-open-chat = 대화 열기
+
+# Run heading; $at is typed viewer date/time, $number numeric run number.
+schedules-history-run-at = 실행 { NUMBER($number, useGrouping: "false") } · { DATETIME($at) }
+
+# Typed skip reason; no diagnostic data.
+schedules-history-previous-running = 이전 실행이 아직 진행 중입니다.
+
+# Typed skip reason; no diagnostic data.
+schedules-history-previous-waiting = 이전 프롬프트가 아직 대기 중입니다.
+
+# Typed skip reason; a stopped chat cannot restart automatically.
+schedules-history-stopped = 대화를 중지한 상태여서 자동으로 다시 시작하지 않았습니다.
+
+# Typed missed slots; $count numeric from node.
+schedules-history-missed = 머신에 연결할 수 없는 동안 예약된 실행 { NUMBER($count, useGrouping: "false") }회를 건너뛰었습니다.
+
+# Forward-compatible reason in run history.
+schedules-history-reason-unknown = 이 실행의 사유를 보려면 앱을 업데이트하세요.
+
+# Historical InvalidRequest; no wire diagnostic.
+schedules-history-run-invalid = 머신에서 이 실행의 입력을 거절했습니다.
+
+# Historical Unauthorized; no wire diagnostic.
+schedules-history-run-unauthorized = 이 실행에 사용한 인증 정보를 받아들이지 않았습니다.
+
+# Historical Forbidden, not a claim about current viewer scopes.
+schedules-history-run-forbidden = 예약을 만든 주체에게 이 실행을 수행할 권한이 없었습니다.
+
+# Historical ProtocolMismatch.
+schedules-history-run-protocol = 이 실행에서 호환되지 않는 통신 규약을 사용했습니다.
+
+# Historical NotFound, not guessed target deletion now.
+schedules-history-run-not-found = 이 실행에 필요한 리소스를 찾지 못했습니다.
+
+# Historical Conflict.
+schedules-history-run-conflict = 다른 작업 때문에 이 실행을 시작하지 못했습니다.
+
+# Historical Unsupported.
+schedules-history-run-unsupported = 머신에서 이 실행에 필요한 작업을 지원하지 않았습니다.
+
+# Historical HarnessNotInstalled.
+schedules-history-run-agent-missing = 필요한 에이전트가 설치되어 있지 않았습니다.
+
+# Historical SpawnFailed.
+schedules-history-run-spawn = 에이전트를 시작하지 못했습니다.
+
+# Historical Unavailable.
+schedules-history-run-unavailable = 이 실행에 필요한 서비스를 사용할 수 없었습니다.
+
+# Historical Internal; no private diagnostic.
+schedules-history-run-internal = 머신에서 이 실행을 완료하지 못했습니다.

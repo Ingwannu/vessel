@@ -716,3 +716,24 @@ cover an actual ListRuns request/reply and unchanged envelope, retired unsent
 zero-frame refusal, and combined Row/Form/History shared-pool saturation with
 all frames/receipts drained. New cases remain unexecuted/source-only. Prior e86d
 queued narrow source does not contain these deltas or the catalog-comment repair.
+
+
+### History display preparation
+
+History times/number headings, title, outcome badges and typed skip/refusal
+meanings are now prepared in View, outside App painting, in both languages.
+The accepted outcome words stay in the old table; new history-specific whole
+messages live only in schedules.ftl. No private WireError/RunError diagnostic
+is rendered as a localized sentence, and a historical Forbidden explicitly
+refers to the schedule creator rather than falsely narrowing the viewer grant.
+Original typed records (including original diagnostics) remain in Reader;
+prepared display is a separate cache, not a rewritten protocol record.
+
+A connected row now carries a read-only history-menu label, separate from its
+write-action list. This does not change the accepted write-action availability
+for read-only or ended rows. App has not consumed this new label yet, so the
+history item remains unwired/unshown at this checkpoint. The cached rows have
+exact EN/KO title/outcome/time, each skip/refusal and exhaustive badge cases in
+source; these have not executed. Historical sessions may be archived and absent
+from Fleet; the session owner is being asked for its existing opener seam rather
+than inventing another session renderer or pretending a missing Card is a link.

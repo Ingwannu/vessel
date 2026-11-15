@@ -1,6 +1,7 @@
 //! History decisions. The node retains at most fifty runs; the original typed
 //! reason remains beside the display state so failure details are never lost.
 
+pub mod presentation;
 pub mod reader;
 
 use vessel_proto::automation::{RunEnd, RunOutcome};

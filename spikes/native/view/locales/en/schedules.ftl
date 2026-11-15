@@ -266,3 +266,74 @@ schedules-preview-unknown = Update the app to read this machine’s preview refu
 
 # Save waits for the exact current node preview, except an explicit older-node refusal.
 schedules-form-preview-required = Preview the current rule before saving.
+
+## Read-only schedule history
+
+# Read-only row-menu entry opening past runs; short.
+schedules-history-menu = View runs
+
+# History dialog title; $title is the original displayed schedule title.
+schedules-history-title = Run history · { $title }
+
+# History has loaded successfully but no run is retained.
+schedules-history-empty = No runs yet
+
+# Close the read-only history dialog; short.
+schedules-history-close = Close
+
+# Explicit history reload; short.
+schedules-history-refresh = Refresh
+
+# Run row button; present only if its outcome names a session.
+schedules-history-open-chat = Open chat
+
+# Run heading; $at is typed viewer date/time, $number numeric run number.
+schedules-history-run-at = Run { NUMBER($number, useGrouping: "false") } · { DATETIME($at) }
+
+# Typed skip reason; no diagnostic data.
+schedules-history-previous-running = The previous run is still active.
+
+# Typed skip reason; no diagnostic data.
+schedules-history-previous-waiting = The previous prompt is still queued.
+
+# Typed skip reason; a stopped chat cannot restart automatically.
+schedules-history-stopped = The chat was stopped and was not restarted automatically.
+
+# Typed missed slots; $count numeric from node.
+schedules-history-missed = Missed { NUMBER($count, useGrouping: "false") } scheduled times while the machine was unavailable.
+
+# Forward-compatible reason in run history.
+schedules-history-reason-unknown = Update the app to read this run’s reason.
+
+# Historical InvalidRequest; no wire diagnostic.
+schedules-history-run-invalid = The machine rejected the run’s input.
+
+# Historical Unauthorized; no wire diagnostic.
+schedules-history-run-unauthorized = The credential used for this run was not accepted.
+
+# Historical Forbidden, not a claim about current viewer scopes.
+schedules-history-run-forbidden = The identity that created this schedule could not perform the run.
+
+# Historical ProtocolMismatch.
+schedules-history-run-protocol = The run used an incompatible protocol.
+
+# Historical NotFound, not guessed target deletion now.
+schedules-history-run-not-found = A resource needed by this run could not be found.
+
+# Historical Conflict.
+schedules-history-run-conflict = Another operation prevented this run from starting.
+
+# Historical Unsupported.
+schedules-history-run-unsupported = The machine did not support an operation needed by this run.
+
+# Historical HarnessNotInstalled.
+schedules-history-run-agent-missing = The required agent was not installed.
+
+# Historical SpawnFailed.
+schedules-history-run-spawn = The agent could not start.
+
+# Historical Unavailable.
+schedules-history-run-unavailable = A service needed by this run was unavailable.
+
+# Historical Internal; no private diagnostic.
+schedules-history-run-internal = The machine could not complete this run.
