@@ -58,10 +58,10 @@ impl Drop for CountLease {
     }
 }
 fn reserve(count: &Arc<AtomicUsize>) -> Result<CountLease, Refused> {
-    count
+    let _previous = count
         .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
         .map_err(|_full| Refused)?;
-    Ok(CountLease(count.clone()))
+    Ok(CountLease(Arc::clone(count)))
 }
 
 #[tokio::test]
@@ -76,7 +76,7 @@ async fn concurrent_identical_last_count_slot_attaches_without_a_second_reservat
         second.receipt.snapshot().reserved.clone(),
     ];
     let prepare = |_receipt: Receipt| {
-        calls.fetch_add(1, Ordering::SeqCst);
+        let _previous = calls.fetch_add(1, Ordering::SeqCst);
         std::future::ready(reserve(&count))
     };
     let (one, two) = tokio::join!(
@@ -117,7 +117,7 @@ async fn active_capacity_keeps_existing_and_conflicting_keys_queryable_without_p
     assert_eq!(intake.active.lock().len(), MAX_ACTIVE_CREATIONS);
     let calls = AtomicUsize::new(0);
     let prepare = |_receipt| {
-        calls.fetch_add(1, Ordering::SeqCst);
+        let _previous = calls.fetch_add(1, Ordering::SeqCst);
         std::future::ready(Ok::<(), Refused>(()))
     };
     let overflow = candidate("overflow", 7);
@@ -153,7 +153,7 @@ async fn admission_wait_is_finite_and_never_acquires_a_resource_while_waiting() 
     let identity = request.identity.clone();
     let result = intake
         .admit(&store, request, |_receipt| {
-            calls.fetch_add(1, Ordering::SeqCst);
+            let _previous = calls.fetch_add(1, Ordering::SeqCst);
             std::future::ready(Ok::<(), Refused>(()))
         })
         .await;

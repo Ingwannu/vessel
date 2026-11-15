@@ -333,3 +333,14 @@ Announced node gate52 head1c762ccf is merged (metadata registry protocol25, sche
 still20). Creation and terminal-profile activation constants remain None. The
 lifecycle listing/schema append is pending its own announced integration; no
 independent listing type or workspace visibility inference was introduced here.
+
+
+The exact4bac strict run reached Node and returned thirteen authored lint
+findings (explicit Arc cloning and unused atomic return values). They are now
+corrected without changing the reservation/count behavior. The newly joined
+empty fixture follows the same atomic-result rule. Exact3c TypeScript generation
+compiled and ran two passing cases, then refused an unclassified
+WorkspaceOperationId alias before generating a patch. That shared UUID is now
+classified as a Handle, matching WorkspaceId and the alias policy; the empty
+artifact was not applied. Combined generation and corrected strict execution
+remain owed on this source.

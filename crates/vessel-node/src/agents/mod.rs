@@ -203,7 +203,7 @@ impl Agents {
         let _previous = sessions.insert(
             id,
             Entry {
-                reservation: reservation.clone(),
+                reservation: Arc::clone(&reservation),
                 credentials,
                 scopes,
                 depth,

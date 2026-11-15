@@ -124,9 +124,7 @@ impl Intake {
         if self.active.lock().len() >= MAX_ACTIVE_CREATIONS {
             return Err(IntakeError::Capacity);
         }
-        let slot = self
-            .slots
-            .clone()
+        let slot = Arc::clone(&self.slots)
             .try_acquire_owned()
             .map_err(|_full| IntakeError::Capacity)?;
         let receipt = existing.as_ref().unwrap_or(&candidate.receipt).clone();
@@ -146,7 +144,7 @@ impl Intake {
         if let std::collections::hash_map::Entry::Vacant(entry) =
             self.active.lock().entry(operation)
         {
-            let _marker = entry.insert(marker.clone());
+            let _marker = entry.insert(Arc::clone(&marker));
         } else {
             return Ok(Admitted::Observe(receipt));
         }
@@ -154,7 +152,7 @@ impl Intake {
             receipt,
             resource: Some(resource),
             marker,
-            active: self.active.clone(),
+            active: Arc::clone(&self.active),
             _slot: slot,
         }))
     }

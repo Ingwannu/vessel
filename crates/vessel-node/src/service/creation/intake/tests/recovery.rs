@@ -10,9 +10,9 @@ async fn cancelling_pre_effect_admission_rolls_back_the_acquired_lease_and_drive
     let identity = request.identity.clone();
     let (prepared, receive) = tokio::sync::oneshot::channel();
     let task = tokio::spawn({
-        let intake = intake.clone();
+        let intake = Arc::clone(&intake);
         let store = store.clone();
-        let count = count.clone();
+        let count = Arc::clone(&count);
         async move {
             intake
                 .admit(&store, request, |_receipt| async move {
@@ -105,7 +105,7 @@ async fn idle_accepted_reuses_its_ids_but_committed_begin_and_unknown_never_reac
     assert_eq!(count.load(Ordering::SeqCst), 0);
     let calls = AtomicUsize::new(0);
     let prepare = |_receipt| {
-        calls.fetch_add(1, Ordering::SeqCst);
+        let _previous = calls.fetch_add(1, Ordering::SeqCst);
         std::future::ready(reserve(&count))
     };
     let pending = intake
@@ -197,7 +197,7 @@ async fn known_prompt_retry_continues_registered_identity_without_new_child_coun
     let calls = AtomicUsize::new(0);
     let completed = intake
         .admit(&store, candidate("prompt", 7), |_stored| {
-            calls.fetch_add(1, Ordering::SeqCst);
+            let _previous = calls.fetch_add(1, Ordering::SeqCst);
             std::future::ready(Ok::<(), Refused>(()))
         })
         .await

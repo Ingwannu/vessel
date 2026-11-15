@@ -44,7 +44,7 @@ async fn empty_receipt_completes_only_after_real_descriptor_and_completed_retry_
         reserved.operation,
         &prepared,
         || {
-            checks.fetch_add(1, Ordering::SeqCst);
+            let _previous = checks.fetch_add(1, Ordering::SeqCst);
             Ok(Creator::Owner)
         },
     )
