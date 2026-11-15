@@ -308,3 +308,25 @@ identified textarea section. S2's boxed SavePrefs constructors and W12's staged
 resident source are preserved, with no resource promotion. This is not adoption
 of an unannounced moving line. W10b's dispatch extraction still waits for its
 announced checked line before the next coherent App compile.
+
+## 16:13 UTC: announced helper base and current correction split
+
+Merged announced green6ebdf8e8 after c342. README retained both the mapped audit
+note and incoming picker admission note; dispatch merged W10b's awaited boxed
+save_prefs helper while keeping exactly one own GitPanel registration arm.
+W12 current-target query/own renderer registrations are preserved. No moving
+branch or W8 unverified retirement promotion is adopted.
+
+Isolated e3bf4021c / app73d945adb carry the source-prechecked mapped-only wheel
+successor, extra real horizontal/ordinaryNone/overflow fixtures and the unused
+import removal. Isolated4133964f6 / app4ef8f191d separately correct diff selection
+alpha0.45 in the Kit style with both-theme regression; no Base selection change.
+These corrections are unverified until their combined exact source checks.
+
+The lead explicitly accepts the0813 outer-wheel failure as actual reproduction,
+but its loop did not identify the drift case. A separate exact old-production
+diagnostic25951c813 only names mode/x/inner offset/bounds on that same assertion
+and removes the unused import. Its sole run
+wp-git-control-tests-20261115T160840Z-25951c81 is queued, not a pass or proof of
+which iteration. It preserves all production bytes from0813. Both prior0813
+runs are terminal RED: tests15/1/0, Clippy unused size import only.
