@@ -105,7 +105,7 @@ impl VesselTools {
                 .map_err(|error| ToolError::Arguments(format!("{error}")))?;
             spec = spec.with_profile(profile);
         }
-        Ok(spec)
+        super::launch::configure(spec, args)
     }
 
     pub(super) async fn send_input(&self, args: &JsonObject) -> Result<Value, ToolError> {
@@ -332,6 +332,9 @@ pub(super) fn create_session_tool(node: &Value) -> Tool {
                 "description": "Run in this worktree (from `create_worktree`): one you made, \
                                 or one made for a session of yours."
             },
+            "title": { "type": "string", "description": "Initial session title." },
+            "labels": { "type": "object", "additionalProperties": {"type":"string"}, "description": "Validated session labels; requires lifecycle support on every hop." },
+            "options": super::launch::options_schema(),
             "model": { "type": "string", "description": "A model the agent offers." },
             "prompt": { "type": "string", "description": "The first prompt." },
             "notify": notify_property(),

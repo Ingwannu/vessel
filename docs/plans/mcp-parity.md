@@ -1,3 +1,7 @@
+> Historical proposal and first enum slice (5968e52f), superseded for current
+> implementation by [wp-mcp.md](wp-mcp.md). Branch, protocol and slice-progress
+> statements below describe that historical checkpoint, not the current tree.
+
 # MCP parity
 
 Branch `backend/m12-gk-mcp`. ADR 0065 is the contract. This file is what

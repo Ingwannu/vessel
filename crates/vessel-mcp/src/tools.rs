@@ -30,6 +30,7 @@ mod exposure;
 mod forge;
 mod forking;
 mod id;
+mod launch;
 mod lsp;
 mod offer;
 mod permissions;

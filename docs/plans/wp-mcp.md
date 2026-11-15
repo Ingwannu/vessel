@@ -317,3 +317,18 @@ lint suppression. TS also found an inherent SkillOperation::name collision
 with the TS trait, so the shared identity accessor is now `skill()`.
 Current checks are still pending; none of these source changes claims a
 cross-node runtime or whole-package PASS.
+
+
+## Existing-call launch/status refinements
+
+`create_session` accepts a validated title, typed structured option choices and
+the existing bounded label map. These populate SessionSpec rather than a new
+launch API; the shared client admission still refuses pending lifecycle labels
+before transmission. Options are bounded, nonempty and unique by ID, and
+terminal sessions refuse structured model/options inputs before creation.
+`get_session` retains its existing metadata fields and adds current structured
+`permissions` from GetConversation, with a finite complete-result cap. The two
+reads are sequential, not an atomic snapshot. Provider-discovery/launch-bundle
+and non-fleet host-directory facades remain dependent on their owners'
+reviewed contracts. Account profiles do not stand in for launch bundles, and
+an agent never reads an Owner's private host directory by default.

@@ -18,15 +18,34 @@ use vessel_proto::{
 use super::{ToolError, VesselTools, required, session, text, tool};
 
 impl VesselTools {
-    pub(super) async fn get_session(&self, args: &JsonObject) -> Result<SessionInfo, ToolError> {
+    pub(super) async fn get_session(&self, args: &JsonObject) -> Result<SessionDetails, ToolError> {
         let node = self.target(args).await?;
-        self.on(
-            node,
-            GetSession {
-                session: session(args)?,
-            },
-        )
-        .await
+        let info = self
+            .on(
+                node,
+                GetSession {
+                    session: session(args)?,
+                },
+            )
+            .await?;
+        let permissions = match info.spec.mode {
+            vessel_proto::SessionMode::Structured { .. } => Some(
+                self.on(
+                    node,
+                    vessel_proto::conversation::GetConversation { session: info.id },
+                )
+                .await?
+                .permissions,
+            ),
+            vessel_proto::SessionMode::Terminal { .. } => None,
+        };
+        if permissions
+            .as_ref()
+            .is_some_and(|items| items.len() > vessel_proto::mcp::MAX_PENDING_PERMISSIONS)
+        {
+            return Err(ToolError::PermissionInventory);
+        }
+        Ok(SessionDetails { info, permissions })
     }
 
     pub(super) async fn cancel_turn(&self, args: &JsonObject) -> Result<Cancelled, ToolError> {
@@ -72,6 +91,15 @@ impl VesselTools {
         )
         .await
     }
+}
+
+/// A sequential current-permission read beside ordinary session metadata.
+#[derive(Debug, serde::Serialize)]
+pub(super) struct SessionDetails {
+    #[serde(flatten)]
+    info: SessionInfo,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    permissions: Option<Vec<vessel_proto::PermissionRequest>>,
 }
 
 /// `session.send` of a cancel answers an ack. The tool names the session.
@@ -128,7 +156,7 @@ pub(super) fn tools(node: &Value, session: &Value) -> Vec<Tool> {
     vec![
         tool(
             "get_session",
-            "One session: its id, harness, mode, status, profile and who created it. \
+            "One session: its id, harness, mode, status, profile, creator and current structured permissions. \
              Reading is not operating; this does not change it.",
             json!({ "node": node, "session": session }),
             &["session"],
