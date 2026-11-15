@@ -68,9 +68,8 @@ fn current(entry: Option<&InboxEntry>, pending: &Pending) -> bool {
                 | InboxItem::Question { .. }
                 | InboxItem::InSession { .. }
                 | InboxItem::Finished
-                | InboxItem::Failed
                 | InboxItem::Limit => true,
-                InboxItem::Unknown => false,
+                InboxItem::Failed | InboxItem::Unknown => false,
             }
     })
 }
@@ -79,7 +78,7 @@ fn current(entry: Option<&InboxEntry>, pending: &Pending) -> bool {
 mod tests {
     use super::*;
     #[test]
-    fn failed_local_attention_still_requires_exact_unread_current_source() {
+    fn native_delivery_rejects_errors_and_requires_exact_unread_current_source() {
         let mut epochs = vessel_app_view::connection::ConnectionEpochs::default();
         let source = vessel_app_view::inbox::Source::new(
             epochs
@@ -113,6 +112,8 @@ mod tests {
             position: vessel_app_view::inbox::Position::new(entry.cursor.get()),
             request: vessel_app_view::inbox::Inbox::default().ticket().unwrap(),
         };
+        assert!(!current(Some(&entry), &pending));
+        entry.item = InboxItem::Finished;
         assert!(current(Some(&entry), &pending));
         entry.read = InboxRead::Read;
         assert!(!current(Some(&entry), &pending));

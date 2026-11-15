@@ -304,3 +304,11 @@ original weak Shell/window pair. Retired heartbeat/idle loops stop, and OS
 activation/visibility observers schedule that guarded path rather than renewing
 presence for retained old content. Source/connection admission remains separate.
 No new host registry, root-wrapper introspection or platform dependency is added.
+
+
+Client delivery source correction: session-context.tsx267-269 suppresses error
+OS notifications even though the server elects a local recipient for that reason.
+Native opportunity/current-projection gates now drop Failed without removing its
+Inbox entry/read state/badge. Server claim eligibility is unchanged. The old
+worker local-error test expectations were incomplete server-only inference;
+updated native regressions and their changed-source checks are required.

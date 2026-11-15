@@ -477,3 +477,13 @@ is cfg-gated; unsupported backends retain the same unknown-returning interface.
 No timing, scope, answer, notification or visibility rule changes. The earlier
 strict result remains red; changed App checks are required. Non-Linux compilation
 is not inferred from these source corrections.
+
+
+Later complete client-source correction: server error recipient selection is
+not OS delivery. `packages/app/src/contexts/session-context.tsx:267-269` drops
+error before focus, dedup and sendOsNotification. Native Content::Failed now
+remains visible/readable without an OS opportunity, and the Link pre/post
+projection gate rejects Failed. The server claim regression retains its narrower
+recipient/admission meaning; its PASS never proves a client error OS alert.
+Changed-source native checks are owed; earlier local-error expectations are
+historical own-worker assertions superseded by this source-backed correction.

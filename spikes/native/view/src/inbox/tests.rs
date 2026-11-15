@@ -172,8 +172,8 @@ fn old_pages_and_marking_unread_do_not_replay_a_notice() {
 }
 
 #[test]
-fn failures_allow_local_opportunities_and_future_items_stay_in_the_inbox() {
-    assert!(Content::Failed.announces());
+fn failures_and_future_items_stay_in_the_inbox_without_os_opportunities() {
+    assert!(!Content::Failed.announces());
     assert!(!Content::Failed.waiting());
     assert!(!Content::Unknown.announces());
     assert!(!Content::Unknown.waiting());
@@ -534,7 +534,7 @@ fn shared_marks_allow_readonly_people_but_reject_retained_stale_snapshots() {
 }
 
 #[test]
-fn failed_local_opportunity_is_new_unread_attention_and_never_replays() {
+fn failed_unread_entries_stay_visible_without_an_os_opportunity_or_replay() {
     let mut fake = FakeNode::new("fixture");
     let mut inbox = Inbox::default();
     inbox.connect(fake.source.clone());
@@ -542,7 +542,8 @@ fn failed_local_opportunity_is_new_unread_attention_and_never_replays() {
     let mut failed = fake.entry(1);
     failed.content = Content::Failed;
     fake.snapshot.entries.push(failed.clone());
-    assert_eq!(fake.read(&mut inbox), vec![failed.key]);
+    assert!(fake.read(&mut inbox).is_empty());
+    assert_eq!(inbox.entry(failed.key).unwrap().content, Content::Failed);
     assert!(fake.read(&mut inbox).is_empty());
     fake.snapshot.entries.first_mut().unwrap().read = Read::Read;
     assert!(fake.read(&mut inbox).is_empty());

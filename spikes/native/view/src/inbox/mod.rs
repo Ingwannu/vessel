@@ -138,8 +138,8 @@ impl Content {
         }
     }
 
-    /// Local notification opportunities include errors; node Web Push separately
-    /// excludes error reasons, as Paseo does. A node claim is always required.
+    /// Paseo client delivery excludes errors independently of server recipient
+    /// election. Failed sources remain readable in the Inbox, without OS alerts.
     #[must_use]
     pub const fn announces(&self) -> bool {
         match self {
@@ -147,9 +147,8 @@ impl Content {
             | Self::Question(_)
             | Self::InSession
             | Self::Finished
-            | Self::Failed
             | Self::Limit => true,
-            Self::Unknown => false,
+            Self::Failed | Self::Unknown => false,
         }
     }
 }
