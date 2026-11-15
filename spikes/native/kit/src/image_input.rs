@@ -1,7 +1,9 @@
 //! Normalize native image intake using the image codec already linked by GPUI.
 //! Byte signatures choose the decoder; names and clipboard MIME are not proof.
 //! Strict side bounds also apply to preserved PNG/JPEG before GPUI sees them.
-use image::{DynamicImage, ImageFormat, ImageReader, Limits};
+use image::{DynamicImage, ImageFormat};
+mod decode;
+pub mod screenshot;
 use std::io::{Cursor, Seek, SeekFrom, Write};
 
 /// A static first frame cannot exceed 4096 by 4096 pixels.
@@ -80,30 +82,7 @@ pub enum ImageProblem {
 /// # Errors
 /// Refuses invalid signatures, decode/dimension limits, or excessive output.
 pub fn normalize(bytes: Vec<u8>, policy: InputLimits) -> Result<Normalized, ImageProblem> {
-    if bytes.is_empty() || u64::try_from(bytes.len()).unwrap_or(u64::MAX) > policy.source {
-        return Err(ImageProblem::Size);
-    }
-    let mut reader = ImageReader::new(Cursor::new(bytes.as_slice()))
-        .with_guessed_format()
-        .map_err(ImageProblem::Inspect)?;
-    let format = reader.format().ok_or(ImageProblem::Format)?;
-    if !matches!(
-        format,
-        ImageFormat::Png
-            | ImageFormat::Jpeg
-            | ImageFormat::Gif
-            | ImageFormat::WebP
-            | ImageFormat::Bmp
-            | ImageFormat::Tiff
-    ) {
-        return Err(ImageProblem::Format);
-    }
-    let mut limits = Limits::default();
-    limits.max_image_width = Some(MAX_SIDE);
-    limits.max_image_height = Some(MAX_SIDE);
-    limits.max_alloc = Some(MAX_DECODED);
-    reader.limits(limits);
-    let decoded = reader.decode()?;
+    let (format, decoded) = decode::read(&bytes, decode::Policy::Attachment(policy))?;
     let preserved = if format == ImageFormat::Png {
         let animated =
             image::codecs::png::PngDecoder::new(Cursor::new(bytes.as_slice()))?.is_apng()?;
