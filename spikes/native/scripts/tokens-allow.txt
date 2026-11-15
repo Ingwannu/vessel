@@ -43,7 +43,7 @@ px-other spikes/native/app/src/areas/workspace/code/changes.rs 1
 px-other spikes/native/app/src/areas/workspace/code/found.rs 2
 px-other spikes/native/app/src/areas/workspace/code/viewer.rs 2
 px-other spikes/native/app/src/areas/workspace/detail.rs 2
-px-other spikes/native/app/src/areas/workspace/projects.rs 2
+px-other spikes/native/app/src/areas/workspace/projects.rs 1
 px-other spikes/native/app/src/areas/workspace/remove.rs 1
 px-other spikes/native/app/src/areas/workspace/sidebar.rs 2
 px-other spikes/native/app/src/areas/workspace/start_card.rs 1
@@ -95,7 +95,7 @@ px-step spikes/native/app/src/areas/workspace/code/frame.rs 4
 px-step spikes/native/app/src/areas/workspace/code/search.rs 7
 px-step spikes/native/app/src/areas/workspace/code/tree.rs 6
 px-step spikes/native/app/src/areas/workspace/code/viewer.rs 13
-px-step spikes/native/app/src/areas/workspace/projects.rs 10
+px-step spikes/native/app/src/areas/workspace/projects.rs 6
 px-step spikes/native/app/src/areas/workspace/remove.rs 3
 px-step spikes/native/app/src/areas/workspace/sidebar.rs 11
 px-step spikes/native/app/src/areas/workspace/start_card.rs 5
