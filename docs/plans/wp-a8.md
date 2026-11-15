@@ -681,3 +681,11 @@ The uncertainty retry classification matches every Problem variant explicitly.
 A future error variant must choose its policy at compile time instead of silently
 becoming retryable through a negative comparison against Unconfirmed. Existing
 variant behavior and independent admission/provider checks remain unchanged.
+
+Run wp-side-narrow-20261115T152659Z-acca7c63 compiled the updated union,
+then stopped before executing tests: the announced line boxes Command::SavePrefs,
+while A8's earlier behavior-preserving persist extraction still accepted Prefs.
+The private helper now accepts the exact existing Box<Prefs> and moves that same
+box into the existing blocking save closure. No unboxing/extra allocation, save
+ordering, path or failure behavior changes. The original test run has no runtime
+counts or pass claim; its compile failure requires a corrected-head test run.
