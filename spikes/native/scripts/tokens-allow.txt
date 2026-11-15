@@ -51,7 +51,7 @@ px-other spikes/native/app/src/areas/workspace/start_header.rs 1
 px-other spikes/native/app/src/areas/workspace/widgets.rs 6
 px-other spikes/native/app/src/chrome.rs 3
 px-other spikes/native/app/src/web.rs 2
-px-step spikes/native/app/src/areas/about.rs 6
+px-step spikes/native/app/src/areas/about.rs 5
 px-step spikes/native/app/src/areas/archive.rs 2
 px-step spikes/native/app/src/areas/board/card.rs 19
 px-step spikes/native/app/src/areas/board/mod.rs 19

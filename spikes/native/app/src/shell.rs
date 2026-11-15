@@ -2,7 +2,6 @@
 //! the areas' state, the link's events dispatched to them, and the frame
 //! (the title bar, the sidebar on the shell, the page framed beside it:
 //! DESIGN.md section 6).
-
 use tokio::sync::mpsc;
 use vessel_app_kit::TypeExt as _;
 use vessel_app_kit::frame::{Lines, panel_edges};
@@ -16,7 +15,6 @@ use vessel_app_kit::ui::{
 use vessel_app_link::{Command, Event, Link, Prefs};
 use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
-
 use crate::areas::{self, Areas};
 use crate::chrome;
 use crate::routes::{self, Route};
@@ -71,7 +69,6 @@ pub(crate) struct Shell {
     /// The brand's drawing behind the content (worker B's `brand.rs`).
     pub(crate) brand: crate::brand::Brand,
 }
-
 impl Shell {
     pub(crate) fn new(
         prefs: Prefs,
@@ -117,6 +114,7 @@ impl Shell {
             updated: None,
             sidebar_sheet: None,
         };
+        crate::areas::desktop::preferences::start(&mut shell,window,cx);
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);
@@ -130,6 +128,7 @@ impl Shell {
     /// answer would reach (`crate::unsent`: callers that set what waits
     /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
+        let Some(command)=crate::areas::desktop::preferences::submit(self,command) else {return;};
         let taken = match &self.link {
             Some(link) => link.submit(command),
             None => Err(vessel_app_link::Unsent::new(
@@ -395,6 +394,7 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
+        crate::areas::desktop::pending(self, window, cx);
         self.settle_settings(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
@@ -492,6 +492,7 @@ impl Render for Shell {
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
             .children(areas::palette::render(self, &tokens, window, cx))
+            .children(areas::desktop::render(self, &tokens, window, cx))
             .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }

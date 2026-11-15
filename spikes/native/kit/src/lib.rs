@@ -96,6 +96,10 @@ pub use toast::{
     toast_with, toasts,
 };
 pub use tooltip::Tooltips;
+/// Standard editing actions keep native menus on the kit's existing input engine.
+pub mod editing {
+    pub use gpui_base::input::{Copy, Cut, Paste, Redo, SelectAll, Undo};
+}
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,

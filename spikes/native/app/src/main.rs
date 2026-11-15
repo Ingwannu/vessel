@@ -19,6 +19,8 @@ mod areas;
 pub mod badge;
 mod brand;
 mod chrome;
+#[cfg(not(target_arch = "wasm32"))]
+mod desktop;
 mod language;
 #[cfg(not(target_arch = "wasm32"))]
 mod motion;
@@ -32,7 +34,7 @@ mod update;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, target_os = "linux"))]
 use gpui::{AppContext as _, Bounds, px, size};
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_app_kit::{Scheme, SchemeChoice};
@@ -46,48 +48,9 @@ pub(crate) const LABEL: &str = match option_env!("VESSEL_BUILD_LABEL") {
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-fn main() {
-    // stderr as before, and a file the owner can send (the release
-    // track's `vessel-app-log`: rotated, panics included, the About
-    // screen's folder is `vessel_app_log::dir()`).
+fn main() -> std::process::ExitCode {
     let _log = vessel_app_log::init(LABEL);
-    let choice = scheme_choice();
-    let (width, height) = window_size();
-    let prefs = vessel_app_link::Prefs::load();
-    let language = language::Language::new();
-    let words = match language.prepare(prefs.settings.language) {
-        Ok(words) => words,
-        Err(error) => {
-            tracing::error!(%error, "the embedded translations could not start");
-            return;
-        }
-    };
-    gpui_platform::application()
-        .with_assets(vessel_app_kit::Assets)
-        .run(move |cx| {
-            if let Err(error) = vessel_app_kit::init(cx, choice) {
-                tracing::error!(%error, "the kit could not start");
-                cx.quit();
-                return;
-            }
-            motion::follow(cx);
-            // The kept Animations setting, before the first frame.
-            motion::animations(prefs.settings.appearance.animations.on(), cx);
-            let bounds = Bounds::centered(None, size(px(width), px(height)), cx);
-            let options = vessel_app_kit::chrome::window_options(format!("Vessel {LABEL}"), bounds);
-            let opened = cx.open_window(options, |window, cx| {
-                motion::note_renderer(window, cx);
-                let shell = cx.new(|cx| shell::Shell::new(prefs, language, words, window, cx));
-                vessel_app_kit::root(shell, window, cx)
-            });
-            match opened {
-                Ok(_window) => cx.activate(true),
-                Err(error) => {
-                    tracing::error!(%error, "the window could not open");
-                    cx.quit();
-                }
-            }
-        });
+    desktop::run(scheme_choice(), gpui_platform::application)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -99,7 +62,7 @@ fn scheme_choice() -> SchemeChoice {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, target_os = "linux"))]
 /// The window's size: `VESSEL_APP_SIZE=WxH`, else 1280 by 800.
 fn window_size() -> (f32, f32) {
     std::env::var("VESSEL_APP_SIZE")

@@ -28,6 +28,7 @@
 //!   page, then Vessel's licence and the parts the app is built from with
 //!   theirs, as the page's About; its own screen and route are gone.
 
+mod changelog;
 mod marks;
 
 use std::path::PathBuf;
@@ -60,6 +61,7 @@ pub(crate) struct AboutState {
     /// The release notes are open.
     notes: bool,
     notes_dialog: DialogState,
+    history: changelog::History,
 }
 
 impl AboutState {
@@ -70,6 +72,7 @@ impl AboutState {
             confirm_dialog: DialogState::new(cx),
             notes: false,
             notes_dialog: DialogState::new(cx),
+            history: changelog::History::default(),
         }
     }
 }
@@ -84,9 +87,7 @@ fn card(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         true,
         tokens,
     ));
-    if shell.running_notes().is_some() {
-        card = card.child(whats_new_row(shell, tokens, cx));
-    }
+    card = card.child(whats_new_row(shell, tokens, cx));
     if shell.updates_on() {
         card = card
             .child(updates_row(shell, tokens, cx))
@@ -112,7 +113,7 @@ pub(crate) fn dialogs(
 ) -> impl Iterator<Item = AnyElement> {
     confirm_dialog(shell, tokens, window, cx)
         .into_iter()
-        .chain(notes_dialog(shell, tokens, window, cx))
+        .chain(changelog::render(shell, tokens, window, cx))
 }
 
 /// About as Settings shows it (`areas/settings`): the card, then Vessel's
@@ -172,53 +173,9 @@ fn whats_new_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) ->
         .id("whats-new")
         .cursor_pointer()
         .on_click(cx.listener(|this, _event, window, cx| {
-            this.areas.about.notes = true;
-            this.areas.about.notes_dialog.focus(window, cx);
-            cx.notify();
+            this.open_changelog(window, cx);
         })),
     )
-}
-
-/// The running build's release notes, in a dialog.
-fn notes_dialog(
-    shell: &Shell,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let about = &shell.areas.about;
-    let notes = shell.running_notes().filter(|_| about.notes)?;
-    let words = shell.t.lang.update();
-    let body = div()
-        .flex()
-        .flex_col()
-        .gap(px(8.0))
-        .child(
-            div()
-                .type_(Type::Label)
-                .text_color(tokens.neutral.foreground)
-                .child(words.version(crate::LABEL)),
-        )
-        .child(
-            div()
-                .type_(Type::Body)
-                .text_color(tokens.neutral.foreground)
-                .child(markdown("release-notes", notes.to_owned())),
-        );
-    Some(dialog(
-        &about.notes_dialog,
-        DialogContent {
-            title: words.whats_new.into(),
-            body: body.into_any_element(),
-            footer: Vec::new(),
-            size: DialogSize::Normal,
-        },
-        tokens,
-        window,
-        crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, _cx| shell.areas.about.notes = false,
-        cx,
-    ))
 }
 
 /// Paseo's confirm before the update installs and the app restarts.

@@ -22,6 +22,8 @@
 //!   and a sender waits for room, so a burst of records slows the stream,
 //!   never grows memory.
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod desktop;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
@@ -56,14 +58,12 @@ pub mod sync;
 #[cfg(target_arch = "wasm32")]
 mod web;
 pub mod workspace;
-
+#[cfg(not(target_arch = "wasm32"))]
+use chrono::Utc;
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Duration;
-
-#[cfg(not(target_arch = "wasm32"))]
-use chrono::Utc;
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
 #[cfg(not(target_arch = "wasm32"))]

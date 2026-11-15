@@ -63,3 +63,24 @@ desktop framework.
 Reference and asset audit complete; shared link contract imported. Next: pure
 models, I/O, app registration, narrow checks, captures, full native gate, review.
 No OS behavior or package-completion gate is claimed yet.
+
+
+## Work in progress checkpoint
+
+The native models passed nine focused desktop tests (no failures). A later view
+clippy attempt correctly refused missing per-key translator comments; those
+comments have been added. No complete package gate or capture evidence exists.
+
+Implemented drafts: bounded session links, geometry restoration, Markdown release
+parsing, private serialized window saves, OS-lock/local IPC single instance,
+CLI ownership checks, login environment capture through the existing process
+crate, typed centralized preference merge/writer, GPUI windows and menu surfaces.
+These drafts are not yet consumer-ready. Native menu registration, preference
+queue refusal/rollback, update-owner sharing, CLI UI/PATH handling and platform
+integration still need completion and compilation. Session/project dispatch waits
+for the owning areas' authenticated adapters; quit registration and pre-update
+finalization are owned by the local-node package.
+
+The new `vessel-proc` dependency reuses an existing internal process primitive,
+including kill-on-drop groups/jobs. No new external library is selected. The
+native dependency table records this edge.

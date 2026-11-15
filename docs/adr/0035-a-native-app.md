@@ -1,5 +1,16 @@
 # ADR 0035: The app is native, one Rust UI drawn as Zed draws its own
 
+## Desktop lifecycle extension (proposed)
+
+Purpose: preserve reachable windows and deliver OS launches without adding a
+second runtime. The existing GPUI app and signed updater constrain the choice.
+Electron/Tauri and a network-facing launch server were considered; extending
+GPUI with pure desktop models and private user-local I/O keeps one renderer and
+update trust boundary. Platform verification and a bundled CLI are additional
+costs. Detailed reference behavior, differences and validation are recorded in
+`docs/plans/wp-desktop-shell.md`. Local daemon ownership remains a separate
+controller; session navigation resolves authenticated node identity.
+
 Status: accepted for the desktop, 2026-11-13 (the owner's decision); the
 phone and the browser are aims, each to be shown working by the spike of
 milestone 12 before it is promised. What the UI is built on (GPUI
