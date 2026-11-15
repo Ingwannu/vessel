@@ -323,6 +323,12 @@ new filesystem cases have not yet executed; pending earlier narrow jobs do not
 cover them. Full artifact pinning and a cancellation-safe installer remain
 required before activation.
 
+A client-only package cannot advertise callback methods without any declared
+helper; cross-file inspection refuses that incomplete capability instead of
+publishing controls whose callbacks have no runtime. A declared helper still
+does not prove the executable exists or its methods are live. Runtime Ready
+is the sole live registration boundary; inspection is only candidate data.
+
 Initialization uses the same deadline recheck rule as callback settlement. A
 ready frame and its elapsed timer can both be selectable; accepting the frame
 must not publish capability after the outer30s budget. The owning receive

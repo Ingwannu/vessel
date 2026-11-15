@@ -5,6 +5,26 @@ const MANIFEST: &str = r#"{"format":"vessel.plugin/v1","id":"sample","requiremen
 const DOCUMENT: &str = r#"{"methods":[],"contributions":[],"themes":[]}"#;
 const CURRENT: ProtocolVersion = ProtocolVersion::new(23);
 
+#[tokio::test]
+async fn static_declarations_cannot_advertise_callbacks_without_a_helper() {
+    let (directory, root) = package();
+    let callbacks = DOCUMENT.replace("\"methods\":[]", "\"methods\":[\"callback\"]");
+    fs::write(directory.path().join("client.json"), &callbacks).expect("callback declarations");
+    assert!(matches!(
+        Inspection::read(&root, CURRENT, CURRENT).await,
+        Err(InspectError::CallbackWithoutHelper)
+    ));
+    let helper = MANIFEST.replace("\"client\":\"client.json\"", "\"client\":\"client.json\",\"helpers\":[{\"target\":\"x86_64-unknown-linux-gnu\",\"protocol\":1,\"program\":\"helper\"}]");
+    fs::write(directory.path().join(MANIFEST_FILE), helper).expect("declared helper");
+    let inspected = Inspection::read(&root, CURRENT, CURRENT)
+        .await
+        .expect("inspection only");
+    assert_eq!(inspected.document.expect("document").methods().len(), 1);
+    // No program exists: successful declaration inspection grants no launch or
+    // actual callback-registration capability. Runtime Ready owns that later.
+    assert!(!directory.path().join("helper").exists());
+}
+
 fn package() -> (tempfile::TempDir, Root) {
     let directory = tempfile::tempdir().expect("isolated package");
     fs::write(directory.path().join(MANIFEST_FILE), MANIFEST).expect("manifest");

@@ -42,6 +42,8 @@ enum InspectError {
     Manifest(#[source] ManifestError),
     #[error("invalid native plugin client declarations")]
     Document(#[source] DocumentError),
+    #[error("static plugin declarations cannot register callbacks without a helper")]
+    CallbackWithoutHelper,
     #[error("plugin declaration identity changed after inspection")]
     Changed,
     #[error("plugin declaration filename could not be represented")]
@@ -92,6 +94,9 @@ impl Inspection {
                 let (text, hash) = read_text(root, &path.relative(), MAX_DOCUMENT_BYTES).await?;
                 let document =
                     ClientDocument::decode(text.as_bytes()).map_err(InspectError::Document)?;
+                if manifest.0.helpers.is_empty() && !document.methods().is_empty() {
+                    return Err(InspectError::CallbackWithoutHelper);
+                }
                 (Some(document), Some(hash))
             }
             None => (None, None),
