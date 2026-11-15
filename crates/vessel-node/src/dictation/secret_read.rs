@@ -10,7 +10,7 @@ use tokio::sync::{AcquireError, Semaphore};
 use vessel_proto::{ResolvedValue, SecretName, dictation::KeyPresence};
 
 #[derive(thiserror::Error)]
-pub(super) enum ReadError {
+pub(crate) enum ReadError {
     #[error("the dictation secret read gate is closed")]
     Closed(#[source] AcquireError),
     #[error("the dictation secret store could not be read")]
@@ -32,7 +32,7 @@ impl std::fmt::Debug for ReadError {
 
 /// Share the existing fleet reader and gate across bounded preparation callers.
 #[derive(Clone)]
-pub(super) struct Reader {
+pub(crate) struct Reader {
     files: FleetFiles,
     slots: Arc<Semaphore>,
     #[cfg(test)]
@@ -40,7 +40,7 @@ pub(super) struct Reader {
 }
 impl Reader {
     /// Reuse fleet storage ownership without a second format or credential cache.
-    pub(super) fn new(files: FleetFiles) -> Self {
+    pub(crate) fn new(files: FleetFiles) -> Self {
         Self {
             files,
             slots: Arc::new(Semaphore::new(NODE_STREAMS)),
@@ -74,7 +74,10 @@ impl Reader {
         .await
         .map_err(ReadError::Worker)?
     }
-    async fn presence(&self, name: Option<&SecretName>) -> Result<KeyPresence, ReadError> {
+    pub(crate) async fn presence(
+        &self,
+        name: Option<&SecretName>,
+    ) -> Result<KeyPresence, ReadError> {
         let Some(name) = name else {
             return Ok(KeyPresence::Absent);
         };

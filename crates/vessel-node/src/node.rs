@@ -479,7 +479,7 @@ async fn core(
         lookup: config.harness_lookup.clone(),
         sessions,
         devices: Arc::clone(&devices),
-        forwarders: forwarders.clone(),
+        tasks: crate::service::ServiceTasks::new(&tasks, &forwarders),
         profiles: setup.profiles,
         models: setup.models,
         launcher: setup

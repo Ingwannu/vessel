@@ -1644,18 +1644,18 @@ little-endian PCM16 mono WAV container before connecting, then owns one bounded
 read at a time. It does not resample or transcribe; those remain node concerns.
 The command wiring removes this decoder's outer test gate.
 
-The staged node `speech_audio` module is shared by dictation and spoken
+The node `speech_audio` module is shared by dictation and spoken
 conversation (ADR 0067 / ADR 0080). It owns a borrowed aligned PCM16 view,
 fixed-provider-rate conversion and checked in-memory WAV framing. Recording
 budgets, silence, segmentation, prompts and multipart fields stay with callers.
-It adds no crate edge or dependency; consumers remove its test gate when wiring
-real product callers. Payload-bearing Debug is redacted and no audio file is
+It adds no crate edge or dependency. Dictation now consumes it in the product
+build; further consumers use the same primitive. Payload-bearing Debug is redacted and no audio file is
 created by the codec.
 
-The staged node `connection_life` primitive owns an opaque Arc identity and
+The node `connection_life` primitive owns an opaque Arc identity and
 context-lifetime close/drop signal. It contains no quota, presence id, transport
-or worker. The real connection setup will own one instance and acting-as contexts
-will clone it; resources retain only its identity/close observer and observe
+or worker. The real connection setup owns one instance and acting-as contexts
+clone it; resources retain only its identity/close observer and observe
 transport closure as well. Dictation, spoken conversation and later resources
 consume that connection accessor rather than creating another ownership key.
 
@@ -1688,3 +1688,25 @@ path, category and bounded path shape leave it; the raw serde cause is private.
 The node's startup recovery logger uses that diagnostic while retaining the
 existing set-aside behavior. It reuses serde_path_to_error already in the
 workspace; no workspace-crate edge changes (ADR 0038).
+
+### Pending dictation product path
+
+The single method table owns the five pending dictation rows. The generated
+guard checks Operate; the domain context constructor refuses agents before
+retaining observers or preparing a provider. Streams receive the canonical
+ConnectionLife identity, connection reservations and physical Outbound observer,
+never the lifetime guard. The registry joins old work before taking the current
+settings snapshot and fresh selected key. The service and settings projection
+share one bounded Reader; the fleet remains the sole secret-file decoder.
+
+Settings validate one merged candidate and an explicitly selected nonempty key
+under the existing lock, before the same atomic writer and apply order. Read
+views expose presence only; hidden old/unassigned replies skip that read.
+Private provider causes map once to fixed wire diagnostics with typed reasons.
+
+ServiceTasks carries the node's existing work tracker separately from subscription
+forwarders: dictation retirement joins the former, so the reply grace cannot
+release real I/O early. A weak-state stop observer avoids a lifetime-guard cycle.
+No new shutdown tracker is introduced at the node boundary. The product configuration now has real callers; pending None still prevents
+protocol admission.
+This source path remains unverified until its package gate and review complete.

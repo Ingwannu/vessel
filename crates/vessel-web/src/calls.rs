@@ -243,7 +243,12 @@ const fn forwardable(method: Method) -> bool {
         | Method::ForkSession
         | Method::RewindSession
         // Protocol 17: an agent's own history (ADR 0053).
-        | Method::GetAgentHistory => true,
+        | Method::GetAgentHistory
+        | Method::StartDictation
+        | Method::ChunkDictation
+        | Method::FinishDictation
+        | Method::NextDictation
+        | Method::CancelDictation => true,
         Method::Subscribe
         | Method::SubscribeTerminal
         | Method::Unsubscribe

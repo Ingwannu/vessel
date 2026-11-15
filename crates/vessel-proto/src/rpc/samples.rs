@@ -75,6 +75,12 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::GetNodeSettings
         | Method::SetNodeSettings
         | Method::ListInbox => json!({}),
+        Method::StartDictation => {
+            json!({"id":"dictation-fixture","format":crate::dictation::Pcm16Mono::new(crate::dictation::SampleRate::MIN)})
+        }
+        Method::ChunkDictation => json!({"id":"dictation-fixture","seq":0,"pcm":"AAA="}),
+        Method::FinishDictation => json!({"id":"dictation-fixture","final_seq":0}),
+        Method::NextDictation | Method::CancelDictation => json!({"id":"dictation-fixture"}),
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),

@@ -378,6 +378,16 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Prepare one connection-owned dictation stream (ADR 0067; pending).
+            StartDictation / start_dictation / "dictation.start" [Operate, (pending $crate::dictation::SINCE), unary]: $crate::dictation::StartDictation => $crate::Ack;
+            /// Admit one bounded PCM chunk on the stream's connection.
+            ChunkDictation / chunk_dictation / "dictation.chunk" [Operate, (pending $crate::dictation::SINCE), unary]: $crate::dictation::ChunkDictation => $crate::dictation::DictationAck;
+            /// Seal the stream and freeze its bounded finish deadline.
+            FinishDictation / finish_dictation / "dictation.finish" [Operate, (pending $crate::dictation::SINCE), unary]: $crate::dictation::FinishDictation => $crate::dictation::FinishAccepted;
+            /// Read one update without relinquishing connection ownership.
+            NextDictation / next_dictation / "dictation.next" [Operate, (pending $crate::dictation::SINCE), unary]: $crate::dictation::NextDictation => $crate::dictation::DictationUpdate;
+            /// Retire this connection's stream and its actual work.
+            CancelDictation / cancel_dictation / "dictation.cancel" [Operate, (pending $crate::dictation::SINCE), unary]: $crate::dictation::CancelDictation => $crate::Ack;
         }
     };
 }

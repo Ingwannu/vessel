@@ -1,7 +1,10 @@
 //! Bounded stream calls; accepted audio survives cancellation of its reply.
 
+#[cfg(test)]
+use super::control::Retention;
+
 use super::{
-    control::{Control, Retention},
+    control::Control,
     stream_error::{StreamError, StreamResult},
     updates::{Event, Reply},
 };
@@ -88,12 +91,14 @@ impl Handle {
             Reply::Refused(source) => Err(Arc::new(StreamError::Read(source))),
         }
     }
+    #[cfg(test)]
     pub(super) async fn cancel(&self) {
         let _first = self
             .control
             .stop(Arc::new(StreamError::Cancelled), Retention::Forget);
         self.closed.cancelled().await;
     }
+    #[cfg(test)]
     pub(super) async fn replace(&self) {
         let _first = self
             .control

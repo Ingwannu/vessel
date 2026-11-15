@@ -47,8 +47,10 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::dictation::{ReadError, Reader};
 use tokio::sync::Mutex;
 use vessel_proto::HarnessKind;
+use vessel_proto::dictation::{DictationChange, DictationDecodeError, KeyPresence};
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
     AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
@@ -68,6 +70,18 @@ pub(crate) enum SettingsError {
     /// An agent's own protocol this build does not offer yet.
     #[error("this build of Vessel does not offer {0} over its own protocol yet; it runs over ACP")]
     NoDirect(HarnessKind),
+    /// A pending feature must not change settings through a legacy path.
+    #[error("dictation settings are unavailable for this peer")]
+    DictationUnavailable,
+    /// Reject the complete merged candidate before any write.
+    #[error("the dictation settings were refused: {0}")]
+    Dictation(#[source] DictationDecodeError),
+    /// A newly selected reference must resolve before it can be saved.
+    #[error("the selected dictation key is missing or empty")]
+    DictationKeyAbsent,
+    /// The private cause never enters the wire or log presentation.
+    #[error("the dictation key could not be checked")]
+    DictationSecret(#[source] ReadError),
     /// The file could not be written; nothing changed.
     #[error("the settings could not be kept: {0}")]
     Write(#[source] vessel_store::StoreError),
@@ -97,12 +111,20 @@ pub(crate) struct Settings {
     /// The file holds what only a later build knows: the first change that
     /// writes copies it aside first (`settings.json.later-<UTC time>`).
     later: AtomicBool,
+    #[cfg(test)]
+    write_gate: Option<Arc<WriteGate>>,
 }
 
 impl Settings {
-    /// Staged service preparation reads this only after the prior stream retires.
-    /// Product dictation wiring removes this test gate with the module's gate.
+    /// Hold the real write boundary after validation for deterministic races.
     #[cfg(test)]
+    pub(crate) fn hold_writes(&mut self) -> Arc<WriteGate> {
+        let gate = Arc::new(WriteGate::default());
+        self.write_gate = Some(Arc::clone(&gate));
+        gate
+    }
+
+    /// Service preparation reads this only after the prior stream retires.
     pub(crate) async fn dictation_snapshot(&self) -> vessel_proto::dictation::SetDictation {
         self.saved
             .lock()
@@ -110,6 +132,35 @@ impl Settings {
             .dictation
             .clone()
             .unwrap_or_default()
+    }
+
+    /// The service constructs this once and shares its read gate with starts.
+    pub(crate) fn dictation_reader(&self) -> Reader {
+        Reader::new(crate::fleet::FleetFiles::new(&self.data_dir))
+    }
+
+    /// Supported reads resolve presence from a consistent settings snapshot.
+    /// The caller skips this path entirely for hidden/older replies.
+    pub(crate) async fn current_dictation(
+        &self,
+        reader: &Reader,
+    ) -> Result<NodeSettings, SettingsError> {
+        let saved = self.saved.lock().await;
+        // Retain the settings lock through this bounded blocking-worker read,
+        // so parking, drivers and the selected reference describe one snapshot.
+        let selection = saved.dictation.clone().unwrap_or_default();
+        let presence = reader
+            .presence(selection.key_name())
+            .await
+            .map_err(SettingsError::DictationSecret)?;
+        Ok(self.projected(&saved, Some(presence)))
+    }
+
+    fn projected(&self, saved: &SetNodeSettings, presence: Option<KeyPresence>) -> NodeSettings {
+        let mut view = self.in_force(saved);
+        view.dictation =
+            presence.map(|key| saved.dictation.clone().unwrap_or_default().resolve(key));
+        view
     }
 
     /// Read `settings.json` and apply what it holds to `runtime`. A file
@@ -140,6 +191,8 @@ impl Settings {
             saved: Mutex::new(saved.clone()),
             kept,
             later: AtomicBool::new(later),
+            #[cfg(test)]
+            write_gate: None,
         };
         let in_force = settings.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
@@ -197,31 +250,69 @@ impl Settings {
         &self,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
+        self.change_with(change, None).await
+    }
+
+    /// Feature-aware writes share the legacy lock, atomic writer and apply order.
+    pub(crate) async fn change_dictation(
+        &self,
+        change: SetNodeSettings,
+        reader: &Reader,
+    ) -> Result<NodeSettings, SettingsError> {
+        self.change_with(change, Some(reader)).await
+    }
+
+    async fn change_with(
+        &self,
+        change: SetNodeSettings,
+        reader: Option<&Reader>,
+    ) -> Result<NodeSettings, SettingsError> {
+        if change.dictation.is_some() && reader.is_none() {
+            return Err(SettingsError::DictationUnavailable);
         }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
+        check(&change)?;
+        let new_key_selected = change
+            .dictation
+            .as_ref()
+            .is_some_and(|patch| matches!(patch.key.as_ref(), Some(DictationChange::Set(_))));
         let mut saved = self.saved.lock().await;
-        let mut next = saved.clone();
-        if let Some(after) = change.park_after {
-            next.park_after = Some(after);
+        let next = merged(change, saved.clone())?;
+        let presence = match reader {
+            Some(reader) => Some(
+                reader
+                    .presence(
+                        next.dictation
+                            .as_ref()
+                            .and_then(vessel_proto::dictation::SetDictation::key_name),
+                    )
+                    .await
+                    .map_err(SettingsError::DictationSecret)?,
+            ),
+            None => None,
+        };
+        // Even an otherwise unchanged explicit selection must still resolve.
+        if new_key_selected && presence != Some(KeyPresence::Present) {
+            return Err(SettingsError::DictationKeyAbsent);
         }
-        if let Some(drivers) = change.drivers {
-            next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
+        let reply = self.projected(&next, presence);
+        if next != *saved {
+            self.persist(&mut saved, next).await?;
         }
-        if next == *saved {
-            return Ok(self.in_force(&saved));
-        }
+        Ok(reply)
+    }
+
+    async fn persist(
+        &self,
+        saved: &mut SetNodeSettings,
+        next: SetNodeSettings,
+    ) -> Result<(), SettingsError> {
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
+        }
+        #[cfg(test)]
+        if let Some(gate) = &self.write_gate {
+            gate.entered.notify_one();
+            gate.release.notified().await;
         }
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
@@ -240,10 +331,10 @@ impl Settings {
             self.later.store(false, Ordering::Relaxed);
         }
         *saved = next;
-        let in_force = self.in_force(&saved);
+        let in_force = self.in_force(saved);
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
-        Ok(in_force)
+        Ok(())
     }
 }
 
@@ -277,3 +368,65 @@ fn offered(kind: HarnessKind) -> bool {
 
 #[cfg(test)]
 mod diagnostic_tests;
+
+/// Driver validation remains identical for both legacy and speech patches.
+fn check(change: &SetNodeSettings) -> Result<(), SettingsError> {
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
+}
+
+/// One merged candidate is validated before either settings writer can run.
+fn merged(
+    change: SetNodeSettings,
+    mut next: SetNodeSettings,
+) -> Result<SetNodeSettings, SettingsError> {
+    if let Some(after) = change.park_after {
+        next.park_after = Some(after);
+    }
+    if let Some(drivers) = change.drivers {
+        next.drivers = Some(drivers.over(next.drivers.unwrap_or_default()));
+    }
+    if let Some(patch) = change.dictation {
+        next.dictation = Some(
+            patch
+                .over(next.dictation.take().unwrap_or_default())
+                .map_err(SettingsError::Dictation)?,
+        );
+    }
+    Ok(next)
+}
+
+/// Observe validation-before-write without substituting a fake writer.
+#[cfg(test)]
+#[derive(Debug, Default)]
+pub(crate) struct WriteGate {
+    entered: tokio::sync::Notify,
+    release: tokio::sync::Notify,
+}
+#[cfg(test)]
+impl WriteGate {
+    /// The candidate and key were checked, and the settings lock is held.
+    pub(crate) async fn entered(&self) {
+        self.entered.notified().await;
+    }
+    /// Let the actual filesystem writer proceed once the test changes its edge.
+    pub(crate) fn release(&self) {
+        self.release.notify_one();
+    }
+}
+
+#[cfg(test)]
+mod dictation_tests;
+#[cfg(test)]
+pub(crate) mod test_fixture;

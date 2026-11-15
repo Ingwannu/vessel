@@ -201,6 +201,13 @@ const fn refused(method: Method) -> bool {
         // change needs `admin`, which no agent holds.
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+        // Dictation's context constructor refuses agents before obtaining any
+        // resource or reading settings/secrets, like the side-question domain.
+        | Method::StartDictation
+        | Method::ChunkDictation
+        | Method::FinishDictation
+        | Method::NextDictation
+        | Method::CancelDictation
         // Forking and rewinding a session it may operate (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession

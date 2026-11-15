@@ -73,12 +73,28 @@ mod scheduled;
 mod schedules;
 mod usage;
 // Protocol 12 (track A2): the conversation, further.
+mod dictation;
 mod forking;
 mod history;
 mod parking;
 mod search;
 mod settings;
 mod side_questions;
+
+/// The node owns both trackers; services distinguish real work from reply grace.
+pub(crate) struct ServiceTasks {
+    work: TaskTracker,
+    forwarders: TaskTracker,
+}
+impl ServiceTasks {
+    /// Background work must finish before the store closes; subscriptions get grace.
+    pub(crate) fn new(work: &TaskTracker, forwarders: &TaskTracker) -> Self {
+        Self {
+            work: work.clone(),
+            forwarders: forwarders.clone(),
+        }
+    }
+}
 
 /// The node's protocol implementation.
 #[derive(Debug)]
@@ -151,6 +167,7 @@ pub(crate) struct NodeService {
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
     push: Arc<crate::push::Push>,
+    dictation: crate::dictation::Service,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -161,7 +178,7 @@ pub(crate) struct Parts {
     pub(crate) lookup: Lookup,
     pub(crate) sessions: Arc<Sessions>,
     pub(crate) devices: Arc<Devices>,
-    pub(crate) forwarders: TaskTracker,
+    pub(crate) tasks: ServiceTasks,
     pub(crate) profiles: Arc<NodeProfiles>,
     pub(crate) models: Arc<Models>,
     pub(crate) launcher: Launcher,
@@ -184,6 +201,8 @@ pub(crate) struct Parts {
 }
 
 impl NodeService {
+    /// Assemble one field per supplied or derived domain; mechanisms remain in
+    /// those owners rather than in the connection bootstrap.
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
             lsp,
@@ -192,7 +211,7 @@ impl NodeService {
             lookup,
             sessions,
             devices,
-            forwarders,
+            tasks,
             profiles,
             models,
             launcher,
@@ -214,6 +233,11 @@ impl NodeService {
             limits,
         } = parts;
         let store = sessions.store().clone();
+        let dictation = crate::dictation::Service::new(
+            Arc::clone(&settings),
+            &lifecycle.stopping(),
+            &tasks.work,
+        );
         Self {
             lsp,
             lsp_roots,
@@ -221,7 +245,7 @@ impl NodeService {
             lookup,
             sessions,
             devices,
-            forwarders,
+            forwarders: tasks.forwarders,
             profiles,
             models,
             launcher,
@@ -252,6 +276,7 @@ impl NodeService {
             notices: Arc::default(),
             side_opening: Arc::default(),
             push,
+            dictation,
         }
     }
 
@@ -297,6 +322,8 @@ pub(crate) struct Connection {
     /// Its waiting reads, against its share (`waits`).
     waiting: ConnectionWaits,
     presence_id: crate::push::PresenceId,
+    life: crate::connection_life::ConnectionLife,
+    dictation: crate::dictation::Resources,
 }
 
 impl Connection {
@@ -313,6 +340,8 @@ impl Connection {
             protocol: peer.protocol,
             waiting: ConnectionWaits::default(),
             presence_id: crate::push::PresenceId::new(),
+            life: crate::connection_life::ConnectionLife::default(),
+            dictation: crate::dictation::Resources::default(),
         }
     }
 
@@ -324,6 +353,21 @@ impl Connection {
     /// Who is calling.
     pub(crate) const fn principal(&self) -> &Principal {
         &self.principal
+    }
+
+    /// Domain admission always refuses agents before retaining a recording resource.
+    pub(crate) fn dictation_context(&self) -> Result<crate::dictation::Context, WireError> {
+        crate::dictation::Context::new(
+            self.principal(),
+            self.life(),
+            &self.dictation,
+            self.outbound.clone(),
+        )
+    }
+
+    /// Per-connection resources share identity/closure without owning this guard.
+    pub(crate) const fn life(&self) -> &crate::connection_life::ConnectionLife {
+        &self.life
     }
 
     /// The protocol the client speaks.
@@ -340,6 +384,8 @@ impl Connection {
             protocol: self.protocol,
             waiting: Arc::clone(&self.waiting),
             presence_id: self.presence_id,
+            life: self.life.clone(),
+            dictation: self.dictation.clone(),
         }
     }
 }

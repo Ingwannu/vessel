@@ -65,7 +65,9 @@ async fn connection_reservations_are_shared_by_aliases_and_consumed_terminals_re
     within(async {
         let f = Fixture::new().await;
         let link = Link::new().await;
-        let alias = link.caller.clone();
+        let delegated = link.context.acting_as(crate::principal::Principal::Owner);
+        assert_eq!(delegated.life().owner(), link.context.life().owner());
+        let alias = delegated.dictation_context().unwrap().caller().clone();
         let first = id("first"); let second = id("second"); let third = id("third");
         f.registry.start(&link.caller, first.clone(), format()).await.unwrap();
         f.registry.start(&alias, second.clone(), format()).await.unwrap();
@@ -228,7 +230,7 @@ async fn actual_outlet_close_retires_streams_even_while_the_lifetime_guard_is_re
         }
         entry.finished.cancelled().await;
         assert!(
-            !link.life.closed().is_cancelled(),
+            !link.context.life().closed().is_cancelled(),
             "test must retain the real guard as a positive control"
         );
         assert_eq!(
@@ -321,15 +323,7 @@ async fn replacement_uses_the_fresh_secret_and_a_failed_new_start_leaves_no_old_
 async fn the_saved_snapshot_reads_the_existing_settings_owner_without_a_second_cache() {
     within(async {
         let f = Fixture::new().await; let link = Link::new().await;
-        let runtime = Arc::new(vessel_session::SessionRuntime::new(vessel_session::RuntimeConfig {
-            harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
-            harness_env: vessel_harness::HarnessEnv::new(f.data.path().to_owned()),
-            ring_capacity: vessel_session::DEFAULT_RING_CAPACITY,
-            durable_capacity: vessel_session::DEFAULT_DURABLE_CAPACITY,
-            agent_handshake_timeout: vessel_session::DEFAULT_HANDSHAKE_TIMEOUT,
-            park_after: None, private_dir: None,
-        }, CancellationToken::new()));
-        let settings = Arc::new(crate::settings::Settings::open(vessel_store::DataDir::new(f.data.path()), runtime, vessel_proto::parking::ParkAfter::DEFAULT, false));
+        let settings = crate::settings::test_fixture::open(vessel_store::DataDir::new(f.data.path()));
         let registry = Registry::new(Factory::new(crate::dictation::secret_read::Reader::new(f.files.clone())), Snapshot::Saved(settings), &CancellationToken::new());
         assert!(matches!(refusal(registry.start(&link.caller, id("default-local"), format()).await).as_ref(), RegistryError::Prepare(PrepareError::LocalNotBuilt { model }) if *model == vessel_proto::dictation::LocalModelId::default_model()));
         registry.shutdown().await; link.close().await; f.finish().await;
@@ -380,7 +374,7 @@ async fn a_cancelled_start_keeps_preparing_capacity_until_teardown_and_cannot_pu
             refusal(f.registry.entry(&link.caller, &first_id).await).as_ref(),
             RegistryError::Gone
         ));
-        assert!(!link.life.closed().is_cancelled());
+        assert!(!link.context.life().closed().is_cancelled());
         assert_eq!(
             f.registry
                 .chunk(&link.caller, &second_id, ChunkSeq::new(0), pcm())
@@ -423,7 +417,7 @@ async fn only_the_last_service_handle_drop_closes_its_records_and_does_not_close
         );
         drop(alias);
         entry.finished.cancelled().await;
-        assert!(!link.life.closed().is_cancelled());
+        assert!(!link.context.life().closed().is_cancelled());
         f.registry
             .start(&link.caller, key.clone(), format())
             .await

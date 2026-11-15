@@ -2125,6 +2125,59 @@ file: FilePath | null,
 page: PageRequest, };
 
 /**
+ * A present dictation patch field: a selected value or explicit reset to default.
+ */
+export type DictationChange<T> = T | null;
+
+/**
+ * ASCII letters and `-`, bounded by `MIN_TEXT_CHARS` and `MAX_LANGUAGE_CHARS`.
+ */
+export type DictationLanguage = string;
+
+/**
+ * Where the audio is transcribed. `unknown` is a newer node's value.
+ */
+export type DictationProvider = "local" | "endpoint" | "unknown";
+
+/**
+ * What a reader sees. Defaults filled in. `key` is present or absent.
+ */
+export type DictationSettings = { 
+/**
+ * Whether dictation may start.
+ */
+switch: DictationSwitch, 
+/**
+ * Which provider `start` uses.
+ */
+provider: DictationProvider, 
+/**
+ * Sent to the endpoint.
+ */
+language: DictationLanguage, 
+/**
+ * Named in `LocalNotBuilt` when the provider is local.
+ */
+local_model: LocalModelId, 
+/**
+ * The endpoint's model.
+ */
+endpoint_model: EndpointModel, 
+/**
+ * The endpoint's base URL.
+ */
+endpoint_base: EndpointBase, 
+/**
+ * Whether the named secret has a value.
+ */
+key: KeyPresence, };
+
+/**
+ * `on` or `off`. `unknown` is a newer node's value.
+ */
+export type DictationSwitch = "on" | "off" | "unknown";
+
+/**
  * What a file's diff has.
  */
 export type DiffContent = { "kind": "hunks", 
@@ -2308,6 +2361,18 @@ export type DurationMs = number;
  * Why a schedule ended.
  */
 export type EndReason = "max_runs" | "expired" | "creator_gone" | "target_gone" | "unknown";
+
+/**
+ * The endpoint's base URL. `https`, or `http` only when the host is
+ * loopback, so the key is not sent in cleartext off this machine.
+ * A host without userinfo, query or fragment, bounded by `MAX_URL_BYTES`.
+ */
+export type EndpointBase = string;
+
+/**
+ * The endpoint's model name, bounded by `MAX_MODEL_CHARS`, without whitespace.
+ */
+export type EndpointModel = string;
 
 /**
  * What an entry of a folder is.
@@ -4150,6 +4215,11 @@ commits: number, } | { "kind": "operation",
 operation: GitOperation, } | { "kind": "submodules" } | { "kind": "flagged_files" } | { "kind": "worktree_refs" } | { "kind": "in_use" } | { "kind": "inspection_failed" } | { "kind": "unknown" };
 
 /**
+ * Whether `start` can authenticate. Not a secret name.
+ */
+export type KeyPresence = "present" | "absent";
+
+/**
  * `session.kill`: stop a session's process (and its process group).
  */
 export type KillSession = { 
@@ -4591,6 +4661,11 @@ process?: ProcessName | null,
  * Whose tree it is in.
  */
 owner: PortOwner, };
+
+/**
+ * Known local STT models, plus a validated future catalogue name.
+ */
+export type LocalModelId = string;
 
 /**
  * A location relative to the authorized workspace.
@@ -5049,7 +5124,11 @@ drivers?: AgentDrivers,
  * Startup policy, hidden until its protocol is assigned (ADR 0059).
  * This value-only field does not enable an engine or register input.
  */
-restart_recovery?: RestartRecovery, };
+restart_recovery?: RestartRecovery, 
+/**
+ * Dictation support and effective settings; hidden for unsupported peers.
+ */
+dictation?: DictationSettings | null, };
 
 /**
  * Whether a node is taking new work.
@@ -7617,6 +7696,11 @@ secret: SecretName, };
 export type SecretName = string;
 
 /**
+ * A selected node secret's name; its owner checks existence before saving it.
+ */
+export type SecretReference = string;
+
+/**
  * A secret's value, on its way into a node's store.
  */
 export type SecretValue = string;
@@ -8317,6 +8401,40 @@ codex?: AgentDriver | null,
 open_code?: AgentDriver | null, };
 
 /**
+ * A change. Each field is optional; `unknown` and an unknown local
+ * model are refused and nothing is written.
+ */
+export type SetDictation = { 
+/**
+ * `on` or `off`.
+ */
+switch?: DictationChange<DictationSwitch> | null, 
+/**
+ * `local` or `endpoint`.
+ */
+provider?: DictationChange<DictationProvider> | null, 
+/**
+ * A language code.
+ */
+language?: DictationChange<DictationLanguage> | null, 
+/**
+ * A catalog id.
+ */
+local_model?: DictationChange<LocalModelId> | null, 
+/**
+ * The endpoint's model.
+ */
+endpoint_model?: DictationChange<EndpointModel> | null, 
+/**
+ * The endpoint's base URL.
+ */
+endpoint_base?: DictationChange<EndpointBase> | null, 
+/**
+ * The secret reference to set or explicitly clear, never its value.
+ */
+key?: DictationChange<SecretReference> | null, };
+
+/**
  * `pr.feedback`: send the pull request's failing checks and reviews to
  * the session, or stop.
  */
@@ -8340,6 +8458,8 @@ enabled: boolean, };
  * build wrote must still parse after a downgrade, keeping what this build
  * knows. vessel-store's `a_file_from_a_later_build_keeps_what_this_build_knows`
  * holds the rule.
+ * Dictation's strict incoming patch uses a separate lenient file projection in
+ * vessel-store; its unknown nested fields never refuse the whole settings file.
  */
 export type SetNodeSettings = { 
 /**
@@ -8352,7 +8472,11 @@ park_after?: ParkAfter | null,
  * is refused, and so is `direct` for an agent whose driver this node
  * does not offer yet.
  */
-drivers?: SetAgentDrivers | null, };
+drivers?: SetAgentDrivers | null, 
+/**
+ * Strict incoming patch; the store has a lenient view of persisted values.
+ */
+dictation?: SetDictation, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

@@ -1,8 +1,7 @@
-//! Staged dictation mechanisms, compiled only for tests until RPC wiring.
+//! Bounded node dictation: current settings, owned streams and endpoint transcription.
 //!
-//! The wiring commit after shared protocol-accessor and call-table support
-//! removes the outer test gate. These helpers do not start a live service;
-//! tests exercise the real audio/identity code without widening its API.
+//! All calls remain unavailable while the protocol number is unassigned.
+//! The shared settings/secret owners and method table retain their authority.
 
 // One-second input chunks define both accepted duration and segment headroom.
 const MAX_CHUNK_SECONDS: usize = 1;
@@ -30,3 +29,15 @@ mod prepare;
 mod quota;
 mod registry;
 mod secret_read;
+
+mod service;
+mod wire;
+
+/// Settings validation shares this service's existing bounded reader.
+pub(crate) use secret_read::{ReadError, Reader};
+/// Real connections share reservations independently of their lifetime guard.
+pub(crate) use service::{Context, Resources, Service};
+
+/// The assembled-node tests reuse the same real memory-RPC connection fixture.
+#[cfg(test)]
+pub(crate) use registry::test_fixture::Link as TestConnection;

@@ -24,7 +24,7 @@ use vessel_proto::dictation::{
 use vessel_rpc::Outbound;
 
 #[cfg(test)]
-mod test_fixture;
+pub(super) mod test_fixture;
 #[cfg(test)]
 mod tests;
 mod worker;
@@ -256,7 +256,26 @@ impl Registry {
         entry.finished.cancelled().await;
         Ok(())
     }
-    /// Node shutdown joins real preparation and retirement, not just their waiters.
+    /// Observe service/node stop without retaining the service's drop guard.
+    pub(super) fn track_shutdown(&self, tasks: &TaskTracker) {
+        let state = Arc::downgrade(&self.state);
+        let closed = self.state.closed.clone();
+        let workers = self.state.tasks.clone();
+        drop(tasks.spawn(async move {
+            closed.cancelled().await;
+            if let Some(state) = state.upgrade() {
+                // Share admission's barrier before the close/wait boundary.
+                let _admission = state.entries.lock().await;
+                let _first_close = workers.close();
+            } else {
+                let _first_close = workers.close();
+            }
+            workers.wait().await;
+        }));
+    }
+
+    /// Explicit fixture shutdown joins the same real preparation and retirement.
+    #[cfg(test)]
     pub(super) async fn shutdown(&self) {
         self.state.closed.cancel();
         {

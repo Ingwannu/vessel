@@ -6,23 +6,29 @@ merge. This plan does not change `PROTOCOL_VERSION`.
 
 ## Current resume point (2026-11-15)
 
-The designated node head d432ef0f and the source-reviewed settings-file privacy
-prerequisite are now on this feature branch. Its reviewed safe decoder wraps
-the owned lenient file projection; a new marker case covers the malformed
-dictation block specifically. The prerequisite's narrow evidence is still owed.
+The designated head d432ef0f and source-reviewed file-diagnostic prerequisite are
+on the feature branch. Product wiring now connects the real bounded registry,
+provider, canonical ConnectionLife accessor and shared codec, with five pending
+method-table rows. The protocol constant remains None. The generated guard checks
+Operate and the domain context refuses agents. Those are implementation drafts,
+not a product test or merge pass. The CLI still has only its staged file decoder.
 
-Staged source now includes the real provider, actor, bounded registry and twelve
-registry cases, generation-control/lease transfer, failed-root service-recreation
-regression, typed call-reason detail and the file preflight decoder. No current
-remote result validates those newer drafts: narrow checks and TS regeneration
-remain owed. No dictation call is registered, no product speech service or CLI
-command exists, and the protocol stays unassigned.
+Settings now validate the whole merged candidate, resolve explicitly selected
+keys even on a no-op, and use the existing single-lock atomic writer/apply order.
+Hidden old/unassigned responses skip presence I/O. Actual-write failure, deletion
+race through start, typed historical downgrade, scope/agent checks on all five
+assembled handlers, real connection close, stop-tracker joins and private wire
+causes have new unexecuted regressions. A real-provider loopback service case
+checks a short capture tail, partial and final.
 
-Next: finish atomic settings application/presence, the actual Connection
-accessor, pending method rows and scope/transport integration, then the file
-command. Remove staging with real callers and run one whole product/package
-gate. Earlier resume paragraphs below are historical checkpoints, not claims
-about the current tree. Local engines, app capture and TTS remain deferred.
+Next: narrow strict checks and focused tests on this committed wiring, fix
+actual failures, then implement the file command/driver. Regenerate declarations
+for the final registered surface and run one whole product/package gate. The
+previous generated snapshot passed four tests but was stale; it excludes later
+ErrorDetail/registration additions and is only an interim generated artifact.
+Earlier resume paragraphs below are historical checkpoints. Local engines,
+app capture and TTS remain deferred. No real ASR, HTTPS credential, platform
+service-account or microphone behavior is claimed.
 
 ## What Paseo does
 
@@ -744,3 +750,38 @@ writer; no product code failed. The writer now recovers its own capture mutex
 through PoisonError::into_inner, as existing internal tables do. Test inputs,
 marker assertions and recovery branches are unchanged. The first failed log is
 retained; strict and runtime checks on this correction remain owed.
+
+## Product wiring decisions
+
+Decision: extend the existing settings writer, generated method table and actual
+connection constructor. No second settings/secret parser or presence identity is
+introduced. Context construction enforces the person-only rule for every handler,
+as the side-question domain enforces its own rule. Canonical identity and quota
+are separate fields, both cloned for acting-as contexts; only observers reach
+stream workers. Test-only control methods stay test-only; product teardown runs
+through the serial registry and actual joins.
+
+The node already distinguishes work tasks from subscription forwarders. Group
+those existing trackers in ServiceTasks rather than adding an independent
+shutdown path, letting registry retirement use work completion rather than the
+forwarder grace. The single Parts construction line changes; node.rs stays
+within its recorded size and no size exception grows.
+
+The typed historical downgrade test exercises the pre-dictation decode/write
+shape and keeps the common later-copy backup plus named secret. It does not run
+an older binary. The real failed-write case replaces only its own temporary data
+directory with a non-directory after validation, then restores it before checking
+the old bytes and settings; it makes no OS-account or permission assumption.
+The test-only write gate coordinates an actual writer, not a substituted result.
+
+All new tests and product configuration remain unexecuted at this checkpoint.
+The prior TS artifact has ts-rs trailing spaces and is kept byte-for-byte; owned
+Rust/document whitespace checks pass separately. It needs final regeneration.
+
+The common settings writer's caller-cancellation race is a separate prerequisite:
+a detached blocking write can outlive its caller's borrowed lock. The current
+implementation retains the existing order; it does not claim to repair that
+race. Product handover must consume the shared tracked OwnedMutexGuard writer
+and its deterministic real-I/O regression, rather than introducing a second
+writer here. Our write gate is before spawn and proves deletion/write-refusal
+ordering, not cancellation safety inside a blocking write.

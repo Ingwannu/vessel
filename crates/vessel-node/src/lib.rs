@@ -69,7 +69,6 @@ mod catalogue;
 pub mod cleanup;
 mod config;
 mod devices;
-#[cfg(test)]
 mod dictation;
 mod envelope;
 mod error;
@@ -132,9 +131,7 @@ pub use vessel_store::{ByteCount, DataDir, NodeToken, Retention, StoreConfig, St
 pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 
 // The first speech consumer removes staging after its product wiring.
-#[cfg(test)]
 mod speech_audio;
 
 // The first connection-owned resource wires this into the real context once.
-#[cfg(test)]
 mod connection_life;

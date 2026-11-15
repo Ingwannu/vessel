@@ -78,3 +78,44 @@ fn a_local_refusal_carries_its_model_in_the_reason_instead_of_an_optional_siblin
     let unknown: DictationReason = serde_json::from_str(r#"{"kind":"later","model":{}}"#).unwrap();
     assert_eq!(unknown, DictationReason::Unknown);
 }
+
+#[test]
+fn registered_dictation_calls_share_pending_admission_operate_and_node_local_policy() {
+    use crate::{Method, MethodShape, Request as _, Scope};
+    let id: DictationId = "admission".parse().unwrap();
+    let calls = [
+        StartDictation {
+            id: id.clone(),
+            format: Pcm16Mono::new(SampleRate::MIN),
+        }
+        .into_call(),
+        ChunkDictation {
+            id: id.clone(),
+            seq: ChunkSeq::new(0),
+            pcm: DictationPcm::new(vec![0; super::super::PCM_SAMPLE_BYTES]).unwrap(),
+        }
+        .into_call(),
+        FinishDictation {
+            id: id.clone(),
+            final_seq: ChunkSeq::new(0),
+        }
+        .into_call(),
+        NextDictation { id: id.clone() }.into_call(),
+        CancelDictation { id }.into_call(),
+    ];
+    let expected = [
+        Method::StartDictation,
+        Method::ChunkDictation,
+        Method::FinishDictation,
+        Method::NextDictation,
+        Method::CancelDictation,
+    ];
+    for (call, method) in calls.into_iter().zip(expected) {
+        assert_eq!(call.method(), method);
+        assert_eq!(call.required_protocol(), super::super::SINCE);
+        assert_eq!(method.since(), super::super::SINCE);
+        assert_eq!(method.scope(), Some(Scope::Operate));
+        assert_eq!(method.shape(), MethodShape::Unary);
+        assert!(!method.forwardable());
+    }
+}
