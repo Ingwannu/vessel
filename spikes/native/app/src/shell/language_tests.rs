@@ -29,10 +29,19 @@ impl Render for Probe {
 }
 
 impl Shell {
+    pub(crate) fn with_test_link(
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+        link: Link,
+    ) -> Self {
+        let mut shell = Self::without_io(window, cx);
+        shell.link = Some(link);
+        shell
+    }
+
     pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
-            // No receiver: a command given back goes nowhere in these tests.
             unsent: mpsc::unbounded_channel().0,
             t: vessel_app_view::Lang::En.text(),
             words: Translator::get(ENGLISH).unwrap(),

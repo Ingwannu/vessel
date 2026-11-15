@@ -1,24 +1,10 @@
 //! A Devices page is scoped to one already-parsed node-book entry.
 //! Changing its scope drops all pending results, including credentials.
 
-use super::{Inviting, Listing, Revoking, Tickets};
-
-/// A node-book name already parsed by the client at the book boundary.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MachineKey(String);
-
-impl MachineKey {
-    /// Carry an existing node-book name into a per-machine request.
-    #[must_use]
-    pub fn from_book(name: &str) -> Self {
-        Self(name.to_owned())
-    }
-    /// The name used by the connection registry.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
+use super::{
+    ConnectionContext, DeviceIdentity, IdentityChange, Inviting, Listing, MachineKey, Revoking,
+    Ticket, Tickets,
+};
 
 /// The selected machine's availability, without inventing a live-device
 /// status the node does not report.
@@ -37,10 +23,20 @@ pub enum Target {
     Online(MachineKey),
 }
 
+/// One confirmation, distinct from the eventual network request identity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RevokeIntent(pub(super) Ticket);
+impl std::fmt::Display for RevokeIntent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
 /// State whose lifetime is the selected machine, plus a ticket source
 /// whose lifetime is the app: an A-to-B-to-A switch cannot reuse tickets.
 #[derive(Debug, Default)]
 pub struct Page {
+    identity: DeviceIdentity,
     // A selected public record, never an invitation or a credential. Kept
     // while a read is pending; a successful list reconciles it by id.
     pub(super) inspection: Option<vessel_proto::DeviceInfo>,
@@ -57,13 +53,70 @@ pub struct Page {
 }
 
 impl Page {
+    fn clear_owned(&mut self) {
+        self.listing = Listing::Empty;
+        self.inviting = Inviting::Empty;
+        self.revoking = Revoking::Empty;
+        self.inspection = None;
+    }
+    /// Reconcile authenticated facts before drawing or accepting a callback.
+    /// Scope is not inferred from a session read or display-name match.
+    pub fn bind(&mut self, context: Option<ConnectionContext>) -> IdentityChange {
+        let context = context.filter(|context| {
+            matches!(&self.target,
+            Target::Online(machine) if machine == context.machine())
+        });
+        let change = self.identity.observe(context);
+        if change == IdentityChange::Replaced {
+            self.clear_owned();
+        }
+        change
+    }
+    /// Public identity to capture in callbacks, request envelopes and element ids.
+    #[must_use]
+    pub const fn context(&self) -> Option<&ConnectionContext> {
+        self.identity.current()
+    }
+    /// Refuse old callbacks and replies without interpreting an alias again.
+    ///
+    /// # Errors
+    /// This admission is no longer the one selected by this page.
+    pub fn check_context(&self, context: &ConnectionContext) -> Result<(), super::StaleContext> {
+        self.identity.check(context)
+    }
+    /// Current confirmation intent; cancel/reopen never reuses it.
+    #[must_use]
+    pub const fn revoke_intent(&self) -> Option<RevokeIntent> {
+        self.revoking.intent()
+    }
+    /// Consume only the confirmation the pressed button was drawn for.
+    /// Repeated or stale callbacks send nothing.
+    pub fn confirm_revoke(
+        &mut self,
+        context: &ConnectionContext,
+        intent: RevokeIntent,
+        request: Ticket,
+    ) -> Option<vessel_proto::DeviceId> {
+        if self.check_context(context).is_err() || self.revoking.intent() != Some(intent) {
+            return None;
+        }
+        self.revoking.confirm(context, intent, request)
+    }
+    /// A cancelled older dialog cannot dismiss a newly opened confirmation.
+    pub fn cancel_revoke(&mut self, context: &ConnectionContext, intent: RevokeIntent) {
+        if self.check_context(context).is_ok()
+            && self.revoking.intent() == Some(intent)
+            && matches!(self.revoking, Revoking::Confirm(_))
+        {
+            self.revoking = Revoking::Empty;
+        }
+    }
+
     /// Replace scope, dropping everything belonging to the previous one.
     pub fn target(&mut self, target: Target) {
         if self.target != target {
-            self.listing = Listing::Empty;
-            self.inviting = Inviting::Empty;
-            self.revoking = Revoking::Empty;
-            self.inspection = None;
+            self.clear_owned();
+            let _retired = self.identity.observe(None);
             self.target = target;
         }
     }

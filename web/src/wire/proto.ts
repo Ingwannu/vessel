@@ -1139,7 +1139,11 @@ scripts?: Array<ScriptEntry>,
 /**
  * Terminal commands covered by this approval (ADR 0066).
  */
-terminals?: Array<FileTerminal>, };
+terminals?: Array<FileTerminal>, 
+/**
+ * Retain every allocation choice covered by the approval's digest.
+ */
+service_ports?: ServicePorts | null, };
 
 /**
  * SHA-256 of a project's setup and teardown commands, hexadecimal: what
@@ -5518,6 +5522,11 @@ session: SessionId, } | { "kind": "terminal",
 terminal: TerminalId, };
 
 /**
+ * An inclusive service port range whose order cannot be bypassed by serde.
+ */
+export type PortRange = string;
+
+/**
  * How the last scan went.
  */
 export type PortScan = { "state": "pending" } | { "state": "scanned", 
@@ -5529,6 +5538,11 @@ at: string, } | { "state": "unavailable",
  * Why.
  */
 reason: string, } | { "state": "unknown" };
+
+/**
+ * A literal program selection whose path shape is validated before approval.
+ */
+export type PortScript = string;
 
 /**
  * A 1-based Unicode scalar position; the line's exclusive end is valid.
@@ -5643,6 +5657,10 @@ scripts?: Array<ScriptEntry>,
  * Terminal commands the client must show before approval (ADR 0066).
  */
 terminals?: Array<FileTerminal>, 
+/**
+ * Allocation choices that must be displayed or refused before approval.
+ */
+service_ports?: ServicePorts | null, 
 /**
  * The set last approved for this project, to show what changed
  * (protocol 11): only while this set is not approved, and only
@@ -7642,6 +7660,11 @@ restarts: number, } | { "kind": "not_approved" } | { "kind": "spawn" } | { "kind
  * A service's configured or allocated TCP port, never the ephemeral sentinel zero.
  */
 export type ServicePort = number;
+
+/**
+ * A project overrides allocation only by providing at least one valid choice.
+ */
+export type ServicePorts = { range?: PortRange, port_script?: PortScript, };
 
 /**
  * What a service is doing (protocol 11). Also a record of its log
