@@ -138,3 +138,6 @@ scripts-setup-unknown = This app cannot interpret the setup state. No session wa
 scripts-unsupported-config = This command set contains configuration this app cannot fully show. Update the app before approving or running it.
 # A read of invalid configuration does not imply that prior supervised runs stopped.
 scripts-invalid-config = The project file is invalid. No new run is authorized; existing runs remain available below.
+
+# Declaration is separate from observed listening sockets.
+scripts-declared-port = Declared port

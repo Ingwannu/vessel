@@ -100,3 +100,18 @@ split shared link root. The root crates changed only by consuming the announced 
 Setup observation/cancellation is this package's node responsibility (ADR 0093),
 on the announced node head with the shared method table and pending protocol rows.
 Allocator/environment/proxy/health remain the separate workspace runtime package.
+
+## Declared-port adapter after package-base merge
+
+The actual package base already includes private ScriptEntry kind/port and
+its complete five-field view. The native execution card now projects all
+five fields explicitly, uses ScriptEntry::new in fixtures and labels the
+approved port as a declaration. It never turns that value into a listener,
+health claim or preview authority. Existing approval rows and changes already
+consume the complete view on the package base. The later optional global
+service_ports block is not present on this base and remains pending its join.
+
+The first remote narrow submission was interrupted before registration by
+the shared submit-lock incident (tool-owner inventory: no run for c350918f).
+It produced no compile or test result. A local narrow check covers the updated
+adapter; a fresh committed snapshot will be used for the next remote request.

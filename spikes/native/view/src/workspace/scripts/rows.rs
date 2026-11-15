@@ -3,12 +3,11 @@ use crate::workspace::command_changes::Listed;
 use vessel_proto::SessionStatus;
 use vessel_proto::ports::{ListeningPort, PortList, PortOwner};
 use vessel_proto::scripts::ScriptList;
-use vessel_proto::scripts::{ScriptEntry, ScriptKind, ScriptName};
+use vessel_proto::scripts::{ScriptEntry, ScriptEntryView, ScriptKind, ScriptName};
 use vessel_proto::terminals::{ServiceState, TerminalInfo, TerminalKind, TerminalPlace};
-use vessel_proto::workspace::{ProjectCommand, RelPath};
+use vessel_proto::workspace::{ProjectCommand, RelPath, ServicePort};
 
-/// Complete native projection; the node's reviewed `ScriptEntryView` replaces
-/// this adapter at Step 0 without spreading wire-field access across drawing.
+/// Complete display projection of the node's approved declaration.
 #[derive(Debug, Clone, Copy)]
 pub struct Entry<'a> {
     /// Exact configured name.
@@ -19,22 +18,26 @@ pub struct Entry<'a> {
     pub command: &'a ProjectCommand,
     /// Configured working directory relative to the project.
     pub dir: Option<&'a RelPath>,
+    /// Approved declaration, never an observed listener or health result.
+    pub port: Option<ServicePort>,
 }
 impl<'a> Entry<'a> {
-    /// Centralize the base's field access until its exhaustive view is available.
+    /// Name every approved field so future additions break the adapter.
     #[must_use]
     pub fn of(entry: &'a ScriptEntry) -> Self {
-        let ScriptEntry {
+        let ScriptEntryView {
             name,
             kind,
             command,
             dir,
-        } = entry;
+            port,
+        } = entry.view();
         Self {
             name,
-            kind: *kind,
+            kind,
             command,
-            dir: dir.as_ref(),
+            dir,
+            port,
         }
     }
 }
@@ -146,6 +149,7 @@ impl<'a> Entry<'a> {
             kind,
             command,
             dir,
+            port: None,
         })
     }
 }

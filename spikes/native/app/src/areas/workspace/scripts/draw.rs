@@ -95,7 +95,7 @@ fn configured(
         return match &snapshot.scripts.commands {
             vessel_proto::workspace::ProjectCommands::None => empty(words.empty(), tokens),
             vessel_proto::workspace::ProjectCommands::Invalid { .. } => {
-                ports::notice(words.invalid_file(), tokens)
+                ports::notice(words.invalid_config(), tokens)
             }
             vessel_proto::workspace::ProjectCommands::Listed { .. } => {
                 ports::notice(words.unsupported_config(), tokens)
@@ -156,6 +156,7 @@ fn script_row(
         kind,
         command,
         dir,
+        port,
     } = entry;
     let model = &shell.areas.workspace.scripts.model;
     let state = run_state(run);
@@ -198,6 +199,10 @@ fn script_row(
         ScriptKind::Script => words.script(),
         ScriptKind::Service => words.service(),
     };
+    let kind = port.map_or_else(
+        || kind.to_owned(),
+        |port| format!("{kind} · {} {port}", words.declared_port()),
+    );
     div()
         .flex()
         .flex_col()

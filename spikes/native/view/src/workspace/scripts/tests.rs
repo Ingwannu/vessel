@@ -38,12 +38,16 @@ fn snapshot(_target: &Target) -> Snapshot {
                 setup: vec![],
                 teardown: vec![],
                 terminals: vec![],
-                scripts: vec![ScriptEntry {
-                    name: "dev".parse().unwrap(),
-                    kind: ScriptKind::Service,
-                    command: "serve".parse().unwrap(),
-                    dir: None,
-                }],
+                scripts: vec![
+                    ScriptEntry::new(
+                        "dev".parse().unwrap(),
+                        ScriptKind::Service,
+                        "serve".parse().unwrap(),
+                        None,
+                        None,
+                    )
+                    .unwrap(),
+                ],
                 digest: "a".repeat(64).parse().unwrap(),
                 approved: true,
                 last_approved: None,
@@ -242,4 +246,31 @@ fn removing_a_script_entry_does_not_hide_its_retained_supervised_run() {
     next.scripts.runs.first_mut().unwrap().status =
         vessel_proto::SessionStatus::Exited { code: Some(0) };
     assert!(retained_runs(&next.scripts).is_empty());
+}
+
+#[test]
+fn declared_port_is_displayed_but_never_becomes_an_observed_listener() {
+    let target = target();
+    let mut snapshot = snapshot(&target);
+    let declared = ScriptEntry::new(
+        "dev".parse().unwrap(),
+        ScriptKind::Service,
+        "serve".parse().unwrap(),
+        None,
+        Some(
+            "4321"
+                .parse::<vessel_proto::workspace::ServicePort>()
+                .unwrap(),
+        ),
+    )
+    .unwrap();
+    let entry = Entry::of(&declared);
+    assert_eq!(entry.port, declared.port());
+    assert_eq!(entry.kind, declared.kind());
+    let terminal = run(&target);
+    snapshot.scripts.runs.push(terminal.clone());
+    if let Ok(ports) = &mut snapshot.ports {
+        ports.scan = PortScan::Scanned;
+        assert!(listeners(Some(&terminal), ports).is_empty());
+    }
 }

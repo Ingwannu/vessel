@@ -138,3 +138,6 @@ scripts-setup-unknown = 이 앱이 설정 상태를 해석할 수 없어 세션�
 scripts-unsupported-config = 이 앱이 모두 보여 줄 수 없는 설정이 명령 묶음에 있습니다. 승인하거나 실행하기 전에 앱을 업데이트하세요.
 # A read of invalid configuration does not imply that prior supervised runs stopped.
 scripts-invalid-config = 프로젝트 파일이 올바르지 않습니다. 새 실행은 허용하지 않으며 기존 실행은 아래에서 확인할 수 있습니다.
+
+# Declaration is separate from observed listening sockets.
+scripts-declared-port = 선언된 포트
