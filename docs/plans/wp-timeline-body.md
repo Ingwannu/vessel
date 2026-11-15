@@ -44,3 +44,7 @@ same headless fixture also changes proposed Ready content into an empty Loading
 body and draws it, retaining one stable structural identity. No execution or
 approval outcome is fabricated. Output range assertions use first()/from_ref;
 the earlier A7 actual test pass preceded this isolated draw fixture.
+
+Dependency audit: the existing empty-JSON predicate now lives in tool_sections,
+with A7's header model importing it there. The body does not import tool_display
+or its source/provenance graph; no second predicate or decoder is introduced.

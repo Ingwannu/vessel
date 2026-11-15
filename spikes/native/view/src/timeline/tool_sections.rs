@@ -163,10 +163,15 @@ fn unknown_sections(unknown: &vessel_proto::timeline::UnknownToolDetail) -> Vec<
     ]
     .into_iter()
     .filter_map(|(label, raw)| {
-        raw.filter(|raw| super::tool_display::opaque_present(Some(raw)))
+        raw.filter(|raw| opaque_present(Some(raw)))
             .map(|raw| ToolSection::Opaque { label, raw })
     })
     .collect()
+}
+
+/// This formatting edge recognizes only empty JSON spellings, never tool fields.
+pub(super) fn opaque_present(raw: Option<&RawJson>) -> bool {
+    raw.is_some_and(|raw| !["null", "{}", "[]", "\"\""].contains(&raw.as_text().trim()))
 }
 
 fn search_sections(search: &vessel_proto::timeline::SearchDetail) -> Vec<ToolSection<'_>> {
