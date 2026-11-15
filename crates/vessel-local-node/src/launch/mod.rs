@@ -36,9 +36,10 @@ pub enum LaunchError {
     /// The OS did not confirm the exact owned child's exit.
     #[error("local node process wait failed")]
     Wait(#[source] vessel_proc::WaitError),
-    /// Consuming release refused while retaining the Child's cleanup authority.
+    /// Release capability was refused; the controller retains its owned child.
+    /// Proc's refusal has only this policy cause; its recovered Child stays internal.
     #[error("local node release capability was refused")]
-    Detach(#[source] vessel_proc::DetachRefused),
+    ReleaseCapability,
     /// Observation after release failed; no signal authority is recreated.
     #[error("kept local node could not be observed")]
     DetachedWait(#[source] vessel_proc::DetachedError),

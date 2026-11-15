@@ -8,6 +8,9 @@ use vessel_proto::local_launch::{MAX_READY_BYTES, Ready};
 use super::{Launch, LaunchError};
 use crate::logs::LogReader;
 
+#[cfg(test)]
+mod tests;
+
 pub(crate) struct Owned {
     child: Child,
     logs: LogReader,
@@ -88,10 +91,20 @@ impl Owned {
             .map_err(LaunchError::Wait)
     }
 
-    pub(crate) fn keep(self) -> Result<KeptNode, LaunchError> {
-        let detached = self.child.detach().map_err(LaunchError::Detach)?;
+    pub(crate) fn keep(self) -> Result<KeptNode, Box<Self>> {
+        let Self { child, logs } = self;
+        let detached = match child.detach() {
+            Ok(detached) => detached,
+            Err(refused) => {
+                // Refusal is a release-capability policy result. Return the
+                // recovered owner, rather than letting an error own and drop it.
+                return Err(Box::new(Self {
+                    child: refused.into_child(),
+                    logs,
+                }));
+            }
+        };
         let mut reaped = detached.clone();
-        let logs = self.logs;
         // Keep draining stderr until direct-child exit even after all UI handles
         // disappear. This task ends with the original launcher runtime.
         drop(tokio::spawn(async move {

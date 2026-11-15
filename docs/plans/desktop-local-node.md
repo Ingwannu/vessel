@@ -118,3 +118,15 @@ before Released/inner transfer. Detached direct-child wait remains an independen
 OS exit observation. The joined fake echo and separate-launcher fixtures require
 both facts: revoked management authority while the exact released child lives.
 Windows execution remains unverified; combined narrow/full gates are pending.
+
+### Refused release retains the controller owner
+
+A Proc release refusal contains the still-owned Child. The launch adapter now
+recovers that handle and returns the complete private Owned value; the controller
+restores its original client and lease before returning ReleaseCapability. The
+public error cannot accidentally acquire cleanup authority and kill the process
+when a UI snapshot is dropped. This is a lossless policy projection: Proc's
+DetachRefused has one cause, missing release capability, and its only extra value
+is the recovered owner. A private self-executable echo fixture exercises Bound
+refusal, retained live authority, continued child I/O, and explicit-drop cleanup.
+The fixture is added, not yet executed; production launches remain Releasable.
