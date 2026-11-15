@@ -7,7 +7,7 @@ use vessel_proto::{ErrorCode, WireError};
 pub(crate) fn now() -> DateTime<Utc> {
     "2026-11-13T00:00:00Z".parse().unwrap()
 }
-pub(super) fn key(name: &str) -> MachineKey {
+pub(in crate::schedules) fn key(name: &str) -> MachineKey {
     MachineKey::of(name).unwrap()
 }
 pub(crate) fn snapshot(schedules: Vec<ScheduleInfo>) -> Snapshot {

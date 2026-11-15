@@ -306,7 +306,10 @@ fn browsing_another_provider_never_changes_the_selected_target_before_a_model_pi
     assert_eq!(target.spec(), &expected);
     assert_eq!(target.finish(), Finish::Keep);
     assert_eq!(model.selected_options_request(), Some(&browsing));
-    assert_eq!(model.initial_browser_harness().unwrap().as_str(), "codex");
+    assert_eq!(
+        model.initial_browser_harness().unwrap().known(),
+        Some(vessel_proto::HarnessKind::Codex)
+    );
 }
 #[test]
 fn model_browser_opens_at_the_sole_provider_or_an_explicit_installed_selection() {
@@ -335,15 +338,18 @@ fn model_browser_opens_at_the_sole_provider_or_an_explicit_installed_selection()
     ));
     assert!(model.initial_browser_harness().is_none());
     assert!(model.choose_model(opened.visit, &request, choice("model", "old-model")));
-    assert_eq!(model.initial_browser_harness().unwrap().as_str(), "codex");
+    assert_eq!(
+        model.initial_browser_harness().unwrap().known(),
+        Some(vessel_proto::HarnessKind::Codex)
+    );
     let (mut sole, opened) = active();
     assert!(matches!(
         sole.received(&opened.request, Ok(io::Value::Targets(Box::new(targets())))),
         Received::Changed
     ));
     assert_eq!(
-        sole.initial_browser_harness().unwrap().as_str(),
-        "claude-code"
+        sole.initial_browser_harness().unwrap().known(),
+        Some(vessel_proto::HarnessKind::ClaudeCode)
     );
 }
 
@@ -375,7 +381,7 @@ fn reopening_after_an_uncommitted_browse_reads_the_selected_provider_again() {
     // Closing the browser performs no model choice. Its next opening derives
     // the header from the original selected target, not the last browsed slot.
     let initial = model.initial_browser_harness().cloned().unwrap();
-    assert_eq!(initial.as_str(), "claude-code");
+    assert_eq!(initial.known(), Some(vessel_proto::HarnessKind::ClaudeCode));
     let reopening = model.browse_agent(opened.visit, initial.clone()).unwrap();
     assert_ne!(reopening, selected);
     assert_ne!(reopening, browsing);

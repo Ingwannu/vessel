@@ -1,7 +1,7 @@
 use super::*;
 use crate::schedules::history::reader::tests::{list, run};
-use crate::schedules::page::tests::loaded;
-use vessel_proto::automation::RunOutcome;
+use crate::schedules::{load::MachineKey, page::tests::loaded};
+use vessel_proto::automation::{RunList, RunOutcome};
 use vessel_proto::{SessionId, SessionMode, SessionSpec};
 fn ready() -> (Reader, SessionId) {
     let (page, key) = loaded();

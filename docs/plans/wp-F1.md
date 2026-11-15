@@ -1843,3 +1843,18 @@ existing constructors; parsing remains only for actually validated harnesses.
 No production parsing, wire shape, assertion or authority guard changed. The
 running3a5 source/outcome stays immutable; no cancellation or borrowed later
 proof. Corrected-source consumer checks remain owed after its actual outcome.
+
+
+### Exact3a5 consumer compile result and full batch repair
+
+schedules-20261115T183805Z-3a5dc6fa ended fonts0/cargo101/helper1 before any
+View/Link/App lib tests executed: View test compilation29 errors, Link27 plus
+14 unnecessary-qualification warnings. The complete batch covers missing io/
+CatalogStatus/RunList/MachineKey/Failure fixture imports, the sibling fixture
+key visibility, unsupported HarnessRef.as_str, ambiguous typed comparison and
+the opaque option constructor assumptions. The shared test key widens only to
+crate::schedules; no product API is widened. Existing typed known() comparisons
+replace string rendering. All unnecessary qualifications in the batch were
+removed, including the actor helper's already-imported LinkError and prelude
+Future. No assertion, deadline, authority check or lint is weakened. The frozen
+3a5 red remains its own evidence; corrected-source tests/strict remain owed.

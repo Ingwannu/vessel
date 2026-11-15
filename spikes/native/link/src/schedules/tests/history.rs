@@ -16,7 +16,7 @@ fn selected(context: ConnectionContext) -> (reader::Reader, reader::Request) {
     page.machines(std::slice::from_ref(&key));
     let _admitted = page.admitted(context);
     let ask = page.due(chrono::DateTime::UNIX_EPOCH).remove(0);
-    let info: vessel_proto::automation::ScheduleInfo = serde_json::from_str(include_str!(
+    let info: ScheduleInfo = serde_json::from_str(include_str!(
         "../../../../view/tests/fixtures/schedules/info.json"
     ))
     .unwrap();
@@ -57,7 +57,7 @@ async fn a_history_read_keeps_its_actual_typed_frame_and_original_envelope() {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("controlled history peer", peer::controlled("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let request = request(context);
         phase("history dispatch", state.schedule(request.clone())).await;
         let frame = phase(
@@ -86,7 +86,7 @@ async fn an_unsent_history_refusal_settles_the_same_family_without_a_write_warni
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("history peer", peer::connect("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let request = request(context);
         let original = state.clients.remove("laptop").unwrap();
         original.retire();
@@ -109,7 +109,7 @@ async fn historical_session_metadata_uses_its_original_read_without_a_live_opene
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("controlled session peer", peer::controlled("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let (mut reader, history) = selected(context);
         let session = vessel_proto::SessionId::random();
         let at = chrono::DateTime::UNIX_EPOCH;

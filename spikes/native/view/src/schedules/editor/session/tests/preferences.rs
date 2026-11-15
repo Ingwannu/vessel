@@ -26,7 +26,7 @@ fn fresh(options: vessel_proto::HarnessOptions) -> (Model, Opened) {
     // An unavailable remembered provider falls back only to an actual available one.
     let preferred = "codex".parse().unwrap();
     let harness = model.initial_agent(Some(&preferred)).cloned().unwrap();
-    assert_eq!(harness, "claude-code".parse().unwrap());
+    assert_eq!(harness, vessel_proto::HarnessKind::ClaudeCode);
     let request = model.agent(opened.visit, harness).unwrap();
     assert!(matches!(
         model.received(&request, Ok(io::Value::Options(options))),

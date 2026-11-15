@@ -30,7 +30,7 @@ async fn a_preview_keeps_its_original_envelope_and_actual_typed_request() {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("controlled peer", peer::controlled("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let request = io::Request::on(context, Tickets::default().issue().unwrap(), operation());
         phase("form dispatch", state.schedule(request.clone())).await;
         let frame = phase("preview frame", peer.requests.as_mut().unwrap().recv())
@@ -73,7 +73,7 @@ async fn row_editor_and_history_work_share_one_four_request_pool() {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("controlled peer", peer::controlled("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let mut tickets = Tickets::default();
         for index in 0..vessel_app_view::schedules::load::MAX_IN_FLIGHT {
             let ticket = tickets.issue().unwrap();
@@ -90,7 +90,7 @@ async fn row_editor_and_history_work_share_one_four_request_pool() {
             } else if index == 1 {
                 phase(
                     "history admission",
-                    state.schedule(super::history::request(context.clone())),
+                    state.schedule(history::request(context.clone())),
                 )
                 .await;
             } else {
@@ -153,7 +153,7 @@ async fn row_editor_and_history_work_share_one_four_request_pool() {
 #[test]
 fn an_editor_save_lost_after_dispatch_is_uncertain_but_an_unsent_refusal_is_not() {
     use vessel_app_view::schedules::editor::definition::Save;
-    let info: vessel_proto::automation::ScheduleInfo = serde_json::from_str(include_str!(
+    let info: ScheduleInfo = serde_json::from_str(include_str!(
         "../../../../view/tests/fixtures/schedules/info.json"
     ))
     .unwrap();

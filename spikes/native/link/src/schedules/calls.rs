@@ -163,7 +163,7 @@ impl crate::State {
         &self,
         client: Result<SelectedConnection, ScheduleError>,
         request: vessel_app_view::schedules::editor::io::Request,
-        persisted: impl std::future::Future<Output = crate::dispatch::SaveOutcome>,
+        persisted: impl Future<Output = crate::dispatch::SaveOutcome>,
     ) {
         use crate::dispatch::SaveOutcome;
         let admitted = matches!(request.operation(), vessel_app_view::schedules::editor::io::Operation::Save(save)

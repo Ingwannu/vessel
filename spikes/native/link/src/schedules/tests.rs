@@ -2,7 +2,7 @@
 use super::RowRequest as Request;
 use super::*;
 use vessel_app_view::schedules::{
-    load::{MachineKey, Tickets},
+    load::{Failure, MachineKey, Tickets},
     page::Ask,
 };
 use vessel_proto::{ErrorCode, ScheduleId, WireError};

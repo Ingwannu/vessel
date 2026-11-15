@@ -39,12 +39,11 @@ fn request(
     tickets: &mut Tickets,
     target: ScheduleTarget,
 ) -> io::Request {
-    let mut info: vessel_proto::automation::ScheduleInfo =
-        serde_json::from_str(include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../view/tests/fixtures/schedules/info.json"
-        )))
-        .unwrap();
+    let mut info: ScheduleInfo = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../view/tests/fixtures/schedules/info.json"
+    )))
+    .unwrap();
     info.definition.target = target;
     io::Request::on(
         context,
@@ -81,7 +80,7 @@ async fn failed_real_preference_write_returns_original_form_and_sends_no_rpc() {
         let home = Home::new();
         let (mut state, mut events) = state(&home);
         let mut peer = phase("controlled preference peer", peer::controlled("laptop")).await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let request = request(context, &mut Tickets::default(), target());
         let path = home.0.join("prefs.json");
         std::fs::create_dir(&path).unwrap();
@@ -126,7 +125,7 @@ async fn real_preference_file_is_committed_before_the_original_create_frame() {
             peer::controlled("laptop"),
         )
         .await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let request = request(context, &mut Tickets::default(), target());
         let path = home.0.join("settings").join("prefs.json");
         let prefs = prefs(&path);
@@ -180,7 +179,7 @@ async fn heartbeat_or_retired_admission_cannot_poll_the_preference_writer() {
             peer::controlled("laptop"),
         )
         .await;
-        let context = super::admission::insert(&mut state, "laptop", &mut peer);
+        let context = admission::insert(&mut state, "laptop", &mut peer);
         let mut tickets = Tickets::default();
         let heartbeat = ScheduleTarget::Session {
             session: vessel_proto::SessionId::random(),

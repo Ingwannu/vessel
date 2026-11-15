@@ -137,7 +137,7 @@ pub(super) async fn save_preferences(prefs: Box<super::Prefs>) -> SaveOutcome {
 // process-wide HOME/config state. Production always uses the same Prefs::save.
 pub(super) async fn ordered_preferences<F>(save: F) -> SaveOutcome
 where
-    F: FnOnce() -> Result<(), super::LinkError> + Send + 'static,
+    F: FnOnce() -> Result<(), LinkError> + Send + 'static,
 {
     match tokio::task::spawn_blocking(save).await {
         Ok(Ok(())) => SaveOutcome::Saved,

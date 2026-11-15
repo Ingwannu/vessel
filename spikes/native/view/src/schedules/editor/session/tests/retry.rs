@@ -1,5 +1,5 @@
 //! Retry admission belongs to one already failed read, never a visible row index.
-use super::{Failure, Received, active, at, ready};
+use super::{CatalogStatus, Failure, Received, active, at, io, ready};
 #[test]
 fn retry_uses_original_context_fresh_ticket_and_rejects_duplicate_or_retired_actions() {
     let (mut model, opened) = active();
