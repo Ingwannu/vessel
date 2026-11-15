@@ -25,6 +25,7 @@ pub mod diagnostics;
 pub mod effort;
 pub mod extras;
 pub mod files;
+pub mod hosts;
 pub mod idle_release;
 mod links;
 pub mod machine_book;

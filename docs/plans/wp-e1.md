@@ -72,3 +72,29 @@ the shared admission retirement and its actor tests.
 Current state: audit/preparation; no new E1 skeleton or parity pass is
 claimed by this document. Exact status remains in the package's commits
 and the shared tracker, updated only for rows actually verified.
+
+## First pure presentation rule
+
+`view::hosts` adds typed host color choices and the automatic/explicit
+badge policy, following the complete `hosts/appearance.ts` and its
+`appearance.test.ts` local/remote/pending fixtures. Explicit Name, Icon
+and Hidden choices override pending local detection. The automatic
+choice waits, then hides a local machine or names a remote one. This
+prevents painting a transient remote badge during local discovery.
+
+This is an independent E1 model commit while field source remains frozen
+for the lead's validated base. It does not add a store, reinterpret a
+book alias as authenticated identity, paint new tokens or register an
+inert control. Persistence validation, badge-list selection and the real
+Settings consumer are still owed in the E1 skeleton/package. Existing
+serde and standard-library assets suffice; no external dependency or
+second connector is introduced.
+
+The source's host rename edits the per-device display label, not a
+connection/authority key (`HostRuntimeStore::renameHost`). The inherited
+Vessel dialog instead renames the CLI book alias with its ASCII grammar;
+that is a documented adaptation in the earlier machine-book work, not
+proof of full host-label parity. E1 must keep a future display label
+separate from the authenticated NodeId and book alias, including Unicode
+labels, before claiming this complete. The new pure badge policy does
+not silently change the already reviewed book-edit contract.

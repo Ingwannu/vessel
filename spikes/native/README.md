@@ -73,6 +73,12 @@ reuses the existing machine-page tickets. Agent snapshots retain the
 reporting `NodeId`, so a reused book name cannot stand in for identity.
 The prepared request is not yet connected to a destructive call or control.
 
+Machine presentation policy lives in pure `view::hosts`: an explicit badge
+choice takes precedence while the managed-local-machine lookup is pending;
+only the automatic choice waits, then hides local or names remote. These
+values own no credentials, persistence or UI paint and never replace the
+client's authenticated identity. E1 wires their consumer separately.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches
