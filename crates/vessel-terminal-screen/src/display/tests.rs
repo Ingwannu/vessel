@@ -28,6 +28,8 @@ enum ProgramName {
     PhysicalWraps,
     SoftResetRetainsCells,
     AlternatePendingWrap,
+    RepeatedAlternate,
+    SoftResetNegotiation,
 }
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -55,6 +57,31 @@ struct Expected {
     cursor: ExpectedCursor,
     lines: Vec<String>,
     foreground: Vec<Vec<Option<u8>>>,
+    input_modes: ExpectedModes,
+}
+#[derive(Deserialize)]
+struct ExpectedModes {
+    kitty: u32,
+    win32: bool,
+    application_cursor: bool,
+    bracketed_paste: bool,
+}
+impl ExpectedModes {
+    fn modes(&self) -> crate::InputModes {
+        fn state(enabled: bool) -> crate::ModeState {
+            if enabled {
+                crate::ModeState::Enabled
+            } else {
+                crate::ModeState::Disabled
+            }
+        }
+        crate::InputModes {
+            kitty: self.kitty.into(),
+            win32: state(self.win32),
+            application_cursor: state(self.application_cursor),
+            bracketed_paste: state(self.bracketed_paste),
+        }
+    }
 }
 #[derive(Deserialize)]
 struct ExpectedCursor {
@@ -81,6 +108,12 @@ impl Expected {
     }
 }
 fn check_frame(frame: &crate::FrameView<'_>, expected: &Expected) {
+    assert_eq!(
+        frame.input_modes(),
+        expected.input_modes.modes(),
+        "{}",
+        expected.checkpoint
+    );
     assert_eq!(frame.columns(), expected.cols, "{}", expected.checkpoint);
     assert_eq!(frame.rows().get(), expected.rows, "{}", expected.checkpoint);
     assert_eq!(
@@ -216,6 +249,14 @@ fn soft_reset_retains_cells_and_resets_saved_presentation_like_paseo() {
 #[test]
 fn alternate_entry_inherits_the_pending_wrap_column_and_restores_primary() {
     check(&program(ProgramName::AlternatePendingWrap));
+}
+#[test]
+fn repeated_alternate_entry_retains_cells_and_primary_saved_cursor_and_ink() {
+    check(&program(ProgramName::RepeatedAlternate));
+}
+#[test]
+fn soft_reset_clears_vt_negotiation_but_preserves_server_keyboard_tracker_stack() {
+    check(&program(ProgramName::SoftResetNegotiation));
 }
 fn program(name: ProgramName) -> Program {
     let corpus: Corpus = serde_json::from_str(include_str!("oracle.json")).unwrap();
