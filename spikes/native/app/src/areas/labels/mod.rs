@@ -6,6 +6,9 @@ mod colors;
 mod draw;
 mod form;
 mod hosts;
+// No authoritative workspace caller has landed: enable with that owner only.
+#[cfg(test)]
+mod picker;
 mod surface;
 
 use vessel_app_kit::ui::{Context, IntoElement as _, Window};
@@ -15,6 +18,10 @@ use vessel_app_view::labels::{EditAccess, Failure, Host, HostState, Manager};
 use crate::shell::Shell;
 
 pub(crate) struct Labels {
+    #[cfg(test)]
+    picker: Option<picker::WorkspacePicker>,
+    #[cfg(test)]
+    picker_combo: vessel_app_kit::ComboboxState,
     opening: Option<surface::Opening>,
     manager: Manager,
     hosts: Vec<Host>,
@@ -37,6 +44,10 @@ pub(crate) struct Labels {
 impl Labels {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
+            #[cfg(test)]
+            picker: None,
+            #[cfg(test)]
+            picker_combo: vessel_app_kit::ComboboxState::new(window, cx),
             opening: None,
             manager: Manager::default(),
             hosts: Vec::new(),
@@ -107,6 +118,10 @@ impl Shell {
     }
 
     fn labels_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        #[cfg(test)]
+        {
+            self.areas.labels.picker = None;
+        }
         let state = &mut self.areas.labels;
         if state.opening.is_some() {
             state.dialog.focus(window, cx);
@@ -202,7 +217,20 @@ impl Shell {
         let state = &mut self.areas.labels;
         hosts::bind(state, &self.fleet);
         self.settle_labels(cx);
+        #[cfg(test)]
+        self.labels_picker_settle(cx);
     }
 }
 
-pub(crate) use draw::overlay;
+pub(crate) fn overlay(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<vessel_app_kit::ui::AnyElement> {
+    #[cfg(test)]
+    if shell.areas.labels.picker.is_some() {
+        return picker::overlay(shell, tokens, window, cx);
+    }
+    draw::overlay(shell, tokens, window, cx)
+}

@@ -1,13 +1,22 @@
 //! Typed catalog UI seam. No RPC is invented before ADR 0086 is integrated.
-//! Workspace assignment is added only with ADR 0082's reviewed `WorkspaceId`.
+//! Workspace assignment carries ADR 0082's reviewed identity; runtime stays pending.
 
 use vessel_app_view::labels::{Catalog, Count, Failure, Label, Name, Ticket};
 
-/// Intent issued by the catalog manager, with validated names.
+/// Intent issued by a workspace picker or catalog manager, with validated names.
 #[derive(Debug, Clone)]
 pub enum Command {
     /// Load the host's authoritative catalog.
     List,
+    /// Set one workspace assignment; creation and assignment are one operation.
+    Assign {
+        /// Registry identity captured with the exact admission.
+        workspace: vessel_proto::WorkspaceId,
+        /// Host definition, or a create draft whose default is violet.
+        label: Label,
+        /// The explicit desired state; never invert again at dispatch time.
+        assignment: vessel_app_view::labels::Assignment,
+    },
     /// Save name and color atomically; never two sequential writes.
     Update {
         /// Immutable target name.
@@ -37,6 +46,15 @@ pub struct Event {
 pub enum Answer {
     /// Authoritative definitions, or a typed refusal.
     Listed(Result<Catalog, Failure>),
+    /// Assignment settlement retains the immutable workspace and requested name.
+    Assigned {
+        /// The registry workspace that owned the intent.
+        workspace: vessel_proto::WorkspaceId,
+        /// Original requested identity, regardless of canonical reply spelling.
+        name: Name,
+        /// Ordered registry observation owns committed assignment projection.
+        result: Result<(), Failure>,
+    },
     /// A committed atomic update.
     Updated(Result<Label, Failure>),
     /// Advisory count before confirmation.
@@ -48,9 +66,16 @@ pub enum Answer {
 impl Command {
     /// Settle an unavailable operation, keeping its precise result kind.
     #[must_use]
-    pub const fn refused(&self, failure: Failure) -> Answer {
+    pub fn refused(&self, failure: Failure) -> Answer {
         match self {
             Self::List => Answer::Listed(Err(failure)),
+            Self::Assign {
+                workspace, label, ..
+            } => Answer::Assigned {
+                workspace: *workspace,
+                name: label.name.clone(),
+                result: Err(failure),
+            },
             Self::Update { .. } => Answer::Updated(Err(failure)),
             Self::InspectDelete(_) => Answer::Inspected(Err(failure)),
             Self::Delete(_) => Answer::Deleted(Err(failure)),
@@ -96,6 +121,10 @@ mod tests {
             Command::List.refused(Failure::Unsupported),
             Answer::Listed(Err(Failure::Unsupported))
         ));
+        let workspace = vessel_proto::WorkspaceId::random();
+        assert!(
+            matches!(Command::Assign {workspace, label: label.clone(), assignment: vessel_app_view::labels::Assignment::Assigned}.refused(Failure::Unsupported), Answer::Assigned {workspace: actual, name: original, result: Err(Failure::Unsupported)} if actual == workspace && original == name)
+        );
         assert!(matches!(
             Command::Update {
                 original: name.clone(),

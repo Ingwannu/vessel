@@ -23,7 +23,7 @@ const DOT_SIZE: f32 = 10.0;
 pub(super) struct ColorTurn(u64);
 
 impl ColorTurn {
-    fn advance(&mut self) {
+    pub(super) fn advance(&mut self) {
         self.0 = self.0.saturating_add(1);
     }
     fn key(&self, color: Color) -> ElementId {
@@ -31,8 +31,12 @@ impl ColorTurn {
     }
 }
 
+pub(super) fn foreground(color: Color, tokens: &Tokens) -> gpui::Hsla {
+    identity::foreground(hue(color), tokens.scheme)
+}
+
 pub(super) fn mark(color: Color, tokens: &Tokens) -> Div {
-    dot(identity::foreground(hue(color), tokens.scheme)).size(px(DOT_SIZE))
+    dot(foreground(color, tokens)).size(px(DOT_SIZE))
 }
 
 pub(super) fn choices(
@@ -42,17 +46,54 @@ pub(super) fn choices(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Div {
+    let target = target.clone();
+    let on_choose: ColorChoice = std::rc::Rc::new(move |shell, color, cx| {
+        if access(shell) == EditAccess::ReadOnly {
+            return;
+        }
+        let state = &mut shell.areas.labels;
+        if !target.matches(
+            state.opening,
+            &state.manager,
+            state
+                .selected_host()
+                .and_then(|host| host.connection.as_ref()),
+        ) {
+            return;
+        }
+        if let Some(draft) = state.manager.draft_mut()
+            && draft.color() != color
+        {
+            draft.set_color(color);
+            state.color_turn.advance();
+            cx.notify();
+        }
+    });
+    choices_for(shell, selected, access(shell), &on_choose, tokens, cx)
+}
+
+pub(super) type ColorChoice = std::rc::Rc<dyn Fn(&mut Shell, Color, &mut Context<'_, Shell>)>;
+
+/// Both label workflows use the same existing button/dot/animation renderer.
+pub(super) fn choices_for(
+    shell: &Shell,
+    selected: Color,
+    editability: EditAccess,
+    on_choose: &ColorChoice,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
     div()
         .flex()
         .flex_wrap()
         .gap(px(S2))
         .children(Color::ALL.into_iter().map(|color| {
-            let target = target.clone();
+            let on_choose = std::rc::Rc::clone(on_choose);
             let button = button_with_kind(
                 ElementId::Name(format!("label-swatch-{color:?}").into()),
                 name(shell, color),
                 ButtonKind::Ghost,
-                match access(shell) {
+                match editability {
                     EditAccess::Editable => ButtonState::Enabled,
                     EditAccess::ReadOnly => ButtonState::Disabled,
                 },
@@ -67,28 +108,9 @@ pub(super) fn choices(
             })
             .gap(px(S2))
             .child(mark(color, tokens))
-            .when(access(shell) == EditAccess::Editable, |button| {
+            .when(editability == EditAccess::Editable, |button| {
                 button.on_click(cx.listener(move |shell, _, _window, cx| {
-                    if access(shell) == EditAccess::ReadOnly {
-                        return;
-                    }
-                    let state = &mut shell.areas.labels;
-                    if !target.matches(
-                        state.opening,
-                        &state.manager,
-                        state
-                            .selected_host()
-                            .and_then(|host| host.connection.as_ref()),
-                    ) {
-                        return;
-                    }
-                    if let Some(draft) = state.manager.draft_mut()
-                        && draft.color() != color
-                    {
-                        draft.set_color(color);
-                        state.color_turn.advance();
-                        cx.notify();
-                    }
+                    on_choose(shell, color, cx);
                 }))
             });
             if color == selected {

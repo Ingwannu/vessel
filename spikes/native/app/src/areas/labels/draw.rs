@@ -230,7 +230,7 @@ fn availability(state: HostState, shell: &Shell) -> Option<&'static str> {
     }
 }
 
-fn failure_text(failure: Failure, shell: &Shell) -> &'static str {
+pub(super) fn failure_text(failure: Failure, shell: &Shell) -> &'static str {
     let words = shell.words.labels();
     match failure {
         Failure::Offline => words.offline(),

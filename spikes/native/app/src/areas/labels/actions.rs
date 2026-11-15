@@ -144,13 +144,17 @@ impl Shell {
     }
 
     pub(crate) fn labels_answer(&mut self, event: Event, cx: &mut Context<'_, Self>) {
+        #[cfg(test)]
+        if self.labels_picker_answer(&event, cx) {
+            return;
+        }
         let state = &mut self.areas.labels;
         if state.pending.as_ref() != Some(&(event.context.clone(), event.ticket)) {
             return;
         }
         let inspection = matches!(&event.answer, Answer::Inspected(Ok(_)));
         let accepted = match event.answer {
-            Answer::Listed(_) => false,
+            Answer::Listed(_) | Answer::Assigned { .. } => false,
             Answer::Inspected(result) => state.manager.inspected(event.ticket, result),
             Answer::Updated(result) => {
                 matches!(state.manager.state(), ManagerState::Saving { .. })

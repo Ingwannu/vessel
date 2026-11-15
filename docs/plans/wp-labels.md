@@ -294,3 +294,32 @@ than merging a node head directly into the app tree. The lead reported its
 native baseline as 1404/0/2; A6 has no current-head gate result yet. The native
 lockfile on this base is announced stale, so no --locked invocation or local
 lockfile regeneration is used while awaiting the lead's corrected lock.
+
+### Staged native picker adapter (not a shipped entry)
+
+The independent picker/create renderer is now literal cfg(test) in
+app/src/areas/labels/picker.rs. It consumes the reviewed WorkspaceTarget, ordered
+assignment names and EditAccess; it never synthesizes a workspace from cwd,
+session or an arbitrary alias. Enabling it requires the real S2/W12 registry
+caller plus reviewed node mutation/observation plumbing. The global manager
+continues to render through its existing production registration.
+
+The picker reuses kit ComboboxState/ComboRow (checked rows, dot leading, pending
+rows disabled, multi-select stays open), DialogState and TextField. Manager and
+create pages now call the same private swatch painter, preserving the existing
+buttons/dots/animation rather than adding another renderer. Create defaults to
+violet, reserves one atomic Assign intent, retains text/color on failure and
+returns to the still-open list after success through one captured deferred
+focus transition. Read-only policy changes only on transitions. No local
+assignment or catalog is optimistically updated: registry/catalog observation
+remains authoritative, including after unary success.
+
+The link's semantic Assign/Assigned variants retain workspace, original name,
+exact context and ticket; valid admissions still receive Unsupported pending
+real node RPCs. These are UI intents, not new registered wire methods. Existing
+queue-refusal settlement therefore also covers assignments without a second
+transport path. Three added GPUI tests use only the detached link/isolated Shell:
+per-name duplicate suppression and observer-owned assignments, atomic create
+with retained failure draft, and successful return to the list. They construct
+the actual kit elements; execution, full layout captures and V4 review remain
+owed. Nothing here claims a live canonical workspace menu entry or persistence.
