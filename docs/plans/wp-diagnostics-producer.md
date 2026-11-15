@@ -113,3 +113,9 @@ Only ErrorCode::Unavailable with the diagnostics detail selects Busy/Stopping;
 a contradictory detail never overrides an authority failure code. All Problem
 variants have whole EN/KO goldens; the framing acceptance before this small
 addition remains limited to its previously reviewed FTL delta.
+
+A replacement live admission reports ConnectionChanged rather than claiming
+the reachable machine is offline. Missing/closed snapshots keep Offline; a
+shared retirement invalidates the old admission without implying OS shutdown.
+Semantic session-list refusal retains the admitted context and lets the node
+apply diagnostics Read authority independently.

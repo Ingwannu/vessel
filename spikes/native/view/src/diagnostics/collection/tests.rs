@@ -377,7 +377,7 @@ fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect
     run.answer_connection(ticket, &old, Err(Problem::Failed));
     assert_eq!(
         run.rows().first().unwrap().progress,
-        Progress::Failed(Problem::Offline)
+        Progress::Failed(Problem::ConnectionChanged)
     );
     let next_ticket = tickets.next_ticket().unwrap();
     run.start(
@@ -393,6 +393,6 @@ fn exact_admission_epochs_fence_same_node_answers_retirement_and_fleet_reconnect
     run.answer_connection(next_ticket, &next, Err(Problem::Failed));
     assert_eq!(
         run.rows().first().unwrap().progress,
-        Progress::Failed(Problem::Offline)
+        Progress::Failed(Problem::ConnectionChanged)
     );
 }

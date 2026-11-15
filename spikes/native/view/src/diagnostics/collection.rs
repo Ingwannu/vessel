@@ -239,12 +239,14 @@ impl Collection {
     }
     /// Retirement is ordered before a later Fleet, so old text is removed immediately.
     pub fn retired(&mut self, tag: &ConnectionTag) {
-        if self.rows.iter().any(|row| {
-            row.context
-                .as_ref()
-                .is_some_and(|context| context.tag() == *tag)
+        if let Some(row) = self.rows.iter_mut().find(|row| {
+            row.context.as_ref().is_some_and(|context| {
+                context.machine() == tag.machine() && context.epoch() == tag.epoch()
+            })
         }) {
-            self.invalidate(tag.machine());
+            row.progress = Progress::Failed(Problem::ConnectionChanged);
+            self.report = None;
+            self.finish();
         }
     }
     /// Mark only the pending row of the current run as dispatched.
@@ -331,7 +333,12 @@ impl Collection {
                             machine.connection_context().as_ref() != Some(old)
                         }) =>
                     {
-                        Some(FleetChange::Offline(row.machine.clone()))
+                        Some(match machine.connection_context() {
+                            Some(current) => {
+                                FleetChange::Connected(row.machine.clone(), current.node())
+                            }
+                            None => FleetChange::Offline(row.machine.clone()),
+                        })
                     }
                     Some(_machine) if row.context.is_some() => None,
                     Some(machine) => match &machine.reach {
