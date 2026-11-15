@@ -346,3 +346,60 @@ fn model_browser_opens_at_the_sole_provider_or_an_explicit_installed_selection()
         "claude-code"
     );
 }
+
+#[test]
+fn reopening_after_an_uncommitted_browse_reads_the_selected_provider_again() {
+    let (mut model, opened) = active();
+    assert!(matches!(
+        model.received(
+            &opened.request,
+            Ok(io::Value::Targets(Box::new(two_providers())))
+        ),
+        Received::Changed
+    ));
+    let selected = model
+        .agent(opened.visit, "claude-code".parse().unwrap())
+        .unwrap();
+    assert!(matches!(
+        model.received(&selected, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    let original = model.draft().unwrap().target().unwrap().spec().clone();
+    let browsing = model
+        .browse_agent(opened.visit, "codex".parse().unwrap())
+        .unwrap();
+    assert!(matches!(
+        model.received(&browsing, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    // Closing the browser performs no model choice. Its next opening derives
+    // the header from the original selected target, not the last browsed slot.
+    let initial = model.initial_browser_harness().cloned().unwrap();
+    assert_eq!(initial.as_str(), "claude-code");
+    let reopening = model.browse_agent(opened.visit, initial.clone()).unwrap();
+    assert_ne!(reopening, selected);
+    assert_ne!(reopening, browsing);
+    assert_eq!(model.catalog_harness(), Some(&initial));
+    assert!(model.browse_agent(opened.visit, initial).is_none());
+    assert!(matches!(
+        model.received(&browsing, Ok(io::Value::Options(options()))),
+        Received::Ignored
+    ));
+    assert!(!model.choose_model(opened.visit, &browsing, choice("model", "new-model")));
+    assert!(matches!(
+        model.received(&reopening, Ok(io::Value::Options(options()))),
+        Received::Changed
+    ));
+    assert_eq!(model.draft().unwrap().target().unwrap().spec(), &original);
+    assert_eq!(model.selected_options_request(), Some(&reopening));
+    assert_eq!(
+        model
+            .catalog_controls(crate::Lang::En)
+            .unwrap()
+            .model
+            .unwrap()
+            .current
+            .as_str(),
+        "old-model"
+    );
+}
