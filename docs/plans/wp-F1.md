@@ -937,3 +937,12 @@ regression now opens/selects a real model visit rather than directly beginning
 a raw mailbox. This is controller plumbing only: the New/Edit surfaces and
 actual-close dialog ACK are still not exposed or verified. The c79 check remains
 an earlier immutable source and cannot prove this later integration.
+
+
+### Shared multiline exact narrow complete
+
+Isolated580 Kit all-target Clippy0 +lib171/0/0 completed; exact runs, hashes,
+prior failure/cancellation records and boundaries are in shared-multiline-source.md
+and /tmp/work/m12-g2/multiline-final-packet-20261115. V1 source disposition is
+still required before G3 edits shared field files. This does not approve the
+current moving F1 source, new editor/history plumbing or any product capture.
