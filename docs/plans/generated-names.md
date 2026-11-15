@@ -383,3 +383,13 @@ only and uses the fast gate. The model resolver must also state that a
 lone JSON surrogate is refused by serde before UTF-16 counting and treat
 blank-title refusal independently of a later branch result, or document
 a deliberate difference in that later slice.
+
+### Late generated proposal contract and resume point
+
+A parked session still has a live status, so the actor's current live
+check alone does not protect it from an already queued proposal. Extend
+that same comparison with unparked and non-imported guards, keeping fresh
+Remote creates eligible and manual rename behavior unchanged. Adjacent
+rule tests must cover parked, imported and remote states before porting
+the actor API. No new queue, call, bound or dependency is needed. This
+contract precedes its small code correction; node arming is still absent.
