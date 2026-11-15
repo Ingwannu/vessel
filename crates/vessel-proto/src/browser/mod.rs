@@ -49,7 +49,7 @@ pub use lists::{
     BrowserTabs, ConsoleEntries, InvalidBrowserList, MAX_BROWSER_LOGS, MAX_BROWSER_TABS,
     NetworkEntries,
 };
-pub use modifiers::KeyModifiers;
+pub use modifiers::{KeyModifiers, ModifierState};
 pub use policy::BrowserTools;
 pub use requests::{
     BrowserCall, BrowserControl, BrowserControlCommand, BrowserWatched, ClearBrowserProfile,
