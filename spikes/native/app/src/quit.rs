@@ -14,8 +14,10 @@ use gpui::{App, Global};
 pub(crate) use vessel_app_view::desktop::quit::DocumentReadiness;
 
 type DocumentGuard = fn(&Shell) -> DocumentReadiness;
+type NodeDocumentGuard = fn(&Shell, vessel_proto::NodeId) -> DocumentReadiness;
 struct Documents {
     guard: DocumentGuard,
+    node_guard: Option<NodeDocumentGuard>,
     phase: Phase,
 }
 #[derive(Clone, Copy)]
@@ -41,8 +43,32 @@ pub(crate) fn set_document_guard(guard: DocumentGuard, cx: &mut App) {
     } else {
         cx.set_global(Documents {
             guard,
+            node_guard: None,
             phase: Phase::Idle,
         });
+    }
+}
+
+/// C5 supplies a facts filter over the same retained owners and original writes.
+/// The node ID grants no process authority; the controller validates its lease.
+/// Until registered, the global guard conservatively protects every node.
+pub(crate) fn set_node_document_guard(guard: NodeDocumentGuard, cx: &mut App) {
+    initialize(cx);
+    cx.global_mut::<Documents>().node_guard = Some(guard);
+}
+
+#[must_use]
+pub(crate) fn readiness_on(
+    shell: &Shell,
+    node: vessel_proto::NodeId,
+    cx: &App,
+) -> DocumentReadiness {
+    match cx
+        .try_global::<Documents>()
+        .and_then(|documents| documents.node_guard)
+    {
+        Some(guard) => guard(shell, node),
+        None => readiness(shell, cx),
     }
 }
 

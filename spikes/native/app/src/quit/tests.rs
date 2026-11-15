@@ -57,3 +57,21 @@ fn queued_local_policy_changes_cannot_enter_after_finalization_begins(cx: &mut T
         finish(cx);
     });
 }
+
+#[gpui::test]
+fn a_node_filter_reuses_global_phase_and_is_conservative_until_registered(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        let node = vessel_proto::NodeId::random();
+        set_document_guard(|_shell| DocumentReadiness::Dirty, cx);
+        assert_eq!(readiness_on(shell, node, cx), DocumentReadiness::Dirty);
+        assert!(begin(cx));
+        set_node_document_guard(|_shell, _node| DocumentReadiness::Ready, cx);
+        assert_eq!(readiness_on(shell, node, cx), DocumentReadiness::Ready);
+        assert_eq!(readiness(shell, cx), DocumentReadiness::Dirty);
+        assert!(is_finalizing(cx));
+        assert!(!admit_shell(shell, cx));
+        finish(cx);
+    });
+}

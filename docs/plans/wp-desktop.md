@@ -440,3 +440,29 @@ fall through into owned Drop cleanup. The actual OS may still terminate the
 launcher; this is no hard-exit persistence guarantee. Synthetic fixtures prepare
 historical-observer, bounded-admission and Attached-successor barriers; changed
 source compilation and real node/OS integration remain owed.
+
+### Manual stop/restart document admission
+
+[Decision Log]
+- Selection: extend the existing read-only document hook and finalization phase.
+- Purpose: a manual protected or explicitly confirmed stop must not strand an
+  accepted editor write on the observed owned node.
+- Constraint: C5 owns canonical retained FileKeys and original pending/uncertain
+  writes; a welcome NodeId alone is neither process authority nor admission.
+- Choice: C5 may register one node-filtered callback over the same reducer.
+  Until then its global guard is the conservative fallback. Dirty, Pending and
+  Failed refuse without implicit Save/Discard; Start/Reconnect remains separate.
+- Alternative rejected: another document map, alias-based ownership inference,
+  or checking after Controller.request, which already enqueues synchronously.
+
+Manual destructive intent captures an opaque ControlLease from the displayed
+Owned snapshot before yielding. After the initiating Shell borrow ends, the one
+app-wide phase freezes new mutation intent and the registered desktop shells are
+queried for that exact node. Only then is the controller command enqueued; the
+actor rechecks the original permit before any effect, refusing a replacement even
+with the same NodeId. Original accepted edit mirrors/write acknowledgements still
+settle. Global phase release does not depend on the origin window surviving.
+
+The C5 node callback and barrier fixtures remain owner integration work; this
+source alone does not claim dirty-buffer or runtime safety before that checked
+consumer union. No forced-exit document journal exists.

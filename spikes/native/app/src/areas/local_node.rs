@@ -1,5 +1,6 @@
 //! Per-window observations contain no child handle or process lifetime authority.
 
+mod control;
 mod render;
 pub(crate) use render::{dialog, overview, section};
 
@@ -221,59 +222,7 @@ impl Shell {
     }
 
     fn local_node_action(&mut self, action: Action, cx: &mut Context<'_, Self>) {
-        if self.local_node_busy(cx) {
-            return;
-        }
-        let intent = match &action {
-            Action::Start => None,
-            Action::Stop(_) | Action::InterruptConfirmed(_) => Some(Intent::Stop),
-            Action::Restart(_) | Action::RestartInterruptConfirmed(_) => Some(Intent::Restart),
-        };
-        let work = cx
-            .try_global::<crate::local_node::Managed>()
-            .and_then(|managed| managed.controller.as_ref())
-            .ok_or(vessel_app_link::local_node::ManagerError::Unavailable)
-            .and_then(|controller| controller.request(action));
-        match work {
-            Ok(work) => {
-                self.areas.local_node.action_pending = true;
-                cx.spawn(async move |this, cx| {
-                    let result = work.await;
-                    let _closed = this.update(cx, |shell, cx| {
-                        shell.areas.local_node.action_pending = false;
-                        match result {
-                            Ok(snapshot) if snapshot.failure.is_some() => {
-                                if let Some(intent) =
-                                    intent.filter(|_| snapshot.active_sessions().is_some())
-                                {
-                                    shell.areas.local_node.prompt = Some(Prompt {
-                                        identity: std::rc::Rc::new(()),
-                                        intent,
-                                        snapshot,
-                                    });
-                                    shell.areas.local_node.focus_prompt = true;
-                                } else {
-                                    shell.notice =
-                                        Some(shell.words.local_node().failed().to_owned());
-                                }
-                            }
-                            Ok(_snapshot) => {}
-                            Err(error) => {
-                                tracing::warn!(%error,"local node action did not finish");
-                                shell.notice = Some(shell.words.local_node().failed().to_owned());
-                            }
-                        }
-                        cx.notify();
-                    });
-                })
-                .detach();
-            }
-            Err(error) => {
-                tracing::warn!(%error,"local node action was not admitted");
-                self.notice = Some(self.words.local_node().failed().to_owned());
-            }
-        }
-        cx.notify();
+        control::request(self, action, cx);
     }
 
     pub(crate) fn local_node_quit_refused(&mut self, snapshot: Option<Snapshot>) {

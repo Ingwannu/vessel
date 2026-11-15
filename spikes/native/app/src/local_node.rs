@@ -1,7 +1,7 @@
 //! Process-wide local-node ownership and the asynchronous quit boundary.
 
 mod documents;
-pub(crate) use documents::admit as admit_documents;
+pub(crate) use documents::{admit as admit_documents, admit_node};
 
 use gpui::{App, Global};
 use std::rc::Rc;
