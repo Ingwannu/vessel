@@ -367,3 +367,25 @@ those assertions as expressions; the production admission policy and both error
 expectations remain unchanged. This is an author error, not a base failure.
 All subsequent compilation, tests, capture builds and gates use the remote
 build helper, following the operator's 10:3x rule. No local Cargo job remains.
+
+### Both-panel owner action and updated shared line
+
+Reuse the existing `Shell::toggle_sidebar` and `Shell::toggle_code` through
+`Shell::sidebar_toggle_both(window,cx) -> bool`. The source
+`workspace-screen.tsx:2632–2657` and `utils/desktop-sidebar-toggle.ts:15–30`
+close each open panel if either is open; only two closed panels restore both.
+`_layout.tsx:398–411` falls back to the left list off a workspace. Desktop
+intent reads the existing saved left visibility, not whether width constraints
+temporarily hide it. No second panel state or key listener is introduced.
+The current native workspace bridge remains the Session route with an open
+session; canonical empty-workspace activation remains W11/W12-owned and is
+not inferred from a path. W22 owns dispatch and calls W12's idempotent focus
+exit after a handled sidebar action (`use-keyboard-shortcuts.ts:240–244`).
+Two actual GPUI shell regressions cover the four desktop combinations and
+the off-workspace fallback. Their execution is pending. The isolated shell
+fixture has no link/updater, so this does not probe an external node.
+
+Merged the published line `2e95b7d31` after the previous check ended. It brings
+base 5, canonical WorkspaceId/plugin values, W12's conditional shared producer
+and G4 preflight without a separate node-head merge. Preserve the source-only
+limits of each producer; the canonical registry runtime is still unavailable.

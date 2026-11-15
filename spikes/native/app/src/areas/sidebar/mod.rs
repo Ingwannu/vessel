@@ -36,6 +36,7 @@ use super::edge::{Panel, PanelEdge};
 use crate::routes::Route;
 use crate::shell::Shell;
 
+mod actions;
 mod display;
 mod foot;
 mod layout;

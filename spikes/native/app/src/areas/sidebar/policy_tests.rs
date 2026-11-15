@@ -8,7 +8,7 @@ use std::{cell::RefCell, rc::Rc};
 use vessel_app_kit::ui::px;
 use vessel_app_view::{panels::SidebarLayout, prefs::Panel};
 
-fn setup(
+pub(super) fn setup(
     cx: &mut TestAppContext,
     width: f32,
     route: Route,
