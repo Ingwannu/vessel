@@ -127,18 +127,10 @@ impl Shell {
     }
 
     fn run_search(&mut self, text: &str) {
-        let Some((machine, root)) = self
-            .areas
-            .workspace
-            .code
-            .root()
-            .map(|(machine, root)| (machine.to_owned(), *root))
-        else {
-            return;
-        };
         let Some(scope) = self.areas.workspace.code.scope() else {
             return;
         };
+        let root = scope.root();
         let mode = self.areas.workspace.code.files.search.mode;
         let sent = match mode {
             Mode::Name => text.trim(),

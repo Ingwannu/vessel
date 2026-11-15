@@ -16,7 +16,6 @@ use vessel_proto::workspace::{DirListing, FileContent, FileRead, ListDir, ReadFi
 
 use super::Shown;
 use crate::shell::Shell;
-use vessel_app_link::workspace::FileAsk;
 
 impl Shell {
     /// List `dir`, unless it is listed or being listed.

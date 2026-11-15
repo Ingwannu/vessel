@@ -55,7 +55,7 @@ pub(super) fn render(
         }
         Target::NewTab => super::draw::launcher(shell, tokens, window, cx).into_any_element(),
         Target::File { .. } => {
-            crate::areas::workspace::code::render_file_panel(shell, panel, tokens, window, cx)
+            crate::areas::workspace::render_file_panel(shell, panel, tokens, window, cx)
         }
         Target::Agent(_)
         | Target::Draft(_)

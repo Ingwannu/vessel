@@ -98,7 +98,7 @@ impl Shell {
                 return FileCloseRequest::Handled;
             };
             self.run_step_for(file.clone(), Step::StopAutosave, cx);
-            let mut dialog = DialogState::new(cx);
+            let dialog = DialogState::new(cx);
             dialog.focus(window, cx);
             self.areas.workspace.code.file_tabs.close = Some(ClosePrompt {
                 workspace: workspace.clone(),

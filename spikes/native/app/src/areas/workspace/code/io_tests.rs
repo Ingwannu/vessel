@@ -15,7 +15,7 @@ pub(super) fn root() -> WorkspaceRoot {
 
 pub(super) fn target(shell: &mut Shell, root: WorkspaceRoot) {
     shell.areas.workspace.code.target = Some(Target {
-        admission: Some(super::scope::Acquisition {
+        admission: Some(scope::Acquisition {
             context: vessel_app_view::connection::ConnectionEpochs::default()
                 .admit(
                     vessel_app_view::connection::MachineKey::from_book("node"),
@@ -258,7 +258,7 @@ impl Shell {
         &self,
         machine: &str,
         root: WorkspaceRoot,
-        path: &vessel_proto::workspace::RelPath,
+        path: &RelPath,
     ) -> Option<buffers::FileKey> {
         let files = &self.areas.workspace.code.files;
         files
@@ -301,7 +301,7 @@ impl Shell {
         machine: &str,
         ticket: vessel_app_view::workspace::file_ticket::FileTicket,
         root: &WorkspaceRoot,
-        path: &vessel_proto::workspace::RelPath,
+        path: &RelPath,
         saved: vessel_app_view::workspace::save::Saved,
         cx: &mut Context<'_, Self>,
     ) {
@@ -373,7 +373,7 @@ fn old_same_scope_folder_refresh_cannot_replace_the_latest_listing(cx: &mut Test
         let listed = |name: &str| DirListing { entries: vec![DirEntry { name: name.into(), kind: EntryKind::File, size: None, ignored: false }], more: false };
         shell.folder_read("node", &ask, current, Ok(listed("current")));
         shell.folder_read("node", &ask, old, Ok(listed("stale")));
-        assert!(matches!(&shell.areas.workspace.code.files.listings[&dir], vessel_app_view::workspace::file_tree::Listing::Listed(listing) if listing.entries[0].name == "current"));
+        assert!(matches!(&shell.areas.workspace.code.files.listings[&dir], Listing::Listed(listing) if listing.entries[0].name == "current"));
     });
 }
 
@@ -472,7 +472,7 @@ fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut T
         shell.open_file_at("b.txt".parse().unwrap(), None, cx);
         let b = shell.areas.workspace.code.file_key().unwrap();
         // Exercise the reservation without allocating a budget-sized string.
-        assert!(shell.reserve_readonly_source(&b, super::buffers::MAX_READONLY_SOURCE));
+        assert!(shell.reserve_readonly_source(&b, buffers::MAX_READONLY_SOURCE));
         assert!(!shell.areas.workspace.code.files.retained.contains_key(&a));
         let ticket = shell
             .areas
@@ -484,7 +484,7 @@ fn readonly_payload_reservation_evicts_only_disposable_parked_sources(cx: &mut T
             .unwrap();
         shell.file_read_answered_for(&b, &read(root, "b.txt"), ticket, Ok(text("visible")), cx);
         // A late retained acquisition cannot evict the currently visible source.
-        assert!(!shell.reserve_readonly_source(&a, super::buffers::MAX_READONLY_SOURCE));
+        assert!(!shell.reserve_readonly_source(&a, buffers::MAX_READONLY_SOURCE));
         assert!(shell.areas.workspace.code.viewer_at(&b).is_some());
     });
 }

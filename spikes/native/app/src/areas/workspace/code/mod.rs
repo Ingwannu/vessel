@@ -76,6 +76,7 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, VirtualList};
 use vessel_app_view::workspace::changes::{ChangeRow, FileState, ScopeKind, change_rows};
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
+#[cfg(test)]
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::SessionId;
 use vessel_proto::workspace::{DiffSummary, RelPath, WorkspaceRoot};

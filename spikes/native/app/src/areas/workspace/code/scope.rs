@@ -1,5 +1,5 @@
 //! Root receipts and owner callbacks keep the original shared admission.
-use super::{Place, Stale, Target};
+use super::{Place, Stale, Summary, Target};
 use crate::shell::Shell;
 use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::scoped::{Outcome, Reply, Request};
@@ -61,7 +61,7 @@ impl Shell {
         }
     }
     /// Legacy session.get answers do not supply a checked connection receipt.
-    pub(super) fn code_session_read(
+    pub(in crate::areas::workspace) fn code_session_read(
         &mut self,
         session: SessionId,
         result: Result<Box<SessionInfo>, Problem>,

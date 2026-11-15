@@ -1,7 +1,7 @@
 //! Synthetic layout/resource tests; no filesystem, transport or OS opener.
 use super::close::Decision;
 use super::*;
-use crate::areas::workspace::code::{FileCloseRequest, io_tests};
+use crate::areas::workspace::{FileCloseRequest, code::io_tests};
 use gpui::TestAppContext;
 use vessel_app_view::workspace::editor::{Step, Written};
 
@@ -11,7 +11,7 @@ fn loaded(
     cx: &mut Context<'_, Shell>,
 ) -> (LayoutKey, TabId, FileKey) {
     let root = io_tests::root();
-    let (origin, workspace) = super::tests::opening(shell, root);
+    let (origin, workspace) = tests::opening(shell, root);
     let tab = shell
         .open_workspace_file(
             &origin,

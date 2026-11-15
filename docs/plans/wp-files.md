@@ -904,3 +904,17 @@ frozen-source evidence; they cannot validate this later union.
 The c342 SavePrefs Box change also requires boxing the two existing C5 tree
 preference call sites. Only that canonical command payload projection changes;
 no preference persistence or key policy changes.
+
+
+### Strict23 compilation corrections
+
+The single authorized shared-seam priority run onf1b4f033 reached the actual
+App and returned compile/import/privacy diagnostics, not a producer PASS.
+The renderer now goes through the workspace facade instead of its private code
+module; the existing session-response callback has workspace-only visibility;
+Summary is imported where the root reset uses it. Unused imports/locals and
+redundant test paths are removed without allowances. The path-mutation fixture
+now actually constructs the requested root's FileKey: its previous closure
+ignored its root argument and could not distinguish the two intended roots.
+All assertions remain. Further corrected checks use the ordinary short lane;
+the node whole retry remains frozen and tests6 stays on its recorded source.
