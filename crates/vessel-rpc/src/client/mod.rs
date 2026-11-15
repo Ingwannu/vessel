@@ -275,6 +275,20 @@ impl Connection {
         &self.shared.welcome
     }
 
+    /// Validate a call before preparatory work that must not happen for an
+    /// unsupported request, without reserving an id or sending a frame.
+    /// The actual send repeats the same shared check; this grants no authority.
+    ///
+    /// # Errors
+    /// The call needs an unassigned or newer protocol version.
+    pub fn check_call(&self, call: &Call) -> Result<(), CallError> {
+        protocol::check(
+            call.method(),
+            call.required_protocol(),
+            self.shared.welcome.protocol,
+        )
+    }
+
     /// Call a method and wait for its typed answer. Dropping the future
     /// cancels the call on the node.
     ///
@@ -374,8 +388,7 @@ impl Connection {
     }
 
     async fn start(&self, call: Call, waiter: Waiter) -> Result<PendingCall<'_>, CallError> {
-        let negotiated = self.shared.welcome.protocol;
-        protocol::check(call.method(), call.required_protocol(), negotiated)?;
+        self.check_call(&call)?;
         let id = self
             .shared
             .ids
