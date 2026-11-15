@@ -10,6 +10,27 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{RegistryRevision, WorkspaceResource};
 
 impl Store {
+    /// Coalesced wake-up after committed registry writes; re-read authoritative state.
+    /// Does not poll and never contains paths, payloads or secrets.
+    #[must_use]
+    pub fn registry_changes(&self) -> tokio::sync::watch::Receiver<()> {
+        self.registry.clone()
+    }
+
+    /// Resolve explicit ownership; a shared cwd is never a membership claim.
+    ///
+    /// # Errors
+    /// The database or stored typed identifier failed to decode.
+    pub async fn registry_resource_owner(
+        &self,
+        resource: WorkspaceResource,
+    ) -> Result<Option<WorkspaceId>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| registry::resource_owner(connection, resource))
+        })
+        .await
+    }
+
     /// Startup-only reconciliation: an interrupted side effect cannot be reissued blindly.
     ///
     /// # Errors

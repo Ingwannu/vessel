@@ -153,3 +153,11 @@ The first store narrow run (53e835a1) stopped while prebuilding the node because
 SQLite does not decode u64 directly. The registry reader now decodes i64 and
 checks conversion to the typed nonnegative revision; no default or truncation.
 The original failed log is retained.
+
+Store narrow run c620d7c2: 87 passed/0 failed. Local Clippy found unused SQL row
+counts, doc markup and discarded signed-conversion causes. The next change binds
+row counts and retains TryFromIntError as a typed source. Registry invalidation
+uses a coalesced watch emitted only after a successful writer commit; consumers
+re-read authoritative lifecycle/ownership, with no polling or cwd guess. New
+watcher/owner regressions are added and await checks. This is not a runtime port
+allocator or lifecycle drain implementation.

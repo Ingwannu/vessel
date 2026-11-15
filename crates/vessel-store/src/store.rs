@@ -47,6 +47,7 @@ pub struct Store {
     /// (protocol 10, [`Store::pruned`]).
     pruned: watch::Receiver<u64>,
     inbox: watch::Receiver<()>,
+    registry: watch::Receiver<()>,
     /// Whether some session's messages are not in the search index yet
     /// (protocol 12, [`Store::indexed`]).
     indexing: watch::Receiver<bool>,
@@ -102,12 +103,14 @@ impl Store {
         let (writes, ops) = mpsc::channel(config.write_queue.get());
         let (pruned, pruned_count) = watch::channel(0);
         let (inbox, inbox_changes) = watch::channel(());
+        let (registry, registry_changes) = watch::channel(());
         let (indexing_sender, indexing) = watch::channel(true);
         let setup = Setup {
             retention,
             attachments: dir.attachments_dir(),
             pruned,
             inbox,
+            registry,
             indexing: indexing_sender,
         };
         writer::spawn(connection, ops, setup)?;
@@ -118,6 +121,7 @@ impl Store {
             attachments: Arc::from(dir.attachments_dir()),
             pruned: pruned_count,
             inbox: inbox_changes,
+            registry: registry_changes,
             indexing,
         };
         Ok(Opened { store, interrupted })

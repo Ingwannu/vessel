@@ -31,9 +31,9 @@ fn record(id: WorkspaceId) -> RegistryRecord {
         recovery: None,
     }
 }
-fn apply(db: &mut Connection, change: RegistryWrite) -> Result<(), StoreError> {
+fn apply(db: &mut Connection, change: &RegistryWrite) -> Result<(), StoreError> {
     let transaction = db.transaction()?;
-    super::apply(&transaction, &change)?;
+    super::apply(&transaction, change)?;
     transaction.commit().map_err(StoreError::from)
 }
 fn put(
@@ -43,7 +43,7 @@ fn put(
 ) -> Result<(), StoreError> {
     apply(
         db,
-        RegistryWrite::Workspace {
+        &RegistryWrite::Workspace {
             record: Box::new(record),
             expected,
         },
@@ -91,7 +91,7 @@ fn membership_is_unique_and_archiving_claim_blocks_new_admission() {
     };
     apply(
         &mut db,
-        RegistryWrite::Membership {
+        &RegistryWrite::Membership {
             workspace: first.descriptor.id,
             resource,
             expected: RegistryRevision::ZERO,
@@ -102,7 +102,7 @@ fn membership_is_unique_and_archiving_claim_blocks_new_admission() {
     assert!(matches!(
         apply(
             &mut db,
-            RegistryWrite::Membership {
+            &RegistryWrite::Membership {
                 workspace: second.descriptor.id,
                 resource,
                 expected: RegistryRevision::ZERO
@@ -125,7 +125,7 @@ fn membership_is_unique_and_archiving_claim_blocks_new_admission() {
     assert!(matches!(
         apply(
             &mut db,
-            RegistryWrite::Membership {
+            &RegistryWrite::Membership {
                 workspace: first.descriptor.id,
                 resource,
                 expected: archiving.descriptor.revision
@@ -143,7 +143,7 @@ fn member_admission_invalidates_an_archive_snapshot_taken_before_it() {
     put(&mut db, first.clone(), None).unwrap();
     apply(
         &mut db,
-        RegistryWrite::Membership {
+        &RegistryWrite::Membership {
             workspace: first.descriptor.id,
             resource: WorkspaceResource::Session {
                 session: SessionId::random(),
@@ -178,12 +178,12 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
         worktree: None,
         stage: ReservationStage::Reserved,
     };
-    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
-    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
+    apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
+    apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
     let mut conflict = reservation.clone();
     conflict.intent.project = ProjectId::random();
     assert!(matches!(
-        apply(&mut db, RegistryWrite::Reserve(conflict)),
+        apply(&mut db, &RegistryWrite::Reserve(conflict)),
         Err(StoreError::RegistryConflict)
     ));
     assert_eq!(
@@ -192,7 +192,7 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
     );
     apply(
         &mut db,
-        RegistryWrite::Stage {
+        &RegistryWrite::Stage {
             workspace,
             expected: ReservationStage::Reserved,
             stage: ReservationStage::Creating,
@@ -202,7 +202,7 @@ fn reserved_backing_identity_is_idempotent_but_changed_intent_is_refused() {
     assert!(matches!(
         apply(
             &mut db,
-            RegistryWrite::Stage {
+            &RegistryWrite::Stage {
                 workspace,
                 expected: ReservationStage::Reserved,
                 stage: ReservationStage::Creating
@@ -217,7 +217,8 @@ fn corrupt_registry_rows_are_errors_instead_of_partial_snapshots() {
     let mut db = db();
     let first = record(WorkspaceId::random());
     put(&mut db, first, None).unwrap();
-    db.execute("UPDATE workspace_registry SET descriptor='invalid'", [])
+    let _changed = db
+        .execute("UPDATE workspace_registry SET descriptor='invalid'", [])
         .unwrap();
     assert!(matches!(load(&db), Err(StoreError::RegistryDecode(_))));
 }
@@ -225,7 +226,8 @@ fn corrupt_registry_rows_are_errors_instead_of_partial_snapshots() {
 #[test]
 fn failed_mutation_rolls_back_even_when_global_revision_is_exhausted() {
     let mut db = db();
-    db.execute("UPDATE workspace_registry_meta SET revision=?1", [i64::MAX])
+    let _changed = db
+        .execute("UPDATE workspace_registry_meta SET revision=?1", [i64::MAX])
         .unwrap();
     let first = record(WorkspaceId::random());
     assert!(matches!(
@@ -249,15 +251,15 @@ fn restart_marks_interrupted_creation_uncertain_without_reallocating_ids() {
         worktree: None,
         stage: ReservationStage::Creating,
     };
-    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
-    apply(&mut db, RegistryWrite::RecoverCreating).unwrap();
+    apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
+    apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
     let found = super::reservation(&db, reservation.workspace)
         .unwrap()
         .unwrap();
     assert_eq!(found.workspace, reservation.workspace);
     assert_eq!(found.stage, ReservationStage::Uncertain);
     let before = load(&db).unwrap();
-    apply(&mut db, RegistryWrite::RecoverCreating).unwrap();
+    apply(&mut db, &RegistryWrite::RecoverCreating).unwrap();
     assert_eq!(load(&db).unwrap(), before);
 }
 
@@ -276,22 +278,22 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
         worktree: None,
         stage: ReservationStage::Reserved,
     };
-    apply(&mut db, RegistryWrite::Reserve(reservation.clone())).unwrap();
+    apply(&mut db, &RegistryWrite::Reserve(reservation.clone())).unwrap();
     assert!(matches!(
-        apply(&mut db, RegistryWrite::Completed(Box::new(record.clone()))),
+        apply(&mut db, &RegistryWrite::Completed(Box::new(record.clone()))),
         Err(StoreError::RegistryConflict)
     ));
     assert!(workspace(&db, record.descriptor.id).unwrap().is_none());
     apply(
         &mut db,
-        RegistryWrite::Stage {
+        &RegistryWrite::Stage {
             workspace: record.descriptor.id,
             expected: ReservationStage::Reserved,
             stage: ReservationStage::Creating,
         },
     )
     .unwrap();
-    apply(&mut db, RegistryWrite::Completed(Box::new(record.clone()))).unwrap();
+    apply(&mut db, &RegistryWrite::Completed(Box::new(record.clone()))).unwrap();
     assert_eq!(workspace(&db, record.descriptor.id).unwrap(), Some(record));
     assert_eq!(
         super::reservation(&db, reservation.workspace)
@@ -299,5 +301,74 @@ fn descriptor_and_ready_stage_commit_or_roll_back_together() {
             .unwrap()
             .stage,
         ReservationStage::Ready
+    );
+}
+
+#[tokio::test]
+async fn watchers_only_wake_after_a_committed_registry_change() {
+    const WAIT: std::time::Duration = std::time::Duration::from_secs(10);
+    tokio::time::timeout(WAIT, async {
+        let temp = tempfile::tempdir().unwrap();
+        let data = crate::DataDir::new(temp.path().join("data"));
+        data.prepare().unwrap();
+        let store = crate::Store::open(&data, crate::StoreConfig::default())
+            .await
+            .unwrap()
+            .store;
+        let mut changes = store.registry_changes();
+        assert!(!changes.has_changed().unwrap());
+        let record = record(WorkspaceId::random());
+        store
+            .put_registry_workspace(record.clone(), None)
+            .await
+            .unwrap();
+        changes.changed().await.unwrap();
+        assert_eq!(
+            store
+                .registry_workspace(record.descriptor.id)
+                .await
+                .unwrap(),
+            Some(record.clone())
+        );
+        assert!(matches!(
+            store.put_registry_workspace(record, None).await,
+            Err(StoreError::RegistryConflict)
+        ));
+        assert!(!changes.has_changed().unwrap());
+        store.close().await;
+    })
+    .await
+    .expect("bounded store invalidation test");
+}
+
+#[test]
+fn resource_owner_lookup_does_not_match_a_shared_directory() {
+    let mut db = db();
+    let first = record(WorkspaceId::random());
+    let second = RegistryRecord {
+        descriptor: WorkspaceDescriptor {
+            id: WorkspaceId::random(),
+            ..first.descriptor.clone()
+        },
+        recovery: None,
+    };
+    put(&mut db, first.clone(), None).unwrap();
+    put(&mut db, second.clone(), None).unwrap();
+    let resource = WorkspaceResource::Session {
+        session: SessionId::random(),
+    };
+    assert_eq!(super::resource_owner(&db, resource).unwrap(), None);
+    apply(
+        &mut db,
+        &RegistryWrite::Membership {
+            workspace: second.descriptor.id,
+            resource,
+            expected: RegistryRevision::ZERO,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        super::resource_owner(&db, resource).unwrap(),
+        Some(second.descriptor.id)
     );
 }

@@ -16,7 +16,7 @@ use vessel_proto::workspace::WorktreeInfo;
 use vessel_proto::{ProjectId, SessionTitle};
 use vessel_proto::{WorkspaceId, WorktreeId};
 
-pub(crate) use read::{load, reservation, workspace};
+pub(crate) use read::{load, reservation, resource_owner, workspace};
 pub(crate) use write::apply;
 
 /// One snapshot read transaction returns placement and ownership together.
@@ -113,4 +113,11 @@ pub(crate) enum RegistryWrite {
 
 fn decode<T: serde::de::DeserializeOwned>(text: &str) -> Result<T, StoreError> {
     serde_json::from_str(text).map_err(StoreError::RegistryDecode)
+}
+
+fn resource_key(resource: WorkspaceResource) -> (&'static str, String) {
+    match resource {
+        WorkspaceResource::Session { session } => ("session", session.to_string()),
+        WorkspaceResource::Terminal { terminal } => ("terminal", terminal.to_string()),
+    }
 }

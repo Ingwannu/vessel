@@ -30,7 +30,7 @@ pub(crate) fn require_active(connection: &Connection, id: WorkspaceId) -> Result
 }
 
 fn revision(value: RegistryRevision) -> Result<i64, StoreError> {
-    i64::try_from(value.get()).map_err(|_| StoreError::RegistryRevisionExhausted)
+    i64::try_from(value.get()).map_err(StoreError::RegistryRevisionRange)
 }
 
 pub(crate) fn apply(connection: &Connection, mutation: &RegistryWrite) -> Result<(), StoreError> {
@@ -116,11 +116,8 @@ fn membership(
     if record.descriptor.revision != expected {
         return Err(StoreError::RegistryConflict);
     }
-    let (kind, id) = match resource {
-        WorkspaceResource::Session { session } => ("session", session.to_string()),
-        WorkspaceResource::Terminal { terminal } => ("terminal", terminal.to_string()),
-    };
-    connection.execute("INSERT INTO workspace_registry_resources(kind,resource,workspace) VALUES (?1,?2,?3) ON CONFLICT(kind,resource) DO NOTHING",params![kind,id,workspace.to_string()])?;
+    let (kind, id) = super::resource_key(resource);
+    let _inserted = connection.execute("INSERT INTO workspace_registry_resources(kind,resource,workspace) VALUES (?1,?2,?3) ON CONFLICT(kind,resource) DO NOTHING",params![kind,id,workspace.to_string()])?;
     let owner: String = connection.query_row(
         "SELECT workspace FROM workspace_registry_resources WHERE kind=?1 AND resource=?2",
         params![kind, id],
@@ -137,7 +134,7 @@ fn membership(
 }
 
 fn reserve(connection: &Connection, reservation: &RegistryReservation) -> Result<(), StoreError> {
-    connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),encode(&reservation.intent)?,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
+    let _inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),encode(&reservation.intent)?,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
     let found = read::reservation(connection, reservation.workspace)?
         .ok_or(StoreError::RegistryConflict)?;
     if found.intent != reservation.intent || found.worktree != reservation.worktree {

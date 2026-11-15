@@ -163,6 +163,8 @@ pub(crate) struct Setup {
     pub(crate) pruned: watch::Sender<u64>,
     /// Coalesced wake-up after a committed attention event, never raw output.
     pub(crate) inbox: watch::Sender<()>,
+    /// Registry invalidation carries no data; consumers read a complete committed snapshot.
+    pub(crate) registry: watch::Sender<()>,
     /// Whether some session's index is behind its log (protocol 12): true
     /// while the writer catches up, false once it waits on its queue with
     /// nothing behind.
@@ -199,9 +201,17 @@ fn after<T>(
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum RegistryEffect {
+    #[default]
+    Unchanged,
+    Changed,
+}
+
 /// What one batch changed beyond its own rows.
 #[derive(Default)]
 struct Effects {
+    registry: RegistryEffect,
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
     /// A committed batch introduced attention.
@@ -334,6 +344,9 @@ fn commit(
         // and with them their files.
         for &session in &effects.removed {
             attachments::remove_folder(&setup.attachments, session);
+        }
+        if effects.registry == RegistryEffect::Changed {
+            setup.registry.send_replace(());
         }
         if effects.attention {
             setup.inbox.send_replace(());

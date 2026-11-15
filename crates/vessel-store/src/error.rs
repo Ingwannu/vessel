@@ -148,6 +148,9 @@ pub enum StoreError {
     /// A registry counter must never wrap or silently lose ordering.
     #[error("workspace registry revision is exhausted")]
     RegistryRevisionExhausted,
+    /// Signed SQL quantities are converted without truncating or discarding their cause.
+    #[error("registry revision is outside the SQLite storage range")]
+    RegistryRevisionRange(#[source] std::num::TryFromIntError),
     /// Typed registry state corruption is explicit; rows are never silently skipped.
     #[error("stored workspace registry data is invalid")]
     RegistryDecode(#[source] serde_json::Error),
@@ -290,7 +293,8 @@ impl StoreError {
             | Self::OutOfOrder { .. } => ErrorCode::Conflict,
 
             Self::Closed | Self::UsageBusy(_) => ErrorCode::Unavailable,
-            Self::RegistryRevisionExhausted
+            Self::RegistryRevisionRange(_)
+            | Self::RegistryRevisionExhausted
             | Self::RegistryDecode(_)
             | Self::Io { .. }
             | Self::NotPrivate { .. }

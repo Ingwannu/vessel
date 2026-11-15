@@ -1,4 +1,4 @@
-//! A SQLite read transaction keeps descriptor and resource ownership hydration atomic.
+//! A `SQLite` read transaction keeps descriptor and resource ownership hydration atomic.
 
 use super::{RegistryRecord, RegistryReservation, StoredRegistry, decode};
 use crate::StoreError;
@@ -48,7 +48,7 @@ pub(crate) fn load(connection: &Connection) -> Result<StoredRegistry, StoreError
     transaction.commit()?;
     Ok(StoredRegistry {
         revision: RegistryRevision::from(
-            u64::try_from(revision).map_err(|_| StoreError::RegistryRevisionExhausted)?,
+            u64::try_from(revision).map_err(StoreError::RegistryRevisionRange)?,
         ),
         workspaces,
         memberships,
@@ -106,4 +106,24 @@ pub(crate) fn reservation(
         })
     })
     .transpose()
+}
+
+pub(crate) fn resource_owner(
+    connection: &Connection,
+    resource: WorkspaceResource,
+) -> Result<Option<WorkspaceId>, StoreError> {
+    let (kind, id) = super::resource_key(resource);
+    let owner: Option<String> = connection
+        .query_row(
+            "SELECT workspace FROM workspace_registry_resources WHERE kind=?1 AND resource=?2",
+            params![kind, id],
+            |row| row.get(0),
+        )
+        .optional()?;
+    owner
+        .map(|id| serde_json::to_string(&id).map_err(StoreError::Encode))
+        .transpose()?
+        .as_deref()
+        .map(decode)
+        .transpose()
 }
