@@ -354,3 +354,37 @@ This adoption is not runtime or node lifecycle acceptance: proc execution,
 helper integration and management handler gates remain owed. No node caller
 or advertised method is activated by the library foundation. Test time budgets
 are named beside their fixture owners, including observation polling.
+
+### Native package manifest admission
+
+The explicit author-port manifest is `vessel-plugin.json`, closed format
+`vessel.plugin/v1`: id, optional name/description/PNG icon/media, mandatory
+requirements {node,client} protocol floors, optional client declaration path,
+per-exact-target helper path/private protocol/argv, and trusted build argv.
+At least a client or helper is required. There is no automatic TS compilation,
+Node download or executable fallback between architecture/libc targets.
+
+Vessel uses its typed protocol floors plus the closed manifest/private-helper
+formats instead of Paseo's npm-semver requirements.paseo. This is a deliberate
+native-author-port difference: it checks the actual data/API contracts without
+inventing a relationship between Paseo versions and Vessel packages or adding
+a second semver grammar. Unknown formats/targets/requirements refuse. This
+format does not accept an unchanged Paseo package as executable native code.
+The public PLUGINS constant remains None and no method number is assigned here.
+
+Bounds are64KiB manifest,8 exact helper targets,16 media,16 build commands,
+64 argv entries,16KiB per argument and32KiB aggregate per argv. Package paths
+reuse RelPath but additionally forbid root, edge whitespace/BOM, colon/query/
+fragment syntax; they are data, not canonical containment proof. HTTPS media
+reuse the real bounded URL decoder and forbid HTTP/userinfo; this is stricter
+than Paseo's https z.url and avoids private credential-bearing metadata. No
+media URL is fetched or opened here. File identity, symlink containment,
+permissions and candidate ownership must be proved by the future installer.
+Build arguments preserve intentional leading/trailing spaces, but empty/JS-blank
+and control-bearing arguments refuse, with a named aggregate argv budget.
+Paseo permits more raw argv text; the stricter portable data admission avoids
+ambiguous invalid launch values before trusted preparation. No shell wrapper
+is inserted; explicitly authored build executables remain trusted account code.
+Validated Manifest wraps a private deserializable input; callers cannot use its
+Deserialize implementation to bypass whole-manifest validation because the
+validated wrapper deliberately implements no Deserialize.

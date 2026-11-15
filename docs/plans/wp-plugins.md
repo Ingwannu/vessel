@@ -202,3 +202,10 @@ must prevent node replacement/disable acknowledgement. No such node lifecycle
 caller is activated yet. Linux fake-helper ownership/descendant fixtures are
 source only until executed on the build VM; no macOS/Windows, real permission
 refusal, installed runtime or unsandboxed isolation proof is claimed.
+
+Native package admission is staged in node::plugins::manifest under cfg(test).
+It reuses canonical IDs/text/RelPath/URL and sealed parser errors; no new
+external dependency or filesystem/network/process effect. ADR0079 records the
+native format/protocol-floor compatibility difference, exact-target policy
+and named resource budgets. Pure validation is not source preparation,
+installation, runtime selection or product lifecycle acceptance.
