@@ -134,12 +134,14 @@ fn native_wheel_packets_over_the_document_scroll_its_outer_owner(cx: &mut TestAp
         });
         cx.run_until_parked();
         owner.read_with(cx, |owner, cx| {
+            let state = owner.editor.editor.editor.state.read(cx);
             assert_ne!(
                 owner.files.top(),
                 before,
-                "vertical wheel reaches the actual VirtualList, including trackpad drift"
+                "outer owner must scroll: mode={wrapping:?}, x={horizontal_drift}, inner={:?}, input={:?}",
+                state.scroll_offset(),
+                state.input_bounds(),
             );
-            let state = owner.editor.editor.editor.state.read(cx);
             assert_eq!(
                 state.scroll_offset().y,
                 px(0.),
@@ -148,4 +150,30 @@ fn native_wheel_packets_over_the_document_scroll_its_outer_owner(cx: &mut TestAp
             assert_eq!(state.value(), source);
         });
     }
+}
+
+#[gpui::test]
+fn horizontal_wheel_packets_keep_the_same_document_engine_scroll(cx: &mut TestAppContext) {
+    cx.update(gpui_base::init);
+    let source = std::iter::repeat_n("wide source ".repeat(40), 2500)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let (owner, cx) =
+        cx.add_window_view(|window, cx| document_owner(&source, DiffWrapping::Scroll, window, cx));
+    cx.run_until_parked();
+    let before = owner.read_with(cx, |owner, _cx| owner.files.top());
+    cx.simulate_event(gpui::ScrollEvent {
+        position: point(px(100.), px(100.)),
+        delta: gpui::ScrollDelta::Pixels(point(px(-80.), px(-0.5))),
+        touch_phase: gpui::TouchPhase::Moved,
+        ..Default::default()
+    });
+    cx.run_until_parked();
+    owner.read_with(cx, |owner, cx| {
+        assert_eq!(owner.files.top(), before);
+        let state = owner.editor.editor.editor.state.read(cx);
+        assert!(state.scroll_offset().x < px(0.));
+        assert_eq!(state.scroll_offset().y, px(0.));
+        assert_eq!(state.value(), source);
+    });
 }

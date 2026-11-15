@@ -335,6 +335,17 @@ at the top and `Vessel patch` at the change.
   result and corrected-source pending state are recorded above; no source
   precheck or partial test result is consumer, UI or OS approval.
 
+- Wheel routing (same change7): actual0813 public tests executed15/1/0;
+  keyboard reveal/empty mask/cached2500 passed, but the native wheel fixture
+  kept its outer list at0. Source-prechecked successor suppresses incidental x
+  drift ONLY for mapped+readonly+no vertical overflow+vertical-dominant packets.
+  Horizontal-dominant, ordinaryNone and vertically overflowing inputs retain
+  their existing route; hover/menu cleanup still runs. This retains one native
+  engine/owner scroll, not a relay or another scroll controller. Tests keep the
+  original zero/drift assertions and add horizontal/ordinary/overflow cases.
+  The failed loop did not identify its iteration, so x-drift attribution and
+  the successor's runtime result are still unverified.
+
 - Capture handoff (not yet built/run): kit example `mapped_diff_audit` is a
   supplementary control surface using the production DiffDocumentEditor and
   one VirtualList. It has2500 fixed source rows, an unnumbered hunk header,
