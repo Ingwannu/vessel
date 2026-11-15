@@ -12,7 +12,10 @@ pub(crate) struct AgentReservation<'a> {
     secret: Option<AgentSecret>,
     rollback: bool,
     #[cfg(test)]
-    operation: Option<vessel_proto::WorkspaceOperationId>,
+    boundary: Option<(
+        vessel_proto::WorkspaceOperationId,
+        vessel_proto::creation::Revision,
+    )>,
 }
 
 impl<'a> AgentReservation<'a> {
@@ -29,7 +32,7 @@ impl<'a> AgentReservation<'a> {
             secret,
             rollback: true,
             #[cfg(test)]
-            operation: None,
+            boundary: None,
         }
     }
 
@@ -49,7 +52,7 @@ impl<'a> AgentReservation<'a> {
         receipt: &vessel_proto::creation::Receipt,
     ) -> Result<(), vessel_proto::creation::CreationError> {
         use vessel_proto::creation::{CreationError, Resource, Stage};
-        if self.operation.is_some()
+        if self.boundary.is_some()
             || receipt.in_flight() != Some(Stage::Resource)
             || receipt.snapshot().reserved.resource
                 != Some(Resource::Agent {
@@ -65,7 +68,10 @@ impl<'a> AgentReservation<'a> {
         {
             return Err(CreationError::InvalidTransition);
         }
-        self.operation = Some(receipt.snapshot().reserved.operation);
+        self.boundary = Some((
+            receipt.snapshot().reserved.operation,
+            receipt.snapshot().revision,
+        ));
         self.rollback = false;
         Ok(())
     }
@@ -79,7 +85,11 @@ impl<'a> AgentReservation<'a> {
         receipt: &vessel_proto::creation::Receipt,
     ) -> Result<(), vessel_proto::creation::CreationError> {
         use vessel_proto::creation::{Certainty, CreationError, Phase, Resource, Stage};
-        if self.operation != Some(receipt.snapshot().reserved.operation)
+        let Some((operation, begin)) = self.boundary else {
+            return Err(CreationError::InvalidTransition);
+        };
+        if operation != receipt.snapshot().reserved.operation
+            || begin.next()? != receipt.snapshot().revision
             || receipt.in_flight().is_some()
             || receipt.snapshot().reserved.resource
                 != Some(Resource::Agent {

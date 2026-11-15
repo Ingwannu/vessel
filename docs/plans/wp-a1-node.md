@@ -248,6 +248,8 @@ Resource/Known refusal and an unchanged unregistered/unused entry. Unknown,
 another operation, or an entry already used by an agent cannot release count.
 The actual spawner must still prove the no-effect classification before
 writing that failure; receipt metadata alone is not a process-state oracle.
+Its revision must be exactly the committed Begin's successor, so an earlier
+retry's late failure for the same operation cannot release the new attempt.
 
 A focused old-writer fixture retains the closed Store clone across recovery:
 it may read Accepted, but its attempted Begin fails Closed and the fake effect

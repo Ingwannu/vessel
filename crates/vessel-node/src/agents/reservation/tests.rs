@@ -218,3 +218,43 @@ fn an_already_used_credential_prevents_even_known_refusal_from_releasing_count()
     agents.retire(id);
     assert!(connection.closing().is_cancelled());
 }
+
+#[test]
+fn an_earlier_retry_failure_cannot_release_a_newer_begin_for_the_same_operation() {
+    use vessel_proto::creation::Certainty;
+    let agents = Agents::new(NodeId::random());
+    let id = SessionId::random();
+    let mut old_failure = marker(id);
+    old_failure
+        .advance(
+            old_failure.snapshot().revision,
+            Advance::Fail {
+                code: vessel_proto::ErrorCode::Conflict,
+                certainty: Certainty::Known,
+            },
+        )
+        .unwrap();
+    let mut next = old_failure.clone();
+    next.advance(next.snapshot().revision, Advance::Begin(Stage::Resource))
+        .unwrap();
+    let mut lease = agents
+        .reserve_creation(id, &Principal::Owner, false)
+        .unwrap();
+    lease.begin(&next).unwrap();
+    assert_eq!(
+        lease.refused(&old_failure),
+        Err(CreationError::InvalidTransition)
+    );
+    assert!(agents.is_live(id));
+    next.advance(
+        next.snapshot().revision,
+        Advance::Fail {
+            code: vessel_proto::ErrorCode::Conflict,
+            certainty: Certainty::Known,
+        },
+    )
+    .unwrap();
+    lease.refused(&next).unwrap();
+    drop(lease);
+    assert!(!agents.is_live(id));
+}
