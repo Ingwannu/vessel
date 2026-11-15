@@ -367,3 +367,5 @@ async fn malformed_creation_labels_are_refused_before_dispatch() {
 }
 
 mod inbox;
+
+mod labels;

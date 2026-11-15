@@ -8,6 +8,8 @@ use crate::session::{SessionInput, SessionMode};
 
 use super::Call;
 
+mod labels;
+
 impl Call {
     /// The assigned requirement for admission. A feature awaiting a
     /// protocol number returns `None`; senders must refuse it rather than
@@ -33,7 +35,10 @@ impl Call {
                 .required_protocol()
                 .map(|inner| inner.max(self.method().since()));
         }
-        Some(self.since())
+        let required = self.since();
+        labels::on(self).map_or(Some(required), |labels| {
+            labels::required(required, labels, crate::lifecycle_version::SINCE)
+        })
     }
 
     /// The protocol version this call needs: its method's, or a later one
