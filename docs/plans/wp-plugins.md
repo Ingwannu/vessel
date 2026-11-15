@@ -567,6 +567,16 @@ its unused id field. Restoring the existing .. pattern changes no selected
 identity, availability check, assertion or data. The own queued previous check
 was superseded before compilation; no executed failure/pass is inferred.
 
+### Popover strict fixture follow-up
+
+The ba2acca5 strict run reached the current app source and refused two remaining
+fixture-only issues: the main opening test still exceeded100 lines, and a helper
+borrowed an already borrowed contribution ID. Extracting the final deferred-open
+phase preserves its position after fresh Enter, all original assertions and
+the same captured registry/lease flow. The redundant reference is removed.
+The827 runtime44-case evidence remains predecessor evidence; changed strict is
+still owed, without an unchanged whole-package or runtime rerun.
+
 ### Executed pre-popover Hub checkpoint
 
 Exact9739ca5043896262e6066ece3c7dfacd40863704 passed all-target strict App/Kit/

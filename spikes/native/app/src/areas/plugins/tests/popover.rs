@@ -126,6 +126,16 @@ fn each_actual_popup_opening_retires_its_body_and_recreates_the_editor(cx: &mut 
         0,
         "opening subscriptions are held only by the current owner"
     );
+    assert_offline_deferred_open(&view, &registry, &captured, trigger, cx);
+}
+
+fn assert_offline_deferred_open(
+    view: &Entity<SurfaceView>,
+    registry: &Rc<RefCell<Registry>>,
+    captured: &Events,
+    trigger: gpui::Bounds<gpui::Pixels>,
+    cx: &mut gpui::VisualTestContext,
+) {
     captured.borrow_mut().clear();
     view.update_in(cx, |view, window, cx| {
         view.queue_popover(
@@ -235,7 +245,7 @@ fn assert_retired_input(
             observed.borrow_mut().push(event.clone());
         })
         .detach();
-        let field = old.fields[&inside].clone();
+        let field = old.fields[inside].clone();
         field.update(cx, |field, cx| {
             cx.emit(fields::Event::Submit {
                 identity: inside.clone(),
