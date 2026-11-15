@@ -151,3 +151,24 @@ The shared Quality B node base was merged without conflicts; its method
 and version policy remain authoritative. The app package base was likewise
 merged without conflicts; only the browser module registration was retained
 in the view root. No shared size limit was raised.
+
+## Failure and wait semantics
+
+Typed failures distinguish an undelivered timeout from an uncertain page
+mutation, with fixed safe messages and existing RPC error classes. An
+unknown future reason remains Unsupported, never Ready. Wait budget preserves
+omitted versus explicit timeout: the host default is the same in both, but
+Paseo keeps the ordinary broker deadline when omitted and uses explicit
+wait plus response allowance when supplied. The command catalogue owns that
+deadline projection; a second tool-specific deadline list is unnecessary.
+
+## Resume point
+
+Done: ADR and unified-Chrome correction reviewed; identity and twenty-two
+command input skeletons; pure native toolbar/device models and translations.
+Half done: narrow checks are still in flight; no browser RPC, backend engine,
+policy proxy, service capability, MCP registration or panel is exposed.
+Next: merge the reviewed shared workspace identities; implement the pending
+call/response and typed owner/service interfaces, then the real engine path.
+Keep registry ownership behind the agreed typed interface until its package
+is reviewed. Source-only/runtime diagnostics are not whole-package evidence.

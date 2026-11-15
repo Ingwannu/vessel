@@ -1,6 +1,7 @@
 //! Bounds are defined once so wire decoding and native/MCP preparation agree.
 
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// Prevent an agent from allocating an unbounded browser surface.
 pub const MAX_VIEWPORT_SIDE: u32 = 8192;
@@ -12,6 +13,11 @@ pub const DEFAULT_WAIT_MS: u32 = 5_000;
 pub const MAX_LOG_ENTRIES: u32 = 200;
 /// Paseo returns this many log entries when omitted.
 pub const DEFAULT_LOG_ENTRIES: u32 = 50;
+/// Paseo's ordinary broker deadline, also used when a wait omits timeoutMs.
+pub const COMMAND_TIMEOUT: Duration = Duration::from_secs(15);
+/// An explicit wait gets the same response allowance as Paseo's tool adapter.
+const WAIT_RESPONSE_ALLOWANCE: Duration = Duration::from_secs(1);
+
 /// Zero cannot be a viewport, a deadline or a log request.
 const MIN_POSITIVE: u32 = 1;
 
@@ -95,6 +101,39 @@ impl Default for LogCount {
     }
 }
 
+/// Omitted and explicitly supplied wait budgets have different broker deadlines.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", content = "timeout", rename_all = "snake_case")]
+pub enum WaitBudget {
+    /// The host waits its default while the broker retains the ordinary deadline.
+    #[default]
+    Default,
+    /// The host waits this budget and the broker adds its response allowance.
+    Explicit(WaitTimeout),
+}
+
+impl WaitBudget {
+    /// Resolve host waiting without losing whether the caller supplied a timeout.
+    #[must_use]
+    pub fn host_timeout(self) -> WaitTimeout {
+        match self {
+            Self::Default => WaitTimeout::default(),
+            Self::Explicit(timeout) => timeout,
+        }
+    }
+
+    /// The outer deadline must exceed an explicit host wait, within the named cap.
+    #[must_use]
+    pub fn command_timeout(self) -> Duration {
+        match self {
+            Self::Default => COMMAND_TIMEOUT,
+            Self::Explicit(timeout) => Duration::from_millis(u64::from(timeout.get()))
+                .saturating_add(WAIT_RESPONSE_ALLOWANCE),
+        }
+    }
+}
+
 /// Both sides are validated before the browser receives a metrics change.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -108,6 +147,24 @@ pub struct ViewportSize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn omitted_and_explicit_default_waits_preserve_reference_deadlines() {
+        let omitted = WaitBudget::Default;
+        let explicit = WaitBudget::Explicit(WaitTimeout::default());
+        assert_eq!(omitted.host_timeout(), explicit.host_timeout());
+        assert_eq!(omitted.command_timeout(), COMMAND_TIMEOUT);
+        assert_ne!(omitted.command_timeout(), explicit.command_timeout());
+        assert_eq!(
+            explicit.command_timeout(),
+            Duration::from_millis(u64::from(DEFAULT_WAIT_MS))
+                .saturating_add(WAIT_RESPONSE_ALLOWANCE)
+        );
+        assert_eq!(
+            WaitBudget::Explicit(WaitTimeout::try_from(MAX_WAIT_MS).unwrap()).command_timeout(),
+            Duration::from_millis(u64::from(MAX_WAIT_MS)).saturating_add(WAIT_RESPONSE_ALLOWANCE)
+        );
+    }
 
     #[test]
     fn all_decoding_paths_enforce_quantity_boundaries() {

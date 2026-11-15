@@ -6,6 +6,7 @@
 
 mod arguments;
 mod bounds;
+mod failure;
 mod identity;
 mod input;
 mod tools;
@@ -18,9 +19,11 @@ pub use arguments::{
     ScreenshotArgs, ScreenshotExtent, ScrollArgs, TabArgs, TypeArgs, ValueArgs, WaitArgs,
 };
 pub use bounds::{
-    DEFAULT_LOG_ENTRIES, DEFAULT_WAIT_MS, InvalidBrowserBound, LogCount, MAX_LOG_ENTRIES,
-    MAX_VIEWPORT_SIDE, MAX_WAIT_MS, ViewportSide, ViewportSize, WaitTimeout,
+    COMMAND_TIMEOUT, DEFAULT_LOG_ENTRIES, DEFAULT_WAIT_MS, InvalidBrowserBound, LogCount,
+    MAX_LOG_ENTRIES, MAX_VIEWPORT_SIDE, MAX_WAIT_MS, ViewportSide, ViewportSize, WaitBudget,
+    WaitTimeout,
 };
+pub use failure::{BrowserEffect, BrowserFailure, HistoryDirection};
 pub use identity::{BrowserId, ElementRef, InvalidBrowserIdentity};
 pub use input::{EmptyBrowserInput, InputText, RequiredInput, WaitFor};
 pub use tools::{BROWSER_TOOLS, BrowserTool};

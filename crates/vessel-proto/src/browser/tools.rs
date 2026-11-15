@@ -9,12 +9,17 @@ use super::arguments::{
     NewTabArgs, NoBrowserArgs, ResizeArgs, ScreenshotArgs, ScrollArgs, TabArgs, TypeArgs,
     ValueArgs, WaitArgs,
 };
+use super::bounds::COMMAND_TIMEOUT;
 use super::identity::BrowserId;
 use super::upload::UploadArgs;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 trait BrowserTarget {
     fn browser_target(&self) -> Option<&BrowserId>;
+    fn command_timeout(&self) -> Duration {
+        COMMAND_TIMEOUT
+    }
 }
 
 impl BrowserTarget for NoBrowserArgs {
@@ -35,7 +40,6 @@ macro_rules! direct_targets {
 direct_targets!(
     TabArgs,
     ElementArgs,
-    WaitArgs,
     TypeArgs,
     KeypressArgs,
     NavigateArgs,
@@ -46,6 +50,14 @@ direct_targets!(
     ResizeArgs,
     LogsArgs
 );
+impl BrowserTarget for WaitArgs {
+    fn browser_target(&self) -> Option<&BrowserId> {
+        Some(&self.browser_id)
+    }
+    fn command_timeout(&self) -> Duration {
+        self.budget.command_timeout()
+    }
+}
 macro_rules! element_targets {
     ($($kind:ty),+) => {$(impl BrowserTarget for $kind {
         fn browser_target(&self) -> Option<&BrowserId> { Some(&self.target.browser_id) }
@@ -74,6 +86,12 @@ macro_rules! browser_tools {
             #[must_use]
             pub const fn tool(&self)->BrowserTool {
                 match self { $(Self::$variant(_) => BrowserTool::$variant,)+ }
+            }
+
+            /// The selected command owns its finite deadline, including explicit wait allowance.
+            #[must_use]
+            pub fn command_timeout(&self)->Duration {
+                match self { $(Self::$variant(args) => args.command_timeout(),)+ }
             }
 
             /// Admission uses the same target projection for every command.

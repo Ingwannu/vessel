@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::bounds::{LogCount, ViewportSize, WaitTimeout};
+use super::bounds::{LogCount, ViewportSize, WaitBudget};
 use super::identity::{BrowserId, ElementRef};
 use super::input::{InputText, RequiredInput, WaitFor};
 use super::url::BrowserUrl;
@@ -119,7 +119,7 @@ pub struct WaitArgs {
     pub condition: WaitFor,
     /// The broker's extra response allowance is applied outside this duration.
     #[serde(default)]
-    pub timeout: WaitTimeout,
+    pub budget: WaitBudget,
 }
 
 /// An absent reference means current focus, rather than a magic empty ref.
