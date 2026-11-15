@@ -234,10 +234,10 @@ pub(super) fn rail(
             .then_some(pointer.keyboard.unwrap_or(0))
     });
     let neutral = tokens.neutral;
-    let shown = std::rc::Rc::new(area.shown.clone()?);
+    let target = std::rc::Rc::new(area.prompt_target()?.clone());
     let epoch = area.prompt_epoch();
     let slots = rows.iter().map(|(index, item)| {
-        let shown = std::rc::Rc::clone(&shown);
+        let target = std::rc::Rc::clone(&target);
         let seq = item.seq;
         let is_lit = lit == Some(index);
         let to = motion::size(index, is_lit, attention, cx.reduce_motion());
@@ -267,7 +267,7 @@ pub(super) fn rail(
                 }
             }))
             .on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.prompt_selected(&shown, seq, epoch, cx);
+                shell.prompt_selected(&target, seq, epoch, cx);
             }))
             .child(motion::pill(from, to, color, pointer.turn))
             .children(card)

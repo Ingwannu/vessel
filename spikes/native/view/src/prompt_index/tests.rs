@@ -210,3 +210,26 @@ fn a_rewind_seen_during_a_read_rejects_the_old_reply_and_old_epoch() {
     );
     assert_eq!(index.entries().unwrap().len(), 2);
 }
+
+#[test]
+fn a_replaced_welcome_identity_cannot_answer_for_the_same_book_name_and_session() {
+    let mut index = PromptIndex::default();
+    let mut selected = target("one");
+    selected.node = Some(vessel_proto::NodeId::random());
+    let first = index.refresh(selected.clone(), None).unwrap();
+    selected.node = Some(vessel_proto::NodeId::random());
+    let second = index.refresh(selected.clone(), None).unwrap();
+    assert!(
+        index
+            .answered(&first, Ok(page(&first, &[1], None, epoch())))
+            .is_none()
+    );
+    assert!(index.entries().is_none());
+    assert_eq!(index.target(), Some(&selected));
+    assert!(
+        index
+            .answered(&second, Ok(page(&second, &[2], None, epoch())))
+            .is_none()
+    );
+    assert_eq!(index.entries().unwrap()[0].seq, EventSeq::new(2));
+}

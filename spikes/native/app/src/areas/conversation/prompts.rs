@@ -36,6 +36,10 @@ impl Prompts {
 }
 
 impl ConversationArea {
+    pub(super) fn prompt_target(&self) -> Option<&IndexTarget> {
+        self.prompts.index.target()
+    }
+
     pub(super) fn prompt_epoch(&self) -> Option<PromptIndexEpoch> {
         self.prompts.index.epoch()
     }
@@ -49,13 +53,13 @@ impl Shell {
     /// Pointer callbacks keep the painted session and epoch, not just its ordinal slot.
     pub(super) fn prompt_selected(
         &mut self,
-        shown: &super::area::Shown,
+        target: &IndexTarget,
         seq: EventSeq,
         epoch: Option<PromptIndexEpoch>,
         cx: &mut Context<'_, Self>,
     ) {
         let area = &self.areas.conversation;
-        if area.shown.as_ref() != Some(shown)
+        if area.prompts.index.target() != Some(target)
             || (epoch.is_some() && area.prompts.index.epoch() != epoch)
             || !area.prompt_rows().iter().any(|(_, row)| row.seq == seq)
         {

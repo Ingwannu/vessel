@@ -249,6 +249,12 @@ impl PromptIndex {
         (self.phase == IndexPhase::Ready).then_some(self.entries.as_slice())
     }
 
+    /// The exact welcome/session scope, including while pages are in flight.
+    #[must_use]
+    pub fn target(&self) -> Option<&IndexTarget> {
+        self.source.as_ref().map(|source| &source.target)
+    }
+
     /// The revision accepted for these addresses, when known.
     #[must_use]
     pub const fn epoch(&self) -> Option<PromptIndexEpoch> {
