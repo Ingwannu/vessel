@@ -220,12 +220,9 @@ fn file_row(
     else {
         return div().into_any_element();
     };
-    let label = super::super::name::one_line(
-        window,
-        file.path.as_str(),
-        Type::Mono,
-        f32::from(entry.files.width()) - spacing::S4,
-    );
+    // List holds its viewport RefCell while asking for a row. Let the
+    // existing text layout truncate against this row's real width instead of
+    // querying entry.files.width() recursively from inside that callback.
     let place = entry.path_places.entry(file.path.clone()).or_default();
     let row = div()
         .id(("git-panel-file", index))
@@ -235,7 +232,10 @@ fn file_row(
         .py(px(spacing::S1))
         .type_(Type::Mono)
         .text_color(tokens.neutral.foreground)
-        .child(label.text);
+        .whitespace_nowrap()
+        .overflow_hidden()
+        .text_ellipsis_middle()
+        .child(file.path.as_str().to_owned());
     entry
         .tips
         .on_code(
@@ -310,3 +310,7 @@ fn failure(
         }))
         .into_any_element()
 }
+
+#[cfg(test)]
+#[path = "draw_tests.rs"]
+mod tests;

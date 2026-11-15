@@ -838,3 +838,21 @@ parameter is already boxed on that upcoming line. Wait for the announced green
 head and keep only the GitPanel registration arm; no competing helper or raised
 line budget. The next coherent App check includes this union and the current-
 target fixes, rather than replaying the known over-budget old base.
+
+
+## Actual list reborrow failure and summary path correction
+
+The08b1 Kit window run executed13/3/0; two failures traced to the fixture/audit
+calling VirtualList.width while GPUI List already mutably borrows its state to
+render that same row. Current summary file_row also used that pattern. It now
+uses the already available native text_ellipsis_middle + nowrap against actual
+layout width, keeping the full typed path in the existing code tooltip. No
+window-width estimate, second sizing controller or shared list API is added.
+A real narrow VirtualList/Shell snapshot regression draws the long Hangul/space
+path and checks that its row exists within the viewport. This test is written
+but not yet compiled/run; it proves no node authority or broad visual parity.
+The controlled full-window Kit fixture/example separately capture their known
+root viewport width before entering their callback; no panel-width claim is
+made for that full-window setup. Existing assertions stay; no vendor fix or
+shared width API was installed. All three08b1 failures and20 test/example lint
+diagnostics remain actual red evidence until changed-source selections execute.
