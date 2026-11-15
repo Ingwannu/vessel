@@ -352,7 +352,8 @@ already check their authenticated peer.
   only its latest read ticket; disconnect/forget/rebinding revokes old reads.
 - Reason: same-peer refresh reordering and different-peer alias reuse are distinct
   races; both must be rejected before data enters the shared display cache.
-- Effects: at most 256 host read slots, no eviction, checked monotonic ticket
+- Effects: MAX_PROJECT_READ_HOSTS bounds retained host read slots, with no
+  eviction and checked monotonic ticket
   allocation with no wrap. Exhaustion refuses dispatch. Readiness waits for a
   pending authoritative refresh. The link cancels old-peer clone follows when a
   route is rebound; project revisions keep reordered progress/list replies from

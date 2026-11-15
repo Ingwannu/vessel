@@ -21,6 +21,9 @@ pub(crate) enum ProjectSettingsRefusal {
 impl Shell {
     /// Open one exact host/project from a sidebar, palette or project row.
     /// All refusals preserve the previous route, host selection and project detail.
+    ///
+    /// # Errors
+    /// Refuses unavailable peers, unhydrated project data and an absent project id.
     pub(crate) fn open_project_settings(
         &mut self,
         target: &ProjectTarget,

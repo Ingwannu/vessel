@@ -12,9 +12,10 @@
 //!   older than protocol 10 has no projects at all.
 //! - Alternatives: the fleet's own list (read every two seconds for
 //!   sessions): projects change rarely, and that list is the lead's.
-//! - Choice: a view of its own per machine, read when a screen first needs
-//!   it and again after any change made from the app; one follower per
-//!   cloning project in the link, which ends when the clone does.
+//! - Choice: a view of its own per authenticated peer, with route aliases used
+//!   only after NodeId validation. Read tickets reject superseded completions;
+//!   reconnect requires hydration, and clone revisions cannot move backwards.
+//!   The link follows each cloning project on that exact node until it ends.
 //! - Cost: a project added from the CLI shows when a screen reads again.
 
 /// Host-bound mutation correlation shared by registration and removal screens.

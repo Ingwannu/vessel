@@ -114,6 +114,28 @@ The node remains authoritative; preparation never runs a local git
 command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
 repository root.
 
+## Project read provenance and navigation
+
+`view::workspace::projects::reads` owns bounded latest-read tickets for captured
+`ProjectTarget` values (book name plus authenticated NodeId). It owns no project
+or workspace registry. The app's `areas::workspace::project_reads` joins these
+tickets with the existing display cache, rejecting wrong-peer, superseded and
+disconnected replies before hydration. A reconnect requires a new list read.
+Clone updates include their actual node, and project revision comparison prevents
+older list/follow results from regressing clone completion. The link verifies the
+captured peer before sending and cancels old-peer clone follows on rebinding.
+
+`Shell::open_project_settings(&ProjectTarget, ProjectId, window, cx)` is the shared
+project settings entry. It validates the current peer, settled project-list
+provenance and exact project membership before selecting a host or changing the
+screen. Refusals preserve the current selection. It reuses Settings and the
+project detail renderer; it grants no OS local-path provenance and creates no
+workspace. `setup_readiness` requires the same verified cache and waits for
+pending reads/manual operations, without acknowledging any checked suggestions.
+Workspace ownership/activation remains the canonical registry and shared layout
+adapter's separate responsibility. Current scoped validation and missing package
+work are recorded in `docs/plans/wp-projects.md` in the repository root.
+
 ## The app's layout
 
 ```

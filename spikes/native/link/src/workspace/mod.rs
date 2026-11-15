@@ -61,8 +61,8 @@ use crate::Event;
 /// project is followed once however often the list is read.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
-    /// Each clone followed, by machine and project, with its task (each
-    /// task holds a clone of the machine's client until it ends).
+    /// Each clone followed by route, authenticated node and project. Rebinding
+    /// cancels the old peer's task rather than keeping its client alive.
     following: Arc<Mutex<HashMap<(String, vessel_proto::NodeId, ProjectId), AbortHandle>>>,
 }
 
