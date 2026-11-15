@@ -42,13 +42,13 @@ impl SessionResidents {
     pub(crate) fn claim_session(
         &mut self,
         address: SessionAddress,
-        claim: PanelClaim,
+        claim: &PanelClaim,
         pane: PaneId,
         build: impl FnOnce(&SessionContext) -> SessionResources,
     ) -> Result<ResidentToken, ResidentProblem> {
         let token = self.admission.claim(address, claim.clone(), pane)?;
         if let MapEntry::Vacant(slot) = self.entries.entry(address.session) {
-            let context = self.admission.context(token, &claim)?;
+            let context = self.admission.context(token, claim)?;
             let resources = build(&context);
             let _inserted = slot.insert(Entry { token, resources });
         }

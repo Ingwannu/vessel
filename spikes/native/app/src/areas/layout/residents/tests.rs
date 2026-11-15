@@ -49,7 +49,7 @@ fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppCon
         let token_a = residents
             .claim_session(
                 SessionAddress { node, session: a },
-                claim_a.clone(),
+                &claim_a,
                 PaneId::MAIN,
                 &mut build,
             )
@@ -57,7 +57,7 @@ fn hidden_and_moved_resources_keep_independent_actual_fields(cx: &mut TestAppCon
         let token_b = residents
             .claim_session(
                 SessionAddress { node, session: b },
-                claim_b.clone(),
+                &claim_b,
                 PaneId::MAIN,
                 &mut build,
             )
@@ -123,7 +123,7 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
         };
         let claim = claim(&mut layout, &key(address.node));
         let token = residents
-            .claim_session(address, claim.clone(), PaneId::MAIN, |_| SessionResources {
+            .claim_session(address, &claim, PaneId::MAIN, |_| SessionResources {
                 session: SessionView::new(window, cx),
                 conversation: ConversationArea::new(cx),
             })
@@ -145,7 +145,7 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
         // Fresh hidden stream events reach only their own resident.
         residents
             .receive(fresh, |resources| {
-                resources.session.resume_error = Some("fresh".to_owned())
+                resources.session.resume_error = Some("fresh".to_owned());
             })
             .unwrap();
         let ticket = residents
@@ -153,7 +153,7 @@ fn stale_and_duplicate_ingress_cannot_mutate_or_clear_a_successor(cx: &mut TestA
             .unwrap();
         residents
             .settle(fresh, OperationKind::Timeline, ticket, |_| {
-                applied.set(true)
+                applied.set(true);
             })
             .unwrap();
         assert!(applied.get());
@@ -210,11 +210,11 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
         };
         let first_claim = claim(&mut layout, &key);
         let token = residents
-            .claim_session(address, first_claim.clone(), PaneId::MAIN, &mut build)
+            .claim_session(address, &first_claim, PaneId::MAIN, &mut build)
             .unwrap();
         assert_eq!(
             residents
-                .claim_session(address, first_claim, PaneId::MAIN, &mut build)
+                .claim_session(address, &first_claim, PaneId::MAIN, &mut build)
                 .unwrap(),
             token
         );
@@ -226,7 +226,7 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
                         node,
                         session: SessionId::random(),
                     },
-                    claim(&mut layout, &key),
+                    &claim(&mut layout, &key),
                     PaneId::MAIN,
                     &mut build,
                 )
@@ -239,7 +239,7 @@ fn idempotence_and_capacity_refuse_before_allocating_actual_resources(cx: &mut T
                     node,
                     session: SessionId::random()
                 },
-                claim(&mut layout, &key),
+                &claim(&mut layout, &key),
                 PaneId::MAIN,
                 &mut build
             ),
