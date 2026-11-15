@@ -13,7 +13,7 @@ impl State {
         let result = async {
             let client = self
                 .selected_connection(&prompt.connection)
-                .map_err(|why| super::TargetProblem::Admission(why))?;
+                .map_err(super::TargetProblem::Admission)?;
             let mut content = super::content(prompt.text.clone(), prompt.attachments.clone());
             if let Some(context) = &prompt.context {
                 content.extend(context.attachments().map(|attachment| ContentBlock::Text {
