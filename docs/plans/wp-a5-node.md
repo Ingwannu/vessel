@@ -139,3 +139,8 @@ Clippy (run wp-inbox-adapter-20261115T161638Z-6cb55fcb, rc0), the prior Inbox
 App test (one case, not the new routing tests), and actual root vesseld build
 plus260 node library tests (wp-inbox-app-root-20261115T161638Z-6cb55fcb).
 Those checks do not verify the new callback source or a whole A5 gate.
+
+The old unused view NoticeRoutes container and its implementation-shaped test
+are removed after moving the actual recipient map into the App Global. Opaque
+tag and destination value types remain in view. There is one active route map;
+its replacement consumer tests exercise actual platform callback ownership.
