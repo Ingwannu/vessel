@@ -233,6 +233,14 @@ count reservation. A fresh operation takes the existing agent count/creation
 lease before ledger admission; failure rolls it back. The gate's finite wait
 refuses overload before effects, so identical concurrent requests cannot both
 reserve a child or fail merely because each reserved the last count slot.
+The intake uses named `MAX_ACTIVE_CREATIONS = 64` retained actor permits and
+`CREATION_ADMISSION_WAIT = 5 seconds` for the one admission mutex. Existing-key
+lookup/reconciliation happens before taking a new permit and again under the
+mutex; an already active operation never allocates a second actor. A fresh
+permit remains with its driver until settlement, not merely the first reply.
+No resource/count reservation is held while waiting for the mutex. The count
+adapter wraps existing `Agents::reserve`/`forget` (agents/mod.rs:112-182 and
+service/sessions.rs:155-188); it does not introduce another child counter.
 The receipt writer then reserves ids, count/bytes and claims atomically.
 The background driver owns that count lease across startup; it uses the same
 parentage/count/runtime registration path as authorized legacy creation.
