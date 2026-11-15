@@ -20,9 +20,24 @@ pub(crate) fn problem(error: &CallError) -> Problem {
             code: wire.code,
             message: wire.message.clone(),
         },
-        CallError::NotInProtocol { .. } => Problem::Older,
+        CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. } => Problem::Older,
         CallError::Disconnected
         | CallError::UnexpectedReply(_)
         | CallError::RequestIdsExhausted => Problem::Gone(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_unassigned_call_is_unsupported_without_a_transport_failure() {
+        assert!(matches!(
+            problem(&CallError::UnassignedProtocol {
+                method: vessel_proto::Method::NodeInfo,
+            }),
+            Problem::Older
+        ));
     }
 }

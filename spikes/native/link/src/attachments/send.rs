@@ -155,7 +155,8 @@ fn node(error: &CallError, begun: Option<Begun>) -> Failure {
         CallError::Disconnected
         | CallError::UnexpectedReply(_)
         | CallError::RequestIdsExhausted
-        | CallError::NotInProtocol { .. } => begun.map_or(Again::Restart, Again::Resume),
+        | CallError::NotInProtocol { .. }
+        | CallError::UnassignedProtocol { .. } => begun.map_or(Again::Restart, Again::Resume),
     };
     (Problem::Node(error.to_string()), again)
 }

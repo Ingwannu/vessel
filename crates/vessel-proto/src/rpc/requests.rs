@@ -115,7 +115,7 @@ impl EventPage {
         let changed = self
             .records
             .iter()
-            .any(|record| record.event.since() > protocol);
+            .any(|record| record.event.for_protocol(protocol).is_some());
         changed.then(|| Self {
             records: self
                 .records
