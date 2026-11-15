@@ -43,7 +43,7 @@ impl Workspaces {
         policy::check_root(&self.places, &target).map_err(|error| error.wire())?;
         tokio::fs::create_dir(&target)
             .await
-            .map_err(directory_error)?;
+            .map_err(|error| directory_error(&error))?;
         match self.register_project_directory(target.clone(), None).await {
             Ok(project) => Ok(ProjectDirectoryOutcome::Created { project }),
             Err(error) => Ok(ProjectDirectoryOutcome::RegistrationFailed {
@@ -59,17 +59,24 @@ pub(super) async fn rollback_directory(path: PathBuf) -> ProjectDirectoryCleanup
         Ok(()) => ProjectDirectoryCleanup::Removed,
         Err(error) => ProjectDirectoryCleanup::Retained {
             path,
-            error: directory_error(error),
+            error: directory_error(&error),
         },
     }
 }
 
-fn directory_error(error: io::Error) -> WireError {
-    let code = match error.kind() {
-        io::ErrorKind::AlreadyExists | io::ErrorKind::DirectoryNotEmpty => ErrorCode::Conflict,
-        io::ErrorKind::NotFound | io::ErrorKind::NotADirectory => ErrorCode::NotFound,
-        io::ErrorKind::PermissionDenied => ErrorCode::Forbidden,
-        _ => ErrorCode::Internal,
+fn directory_error(error: &io::Error) -> WireError {
+    let kind = error.kind();
+    let code = if matches!(
+        kind,
+        io::ErrorKind::AlreadyExists | io::ErrorKind::DirectoryNotEmpty
+    ) {
+        ErrorCode::Conflict
+    } else if matches!(kind, io::ErrorKind::NotFound | io::ErrorKind::NotADirectory) {
+        ErrorCode::NotFound
+    } else if kind == io::ErrorKind::PermissionDenied {
+        ErrorCode::Forbidden
+    } else {
+        ErrorCode::Internal
     };
     WireError::new(code, error.to_string())
 }
