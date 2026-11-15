@@ -292,3 +292,10 @@ before review (protocol agent-state-bucket.ts:13-19). Inbox's groups now use
 explicit GROUP_ORDER input/failed/review/working/done, and drawing plus numbered
 shortcuts share it. The own added complete-group assertion names that explicit
 reference order. This changes no shared-head assertion or badge aggregation.
+
+OS idle probes cache evidence independently of heartbeat scheduling. The earlier
+probe path sent every five seconds and reset the regular fifteen-second timer;
+it now updates only the cached sample. Ordinary heartbeat/input/focus remains
+the sole report scheduler, and the original sample continues aging. A clock-
+injected regression samples twice before the due time, checks no early report,
+and then checks one unchanged-activity report exactly at the original deadline.

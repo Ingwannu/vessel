@@ -19,12 +19,7 @@ pub(super) fn listen(window: &mut Window, cx: &mut Context<'_, Shell>) {
             let age = probe.sample(cx).await;
             if this
                 .update_in(cx, |shell, _window, _cx| {
-                    let report = shell
-                        .areas
-                        .inbox
-                        .presence
-                        .system_idle(age, std::time::Instant::now());
-                    shell.inbox_presence_report(report);
+                    shell.areas.inbox.presence.system_idle(age);
                 })
                 .is_err()
             {
