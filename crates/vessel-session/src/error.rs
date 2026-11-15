@@ -123,6 +123,9 @@ pub enum SessionError {
     /// The runtime is shutting down and starts no new sessions.
     #[error("the node is shutting down")]
     ShuttingDown,
+    /// An ordered recovery checkpoint could not be committed.
+    #[error(transparent)]
+    Journal(#[from] crate::JournalError),
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
@@ -342,7 +345,8 @@ impl SessionError {
             }
             Self::Move(error) => move_code(error),
             // The node resolves `spec.profile`; another profile is its bug.
-            Self::Internal(_)
+            Self::Journal(_)
+            | Self::Internal(_)
             | Self::DuplicateId(_)
             | Self::Attachment(AttachmentError::Failed(_))
             // The actor loads a prompt's attachments before it sends it;

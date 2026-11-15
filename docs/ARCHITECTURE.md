@@ -1556,3 +1556,13 @@ handler ownership; it does not add another parser, settings engine or RPC.
 The startup coordinator, durable recovery journal, Off cleanup, fresh-grant
 admission and automatic continuation are not installed by this file/ownership
 step. Their staged and product configurations require their own evidence.
+
+ADR 0059's ordered journal extends that same persistence path: Session emits
+typed internal checkpoints beside events, Node batches only through the first
+barrier, and Store's existing writer commits the preceding events and passive
+projection atomically before replying. Internal checkpoints have no public
+EventSeq and never become conversation history. Store owns the projection and
+its append-only migration; no new dependency edge, RPC or protocol assignment
+is introduced. Checkpoint batches share the ordinary append's retention,
+search and post-commit attention effects. The startup coordinator and product
+mounts are still separate staged work.

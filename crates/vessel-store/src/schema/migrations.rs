@@ -4,6 +4,8 @@
 //! file budget (docs/QUALITY.md) as migrations are appended; a released
 //! entry is never edited, only followed by a new one.
 
+use super::restart_migration::{RESTART, RESTART_SCHEMA};
+
 /// Version 1: sessions and their event log.
 ///
 /// - Times are nanoseconds since the Unix epoch (`i64`), so a record's
@@ -456,7 +458,7 @@ const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; RESTART_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -474,4 +476,5 @@ pub(super) const MIGRATIONS: &[&str; LABELS_SCHEMA] = &[
     USAGE_LEDGER,
     INBOX,
     LABELS,
+    RESTART,
 ];

@@ -174,3 +174,91 @@ or live-service action was required.
 A later migration must consume the announced head carrying the existing
 latest-schema test correction, rather than quietly changing head assertions.
 The current schema and protocol constants remain the head's.
+
+## Ordered journal and passive projection (in progress)
+
+The existing bounded persistence lane is being extended to typed Event and
+Checkpoint entries. Internal checkpoint types belong to proto's shared type
+layer because Session and Store both need them; they add no RPC or public
+event. A record-only runtime still produces event entries only. The node
+writer ends a batch at the first barrier, commits preceding events and the
+projection change in one transaction, then acknowledges. Person stop/input
+admission shares a short gate, with channel capacity reserved before it.
+The actor's shutdown capture precedes its first provider signal.
+
+Store owns the passive per-session active-turn/generation/eligibility and
+pending/consumed-intent projection, with delete cascade and indexed startup
+order. The migration is appended after the head's table through the named
+RESTART_SCHEMA fact. Existing rows start ineligible; a transcript scan never
+invents activity. Lower Store APIs prepare candidates before Interrupted
+normalization and retention; the startup service mounts are still pending.
+
+The current head's ordinary append path also coalesces attention wakes after
+commit. Checkpoint batches must preserve that behavior: Effects::appended is
+shared, and a new real-store regression checks that a committed TurnEnded
+still wakes observers even when its delayed Arm checkpoint is stale.
+
+The two original Session record collectors receive only the authorized type
+adaptation and fail explicitly on an unexpected checkpoint. Store rollback
+fixtures gain only the new migration's table drops before their existing SQL:
+approvals::an_old_approval_survives_current_migrations_and_new_ones_keep_their_set;
+devices::a_version_1_database_gains_the_devices_table;
+log::sessions_from_schema_3_have_no_origin;
+log::sessions_from_schema_2_read_as_the_owners_on_the_default;
+log::a_sessions_model_is_stored_and_older_ones_have_none;
+marks::sessions_that_ended_before_schema_7_are_archived.
+Their existing assertions, order, counts, statements and deadlines stay.
+The labels latest-version correction is the isolated identical head-owner
+fix. The inbox rollback-position helper must come from its announced landing.
+
+These changes are under narrow compilation and tests, not a journal/runtime
+or package pass. The settings generation/Off cleanup and coordinator mounts,
+fresh authority admission, process restart/kill tests and wiring remain owed.
+
+Creation now writes the session row and its explicit eligibility in the same
+writer savepoint. This avoids a second-write failure leaving an orphan
+Starting row. The ordinary internal create seam keeps its signature for the
+existing tests; unattended, agent and forwarded service paths select the
+manual-on-restart variant from the authenticated principal and the existing
+unattended creation argument. There is no synthetic authority fallback. A
+new trigger-failure test checks rollback and a later successful create with
+the same id. A schema-local test seeds real legacy Running history before
+the new migration, then checks that preparation does not invent active or
+pending projection while preserving that original event. Neither test has
+completed verification yet.
+
+The four changed crates' all-target Clippy check now passes on the journal
+source (proto, session, store and node). The additional Node models fixture
+collector required the same record-only conversion as the two Session test
+collectors; that exact single-line adaptation was authorized and made, with
+no other model-test edit. The new schema fixture checks actual SQL row counts
+and splits setup from migration assertions; no lint suppression was added.
+Runtime tests have not completed yet.
+
+The newly announced node head includes title-origin storage and the upstream
+labels/inbox fixture correction. It will be merged at the next clean boundary
+before the package gate, and the recovery schema fact will follow that head's
+newest named constant. No unknown input field or protocol number is registered
+by these lower journal APIs. Review routing for the node package is now V3.
+
+## Journal candidate before the Quality B merge
+
+The changed crates' all-target Clippy passed (2m58 actual compilation after
+the build wait). Store's complete new restart integration binary passed all
+15 cases (1.14s tests after 1m01 compile), including actual atomic-create
+rollback and stale-checkpoint attention notification. These are lower-layer
+results, not startup-service or whole-package approval. A later source audit
+named the new actor-barrier test timeout without changing its value; final
+merged-source narrow verification includes that naming change.
+
+The queued proto/Store library selection was canceled before execution after
+the build-line switch. It returned 143 and supplies no test result. The schema
+legacy-row unit test, generation boundary tests and Session runtime tests are
+still owed on the merged tree. No failed or canceled run is relabeled green.
+
+The current kernel candidate is committed to establish a clean merge boundary.
+Next: consume announced Quality B head, preserve its title-origin migration
+and fixture fixes, point RESTART_SCHEMA to its newest fact plus one, adapt
+only this track's callers to Option-returning since(), and run remote narrow
+checks. The recovery service/Off cleanup/fresh grant admissions and process
+restart tests still follow; no new request field or CLI is registered yet.
