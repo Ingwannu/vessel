@@ -76,6 +76,7 @@ mod profile;
 mod routing;
 mod sessions;
 mod setup;
+mod system_prompt;
 
 pub use added::{
     AddedAgent, AddedAgents, AgentProblem, AgentsError, EditError, MAX_FILE as MAX_AGENTS_FILE,
@@ -110,3 +111,4 @@ mod account_usage;
 pub use account_usage::{
     AccountUsageError, AccountUsageOutcome, MAX_USAGE_VENDOR_BYTES, decode_account_usage,
 };
+pub use system_prompt::{SystemPromptSupport, system_prompt_support};

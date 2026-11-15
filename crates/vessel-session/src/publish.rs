@@ -100,9 +100,15 @@ impl Publisher {
         self.shared.id
     }
 
-    /// The session's program is now `pid` (a move started another agent).
-    pub(crate) fn running(&self, pid: u32) {
+    /// Replace the actual run on restart, or clear it when the agent parks.
+    pub(crate) fn running(&self, process: Option<vessel_proc::ProcessLifetime>) {
+        let pid = process.as_ref().map_or(0, |process| process.pid().get());
         self.shared.pid.store(pid, Ordering::Release);
+        *self
+            .shared
+            .process
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = process;
     }
 
     /// Whether a permission or a question waits for an answer (protocol
@@ -155,6 +161,13 @@ impl Publisher {
             && !status.is_live()
         {
             self.shared.ended.store(true, Ordering::Release);
+            drop(
+                self.shared
+                    .process
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .take(),
+            );
         }
         // The one allocation of this record; the store, the ring and every
         // follower share it.
