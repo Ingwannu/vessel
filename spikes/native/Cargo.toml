@@ -138,6 +138,8 @@ gpui-base = { version = "=0.8.1", default-features = false }
 
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
+# Same node lock pin and bundled zone data; system discovery is Link-only.
+jiff = { version = "=0.2.39", default-features = false, features = ["std", "tzdb-bundle-always"] }
 dirs = "6"
 hostname = "0.4"
 serde = { version = "1", features = ["derive"] }

@@ -44,6 +44,7 @@ this table, with its reason in the same commit.
 | `gpui-component` | only `vessel-app-kit` | The component layer (text field, Markdown) is reached through the kit. |
 | `gpui-base` | only `vessel-app-kit` | The kit's field draws on its editing engine. |
 | `fluent-bundle` | only `vessel-app-view` | The words live in `view` (ADR 0039); the app holds no sentence. |
+| `jiff` | only `vessel-app-view`, `vessel-app-link` | Schedule display uses the node's pinned bundled zone rules; only Link discovers the viewer platform zone. No local cron projection. |
 | `vte` | only `vessel-app-view` | The terminal parser (ADR 0073). Only the grid decodes PTY bytes; the kit draws cells it is given. |
 | `tokio` | never `vessel-app-view`, `vessel-app-kit` | `view` does no I/O and `kit` draws; the runtime is `link`'s (and the app's entry). |
 

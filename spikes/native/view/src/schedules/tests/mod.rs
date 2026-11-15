@@ -271,3 +271,11 @@ fn automatic_new_sessions_refuse_terminal_and_resume_specs() {
         );
     }
 }
+
+// Reference fixtures describe visible words; keep separate exact byte checks
+// for Fluent's directional isolates instead of changing production formatting.
+pub(super) fn visible(text: &str) -> String {
+    text.chars()
+        .filter(|ch| !matches!(ch, '\u{2068}' | '\u{2069}'))
+        .collect()
+}

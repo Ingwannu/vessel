@@ -202,3 +202,6 @@ schedules-metadata-rule = { schedules-metadata } · { schedules-rule-zone }
 
 # Browser build has no node transport; no fabricated schedule data or retry.
 schedules-failed-no-transport = 이 브라우저 버전에서는 예약을 사용할 수 없습니다.
+
+# `HostFilter` picker title; not searchable, as the reference, keep short.
+schedules-filter-by-machine = 머신별로 보기

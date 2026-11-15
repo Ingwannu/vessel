@@ -14,6 +14,10 @@
 
 pub mod authority;
 pub mod cadence;
+pub mod clock;
+pub mod metadata;
+pub mod presentation;
+pub mod time;
 pub use crate::badge::Variant;
 pub mod description;
 pub mod editor;
