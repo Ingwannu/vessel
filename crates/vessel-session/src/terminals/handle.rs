@@ -15,7 +15,7 @@ use crate::ring::{Follow, FollowError, Ring};
 /// What a terminal's actor shares with its handles.
 #[derive(Debug)]
 pub(crate) struct Shared {
-    /// The actor's actual completion; status and ProcessLifetime cannot mint it.
+    /// The actor's actual completion; status and `ProcessLifetime` cannot mint it.
     pub(super) cleanup: super::cleanup::Progress,
     pub(crate) info: watch::Sender<TerminalInfo>,
     pub(crate) ring: Mutex<Ring>,
