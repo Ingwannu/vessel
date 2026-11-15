@@ -1074,3 +1074,22 @@ zero. An oversized caller keeps its original text/rows; annotation lookup past
 the cap returns no emphasis. This does not rely only on the current diff_lines
 caller already being bounded. The additional cap regression is source only and
 postdates the queued9ec word-model run.
+
+Executed exact3a10a0ecc app/kit all-target tests completed 14:02 UTC:
+271 passed, 0 failed, 2 existing ignored. App101 and Kit170 include the actual
+populated scoped hidden/stale/duplicate/Seat cases, moved snapshot/origin Hold,
+borrowed-detail identity and literal HTML-engine selection/copy regression.
+Evidence: /tmp/work/wp-timeline/owner-body-tests-2/native-cargo.log. It excludes
+later readonly-navigation amendment, intraline implementation and base8.
+
+Its separate strict run failed only a 164-line test function and an ignored bool
+in the same test. Fixture setup and origin assertions are now small helpers and
+the settled fold result is asserted. No suppression or check reduction added.
+
+Official app package base8 91407173 (root82ae7c91, native1431/0/2) is merged in
+5449216a1. Conflicts were additive README text and shared glyph declarations/
+paths/drawing: retain upstream Gauge/PackagePlus and all four A7 Lucide glyphs
+with geometry/licence unchanged. The complete merged inventory is99. W2's event
+accessor prerequisite arrived only through this official app base, not a copied
+accessor or direct node-head adoption. W23's portable checked values cut is still
+pending; no canonical field/receipt runtime activation is inferred from base8.

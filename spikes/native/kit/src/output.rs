@@ -116,8 +116,7 @@ impl Kept {
                 let ranges = made
                     .emphasis
                     .get_mut(index)
-                    .map(std::mem::take)
-                    .unwrap_or_default();
+                    .map_or_else(Vec::new, std::mem::take);
                 crate::text_ranges::valid(&line.text, ranges)
             })
             .collect::<Vec<_>>()
