@@ -47,6 +47,9 @@ pub enum SkillError {
     /// Selection must come from the currently shipped catalogue.
     #[error("selection names a skill this release does not ship")]
     UnknownSkill,
+    /// Cross-platform or privileged mode bits cannot be guessed during recovery.
+    #[error("unsupported saved skill file permissions")]
+    FileMode,
 }
 
 // Staged while skill RPCs await the shared pending-row method table. The wiring

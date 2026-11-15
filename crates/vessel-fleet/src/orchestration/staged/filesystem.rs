@@ -5,10 +5,17 @@ use std::io::{Read as _, Write as _};
 use sha2::{Digest as _, Sha256};
 use vessel_proto::{BlobHash, BundlePath};
 
+use super::mode::SavedMode;
 use crate::dir::{Dir, Entry};
 use crate::files::Mode;
 use crate::orchestration::SkillError;
 use crate::orchestration::bundle::MAX_SKILL_FILE_BYTES;
+
+#[derive(Debug)]
+pub(super) struct FileState {
+    pub(super) bytes: Vec<u8>,
+    pub(super) mode: SavedMode,
+}
 
 /// All traversals start at a held skill directory and reject links below it.
 fn parent(root: &Dir, path: &BundlePath, create: Creation) -> Result<Option<Dir>, SkillError> {
@@ -41,6 +48,10 @@ fn leaf(path: &BundlePath) -> Result<&str, SkillError> {
 }
 
 pub(super) fn read(root: &Dir, path: &BundlePath) -> Result<Option<Vec<u8>>, SkillError> {
+    Ok(snapshot(root, path)?.map(|state| state.bytes))
+}
+
+pub(super) fn snapshot(root: &Dir, path: &BundlePath) -> Result<Option<FileState>, SkillError> {
     let Some(parent) = parent(root, path, Creation::Read)? else {
         return Ok(None);
     };
@@ -52,15 +63,16 @@ pub(super) fn read(root: &Dir, path: &BundlePath) -> Result<Option<Vec<u8>>, Ski
     }
     let mut bytes = Vec::new();
     let max = u64::try_from(MAX_SKILL_FILE_BYTES).map_err(|_bound| SkillError::Budget)?;
-    let _read = parent
-        .open_file(leaf)?
+    let opened = parent.open_file(leaf)?;
+    let mode = SavedMode::read(&opened.file)?;
+    let _read = opened
         .file
         .take(max.saturating_add(1))
         .read_to_end(&mut bytes)?;
     if bytes.len() > MAX_SKILL_FILE_BYTES {
         return Err(SkillError::Budget);
     }
-    Ok(Some(bytes))
+    Ok(Some(FileState { bytes, mode }))
 }
 
 pub(super) fn write(root: &Dir, path: &BundlePath, bytes: &[u8]) -> Result<(), SkillError> {
@@ -74,6 +86,23 @@ pub(super) fn write(root: &Dir, path: &BundlePath, bytes: &[u8]) -> Result<(), S
         Entry::Dir | Entry::Symlink | Entry::Other => return Err(SkillError::Blocked),
     }
     parent.replace::<SkillError>(leaf, Mode::Private, |file| Ok(file.write_all(bytes)?))
+}
+
+/// Rollback writes stay atomic and restore only the recorded ordinary mode bits.
+pub(super) fn restore(root: &Dir, path: &BundlePath, state: &FileState) -> Result<(), SkillError> {
+    if state.bytes.len() > MAX_SKILL_FILE_BYTES {
+        return Err(SkillError::Budget);
+    }
+    let parent = parent(root, path, Creation::Write)?.ok_or(SkillError::Blocked)?;
+    let leaf = leaf(path)?;
+    match parent.entry(leaf)? {
+        Entry::Missing | Entry::File => {}
+        Entry::Dir | Entry::Symlink | Entry::Other => return Err(SkillError::Blocked),
+    }
+    parent.replace::<SkillError>(leaf, Mode::Private, |file| {
+        file.write_all(&state.bytes)?;
+        state.mode.restore(file)
+    })
 }
 
 pub(super) fn remove_unchanged(

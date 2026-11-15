@@ -3,6 +3,7 @@
 
 mod filesystem;
 mod manifest;
+mod mode;
 mod reconcile;
 mod status;
 

@@ -174,3 +174,27 @@ fn update_preflights_every_asset_before_replacing_a_declaration() {
     assert_eq!(std::fs::read(shared.join("SKILL.md")).unwrap(), original);
     assert!(!outside.path().join("file.md").exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn rollback_file_primitives_restore_the_original_content_and_mode() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let home = tempfile::tempdir().unwrap();
+    let path = home.path().join("file.md");
+    std::fs::write(&path, b"original").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o640)).unwrap();
+    let root = SkillRoot::new(home.path().to_path_buf())
+        .unwrap()
+        .read()
+        .unwrap()
+        .unwrap();
+    let relative = "file.md".parse().unwrap();
+    let state = filesystem::snapshot(&root, &relative).unwrap().unwrap();
+    filesystem::write(&root, &relative, b"applied").unwrap();
+    filesystem::restore(&root, &relative, &state).unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), b"original");
+    assert_eq!(
+        std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o640
+    );
+}
