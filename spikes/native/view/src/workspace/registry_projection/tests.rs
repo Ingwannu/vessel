@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     connection::{ConnectionEpochs, MachineKey},
-    layout::ownership::{WorkspaceLocation, WorkspaceLookup},
+    layout::{WorkspaceLocation, WorkspaceLookup},
 };
 use vessel_proto::{
     NodeId, ProjectId, SessionId, WorkspaceId,

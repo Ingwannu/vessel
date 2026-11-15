@@ -2,10 +2,7 @@
 use super::{Entry, RegistryData, RegistryPhase, RegistryProjection};
 use crate::{
     connection::ConnectionContext,
-    layout::{
-        LayoutKey,
-        ownership::{LookupProblem, WorkspaceLocation, WorkspaceLookup},
-    },
+    layout::{LayoutKey, LookupProblem, WorkspaceLocation, WorkspaceLookup},
 };
 use vessel_proto::{
     NodeId, ProjectId, SessionId, WorkspaceId,

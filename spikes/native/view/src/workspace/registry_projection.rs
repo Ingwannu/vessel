@@ -14,7 +14,7 @@ mod validate;
 
 pub use rows::{ProjectPlacement, WorkspaceRow};
 
-use crate::{connection::ConnectionContext, layout::ownership::LookupProblem, machine_book::Name};
+use crate::{connection::ConnectionContext, layout::LookupProblem, machine_book::Name};
 use std::collections::HashMap;
 use vessel_proto::{
     registry::RegistrySnapshot,
