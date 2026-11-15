@@ -9,9 +9,10 @@
 //! or changed in place), so an index names an entry as well as its key
 //! does, and costs no hashing.
 
+use std::collections::HashSet;
 use vessel_proto::ToolKind;
 
-use super::entry::{Entry, EntryKind};
+use super::entry::{Entry, EntryKind, ToolView};
 
 /// How a run's tool calls are counted, in the sentence's order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -41,6 +42,46 @@ impl RunSummary {
         for kind in kinds {
             summary.count(*kind);
         }
+        summary
+    }
+
+    /// File summaries count distinct reported paths; unknown legacy paths retain
+    /// their per-call count rather than inventing a shared file identity.
+    #[must_use]
+    pub fn of_tools<'a>(tools: impl IntoIterator<Item = &'a ToolView>, thoughts: u32) -> Self {
+        let mut summary = Self {
+            thoughts,
+            ..Self::default()
+        };
+        let mut reads = HashSet::new();
+        let mut edits = HashSet::new();
+        for tool in tools {
+            let paths = match tool.kind {
+                ToolKind::Read => Some(&mut reads),
+                ToolKind::Edit | ToolKind::Delete | ToolKind::Move => Some(&mut edits),
+                ToolKind::Execute
+                | ToolKind::Search
+                | ToolKind::Think
+                | ToolKind::Fetch
+                | ToolKind::SwitchMode
+                | ToolKind::Other => None,
+            };
+            if let Some(paths) = paths
+                && !tool.locations.is_empty()
+            {
+                for location in &tool.locations {
+                    let _new = paths.insert(&location.path);
+                }
+            } else {
+                summary.count(tool.kind);
+            }
+        }
+        summary.read = summary
+            .read
+            .saturating_add(u32::try_from(reads.len()).unwrap_or(u32::MAX));
+        summary.edited = summary
+            .edited
+            .saturating_add(u32::try_from(edits.len()).unwrap_or(u32::MAX));
         summary
     }
 
@@ -157,34 +198,19 @@ fn close(runs: &mut Vec<ToolRun>, entries: &[Entry], from: usize, to: usize) {
     let Some(members) = entries.get(from..to) else {
         return;
     };
-    let mut kinds = Vec::new();
-    let mut thoughts = 0_u32;
-    for entry in members {
-        match &entry.kind {
-            EntryKind::Tool(tool) => kinds.push(tool.kind),
-            EntryKind::Thought { .. } => thoughts = thoughts.saturating_add(1),
-            EntryKind::Ready { .. }
-            | EntryKind::Prompt(_)
-            | EntryKind::Steer { .. }
-            | EntryKind::Question { .. }
-            | EntryKind::Message { .. }
-            | EntryKind::Plan { .. }
-            | EntryKind::Permission(_)
-            | EntryKind::TurnEnded { .. }
-            | EntryKind::TurnFailed { .. }
-            | EntryKind::Log { .. }
-            | EntryKind::Status { .. }
-            | EntryKind::Parking(_)
-            | EntryKind::Forked { .. }
-            | EntryKind::Profile { .. }
-            | EntryKind::Model(_) => {}
-        }
-    }
-    if !kinds.is_empty() {
+    let mut tools = members
+        .iter()
+        .filter_map(|entry| entry.kind.as_tool())
+        .peekable();
+    let thoughts = members
+        .iter()
+        .filter(|entry| matches!(entry.kind, EntryKind::Thought { .. }))
+        .fold(0_u32, |count, _| count.saturating_add(1));
+    if tools.peek().is_some() {
         runs.push(ToolRun {
             lead: from,
             end: to,
-            summary: RunSummary::of(&kinds, thoughts),
+            summary: RunSummary::of_tools(tools, thoughts),
         });
     }
 }

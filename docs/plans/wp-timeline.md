@@ -412,3 +412,14 @@ sheet, and clear preserves that counter. This is UI lifetime fencing, not a
 substitute for W12's resident/transport admission. Its snapshot must move the
 counter along with other retained controller identities. Context adaptation and
 hidden-resource focus rules remain part of the coordinated resident cutover.
+
+### File counts in activity summaries
+
+Paseo `tool-calls/detail-level/overview/model.ts` counts distinct read/edited
+paths. Native group and turn summaries now deduplicate the typed reported file
+locations instead of counting repeated reads of one path as several files.
+Missing legacy locations retain per-call counts: no path or shared identity is
+invented from titles/opaque input. Canonical Read/Edit/Write paths will join this
+same interpretation after W23's typed detail fields are consumable. One
+regression covers repeated and different file paths in both group and turn
+summaries; the iterator path does not allocate an intermediate tool list.

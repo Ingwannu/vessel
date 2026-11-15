@@ -156,3 +156,34 @@ fn automatically_expanded_reasoning_is_never_hidden_by_a_tool_group() {
     assert!(expanded.run_of(1).is_some());
     assert!(expanded.run_of(3).is_some());
 }
+
+#[test]
+fn group_and_turn_summaries_count_distinct_reported_files() {
+    use crate::timeline::Folds;
+    let read = |id, path| json!({"event":"tool_call","id":id,"title":"Read","kind":"read","status":"completed","locations":[{"path":path}]});
+    let timeline = timeline(vec![
+        prompt(),
+        read("first", "/work/a"),
+        read("again", "/work/a"),
+        read("other", "/work/b"),
+        reply("Done"),
+        end(),
+    ]);
+    assert_eq!(
+        Folds::of(timeline.entries())
+            .runs()
+            .first()
+            .unwrap()
+            .summary
+            .read,
+        2
+    );
+    assert_eq!(
+        TurnFolds::of(timeline.entries(), TurnActivity::Closed)
+            .at_host(0)
+            .unwrap()
+            .summary
+            .read,
+        2
+    );
+}

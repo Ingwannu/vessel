@@ -94,17 +94,15 @@ fn finish(turns: &mut Vec<TurnFold>, entries: &[Entry], host: usize, end: usize)
     let Some(folded) = run.get(..last_reply) else {
         return;
     };
-    let mut kinds = Vec::new();
-    let mut thoughts = 0_u32;
-    for entry in folded {
-        if let Some(tool) = entry.kind.as_tool() {
-            kinds.push(tool.kind);
-        }
-        if matches!(entry.kind, EntryKind::Thought { .. }) {
-            thoughts = thoughts.saturating_add(1);
-        }
-    }
-    if kinds.is_empty()
+    let mut tools = folded
+        .iter()
+        .filter_map(|entry| entry.kind.as_tool())
+        .peekable();
+    let thoughts = folded
+        .iter()
+        .filter(|entry| matches!(entry.kind, EntryKind::Thought { .. }))
+        .fold(0_u32, |count, _| count.saturating_add(1));
+    if tools.peek().is_none()
         && !folded
             .iter()
             .any(|entry| matches!(entry.kind, EntryKind::Message { .. }))
@@ -114,7 +112,7 @@ fn finish(turns: &mut Vec<TurnFold>, entries: &[Entry], host: usize, end: usize)
     turns.push(TurnFold {
         host,
         hidden: start..start.saturating_add(last_reply),
-        summary: RunSummary::of(&kinds, thoughts),
+        summary: RunSummary::of_tools(tools, thoughts),
     });
 }
 
