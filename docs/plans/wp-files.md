@@ -1,28 +1,43 @@
 # Workspace files, editor and document panels
 
-Status: C5/C6 implementation remains incomplete; no package acceptance.
-The app includes official package base8 (91407173), canonical layout values,
-G4 preflight, FieldId and the checked shared IME control. Native source now
-retains actual NodeId/root/path buffers and original scoped write obligations.
-Typed file-pane/Explorer runtime placement and live desktop finalization remain
-unwired; their metadata or test-staged seams are not authority/runtime proof.
+Status: C5/C6 implementation remains incomplete; no native package acceptance.
+The app includes announced base8e82ca07a7, canonical pane/query/close values,
+G4 selected-connection preflight and the shared field/IME controls. Retained
+buffers use NodeId/root/path, original serialized write tickets, and sticky
+uncertain effects. Existing-engine input is mirrored before admission and
+projection, including input whose owner notification is queued.
 
-Current evidence: the earlier exact0df7abd9 app Clippy/eight GPUI passes are
-prior-source only. Strict18 on0eb404312 failed on metadata map type arguments;
-those concrete signatures are fixed. Current strict19 and scoped workspace
-regressions are queued on9f7700db (official base8 plus terminal-write recovery).
-The later per-node readiness addition c047016b4 has source/fast checks only.
-No whole native gate, captures, PDF/SVG renderer or C5 completion is claimed.
+Current native source is exact4fbbe4d8. Strict27 on prior6419ad03 compiled the
+normal App binary, then failed on three new presentation-fixture lints, now
+corrected without product changes or assertion weakening. Strict28 run
+wp-files-narrow-20261115T171836Z-4fbbe4d8 and actual four-package tests10 run
+wp-files-query-values-20261115T171843Z-4fbbe4d8 are queued; no result is claimed.
+The older0df7abd9 strict/eight GPUI passes are prior-source evidence only.
+This status-only update changes no native source from the queued head.
 
-The node companion now includes announced82ae7c91 and registers all five
-canonical pending None methods. V3 accepted the read-pass/query corrections
-with exact100da283's808/0/1 scoped execution, not the later SDK extraction.
-Actuald9c96a5f TS generator tests3/0 and bridge1/0 produced declarations;
-verified artifact bytes are committed, freshness and final node gate are owed.
-The node source is frozen for its first enclosing gate submission. No assigned
-protocol or app-ready binary transfer API is claimed. Historical checkpoints
-below retain their original evidence and may describe superseded identities;
-this opening status and the current resume point take precedence.
+The node companion is final source/evidence PASS in V3 row171 on exact
+a2b69afec8669b71cc59f257fba31c7c9fbb959f. Whole run
+wp-files-node-20261115T154926Z-a2b69afe executed all18 steps with rc0:
+Rust2414/0/12, web464, e2e68, forge4; current strict, generated declarations
+and freshness passed. Its bounded read-pass pages, exclusive copy, finite
+observation, suggestions, metadata and admitted per-page SDK reader remain
+pending FILE_PANELS_PROTOCOL=None. The integrator accepted this exact frozen
+head for its next combination, not native consumption or feature assignment.
+Whole-hash verification and atomic publication remain the actual ChunkSink
+implementation's contract. Mutable-file atomic snapshots, same-user path-swap
+limitations and real service-account flows are outside that PASS.
+
+Typed File opening/bindings/close requests and quit readiness remain test-staged
+until their real shared callers and guards are checked. The legacy installed
+root scope is request evidence, not an irreversible UI delivery guard. A separate
+shown-Changes producer is being prepared on the exact G4 delivery source and
+announced line; it must replace the root acquisition when joined, not create a
+second resolver. It is not a checked opener or a typed Explorer mount.
+
+No whole native gate, inspected captures, PDF/SVG/image/HTML renderer completion,
+actual binary download sink, live quit safety or C5 completion is claimed.
+Historical checkpoints below retain their original evidence and may describe
+superseded identities; this status and the current resume record take precedence.
 
 ## Reference and existing assets
 
