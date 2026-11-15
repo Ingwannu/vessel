@@ -37,7 +37,10 @@ pub(crate) fn render(
         return None;
     }
     let size = window.viewport_size();
-    let layout = ComposerLayout::fullscreen(size.height - px(CHROME), shell.composer_font(target));
+    let layout = ComposerLayout::fullscreen(
+        px(f32::from(size.height).mul_add(1.0, -CHROME)),
+        shell.composer_font(target),
+    );
     let text = shell.composer_fullscreen_text(target, layout, tokens, cx)?;
     let enabled = shell.composer_may_submit(target, cx);
     let close = pill_parts(

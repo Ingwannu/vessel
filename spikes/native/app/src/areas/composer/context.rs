@@ -11,9 +11,12 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, assets::Glyph};
 use vessel_app_view::composer::{
-    context::{ContextAttachment, ContextKind, ContextProblem, ContextScope},
+    context::{ContextAttachment, ContextKind},
     drafts::DraftKey,
 };
+
+#[cfg(test)]
+use vessel_app_view::composer::context::{ContextProblem, ContextScope};
 
 #[derive(Debug)]
 pub(super) struct Preview {
@@ -33,6 +36,7 @@ impl Preview {
 impl Shell {
     /// File/browser/review/forge/plugin owners adapt their canonical values
     /// here. A producer cannot redirect context into another workspace.
+    #[cfg(test)]
     pub(crate) fn composer_attach_context(
         &mut self,
         target: DraftKey,
@@ -58,6 +62,7 @@ impl Shell {
     }
     /// The creation area seeds this only after claiming the active draft's canonical target.
     /// History has no destination root until that draft's placement is chosen.
+    #[cfg(test)]
     pub(crate) fn composer_seed_history(
         &mut self,
         target: DraftKey,

@@ -41,6 +41,7 @@ impl Open {
 impl crate::shell::Shell {
     /// Read only the originally admitted owner of this exact legacy open target.
     /// Hidden/unbound targets return None; the current Fleet is never authority.
+    #[cfg(test)]
     pub(crate) fn opened_session_address(
         &self,
         host: &Name,
@@ -91,14 +92,14 @@ impl crate::shell::Shell {
                 .find(|machine| machine.name == open.machine)
                 .and_then(|machine| machine.node)
         {
-            let Ok(host) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
+            let Ok(host) = Name::parse(&open.machine) else {
                 self.notice = Some(self.words.sessions().navigation_refused().to_owned());
                 cx.notify();
                 return;
             };
             open.binding = Some(vessel_app_link::sessions::Binding {
                 host,
-                address: vessel_app_view::sessions::SessionAddress {
+                address: SessionAddress {
                     node,
                     session: open.session,
                 },

@@ -75,3 +75,56 @@ fn retained_files_and_context_prevent_client_archive_and_plain_commands_use_life
         });
     }
 }
+
+#[gpui::test]
+fn unavailable_context_scope_is_not_admitted_and_history_seeds_only_its_new_draft(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::composer::context::{ChatHistory, ContextProblem, ContextScope};
+    use vessel_proto::{ProjectId, SessionId, workspace::WorkspaceRoot};
+
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let payload = Payload {
+            id: ContextId::parse("fixture").unwrap(),
+            title: ContextTitle::parse("History").unwrap(),
+            text: ContextText::parse("retained history").unwrap(),
+            url: None,
+        };
+        let scope = ContextScope {
+            machine: "fixture".parse().unwrap(),
+            root: WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+        };
+        let text = shell.areas.draft.composer.text(cx);
+        assert_eq!(
+            shell.composer_attach_context(
+                DraftKey::New,
+                &scope,
+                ContextAttachment::Snapshot {
+                    kind: ContextKind::Review,
+                    payload: payload.clone(),
+                },
+                window,
+                cx,
+            ),
+            Err(ContextProblem::Scope)
+        );
+        assert!(!shell.composer_has_context(DraftKey::New));
+        let other = DraftKey::Session {
+            session: SessionId::random(),
+        };
+        assert_eq!(
+            shell.composer_seed_history(other, ChatHistory::new(payload.clone()), window, cx),
+            Err(ContextProblem::Scope)
+        );
+        assert!(!shell.composer_has_context(other));
+        shell
+            .composer_seed_history(DraftKey::New, ChatHistory::new(payload), window, cx)
+            .unwrap();
+        assert!(shell.composer_has_context(DraftKey::New));
+        assert_eq!(shell.areas.draft.composer.text(cx), text);
+    });
+}

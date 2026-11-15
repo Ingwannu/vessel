@@ -117,7 +117,7 @@ impl Shell {
         tokens: &Tokens,
         cx: &mut Context<'_, Self>,
     ) -> Option<AnyElement> {
-        self.composer_shell_field(target)?;
+        let _field = self.composer_shell_field(target)?;
         let over = match target {
             DraftKey::New => Over::Draft,
             DraftKey::Session { .. } => Over::Session,
