@@ -398,3 +398,22 @@ of its private projected-style field, and its text_bounds accessor rather than
 a nonexistent layout bounds field. Production patch behaviour is unchanged.
 The queued8a342503 Kit/App Clippy does not compile vendor tests; actual Base/Kit
 library execution must use the corrected fixture source separately.
+
+## Exact pane binding and immutable comparisons
+
+The pure panel binding uses the shared LayoutKey+TabId and original G4 context.
+The actual shared enum is LayoutKey::Session (the earlier handoff called it a
+legacy-session bridge); the source wins. Only that exact machine/session may
+be located through session.get. A real Workspace key waits for W11's registry
+adapter, with an explicit NeedsRegistry result and no fake loading read, cwd
+inference, selected-session fallback or first-alias-by-node lookup. Discovery
+keeps the whole returned SessionInfo and rejects a different session identity.
+Retired epochs, duplicate answers, same-alias/node A→B→A and equal tab numbers
+in different workspaces cannot establish a repository. Unsent settles failure.
+The actor and screen consumers are next; these new pure tests are unexecuted.
+
+Comparison identity now includes an immutable commit kind instead of reusing a
+branch-mode ticket for commit panels. Commit comparisons retain no mutable base
+and map exactly to the existing Commit scope; empty branch-mode suggestions do
+not appear for them. This does not assign a new wire number or imply the pending
+committed-only RPC can already run on an old node.

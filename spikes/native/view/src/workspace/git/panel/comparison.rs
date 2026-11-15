@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use vessel_proto::NodeId;
-use vessel_proto::workspace::{DiffScope, WorkspaceRoot, WorktreeBase};
+use vessel_proto::workspace::{CommitId, DiffScope, WorkspaceRoot, WorktreeBase};
 
 /// A node I/O target, not a replacement for registry `WorkspaceId` or layout keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -45,10 +45,19 @@ impl Whitespace {
     }
 }
 
+/// A commit document cannot inherit a branch comparison's mutable base.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ComparisonKind {
+    /// One of the three working-checkout comparisons.
+    Branch(ComparisonMode),
+    /// One fixed commit against its first parent, or the empty tree.
+    Commit(CommitId),
+}
+
 /// Normalized query identity: Uncommitted never retains an irrelevant base.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Comparison {
-    mode: ComparisonMode,
+    kind: ComparisonKind,
     base: Option<WorktreeBase>,
     whitespace: Whitespace,
 }
@@ -62,7 +71,7 @@ impl Comparison {
             ComparisonMode::Committed | ComparisonMode::All => base,
         };
         Self {
-            mode,
+            kind: ComparisonKind::Branch(mode),
             base,
             whitespace,
         }
@@ -70,8 +79,27 @@ impl Comparison {
 
     /// The selected mode, used by labels and empty-state navigation.
     #[must_use]
-    pub const fn mode(&self) -> ComparisonMode {
-        self.mode
+    pub const fn mode(&self) -> Option<ComparisonMode> {
+        match &self.kind {
+            ComparisonKind::Branch(mode) => Some(*mode),
+            ComparisonKind::Commit(_) => None,
+        }
+    }
+
+    /// Immutable commit identity remains part of every summary/body ticket.
+    #[must_use]
+    pub const fn kind(&self) -> &ComparisonKind {
+        &self.kind
+    }
+
+    /// A commit document has no mutable branch base to accidentally reuse.
+    #[must_use]
+    pub const fn at_commit(id: CommitId, whitespace: Whitespace) -> Self {
+        Self {
+            kind: ComparisonKind::Commit(id),
+            base: None,
+            whitespace,
+        }
     }
 
     /// The retained base; absent means the root's authoritative default.
@@ -90,12 +118,13 @@ impl Comparison {
     /// Committed needs ADR 0087, never that All may be substituted for it.
     #[must_use]
     pub fn legacy_scope(&self) -> Option<DiffScope> {
-        match self.mode {
-            ComparisonMode::Uncommitted => Some(DiffScope::Uncommitted),
-            ComparisonMode::All => Some(DiffScope::Base {
+        match &self.kind {
+            ComparisonKind::Branch(ComparisonMode::Uncommitted) => Some(DiffScope::Uncommitted),
+            ComparisonKind::Branch(ComparisonMode::All) => Some(DiffScope::Base {
                 base: self.base.clone(),
             }),
-            ComparisonMode::Committed => None,
+            ComparisonKind::Branch(ComparisonMode::Committed) => None,
+            ComparisonKind::Commit(id) => Some(DiffScope::Commit { id: id.clone() }),
         }
     }
 }

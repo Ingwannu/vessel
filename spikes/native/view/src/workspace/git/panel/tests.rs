@@ -27,7 +27,7 @@ fn default_preferences_match_the_reference_for_every_field() {
             commits: Fold::Closed,
         }
     );
-    assert_eq!(Comparison::default().mode(), ComparisonMode::All);
+    assert_eq!(Comparison::default().mode(), Some(ComparisonMode::All));
     assert_eq!(PanelState::default().commits, Fold::Closed);
 }
 

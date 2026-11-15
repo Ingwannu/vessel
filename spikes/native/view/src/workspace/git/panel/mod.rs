@@ -9,6 +9,7 @@
 //!   and git action preparation remain the shared lower-level implementation.
 //! - Cost: registry/layout binding arrives through their owners' contracts.
 
+mod binding;
 mod comparison;
 mod document;
 mod failure;
@@ -19,7 +20,8 @@ mod requests;
 mod tree;
 mod words;
 
-pub use comparison::{Comparison, ComparisonMode, RepositoryKey, Whitespace};
+pub use binding::{LocationRefusal, LocationTicket, PanelAddress, PanelBinding};
+pub use comparison::{Comparison, ComparisonKind, ComparisonMode, RepositoryKey, Whitespace};
 pub use document::{
     DiffCell, DiffDocument, DisplayRow, ReviewKey, ReviewSide, SourceLine, SourceRow,
 };

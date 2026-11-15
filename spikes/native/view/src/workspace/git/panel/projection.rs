@@ -82,13 +82,16 @@ pub fn empty_action(comparison: &Comparison, status: &GitStatus) -> Option<Empty
         return None;
     }
     match comparison.mode() {
-        ComparisonMode::Committed if !status.files.is_empty() || status.more => {
+        Some(ComparisonMode::Committed) if !status.files.is_empty() || status.more => {
             Some(EmptyAction::Uncommitted)
         }
-        ComparisonMode::Uncommitted if status.base.as_ref().is_some_and(|base| base.ahead > 0) => {
+        Some(ComparisonMode::Uncommitted)
+            if status.base.as_ref().is_some_and(|base| base.ahead > 0) =>
+        {
             Some(EmptyAction::Committed)
         }
-        ComparisonMode::All | ComparisonMode::Committed | ComparisonMode::Uncommitted => None,
+        Some(ComparisonMode::All | ComparisonMode::Committed | ComparisonMode::Uncommitted)
+        | None => None,
     }
 }
 

@@ -2,8 +2,8 @@
 //! Reuse the existing correlated read lifecycle rather than fabricating an
 //! machine error code or leaving a request loading when its route cannot be used.
 
-use vessel_proto::NodeId;
 use vessel_proto::workspace::{RefName, RelPath, WorktreeBase};
+use vessel_proto::{NodeId, SessionId};
 
 use crate::workspace::git::ReadState;
 use crate::workspace::problem::Problem;
@@ -35,6 +35,14 @@ pub enum ReadFailure {
         requested: RelPath,
         /// The path carried by the returned body.
         received: RelPath,
+    },
+    /// A broken peer returned another session's metadata.
+    #[error("expected session {requested}, received {received}")]
+    UnexpectedSession {
+        /// Session explicitly named by the pane key.
+        requested: SessionId,
+        /// Session carried by the reply, never adopted as authority.
+        received: SessionId,
     },
     /// Retain both identities without declaring either branch correct.
     #[error("the stored and requested comparison bases differ")]

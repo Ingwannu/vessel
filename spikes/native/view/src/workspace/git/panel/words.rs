@@ -68,6 +68,7 @@ impl ReadIssue {
                 Self::DestinationChanged
             }
             ReadFailure::UnexpectedFile { .. } => Self::UnexpectedFile,
+            ReadFailure::UnexpectedSession { .. } => Self::Failed,
             ReadFailure::BaseMismatch { .. } => Self::BaseMismatch,
         }
     }
