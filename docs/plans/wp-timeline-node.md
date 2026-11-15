@@ -152,3 +152,9 @@ budget. Existing fixture expectations remain unchanged. Inbox tool updates keep
 known canonical bodies when updates supply None/Unknown; oversize bodies keep
 the existing explicit InSession degradation. New activation, provider mappings,
 retained-state migration, acknowledgements and question lifecycle remain owed.
+
+The optional-field adapter keeps a no-change path for ordinary legacy events
+and snapshots rather than cloning tool bodies for each subscriber. Durable
+question delivery state is projected from the store's authoritative claim state;
+providers cannot assert Answering/OutcomeUnknown on a new offer. These source
+follow-ups remain unverified until the queued narrow checks and storage tests run.

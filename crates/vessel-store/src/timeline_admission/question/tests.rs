@@ -31,7 +31,7 @@ fn form() -> Question {
             presentation: None,
         }],
 
-        lifetime: Default::default(),
+        lifetime: vessel_proto::timeline::QuestionLifetime::Session,
         delivery_state: Default::default(),
     }
 }
@@ -59,10 +59,7 @@ fn replay_keeps_the_original_request_id_and_resolution_is_independent_of_a_tool_
     let transaction = db.transaction().unwrap();
     assert_eq!(
         admit_question(&transaction, session, source.clone(), replay).unwrap(),
-        QuestionAdmission::Existing {
-            question: question.clone(),
-            delivery: QuestionDeliveryState::Pending
-        }
+        QuestionAdmission::Existing(question.clone())
     );
     transaction.commit().unwrap();
     // Completing or pruning a tool's ordinary history never deletes its question row.
@@ -207,10 +204,11 @@ fn restart_marks_admitted_unacknowledged_answers_uncertain_and_keeps_their_reser
     ));
     assert_eq!(
         admit_question(&transaction, session, source, question.clone()).unwrap(),
-        QuestionAdmission::Existing {
-            question,
-            delivery: QuestionDeliveryState::OutcomeUnknown
-        }
+        QuestionAdmission::Existing({
+            let mut question = question;
+            question.delivery_state = QuestionDeliveryState::OutcomeUnknown;
+            question
+        })
     );
     transaction.commit().unwrap();
     verify(&db).unwrap();

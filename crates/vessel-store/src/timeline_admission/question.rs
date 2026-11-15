@@ -47,10 +47,7 @@ struct Record {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum QuestionAdmission {
     New(Question),
-    Existing {
-        question: Question,
-        delivery: QuestionDeliveryState,
-    },
+    Existing(Question),
     Settled,
     Conflict,
     Capacity(AdmissionCapacity),
@@ -88,9 +85,13 @@ pub(super) fn admit_question(
     connection: &Connection,
     session: SessionId,
     source: ToolCallId,
-    question: Question,
+    mut question: Question,
 ) -> Result<QuestionAdmission, StoreError> {
     require_transaction(connection)?;
+    // This owner admits provider-classified async questions only. Delivery state
+    // is a store projection, never a state a provider can assert.
+    question.lifetime = vessel_proto::timeline::QuestionLifetime::Session;
+    question.delivery_state = QuestionDeliveryState::Pending;
     let known = load(connection, session, &source)?;
     if let Some(known) = known {
         // A driver's freshly minted node id is not the provider's stable source identity.
@@ -100,20 +101,9 @@ pub(super) fn admit_question(
         {
             return Ok(QuestionAdmission::Conflict);
         }
-        return Ok(match known.state {
-            QuestionState::Pending => QuestionAdmission::Existing {
-                question: known.question,
-                delivery: QuestionDeliveryState::Pending,
-            },
-            QuestionState::Answering { .. } => QuestionAdmission::Existing {
-                question: known.question,
-                delivery: QuestionDeliveryState::Answering,
-            },
-            QuestionState::OutcomeUnknown { .. } => QuestionAdmission::Existing {
-                question: known.question,
-                delivery: QuestionDeliveryState::OutcomeUnknown,
-            },
-            QuestionState::Settled { .. } => QuestionAdmission::Settled,
+        return Ok(match displayed(&known) {
+            Some(question) => QuestionAdmission::Existing(question),
+            None => QuestionAdmission::Settled,
         });
     }
     let record = Record {
@@ -256,6 +246,18 @@ pub(super) fn recover_claims(connection: &Connection) -> Result<(), StoreError> 
         }
     }
     Ok(())
+}
+
+fn displayed(record: &Record) -> Option<Question> {
+    let state = match record.state {
+        QuestionState::Pending => QuestionDeliveryState::Pending,
+        QuestionState::Answering { .. } => QuestionDeliveryState::Answering,
+        QuestionState::OutcomeUnknown { .. } => QuestionDeliveryState::OutcomeUnknown,
+        QuestionState::Settled { .. } => return None,
+    };
+    let mut question = record.question.clone();
+    question.delivery_state = state;
+    Some(question)
 }
 
 fn require_claim(connection: &Connection, token: &AnswerToken) -> Result<(), StoreError> {

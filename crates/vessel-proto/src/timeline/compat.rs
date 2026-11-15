@@ -44,6 +44,35 @@ fn permission(request: &PermissionRequest) -> PermissionRequest {
     adapted
 }
 
+fn question_changed(request: &Question) -> bool {
+    request.lifetime != QuestionLifetime::Turn
+        || request.delivery_state != QuestionDeliveryState::Pending
+        || request.fields.iter().any(|field| {
+            field.presentation.is_some()
+                || match &field.kind {
+                    crate::conversation::FieldKind::Choice { options, .. } => {
+                        options.iter().any(|option| option.preview.is_some())
+                    }
+                    crate::conversation::FieldKind::Text { .. }
+                    | crate::conversation::FieldKind::Number { .. }
+                    | crate::conversation::FieldKind::Integer { .. }
+                    | crate::conversation::FieldKind::Boolean { .. }
+                    | crate::conversation::FieldKind::Unknown => false,
+                }
+        })
+}
+
+fn permission_changed(request: &PermissionRequest) -> bool {
+    request.presentation.is_some() || request.options.iter().any(|option| option.action.is_some())
+}
+
+fn tool_changed(call: &ToolCall) -> bool {
+    call.detail.is_some()
+        || call.failure.is_some()
+        || call.agent_message.is_some()
+        || call.status == ToolCallStatus::Canceled
+}
+
 fn question(request: &Question) -> Option<Question> {
     if request.lifetime == QuestionLifetime::Session
         || request.delivery_state != QuestionDeliveryState::Pending
@@ -100,18 +129,46 @@ pub(crate) fn event(
         return None;
     }
     let adapted = match event {
-        AgentEvent::ToolCall(call) => AgentEvent::ToolCall(tool(call)),
-        AgentEvent::ToolCallUpdate(call) => AgentEvent::ToolCallUpdate(update(call)),
+        AgentEvent::ToolCall(call) => {
+            if !tool_changed(call) {
+                return None;
+            }
+            AgentEvent::ToolCall(tool(call))
+        }
+        AgentEvent::ToolCallUpdate(call) => {
+            if call.detail.is_none()
+                && call.failure.is_none()
+                && call.agent_message.is_none()
+                && call.status != Some(ToolCallStatus::Canceled)
+            {
+                return None;
+            }
+            AgentEvent::ToolCallUpdate(update(call))
+        }
         AgentEvent::PermissionRequested(request) => {
+            if !permission_changed(request) {
+                return None;
+            }
             AgentEvent::PermissionRequested(permission(request))
         }
-        AgentEvent::QuestionAsked(request) => match question(request) {
-            Some(request) => AgentEvent::QuestionAsked(request),
-            None => AgentEvent::HarnessLog {
-                line: "vessel: this question requires a newer client".to_owned(),
-            },
-        },
+        AgentEvent::QuestionAsked(request) => {
+            if !question_changed(request) {
+                return None;
+            }
+            match question(request) {
+                Some(request) => AgentEvent::QuestionAsked(request),
+                None => AgentEvent::HarnessLog {
+                    line: "vessel: this question requires a newer client".to_owned(),
+                },
+            }
+        }
         AgentEvent::Plan { entries } => {
+            if !entries
+                .iter()
+                .any(|entry| entry.id.is_some() || entry.active_form.is_some())
+            {
+                return None;
+            }
             let mut entries = entries.clone();
             for entry in &mut entries {
                 entry.id = None;
@@ -119,14 +176,26 @@ pub(crate) fn event(
             }
             AgentEvent::Plan { entries }
         }
-        AgentEvent::TurnStarted { content, .. } => AgentEvent::TurnStarted {
-            content: content.clone(),
-            client_message_id: None,
-        },
-        AgentEvent::Steered { content, .. } => AgentEvent::Steered {
-            content: content.clone(),
-            client_message_id: None,
-        },
+        AgentEvent::TurnStarted {
+            content,
+            client_message_id,
+        } => {
+            client_message_id.as_ref()?;
+            AgentEvent::TurnStarted {
+                content: content.clone(),
+                client_message_id: None,
+            }
+        }
+        AgentEvent::Steered {
+            content,
+            client_message_id,
+        } => {
+            client_message_id.as_ref()?;
+            AgentEvent::Steered {
+                content: content.clone(),
+                client_message_id: None,
+            }
+        }
         AgentEvent::Ready { .. }
         | AgentEvent::UserMessageChunk { .. }
         | AgentEvent::MessageChunk { .. }
@@ -145,12 +214,23 @@ pub(crate) fn conversation(
     protocol: ProtocolVersion,
     assigned: Option<ProtocolVersion>,
 ) -> Option<Conversation> {
-    let mut adapted = value.clone();
-    if let Some(usage) = value
+    let usage = value
         .usage
         .as_ref()
-        .and_then(|usage| usage.for_protocol(protocol))
-    {
+        .and_then(|usage| usage.for_protocol(protocol));
+    let has_timeline_change = !supported(protocol, assigned)
+        && (value.permissions.iter().any(permission_changed)
+            || value.questions.iter().any(question_changed)
+            || value
+                .queue
+                .entries
+                .iter()
+                .any(|entry| entry.client_message_id.is_some()));
+    if usage.is_none() && !has_timeline_change {
+        return None;
+    }
+    let mut adapted = value.clone();
+    if let Some(usage) = usage {
         adapted.usage = Some(usage);
     }
     if !supported(protocol, assigned) {
@@ -169,6 +249,20 @@ pub(crate) fn inbox(
     assigned: Option<ProtocolVersion>,
 ) -> Option<InboxEntry> {
     if supported(protocol, assigned) {
+        return None;
+    }
+    let changed = match &entry.item {
+        InboxItem::Permission { request, tool, .. } => {
+            permission_changed(request) || tool.as_ref().is_some_and(tool_changed)
+        }
+        InboxItem::Question { question } => question_changed(question),
+        InboxItem::InSession { .. }
+        | InboxItem::Finished
+        | InboxItem::Failed
+        | InboxItem::Limit
+        | InboxItem::Unknown => false,
+    };
+    if !changed {
         return None;
     }
     let mut adapted = entry.clone();
