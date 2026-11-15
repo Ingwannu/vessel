@@ -1657,3 +1657,13 @@ templates and transfers. The existing creation and discovery service paths
 consume these types for legacy/unbound sessions; explicit inputs remain refused
 while assignment is pending. Canonical bound workspace mirroring and the
 separately integrated CLI/MCP consumers remain outside this node package.
+
+### Export metadata readiness (ADR 0063)
+
+The node's `metadata_export` policy shares protocol visibility with reply
+projection. The exporter validates its one owned info snapshot before reading
+provider history, so the checked classification is the one in the manifest.
+Local pulls have no wire projection and retain their existing import guards.
+Forward and Relay also validate returned export manifests against their next
+peer before projection; a new source/home cannot silently turn an old importer
+into a Shown session. This adds no crate edge, authority or wire shape.
