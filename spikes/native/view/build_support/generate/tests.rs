@@ -109,7 +109,7 @@ fn large_plain_caches_keep_the_public_borrowed_api_and_bounded_initializers() {
 }
 
 fn fixture(count: usize, many_areas: bool) -> String {
-    let mut files = BTreeMap::new();
+    let mut files: BTreeMap<String, String> = BTreeMap::new();
     let mut getters = Vec::new();
     let mut keys = Vec::new();
     for index in 0..count {
