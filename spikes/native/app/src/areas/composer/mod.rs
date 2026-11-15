@@ -45,7 +45,7 @@ pub(crate) use prepared::PrepareProblem;
 pub(crate) use prepared::WorkspaceInput;
 pub(crate) use running::ControlsTarget;
 pub(crate) use sent::SentFiles;
-pub(crate) use slash::{draft_menu, draft_text, menu, text};
+pub(crate) use slash::{draft_menu, draft_text, menu, text, workspace_text};
 use vessel_app_kit::MenuState;
 use vessel_app_kit::ui::App;
 use vessel_app_view::composer::drafts::Drafts;
