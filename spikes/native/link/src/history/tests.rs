@@ -12,6 +12,9 @@ use vessel_proto::{Call, HarnessKind, HarnessSessionId, SessionMode};
 
 fn batch(node: vessel_proto::NodeId) -> Batch {
     let scope = Scope {
+        context: vessel_app_view::connection::ConnectionEpochs::default()
+            .admit(MachineKey::from_book("fixture"), node)
+            .unwrap(),
         machine: MachineKey::from_book("fixture"),
         harness: HarnessKind::Codex.into(),
         profile: Some("other-account".parse().unwrap()),
@@ -39,7 +42,8 @@ fn batch(node: vessel_proto::NodeId) -> Batch {
 async fn batch_resumes_each_native_id_in_its_original_directory_and_account() {
     let peer = peer::connect(vec![]).await;
     let batch = batch(peer.client.node().id);
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(batch.clone())).await
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(batch.clone())).await
     else {
         panic!("batch receipt");
     };
@@ -68,8 +72,11 @@ async fn definite_refusals_are_attributed_to_their_row_without_losing_successes(
         peer::Behaviour::Success,
     ])
     .await;
-    let Reply::Imported { outcomes, .. } =
-        answer(&peer.client, Ask::Import(batch(peer.client.node().id))).await
+    let Reply::Imported { outcomes, .. } = answer(
+        &peer::admitted(&peer).2,
+        Ask::Import(batch(peer.client.node().id)),
+    )
+    .await
     else {
         panic!("batch");
     };
@@ -84,8 +91,11 @@ async fn definite_refusals_are_attributed_to_their_row_without_losing_successes(
 #[tokio::test]
 async fn connection_loss_is_uncertain_instead_of_a_repeatable_create_failure() {
     let peer = peer::connect(vec![peer::Behaviour::Disconnect]).await;
-    let Reply::Imported { outcomes, .. } =
-        answer(&peer.client, Ask::Import(batch(peer.client.node().id))).await
+    let Reply::Imported { outcomes, .. } = answer(
+        &peer::admitted(&peer).2,
+        Ask::Import(batch(peer.client.node().id)),
+    )
+    .await
     else {
         panic!("batch");
     };
@@ -101,7 +111,7 @@ async fn account_choices_use_the_existing_profile_list_call() {
     let peer = peer::connect(vec![]).await;
     let batch = batch(peer.client.node().id);
     let Reply::Profiles { result, .. } = answer(
-        &peer.client,
+        &peer::admitted(&peer).2,
         Ask::Profiles {
             scope: batch.scope.clone(),
             ticket: batch.ticket,
@@ -144,8 +154,11 @@ fn node_messages_do_not_reach_history_failures() {
 #[tokio::test]
 async fn reusing_a_book_alias_for_a_different_node_refuses_before_any_create() {
     let peer = peer::connect(vec![]).await;
-    let request = batch(vessel_proto::NodeId::random());
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+    let mut request = batch(peer.client.node().id);
+    request.node = vessel_proto::NodeId::random();
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
         panic!("batch");
     };
     assert!(
@@ -161,3 +174,56 @@ mod listing;
 
 #[path = "activation_tests.rs"]
 mod activation;
+
+#[tokio::test]
+async fn same_node_reconnect_rejects_original_history_admission_before_any_rpc() {
+    let peer = peer::connect(vec![]).await;
+    let (_home, mut state, _selected, old, mut events) = peer::admitted(&peer);
+    let previous = state.clients.get("fixture").unwrap().clone();
+    let next = state
+        .admissions
+        .admit(MachineKey::from_book("fixture"), old.node())
+        .unwrap();
+    assert_ne!(old.epoch(), next.epoch());
+    state
+        .clients
+        .insert("fixture".into(), previous.renamed(next));
+    let mut request = batch(old.node());
+    request.scope.context = old;
+    state.history(Ask::Import(request)).await;
+    let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
+    let crate::Event::History(Reply::Imported { outcomes, .. }) = event else {
+        panic!("import refusal")
+    };
+    assert!(
+        outcomes
+            .iter()
+            .all(|row| row.result == Err(Problem::IdentityChanged))
+    );
+    assert!(peer.calls.lock().unwrap().is_empty());
+}
+#[tokio::test]
+async fn full_history_budget_refuses_before_spawning_or_sending() {
+    let peer = peer::connect(vec![]).await;
+    let (_home, state, _selected, context, mut events) = peer::admitted(&peer);
+    let _held = std::sync::Arc::clone(&state.history_calls.0)
+        .try_acquire_many_owned(u32::try_from(MAX_CALLS).unwrap())
+        .unwrap();
+    let mut request = batch(context.node());
+    request.scope.context = context;
+    state
+        .history(Ask::Profiles {
+            scope: request.scope,
+            ticket: request.ticket,
+        })
+        .await;
+    let event = crate::testing::within(async { events.recv().await.unwrap() }).await;
+    assert!(matches!(
+        event,
+        crate::Event::History(Reply::Profiles {
+            result: Err(Problem::Unsent),
+            ..
+        })
+    ));
+    assert!(peer.calls.lock().unwrap().is_empty());
+}

@@ -230,3 +230,24 @@ W21's actual session.archive_child/predicate source awaits checks/V3 and the app
 base route. It is not yet activated by the product Archive finished action; that
 still performs provider-local hide only. Wire adapter/progress/retry UI remain
 required before this row can be accepted as full parity.
+
+Parent-resident union uses the existing SubagentArea once in SessionResources.subagents; readonly_for accessors reject mismatched canonical child identities and projection revisions before exposing the shared ConversationArea. Full SessionContext admission remains the resident owner’s prerequisite. The current function-pointer caller is transitional until the W12/A7 keyed Seat union; this accessor alone does not prove stale callback rejection.
+
+## Original admission for history (2026-11-15)
+
+[Decision Log]
+- Purpose: a reconnect of the same node must not receive an import that was chosen
+  under a retired authenticated admission.
+- Existing assets: G4's ConnectionContext and SelectedConnection already own exact
+  alias/epoch/node checks before polling and after completion. A separate raw-client
+  history task bypassed those generation fences despite checking the node UUID.
+- Choice: Scope carries that original shared context; actor admission and every
+  list/profile/get/create/resume call reuse SelectedConnection. Eight permits bound
+  history tasks before spawn; a full budget settles as unsent. Publication has a
+  named five-second budget. Imports remain sequential, without automatic replay.
+- Tradeoff: retirement after a write may have reached the node is uncertain;
+  receipts never cause a replacement create, and opening a successful receipt also
+  requires the exact still-current admission. Existing pure model and framed-peer
+  regressions are retained, with explicit same-node replacement and budget tests.
+- Validation: native strict and framed-peer execution are remote-only and pending
+  for this changed head; the earlier raw-client adapter pass is not extended here.

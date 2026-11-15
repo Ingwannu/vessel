@@ -1,22 +1,22 @@
 //! Reactivation preserves the existing session id and the selected account.
 
-use super::{CREATE_DEADLINE, READ_DEADLINE, create_problem, read_problem};
+use super::{CREATE_DEADLINE, READ_DEADLINE, create_failure, read_failure};
+use crate::connections::SelectedConnection;
 use vessel_app_view::history::{Entry, Problem, Scope};
-use vessel_client::NodeClient;
 use vessel_proto::{
     GetSession, HarnessKind, HarnessRef, ProfileName, SessionId, SessionInfo,
     conversation::ResumeSession,
 };
 
 pub(super) async fn existing(
-    client: &NodeClient,
+    client: &SelectedConnection,
     scope: &Scope,
     entry: &Entry,
     session: SessionId,
 ) -> Result<Box<SessionInfo>, Problem> {
     let info = tokio::time::timeout(READ_DEADLINE, client.call(GetSession { session }))
         .await
-        .map_or(Err(Problem::Timeout), |reply| reply.map_err(read_problem))?;
+        .map_or(Err(Problem::Timeout), |reply| reply.map_err(read_failure))?;
     validate(&info, scope, entry, session)?;
     if info.status.is_live() {
         return Ok(Box::new(info));
@@ -27,7 +27,7 @@ pub(super) async fn existing(
     let resumed = tokio::time::timeout(CREATE_DEADLINE, client.call(ResumeSession { session }))
         .await
         .map_or(Err(Problem::Uncertain), |reply| {
-            reply.map_err(create_problem)
+            reply.map_err(create_failure)
         })?;
     validate(&resumed, scope, entry, session)?;
     Ok(Box::new(resumed))

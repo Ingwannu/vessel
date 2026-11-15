@@ -28,7 +28,7 @@ async fn history_uses_the_selected_account_folder_and_unmodified_cursor() {
         ticket,
         result,
     } = answer(
-        &peer.client,
+        &peer::admitted(&peer).2,
         Ask::List {
             scope: request.scope.clone(),
             ticket: request.ticket,
@@ -70,7 +70,7 @@ async fn an_empty_filtered_page_can_still_offer_another_page() {
     .await;
     let request = batch(peer.client.node().id);
     let Reply::Listed { result, .. } = answer(
-        &peer.client,
+        &peer::admitted(&peer).2,
         Ask::List {
             scope: request.scope,
             ticket: request.ticket,
@@ -91,7 +91,7 @@ async fn old_peer_is_refused_without_sending_an_unknown_history_method() {
     let peer = peer::connect_at(vec![], ProtocolVersion::new(16)).await;
     let request = batch(peer.client.node().id);
     let Reply::Listed { result, .. } = answer(
-        &peer.client,
+        &peer::admitted(&peer).2,
         Ask::List {
             scope: request.scope,
             ticket: request.ticket,

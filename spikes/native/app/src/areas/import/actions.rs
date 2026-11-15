@@ -47,10 +47,13 @@ impl Shell {
                             .find(|a| a.available())
                             .map(|a| a.harness.clone())
                     });
-                if let Some(harness) = harness {
+                if let Some(harness) = harness
+                    && let Some(context) = machine.connection_context()
+                {
                     let cwd = (!self.areas.draft.folder.is_empty())
                         .then(|| std::path::PathBuf::from(&self.areas.draft.folder));
                     self.areas.import.model.choose(Scope {
+                        context,
                         machine: MachineKey::from_book(&machine.name),
                         harness,
                         profile: None,
@@ -170,14 +173,21 @@ impl Shell {
         if outcomes.is_empty() || outcomes.iter().any(|outcome| outcome.result.is_err()) {
             return Ok(None);
         }
-        let node = self
+        let scope = self
+            .areas
+            .import
+            .model
+            .scope()
+            .ok_or(Problem::IdentityChanged)?;
+        let context = self
             .fleet
             .machines
             .iter()
             .find(|machine| machine.name == source.as_str())
-            .and_then(|machine| machine.node)
+            .and_then(vessel_app_view::Machine::connection_context)
             .ok_or(Problem::Offline)?;
-        if Some(node) != self.areas.import.model.listed_node() {
+        if context != scope.context || Some(context.node()) != self.areas.import.model.listed_node()
+        {
             return Err(Problem::IdentityChanged);
         }
         Ok(outcomes

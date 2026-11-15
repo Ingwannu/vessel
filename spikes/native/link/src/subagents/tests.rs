@@ -9,34 +9,7 @@ use vessel_proto::{
     Creator, HarnessKind, SessionId, SessionInfo, SessionMode, SessionRef, SessionSpec,
 };
 
-fn admitted(
-    peer: &peer::Peer,
-) -> (
-    crate::testing::Home,
-    crate::State,
-    crate::connections::SelectedConnection,
-    vessel_app_view::connection::ConnectionContext,
-    tokio::sync::mpsc::Receiver<crate::Event>,
-) {
-    let home = crate::testing::Home::new();
-    let (mut state, events) = crate::testing::state(&home);
-    let context = state
-        .admissions
-        .admit(MachineKey::from_book("fixture"), peer.client.node().id)
-        .unwrap();
-    let binding = vessel_client::book::BookEntry {
-        address: "ws://127.0.0.1:0/rpc".parse().unwrap(),
-        token: None,
-        credential: None,
-        id: None,
-    };
-    let _previous = state.clients.insert(
-        "fixture".into(),
-        crate::Connected::new(peer.client.clone(), vec![], binding, context.clone()),
-    );
-    let selected = state.selected_connection(&context).unwrap();
-    (home, state, selected, context, events)
-}
+use peer::admitted;
 #[tokio::test]
 async fn unassigned_relationship_protocol_refuses_before_any_rpc_is_sent() {
     let peer = peer::connect(vec![]).await;

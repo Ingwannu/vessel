@@ -30,7 +30,10 @@ async fn an_archived_native_conversation_resumes_the_original_session() {
     .await;
     let mut request = request;
     request.node = peer.client.node().id;
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+    request.scope.context = peer::admitted(&peer).3;
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
         panic!("activation")
     };
     assert_eq!(
@@ -48,7 +51,10 @@ async fn an_existing_live_session_is_opened_without_resuming_or_creating() {
     let (mut request, live) = existing(vessel_proto::NodeId::random());
     let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(live.clone()))]).await;
     request.node = peer.client.node().id;
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+    request.scope.context = peer::admitted(&peer).3;
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
         panic!("activation")
     };
     assert_eq!(
@@ -64,7 +70,10 @@ async fn a_changed_account_is_refused_before_reactivation() {
     info.profile = Some("moved-account".parse().unwrap());
     let peer = peer::connect(vec![peer::Behaviour::Session(Box::new(info))]).await;
     request.node = peer.client.node().id;
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+    request.scope.context = peer::admitted(&peer).3;
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
         panic!("activation")
     };
     assert_eq!(outcomes.first().unwrap().result, Err(Problem::InvalidReply));
@@ -81,7 +90,10 @@ async fn lost_reactivation_receipt_is_uncertain_and_never_creates_a_duplicate() 
     ])
     .await;
     request.node = peer.client.node().id;
-    let Reply::Imported { outcomes, .. } = answer(&peer.client, Ask::Import(request)).await else {
+    request.scope.context = peer::admitted(&peer).3;
+    let Reply::Imported { outcomes, .. } =
+        answer(&peer::admitted(&peer).2, Ask::Import(request)).await
+    else {
         panic!("activation")
     };
     assert_eq!(outcomes.first().unwrap().result, Err(Problem::Uncertain));

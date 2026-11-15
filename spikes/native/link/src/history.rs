@@ -15,27 +15,56 @@ const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
 const CREATE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(90);
 
 #[cfg(not(target_arch = "wasm32"))]
+const MAX_CALLS: usize = 8;
+#[cfg(not(target_arch = "wasm32"))]
+const PUBLICATION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(5);
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
+#[cfg(not(target_arch = "wasm32"))]
+impl Default for Hub {
+    fn default() -> Self {
+        Self(std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CALLS)))
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
-    /// The task retains its client and scope even when the sheet is dismissed.
-    pub(crate) fn history(&self, ask: Ask) {
-        let machine = match &ask {
-            Ask::List { scope, .. } | Ask::Profiles { scope, .. } => &scope.machine,
-            Ask::Import(batch) => &batch.scope.machine,
+    /// Every effect retains its original admission; no alias re-resolution in a task.
+    pub(crate) async fn history(&self, ask: Ask) {
+        let scope = ask.scope();
+        let selected = if scope.machine == *scope.context.machine() {
+            self.selected_connection(&scope.context)
+                .map_err(|_| Problem::IdentityChanged)
+        } else {
+            Err(Problem::IdentityChanged)
         };
-        let client = self.client(machine.as_str()).cloned();
+        let client = match selected {
+            Ok(client) => client,
+            Err(problem) => {
+                self.emit(crate::Event::History(ask.refused(problem))).await;
+                return;
+            }
+        };
+        let Ok(permit) = std::sync::Arc::clone(&self.history_calls.0).try_acquire_owned() else {
+            self.emit(crate::Event::History(ask.refused(Problem::Unsent)))
+                .await;
+            return;
+        };
         let events = self.events.clone();
         drop(tokio::spawn(async move {
-            let reply = match client {
-                Err(_) => ask.refused(Problem::Offline),
-                Ok(client) => answer(&client, ask).await,
-            };
-            let _closed = events.send(crate::Event::History(reply)).await;
+            let reply = answer(&client, ask).await;
+            let _closed = tokio::time::timeout(
+                PUBLICATION_DEADLINE,
+                events.send(crate::Event::History(reply)),
+            )
+            .await;
+            drop(permit);
         }));
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
+async fn answer(client: &crate::connections::SelectedConnection, ask: Ask) -> Reply {
     match ask {
         Ask::List {
             scope,
@@ -50,8 +79,8 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
             };
             let result = tokio::time::timeout(READ_DEADLINE, client.call(request))
                 .await
-                .map_or(Err(Problem::Timeout), |result| result.map_err(read_problem))
-                .and_then(|page| project(client.node().id, page));
+                .map_or(Err(Problem::Timeout), |result| result.map_err(read_failure))
+                .and_then(|page| project(scope.context.node(), page));
             Reply::Listed {
                 scope,
                 ticket,
@@ -66,7 +95,7 @@ async fn answer(client: &vessel_client::NodeClient, ask: Ask) -> Reply {
                 }),
             )
             .await
-            .map_or(Err(Problem::Timeout), |result| result.map_err(read_problem));
+            .map_or(Err(Problem::Timeout), |result| result.map_err(read_failure));
             Reply::Profiles {
                 scope,
                 ticket,
@@ -105,8 +134,8 @@ fn project(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-async fn import(client: &vessel_client::NodeClient, batch: Batch) -> Reply {
-    if client.node().id != batch.node {
+async fn import(client: &crate::connections::SelectedConnection, batch: Batch) -> Reply {
+    if batch.scope.context.node() != batch.node {
         return Ask::Import(batch).refused(Problem::IdentityChanged);
     }
     let mut outcomes = Vec::with_capacity(batch.entries.len());
@@ -115,11 +144,13 @@ async fn import(client: &vessel_client::NodeClient, batch: Batch) -> Reply {
             Some(session) => activate::existing(client, &batch.scope, &entry, session).await,
             None => tokio::time::timeout(
                 CREATE_DEADLINE,
-                client.create_session(entry.spec(&batch.scope)),
+                client.call(vessel_proto::CreateSession {
+                    spec: entry.spec(&batch.scope),
+                }),
             )
             .await
             .map_or(Err(Problem::Uncertain), |result| {
-                result.map(Box::new).map_err(create_problem)
+                result.map(Box::new).map_err(create_failure)
             }),
         };
         outcomes.push(Outcome {
@@ -163,3 +194,23 @@ fn create_problem(error: vessel_client::CallError) -> Problem {
 #[cfg(not(target_arch = "wasm32"))]
 #[path = "history/tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn read_failure(error: crate::connections::RequestFailure) -> Problem {
+    match error {
+        crate::connections::RequestFailure::Refused(
+            vessel_app_view::connection::Refusal::Changed,
+        ) => Problem::IdentityChanged,
+        crate::connections::RequestFailure::Refused(
+            vessel_app_view::connection::Refusal::Closed,
+        ) => Problem::Offline,
+        crate::connections::RequestFailure::Call(error) => read_problem(error),
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+fn create_failure(error: crate::connections::RequestFailure) -> Problem {
+    match error {
+        crate::connections::RequestFailure::Refused(_) => Problem::Uncertain,
+        crate::connections::RequestFailure::Call(error) => create_problem(error),
+    }
+}

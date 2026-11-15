@@ -8,6 +8,12 @@ use vessel_proto::{HarnessKind, HarnessSessionId, SessionId, SessionMode, Sessio
 
 fn scope() -> Scope {
     Scope {
+        context: crate::connection::ConnectionEpochs::default()
+            .admit(
+                MachineKey::from_book("laptop"),
+                "00000000-0000-0000-0000-000000000001".parse().unwrap(),
+            )
+            .unwrap(),
         machine: MachineKey::from_book("laptop"),
         harness: HarnessKind::Codex.into(),
         profile: None,

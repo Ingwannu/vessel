@@ -11,6 +11,8 @@ use vessel_proto::{
 /// A history belongs to one machine, agent, account and optional directory.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope {
+    /// Original authenticated admission, including same-node reconnect generation.
+    pub context: crate::connection::ConnectionContext,
     /// Already parsed book identity.
     pub machine: MachineKey,
     /// Agent whose native history is requested.
@@ -199,6 +201,14 @@ pub enum Reply {
 }
 
 impl Ask {
+    /// Immutable source captured when the user opened this history.
+    #[must_use]
+    pub const fn scope(&self) -> &Scope {
+        match self {
+            Self::List { scope, .. } | Self::Profiles { scope, .. } => scope,
+            Self::Import(batch) => &batch.scope,
+        }
+    }
     /// A rejected queue settles every waiting row without starting anything.
     #[must_use]
     pub fn refused(self, problem: Problem) -> Reply {

@@ -126,7 +126,16 @@ impl Shell {
                 else {
                     return;
                 };
+                let Some(context) = self
+                    .fleet
+                    .online()
+                    .find(|m| m.name == machine.as_str())
+                    .and_then(vessel_app_view::Machine::connection_context)
+                else {
+                    return;
+                };
                 Scope {
+                    context,
                     machine,
                     harness,
                     profile: None,
