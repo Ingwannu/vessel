@@ -79,6 +79,26 @@ IME/overlay holds and pending/uncertain forms. Hidden fresh records cannot mark
 read or take focus. Inspect the converted product union for global/raw fallback;
 passing pure resident tests or post-await checks does not establish these facts.
 
+## Staged concrete lifecycle resource
+
+The exact W12 staged getter source is adopted separately from its proposed live
+single-slot admission. `areas::sessions::resident` is literal cfg(test). Its
+LifecycleResources belongs in W12's one SessionResources bundle; W12 registers
+that field only after this adapter is checked. It starts with Loading Hold, never
+default Ready. Snapshot capture borrows only the exact canonical SessionContext
+getter and checks retained Open binding, shown conversation and SessionInfo agree.
+It copies typed domain configuration/options, never field entities or a Shell.
+Missing metadata or another resource is a typed refusal without global fallback.
+
+This owner retains separate UI decision and canonical operation tickets. An old
+confirmation cannot settle a newer decision. Matching retirement keeps an unsent
+confirmation as a revoked Overlay; a sent operation retains its exact original
+binding/ticket/action as UncertainEffect. Fresh hydration cannot erase uncertainty.
+Only a successful canonical single-use settle after delivery validity may call
+the acknowledgement adapter. This does not itself perform RPC, clear input,
+retarget/close tabs, or establish dirty/IME/form snapshot coverage for other owners.
+The existing SessionView constructor remains isolated test setup, not scoped input.
+
 The current package-base-6 projection merge retains G4's reconcile/read-refusal
 policy and protects stale Fleet publication. It has not performed this carrier
 conversion. Source review, changed-source tests, whole native gate and inspected
