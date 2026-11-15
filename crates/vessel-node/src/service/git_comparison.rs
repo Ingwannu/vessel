@@ -27,4 +27,14 @@ impl NodeService {
             .await
             .map_err(|error| wire(&error))
     }
+    pub(crate) async fn git_history(
+        &self,
+        _: &Connection,
+        request: vessel_proto::workspace::ReadGitHistory,
+    ) -> Result<vessel_proto::workspace::GitHistoryRead, WireError> {
+        self.workspaces
+            .git_history(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
 }

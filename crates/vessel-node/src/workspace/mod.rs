@@ -27,6 +27,7 @@ mod error;
 mod files;
 mod forge;
 mod git;
+mod git_history;
 mod policy;
 mod projects;
 mod roots;

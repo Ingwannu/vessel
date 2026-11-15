@@ -47,6 +47,9 @@ pub(crate) enum WorkspaceError {
     /// Private comparison index preparation or cleanup failed.
     #[error("the comparison could not be completed")]
     Comparison(#[source] ComparisonError),
+    /// Classified history metadata failed without dropping its typed cause.
+    #[error("the branch history could not be read")]
+    History(#[source] vessel_workspace::git::HistoryError),
     /// Comparison admission, shutdown or reply delivery failed.
     #[error("{0}")]
     ComparisonJob(#[from] JobError),
@@ -158,6 +161,7 @@ impl WorkspaceError {
             | Self::Store(_)
             | Self::Io(_)
             | Self::Comparison(_)
+            | Self::History(_)
             | Self::ComparisonJob(JobError::Worker(_))
             | Self::ComparisonCache(
                 CacheError::Channel(_) | CacheError::Payload { .. } | CacheError::Ownership,

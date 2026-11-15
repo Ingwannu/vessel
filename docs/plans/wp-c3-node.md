@@ -282,3 +282,31 @@ The node tree merged announced head d432ef0f at f8a583d77. Only the architecture
 appendix conflicted; both the comparison-cache note and all incoming speech,
 connection-lifetime/process/system-context notes are retained. The app tree did
 not take this node head. Prior narrow evidence keeps its original source hashes.
+
+## Owned classified history call
+
+The node now wires git.history as a pending Read/unary row at the table's end,
+with the same GIT_PANEL=None admission. It resolves root/base/project_default
+from one state snapshot (W11's approved roots seam), then uses the existing
+four-executing/64-admitted Jobs owner. Dropping delivery cannot own or abandon
+the read; shutdown reaches all protected Git commands. No second process pool,
+cache, filesystem resolver or transport is added. History has explicit Ready,
+BaseUnavailable(exact qualified ref) and TooLarge outcomes; malformed metadata
+retains a typed source failure. Its thirty-second UI freshness is separate from
+the comparison cache, which is not silently reused as a history cache.
+
+Reference-derived core fixtures and real-node worktree tests cover retained
+qualified refs, same-snapshot defaults, a deleted qualified base, a moved root
+and shutdown admission. Protocol/client fixtures pin pending Read/unary, exact
+outcome serialization, future classification preservation, unchanged legacy log
+admission, and two unsent pending requests against the same memory peer. They
+are new source and remain unexecuted; the queued325fec9d Clippy covers only the
+previous core, not this wiring. No protocol number is assigned and generated
+TypeScript still awaits the package gate/artifact regeneration.
+
+The simultaneous10:35:42 cancelled143 runs were confirmed by build tools as
+infrastructure interruption from an operator-authorized build-VM restart, not
+source/compiler failures. Their logs stay intact and are not counted as tests.
+The new325fec9d core Clippy is the meaningful replacement for the interrupted
+old node run. No duplicate old run is submitted. All Rust compilation stays on
+the remote build VM; local checks here only inspect text and boundaries.

@@ -28,6 +28,8 @@ pub(crate) struct Resolved {
     /// The worktree’s recorded ref before the project-default fallback.
     /// Comparison admission needs this fact from the same authority snapshot.
     pub(crate) pinned_base: Option<RefName>,
+    /// Project default from that same registry snapshot, before any fallback.
+    pub(crate) project_default: Option<RefName>,
 }
 
 impl Resolved {
@@ -45,7 +47,7 @@ impl Workspaces {
     /// the root checks of `policy`.
     pub(crate) async fn resolve(&self, root: WorkspaceRoot) -> Result<Resolved, WorkspaceError> {
         // A worktree's repository is checked with it (`open`).
-        let (path, git, repository, project, worktree, base, pinned_base) = {
+        let (path, git, repository, project, worktree, base, pinned_base, project_default) = {
             let state = self.state();
             match root {
                 WorkspaceRoot::Project { project } => {
@@ -67,6 +69,7 @@ impl Workspaces {
                         None,
                         entry.info.default_branch.clone(),
                         None,
+                        entry.info.default_branch.clone(),
                     )
                 }
                 WorkspaceRoot::Worktree { worktree } => {
@@ -95,6 +98,7 @@ impl Workspaces {
                         Some(worktree),
                         base,
                         pinned_base,
+                        owner.info.default_branch.clone(),
                     )
                 }
             }
@@ -112,6 +116,7 @@ impl Workspaces {
             worktree,
             base,
             pinned_base,
+            project_default,
         })
     }
 

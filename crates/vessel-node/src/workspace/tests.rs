@@ -2,6 +2,7 @@
 //! machine's real git isolated from its configuration.
 
 mod comparison;
+mod git_history;
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};

@@ -113,6 +113,21 @@ enum WaitMode {
 }
 
 impl Reader {
+    /// History shares the existing admission/execution owner without pretending
+    /// its result has comparison cache identity or connection ownership.
+    pub(in crate::workspace) async fn owned<T, F>(
+        &self,
+        tasks: &TaskTracker,
+        stop: CancellationToken,
+        work: F,
+    ) -> Result<T, super::jobs::JobError>
+    where
+        T: Send + 'static,
+        F: Future<Output = T> + Send + 'static,
+    {
+        self.jobs.submit(tasks, stop, work)?.result().await
+    }
+
     pub(in crate::workspace::comparison) async fn read<F, Load>(
         &self,
         key: Key,

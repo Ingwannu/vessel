@@ -383,6 +383,8 @@ macro_rules! method_table {
             GitCompare / git_compare / "git.compare" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGit => $crate::workspace::GitCompared<$crate::workspace::DiffSummary>;
             /// A bounded file in the same comparison (ADR 0087, pending).
             GitCompareFile / git_compare_file / "git.compare_file" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::CompareGitFile => $crate::workspace::GitCompared<$crate::workspace::FileDiff>;
+            /// Complete classified branch history (ADR0087, pending).
+            GitHistory / git_history / "git.history" [Read, (pending $crate::workspace::GIT_PANEL), unary]: $crate::workspace::ReadGitHistory => $crate::workspace::GitHistoryRead;
         }
     };
 }

@@ -62,3 +62,80 @@ pub struct GitHistory {
     /// Workspace commits first, followed by up to ten fork-point ancestors.
     pub commits: Vec<GitHistoryCommit>,
 }
+
+/// A complete history and a bounded/base refusal must not share an empty list.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum GitHistoryRead {
+    /// An explicitly qualified recorded base no longer resolves.
+    BaseUnavailable {
+        /// Preserve the exact requested stream for the person's next step.
+        base: RefName,
+    },
+    /// The protected read exceeded its output budget; no partial history is shown.
+    TooLarge,
+    /// Complete branch metadata and bounded base context.
+    Ready {
+        /// The successful read, including a genuinely empty detached/unborn result.
+        data: GitHistory,
+    },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Method, MethodShape, Request as _, Scope};
+    #[test]
+    fn history_remains_pending_read_unary_and_does_not_change_legacy_log() {
+        assert_eq!(ReadGitHistory::METHOD, Method::GitHistory);
+        assert_eq!(Method::GitHistory.scope(), Some(Scope::Read));
+        assert_eq!(Method::GitHistory.shape(), MethodShape::Unary);
+        assert_eq!(Method::GitHistory.since(), None);
+        assert_eq!(
+            Method::GitLog.since(),
+            Some(crate::ProtocolVersion::new(10))
+        );
+    }
+    #[test]
+    fn empty_ready_missing_base_and_output_limit_keep_different_whole_results() {
+        let values = [
+            GitHistoryRead::Ready {
+                data: GitHistory {
+                    base: None,
+                    commits: Vec::new(),
+                },
+            },
+            GitHistoryRead::BaseUnavailable {
+                base: "refs/heads/renamed".parse().unwrap(),
+            },
+            GitHistoryRead::TooLarge,
+        ];
+        let encoded = values
+            .iter()
+            .map(|value| serde_json::to_string(value).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            encoded,
+            [
+                r#"{"kind":"ready","data":{"base":null,"commits":[]}}"#,
+                r#"{"kind":"base_unavailable","base":"refs/heads/renamed"}"#,
+                r#"{"kind":"too_large"}"#
+            ]
+        );
+        for (value, text) in values.iter().zip(encoded) {
+            assert_eq!(
+                serde_json::from_str::<GitHistoryRead>(&text).unwrap(),
+                *value
+            );
+        }
+        assert_eq!(
+            serde_json::from_str::<GitCommitLocation>(r#""future""#).unwrap(),
+            GitCommitLocation::Unknown
+        );
+        assert_eq!(
+            serde_json::from_str::<GitCommitPublication>(r#""future""#).unwrap(),
+            GitCommitPublication::Unknown
+        );
+    }
+}

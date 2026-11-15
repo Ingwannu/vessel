@@ -187,6 +187,7 @@ impl Call {
             | Self::GitStatus(_)
             | Self::GitCompare(_)
             | Self::GitCompareFile(_)
+            | Self::GitHistory(_)
             | Self::GitChanges(_)
             | Self::GitDiff(_)
             | Self::GitShow(_)

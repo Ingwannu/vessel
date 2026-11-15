@@ -47,7 +47,8 @@ pub use git::{
     StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
 };
 pub use history::{
-    GitCommitLocation, GitCommitPublication, GitHistory, GitHistoryCommit, ReadGitHistory,
+    GitCommitLocation, GitCommitPublication, GitHistory, GitHistoryCommit, GitHistoryRead,
+    ReadGitHistory,
 };
 pub use panel::{
     CompareGit, CompareGitFile, GIT_PANEL, GitCompared, GitComparison, GitHunkOffset,

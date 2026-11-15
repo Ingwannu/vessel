@@ -137,3 +137,9 @@ The Git-observed abbreviation is a display-only4–64 digit value distinct from
 CommitId, so core.abbrev does not become request authority. Publication is
 observed reachability from all remote refs, without network access. Strict
 metadata errors retain their causes instead of dropping commits or guessing time.
+
+The node's pending git.history adapter shares the existing retained job admission
+and takes base plus project_default from the same resolved authority snapshot.
+Missing qualified base and output bounds are typed outcomes, distinct from an
+empty complete history. Neither legacy log paging nor a new per-client worker
+pool is used. Registration stays pending until package admission.
