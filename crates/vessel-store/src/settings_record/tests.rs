@@ -26,6 +26,7 @@ fn full_record_keeps_verbatim_policy_and_the_old_view_still_decodes() {
         Some(SetNodeSettings {
             park_after: Some(ParkAfter::Never),
             drivers: None,
+            ..SetNodeSettings::default()
         })
     );
     assert!(!data.settings_record_holds_more_than(&record).unwrap());
@@ -73,6 +74,7 @@ fn a_legacy_patch_conversion_contains_no_recovery_change() {
     let patch = SetNodeSettings {
         park_after: Some(ParkAfter::Never),
         drivers: None,
+        ..SetNodeSettings::default()
     };
     assert_eq!(
         SavedNodeSettings::from(patch),

@@ -12,9 +12,13 @@ impl NodeService {
     pub(crate) async fn node_settings(
         &self,
         _: &Connection,
-        _: GetNodeSettings,
+        request: GetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        Ok(self.settings.current().await)
+        let mut current = self.settings.current().await;
+        if !request.include_restart_recovery {
+            current.restart_recovery = Default::default();
+        }
+        Ok(current)
     }
 
     /// `node.set_settings`: change, keep and apply what the request names.
@@ -23,7 +27,7 @@ impl NodeService {
         _: &Connection,
         request: SetNodeSettings,
     ) -> Result<NodeSettings, WireError> {
-        self.settings.change(request).await.map_err(|error| {
+        self.settings.change(request.into()).await.map_err(|error| {
             let code = match error {
                 SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
                     ErrorCode::InvalidRequest
@@ -32,9 +36,11 @@ impl NodeService {
                 SettingsError::Full | SettingsError::Closed => ErrorCode::Unavailable,
                 // The node's own file needs a person's hand first.
                 SettingsError::Kept(_) => ErrorCode::Conflict,
-                SettingsError::Write(_) | SettingsError::Lost(_) | SettingsError::Reply(_) => {
-                    ErrorCode::Internal
-                }
+                SettingsError::Write(_)
+                | SettingsError::Lost(_)
+                | SettingsError::Reply(_)
+                | SettingsError::Apply(_)
+                | SettingsError::Cleanup(_) => ErrorCode::Internal,
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
                 tracing::warn!(%error, "node settings operation did not complete");

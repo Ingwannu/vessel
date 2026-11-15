@@ -57,3 +57,20 @@ Quality B's announced node head is now taken at the clean kernel boundary.
 Its Option-returning method admission and pending row form replace the earlier
 wait; the next filling step may add the recovery field rules/client/CLI, with
 the feature number still unassigned. This does not change runtime approval.
+
+## Product wiring candidate
+
+After the announced Quality B boundary, R2 now connects the passive journal
+and saved policy to the ordinary node runtime. Both explicit settings fields
+contribute the single unassigned feature constant through the existing
+recursive call requirement. The ordinary Get/Set reply projection stays in
+place. Positive new-field RPC use remains unavailable until integration
+assigns the protocol; component policy tests must not be described as RPC
+success. No local test assignment or alternate dispatcher is introduced.
+
+The first merged-kernel narrow remote check exposed an append function size
+lint after the incoming title projection was combined with recovery. Reading
+its existing durable prefix is extracted without changing append SQL or the
+projection. The first local product check was cancelled while still queued,
+before any Cargo invocation, to use the managed remote lane. Product wiring,
+settings failure tests and provider admission tests are not yet validated.

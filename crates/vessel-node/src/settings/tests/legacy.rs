@@ -40,7 +40,7 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
         )
         .await
         .unwrap();
-        let first = GetNodeSettings {}
+        let first = GetNodeSettings::default()
             .into_call()
             .since()
             .expect("ordinary settings reads remain assigned");
@@ -72,13 +72,14 @@ async fn legacy_get_and_set_replies_hide_a_nondefault_saved_policy_on_the_wire()
 
 fn ordinary_calls() -> [(RequestId, Call); 3] {
     [
-        (RequestId::new(1), GetNodeSettings {}.into_call()),
+        (RequestId::new(1), GetNodeSettings::default().into_call()),
         (RequestId::new(2), patch(idle()).into_call()),
         (
             RequestId::new(3),
             SetNodeSettings {
                 park_after: None,
                 drivers: Some(SetAgentDrivers::default()),
+                ..SetNodeSettings::default()
             }
             .into_call(),
         ),

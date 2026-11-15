@@ -124,6 +124,26 @@ impl Sessions {
         &self.store
     }
 
+    /// Retain an ordinary-operation lease through a node-owned mutation
+    /// even when the caller's RPC task is cancelled after admission.
+    pub(crate) async fn hold<T, F>(
+        &self,
+        operation: Option<Arc<crate::recovery::Operation>>,
+        work: F,
+    ) -> Result<T, ServiceError>
+    where
+        T: Send + 'static,
+        F: Future<Output = Result<T, ServiceError>> + Send + 'static,
+    {
+        self.tasks
+            .spawn(async move {
+                let _operation = operation;
+                work.await
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
     /// Make a session the runtime has just started (or started again)
     /// visible: its agent's and its model token's places take its handle,
     /// and its durability entry says every record before `stored` is
@@ -421,15 +441,6 @@ impl Sessions {
             .history(harness, launch, dir, folder, from)
             .await?)
     }
-
-    /// Stop a session. Killing one that already ended is a no-op.
-    pub(crate) async fn kill(&self, id: SessionId) -> Result<(), ServiceError> {
-        match self.find(id).await? {
-            Found::Live { handle, .. } => handle.kill(),
-            Found::Stored(_) => {}
-        }
-        Ok(())
-    }
 }
 
 // Protocol 10's marks and deletion, and starting an ended session again;
@@ -440,6 +451,7 @@ mod creation;
 mod marks;
 mod read;
 mod side_questions;
+mod stopping;
 
 #[cfg(test)]
 mod tests;

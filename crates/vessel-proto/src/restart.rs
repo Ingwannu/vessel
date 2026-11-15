@@ -127,3 +127,6 @@ mod tests {
 
 mod checkpoint;
 pub use checkpoint::{InvalidRestartGeneration, RestartCheckpoint, RestartGeneration};
+
+#[cfg(test)]
+mod admission_tests;

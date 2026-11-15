@@ -26,7 +26,7 @@ pub struct SavedNodeSettings {
     /// The stored driver choices; later/unknown values keep the legacy policy.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub drivers: Option<SetAgentDrivers>,
-    /// A local recovery patch; this is not a `SetNodeSettings` request field.
+    /// A local recovery patch, shared with the explicitly versioned wire input.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub restart_recovery: Option<SetRestartRecovery>,
 }
@@ -36,11 +36,12 @@ impl From<SetNodeSettings> for SavedNodeSettings {
         let SetNodeSettings {
             park_after,
             drivers,
+            restart_recovery,
         } = change;
         Self {
             park_after,
             drivers,
-            restart_recovery: None,
+            restart_recovery,
         }
     }
 }

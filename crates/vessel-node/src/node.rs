@@ -19,7 +19,7 @@ use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -54,6 +54,7 @@ use crate::workspace::{Opening, Workspaces};
 
 mod runtime;
 mod setup;
+mod storage;
 
 use self::setup::{SessionSetup, SetupDirs};
 
@@ -117,7 +118,7 @@ impl Node {
         let settings_opening = crate::settings::Opening::read(&config)
             .await
             .map_err(NodeError::Task)?;
-        let store = open_store(&config).await?;
+        let store = storage::open(&config, settings_opening.restart_enabled()).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(&config, id, profiles, Arc::clone(&models), dirs);
 
@@ -146,6 +147,7 @@ impl Node {
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
 
+        crate::service::recovery::start(&core.service, &core.tasks, core.stop.clone());
         let secure = secure_gateway(&config, keypair, &core, &closing, &connections);
         let teardown = Teardown {
             runtime: core.runtime,
@@ -253,20 +255,6 @@ fn listening(id: NodeId, address: Option<SocketAddr>, local: &Endpoint) {
     );
 }
 
-/// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
-        .await
-        .map_err(NodeError::Store)?;
-    if !interrupted.is_empty() {
-        tracing::info!(
-            sessions = interrupted.len(),
-            "sessions from the previous run are now interrupted"
-        );
-    }
-    Ok(store)
-}
-
 /// The node's parts below its transports.
 struct Core {
     runtime: Arc<SessionRuntime>,
@@ -339,14 +327,15 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime::open(config, loader, setup.private_dir.clone());
     let stop = CancellationToken::new();
+    let runtime = runtime::open(config, loader, setup.private_dir.clone(), stop.clone());
     let tasks = TaskTracker::new();
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(crate::settings::Settings::open(
         settings_opening,
         Arc::clone(&runtime),
+        store.clone(),
         &tasks,
         &stop,
     ));

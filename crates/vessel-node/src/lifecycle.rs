@@ -64,7 +64,7 @@ impl Lifecycle {
 
     /// Whether new sessions are refused.
     pub(crate) fn is_draining(&self) -> bool {
-        self.info.borrow().state == NodeState::Draining
+        self.stop.is_cancelled() || self.info.borrow().state == NodeState::Draining
     }
 
     /// Carry out `node.stop`. Returns at once; the stop itself runs in the

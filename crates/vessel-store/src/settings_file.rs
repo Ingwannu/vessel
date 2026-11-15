@@ -271,6 +271,7 @@ mod tests {
                 minutes: IdleMinutes::new(15).unwrap(),
             }),
             drivers: None,
+            ..SetNodeSettings::default()
         };
         data.write_settings(&saved).unwrap();
         assert_eq!(data.read_settings().unwrap(), Some(saved));

@@ -218,9 +218,23 @@ impl NodeService {
 
     pub(crate) async fn send_input(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: SendInput,
     ) -> Result<Ack, WireError> {
+        if matches!(
+            &request.input,
+            vessel_proto::SessionInput::CancelTurn { .. }
+        ) {
+            let sessions = std::sync::Arc::clone(&self.sessions);
+            return self
+                .sessions
+                .hold(connection.operation(), async move {
+                    sessions.send(request.session, request.input).await
+                })
+                .await
+                .map(|()| Ack)
+                .map_err(|error| wire(&error));
+        }
         self.sessions
             .send(request.session, request.input)
             .await
@@ -230,11 +244,14 @@ impl NodeService {
 
     pub(crate) async fn kill_session(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: KillSession,
     ) -> Result<Ack, WireError> {
+        let sessions = std::sync::Arc::clone(&self.sessions);
         self.sessions
-            .kill(request.session)
+            .hold(connection.operation(), async move {
+                sessions.kill(request.session).await
+            })
             .await
             .map(|()| Ack)
             .map_err(|error| wire(&error))

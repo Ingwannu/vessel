@@ -44,6 +44,7 @@
 //!   a change loses nothing; nothing is merged back on its own. If the
 //!   copy fails, the change fails and nothing changes.
 
+use crate::recovery::policy::Policy;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -51,9 +52,7 @@ use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
-use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers, SetNodeSettings,
-};
+use vessel_proto::settings::{AgentDriver, AgentDrivers, NodeSettings, SetAgentDrivers};
 use vessel_session::SessionRuntime;
 use vessel_store::{SavedNodeSettings, SetAside};
 
@@ -86,6 +85,16 @@ pub(crate) enum SettingsError {
     /// The file could not be written; nothing changed.
     #[error("the settings could not be kept: {0}")]
     Write(#[source] vessel_store::StoreError),
+    /// Saved policy remains paused until its durable application succeeds.
+    #[error(
+        "startup recovery policy was saved but could not be applied; retry this settings change: {0}"
+    )]
+    Apply(#[source] vessel_store::StoreError),
+    /// Off is effective even when its pending intent cleanup needs retry.
+    #[error(
+        "startup recovery is off but pending intents could not be cleared; retry this settings change: {0}"
+    )]
+    Cleanup(#[source] vessel_store::StoreError),
     /// The write's task did not finish.
     #[error("the settings could not be kept: {0}")]
     Lost(#[source] tokio::task::JoinError),
@@ -101,6 +110,8 @@ pub(crate) enum SettingsError {
 #[derive(Debug)]
 struct Engine {
     data_dir: vessel_store::DataDir,
+    store: vessel_store::Store,
+    policy: Arc<Policy>,
     runtime: Arc<SessionRuntime>,
     /// `--park-after`, or its default.
     flag: ParkAfter,
@@ -117,7 +128,7 @@ struct Engine {
 }
 
 impl Engine {
-    fn open(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+    fn open(opening: Opening, runtime: Arc<SessionRuntime>, store: vessel_store::Store) -> Self {
         let Opening {
             data_dir,
             saved,
@@ -128,6 +139,8 @@ impl Engine {
         } = opening;
         let settings = Self {
             data_dir,
+            store,
+            policy: Arc::new(Policy::new(recovery(&saved))),
             runtime,
             flag,
             saved: Mutex::new(saved.clone()),
@@ -207,18 +220,33 @@ impl Engine {
                 None => recovery,
             });
         }
+        // A successful Off owns cleanup even after reply loss. Later On
+        // cannot outrun this obligation in the same FIFO worker.
+        if self.policy.needs_cleanup() {
+            self.store
+                .set_restart_policy(false)
+                .await
+                .map_err(SettingsError::Cleanup)?;
+            self.policy.cleaned();
+        }
         if next == *saved {
-            return Ok(self.in_force(&saved));
+            let current = self.in_force(&saved);
+            if self.policy.needs_sync() {
+                self.synchronize(&current).await?;
+            }
+            return Ok(current);
         }
         if let Some(reason) = &self.kept {
             return Err(SettingsError::Kept(Arc::clone(reason)));
         }
+        let effective = self.in_force(&next);
+        self.policy.begin_write(&effective.restart_recovery);
         let data_dir = self.data_dir.clone();
         let later = self.later.load(Ordering::Relaxed);
         let writing = next.clone();
         #[cfg(test)]
         let gate = self.gates.write();
-        let aside = tokio::task::spawn_blocking(move || {
+        let written = tokio::task::spawn_blocking(move || {
             #[cfg(test)]
             if let Some(gate) = gate {
                 gate.wait();
@@ -229,8 +257,15 @@ impl Engine {
             data_dir.write_settings_record(&writing).map(|()| aside)
         })
         .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
+        .map_err(SettingsError::Lost)
+        .and_then(|result| result.map_err(SettingsError::Write));
+        let aside = match written {
+            Ok(aside) => aside,
+            Err(error) => {
+                self.policy.write_failed();
+                return Err(error);
+            }
+        };
         if let Some(aside) = aside {
             tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
             self.later.store(false, Ordering::Relaxed);
@@ -239,9 +274,27 @@ impl Engine {
         self.gates.before_apply().await;
         *saved = next;
         let in_force = self.in_force(&saved);
+        self.policy.apply(in_force.restart_recovery.clone());
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
+        #[cfg(test)]
+        self.gates.before_cleanup().await;
+        self.synchronize(&in_force).await?;
         Ok(in_force)
+    }
+    async fn synchronize(&self, current: &NodeSettings) -> Result<(), SettingsError> {
+        self.store
+            .set_restart_policy(current.restart_recovery.enabled)
+            .await
+            .map_err(|error| {
+                if current.restart_recovery.enabled {
+                    SettingsError::Apply(error)
+                } else {
+                    SettingsError::Cleanup(error)
+                }
+            })?;
+        self.policy.cleaned();
+        Ok(())
     }
 }
 
@@ -268,10 +321,11 @@ impl Settings {
     pub(crate) fn open(
         opening: Opening,
         runtime: Arc<SessionRuntime>,
+        store: vessel_store::Store,
         tasks: &TaskTracker,
         stopping: &CancellationToken,
     ) -> Self {
-        let engine = Arc::new(Engine::open(opening, runtime));
+        let engine = Arc::new(Engine::open(opening, runtime, store));
         let (changes, receiver) = mpsc::channel(Self::QUEUED_CHANGES);
         let stopping = stopping.child_token();
         let finished = TaskTracker::new();
@@ -295,18 +349,15 @@ impl Settings {
         self.finished.wait().await;
     }
 
+    pub(crate) fn policy(&self) -> Arc<Policy> {
+        Arc::clone(&self.engine.policy)
+    }
+
     pub(crate) async fn current(&self) -> NodeSettings {
         self.engine.current().await
     }
 
     pub(crate) async fn change(
-        &self,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        self.change_record(change.into()).await
-    }
-
-    async fn change_record(
         &self,
         change: SavedNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
@@ -354,5 +405,11 @@ fn offered(kind: HarnessKind) -> bool {
     vessel_harness::direct(kind).is_some_and(|direct| direct.selectable)
 }
 
-// Recovery's private staged operation will use this same lane. No recovery
-// patch field or startup service is registered by the saved-record refactor.
+/// The same validated default is used before Store normalization and at apply.
+pub(crate) fn recovery(saved: &SavedNodeSettings) -> vessel_proto::restart::RestartRecovery {
+    saved
+        .restart_recovery
+        .as_ref()
+        .map(vessel_proto::restart::SetRestartRecovery::effective)
+        .unwrap_or_default()
+}

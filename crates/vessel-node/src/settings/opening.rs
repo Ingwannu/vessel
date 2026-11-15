@@ -13,6 +13,9 @@ pub(crate) struct Opening {
     pub(super) flag_given: bool,
 }
 impl Opening {
+    pub(crate) fn restart_enabled(&self) -> bool {
+        super::recovery(&self.saved).enabled
+    }
     pub(crate) async fn read(
         config: &crate::config::Config,
     ) -> Result<Self, tokio::task::JoinError> {

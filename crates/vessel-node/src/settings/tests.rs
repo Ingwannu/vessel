@@ -16,6 +16,7 @@ const STEP_TIMEOUT: Duration = Duration::from_secs(10);
 pub(super) struct Gates {
     write: SyncMutex<Option<WriteGate>>,
     apply: SyncMutex<Option<ApplyGate>>,
+    cleanup: SyncMutex<Option<ApplyGate>>,
 }
 #[derive(Debug)]
 pub(super) struct WriteGate {
@@ -44,6 +45,22 @@ impl Gates {
             let _receiver = gate.entered.send(());
             gate.release.await.unwrap();
         }
+    }
+    pub(super) async fn before_cleanup(&self) {
+        let gate = self.cleanup.lock().unwrap().take();
+        if let Some(gate) = gate {
+            let _receiver = gate.entered.send(());
+            gate.release.await.unwrap();
+        }
+    }
+    fn arm_cleanup(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+        let (entered, waiting) = oneshot::channel();
+        let (release, held) = oneshot::channel();
+        *self.cleanup.lock().unwrap() = Some(ApplyGate {
+            entered,
+            release: held,
+        });
+        (waiting, release)
     }
     fn arm_write(&self) -> (oneshot::Receiver<()>, std::sync::mpsc::SyncSender<()>) {
         let (entered, waiting) = oneshot::channel();
@@ -103,7 +120,16 @@ impl Fixture {
         let tasks = TaskTracker::new();
         let stop = CancellationToken::new();
         let opening = Opening::read(&config).await.unwrap();
-        let settings = Arc::new(Settings::open(opening, Arc::clone(&runtime), &tasks, &stop));
+        let opened = vessel_store::Store::open(&data, vessel_store::StoreConfig::default())
+            .await
+            .unwrap();
+        let settings = Arc::new(Settings::open(
+            opening,
+            Arc::clone(&runtime),
+            opened.store,
+            &tasks,
+            &stop,
+        ));
         Self {
             _directory: directory,
             data,
@@ -119,6 +145,7 @@ impl Fixture {
         self.stop.cancel();
         let _closed = self.tasks.close();
         self.tasks.wait().await;
+        self.settings.engine.store.close().await;
     }
 }
 fn step<T>(label: &str, future: impl Future<Output = T>) -> impl Future<Output = T> {
@@ -134,16 +161,18 @@ fn idle() -> ParkAfter {
         minutes: IdleMinutes::new(5).unwrap(),
     }
 }
-fn patch(after: ParkAfter) -> SetNodeSettings {
-    SetNodeSettings {
+fn patch(after: ParkAfter) -> SavedNodeSettings {
+    SavedNodeSettings {
         park_after: Some(after),
         drivers: None,
+        restart_recovery: None,
     }
 }
 
 mod cancellation;
 mod legacy;
 mod queue;
+mod recovery;
 
 fn within<T>(future: impl Future<Output = T>) -> impl Future<Output = T> {
     let future = Box::pin(future);
@@ -151,5 +180,14 @@ fn within<T>(future: impl Future<Output = T>) -> impl Future<Output = T> {
         vessel_testkit::within(SAFETY_NET, future)
             .await
             .expect("settings test timed out")
+    }
+}
+
+impl Settings {
+    pub(crate) fn pause_write(&self) -> (oneshot::Receiver<()>, std::sync::mpsc::SyncSender<()>) {
+        self.engine.gates.arm_write()
+    }
+    pub(crate) fn pause_cleanup(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+        self.engine.gates.arm_cleanup()
     }
 }

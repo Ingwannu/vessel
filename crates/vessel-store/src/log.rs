@@ -191,12 +191,7 @@ pub(crate) fn append<'a>(
     records: impl IntoIterator<Item = &'a EventRecord>,
 ) -> Result<Appended, StoreError> {
     let id = session.to_string();
-    let next: i64 = connection
-        .prepare_cached("SELECT next_seq FROM sessions WHERE id = ?1")?
-        .query_row([&id], |row| row.get(0))
-        .optional()?
-        .ok_or(StoreError::UnknownSession(session))?;
-    let mut expected = seq_from_sql(next)?;
+    let mut expected = append_from(connection, session)?;
     let mut projection = Projection {
         restart: crate::restart::load(connection, session)?,
         ..Projection::default()
@@ -296,6 +291,16 @@ pub(crate) fn append<'a>(
         crate::restart::save(connection, session, restart)?;
     }
     Ok(Appended { ended })
+}
+
+/// Resolve the durable prefix before validating a new append batch.
+fn append_from(connection: &Connection, session: SessionId) -> Result<EventSeq, StoreError> {
+    let next: i64 = connection
+        .prepare_cached("SELECT next_seq FROM sessions WHERE id = ?1")?
+        .query_row([session.to_string()], |row| row.get(0))
+        .optional()?
+        .ok_or(StoreError::UnknownSession(session))?;
+    seq_from_sql(next)
 }
 
 /// Delete a session's oldest records until it is within the byte cap.

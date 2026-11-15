@@ -13,6 +13,7 @@ pub(super) fn open(
     config: &Config,
     loader: AttachmentLoader,
     private_dir: PathBuf,
+    admission: CancellationToken,
 ) -> Arc<SessionRuntime> {
     Arc::new(
         SessionRuntime::new(
@@ -27,6 +28,8 @@ pub(super) fn open(
             },
             CancellationToken::new(),
         )
-        .with_attachments(loader),
+        .with_attachments(loader)
+        .with_restart_journal()
+        .with_admission(admission),
     )
 }
