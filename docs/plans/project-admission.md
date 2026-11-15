@@ -81,11 +81,18 @@ replay refusal, in-flight duplicate refusal, legacy typed refusals and concurren
 registration durability. They use isolated temporary repositories and existing
 fake/test facilities, not real providers or user projects.
 
-Source and static checks are prepared; remote changed-crate strict checks and
-functional tests remain owed. The package is not adoption-ready. After those
-checks, run the prescribed whole root gate once and submit the immutable range
-for source review. The real workspace provisioner consumes only the checked,
-reviewed producer. No native UI or filesystem provisioning adapter is included.
+Code through `0f59c4de` passed node all-target strict Clippy in run
+`wp-project-admission-strict-20261115T141419Z-0f59c4de` and all 13 selected
+admission/diagnostic regressions in run
+`wp-project-admission-strict-20261115T141614Z-0f59c4de`. The latter also completed
+its web dependency setup and both nested fixture/node builds. Format, file-size
+and module-boundary checks passed without increasing an allowance.
+
+These are narrow checks of this internal dependency. They do not constitute a
+whole root/native gate, actual provisioning, physical continuity or complete
+project-management feature validation. Integration into the node line and the
+real provisioner remain the next steps. No native UI or filesystem provisioning
+adapter is included.
 
 
 ## Review corrections: task diagnostics and retained queue capacity
@@ -104,6 +111,7 @@ fresh requests refuse without adding a task. Releasing the hold drains the queue
 deduplicates the same directory and publishes one durable registration. No second
 waiting semaphore or unlimited detached waiter population is introduced.
 
-Earlier exact strict and functional evidence belongs to the pre-correction head.
-The new source, diagnostic canaries and saturation regression require fresh
-changed-head checks and the same scoped source follow-up before adoption.
+Earlier strict and functional results belong to their predecessor heads and
+are retained as history. The corrected diagnostic canaries and saturation case
+are included in the exact `0f59c4de` checks above. The final documentation update
+changes no executable source, test, dependency or wire contract.
