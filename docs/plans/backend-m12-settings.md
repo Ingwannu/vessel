@@ -632,3 +632,22 @@ centred window; it is invalid evidence. The corrected probe uses the
 window belonging to the capture process. Next: finish the narrow check,
 commit and run the native gate while collecting the new action's bounds
 and the isolated audit's results. No editor rule changed.
+
+### Structural repair review and exact gate evidence
+
+The structural repair through `caa0f632` passed independent source and
+native-gate review. Exact run: `settings2-20261115T034150Z-caa0f632`;
+all six steps ran with exit zero and none skipped. Tests: 1,169 passed,
+zero failed, one ignored. The step log's SHA-256 is
+`694679fcbb2430907123bdace632b81ede53703117c0e29d1756f3b87ffd7f67`.
+
+That disposition covers the equivalent module extraction, lower measured
+budgets and test-only import repair. It does not newly approve the inherited
+outline-with-glyph implementation, rename input bounds, disabled/adjacent/
+clipped states, select-all or the inherited capture set. Only the baseline
+Overview capture was opened during that review. The shared rename consumer
+and its first-use evidence remain a separate slice.
+
+Current resume: the shared rename consumer and input audit are committed
+as `ae6ba8f6`; their native gate is queued. Local normal app build and new
+captures are in progress. No editor engine or select-all change is included.
