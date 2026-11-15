@@ -390,3 +390,68 @@ fn empty() -> Result<vessel_proto::checkpoint::ObservedSnapshot, CheckpointError
     )?;
     ObservedSnapshot::new(FileImage::new(Vec::new())?, evidence)
 }
+
+#[tokio::test]
+async fn checkpoint_actor_receipt_gates_ready_and_refused_or_lost_delivery_discards() {
+    use vessel_session::CheckpointAdvance;
+    for outcome in [
+        Some(CheckpointAdvance::PromptSent),
+        Some(CheckpointAdvance::PromptRefused),
+        None,
+    ] {
+        let activated = Arc::new(AtomicUsize::new(0));
+        let writes = Arc::clone(&activated);
+        let (cleaned, finished) = oneshot::channel();
+        let cleaned = std::sync::Mutex::new(Some(cleaned));
+        let expected = match outcome {
+            Some(CheckpointAdvance::PromptSent | CheckpointAdvance::TurnComplete) => {
+                Disposition::Keep
+            }
+            Some(CheckpointAdvance::PromptRefused) | None => Disposition::Discard,
+        };
+        let (client, owner) = runner::start(
+            |_key, _root, _cancel| empty(),
+            move |_key, publication| {
+                match publication {
+                    Publication::Reserve(_) | Publication::Candidate(_) => {}
+                    Publication::Activate => {
+                        let _previous = writes.fetch_add(1, Ordering::SeqCst);
+                    }
+                }
+                async { Ok(()) }
+            },
+            move |_key, disposition| {
+                assert_eq!(disposition, expected);
+                cleaned.lock().unwrap().take().unwrap().send(()).unwrap();
+                Ok(())
+            },
+        );
+        let key = key();
+        let accepted = client
+            .capture_candidate(
+                super::capture::model_root(key.worktree),
+                key,
+                ReservedBytes::new(1).unwrap(),
+                tokio::time::Instant::now() + CHECKPOINT_CAPTURE_DEADLINE,
+            )
+            .await
+            .unwrap();
+        assert_eq!(accepted.key, key);
+        assert_eq!(
+            activated.load(Ordering::SeqCst),
+            0,
+            "candidate acknowledgement alone is not actor acceptance"
+        );
+        match outcome {
+            Some(outcome) => accepted.complete(outcome),
+            None => drop(accepted),
+        }
+        finished.await.unwrap();
+        assert_eq!(
+            activated.load(Ordering::SeqCst),
+            usize::from(expected == Disposition::Keep)
+        );
+        drop(client);
+        owner.await.unwrap();
+    }
+}

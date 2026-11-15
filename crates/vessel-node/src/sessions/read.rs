@@ -2,7 +2,7 @@
 //! session's page as of the call, the ring filling what retention pruned,
 //! and a read that waits for the next record (protocol 6).
 
-use vessel_proto::{EventPage, EventRecord, EventSeq, SessionId};
+use vessel_proto::{EventPage, EventRecord, EventSeq, SessionId, SessionInfo};
 use vessel_session::{FollowError, SessionHandle};
 
 use super::{Found, Sessions};

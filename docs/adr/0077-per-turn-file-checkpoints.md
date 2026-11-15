@@ -530,6 +530,10 @@ storage acknowledgement cannot prove that Ready was not committed. The bounded
 worker/root reservation lasts through activation and actual cleanup. Requests
 carry the original deadline across the bridge, and the caller also bounds its
 wait including queue time. A dropped actor reply cannot authorize activation.
+The runtime adapter therefore retains a separate advancement receipt after
+candidate acknowledgement: only actual PromptSent or TurnComplete permits
+activation. PromptRefused or a lost receipt discards the candidate. The
+bridge's successful internal reply is never substituted for actor acceptance.
 These are staged mechanisms and tests, not proof of real runtime integration.
 
 ### Human-principal ownership amendment

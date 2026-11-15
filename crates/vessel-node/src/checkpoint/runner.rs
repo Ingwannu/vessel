@@ -11,6 +11,7 @@ use vessel_proto::checkpoint::{
     CHECKPOINT_CAPTURE_DEADLINE, CHECKPOINT_QUEUE, CHECKPOINT_WORKERS, CaptureKey, CheckpointError,
     ObservedSnapshot, PhysicalRoot,
 };
+use vessel_session::CheckpointAdvance;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum Disposition {
@@ -34,6 +35,7 @@ struct Request {
     bytes: ReservedBytes,
     deadline: Instant,
     reply: oneshot::Sender<Result<CaptureKey, CheckpointError>>,
+    advancement: oneshot::Receiver<CheckpointAdvance>,
 }
 #[derive(Debug)]
 struct Work {
@@ -42,6 +44,7 @@ struct Work {
     bytes: ReservedBytes,
     deadline: Instant,
     cancellation: CancellationToken,
+    advancement: oneshot::Receiver<CheckpointAdvance>,
 }
 #[derive(Debug)]
 enum Event {
@@ -80,6 +83,17 @@ pub(super) enum Lifecycle {
     Accepting,
     Draining,
 }
+/// Durable candidate acknowledgement, still gated on the actual actor receipt.
+#[derive(Debug)]
+pub(super) struct AcceptedCapture {
+    pub(super) key: CaptureKey,
+    advancement: oneshot::Sender<CheckpointAdvance>,
+}
+impl AcceptedCapture {
+    pub(super) fn complete(self, outcome: CheckpointAdvance) {
+        let _closed = self.advancement.send(outcome);
+    }
+}
 impl Client {
     pub(super) fn cleanup_faults(&self) -> watch::Receiver<Option<CleanupFault>> {
         self.cleanup_faults.clone()
@@ -103,7 +117,7 @@ impl Client {
         )
         .await
     }
-    /// Bridges preserve the actor's original deadline across their own queues.
+    #[cfg(test)]
     pub(super) async fn capture_at_root(
         &self,
         physical: PhysicalRoot,
@@ -111,10 +125,27 @@ impl Client {
         bytes: ReservedBytes,
         deadline: Instant,
     ) -> Result<CaptureKey, CheckpointError> {
+        let accepted = self
+            .capture_candidate(physical, key, bytes, deadline)
+            .await?;
+        let key = accepted.key;
+        accepted.complete(CheckpointAdvance::TurnComplete);
+        Ok(key)
+    }
+    /// Bridges preserve the actor's original deadline across their own queues.
+    /// Dropping the returned receipt cannot activate a durable Ready image.
+    pub(super) async fn capture_candidate(
+        &self,
+        physical: PhysicalRoot,
+        key: CaptureKey,
+        bytes: ReservedBytes,
+        deadline: Instant,
+    ) -> Result<AcceptedCapture, CheckpointError> {
         if Instant::now() >= deadline {
             return Err(CheckpointError::CaptureTimedOut);
         }
         let (reply, received) = oneshot::channel();
+        let (advancement, advanced) = oneshot::channel();
         self.requests
             .try_send(Request {
                 key,
@@ -122,12 +153,17 @@ impl Client {
                 bytes,
                 deadline,
                 reply,
+                advancement: advanced,
             })
             .map_err(|_full_or_closed| CheckpointError::Busy)?;
-        tokio::time::timeout_at(deadline, received)
+        let key = tokio::time::timeout_at(deadline, received)
             .await
             .map_err(|_deadline| CheckpointError::CaptureTimedOut)?
-            .map_err(|_closed| CheckpointError::StaleCapture)?
+            .map_err(|_closed| CheckpointError::StaleCapture)??;
+        if Instant::now() >= deadline {
+            return Err(CheckpointError::CaptureTimedOut);
+        }
+        Ok(AcceptedCapture { key, advancement })
     }
 }
 
@@ -178,7 +214,7 @@ where
                     if captures.admit_at_root(key,request.physical,request.deadline,request.bytes,request.reply).is_ok() {
                         let cancellation=captures.cancellation(key);
                         if let Some(cancellation)=cancellation {
-                            let job=Work {key,physical:request.physical,bytes:request.bytes,deadline:request.deadline,cancellation};
+                            let job=Work {key,physical:request.physical,bytes:request.bytes,deadline:request.deadline,cancellation,advancement:request.advancement};
                             let _worker=tokio::spawn(work(job,Arc::clone(&read),Arc::clone(&persist),Arc::clone(&cleanup),events.clone()));
                         }
                     }
@@ -307,10 +343,11 @@ where
     Stored: Future<Output = Result<(), CheckpointError>> + Send + 'static,
 {
     let key = job.key;
-    let candidate =
-        tokio::task::spawn_blocking(move || read(key, job.physical, job.cancellation)).await;
+    let physical = job.physical;
+    let cancel = job.cancellation;
+    let candidate = tokio::task::spawn_blocking(move || read(key, physical, cancel)).await;
     match candidate {
-        Ok(Ok(image)) => publish(key, image, persist, events).await,
+        Ok(Ok(image)) => publish(key, image, job.advancement, persist, events).await,
         Ok(Err(reason)) => {
             let _closed = events.send(Event::Failed { key, reason }).await;
             Disposition::Discard
@@ -329,6 +366,7 @@ where
 async fn publish<Persist, Stored>(
     key: CaptureKey,
     image: ObservedSnapshot,
+    advancement: oneshot::Receiver<CheckpointAdvance>,
     persist: Arc<Persist>,
     events: &mpsc::Sender<Event>,
 ) -> Disposition
@@ -357,9 +395,14 @@ where
         return Disposition::Discard;
     }
     match outcome.await.unwrap_or(Disposition::Discard) {
-        Disposition::Keep => match persist(key, Publication::Activate).await {
-            Ok(()) => Disposition::Keep,
-            Err(_uncertain) => Disposition::Recovery,
+        Disposition::Keep => match advancement.await {
+            Ok(CheckpointAdvance::PromptSent | CheckpointAdvance::TurnComplete) => {
+                match persist(key, Publication::Activate).await {
+                    Ok(()) => Disposition::Keep,
+                    Err(_uncertain) => Disposition::Recovery,
+                }
+            }
+            Ok(CheckpointAdvance::PromptRefused) | Err(_) => Disposition::Discard,
         },
         Disposition::Discard => Disposition::Discard,
         Disposition::Recovery => Disposition::Recovery,

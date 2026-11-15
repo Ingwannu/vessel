@@ -767,3 +767,14 @@ No project paths, recursive path deletion, chmod-on-reuse or Drop cleanup.
 Fixtures cover repeated bounded passes, retry after absence, sibling isolation
 and refusal without changing linked outside bytes. Runtime GC assembly remains
 outstanding, and these new Linux fixtures have not executed yet.
+
+### Actual actor advancement gates Ready (source; remote verification pending)
+
+The capture runner now returns AcceptedCapture after the in-time durable
+candidate, retaining a separate receipt through the actor bridge. Only actual
+PromptSent/TurnComplete permits Ready activation. Refused delivery or dropped
+receipt discards; candidate acknowledgement alone cannot make Ready. The worker
+and its physical/quota admission remain occupied throughout that wait. A
+three-outcome barrier regression checks no early activation and Keep/Discard
+cleanup. This closes the adapter boundary before real bridge assembly; it does
+not claim that assembly is already installed.
