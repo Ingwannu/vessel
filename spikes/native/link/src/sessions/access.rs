@@ -123,13 +123,7 @@ impl crate::State {
             }
             Access::Read { .. } | Access::Follow(_) => true,
         };
-        if !receipt_matches {
-            Some(ActFailed {
-                code: Some(vessel_proto::ErrorCode::Conflict),
-                message: "The terminal opening does not match its authenticated destination"
-                    .to_owned(),
-            })
-        } else {
+        if receipt_matches {
             match self.clients.get(binding.host.as_str()) {
                 Some(connected) if connected.client.node().id == binding.address.node => None,
                 Some(_) => Some(ActFailed {
@@ -142,6 +136,12 @@ impl crate::State {
                         .to_string(),
                 }),
             }
+        } else {
+            Some(ActFailed {
+                code: Some(vessel_proto::ErrorCode::Conflict),
+                message: "The terminal opening does not match its authenticated destination"
+                    .to_owned(),
+            })
         }
     }
 }
