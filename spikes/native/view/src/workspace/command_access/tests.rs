@@ -85,3 +85,28 @@ fn unknown_write_requires_a_fresh_read_and_a_mismatched_digest_cannot_settle_it(
     let current = model.ticket().unwrap();
     assert!(model.begin_write(&current, false).is_some());
 }
+
+#[test]
+fn unsupported_executable_fields_refuse_new_grants_but_allow_withdrawal() {
+    for approved in [false, true] {
+        let target = target();
+        let mut data = commands(approved);
+        let ProjectCommands::Listed { terminals, .. } = &mut data else {
+            panic!("listed fixture")
+        };
+        terminals.push(vessel_proto::workspace::FileTerminal {
+            name: None,
+            command: "echo automatic".parse().unwrap(),
+        });
+        let mut model = Model::default();
+        let key = model.begin_read(target.clone()).unwrap();
+        assert!(model.accept_read(&target, key, Ok(data)));
+        let ticket = model.ticket().unwrap();
+        if approved {
+            assert!(model.begin_write(&ticket, false).is_some());
+        } else {
+            assert!(model.begin_write(&ticket, true).is_none());
+            assert!(model.writing.is_none());
+        }
+    }
+}

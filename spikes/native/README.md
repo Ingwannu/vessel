@@ -1251,6 +1251,13 @@ retarget an old Run button to a changed approved command. Every node call uses
 the shared SelectedConnection before-poll/after-result guard, with no replay.
 See `docs/plans/wp-b1.md` and `docs/plans/wp-d2.md` for references and limits.
 
+Project command reads and confirmation now have an area-lived controller and
+typed command-access link seam. Both reads and grants capture G4's original
+admission; a confirmation additionally captures the complete digest and receipt.
+Review refreshes that set; retired or uncorrelated legacy command routes cannot
+approve or hydrate another peer. The protocol-10 read stays independent of
+script.list for older hosts. Unknown writes require an explicit fresh read.
+
 Shared typed button content/loading/sizing is documented in
 `docs/plans/backend-m12-g2-button-content.md`. Label/Icon/IconAndLabel share one
 renderer; ButtonIcon::muted keeps the explicit source icon tone. button_control
