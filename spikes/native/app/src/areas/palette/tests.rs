@@ -494,6 +494,23 @@ fn nested_backspace_uses_reference_blank_query_semantics(cx: &mut TestAppContext
             assert_eq!(shell.areas.palette.page.is_none(), should_leave);
         });
     }
+    let page = update(&view, cx, |shell, window, cx| {
+        shell.palette_page(
+            vessel_app_view::palette::pages::ChoiceLocation::group("native-Theme".parse().unwrap()),
+            window,
+            cx,
+        );
+        shell.palette_mode(PaletteMode::Messages, window, cx);
+        assert!(navigation::scope(shell, &Tokens::of(Scheme::Dark), cx).is_none());
+        shell.areas.palette.page.clone()
+    });
+    cx.run_until_parked();
+    cx.simulate_keystrokes("backspace");
+    cx.run_until_parked();
+    update(&view, cx, |shell, _, _| {
+        assert_eq!(shell.areas.palette.mode, PaletteMode::Messages);
+        assert_eq!(shell.areas.palette.page, page);
+    });
 }
 
 #[gpui::test]

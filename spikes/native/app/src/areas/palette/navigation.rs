@@ -7,12 +7,16 @@ use vessel_app_kit::ui::{
     Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
+use vessel_app_view::palette::PaletteMode;
 
 pub(super) fn scope(
     shell: &Shell,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    if shell.areas.palette.mode != PaletteMode::Commands {
+        return None;
+    }
     let page = shell.areas.palette.page.as_ref()?;
     let breadcrumbs = page.breadcrumbs().collect::<Vec<_>>().join(" › ");
     Some(
@@ -52,6 +56,7 @@ impl Shell {
                 event.keystroke.key.as_str(),
                 "up" | "down" | "enter" | "escape"
             ) || (event.keystroke.key == "backspace"
+                && self.areas.palette.mode == PaletteMode::Commands
                 && vessel_app_view::matcher::Query::new(&self.areas.palette.query).is_empty()
                 && self.areas.palette.page.is_some()))
     }

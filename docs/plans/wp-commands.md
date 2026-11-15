@@ -729,3 +729,10 @@ no new listener/keymap/controller or kit control/API is added. The actual GPUI
 fixture installs that production listener and covers empty/BOM/NEL/nonblank
 queries. Kit and View tests were not reached after the App failure; no later
 test pass is claimed from that run.
+
+Commands breadcrumb/Backspace projection additionally requires Commands mode.
+W1's mode switch may retain its other window fields; that must never expose or
+navigate a Commands page while Messages owns input. A real keyboard regression
+switches to Messages and checks that Backspace preserves its mode/page state.
+Only F4 navigation projection/tests changed; W1's messages.rs/controller and
+query-retention policy remain untouched.
