@@ -255,3 +255,29 @@ fn layout_close_never_reaches_window_fallback_in_an_active_session(cx: &mut Test
         assert_eq!(shell.notice.as_deref(), Some("window-close-fallback"));
     });
 }
+
+#[gpui::test]
+fn settings_shortcuts_use_actual_six_hundred_boundary_independent_of_phone_form(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = setup(cx);
+    cx.simulate_resize(gpui::size(gpui::px(700.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(vessel_app_kit::breakpoint::phone(window));
+        assert!(super::available(window));
+        shell.open_settings(Some(Section::Shortcuts), window, cx);
+    });
+    cx.run_until_parked();
+    let selector = match Platform::native() {
+        Platform::Mac => "shortcut-menu-command-center-toggle-cmd-k-mac",
+        Platform::Other => "shortcut-menu-command-center-toggle-ctrl-k-non-mac",
+    };
+    assert!(
+        cx.debug_bounds(selector).is_some(),
+        "canonical shortcut row at700"
+    );
+    cx.simulate_resize(gpui::size(gpui::px(599.0), gpui::px(844.0)));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds(selector).is_none(), "unavailable below600");
+}

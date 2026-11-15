@@ -95,12 +95,14 @@ fn row_acts(shell: &Shell, id: &ActionId) -> Vec<(RowAct, MenuItem)> {
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
-    phone: bool,
+    _phone: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.words.shortcuts();
-    if phone || !super::available(window) {
+    // Section renderer keeps the shared Settings signature; its list/detail
+    // form does not decide keyboard availability (600, not global PHONE768).
+    if !super::available(window) {
         return div()
             .type_(Type::Body)
             .text_color(tokens.neutral.foreground_muted)
@@ -177,7 +179,7 @@ pub(crate) fn render(
 fn asking(
     shell: &Shell,
     tokens: &Tokens,
-    phone: bool,
+    _phone: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {

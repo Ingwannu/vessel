@@ -349,3 +349,11 @@ width. Existing S2 composition/CharacterInput guards remain first and unchanged;
 the new actual visibility-event regression checks hidden keys cannot cycle the
 theme, and visible keys resume through the same handler. It remains unexecuted
 until the next native test suite.
+
+
+A source audit found Settings Shortcuts had an additional shared `phone` gate
+(768) despite the keyboard boundary being600. The section keeps the shared
+Settings renderer signature but ignores that presentation flag; actual viewport
+availability alone chooses unavailable vs binding rows. The new real Settings
+render regression uses700 (phone form but keyboard available) and599 (hidden
+binding rows). Global PHONE and E2 navigation/form policy remain unchanged.
