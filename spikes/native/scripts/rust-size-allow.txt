@@ -15,8 +15,8 @@ spikes/native/app/src/areas/workspace/detail.rs 701
 spikes/native/app/src/areas/workspace/projects.rs 593
 spikes/native/kit/src/field.rs 635
 spikes/native/kit/src/picker.rs 829
-spikes/native/kit/src/slider.rs 719
+spikes/native/kit/src/slider.rs 711
 spikes/native/link/src/demo.rs 517
 spikes/native/view/src/text/conversation/session.rs 555
-spikes/native/view/src/text/workspace/en.rs 674
-spikes/native/view/src/text/workspace/ko.rs 645
+spikes/native/view/src/text/workspace/en.rs 649
+spikes/native/view/src/text/workspace/ko.rs 623

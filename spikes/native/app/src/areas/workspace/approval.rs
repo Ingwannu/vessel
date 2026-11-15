@@ -136,14 +136,13 @@ pub(super) fn render(
     if !terminals.is_empty() {
         card = card.child(terminals::render(shell.words, words, &terminals, tokens));
     }
-    let approval = asked.approval();
-    if let Err(ApprovalRefusal::Terminals) = approval {
-        card = card.child(banner(
-            shell.words.scripts().terminal_approval_pending(),
-            true,
-            None,
-            tokens,
-        ));
+    let approval = compared.approval(asked);
+    if let Err(reason) = approval {
+        let message = match reason {
+            ApprovalRefusal::Terminals => shell.words.scripts().terminal_approval_pending(),
+            ApprovalRefusal::ServicePorts => shell.words.approval().unseen_service_ports(),
+        };
+        card = card.child(banner(message, true, None, tokens));
     }
     let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))

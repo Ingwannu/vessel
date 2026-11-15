@@ -38,6 +38,7 @@ fn snapshot(_target: &Target) -> Snapshot {
                 setup: vec![],
                 teardown: vec![],
                 terminals: vec![],
+                service_ports: None,
                 scripts: vec![
                     ScriptEntry::new(
                         "dev".parse().unwrap(),

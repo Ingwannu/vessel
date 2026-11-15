@@ -1,6 +1,6 @@
 //! Comparison prose is extracted so legacy language modules can shrink while
 //! new executable fields acquire complete typed summaries.
-use super::{En, Ko, Local, WorkspaceWords, en, ko};
+use super::{En, Ko, Local, WorkspaceWords, comparison_lists};
 use crate::localization::{ENGLISH, Locale, Translator};
 use crate::workspace::command_changes::{Compared, ComparedWith};
 use crate::workspace::terminal_changes::TerminalLine;
@@ -29,13 +29,14 @@ pub(super) fn en(words: &En, compared: &Compared, local: &Local) -> String {
         teardown,
         scripts,
         terminals,
+        unshown: _,
     } = compared
     else {
         return "No earlier approval of this project's commands is known, so every command is shown as it is.".to_owned();
     };
     let parts: Vec<String> = [
-        en::list_part("setup", setup),
-        en::list_part("teardown", teardown),
+        comparison_lists::en("setup", setup),
+        comparison_lists::en("teardown", teardown),
     ]
     .into_iter()
     .chain(scripts.iter().map(|line| words.script_part(line)))
@@ -66,14 +67,15 @@ pub(super) fn ko(words: &Ko, compared: &Compared, local: &Local) -> String {
         teardown,
         scripts,
         terminals,
+        unshown: _,
     } = compared
     else {
         return "이 프로젝트의 명령을 승인한 기록이 없어서 모든 명령을 있는 그대로 보여 줍니다."
             .to_owned();
     };
     let parts: Vec<String> = [
-        ko::list_part("셋업", setup),
-        ko::list_part("정리", teardown),
+        comparison_lists::ko("셋업", setup),
+        comparison_lists::ko("정리", teardown),
     ]
     .into_iter()
     .chain(scripts.iter().map(|line| words.script_part(line)))

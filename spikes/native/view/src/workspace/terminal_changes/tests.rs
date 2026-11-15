@@ -22,6 +22,7 @@ fn commands(
         teardown: vec![],
         scripts: vec![],
         terminals,
+        service_ports: None,
         digest: digest.to_string().repeat(64).parse().unwrap(),
         approved,
         last_approved: last.map(Box::new),
