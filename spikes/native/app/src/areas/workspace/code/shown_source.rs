@@ -42,6 +42,14 @@ impl ShownChangesContext {
     pub(crate) fn connection(&self) -> &ConnectionContext {
         self.scope.connection()
     }
+    #[cfg(test)]
+    pub(crate) const fn root(&self) -> vessel_proto::workspace::WorkspaceRoot {
+        self.scope.root()
+    }
+    #[cfg(test)]
+    pub(crate) const fn comparison(&self) -> ScopeKind {
+        self.comparison
+    }
     fn live(&self) -> bool {
         self.root.current() && self.guard.validate(self.scope.connection()).is_ok()
     }
@@ -55,6 +63,14 @@ pub(crate) struct ShownDiffContext {
     pub(super) guard: DeliveryGuard,
 }
 impl ShownDiffContext {
+    #[cfg(test)]
+    pub(crate) fn connection(&self) -> &ConnectionContext {
+        self.summary.connection()
+    }
+    #[cfg(test)]
+    pub(crate) fn path(&self) -> &RelPath {
+        &self.path
+    }
     fn live(&self) -> bool {
         self.summary.live() && self.guard.validate(self.summary.scope.connection()).is_ok()
     }
@@ -119,6 +135,58 @@ impl Shell {
             && open.machine == shown.scope.connection().machine().as_str()
             && open.session == shown.root.session)
             .then(|| shown.clone())
+    }
+    /// Only a real visible Explorer projection may request typed shown facts.
+    /// The current shared frame has no mounted Explorer, so that projection
+    /// remains unavailable. This never creates a book entry or resolves roots.
+    #[cfg(test)]
+    pub(crate) fn shown_changes_at(
+        &self,
+        panel: &crate::areas::layout::registry::PanelContext<'_>,
+        window: &vessel_app_kit::ui::Window,
+    ) -> Option<ShownChangesContext> {
+        use vessel_app_view::layout::{LayoutKey, PaneId, Target};
+        if panel.pane != PaneId::EXPLORER
+            || *panel.target != Target::Changes
+            || !self.layout_tab_matches(panel.workspace, panel.tab, panel.target)
+            || !self.layout_panel_visible(panel.workspace, panel.tab, window)
+        {
+            return None;
+        }
+        let shown = self.areas.workspace.code.source()?;
+        let LayoutKey::Session { machine, session } = panel.workspace else {
+            return None;
+        };
+        (machine.as_str() == shown.scope.connection().machine().as_str()
+            && *session == shown.root.session)
+            .then(|| shown.clone())
+    }
+    /// G1 delegates its ONE Git retirement hook; C5 registers no second owner.
+    #[cfg(test)]
+    pub(crate) fn code_changes_retired(
+        &mut self,
+        notice: &crate::areas::layout::registry::retirement::Notice,
+    ) {
+        use vessel_app_view::layout::{LayoutKey, Target};
+        let Some(origin) = self
+            .areas
+            .workspace
+            .code
+            .target
+            .as_ref()
+            .and_then(|target| target.receipt.as_ref())
+        else {
+            return;
+        };
+        let LayoutKey::Session { machine, session } = notice.workspace() else {
+            return;
+        };
+        if notice.target() == &Target::Changes
+            && machine.as_str() == origin.context.machine().as_str()
+            && *session == origin.session
+        {
+            self.areas.workspace.code.changes.sources.invalidate();
+        }
     }
     /// Validate immediately at every callback lookup; counts are never identity.
     #[cfg(test)]

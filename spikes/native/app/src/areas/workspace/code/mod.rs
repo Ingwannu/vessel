@@ -339,6 +339,7 @@ impl Shell {
     /// conversation it stays.
     fn code_handed_to_composer(&mut self, window: &Window) {
         if vessel_app_kit::breakpoint::phone(window) {
+            self.areas.workspace.code.changes.sources.invalidate();
             self.areas.workspace.code.open = false;
         }
     }
@@ -348,6 +349,7 @@ impl Shell {
             return;
         }
         let panel = &mut self.areas.workspace.code;
+        panel.changes.sources.invalidate();
         panel.open = !panel.open;
         if panel.open {
             self.search_words(window, cx);

@@ -53,7 +53,8 @@ impl Shell {
             .as_ref()
             .is_some_and(|target| target.receipt.is_some())
         {
-            if !matches!(self.areas.workspace.code.changes.summary, Summary::Ready(_)) {
+            let panel = &self.areas.workspace.code;
+            if panel.source().is_none() && panel.changes.sources.requested.is_none() {
                 self.source_summary();
             }
             return;

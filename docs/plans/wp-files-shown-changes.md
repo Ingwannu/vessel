@@ -69,8 +69,16 @@ DiffBody next-page value, with the original parent summary and page ticket; no
 second diff body or snapshot store is introduced. This proves correlation, not
 an atomic repository snapshot across requests.
 
-The isolated preparation currently has four authored real framed App cases;
+The isolated preparation currently has six authored real framed App cases;
 they have not run. No G4 export, selected-client method or delivery-module staging
 attribute differs from its exact producer. A typed Explorer getter is still
 unavailable until the real mount/current-target join is included; no synthetic
 Explorer tab or Workspace root is projected here.
+
+The delegated retirement helper is test-only and registers no Git owner. G1's
+single actual hook can invoke it with the original Notice; the fixture exercises
+that delegation through the real layout transaction. A typed getter uses the
+existing exact-target and visible-panel queries and explicitly excludes logical
+Workspace projection. While Explorer is unmounted it remains None. Switching
+legacy tabs or closing the host invalidates stamp metadata before another read;
+it never aborts the detached readonly request or replays a write.

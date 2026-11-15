@@ -100,6 +100,8 @@ fn ready(scene: &mut Scenario, shell: &mut Shell) {
     shell.code_source_answer(answer(scene, shell));
     let shown = shell.shown_changes_context().unwrap();
     assert_eq!(shown.connection(), &scene.context());
+    assert_eq!(shown.comparison(), ScopeKind::Uncommitted);
+    assert_eq!(shown.root(), *shell.areas.workspace.code.root().unwrap().1);
     assert!(shell.shown_changes_is_current(&shown));
 }
 fn setup(cx: &mut TestAppContext) -> (gpui::Entity<Shell>, &mut gpui::VisualTestContext, Scenario) {
@@ -202,6 +204,8 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
         let request = page.request.clone();
         shell.code_source_answer(page);
         let shown = shell.shown_diff_context(&path).unwrap();
+        assert_eq!(shown.connection(), &scene.context());
+        assert_eq!(shown.path(), &path);
         assert!(shell.shown_diff_is_current(&shown));
         shell.reread_changes();
         assert!(!shell.shown_diff_is_current(&shown));
@@ -212,6 +216,96 @@ fn diff_and_legacy_answers_cannot_cross_the_parent_summary(cx: &mut TestAppConte
         assert!(matches!(scene.request(shell.fixture_link()).unwrap(), Call::GetChanges(_)));
         ready(&mut scene, shell);
         assert!(!shell.shown_diff_is_current(&shown));
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+#[gpui::test]
+fn actual_git_retirement_delegation_invalidates_without_another_owner(cx: &mut TestAppContext) {
+    use crate::areas::layout::registry::{
+        PanelContext, PanelFocus,
+        retirement::{Notice, Owner},
+    };
+    use vessel_app_view::layout::{
+        AgentRole, LayoutKey, OpenIntent, PaneId, Placement, RetargetRequest, Target,
+    };
+    fn retired(shell: &mut Shell, notice: &Notice, _cx: &mut Context<'_, Shell>) {
+        shell.code_changes_retired(notice);
+    }
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let context = scene.context();
+        let (session, project) = prepare(shell, &context);
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let old = shell.shown_changes_context().unwrap();
+        let key = LayoutKey::Session {
+            machine: context.machine().as_str().parse().unwrap(),
+            session,
+        };
+        shell
+            .layout_register_retirement(Owner::Git, retired)
+            .unwrap();
+        let tab = shell
+            .layout_open_target(
+                &key,
+                Target::Changes,
+                OpenIntent::Reveal,
+                Placement::Explorer,
+                window,
+                cx,
+            )
+            .unwrap();
+        let panel = PanelContext {
+            workspace: &key,
+            pane: PaneId::EXPLORER,
+            tab,
+            target: &Target::Changes,
+            focus: PanelFocus::Focused,
+        };
+        assert!(
+            shell.shown_changes_at(&panel, window).is_none(),
+            "unmounted Explorer is unavailable"
+        );
+        shell
+            .update_layout(
+                &key,
+                |layout| {
+                    layout.retarget(RetargetRequest {
+                        tab,
+                        target: Target::Files,
+                        intent: OpenIntent::Reveal,
+                        role: AgentRole::Unknown,
+                    })
+                },
+                cx,
+            )
+            .unwrap();
+        assert!(shell.shown_changes_context().is_none());
+        assert!(!shell.shown_changes_is_current(&old));
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+#[gpui::test]
+fn framed_wrong_session_reply_never_installs_a_physical_root(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, _, _| {
+        let (_session, project) = prepare(shell, &scene.context());
+        assert!(matches!(
+            scene.request(shell.fixture_link()).unwrap(),
+            Call::GetSession(_)
+        ));
+        scene
+            .reply(
+                shell.fixture_link(),
+                Outcome::Ok(Reply::GetSession(metadata(SessionId::random(), project))),
+            )
+            .unwrap();
+        shell.code_source_answer(answer(&mut scene, shell));
+        assert!(shell.areas.workspace.code.root().is_none());
+        assert!(shell.shown_changes_context().is_none());
+        assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
         scene.close(shell.fixture_link()).unwrap();
     });
 }

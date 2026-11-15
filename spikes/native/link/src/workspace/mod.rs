@@ -63,6 +63,7 @@ pub(crate) struct Hub {
     /// Each clone followed, by machine and project, with its task (each
     /// task holds a clone of the machine's client until it ends).
     following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
+    #[cfg(not(target_arch = "wasm32"))]
     source: code_source::Hub,
 }
 
