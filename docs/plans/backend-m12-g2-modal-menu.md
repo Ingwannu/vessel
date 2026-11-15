@@ -47,3 +47,9 @@ module, and two imported paths were redundantly qualified. The correction
 uses an ordinary builder, parent-only priority visibility and short imported
 names. No geometry/input/expected value or old test changes; old run stays red.
 Corrected narrow/source/actual first-use proof remains owed.
+
+The corrected388b Clippy then found a terminal-unit semicolon in the shared
+trigger callback and operator arithmetic in the new test's measured click
+coordinate. Add the semicolon and express the identical coordinate through
+Pixels-to-f32/mul_add (no cast or lint exception). Original expectations and
+all input geometry stay unchanged;388b is red and no tests ran there.

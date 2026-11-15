@@ -282,7 +282,7 @@ pub fn trigger_presented(
             element
                 .cursor_pointer()
                 .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                    cx.stop_propagation()
+                    cx.stop_propagation();
                 })
         })
         .child(visual)

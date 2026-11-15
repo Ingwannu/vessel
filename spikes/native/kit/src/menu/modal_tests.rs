@@ -141,7 +141,10 @@ fn nested_menu_pointer_escape_and_outside_keep_dialog_and_focus(cx: &mut TestApp
         cx.run_until_parked();
         // Measured end alignment; fixed220, offset4, border1, padding4, row28.
         cx.simulate_click(
-            point(bounds.right() - px(110.0), bounds.bottom() + px(23.0)),
+            point(
+                px(f32::from(bounds.right()).mul_add(1.0, -110.0)),
+                px(f32::from(bounds.bottom()).mul_add(1.0, 23.0)),
+            ),
             Modifiers::none(),
         );
         cx.run_until_parked();
