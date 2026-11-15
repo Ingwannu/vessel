@@ -8,8 +8,8 @@ Status: implementation in progress.
   and agents, with client-local layout and lifecycle-owned close.
 - Existing assets and constraints: extend native view/link/app, reuse kit
   tabs, menus, sheets and resize edges. The current code panel is tied to
-  the selected session and cannot retain a recursive pane tree. The app
-  currently has no durable workspace registry.
+  the selected session and cannot retain a recursive pane tree. The durable workspace registry is supplied by its separate owner; this package
+  consumes only its reviewed identity values and a typed lookup boundary.
 - Alternatives: per-feature docking duplicates focus and persistence;
   adopting a docking dependency introduces another framework and cost.
 - Choice: modify existing app. Pure state in `view::layout`, narrow area
@@ -49,8 +49,10 @@ Paths are relative to Paseo `packages/app/src/`.
 `view::layout` owns targets, manifests, recursive tree, placement,
 reconciliation, close plans and compact sheets. The app area adapts live
 selection, draws through feature renderers and routes lifecycle effects
-to their owners. It never owns editor text, terminal streams or browser
-engines. Persistence is typed and validated before installation; sheets
+to their owners. The pane model never owns editor text, terminal streams or browser
+engines. The separately reviewed resident contract assigns the sole native
+session-resource registry to this package; concrete timeline/composer resources
+remain owner-defined behind scoped access. Persistence is typed and validated before installation; sheets
 and commit diffs are ephemeral. Renderer/cursor are panel-owned state.
 
 ## Differences and dependencies
@@ -61,10 +63,62 @@ and commit diffs are ephemeral. Renderer/cursor are panel-owned state.
   the existing route. Sessions sharing cwd are never conflated.
 - Targets without working renderers or launchers stay hidden. Contract
   support alone does not prove the associated feature works.
-- Desktop editor requests never execute on a remote node.
+- Opening an editor/file manager belongs to the workspace owner; this layout
+  package supplies its target/context and does not execute those requests.
+- Plugin targets use the canonical protocol contribution address and context.
+  Restored missing/stale entries retain their slot and modified state; opening,
+  retargeting and dragging require the plugin owner's live placement resolver.
+  Until that separate resolver is available those operations refuse explicitly.
+- Persisted agent roles are reset to Unknown; a saved root flag cannot authorize
+  archive. Lifecycle always obtains fresh authoritative parentage.
+- Rename captures expected NodeId and checks the actual client before effects;
+  retries allocate fresh tickets. Legacy alias-only rename stays hidden until its
+  lifecycle owner supplies the original admitted binding, never latest Fleet data.
+- Device format one is a typed Rust format, not an importer for Paseo JSON.
+  Split fractions reject NaN/infinity and are clamped to the shared minimum.
 
-## Resume point
+## Producer contract
 
-Reference and existing assets read; isolated worktree/target prepared.
-Next: typed contract/tests, share compilable API with panel consumers,
-area integration, captures, one whole native gate, one package review.
+`view::layout::Target` and `LayoutKey` are the only panel identities.
+`LayoutKey::Workspace { node, workspace }` uses authenticated NodeId and the
+canonical protocol WorkspaceId. Legacy Session keys are explicit alias/session
+bridges and never infer ownership from filesystem paths.
+
+`areas::layout::registry::PanelContext` carries `&LayoutKey`, PaneId, TabId,
+`&Target` and focus. Feature renderers register in its one exhaustive dispatch;
+resource-owned title/status/cursor/renderer are not identity. File identity is
+WorkspaceRoot plus RelPath; commit identity is CommitId with file focus retained
+by the git owner. DraftId is client-local and never converts into a node SessionId.
+
+The app seam is `layout_open_target(&LayoutKey, Target, OpenIntent, Placement,
+Window, Context) -> Result<TabId, LayoutError>`. Async callers capture the key,
+never the currently selected route. `update_layout(&LayoutKey, change, Context)`
+permits only the pure model's validated operations, including retargeting passive
+clean drafts and publishing modified state. `layout_close_settled(&LayoutKey,
+&ClosePlan, Result<(), LayoutError>, Context)` applies a lifecycle result to its
+original layout and refuses changed/dirty targets. Unknown agent role requests
+ResolveAgent; it never silently falls back to root archive.
+
+`run_layout_action(LayoutAction, Window, Context) -> bool` is routed exclusively
+through the shortcut owner's dispatcher. Layout installs no keyboard listener.
+
+## Current evidence and remaining cutover
+
+The pure pane model, native frame, typed persistence and correlated rename adapter
+are implemented and undergoing narrow checks. Narrow strict all-target view and link compilation has succeeded on the prior
+shared base. The combined app check exposed a shadowed helper binding, now
+corrected; another check also covers the newly merged Quality B shared base. This is not a whole-package gate or capture claim.
+
+The resident contract in `wp-layout-residents.md` passed contract-only review.
+Pure admission/focus/transport-fence types and tests are in `view::residents`;
+SessionView/ConversationArea/composer globals have not yet been cut over. No
+second live registry is enabled. The actual shared connection lease, concrete
+resource snapshots, keyed renderers, follow handles and keyboard/composer adapters
+must land together before multi-session panes can be claimed. Existing frame can
+consume only the current legacy agent screen once; other unregistered targets
+retain a localized unavailable placeholder and are omitted from launchers.
+
+Remaining package evidence: narrow tests, feature-owner registrations, single-owner
+resident cutover, compact picker/explorer integration, isolated fixture captures,
+one final whole native gate and package source review. No live node or agent is
+used by these checks.
