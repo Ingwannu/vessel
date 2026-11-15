@@ -22,6 +22,8 @@
 //! is never listed without being findable, and never found as a stored
 //! (ended) session while it runs.
 
+mod subagents;
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, PoisonError, RwLock};

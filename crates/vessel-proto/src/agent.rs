@@ -45,6 +45,9 @@ pub struct TurnPoint {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum AgentEvent {
+    /// Provider-owned task facts and read-only canonical activity (ADR 0090).
+    /// These live in the parent's log but stay out of its main conversation.
+    ProviderChild(crate::subagents::ProviderObservation),
     /// The harness accepted the session; its id is kept for resume.
     Ready {
         /// The harness's session id.

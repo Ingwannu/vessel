@@ -72,6 +72,12 @@ pub(super) fn apply(
             });
             Answer::Marked(done, applied)
         }
+        Write::Detach { session, at, done } => {
+            let applied = isolated(transaction, |connection| {
+                crate::subagents::detach(connection, session, at)
+            });
+            Answer::Detached(done, applied)
+        }
         Write::Delete { session, done } => {
             let applied = isolated(transaction, |connection| marks::delete(connection, session));
             if applied.is_ok() {

@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use vessel_proto::{HarnessKind, McpTransport, ResolvedValue, SessionMode, TerminalSize};
+use vessel_proto::{HarnessKind, McpTransport, NodeId, ResolvedValue, SessionMode, TerminalSize};
 
 use super::*;
 

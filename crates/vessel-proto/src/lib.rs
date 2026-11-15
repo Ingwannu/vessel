@@ -55,6 +55,7 @@ mod secret;
 mod session;
 pub mod settings;
 pub mod side_questions;
+pub mod subagents;
 mod terminal;
 pub mod terminals;
 mod title;
@@ -105,7 +106,7 @@ pub use id::{
     AgentMessageId, AttachmentId, DeviceId, EventSeq, HarnessSessionId, HookId, InstallId, ModelId,
     NodeId, OptionId, OptionValueId, PermissionId, PermissionOptionId, ProjectId, QuestionId,
     QueueEntryId, RequestId, SavedPromptId, ScheduleId, SessionId, SubscriptionId, TerminalId,
-    ToolCallId, TransferId, UploadId, WorktreeId,
+    ToolCallId, TransferId, UploadId, WorkspaceId, WorkspaceOperationId, WorktreeId,
 };
 pub use key::{KeyTextError, NodePublicKey, RoutingId};
 pub use labels::{InvalidLabel, LabelKey, LabelValue, SessionLabels};

@@ -2,6 +2,7 @@
 //! cannot record one; what a session looks like once handed over.
 
 mod handover;
+mod subagents;
 
 use std::sync::Arc;
 
@@ -215,7 +216,8 @@ fn the_store_places_it_as_the_session_did(live: &SessionInfo, stored: &SessionIn
 
 /// `session.delete` takes only what the store serves: a session the
 /// runtime has is live (`Live`), or has ended with its log still on its way
-/// to the store (`LogWriting`, a retry works).
+/// to the store, which delete waits for up to `HAND_OVER_WAIT` and then
+/// refuses (`LogWriting`, a retry works). Here the log never completes.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_session_the_runtime_has_is_not_deleted() {
     let fixture = Fixture::new().await;

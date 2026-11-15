@@ -148,6 +148,7 @@ fn agent(
         | AgentEvent::MessageChunk { .. }
         | AgentEvent::ThoughtChunk { .. }
         | AgentEvent::Plan { .. }
+        | AgentEvent::ProviderChild(_)
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::Steered { .. } => Ok(()),
     }

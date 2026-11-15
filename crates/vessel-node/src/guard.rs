@@ -165,6 +165,7 @@ targets!(
     vessel_proto::conversation::ResumeSession,
     vessel_proto::conversation::MarkSession,
     vessel_proto::conversation::DeleteSession,
+    vessel_proto::subagents::DetachSession,
     vessel_proto::conversation::BeginUpload,
     // Protocol 11: opening, merging and the feedback switch act on a
     // session's branch and its conversation.
@@ -200,6 +201,8 @@ untargeted!(
     // An agent's own history (ADR 0053): no session's, and refused to
     // agents (`workspace::policy`).
     vessel_proto::history::GetAgentHistory,
+    vessel_proto::subagents::ListProviderChildren,
+    vessel_proto::subagents::ReadProviderChild,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,

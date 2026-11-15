@@ -40,11 +40,14 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::SessionOptions
         | Method::GetConversation
         | Method::ResumeSession
+        | Method::DetachSession
+        | Method::ListProviderChildren
         | Method::DeleteSession
         | Method::GetPullRequest
         | Method::ParkSession
         | Method::WakeSession
         | Method::ForkSession => json!({"session": id}),
+        Method::ReadProviderChild => json!({"session":id,"child":"provider-child"}),
         Method::CreateSession => json!({"spec":{"harness":"codex","mode":"structured"}}),
         Method::PromptSideQuestion => json!({"session":id,"question":"sample"}),
         Method::ResetSideQuestion => json!({"session":id,"side":id}),

@@ -182,6 +182,7 @@ impl Tracker {
             | AgentEvent::ToolCall(_)
             | AgentEvent::ToolCallUpdate(_)
             | AgentEvent::Plan { .. }
+            | AgentEvent::ProviderChild(_)
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. } => {}
         }

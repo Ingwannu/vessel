@@ -87,6 +87,7 @@ const fn agent_kind(event: &AgentEvent) -> Option<Filter> {
         AgentEvent::Ready { .. }
         | AgentEvent::Plan { .. }
         | AgentEvent::TurnEnded { .. }
+        | AgentEvent::ProviderChild(_)
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::QuestionAsked(_)
         | AgentEvent::QuestionResolved { .. } => None,

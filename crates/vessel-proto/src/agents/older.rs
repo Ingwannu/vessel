@@ -87,6 +87,9 @@ impl Reply {
                   agent; the list is the point"
     )]
     pub fn withheld(&self, protocol: ProtocolVersion) -> Option<WireError> {
+        if let Some(error) = crate::subagents::compat::withheld(self, protocol) {
+            return Some(error);
+        }
         if protocol >= READS_ADDED_AGENTS {
             return None;
         }
@@ -105,6 +108,7 @@ impl Reply {
             | Self::ForkSession(info)
             | Self::RewindSession(info) => one(info),
             Self::Subscribe(subscribed) => one(&subscribed.info),
+            Self::DetachSession(detached) => one(&detached.session),
             Self::ImportSession(imported) => imported.session.as_deref().and_then(one),
             Self::Forward(forwarded) | Self::Relay(forwarded) | Self::Deliver(forwarded) => {
                 nested(forwarded, protocol)
@@ -118,6 +122,8 @@ impl Reply {
             | Self::NodeInfo(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
+            | Self::ListProviderChildren(_)
+            | Self::ReadProviderChild(_)
             | Self::GetAgentHistory(_)
             | Self::SendInput(_)
             | Self::KillSession(_)

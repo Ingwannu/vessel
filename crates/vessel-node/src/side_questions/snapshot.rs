@@ -153,6 +153,7 @@ fn message(event: &AgentEvent) -> Option<(&'static str, &[ContentBlock])> {
         | AgentEvent::QuestionResolved { .. }
         | AgentEvent::TurnEnded { .. }
         | AgentEvent::TurnFailed { .. }
+        | AgentEvent::ProviderChild(_)
         | AgentEvent::HarnessLog { .. } => None,
     }
 }
