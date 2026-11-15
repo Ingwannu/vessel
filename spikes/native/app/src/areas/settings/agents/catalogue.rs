@@ -1,4 +1,4 @@
-//! ProviderCatalogList composition through shared furniture and typed offers.
+//! `ProviderCatalogList` composition through shared furniture and typed offers.
 use crate::shell::Shell;
 use std::{cell::Cell, rc::Rc};
 use vessel_app_kit::ui::{

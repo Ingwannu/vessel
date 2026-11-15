@@ -53,7 +53,7 @@ impl Columns {
     }
 }
 impl Grid {
-    /// Mirrors provider-catalog-list.tsx columnCountForWidth, including exact thresholds.
+    /// Mirrors `provider-catalog-list.tsx` `columnCountForWidth`, including exact thresholds.
     #[must_use]
     pub fn resolve(measurement: Option<Rail>) -> Self {
         let Some(input) = measurement else {

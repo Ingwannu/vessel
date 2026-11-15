@@ -1,4 +1,4 @@
-//! CatalogTile's order and exact shared controls; no area-owned button or link.
+//! `CatalogTile`'s order and exact shared controls; no area-owned button or link.
 use super::*;
 use vessel_app_kit::ui::{FluentBuilder as _, StatefulInteractiveElement as _, canvas};
 use vessel_app_kit::{

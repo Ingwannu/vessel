@@ -7,7 +7,7 @@
 //! - Choice: compare Unicode-lowercased strings, then original scalar order.
 //!   This extracts the existing composer's exact comparison, using only std.
 //! - Cost: accents and locale-tailored scripts can differ from Paseo's
-//!   localeCompare sensitivity=base; no normalization or accent folding is
+//!   `localeCompare` sensitivity=base; no normalization or accent folding is
 //!   implied. Whole-string lowercase preserves contextual final sigma.
 
 use std::cmp::Ordering;

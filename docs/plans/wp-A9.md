@@ -481,3 +481,13 @@ Whole translation/tone cases cover local refusal and formatting failure. Generic
 operation failure no longer promises a machine message “below”: original prose
 is retained only in the diagnostic tooltip, so that earlier sentence was false.
 These corrections require a new exact changed-head narrow; old reds remain red.
+
+
+The requested pre-priority non-Cargo sweep checks all four native crates with
+the pinned standalone rustfmt, plus size, boundaries, tokens and whitespace.
+The import/API review compares the new area files with their real shared kit
+exports; this is source inspection, not Rust name resolution or a compiler pass.
+A doc-markdown scan found seven comments naming code without backticks; this
+follow-up changes those comments only. The already reviewed ExternalLink control
+is unchanged. Runtime tests remain queued at the prior behavioral source; no
+priority approval for that old hash is silently transferred to this follow-up.

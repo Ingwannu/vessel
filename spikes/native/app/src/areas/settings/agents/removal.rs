@@ -1,4 +1,4 @@
-//! Legacy added definitions use the shared ProviderRow menu and confirm dialog.
+//! Legacy added definitions use the shared `ProviderRow` menu and confirm dialog.
 //! The view owns deletion authority; this area retains the painted decision's
 //! identity so a delayed click cannot confirm or dismiss a newer dialog.
 use crate::shell::Shell;

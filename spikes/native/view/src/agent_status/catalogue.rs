@@ -123,7 +123,7 @@ impl<'a> Resource<'a> {
         }
     }
 }
-/// The wire has no installLink field. Name its actual site/source/archive
+/// The wire has no `installLink` field. Name its actual site/source/archive
 /// accurately rather than manufacture a vendor-specific documentation URL.
 #[must_use]
 pub fn resource(entry: &CatalogueEntry) -> Option<Resource<'_>> {

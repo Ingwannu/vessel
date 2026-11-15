@@ -50,7 +50,7 @@ impl CommandShell {
         }
     }
     /// Program/argv preview only. Unspecified shells keep separate copyable
-    /// values instead of guessing PowerShell or command-interpreter syntax.
+    /// values instead of guessing `PowerShell` or command-interpreter syntax.
     #[must_use]
     pub fn registry_arguments(self, entry: &vessel_proto::agents::CatalogueEntry) -> Vec<String> {
         match &entry.runs {
