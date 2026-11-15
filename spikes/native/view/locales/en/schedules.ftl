@@ -199,3 +199,6 @@ schedules-next-utc-rule = { schedules-next-utc } · { schedules-rule-zone }
 
 # Paused cron metadata still names the rule zone without promising a next run.
 schedules-metadata-rule = { schedules-metadata } · { schedules-rule-zone }
+
+# Browser build has no node transport; no fabricated schedule data or retry.
+schedules-failed-no-transport = Schedules are unavailable in this browser build.

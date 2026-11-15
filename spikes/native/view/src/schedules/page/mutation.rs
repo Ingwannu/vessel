@@ -5,7 +5,7 @@ use super::super::{
     Action,
     load::{Failure, MAX_IN_FLIGHT, Ticket},
 };
-use super::{Ask, Page, Request, RowKey};
+use super::{Ask, Page, Request, RowKey, Snapshot};
 use vessel_proto::automation::{ScheduleInfo, ScheduleRun};
 
 /// Row-local progress/error, exposed to drawing without a second decision.
@@ -153,38 +153,23 @@ impl Page {
         if ticket != request.ticket {
             return;
         }
-        let answer = match answer {
-            Ok(WriteValue::Schedule(info)) if info.id != id => Err(Failure::Unconfirmed),
-            Ok(value) => match (&request.ask, &value) {
-                (Ask::Pause(_) | Ask::Resume(_), WriteValue::Schedule(_))
-                | (Ask::Run(_), WriteValue::Run(_))
-                | (Ask::Delete(_), WriteValue::Deleted) => Ok(value),
-                _ => Err(Failure::Unconfirmed),
-            },
-            Err(Failure::Unexpected) => Err(Failure::Unconfirmed),
-            Err(failure) => Err(failure),
-        };
+        let answer = answer
+            .and_then(|value| value.checked(request.ask, id))
+            .map_err(|failure| match failure {
+                Failure::Unexpected => Failure::Unconfirmed,
+                Failure::Node(_)
+                | Failure::Older
+                | Failure::Offline
+                | Failure::Busy
+                | Failure::Unconfirmed
+                | Failure::Exhausted
+                | Failure::NoTransport => failure,
+            });
         match answer {
             Ok(value) => {
                 row.mutation = Mutation::Idle;
                 if let super::read::Read::Ready { snapshot, .. } = &mut cache.read {
-                    match value {
-                        WriteValue::Schedule(info) => {
-                            if let Some(old) =
-                                snapshot.schedules.iter_mut().find(|old| old.id == id)
-                            {
-                                *old = *info;
-                            }
-                        }
-                        WriteValue::Run(run) => {
-                            if let Some(old) =
-                                snapshot.schedules.iter_mut().find(|old| old.id == id)
-                            {
-                                old.last_run = Some(run);
-                            }
-                        }
-                        WriteValue::Deleted => snapshot.schedules.retain(|old| old.id != id),
-                    }
+                    value.apply(id, snapshot);
                 }
                 cache.read.invalidate();
             }
@@ -199,6 +184,41 @@ impl Page {
                     row.mutation = Mutation::Failed { action, failure };
                 }
             }
+        }
+    }
+}
+
+impl WriteValue {
+    // An unknown shape must never be accepted merely because it arrived for
+    // the current ticket. All operations and payload variants stay exhaustive.
+    fn checked(self, ask: Ask, id: vessel_proto::ScheduleId) -> Result<Self, Failure> {
+        let valid = match (&self, ask) {
+            (Self::Schedule(info), Ask::Pause(_) | Ask::Resume(_)) => info.id == id,
+            (Self::Run(_), Ask::Run(_)) | (Self::Deleted, Ask::Delete(_)) => true,
+            (Self::Schedule(_), Ask::List | Ask::Run(_) | Ask::Delete(_))
+            | (Self::Run(_), Ask::List | Ask::Pause(_) | Ask::Resume(_) | Ask::Delete(_))
+            | (Self::Deleted, Ask::List | Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_)) => false,
+        };
+        if valid {
+            Ok(self)
+        } else {
+            Err(Failure::Unconfirmed)
+        }
+    }
+
+    fn apply(self, id: vessel_proto::ScheduleId, snapshot: &mut Snapshot) {
+        match self {
+            Self::Schedule(info) => {
+                if let Some(old) = snapshot.schedules.iter_mut().find(|old| old.id == id) {
+                    *old = *info;
+                }
+            }
+            Self::Run(run) => {
+                if let Some(old) = snapshot.schedules.iter_mut().find(|old| old.id == id) {
+                    old.last_run = Some(run);
+                }
+            }
+            Self::Deleted => snapshot.schedules.retain(|old| old.id != id),
         }
     }
 }

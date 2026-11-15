@@ -47,4 +47,37 @@ pub fn pending(action: Action, catalog: &Translator) -> Option<&str> {
 }
 
 #[cfg(test)]
+mod failure_tests;
+#[cfg(test)]
 mod tests;
+
+/// Read/mutation feedback except the separately accepted read-only authority
+/// sentence. Full diagnostic sources stay in the model; none becomes UI copy.
+#[must_use]
+pub fn failure<'a>(failure: &super::load::Failure, catalog: &'a Translator) -> &'a str {
+    use super::load::Failure;
+    use vessel_proto::ErrorCode;
+    let words = catalog.schedules();
+    match failure {
+        Failure::Older => words.failed_older(),
+        Failure::Offline => words.failed_offline(),
+        Failure::Busy => words.failed_busy(),
+        Failure::Unexpected => words.failed_unexpected(),
+        Failure::Unconfirmed => words.write_unconfirmed(),
+        Failure::Exhausted => words.failed_exhausted(),
+        Failure::NoTransport => words.failed_no_transport(),
+        Failure::Node(wire) => match wire.code {
+            ErrorCode::InvalidRequest => words.failed_invalid(),
+            ErrorCode::Unauthorized => words.failed_unauthorized(),
+            ErrorCode::Forbidden => words.failed_view_forbidden(),
+            ErrorCode::ProtocolMismatch => words.failed_protocol(),
+            ErrorCode::NotFound => words.failed_not_found(),
+            ErrorCode::Conflict => words.failed_conflict(),
+            ErrorCode::Unsupported => words.failed_unsupported(),
+            ErrorCode::HarnessNotInstalled => words.failed_agent_missing(),
+            ErrorCode::SpawnFailed => words.failed_spawn(),
+            ErrorCode::Unavailable => words.failed_unavailable(),
+            ErrorCode::Internal => words.failed_internal(),
+        },
+    }
+}

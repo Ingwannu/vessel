@@ -59,16 +59,18 @@ pub enum Failure {
     Unexpected,
     /// A write lost its reply; the machine may already have acted.
     Unconfirmed,
+    /// This browser build has no node transport.
+    NoTransport,
     /// Local identities exhausted; reopening the app gives a fresh model.
     Exhausted,
 }
 
 impl Failure {
-    /// Reads are safe to repeat; these two failures require an external fix first.
+    /// Reads are safe to repeat; these failures need an external fix or reconciliation first.
     #[must_use]
     pub const fn retryable(&self) -> bool {
         match self {
-            Self::Older | Self::Exhausted | Self::Unconfirmed => false,
+            Self::Older | Self::Exhausted | Self::Unconfirmed | Self::NoTransport => false,
             Self::Node(_) | Self::Offline | Self::Busy | Self::Unexpected => true,
         }
     }
@@ -78,7 +80,11 @@ impl Failure {
     pub fn needs_explanation(&self) -> bool {
         match self {
             Self::Node(error) => error.code == vessel_proto::ErrorCode::Forbidden,
-            Self::Older | Self::Unexpected | Self::Exhausted | Self::Unconfirmed => true,
+            Self::Older
+            | Self::Unexpected
+            | Self::Exhausted
+            | Self::Unconfirmed
+            | Self::NoTransport => true,
             Self::Offline | Self::Busy => false,
         }
     }
@@ -86,7 +92,7 @@ impl Failure {
     #[must_use]
     pub const fn variant(&self) -> crate::alert::Variant {
         match self {
-            Self::Older => crate::alert::Variant::Warning,
+            Self::Older | Self::NoTransport => crate::alert::Variant::Warning,
             Self::Busy => crate::alert::Variant::Info,
             Self::Node(_)
             | Self::Offline
