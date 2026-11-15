@@ -17,7 +17,9 @@ Toolbar uses the new profile only through its same shared hitbox/controller.
 - Choice: `Side::{Top,Bottom}`, checked finite nonnegative `Offset`, typed
   `Delay(Duration)` and `Configuration` with preserved defaults. The toolbar
   chooses bottom/eight/300ms; its explicit card-refresh top variant changes only
-  side. Both use the existing text/render path.
+  side. Both use the existing text/render path. `ToolbarButton::tooltip_text`
+  lets the owner supply resolved status/freshness words while the existing
+  accessibility label continues to name the action; it adds no content formatter.
 - Why: timing and placement are shared-control source facts; area-owned hover
   controllers would duplicate cancellation and disagree across surfaces.
 - Benefits, costs and effects: one owned cancellable pending task at most,
