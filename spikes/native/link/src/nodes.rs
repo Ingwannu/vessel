@@ -329,17 +329,21 @@ pub(crate) async fn pair(
 
 // One typed list of area lifecycle notices. Consumers add their own Event
 // here, never another connection hook. Keep registrations additive.
-const CONNECTION_NOTICE_COUNT: usize = 1;
+const CONNECTION_NOTICE_COUNT: usize = 2;
 fn connection_notices(
     name: &NodeName,
     node: vessel_proto::NodeId,
 ) -> [crate::Event; CONNECTION_NOTICE_COUNT] {
-    [crate::Event::ModelsConnected(
-        vessel_app_view::models::page::Connection {
+    [
+        crate::Event::ModelsConnected(vessel_app_view::models::page::Connection {
+            machine: vessel_app_view::agent_status::pages::MachineKey::from_book(name.as_str()),
+            node,
+        }),
+        crate::Event::AgentsConnected {
             machine: vessel_app_view::agent_status::pages::MachineKey::from_book(name.as_str()),
             node,
         },
-    )]
+    ]
 }
 impl crate::State {
     /// Existing kept offers arrive first. A later area notice is tied to the
@@ -356,6 +360,24 @@ impl crate::State {
 mod tests {
     use super::{LinkError, book_name, read_book_at};
     use vessel_app_view::Lang;
+
+    #[test]
+    fn agents_use_the_same_actual_connection_fanout_without_duplicate_notices() {
+        let name = "fixture".parse().unwrap();
+        let node = vessel_proto::NodeId::random();
+        let notices = super::connection_notices(&name, node);
+        let agents: Vec<_> = notices
+            .iter()
+            .filter_map(|event| {
+                if let crate::Event::AgentsConnected { machine, node } = event {
+                    Some((machine.as_str(), *node))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        assert_eq!(agents, [("fixture", node)]);
+    }
 
     #[test]
     fn model_notice_preserves_the_actual_connection_identity_in_the_shared_fanout() {

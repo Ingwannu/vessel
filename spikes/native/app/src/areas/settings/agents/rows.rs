@@ -190,7 +190,11 @@ fn indicator(indicator: Indicator, tokens: &Tokens) -> Div {
     };
     let marker: AnyElement = match marker {
         Marker::Dot => vessel_app_kit::dot(colour).size(px(8.0)).into_any_element(),
-        Marker::Spinner => vessel_app_kit::slider::spinner("agent-status-loading", 10.0, colour),
+        Marker::Spinner => vessel_app_kit::loading::activity_indicator(
+            "agent-status-loading",
+            vessel_app_kit::loading::Size::Numeric(vessel_app_kit::loading::Points::TEN),
+            colour,
+        ),
     };
     div()
         .flex_none()

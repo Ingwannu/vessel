@@ -13,6 +13,7 @@ impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
             Event::ModelsConnected(connection) => self.models_connected(&connection),
+            Event::AgentsConnected { machine, node } => self.agents_connected(&machine, node, cx),
             Event::Models(answer) => self.models_answer(answer),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),

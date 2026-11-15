@@ -259,3 +259,36 @@ assertion sites inside the two tests keep the original checks. That red run
 is retained. The narrow check on this corrected commit will run remotely,
 as required by the operator's 10:3x build-only-on-VM rule; no whole A9 gate
 or new UI proof is claimed here.
+
+
+## Registry read connected to the existing page lifecycle
+
+The reader follows `provider-catalog-list.tsx:104–177` and the existing
+node catalogue contract; it does not parse a second public index in the app.
+It reuses the Agents page ticket, bounded Hub and the actual connection
+notice array. Node identity and ticket checks reject late, duplicate and
+book-name-reuse replies. Same-node reconnect invalidates cached reads;
+install output retains its physical owner even after completion clears
+inventory. A registry failure is translated separately from a removal.
+The node's HTTP budget is30seconds, so the client read budget is45seconds;
+ending that wait does not claim the server fetch was cancelled.
+
+[Decision Log]
+- Purpose: expose platform-resolved registry facts without another state store.
+- Existing constraint: one pending operation per machine, four Agents workers;
+  the record-only Add contract must never automatically probe a new provider.
+- Alternatives: a new registry actor/cache or an automatic discovery after Add.
+- Choice: add Catalogue to the existing typed operation and accept its reply
+  only for the retained inventory's actual node. Add will consume its ACK
+  directly; no install, discovery or options probe is implied.
+- Why: book labels can be reused and cached empty data cannot mean fetch success.
+- Impact: four bounded memory-transport regressions and pure state regressions
+  cover fetch intent, no-frame refusals, typed errors, deadline and reconnect.
+  These are new sources awaiting narrow checks; registry/Add UI is still absent.
+
+The existing ProviderRow spinner now consumes the reviewed shared
+`loading::activity_indicator` numeric10 profile (750ms), preserving its
+semantic colour. This replaces the legacy800ms slider profile; no new
+spinner/vector/control is added. Actual first-use phase/captures remain owed.
+The shared button and menu registrations arrived through lead9e18cf0d;
+that merge kept all92 glyph variants and their matching SVG paths.

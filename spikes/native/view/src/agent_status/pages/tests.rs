@@ -4,10 +4,10 @@ use super::*;
 use vessel_proto::agents::{InstallPart, InstallState};
 use vessel_proto::{HarnessKind, TerminalBytes};
 
-fn key(name: &'static str) -> MachineKey {
+pub(super) fn key(name: &'static str) -> MachineKey {
     MachineKey::from_book(name)
 }
-fn inventory(administration: Administration) -> Inventory {
+pub(super) fn inventory(administration: Administration) -> Inventory {
     Inventory {
         node: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         command_shell: super::super::command::CommandShell::Unix,
@@ -17,13 +17,13 @@ fn inventory(administration: Administration) -> Inventory {
         administration,
     }
 }
-fn install() -> InstallAgent {
+pub(super) fn install() -> InstallAgent {
     InstallAgent {
         agent: HarnessKind::Codex,
         part: InstallPart::Adapter,
     }
 }
-fn job() -> InstallJob {
+pub(super) fn job() -> InstallJob {
     InstallJob {
         id: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         agent: HarnessKind::Codex,
@@ -32,7 +32,7 @@ fn job() -> InstallJob {
         started_at: "2026-11-13T00:00:00Z".parse().unwrap(),
     }
 }
-fn output() -> InstallOutput {
+pub(super) fn output() -> InstallOutput {
     InstallOutput {
         from: 0,
         bytes: TerminalBytes::new("output".into()),

@@ -23,6 +23,13 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// A real Models connection invalidates facts even for an equal Fleet.
     ModelsConnected(vessel_app_view::models::page::Connection),
+    /// Agents facts must be read again after this actual connection.
+    AgentsConnected {
+        /// The selected node-book route, not the node's mutable display name.
+        machine: vessel_app_view::agent_status::pages::MachineKey,
+        /// The welcome identity of the connection that answered.
+        node: vessel_proto::NodeId,
+    },
     /// Configured model facts for the original machine and page ticket.
     Models(models::Answer),
     /// An Agents response, including background install progress.

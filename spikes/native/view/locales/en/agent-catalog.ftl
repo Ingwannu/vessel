@@ -41,3 +41,30 @@ agent-catalog-not-read = The provider registry has not been read yet.
 
 # Initial fetch, beside the existing small loader. No values.
 agent-catalog-reading = Reading the provider registry…
+
+# Registry-only retry/refresh control; keep short.
+agent-catalog-refresh = Refresh
+
+# A reused book route was refused before sending a registry read.
+agent-catalog-changed = The machine behind this name changed. Select “{ agent-catalog-refresh }” to read its provider list before trying again.
+
+# The existing Agents hub refused a new worker.
+agent-catalog-busy = Settings is busy. Try again when the current operation finishes.
+
+# Reconnect before retrying the registry read.
+agent-catalog-offline = The machine is not connected. Connect it, then select “{ agent-catalog-refresh }”.
+
+# A definite older peer has no registry method; not empty data.
+agent-catalog-older = Update Vessel on this machine to read the provider registry.
+
+# The node refused registry read or explicit refresh permission.
+agent-catalog-permission = This device does not have permission for this registry action. Ask the machine’s administrator to grant access.
+
+# Only the client wait ended; does not claim cancellation of node fetch.
+agent-catalog-timeout = The machine did not return the provider registry in time. Select “{ agent-catalog-refresh }” to try again.
+
+# Unmodified machine prose is diagnostic detail, not this sentence.
+agent-catalog-read-error = Could not read the provider registry. Select “{ agent-catalog-refresh }” to try again.
+
+# Browser transport is absent, not an empty catalog.
+agent-catalog-no-transport = This browser cannot connect to a machine yet.

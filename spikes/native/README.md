@@ -1287,3 +1287,10 @@ fallback also retains that refusal. A typed refusal has separate EN/KO
 Fluent copy; it does not enable allocation, helpers or `PROJECT_FILE_KEYS`.
 This keeps an unseen setting out of an approval digest while the native display
 is implemented. Existing terminal refusal and head test cases remain intact.
+
+
+The Providers registry read belongs to the existing Agents Hub and per-machine
+Pages, including their one-operation ticket and physical node identity. Its
+connection notice shares `nodes::connection_notices`; do not add another
+reconnect observer or registry cache. Cached/unfetched and failed/empty copies
+remain distinct. Record-only Add must not trigger discovery or probe options.

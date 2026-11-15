@@ -71,6 +71,7 @@ async fn run(
 ) -> Result<(), AgentsError> {
     let answer = match ask {
         Ask::Remove(target) => super::removal::remove(client, target).await?,
+        Ask::Catalogue { node, fetch } => super::catalogue::read(client, node, fetch).await?,
         Ask::List => {
             let harnesses = client.harnesses().await?;
             let (agents, readiness, administration) =

@@ -79,6 +79,11 @@ pub enum Operation {
     Check(HarnessRef),
     /// Running this exact node-offered installer part.
     Install(InstallAgent),
+    /// Reading the platform-resolved registry on this confirmed machine.
+    Catalogue {
+        /// The physical node whose registry is being read.
+        node: vessel_proto::NodeId,
+    },
     /// Forgetting this added definition, never stopping its running sessions.
     Remove {
         /// The node whose definition was confirmed.
@@ -147,8 +152,13 @@ pub enum RemovalFreshness {
 /// State on one machine, independent of whichever machine is visible.
 #[derive(Debug)]
 pub struct Page<E> {
+    /// Physical ownership survives invalidating inventory after an install;
+    /// otherwise its mandatory reconnect would erase the finished job log.
+    node: Option<vessel_proto::NodeId>,
     /// The last successful snapshot, retained while refreshing.
     inventory: Option<Inventory>,
+    /// One copy of the registry, bound to the physical node that supplied it.
+    catalogue: Option<(vessel_proto::NodeId, vessel_proto::agents::Catalogue)>,
     /// The detail card the person opened here.
     selected: Option<HarnessRef>,
     /// One in-flight operation per machine; the node serializes installs too.
@@ -163,7 +173,9 @@ pub struct Page<E> {
 impl<E> Default for Page<E> {
     fn default() -> Self {
         Self {
+            node: None,
             inventory: None,
+            catalogue: None,
             selected: None,
             pending: None,
             issue: None,
@@ -311,6 +323,7 @@ impl<E> Pages<E> {
     }
 }
 
+mod catalogue;
 mod transitions;
 
 #[cfg(test)]

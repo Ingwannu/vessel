@@ -19,6 +19,13 @@ use vessel_proto::agents::{AgentReadiness, InstallAgent, InstallJob, InstallOutp
 pub enum Ask {
     /// Definitions, discovery and cached status; starts no login check.
     List,
+    /// Read this confirmed node's registry through the same bounded hub.
+    Catalogue {
+        /// Identity of the inventory that opened the catalog.
+        node: vessel_proto::NodeId,
+        /// An explicit refresh may fetch the public index.
+        fetch: CatalogueFetch,
+    },
     /// A person explicitly checks one agent and profile.
     Check(vessel_proto::HarnessRef),
     /// The node runs its offered installer, then the link follows output.
@@ -27,7 +34,11 @@ pub enum Ask {
     Remove(Removal),
 }
 
+mod catalogue;
 mod removal;
+#[cfg(not(target_arch = "wasm32"))]
+pub use catalogue::CatalogueError;
+pub use catalogue::Fetch as CatalogueFetch;
 pub use removal::Removal;
 #[cfg(not(target_arch = "wasm32"))]
 pub use removal::RemovalError;
@@ -44,6 +55,13 @@ pub enum Answer {
         /// The exact confirmed definition.
         name: vessel_proto::agents::AgentName,
     },
+    /// The registry belongs to the connection that actually answered.
+    Catalogue {
+        /// The welcome id, checked against the requested machine before I/O.
+        node: vessel_proto::NodeId,
+        /// The node's platform-resolved copy, never an app-parsed public index.
+        catalogue: vessel_proto::agents::Catalogue,
+    },
     /// A fresh snapshot.
     List(Inventory),
     /// The explicit status check's results.
@@ -59,6 +77,10 @@ pub enum Answer {
 /// Failures stay typed until the screen presents them beside the action.
 #[derive(Debug, thiserror::Error)]
 pub enum AgentsError {
+    /// A registry-specific identity, deadline or typed-client failure.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Catalogue(#[from] CatalogueError),
     /// A removal-specific refusal or an explicitly uncertain outcome.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
@@ -93,6 +115,7 @@ impl Ask {
         use vessel_app_view::agent_status::pages::Operation;
         match self {
             Self::List => Operation::Discovery,
+            Self::Catalogue { node, .. } => Operation::Catalogue { node: *node },
             Self::Check(agent) => Operation::Check(agent.clone()),
             Self::Install(install) => Operation::Install(*install),
             Self::Remove(target) => target.operation(),
@@ -117,6 +140,8 @@ impl AgentsError {
         match self {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Removal(error) => error.problem(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Catalogue(_) => Problem::Call,
             Self::Disconnected => Problem::Disconnected,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,
@@ -128,6 +153,28 @@ impl AgentsError {
             Self::Call(vessel_client::CallError::Disconnected) => Problem::Disconnected,
             #[cfg(not(target_arch = "wasm32"))]
             Self::Call(_) => Problem::Call,
+        }
+    }
+}
+
+impl AgentsError {
+    /// Registry reads cannot reuse removal-specific permission/version words.
+    #[must_use]
+    pub fn catalogue_problem(&self) -> vessel_app_view::agent_status::catalogue::Problem {
+        use vessel_app_view::agent_status::catalogue::Problem;
+        match self {
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Catalogue(error) => error.problem(),
+            Self::Disconnected => Problem::Offline,
+            Self::Busy => Problem::Busy,
+            Self::NoTransport => Problem::NoTransport,
+            Self::Output(_) => Problem::Read,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Removal(_) => Problem::Read,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Call(vessel_client::CallError::Disconnected) => Problem::Offline,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Call(_) => Problem::Read,
         }
     }
 }

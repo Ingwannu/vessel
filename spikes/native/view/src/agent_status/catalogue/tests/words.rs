@@ -93,3 +93,73 @@ fn control_and_empty_state_words_are_complete_in_both_languages() {
         assert_eq!(actual, expected);
     }
 }
+
+#[test]
+fn registry_failures_have_whole_instructions_and_reference_tones() {
+    use crate::agent_status::catalogue::Problem;
+    use crate::alert::Variant;
+    let en = Translator::get(ENGLISH).unwrap().agent_catalog();
+    let ko = Translator::get(resolve_language(
+        LanguagePreference::System,
+        Some("ko"),
+        None,
+    ))
+    .unwrap()
+    .agent_catalog();
+    assert_eq!(en.refresh(), "Refresh");
+    assert_eq!(ko.refresh(), "새로 고침");
+    for (problem, english, korean, tone) in [
+        (
+            Problem::NodeChanged,
+            "The machine behind this name changed. Select “Refresh” to read its provider list before trying again.",
+            "이 이름이 가리키는 머신이 변경되었습니다. 다시 시도하기 전에 “새로 고침” 버튼을 선택해 프로바이더 목록을 읽으세요.",
+            Variant::Warning,
+        ),
+        (
+            Problem::Busy,
+            "Settings is busy. Try again when the current operation finishes.",
+            "설정 작업이 진행 중입니다. 현재 작업이 끝난 뒤 다시 시도하세요.",
+            Variant::Warning,
+        ),
+        (
+            Problem::Offline,
+            "The machine is not connected. Connect it, then select “Refresh”.",
+            "머신에 연결되지 않았습니다. 연결한 뒤 “새로 고침” 버튼을 선택하세요.",
+            Variant::Error,
+        ),
+        (
+            Problem::Unsupported,
+            "Update Vessel on this machine to read the provider registry.",
+            "프로바이더 레지스트리를 읽으려면 이 머신의 Vessel을 업데이트하세요.",
+            Variant::Warning,
+        ),
+        (
+            Problem::Permission,
+            "This device does not have permission for this registry action. Ask the machine’s administrator to grant access.",
+            "이 기기에는 이 레지스트리 작업을 수행할 권한이 없습니다. 머신 관리자에게 접근 권한을 요청하세요.",
+            Variant::Warning,
+        ),
+        (
+            Problem::Timeout,
+            "The machine did not return the provider registry in time. Select “Refresh” to try again.",
+            "머신이 제한 시간 안에 프로바이더 레지스트리를 보내지 않았습니다. “새로 고침” 버튼을 선택해 다시 시도하세요.",
+            Variant::Error,
+        ),
+        (
+            Problem::Read,
+            "Could not read the provider registry. Select “Refresh” to try again.",
+            "프로바이더 레지스트리를 읽지 못했습니다. “새로 고침” 버튼을 선택해 다시 시도하세요.",
+            Variant::Error,
+        ),
+        (
+            Problem::NoTransport,
+            "This browser cannot connect to a machine yet.",
+            "이 브라우저에서는 아직 머신에 연결할 수 없습니다.",
+            Variant::Warning,
+        ),
+    ] {
+        assert_eq!(en.problem(problem), english);
+        assert_eq!(ko.problem(problem), korean);
+        assert_eq!(problem.variant(), tone);
+    }
+}

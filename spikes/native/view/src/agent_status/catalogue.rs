@@ -97,6 +97,8 @@ pub fn ranked<'a>(entries: &'a [CatalogueEntry], query: &str) -> Vec<&'a Catalog
     rows.into_iter().map(|(_, entry)| entry).collect()
 }
 
+mod problem;
 #[cfg(test)]
 mod tests;
 mod words;
+pub use problem::Problem;

@@ -1,0 +1,180 @@
+//! A finite registry-only peer; real client admission and ordered read barriers.
+//! The peer refuses every mutation rather than sharing an Ack responder that
+//! could silently accept an accidental install/add during a catalog read.
+use super::*;
+use std::{
+    future::{Future, poll_fn},
+    num::NonZeroUsize,
+    pin::Pin,
+    time::Duration,
+};
+use tokio::task::{AbortHandle, JoinHandle};
+use vessel_client::ClientConfig;
+use vessel_proto::{
+    ClientFrame, ClientInfo, NodeInfo, NodeState, Outcome, ProtocolRange, Reply, ServerFrame,
+    Welcome, WireError, agents::Catalogue,
+};
+use vessel_rpc::{FrameTransport, memory::MemoryTransport};
+
+const PHASE: Duration = Duration::from_secs(5);
+const OUTER: Duration = CATALOGUE_TIMEOUT.saturating_add(PHASE.saturating_mul(6));
+const CAPACITY: usize = 16;
+pub(super) const DIAGNOSTIC: &str = "registry fixture diagnostic";
+
+pub(super) async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
+    within(name, PHASE, future).await
+}
+pub(super) async fn safety<T>(future: impl Future<Output = T>) -> T {
+    within("registry test safety net", OUTER, future).await
+}
+async fn within<T>(name: &str, budget: Duration, future: impl Future<Output = T>) -> T {
+    tokio::time::timeout(budget, future)
+        .await
+        .unwrap_or_else(|_| panic!("{name} exceeded {budget:?}"))
+}
+pub(super) struct Abort(AbortHandle);
+impl Abort {
+    pub(super) fn of<T>(task: &JoinHandle<T>) -> Self {
+        Self(task.abort_handle())
+    }
+}
+impl Drop for Abort {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum Mode {
+    Catalogue,
+    Refuse(ErrorCode),
+    Wait,
+}
+pub(super) struct Peer {
+    pub(super) client: NodeClient,
+    pub(super) seen: mpsc::Receiver<Call>,
+    _abort: Abort,
+}
+async fn receive(transport: &mut MemoryTransport) -> Option<ClientFrame> {
+    // This idle read spans intentional product time. Its budget cannot be
+    // shorter than the test's advance or it would fake a disconnect.
+    within(
+        "registry peer next frame",
+        OUTER,
+        poll_fn(|cx| Pin::new(&mut *transport).poll_next(cx)),
+    )
+    .await
+    .map(|raw| serde_json::from_str(&raw.unwrap()).unwrap())
+}
+async fn send(transport: &mut MemoryTransport, frame: ServerFrame) {
+    phase(
+        "registry peer writable",
+        poll_fn(|cx| Pin::new(&mut *transport).poll_ready(cx)),
+    )
+    .await
+    .unwrap();
+    Pin::new(&mut *transport)
+        .start_send(serde_json::to_string(&frame).unwrap())
+        .unwrap();
+    phase(
+        "registry peer flush",
+        poll_fn(|cx| Pin::new(&mut *transport).poll_flush(cx)),
+    )
+    .await
+    .unwrap();
+}
+fn node() -> NodeInfo {
+    NodeInfo {
+        id: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
+        name: "registry-fixture".into(),
+        hostname: "disposable".into(),
+        os: "linux".into(),
+        arch: "x86_64".into(),
+        version: "0".into(),
+        protocol: ProtocolRange::CURRENT,
+        started_at: chrono::DateTime::UNIX_EPOCH,
+        state: NodeState::Serving,
+        public_key: None,
+        timezone: None,
+    }
+}
+async fn serve(
+    mut remote: MemoryTransport,
+    node: NodeInfo,
+    protocol: ProtocolVersion,
+    mode: Mode,
+    notice: mpsc::Sender<Call>,
+) {
+    assert!(matches!(
+        receive(&mut remote).await,
+        Some(ClientFrame::Hello(_))
+    ));
+    send(
+        &mut remote,
+        ServerFrame::Welcome(Welcome {
+            protocol,
+            node: node.clone(),
+        }),
+    )
+    .await;
+    while let Some(frame) = receive(&mut remote).await {
+        let ClientFrame::Request { id, call } = frame else {
+            continue;
+        };
+        phase("registry peer observation", notice.send(call.clone()))
+            .await
+            .unwrap();
+        let outcome = match call {
+            Call::NodeInfo(_) => Outcome::Ok(Reply::NodeInfo(node.clone())),
+            Call::GetCatalogue(_) => match mode {
+                Mode::Catalogue => Outcome::Ok(Reply::GetCatalogue(Catalogue {
+                    fetched_at: Some(chrono::DateTime::UNIX_EPOCH),
+                    skipped: 1,
+                    ..Catalogue::default()
+                })),
+                Mode::Refuse(code) => Outcome::Err(WireError::new(code, DIAGNOSTIC)),
+                Mode::Wait => continue,
+            },
+            other => panic!("unexpected registry fixture call: {other:?}"),
+        };
+        send(&mut remote, ServerFrame::Response { id, outcome }).await;
+    }
+}
+impl Peer {
+    pub(super) async fn new(protocol: ProtocolVersion, mode: Mode) -> Self {
+        let (local, remote) = vessel_rpc::memory::pair(NonZeroUsize::new(CAPACITY).unwrap());
+
+        let (notice, seen) = mpsc::channel(CAPACITY);
+        let task = tokio::spawn(serve(remote, node(), protocol, mode, notice));
+        // Retain cleanup before the first handshake await. Even a setup
+        // failure or outer timeout cannot detach this peer indefinitely.
+        let abort = Abort::of(&task);
+        drop(task);
+        let client = phase(
+            "registry client handshake",
+            NodeClient::over(
+                local,
+                ClientInfo {
+                    name: "registry-tests".into(),
+                    version: "0".into(),
+                },
+                &ClientConfig::default(),
+            ),
+        )
+        .await
+        .unwrap();
+        Self {
+            client,
+            seen,
+            _abort: abort,
+        }
+    }
+    pub(super) async fn barrier(&self) {
+        let _node = phase(
+            "registry ordered read barrier",
+            self.client.call(vessel_proto::GetNode {}),
+        )
+        .await
+        .unwrap();
+    }
+}

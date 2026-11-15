@@ -52,6 +52,25 @@ impl AgentSettings {
     }
 }
 impl Shell {
+    pub(crate) fn agents_connected(
+        &mut self,
+        machine: &MachineKey,
+        node: vessel_proto::NodeId,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &mut self.areas.settings.agents;
+        if state.pages.connected(machine, node) && state.machine.as_ref() == Some(machine) {
+            state.defaults.close();
+            state.default_id = None;
+            state.defaults_problem = None;
+            state.refused = None;
+            state.tips = vessel_app_kit::tooltip::Tooltips::new();
+            // Queue through the actor even before its later Fleet publication.
+            // The existing page gate suppresses duplicates and hidden sections.
+            self.agent_load(false, cx);
+        }
+    }
+
     // A queued mouse event can belong to the previous painted machine.
     // Its control must never redirect an install or a check to the new one.
     pub(super) fn agent_context(&self, shown: Option<&MachineKey>) -> bool {
@@ -164,6 +183,9 @@ impl Shell {
                         self.agent_load(true, cx);
                     }
                 }
+            }
+            Ok(Answer::Catalogue { node, catalogue }) => {
+                let _accepted = pages.catalogue_loaded(machine, request, node, catalogue);
             }
             Ok(Answer::List(inventory)) => pages.loaded(machine, request, inventory),
             Ok(Answer::Checked(ready)) => pages.checked(machine, request, ready),

@@ -17,3 +17,20 @@ impl<'a> AgentCatalog<'a> {
         }
     }
 }
+
+impl<'a> AgentCatalog<'a> {
+    /// Whole registry-read instructions, independent from removal errors.
+    #[must_use]
+    pub fn problem(self, problem: super::Problem) -> &'a str {
+        match problem {
+            super::Problem::NodeChanged => self.changed(),
+            super::Problem::Busy => self.busy(),
+            super::Problem::Offline => self.offline(),
+            super::Problem::Unsupported => self.older(),
+            super::Problem::Permission => self.permission(),
+            super::Problem::Timeout => self.timeout(),
+            super::Problem::Read => self.read_error(),
+            super::Problem::NoTransport => self.no_transport(),
+        }
+    }
+}

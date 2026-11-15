@@ -41,3 +41,30 @@ agent-catalog-not-read = 아직 프로바이더 레지스트리를 읽지 않았
 
 # 기존 작은 로더 옆에 표시하는 첫 읽기 상태. 값 없음.
 agent-catalog-reading = 프로바이더 레지스트리를 읽는 중…
+
+# Registry-only retry/refresh control; keep short.
+agent-catalog-refresh = 새로 고침
+
+# A reused book route was refused before sending a registry read.
+agent-catalog-changed = 이 이름이 가리키는 머신이 변경되었습니다. 다시 시도하기 전에 “{ agent-catalog-refresh }” 버튼을 선택해 프로바이더 목록을 읽으세요.
+
+# The existing Agents hub refused a new worker.
+agent-catalog-busy = 설정 작업이 진행 중입니다. 현재 작업이 끝난 뒤 다시 시도하세요.
+
+# Reconnect before retrying the registry read.
+agent-catalog-offline = 머신에 연결되지 않았습니다. 연결한 뒤 “{ agent-catalog-refresh }” 버튼을 선택하세요.
+
+# A definite older peer has no registry method; not empty data.
+agent-catalog-older = 프로바이더 레지스트리를 읽으려면 이 머신의 Vessel을 업데이트하세요.
+
+# The node refused registry read or explicit refresh permission.
+agent-catalog-permission = 이 기기에는 이 레지스트리 작업을 수행할 권한이 없습니다. 머신 관리자에게 접근 권한을 요청하세요.
+
+# Only the client wait ended; does not claim cancellation of node fetch.
+agent-catalog-timeout = 머신이 제한 시간 안에 프로바이더 레지스트리를 보내지 않았습니다. “{ agent-catalog-refresh }” 버튼을 선택해 다시 시도하세요.
+
+# Unmodified machine prose is diagnostic detail, not this sentence.
+agent-catalog-read-error = 프로바이더 레지스트리를 읽지 못했습니다. “{ agent-catalog-refresh }” 버튼을 선택해 다시 시도하세요.
+
+# Browser transport is absent, not an empty catalog.
+agent-catalog-no-transport = 이 브라우저에서는 아직 머신에 연결할 수 없습니다.
