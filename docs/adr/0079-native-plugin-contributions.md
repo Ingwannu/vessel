@@ -129,6 +129,13 @@ until remove or node restart. Helper output is untrusted: core errors carry
 typed causes and safe text; raw helper diagnostics are not leaked to scoped
 callers. Never claim arbitrary helper stdout can be proven secret-free.
 
+JSON errors at plugin decoding edges retain a concrete sealed parser cause.
+Its Debug/Display expose only category and location; its source chain ends
+before serde's input-bearing unknown-field/variant text. A fixed outer error
+alone is insufficient because tracing and CLI reporters may walk sources.
+Raw serde errors stay inside the decoding edge and must be sealed before
+being returned or emitted as diagnostics.
+
 ### Node-side helper protocol and contribution API
 
 The private helper protocol has its own negotiated version, independent of
