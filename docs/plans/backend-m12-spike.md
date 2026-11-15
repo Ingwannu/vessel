@@ -509,29 +509,27 @@ described here and not kept in the repository):
   fast mode (outline off, filled violet on); in the middle the step's
   word at 14/600 over the model's name at 12 with a chevron (a hover
   background; pressing it opens the model's list); at the right a reset
-  (the agent's default); under them a slider of the agent's levels. The
-  card is 256 wide, 12 in, round 14; the slider's track is 24 tall and
-  round with a dot per step 13 in from its ends, its thumb a white disc
-  28 across (edged on a light card).
+  (the agent's default); under them a slider of the agent's levels.
+  (2026-11-14: the card and slider now follow the Codex app's values:
+  254 wide, 4 in; see `backend-m12-effort-slider.md`.)
 - The slider's steps are the agent's `thought_level` values in its
   order, without "default"; the last step is the agent's own "ultra"
   switch when it has one (Claude Code's `ultracode`: choosing it sends
   the highest level and the switch on, a lower step sends the switch
   off) or its own highest level (Codex's Ultra). The switches folded in
-  are named by id in a typed table (`view::effort::KNOWN`), read off the
+  are named by id in a typed table (`view::effort::ROLES`), read off the
   preview node through the app's log of each probe: Claude Code sends
   `effort`, `fast` (on|off) and `ultracode` (on|off); Codex sends
   `reasoning_effort` (low to ultra) and `fast-mode` (off|on). An agent
   the table does not know gets its levels only; an agent with no levels
   (OpenCode) has no card: its control opens the model's list.
-- Colours: the captures show two points, "High" (a muted fill) and the
-  top step (a blue-to-violet gradient with sparkles, its word violet).
-  Inferred between them: the lower half of the steps below the top is
-  the muted text colour, the upper half moves toward the violet (two
-  thirds of the way just below the top). Fast mode makes the fill move
-  (a sheen crossing it, the sparkles quicker); with it off only the top
-  step's sparkles drift. Motion is frame-driven and stops when the card
-  closes.
+- Colours and motion (superseded 2026-11-14 by the Codex app's model
+  card, `backend-m12-effort-slider.md`): the fill is the accent at every
+  level; the top stop (`Effort::maximum`) turns the word purple, reveals
+  a moving purple field from the thumb with a burst, and fades the
+  stops; Fast streams white dots back along the fill and slides the
+  filled stops away. Logic and motion in `view::slider`, drawing in
+  `kit::slider`; frames only while something moves.
 - Every option the control does not drive (Claude Code's agent, Codex's
   collaboration mode, anything an agent sends) is a row at the top of
   the model's list, where the reference has its one switch: an on/off
@@ -550,6 +548,119 @@ reset, `drives`), a slider control in the page's kit with the same
 values and keyboard (arrows, Home, End; one choice per drag), the card
 anchored above the control, the remaining options at the top of the
 model combobox, and the ladder's three steps with the same floors.
+
+## Motion: one set of tokens, one held flag (0.0.0.0.15)
+
+The owner's word 39 (2026-11-14): quick, fine transitions on every change
+a person causes; Settings › Appearance › Animations on or off; off, the
+system's reduced motion and a software renderer give the end state at
+once; nothing animates continuously.
+
+- Tokens: `vessel_app_kit::motion` (`QUICK` 150 ms for a control's own
+  change, `STANDARD` 300 ms for a surface, `CURVE`
+  `cubic-bezier(.23, 1, .32, 1)`, `ease`, `transition(length)`, `held`).
+  Every track reads its lengths and curve there; the effort slider's
+  model in `view` restates them and an app test pins the two together.
+- One flag: `app::motion` keeps each reason motion is held (the system's
+  preference, a software renderer, the Animations setting through
+  `motion::animations`) and sets GPUI's `App::reduce_motion` to their
+  "or". GPUI's `with_animation` draws a one-shot transition's end at
+  once under it; hand-driven motion asks `motion::held`.
+- The caret: gpui-base blinked it every 500 ms whatever the flag, and
+  each blink redrew the window (31 % of a core at 1280 × 800, 62 % at
+  1920 × 1200 on a software renderer, 0.0.0.0.14). gpui-base is now a
+  patched copy (`spikes/release/patches/README.md`, change 4) whose
+  caret is steady while the flag is set. Measures in
+  `backend-m12-effort-slider.md`, "Known costs".
+
+## Resizable side panels (the owner's word 29, 0.0.0.0.16)
+
+Both side panels, the sidebar at the left and the code panel at the
+right, are resized by dragging their inner edge, after Paseo's
+`sidebar-resize-handle.tsx` and its layout files.
+
+- One kit control (`vessel_app_kit::resize`): a 10-point strip
+  straddling the edge with the column-resize pointer; after 100 ms of
+  hovering a 1-point line in the ink at 25 %; a press starts the drag and
+  a window-wide shield (a `popup::layer`) holds the resize pointer, takes
+  every move and the release, and lets nothing under it be hovered or its
+  text selected; a double-click returns to the default (an addition:
+  Paseo has none).
+- Widths (`vessel_app_view::panels`, under test): the asked width kept
+  between the panel's least and most and never leaving what is beside it
+  less than its own least; the least wins when the window is too narrow.
+  Sidebar: 200 to 600, the centre keeps 400 (Paseo's), default 264
+  (Paseo's 320; the shell was laid out at 264). Code panel: 320 to 1600,
+  the conversation keeps 480, default 440 (Paseo's Explorer 240 / 360 /
+  320; the panel shows a diff inside it).
+- Kept in the preferences' layout (`sidebar_width`, `panel_width`, whole
+  points, `None` for the default), written once when the drag ends, not
+  per move (`app::areas::edge`). Settings' own list stands in the
+  sidebar's place at the same width.
+- Below the phone's width the sidebar is a sheet and the code panel the
+  whole screen, as before: no handle.
+
+### A narrow window with both panels (0.0.0.0.17)
+
+The 0.0.0.0.16 smoke test: at 800 × 600 with the code panel open, the
+sidebar at its default 264 left the conversation about 190 points, and
+dragged to 360 about 110 (one character a line, the composer unusable).
+Each panel kept its own least (sidebar 200, code panel 320) and was sized
+alone: the sidebar against the window less 400, the code panel against
+its row less 480, so together they took more than the window held.
+
+What Paseo does (`packages/app/src`):
+
+- `components/desktop-sidebar-layout.ts`: the sidebar is drawn beside
+  the content only when `viewportWidth - sidebarWidth >=
+  contentMinimumWidth` (`canDesktopAppSidebarShare`), and the content's
+  minimum is `EXPLORER_WORKSPACE_MIN_WIDTH` while the explorer is open
+  (`resolveDesktopAppContentMinimum`); a panel is never wider than
+  `viewportWidth - MIN_DESKTOP_CENTER_WIDTH` (400).
+- `components/explorer-sidebar-layout.ts`: the explorer is kept between
+  240 and `containerWidth - MIN_WORKSPACE_BODY_WIDTH` (360), and
+  `EXPLORER_WORKSPACE_MIN_WIDTH = MIN_EXPLORER_SIDEBAR_WIDTH +
+  MIN_WORKSPACE_BODY_WIDTH`.
+- `screens/workspace/workspace-screen.tsx:3635`: `presentation={isMobile
+  ? "overlay" : "dock"}`: on the compact layout the explorer is drawn
+  over the workspace (`MobilePanelOverlay`), not beside it.
+
+The change:
+
+1. The panels give way before the conversation does: the sidebar's room
+   counts the code panel's least when the panel is beside the
+   conversation (what lies beside the sidebar is then the panel's least
+   and the conversation's), so the sidebar shrinks to its least before
+   the conversation goes under 480; the code panel is then held to its
+   row less 480, as today.
+2. Under the width where the panel's least and the conversation's least
+   no longer fit in the row beside the sidebar at its least, the code
+   panel is drawn over the conversation at the right (its stored width,
+   held to the row), not beside it, as Paseo's explorer on its compact
+   layout; the conversation keeps the whole row under it.
+3. Stored widths are not rewritten: they apply again when the window
+   grows.
+
+Done in `e60165f3` (`view::panels::code_placement`, `sidebar_leaves`,
+`over_width`, `Limits::width_leaving`; the sidebar's frame and the code
+panel's frame in the app). Evidence: the rule's unit test
+(`a_narrow_window_keeps_the_conversation_s_least`, with the smoke test's
+numbers) and captures with both panels stored at their widest (sidebar
+600, code panel 1600), both themes:
+
+- 800 × 600: the panel over the conversation, the sidebar down to 308
+  (before: the conversation about 70 points wide between them).
+- 1024 × 700: both beside the conversation, the sidebar at 212, the
+  conversation at its 480, the panel at its least 320.
+
+Over the conversation (0.0.0.0.18, the coordinator's note on the 800 ×
+600 capture: nothing said a conversation was underneath): Paseo's compact
+panel has no title or back button of its own; it dims what it covers
+(`mobile-panels/presentation.tsx`: a backdrop at black 50 %) and a press
+on that backdrop returns to the agent (`onPress={showMobileAgent}`). The
+same here: the conversation under the panel is dimmed and a press on it
+closes the panel. A panel stored as wide as the row covers it all, as
+Paseo's full-width panel does; its close button is then the way back.
 
 ## Packages installed on the machine
 

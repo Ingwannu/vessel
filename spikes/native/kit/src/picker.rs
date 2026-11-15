@@ -31,14 +31,14 @@
 //! - Cost: no type-ahead without the search row (Paseo has none either),
 //!   no favourites (GOAT's), no animation.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
     Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent,
     MouseButton, Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point,
-    px, rgb, rgba, svg,
+    px, rgba, svg,
 };
 
 use crate::assets::Glyph;
@@ -47,6 +47,11 @@ use crate::fonts::Type;
 use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
+
+mod rows;
+mod send;
+use rows::{note_row, rows_list, title_row};
+pub use send::{SendKind, send_button};
 
 /// Paseo's compact width: below it pickers are sheets and controls are
 /// touch-sized (`constants/layout.ts`).
@@ -129,6 +134,8 @@ pub fn pill(
 pub struct PillParts {
     /// The glyph before the label.
     pub leading: Option<Glyph>,
+    /// An official embedded agent mark, replacing the generic leading glyph.
+    pub agent_mark: Option<crate::agent_mark::Artwork>,
     /// A project's mark before the label, in place of a glyph (its
     /// initial on a tile: [`initial_tile`]).
     pub initial: Option<SharedString>,
@@ -188,13 +195,33 @@ pub fn pill_parts(
         .cursor_pointer()
         .type_(Type::Body)
         .text_color(parts.tint.unwrap_or(neutral.foreground_muted))
-        .children(parts.leading.map(|leading| {
-            glyph(
-                leading,
-                glyph_size,
-                parts.tint.unwrap_or(neutral.foreground_muted),
-            )
-            .flex_shrink_0()
+        .children(
+            parts
+                .leading
+                .filter(|_| parts.agent_mark.is_none())
+                .map(|leading| {
+                    glyph(
+                        leading,
+                        glyph_size,
+                        parts.tint.unwrap_or(neutral.foreground_muted),
+                    )
+                    .flex_shrink_0()
+                }),
+        )
+        .children(parts.agent_mark.map(|art| {
+            let size = if touch {
+                crate::agent_mark::Size::Twenty
+            } else {
+                crate::agent_mark::Size::Sixteen
+            };
+            // The touch pill's existing 44-point height can hold the
+            // OpenCode minimum plus quiet zone; the 28-point pill cannot.
+            let space = if touch {
+                crate::agent_mark::Space::Lockup
+            } else {
+                crate::agent_mark::Space::Compact
+            };
+            crate::agent_mark::agent_mark(Some(art), size, space, tokens)
         }))
         .children(
             parts
@@ -248,56 +275,18 @@ pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
     .into_any_element()
 }
 
-/// What the round button beside the composer does.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SendKind {
-    /// Send the text (an arrow up, on the accent).
-    Send,
-    /// Stop the running turn (a square, on red).
-    Stop,
-}
-
-/// Paseo's send button: a circle 28 across (44 on touch), the accent with
-/// a white arrow, half-faded while there is nothing to send; while a turn
-/// runs and nothing is typed, a red circle with a white square.
-#[must_use]
-pub fn send_button(
-    id: impl Into<ElementId>,
-    kind: SendKind,
-    enabled: bool,
-    touch: bool,
-    tokens: &Tokens,
-) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    // Paseo's stop is `palette.red[600]`, the same in both themes.
-    let (fill, mark) = match kind {
-        SendKind::Send => (neutral.accent, Glyph::ArrowUp),
-        SendKind::Stop => (rgb(0x00dc_2626).into(), Glyph::Stop),
-    };
-    let size = if touch { 44.0 } else { 28.0 };
-    div()
-        .id(id)
-        .flex()
-        .items_center()
-        .justify_center()
-        .flex_shrink_0()
-        .size(px(size))
-        .rounded_full()
-        .bg(fill)
-        .when(!enabled, |button| button.opacity(0.5))
-        .when(enabled, Styled::cursor_pointer)
-        .child(glyph(
-            mark,
-            if touch { 20.0 } else { 16.0 },
-            neutral.accent_foreground,
-        ))
-}
-
 /// What leads a row.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Leading {
     /// A glyph, muted.
     Glyph(Glyph),
+    /// A glyph in the foreground: a permissions mode's mark (Paseo's
+    /// `ModeComboboxOption` draws its `DensityIcon` with `color="foreground"`).
+    Mark(Glyph),
+    /// A 14-point leading glyph, as Paseo’s branch-switcher renderOption.
+    SmallGlyph(Glyph),
+    /// An official agent mark, or the generic bot when unknown.
+    AgentMark(Option<crate::agent_mark::Artwork>),
     /// A state's dot (a machine).
     Dot(Hsla),
     /// A project's mark: its initial on a tile ([`initial_tile`]).
@@ -359,6 +348,10 @@ pub struct ComboRow {
     pub switch: Option<bool>,
     /// A line under the label, muted, that may wrap (what an option is).
     pub note: Option<SharedString>,
+    /// The whole label, when `label` is a shortened form of it (a branch
+    /// cut in its middle): shown in a code-face tooltip on hover, as the
+    /// kit's tooltip shows one (nothing on touch).
+    pub tooltip: Option<SharedString>,
 }
 
 impl ComboRow {
@@ -376,6 +369,7 @@ impl ComboRow {
             heading: None,
             switch: None,
             note: None,
+            tooltip: None,
         }
     }
 }
@@ -392,6 +386,10 @@ pub struct ComboHeader {
     pub search: bool,
     /// Shown when no row is left (the search matched nothing).
     pub empty: SharedString,
+    /// A muted line above the rows, that may wrap: what to know about the
+    /// list as a whole (it could not be refreshed, so it may be out of
+    /// date). Paseo has none; `None` for none.
+    pub note: Option<SharedString>,
     /// Which side of its trigger the list opens on.
     pub side: Side,
 }
@@ -415,10 +413,35 @@ pub enum Side {
 pub struct ComboboxState {
     open: bool,
     highlighted: Option<usize>,
+    /// The highlighted row's label: the highlight follows its row when rows
+    /// are added or removed above it while the list is open (an agent's
+    /// list refreshed behind it), rather than staying on an index.
+    highlighted_label: Option<SharedString>,
     focus: FocusHandle,
     search: TextField,
+    header_leading: Option<Leading>,
     /// Where its trigger was last drawn, in the window.
     anchor: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// Its rows' tooltips ([`ComboRow::tooltip`]) and where each row was
+    /// drawn, kept across frames so a hovered row's tooltip finds it.
+    tips: crate::Tooltips,
+    tip_places: RowPlaces,
+}
+
+/// Each row's tooltip place, by row, the same one frame after frame (a
+/// tooltip shown for a row compares its place by identity).
+#[derive(Debug, Default)]
+struct RowPlaces(RefCell<Vec<crate::tooltip::Place>>);
+
+impl RowPlaces {
+    /// Row `index`'s place, made the first time it is asked for.
+    fn get(&self, index: usize) -> crate::tooltip::Place {
+        let mut places = self.0.borrow_mut();
+        while places.len() <= index {
+            places.push(crate::tooltip::Place::default());
+        }
+        places.get(index).cloned().unwrap_or_default()
+    }
 }
 
 impl ComboboxState {
@@ -434,10 +457,21 @@ impl ComboboxState {
         Self {
             open: false,
             highlighted: None,
+            highlighted_label: None,
             focus: cx.focus_handle(),
             search,
+            header_leading: None,
             anchor: Rc::new(Cell::new(None)),
+            tips: crate::Tooltips::new(),
+            tip_places: RowPlaces::default(),
         }
+    }
+
+    /// Replace the provider header's leading artwork as its list changes.
+    /// Kept in control state so existing header literals and callers retain
+    /// their no-artwork behaviour; no node identity enters the kit.
+    pub fn set_header_leading(&mut self, leading: Option<Leading>) {
+        self.header_leading = leading;
     }
 
     /// Open it, its search emptied and holding the keys, showing `search`
@@ -445,6 +479,7 @@ impl ComboboxState {
     pub fn open(&mut self, search: Option<&str>, window: &mut Window, cx: &mut App) {
         self.open = true;
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         if let Some(placeholder) = search {
             self.search.set_placeholder(placeholder, window, cx);
@@ -454,10 +489,11 @@ impl ComboboxState {
         }
     }
 
-    /// Close it.
-    pub const fn close(&mut self) {
+    /// Close it (no longer `const`: it drops the highlighted row's label).
+    pub fn close(&mut self) {
         self.open = false;
         self.highlighted = None;
+        self.highlighted_label = None;
     }
 
     /// Whether it is open.
@@ -476,6 +512,7 @@ impl ComboboxState {
     /// back, a row's own list).
     pub fn reset_query(&mut self, placeholder: &str, window: &mut Window, cx: &mut App) {
         self.highlighted = None;
+        self.highlighted_label = None;
         self.search.clear(window, cx);
         self.search.set_placeholder(placeholder, window, cx);
         self.search.focus(window, cx);
@@ -499,7 +536,7 @@ impl ComboboxState {
         if count == 0 {
             return;
         }
-        let mut at = self.highlighted;
+        let mut at = self.highlight_in(rows);
         for _ in 0..count {
             let next = match (at, forward) {
                 (None, true) => 0,
@@ -508,11 +545,37 @@ impl ComboboxState {
                 (Some(index), false) => index.saturating_sub(1),
             };
             at = Some(next);
-            if rows.get(next).is_some_and(|row| !row.disabled) {
+            if let Some(row) = rows.get(next).filter(|row| !row.disabled) {
                 self.highlighted = at;
+                self.highlighted_label = Some(row.label.clone());
                 return;
             }
         }
+    }
+
+    fn choice(&self, rows: &[ComboRow]) -> Option<usize> {
+        // A query/probe can replace rows after the highlight was set.
+        // Recheck availability at activation rather than trusting its index.
+        self.highlight_in(rows)
+            .filter(|index| rows.get(*index).is_some_and(|row| !row.disabled))
+    }
+
+    /// The highlighted row among `rows`: at its index while the row there
+    /// is the one highlighted, else the row of that label nearest to it
+    /// (rows were added or removed above it); none when it is gone.
+    fn highlight_in(&self, rows: &[ComboRow]) -> Option<usize> {
+        let index = self.highlighted?;
+        let Some(label) = &self.highlighted_label else {
+            return Some(index);
+        };
+        if rows.get(index).is_some_and(|row| &row.label == label) {
+            return Some(index);
+        }
+        rows.iter()
+            .enumerate()
+            .filter(|(_, row)| &row.label == label)
+            .min_by_key(|(at, _)| at.abs_diff(index))
+            .map(|(at, _)| at)
     }
 }
 
@@ -556,6 +619,7 @@ pub fn combobox<V: 'static>(
     window: &Window,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    let list_id: ElementId = id.into();
     if !state.open {
         return None;
     }
@@ -570,10 +634,12 @@ pub fn combobox<V: 'static>(
     });
 
     let mut panel = div()
-        .id(id.into())
+        .id(list_id.clone())
         .track_focus(&state.focus)
         .capture_key_down(on_key)
+        // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
+        .cursor_default()
         .flex()
         .flex_col()
         .bg(surfaces.surface0)
@@ -599,49 +665,86 @@ pub fn combobox<V: 'static>(
             .on_mouse_down_out(on_outside)
     };
     if let Some(title) = &header.title {
-        panel = panel.child(title_row(title.clone(), header.back, handlers, tokens, cx));
+        panel = panel.child(title_row(
+            title.clone(),
+            header.back,
+            state.header_leading.clone(),
+            handlers,
+            tokens,
+            cx,
+        ));
     }
     if header.search {
-        panel = panel.child(
-            div()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(8.0))
-                .px(px(12.0))
-                .py(px(12.0))
-                .bg(surfaces.surface1)
-                .border_b_1()
-                .border_color(neutral.border)
-                .child(glyph(Glyph::Search, 14.0, neutral.foreground_muted))
-                .child(div().flex_1().child(state.search.bare(tokens, cx))),
-        );
+        panel = panel.child(search_row(state, tokens, cx));
+    }
+    if let Some(note) = &header.note {
+        panel = panel.child(note_row(note.clone(), tokens));
     }
     panel = panel.child(rows_list(
         header, rows, state, handlers, compact, tokens, cx,
     ));
 
-    let element = if compact {
+    // Word 39: the list arrives as Paseo's popover does (opacity and a
+    // small rise, `popup::appear`); a phone's sheet over the surface
+    // length. It leaves at once, as Paseo's desktop popovers do.
+    let panel = popup::appear(
+        ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
+        panel,
+        if compact {
+            crate::motion::STANDARD
+        } else {
+            crate::motion::QUICK
+        },
+    );
+    let element = placed(panel, compact, header.side, anchor, get, window, cx);
+    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
+    // from a row of the features sheet.
+    // A row's tooltip draws over the list (the tooltip's own priority).
+    let tips = state.tips.render(tokens);
+    Some(
+        div()
+            .child(deferred(element).with_priority(3))
+            .children(tips)
+            .into_any_element(),
+    )
+}
+
+/// Where the list is drawn: below the compact width a sheet from the
+/// bottom over the dimmed page (a press on the dim closes it); wider, at
+/// its trigger on the caller's side.
+fn placed<V: 'static>(
+    panel: impl IntoElement,
+    compact: bool,
+    side: Side,
+    anchor: Option<Bounds<Pixels>>,
+    get: fn(&mut V) -> &mut ComboboxState,
+    window: &Window,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    if compact {
         // A sheet: the page dimmed behind, the list from the bottom.
-        let size = window.viewport_size();
+        let viewport = window.viewport_size();
         let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
             get(view).close();
             cx.notify();
         });
-        anchored().position(point(px(0.0), px(0.0))).child(
-            div()
-                .w(size.width)
-                .h(size.height)
-                .flex()
-                .flex_col()
-                .justify_end()
-                .bg(rgba(0x0000_0073))
-                .on_mouse_down(MouseButton::Left, on_scrim)
-                .child(panel),
-        )
+        anchored()
+            .position(point(px(0.0), px(0.0)))
+            .child(
+                div()
+                    .w(viewport.width)
+                    .h(viewport.height)
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .bg(rgba(0x0000_0073))
+                    .on_mouse_down(MouseButton::Left, on_scrim)
+                    .child(panel),
+            )
+            .into_any_element()
     } else {
         // Paseo's `offset(5)` from the trigger, on the caller's side.
-        let (at, corner, offset) = match (header.side, anchor) {
+        let (at, corner, offset) = match (side, anchor) {
             // Not drawn yet (the first frame): near the window's middle.
             (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
             (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
@@ -653,10 +756,23 @@ pub fn combobox<V: 'static>(
             .anchor(corner)
             .snap_to_window_with_margin(px(EDGE))
             .child(panel)
-    };
-    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
-    // from a row of the features sheet.
-    Some(deferred(element).with_priority(3).into_any_element())
+            .into_any_element()
+    }
+}
+
+fn search_row<V: 'static>(state: &ComboboxState, tokens: &Tokens, cx: &mut Context<'_, V>) -> Div {
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .px(px(12.0))
+        .py(px(12.0))
+        .bg(Surfaces::of(tokens).surface1)
+        .border_b_1()
+        .border_color(tokens.neutral.border)
+        .child(glyph(Glyph::Search, 14.0, tokens.neutral.foreground_muted))
+        .child(div().flex_1().child(state.search.bare(tokens, cx)))
 }
 
 /// Paseo's `size` middleware: a list is at most 400 tall and never taller
@@ -694,7 +810,7 @@ fn key_handler<V: 'static>(
             "down" => list.step(&key_rows, true),
             "up" => list.step(&key_rows, false),
             "enter" => {
-                if let Some(index) = list.highlighted {
+                if let Some(index) = list.choice(&key_rows) {
                     chose(view, index, window, cx);
                 }
             }
@@ -710,245 +826,6 @@ fn key_handler<V: 'static>(
     })
 }
 
-/// The rows, under their headings, or the words for none.
-fn rows_list<V: 'static>(
-    header: &ComboHeader,
-    rows: &[ComboRow],
-    state: &ComboboxState,
-    handlers: &ComboHandlers<V>,
-    compact: bool,
-    tokens: &Tokens,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    // The rows scroll inside the panel's height; the title and the search
-    // row above them stay (`min_h_0` lets the list be shorter than its rows).
-    let mut list = div()
-        .id("combobox-rows")
-        .flex_shrink(1.0)
-        .min_h_0()
-        .flex()
-        .flex_col()
-        .py(px(4.0))
-        .overflow_y_scroll();
-    if rows.is_empty() {
-        list = list.child(
-            div()
-                .px(px(12.0))
-                .py(px(8.0))
-                .text_color(neutral.foreground_muted)
-                .child(header.empty.clone()),
-        );
-    }
-    for (index, row) in rows.iter().enumerate() {
-        if let Some(heading) = &row.heading {
-            list = list.child(
-                div()
-                    .px(px(12.0))
-                    .pt(px(8.0))
-                    .pb(px(4.0))
-                    .type_(Type::Meta)
-                    .text_color(neutral.foreground_muted)
-                    .child(heading.clone()),
-            );
-        }
-        list = list.child(combo_row(index, row, state, handlers, compact, tokens, cx));
-    }
-    list.into_any_element()
-}
-
-/// The title row: a way back when it leads back, the title in 14 medium.
-fn title_row<V: 'static>(
-    title: SharedString,
-    back: bool,
-    handlers: &ComboHandlers<V>,
-    tokens: &Tokens,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    let mut row = div()
-        .id("combobox-title")
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(6.0))
-        .px(px(12.0))
-        .py(px(10.0))
-        .border_b_1()
-        .border_color(neutral.border)
-        .type_(Type::Label)
-        .text_color(neutral.foreground);
-    if back {
-        row = row.child(glyph(Glyph::ChevronLeft, 16.0, neutral.foreground_muted));
-        if let Some(go_back) = handlers.back.clone() {
-            row = row
-                .cursor_pointer()
-                .hover(move |style| style.bg(neutral.surface1))
-                .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
-                    go_back(view, window, cx);
-                    cx.notify();
-                }));
-        }
-    }
-    row.child(title).into_any_element()
-}
-
-/// A row's words: its label, its detail on the same line, its note under
-/// them.
-fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
-    let neutral = tokens.neutral;
-    let label = div()
-        .flex_shrink_0()
-        .max_w_full()
-        .truncate()
-        .text_color(neutral.foreground)
-        .child(one_line(&row.label));
-    let mut words = div()
-        .flex_1()
-        .min_w_0()
-        .overflow_hidden()
-        .flex()
-        .flex_row()
-        .items_baseline()
-        .gap(px(8.0))
-        .child(label);
-    if let Some(note) = &row.note {
-        // The label, and under it what the option is, wrapping.
-        words = div()
-            .flex_1()
-            .min_w_0()
-            .flex()
-            .flex_col()
-            .child(words)
-            .child(
-                div()
-                    .type_(Type::Meta)
-                    .text_color(neutral.foreground_muted)
-                    .whitespace_normal()
-                    .child(note.clone()),
-            );
-    }
-    if let Some(detail) = &row.detail {
-        words = words.child(
-            div()
-                .flex_shrink(1.0)
-                .min_w_0()
-                .truncate()
-                .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
-                .child(one_line(detail)),
-        );
-    }
-    words
-}
-
-/// What leads a row.
-fn row_leading(leading: Leading, tokens: &Tokens) -> AnyElement {
-    let neutral = tokens.neutral;
-    match leading {
-        Leading::Glyph(which) => glyph(which, 16.0, neutral.foreground_muted).into_any_element(),
-        Leading::Dot(color) => div()
-            .size(px(14.0))
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(div().size(px(6.0)).rounded_full().bg(color))
-            .into_any_element(),
-        Leading::Initial(initial) => initial_tile(initial, tokens).into_any_element(),
-    }
-}
-
-fn combo_row<V: 'static>(
-    index: usize,
-    row: &ComboRow,
-    state: &ComboboxState,
-    handlers: &ComboHandlers<V>,
-    compact: bool,
-    tokens: &Tokens,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    let neutral = tokens.neutral;
-    let highlighted = state.highlighted == Some(index);
-    let wash = neutral.surface1;
-    // Paseo's option (`ComboboxItem`): its label, then its description on
-    // the same line, each one line (`numberOfLines={1}`); the description
-    // gives way first and ends in an ellipsis, then the label does. A row is
-    // one line high whatever an agent writes, so rows never run into each
-    // other.
-    // Paseo's label does not shrink (`flexShrink: 0`): the description
-    // gives way first, all of it, before the label loses a letter. Here it
-    // is also at most the row's width, so a name longer than the row ends
-    // in an ellipsis. (A small shrink factor is not enough: any shrink at
-    // all cuts the label, "Workspace acce…" beside a whole description.)
-    let words = row_words(row, tokens);
-    let mut element = div()
-        .id(ElementId::NamedInteger(
-            "combobox-row".into(),
-            u64::try_from(index).unwrap_or(u64::MAX),
-        ))
-        .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(8.0))
-        .flex_shrink_0()
-        .min_h(px(if compact { 44.0 } else { 36.0 }))
-        .px(px(12.0))
-        .py(px(8.0))
-        .when(row.disabled, |element| element.opacity(0.55))
-        .when(highlighted && !row.disabled, |element| element.bg(wash))
-        .children(
-            row.leading
-                .clone()
-                .map(|leading| row_leading(leading, tokens)),
-        )
-        .child(words)
-        // Paseo's trailing slot: the check, then the row's own words (a
-        // value at most 45% of the row, one line).
-        .when(row.checked, |element| {
-            element.child(glyph(Glyph::Check, 16.0, neutral.foreground_muted))
-        })
-        .children(row.trailing.clone().map(|trailing| {
-            div()
-                .flex_shrink(1.0)
-                .min_w_0()
-                .max_w(gpui::relative(0.45))
-                .truncate()
-                .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
-                .child(trailing)
-        }))
-        .when(row.opens, |element| {
-            element.child(glyph(Glyph::ChevronRight, 14.0, neutral.foreground_muted))
-        })
-        .children(row.switch.map(|on| {
-            crate::settings::switch(
-                ElementId::NamedInteger(
-                    "combobox-switch".into(),
-                    u64::try_from(index).unwrap_or(u64::MAX),
-                ),
-                on,
-                !row.disabled,
-                compact,
-                0,
-                tokens,
-            )
-        }));
-    if !row.disabled {
-        let chose = Rc::clone(&handlers.chose);
-        element = element
-            .cursor_pointer()
-            .hover(move |style| style.bg(wash))
-            .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
-                cx.stop_propagation();
-            })
-            .on_click(cx.listener(move |view: &mut V, _event, window, cx| {
-                chose(view, index, window, cx);
-                cx.notify();
-            }));
-    }
-    element.into_any_element()
-}
-
 #[cfg(test)]
 mod tests {
     //! A list's rows hold what real agents send (the owner's capture of
@@ -960,8 +837,18 @@ mod tests {
 
     use gpui::{Bounds, Context, IntoElement, Render, TestAppContext, Window};
 
+    use super::rows::{Listing, combo_row, leading_column};
     use super::*;
     use crate::theme::{Scheme, Tokens};
+
+    #[test]
+    fn a_row_keeps_its_tooltip_place_from_frame_to_frame() {
+        let places = RowPlaces::default();
+        let third = places.get(2);
+        assert!(Rc::ptr_eq(&third, &places.get(2)));
+        assert!(!Rc::ptr_eq(&third, &places.get(0)));
+        assert!(Rc::ptr_eq(&places.get(0), &places.get(0)));
+    }
 
     /// A description as Claude Code sends one for a subagent.
     const LONG: &str = "Use this agent for wide read-only sweeps across many files.\n\
@@ -972,6 +859,7 @@ mod tests {
         state: ComboboxState,
         rows: Vec<ComboRow>,
         seen: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+        choices: Rc<RefCell<Vec<usize>>>,
     }
 
     impl Render for Probe {
@@ -979,23 +867,29 @@ mod tests {
             let tokens = Tokens::of(Scheme::Dark);
             let handlers = ComboHandlers {
                 state: |probe: &mut Self| &mut probe.state,
-                chose: Rc::new(|_probe: &mut Self, _index, _window, _cx| {}),
+                chose: Rc::new(|probe: &mut Self, index, _window, _cx| {
+                    probe.choices.borrow_mut().push(index);
+                }),
                 back: None,
             };
             let seen = Rc::clone(&self.seen);
-            let mut list =
-                div().w(px(360.0)).flex().flex_col().on_children_prepainted(
-                    move |bounds, _window, _cx| *seen.borrow_mut() = bounds,
-                );
+            let mut list = div()
+                .on_children_prepainted(move |bounds, _window, _cx| *seen.borrow_mut() = bounds)
+                .id("picker-probe")
+                .track_focus(&self.state.focus)
+                .capture_key_down(key_handler(&self.rows, &handlers, cx))
+                .w(px(360.0))
+                .type_(Type::Body)
+                .flex()
+                .flex_col();
             for (index, row) in self.rows.iter().enumerate() {
+                let listing = Listing {
+                    column: leading_column(&self.rows),
+                    highlighted: self.state.highlight_in(&self.rows),
+                    state: &self.state,
+                };
                 list = list.child(combo_row(
-                    index,
-                    row,
-                    &self.state,
-                    &handlers,
-                    false,
-                    &tokens,
-                    cx,
+                    index, row, listing, &handlers, false, &tokens, cx,
                 ));
             }
             list
@@ -1028,6 +922,75 @@ mod tests {
     }
 
     #[gpui::test]
+    fn disabled_marks_and_stale_highlights_never_call_the_selection_handler(
+        cx: &mut TestAppContext,
+    ) {
+        let choices = Rc::new(RefCell::new(Vec::new()));
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let (probe, cx) = cx.add_window_view({
+            let choices = Rc::clone(&choices);
+            let seen = Rc::clone(&seen);
+            move |window, cx| {
+                let mut rows = vec![ComboRow::new("Available before")];
+                for leading in [
+                    Leading::AgentMark(Some(crate::agent_mark::GEMINI)),
+                    Leading::AgentMark(None),
+                    Leading::Glyph(Glyph::Bot),
+                ] {
+                    let mut row = ComboRow::new("Unavailable");
+                    row.leading = Some(leading);
+                    row.disabled = true;
+                    rows.push(row);
+                }
+                rows.push(ComboRow::new("Available after"));
+                let mut state = ComboboxState::new(window, cx);
+                state.open(None, window, cx);
+                Probe {
+                    state,
+                    rows,
+                    seen,
+                    choices,
+                }
+            }
+        });
+        cx.run_until_parked();
+        for index in 1..=3 {
+            let at = seen.borrow().get(index).unwrap().center();
+            cx.simulate_click(at, gpui::Modifiers::default());
+            cx.run_until_parked();
+            assert!(choices.borrow().is_empty(), "disabled pointer row {index}");
+        }
+        cx.simulate_keystrokes("down down enter");
+        assert_eq!(*choices.borrow(), [4]);
+        cx.simulate_keystrokes("up enter");
+        assert_eq!(*choices.borrow(), [4, 0]);
+        assert!(cx.update(|_, cx| probe.read(cx).state.is_open()));
+        for index in 1..=4 {
+            cx.update(|_, cx| {
+                probe.update(cx, |probe, cx| {
+                    probe.rows[index].disabled = true;
+                    // The highlight is an index and its row's label.
+                    probe.state.highlighted = Some(index);
+                    probe.state.highlighted_label = Some(probe.rows[index].label.clone());
+                    cx.notify();
+                });
+            });
+            cx.simulate_keystrokes("enter");
+            assert_eq!(*choices.borrow(), [4, 0], "disabled Enter row {index}");
+        }
+        cx.update(|_, cx| {
+            probe.update(cx, |probe, cx| {
+                probe.rows.clear();
+                cx.notify();
+            });
+        });
+        cx.simulate_keystrokes("enter");
+        assert_eq!(*choices.borrow(), [4, 0], "removed/out-of-range row");
+        cx.simulate_keystrokes("escape");
+        assert!(!cx.update(|_, cx| probe.read(cx).state.is_open()));
+    }
+
+    #[gpui::test]
     fn rows_of_long_descriptions_are_one_line_and_never_overlap(cx: &mut TestAppContext) {
         let seen = Rc::new(RefCell::new(Vec::new()));
         let (_, cx) = cx.add_window_view({
@@ -1036,6 +999,7 @@ mod tests {
                 state: ComboboxState::new(window, cx),
                 rows: rows(),
                 seen,
+                choices: Rc::default(),
             }
         });
         cx.run_until_parked();
@@ -1056,10 +1020,148 @@ mod tests {
         }
     }
 
+    #[gpui::test]
+    fn official_marks_keep_the_existing_row_height_at_both_ends(cx: &mut TestAppContext) {
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        let (_, cx) = cx.add_window_view({
+            let seen = Rc::clone(&seen);
+            move |window, cx| {
+                let mut rows: Vec<ComboRow> = [
+                    Some(crate::agent_mark::OPENCODE),
+                    Some(crate::agent_mark::CLAUDE),
+                    None,
+                    Some(crate::agent_mark::GEMINI),
+                    Some(crate::agent_mark::CODEX),
+                    Some(crate::agent_mark::COPILOT),
+                    Some(crate::agent_mark::OPENCODE),
+                ]
+                .into_iter()
+                .enumerate()
+                .map(|(index, art)| {
+                    let mut row = ComboRow::new("An agent with a long name / 긴 에이전트 이름");
+                    row.leading = art.map(|art| Leading::AgentMark(Some(art)));
+                    row.checked = index == 0;
+                    row
+                })
+                .collect();
+                for leading in [
+                    Leading::AgentMark(None),
+                    Leading::Glyph(Glyph::Folder),
+                    Leading::Glyph(Glyph::Server),
+                ] {
+                    let mut row =
+                        ComboRow::new("Generic and ordinary glyphs share their 16-point size");
+                    row.leading = Some(leading);
+                    rows.push(row);
+                }
+                Probe {
+                    state: ComboboxState::new(window, cx),
+                    rows,
+                    seen,
+                    choices: Rc::default(),
+                }
+            }
+        });
+        cx.run_until_parked();
+        let bounds = seen.borrow();
+        assert_eq!(bounds.len(), 10);
+        assert_eq!(bounds.get(2).unwrap().size.height, px(37.0));
+        for (index, row) in bounds.iter().enumerate() {
+            assert_eq!(
+                row.size.height,
+                bounds.get(2).unwrap().size.height,
+                "row {index} grew around the unmarked baseline row"
+            );
+            if let Some(next) = bounds.get(index.saturating_add(1)) {
+                assert_eq!(
+                    row.bottom(),
+                    next.top(),
+                    "mark rows must retain their existing adjacency"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_list_with_any_mark_keeps_the_mark_column_on_every_row() {
+        let marked = |glyph: Glyph| {
+            let mut row = ComboRow::new("marked");
+            row.leading = Some(Leading::Mark(glyph));
+            row
+        };
+        // Codex's modes: two marked, `read-only` without one.
+        let modes = [
+            ComboRow::new("Read Only"),
+            marked(Glyph::Shield),
+            marked(Glyph::ShieldOff),
+        ];
+        assert_eq!(leading_column(&modes), Some(16.0));
+        // No row marked: no column, labels start at the row's edge.
+        assert_eq!(
+            leading_column(&[ComboRow::new("a"), ComboRow::new("b")]),
+            None
+        );
+        // A machine's dot keeps its own width; the widest wins.
+        let mut dot = ComboRow::new("machine");
+        dot.leading = Some(Leading::Dot(gpui::black()));
+        assert_eq!(
+            leading_column(&[dot.clone(), ComboRow::new("x")]),
+            Some(14.0)
+        );
+        assert_eq!(leading_column(&[dot, marked(Glyph::Shield)]), Some(16.0));
+        // An agent list's rows carry their own marks, of the agent's width.
+        let mut agent = ComboRow::new("agent");
+        agent.leading = Some(Leading::AgentMark(None));
+        assert_eq!(leading_column(&[agent, ComboRow::new("x")]), None);
+    }
+
+    #[gpui::test]
+    fn the_highlight_follows_its_row_when_rows_are_added_above_it(cx: &mut TestAppContext) {
+        let (probe, cx) = cx.add_window_view(|window, cx| Probe {
+            state: ComboboxState::new(window, cx),
+            rows: rows(),
+            seen: Rc::default(),
+            choices: Rc::default(),
+        });
+        cx.update(|_, cx| {
+            probe.update(cx, |probe, _cx| {
+                let rows = probe.rows.clone();
+                probe.state.step(&rows, true);
+                probe.state.step(&rows, true);
+                assert_eq!(probe.state.highlight_in(&rows), Some(1));
+                // A new row arrives above, as an agent's refreshed list
+                // lays a new value at the edge away from the anchor.
+                let mut added = vec![ComboRow::new("new above")];
+                added.extend(rows.iter().cloned());
+                assert_eq!(probe.state.highlight_in(&added), Some(2), "followed");
+                assert_eq!(probe.state.choice(&added), Some(2), "Enter takes it");
+                // Its row gone: no highlight rather than another row.
+                let gone: Vec<ComboRow> = rows
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != 1)
+                    .map(|(_, row)| row.clone())
+                    .collect();
+                assert_eq!(probe.state.highlight_in(&gone), None);
+            });
+        });
+    }
+
     #[test]
     fn breaks_fold_into_one_line() {
         assert_eq!(one_line(&"a\n\nb  c\td".into()).as_ref(), "a b c d");
         let plain: SharedString = "plain words".into();
         assert_eq!(one_line(&plain), plain);
+    }
+}
+
+#[cfg(test)]
+mod glyph_size_tests {
+    use super::rows::{ROW_GLYPH, SMALL_ROW_GLYPH};
+
+    #[test]
+    fn a_branch_switcher_does_not_resize_existing_picker_glyphs() {
+        assert_eq!(ROW_GLYPH.to_bits(), 16.0_f32.to_bits());
+        assert_eq!(SMALL_ROW_GLYPH.to_bits(), 14.0_f32.to_bits());
     }
 }
