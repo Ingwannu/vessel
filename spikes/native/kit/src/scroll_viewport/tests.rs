@@ -218,7 +218,7 @@ fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mu
                     last.bottom() + probe.scroll.offset().y,
                     probe.scroll.bounds().bottom()
                 );
-            })
+            });
         });
         assert_frame(&view, cx, height, 11);
         let viewport = view.read_with(cx, |probe, _| probe.scroll.bounds());
@@ -234,7 +234,7 @@ fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mu
         cx.update(|window, cx| {
             view.read_with(cx, |probe, _| {
                 assert!(probe.foot_focus.is_focused(window));
-            })
+            });
         });
         assert_frame(&view, cx, height, 11);
         cx.simulate_keystrokes("shift-tab");
@@ -243,7 +243,7 @@ fn tab_focus_reveals_the_offscreen_last_target_and_then_the_fixed_footer(cx: &mu
             view.read_with(cx, |probe, _| {
                 assert!(probe.last_focus.is_focused(window));
                 assert!(probe.scroll.offset().y < px(0.0));
-            })
+            });
         });
     }
 }
