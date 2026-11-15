@@ -17,6 +17,11 @@ use tint::Tint;
 /// Paseo palette.green[500]; menu success uses this in both themes.
 pub const GREEN_500: u32 = 0x0022_c55e;
 
+/// Fixed `palette.red[600]`, used by the source voice circle in both themes.
+pub const RED_600: u32 = 0x00dc_2626;
+/// Fixed `palette.red[800]`, its border, independent of semantic destructive.
+pub const RED_800: u32 = 0x0099_1b1b;
+
 /// A concrete token set. System is a preference, not a concrete palette.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Palette {
