@@ -155,9 +155,16 @@ the new one.
 - **Platforms:**
   - AppImage and macOS bundles carry no companions. The updater refuses
     companions beside them, and the build makes neither yet.
-  - Whether `vessel-node` and `vessel-cli` build and run on Windows is
-    shown only by the first build with the flag on. The workspace gates
-    run on Linux, and this track has not run the node's Windows code.
+  - Windows build, checked 2026-11-15 with `build.sh`'s own command
+    (`cargo-xwin`, static CRT, page included):
+    - `vessel.exe` 74,353,152 bytes and `vesseld.exe` 56,924,160 bytes,
+      both console programs (Windows CUI).
+    - Every DLL both import is on the list of DLLs Windows ships.
+    - It needed the Windows target in the repository's toolchain (1.93),
+      which `build.sh` now adds.
+    - It took about 2 hours on the loaded build machine.
+    - Still not shown: that they run on Windows. The workspace gates run
+      on Linux, and this track has not run the node's Windows code.
 - **Verification:** `vessel-app-updater` tests cover the published types'
   reading of a manifest with companions (a frozen copy of the schema-1
   types), roles and bounds, the set swap, rollback after a failure half

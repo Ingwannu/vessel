@@ -1053,9 +1053,9 @@ the reasons and the trade-offs. Where it stands:
   reach the owner with the first label built from this branch; the gzip
   copies are made by every build from then on.
 - Not shipped in any label until the local-node controller is in a build.
-  Not yet shown: that `vessel-cli` and `vessel-node` build for Windows
-  with `cargo-xwin` and import only the DLLs Windows ships (the first
-  build with the flag tells), and the Windows sizes.
+  Shown on 2026-11-15: `vessel-cli` and `vessel-node` build for Windows
+  with `cargo-xwin` (console programs, 74.4 MB and 56.9 MB) and import
+  only DLLs Windows ships. Not shown: that they run there.
 
 ## Logs and retries (from the build after 0.0.0.0.5)
 
