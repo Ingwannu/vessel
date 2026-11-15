@@ -169,6 +169,9 @@ impl Shell {
     ) {
         let pages = &mut self.areas.settings.agents.pages;
         match answer {
+            Ok(Answer::Added { node, info }) => {
+                let _accepted = pages.added(machine, request, node, info);
+            }
             Ok(Answer::Removed { node, name }) => {
                 let was_selected = pages.get(machine.as_str()).and_then(|page| page.selected())
                     == Some(&HarnessRef::Added(name.clone()));
@@ -198,6 +201,9 @@ impl Shell {
                         self.agent_load(true, cx);
                     }
                 }
+            }
+            Err(error) if error.addition_uncertain() => {
+                let _accepted = pages.addition_uncertain(machine, request, error);
             }
             Err(error) if error.removal_uncertain() => {
                 let _accepted = pages.removal_uncertain(machine, request, error);

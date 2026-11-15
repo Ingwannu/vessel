@@ -17,6 +17,8 @@ use vessel_proto::agents::{AgentReadiness, InstallAgent, InstallJob, InstallOutp
 /// What the Agents page asks of its selected machine.
 #[derive(Debug)]
 pub enum Ask {
+    /// One validated record-only form; use [`crate::Command::add_agent`].
+    Add(Addition),
     /// Definitions, discovery and cached status; starts no login check.
     List,
     /// Read this confirmed node's registry through the same bounded hub.
@@ -34,8 +36,12 @@ pub enum Ask {
     Remove(Removal),
 }
 
+mod addition;
 mod catalogue;
 mod removal;
+pub use addition::Addition;
+#[cfg(not(target_arch = "wasm32"))]
+pub use addition::AdditionError;
 #[cfg(not(target_arch = "wasm32"))]
 pub use catalogue::CatalogueError;
 pub use catalogue::Fetch as CatalogueFetch;
@@ -48,6 +54,13 @@ pub use vessel_app_view::agent_status::pages::{Administration, Inventory, Machin
 /// Facts, progress or completion from a request.
 #[derive(Debug)]
 pub enum Answer {
+    /// The authoritative definition returned by this record-only mutation.
+    Added {
+        /// Actual completing client identity.
+        node: vessel_proto::NodeId,
+        /// Returned definition, without any automatic probe.
+        info: vessel_proto::agents::AgentInfo,
+    },
     /// The node acknowledged forgetting this definition on this connection.
     Removed {
         /// The node whose response was received.
@@ -77,6 +90,10 @@ pub enum Answer {
 /// Failures stay typed until the screen presents them beside the action.
 #[derive(Debug, thiserror::Error)]
 pub enum AgentsError {
+    /// A record-only addition refusal or uncertain result.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    Addition(#[from] AdditionError),
     /// A registry-specific identity, deadline or typed-client failure.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
@@ -115,6 +132,7 @@ impl Ask {
         use vessel_app_view::agent_status::pages::Operation;
         match self {
             Self::List => Operation::Discovery,
+            Self::Add(target) => target.operation(),
             Self::Catalogue { node, .. } => Operation::Catalogue { node: *node },
             Self::Check(agent) => Operation::Check(agent.clone()),
             Self::Install(install) => Operation::Install(*install),
@@ -141,7 +159,7 @@ impl AgentsError {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Removal(error) => error.problem(),
             #[cfg(not(target_arch = "wasm32"))]
-            Self::Catalogue(_) => Problem::Call,
+            Self::Catalogue(_) | Self::Addition(_) => Problem::Call,
             Self::Disconnected => Problem::Disconnected,
             Self::Busy => Problem::Busy,
             Self::NoTransport => Problem::NoTransport,
@@ -170,7 +188,7 @@ impl AgentsError {
             Self::NoTransport => Problem::NoTransport,
             Self::Output(_) => Problem::Read,
             #[cfg(not(target_arch = "wasm32"))]
-            Self::Removal(_) => Problem::Read,
+            Self::Removal(_) | Self::Addition(_) => Problem::Read,
             #[cfg(not(target_arch = "wasm32"))]
             Self::Call(vessel_client::CallError::Disconnected) => Problem::Offline,
             #[cfg(not(target_arch = "wasm32"))]
@@ -178,3 +196,33 @@ impl AgentsError {
         }
     }
 }
+
+impl AgentsError {
+    /// Add failures belong to the form, with their original source kept here.
+    #[must_use]
+    pub fn addition_problem(&self) -> vessel_app_view::agent_status::addition::Failure {
+        use vessel_app_view::agent_status::addition::Failure;
+        match self {
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Addition(error) => error.problem(),
+            Self::Disconnected => Failure::Offline,
+            Self::Busy => Failure::Busy,
+            Self::NoTransport => Failure::NoTransport,
+            Self::Output(_) => Failure::Rejected,
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Removal(_) | Self::Catalogue(_) | Self::Call(_) => Failure::Rejected,
+        }
+    }
+    /// Do not resend when no conclusive acknowledgement was received.
+    #[must_use]
+    pub fn addition_uncertain(&self) -> bool {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Self::Addition(error) = self {
+            return error.is_uncertain();
+        }
+        false
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod testing;

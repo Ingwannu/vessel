@@ -70,6 +70,7 @@ async fn run(
     events: &mpsc::Sender<Event>,
 ) -> Result<(), AgentsError> {
     let answer = match ask {
+        Ask::Add(target) => super::addition::add(client, target).await?,
         Ask::Remove(target) => super::removal::remove(client, target).await?,
         Ask::Catalogue { node, fetch } => super::catalogue::read(client, node, fetch).await?,
         Ask::List => {

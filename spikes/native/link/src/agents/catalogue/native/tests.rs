@@ -7,7 +7,7 @@ use crate::agents::{Answer, Ask, CatalogueFetch, Hub, MachineKey};
 use tokio::sync::mpsc;
 use vessel_proto::{Call, ProtocolVersion, RequestId};
 
-mod peer;
+use crate::agents::testing as peer;
 use peer::{Abort, Mode, Peer, phase, safety};
 
 #[tokio::test]

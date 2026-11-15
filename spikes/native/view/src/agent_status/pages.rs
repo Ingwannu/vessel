@@ -73,6 +73,13 @@ pub struct Inventory {
 /// A pending operation also determines where any error belongs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operation {
+    /// Recording a new definition; never installs or starts its command.
+    Add {
+        /// The inventory's original physical node.
+        node: vessel_proto::NodeId,
+        /// replace=false, validated by a consumed addition intent.
+        call: Box<vessel_proto::agents::AddAgent>,
+    },
     /// Reading the page.
     Discovery,
     /// Checking this agent's default profile.
@@ -139,13 +146,13 @@ pub enum InstallProgress {
     Unavailable(InstallLog),
 }
 
-/// Whether retained definitions can support a new removal decision.
+/// Whether retained definitions can support another administrative decision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RemovalFreshness {
     /// No unacknowledged mutation invalidates the listed definitions.
     #[default]
     Current,
-    /// A dispatched removal may have taken effect; read definitions again.
+    /// A dispatched definition mutation may have taken effect; read again.
     RefreshRequired,
 }
 

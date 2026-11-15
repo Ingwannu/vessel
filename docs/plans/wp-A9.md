@@ -292,3 +292,39 @@ semantic colour. This replaces the legacy800ms slider profile; no new
 spinner/vector/control is added. Actual first-use phase/captures remain owed.
 The shared button and menu registrations arrived through lead9e18cf0d;
 that merge kept all92 glyph variants and their matching SVG paths.
+
+
+## Record-only Add intent and call
+
+The original form retains book route, physical node and (for registry entries)
+the full displayed pinned offer. Validation rechecks these facts, parses the
+existing node name/program types, refuses case-insensitive name reuse and
+always sends replace=false. Registry ids are not truncated to the shorter
+agent-name contract: the form will ask for its own editable valid name.
+Command arguments are literal lines, with no shell parsing; no environment,
+secret, inherited variable or MCP grant is added implicitly. The node remains
+authoritative for the shared profile namespace and Admin/local-person policy.
+
+A valid form reserves the existing page ticket; the link consumes its private
+request and checks the actual client node immediately before the existing
+numbered AddAgent call. A30second local deadline or lost/malformed ACK is
+uncertain, not an automatic retry. The original typed wire error is retained.
+An accepted ACK must match book, ticket, operation, physical node, name and
+source/pinned version. It appends only that definition; readiness remains
+unknown until a person checks. No Reload, discovery, status command, options
+probe, installer or package runner follows Add success. The existing shared
+definition-freshness state blocks another mutation after an uncertain write.
+
+Pure tests cover literal arguments, invalid/reserved/duplicate names, explicit
+registry name and missing runner, changed node/offer, wrong ACK correlation,
+duplicate ACK and uncertainty. New finite memory-transport tests exercise the
+actual Hub, typed no-frame refusals, original node refusals, mismatched ACK and
+30second virtual deadline/no resend. Catalogue and addition tests share one
+bounded peer; catalogue success mode explicitly panics on a mutation. Product
+removal code and its previously accepted tests are unchanged.
+
+These sources are committed before UI wiring and are not yet compiled. Both
+previous remote narrow submissions were cancelled by signal at10:35:42 while
+still queued; neither ran Cargo. The cancelled runs remain143, not failures or
+passes of these newer sources. Tool owner was asked for retry disposition.
+No whole package gate, new capture family or completed Add UI is claimed.

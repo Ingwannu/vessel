@@ -1,15 +1,17 @@
 //! A finite registry-only peer; real client admission and ordered read barriers.
 //! The peer refuses every mutation rather than sharing an Ack responder that
 //! could silently accept an accidental install/add during a catalog read.
-use super::*;
 use std::{
     future::{Future, poll_fn},
     num::NonZeroUsize,
     pin::Pin,
     time::Duration,
 };
+use tokio::sync::mpsc;
 use tokio::task::{AbortHandle, JoinHandle};
 use vessel_client::ClientConfig;
+use vessel_client::NodeClient;
+use vessel_proto::{Call, ErrorCode, ProtocolVersion};
 use vessel_proto::{
     ClientFrame, ClientInfo, NodeInfo, NodeState, Outcome, ProtocolRange, Reply, ServerFrame,
     Welcome, WireError, agents::Catalogue,
@@ -17,14 +19,17 @@ use vessel_proto::{
 use vessel_rpc::{FrameTransport, memory::MemoryTransport};
 
 const PHASE: Duration = Duration::from_secs(5);
-const OUTER: Duration = CATALOGUE_TIMEOUT.saturating_add(PHASE.saturating_mul(6));
+// One fixture safety window covers the longest intentional product advance
+// (the45s catalogue read) plus setup and ordered barrier phases. A shorter
+// idle timer would turn the timeout tests into false disconnect tests.
+const OUTER: Duration = Duration::from_secs(75);
 const CAPACITY: usize = 16;
-pub(super) const DIAGNOSTIC: &str = "registry fixture diagnostic";
+pub(in crate::agents) const DIAGNOSTIC: &str = "registry fixture diagnostic";
 
-pub(super) async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
+pub(in crate::agents) async fn phase<T>(name: &str, future: impl Future<Output = T>) -> T {
     within(name, PHASE, future).await
 }
-pub(super) async fn safety<T>(future: impl Future<Output = T>) -> T {
+pub(in crate::agents) async fn safety<T>(future: impl Future<Output = T>) -> T {
     within("registry test safety net", OUTER, future).await
 }
 async fn within<T>(name: &str, budget: Duration, future: impl Future<Output = T>) -> T {
@@ -32,9 +37,9 @@ async fn within<T>(name: &str, budget: Duration, future: impl Future<Output = T>
         .await
         .unwrap_or_else(|_| panic!("{name} exceeded {budget:?}"))
 }
-pub(super) struct Abort(AbortHandle);
+pub(in crate::agents) struct Abort(AbortHandle);
 impl Abort {
-    pub(super) fn of<T>(task: &JoinHandle<T>) -> Self {
+    pub(in crate::agents) fn of<T>(task: &JoinHandle<T>) -> Self {
         Self(task.abort_handle())
     }
 }
@@ -45,14 +50,16 @@ impl Drop for Abort {
 }
 
 #[derive(Clone, Copy)]
-pub(super) enum Mode {
+pub(in crate::agents) enum Mode {
     Catalogue,
     Refuse(ErrorCode),
     Wait,
+    Add,
+    WrongAdd,
 }
-pub(super) struct Peer {
-    pub(super) client: NodeClient,
-    pub(super) seen: mpsc::Receiver<Call>,
+pub(in crate::agents) struct Peer {
+    pub(in crate::agents) client: NodeClient,
+    pub(in crate::agents) seen: mpsc::Receiver<Call>,
     _abort: Abort,
 }
 async fn receive(transport: &mut MemoryTransport) -> Option<ClientFrame> {
@@ -134,6 +141,42 @@ async fn serve(
                 })),
                 Mode::Refuse(code) => Outcome::Err(WireError::new(code, DIAGNOSTIC)),
                 Mode::Wait => continue,
+                Mode::Add | Mode::WrongAdd => panic!("addition peer received catalogue read"),
+            },
+            Call::AddAgent(call) => match mode {
+                Mode::Add | Mode::WrongAdd => {
+                    use vessel_proto::agents::{
+                        AddedAgent, AgentDetail, AgentInfo, AgentSource, AgentToAdd,
+                    };
+                    let source = match call.agent {
+                        AgentToAdd::Command { .. } => AgentSource::Command,
+                        AgentToAdd::Registry { id, version, .. } => {
+                            AgentSource::Registry { id, version }
+                        }
+                    };
+                    Outcome::Ok(Reply::AddAgent(AgentInfo {
+                        agent: vessel_proto::HarnessRef::Added(if matches!(mode, Mode::WrongAdd) {
+                            "wrong-name".parse().unwrap()
+                        } else {
+                            call.name
+                        }),
+                        detail: AgentDetail::Added {
+                            added: AddedAgent {
+                                label: None,
+                                program: "fixture-agent".parse().unwrap(),
+                                args: Vec::new(),
+                                env: Vec::new(),
+                                secrets: Vec::new(),
+                                inherit: Vec::new(),
+                                mcp: Vec::new(),
+                                source,
+                            },
+                        },
+                    }))
+                }
+                Mode::Refuse(code) => Outcome::Err(WireError::new(code, DIAGNOSTIC)),
+                Mode::Wait => continue,
+                Mode::Catalogue => panic!("a catalogue read sent an unauthorized mutation"),
             },
             other => panic!("unexpected registry fixture call: {other:?}"),
         };
@@ -141,7 +184,7 @@ async fn serve(
     }
 }
 impl Peer {
-    pub(super) async fn new(protocol: ProtocolVersion, mode: Mode) -> Self {
+    pub(in crate::agents) async fn new(protocol: ProtocolVersion, mode: Mode) -> Self {
         let (local, remote) = vessel_rpc::memory::pair(NonZeroUsize::new(CAPACITY).unwrap());
 
         let (notice, seen) = mpsc::channel(CAPACITY);
@@ -169,7 +212,7 @@ impl Peer {
             _abort: abort,
         }
     }
-    pub(super) async fn barrier(&self) {
+    pub(in crate::agents) async fn barrier(&self) {
         let _node = phase(
             "registry ordered read barrier",
             self.client.call(vessel_proto::GetNode {}),

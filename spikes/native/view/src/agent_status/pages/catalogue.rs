@@ -34,6 +34,59 @@ impl<E> Page<E> {
     }
 }
 impl<E> Pages<E> {
+    /// Apply only this node/ticket/name/source's authoritative record. No
+    /// discovery, status command, handshake or options probe follows this ACK.
+    #[must_use]
+    pub fn added(
+        &mut self,
+        machine: &MachineKey,
+        id: RequestId,
+        node: NodeId,
+        info: vessel_proto::agents::AgentInfo,
+    ) -> bool {
+        let Some(page) = self.pending(machine, id) else {
+            return false;
+        };
+        let Some(Operation::Add {
+            node: expected,
+            call,
+        }) = page.pending.as_ref().map(|ticket| &ticket.operation)
+        else {
+            return false;
+        };
+        if *expected != node || !crate::agent_status::addition::matches_ack(call, &info) {
+            return false;
+        }
+        let Some(inventory) = page
+            .inventory
+            .as_mut()
+            .filter(|current| current.node == node)
+        else {
+            return false;
+        };
+        inventory
+            .agents
+            .retain(|previous| previous.agent != info.agent);
+        inventory.agents.push(info);
+        page.pending = None;
+        true
+    }
+    /// A missing ACK cannot authorize replay; definitions must be read again.
+    #[must_use]
+    pub fn addition_uncertain(&mut self, machine: &MachineKey, id: RequestId, source: E) -> bool {
+        let Some(page) = self.pending(machine, id) else {
+            return false;
+        };
+        if !matches!(
+            page.pending.as_ref().map(|ticket| &ticket.operation),
+            Some(Operation::Add { .. })
+        ) {
+            return false;
+        }
+        page.removal = super::RemovalFreshness::RefreshRequired;
+        self.failed(machine, id, source);
+        true
+    }
     /// Accept only the matching registry operation and its physical node;
     /// another read, late reply or reused book name cannot seed this cache.
     #[must_use]

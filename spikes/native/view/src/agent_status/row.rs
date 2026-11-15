@@ -42,7 +42,10 @@ impl Activity {
         match operation {
             // Registry reads do not change readiness. Removal disables its
             // action, not its readiness verdict.
-            None | Some(Operation::Remove { .. } | Operation::Catalogue { .. }) => Self::Idle,
+            None
+            | Some(
+                Operation::Remove { .. } | Operation::Catalogue { .. } | Operation::Add { .. },
+            ) => Self::Idle,
             Some(Operation::Discovery) => Self::Loading,
             Some(Operation::Check(target)) => {
                 if target == agent {
