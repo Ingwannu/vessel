@@ -213,6 +213,14 @@ tree have not yet been executed. The earlier 57-test correction result does not
 prove this union. The approved hard-drain accessor moved unchanged to a focused
 Sessions child module so the head's main file stays within its existing budget.
 
+The first composition preflight found two older title-test builders that needed
+the canonical settings owner: the real teardown now receives the same settings
+Arc as its title task, and the persistence test changes through an Arc. Their
+assertions and deadlines are unchanged. At that clean correction boundary, the
+checked registry update brings protocol 25 and keeps schema 20; it changes no
+title setting or generation feature assignment. Corrected focused checks,
+generated TypeScript and the new combined gate remain pending.
+
 The physical-lifetime correction reuses Sessions' existing hard-drained task
 tracker through the approved `metadata_work` token accessor. Forwarders'
 bounded grace cannot settle file work. A shared admission lease goes into the
