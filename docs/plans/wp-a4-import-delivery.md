@@ -47,8 +47,8 @@ existing agent.history/session.create and existing-session get/resume calls.
   terminal143 records preserved before one priority replacement each. All later
   strict runs have exact immutable source and separate evidence; no duplicate
   build, local Cargo/Rustc, real agent/browser or service/permission change.
-- This final documentation commit changes no Rust/native executable source from
-  288. V1 still reviews product export/visibility and actual callers before lead
+- The predecessor documentation commit f7cff1ac changes no executable source
+  from288. V1 still reviews product export/visibility and actual callers before lead
   adoption. Whole native/GPUI receive/capture and final A4 parity are not implied.
 
 ## R223 correction batch (source prepared, checks pending)
