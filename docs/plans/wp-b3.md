@@ -8,10 +8,11 @@ through the app line; no checkpoint UI is implemented yet.
 
 ## Current resume point
 
-Implementation source is unverified. The latest code is d437c087: normal-library
-clippy for proto/workspace/node is queued in run
-wp-checkpoints-node-narrow-20261115T171417Z-d437c087. No more priority retry is
-authorized. Only after this passes, run the current four-crate checkpoint suite;
+Implementation source is unverified. Current code fixes the failed d437c087
+writer-dispatch lint and makes ignore defaults explicit configuration. Run
+wp-checkpoints-node-narrow-20261115T171417Z-d437c087 finished rc1; the corrected
+ordinary narrow must include both binary callers. No priority retry is authorized.
+Only after this passes, run the current four-crate checkpoint suite;
 it includes all six actual root-admission units. Then extract and validate the
 minimal canonical RootLease/StartGuard borrow leaf on announced node9c150c6e
 and send that leaf alone to V3. No leaf exists or is adoptable yet.

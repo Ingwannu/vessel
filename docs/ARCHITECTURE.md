@@ -1865,6 +1865,11 @@ Status remains InProgress after file success until its durable metadata marker
 exists. Startup replays completed metadata after interrupting previous live
 sessions and before retention/admission, without duplicating the event.
 
+Only binary entry points snapshot the default global-ignore environment through
+Config::with_checkpoint_environment. In-process nodes derive it from their
+explicit HarnessEnv home; capture, preview and restore share that same validated
+configuration value and never consult ambient HOME/XDG in library code.
+
 One additive checkpoint migration follows the announced head's newest schema;
 the integrator assigns its final number at merge. migrate() is unchanged. The
 existing store writer/read pool supplies typed capture/plan/result/journal and
