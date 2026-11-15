@@ -27,7 +27,7 @@ async fn a_live_private_listener_is_refused_for_http_and_connect() {
             let mut client = TcpStream::connect(proxy.endpoint()).await.unwrap();
             client.write_all(request.as_bytes()).await.unwrap();
             let mut response = String::new();
-            client.read_to_string(&mut response).await.unwrap();
+            let _bytes = client.read_to_string(&mut response).await.unwrap();
             assert!(response.starts_with("HTTP/1.1 403"), "{response}");
             assert!(!response.contains("ignored.test"));
             assert_eq!(canary.accept().unwrap_err().kind(), ErrorKind::WouldBlock);

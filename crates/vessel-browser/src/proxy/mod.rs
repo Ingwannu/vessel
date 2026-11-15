@@ -130,7 +130,7 @@ async fn listen(listener: TcpListener, cancel: CancellationToken) -> Result<(), 
             Ok(pair) => pair,
             Err(error) => break Err(ProxyError::Accept(error)),
         };
-        let Ok(permit) = capacity.clone().try_acquire_owned() else {
+        let Ok(permit) = Arc::clone(&capacity).try_acquire_owned() else {
             // No unbounded wait queue: close excess sockets immediately.
             drop(socket);
             continue;
@@ -158,7 +158,7 @@ async fn listen(listener: TcpListener, cancel: CancellationToken) -> Result<(), 
         });
     };
     cancel.cancel();
-    tasks.close();
+    let _closed = tasks.close();
     tasks.wait().await;
     result
 }

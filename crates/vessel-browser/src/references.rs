@@ -104,15 +104,15 @@ mod tests {
     #[test]
     fn replacement_never_aliases_an_old_ref_and_failed_traversal_stays_empty() {
         let mut refs = References::default();
-        refs.invalidate().unwrap();
+        let _generation = refs.invalidate().unwrap();
         let old = refs.assign("credential field").unwrap();
         assert_eq!(refs.resolve(&old).unwrap(), &"credential field");
-        refs.invalidate().unwrap();
+        let _generation = refs.invalidate().unwrap();
         assert!(matches!(refs.resolve(&old), Err(ReferenceError::Stale)));
         let current = refs.assign("delete button").unwrap();
         assert_ne!(old, current);
         assert!(refs.resolve(&old).is_err());
-        refs.invalidate().unwrap();
+        let _generation = refs.invalidate().unwrap();
         assert!(refs.resolve(&current).is_err());
         assert!(!format!("{refs:?}").contains("delete button"));
     }
@@ -124,7 +124,7 @@ mod tests {
             let _id = refs.assign(()).unwrap();
         }
         assert!(matches!(refs.assign(()), Err(ReferenceError::Limit)));
-        refs.invalidate().unwrap();
+        let _generation = refs.invalidate().unwrap();
         refs.next = u64::MAX;
         assert!(matches!(refs.assign(()), Err(ReferenceError::Exhausted)));
         assert!(refs.current.is_empty());

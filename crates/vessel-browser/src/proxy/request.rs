@@ -1,6 +1,6 @@
 //! HTTP proxy decoding: canonical destination, hop headers and origin-form path.
 //!
-//! This is the sole HTTP spelling edge; downstream code receives BrowserUrl
+//! This is the sole HTTP spelling edge; downstream code receives `BrowserUrl`
 //! rather than branching on page-selected strings or trusting Host headers.
 
 use axum::http::{HeaderMap, HeaderName, HeaderValue, Method, Request, Uri, header};
@@ -18,11 +18,11 @@ pub(super) enum InvalidRequest {
     #[error("browser proxy path is invalid")]
     Uri(#[source] axum::http::uri::InvalidUri),
     #[error("browser proxy header text is invalid")]
-    HeaderText(#[source] axum::http::header::ToStrError),
+    HeaderText(#[source] header::ToStrError),
     #[error("browser proxy header name is invalid")]
-    HeaderName(#[source] axum::http::header::InvalidHeaderName),
+    HeaderName(#[source] header::InvalidHeaderName),
     #[error("browser proxy header value is invalid")]
-    HeaderValue(#[source] axum::http::header::InvalidHeaderValue),
+    HeaderValue(#[source] header::InvalidHeaderValue),
 }
 
 pub(super) struct Destination {
