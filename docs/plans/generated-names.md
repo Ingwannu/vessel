@@ -824,3 +824,14 @@ pending. A local Git-root style test additionally exercises checked toplevel
 resolution against an isolated temporary repository and folder fallback;
 no second product runner or external provider is added. Proto/store tests
 and TypeScript regeneration precede the one final package gate.
+
+
+The permanent-parking test's first run reached the actor before its turn
+finished and correctly got TurnRunning (25 passed, one test setup failure).
+It now waits for the actual TurnEnded event before asking to park, retaining
+the current-eligible and historical-cancellation assertions and the same
+safety deadline. The existing inflight park case uses that event too.
+The Git-root test now initializes through the existing checked Git API and
+uses the shared safety net; no direct test command runner is needed.
+The designated Quality B head is the next clean-boundary merge; since()
+becomes optional there, with no new title method or assigned number.

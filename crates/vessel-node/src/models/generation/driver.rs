@@ -144,56 +144,53 @@ mod tests {
 
     #[tokio::test]
     async fn checked_git_root_and_non_git_folder_choose_their_own_styles() {
-        let temp = tempfile::tempdir().unwrap();
-        let root = temp.path().join("repository");
-        let nested = root.join("nested");
-        let hooks = temp.path().join("no-hooks");
-        std::fs::create_dir_all(&nested).unwrap();
-        std::fs::create_dir(&hooks).unwrap();
-        let config = temp.path().join("gitconfig");
-        std::fs::write(&config, "").unwrap();
-        let env = vec![
-            ("GIT_CONFIG_GLOBAL".to_owned(), config.into_os_string()),
-            ("GIT_CONFIG_NOSYSTEM".to_owned(), OsString::from("1")),
-            ("HOME".to_owned(), temp.path().as_os_str().to_owned()),
-        ];
-        let program = which::which("git").unwrap();
-        let initialized = std::process::Command::new(&program)
-            .args(["init", "--quiet"])
-            .arg(&root)
-            .envs(env.clone())
-            .output()
+        crate::models::tests::within(async {
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().join("repository");
+            let nested = root.join("nested");
+            let hooks = temp.path().join("no-hooks");
+            std::fs::create_dir_all(&nested).unwrap();
+            std::fs::create_dir(&hooks).unwrap();
+            let config = temp.path().join("gitconfig");
+            std::fs::write(&config, "").unwrap();
+            let env = vec![
+                ("GIT_CONFIG_GLOBAL".to_owned(), config.into_os_string()),
+                ("GIT_CONFIG_NOSYSTEM".to_owned(), OsString::from("1")),
+                ("HOME".to_owned(), temp.path().as_os_str().to_owned()),
+            ];
+            let program = which::which("git").unwrap();
+            let git = Git::probe(Some(GitSetup {
+                program,
+                no_hooks: hooks,
+                env,
+            }))
+            .await
+            .git
             .unwrap();
-        assert!(initialized.status.success());
-        std::fs::write(
-            root.join("vessel.toml"),
-            "[metadata.title]\ninstructions = 'root convention'\n",
-        )
-        .unwrap();
-        std::fs::write(
-            nested.join("vessel.toml"),
-            "[metadata.title]\ninstructions = 'folder convention'\n",
-        )
-        .unwrap();
-        let git = Git::probe(Some(GitSetup {
-            program,
-            no_hooks: hooks,
-            env,
-        }))
-        .await
-        .git
-        .unwrap();
-        assert_eq!(
-            styles(nested.clone(), Some(git))
-                .await
-                .title
-                .unwrap()
-                .as_str(),
-            "root convention"
-        );
-        assert_eq!(
-            styles(nested, None).await.title.unwrap().as_str(),
-            "folder convention"
-        );
+            git.init(&root).await.unwrap();
+            std::fs::write(
+                root.join("vessel.toml"),
+                "[metadata.title]\ninstructions = 'root convention'\n",
+            )
+            .unwrap();
+            std::fs::write(
+                nested.join("vessel.toml"),
+                "[metadata.title]\ninstructions = 'folder convention'\n",
+            )
+            .unwrap();
+            assert_eq!(
+                styles(nested.clone(), Some(git))
+                    .await
+                    .title
+                    .unwrap()
+                    .as_str(),
+                "root convention"
+            );
+            assert_eq!(
+                styles(nested, None).await.title.unwrap().as_str(),
+                "folder convention"
+            );
+        })
+        .await;
     }
 }

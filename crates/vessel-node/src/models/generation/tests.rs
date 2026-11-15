@@ -39,21 +39,31 @@ async fn given(handle: &SessionHandle) {
     }
 }
 
-async fn recorded(handle: &SessionHandle) {
+async fn until(handle: &SessionHandle, predicate: fn(&SessionEvent) -> bool) {
     let follow = handle.follow(vessel_proto::EventSeq::ZERO).unwrap();
-    if follow
-        .cached
-        .iter()
-        .any(|record| matches!(record.event, SessionEvent::ModelCall(_)))
-    {
+    if follow.cached.iter().any(|record| predicate(&record.event)) {
         return;
     }
     let mut live = follow.live;
     loop {
-        if matches!(live.recv().await.unwrap().event, SessionEvent::ModelCall(_)) {
+        if predicate(&live.recv().await.unwrap().event) {
             return;
         }
     }
+}
+async fn recorded(handle: &SessionHandle) {
+    until(handle, |event| matches!(event, SessionEvent::ModelCall(_))).await;
+}
+async fn idle(handle: &SessionHandle) {
+    until(handle, |event| {
+        matches!(
+            event,
+            SessionEvent::Agent {
+                event: vessel_proto::AgentEvent::TurnEnded { .. }
+            }
+        )
+    })
+    .await;
 }
 
 #[tokio::test]
@@ -210,6 +220,7 @@ async fn identical_typed_words_parking_ending_and_node_stop_cancel_inflight_work
                     let _renamed = handle.rename("plain".parse().unwrap()).await.unwrap();
                 }
                 Cancel::Parked => {
+                    idle(&handle).await;
                     let _parked = handle.park().await.unwrap();
                 }
                 Cancel::Ended => {
@@ -301,6 +312,7 @@ async fn parking_then_waking_before_polling_cannot_restore_generation_ownership(
         handle.send(prompt()).await.unwrap();
         given(&handle).await;
         let seed = source::first(&handle).await.unwrap();
+        idle(&handle).await;
         let _parked = handle.park().await.unwrap();
         let _woken = handle.wake().await.unwrap();
         assert!(
