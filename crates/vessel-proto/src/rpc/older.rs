@@ -80,6 +80,11 @@ impl Reply {
                     )
                 })
             }
+            Self::DetachSession(detached) => info(&detached.session).map(|info| {
+                let mut detached = detached.clone();
+                detached.session = Box::new(info);
+                Self::DetachSession(detached)
+            }),
             Self::ListSessions(sessions) => {
                 // An added agent's session is left out of a list an older
                 // peer could not decode with it (protocol 11, ADR 0032).

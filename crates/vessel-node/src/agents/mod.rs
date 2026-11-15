@@ -101,6 +101,14 @@ impl Entry {
 }
 
 impl Agents {
+    /// A committed detach frees the former parent's owned count, preserving
+    /// credentials, grant, depth and every connection exactly as admitted.
+    pub(crate) fn detach(&self, id: SessionId) {
+        if let Some(entry) = self.lock().get_mut(&id) {
+            entry.parent = None;
+        }
+    }
+
     pub(crate) fn new(node: NodeId) -> Self {
         Self {
             node,

@@ -264,6 +264,8 @@ macro_rules! method_table {
             ResumeSession / resume_session / "session.resume" [Operate, 10, unary]: $crate::conversation::ResumeSession => $crate::SessionInfo;
             /// Pin, archive or mark a session read (protocol 10).
             MarkSession / mark_session / "session.mark" [Operate, 10, unary]: $crate::conversation::MarkSession => $crate::SessionInfo;
+            /// Make a managed child independent without changing its process or conversation.
+            DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
             /// Remove an ended session and everything kept with it (protocol 10).
             DeleteSession / delete_session / "session.delete" [Operate, 10, unary]: $crate::conversation::DeleteSession => $crate::conversation::SessionDeleted;
             /// Declare a file to upload to a session (protocol 10).

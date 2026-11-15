@@ -62,3 +62,25 @@ resolved account, treating its default's absent and explicit canonical name as
 one account. This preserves ADR 0053's account boundary; unit fixtures use two
 accounts sharing the same native id and retain newest-only within each account.
 No wire addition or provider process is involved in this correction.
+
+## Node admission and publication
+
+The existing marks/resume mutex now serializes a complete ancestry admission
+with detach commit and publication. Ownership reads the authoritative receipt
+from the store even when the actor still has an older snapshot. Local ancestor
+walks retain MAX_DEPTH and full node+session comparisons; cross-node ancestry
+is never invented. Human-only Operate policy rejects both local and delegated
+agents. The registry removes only the current parent link, preserving depth,
+credentials, scope grants and open connections. Detach is registered behind the
+single pending SUBAGENT_RELATIONS constant; each fleet envelope propagates it.
+
+Publication runs in the node TaskTracker even after the RPC future is dropped.
+The runtime's existing metadata projection copies the committed receipt without
+restarting or sending input to the actor. Resume refreshes it under the same
+mutex before opening its publication gate, so an older prepared snapshot cannot
+reattach the child. Existing SessionInfo readers receive it through the shared
+handle metadata projection; the node's workspace projection stays unchanged.
+Fake-backed tests cover PID preservation, local/cross-node complete identities,
+live/stored ancestor cuts, the commit/publication interval, cancelled callers,
+stale resume metadata, and registry grant/depth/credential preservation. These
+are staged source/tests pending narrow execution; no live-provider claim.
