@@ -24,22 +24,6 @@ impl PreparedSubmission {
 pub(crate) use vessel_app_view::composer::attach::PrepareProblem;
 
 impl Shell {
-    pub(crate) fn prepare_draft_files(
-        &mut self,
-        ticket: Ticket,
-        machine: &str,
-        text: &str,
-    ) -> Result<Option<PreparedSubmission>, PrepareProblem> {
-        if !self.composer_has_files(DraftKey::New) {
-            return Ok(None);
-        }
-        let name =
-            vessel_app_view::machine_book::Name::parse(machine).map_err(PrepareProblem::Machine)?;
-        let node = self
-            .attachment_node(&name)
-            .ok_or(vessel_app_view::composer::attach::TargetProblem::Offline)?;
-        self.prepare_draft_files_on(ticket, node, machine, text)
-    }
     /// The creation flow supplies the node it admitted before any asynchronous work.
     pub(crate) fn prepare_draft_files_on(
         &mut self,

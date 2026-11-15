@@ -1,4 +1,4 @@
-//! A book label is an address; only the welcome NodeId pins the destination.
+//! A book label is an address; only the welcome `NodeId` pins the destination.
 use super::TargetProblem;
 use crate::State;
 use vessel_app_view::machine_book::Name;
