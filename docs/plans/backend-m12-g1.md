@@ -1145,5 +1145,17 @@ was addressed by changing product code or weakening an assertion.
 
 The disposable fleet, app and display have stopped. No node/wire/shared-control
 or other-area source changed. The same real-forge/OS/Exists/pending/closed-state
-UI limits remain. Source and visual re-review is pending; this result is not
-final approval or a release.
+UI limits remain. Bounded source, gate and inspected-visual review passed
+for exact code `6406211c` and documentation `ea26773b`; the sole draft-readiness
+return is closed. The review independently checked all 16 new originals,
+their dimensions and hashes, both raw node replies and the six gate results.
+All old 41 originals and their 33-at-`175491aa`/8-at-`d230934a` assignments
+remain intact; they are not relabelled as observations of `6406211c`.
+
+This is a bounded lead candidate, not approval of real forge accounts, OS or
+browser behaviour, Exists/pending/closed-or-unknown UI, the older 167-image
+set, the project-wide PR page, or a later combined tree. Nine diagnostic
+images remain excluded and their initial mismatch has no proven cause.
+The selected own code commits and documentation go to native integration;
+they do not replace the lead's whole branch. No unchanged gate was rerun,
+and no release or push was performed.

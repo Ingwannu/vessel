@@ -2,7 +2,9 @@
 
 Current code is the committed `54b8aaa1` base plus `175491aa`, `d230934a`
 and draft-readiness correction `6406211c`. The correction has its own whole
-native gate and independently admitted fake-node evidence; re-review is pending. The current result is in
+native gate and independently admitted fake-node evidence. Bounded source,
+gate and inspected-visual review passed for exact code `6406211c` and
+result documentation `ea26773b`. The current result is in
 [the plan's PR closeout section](backend-m12-g1.md#pr-closeout-result-and-resume-point-2026-11-15).
 The older stop record below is historical, not a statement that the current
 registered Git/PR screen remains an uncommitted prototype.
@@ -24,14 +26,18 @@ registered Git/PR screen remains an uncommitted prototype.
   responses at 800/390 in dark English and light Korean. The old 41 image/
   source assignments stay intact. Invalid initial capture probes are separate;
   stable-ID retakes verify the intended PR. All new owned processes stopped.
-- Re-review is the next step, followed by native-lead integration for
-  0.0.0.0.19. No release/push was made. The original checkout is unchanged;
+- Next: native-lead integration of the selected own code commits
+  (`175491aa`, `d230934a`, `6406211c`) and their documentation, then the
+  combined-tree gate for 0.0.0.0.19. This is not a whole-branch replacement
+  or approval of a later combined tree. No release/push was made. The original checkout is unchanged;
   the finishing checkout has its own build target. All owned fleet/display
   processes were stopped. No other track is waiting on a new shared control
   from this closeout.
 - Unverified: real forge accounts/browser opening/Windows, Exists race,
-  write-pending visuals and closed/unknown-state UI. The project-wide PR page
-  is outside this closeout. Do not rerun the mutating final script against
+  write-pending visuals, closed/unknown-state UI, the older 167-image set
+  and the latest combined tree. The project-wide PR page is outside this
+  closeout. The initial capture mismatch remains unexplained; the nine
+  diagnostic images stay excluded. Do not rerun the mutating final script against
   the same fixture; create a new disposable run for reproduction.
 
 ## Historical stop record — 2026-11-13
