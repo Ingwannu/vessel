@@ -465,3 +465,12 @@ could become a choice, and every non-`true` string silently became Boolean false
 The current form's options (or the standard Boolean decoder) now determine
 admission. Single/multiple choice and malformed Boolean regressions preserve the
 previous draft on refusal; no response RPC is needed to reject a stale UI event.
+
+
+The shared response boundary now validates the exact offered option or canonical
+Question::check result before reserving a response ticket or queuing a command.
+This protects every place using response_at, including a queued event from an old
+schema, rather than relying on only the drawing handler to have validated input.
+It follows the same log-first/exact-live fallback as the card. Invalid input gets
+an exact-request safe failure and leaves the admission registry empty. Real Shell
+regressions cover an unoffered permission id and a wrong-type Boolean answer.

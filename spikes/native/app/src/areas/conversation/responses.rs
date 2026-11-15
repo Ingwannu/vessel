@@ -1,5 +1,6 @@
 //! Correlation uses the same exact pending identities as simultaneous cards.
 use super::ConversationArea;
+use vessel_app_link::responses::Response;
 use vessel_app_view::{responses::Request, timeline::EntryKind};
 
 impl ConversationArea {
@@ -30,6 +31,50 @@ impl ConversationArea {
             }
         }
     }
+    /// Validate against the same exact form that the card currently draws.
+    /// A stale queued option/answer must fail before response admission.
+    pub(crate) fn response_valid(&self, response: &Response) -> bool {
+        match response {
+            Response::Permission { id, option } => self
+                .timeline
+                .pending_permissions()
+                .find(|(_, permission)| permission.request.id == *id)
+                .map(|(_, permission)| &permission.request)
+                .or_else(|| {
+                    self.timeline
+                        .unseen_permissions(&self.live)
+                        .into_iter()
+                        .find(|permission| permission.id == *id)
+                })
+                .is_some_and(|permission| {
+                    permission
+                        .options
+                        .iter()
+                        .any(|offered| offered.id == *option)
+                }),
+            Response::Question { id, answer } => self
+                .timeline
+                .waiting_questions()
+                .into_iter()
+                .find_map(|entry| {
+                    if let EntryKind::Question { question, .. } = &entry.kind
+                        && question.id == *id
+                    {
+                        Some(question)
+                    } else {
+                        None
+                    }
+                })
+                .or_else(|| {
+                    self.timeline
+                        .unseen_questions(&self.live)
+                        .into_iter()
+                        .find(|question| question.id == *id)
+                })
+                .is_some_and(|question| question.check(answer).is_ok()),
+        }
+    }
+
     /// Prune only local per-request controls after authoritative changes.
     pub(super) fn reconcile_responses(&mut self) {
         if self.response_failures.is_empty()

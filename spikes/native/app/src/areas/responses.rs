@@ -36,32 +36,13 @@ impl Shell {
             Answer::Question(id, answer) => Response::Question { id, answer },
         };
         let request = response.request();
-        let Some(area) = (seat.get)(self) else {
-            return;
-        };
-        let Some(shown) = &area.shown else {
-            return;
-        };
-        if !area.response_waiting(request) {
-            return;
-        }
-        if !area.response_online(&self.fleet) {
-            self.response_refused(seat, request, Problem::Offline);
-            return;
-        }
-        let Some(connection) = self
-            .fleet
-            .machines
-            .iter()
-            .find(|machine| machine.name == shown.machine)
-            .and_then(vessel_app_view::Machine::connection_context)
-        else {
-            self.response_refused(seat, request, Problem::Offline);
-            return;
-        };
-        let target = Target {
-            connection,
-            session: shown.session,
+        let target = match self.response_target(seat, &response) {
+            Ok(Some(target)) => target,
+            Ok(None) => return,
+            Err(problem) => {
+                self.response_refused(seat, request, problem);
+                return;
+            }
         };
         let pending = match self.areas.responses.registry.begin(target, request) {
             Ok(pending) => pending,
@@ -107,6 +88,36 @@ impl Shell {
         // Read after every outcome: a timed-out call may have succeeded, or a
         // second client may have answered. An acknowledgement is not a log.
         self.act_at(seat, Act::Conversation);
+    }
+
+    /// Missing/withdrawn cards are silent; a current card keeps a typed refusal.
+    fn response_target(&self, seat: Seat, response: &Response) -> Result<Option<Target>, Problem> {
+        let Some(area) = (seat.get)(self) else {
+            return Ok(None);
+        };
+        let Some(shown) = &area.shown else {
+            return Ok(None);
+        };
+        if !area.response_waiting(response.request()) {
+            return Ok(None);
+        }
+        if !area.response_valid(response) {
+            return Err(Problem::Invalid);
+        }
+        if !area.response_online(&self.fleet) {
+            return Err(Problem::Offline);
+        }
+        let connection = self
+            .fleet
+            .machines
+            .iter()
+            .find(|machine| machine.name == shown.machine)
+            .and_then(vessel_app_view::Machine::connection_context)
+            .ok_or(Problem::Offline)?;
+        Ok(Some(Target {
+            connection,
+            session: shown.session,
+        }))
     }
 
     fn response_current(&self, seat: Seat, pending: &Pending) -> bool {

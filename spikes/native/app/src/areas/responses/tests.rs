@@ -207,3 +207,72 @@ fn an_offline_cached_request_is_retained_without_admission_or_replay(
         assert!(!shell.areas.conversation.response_online(&shell.fleet));
     });
 }
+
+#[gpui::test]
+fn unoffered_options_and_invalid_question_values_do_not_admit_network_work(
+    cx: &mut gpui::TestAppContext,
+) {
+    use std::collections::BTreeMap;
+    use vessel_proto::conversation::{AnswerValue, FieldKind, QuestionField};
+    use vessel_proto::{Question, QuestionAnswer, QuestionId};
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, _| {
+        let pending = begin(shell);
+        shell.response_answered(&Reply {
+            pending: pending.clone(),
+            result: Err(Problem::Unsent),
+        });
+        let Request::Permission(permission) = pending.request else {
+            panic!("permission fixture")
+        };
+        shell.response_at(
+            Seat::SESSION,
+            Answer::Permit(permission, PermissionOptionId::new("not-offered")),
+        );
+        assert!(shell.areas.responses.seats.is_empty());
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(pending.request),
+            Some(Problem::Invalid)
+        );
+        let question = Question {
+            id: QuestionId::random(),
+            message: "A Boolean question".into(),
+            tool_call: None,
+            fields: vec![QuestionField {
+                name: "answer".parse().unwrap(),
+                title: None,
+                description: None,
+                required: true,
+                kind: FieldKind::Boolean { default: None },
+            }],
+        };
+        let id = question.id;
+        shell.areas.conversation.live.questions = vec![question];
+        shell.response_at(
+            Seat::SESSION,
+            Answer::Question(
+                id,
+                QuestionAnswer::Accept {
+                    values: BTreeMap::from([(
+                        "answer".parse().unwrap(),
+                        AnswerValue::Text("not Boolean".into()),
+                    )]),
+                },
+            ),
+        );
+        assert!(shell.areas.responses.seats.is_empty());
+        assert_eq!(
+            shell
+                .areas
+                .conversation
+                .response_failures
+                .get(Request::Question(id)),
+            Some(Problem::Invalid)
+        );
+    });
+}
