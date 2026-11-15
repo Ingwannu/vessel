@@ -1,7 +1,17 @@
 # Workspace files, editor and document panels
 
-Status: implementation in progress; no package acceptance yet. App base `8d5513e4`
-is merged; node companion includes Quality B `29eebb8b`.
+Status: implementation in progress; no package acceptance yet. App base 4 and
+the checked dialog seams (`e5e654b47`, containing `074ade16`) are merged. Node
+companion includes Quality B, app base 3 and announced node head `ba45a6e3`.
+
+Current evidence: exact `0df7abd9` strict app all-target Clippy passed and eight
+focused real GPUI file/find/mutation tests passed. Later navigation, frontmatter
+and preview work is pending a new narrow check; the first frontmatter test build
+failed on an ambiguous test `Arc` constructor, now corrected. Node's five new
+methods remain pending `None`: current wiring checks, unit tests, generated
+TypeScript, whole root gate and V3 security review are outstanding. No whole
+native gate, visual acceptance, PDF/SVG renderer or complete C5 claim exists.
+The dated checkpoints below preserve their original scoped evidence.
 
 ## Reference and existing assets
 
