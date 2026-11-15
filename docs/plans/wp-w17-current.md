@@ -22,11 +22,13 @@ The replacement completed rc1 before tests (two private-field E0616 errors in
 sealed-owner test placement; one unused read count warning). Setup3 steps0 is not
 runtime proof. Those source defects are corrected without exposing private fields;
 changed-source strict and actual execution remain owed. The latest strict target
-is8a92af01, run wp-cli-narrow-20261115T184714Z-8a92af01, queued once in the short
-lane; it also compiles the PTY/testkit fixtures. No newer Rust source is introduced
+is8a92af01, run wp-cli-narrow-20261115T184714Z-8a92af01, which returned Cargo101
+on11 test-helper panic/unwrap/expect lints; it also compiles the PTY/testkit fixtures. No newer Rust source is introduced
 by that invocation-map documentation correction. A subsequent host observation
 fix now stages exact-ack equality and kind-aware connectivity/name matching; it
-is outside8a92 and needs its own changed-source lint and actual tests.
+is outside8a92 and needs its own changed-source lint and actual tests. The PTY
+module now explicitly uses cfg(all(test,unix)), preserving the existing test-only
+lint policy without adding allowances; corrected-source checks remain owed.
 
 Source means code over existing calls, with the limitations listed below; it does
 not mean latest-head tests passed. Pending means a typed grammar/refusal or an

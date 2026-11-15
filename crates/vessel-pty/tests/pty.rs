@@ -201,6 +201,6 @@ async fn terminal_mode_sequences_pass_through_untouched() {
 #[path = "pty/lifetime.rs"]
 mod lifetime;
 
-#[cfg(unix)]
+#[cfg(all(test, unix))]
 #[path = "pty/backpressure.rs"]
 mod backpressure;

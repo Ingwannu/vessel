@@ -1749,3 +1749,14 @@ observations; same-node Fleet/Paired names and connectivity; and the explicit CL
 Conflict code. They have not executed. The already queued strict8a92 remains
 unchanged and cannot validate these subsequent host edits; changed-source lint and
 actual tests are owed before package handoff.
+
+### Exact8a92 selected strict return
+
+wp-cli-narrow-20261115T184714Z-8a92af01 acquired after676s, Cargo101 after108s.
+Eleven diagnostics are confined to plain helpers in the newly added PTY queue
+fixture: two panic, eight unwrap, one expect. The integration-test child module
+had cfg(unix) but lacked an explicit cfg(test), so workspace Clippy's existing
+allow-in-tests settings did not classify its helper bodies as test code. Change
+the module gate to cfg(all(test,unix)); no lint allowance or product rule changes.
+This run is not a strict PASS, contains no test execution and does not validate
+the later4980 host observation correction. Original logs remain retained.
