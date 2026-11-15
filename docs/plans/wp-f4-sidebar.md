@@ -137,3 +137,7 @@ and Korean. The closed builtin/section mappings borrow the generated prepared
 catalog; no screen string table or runtime formatting is added. The new
 catalog/state vocabulary is a skeleton, not proof that registry loading or
 all named actions are integrated yet.
+
+First narrow model test stopped in translation generation before compiling the
+new model: every Fluent message needs its own translator context comment.
+The catalog is corrected per key; this failure remains in the first log.
