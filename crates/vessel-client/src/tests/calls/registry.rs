@@ -49,9 +49,14 @@ fn requests(workspace: WorkspaceId) -> [Call; 6] {
     ]
 }
 
-fn requires(error: CallError, method: Method, needs: ProtocolVersion, negotiated: ProtocolVersion) {
+fn requires(
+    error: &CallError,
+    method: Method,
+    needs: ProtocolVersion,
+    negotiated: ProtocolVersion,
+) {
     assert!(
-        matches!(error, CallError::NotInProtocol { method: actual, needs: required, negotiated: peer } if actual == method && required == needs && peer == negotiated)
+        matches!(error, CallError::NotInProtocol { method: actual, needs: required, negotiated: peer } if *actual == method && *required == needs && *peer == negotiated)
     );
 }
 
@@ -100,7 +105,7 @@ async fn direct_refusals(
         ),
     ];
     for (method, result) in direct {
-        requires(result.unwrap_err(), method, needed, version);
+        requires(&result.unwrap_err(), method, needed, version);
     }
 }
 
@@ -131,7 +136,7 @@ async fn scenario(version: ProtocolVersion, needed: ProtocolVersion) {
     let workspace = WorkspaceId::random();
     direct_refusals(&client, workspace, needed, version).await;
     requires(
-        client
+        &client
             .call_on(expected_node, GetRegistry::default())
             .await
             .unwrap_err(),
@@ -168,7 +173,7 @@ async fn scenario(version: ProtocolVersion, needed: ProtocolVersion) {
                 .call_any(UnaryCall::try_from(call).unwrap())
                 .await
                 .unwrap_err();
-            requires(error, method, needed, version);
+            requires(&error, method, needed, version);
         }
     }
     assert_eq!(client.node_info().await.unwrap().id, expected_node);
@@ -182,8 +187,8 @@ async fn scenario(version: ProtocolVersion, needed: ProtocolVersion) {
 async fn serve_old(
     mut node_end: vessel_rpc::memory::MemoryTransport,
     version: ProtocolVersion,
-    welcomed: vessel_proto::NodeInfo,
-) -> Option<Result<String, vessel_rpc::memory::Disconnected>> {
+    welcomed: NodeInfo,
+) -> Option<Result<String, Disconnected>> {
     let _hello = node_end.next().await.unwrap().unwrap();
     node_end
         .send(

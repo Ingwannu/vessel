@@ -140,6 +140,13 @@ async fn registry_metadata_forward_relay_deliver_keep_person_origin_and_intersec
 }
 
 async fn devices(relay: &Relay, home: &Member, target: &Member, workspace: WorkspaceId) {
+    let writer = device_with(relay, home, vec![Scope::Read, Scope::Operate])
+        .await
+        .connect(client())
+        .await
+        .unwrap();
+    read(&writer, target, workspace).await;
+    write(&writer, target, workspace).await;
     let reader = device_with(relay, home, vec![Scope::Read])
         .await
         .connect(client())
