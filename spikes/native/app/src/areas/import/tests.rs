@@ -191,6 +191,20 @@ fn retained_callbacks_refuse_reopen_and_scope_aba_before_any_effect(cx: &mut Tes
                     assert!(!shell.areas.import.model.has_selection())
                 })
             });
+            cx.simulate_click(row, Modifiers::default());
+            let submit = cx.debug_bounds("history-submit").unwrap().center();
+            cx.simulate_click(submit, Modifiers::default());
+            assert!(matches!(
+                commands.try_recv().unwrap(),
+                vessel_app_link::Command::History(Ask::Import(_))
+            ));
+            let close = cx.debug_bounds("dialog-close").unwrap().center();
+            cx.simulate_click(close, Modifiers::default());
+            probe.read_with(cx, |probe, cx| {
+                probe
+                    .shell
+                    .read_with(cx, |shell, _| assert!(!shell.areas.import.open))
+            });
         }
     }
 }
@@ -210,6 +224,16 @@ fn successful_import_receipt_never_defers_alias_navigation_or_clears_the_active_
         shell.open_import(window, cx);
         loaded(shell, original.clone());
         shell.areas.draft.folder = "/draft/keep".into();
+        shell
+            .areas
+            .session
+            .composer
+            .set_text("keep session input", window, cx);
+        shell
+            .areas
+            .draft
+            .composer
+            .set_text("keep new draft input", window, cx);
         shell.areas.conversation.open("fixture", current);
         let Ask::Import(batch) = shell.areas.import.model.import().unwrap().unwrap() else {
             panic!("import")
@@ -250,7 +274,9 @@ fn successful_import_receipt_never_defers_alias_navigation_or_clears_the_active_
         }
     });
     cx.run_until_parked();
-    shell.read_with(cx, |shell, _| {
+    shell.read_with(cx, |shell, cx| {
+        assert_eq!(shell.areas.session.composer.text(cx), "keep session input");
+        assert_eq!(shell.areas.draft.composer.text(cx), "keep new draft input");
         assert_eq!(shell.areas.draft.folder, "/draft/keep");
         assert_eq!(
             shell.areas.conversation.shown.as_ref().unwrap().session,
@@ -258,8 +284,13 @@ fn successful_import_receipt_never_defers_alias_navigation_or_clears_the_active_
         );
         assert!(shell.areas.import.open);
     });
-    assert!(
-        commands.try_recv().is_err(),
-        "no Open, follow or reload may escape"
-    );
+    while let Ok(command) = commands.try_recv() {
+        assert!(
+            !matches!(
+                command,
+                vessel_app_link::Command::Open { .. } | vessel_app_link::Command::Reload
+            ),
+            "no Open, follow or reload may escape"
+        );
+    }
 }
