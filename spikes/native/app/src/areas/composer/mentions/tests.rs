@@ -112,5 +112,13 @@ fn shortcut_admission_reads_exact_token_scope_without_mutating_the_menu(cx: &mut
             shell.file_menu(target).borrow().model.phase(),
             &mentions::Phase::Hidden
         );
+        let mut admissions = vessel_app_view::connection::ConnectionEpochs::default();
+        let machine = vessel_app_view::connection::MachineKey::from_book("fixture");
+        let node = shell.fleet.machines[0].node.unwrap();
+        let _original = admissions.admit(machine.clone(), node).unwrap();
+        let reconnected = admissions.admit(machine, node).unwrap();
+        shell.fleet.machines[0].connection_epoch = Some(reconnected.epoch());
+        assert!(!shell.composer_file_menu_owns_key(target, ComposerKey::Escape, cx));
+        assert!(!shell.composer_file_menu_owns_key(target, ComposerKey::Tab, cx));
     });
 }

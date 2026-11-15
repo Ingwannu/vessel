@@ -119,6 +119,7 @@ impl Shell {
                     tray.clear();
                 }
                 drop(self.areas.composer.sends.remove(&session));
+                self.areas.composer.capabilities.forget(session);
             }
             Err(problem) => {
                 waiting.phase = Phase::Retained {

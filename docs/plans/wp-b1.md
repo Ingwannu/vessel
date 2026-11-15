@@ -275,3 +275,6 @@ Upload and resume envelopes now carry the same existing canonical ClientMessageI
 
 
 Image normalization evidence: fixed-source run wp-composer-image-kit-20261115T121330Z-6987bc0f executed both codec/policy tests: 2 passed, 0 failed, 0 ignored. The matching strict union run wp-composer-image-union-20261115T121331Z-6987bc0f stopped in kit on wildcard_enum_match_arm before proving App: preserved-format policy now uses explicit equality checks after the existing six-codec admission gate. The changed source still needs strict verification; these two tests do not establish OS paste/drop or global decoder memory behavior.
+
+
+Capability results remain bound to the same original admission even after becoming Ready; the pending owner must match both its creation ticket and ConnectionContext. Successful settlement removes that capability entry so a later send cannot inherit an obsolete creation read. Read-only shortcut admission and arriving @ rows also reject a same-node reconnect before rendering/consuming its old popup. This is local cache/operation correlation, not additional transport authority.

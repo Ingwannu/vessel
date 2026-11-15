@@ -274,7 +274,12 @@ impl Shell {
         }
     }
     pub(crate) fn composer_mention_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
-        if self.composer_field(answer.request.scope.draft).is_none() {
+        if self.composer_field(answer.request.scope.draft).is_none()
+            || self
+                .attachment_context(&answer.request.scope.machine)
+                .as_ref()
+                != Some(&answer.request.scope.connection)
+        {
             return;
         }
         let now = Duration::from_secs_f32(self.areas.composer.now());
@@ -303,6 +308,8 @@ impl Shell {
         let current = token.as_ref().is_some_and(|token| {
             state.model.request().is_some_and(|request| {
                 request.mention == *token
+                    && self.attachment_context(&request.scope.machine).as_ref()
+                        == Some(&request.scope.connection)
                     && self.composer_context_scope(target).is_some_and(|scope| {
                         request.scope.draft == target
                             && request.scope.machine == scope.machine
@@ -323,6 +330,8 @@ impl Shell {
                             })
                             && open.session == ask.session
                             && open.machine == ask.machine.as_str()
+                            && self.attachment_context(&ask.machine).as_ref()
+                                == Some(&ask.connection)
                     })
                 }
                 Root::Exhausted => true,

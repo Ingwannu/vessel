@@ -230,8 +230,12 @@ impl Shell {
         let DraftKey::Session { session } = key else {
             return None;
         };
-        if self.areas.composer.sends.contains_key(&session)
-            && let Some(target) = self.areas.composer.capabilities.target(session)
+        if let Some(waiting) = self.areas.composer.sends.get(&session)
+            && let Some(target) = self
+                .areas
+                .composer
+                .capabilities
+                .target(session, &waiting.connection)
         {
             return Some(target);
         }

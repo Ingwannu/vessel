@@ -18,7 +18,7 @@ use vessel_proto::{NodeId, SessionId};
 #[derive(Debug, Clone)]
 enum State {
     Reading(CapabilityAsk),
-    Ready(Target),
+    Ready { ask: CapabilityAsk, target: Target },
     Failed(CapabilityAsk),
 }
 #[derive(Debug, Default)]
@@ -26,11 +26,18 @@ pub(super) struct Capabilities {
     states: HashMap<SessionId, State>,
 }
 impl Capabilities {
-    pub(super) fn target(&self, session: SessionId) -> Option<Target> {
+    pub(super) fn target(
+        &self,
+        session: SessionId,
+        connection: &vessel_app_view::connection::ConnectionContext,
+    ) -> Option<Target> {
         match self.states.get(&session) {
-            Some(State::Ready(target)) => Some(*target),
-            None | Some(State::Reading(_) | State::Failed(_)) => None,
+            Some(State::Ready { ask, target }) if &ask.connection == connection => Some(*target),
+            None | Some(State::Reading(_) | State::Failed(_) | State::Ready { .. }) => None,
         }
+    }
+    pub(super) fn forget(&mut self, session: SessionId) {
+        drop(self.states.remove(&session));
     }
     pub(super) fn blocked(&self, session: SessionId) -> bool {
         matches!(
@@ -127,18 +134,20 @@ impl Shell {
                 .is_some_and(|waiting| {
                     waiting.creation == Some(ask.ticket)
                         && waiting.expected_node == ask.expected_node
+                        && waiting.connection == ask.connection
                 });
         if !expected {
             return;
         }
         match result {
             Ok(target) => {
-                let _old = self
-                    .areas
-                    .composer
-                    .capabilities
-                    .states
-                    .insert(ask.session, State::Ready(target));
+                let _old = self.areas.composer.capabilities.states.insert(
+                    ask.session,
+                    State::Ready {
+                        ask: ask.clone(),
+                        target,
+                    },
+                );
                 if let Some(tray) = self.areas.composer.trays.get_mut(DraftKey::Session {
                     session: ask.session,
                 }) {
@@ -172,7 +181,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let ask = match self.areas.composer.capabilities.states.get(&session) {
-            Some(State::Reading(_) | State::Ready(_)) => return,
+            Some(State::Reading(_) | State::Ready { .. }) => return,
             Some(State::Failed(ask)) => ask.clone(),
             None => {
                 let Some(waiting) = self.areas.composer.sends.get(&session) else {
