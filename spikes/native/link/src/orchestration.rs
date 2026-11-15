@@ -2,8 +2,8 @@
 //!
 //! [Decision Log]
 //! - Reuse the real node calls; no app preference duplicates host configuration.
-//! - Fixed node identity is checked before effects, and one bounded deadline
-//!   covers each task. Its permit includes delivering the answer.
+//! - Fixed node identity is checked before effects. One deadline bounds the
+//!   typed node call; the admission permit also covers answer backpressure.
 //! - Feature-pending and old nodes refuse without calling the RPC. A timeout
 //!   means unconfirmed, because the node retains admitted writes after cancellation.
 pub use vessel_app_view::orchestration::{Action, Answer, Output, Problem, Task};
@@ -25,7 +25,7 @@ pub const fn rejected(why: crate::Rejected) -> Problem {
 }
 #[cfg(not(target_arch = "wasm32"))]
 const MAX_TASKS: usize = 8;
-/// One owner budget includes pending result sends.
+/// Admission capacity includes pending result sends; the RPC timer does not.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug)]
 pub(crate) struct Hub(std::sync::Arc<tokio::sync::Semaphore>);
