@@ -14,6 +14,7 @@
 use agent_client_protocol::v1::schema as acp;
 use serde::Serialize;
 
+mod notices;
 mod prompt;
 mod question;
 mod report;
@@ -77,19 +78,14 @@ pub(crate) fn session_update(update: acp::SessionUpdate) -> Update {
         U::Plan(plan) => AgentEvent::Plan {
             entries: plan.entries.into_iter().map(plan_entry).collect(),
         },
-        // Notices are for people (rate limits, warnings); the harness log is
-        // where clients already show such lines.
-        U::Notice(notice) => AgentEvent::HarnessLog {
-            line: notice_line(&notice),
-        },
+        U::Notice(notice) => notices::notice(notice),
         U::AvailableCommandsUpdate(update) => return Update::Commands(report::commands(update)),
         U::CurrentModeUpdate(update) => return Update::Mode(update.current_mode_id),
         U::ConfigOptionUpdate(update) => return Update::ConfigOptions(update.config_options),
         U::SessionInfoUpdate(_) => return Update::Skipped(Skipped::SessionInfo),
         U::UsageUpdate(update) => return Update::Usage(report::usage(update)),
-        U::CompactionUpdate(_) | U::CompactionSummaryChunk(_) => {
-            return Update::Skipped(Skipped::Compaction);
-        }
+        U::CompactionUpdate(update) => notices::compaction(update),
+        U::CompactionSummaryChunk(_) => return Update::Skipped(Skipped::Compaction),
         _ => return Update::Skipped(Skipped::Unknown),
     };
     Update::Event(event)
@@ -140,20 +136,6 @@ fn plan_entry(entry: acp::PlanEntry) -> PlanEntry {
 
         id: None,
         active_form: None,
-    }
-}
-
-fn notice_line(notice: &acp::Notice) -> String {
-    let severity = match &notice.severity {
-        acp::NoticeSeverity::Info => "info",
-        acp::NoticeSeverity::Warning => "warning",
-        acp::NoticeSeverity::Error => "error",
-        acp::NoticeSeverity::Other(other) => other.as_str(),
-        _ => "notice",
-    };
-    match &notice.description {
-        Some(description) => format!("{severity}: {}: {description}", notice.title),
-        None => format!("{severity}: {}", notice.title),
     }
 }
 

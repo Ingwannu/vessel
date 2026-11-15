@@ -45,9 +45,9 @@
     "expected": {"event": "plan", "entries": [{"content": "Read the code", "priority": "high", "status": "completed"}, {"content": "Write the fix", "priority": "medium", "status": "in_progress"}, {"content": "Run tests", "priority": "low", "status": "pending"}]}
   },
   {
-    "name": "notice becomes a harness log line",
+    "name": "notice retains explicit severity",
     "notification": {"sessionId": "s1", "update": {"sessionUpdate": "notice", "severity": "warning", "title": "Rate limited", "description": "retrying in 5s"}},
-    "expected": {"event": "harness_log", "line": "warning: Rate limited: retrying in 5s"}
+    "expected": {"event": "notification", "level": "warning", "message": "Rate limited: retrying in 5s"}
   },
   {
     "name": "replayed user message is forwarded",

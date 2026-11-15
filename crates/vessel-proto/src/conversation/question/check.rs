@@ -91,10 +91,10 @@ impl QuestionField {
                 },
                 AnswerValue::Text(text),
             ) => {
-                if !super::presentation::text_is_allowed(self, text) {
-                    Err("the text must contain non-whitespace content")
-                } else {
+                if super::presentation::text_is_allowed(self, text) {
                     text_fits(text, *min_length, *max_length)
+                } else {
+                    Err("the text must contain non-whitespace content")
                 }
             }
             (
