@@ -77,11 +77,10 @@ impl Shell {
                 let current = self.file_reply_current(&key, scope, live);
                 if current {
                     self.language_answered(&key, ask, result);
-                } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key) {
-                    if matches!(&viewer.intelligence, super::intelligence::State::Loading(pending) if pending.ticket == ask.ticket)
-                    {
-                        viewer.intelligence = super::intelligence::State::Idle;
-                    }
+                } else if let Some(viewer) = self.areas.workspace.code.viewer_for(&key)
+                    && matches!(&viewer.intelligence, super::intelligence::State::Loading(pending) if pending.ticket == ask.ticket)
+                {
+                    viewer.intelligence = super::intelligence::State::Idle;
                 }
             }
             FileAnswer::TrackedFound {
@@ -168,14 +167,13 @@ impl Shell {
         let key = FileKey::new(scope, ask.path.clone());
         if self.file_reply_current(&key, scope, live) {
             self.editor_read_answered_for(&key, ticket, ask, result, cx);
-        } else if let Some(editing) = self.editing_for(&key) {
-            if editing
+        } else if let Some(editing) = self.editing_for(&key)
+            && editing
                 .reading
                 .take_if(|(pending, _)| *pending == ticket)
                 .is_some()
-            {
-                editing.model.retire_observations();
-            }
+        {
+            editing.model.retire_observations();
         }
     }
 }
