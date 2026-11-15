@@ -25,15 +25,16 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
   push. The next slice's gate covers this merged tree, including the
   explicit forge-fixture clippy and test steps.
-- Returned: 2f passed its whole gate (2,066 Rust tests, no failures,
-  12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
-  hyphens in the launchd comment encoder. The revision uses single-pass
-  character emission and an independent XML/plist parsing regression; its
-  parser helper is inside the existing test module. Final focused checks
-  and the whole gate are pending.
-- Next: gate the 2f revision, then deadline-safe local reads, service
-  observation/finalization, force/restart and slices 3/4. Actual service
-  managers and real agents remain unverified.
+- Done: 2f, including the XML-comment revision `91fcf929`, passed review.
+  Its whole gate passed (2,067 Rust tests, no failures, 12 ignored; forge 4,
+  web unit 417 and e2e 62). The original return and failed narrow-check logs
+  remain available; no failed run was called green.
+- Source: 2g1 extracts the existing lock waiter's thread/oneshot handoff
+  without changing behavior or test expectations. Focused and whole gates
+  are pending. The subsequent identity/preflight deadline change is separate.
+- Next: gate 2g1, then deadline-safe local reads, service observations and
+  finalization, force/restart and slices 3/4. Proc implementation still
+  awaits its integration decision. Actual managers and agents are unverified.
 
 ## Existing asset check
 
@@ -388,8 +389,8 @@ through the existing fake service tools. Windows still skips installation.
 The larger stop-time observer draft is deliberately separate: it must not
 expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
 bounded reads and loaded-manager authority validation follow in separate
-reviewable changes. The original whole gate passed; its returned XML-comment
-encoding finding is being corrected and will have a new whole gate.
+reviewable changes. The XML-comment revision passed its whole gate and
+review; actual service-manager lifecycle remains unverified.
 
 
 Move file I/O off the async worker while preserving both platform reports.
@@ -423,3 +424,15 @@ private assertions move with their rule rather than becoming public getters.
 The ADR lists each phase's test obligations, remaining numeric-signal race
 and platform limits. Deadline-safe local reads and service observations can
 continue independently while the contract is reviewed.
+
+
+### Slice 2g1: behavior-preserving handoff extraction
+
+`[modify]`: move only the existing worker/channel policy from `lock_wait`
+into the private `local_read::Pending` helper. Its existing lock operation
+is the real caller. Keep its name and diagnostic, callback I/O sequence,
+borrowed receiver, error sources, tests and budgets byte-identical. There
+is no new dependency, field, wire call or numeric bound. The actual file
+read deadline fix follows in a separate change; no future operation or
+unused public API is added by this extraction. Paseo's previously stated
+PID-polling difference remains; the CLI still waits on its OS-lock event.
