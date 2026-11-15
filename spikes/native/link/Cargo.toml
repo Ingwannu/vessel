@@ -11,6 +11,11 @@ repository.workspace = true
 [lints]
 workspace = true
 
+[features]
+# `Link::detached`: a link with no task behind its queue, for the app's
+# tests that fill the queue.
+testing = []
+
 [dependencies]
 vessel-app-view.workspace = true
 vessel-proto.workspace = true
@@ -34,3 +39,7 @@ tokio.workspace = true
 # tokio's `sync` is the only part of it that builds for wasm32.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { version = "1", default-features = false, features = ["sync"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+vessel-rpc.workspace = true
+tokio = { workspace = true, features = ["io-util"] }

@@ -7477,25 +7477,29 @@ session: SessionId, } | { "kind": "unknown" };
 export type Scope = "read" | "operate" | "admin" | "sync" | "relay";
 
 /**
- * One script or service of `vessel.toml`.
+ * One script or service, with construction enforcing its declaration's meaning.
  */
 export type ScriptEntry = { 
 /**
- * Its name.
+ * The file's parsed name, also used to find the command by name.
  */
 name: ScriptName, 
 /**
- * Script or service.
+ * Keep the role inseparable from its declared port.
  */
 kind: ScriptKind, 
 /**
- * What runs, through the platform's shell.
+ * The validated text the approved digest covers.
  */
 command: ProjectCommand, 
 /**
- * Where it runs, inside the root; the root when absent.
+ * A folder inside the checkout; absence selects its root.
  */
-dir?: RelPath | null, };
+dir?: RelPath | null, 
+/**
+ * An approved override; absence leaves allocation to the runtime.
+ */
+port?: ServicePort | null, };
 
 /**
  * Run once, or kept running.
@@ -7751,6 +7755,11 @@ export type ServiceFailure = { "kind": "gave_up",
  * Restarts tried.
  */
 restarts: number, } | { "kind": "not_approved" } | { "kind": "spawn" } | { "kind": "unknown" };
+
+/**
+ * A service's configured or allocated TCP port, never the ephemeral sentinel zero.
+ */
+export type ServicePort = number;
 
 /**
  * What a service is doing (protocol 11). Also a record of its log

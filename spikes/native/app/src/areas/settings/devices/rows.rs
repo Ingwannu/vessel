@@ -9,7 +9,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_kit::{breakpoint::TOUCH_TARGET, theme::spacing};
 use vessel_app_view::devices::{
-    DeviceState, Listing, Revoking, Target, details, exact, paired_devices,
+    DeviceBadge, Listing, Revoking, Target, details, exact, paired_devices,
 };
 
 pub(super) fn render(
@@ -154,35 +154,35 @@ fn device_row(
     let words = shell.t.lang.devices();
     let state = &shell.areas.settings.devices;
     let id = device.id;
-    let action = outline_button(format!("device-revoke-{id}"), words.revoke, true, tokens)
-        .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-        .on_click(cx.listener(move |shell, _event, window, cx| {
-            shell.devices_choose_revoke(id, window, cx);
-        }));
-    let device_state = DeviceState::of(device);
-    let badge = vessel_app_kit::badge::badge(
-        words.state(device_state),
-        crate::badge::variant(device_state.variant()),
-        vessel_app_kit::badge::Size::Small,
-        None,
+    let pending = matches!(state.page.revoking, Revoking::Sending { .. });
+    // Keep the row's geometry while its confirmation is open above it.
+    let action = outline_button(
+        format!("device-revoke-{id}"),
+        words.revoke,
+        !pending,
         tokens,
-    );
-    let control = div()
-        .flex()
-        .flex_wrap()
-        .items_center()
-        .gap(px(spacing::S2))
-        .child(badge)
-        .when(
-            !matches!(state.page.revoking, Revoking::Sending { .. }),
-            |control| control.child(action),
+    )
+    .when(!pending, |button| {
+        button.on_click(cx.listener(move |shell, _event, window, cx| {
+            shell.devices_choose_revoke(id, window, cx);
+        }))
+    });
+    // A caller's identity is not yet supplied by this connection. Never
+    // identify this device by its label; device.self will supply the fact.
+    let badge = DeviceBadge::of(device, None).map(|badge| {
+        vessel_app_kit::badge::badge(
+            words.state(badge),
+            crate::badge::variant(badge.variant()),
+            vessel_app_kit::badge::Size::Small,
+            None,
+            tokens,
         )
-        .into_any_element();
-    let row = settings::row_at(
+    });
+    let row = super::row::compose(
         device.label.clone(),
-        Some(details(shell.t.lang, device, Utc::now(), state.offset).into()),
-        None,
-        Some(control),
+        details(shell.t.lang, device, Utc::now(), state.offset),
+        badge,
+        action,
         first,
         compact,
         tokens,
