@@ -15,15 +15,38 @@ use vessel_session::CheckpointRequest;
 use vessel_store::Store;
 use vessel_workspace::checkpoint::IgnoreDefaults;
 
+#[derive(Debug, Clone)]
 pub(crate) struct Context {
     pub(crate) sessions: Arc<Sessions>,
     pub(crate) workspaces: Arc<Workspaces>,
     pub(crate) store: Store,
     pub(crate) tasks: TaskTracker,
     pub(crate) stop: CancellationToken,
+    workers: super::workers::Workers,
+}
+impl Context {
+    pub(crate) fn new(
+        sessions: Arc<Sessions>,
+        workspaces: Arc<Workspaces>,
+        store: Store,
+        tasks: TaskTracker,
+        stop: CancellationToken,
+    ) -> Self {
+        Self {
+            sessions,
+            workspaces,
+            store,
+            tasks,
+            stop,
+            workers: super::workers::Workers::default(),
+        }
+    }
+    pub(super) fn workers(&self) -> super::workers::Workers {
+        self.workers.clone()
+    }
 }
 /// Resolve Git's default once at the node edge; workers never read ambient HOME.
-fn defaults() -> Result<IgnoreDefaults, CheckpointError> {
+pub(super) fn defaults() -> Result<IgnoreDefaults, CheckpointError> {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
@@ -39,7 +62,7 @@ pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointReq
     let defaults = defaults();
     let tasks = context.tasks.clone();
     let _owner = tasks.spawn(async move {
-        let workers = super::workers::Workers::default();
+        let workers = context.workers();
         super::gc::start(context.store.clone(),Arc::clone(&context.workspaces),workers.clone(),&context.tasks,context.stop.clone());
         let defaults = match defaults {
             Ok(defaults) => defaults,

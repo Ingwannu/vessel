@@ -84,6 +84,8 @@ mod side_questions;
 /// The node's protocol implementation.
 #[derive(Debug)]
 pub(crate) struct NodeService {
+    #[cfg(target_os = "linux")]
+    checkpoints: crate::checkpoint::Controller,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -156,6 +158,8 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    #[cfg(target_os = "linux")]
+    pub(crate) checkpoints: crate::checkpoint::Controller,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -187,6 +191,8 @@ pub(crate) struct Parts {
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            #[cfg(target_os = "linux")]
+            checkpoints,
             lsp,
             lsp_roots,
             lifecycle,
@@ -216,6 +222,8 @@ impl NodeService {
         } = parts;
         let store = sessions.store().clone();
         Self {
+            #[cfg(target_os = "linux")]
+            checkpoints,
             lsp,
             lsp_roots,
             lifecycle,

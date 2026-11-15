@@ -90,7 +90,7 @@ pub(crate) fn clean(
 ) -> Result<(), CheckpointError> {
     loop {
         match storage
-            .clean_capture(key.worktree, key.capture)
+            .clean_capture(worktree, capture)
             .map_err(|error| error.reason())?
         {
             Cleanup::Pending => {}

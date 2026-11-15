@@ -1,7 +1,7 @@
 //! Starting a node and stopping it.
 
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -425,14 +425,12 @@ async fn core(
     .await
     .map_err(NodeError::Store)?;
     #[cfg(target_os = "linux")]
-    crate::checkpoint::bridge::serve(
-        crate::checkpoint::bridge::Context {
-            sessions: Arc::clone(&sessions),
-            workspaces: Arc::clone(&workspaces),
-            store: store.clone(),
-            tasks: tasks.clone(),
-            stop: stop.clone(),
-        },
+    let checkpoints = crate::checkpoint::start(
+        Arc::clone(&sessions),
+        Arc::clone(&workspaces),
+        store.clone(),
+        tasks.clone(),
+        stop.clone(),
         checkpoint_requests,
     );
     // Worktrees whose sessions are gone are tidied at start and after
@@ -490,6 +488,8 @@ async fn core(
         .map_err(NodeError::Store)?;
     let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
+        #[cfg(target_os = "linux")]
+        checkpoints,
         lsp,
         lsp_roots: config.lsp_roots.clone(),
         lifecycle: lifecycle.clone(),

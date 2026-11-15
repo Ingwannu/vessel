@@ -186,3 +186,36 @@ fn checkpoint_storage_cleanup_refuses_symlink_hardlink_unknown_names_and_preserv
         assert_eq!(fs::read(&outside).unwrap(), b"outside");
     }
 }
+
+#[test]
+fn checkpoint_storage_cleans_only_the_named_preview_and_restore_idempotently() {
+    let data = tempfile::tempdir().unwrap();
+    fs::set_permissions(data.path(), fs::Permissions::from_mode(0o700)).unwrap();
+    let storage = Storage::open(data.path()).unwrap();
+    let capture = storage.create_capture(key()).unwrap();
+    let plan = RestorePlanId::random();
+    let sibling = RestorePlanId::random();
+    let _current = capture.create_preview(plan).unwrap();
+    let _sibling = capture.create_preview(sibling).unwrap();
+    fs::write(
+        capture
+            .folder
+            .path
+            .join("previews")
+            .join(plan.to_string())
+            .join("candidate"),
+        b"private current",
+    )
+    .unwrap();
+    let restore = RestoreId::random();
+    let stage = capture.create_restore(restore).unwrap();
+    fs::write(stage.path().join("desired-0"), b"staged").unwrap();
+    assert_eq!(capture.clean_preview(plan).unwrap(), Cleanup::Complete);
+    assert_eq!(capture.clean_preview(plan).unwrap(), Cleanup::Complete);
+    assert!(capture.open_preview(sibling).is_ok());
+    assert!(capture.archive().is_ok());
+    assert_eq!(capture.clean_restore(restore).unwrap(), Cleanup::Complete);
+    assert_eq!(capture.clean_restore(restore).unwrap(), Cleanup::Complete);
+    assert!(capture.open_restore(restore).is_err());
+    assert!(capture.open_preview(sibling).is_ok());
+}

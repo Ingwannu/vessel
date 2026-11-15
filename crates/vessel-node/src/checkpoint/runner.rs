@@ -13,9 +13,11 @@ use tokio::{
     time::{Instant, sleep_until},
 };
 use tokio_util::sync::CancellationToken;
+#[cfg(test)]
+use vessel_proto::checkpoint::CHECKPOINT_CAPTURE_DEADLINE;
 use vessel_proto::checkpoint::{
-    CHECKPOINT_CAPTURE_DEADLINE, CHECKPOINT_QUEUE, CHECKPOINT_WORKERS, CaptureKey, CheckpointError,
-    ObservedSnapshot, PhysicalRoot,
+    CHECKPOINT_QUEUE, CHECKPOINT_WORKERS, CaptureKey, CheckpointError, ObservedSnapshot,
+    PhysicalRoot,
 };
 use vessel_session::CheckpointAdvance;
 

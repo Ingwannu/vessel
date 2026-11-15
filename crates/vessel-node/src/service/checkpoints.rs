@@ -1,93 +1,112 @@
-//! Registration seam for ADR 0077. No incomplete filesystem mechanism is exposed.
-//!
-//! Quality B permits pending methods to be registered while `FILE_CHECKPOINTS`
-//! remains `None`. Admission refuses them before dispatch. These handlers also
-//! refuse explicitly, so an accidental internal call cannot claim an image or
-//! mutate files before the durable coordinator has been connected and reviewed.
-
+//! Pending wire admission remains closed until central checkpoint version assignment.
 use super::{Connection, NodeService};
-use std::future::{Ready, ready};
 use vessel_proto::{
-    ErrorCode, ErrorDetail, WireError,
+    ErrorDetail, WireError,
     checkpoint::{
-        ChangePage, CheckpointError, CheckpointPage, CheckpointRestoreStatus, ListCheckpoints,
-        PreviewCheckpoint, ReadCheckpointChanges, RestoreCheckpoint, RestoreOutcome,
-        RestorePreview,
+        ChangePage, CheckpointError, CheckpointOwner, CheckpointPage, CheckpointRestoreStatus,
+        FILE_CHECKPOINTS, ListCheckpoints, PreviewCheckpoint, ReadCheckpointChanges,
+        RestoreCheckpoint, RestoreOutcome, RestorePreview,
     },
 };
-
-fn unavailable() -> WireError {
-    let reason = CheckpointError::FeatureUnavailable;
+fn wire(reason: CheckpointError) -> WireError {
     WireError {
-        code: ErrorCode::Unavailable,
+        code: vessel_store::CheckpointStoreError::from(reason).code(),
         message: reason.to_string(),
         detail: Some(ErrorDetail::Checkpoint { reason }),
     }
 }
-
-fn unavailable_for<T>(connection: &Connection) -> Ready<Result<T, WireError>> {
-    ready(
-        connection
-            .principal()
-            .checkpoint_owner()
-            .and(Err(unavailable())),
-    )
+fn active() -> Result<(), WireError> {
+    FILE_CHECKPOINTS
+        .map(|_version| ())
+        .ok_or_else(|| wire(CheckpointError::FeatureUnavailable))
 }
-
+fn human(connection: &Connection) -> Result<CheckpointOwner, WireError> {
+    connection.principal().checkpoint_owner()
+}
 impl NodeService {
-    #[expect(
-        clippy::unused_self,
-        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
-    )]
-    pub(crate) fn list_checkpoints(
-        &self,
-        _connection: &Connection,
-        _request: ListCheckpoints,
-    ) -> Ready<Result<CheckpointPage, WireError>> {
-        ready(Err(unavailable()))
-    }
-    #[expect(
-        clippy::unused_self,
-        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
-    )]
-    pub(crate) fn preview_checkpoint(
+    pub(crate) async fn list_checkpoints(
         &self,
         connection: &Connection,
-        _request: PreviewCheckpoint,
-    ) -> Ready<Result<RestorePreview, WireError>> {
-        unavailable_for(connection)
+        request: ListCheckpoints,
+    ) -> Result<CheckpointPage, WireError> {
+        let _principal = human(connection)?;
+        active()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.checkpoints.list(request).await.map_err(wire)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _scope = (self, request);
+            Err(wire(CheckpointError::UnsupportedPlatform))
+        }
     }
-    #[expect(
-        clippy::unused_self,
-        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
-    )]
-    pub(crate) fn read_checkpoint_changes(
+    pub(crate) async fn preview_checkpoint(
         &self,
         connection: &Connection,
-        _request: ReadCheckpointChanges,
-    ) -> Ready<Result<ChangePage, WireError>> {
-        unavailable_for(connection)
+        request: PreviewCheckpoint,
+    ) -> Result<RestorePreview, WireError> {
+        let owner = human(connection)?;
+        active()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.checkpoints.preview(owner, request).await.map_err(wire)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _scope = (self, owner, request);
+            Err(wire(CheckpointError::UnsupportedPlatform))
+        }
     }
-    #[expect(
-        clippy::unused_self,
-        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
-    )]
-    pub(crate) fn restore_checkpoint(
+    pub(crate) async fn read_checkpoint_changes(
         &self,
         connection: &Connection,
-        _request: RestoreCheckpoint,
-    ) -> Ready<Result<RestoreOutcome, WireError>> {
-        unavailable_for(connection)
+        request: ReadCheckpointChanges,
+    ) -> Result<ChangePage, WireError> {
+        let owner = human(connection)?;
+        active()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.checkpoints.changes(owner, request).await.map_err(wire)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _scope = (self, owner, request);
+            Err(wire(CheckpointError::UnsupportedPlatform))
+        }
     }
-    #[expect(
-        clippy::unused_self,
-        reason = "pending RPC handlers retain the generated dispatch receiver until activation"
-    )]
-    pub(crate) fn checkpoint_restore_status(
+    pub(crate) async fn restore_checkpoint(
         &self,
         connection: &Connection,
-        _request: CheckpointRestoreStatus,
-    ) -> Ready<Result<RestoreOutcome, WireError>> {
-        unavailable_for(connection)
+        request: RestoreCheckpoint,
+    ) -> Result<RestoreOutcome, WireError> {
+        let owner = human(connection)?;
+        active()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.checkpoints.restore(owner, request).map_err(wire)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _scope = (self, owner, request);
+            Err(wire(CheckpointError::UnsupportedPlatform))
+        }
+    }
+    pub(crate) async fn checkpoint_restore_status(
+        &self,
+        connection: &Connection,
+        request: CheckpointRestoreStatus,
+    ) -> Result<RestoreOutcome, WireError> {
+        let owner = human(connection)?;
+        active()?;
+        #[cfg(target_os = "linux")]
+        {
+            self.checkpoints.status(owner, request).await.map_err(wire)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _scope = (self, owner, request);
+            Err(wire(CheckpointError::UnsupportedPlatform))
+        }
     }
 }

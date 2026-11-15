@@ -6,7 +6,7 @@
 //! - Choice: bounded, repeatable FD-relative passes; only Complete acknowledges
 //!   synced absence. Unknown names/links/mounts refuse and leave accounting held.
 //! - Cost: a large archive takes several passes and failures retain its charge.
-use super::{Cleanup, Directory, Error, Storage, name};
+use super::{CaptureStorage, Cleanup, Directory, Error, Storage, name};
 use crate::checkpoint::{account, rooted::MountId};
 use rustix::fs::{AtFlags, Dir, Mode, OFlags};
 use std::{ffi::CStr, fs::File, os::unix::fs::MetadataExt as _};
@@ -85,6 +85,53 @@ impl Storage {
         }
     }
 }
+impl CaptureStorage {
+    /// Remove only one unpublished preview after its worker has stopped writing.
+    /// # Errors
+    /// Unsafe/foreign entries or an actual I/O/fsync failure retain the charge.
+    pub fn clean_preview(&self, plan: RestorePlanId) -> Result<Cleanup, Error> {
+        clean_child(
+            &self.folder.child(c"previews")?,
+            &name(plan)?,
+            Layout::Blobs,
+        )
+    }
+    /// Remove one terminal, unpinned restore stage after verified completion.
+    /// # Errors
+    /// Unsafe/foreign entries or an actual I/O/fsync failure retain the charge.
+    pub fn clean_restore(&self, restore: RestoreId) -> Result<Cleanup, Error> {
+        clean_child(
+            &self.folder.child(c"restores")?,
+            &name(restore)?,
+            Layout::Restore,
+        )
+    }
+}
+fn clean_child(parent: &Directory, name: &CStr, layout: Layout) -> Result<Cleanup, Error> {
+    let child = match parent.child(name) {
+        Ok(child) => child,
+        Err(Error::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
+            parent.file.sync_all()?;
+            return Ok(Cleanup::Complete);
+        }
+        Err(error) => return Err(error),
+    };
+    let mut budget = Budget {
+        remaining: CLEANUP_ENTRIES,
+    };
+    if walk(&child, layout, &mut budget)? == Cleanup::Pending {
+        return Ok(Cleanup::Pending);
+    }
+    remove_folder(parent, name, &child)?;
+    match parent.child(name) {
+        Err(Error::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {
+            Ok(Cleanup::Complete)
+        }
+        Ok(_) => Err(CheckpointError::CaptureUnstable.into()),
+        Err(error) => Err(error),
+    }
+}
+
 fn canonical<T: std::str::FromStr + std::fmt::Display>(text: &str) -> bool {
     text.parse::<T>()
         .is_ok_and(|value| value.to_string() == text)

@@ -7,6 +7,12 @@
 pub(crate) mod backend;
 #[cfg(target_os = "linux")]
 pub(crate) mod bridge;
+#[cfg(target_os = "linux")]
+mod controller;
+#[cfg(target_os = "linux")]
+mod preview;
+#[cfg(target_os = "linux")]
+pub(crate) use controller::Controller;
 mod capture;
 #[cfg(target_os = "linux")]
 pub(crate) mod gc;
@@ -18,3 +24,18 @@ mod workers;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(target_os = "linux")]
+pub(crate) fn start(
+    sessions: std::sync::Arc<crate::sessions::Sessions>,
+    workspaces: std::sync::Arc<crate::workspace::Workspaces>,
+    store: vessel_store::Store,
+    tasks: tokio_util::task::TaskTracker,
+    stop: tokio_util::sync::CancellationToken,
+    requests: tokio::sync::mpsc::Receiver<vessel_session::CheckpointRequest>,
+) -> Controller {
+    let context = bridge::Context::new(sessions, workspaces, store, tasks, stop);
+    let controller = Controller::new(context.clone());
+    bridge::serve(context, requests);
+    controller
+}

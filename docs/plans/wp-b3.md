@@ -1006,3 +1006,35 @@ expiry. The fake ACP wake fixture holds admission, refuses without publishing
 a replacement, then grants and observes the actual admitted wake/next turn.
 These tests are unrun. Wire version/schema and runtime Config remain unchanged;
 there is no production activation option or consumer-ready claim.
+
+### Controller preview assembly (source; unverified)
+
+[Decision Log]
+- Purpose: connect the frozen files-only confirmation to actual managed files and
+  the existing sole store writer, without letting an RPC caller own worker I/O.
+- Existing assets: capture Tree/Storage, opened-root admission, principal-bound
+  Plan/changes, the shared checkpoint semaphore and node TaskTracker already
+  provide the required boundaries; no new filesystem or database dependency.
+- Choice: extend those assets. One controller is wired into NodeService and
+  shares the capture/collector worker pool. Preview reserves private quota before
+  opening its current-image archive, validates selected blobs and ignore policy,
+  captures the selected/current union and publishes the effective desired image.
+- Reason: a disconnected/timed-out caller cannot release a blocked worker. The
+  tracker retains the job through actual cleanup and durable accounting. An
+  uncertain publication never deletes possibly referenced bytes; a failed
+  cleanup or uncertain accounting retains its worker slot for reconciliation.
+- Tradeoff: the response deadline does not cancel a database command already
+  submitted; an inaccessible late plan can remain pinned until expiry/collection.
+  Restore execution, stale-confirmation checks and allocation collection remain
+  incomplete. FILE_CHECKPOINTS remains None, so the public gate stays closed.
+
+Private cleanup now supports one typed preview or restore namespace with the
+same bounded, no-follow, synced-absence checks as whole-capture retirement.
+Regression obligations include a real bridge/fake-provider preview that leaves
+current bytes untouched, principal isolation, and idempotent namespace cleanup
+without removing siblings. These added tests have not run.
+
+Run wp-checkpoints-node-20261115T140208Z-14bc5dd4 finished rc1 at 14:59 UTC,
+with cargo101 in nested-vesseld: cleanup referred to a removed key binding.
+No tests executed. The corrected worktree/capture arguments and three reported
+warning fixes are included here. This is not runtime or permission evidence.

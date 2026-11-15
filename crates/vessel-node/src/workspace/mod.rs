@@ -26,6 +26,8 @@
 mod admission;
 #[cfg(target_os = "linux")]
 mod checkpoints;
+#[cfg(target_os = "linux")]
+pub(crate) use checkpoints::PreviewRead;
 mod error;
 #[cfg(any(test, target_os = "linux"))]
 pub(crate) mod exclusion;

@@ -4,7 +4,9 @@ use crate::workspace::{Opening, Workspaces};
 use std::process::Command;
 use vessel_proto::{
     AgentEvent, ContentBlock, Creator, Delivery, EventSeq, SessionEvent,
-    checkpoint::{Boundary, CheckpointState},
+    checkpoint::{
+        Boundary, CheckpointOwner, CheckpointState, PreviewCheckpoint, ReadCheckpointChanges,
+    },
     workspace::{CreateWorktree, CreateWorktreeOutcome, SessionPlace, SetupChoice, WorktreeBranch},
 };
 use vessel_session::{CheckpointHooks, SessionHandle};
@@ -73,7 +75,7 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let project=workspaces.add_project(repo.path().to_path_buf(),None).await.unwrap();
         let CreateWorktreeOutcome::Created {worktree}=workspaces.create_worktree(Creator::Owner,CreateWorktree {project:project.id,branch:WorktreeBranch::New {name:None,base:None},setup:SetupChoice::Run},None).await.unwrap()
         else {panic!("no managed worktree");};
-        crate::checkpoint::bridge::serve(crate::checkpoint::bridge::Context {sessions:Arc::clone(&fixture.sessions),workspaces:Arc::clone(&workspaces),store:fixture.store.clone(),tasks:fixture.tasks.clone(),stop:stop.clone()},requests);
+        let controller = crate::checkpoint::start(Arc::clone(&fixture.sessions), Arc::clone(&workspaces), fixture.store.clone(), fixture.tasks.clone(), stop.clone(), requests);
         let mut spec=fixture.structured().with_cwd(worktree.path.clone());
         spec.place=Some(Box::new(SessionPlace::Worktree {worktree:worktree.id}));
         let root=workspaces.admit_start(&worktree.path).await.unwrap();
@@ -83,6 +85,25 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let ended=turn(&handle,"first checkpoint turn").await;
         let _second=turn(&handle,"second checkpoint turn").await;
         fixture.runtime.shutdown().await;
+        let checkpoint = loop {
+            let page = fixture.store.checkpoint_page(session.id, None).await.unwrap();
+            if let Some(checkpoint) = page.marks.iter().find_map(|mark| match mark.state {
+                CheckpointState::Ready { checkpoint } if mark.boundary == Boundary::AfterTurn { ended } => Some(checkpoint),
+                _ => None,
+            }) { break checkpoint; }
+            tokio::task::yield_now().await;
+        };
+        std::fs::write(worktree.path.join("README.md"), b"preview must not overwrite this edit\n").unwrap();
+        let preview = controller.preview(CheckpointOwner::LocalOwner, PreviewCheckpoint { session: session.id, checkpoint }).await.unwrap();
+        assert_eq!(preview.changed.get(), 1);
+        assert_eq!(preview.page.changes.len(), 1);
+        assert!(preview.page.next.is_none());
+        assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"preview must not overwrite this edit\n");
+        assert!(matches!(controller.changes(CheckpointOwner::Device { device: vessel_proto::DeviceId::random() }, ReadCheckpointChanges { plan: preview.page.plan, after: None }).await,
+            Err(vessel_proto::checkpoint::CheckpointError::Forbidden)));
+        let (frozen, consumed) = fixture.store.checkpoint_plan(preview.page.plan, CheckpointOwner::LocalOwner).await.unwrap();
+        assert!(consumed.is_none());
+        assert_ne!(frozen.current, *frozen.desired.image());
         stop.cancel();
         fixture.settle().await;
         let page=fixture.store.checkpoint_page(session.id,None).await.unwrap();

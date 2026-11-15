@@ -95,7 +95,7 @@ impl Sessions {
     pub(super) async fn current_info(
         &self,
         handle: &SessionHandle,
-    ) -> Result<vessel_proto::SessionInfo, ServiceError> {
+    ) -> Result<SessionInfo, ServiceError> {
         let info = handle.info();
         if !info.status.is_live()
             && let Some(stored) = self.store.session(info.id).await?
