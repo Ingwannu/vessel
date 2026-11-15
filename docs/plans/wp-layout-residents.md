@@ -3,6 +3,9 @@
 Status: contract-only review passed. Registry implementation and runtime evidence
 remain separate work; this approval does not establish two-pane behavior.
 It extends the workspace layout contract; it does not add another panel manager.
+The proposed first product step is recorded in
+`wp-layout-single-slot.md`; it requires review before code and does not enable the
+staged resource map or approve legacy unbound ingress.
 
 The staged concrete owner is `app::areas::layout::residents::SessionResidents`,
 behind a literal `cfg(test)` module while legacy globals remain the only product
