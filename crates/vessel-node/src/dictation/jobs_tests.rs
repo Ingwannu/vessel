@@ -195,9 +195,8 @@ async fn a_worker_panic_keeps_its_typed_cause_out_of_debug_output() {
         let _abort = jobs
             .tasks
             .spawn(async { panic!("synthetic-private-worker-panic") });
-        let error = match jobs.take().await.unwrap() {
-            Ok(_) => panic!("a panicked worker returned a completion"),
-            Err(error) => error,
+        let Err(error) = jobs.take().await.unwrap() else {
+            panic!("a panicked worker returned a completion");
         };
         match &error {
             JobError::Join(cause) => assert!(cause.is_panic()),
