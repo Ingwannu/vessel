@@ -144,3 +144,9 @@ No second resolver or client-book writer is added.
 The2782c216 probe stopped at the new rename tests' constructor: the shared
 validated book Name uses its explicit parse method, not FromStr. Only those
 fixture calls are corrected; the failing compile log is retained.
+
+The f267 runtime batch completed1186/1/2: Link78/0/0 and all View sections
+passed; one App no-frame assertion remained. Frame measurement now occurs
+inside the input-dispatch update, before a callback's notify can flush a
+normal post-input redraw. The newer confirmation/context assertions remain
+unchanged. This probe is still red, not a waived runtime result.
