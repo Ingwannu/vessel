@@ -173,3 +173,16 @@ row and asserts selection is restored before actual submission. The eight stale
 render scenarios, focus preservation, no-RPC checks and real current dismissal
 remain required. The redundant child trait import is removed; no shared control,
 transport or product behavior changes. Corrected-source execution remains owed.
+
+## Straight receiving-base preparation
+
+Per lead instruction, the same nineteen minimum-packet commits were replayed in
+order onto announceda7aab9d6 (package base9 plus the shared dialog header action
+extension). The original checked branch is preserved. One registration-context
+conflict kept the base's existing boxed save_prefs helper and decision comment;
+relative to the base, dispatch.rs adds only the History command arm. No feature
+was added and no root path changed. All25 owned import/history/value/word/actor
+files compare byte-identical to checked b27021b4; shared delivery/selected actor
+source likewise has no delta from that packet. Popup and automatic open remain
+parked. This receiving source still needs its own strict, actual App binary and
+Link history execution plus the same-source/base-only V1 confirmation.
