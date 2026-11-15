@@ -739,8 +739,11 @@ glue must loop only the unconsumed suffix, check forward progress, and write
 reply bytes through its existing ordered PTY writer. Reply errors do not undo
 already consumed screen input: never re-feed that prefix. Final readonly
 snapshots retain cells/capture independently of the output ring and do not claim
-a serializable partial-decoder restore. CLI --ansi still requires core-owned
-style rendering/cells; asked C2 to retain that interface before freezing.
+a serializable partial-decoder restore. Reopened the exact server reference:
+terminal-capture.ts uses translateToString(true).trimEnd(), then optional ANSI
+stripping. --ansi does not regenerate SGR. Proto Plain/Preserve map over the core's
+interpreted rows; no second renderer is needed. The earlier extra-renderer request
+was incorrect, and the existing staged adapter already documented this rule.
 
 This is a plan against C2's staged sketch, not imported code, a parallel parser,
 a compiled adapter or consumer readiness. Actual shared engine/glue integration
