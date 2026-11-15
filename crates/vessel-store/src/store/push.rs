@@ -89,7 +89,25 @@ impl Store {
         let stored = stored.clone();
         self.read(move |reader| reader.with(|connection| {
             let cursor = i64::try_from(attention.cursor.get()).unwrap_or(i64::MAX);
-            connection.query_row(&format!("SELECT EXISTS(SELECT 1 FROM push_subscriptions p JOIN devices d ON d.id=p.device JOIN inbox i ON i.session=?4 AND i.seq=?5 JOIN sessions s ON s.id=i.session WHERE p.device=?1 AND p.subscription=?2 AND p.expires_at=?3 AND p.expires_at>?6 AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read') AND i.cursor=?7 AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')) AND {})",crate::notification_policy::SESSION), rusqlite::params![stored.device.to_string(), crate::codec::encode(&stored.subscription)?, crate::codec::time_to_sql(stored.expires_at)?, attention.key.session.to_string(), crate::codec::seq_to_sql(attention.key.seq)?, crate::codec::time_to_sql(now)?, cursor], |row| row.get(0)).map_err(StoreError::from)
+            connection.query_row(&format!("SELECT EXISTS(SELECT 1 FROM push_subscriptions p JOIN devices d ON d.id=p.device JOIN inbox i ON i.session=:session AND i.seq=:seq JOIN sessions s ON s.id=i.session WHERE {} AND i.cursor=:cursor AND i.seen=0 AND (i.waiting=1 OR json_extract(i.item,'$.kind') IN ('finished','limit')) AND {})",crate::push::LEASE_CURRENT,crate::notification_policy::SESSION), rusqlite::named_params! {
+                ":device": stored.device.to_string(), ":subscription": crate::codec::encode(&stored.subscription)?, ":expiry": crate::codec::time_to_sql(stored.expires_at)?, ":now": crate::codec::time_to_sql(now)?,
+                ":session": attention.key.session.to_string(), ":seq": crate::codec::seq_to_sql(attention.key.seq)?, ":cursor": cursor
+            }, |row| row.get(0)).map_err(StoreError::from)
         })).await
+    }
+    /// Recheck an exact current lease for a runtime terminal source. The caller
+    /// must synchronously check terminal revision/presence after this await.
+    /// # Errors
+    /// The database or stored subscription could not be read.
+    pub async fn push_lease_admitted(
+        &self,
+        stored: &StoredPush,
+        now: DateTime<Utc>,
+    ) -> Result<bool, StoreError> {
+        let stored = stored.clone();
+        self.read(move |reader| {
+            reader.with(|connection| crate::push::lease_admitted(connection, &stored, now))
+        })
+        .await
     }
 }

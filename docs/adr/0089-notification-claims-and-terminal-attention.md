@@ -179,3 +179,27 @@ half of the 48h lifetime. The committed update rechecks current Read/revocation
 and never resurrects an expired or missing lease. Node-owner and agent/delegated
 origins cannot borrow another device's subscription identity. A renewed expiry
 also prevents a late old 410 from deleting that newer lease.
+
+## Terminal Web Push joins the one worker
+
+Terminal metadata wakes the existing coalescing push worker. Its independent
+revision watermark does not consume an Inbox cursor; one generic encrypted
+notification per exact lease/burst may represent either canonical source enum
+variant. No fabricated SessionId, new payload, principal, listener or transport
+is introduced. Registry watchers hold only info receivers, not terminal handles,
+so pruning/closed senders and node cancellation end them. This path stays off
+while the feature constant is unassigned.
+
+One factored lease predicate checks exact device, serialized subscription and
+expiry, current Read, revocation and expiry time. Inbox admission keeps that
+predicate and source eligibility in ONE SQL snapshot. Terminal admission awaits
+the same lease predicate, then synchronously rechecks exact runtime revision and
+presence immediately before sending; no preparatory await follows that check.
+Gone responses use the existing exact attempted-lease expiry operation.
+
+Tests are drafted for lease-only admission, independent/non-regressing terminal
+watermarks, unknown/cleared/failed/foreign sources and metadata watcher teardown.
+The real-node/fake-terminal encrypted HTTP fixture tests unassigned refusal now
+and activates its positive branch after integrator assignment. A pending-branch
+pass is not positive terminal delivery evidence; the assigned integration run
+and preparation-time terminal cancellation cases remain required.

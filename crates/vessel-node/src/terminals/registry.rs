@@ -13,6 +13,7 @@ use vessel_session::terminals::TerminalHandle;
 use super::scripts::Plan;
 use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
 
+mod attention;
 mod ending;
 use crate::workspace::Occupant;
 
@@ -127,6 +128,7 @@ pub(crate) struct Terminals {
     /// The sessions whose end is watched for agents' terminals, one task
     /// each however many terminals.
     watching: Mutex<HashSet<SessionId>>,
+    attention_changes: tokio::sync::watch::Sender<()>,
 }
 
 /// A start counted against the limits until it is registered or dropped.
@@ -159,6 +161,7 @@ impl Terminals {
             runner,
             state: Arc::default(),
             watching: Mutex::default(),
+            attention_changes: tokio::sync::watch::Sender::new(()),
         })
     }
 
@@ -248,6 +251,7 @@ impl Terminals {
         plan: Option<Arc<Plan>>,
     ) {
         let id = handle.id();
+        let changes = handle.watch();
         let entry = Entry {
             handle,
             plan,
@@ -274,6 +278,7 @@ impl Terminals {
         }
         drop(state);
         drop(reservation);
+        self.watch_attention(changes);
     }
 
     /// One terminal.

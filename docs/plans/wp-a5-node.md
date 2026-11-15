@@ -141,3 +141,15 @@ A real-store integration fixture also races two read snapshots against repeated
 writer-committed whole-session unread/read toggles on one retained outcome. Each
 snapshot must return a matching deliberate flag and inbox count; this is a
 transaction/read-pool regression, not proof of paired-device UI synchronization.
+
+## Terminal push source join
+
+The existing one coalescing worker now receives Inbox and terminal metadata wakes
+with separate cursor/revision watermarks and one canonical NotificationSource.
+Crypto/prepare/final-admission/send and generic encrypted payload are shared;
+only the source-specific final predicate differs. Lease SQL is factored and the
+Inbox predicate remains atomic. Metadata watchers retain no Handle. New code is
+staged, not compile/runtime reviewed yet. Node bootstrap passes the existing
+terminal registry via node/setup::push; measured node.rs drops688→686 (ratchet
+lowered, not raised). Positive assigned terminal delivery and preparation-time
+cancellation/restart source fixtures remain integration obligations.

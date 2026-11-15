@@ -102,3 +102,23 @@ pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
         })
         .map_err(NodeError::ModelClient)
 }
+
+/// Join the one push worker with the existing runtime terminal registry.
+/// Assembly keeps its fixed node.rs budget; no second worker/listener is added.
+pub(super) async fn push(
+    config: &Config,
+    store: &vessel_store::Store,
+    terminals: &Arc<crate::terminals::Terminals>,
+    tasks: &tokio_util::task::TaskTracker,
+    stop: &tokio_util::sync::CancellationToken,
+) -> Result<Arc<crate::push::Push>, NodeError> {
+    crate::push::Push::started(
+        config,
+        store.clone(),
+        Arc::clone(terminals),
+        tasks,
+        stop.clone(),
+    )
+    .await
+    .map_err(NodeError::Store)
+}

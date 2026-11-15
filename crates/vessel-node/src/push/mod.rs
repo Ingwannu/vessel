@@ -5,6 +5,7 @@ mod claims;
 mod crypto;
 mod delivery;
 mod policy;
+mod terminal;
 mod vapid;
 mod worker;
 pub(crate) use worker::start;
@@ -96,6 +97,7 @@ impl Push {
     pub(crate) async fn started(
         config: &crate::Config,
         store: Store,
+        terminals: Arc<crate::terminals::Terminals>,
         tasks: &tokio_util::task::TaskTracker,
         stop: tokio_util::sync::CancellationToken,
     ) -> Result<Arc<Self>, vessel_store::StoreError> {
@@ -109,7 +111,7 @@ impl Push {
         #[cfg(test)]
         let push = push.pausing_at(config.push_preparation.clone());
         let push = Arc::new(push);
-        start(Arc::clone(&push), tasks, stop).await?;
+        start(Arc::clone(&push), terminals, tasks, stop).await?;
         Ok(push)
     }
 
@@ -261,5 +263,6 @@ pub(crate) enum PreparedStage {
 pub(crate) struct Preparation {
     pub(crate) stages: Vec<PreparedStage>,
     pub(crate) ready: tokio::sync::mpsc::Sender<tokio::sync::oneshot::Sender<()>>,
-    pub(crate) finished: tokio::sync::mpsc::Sender<Option<vessel_store::PushAttention>>,
+    pub(crate) finished:
+        tokio::sync::mpsc::Sender<Option<vessel_proto::notifications::NotificationSource>>,
 }

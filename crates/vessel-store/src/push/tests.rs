@@ -201,3 +201,36 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
         assert!(list(&db, later).unwrap().is_empty());
     }
 }
+
+#[test]
+fn lease_only_admission_reuses_exact_expiry_revocation_scope_and_missing_device_rules() {
+    let db = database();
+    let id = device(&db, vec![Scope::Read]);
+    let old = stored(id);
+    subscribe(&db, &old, now()).unwrap();
+    assert!(lease_admitted(&db, &old, now()).unwrap());
+    assert!(!lease_admitted(&db, &old, old.expires_at).unwrap());
+    let mut renewed = old.clone();
+    renewed.expires_at += LEASE_STEP;
+    subscribe(&db, &renewed, now()).unwrap();
+    assert!(!lease_admitted(&db, &old, now()).unwrap());
+    assert!(lease_admitted(&db, &renewed, now()).unwrap());
+    let _changed = db
+        .execute(
+            "UPDATE devices SET scopes='[\"operate\"]' WHERE id=?1",
+            [id.to_string()],
+        )
+        .unwrap();
+    assert!(!lease_admitted(&db, &renewed, now()).unwrap());
+    let _changed = db
+        .execute(
+            "UPDATE devices SET scopes='[\"read\"]',revoked_at=1 WHERE id=?1",
+            [id.to_string()],
+        )
+        .unwrap();
+    assert!(!lease_admitted(&db, &renewed, now()).unwrap());
+    let _changed = db
+        .execute("DELETE FROM devices WHERE id=?1", [id.to_string()])
+        .unwrap();
+    assert!(!lease_admitted(&db, &renewed, now()).unwrap());
+}

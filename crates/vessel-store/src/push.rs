@@ -10,6 +10,20 @@ use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::push::PushSubscription;
 use vessel_proto::{DeviceId, Scope};
 
+// Shared by inbox+lease admission in one SQL snapshot and terminal lease
+// admission before the synchronous runtime/presence check. Keep aliases fixed.
+pub(crate) const LEASE_CURRENT: &str = "p.device=:device AND p.subscription=:subscription AND p.expires_at=:expiry AND p.expires_at>:now AND d.revoked_at IS NULL AND EXISTS(SELECT 1 FROM json_each(d.scopes) WHERE value='read')";
+
+pub(crate) fn lease_admitted(
+    connection: &Connection,
+    stored: &StoredPush,
+    now: DateTime<Utc>,
+) -> Result<bool, StoreError> {
+    connection.query_row(&format!("SELECT EXISTS(SELECT 1 FROM push_subscriptions p JOIN devices d ON d.id=p.device WHERE {LEASE_CURRENT})"), rusqlite::named_params! {
+        ":device": stored.device.to_string(), ":subscription": encode(&stored.subscription)?, ":expiry": time_to_sql(stored.expires_at)?, ":now": time_to_sql(now)?
+    }, |row| row.get(0)).map_err(StoreError::from)
+}
+
 /// Exact unread source selected for one generic notification opportunity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PushAttention {
