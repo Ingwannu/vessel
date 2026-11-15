@@ -13,6 +13,15 @@ pub(crate) struct ChildBudget {
     bytes: usize,
 }
 impl ChildBudget {
+    /// Maps retain both their key and value, even when the text is identical.
+    pub(crate) fn pair(&mut self, key: &str, value: &str) -> bool {
+        let mut proposed = *self;
+        if !proposed.retain(key) || !proposed.retain(value) {
+            return false;
+        }
+        *self = proposed;
+        true
+    }
     /// Reserve before inserting a string; failed reservation changes no budget.
     pub(crate) fn retain(&mut self, id: &str) -> bool {
         if id.is_empty()
@@ -77,6 +86,16 @@ impl Translator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn failed_map_value_reservation_keeps_the_entire_pair_unretained() {
+        let mut budget = ChildBudget {
+            count: bounds::MAX_TRACKED_IDS - 1,
+            bytes: 0,
+        };
+        assert!(!budget.pair("one", "two"));
+        assert_eq!(budget.count, bounds::MAX_TRACKED_IDS - 1);
+        assert_eq!(budget.bytes, 0);
+    }
     #[test]
     fn all_child_caches_share_count_and_actual_utf8_byte_budgets_without_eviction() {
         let mut budget = ChildBudget::default();

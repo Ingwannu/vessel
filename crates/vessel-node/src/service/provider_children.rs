@@ -162,3 +162,6 @@ fn observe_page(
     }
     Ok(true)
 }
+
+#[cfg(test)]
+mod tests;

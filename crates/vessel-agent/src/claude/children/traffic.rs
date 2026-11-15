@@ -19,7 +19,7 @@ impl Children {
             return None;
         }
         let mut budget = self.budget;
-        if !budget.retain(raw) {
+        if !budget.pair(raw, key.as_str()) {
             out.extend(self.gap(ChildGap::IngestionBudget));
             return None;
         }
@@ -94,7 +94,7 @@ impl Children {
                     return out;
                 }
                 if !self.owners.contains_key(&tool) && !owners.contains(&tool) {
-                    if !budget.retain(tool.as_str()) {
+                    if !budget.pair(tool.as_str(), id.as_str()) {
                         out.extend(self.gap(ChildGap::IngestionBudget));
                         return out;
                     }

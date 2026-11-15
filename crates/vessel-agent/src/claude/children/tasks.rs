@@ -35,8 +35,10 @@ impl Children {
             .cloned()
             .unwrap_or_else(|| task_id.clone());
         let mut budget = self.budget;
-        if (!self.tasks.contains_key(&task_id) && !budget.retain(task_id.as_str()))
-            || (!self.aliases.contains_key(&tool) && !budget.retain(tool.as_str()))
+        if (!self.tasks.contains_key(&task_id)
+            && !budget.pair(task_id.as_str(), canonical.as_str()))
+            || (!self.aliases.contains_key(&tool)
+                && !budget.pair(tool.as_str(), canonical.as_str()))
         {
             out.extend(self.gap(ChildGap::IngestionBudget));
             return out;

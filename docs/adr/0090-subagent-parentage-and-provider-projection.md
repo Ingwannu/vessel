@@ -203,3 +203,8 @@ omits them. `Some` replaces the earlier fact; an explicit empty text clears text
 This follows provider sticky metadata semantics without a second provider store.
 Unknown fields do not erase prior observed lifecycle or timestamps on restart;
 provider parentage remains read-only metadata and never managed authorization.
+
+Routing-map budgets count both retained key and value copies, including identical
+canonical strings, in addition to translator streaming/tool keys. Pair admission
+is transactional before insertion. Descriptor text/identity copies are separately
+bounded by the actual serialized descriptor-set budget.
