@@ -31,7 +31,10 @@ fn workspace_roles_preserve_unknowns_and_full_node_scoped_ownership() {
             WorkspaceRole::Root,
         ),
         (
-            Relation::Known(Some(parent)),
+            Relation::Known(Some(SessionRef {
+                node: same_uuid_other_node.0,
+                ..parent
+            })),
             Some(local),
             Some(same_uuid_other_node),
             WorkspaceRole::Root,
