@@ -117,3 +117,12 @@ the actual method before constructing its typed response. No wildcard allowance
 is added. The requested App/Link --lib command selected only Link because the App
 is a binary crate; no App execution is inferred. The next App regression explicitly
 selects its binary target. Product and shared owner files are unchanged.
+
+The last authorized priority strict495 returned App-only compile/lint findings:
+the test's IntoElement return bound needs a named import, px was unused, visit
+allocation needs if-let style, and all returned booleans must be handled. Scope
+choice now stops before a request on allocation failure; accepted replies retain
+their data while the failure disables all captures. Row dispatch already advances
+the visit before its effect, so its redundant second advance is removed. The
+priority rule is exhausted after this RED; all subsequent checks use short without
+priority. The actual App binary regression has not executed yet.

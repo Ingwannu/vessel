@@ -8,7 +8,7 @@ use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
-use vessel_app_kit::ui::{IntoElement as _, MouseDownEvent, div, px};
+use vessel_app_kit::ui::{IntoElement, MouseDownEvent, div};
 use vessel_app_kit::{Scheme, SchemeChoice, Tokens};
 use vessel_app_link::Link;
 use vessel_app_view::{
