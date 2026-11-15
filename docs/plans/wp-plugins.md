@@ -48,8 +48,9 @@ until its owner provides a reviewed hash. Do not copy those files.
 ## Current boundary
 
 The initial baseline 1d1f11df had no plugin RPC. The app tree now includes
-package base6 and the announced dd13ce37 lock fix under A8. The separate node
-tree includes the announced82ae7c91 head and portable b37 checked cleanup,
+announced package base 8, 91407173, under A8, including shared field identity
+and menu input lease seams. The earlier dd13ce37 lock correction is retained.
+The separate node tree includes announced 82ae7c91 and portable b37 cleanup,
 without W15's desktop/release ancestry. No feature is advertised
 as complete until its real path works. The package is not a whole-package
 gate or runtime/capture proof merely because its declaration tests pass.
@@ -147,9 +148,10 @@ A. Requests now retain an immutable Arc of the originating complete document;
 revalidation compares that origin with the receiving state and its live graph.
 The registry shares the existing checked allocation, with a pointer fast path
 for ordinary current reads; no whole document is copied into each request.
-Regressions transfer request A into newly constructed state B after an empty
-catalog and control removal, disabled ancestry or method replacement. Equivalent
-unchanged graph reconstruction remains valid and retains the originally captured
+V4 row232 source-reviewed the correction; changed-source execution remains
+required. Regressions transfer request A into newly constructed state B after an
+empty catalog and control removal, disabled ancestry or method replacement.
+Equivalent unchanged graph reconstruction remains valid and retains the captured
 literal even after later edits. These new cases are not covered by prior28 tests.
 
 ## Staged GPUI contribution renderer
