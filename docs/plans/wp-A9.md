@@ -618,3 +618,13 @@ screen-handler tests cover accepted A after switching to cached B, a duplicate
 consumed discovery, and the positive current reply still issuing exactly one
 correctly addressed catalogue read. These tests do not claim transport scopes,
 queued-lease fencing or a real node request. Changed-source checks remain owed.
+
+
+Exact81db2d78 changed-crate Clippy returned101 solely because the added
+acceptance assertion was inside the Result-returning addition fixture setup.
+Use the same explicit io::Error rejection convention as that module's existing
+catalogue setup: a refused inventory must still fail preparation, without a
+panic in a Result function. No production body, expected state, acceptance
+condition, assertion elsewhere or timeout changes. The81 product runtime
+submission remains separate evidence; this test-only error-style correction
+requires its exact Clippy result and the final package gate remains owed.

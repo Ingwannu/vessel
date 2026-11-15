@@ -8,7 +8,7 @@ fn setup() -> TestResult<(Pages<&'static str>, MachineKey, NodeId)> {
     let machine = MachineKey::from_book("fixture");
     let node = "00000000-0000-4000-8000-000000000001".parse()?;
     let ticket = pages.begin(machine.clone(), Operation::Discovery)?;
-    assert!(pages.loaded(
+    if !pages.loaded(
         &machine,
         ticket,
         Inventory {
@@ -19,7 +19,9 @@ fn setup() -> TestResult<(Pages<&'static str>, MachineKey, NodeId)> {
             readiness: Vec::new(),
             administration: Administration::Supported,
         },
-    ));
+    ) {
+        return Err(std::io::Error::other("fixture inventory was not accepted").into());
+    }
     Ok((pages, machine, node))
 }
 fn registry() -> TestResult<CatalogueEntry> {
