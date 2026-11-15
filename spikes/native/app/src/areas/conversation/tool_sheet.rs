@@ -64,6 +64,38 @@ impl SheetState {
     }
 }
 
+fn entry_selection(area: &ConversationArea, index: usize) -> Option<Selection> {
+    let Some(entry) = area.timeline.entries().get(index) else {
+        return None;
+    };
+    let eligible = match &entry.kind {
+        EntryKind::Tool(tool) => plan_text(tool).is_none(),
+        EntryKind::Thought { .. } => !area.reasoning.expanded(),
+        EntryKind::Ready { .. }
+        | EntryKind::Prompt(_)
+        | EntryKind::Steer { .. }
+        | EntryKind::Question { .. }
+        | EntryKind::Message { .. }
+        | EntryKind::Plan { .. }
+        | EntryKind::Permission(_)
+        | EntryKind::TurnEnded { .. }
+        | EntryKind::TurnFailed { .. }
+        | EntryKind::Log { .. }
+        | EntryKind::Status { .. }
+        | EntryKind::Parking(_)
+        | EntryKind::Forked { .. }
+        | EntryKind::Profile { .. }
+        | EntryKind::Model(_) => false,
+    };
+    if !eligible {
+        return None;
+    }
+    Some(Selection::Entry {
+        index,
+        key: entry.key.clone(),
+    })
+}
+
 impl Shell {
     /// Only tools and non-forced reasoning use compact details; plans stay inline.
     pub(crate) fn entry_sheet(
@@ -76,34 +108,8 @@ impl Shell {
         let Some(area) = (seat.get_mut)(self) else {
             return false;
         };
-        let Some(entry) = area.timeline.entries().get(index) else {
+        let Some(selection) = entry_selection(area, index) else {
             return false;
-        };
-        let eligible = match &entry.kind {
-            EntryKind::Tool(tool) => plan_text(tool).is_none(),
-            EntryKind::Thought { .. } => !area.reasoning.expanded(),
-            EntryKind::Ready { .. }
-            | EntryKind::Prompt(_)
-            | EntryKind::Steer { .. }
-            | EntryKind::Question { .. }
-            | EntryKind::Message { .. }
-            | EntryKind::Plan { .. }
-            | EntryKind::Permission(_)
-            | EntryKind::TurnEnded { .. }
-            | EntryKind::TurnFailed { .. }
-            | EntryKind::Log { .. }
-            | EntryKind::Status { .. }
-            | EntryKind::Parking(_)
-            | EntryKind::Forked { .. }
-            | EntryKind::Profile { .. }
-            | EntryKind::Model(_) => false,
-        };
-        if !eligible {
-            return false;
-        }
-        let selection = Selection::Entry {
-            index,
-            key: entry.key.clone(),
         };
         if !area.tool_sheet.show(selection, window.focused(cx)) {
             return false;
@@ -211,74 +217,92 @@ fn content(
     cx: &mut Context<'_, Shell>,
 ) -> Option<(String, AnyElement)> {
     match selection {
-        Selection::Entry { index, key } => {
-            let entry = area
-                .timeline
-                .entries()
-                .get(*index)
-                .filter(|entry| &entry.key == key)?;
-            match &entry.kind {
-                EntryKind::Tool(tool) => Some((
-                    if tool.title.is_empty() {
-                        paint.words.tool_call().to_owned()
-                    } else {
-                        tool.title.clone()
-                    },
-                    super::tool::body(paint, *index, tool, window, cx).into_any_element(),
-                )),
-                EntryKind::Thought { text } => Some((
-                    paint.words.thought().to_owned(),
-                    output_box(
-                        ElementId::NamedInteger("thought-sheet".into(), id(*index)),
-                        text,
-                        Start::Top,
-                        paint.tokens,
-                        window,
-                        cx,
-                    ),
-                )),
-                EntryKind::Ready { .. }
-                | EntryKind::Prompt(_)
-                | EntryKind::Steer { .. }
-                | EntryKind::Question { .. }
-                | EntryKind::Message { .. }
-                | EntryKind::Plan { .. }
-                | EntryKind::Permission(_)
-                | EntryKind::TurnEnded { .. }
-                | EntryKind::TurnFailed { .. }
-                | EntryKind::Log { .. }
-                | EntryKind::Status { .. }
-                | EntryKind::Parking(_)
-                | EntryKind::Forked { .. }
-                | EntryKind::Profile { .. }
-                | EntryKind::Model(_) => None,
-            }
-        }
-        Selection::Run { lead, key } => {
-            let _host = area
-                .timeline
-                .entries()
-                .get(*lead)
-                .filter(|entry| &entry.key == key)?;
-            let run = area.folds.as_ref()?.run_of(*lead)?;
-            let mut rows = div().flex().flex_col().gap(px(spacing::S1));
-            for index in run.lead..run.end {
-                let entry = area.timeline.entries().get(index)?;
-                rows = rows.child(super::entries::entry(
-                    paint,
-                    index,
-                    entry,
-                    area.entry_expanded(index),
-                    window,
-                    cx,
-                ));
-            }
-            Some((
-                paint.words.run_summary(&run.summary),
-                rows.into_any_element(),
-            ))
-        }
+        Selection::Entry { index, key } => entry_content(paint, area, *index, key, window, cx),
+        Selection::Run { lead, key } => run_content(paint, area, *lead, key, window, cx),
     }
+}
+
+fn entry_content(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    index: usize,
+    key: &EntryKey,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<(String, AnyElement)> {
+    let entry = area
+        .timeline
+        .entries()
+        .get(index)
+        .filter(|entry| &entry.key == key)?;
+    match &entry.kind {
+        EntryKind::Tool(tool) => Some((
+            if tool.title.is_empty() {
+                paint.words.tool_call().to_owned()
+            } else {
+                tool.title.clone()
+            },
+            super::tool::body(paint, index, tool, window, cx).into_any_element(),
+        )),
+        EntryKind::Thought { text } => Some((
+            paint.words.thought().to_owned(),
+            output_box(
+                ElementId::NamedInteger("thought-sheet".into(), id(index)),
+                text,
+                Start::Top,
+                paint.tokens,
+                window,
+                cx,
+            ),
+        )),
+        EntryKind::Ready { .. }
+        | EntryKind::Prompt(_)
+        | EntryKind::Steer { .. }
+        | EntryKind::Question { .. }
+        | EntryKind::Message { .. }
+        | EntryKind::Plan { .. }
+        | EntryKind::Permission(_)
+        | EntryKind::TurnEnded { .. }
+        | EntryKind::TurnFailed { .. }
+        | EntryKind::Log { .. }
+        | EntryKind::Status { .. }
+        | EntryKind::Parking(_)
+        | EntryKind::Forked { .. }
+        | EntryKind::Profile { .. }
+        | EntryKind::Model(_) => None,
+    }
+}
+
+fn run_content(
+    paint: &Paint<'_>,
+    area: &ConversationArea,
+    lead: usize,
+    key: &EntryKey,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<(String, AnyElement)> {
+    let _host = area
+        .timeline
+        .entries()
+        .get(lead)
+        .filter(|entry| &entry.key == key)?;
+    let run = area.folds.as_ref()?.run_of(lead)?;
+    let mut rows = div().flex().flex_col().gap(px(spacing::S1));
+    for index in run.lead..run.end {
+        let entry = area.timeline.entries().get(index)?;
+        rows = rows.child(super::entries::entry(
+            paint,
+            index,
+            entry,
+            area.entry_expanded(index),
+            window,
+            cx,
+        ));
+    }
+    Some((
+        paint.words.run_summary(&run.summary),
+        rows.into_any_element(),
+    ))
 }
 
 /// Empty legacy details follow the same loading/empty contract as canonical bodies.

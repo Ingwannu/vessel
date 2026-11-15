@@ -292,18 +292,18 @@ fn lane(content: AnyElement) -> AnyElement {
     crate::areas::session::column(div().py(px(4.0)).child(content)).into_any_element()
 }
 
-/// A folded run's summary row (GOAT's work group header: its words and a
-/// chevron), for tool calls; a click turns it with `toggle`. `name` and
-/// the lead entry make its id. No rule under it (slice M): Paseo's
-/// summary row (`agent-stream/turn-collapse/summary-line.tsx`, its
-/// `ExpandableBadge`) has none, and a rule under every run read as a rule
-/// between turns.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum RunHeaderKind {
     Tools,
     Turn,
 }
 
+/// A folded run's summary row (GOAT's work group header: its words and a
+/// chevron), for tool calls; a click turns it with `toggle`. `name` and
+/// the lead entry make its id. No rule under it (slice M): Paseo's
+/// summary row (`agent-stream/turn-collapse/summary-line.tsx`, its
+/// `ExpandableBadge`) has none, and a rule under every run read as a rule
+/// between turns.
 pub(super) fn run_header(
     paint: &Paint<'_>,
     (kind, lead): (RunHeaderKind, usize),
