@@ -4,14 +4,13 @@
 
 use vessel_app_kit::output::Lines;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     DialogContent, DialogSize, Start, Tokens, Type, TypeExt as _, breakpoint, button, dialog,
     lines_box, menu,
 };
-use vessel_app_view::session::is_live;
 use vessel_app_view::timeline::Logs;
 
 use super::Confirm;
@@ -104,41 +103,25 @@ fn confirm_dialog(
         .as_ref()
         .map(|shown| shown.machine.clone())
         .unwrap_or_default();
-    let live = area.info.as_deref().is_some_and(is_live);
     let short: String = area
         .shown
         .as_ref()
         .map(|shown| shown.session.to_string().chars().take(4).collect())
         .unwrap_or_default();
     let (title, body, accept) = match confirm {
-        Confirm::Archive => (
-            words.archive_title().to_owned(),
-            words.archive_words(live, &machine, true),
-            words.confirm(),
-        ),
-        Confirm::Delete => (
-            words.delete_title().to_owned(),
-            words.delete_words(&machine),
-            words.delete(),
-        ),
         Confirm::Kill => (
             words.kill_title(&short),
             words.kill_words(&machine),
             words.kill(),
         ),
     };
-    let dismiss = match confirm {
-        Confirm::Archive => words.no(),
-        Confirm::Delete | Confirm::Kill => words.cancel(),
-    };
+    let dismiss = words.cancel();
     let footer = vec![
         button("confirm-dismiss", dismiss, false, tokens)
             .on_click(cx.listener(|shell, _event, window, cx| shell.dismiss_confirm(window, cx)))
             .into_any_element(),
         button("confirm-accept", accept, true, tokens)
-            .when(confirm != Confirm::Archive, |accept| {
-                accept.bg(tokens.neutral.destructive)
-            })
+            .bg(tokens.neutral.destructive)
             .on_click(cx.listener(|shell, _event, _window, cx| shell.confirmed(cx)))
             .into_any_element(),
     ];

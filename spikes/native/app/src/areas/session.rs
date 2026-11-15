@@ -30,31 +30,8 @@ use super::common::title_bar;
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The session on screen.
-#[derive(Debug, Clone)]
-pub(crate) struct Open {
-    pub(crate) machine: String,
-    pub(crate) session: SessionId,
-    pub(crate) title: String,
-    pub(crate) agent: String,
-    pub(crate) structured: bool,
-    /// Whether it takes prompts (an ended session shows its conversation
-    /// without a composer).
-    pub(crate) live: bool,
-}
-
-impl Open {
-    pub(crate) fn of(card: &Card) -> Self {
-        Self {
-            machine: card.machine.clone(),
-            session: card.session,
-            title: card.title.clone(),
-            agent: card.agent.clone(),
-            structured: card.structured,
-            live: card.live,
-        }
-    }
-}
+mod open;
+pub(crate) use open::Open;
 
 /// A session asked for from the draft and not created yet.
 #[derive(Debug, Clone)]
@@ -101,53 +78,6 @@ impl SessionView {
 }
 
 impl Shell {
-    /// Open a session from a card or a row, the composer focused.
-    pub(crate) fn open_session(
-        &mut self,
-        open: Open,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        // Track P: the session composer swaps the draft it holds.
-        self.composer_switched(open.session, window, cx);
-        // An ended session takes prompts too: sending starts it again.
-        let takes_prompts = open.structured;
-        self.areas.session.pending = None;
-        self.areas.session.resuming = None;
-        self.areas.session.resume_error = None;
-        self.follow(open, cx);
-        let placeholder = self
-            .t
-            .composer_placeholder(&super::settings::send_key_words(self));
-        self.areas
-            .session
-            .composer
-            .set_placeholder(&placeholder, window, cx);
-        if takes_prompts {
-            self.areas.session.composer.focus(window, cx);
-        } else {
-            self.focus_terminal(window, cx);
-        }
-    }
-
-    /// Show a session's conversation, following it.
-    fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open, cx);
-        let view = &mut self.areas.session;
-        view.conversation = Conversation::default();
-        view.entries.reset(0);
-        if !self.terminal_follow(&open, cx) {
-            return;
-        }
-        self.command(Command::Open {
-            machine: open.machine.clone(),
-            session: open.session,
-        });
-        self.areas.session.open = Some(open);
-        self.route = Route::Session;
-        cx.notify();
-    }
-
     /// The draft was sent: show its prompt while the session starts.
     /// The machine `from` is called `to` now (Settings › Machines, track
     /// E2, after the book was written): the session open and a session
@@ -162,6 +92,11 @@ impl Shell {
             && open.machine == from
         {
             to.clone_into(&mut open.machine);
+            if let Some(binding) = &mut open.binding
+                && let Ok(host) = vessel_app_view::machine_book::Name::parse(to)
+            {
+                binding.host = host;
+            }
         }
         if let Some(pending) = &mut view.pending
             && pending.machine == from
@@ -246,12 +181,13 @@ impl Shell {
             .machines
             .iter()
             .flat_map(|machine| machine.sessions.iter())
-            .find(|card| card.session == open.session);
+            .find(|card| card.machine == open.machine && card.session == open.session);
         if let Some(card) = card {
             if !card.title.is_empty() {
                 open.title.clone_from(&card.title);
             }
             open.live = card.live;
+            open.archived_at = card.detail.marks.archived_at;
         }
     }
 
@@ -461,6 +397,7 @@ pub(crate) fn render(
         ))
         .child(body)
         .children(resume_note(shell, open, tokens))
+        .children(super::sessions::lifecycle_error(shell, tokens))
         .when(open.structured, |frame| {
             // The conversation's slot over the card (`conversation::dock`:
             // the queue), at the card's width.
@@ -482,7 +419,10 @@ pub(crate) fn render(
                 })
                 .children(over.into_iter().flatten())
         })
-        .children(super::conversation::overlays(shell, tokens, window, cx));
+        .children(super::conversation::overlays(shell, tokens, window, cx))
+        .children(super::sessions::lifecycle_overlay(
+            shell, tokens, window, cx,
+        ));
     // Track F's slot: the screen, with the code panel beside it when out.
     crate::areas::workspace::code_beside(shell, screen, tokens, window, cx)
 }

@@ -12,6 +12,8 @@ use super::{Context, Event, Route, Shell};
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
         match event {
+            Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
+            Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
@@ -41,6 +43,7 @@ impl Shell {
                 self.settle_draft();
                 self.retitle();
                 self.workspace_fleet();
+                self.sessions_fleet_changed();
                 self.refresh_fork_headers();
                 if self.route == Route::Settings {
                     self.agent_load(false, cx);
