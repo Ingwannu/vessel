@@ -46,6 +46,7 @@ methods! {
     SetViewport => "Emulation.setDeviceMetricsOverride",
     ClearViewport => "Emulation.clearDeviceMetricsOverride",
     InsertText => "Input.insertText",
+    MouseEvent => "Input.dispatchMouseEvent",
 }
 
 macro_rules! request {
@@ -57,6 +58,9 @@ macro_rules! request {
         }
     };
 }
+mod pointer;
+pub(crate) use pointer::{MouseEvent, PointerState};
+
 macro_rules! empty_requests {
     ($($name:ident => $response:ty,$method:ident,$doc:literal;)+) => {$(
         #[doc=$doc]

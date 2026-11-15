@@ -5,6 +5,8 @@
 //! Mutable access serializes target operations. After a lost/failed CDP command,
 //! only close is allowed: an uncertain mutation must not be silently replayed.
 
+mod input;
+
 use crate::cdp::{CdpError, Client, SessionId, TargetId, requests};
 use vessel_proto::browser::{
     BrowserHistory, BrowserRevision, BrowserUrl, HistoryDirection, MAX_RGBA_BYTES, RequiredInput,
@@ -27,6 +29,8 @@ pub(crate) enum PageError {
     Exhausted,
     #[error("browser refused target closure")]
     CloseRefused,
+    #[error("browser input operation is not implemented by this adapter")]
+    Unsupported,
     #[error("browser rejected navigation")]
     Navigation,
 }
@@ -44,6 +48,9 @@ pub(crate) struct Page {
     session: SessionId,
     revision: BrowserRevision,
     delivery: DeliveryState,
+    viewport: ViewportSize,
+    pointer: requests::PointerState,
+    pointer_position: Option<vessel_proto::browser::CssPoint>,
 }
 impl std::fmt::Debug for Page {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -106,6 +113,9 @@ impl Page {
                 session,
                 revision: BrowserRevision::ZERO,
                 delivery: DeliveryState::Active,
+                viewport,
+                pointer: requests::PointerState::default(),
+                pointer_position: None,
             }),
             Err(source) => {
                 // Never report a ready target after partial setup. The profile
@@ -216,9 +226,9 @@ impl Page {
     pub(crate) async fn resize(&mut self, viewport: ViewportSize) -> Result<(), PageError> {
         surface(viewport)?;
         let _revision = self.invalidate()?;
-        self.execute(requests::SetViewport::new(viewport))
-            .await
-            .map(|_| ())
+        let _viewport = self.execute(requests::SetViewport::new(viewport)).await?;
+        self.viewport = viewport;
+        Ok(())
     }
     pub(crate) async fn capture(&mut self) -> Result<ScreenshotPng, PageError> {
         self.execute(requests::Capture {})

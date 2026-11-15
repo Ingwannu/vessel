@@ -375,3 +375,16 @@ values. Both explicit client/RPC fake inventories now refuse those four methods;
 they cannot synthesize a browser. Compiler warnings from the executed suite are
 also corrected (ACK/result ownership and schema insert results). Changed-source
 strict/tests are owed; the partial green suites are not an engine/whole gate.
+
+
+## Staged pointer and text input
+
+Sealed Input.dispatchMouseEvent requests preserve finite CSS positions, exact
+button/modifier masks, held-button movement and wheel deltas. Held state belongs
+to the page; ReleaseAll releases only buttons that target admitted. The page
+rechecks coordinates against its last acknowledged viewport before sending, and
+retains a changed viewport only after a real metrics ACK. Input.insertText is
+direct CDP text insertion, never an eval string. Lost/failed delivery quarantines
+the page as before. The keyboard adapter is not yet implemented and returns
+Unsupported, without a text/eval fallback. These paths remain outer cfg(test),
+not a supported/advertised input surface, and their new fixtures are unexecuted.

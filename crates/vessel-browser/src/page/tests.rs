@@ -59,6 +59,7 @@ async fn actual_target_requests_check_history_surface_and_uncertain_delivery() {
         page.navigate(url).await.unwrap();
         page.reload().await.unwrap();
         page.stop().await.unwrap();
+        human_input(&mut page).await;
         assert!(matches!(
             page.resize(viewport(8192, 8192)).await,
             Err(PageError::Surface)
@@ -101,7 +102,9 @@ async fn peer(listener: TcpListener) {
             }
             "Runtime.evaluate" => serde_json::json!({"result":{"value":3}}),
             "Page.captureScreenshot" => serde_json::json!({"data":"bm90LXBuZw=="}),
-            "Page.enable"
+            "Input.dispatchMouseEvent"
+            | "Input.insertText"
+            | "Page.enable"
             | "Runtime.enable"
             | "Network.enable"
             | "Emulation.setDeviceMetricsOverride"
@@ -134,4 +137,35 @@ fn history(count: u8) -> serde_json::Value {
             serde_json::json!({"currentIndex":0,"entries":[{"id":1,"url":"https://example.test/"},{"id":2,"url":"file:///private-fixture"}]})
         }
     }
+}
+
+async fn human_input(page: &mut Page) {
+    use vessel_proto::browser::{HumanInput, InputText};
+    for input in [
+        serde_json::json!({"kind":"pointer","position":{"x":10,"y":20},"action":{"kind":"press","button":"left"},"modifiers":{}}),
+        serde_json::json!({"kind":"wheel","position":{"x":10,"y":20},"delta_x":0.5,"delta_y":12}),
+        serde_json::json!({"kind":"release_all"}),
+    ] {
+        page.human_input(serde_json::from_value(input).unwrap())
+            .await
+            .unwrap();
+    }
+    page.human_input(HumanInput::Text {
+        text: InputText::try_from("human-input-canary".to_owned()).unwrap(),
+    })
+    .await
+    .unwrap();
+    let invalid:HumanInput=serde_json::from_value(serde_json::json!({"kind":"pointer","position":{"x":1000,"y":0},"action":{"kind":"move"},"modifiers":{}})).unwrap();
+    assert!(matches!(
+        page.human_input(invalid).await,
+        Err(PageError::Surface)
+    ));
+    let key: HumanInput = serde_json::from_value(
+        serde_json::json!({"kind":"key","key":"UnimplementedKey","action":"down","modifiers":{}}),
+    )
+    .unwrap();
+    assert!(matches!(
+        page.human_input(key).await,
+        Err(PageError::Unsupported)
+    ));
 }
