@@ -99,8 +99,12 @@ Eight retained before frames reproduce the unsupported-first English fallback
 and English-first control in both themes and desktop/phone sizes; every original
 was opened and hash/dimension checked. Capture apps/private display were stopped.
 The feature is built, not passed: one whole A13 gate/review and the targeted
-after startup check are owed at package close. Merge the announced app-base
-head before that close; no older-base gate proves the combined application.
+after startup check are owed at package close. The approved package base
+`8d5513e4` is now merged as `5b36d990`; the locale implementation is retained
+unchanged and the root crates/manifests/lockfile/page/scripts match that
+incoming base exactly. Its contract adaptations and link/event splits are
+incoming ownership, not new locale features. The final native gate must cover
+this merged source; no older-base gate proves the combined application.
 Current browser/Windows/OS integration and plugin runtime integration are not
 inferred from these native tests; the latter belongs to F6.
 
