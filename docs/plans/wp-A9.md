@@ -440,7 +440,7 @@ SearchField code remains outside the tree until the required writer handoff.
 
 All this consumer source is unverified until the changed-head remote narrow and
 final A9 gate/captures. Earlier039c runtime evidence excludes these new controls,
-messages and tests. Modern provider24 remains uncallable pending canonical base;
+messages and tests. The modern provider feature remains unassigned and uncallable pending canonical base;
 no profile/account binding is inferred and A10 remains unstarted.
 
 
@@ -507,3 +507,29 @@ its original child order, values and one shared control renderer. This closes th
 added for this behavior-neutral cleanup. The old run remains red; the corrected
 App-only narrow is a new immutable-source check, with no extra priority assumed.
 The existing624 View/Link runtime ticket remains queued unchanged.
+
+
+### Current compiler and protocol status
+
+Exact0625a619 App all-target locked Clippy is now0, native-fonts0/no skip:
+agents-20261115T133138Z-0625a619. The log actually checks Kit, Link and App;
+this is the requested App narrow result, not an isolated whole Link test run
+or an A9 gate/UI pass. Steps SHA256:
+52f0349323f3f8e1464612436c822a958ba06b6521854a3bb4a533d17df2977c.
+The earlier14-diagnostic App run remains red. The624 View/Link runtime ticket
+remains queued unchanged; new SearchField producer checks are separate.
+
+Provider numbering correction from the node owner:24 is now assigned to host
+diagnostics. The provider feature remains None/pending until its actual wiring
+merge; do not use24 or guess25. The staged typed schema does not authorize a
+call. This app still contains no modern provider RPC registration or inferred
+legacy binding. Node actor binding/sign-in and the queued original-lease product
+promotion remain separate prerequisites. The reserved E2 Status8 control has
+no implementation/hash yet; the prior visual dot override is baseline only.
+
+SearchField exact2e3f05bf received a complete V1 bounded SOURCE PRECHECK without
+a blocker, with explicit consumer/adoption hold pending exact Kit Clippy and
+two focused runtime results. Its authorized temporary agents-control label runs
+those sequentially without priority and is retired after handoff. Providers and
+Models consumer changes remain prepared outside the tree until that condition.
+The next shared field writer after the checked handoff is G2 for typed code text.
