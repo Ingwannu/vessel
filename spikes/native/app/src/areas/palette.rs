@@ -13,6 +13,7 @@
 mod commands;
 mod entry;
 mod git_source;
+mod layout_source;
 mod messages;
 mod navigation;
 mod root;
@@ -72,6 +73,7 @@ pub(crate) struct PaletteArea {
     root_help: Option<vessel_app_view::palette::registration::Owner>,
     keyboard_available: bool,
     git: git_source::State,
+    layout: layout_source::State,
     /// Message selection has record identity rather than a command id.
     messages: MessageCursor,
     /// Commands remain the normal entry; transcript search is explicit.
@@ -108,6 +110,7 @@ impl PaletteArea {
             root_help: None,
             keyboard_available: false,
             git: git_source::State::default(),
+            layout: layout_source::State::default(),
             messages: MessageCursor::default(),
             mode: PaletteMode::default(),
             unavailable: None,
@@ -170,6 +173,7 @@ impl Shell {
     /// Close the palette; the keys go back where they were.
     pub(crate) fn close_palette(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         git_source::close(self);
+        layout_source::close(self);
         if let Some(owner) = self.areas.palette.root_help.take() {
             self.remove_command_source(&owner, cx);
         }
@@ -213,8 +217,8 @@ impl Shell {
             self.message_search_query(&query, cx);
             return;
         }
-        // A query reveals its highest-ranked row once. Passive fleet
-        // refreshes only resolve identity and never commandeer scrolling.
+        // A query reveals its highest-ranked row once. The next render/key
+        // refreshes owner sources with the actual current Window.
         git_source::refresh(self);
         let snapshot = snapshot::project(self);
         let palette = &mut self.areas.palette;
@@ -262,7 +266,7 @@ impl Shell {
         }
         match key {
             CommandKey::Up | CommandKey::Down => {
-                git_source::refresh(self);
+                source::refresh_dynamic(self, window);
                 let snapshot = snapshot::project(self);
                 let palette = &mut self.areas.palette;
                 let direction = if key == CommandKey::Down {
@@ -280,7 +284,7 @@ impl Shell {
                 cx.notify();
             }
             CommandKey::Enter => {
-                git_source::refresh(self);
+                source::refresh_dynamic(self, window);
                 let snapshot = snapshot::project(self);
                 let active = self.areas.palette.cursor.resolved_identity(&snapshot.ids());
                 let target = active
@@ -314,7 +318,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        git_source::refresh(self);
+        source::refresh_dynamic(self, window);
         match target {
             Activate::Legacy(target) => self.run_palette(target, window, cx),
             Activate::Page(page) => self.palette_page(page, window, cx),

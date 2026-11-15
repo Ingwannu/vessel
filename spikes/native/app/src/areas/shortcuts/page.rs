@@ -95,7 +95,7 @@ fn row_acts(shell: &Shell, id: &ActionId) -> Vec<(RowAct, MenuItem)> {
 pub(crate) fn render(
     shell: &Shell,
     tokens: &Tokens,
-    _phone: bool,
+    phone: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
@@ -185,7 +185,7 @@ pub(crate) fn render(
 fn asking(
     shell: &Shell,
     tokens: &Tokens,
-    _phone: bool,
+    phone: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {

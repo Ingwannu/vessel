@@ -169,6 +169,9 @@ impl Shell {
                 && (candidate.callbacks.enabled)(self, &request, window, cx)
                 && (candidate.callbacks.perform)(self, request, window, cx) == Handled::Yes
             {
+                if request.action.exits_focus_mode() {
+                    self.layout_exit_focus(cx);
+                }
                 return true;
             }
         }

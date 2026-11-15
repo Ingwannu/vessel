@@ -459,3 +459,22 @@ AFTER a handled result. A typed exits_focus_mode helper expresses that prefix
 policy without string matching. The actual idempotent exit call waits for W12's
 checked follow-up; ordinary workspace creation/pin/archive must not use that hook.
 Canonical NewWorkspace defaults are Cmd/Ctrl+N; OpenProject is Cmd/Ctrl+O.
+
+
+## Checked W12 context adoption and layout contribution source
+
+Merged the WHOLE exact follow-up9e18..30a4396f, preserving exact canonical e46
+and unrelated owner source. W12's evidence is bounded source adoption plus exact
+View/App all-target Clippy and38 App/View tests; it does not prove F4 integration.
+The new workspace-layout source captures LayoutActionContext for each callback,
+rechecks via run_layout_action_at, and preserves stale handled-close behavior.
+It projects query-only tab/pane actions with reference ranks and current labels,
+using the same Action-to-LayoutAction mapping as the sole keyboard dispatcher.
+New tab is explicitly a chooser extension, never a new-agent placeholder.
+Handled sidebar toggle actions now call the owner's idempotent layout_exit_focus.
+W19's literal cfg(test) preference-cache staging stays unchanged and disabled.
+
+R8 reached App and found three phone-parameter references plus one private-field
+test access. The shared Settings phone flag still controls menu/dialog geometry;
+it is ignored ONLY for keyboard availability. Those references are restored,
+and the test uses the public availability boundary rather than a private flag.

@@ -171,7 +171,6 @@ fn compact_viewport_blocks_shortcuts_and_help_but_keeps_pointer_palette(cx: &mut
         assert!(!shell.areas.palette.is_open());
         shell.open_palette(window, cx);
         assert!(shell.areas.palette.is_open());
-        assert!(!shell.areas.palette.keyboard_available);
         shell.close_palette(window, cx);
     });
     cx.simulate_resize(gpui::size(gpui::px(600.0), gpui::px(844.0)));

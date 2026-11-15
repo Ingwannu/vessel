@@ -134,3 +134,9 @@ pub(super) fn install_help(shell: &mut Shell, _window: &Window, cx: &mut Context
         Err(error) => tracing::warn!(%error, "command source registration refused"),
     }
 }
+
+/// Reuse feature projections; every key/click rechecks the actual live window.
+pub(super) fn refresh_dynamic(shell: &mut Shell, window: &Window) {
+    super::git_source::refresh(shell);
+    super::layout_source::refresh(shell, window);
+}
