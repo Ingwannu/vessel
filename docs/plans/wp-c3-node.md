@@ -40,8 +40,11 @@ on success and failure. Bound cancellation reaches all helper commands. Node
 TaskTracker ownership and its bounded execution queue retain active comparison
 and history work; the node cache coalesces completed/active comparison payloads.
 The runtime table rows remain pending with GIT_PANEL=None, so no new RPC is
-admitted. The separate values-only leaf awaits the shared staged-row prerequisite
-and V3 recheck; it contains no runtime or cache.
+admitted. The separate values-only leaf194/3fde has V3 corrected scoped prerequisite PASS
+on82ae, with staged rows, None and exactly two existing policy deny arms. It
+contains no runtime/cache. Integrator batch12 a1add2e8 includes it; the integrator
+owns its missing generated TS before announcing gate49. No runtime number is
+assigned by that values handoff.
 
 ## Verification boundaries
 
@@ -452,3 +455,21 @@ C5 connection: W13 confirmed it has no competing comparison-cache mutation hook
 or git watcher join. A before/after guard around file writes/create/rename/delete,
 including partial-error invalidation, is one pending post-C3 integration join.
 No C5 file was changed, no moving runtime adopted, and no shared watch is claimed.
+
+## Values approval and active source assignments, 2026-11-15
+
+V3 row196 corrected scoped prerequisite PASS applies to exact19460b8c4a4702f4c30de88a8250bac9c2676de6
+plus Markdown3fdeed6a, on announced82ae. Actual all-target strict Proto/Client/Node
+Clippy0 and actual Client80+Proto322=402/0/0 were independently audited. It is
+staged values only: no NodeService handler, guard target, runtime/cache or protocol
+number. Integrator batch12 a1add2e8 merges that leaf and owns TS regeneration;
+only its later announced head may be adopted. Do not replace this branch's real
+pending runtime/handlers with the staged leaf accidentally during that merge.
+
+Current runtimeaf78f4aed is distinct. Its strict four-root-crate Clippy run
+wp-git-writes-narrow-20261115T135839Z-af78f4ae is queued. Existing exacte103
+workspace-test selection wp-git-root-fence-tests-20261115T133413Z-e103946f is
+running: its web/fake-binary/node-binary prerequisite stages passed, but no final
+library result is available yet. It excludes later shared-project cache scope
+and fixture lint corrections. Keep those exact source assignments; neither is a
+whole root gate or a runtime review pass. No additional local Cargo was started.
