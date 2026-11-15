@@ -243,5 +243,12 @@ shown and a partial comparison cannot claim the commands are unchanged.
   approval snapshots and exhaustive clients in
   separate small changes. Runtime follows with approval and lifecycle
   tests. Returned review findings take priority.
+- Allocation projection contract: reuse the private `ServicePorts` owner
+  with a complete borrowed view before adding its optional block to the
+  file and approval snapshots. Keep block presence and both digest slots
+  even without services. CLI and the native lead's card must name every
+  view field; web names every nested field by type and refuses current,
+  prior and folder snapshots until full display exists. The contract and
+  owed tests are in ADR 0066; no field or allocator is implemented here.
 - Still unverified: Windows, actual shells, and negotiated support after
   the integrator assigns the protocol number.

@@ -367,6 +367,50 @@ does not add a filesystem probe to either decoding or hashing.
   allocation and execution still do not honor it. Native
   constructor/getter/card adaptation remains an integration prerequisite.
 
+#### Allocation-block approval projection before file integration
+
+- Purpose and intent: a future allocation field must not disappear behind a
+  getter-only display. The approved range and program both matter, even when
+  one takes precedence at execution.
+- Existing constraints: `ServicePorts` already privately owns its nonempty
+  choice. Its getters protect mutation, but adding another approved field
+  would not force a display that calls only those getters to handle it.
+  Paseo's `paseo-config-schema.ts:5–22` permits either or both choices and
+  refuses unknown keys. Its allocator (`workspace-service-port-allocator.ts:25–43`)
+  chooses the program before the range; this does not make the range text
+  disappear from the approval.
+- Alternatives considered: public owner fields (lose the construction
+  invariant); a manually maintained display DTO (can omit a new field); or
+  a complete borrowed projection, as for `ScriptEntry`. Choose the last:
+  `ServicePortsView` borrows `port_script` and carries the optional validated
+  `PortRange`. The owner's `view()` names every field without `..`, and
+  each native or CLI display names every view field. Execution accepts the
+  owner, never a caller-constructed display view. No dependency is needed.
+- Choice at integration: add an absent-by-default allocation block to
+  `ProjectFile`, `CommandSet` and `ProjectCommands::Listed`. The TOML edge
+  reads `[worktree.service_ports]` through the existing strict validated
+  decoder; there is still no `paseo.json` reader. Presence is retained even
+  with no scripts or terminals, counts as a nonempty approval set, and
+  selects version three. Its two already reserved digest slots cover the
+  canonical range and the trimmed literal program path; earlier vectors
+  without a block do not change. Parsing starts no allocator or helper.
+- Why this choice: the CLI shows both choices, with the exact approved
+  program path. The web's `Required<ServicePorts>` projection must name
+  every nested field, in addition to its existing listed/set/entry guards.
+  Until full display lands, any current, last-approved or folder-comparison
+  block yields `unsupported_ports`, never a partial comparison or an
+  approval button. The native lead owns its new listed/set field patterns
+  and exhaustive allocation view. Both old-peer and unassigned-peer reply
+  gates cover the current and prior block on all approval reply paths.
+- Costs and tests owed: file tests for either/both, an empty or unknown
+  block, trim and a block without services; digest changes for either
+  choice and its removal; current/prior/folder web refusal and a new
+  optional nested-field type probe; CLI complete display and all six reply
+  gates. `PROJECT_FILE_KEYS` remains unassigned until the web dialog, web
+  comparison and native card show all terminal, declaration and allocation
+  data. This is a contract only; no allocation field or execution is added
+  by this document.
+
 Relative program resolution is a deliberate difference from Paseo. Its
 allocator passes the trimmed command to the plugin's `execFile` wrapper
 (`workspace-service-port-allocator.ts:58–72`,
