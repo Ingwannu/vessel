@@ -109,4 +109,5 @@ desktop-shell-help = 도움말
 desktop-shell-about = Vessel 정보
 # Opens the public project's issue form in the external browser.
 desktop-shell-report-issue = 문제 신고
+# CLI installation refusal when Windows user-PATH transactions cannot start; no registry write succeeded.
 desktop-shell-cli-path-transaction-failed = Windows에서 사용자 PATH를 트랜잭션으로 변경할 수 없습니다. 트랜잭션 서비스를 켜거나 번들 bin 폴더를 PATH에 직접 추가해 주세요.
