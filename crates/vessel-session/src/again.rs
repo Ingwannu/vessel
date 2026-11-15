@@ -130,6 +130,54 @@ impl Gate {
     }
 }
 
+/// An ended session prepared without starting its restored session process.
+/// Command resolution may execute a bounded native-version helper under the
+/// shared preparation gate; this is not a claim that preparation starts no process.
+/// The original conversation claim stays owned through actual registration.
+pub struct PreparedAgain<'a> {
+    runtime: &'a SessionRuntime,
+    claim: Arc<crate::runtime::Claim>,
+    launch: Launch,
+    begin: Begin,
+    notices: Vec<String>,
+    actor: ActorStart,
+    gate: Gate,
+}
+impl std::fmt::Debug for PreparedAgain<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreparedAgain")
+            .field("session", &self.begin.info.id)
+            .finish_non_exhaustive()
+    }
+}
+impl PreparedAgain<'_> {
+    /// The node adds its fresh, grant-bounded tools only at final admission.
+    pub fn mcp_servers(&mut self) -> &mut ResolvedMcpServers {
+        &mut self.launch.setup.mcp_servers
+    }
+
+    /// Start under the caller's final session admission, without an await.
+    /// Preparation admission alone is not session launch authority.
+    ///
+    /// # Errors
+    /// Runtime shutdown, a duplicate session, or the ordinary spawn failure.
+    pub fn start(self) -> Result<Reopening, SessionError> {
+        let _in_flight = self.runtime.tasks_token();
+        if self.runtime.is_shutting_down() {
+            return Err(SessionError::ShuttingDown);
+        }
+        let created =
+            self.runtime
+                .run_structured(self.launch, self.begin, self.notices, self.actor)?;
+        // Keep this original Arc until register returns, even on another thread.
+        self.claim.keep();
+        Ok(Reopening {
+            created,
+            gate: self.gate,
+        })
+    }
+}
+
 /// Why an ended session cannot start again.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum NotResumable {
@@ -186,6 +234,20 @@ impl SessionRuntime {
         ended: Ended,
         launch: Relaunch,
     ) -> Result<Reopening, SessionError> {
+        self.prepare_again(ended, launch).await?.start()
+    }
+
+    /// Resolve an ended structured session without spawning its restored run.
+    /// The same claims and physically retained preparation path are used.
+    /// A native-version helper can run under its own fresh preparation admission.
+    ///
+    /// # Errors
+    /// As [`Self::start_again`], except actual session spawn failures.
+    pub async fn prepare_again(
+        &self,
+        ended: Ended,
+        launch: Relaunch,
+    ) -> Result<PreparedAgain<'_>, SessionError> {
         // Counts as a running task, as a creation does.
         let _in_flight = self.tasks_token();
         if self.is_shutting_down() {
@@ -284,10 +346,13 @@ impl SessionRuntime {
             setup,
             driver,
         };
-        let created = self.run_structured(launch, begin, notices, actor)?;
-        claim.keep();
-        Ok(Reopening {
-            created,
+        Ok(PreparedAgain {
+            runtime: self,
+            claim,
+            launch,
+            begin,
+            notices,
+            actor,
             gate: Gate(gate),
         })
     }
