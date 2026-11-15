@@ -1,9 +1,14 @@
 //! Cancellation-safe ownership of a settings write through runtime publication.
 //! Caller cancellation drops a waiter, never the serialization guard or writer.
 
-use tokio::sync::OwnedMutexGuard;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
-use super::*;
+use tokio::sync::OwnedMutexGuard;
+use vessel_proto::settings::{NodeSettings, SetNodeSettings};
+use vessel_store::SetAside;
+
+use super::{Settings, SettingsError};
 
 impl Settings {
     /// Keep the already-acquired guard through I/O and application, even when

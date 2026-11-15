@@ -45,7 +45,7 @@
 //!   copy fails, the change fails and nothing changes.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use tokio::sync::Mutex;
 use tokio_util::task::TaskTracker;
