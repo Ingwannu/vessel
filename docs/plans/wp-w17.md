@@ -313,3 +313,23 @@ API arrives. File and positional prompts share a 64 KiB admission floor; file re
 30-second deadline. These are stated resource limits. List reconstructs OptionsChanged from
 the same history snapshot as turn state, so listing ended agents does not call the live-only
 session.options method.
+
+## Schedule invocation and output adapter
+
+Paseo reference: commands/schedule/index.ts:17-105, shared.ts:140-427 and protocol/src/schedule/cadence.ts.
+The existing revision-checked schedule service owns execution, persistence and limits; the CLI
+normalizes positional prompt/provider-model/cwd/timezone/expiry flags into its existing definition.
+Calendar-compatible --every values compile to five-field cron in UTC; 7m, 5h, 30s and 2d refuse
+rather than changing cadence at calendar boundaries. This changes the old create/edit elapsed
+interval interpretation; schedule preview retains its explicitly documented elapsed behavior.
+Explicit remote creation requires cwd; updates preserve the old cwd unless a new one is given.
+Empty --name and paired no-max-runs/no-expires-in flags clear those fields in one revision-checked
+update. Provider mode/thinking and the hidden legacy --target refuse before connecting until
+their reviewed contracts exist. Run-now reuses the existing call after creation; a failed run
+reports the created schedule ID so retrying cannot silently duplicate it. It is not atomic
+creation+run, unlike a future node-level create option.
+
+List/create/pause/resume/run-once share a typed schedule row with all global formats. Inspect
+and logs currently serialize native ScheduleInfo/ScheduleRun rather than pretending node data
+contains Paseo's run output/error report or target discriminator. Those projection differences
+remain explicit. No scheduler/node RPC is added by this adapter.

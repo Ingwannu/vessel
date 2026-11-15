@@ -84,6 +84,11 @@ pub(crate) enum ScheduleCommand {
 /// changes.
 #[derive(Debug, Args)]
 pub(crate) struct ScheduleArgs {
+    /// Paseo create accepts its prompt as a positional argument.
+    #[arg(conflicts_with_all = ["prompt", "prompt_file"])]
+    pub(crate) positional_prompt: Option<String>,
+    #[command(flatten)]
+    pub(crate) parity: super::parity::ScheduleParityArgs,
     /// What to call it.
     #[arg(long)]
     pub(crate) name: Option<String>,
@@ -95,7 +100,7 @@ pub(crate) struct ScheduleArgs {
     #[arg(long)]
     pub(crate) cron: Option<String>,
     /// The time zone of `--cron` (an IANA name, such as Europe/London);
-    /// the one this machine is in when left out.
+    /// UTC when left out (use --tz for the legacy spelling).
     #[arg(long, requires = "cron")]
     pub(crate) tz: Option<String>,
     /// Prompt this session (through its queue) each run.

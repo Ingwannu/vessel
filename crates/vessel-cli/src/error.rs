@@ -13,6 +13,18 @@ use vessel_remote::{
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum CliError {
+    #[error(transparent)]
+    ParityCron(#[from] vessel_proto::automation::InvalidCron),
+    #[error(transparent)]
+    ParityAutomationText(#[from] vessel_proto::automation::InvalidAutomationText),
+    #[error(
+        "schedule {schedule} was created but its requested immediate run failed; inspect before retrying"
+    )]
+    ParityScheduleRunNow {
+        schedule: vessel_proto::ScheduleId,
+        #[source]
+        source: CallError,
+    },
     #[error("prompt file read exceeded the CLI deadline")]
     ParityPromptReadTimeout(#[source] tokio::time::error::Elapsed),
     #[error(transparent)]

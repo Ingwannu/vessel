@@ -76,7 +76,9 @@ pub(crate) async fn run(mut cli: Cli) -> Result<(), CliError> {
         Command::Script { command } => terminals::script(target, command).await,
         Command::Ports(ports) => terminals::ports(target, &ports).await,
         Command::Usage { command } => crate::usage::run(target, command).await,
-        Command::Schedule { command } => automation::schedule(target, command).await,
+        Command::Schedule { command } => {
+            automation::schedule(target, cli.output.presentation(), command).await
+        }
         Command::Prompt { command } => automation::prompt(target, command).await,
         Command::Attach { session, from } => {
             let connected = connect(target).await?;

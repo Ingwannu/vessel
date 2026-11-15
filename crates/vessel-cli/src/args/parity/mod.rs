@@ -9,6 +9,7 @@ mod identifier;
 mod invocation;
 pub(crate) mod output;
 mod provider_argument;
+mod schedule;
 mod terminal;
 mod workspace;
 
@@ -19,6 +20,7 @@ pub(crate) use heartbeat::{HeartbeatCommand, ScheduleSelector};
 pub(crate) use host::{HostCommand, destination as host_destination, metadata as host_metadata};
 pub(crate) use invocation::normalize;
 pub(crate) use output::{ConnectionOptions, OutputOptions, Presentation};
+pub(crate) use schedule::ScheduleParityArgs;
 pub(crate) use terminal::{TerminalCommand, TerminalSelector};
 pub(crate) use workspace::WorkspaceCommand;
 

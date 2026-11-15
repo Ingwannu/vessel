@@ -66,6 +66,7 @@ pub(crate) async fn single<T: Serialize>(
     value: &T,
 ) -> Result<(), CliError> {
     let mut bytes = match presentation {
+        Presentation::Quiet if id.is_empty() => return Ok(()),
         Presentation::Quiet => format!("{id}\n").into_bytes(),
         Presentation::Yaml => {
             let mut bytes = b"---\n".to_vec();

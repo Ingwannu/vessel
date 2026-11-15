@@ -3,6 +3,10 @@
 
 use std::fmt::Write as _;
 
+use crate::{
+    args::parity::Presentation,
+    parity::{output, schedule_output},
+};
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
     AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunOutcome, RunTrigger, ScheduleDefinition,
@@ -17,7 +21,12 @@ use crate::error::CliError;
 use crate::selector::SessionSelector;
 use crate::workspace;
 
-pub(crate) async fn schedule(target: &Target, command: ScheduleCommand) -> Result<(), CliError> {
+pub(crate) async fn schedule(
+    target: &Target,
+    presentation: Presentation,
+    mut command: ScheduleCommand,
+) -> Result<(), CliError> {
+    super::schedule_input::preflight(&mut command, target)?;
     let client = connect(target).await?.client;
     match command {
         ScheduleCommand::Preview {
@@ -62,24 +71,42 @@ pub(crate) async fn schedule(target: &Target, command: ScheduleCommand) -> Resul
             out(&text).await
         }
         ScheduleCommand::List => {
-            let text: String = client.schedules().await?.iter().map(line).collect();
-            out(&text).await
+            let rows = client
+                .schedules()
+                .await?
+                .iter()
+                .map(schedule_output::ScheduleRow::from)
+                .collect::<Vec<_>>();
+            output::list(presentation, &rows).await
         }
         ScheduleCommand::Show { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
-            out(&details(&info)).await
+            schedule_output::inspect(presentation, &info, &details(&info)).await
         }
         ScheduleCommand::Runs { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
             let runs = client.schedule_runs(info.id).await?;
-            let text: String = runs.iter().map(run_line).collect();
-            out(&text).await
+            let ids = runs
+                .iter()
+                .map(|run| run.number.get().to_string())
+                .collect::<Vec<_>>()
+                .join("\n");
+            output::single(presentation, &ids, &runs).await
         }
         ScheduleCommand::Create(args) => {
             let paused = args.paused;
+            let run_now = args.parity.run_now;
             let definition = definition(&client, *args, None).await?;
             let made = client.create_schedule(definition, paused).await?;
-            out(&line(&made)).await
+            if run_now {
+                let _run = client.run_schedule(made.id).await.map_err(|source| {
+                    CliError::ParityScheduleRunNow {
+                        schedule: made.id,
+                        source,
+                    }
+                })?;
+            }
+            schedule_output::one(presentation, &made).await
         }
         ScheduleCommand::Edit { schedule, change } => {
             let info = find_schedule(&client, &schedule).await?;
@@ -92,24 +119,25 @@ pub(crate) async fn schedule(target: &Target, command: ScheduleCommand) -> Resul
             let changed = client
                 .update_schedule(info.id, info.revision, definition)
                 .await?;
-            out(&line(&changed)).await
+            schedule_output::one(presentation, &changed).await
         }
         ScheduleCommand::Pause { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
-            out(&line(&client.pause_schedule(info.id).await?)).await
+            schedule_output::one(presentation, &client.pause_schedule(info.id).await?).await
         }
         ScheduleCommand::Resume { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
-            out(&line(&client.resume_schedule(info.id).await?)).await
+            schedule_output::one(presentation, &client.resume_schedule(info.id).await?).await
         }
         ScheduleCommand::Run { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
-            out(&run_line(&client.run_schedule(info.id).await?)).await
+            let _run = client.run_schedule(info.id).await?;
+            schedule_output::one(presentation, &client.schedule(info.id).await?).await
         }
         ScheduleCommand::Delete { schedule } => {
             let info = find_schedule(&client, &schedule).await?;
             client.delete_schedule(info.id).await?;
-            out(&format!("deleted {}\n", info.id)).await
+            schedule_output::deleted(presentation, info.id).await
         }
     }
 }
@@ -121,13 +149,27 @@ async fn definition(
     args: ScheduleArgs,
     old: Option<ScheduleDefinition>,
 ) -> Result<ScheduleDefinition, CliError> {
-    let cadence = cadence(&args)?;
+    let cadence = super::schedule_input::cadence(&args)?;
     let target = target(client, &args, old.as_ref().map(|old| &old.target)).await?;
+    let mut target = target.or_else(|| old.as_ref().map(|old| old.target.clone()));
+    if let Some(target) = &mut target {
+        super::schedule_input::place(&args, target)?;
+    }
+    let reset_name = args
+        .name
+        .as_deref()
+        .is_some_and(|name| name.trim().is_empty());
+    let reset_max = args.parity.reset.no_max_runs;
+    let reset_expiry = args.parity.reset.no_expires_in;
     let prompt = text_of(args.prompt, args.prompt_file.as_deref())
         .await?
         .map(|text| parse(&text, "prompt"))
         .transpose()?;
-    let name = args.name.map(|name| parse(&name, "name")).transpose()?;
+    let name = args
+        .name
+        .filter(|name| !name.trim().is_empty())
+        .map(|name| parse(&name, "name"))
+        .transpose()?;
     let max_runs = args
         .max_runs
         .map(|runs| {
@@ -148,36 +190,22 @@ async fn definition(
         });
     };
     Ok(ScheduleDefinition {
-        name: name.or(old.name),
+        name: if reset_name { None } else { name.or(old.name) },
         cadence: cadence.unwrap_or(old.cadence),
         target: target.unwrap_or(old.target),
         prompt: prompt.unwrap_or(old.prompt),
         catch_up: catch_up.unwrap_or(old.catch_up),
-        max_runs: max_runs.or(old.max_runs),
-        ends_at: args.ends_at.or(old.ends_at),
+        max_runs: if reset_max {
+            None
+        } else {
+            max_runs.or(old.max_runs)
+        },
+        ends_at: if reset_expiry {
+            None
+        } else {
+            args.ends_at.or(old.ends_at)
+        },
     })
-}
-
-fn cadence(args: &ScheduleArgs) -> Result<Option<Cadence>, CliError> {
-    if let Some(every) = &args.every {
-        let seconds = EverySeconds::try_from(seconds(every)?)
-            .map_err(|error| CliError::Automation(format!("--every: {error}")))?;
-        return Ok(Some(Cadence::Every {
-            seconds,
-            anchor: None,
-        }));
-    }
-    let Some(cron) = &args.cron else {
-        return Ok(None);
-    };
-    let zone = match &args.tz {
-        Some(zone) => parse(zone, "--tz")?,
-        None => this_zone()?,
-    };
-    Ok(Some(Cadence::Cron {
-        expr: parse(cron, "--cron")?,
-        zone,
-    }))
 }
 
 /// The time zone this machine is in, by its IANA name.
@@ -236,7 +264,8 @@ async fn target(
         || args.project.is_some()
         || args.worktree.is_some()
         || args.model.is_some()
-        || args.keep;
+        || args.keep
+        || args.parity.cwd.is_some();
     if !changes {
         return Ok(None);
     }

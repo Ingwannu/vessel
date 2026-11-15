@@ -4,6 +4,7 @@
 //! arguments, finding what a selector names, and printing.
 
 mod prompts;
+mod schedule_input;
 mod schedules;
 
 use vessel_client::NodeClient;
