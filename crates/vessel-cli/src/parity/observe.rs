@@ -24,6 +24,18 @@ pub(super) enum State {
     Timeout,
 }
 
+impl State {
+    pub(super) const fn label(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::Idle => "idle",
+            Self::Permission => "permission",
+            Self::Error => "error",
+            Self::Timeout => "timeout",
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct Observed {
     pub(super) turn: Option<EventSeq>,

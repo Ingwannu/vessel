@@ -3,10 +3,12 @@
 
 mod mutate;
 mod prompt;
+mod row;
+use row::AgentRow;
 
 use super::{
     observe::{self, State},
-    output::{self, Row},
+    output,
 };
 use crate::{
     args::{
@@ -16,7 +18,6 @@ use crate::{
     connect::connect,
     error::CliError,
 };
-use serde::Serialize;
 use std::path::{Path, PathBuf};
 use vessel_client::NodeClient;
 use vessel_proto::{SessionId, SessionInfo, SessionMode, SessionOption};
@@ -180,7 +181,10 @@ async fn list(
             },
             observe::Observed::state,
         );
-        rows.push(AgentRow::new(&info, state, thinking));
+        let options = observed
+            .as_ref()
+            .map_or(&[][..], |observed| observed.options.as_slice());
+        rows.push(AgentRow::new(&info, state, thinking, options));
     }
     output::list(presentation, &rows).await
 }
@@ -207,62 +211,4 @@ pub(super) fn selected(
             vessel_proto::OptionKind::Select { current, .. } => Some(current),
             vessel_proto::OptionKind::Toggle { .. } | vessel_proto::OptionKind::Unknown => None,
         })
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentRow {
-    id: SessionId,
-    short_id: String,
-    name: String,
-    provider: String,
-    thinking: String,
-    status: State,
-    cwd: Option<PathBuf>,
-    created: String,
-}
-impl AgentRow {
-    fn new(
-        info: &SessionInfo,
-        status: State,
-        thinking: Option<&vessel_proto::OptionValueId>,
-    ) -> Self {
-        let id = info.id.to_string();
-        Self {
-            id: info.id,
-            short_id: id.chars().take(7).collect(),
-            name: info
-                .title
-                .as_ref()
-                .map_or_else(|| "-".to_owned(), ToString::to_string),
-            provider: info.spec.harness.to_string(),
-            thinking: thinking.map_or_else(|| "auto".to_owned(), ToString::to_string),
-            status,
-            cwd: info.spec.cwd.clone(),
-            created: info.created_at.to_rfc3339(),
-        }
-    }
-}
-impl Row for AgentRow {
-    fn id(&self) -> String {
-        self.short_id.clone()
-    }
-    fn headers() -> &'static [&'static str] {
-        &[
-            "AGENT ID", "NAME", "PROVIDER", "THINKING", "STATUS", "CWD", "CREATED",
-        ]
-    }
-    fn cells(&self) -> Vec<String> {
-        vec![
-            self.short_id.clone(),
-            self.name.clone(),
-            self.provider.clone(),
-            self.thinking.clone(),
-            format!("{:?}", self.status).to_ascii_lowercase(),
-            self.cwd
-                .as_ref()
-                .map_or_else(|| "-".to_owned(), |p| p.display().to_string()),
-            self.created.clone(),
-        ]
-    }
 }

@@ -217,7 +217,7 @@ locked dependency version was updated.
   retain their original Vessel syntax; Paseo root run/send forms route through the agent grammar.
 - Agent list uses current-directory scope by default, excludes archived, supports global/all,
   validated label filters and advertised thinking choices. The provider field currently uses
-  Vessel's HarnessRef; created is an RFC3339 timestamp, not Paseo's relative-time string.
+  Vessel's HarnessRef rather than W22's canonical ProviderId; model IDs and relative created labels follow the reference.
   Inspect currently returns typed SessionInfo, not Paseo's capitalized Inspect projection.
 - Stop reconstructs the logged turn and cancels that exact turn; it does not call process kill.
   Live archive without --force refuses until an atomic archive-if-idle contract is available;
@@ -377,3 +377,7 @@ destination trust provider. Those edits now bypass destination discovery when no
 ref is supplied, so an offline or removed destination can still be disabled/annotated. A
 replacement still requires the existing authority proof, explicit identity-change consent
 and revision comparison. The actor test disables with an empty trusted-destination set.
+
+Agent list display now appends the latest advertised model (then the pinned/launch model)
+and uses the reference relative-time boundaries, including future timestamps as just now.
+This is presentation only: it does not invent provider identity or change model selection.
