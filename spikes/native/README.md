@@ -12,6 +12,12 @@ channel; SSH routes come later).
 This is a workspace of its own, outside Vessel's: Vessel's gate does not
 build it, and its tree (GPUI's) stays out of the main lock file.
 
+The native process registers its first Shell in the one `app::host_windows`
+registry. This keeps OS callback routing independent of desktop persistence and
+node startup; callbacks must still validate their own source/context. The staged
+live-root dispatcher and optional factory contract are described in
+`docs/plans/shared-host-windows.md`; a missing factory is explicitly unavailable.
+
 ## Crates, and what may depend on what
 
 | Crate | Owns | Must not | Depends on |
