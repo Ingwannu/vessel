@@ -1,7 +1,7 @@
 # ADR 0090: Subagent parentage, durable detach and provider-child projection
 
-Status: accepted (architecture contract only; implementation and exact provider
-projection budgets still require review). Protocol number assigned at integration; the feature uses
+Status: accepted (architecture and finite provider values/budgets; implementation
+remains under review). Protocol number assigned at integration; the feature uses
 one pending `Option<ProtocolVersion>` constant. No method is registered before
 the central Quality B method table reaches this branch.
 
@@ -102,8 +102,8 @@ Paseo's `provider-subagents/store.ts` keeps descriptors in an unbounded map;
 Claude `providers/claude/sidechain-tracker.ts:90-166` uses the actual
 parent_tool_use_id as the provider task id, separate from a managed session.
 The new typed values pin the following proposed bounds before any projector or
-driver state is implemented. These detailed values are awaiting V3 review;
-the earlier architecture PASS did not approve numerical budgets.
+driver state is implemented. V3 scoped PASS on55181bb9 approves these numerical values and input DTOs;
+the earlier architecture PASS alone did not approve numerical budgets.
 
 | Boundary | Named bound | Reason / behavior at the bound |
 | --- | --- | --- |

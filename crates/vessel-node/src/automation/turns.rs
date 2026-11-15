@@ -82,6 +82,7 @@ fn agent(event: &AgentEvent) -> Option<Signal<'_>> {
         | AgentEvent::ToolCall(_)
         | AgentEvent::ToolCallUpdate(_)
         | AgentEvent::Plan { .. }
+        | AgentEvent::ProviderChild(_)
         | AgentEvent::HarnessLog { .. }
         | AgentEvent::Steered { .. } => None,
     }

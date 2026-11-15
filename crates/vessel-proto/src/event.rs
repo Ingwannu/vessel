@@ -280,6 +280,7 @@ impl AgentEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
+            Self::ProviderChild(_) => crate::subagents::SUBAGENT_RELATIONS,
             Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 Some(ProtocolVersion::new(10))
             }
@@ -313,10 +314,16 @@ impl AgentEvent {
             .required_protocol()
             .is_some_and(|since| since <= protocol)
         {
+            if let Self::ProviderChild(observation) = self {
+                return observation.for_protocol(protocol).map(Self::ProviderChild);
+            }
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
         match self {
+            Self::ProviderChild(_) => {
+                log("vessel: provider child activity requires a newer protocol".to_owned())
+            }
             Self::Steered { content } => log(match first_line(content) {
                 Some(line) => format!("vessel: steered: {line}"),
                 None => "vessel: steered".to_owned(),

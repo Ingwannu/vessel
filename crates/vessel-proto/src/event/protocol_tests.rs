@@ -96,6 +96,9 @@ fn newer_events() -> Vec<AgentEvent> {
 // deliberately instead of silently missing the all-variant contract test.
 fn expected(event: &AgentEvent) -> ProtocolVersion {
     match event {
+        AgentEvent::ProviderChild(_) => {
+            unreachable!("pending variants have separate projection fixtures")
+        }
         AgentEvent::Ready { .. }
         | AgentEvent::TurnStarted { .. }
         | AgentEvent::UserMessageChunk { .. }

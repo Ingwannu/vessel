@@ -114,7 +114,8 @@ impl SessionEvent {
                 | AgentEvent::ToolCallUpdate(_)
                 | AgentEvent::Plan { .. }
                 | AgentEvent::PermissionResolved { .. }
-                | AgentEvent::HarnessLog { .. }
+                | AgentEvent::ProviderChild(_)
+            | AgentEvent::HarnessLog { .. }
                 | AgentEvent::Steered { .. }
                 | AgentEvent::QuestionResolved { .. } => false,
             },

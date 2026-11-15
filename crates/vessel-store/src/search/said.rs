@@ -32,7 +32,7 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
             AgentEvent::UserMessageChunk { content } => Said::Chunk(MessageRole::Prompt, content),
             AgentEvent::MessageChunk { content } => Said::Chunk(MessageRole::Reply, content),
             // A line on stderr can land between two chunks of one reply.
-            AgentEvent::HarnessLog { .. } => Said::Nothing,
+            AgentEvent::HarnessLog { .. } | AgentEvent::ProviderChild(_) => Said::Nothing,
             AgentEvent::Ready { .. }
             | AgentEvent::ThoughtChunk { .. }
             | AgentEvent::ToolCall(_)

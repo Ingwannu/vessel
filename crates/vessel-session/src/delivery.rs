@@ -148,6 +148,7 @@ impl Desk {
             | AgentEvent::Plan { .. }
             | AgentEvent::PermissionRequested(_)
             | AgentEvent::PermissionResolved { .. }
+            | AgentEvent::ProviderChild(_)
             | AgentEvent::HarnessLog { .. }
             | AgentEvent::Steered { .. }
             | AgentEvent::QuestionAsked(_)

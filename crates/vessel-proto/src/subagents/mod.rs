@@ -1,11 +1,18 @@
 //! Managed delegation and provider-owned tasks are different identities (ADR 0090).
 //! Creator is immutable audit data; current parentage applies a durable detach.
 
+mod activity;
 pub mod bounds;
+mod collections;
 mod older;
 mod parentage;
 mod provider;
 mod values;
+
+pub use activity::{ChildActivity, InvalidChildActivity, ProviderObservation};
+pub use collections::{
+    ChildDescriptors, ChildRecords, InvalidChildCollection, ProviderChildPage, ProviderChildren,
+};
 
 pub use parentage::{
     DetachDisposition, DetachReceipt, DetachSession, DetachedSession, InvalidParentage, Parentage,

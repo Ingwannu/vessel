@@ -84,3 +84,14 @@ Fake-backed tests cover PID preservation, local/cross-node complete identities,
 live/stored ancestor cuts, the commit/publication interval, cancelled callers,
 stale resume metadata, and registry grant/depth/credential preservation. These
 are staged source/tests pending narrow execution; no live-provider claim.
+
+## Provider collection and event boundary
+
+[Decision Log]
+- Purpose: retain actual provider tasks without mixing their replies, requests or authority into the managed parent.
+- Reuse: canonical AgentEvent and parent EventRecord are reused, with the existing required_protocol/for_protocol projection; no second timeline schema, epoch or transport.
+- Alternatives: a free JSON payload or a fabricated managed session would lose validation or grant unsupported controls.
+- Choice: a pending ProviderChild observation wraps a validated read-only ChildActivity. Ready, permission/question controls and recursive observations are refused at construction and decode.
+- Effect: ordinary main timeline/status/search/inbox projections ignore these wrappers; a dedicated child projection unwraps canonical activity. Supported wrappers still project optional inner fields for older peers.
+
+ChildDescriptors validates count, actual escaped JSON bytes, unique ids and nesting. ChildRecords validates canonical read-only content, strict sparse parent sequence order, count and serialized byte size. Wire sequence decoding checks before retaining each additional row, ignores untrusted size hints and counts escaping without allocating a serialized copy. Missing provider parents remain missing rather than being invented. Typed coverage accompanies empty responses. These are source/tests under construction; no actual provider extraction or projection claimed yet.

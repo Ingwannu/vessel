@@ -209,6 +209,7 @@ impl Conversation {
                 self.line(format!("[turn ended: {}]", stop_reason(*reason)))
             }
             AgentEvent::TurnFailed { message } => self.line(format!("[turn failed: {message}]")),
+            AgentEvent::ProviderChild(_) => String::new(),
             AgentEvent::HarnessLog { line } => self.line(format!("[harness] {line}")),
             AgentEvent::Steered { content } => self.line(format!(">> {}", text(content))),
             AgentEvent::QuestionAsked(question) => self.line(render::question(question)),
