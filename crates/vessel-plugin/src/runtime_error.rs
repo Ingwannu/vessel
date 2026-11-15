@@ -74,6 +74,9 @@ pub enum RuntimeError {
     /// OS could not report the owned leader's status.
     #[error("plugin helper group wait failed")]
     Wait(#[source] vessel_proc::WaitError),
+    /// Legacy leader status cannot hide the first group/job cleanup refusal.
+    #[error("plugin helper owned cleanup could not be confirmed")]
+    Cleanup(#[source] vessel_proc::CheckedWaitError),
     /// No successful disable/remove acknowledgement may follow this refusal.
     #[error("plugin helper group cleanup did not complete")]
     CleanupTimeout,
@@ -99,6 +102,7 @@ impl RuntimeError {
             | Self::LogIdentity(_)
             | Self::Signal(_)
             | Self::Wait(_)
+            | Self::Cleanup(_)
             | Self::CleanupTimeout
             | Self::Task(_) => CallError::Closed,
         }

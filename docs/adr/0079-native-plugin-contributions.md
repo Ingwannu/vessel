@@ -149,15 +149,16 @@ sweep, but logs a sweep failure and still returns the leader's status. Later
 disable/remove as fully stopped solely from that legacy success. No product
 caller is enabled until an owned checked cleanup result exists.
 
-Proposed additive proc-owned seam (requires its single writer's agreement):
+Coordinator-designated proc-owned seam (source reviewed; execution gate owed):
 `Child::wait_checked() -> Result<OwnedGroupExit, CheckedWaitError>`. Proc retains
 the **first** sweep outcome on the owned Child, including when legacy wait
-already ran. OwnedGroupExit has a private constructor and a code accessor;
+already ran. OwnedGroupExit has a private constructor, code accessor and original run observation;
 CheckedWaitError retains concrete WaitError or an Arc of the first SignalError.
 The existing wait signature/behavior stays compatible. Never retry a delayed
-numeric group id after reaping: it may have been reused. The receipt covers
-the originally owned group/job and its platform primitive, not deliberately
-escaped processes or all account processes; the helper remains unsandboxed.
+numeric group id after reaping: it may have been reused. The receipt proves leader reap and that the first group/job cleanup request
+was accepted or already absent. It does not prove every descendant has died,
+and does not cover deliberately escaped processes or all account processes;
+the helper remains unsandboxed.
 Linux/macOS/Windows proof belongs with this common primitive, with fake-helper
 caller tests here. Restart ledgers/pidfd identity are separate and do not mint
 this in-process receipt. W22 agrees on this boundary and will reuse it.
@@ -344,3 +345,12 @@ owns rejected text. Canary tests cover Display, Debug, serde errors and
 the complete source chain. Theme names reuse the existing JavaScript-edge
 `workspace::trim_project_text`, including BOM normalization, before their
 UTF-16 bound and the separately declared control refusal.
+
+
+The staged supervisor now consumes exact proc622465a9 during development.
+Supervisor::shutdown returns the concrete OwnedGroupExit, retaining the first
+cleanup refusal as RuntimeError::Cleanup rather than flattening legacy wait.
+This adoption is not runtime or node lifecycle acceptance: proc execution,
+helper integration and management handler gates remain owed. No node caller
+or advertised method is activated by the library foundation. Test time budgets
+are named beside their fixture owners, including observation polling.
