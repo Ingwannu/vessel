@@ -306,3 +306,13 @@ and transfer. A7 still owns non-navigation loading/overlay/effect votes. The
 regression places a read two origin levels below an idle main area, requires
 Hold, then retires that exact tree and verifies no pending read or ticket reset.
 No new snapshot, registry or global controller is introduced. Execution pending.
+
+Base8b integration preserves the published standalone ownership move while
+retaining A3's later search behavior. Its incoming `f9d7f460` search body predates
+immediate query invalidation and prepared destinations; resolving that overlap
+keeps the newer owner implementation, one PaletteArea controller and one
+Commands/Messages renderer. The original residency regression remains with one
+Machine epoch field; the later language-fact regression remains alongside it.
+The incoming staged resident/minter modules and boxed preference command remain
+unchanged. All architecture notes from both lines are retained. This source
+resolution is not a changed-union compile or runtime receipt.
