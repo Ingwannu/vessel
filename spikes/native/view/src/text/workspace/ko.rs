@@ -3,6 +3,7 @@
 //! formal register).
 
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, ConfigKey, DiffScope, GitOperation, GitRefusal,
     GitSupport, KeptReason, ProjectState, RepositoryConfigReason, SetupFailure, SetupState,
@@ -85,7 +86,11 @@ fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
 impl Ko {
     fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
-        let named = format!("{} {}", self.script_kind(script.kind), script.name.as_str());
+        let named = format!(
+            "{} {}",
+            self.script_kind(script.kind()),
+            script.name.as_str()
+        );
         match line {
             ScriptLine::Line {
                 change: Change::Same,
@@ -402,24 +407,15 @@ impl WorkspaceWords for Ko {
     }
 
     fn script_kind(&self, kind: ScriptKind) -> &'static str {
-        match kind {
-            ScriptKind::Script => "스크립트",
-            ScriptKind::Service => "서비스",
-        }
+        super::script_words::kind(crate::Lang::Ko, kind)
+    }
+
+    fn script_port(&self, port: Option<ServicePort>) -> String {
+        super::script_words::port(crate::Lang::Ko, port)
     }
 
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String {
-        let mut parts = Vec::with_capacity(3);
-        if was.kind != now.kind {
-            parts.push(format!("이제 {}", self.script_kind(now.kind)));
-        }
-        if was.command != now.command {
-            parts.push("명령".to_owned());
-        }
-        if was.dir != now.dir {
-            parts.push("폴더".to_owned());
-        }
-        parts.join(", ")
+        super::script_words::change(crate::Lang::Ko, was, now)
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {

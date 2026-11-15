@@ -93,6 +93,8 @@ impl Reply {
         let one = |session: &SessionInfo| (!readable(session, protocol)).then(unreadable);
         match self {
             Self::GetSession(info)
+            | Self::OpenSideQuestion(info)
+            | Self::ResetSideQuestion(info)
             | Self::CreateSession(info)
             | Self::MoveProfile(info)
             | Self::RenameSession(info)
@@ -116,12 +118,14 @@ impl Reply {
             | Self::NodeInfo(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
+            | Self::GetAgentHistory(_)
             | Self::SendInput(_)
             | Self::KillSession(_)
             | Self::ReadEvents(_)
             | Self::Unsubscribe(_)
             | Self::StopNode(_)
             | Self::InviteDevice(_)
+            | Self::GetDeviceSelf(_)
             | Self::ListDevices(_)
             | Self::RevokeDevice(_)
             | Self::GetManifest(_)
@@ -233,6 +237,7 @@ impl Reply {
             | Self::GetAgentStatus(_)
             | Self::GetCatalogue(_)
             | Self::InstallAgent(_)
+            | Self::PromptSideQuestion(_)
             | Self::ReadInstall(_)
             // Protocol 11's schedules and saved prompts: a schedule's new
             // session and a saved prompt carry a `SessionSpec`, whose agent
@@ -244,6 +249,7 @@ impl Reply {
             | Self::LeaveFleet(_)
             | Self::SyncFleet(_)
             | Self::GetFleetStatus(_)
+            | Self::GetPublished(_)
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
@@ -254,10 +260,20 @@ impl Reply {
             | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
             | Self::ListRuns(_)
+            | Self::GetUsageLimits(_)
+            | Self::SetUsageLookup(_)
+            | Self::QueryUsage(_)
             | Self::ListPrompts(_)
             | Self::CreatePrompt(_)
             | Self::UpdatePrompt(_)
             | Self::DeletePrompt(_)
+            | Self::ListInbox(_)
+            | Self::GetInboxEntry(_)
+            | Self::MarkInbox(_)
+            | Self::GetPushKey(_)
+            | Self::SubscribePush(_)
+            | Self::UnsubscribePush(_)
+            | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
             | Self::SearchMessages(_) => None,
         }

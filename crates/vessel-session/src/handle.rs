@@ -2,13 +2,16 @@
 //! sends the session is `input`'s.
 
 mod input;
+mod title;
+pub use title::TitleUpdate;
+pub(crate) use title::{Rename, RenameChange};
 
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use tokio::sync::{mpsc, oneshot, watch};
+use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
-use vessel_agent::AgentInput;
+use vessel_agent::{AgentInput, Driver};
 use vessel_proto::{
     Conversation, EventSeq, ModelCall, OptionChoice, SessionId, SessionInfo, SessionOption,
     SessionTitle, TurnPoint,
@@ -19,7 +22,6 @@ use crate::conversation::Seen;
 use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
-use crate::lifecycle::Rename;
 use crate::marks::Marks;
 use crate::moving::Control;
 use crate::parking::{ParkOrder, Route};
@@ -32,6 +34,8 @@ use crate::ring::{Follow, FollowError, Ring};
 #[derive(Debug)]
 pub(crate) struct Shared {
     pub(crate) id: SessionId,
+    /// Local-only account/location snapshot, changed with the actual launch.
+    pub(crate) limits: watch::Sender<crate::LimitAssociation>,
     /// Latest info, published by the actor.
     pub(crate) info: watch::Receiver<SessionInfo>,
     /// Recent records and the live stream. A `std` mutex: it is held only
@@ -44,6 +48,9 @@ pub(crate) struct Shared {
     pub(crate) kill: CancellationToken,
     /// Orders for the actor (structured sessions: moves).
     pub(crate) control: Option<mpsc::Sender<Control>>,
+    /// The protocol its agent speaks (ADR 0057), for its life: what a move
+    /// builds the new agent's command for. ACP for a terminal session.
+    pub(crate) driver: Driver,
     /// Model calls the node's proxy made for the session, for the actor to
     /// record (protocol 7). Bounded; see [`SessionHandle::model_call`].
     pub(crate) model_calls: mpsc::Sender<ModelCall>,
@@ -120,10 +127,22 @@ fn current(route: &watch::Receiver<Route>) -> Result<AgentInput, SessionError> {
 pub struct SessionHandle(pub(crate) Arc<Shared>);
 
 impl SessionHandle {
+    /// Saved-sign-in association of the actual launch, without credentials.
+    #[must_use]
+    pub fn limit_association(&self) -> crate::LimitAssociation {
+        self.0.limits.borrow().clone()
+    }
+
     /// The session's id.
     #[must_use]
     pub fn id(&self) -> SessionId {
         self.0.id
+    }
+
+    /// The protocol its agent speaks (ADR 0057).
+    #[must_use]
+    pub fn driver(&self) -> Driver {
+        self.0.driver
     }
 
     /// The choices the session runs with now (protocol 9): every select's
@@ -272,22 +291,32 @@ impl SessionHandle {
         }
     }
 
+    /// Recover one current inbox form without cloning unrelated requests.
+    ///
+    /// # Errors
+    /// [`SessionError::Terminal`] for a terminal session.
+    pub fn inbox_request(
+        &self,
+        request: vessel_proto::inbox::InboxRequest,
+    ) -> Result<Option<vessel_proto::inbox::InboxItem>, SessionError> {
+        match &self.0.input {
+            Input::Terminal(_) => Err(SessionError::Terminal("an inbox request")),
+            Input::Structured(_) => Ok(self
+                .0
+                .seen
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .inbox_request(request)),
+        }
+    }
+
     /// Give the session `title` (protocol 9): a `renamed` record, in order
     /// with the rest of its log, then the info as it is with it.
     ///
     /// # Errors
     /// [`SessionError::Ended`] once the session has ended.
     pub async fn rename(&self, title: SessionTitle) -> Result<SessionInfo, SessionError> {
-        if !self.0.info.borrow().status.is_live() {
-            return Err(SessionError::Ended);
-        }
-        let (done, renamed) = oneshot::channel();
-        self.0
-            .renames
-            .send(Rename { title, done })
-            .await
-            .map_err(|_ended| SessionError::Ended)?;
-        renamed.await.map_err(|_ended| SessionError::Ended)?;
+        let _applied = self.rename_change(RenameChange::Typed(title)).await?;
         Ok(self.info())
     }
 

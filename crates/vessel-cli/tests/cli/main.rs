@@ -13,18 +13,28 @@ mod automation;
 #[cfg(test)]
 mod canary;
 #[cfg(test)]
+mod comparison;
+#[cfg(test)]
 mod conversation;
 #[cfg(test)]
 mod devices;
 #[cfg(test)]
 mod fleet;
 #[cfg(test)]
+mod inbox;
+#[cfg(test)]
 mod init;
 #[cfg(test)]
+mod logs;
+#[cfg(test)]
 mod mcp;
+#[cfg(test)]
+mod node_stop;
 mod nodes;
 #[cfg(test)]
 mod reconnect;
+#[cfg(test)]
+mod side_questions;
 #[cfg(test)]
 mod support;
 #[cfg(test)]
@@ -34,6 +44,8 @@ mod terminals;
 mod transfers;
 #[cfg(test)]
 mod ui;
+#[cfg(test)]
+mod usage;
 
 use support::{Fixture, within};
 

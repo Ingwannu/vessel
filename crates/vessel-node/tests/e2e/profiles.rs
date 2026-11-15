@@ -300,7 +300,9 @@ async fn a_broken_profiles_file_stops_the_node_from_starting() {
 async fn a_devices_session_records_the_device() {
     within(async {
         let fixture = Fixture::new();
-        let node = fixture.start().await;
+        let node = fixture
+            .start_with(crate::secure::advertise_placeholder_route)
+            .await;
         let owner = fixture.connect(&node).await;
         let direct: RouteUrl = format!("ws://{}", node.address().unwrap()).parse().unwrap();
         let dialer = || WsDialer::new(TlsConfig::with_roots(rustls::RootCertStore::empty()).unwrap());

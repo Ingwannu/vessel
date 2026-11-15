@@ -467,18 +467,7 @@ impl StreamDecoder {
     /// Usage counts as they come: each present one replaces the last
     /// (`message_delta`'s are cumulative).
     fn usage(&mut self, usage: &wire::Usage) {
-        if let Some(input) = usage.input_tokens {
-            self.usage.input = input;
-        }
-        if let Some(read) = usage.cache_read_input_tokens {
-            self.usage.cache_read = read;
-        }
-        if let Some(write) = usage.cache_creation_input_tokens {
-            self.usage.cache_write = write;
-        }
-        if let Some(output) = usage.output_tokens {
-            self.usage.output = output;
-        }
+        super::usage::update_anthropic(&mut self.usage, usage);
     }
 
     fn start(&mut self, block: ContentBlock, out: &mut Vec<ir::Event>) {
@@ -552,7 +541,7 @@ impl StreamDecoder {
     }
 }
 
-fn stop_reason(reason: &StopReason) -> ir::StopReason {
+pub(crate) fn stop_reason(reason: &StopReason) -> ir::StopReason {
     match reason {
         StopReason::EndTurn | StopReason::Unknown(_) => ir::StopReason::EndTurn,
         StopReason::ToolUse => ir::StopReason::ToolUse,

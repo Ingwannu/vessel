@@ -15,9 +15,10 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::command_changes::{
-    Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
+    ApprovalRefusal, Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
 };
 use vessel_app_view::workspace::words::{Labels, Local, WorkspaceWords};
+use vessel_proto::scripts::ScriptEntryView;
 use vessel_proto::workspace::ProjectCommand;
 
 use super::widgets::{Tone, badge, banner};
@@ -123,7 +124,11 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
-    let buttons = buttons(id, busy, actions, labels, tokens, cx);
+    let approval = asked.approval();
+    if let Err(ApprovalRefusal::Terminals) = approval {
+        card = card.child(banner(labels.approval_unseen, true, None, tokens));
+    }
+    let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))
         .child(
             div()
@@ -138,6 +143,7 @@ pub(super) fn render(
 fn buttons(
     id: &str,
     busy: bool,
+    approval: Result<(), ApprovalRefusal>,
     actions: Actions,
     labels: &'static Labels,
     tokens: &Tokens,
@@ -168,6 +174,9 @@ fn buttons(
             )
             .on_click(cx.listener(move |this, _event, window, cx| skip(this, window, cx))),
         );
+    }
+    if approval.is_err() {
+        return buttons;
     }
     buttons = buttons.child(
         button(
@@ -316,15 +325,22 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
             .child(words.labels().scripts_and_services),
     );
     for entry in lines {
-        let script = entry.script();
+        // A new approved field must break this display until it is shown or refused.
+        let ScriptEntryView {
+            name,
+            kind,
+            command,
+            dir,
+            port,
+        } = entry.script().view();
         let (change, removed) = match entry {
             ScriptLine::Line { change, .. } => (Some(*change), *change == Change::Removed),
             ScriptLine::Changed { .. } => (None, false),
         };
-        let place = script
-            .dir
-            .as_ref()
-            .map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let place = dir.map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let declared = port.map_or_else(String::new, |port| {
+            format!(" \u{b7} {}", words.script_port(Some(port)))
+        });
         let mut text = div()
             .flex()
             .flex_col()
@@ -337,16 +353,16 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                         div()
                             .type_(Type::Label)
                             .text_color(tokens.neutral.foreground)
-                            .child(script.name.as_str().to_owned()),
+                            .child(name.as_str().to_owned()),
                     )
                     .child(
                         div()
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
-                            .child(format!("{}{place}", words.script_kind(script.kind))),
+                            .child(format!("{}{place}{declared}", words.script_kind(kind))),
                     ),
             )
-            .child(code(script.command.to_string(), removed, tokens));
+            .child(code(command.to_string(), removed, tokens));
         if let ScriptLine::Changed { script, was } = entry {
             text = text.child(
                 div()

@@ -57,6 +57,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
     },
+    limits: Some(vessel_proto::limits::LimitLoginStore::Codex),
     login: Some(&["login", "status"]),
     install: "npm install -g @openai/codex",
     login_command: Some(&["login"]),

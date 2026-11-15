@@ -29,6 +29,9 @@ export function scriptChangeWords(was: ScriptEntry, now: ScriptEntry): string {
   if ((was.dir ?? null) !== (now.dir ?? null)) {
     parts.push("its folder");
   }
+  if ((was.port ?? null) !== (now.port ?? null)) {
+    parts.push("its port");
+  }
   return parts.join(" and ");
 }
 
@@ -67,6 +70,12 @@ function scriptPart(line: ScriptLine): string | null {
 /** What the dialog says above the lists: what the set is compared with,
  * and what changed. */
 export function comparedWords(compared: Compared): string {
+  if (compared.kind === "unsupported_terminals") {
+    return "This set or its previous approval includes terminal commands that this window cannot show. Approval is unavailable here.";
+  }
+  if (compared.kind === "unsupported_ports") {
+    return "This set or its previous approval includes service port declarations that this window cannot show. Approval is unavailable here.";
+  }
   if (compared.kind === "none") {
     return "No earlier approval of this project's commands is known, so every command is shown as it is.";
   }
