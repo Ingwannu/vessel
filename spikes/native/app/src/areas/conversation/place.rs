@@ -29,6 +29,21 @@ impl Seat {
         get: session_seat,
         get_mut: session_seat_mut,
     };
+
+    /// The session area's fork's origin, once read (`origin`): its
+    /// rows are the list's first, read-only.
+    pub(crate) const ORIGIN: Self = Self {
+        get: origin_seat,
+        get_mut: origin_seat_mut,
+    };
+}
+
+fn origin_seat(shell: &Shell) -> Option<&ConversationArea> {
+    shell.areas.conversation.origin.area()
+}
+
+fn origin_seat_mut(shell: &mut Shell) -> Option<&mut ConversationArea> {
+    shell.areas.conversation.origin.area_mut()
 }
 
 /// An answer the person gave on a request's card.

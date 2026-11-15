@@ -292,7 +292,7 @@ impl Shell {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        if text.trim().is_empty()
+        if !self.session_may_send(&text)
             || self.areas.session.resuming.is_some()
             || self.conversation_cannot_resume()
         {
@@ -305,6 +305,9 @@ impl Shell {
             // whose rows show it.
             if shows_at_once(delivery, self.areas.session.conversation.turn_running()) {
                 self.conversation_sending(&text, cx);
+            }
+            if self.session_sends_files(&text, delivery, window, cx) {
+                return;
             }
             let Some(open) = &self.areas.session.open else {
                 return;
@@ -332,7 +335,7 @@ impl Shell {
             self.areas.session.resuming = Some(text);
             self.areas.session.resume_error = None;
         }
-        self.areas.session.composer.clear(window, cx);
+        self.session_composer_sent(window, cx);
         cx.notify();
     }
 
@@ -435,7 +438,7 @@ pub(crate) fn render(
     };
     let detail = format!("{} · {}", open.machine, open.agent);
     let body: AnyElement = if open.structured {
-        super::conversation::timeline(shell, tokens, window, cx)
+        crate::region::timeline(shell, tokens, window, cx)
     } else {
         div()
             .flex_1()
@@ -572,7 +575,7 @@ fn composer(
         // A failed resume's text, back in the composer (once).
         field.set_text(&text, window, cx);
     }
-    let typed = !field.text(cx).trim().is_empty();
+    let typed = !field.text(cx).trim().is_empty() || shell.session_has_files();
     let stop = working && !typed;
     let button = vessel_app_kit::send_button(
         "session-send",
@@ -581,7 +584,7 @@ fn composer(
         } else {
             vessel_app_kit::SendKind::Send
         },
-        stop || typed,
+        stop || shell.session_may_send(&field.text(cx)),
         touch,
         tokens,
     )
@@ -593,36 +596,33 @@ fn composer(
             this.submit_prompt(text, window, cx);
         }
     }));
-    // Track P: the `/` menu over the card, and the text with its keys
-    // offered to the menu first.
-    let commands = crate::areas::composer::menu(shell, tokens, window, cx);
+    // Track P: the card with its `/` menu, its files and its text.
     column(
-        vessel_app_kit::composer_card(tokens, touch)
-            .relative()
-            .children(commands)
-            .child(crate::areas::composer::text(shell, tokens, touch, cx))
-            .child(
-                // The draft's row: the agent's controls on the left (Paseo's
-                // button row bleeds 6 past the card's padding), the meter
-                // and send/stop on the right.
-                div()
-                    .mx(px(-6.0))
-                    .flex()
-                    .flex_row()
-                    .items_center()
-                    .justify_between()
-                    .gap(px(8.0))
-                    .child(div().flex_1().min_w_0().children(controls))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_row()
-                            .items_center()
-                            .gap(px(8.0))
-                            .children(super::conversation::meter(shell, tokens, window, cx))
-                            .child(button),
-                    ),
-            ),
+        crate::areas::composer::session_card(shell, tokens, touch, window, cx).child(
+            // The draft's row: the agent's controls on the left (Paseo's
+            // button row bleeds 6 past the card's padding), the meter
+            // and send/stop on the right.
+            div()
+                .mx(px(-6.0))
+                .flex()
+                .flex_row()
+                .items_center()
+                .justify_between()
+                .gap(px(8.0))
+                .child(crate::areas::composer::attach_button(
+                    false, touch, tokens, cx,
+                ))
+                .child(div().flex_1().min_w_0().children(controls))
+                .child(
+                    div()
+                        .flex()
+                        .flex_row()
+                        .items_center()
+                        .gap(px(8.0))
+                        .children(super::conversation::meter(shell, tokens, window, cx))
+                        .child(button),
+                ),
+        ),
     )
     .pb(px(12.0))
 }

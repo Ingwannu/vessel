@@ -41,6 +41,10 @@ use vessel_proto::ErrorCode;
 use crate::routes::Route;
 use crate::shell::Shell;
 
+/// The info mark's hit area is padded a step and pulled back as far, so
+/// the glyph sits on the title's line while the target is larger.
+const TIP_PULL: f32 = -4.0;
+
 /// The page's state: what was read for which machine.
 #[derive(Default)]
 pub(crate) struct State {
@@ -232,7 +236,7 @@ fn title(shell: &Shell, tokens: &Tokens, compact: bool) -> AnyElement {
     let tip = div()
         .id("settings-idle-release-info")
         .p(px(spacing::S1))
-        .ml(px(-spacing::S1))
+        .ml(px(TIP_PULL))
         .child(glyph(Glyph::Info, 16.0, tokens.neutral.foreground_muted));
     let tip = state
         .tips

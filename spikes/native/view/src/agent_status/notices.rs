@@ -12,6 +12,7 @@ pub const fn authentication(signed_in: &SignedIn) -> Variant {
         SignedIn::No { .. }
         | SignedIn::Unknown {
             reason: UnknownReason::NotInstalled,
+            ..
         } => Variant::Warning,
         SignedIn::Unknown {
             reason: UnknownReason::Failed { .. } | UnknownReason::TimedOut { .. },
@@ -23,6 +24,7 @@ pub const fn authentication(signed_in: &SignedIn) -> Variant {
                 | UnknownReason::NotSaid
                 | UnknownReason::NoHome
                 | UnknownReason::Unread,
+            ..
         } => Variant::Info,
     }
 }

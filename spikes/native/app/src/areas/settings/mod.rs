@@ -170,6 +170,16 @@ impl Anchors {
 }
 
 impl Shell {
+    /// Each frame, the Settings pages that wait on the window settle what
+    /// came in since (devices, sync, the machine's agents, the book that
+    /// Overview and Connections show).
+    pub(crate) fn settle_settings(&mut self, window: &Window) {
+        self.settle_devices(window);
+        self.settle_sync(window);
+        self.settle_host_agents(window);
+        self.settle_book(window);
+    }
+
     /// Open Settings at `section` (pushed on a phone), or at its start
     /// (General beside the list; the list on a phone, as Paseo's gear),
     /// remembering where "Back" returns to.

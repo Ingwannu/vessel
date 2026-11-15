@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod find;
 #[cfg(test)]
+mod fork;
+#[cfg(test)]
 mod outline;
 #[cfg(test)]
 mod permission;
@@ -14,6 +16,8 @@ mod permission;
 mod plan;
 #[cfg(test)]
 mod question;
+#[cfg(test)]
+mod rewind;
 #[cfg(test)]
 mod rows;
 #[cfg(test)]

@@ -25,10 +25,6 @@
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
-mod dialogs;
-
-pub(crate) use dialogs::render as dialogs;
-
 use vessel_app_kit::alert::{self, Content};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::badge::{self, badge};
@@ -49,6 +45,13 @@ use vessel_app_view::overview::{Ask, Editing, ask};
 use vessel_app_view::{Machine, Reach};
 
 use crate::shell::Shell;
+
+mod dialogs;
+pub(crate) use dialogs::dialogs;
+
+/// The pencil's hover corner: six points, between the kit's `R1` and
+/// `R2`; the kit has no radius of this size yet.
+const PENCIL_RADIUS: f32 = 6.0;
 
 /// The page's state.
 pub(crate) struct State {
@@ -289,7 +292,7 @@ fn name_row(
         div()
             .id("settings-overview-rename")
             .p(px(spacing::S1))
-            .rounded(px(spacing::S1_5))
+            .rounded(px(PENCIL_RADIUS))
             .cursor_pointer()
             .hover(move |style| style.bg(neutral.surface2))
             .child(glyph(Glyph::Pencil, 14.0, neutral.foreground_muted))

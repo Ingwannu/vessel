@@ -43,6 +43,13 @@ impl ConversationArea {
                 return Followup::None;
             }
         }
+        // A refused rewind or fork is the notice's (Paseo's toast), said
+        // by `rewind` and `fork`, not a refusal beside a control.
+        if matches!(answer.kind, ActKind::Rewind | ActKind::Fork)
+            && matches!(answer.result, Err(ActFailed { code: Some(_), .. }))
+        {
+            return Followup::None;
+        }
         match answer.result {
             Ok(Acted::Session(info)) => {
                 self.refused = None;
@@ -52,6 +59,10 @@ impl ConversationArea {
                 self.refused = None;
                 self.info = None;
             }
+            // The new session's; the one shown stands as it was.
+            Ok(Acted::Forked(_)) => self.refused = None,
+            // Another session's log (a fork's origin, `origin`).
+            Ok(Acted::Log(_)) => {}
             Ok(Acted::Done) => {
                 self.refused = None;
                 // An answer went: what still waits is read again, so a
@@ -92,6 +103,7 @@ impl ConversationArea {
             return false;
         }
         self.tail_took(change.added_from);
+        self.origin_seen(change.added_from);
         // A batch after the first read: what it brings arrives on screen.
         if change.added_from > 0 {
             self.fresh = Some((change.added_from, std::time::Instant::now()));
@@ -101,6 +113,10 @@ impl ConversationArea {
         }
         self.logs = Logs::of(self.timeline.entries());
         self.outline = outline(self.timeline.entries());
+        // The rail lists the conversation's prompts: not what a rewind
+        // left behind.
+        let timeline = &self.timeline;
+        self.outline.retain(|item| !timeline.rewound(item.entry));
         self.rows_again();
         let rows_after = self.rows.len();
         // Rows are entries less folded members, so a batch can add rows
@@ -117,8 +133,12 @@ impl ConversationArea {
             .row_index(first_changed, self.folds.as_ref(), &self.logs)
             .unwrap_or(rows_before)
             .min(rows_before);
-        self.list
-            .splice(from..rows_before, rows_after.saturating_sub(from));
+        self.list.splice(
+            self.at(from)..self.at(rows_before),
+            rows_after.saturating_sub(from),
+        );
+        // A fork that never held a conversation shows no origin (F2).
+        self.origin_dropped();
         self.revealed();
         true
     }
@@ -133,7 +153,7 @@ impl ConversationArea {
             return;
         };
         for record in records {
-            if let SessionEvent::Parked { reason } = &record.event {
+            if let SessionEvent::Parked { reason, .. } = &record.event {
                 info.parked = Some(Parked {
                     since: record.at,
                     reason: reason.clone(),

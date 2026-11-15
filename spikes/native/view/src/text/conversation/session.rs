@@ -338,7 +338,7 @@ impl ConversationWords {
             RemoveWorktreeOutcome::Removed { .. } => self
                 .either("Its worktree was removed.", "워크트리를 지웠습니다.")
                 .to_owned(),
-            RemoveWorktreeOutcome::Kept { reasons } => {
+            RemoveWorktreeOutcome::Kept { reasons, .. } => {
                 let reasons: Vec<String> = reasons
                     .iter()
                     .map(|reason| self.kept_reason(reason))

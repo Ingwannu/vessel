@@ -12,6 +12,10 @@ pub mod spacing;
 /// The desktop command panel's scrim: black at 50 % (track S3's, after
 /// Paseo's command center), as `rgba` takes it.
 pub const COMMAND_SCRIM: u32 = 0x0000_0080;
+
+/// A form summary's light fill: GOAT's zinc25 (OKLCH .992, 0, 0) at its
+/// nearest 8-bit sRGB value, as `rgb` takes it.
+pub const SUMMARY_LIGHT: u32 = 0x00fc_fcfc;
 mod status;
 pub use status::{Signal, Status};
 
@@ -286,4 +290,13 @@ pub mod radius {
     pub const R4: f32 = 10.0;
     /// `--r-5`: the frame.
     pub const R5: f32 = 12.0;
+    /// Paseo's `borderRadius.md`: small icon actions and popup rows. The
+    /// page's scale has no 6; controls drawn after Paseo's use this one.
+    pub const MD: f32 = 6.0;
+}
+
+/// Paseo's icon sizes (`ICON_SIZE` in its theme), in pixels.
+pub mod icon {
+    /// `ICON_SIZE.sm`: an icon-only action's glyph.
+    pub const SM: f32 = 14.0;
 }

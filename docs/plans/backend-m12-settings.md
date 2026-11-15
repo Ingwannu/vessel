@@ -569,3 +569,15 @@ The size check previously stopped before the token check. Its next check
 exposed seven existing `px` literals in Overview, host Agents and Diagnostics.
 They now use the existing equal-valued spacing tokens, including the
 negative info-tip inset; no measurement or behaviour changes.
+
+### Integration resume point
+
+The native line already extracted the same Overview dialogs. The merge
+keeps that implementation and its `dialogs` entry; the existing Remove
+leading-glyph call remains. Host Agents keeps the native line's named
+negative inset. The size list takes the lower measured counts: link entry
+988, demo 523 after combining the native line with the catalog extraction.
+Conflicts were limited to these equivalent extractions, imports, equal-valued
+geometry tokens and shrinking allowance records. No rule or test expectation
+was changed. Next: gate this integration, then replace the temporary pencil
+with the shared host rename action now present in the native line.

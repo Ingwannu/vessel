@@ -7,7 +7,7 @@ use vessel_proto::workspace::{
     WorktreeRefusal,
 };
 
-use super::{AddForm, Labels, Local, WorkspaceWords, labels};
+use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
 use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
@@ -36,10 +36,6 @@ fn sentence(text: &str) -> String {
     characters.next().map_or_else(String::new, |first| {
         first.to_uppercase().chain(characters).collect()
     })
-}
-
-fn lines(title: impl Into<String>, next: impl Into<String>) -> (String, String) {
-    (title.into(), next.into())
 }
 
 /// Why the repository's own configuration stopped a run (ADR 0030), and
@@ -155,9 +151,7 @@ impl WorkspaceWords for En {
                     .to_owned()
             }
             BranchNameProblem::TrailingDot => "A branch name cannot end with a dot.".to_owned(),
-            BranchNameProblem::DotPart => {
-                "No part of a branch name can start with a dot.".to_owned()
-            }
+            BranchNameProblem::DotPart => "No part of a branch name can start with a dot.".into(),
             BranchNameProblem::LockPart => {
                 "No part of a branch name can end with \u{201c}.lock\u{201d}.".to_owned()
             }
@@ -221,7 +215,7 @@ impl WorkspaceWords for En {
     fn project_state(&self, state: &ProjectState) -> Option<String> {
         match state {
             ProjectState::Ready => None,
-            ProjectState::Cloning { stage, percent } => Some(match percent {
+            ProjectState::Cloning { stage, percent, .. } => Some(match percent {
                 None => self.clone_stage(*stage).to_owned(),
                 Some(percent) => format!("{} \u{b7} {percent}%", self.clone_stage(*stage)),
             }),
@@ -234,7 +228,7 @@ impl WorkspaceWords for En {
     fn git_support(&self, git: &GitSupport) -> Option<String> {
         match git {
             GitSupport::Found { .. } | GitSupport::Unknown => None,
-            GitSupport::TooOld { version, minimum } => Some(format!(
+            GitSupport::TooOld { version, minimum, .. } => Some(format!(
                 "Git {}.{} is too old on this machine; Vessel needs {}.{} or newer for projects.",
                 version.major, version.minor, minimum.major, minimum.minor
             )),
@@ -247,7 +241,7 @@ impl WorkspaceWords for En {
 
     fn setup_failure(&self, failure: &SetupFailure, commands: &[&str]) -> String {
         match failure {
-            SetupFailure::Exit { command, code } => {
+            SetupFailure::Exit { command, code, .. } => {
                 let how = code.map_or_else(
                     || "was stopped by a signal".to_owned(),
                     |code| format!("exited with {code}"),
@@ -281,15 +275,15 @@ impl WorkspaceWords for En {
 
     fn kept_reason(&self, reason: KeptReason) -> String {
         match reason {
-            KeptReason::Uncommitted { files } => format!(
+            KeptReason::Uncommitted { files, .. } => format!(
                 "{} with uncommitted changes",
                 counted(u64::from(files), "file", "files")
             ),
-            KeptReason::UniqueCommits { commits } => format!(
+            KeptReason::UniqueCommits { commits, .. } => format!(
                 "{} on no other branch",
                 counted(u64::from(commits), "commit", "commits")
             ),
-            KeptReason::Operation { operation } => {
+            KeptReason::Operation { operation, .. } => {
                 sentence(&format!("{} in progress", self.operation(operation)))
             }
             KeptReason::Submodules => "Submodules, whose changes are not inspected".to_owned(),
@@ -311,7 +305,7 @@ impl WorkspaceWords for En {
             WorktreeRefusal::NotReady => "The project is not ready yet (cloning, or its folder is missing).".to_owned(),
             WorktreeRefusal::NoCommit => "The repository has no commit yet; commit once in its folder first.".to_owned(),
             WorktreeRefusal::BranchExists => "A branch with that name exists. Choose another name, or run on the existing branch.".to_owned(),
-            WorktreeRefusal::CheckedOutElsewhere { path } => format!(
+            WorktreeRefusal::CheckedOutElsewhere { path, .. } => format!(
                 "That branch is checked out in another worktree ({}).",
                 path.display()
             ),
@@ -376,7 +370,7 @@ impl WorkspaceWords for En {
                 "No branch is checked out.",
                 "Switch to a branch or create one first.",
             ),
-            GitRefusal::CheckedOutElsewhere { path } => lines(
+            GitRefusal::CheckedOutElsewhere { path, .. } => lines(
                 "That branch is checked out in another worktree.",
                 format!(
                     "Use it there ({}), or choose another branch.",
@@ -399,7 +393,7 @@ impl WorkspaceWords for En {
                 "No branch, tag or commit has that name.",
                 "Check the name, or fetch first.",
             ),
-            GitRefusal::Operation { operation } => lines(
+            GitRefusal::Operation { operation, .. } => lines(
                 format!(
                     "The repository is in the middle of {}.",
                     self.operation(*operation)
@@ -409,7 +403,7 @@ impl WorkspaceWords for En {
             GitRefusal::RemoteFailed { .. } => {
                 lines("The remote refused it.", "Read what it said below.")
             }
-            GitRefusal::RepositoryConfig { key, reason } => config_lines(key.as_ref(), *reason),
+            GitRefusal::RepositoryConfig { key, reason, .. } => config_lines(key.as_ref(), *reason),
             GitRefusal::Unknown => lines(
                 "Git refused it for a reason this page does not know.",
                 "Update this page's Vessel to read it.",
@@ -497,7 +491,7 @@ impl WorkspaceWords for En {
             DiffScope::Uncommitted => "Uncommitted".to_owned(),
             DiffScope::Staged => "Staged".to_owned(),
             DiffScope::Unstaged => "Unstaged".to_owned(),
-            DiffScope::Commit { id } => {
+            DiffScope::Commit { id, .. } => {
                 let short: String = id.as_str().chars().take(7).collect();
                 format!("Commit {short}")
             }
@@ -615,9 +609,7 @@ impl WorkspaceWords for En {
     fn removed(&self, branch: &str, snapshot: Option<&str>) -> String {
         match snapshot {
             None => format!("Removed {branch}"),
-            Some(commit) => {
-                format!("Removed {branch}; its work is kept in snapshot {commit}")
-            }
+            Some(commit) => format!("Removed {branch}; its work is kept in snapshot {commit}"),
         }
     }
 
@@ -677,6 +669,10 @@ impl WorkspaceWords for En {
         } else {
             format!("Add lines {first}\u{2013}{last} to chat")
         }
+    }
+
+    fn editor_lines(&self, count: usize) -> String {
+        counted_len(count, "line", "lines")
     }
 
     fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {

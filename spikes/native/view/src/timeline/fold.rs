@@ -82,6 +82,8 @@ pub struct Timeline {
     /// the composer's dock asks about.
     pub(super) waiting: BTreeSet<usize>,
     pub(super) questions: HashMap<QuestionId, usize>,
+    /// Entries a rewind left behind (`rewind.rs`), as index ranges.
+    pub(super) rewound: Vec<std::ops::Range<usize>>,
     /// The batch being folded: where it began, and what it changed.
     pub(super) batch: Change,
 }
@@ -107,6 +109,7 @@ impl Default for Timeline {
             permissions: HashMap::new(),
             waiting: BTreeSet::new(),
             questions: HashMap::new(),
+            rewound: Vec::new(),
             batch: Change::default(),
         }
     }
@@ -198,6 +201,7 @@ impl Timeline {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }
@@ -318,7 +322,7 @@ impl Timeline {
 
     fn record(&mut self, record: &EventRecord) {
         match &record.event {
-            SessionEvent::Status { status } => {
+            SessionEvent::Status { status, .. } => {
                 self.status = Some(status.clone());
                 if !status.is_live() {
                     self.turn = None;
@@ -333,19 +337,26 @@ impl Timeline {
             }
             // A parked session's agent stopped and started again (protocol
             // 12, ADR 0038): a line each, as a status change is.
-            SessionEvent::Parked { reason } => {
+            SessionEvent::Parked { reason, .. } => {
                 self.push(
                     record,
                     EntryKind::Parking(ParkingChange::Parked(reason.clone())),
                 );
             }
             SessionEvent::Woken => self.push(record, EntryKind::Parking(ParkingChange::Woken)),
-            // A fork's and a rewind's records are drawn with that slice.
-            SessionEvent::Terminal(_)
-            | SessionEvent::Forked { .. }
-            | SessionEvent::Rewound { .. } => {}
-            SessionEvent::Agent { event } => self.agent(record, event),
-            SessionEvent::ProfileChanged { from, to } => self.push(
+            // A rewind leaves what followed its turn's end behind
+            // (`rewind.rs`); a fork's record is its first line (`fork.rs`).
+            SessionEvent::Rewound { after, .. } => self.rewound_to(*after),
+            SessionEvent::Forked { from, after, .. } => self.push(
+                record,
+                EntryKind::Forked {
+                    from: *from,
+                    after: *after,
+                },
+            ),
+            SessionEvent::Terminal(_) => {}
+            SessionEvent::Agent { event, .. } => self.agent(record, event),
+            SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,
                 EntryKind::Profile {
                     from: from.clone(),
@@ -357,13 +368,13 @@ impl Timeline {
                 self.push(record, EntryKind::Model(call.clone()));
             }
             // The whole set each time, so the last one is the truth.
-            SessionEvent::OptionsChanged { options } => self.options = Some(options.clone()),
-            SessionEvent::Renamed { title } => self.title = Some(title.clone()),
-            SessionEvent::QueueChanged { queue } => self.facts.queue = Some(queue.clone()),
-            SessionEvent::CommandsChanged { commands } => {
+            SessionEvent::OptionsChanged { options, .. } => self.options = Some(options.clone()),
+            SessionEvent::Renamed { title, .. } => self.title = Some(title.clone()),
+            SessionEvent::QueueChanged { queue, .. } => self.facts.queue = Some(queue.clone()),
+            SessionEvent::CommandsChanged { commands, .. } => {
                 self.facts.commands = Some(commands.clone());
             }
-            SessionEvent::UsageChanged { usage } => self.facts.context = Some(usage.clone()),
+            SessionEvent::UsageChanged { usage, .. } => self.facts.context = Some(usage.clone()),
         }
     }
 
@@ -465,6 +476,7 @@ impl Timeline {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }

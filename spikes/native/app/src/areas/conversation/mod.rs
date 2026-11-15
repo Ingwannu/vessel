@@ -55,11 +55,14 @@ mod entries;
 mod find;
 mod follow;
 mod footer;
+mod fork;
 mod intake;
 mod look;
 mod meter;
 mod motion;
+mod origin;
 mod outline;
+mod overlays;
 mod permission;
 mod place;
 mod plan;
@@ -67,6 +70,7 @@ mod question;
 mod queue;
 mod read;
 mod rename;
+mod rewind;
 pub(crate) mod search;
 mod tail;
 /// Its rows, for another area's conversation too ([`timeline::rows`]).
@@ -78,8 +82,9 @@ pub(crate) use area::ConversationArea;
 pub(crate) use bar::bar;
 pub(crate) use dock::dock;
 pub(crate) use meter::meter;
+pub(crate) use overlays::overlays;
 pub(crate) use place::{Answer, Place, Seat, SessionPlace};
-pub(crate) use timeline::{overlays, timeline};
+pub(crate) use timeline::timeline;
 
 #[cfg(test)]
 mod connection_tests;

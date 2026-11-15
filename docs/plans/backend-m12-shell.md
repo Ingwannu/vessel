@@ -697,22 +697,159 @@ modifier held alone is not shown before the key (GPUI's interceptor
 hears keys, not modifier changes); the row menu has no leading glyphs
 (the kit's menu has none yet).
 
-### Resume point (track S3, 2026-11-14 04:40 UTC)
+### Word 39: Animations setting and the shell's transitions (track S3, 2026-11-14)
 
-- Done: palette (`153da701`, accepted); `view::matcher` rename after C's
-  `view::search` (`b89e4528`); every app-wide key through the registry with
-  GOAT's queue keys and repeat suppression (`62f80a87`); Settings ›
-  Shortcuts page (`b0818ba5`). The gate (fmt, clippy, test) passed on
-  `b0818ba5`'s tree.
-- Half-done: Settings › Shortcuts has no captures yet (both themes, both
-  sizes, both languages, recording, a refused key, the reassign question,
-  scale 1.25/1.5 and the pointer over the palette and its sheet, per the
-  owner's words 26-27); pair the capture fleet by the CLI pipe from now on.
-- Next: those captures and the slice-2 report; then the palette's Messages
-  group (C's seams on the lead since `9461f149`: `message_search_query`,
+Commits: `17bfe083` (Settings › Appearance › Animations, and the setting
+holds every motion), `9f237519` (the kit's surfaces arrive on the motion
+tokens), `a1fa3c4c` (the combobox's placement in its own function),
+`49ac8dae` (a page fades in; the palette's keyboard row fills in).
+
+[Decision Log]
+- Purpose: the owner's word 39: every change a person causes has a short
+  transition; a setting turns them off and then every change is instant;
+  nothing animates while the screen is still.
+- Tokens: the lead's `kit::motion` (QUICK 150 ms, STANDARD 300 ms, the
+  curve .23,1,.32,1). Popovers, menus, the combobox and tooltips arrive
+  over QUICK, as Paseo's menu does (`menu-overlay.tsx`, 150 ms, opacity
+  and a 0.97 scale); dialogs, sheets, toasts, the palette and a page over
+  STANDARD. GPUI draws no scale on a box, so a surface rises 4 points
+  instead (`popup::appear`).
+- Leaving: Paseo's desktop popovers, menus, dialogs and its command
+  center unmount at once (no exiting animation on the web); so do ours.
+  A tooltip appears over QUICK and goes at once. The phone's palette
+  sheet keeps its spring out.
+- Selection moving: the row the keyboard arrives on fills in over QUICK
+  (`popup::fill_in`: the menu's and the palette's rows); the row it
+  leaves clears at once.
+- A page: the frame is wrapped in one box keyed by the route and the
+  session shown (`app/src/shell/page.rs`) and fades in over STANDARD; a
+  Settings section is the same page, as Paseo's settings sections switch
+  in place.
+- Per frame: every transition is GPUI's `with_animation`, which asks for
+  the next frame while it runs and stops when it ends; no timer drives
+  motion, and nothing repeats.
+- Held motion: one flag (`app::motion`): the system's reduced motion, a
+  software renderer, and the Animations setting; GPUI's `with_animation`
+  draws the end at once under it. `VESSEL_APP_REDUCE_MOTION=0` fixes only
+  the system's and the renderer's reasons, so the setting can be shown on
+  and off on a virtual display (agreed with the lead).
+- The setting: `prefs::Appearance::animations` (`Animations::{On, Off}`,
+  lenient, default on) with `PreferenceChange::Animations`; applied at
+  once through `motion::animations` and at start in `main.rs`. Kept with
+  the app's preferences only: the page has no such setting yet and its
+  document ignores the field (the contract test pins both documents).
+- Not done: the sidebar's width and the right panel showing and hiding
+  wait for the lead's resize work (no transition while a drag resizes);
+  a toast's strip needs an action on a reachable machine, which the
+  capture fleet was not (its entrance is the menu's `popup::appear` over
+  STANDARD).
+
+Measured, release build on a virtual display (software Vulkan, so the app
+draws a frame every 35 to 45 ms; the grabber reads the screen every 16):
+the mean brightness of each surface's crop, frame by frame after the
+press, dark theme.
+- Menu: on 29.6, 31.5, 32.5, 32.8, 32.9 (127 to 251 ms); off 29.6 to
+  32.9 in one frame.
+- Dialog (scrim and card): on 28.3, 19.6, 16.0, 15.4, 14.6 (132 to
+  274 ms); off 28.7 to 14.6 in one frame.
+- A page (to the board): on 28.1, 26.3, 26.6, 26.8, 26.9, 27.0; off 28.1
+  to 27.0 in one frame. To Settings: on 27.0, 28.0, 29.0, 29.3, 29.4,
+  29.6, 29.7; off in one frame.
+- The phone's sidebar sheet: on 28.9, 23.4, 21.1, 20.6, 20.4, 20.3 as it
+  slides in from the left (about 200 ms); off 28.9 to 20.3 in one frame.
+- The menu's row moving: on 32.9, 32.8 (the old row cleared), 33.8; off
+  32.9 to 33.8 in one frame.
+- The palette, opened once before (a fresh process's first open is
+  slower than the strip): on 29.9, 27.6, 29.8, 30.7, 30.8 (about 150 ms
+  after the panel's first frame); off 29.9 to 30.8 in one frame. Its
+  keyboard row: on 30.0, 28.8, 29.8, 30.0 (the new row filling); off no
+  step at all (the highlight moves in one frame). Closing: one frame,
+  on and off.
+- Tooltip (the model pill's): on 30.9, 31.2, 32.1, 32.6; off 30.9 to
+  32.6 in one frame.
+- Combobox (Settings › General › Language): on one frame with the list
+  at part opacity and part of its rise (the row under it shows through),
+  then whole; off whole in one frame.
+- Both themes were captured; the light strips step the same way.
+
+Idle CPU, release build, 30 s with the screen open and the pointer still
+(one core): Settings 0.57% with Animations on and 0.47% off. With a
+focused field (the new-session page's composer, the palette's search)
+29% and 48% on, 0.5% off: each caret blink redraws the whole window,
+which in software costs a large part of a core. On a real software
+renderer the app holds every motion, the caret's blink with it, so this
+cost appears only when a capture forces motion on; on a GPU a blink is
+one ordinary frame.
+
+Captures: the scratch directory's `s3/shots/motion/` (frames with
+`times.txt` per strip; `strips/` on above off, and the numbers beside
+each).
+
+### The sidebar's list and its Display menu (track S3, 2026-11-14)
+
+Commit: `ad667abe`. The sidebar draws through the view's model of the
+page's sidebar (`Fleet::sidebar_machines`, `sidebar_statuses`; the same
+list Alt+[ and Alt+] walk): grouped by machine (the default) or by
+status, sorted by creation or last activity, ended sessions only when
+asked, pinned first, five to a machine and ten to a status group, then
+"N more", which opens the board (on that machine when grouped by
+machine). A row leads with the agent's mark and the page's mark of what
+the session is doing (spinner, needs-you dot, hollow dot, dash, the muted
+fill for unread); an unread title is primary at medium weight; grouped
+by status, the machine's name is at the right.
+
+Reference files followed: Paseo
+`components/sidebar/display-preferences/{model.ts,menu.tsx}` (the
+Settings2 mark at the list heading, a 232-wide surface aligned to the
+trigger's end, root rows naming each decision with its value, one page
+per decision, options with marks on the grouping page only, a choice
+closing the menu) and `components/left-sidebar.tsx`
+(`WorkspacesSectionHeader`); the page's `features/shell/{sidebar-machines,
+sidebar-statuses,sidebar-view-menu,session-mark}.tsx` and `sidebar.css`
+(the decisions, the marks' sizes and colours, "N more").
+
+Differences, named: a page replaces the root in place with a way back on
+a wide window too (Paseo opens a flyout by hover intent; the kit's list
+has no flyout); "Show ended sessions" is a switch on the root (Paseo has
+no such decision; the page's menu had it); a session row has no branch
+chip yet (the workspace track's to draw); a machine's row is the native
+sidebar's (name, state, the unreachable line) rather than the page's
+dot, name and live count.
+
+Structure: `app/src/areas/sidebar/` is one file per part (`mod.rs` the
+frame and its rows, `machines.rs`, `statuses.rs`, `session_row.rs`,
+`display.rs`, `foot.rs`), spacing on the kit's steps (the quality audit's
+S3 rows 1 and 6); what each Display row is and does is
+`view::sidebar::display`, tested without a window.
+
+Capture note: a book paired by the CLI under `HOME=<person>` names its
+credential `~/config/…`; an app run with another HOME reports the
+machine unreachable ("the device credential … No such file"). The
+capture driver rewrites that path in its per-run copy.
+
+### Resume point (track S3, 2026-11-14 15:40 UTC)
+
+- Done and reported: palette (`153da701`, accepted); `view::matcher`
+  (`b89e4528`); app-wide keys (`62f80a87`); Settings › Shortcuts
+  (`b0818ba5`, `d3bb4f53`, captures passed by the coordinator; handed to
+  the lead for 0.0.0.0.16 up to `d3bb4f53`); word 39 (`17bfe083`,
+  `9f237519`, `a1fa3c4c`, `49ac8dae`, notes above).
+- Waiting on others: the sidebar's width and the right panel's
+  transitions (the lead's resize work); the palette's Messages group (the
+  lead merging `b89e4528`; C's seams `message_search_query`,
   `message_search_rows`, `message_row`, `message_search_note`,
-  `open_search_hit`, `message_search_more`), tell C to remove `example`
-  and `hear_find`; then the sidebar (group, sort, filter, pin, unread,
-  children), then notifications. Kit requests (command row with agent
-  mark, status badge, elapsed time; a tooltip that opens downward) are
-  with the lead.
+  `open_search_hit`, `message_search_more`; then tell C to remove
+  `example` and `hear_find`); a toast strip (a reachable capture fleet).
+- Next: the sidebar slice. `view/src/sidebar.rs` already has the page's
+  model (`Fleet::sidebar_machines`, `sidebar_statuses`, `listed`: group by
+  machine or status, sort by created or activity, ended hidden, pinned
+  first), and `Fleet::sidebar_order` already drives Alt+[ and Alt+]; the
+  app's `areas/sidebar.rs` does not draw through it yet. Paseo's
+  references: `components/sidebar/display-preferences/{model.ts,menu.tsx}`
+  (the Display menu at the sidebar's head, one page per decision) and
+  `components/sidebar/sidebar-workspace-menu.tsx` (the row menu: pin,
+  mark as read or unread, archive, copy path). With it, the quality
+  audit's S3 rows 1 (split `sidebar.rs`, add tests) and 6 (its `px`
+  literals to `spacing`). Then notifications (E3 waits for the delivery
+  function's name for its Test button). Settings › Sidebar stays hidden
+  (E3) until the sidebar reads its items.

@@ -247,8 +247,9 @@ impl Shell {
                 self.records(&session, &records, cx);
                 // Track P: a session's reported `/` commands kept for its agent.
                 self.offers_commands_seen();
+                self.composer_files_seen(cx);
             }
-            Event::Started(card) => self.started(&card, cx),
+            Event::Started(card) => self.started_with_files(&card, cx),
             Event::Sent { .. } => {}
             Event::Paired { node, via, address } => self.paired(&node, via, address, cx),
             Event::PairFailed(why) => self.pair_failed(why),
@@ -270,11 +271,18 @@ impl Shell {
                 outcome,
             } => self.options_arrived(machine, harness, outcome),
             Event::OptionsKept { machine, lists } => self.offers_kept(&machine, lists),
+            Event::Upload { session, key, step } => self.composer_upload(session, key, step, cx),
             Event::Failed(why) => {
                 self.start_failed();
                 self.notice = Some(why);
             }
-            Event::Workspace { machine, answer } => self.workspace_answer(&machine, answer, cx),
+            Event::Workspace { machine, answer } => {
+                // An answer that changed nothing drawn asks for no frame
+                // (an idle git panel refreshes every five seconds).
+                if !self.workspace_answer(&machine, answer, cx) {
+                    return;
+                }
+            }
             Event::Searched(answer) => self.message_searched(answer, cx),
         }
         cx.notify();
@@ -383,13 +391,11 @@ const BATCH: usize = 512;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
+        let started = crate::region::begin(self, cx);
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        self.settle_devices(window);
-        self.settle_sync(window);
-        self.settle_host_agents(window);
-        self.settle_book(window);
+        self.settle_settings(window);
         let tokens = tokens(cx);
         // ADR 0036: below the phone's width the sidebar is a sheet from the
         // title bar; it closes when the person goes anywhere from it, and
@@ -408,7 +414,7 @@ impl Render for Shell {
             vessel_app_kit::sheet(
                 "sidebar-sheet",
                 vessel_app_kit::Edge::Left,
-                areas::sidebar::render(self, &tokens, true, cx).into_any_element(),
+                areas::sidebar::render(self, &tokens, true, window, cx).into_any_element(),
                 &tokens,
                 cx.listener(|this, _event, window, cx| this.toggle_sidebar(window, cx)),
             )
@@ -435,7 +441,7 @@ impl Render for Shell {
                     .flex()
                     .flex_row()
                     .when(!phone && self.sidebar_shown(), |row| {
-                        row.child(routes::sidebar(self.route, self, &tokens, window, cx))
+                        row.child(routes::sidebar(self, &tokens, window, cx))
                     })
                     .child(
                         // `min_w` 0: GPUI measures a text's least width
@@ -470,7 +476,7 @@ impl Render for Shell {
                                             .children(self.updated.as_ref().map(|updated| {
                                                 areas::about::updated(self, updated, &tokens, cx)
                                             }))
-                                            .child(frame)
+                                            .child(page::arriving(self, frame))
                                             .children(self.notice.clone().map(|notice| {
                                                 self.foot(notice, &tokens, touch)
                                             })),
@@ -485,10 +491,12 @@ impl Render for Shell {
                     .children(sheet),
             )
             .children(areas::toasts::render(self, &tokens, window, cx))
-            .children(areas::palette::render(self, &tokens, window, cx));
+            .children(areas::palette::render(self, &tokens, window, cx))
+            .child(vessel_app_kit::frame_log::drawn(started));
         vessel_app_kit::chrome::resizable(content.into_any_element(), window)
     }
 }
 
 #[cfg(test)]
 pub(crate) mod language_tests;
+mod page;

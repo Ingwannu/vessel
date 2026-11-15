@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::SessionId;
 
 /// Whose composer a draft is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum DraftKey {
     /// The new chat's.

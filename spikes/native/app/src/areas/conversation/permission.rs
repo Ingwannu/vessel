@@ -127,7 +127,6 @@ pub(crate) fn card<P: Place>(
             .saturating_add(unseen.len()),
         |kind| words.permission_kind(kind),
     );
-    let neutral = tokens.neutral;
     let narrow = breakpoint::phone(window);
     let id = permission.request.id;
     let refused = area
@@ -157,7 +156,16 @@ pub(crate) fn card<P: Place>(
         tokens,
         cx,
     );
-    let footer = div()
+    let footer = footer(answers, refused, *words, tokens);
+    let body = body((shell, area, seat), &card, tool, head, tokens, window, cx);
+    Some(frame(body, footer, narrow, tokens))
+}
+
+/// Under the body: the question, the answers, and a refused answer's
+/// words in the danger colour.
+fn footer(answers: Div, refused: Option<String>, words: ConversationWords, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    div()
         .flex()
         .flex_col()
         .gap(px(8.0))
@@ -173,28 +181,31 @@ pub(crate) fn card<P: Place>(
                 .text_size(px(13.0))
                 .text_color(neutral.destructive)
                 .child(words.question_refused(&why))
-        }));
-    let body = body((shell, area, seat), &card, tool, head, tokens, window, cx);
-    Some(
-        div()
-            .id("permit-card")
-            .max_h(px(if narrow { CARD_PHONE } else { CARD }))
-            .overflow_y_scroll()
-            .flex()
-            .flex_col()
-            .gap(px(8.0))
-            .p(px(12.0))
-            .rounded(px(8.0))
-            .border_1()
-            .border_color(neutral.border)
-            .bg(neutral.surface1)
-            .face(Type::Body)
-            .text_size(px(14.0))
-            .line_height(px(20.0))
-            .child(body)
-            .child(footer)
-            .into_any_element(),
-    )
+        }))
+}
+
+/// The card around the body and the footer: scrolling inside past its
+/// height (lower on a phone).
+fn frame(body: AnyElement, footer: Div, narrow: bool, tokens: &Tokens) -> AnyElement {
+    let neutral = tokens.neutral;
+    div()
+        .id("permit-card")
+        .max_h(px(if narrow { CARD_PHONE } else { CARD }))
+        .overflow_y_scroll()
+        .flex()
+        .flex_col()
+        .gap(px(8.0))
+        .p(px(12.0))
+        .rounded(px(8.0))
+        .border_1()
+        .border_color(neutral.border)
+        .bg(neutral.surface1)
+        .face(Type::Body)
+        .text_size(px(14.0))
+        .line_height(px(20.0))
+        .child(body)
+        .child(footer)
+        .into_any_element()
 }
 
 /// The title (14 on 22, the foreground) and GOAT's count at its right.
@@ -331,6 +342,10 @@ fn body(
         seat,
         entries: &[],
         agent: None,
+        rewinds: None,
+        forks: None,
+        fleet: &shell.fleet,
+        above: super::origin::Above::Nothing,
     };
     let detail = match (&card.command, tool) {
         (Some(command), _) => Some(output_box(

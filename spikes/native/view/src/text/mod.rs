@@ -13,13 +13,13 @@
 //! - Cost: additional languages cover migrated areas only during this staged
 //!   move. The app ships complete English and Korean catalogs today.
 
-mod about;
 mod agents;
 mod app;
 mod board;
 mod conversation;
 mod devices;
 mod files;
+mod git;
 pub mod localization;
 mod machine_book;
 mod machines;
@@ -36,10 +36,13 @@ mod sync;
 mod update;
 pub mod workspace;
 
-pub use about::AboutText;
 pub use app::Text;
 pub use board::BoardWords;
 pub use conversation::{ConversationWords, grouped, meter_tokens, short_tokens};
+pub use git::{
+    GitFailureText, GitHashText, GitHeaderText, GitLabels, GitStashText, GitSuccessCommits,
+    GitSuccessText,
+};
 pub use machines::MachinesText;
 pub use marks::MarkText;
 pub use notices::NoticeWords;

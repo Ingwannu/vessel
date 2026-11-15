@@ -32,17 +32,18 @@
 //! is, the last rows stay drawn while it closes, and frames are asked only
 //! while it moves; held motion (`motion::held`) is the end at once.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 use vessel_app_kit::autocomplete::{
     AutocompleteRow, AutocompleteState, Listing, Motion, RowKind, autocomplete,
 };
 use vessel_app_kit::field::composer_hooks::{ComposerKey, KeyAnswer, hooked};
 use vessel_app_kit::ui::{
-    AnyElement, App, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _,
-    Window, div, px,
+    AnyElement, App, Bounds, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    Pixels, SharedString, Styled, Window, div, px,
 };
-use vessel_app_kit::{TextField, Tokens, motion};
+use vessel_app_kit::{TextField, Tokens, anchor_probe, chrome, motion};
 use vessel_app_view::composer::reveal::Reveal;
 use vessel_app_view::composer::slash::{Chosen, Menu, SlashRange, Step, apply};
 use vessel_app_view::offers::OfferKey;
@@ -65,6 +66,17 @@ const ROWS: Motion = Motion {
     length: motion::QUICK,
 };
 
+/// What is taken from the room above the menu's bottom edge: Paseo's
+/// popover keeps `OFFSET_FROM_ANCHOR` (12) from the top of its host, here
+/// below the app's own title bar (`chrome::HEIGHT`, 36), written out as a
+/// negative (the lints keep float arithmetic out of the code; a test holds
+/// the sum).
+const UNDER_BAR: f32 = -48.0;
+
+/// The same with the system's title bar (the window's content starts at
+/// the top).
+const AT_TOP: f32 = -12.0;
+
 /// Which composer a `/` menu is over.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Over {
@@ -85,14 +97,33 @@ impl Over {
 }
 
 /// One composer's `/` menu: the chosen row, the list's scroll, how open it
-/// is and the rows it showed last (drawn while it closes). The last two
-/// change while the window draws, so they are kept behind cells.
+/// is, the rows it showed last (drawn while it closes) and where it was
+/// drawn last (its bottom edge is the card's top, less the offset). The
+/// last three change while the window draws, so they are kept behind
+/// cells.
 #[derive(Debug, Default)]
 pub(crate) struct SlashMenu {
     chosen: Chosen,
     list: AutocompleteState,
     reveal: RefCell<Reveal>,
     last: RefCell<Option<(Listing, Option<usize>)>>,
+    drawn: Rc<Cell<Option<Bounds<Pixels>>>>,
+}
+
+/// How tall the menu may be: the room between its bottom edge (the last
+/// frame's) and the top of the window's content, less Paseo's offset
+/// (`autocomplete-popover.tsx`: `maxHeight` is the anchor's top less the
+/// safe area and two offsets). The list scrolls within it and the chosen
+/// command's card keeps its height, so a small window cuts nothing (the
+/// owner's word 41: at 800 by 600 thirty commands left the window's top).
+fn room_above(bottom: Pixels) -> Pixels {
+    let taken = if chrome::system_titlebar() {
+        AT_TOP
+    } else {
+        UNDER_BAR
+    };
+    // `mul_add`: the difference without an arithmetic operator.
+    px(f32::from(bottom).mul_add(1.0, taken).max(0.0))
 }
 
 /// What a menu lists: the agent's commands, or `None` while none of its
@@ -277,8 +308,8 @@ impl Shell {
 }
 
 /// The session composer's text with its keys offered to the menu first
-/// (`field::composer_hooks`). Pastes are the text's until the attachments
-/// slice takes images.
+/// (`field::composer_hooks`); pasted images and files are attached
+/// (`files.rs`).
 pub(crate) fn text(
     shell: &Shell,
     tokens: &Tokens,
@@ -309,6 +340,8 @@ fn hooked_text(
     let field = shell.slash_field(over);
     let element = field.element(tokens, touch, cx);
     let weak = cx.entity().downgrade();
+    let pasting = weak.clone();
+    let new_chat = over == Over::Draft;
     hooked(
         field,
         element,
@@ -316,7 +349,12 @@ fn hooked_text(
             weak.update(cx, |shell, cx| shell.slash_key(over, key, window, cx))
                 .unwrap_or(KeyAnswer::Pass)
         },
-        |_pasted, _window, _cx| KeyAnswer::Pass,
+        // Pasted images and files are the composer's attachments.
+        move |pasted, _window, cx: &mut App| {
+            pasting
+                .update(cx, |shell, cx| shell.composer_pasted(new_chat, pasted, cx))
+                .unwrap_or(KeyAnswer::Pass)
+        },
     )
 }
 
@@ -391,6 +429,12 @@ fn drawn_menu(
         tokens,
         cx,
     );
+    // The room is the last frame's: on the menu's first frame there is
+    // none yet, so one more frame (as the kit's list does for its scroll).
+    let room = state.drawn.get().map(|bounds| room_above(bounds.bottom()));
+    if room.is_none() {
+        window.request_animation_frame();
+    }
     Some(
         div()
             .absolute()
@@ -398,7 +442,11 @@ fn drawn_menu(
             .right_0()
             .bottom_full()
             .mb(px(LIFT.mul_add(shown, OFFSET_LOW)))
+            .flex()
+            .flex_col()
+            .when_some(room, Styled::max_h)
             .opacity(shown)
+            .child(anchor_probe(&state.drawn))
             .child(list)
             .into_any_element(),
     )
@@ -436,19 +484,4 @@ fn listing_of(shell: &Shell, over: Over, menu: &Menu<'_>) -> Listing {
 }
 
 #[cfg(test)]
-mod tests {
-    use vessel_app_kit::theme::spacing;
-
-    use super::*;
-
-    #[test]
-    fn the_list_comes_to_rest_at_paseos_offset_above_the_card() {
-        let open = LIFT.mul_add(1.0, OFFSET_LOW);
-        assert!((open - spacing::S3).abs() < 1e-6, "{open}");
-    }
-
-    #[test]
-    fn each_composer_s_list_has_its_own_id() {
-        assert_ne!(Over::Session.id(), Over::Draft.id());
-    }
-}
+mod tests;

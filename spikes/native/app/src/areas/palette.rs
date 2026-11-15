@@ -286,15 +286,24 @@ pub(crate) fn render(
                 };
                 let target = entry.target.clone();
                 let id = SharedString::from(format!("palette-{}", entry.id));
-                children.push(
-                    command_row_parts(id, row, compact, tokens)
-                        .on_click(cx.listener(move |shell, _event, window, cx| {
-                            if shell.areas.palette.motion.is_open() {
-                                shell.run_palette(target.clone(), window, cx);
-                            }
-                        }))
-                        .into_any_element(),
+                let arrived = row.active;
+                let drawn = command_row_parts(id.clone(), row, compact, tokens).on_click(
+                    cx.listener(move |shell, _event, window, cx| {
+                        if shell.areas.palette.motion.is_open() {
+                            shell.run_palette(target.clone(), window, cx);
+                        }
+                    }),
                 );
+                children.push(if arrived {
+                    vessel_app_kit::popup::fill_in(
+                        SharedString::from(format!("{id}-arrive")),
+                        drawn,
+                        tokens.neutral.surface1,
+                    )
+                    .into_any_element()
+                } else {
+                    drawn.into_any_element()
+                });
             }
         }
         div()

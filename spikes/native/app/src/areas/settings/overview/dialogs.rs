@@ -1,11 +1,11 @@
-//! Overview's rename and removal dialogs. The parent owns edit state and
-//! commands; this module only draws that state and delegates actions back.
+//! The Overview page's dialogs: renaming the machine and removing it
+//! (split from `overview.rs`, at the file budget, docs/QUALITY.md M3).
 
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, FluentBuilder as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, button_with_kind};
 use vessel_app_view::machine_book::Failure;
@@ -15,7 +15,7 @@ use super::State;
 use crate::shell::Shell;
 
 /// The rename and remove dialogs, when open.
-pub(crate) fn render(
+pub(crate) fn dialogs(
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,

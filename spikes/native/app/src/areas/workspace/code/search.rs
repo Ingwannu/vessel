@@ -27,7 +27,7 @@ use vessel_app_view::workspace::find::SearchKeys;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::reference::{file_reference, with_reference};
 use vessel_proto::workspace::{
-    FindFiles, FoundFiles, GrepCase, GrepMode, GrepResult, SearchFiles, SearchKey,
+    FindFiles, FoundFiles, GrepCase, GrepMode, GrepResult, RelPath, SearchFiles, SearchKey,
 };
 
 use crate::shell::Shell;
@@ -204,12 +204,14 @@ impl Shell {
         ask: &FindFiles,
         result: Result<FoundFiles, Problem>,
     ) {
+        if ask.key != Some(self.areas.workspace.code.files.search.key) {
+            // Another field's find (track P's `@`, `code_find_files`).
+            super::elsewhere::found_elsewhere(self, ask, result);
+            return;
+        }
         let words = self.words();
         let search = &mut self.areas.workspace.code.files.search;
-        if ask.key != Some(search.key)
-            || search.mode != Mode::Name
-            || search.asked.as_deref() != Some(ask.query.as_str())
-        {
+        if search.mode != Mode::Name || search.asked.as_deref() != Some(ask.query.as_str()) {
             return;
         }
         search.results = match result {
@@ -252,24 +254,65 @@ impl Shell {
         let super::Shown::Text { lines, .. } = &viewer.text else {
             return;
         };
-        let chosen: Vec<&str> = lines
+        let chosen: Vec<String> = lines
             .get(first..=last)
-            .map(|lines| lines.iter().map(String::as_str).collect())
+            .map(<[String]>::to_vec)
             .unwrap_or_default();
         let start = u32::try_from(first.saturating_add(1)).unwrap_or(u32::MAX);
-        let fence = viewer
-            .path
+        let path = viewer.path.clone();
+        if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
+            viewer.chosen = None;
+        }
+        self.send_lines(&path, start, &chosen, window, cx);
+    }
+
+    /// The editor's selected lines (from 1, first and last) to the
+    /// session's composer.
+    pub(super) fn add_editor_lines(
+        &mut self,
+        (first, last): (u32, u32),
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(viewer) = self.areas.workspace.code.files.viewer.as_ref() else {
+            return;
+        };
+        let Some(editor) = viewer.edit.as_ref().and_then(|edit| edit.editor.as_ref()) else {
+            return;
+        };
+        let text = editor.text(cx);
+        let skip = usize::try_from(first.saturating_sub(1)).unwrap_or(usize::MAX);
+        let take = usize::try_from(last.saturating_sub(first).saturating_add(1)).unwrap_or(0);
+        let chosen: Vec<String> = text
+            .lines()
+            .skip(skip)
+            .take(take)
+            .map(str::to_owned)
+            .collect();
+        let path = viewer.path.clone();
+        self.send_lines(&path, first, &chosen, window, cx);
+    }
+
+    /// Lines of `path` from line `start` (from 1) at the end of the
+    /// session's draft, as agent-orchestrator's reference.
+    fn send_lines(
+        &mut self,
+        path: &RelPath,
+        start: u32,
+        lines: &[String],
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let chosen: Vec<&str> = lines.iter().map(String::as_str).collect();
+        let fence = path
             .as_str()
             .rsplit_once('.')
             .map_or("", |(_, extension)| extension);
-        let reference = file_reference(viewer.path.as_str(), start, &chosen, fence);
+        let reference = file_reference(path.as_str(), start, &chosen, fence);
         let composer = &self.areas.session.composer;
         let draft = composer.text(cx);
         composer.set_text(&with_reference(&draft, &reference), window, cx);
         composer.focus(window, cx);
-        if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
-            viewer.chosen = None;
-        }
         self.code_handed_to_composer(window);
         cx.notify();
     }

@@ -131,6 +131,51 @@ when it is next shown (G1's finding: a closed panel was being read,
 and a hidden tab kept what was true before the write). The Changes
 tab's refresh button reads the open tab again.
 
+A file opened at a desktop's width is edited in place (Paseo's Source
+panel, `file-panels/source/`): the model is `view::workspace::editor`
+(Paseo's `FileEditorModel` as a state machine with its test cases: the
+800 ms autosave, a save guarded by the hash the edit started from,
+Overwrite, Reload asked first when the buffer has changes, a re-read
+after a git write that a clean buffer follows and a modified one meets
+as "Changed on disk", a file gone as "File deleted on disk", the write
+made when the file is left). The control is the kit's `code_editor`
+(the engine's code-editor kind in the kit's colours, the code face with
+Pretendard behind it, syntax from the view's lexer through
+`LineSyntax`, its kinds coloured by the current theme on every draw;
+code keeps each line on one row and scrolls sideways, Markdown wraps,
+Paseo's `WRAPPED_EXTENSIONS`, `view::workspace::editor::wraps`).
+Paseo's toolbar sits over it (size and lines; the dot, "Saving..." or
+"Save failed"; "Ln, Col" and "Add lines … to chat" in a small view of
+their own, since the editor redraws on every blink of its caret).
+Paseo's rules for what is editable are kept: at most 1 MiB (read whole
+in one page, the node's largest), never at a phone's width; anything
+else is shown read-only as before. Difference, named: the node has no
+watch of a file, so a change on disk shows at the next save or re-read,
+not at once.
+
+Motion (the owner's word 39): what the person's own action brings in
+comes in once, as a fade on the kit's tokens (`code/appear.rs`): the
+dot, "Saving..." and "Save failed" and the selection's "Add lines … to
+chat" over `QUICK`, the conflict bar as a surface over `STANDARD`. Each
+is keyed by an id naming the mark, not its text, so it does not play
+again while it stays (a wider selection, Overwrite coming and going); a
+mark that leaves is gone at once. While motion is held the end is drawn
+at once (GPUI's one-shot transitions under `reduce_motion`).
+
+Track P's seams (the composer): a selection or a file handed to the
+composer is a value, `view::workspace::reference::FileReference` (root,
+path, an optional `LineRange`, the text sent), keyed, titled and
+subtitled as Paseo's `WorkspaceFileComposerAttachment`
+(`attachments/workspace-file.ts`); P's `Shell::composer_add_reference`
+shows it as a chip and sends its text. Until that entry exists the panel
+puts the text in the draft as before. `@` in the composer finds files
+through `Shell::code_find_files(key, query, limit)` (P's own search key;
+the open session's root is read once per session and kept, a find asked
+before it is known waits for it and says `FindRefused::Reading`); an
+answer under a key that is not the panel's goes to
+`code::elsewhere::found_elsewhere`, P's slot. The node's find returns
+files only (its index is `git ls-files`), so `@` offers no folders.
+
 The Files tab searches: a file by its name as it is typed (`file.find`,
 keyed so a newer search stops an older one) or lines inside files on
 Enter (`file.grep`, literal, smart case), the two chosen by a segmented
@@ -220,3 +265,15 @@ machine may not read; dark and light, English and Korean, 1280 and 390
   of this track passes.
 - `ProjectId` and `WorktreeId` are `Copy` UUIDs (not the opaque string ids
   the page's fixtures suggest): the tests use fixed UUIDs.
+- The editor's first captures (2026-11-14) showed two rows of the file:
+  the engine's editor is as tall as its parent, and the editing body sat
+  in the viewer's plain block with `flex_1`, which only a flex parent
+  honours, so the body was as tall as its content. The body now takes
+  its slot's whole size. The engine also wraps lines unless told not
+  to; the kit's editor now keeps code's lines unwrapped.
+
+## Where this track stands (2026-11-14 17:30 UTC, paused for budget)
+
+- Done: the landing 232717df (in 0.0.0.0.13); P's seams 46ed5a7f; the editor's model 91d79ec6; the kit's code editor 97b41744 and d129faf3 (code unwrapped, Paseo's padding, no current-line fill); the Files tab's editor 363802d5 and 6922382b (fills its slot, wraps only Markdown, its marks fade in on the motion tokens); the try-out fleet paired as a person pairs fe2becce; the lead's df74c3e0 merged as 894ea4f9. Whole gate green at 6922382b: fmt, clippy, 727 tests. Words 26 and 27 checked in this panel at 1.25 and 1.5 (menu, delete sheet, match marks, editor selection): fills stay inside their rounded shapes, and the kit's menu and dialog occlude what is under them.
+- Measured (release, virtual display, software renderer, the 2,500-line file open and focused): 20.5 % of a core idle with motion held; with motion on, 393 %, which includes the conversation's waiting spinner on the same screen: the editor's own share is not yet separated.
+- Next, in order: the Changes list following changes made outside the app (Paseo's behaviour first, then one hook with G1b's refresh, `code_git_changed`); a paragraph here on how the approval card draws a set's terminal commands when the node adds them (every one shown, or a typed refusal; never approved unseen); the audit's rows for this track; open by name from anywhere; reading past a file's first page.

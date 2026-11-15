@@ -68,7 +68,8 @@ pub use options::{
 };
 pub use text::localization;
 pub use text::{
-    AboutText, BoardWords, ConversationWords, Lang, MachinesText, MarkText, NoticeWords,
+    BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
+    GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
     OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
     UpdateText, grouped, meter_tokens, short_tokens,
 };

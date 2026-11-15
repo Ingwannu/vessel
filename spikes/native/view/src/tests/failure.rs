@@ -119,6 +119,7 @@ fn a_reply_that_only_repeats_the_failure_is_held_back() {
             EntryKind::TurnEnded {
                 reason: StopReason::EndTurn,
                 usage: None,
+                point: false,
             },
         ),
     ];

@@ -68,6 +68,11 @@ diagnostic separate from translated instructions. Sign-in help is typed
 as labelled account, command and method steps, so a screen can copy the
 exact node-provided command without inventing a login flow.
 
+Provider-removal preparation stays in `view::agent_status::removal` and
+reuses the existing machine-page tickets. Agent snapshots retain the
+reporting `NodeId`, so a reused book name cannot stand in for identity.
+The prepared request is not yet connected to a destructive call or control.
+
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
 from the start and sends its records, which the shell folds in batches
@@ -85,6 +90,15 @@ sessions appear; archived sessions are excluded. A query resets selection
 to the best result; passive fleet updates retain identity and do not
 scroll. The app only supplies entries, draws kit rows and reveals the
 selection when the person types or presses an arrow.
+
+Git action preparation lives beside the code panel's existing models in
+`view::workspace::git`: commit scope and validated message, branch
+create/rename/switch, per-file index actions, discard decisions and stash
+identity. It reuses `workspace::git_quick` and the workspace's refusal
+words, and produces the existing wire requests for `link::workspace`.
+The node remains authoritative; preparation never runs a local git
+command. The G1 delivery notes are `docs/plans/backend-m12-g1.md` in the
+repository root.
 
 ## The app's layout
 
@@ -235,6 +249,18 @@ warning, error and muted variants; small and extra-small sizes; optional
 leading content; semantic status tokens separate from board lane colours.
 Labels remain whole and explanations belong below their row.
 
+`kit/split_button.rs` supplies Paseo's joined primary action and caret:
+26-point pointer / 44-point touch geometry, shared busy spinner, disabled
+primary, and `menu_right` for the menu aligned to the caret's right edge.
+The caller owns its actions, labels and menu state.
+
+Picker rows retain `Leading::Glyph` at 16 points; `Leading::SmallGlyph`
+is the explicit 14-point slot used by Paseo’s branch switcher.
+
+`kit/toolbar_label.rs` supplies Paseo’s compact current/base branch trigger:
+12-point muted label and caret, highlighted fill, typed open/disabled state,
+and explicit single-line or wrapping text. Composer pills keep their shape.
+
 Provider error detail follows Paseo's fixed palette red[300] through
 `Tokens::status().red_300`; its semantic status dot still uses the ordinary
 status error signal. Areas use the shared token rather than a local colour.
@@ -358,6 +384,12 @@ versioned, bounded; a file that does not read is set aside as
 `drafts.json.unread`). Up and Down in an empty session composer recall
 the messages sent in it, newest first.
 
+`kit::attachment` is Paseo's `AttachmentPill` and `AttachmentFrame`: a
+file attached to a message as a 48-high pill (an image's picture, any other
+file's name over its kind), a remove button at its top left in a composer,
+none in a sent message, and Vessel's own progress bar and trouble edge for
+a file on its way to the node.
+
 `kit::autocomplete` is Paseo's `Autocomplete` (the composer's `/` and `@`
 list): rows drawn best last (nearest the text), the chosen one on
 `surface2`, a chosen command's card above the list, the loading, empty and
@@ -367,6 +399,19 @@ with `VESSEL_AUTOCOMPLETE_SCENE` (`commands`, `long`, `files`, `empty`,
 `loading`, `failed`, `scroll`) and `VESSEL_APP_THEME` draws each state.
 The list takes a `Motion` (an easing and a length) from the screen, which
 reads the app's one set of motion tokens; the kit has none of its own.
+
+`Tooltips::on_code` keeps the tooltip’s existing chrome and placement but
+uses the code face for a whole path or hash. Existing `on` stays body text.
+
+`kit::form_summary` supplies GOAT’s branch/files summary and fixed file-list
+inset. Static outer edges keep the content geometry and never take focus.
+
+`kit/toast.rs` retains its legacy toast entry and adds `toast_with` for typed
+content/optional hover wiring. Info uses neutral chrome and foreground Info16,
+with no close control. `view::toasts` owns its keyed monotonic3200ms lifetime,
+pausing and resuming the remainder; old callbacks cannot clear a replacement.
+Legacy Ok4s/Error-persistent cards keep their stack and controls. Only older
+Info is replaced, an explicit compatibility difference from Paseo's single card.
 
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
@@ -387,6 +432,12 @@ consumed at16 for pointer and20 for compact settings navigation.
 Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
 `Glyph::Boxes` (Providers): original drawings on the same grid after
 Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+
+The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
+Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
+static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
+its caller owns the callback and pending state, with no extra paint. Unlike
+Paseo's it has no accessible name (the kit has no accessibility tree yet).
 
 ### Rules every screen follows
 
@@ -427,6 +478,25 @@ Its exact-value test keeps every step comparable with `styles/theme.ts`.
   buttons the kit's; carets and marks are the kit's vector glyphs
   (`assets::Glyph`), never characters. Controls take their colours from
   `tokens.neutral` (Paseo's scale); the accent is the brand's.
+- A struct pattern over a protocol type (`vessel_proto`) ends with `..`,
+  so a field a newer node adds does not break the app (old and new peers
+  are both accepted). The exception is a type that carries what a person
+  approves or agrees to (`ProjectCommands::Listed` in `Listed::of` and
+  the worktree's `NeedsApproval` that carries it; the permission card's
+  `PermissionRequest` and each `PermissionOption`; an `InstallOffer`
+  where it is shown and run): its pattern names every field on purpose,
+  with a comment saying so, so that a new field breaks the build until
+  the screen shows it or refuses it by type. Ignoring it would let a
+  person approve something the screen never showed.
+- The sidebar and the conversation's timeline are drawn as regions
+  (`app/src/region.rs`): GPUI views of their own, cached between frames,
+  drawn again whenever the shell changes. A field's caret blink (or any
+  view's own notify) outside a region then draws the window without it.
+  What a region shows must come from the shell or from views drawn
+  inside it: a model entity read there and notified on its own would
+  leave the region showing old content. Measured on 2026-11-14 (release,
+  composer focused on an open session, the caret blinking): the app's
+  own work per blink fell from 7.1 to 2.1 ms (the draw probe below).
 
 ### The brand's drawing (ADR 0059)
 
@@ -451,7 +521,8 @@ avatar).
 
 `app::brand` is the shell's `brand`: the new session's column gives
 `on_children_prepainted(shell.brand.new_session(skip))` (the heading, the
-composer's card and the pickers after `skip` children), the session's
+composer's card and the pickers after `skip` children; any later child,
+such as the "no machine yet" note, counts with the pickers), the session's
 screen gives `shell.brand.session_body(viewport)` and its composer's column
 `shell.brand.session_column()`, the row waiting for the reply gives
 `shell.brand.reply_head()` (its first child is the avatar's slot, where the
@@ -546,6 +617,11 @@ Environment:
 - `VESSEL_APP_SCROLL_BENCH=<entries>`: once the session shown holds that
   many entries, it scrolls itself for 600 frames and logs the median,
   p95 and longest frame.
+- `VESSEL_APP_FRAME_LOG=<file>`: a line per frame a moving control draws
+  and, for every window frame, `draw <time> <took>`: the microseconds
+  from the root's render to the end of its paint, the app's own CPU per
+  frame before the renderer rasterises (on a software renderer the
+  process's CPU is mostly rasterising and grows with the pixels).
 - `VESSEL_BUILD_LABEL` (at build time): the label in the title bar and
   the sidebar's foot, `dev` without it. With `VESSEL_UPDATE_FEED` and
   `VESSEL_UPDATE_KEY` too (track R's `build.sh` sets them), the build
@@ -693,6 +769,11 @@ Pairing is the first complete migrated area: its two dialogs, name/link
 errors and successful status use `view/locales/{en,ko}/pairing.ftl`. Other
 owners keep their area tables until their own migration. The shared machine
 file-fault sentence still belongs to its table, including when pairing shows it.
+About's licence and bundled-software labels use `about.ftl`; inventory roles
+map exhaustively to cached plain getters in `view/src/about/words.rs`.
+The Fluent libraries have the Translations role; UUID has the Identifiers role.
+The update card, connected-machine section and trademark section still belong
+to their existing areas and have not moved with the licence vocabulary.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting
@@ -775,6 +856,23 @@ paths, without this harness.
 a label from this workspace, signs the set and replaces it in the
 distribution directory at once. Nothing here writes there.
 
+Git's screen policy models live beside its request preparation in
+`view::workspace::git`: the compact Changes head, checked branch choices,
+commit scope and submit gates, keyed pending intentions and file actions bound
+to the code panel's shown machine/root and comparison. Retained draft facts
+preserve the form after a failed refresh; only a ready read authorizes a write.
+Drawing belongs to `app` through the kit, and prepared node calls belong in
+`link`; Git output is never interpreted in a drawing callback.
+
+Git's commit scope count, path preview and submit share one eligibility rule;
+a partial zero remains unknown. Failed and unread facts give retry/read guidance,
+and only a pending read says it is refreshing. Keyed success receipts retain the
+original stash intention and protect the one-second success reset from late timers.
+
+`Type::MonoBody` is the form path's 14/20 normal code step (GOAT's commit
+summary). Existing `Mono` remains 12/20. Both use the independent code scale and
+same embedded face/fallbacks; ordinary type continues to use the UI scale.
+
 ### Official agent artwork (ADR 0048)
 
 `kit::agent_mark` is the one embedded-image control. Its opaque `Artwork`
@@ -828,6 +926,38 @@ Read/Edited response shape. Actor regressions use real framed RPC clients on
 bounded in-process streams, including client-preserving rename and watched
 forget; no real agent or network endpoint is contacted. Other areas' aliases
 and project follows must be integrated before the Machines screen is delivered.
+
+Branch choices distinguish local identity from a remote-tracking ref even when
+their printable names match. Only the current local branch is a no-op; remote
+choices always pass the existing remote-prefix and local-name validation.
+
+The git toolbar (`app/src/areas/git/`) sits in track F's Changes-tab slot
+and follows the repository F shows (`Shell::code_git_context`, read only).
+It uses the workspace channel the code panel already has: a read is taken
+when its echoed root is the one followed and a read of it is out; a write
+when it equals the one write in flight. What choosing an action does is
+`view::workspace::git::step` (explain in an Info toast and send nothing,
+open a form, or send one prepared write). Its shapes on a running fleet:
+`bash scripts/git-fixtures.sh ROOT TARGET` adds one project and session
+per state (commit on a feature branch and on the default branch, push,
+pull, no upstream, in step, push refused by the remote, no commits,
+detached), bare remotes under `ROOT/remotes` with `main` as `origin/HEAD`, and a
+device paired as a person pairs one in `ROOT/person-config`; the fleet's
+`ROOT/readonly-config` shows what a read-only device sees. Run the app
+with `HOME=ROOT` for either book: they name their credentials from it.
+A branch name is drawn on one line cut in its middle, never wrapped
+(`app/src/areas/git/name.rs`).
+
+A session's pull request (`app/src/areas/pulls/`, rules in
+`view::workspace::pull`) is read from its card (`CardDetail.pull_request`,
+the node's watcher keeps it fresh) and asked on the same workspace channel
+(`Ask::Pull`: `pr.get`, `pr.open`). The git menu offers Create PR or View
+PR after the remote actions (Paseo's `git/policy.ts`); Create PR opens a
+form with `gh pr create --fill`'s defaults, as the node takes no title
+from a model. The link at the head of the Changes tab opens its facts; a
+card shows its number, state and checks under the branch. The fleet's
+nodes reach no forge (the remotes are bare repositories), so the screens
+there show why a pull request cannot be opened.
 
 The fake fleet also checks N3's node timezone and schedule preview through
 `wire-gaps-fixtures.py`: ten runs, an omitted zone using the CLI's zone (different from the node's),

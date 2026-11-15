@@ -81,6 +81,7 @@ pub fn outline(entries: &[Entry]) -> Vec<OutlineItem> {
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
             | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => {}
         }

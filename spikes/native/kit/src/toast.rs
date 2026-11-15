@@ -14,6 +14,18 @@
 //!   only draws.
 //! - Cost: two toasts at once take two rows of the window's top, where
 //!   Paseo's second replaces the first.
+//!
+//! [Decision Log: unavailable action guidance]
+//! - Purpose: Git's muted idle menu action explains its known limitation without
+//!   executing a node handler (`git/use-actions.tsx:38–58`).
+//! - Constraint: existing plain/error paint and callers stay unchanged.
+//! - Alternatives: misuse success/error styling, or add an area-owned card.
+//! - Choice: additive Info look, the same neutral chrome with foreground Info16;
+//!   view's matching tone owns its reference 3200ms lifetime.
+//! - Why: advisory feedback is neither a successful write nor a node failure.
+//! - Cost: one typed variant and exhaustive app mapping; no new toast renderer.
+
+use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
@@ -36,6 +48,8 @@ const MAX_WIDTH: f32 = 480.0;
 pub enum ToastLook {
     /// A plain line (Paseo's default variant).
     Plain,
+    /// Known unavailability guidance, with the reference's foreground Info16.
+    Info,
     /// Something failed (Paseo's `error`).
     Error,
 }
@@ -50,10 +64,69 @@ pub fn toast(
     on_dismiss: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
     tokens: &Tokens,
 ) -> AnyElement {
+    toast_with(
+        ToastContent {
+            id: id.into(),
+            text: text.into(),
+            look,
+        },
+        ToastHandlers {
+            dismiss: Rc::new(on_dismiss),
+            hover: None,
+        },
+        tokens,
+    )
+}
+
+/// Hover events are semantic across the kit/app boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToastHover {
+    /// Pause this card's remaining reading time.
+    Enter,
+    /// Resume this card's remaining time.
+    Leave,
+}
+
+/// One card's content, sharing the existing toast renderer.
+#[derive(Debug)]
+pub struct ToastContent {
+    /// Identity also keys the enter animation.
+    pub id: ElementId,
+    /// Whole localized guidance supplied by the caller.
+    pub text: SharedString,
+    /// Legacy paint or the new neutral Info profile.
+    pub look: ToastLook,
+}
+
+/// Dismiss and optional typed hover behavior, retained by a single card.
+pub struct ToastHandlers {
+    /// Legacy cards keep their dismiss button; Info has none as in Paseo.
+    pub dismiss: ToastDismiss,
+    /// Info uses this to pause/resume its keyed clock. Legacy callers omit it.
+    pub hover: Option<ToastHovered>,
+}
+
+/// A legacy card's explicit dismiss callback.
+pub type ToastDismiss = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
+/// A card's typed pointer-presence callback.
+pub type ToastHovered = Rc<dyn Fn(ToastHover, &mut Window, &mut App)>;
+
+impl std::fmt::Debug for ToastHandlers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ToastHandlers")
+            .field("hover", &self.hover.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
+/// Additive entry for a toast with source hover behavior. The old entry delegates
+/// with no hover handler; all chrome, animation and placement stay shared.
+#[must_use]
+pub fn toast_with(content: ToastContent, handlers: ToastHandlers, tokens: &Tokens) -> AnyElement {
+    let ToastContent { id, text, look } = content;
     let neutral = tokens.neutral;
-    let id = id.into();
     let border = match look {
-        ToastLook::Plain => neutral.border,
+        ToastLook::Plain | ToastLook::Info => neutral.border,
         ToastLook::Error => neutral.destructive,
     };
     let close = div()
@@ -66,7 +139,7 @@ pub fn toast(
         .rounded(px(popup::ROW_RADIUS))
         .cursor_pointer()
         .hover(move |style| style.bg(neutral.surface2))
-        .on_click(on_dismiss)
+        .on_click(move |event, window, cx| (handlers.dismiss)(event, window, cx))
         .child(glyph(Glyph::Close, 14.0, neutral.foreground_muted));
     let card = div()
         .id(id.clone())
@@ -82,6 +155,9 @@ pub fn toast(
         .border_color(border)
         .rounded(px(16.0))
         .shadow(popup::shadow_md(tokens))
+        .when(look == ToastLook::Info, |card| {
+            card.child(glyph(Glyph::Info, 16.0, neutral.foreground))
+        })
         .when(look == ToastLook::Error, |card| {
             card.child(glyph(Glyph::Alert, 18.0, neutral.destructive))
         })
@@ -91,9 +167,22 @@ pub fn toast(
                 .min_w_0()
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
-                .child(text.into()),
+                .child(text),
         )
-        .child(close);
+        .when(look != ToastLook::Info, |card| card.child(close))
+        .when_some(handlers.hover, |card, hover| {
+            card.on_hover(move |inside, window, cx| {
+                hover(
+                    if *inside {
+                        ToastHover::Enter
+                    } else {
+                        ToastHover::Leave
+                    },
+                    window,
+                    cx,
+                );
+            })
+        });
     // Word 39: the kit's surface arrival (Paseo's toast fades in 140 ms;
     // the tokens give every surface one length).
     popup::appear(

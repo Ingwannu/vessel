@@ -11,7 +11,9 @@ use vessel_app_kit::{Tokens, VirtualList};
 use vessel_app_view::workspace::file_tree::Listing;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::syntax::{language_of, line_states};
-use vessel_proto::workspace::{DirListing, FileContent, FileRead, ListDir, ReadFile, RelPath};
+use vessel_proto::workspace::{
+    DirListing, FileContent, FileRead, ListDir, ReadFile, RelPath, WorkspaceRoot,
+};
 
 use super::{Shown, Viewer};
 use crate::shell::Shell;
@@ -71,6 +73,27 @@ impl Shell {
                 })),
             );
         }
+        let edited = self
+            .areas
+            .workspace
+            .code
+            .files
+            .viewer
+            .as_mut()
+            .and_then(|viewer| viewer.edit.as_mut());
+        if let Some(editing) = edited {
+            // The editor meets the disk: a clean buffer follows it, a
+            // modified one shows the conflict (Paseo's `reconcile`).
+            if let vessel_app_view::workspace::editor::Step::Read { .. } = editing.model.reconcile()
+                && let Some(path) = shown
+            {
+                self.ask(
+                    &machine,
+                    Ask::File(FileAsk::Read(super::editing::whole_read(root, path))),
+                );
+            }
+            return;
+        }
         if let Some(path) = shown {
             self.ask(
                 &machine,
@@ -129,22 +152,7 @@ impl Shell {
         else {
             return;
         };
-        panel.files.viewer = Some(Viewer {
-            path: path.clone(),
-            text: Shown::Loading,
-            list: VirtualList::new(false),
-            goto: None,
-            chosen: None,
-        });
-        self.ask(
-            &machine,
-            Ask::File(FileAsk::Read(ReadFile {
-                root,
-                path,
-                offset: 0,
-                limit: None,
-            })),
-        );
+        self.show_file(&machine, root, path, None);
     }
 
     /// Show `path`, at line `line` (from 1) when given.
@@ -161,23 +169,37 @@ impl Shell {
         else {
             return;
         };
-        panel.files.viewer = Some(Viewer {
+        if panel.files.viewer.is_some() {
+            self.leave_file(cx);
+        }
+        self.show_file(&machine, root, path, line);
+        cx.notify();
+    }
+
+    /// Show `path`: edited in place at a desktop's width (read whole, in
+    /// one page of at most 1 MiB), read-only at a phone's (Paseo's rule).
+    fn show_file(&mut self, machine: &str, root: WorkspaceRoot, path: RelPath, line: Option<u32>) {
+        let files = &mut self.areas.workspace.code.files;
+        let editable = !files.narrow.get();
+        files.viewer = Some(Viewer {
             path: path.clone(),
             text: Shown::Loading,
             list: VirtualList::new(false),
             goto: line,
             chosen: None,
+            edit: editable.then(super::editing::Editing::new),
         });
-        self.ask(
-            &machine,
-            Ask::File(FileAsk::Read(ReadFile {
+        let read = if editable {
+            super::editing::whole_read(root, path)
+        } else {
+            ReadFile {
                 root,
                 path,
                 offset: 0,
                 limit: None,
-            })),
-        );
-        cx.notify();
+            }
+        };
+        self.ask(machine, Ask::File(FileAsk::Read(read)));
     }
 
     /// A file's first page arrived.
@@ -185,12 +207,28 @@ impl Shell {
         &mut self,
         ask: &ReadFile,
         result: Result<FileRead, Problem>,
+        cx: &mut Context<'_, Self>,
     ) {
         let words = self.words();
         let panel = &mut self.areas.workspace.code;
         if panel.root().map(|(_, root)| root) != Some(&ask.root) {
             return;
         }
+        let edited = panel
+            .files
+            .viewer
+            .as_ref()
+            .is_some_and(|viewer| viewer.path == ask.path && viewer.edit.is_some());
+        if edited {
+            if self.editing_read(&result, cx) {
+                return;
+            }
+            // Not editable (binary, or more than a page): shown read-only.
+            if let Some(viewer) = self.areas.workspace.code.files.viewer.as_mut() {
+                viewer.edit = None;
+            }
+        }
+        let panel = &mut self.areas.workspace.code;
         let Some(viewer) = panel
             .files
             .viewer
@@ -201,7 +239,7 @@ impl Shell {
         };
         viewer.text = match result {
             Ok(read) => match read.content {
-                FileContent::Text { text, next } => {
+                FileContent::Text { text, next, .. } => {
                     let lines: Vec<String> = text.lines().map(str::to_owned).collect();
                     let language = language_of(ask.path.as_str());
                     let states = line_states(lines.iter().map(String::as_str), language);
@@ -236,6 +274,7 @@ pub(super) fn render(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let files = &shell.areas.workspace.code.files;
+    files.narrow.set(vessel_app_kit::breakpoint::phone(window));
     if let Some(viewer) = &files.viewer {
         return super::viewer::viewer_element(shell, viewer, tokens, window, cx);
     }

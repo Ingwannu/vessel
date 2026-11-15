@@ -46,8 +46,30 @@ pub(crate) fn keep_drafts(areas: &mut Areas, window: &mut Window, cx: &mut Conte
 impl Shell {
     /// The new chat's composer changed: its draft follows.
     fn draft_composer_edited(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.new_chat_kept(cx);
+    }
+
+    /// The new chat's draft made what its composer holds. Also called when
+    /// a session starts: the composer was emptied when it was sent, and a
+    /// text the screen writes (`clear`, `set_text`) is not an edit
+    /// `on_edit` hears (gpui-base's `set_value` turns its events off).
+    /// Kept until the start succeeds, so a failed start's text, put back
+    /// in the composer, is still the draft.
+    pub(crate) fn new_chat_kept(&mut self, cx: &mut Context<'_, Self>) {
         let text = self.areas.draft.composer.text(cx);
         self.keep_draft(DraftKey::New, &text, cx);
+    }
+
+    /// The session composer was sent from: emptied, and the open session's
+    /// draft with it (the field's `clear` is not heard as an edit; see
+    /// `new_chat_kept`).
+    pub(crate) fn session_composer_sent(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.session.composer.clear(window, cx);
+        self.session_composer_edited(window, cx);
     }
 
     /// The session composer changed: the open session's draft follows. A
@@ -162,7 +184,10 @@ impl Shell {
         let Some(shown) = shown else {
             return KeyAnswer::Pass;
         };
-        self.areas.session.composer.set_text(&shown, window, cx);
+        // The caret at the end, as Paseo's composer leaves it (its recall
+        // tests drive it so): Up then moves through a recalled message's
+        // lines before it recalls an older one.
+        self.areas.session.composer.replace_all(&shown, window, cx);
         cx.notify();
         KeyAnswer::Taken
     }

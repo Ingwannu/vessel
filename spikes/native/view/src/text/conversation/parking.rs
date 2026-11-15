@@ -24,7 +24,7 @@ impl ConversationWords {
             ParkingChange::Parked(ParkReason::Asked | ParkReason::Unknown) => self
                 .either("Agent released", "에이전트를 해제함")
                 .to_owned(),
-            ParkingChange::Parked(ParkReason::WakeFailed { message }) => match self.lang {
+            ParkingChange::Parked(ParkReason::WakeFailed { message, .. }) => match self.lang {
                 Lang::En => format!("Resuming the agent failed: {message}"),
                 Lang::Ko => format!("에이전트를 다시 잇지 못함: {message}"),
             },
