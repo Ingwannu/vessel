@@ -366,3 +366,11 @@ proto::conversation (not root exports), and selected-call presence returns Ack
 rather than unit. The canonical method table confirms the unchanged wire calls;
 paths and the Ack-to-unit projection are fixed. No new call or scope is invented.
 The current app source includes approved base8; a new union check is required.
+
+Run wp-inbox-tests-20261115T142343Z-4ed6d447 executed View/Link libraries:
+1089 passed, one failed (About dependency inventory). The A5 X11 idle probe's
+existing x11rb runtime dependency was missing from BUNDLED. Its entry is added
+in manifest order using the local crate manifest's MIT OR Apache-2.0 licence;
+the assertion stays unchanged. This is an own omission, not a base defect.
+The newer aggregate/icon correction was absent from that immutable source;
+changed-source union checks remain required.
