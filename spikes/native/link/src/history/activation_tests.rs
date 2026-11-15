@@ -135,9 +135,5 @@ async fn lost_reactivation_receipt_is_uncertain_and_never_creates_a_duplicate() 
 }
 
 async fn bounded_answer(selected: &crate::connections::SelectedConnection, request: Ask) -> Reply {
-    crate::testing::phase(
-        "history adapter result",
-        crate::history::answer(selected, request),
-    )
-    .await
+    crate::testing::phase("history adapter result", answer(selected, request)).await
 }

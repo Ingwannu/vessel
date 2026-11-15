@@ -103,3 +103,9 @@ The fixture now returns the scripted typed CreateSession response for that call,
 so the unchanged wrong-directory assertion exercises receipt validation and the
 owned task must also join successfully. No product or shared actor code changes.
 App tests were not executed after the Link failure; current results remain owed.
+
+The exactdeb5 strict run also returned three redundant test helper paths and
+Clippy's await_holding_lock on the first call-log assertion block despite its
+explicit drop. All three helpers now use their already imported answer function;
+the first synchronous assertion uses a lexical scope before bounded peer reap,
+as the other call-log cases already do. No assertion, budget or lint is relaxed.
