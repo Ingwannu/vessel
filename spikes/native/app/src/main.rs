@@ -1,9 +1,9 @@
 //! `vessel-app`: Vessel's native app (milestone 12's first builds).
 //!
-//! One window: the sidebar with the machines in the node book and their
-//! sessions, the board's lanes, and a session's conversation with its
-//! composer; a pairing form when the book is empty or a node is to be
-//! added. It reads the same node book, token files and device
+//! Native windows share desktop preference and updater owners. Each shows
+//! the sidebar with machines and sessions, the board and a session composer;
+//! a pairing form opens when the book is empty or a node is added.
+//! It reads the same node book, token files and device
 //! credentials as the `vessel` CLI (`VESSEL_CONFIG_DIR` points it at
 //! another book, as it does the CLI).
 //!

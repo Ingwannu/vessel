@@ -96,8 +96,7 @@ Shell preferences. The hook retains locally modified, dirty, compact-sheet and
 owner-held trees; independent additions/removals update the cache. Only the two
 agreed cfg(test) staging attributes were removed with this real caller. A product
 apply-path regression checks that another window's new workspace survives the
-next local layout save; it passed in older-source unit19. The new-base union is
-being checked separately in unit20.
+next local layout save. It passed in unit19 and the later unit21/unit25 unions.
 
 ## Windows and startup
 
@@ -113,7 +112,7 @@ flush plus the latest geometry checkpoint for the lifecycle owner to await befor
 ordinary quit/updater restart. WindowWriter::flush acknowledges a serial save
 without stopping the worker; a later document veto or failed restart leaves it
 usable. Final receipts close the queue before waking their waiter. Checkpoint
-success/failure/retry tests are added, with new-head execution still pending.
+success/failure/retry tests passed in the selected unit21 union.
 W15 must consume this facade; no second quit manager or owned-node policy is added.
 
 The completed flush now returns StateReceipt rather than unit. A completed save
@@ -126,7 +125,7 @@ checked only after all currentness/pending checks, never as a refusal bypass.
 The lifecycle owner performs one bounded retry phase after Changed and no await
 between final document admission, this App-level fence and quit/restart. Node
 finalization is not repeated by desktop. New queue/checkpoint and real App late
-resize/preference tests are source-only pending their next combined execution.
+resize/preference tests passed in the selected unit21 union.
 Geometry also retains an opaque publication identity rotated on every remembered
 input, including equal bounds. A -> B -> A can otherwise equal an old receipt
 while the writer still has B in flight. The same App-level fence now requires
@@ -137,8 +136,7 @@ time, before its blocking sender runs. If Changed(B) enters before an older
 checkpoint Write(A), the actor persists its newer state rather than clearing B
 and writing A. It retains that latest value after debounce too. Finalize keeps
 its explicit final-snapshot semantics and closes before acknowledgment. A
-deterministic capture-future/change/await disk regression is added; its new-source
-execution is pending. This is the same worker/file/API, not another quit phase.
+deterministic capture-future/change/await disk regression passed in unit21. This is the same worker/file/API, not another quit phase.
 
 The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.
@@ -320,8 +318,8 @@ initial snapshot could leave both the UI and a retained removed workspace stale,
 and a local edit could send those old values against the new Client baseline.
 The regression commits a different theme/workspace before subscription, then
 asserts immediate installation, cached-key removal and preservation in the next
-real local publication. Execution remains pending; no extra observer/writer or
-feature resource manager is introduced.
+real local publication. It passed in unit21; no extra observer/writer or feature
+resource manager is introduced.
 
 The actual two-window receipt fixture uses the production prefer_with_receipt
 wrapper in both GPUI windows and one real atomic-file writer. It stages stale
@@ -329,8 +327,8 @@ independent edits, same-key last-accepted edits, then a physical save failure
 followed by another window's successful unrelated edit before watch observation.
 Both window projections, canonical memory and disk must converge; exact failure
 acknowledgment must neither replay old preferences nor duplicate the notice.
-This new fixture is not executed yet and does not replace feature-owned cache,
-complete Settings, native OS or accessibility validation.
+This fixture passed in App24 as described below; it does not replace feature-owned
+cache, complete Settings, native OS or accessibility validation.
 Its first App-only run23 stopped before tests: the App did not declare serde_json
 for decoding the actual file. Add the existing workspace dependency only under
 dev-dependencies and align its one lockfile edge, with no new package or runtime
@@ -357,6 +355,19 @@ it neither duplicates validation nor emits another SavePrefs. Validation refusal
 cannot return a stale receipt. Queue refusal remains typed. Feature UI generation
 checks reject stale acknowledgments; shared notices own generic failures, while
 Saved and LaunchOnly remain distinct. The existing atomic writer is unchanged.
+
+Terminal scrollback is an irreversible effect, unlike theme/shortcut projection:
+shrinking a local history loses rows that a failed-save rollback cannot restore.
+C2's pending validated ScrollbackLines leaf and terminal owner callback must join
+a committed-only canonical consumer before the Settings row is available. The
+current watch/receipt API has no ordered effect-delivery caller yet. In particular,
+coalesced successful limits 0 then8 must retain the minimum trim before installing
+the final capacity; a later failed outcome must not hide an earlier success.
+New terminal openings must use the last committed applied limit, with no replay
+of predecessor effects into a replacement owner. The implementation belongs to
+this same canonical actor/App consumer, without another writer or receipt/cache.
+The checked producer and exact LaunchOnly/effect-admission contract remain owed;
+no optimistic live trim or lost-history recovery is claimed.
 
 ## Updates and changelog
 
@@ -395,154 +406,65 @@ then 10 more; 17 real releases make the paging controls meaningful.
 
 ## Verification and completion
 
-Old scoped evidence: nine early pure model tests passed. One later link desktop
-run passed 16 and failed one fixture before IPC because the runner's TMPDIR exceeded
-Unix socket address length; that fixture now uses a unique short path. These are
-not current combined-source passes. Strict narrow runs reached typechecking and
-reported actual lints; fixes added no blanket allowances. The latest unit attempt
-stopped at a missing translator-context comment before tests, now fixed.
+Selected checks qualify their exact source, not future changes or a completed
+feature. All new Cargo/Rustc work runs through the prescribed remote gate; direct
+rustfmt and the size/token scripts are the only local source checks.
 
-One queued run ended 143 during the approved build-VM resize before compilation;
-its logs remain infrastructure interruption evidence. Only one replacement was
-submitted. Immutable unit13 at be31d4d65 completed: kit166/0, link110/0,
-view955/1. The one failure was About's dependency inventory missing winreg; the
-inventory is now updated for winreg and the Windows host crate. All pure Windows
-UTF-16 policy, login-shell process, primary bootstrap, canonical preference and
-receipt tests in that source passed. Because --lib selects library targets,
-the binary-only app tests were not run: no menu-field or window-guard GPUI result
-is claimed. The next app check must select --bin vessel-app or --bins. The newer
-base6 broadcast and project-delivery acknowledgment also need their union checks.
-Static manifest parsing found a duplicated gpui-windows workspace key in the
-queued f919 source: the host-bridge addition duplicated the base's existing key.
-The current source keeps one entry, and Python tomllib parsed all five native
-workspace/package manifests without invoking Cargo. The older job stayed unchanged
-under the coordinator rule, then completed rc1/native-cargo101 at that duplicate
-key before compilation/tests. Logs remain in remote-unit-14. The repaired934ddd439
-union is now submitted as unit15 with --lib --bins to include app binary tests.
-Unit15 reached compilation and stopped at the same old popover test-getter type
-inference diagnosed by the isolated control run; that fix is already in current
-source. No tests ran and no app/runtime pass is inferred from it. The terminal
-logs remain in remote-unit-15; the next meaningful union includes the settled
-persistence receipt/fence and its regressions.
-The first actual Windows MSVC typecheck on36d11faa reached the CLI registry
-module and failed at RegValue.bytes: winreg0.56 requires Cow<[u8]>, while the
-encoder returns Vec<u8>. The owned conversion now uses Into without copying or
-changing UTF-16 policy. Run wp-desktop-shell-win-check-20261115T124451Z-36d11faa
-ended rc1/native-windows-check101; the corrected source needs another typecheck.
-This is not a Windows runtime or root-crate cross-check result.
-Unit16 exact1eb reached compilation and stopped before tests on stale session
-fixtures: Machine lacked connection_epoch, and old Connected/State literals
-bypassed the current admission constructor and new state fields. The session
-owner supplied the exact4af fixture blob: shared testing::state plus canonical
-State::admit_connection using a credential-free local fake peer entry. Only that
-test blob and connection_epoch=None in the view fixture are mirrored here; no
-moving session runtime branch, fabricated validity or alias fallback is adopted.
-The source repair still needs same-head compile/test execution.
-The isolated shared dialog/popover producer now has independent green evidence:
-wp-desktop-popover-narrow-20261115T143258Z-7730d570, exact7730d570a on base8,
-native fmt/quality/all-target Clippy0 and tests1444/0/2 (Kit193/0/0,13 control
-regressions). V1 row233 passed bounded source/requested narrow on exact773,
-docs-only6c70, and the lead merged the selected producer as8c359d0f; the combined
-line gate passed in announced2b806402. UI lease is not host/context/ticket/transport authority:
-consumers separately retire domain intents/body actions before deferred close.
-This contains no E3
-App/Link policy, native-build, capture or OS approval and cannot validate this
-larger tree's canonical preferences, quit lifecycle or session-owner union.
-Unit18 reached App compilation but stopped before all test execution: three
-missing base Shell imports caused most of81 diagnostics to cascade through owner
-modules, and one old layout fixture lacked Open.archived_at/binding. Restore the
-exact base imports and supply None/None only in that authority-free fixture;
-do not rewrite unrelated workspace/terminal error cascades. Execution is owed.
+| Evidence | Exact source and result | Limit |
+| --- | --- | --- |
+| Shared adaptive popover/configuration, run143258Z | 7730d570; selected fonts/fmt/quality/strict/test all0, raw1444/0/2, Kit193 including13 control cases; V1 row233 and announced line2b806402 | No E3 policy, OS, consumer or Linux focused-field F5 approval. |
+| Shared header actions, run153102Z | dd7ef7ec; all selected steps0, raw1447/0/2, Kit196 including3 header cases; V1 row249 and announced linea7aab9d6 | Caller owns stale-action authority; headless Dark fixtures do not prove both-theme OS visuals. |
+| Unit21, run160356Z | ec90c53f;1420/0/2: App106/0/2, Kit197, Link142, View975 | Delayed writer, state fence, initial preference/cache and edit-recipient tests passed; later two-window and zoom changes excluded. |
+| Library strict22, run160743Z | ec90c53f; all-target Kit/Link/View Clippy0 | App excluded. |
+| App24, run170102Z | 7d70dc15;118/0/2 including real two-window prefer_with_receipt, physical save failure followed by another window's success before observation |13 pending owner API warnings; no App strict or later base9/zoom proof. |
+| Unit25, run173910Z | b5cf516a;1476/0/2: App127/0/2, Kit215, Link143, View991 | Actual production zoom/DPI/bounds, both limits, extra window, queued root replacement and legacy store migration passed; later close-admission hardening excluded. |
+| Windows4, run151309Z | b0cef8c4; fonts0 and locked MSVC all-target App check0 | Normal/test warnings20/14. Typecheck only; no Windows runtime/root cross-check or later writer/base/zoom proof. |
+| Current close-admission App27 | a006a921; submitted once on the ordinary short lane | Result pending; old root A cannot be assumed safe from earlier same-root tests. |
 
-Menu source audit also found that native NewWindow/Quit bypassed the shared menu
-invoke path and rows/invoke did not consult the existing recorder state. Current
-source disables rows and rejects commands at invocation using that same recorder;
-macOS process-level NewWindow/Quit still work with no remaining Shell/window.
-Recorder-start retirement now invalidates an already open desktop menu before
-capture/blur, using the shared menu actual-close/focus path rather than another
-listener. The shortcut owner authorized exactly one host-guarded caller in the
-older Record branch; its current editing module will preserve that call on union.
-The one production predicate is Shell::desktop_commands_admitted. A retained
-actual-menu pointer regression checks that retirement preserves recorder blur
-and clipboard before redraw; the shortcut owner stages its real Capture test
-against the same predicate and adapter. No new shortcut table, recorder, capture
-visibility or test-only product hook is introduced. Changed-source checks remain
-pending and the staged owner regression has not been executed here.
-Native edit menu entries now use typed desktop Undo/Redo/Cut/Copy/Paste/SelectAll
-actions routed through that same admission before forwarding to kit editing.
-Returning a kit action directly from native menu construction bypassed the gate
-if the OS still retained an older enabled menu. The focused input still owns
-editing semantics; no clipboard implementation or shortcut binding is added.
-This native edit routing follow-up is source-only until its next changed-source
-check; the earlier popup regression is not a native OS menu/recorder verdict.
-Windows check3 on552 independently confirmed the Shell import cascade and also
-found that App test waits named Linux-only futures_lite. The source now uses one
-test-only std Wake/park helper with a10s deadline. It intentionally does not pump
-GPUI foreground observers while waiting for the actual writer, preserving the
-pending-before-observe race being tested without any runtime/dependency change.
-No Windows runtime or corrected-source typecheck result is inferred yet.
-Unit19 exact8c compiled all selected App/Kit/Link/View tests and executed
-1396passed/1failed/2ignored. The sole failure was GPUI's strict single-thread test
-scheduler rejecting the real preference writer's wake into its foreground watch
-observer. The specific real-I/O case now uses GPUI's documented allow_parking
-mode on its own test context; receipts and the non-pumping std waiter still order
-the observation boundary. No production scheduler, lint, timeout or assertion is
-relaxed. Link141/0, Kit193/0 and the App receipt/cache/menu regressions passed on
-that older source; the newer writer fix and corrected case still need execution.
-Unit21 exactec90c53f completed fonts0/tests0 with1420passed/0failed/2ignored:
-App106/0/2,Kit197/0/0,Link142/0/0,View975/0/0. The delayed checkpoint sender,
-real App receipt/currentness fence, initial subscription/cache and retained edit
-recipient tests all explicitly passed. This closes their older pending execution
-notes, not the newer two-window fixture or later handler-disable/base8d union.
-The12 App warnings are pending real owner APIs, so this is not App strict Clippy,
-V4, a whole native gate or any OS/consumer safety verdict.
-Unit25 exactb5cf516a on announced base9/headera7 completed1476/0/2 across the
-selected App/Kit/Link/View tests. The production zoom adapter, both native limits,
-independent additional window, queued root replacement and version1→2 window
-store migration all explicitly passed. This is not App strict, Windows execution,
-physical IME/window-menu positioning or the later close-admission change.
-Windows run wp-desktop-shell-win-check-20261115T151309Z-b0cef8c4 completed
-fonts0 and MSVC all-target App check0 on exactb0cef8c4. This compiled the UTF-16
-registry bridge and cross-platform test waiter. The normal/test binaries still
-reported20/14 warnings, mostly pending real owner consumers; this is a typecheck,
-not strict Clippy, Windows runtime or root-crate cross-check evidence. It predates
-the newer serial-writer fix and the package-base2b806402 merge. Current unit20
-tests that merged source separately; no result is inferred before completion.
+Library strict26 and Windows5 on b5cf516a remain queued independently. No App
+strict result, final whole native gate, native-build/export, inspected capture
+set or V4 package verdict exists for this E3 tree. Pending owner consumers are
+not hidden by lint allowances or fabricated registrations.
+
+Earlier red runs are retained: unit16 stopped on stale owner fixtures; unit18 on
+missing imports/old fixture fields; unit19 executed1396/1/2 with a single GPUI
+foreground-wake scheduler refusal in a real-I/O test, repaired only by that test's
+supported allow_parking mode and closed by unit21. App23 stopped before tests on
+missing dev-only serde_json, closed by App24. Windows1 reached winreg's Cow bytes
+mismatch; Windows3 also found a Linux-only test waiter. Existing Into conversion
+and a bounded std waiter compiled in Windows4. No earlier red is relabelled green.
+
+Native menus and popup/shortcut adapters use one production
+Shell::desktop_commands_admitted predicate. Recording start retires the existing
+menu before capture/blur. The actual retained popup-pointer/clipboard/focus test
+passed in unit21 and later unit25; W22's real newer SequenceCapture union remains
+pending. Native edit entries use desktop actions routed through admission before
+forwarding to kit editing. These wrappers compiled in App24/unit25; no actual OS
+native-menu/recorder or physical keyboard result is inferred.
 
 [Decision Log]
-- Purpose: an already open edit popup must not redirect Copy/Paste into a newer
-  focused field when focus changes during the retained key dispatch.
-- Constraint: the shared MenuState correctly preserves newer focus on close;
-  native edit actions intentionally dispatch to the current focused recipient.
-- Alternatives: force focus back, duplicate the shared return-focus owner, or
-  retain only a weak original recipient for this popup's edit admission.
-- Choice: capture a weak input recipient at opening and require it to be focused
-  after the shared close path, before this popup dispatches an edit action.
-- Why: the same menu retains sole focus restoration; a changed or dead recipient
-  refuses this older popup action without moving focus or keeping input alive.
-- Cost: a new input needs a fresh popup. Native menu edits retain their ordinary
-  current-focus semantics. The actual retained-key regression covers both Copy
-  and Paste with an interceptor moving focus after event-path capture; execution
-  remains pending. This identity is UI input authority, not host/session authority.
-The reviewed control producer is isolated on base91407173; the additive header
-slot is another isolated follow-up on that reviewed control head.
-Current source-size checks passed731 files/13 existing exceptions; no allowance
-increased. Direct rustfmt checks changed Rust files; this
-is formatting evidence only, without a local Cargo/Rustc invocation.
+- Purpose: a retained edit popup must not redirect Copy/Paste into a newer focused field.
+- Constraint: shared MenuState correctly preserves newer focus on close; native edit commands intentionally use current focus.
+- Alternatives: force focus back, duplicate return-focus ownership, or retain a weak original input recipient.
+- Choice: require the original weak input recipient to remain focused after the shared close path before dispatching popup editing.
+- Why: the same menu owns focus restoration; changed/dead recipients refuse without moving or retaining focus.
+- Cost: another input needs a fresh popup. Actual retained-key Copy/Paste tests with a focus-changing interceptor passed in unit21/unit25. This is UI input identity, not host/session authority.
 
-All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
-prescribed remote gate tool. No local compilation or metadata-Cargo invocation is
-started under the operator's VM-only rule. Direct rustfmt only formats source.
+The sole host registry has a separate isolated producer on announced82ca07a7.
+Its exact d8b73397 selected suite passed1490/0/2, including five host-window cases
+and the reviewed root helper; V1 row273 review is pending. This E3 tree contains
+the move-only registry prerequisite and provisional root helper, but does not yet
+consume that reviewed host dispatch/factory union. No second list is introduced.
 
-Before handoff: finish owner integration, run focused checks, freeze one final
+Before handoff: finish owner integrations, run focused checks, freeze one final
 commit/base, run the whole native gate with app-only export, then inspect EN/KO
-and dark/light captures at 1280×900, 390×844 and 800×600. Submit one V4 review packet
-with precise works/does-not/unverified evidence; only reviewed results advance
-tracker rows or reach the release lead.
+and dark/light captures at1280×900,390×844 and800×600. Submit one V4 review packet
+with precise works/does-not/unverified evidence. Only reviewed outcomes advance
+tracker rows or go to the release lead.
 
-The lead reapproved read-only protocol 23 shared root binaries from 6036 on dd13/base6
-for E3 windows/menus/changelog/session navigation: protocol and 178 wire names are
-unchanged. They omit base 5 service-port/allocation approval, strict decode-failure
-handling, session.delete handover wait and pending-label admission. Exclude those
-flows from captures and never claim a same-commit root build. Desktop does not
-rebuild these shared binaries or access the live preview/real agents.
+The old read-only protocol23 root binaries were reapproved only through dd13/base6
+for windows/menus/changelog/credential-free navigation, with no same-commit claim.
+They omit service-port/allocation approval, strict decode failure, session.delete
+handover and pending-label admission. The current base9 uses protocol24: obtain
+fresh lead approval before any fleet capture. Desktop does not rebuild shared
+root binaries, launch real agents, use live preview ports or open real browsers.
