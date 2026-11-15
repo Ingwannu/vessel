@@ -5,6 +5,8 @@
 //! advertise tools. Names come only from BrowserTool; JSON is inspected only at
 //! this foreign edge, then converted into the node's closed command vocabulary.
 
+mod schema;
+
 use rmcp::model::JsonObject;
 use serde_json::Value;
 use vessel_proto::browser::{

@@ -116,3 +116,19 @@ fn bad_fields_never_echo_secrets_or_create_caller_controlled_scope() {
     let command=decode(BrowserTool::ListTabs,&args(json!({"node":"foreign-node","workspace":"foreign-workspace","session":"foreign-session"}))).unwrap();
     assert_eq!(command, BrowserCommand::ListTabs(NoBrowserArgs {}));
 }
+
+#[test]
+fn schemas_use_the_catalogue_and_express_the_wait_exclusion_without_offering_tools() {
+    for tool in BROWSER_TOOLS {
+        let built = super::schema::schema(*tool);
+        assert_eq!(built.name.as_ref(), tool.name());
+        assert_eq!(built.input_schema.get("type"), Some(&json!("object")));
+    }
+    let wait = super::schema::schema(BrowserTool::Wait);
+    assert!(wait.input_schema.contains_key("oneOf"));
+    let resize = super::schema::schema(BrowserTool::Resize);
+    assert_eq!(
+        resize.input_schema["properties"]["width"]["maximum"],
+        json!(MAX_VIEWPORT_SIDE)
+    );
+}

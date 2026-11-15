@@ -355,3 +355,9 @@ selectors. All upload paths remain untrusted intent. Invalid inputs expose only
 fixed field/cause diagnostics, never the submitted text. The outer cfg(test)
 boundary stays until actual W18 shared policy/engine wiring; no schemas or tool
 offering/dispatch are registered by the decoder.
+
+Schema construction uses that same closed BrowserTool catalogue and its exact
+MCP names. It describes both wait branches with an exclusive oneOf, numeric
+limits from proto constants and optional defaults. JSON Schema maxLength counts
+characters; decoding still enforces UTF-8 byte caps. Building these values does
+not offer tools or bypass W18's shared ToolId policy/session-start admission.
