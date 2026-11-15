@@ -47,6 +47,7 @@ impl Fixture {
             vessel_store::DataDir::new(root.path().join("data")),
             HarnessEnv::new(home.clone()),
         );
+        config.bind = None; // This test uses only the explicit in-memory carrier.
         config.harness_lookup = Lookup::new([]);
         config.usage_sources = AccountUsageProbe::Recorded {
             root: root.path().to_owned(),

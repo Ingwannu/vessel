@@ -183,5 +183,6 @@ async fn aggregate_refresh_cannot_hold_a_request_indefinitely() {
     .unwrap()
     .unwrap_err();
     assert_eq!(refusal.code, ErrorCode::Unavailable);
-    assert_eq!(before.elapsed(), REPORT_REFRESH_BUDGET);
+    assert!(before.elapsed() >= REPORT_REFRESH_BUDGET);
+    assert!(before.elapsed() < REFRESH_SAFETY_BUDGET);
 }

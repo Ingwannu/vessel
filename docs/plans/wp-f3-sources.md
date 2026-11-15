@@ -251,3 +251,7 @@ check policy/binding publication fences. A paused-clock regression has its own n
 The same complete-refresh bound covers exact inspect refreshes, including the legacy
 captured-binding path; authorization remains before admission and cache-only inspect
 still performs no discovery. The budget never substitutes a different report id.
+The service fixture explicitly sets `bind=None`; its only TCP-independent carrier is
+the owned duplex handshake and its Unix endpoint stays in scratch. It never binds a
+product/default/live port. The paused deadline assertion allows timer-wheel rounding
+inside its named safety budget rather than requiring nanosecond-exact wake timing.
