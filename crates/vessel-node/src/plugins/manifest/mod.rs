@@ -2,6 +2,7 @@
 //! Package paths remain untrusted until the candidate owner proves canonical
 //! containment. This module does no file/network/process work.
 mod paths;
+#[cfg(test)]
 mod tests;
 
 use paths::{Media, PackagePath};
