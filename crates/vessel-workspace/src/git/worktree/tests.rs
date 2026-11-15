@@ -287,7 +287,6 @@ async fn a_worktree_whose_gitfile_was_rewritten_is_not_its_repositorys() {
 /// test needs to see whether two adds ran at once.
 #[cfg(unix)]
 fn gated_git(sandbox: &Sandbox) -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
-    use std::os::unix::fs::PermissionsExt as _;
     let real = which::which("git").expect("the tests need git on PATH");
     let sleep = which::which("sleep").expect("the test needs sleep on PATH");
     let log = sandbox.path().join("adds.log");
@@ -311,8 +310,7 @@ fn gated_git(sandbox: &Sandbox) -> (std::path::PathBuf, std::path::PathBuf, std:
         sleep = sleep.display(),
         real = real.display(),
     );
-    std::fs::write(&program, script).unwrap();
-    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+    Sandbox::executable(&program, &script);
     (program, log, release)
 }
 

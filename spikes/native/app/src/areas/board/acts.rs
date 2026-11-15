@@ -119,15 +119,44 @@ impl Shell {
     }
 
     fn card_act(&mut self, target: &Asking, act: Act) {
+        self.send_act(
+            target.machine.clone(),
+            target.session,
+            target.short.clone(),
+            act,
+        );
+    }
+
+    /// Act on `card`'s session from another screen (the sidebar's row
+    /// menu): the answer comes back through [`Self::board_acted`], which
+    /// puts the session's new state in the fleet, so the board, the
+    /// archive and the sidebar show it at once, without a reload.
+    pub(crate) fn act_on_card(&mut self, card: &Card, act: Act) {
+        self.send_act(card.machine.clone(), card.session, card.short_id(), act);
+    }
+
+    /// Ask before archiving `card`'s session from another screen, with the
+    /// board's own question (a live session is stopped first).
+    pub(crate) fn ask_archive(
+        &mut self,
+        card: &Card,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.ask_card(Asking::of(Ask::Archive, card), window, cx);
+    }
+
+    /// Send `act` and keep it until its answer (`board_acted`).
+    fn send_act(&mut self, machine: String, session: SessionId, short: String, act: Act) {
         self.areas.board.asked.push(Asked {
-            machine: target.machine.clone(),
-            session: target.session,
+            machine: machine.clone(),
+            session,
             kind: act.kind(),
-            short: target.short.clone(),
+            short,
         });
         self.command(Command::Act {
-            machine: target.machine.clone(),
-            session: target.session,
+            machine,
+            session,
             act,
         });
     }

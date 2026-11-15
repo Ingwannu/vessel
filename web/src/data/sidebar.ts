@@ -11,8 +11,9 @@
 // - Choice: grouping by machine (Vessel's tree, the default) or by status
 //   (Paseo's buckets in the board's words: Needs you, Working, Idle,
 //   Ended); sorting by creation (the default) or by last activity (the
-//   node's `last_activity_at`, ADR 0019); ended sessions hidden unless
-//   asked for, as now. Kept with the bridge (`data/prefs.ts`).
+//   node's `last_activity_at`, ADR 0019); ended sessions stay visible
+//   until archived or explicitly hidden, so a stopped machine's work
+//   does not disappear. Kept with the bridge (`data/prefs.ts`, ADR 0036).
 // - Protocol 10's marks (milestone 11, Track A-page): an archived
 //   session is never listed (all three references leave archived ones
 //   out of their sidebars); a pinned one comes first in its group (Paseo's
@@ -23,6 +24,7 @@
 //   the eye already is.
 
 import type { NodeKey, SidebarView } from "../wire/bridge";
+import { DEFAULT_PREFERENCES } from "./prefs-change";
 import type { SessionInfo } from "../wire/proto";
 import { placement } from "./board";
 import { isWorking, needsYou } from "./phrase";
@@ -41,12 +43,8 @@ export type SessionMark = "needs-you" | "working" | "idle" | "ended";
  * listed. The bridge keeps it (`data/prefs.ts`). */
 export type { SidebarView } from "../wire/bridge";
 
-/** The sidebar as milestone 10 drew it. */
-export const DEFAULT_VIEW: SidebarView = {
-  group: "machine",
-  sort: "created",
-  ended: false,
-};
+/** The same initial view as the page's preferences and the bridge. */
+export const DEFAULT_VIEW: SidebarView = DEFAULT_PREFERENCES.sidebar;
 
 /** A session's row. */
 export interface SidebarSession {
@@ -114,7 +112,7 @@ export function activeAt(session: SessionInfo): string {
   );
 }
 
-/** `sessions` as the view lists them: ended ones only when asked for,
+/** `sessions` as the view lists them: ended ones unless explicitly hidden,
  * archived ones never, pinned ones first, then newest first by the
  * chosen time. */
 export function listed(

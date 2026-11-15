@@ -98,3 +98,20 @@ proof of full host-label parity. E1 must keep a future display label
 separate from the authenticated NodeId and book alias, including Unicode
 labels, before claiming this complete. The new pure badge policy does
 not silently change the already reviewed book-edit contract.
+
+## Validated package base integration
+
+Merged the announced `8d5513e4` package base (A8, no rebase). The only
+manual conflicts were README prose, the shrinking size list and view
+module registration. Both README responsibilities and both fork/host
+modules are retained. The link root leaves the size list, and the
+already extracted demo retains its lower 523-line ceiling rather than
+raising it to the base's 589. Static size/boundary/token checks pass.
+
+Registration now follows the base's extracted command/event/dispatch
+modules and shell event child module. The pure host-policy commit's
+local all-targets view Clippy passed; its tests travel as the immutable
+`7ad95e37` through the new remote native narrow mode after the verified
+waiting local test wrapper was cancelled under the coordinator exception.
+That test run does not validate the combined base until its own checks
+run; no combined feature or runtime pass is inferred.

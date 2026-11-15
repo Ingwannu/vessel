@@ -132,6 +132,7 @@ impl Home {
             vessel_harness::HarnessEnv::new(temp.path().join("user")),
         );
         config.bind = None;
+        config.public = vec!["ws://127.0.0.1:1".parse().unwrap()];
         config.harness_lookup = Lookup::new(Vec::<PathBuf>::new());
         config.fleet = fast(vec![(HarnessKind::ClaudeCode, claude)]);
         let node = Node::start(config).await.unwrap();

@@ -220,12 +220,10 @@ async fn run_rustup(
 #[cfg(unix)]
 mod tests {
     use super::*;
-    use std::os::unix::fs::PermissionsExt as _;
 
     fn executable(path: &Path, text: &str) {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(path, text).unwrap();
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        vessel_testkit::write_executable(path, text).unwrap();
     }
 
     /// A rustup stand-in: `default` names `name`, `which` answers from
