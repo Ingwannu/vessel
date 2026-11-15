@@ -438,6 +438,9 @@ Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,
 static muted ink, a frame and a hit (slop `spacing::S2`) computed from those;
 its caller owns the callback and pending state, with no extra paint. Unlike
 Paseo's it has no accessible name (the kit has no accessibility tree yet).
+Enabled actions consume the left-button release after the generated caller
+click, without a capture handler. Later transparent sibling overlap remains
+an open kit hit-test policy; this is parent isolation, not global occlusion.
 
 ### Rules every screen follows
 
@@ -1011,5 +1014,5 @@ not add another edit rule or another node implementation.
 `cargo run -p vessel-app-kit --example host_rename_audit` opens an isolated
 input audit of the shared rename action: ordinary, disabled, adjacent
 button and clipped-parent cases. Counters distinguish the action, its
-parent's mouse-down and the neighbour. It starts no node and adds no app
+parent's mouse-down/release and the neighbour. It starts no node and adds no app
 route. The fixed grid is an audit fixture; the action itself is unchanged.

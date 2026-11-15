@@ -56,6 +56,7 @@ impl Case {
 struct Presses {
     action: u32,
     parent: u32,
+    parent_up: u32,
     neighbour: u32,
 }
 
@@ -65,6 +66,45 @@ struct Sheet {
 }
 
 impl Sheet {
+    fn parent(
+        case: Case,
+        action: gpui::Stateful<gpui::Div>,
+        tokens: &Tokens,
+        cx: &mut Context<'_, Self>,
+    ) -> gpui::Stateful<gpui::Div> {
+        let index = case.index();
+        div()
+            .id(("audit-parent", index))
+            .relative()
+            .flex()
+            .flex_row()
+            .items_center()
+            .w(px(FRAME))
+            .h(px(FRAME))
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(move |sheet, _event, _window, cx| {
+                    if let Some(presses) = sheet.presses.get_mut(index) {
+                        presses.parent = presses.parent.saturating_add(1);
+                    }
+                    cx.notify();
+                }),
+            )
+            .on_mouse_up(
+                MouseButton::Left,
+                cx.listener(move |sheet, _event, _window, cx| {
+                    if let Some(presses) = sheet.presses.get_mut(index) {
+                        presses.parent_up = presses.parent_up.saturating_add(1);
+                    }
+                    cx.notify();
+                }),
+            )
+            .when(case == Case::Clipped, |parent| {
+                parent.overflow_hidden().bg(tokens.neutral.surface2)
+            })
+            .child(action)
+    }
+
     fn group(case: Case, tokens: &Tokens, cx: &mut Context<'_, Self>) -> gpui::Div {
         let index = case.index();
         let state = if case == Case::Disabled {
@@ -83,27 +123,7 @@ impl Sheet {
                 }))
             },
         );
-        let parent = div()
-            .id(("audit-parent", index))
-            .relative()
-            .flex()
-            .flex_row()
-            .items_center()
-            .w(px(FRAME))
-            .h(px(FRAME))
-            .on_mouse_down(
-                MouseButton::Left,
-                cx.listener(move |sheet, _event, _window, cx| {
-                    if let Some(presses) = sheet.presses.get_mut(index) {
-                        presses.parent = presses.parent.saturating_add(1);
-                    }
-                    cx.notify();
-                }),
-            )
-            .when(case == Case::Clipped, |parent| {
-                parent.overflow_hidden().bg(tokens.neutral.surface2)
-            })
-            .child(action);
+        let parent = Self::parent(case, action, tokens, cx);
         div()
             .relative()
             .flex()
@@ -128,8 +148,8 @@ impl Sheet {
         let index = case.index();
         let words = self.presses.get(index).map_or_else(String::new, |presses| {
             format!(
-                "action={} parent={} neighbour={}",
-                presses.action, presses.parent, presses.neighbour
+                "action={} parent={} up={} neighbour={}",
+                presses.action, presses.parent, presses.parent_up, presses.neighbour
             )
         });
         div()

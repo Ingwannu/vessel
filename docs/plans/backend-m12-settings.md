@@ -715,3 +715,22 @@ scheme/language/layout cases show the maximum-length name with its label
 and action preserved. The temporary book rename was restored byte for
 byte, with mode 0600, as the development account. Its complete native
 gate remains queued; no gate pass is claimed for it yet.
+
+The new parent-release regression reproduced the leak (caller one, parent
+one, expected zero) before the control change. With the enabled root's
+bubble mouse-up stop, the same test passed, including Disabled and a
+reachable neighbour outside the hit. The live audit now displays a
+separate parent-release counter. It retains the later-sibling case and
+its neighbour-only expectation as an open kit-policy finding.
+
+Resume: finish narrow Clippy, commit the control-only change, run the
+native gate and inspect the new live counter captures. The long-name
+commit's complete gate has now passed: run
+`settings2-20261115T050249Z-ad2d4ef3`, all six steps zero, 1,169 passed,
+zero failed, one ignored. No unchanged native gate was rerun.
+
+The corrected event regression passed (one test, both enabled/disabled
+branches); the control's caller still runs once and an outside neighbour
+still receives its click. The final kit all-targets narrow Clippy passed
+after splitting the audit parent wrapper from its row composition. Next:
+complete native gate and fresh live parent-release captures.
