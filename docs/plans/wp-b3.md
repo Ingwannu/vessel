@@ -907,3 +907,15 @@ central activation. The real wire/bootstrap fixture explicitly remains ignored
 until that assignment, rather than being counted as a pass. Private runtime
 and backend fixtures can install the existing typed hooks for pre-activation
 verification. The collector remains wired for already-journaled private work.
+
+### Private runtime integration fixture before wire activation (unrun)
+
+The node's session fixture can install the existing typed CheckpointHooks
+explicitly, independently of the production FILE_CHECKPOINTS gate. The new
+fixture starts a real isolated managed Git worktree, actual node session
+registration/persistence, the production bridge/backend/collector, and only the
+fake ACP provider. It sends two real turns, shuts down actors and drains tracked
+work before inspecting stored before/after images. The normal wire fixture
+remains explicitly ignored pending version assignment; this private fixture
+covers runtime ordering without inventing a production activation setting.
+No results are claimed until the immutable remote test actually executes.

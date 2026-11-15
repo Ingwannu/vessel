@@ -4,6 +4,8 @@
 #[cfg(target_os = "linux")]
 mod checkpoint_anchor;
 #[cfg(target_os = "linux")]
+mod checkpoint_runtime;
+#[cfg(target_os = "linux")]
 mod checkpoint_starting;
 mod handover;
 
@@ -41,13 +43,16 @@ struct Fixture {
 
 impl Fixture {
     async fn new() -> Self {
+        Self::with_checkpoints(None).await
+    }
+    async fn with_checkpoints(checkpoints: Option<vessel_session::CheckpointHooks>) -> Self {
         let data = tempfile::tempdir().unwrap();
         let bin = tempfile::tempdir().unwrap();
         let tui = Fake::Tui.path().unwrap();
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Terminal, &tui).unwrap());
         let acp = Fake::Acp.path().unwrap();
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
-        let runtime = Arc::new(SessionRuntime::new(
+        let runtime = SessionRuntime::new(
             RuntimeConfig {
                 harness_lookup: Lookup::new([bin.path().to_path_buf()]),
                 harness_env: vessel_harness::HarnessEnv::new(data.path().to_owned()),
@@ -58,7 +63,11 @@ impl Fixture {
                 private_dir: None,
             },
             CancellationToken::new(),
-        ));
+        );
+        let runtime = Arc::new(match checkpoints {
+            Some(hooks) => runtime.with_checkpoint_hooks(hooks),
+            None => runtime,
+        });
         let store = Store::open(&DataDir::new(data.path()), StoreConfig::default())
             .await
             .unwrap()
