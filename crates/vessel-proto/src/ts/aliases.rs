@@ -71,7 +71,7 @@
 //! - Project service declarations: `ServicePort` is a number a person chooses,
 //!   like a pull-request number, not a node-minted handle or a count.
 //!   `PortRange` and `PortScript` are also named choices a person writes.
-//! - SessionUpdatedAt is a time measure, plain rather than an authority handle.
+//! - `SessionUpdatedAt` is a time measure, plain rather than an authority handle.
 //! - Kept current: every primitive alias the generator meets must be in
 //!   `ALIASES` (`Declarations::unclassified` lists the others, and the
 //!   generating crates' tests fail on one), and every entry must still be

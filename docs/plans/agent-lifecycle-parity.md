@@ -1460,3 +1460,9 @@ clock data cannot choose the destination's local time. A fake-node reopen case
 checks the actual writer clock is already visible when the existing publication
 gate opens, the raw actor watch remains Unknown, and handover retains the final
 acknowledged time. These are new cases, with existing assertions/deadlines kept.
+
+
+The next changed-crate strict run stopped at a missing code span in the new
+SessionUpdatedAt alias comment. That comment now uses code markup; the original
+red result is retained. No validator, writer, projection, test expectation or
+deadline changed. Latest-head strict and execution checks are still owed.
