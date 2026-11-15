@@ -49,6 +49,46 @@ async fn dropping_a_subscription_unsubscribes() {
     running.probe.unsubscribed.notified().await;
 }
 
+/// A client that goes away without unsubscribing (its connection closed:
+/// the process ended, the app was killed) leaves no forwarder behind: the
+/// subscription's sink is cancelled with the connection, so whatever the
+/// forwarder holds (a session's live follow) is released.
+#[tokio::test]
+async fn a_closed_connection_ends_its_subscriptions() {
+    let (mut client_end, server_end) = pair();
+    let served = serve(server_end);
+    let hello = ClientFrame::Hello(vessel_proto::Hello {
+        protocol: ProtocolRange::CURRENT,
+        client: client_info(),
+    });
+    client_end
+        .send(serde_json::to_string(&hello).unwrap())
+        .await
+        .unwrap();
+    let _welcome = client_end.next().await.unwrap().unwrap();
+    let subscribe = ClientFrame::Request {
+        id: RequestId::new(1),
+        call: Subscribe {
+            session: endless(),
+            from: EventSeq::ZERO,
+        }
+        .into_call(),
+    };
+    client_end
+        .send(serde_json::to_string(&subscribe).unwrap())
+        .await
+        .unwrap();
+    let Ok(ServerFrame::Response { id, .. }) =
+        serde_json::from_str(&client_end.next().await.unwrap().unwrap())
+    else {
+        panic!("expected the subscription's answer");
+    };
+    assert_eq!(id, RequestId::new(1));
+    drop(client_end);
+    served.probe.unsubscribed.notified().await;
+    served.task.await.unwrap().unwrap();
+}
+
 #[tokio::test]
 async fn unsubscribe_ends_the_subscription_before_its_answer() {
     let running = start(ClientConfig::default()).await;

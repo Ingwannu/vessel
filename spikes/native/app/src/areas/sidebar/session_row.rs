@@ -15,12 +15,19 @@
 //!   ahead of it (the native sidebar has drawn it since track S's rows).
 //! - Difference, named: no branch chip yet (the page shows the session's
 //!   branch; the card's branch is the workspace track's to draw).
+//! - Its menu (`row_menu`): Paseo's kebab at the row's right, shown while
+//!   the row is hovered or its menu is open and always on touch (18 points
+//!   on a wide window, 32 on touch, corners of 4, the muted mark
+//!   over `surface2` when hovered; Paseo also turns the mark to the
+//!   foreground), and a right press anywhere on the row.
 
 use gpui::FontWeight;
+use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
+    MouseButton, MouseDownEvent, ParentElement as _, SharedString, StatefulInteractiveElement as _,
+    Styled as _, div, px, svg,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
@@ -35,10 +42,21 @@ use crate::shell::Shell;
 const SLOT: f32 = 20.0;
 /// A dot's size.
 const DOT: f32 = 8.0;
+/// An ended session's dash: the page's one-pixel line (`sidebar.css`,
+/// `.sdot.ended`, a top border of 1 px across the dot's width).
+const DASH: f32 = 1.0;
 /// The spinner's size.
 const SPIN: f32 = 12.0;
 /// A row's height beyond its line (the page's 5 above and below).
 const ROW_Y: f32 = 5.0;
+/// The kebab's square on a wide window and on touch (Paseo's `md` 18 and
+/// `xs` 32).
+const DOTS: f32 = 18.0;
+const DOTS_TOUCH: f32 = 32.0;
+/// Its mark (Paseo's `sm` density icon).
+const DOTS_MARK: f32 = 14.0;
+/// Its corners (Paseo's 4).
+const DOTS_CORNER: f32 = 4.0;
 
 /// `card`'s row; `machine`: its machine's name at the right (grouped by
 /// status).
@@ -47,6 +65,7 @@ pub(super) fn session_row(
     machine: Option<&str>,
     shell: &Shell,
     tokens: &Tokens,
+    touch: bool,
     cx: &mut Context<'_, Shell>,
 ) -> impl IntoElement {
     let active = shell.route == Route::Session
@@ -58,6 +77,9 @@ pub(super) fn session_row(
             .is_some_and(|open| open.session == card.session && open.machine == card.machine);
     let unread = card.detail.marks.unread;
     let open = Open::of(card);
+    let group: SharedString = format!("session-row-{}-{}", card.machine, card.session).into();
+    let menu_open = shell.areas.sidebar.rows.is_for(card);
+    let pressed = card.clone();
     let title = if active || unread {
         tokens.text_primary
     } else {
@@ -65,6 +87,7 @@ pub(super) fn session_row(
     };
     div()
         .id(ElementId::Name(format!("session-{}", card.session).into()))
+        .group(group.clone())
         .flex()
         .flex_row()
         .items_center()
@@ -109,9 +132,58 @@ pub(super) fn session_row(
                 .text_color(tokens.text_tertiary)
                 .child(name.to_owned())
         }))
+        .child(dots(card, group, touch, menu_open, tokens, cx))
+        .on_mouse_down(
+            MouseButton::Right,
+            cx.listener(move |this, event: &MouseDownEvent, window, cx| {
+                this.row_menu_open(&pressed, event.position, window, cx);
+            }),
+        )
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
         }))
+}
+
+/// The row's kebab: always shown on touch or while its menu is open, else
+/// only while the row is hovered.
+fn dots(
+    card: &Card,
+    group: SharedString,
+    touch: bool,
+    menu_open: bool,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> impl IntoElement {
+    let size = if touch { DOTS_TOUCH } else { DOTS };
+    let shown = touch || menu_open;
+    let target = card.clone();
+    div()
+        .id(ElementId::Name(format!("session-menu-{}", card.session).into()))
+        .size(px(size))
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded(px(DOTS_CORNER))
+        .when(!shown, |dots| {
+            dots.opacity(0.0)
+                .group_hover(group, |style| style.opacity(1.0))
+        })
+        .hover(|style| style.bg(tokens.neutral.surface2))
+        .child(
+            svg()
+                .path(Glyph::More.path())
+                .size(px(DOTS_MARK))
+                .text_color(tokens.neutral.foreground_muted),
+        )
+        // Its own press: the row's click (open the session) does not run.
+        .on_mouse_down(
+            MouseButton::Left,
+            cx.listener(move |this, event: &MouseDownEvent, window, cx| {
+                cx.stop_propagation();
+                this.row_menu_open(&target, event.position, window, cx);
+            }),
+        )
 }
 
 /// What the session is doing, as the page's `SessionMark` draws it.
@@ -135,7 +207,7 @@ fn mark(card: &Card, unread: bool, tokens: &Tokens) -> AnyElement {
             .into_any_element(),
         SessionMark::Ended => div()
             .w(px(DOT))
-            .h(px(1.0))
+            .h(px(DASH))
             .bg(tokens.text_disabled)
             .into_any_element(),
     }

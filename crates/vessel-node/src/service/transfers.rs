@@ -114,6 +114,17 @@ impl NodeService {
         connection: &Connection,
         request: ImportSession,
     ) -> Result<SessionImported, WireError> {
+        // A local source can be checked before export creates its snapshot.
+        if request.start && request.from.node == self.lifecycle.info().id {
+            self.check_owner(connection.principal(), request.from.session)
+                .await?;
+            let info = self
+                .sessions
+                .get(request.from.session)
+                .await
+                .map_err(|error| wire(&error))?;
+            crate::label_ingress::imported(&info)?;
+        }
         if request.start && self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
