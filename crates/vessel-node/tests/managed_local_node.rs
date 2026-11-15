@@ -42,6 +42,13 @@ fn launch(root: &Path, binary: &Path) -> Launch {
                 vessel_proc::EnvValue::Set(programs.into_os_string()),
             ),
         ]);
+        #[cfg(windows)]
+        if let Some(system_root) = std::env::var_os("SystemRoot") {
+            // Keep only the OS loader root; agent homes and PATH stay private.
+            command
+                .env
+                .push(("SystemRoot".into(), vessel_proc::EnvValue::Set(system_root)));
+        }
         command
     })
     .unwrap()
