@@ -163,3 +163,34 @@ fn an_explicitly_opened_lone_call_preopens_its_future_group(cx: &mut gpui::TestA
         assert_eq!(area.rows.entry(2), Some(2));
     });
 }
+
+#[gpui::test]
+fn running_tools_start_closed_and_explicitly_opened_tools_stay_open_after_completion(
+    cx: &mut gpui::TestAppContext,
+) {
+    cx.update(|cx| {
+        use vessel_proto::{AgentEvent, ToolCallStatus};
+        let session = SessionId::random();
+        let mut area = ConversationArea::new(cx);
+        area.open("fake", session);
+        area.turns = None;
+        let completed = records()[1].clone();
+        let mut running = completed.clone();
+        if let SessionEvent::Agent {
+            event: AgentEvent::ToolCall(call),
+        } = &mut running.event
+        {
+            call.status = ToolCallStatus::InProgress;
+        }
+        assert!(area.take(&session, &[running]));
+        assert!(!area.entry_expanded(0));
+        area.toggle_entry(0);
+        assert!(area.entry_expanded(0));
+        let completed = EventRecord {
+            seq: EventSeq::new(2),
+            ..completed
+        };
+        assert!(area.take(&session, &[completed]));
+        assert!(area.entry_expanded(0));
+    });
+}

@@ -1,8 +1,8 @@
 //! A tool call: GOAT's work log row (its title, quiet, with what it
 //! touched at the right and its state in a word), opened into the page's
 //! card body: the input, the content (diffs line by line, numbered) and
-//! the output (the page's `features/session/tool-card.tsx`). Open while
-//! the call runs, closed once it has ended, unless the person turned it.
+//! the output (the page's `features/session/tool-card.tsx`). Ordinary calls
+//! start closed as Paseo's ToolCall does; explicit choices survive updates.
 
 use vessel_app_kit::output::{Line, Lines, Tone};
 use vessel_app_kit::ui::FluentBuilder as _;

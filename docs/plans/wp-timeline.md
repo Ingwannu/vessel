@@ -489,6 +489,13 @@ Display/reasoning changes preserve those group choices for the same entry
 identities. A native list-state regression covers single-call arrival, explicit
 open, group formation, inner-call close and reasoning-default change.
 
+Ordinary tool disclosure now starts closed even while running, matching
+`components/message.tsx:2276` (`defaultExpanded ?? false`) and its normal
+`view.tsx` call site. This corrects the earlier page-derived automatic expansion;
+Plan outcome and reasoning preference defaults remain separately consumed.
+Explicitly opened work stays open when completion arrives; a native regression
+uses the real record ingestion/default boundary to verify that transition.
+
 ### Source bounds for draft forks
 
 [Decision Log]

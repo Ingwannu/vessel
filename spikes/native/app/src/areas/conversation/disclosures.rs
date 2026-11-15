@@ -39,8 +39,8 @@ impl ConversationArea {
         }
     }
 
-    /// Plans default by outcome; tool status and reasoning preferences are defaults
-    /// only. An explicit choice survives later completion and preference changes.
+    /// Plans default by outcome; ordinary tools start closed, and reasoning uses
+    /// its preference. Explicit choices survive completion and preference changes.
     pub(super) fn entry_expanded(&self, index: usize) -> bool {
         if let Some(tool) = self
             .timeline
@@ -58,11 +58,9 @@ impl ConversationArea {
     pub(super) fn entry_default(&self, index: usize) -> bool {
         match self.timeline.entries().get(index).map(|entry| &entry.kind) {
             Some(EntryKind::Thought { .. }) => self.reasoning.expanded(),
-            Some(EntryKind::Tool(tool)) => {
-                tool.working() && !self.timeline.asks_permission(&tool.id)
-            }
             Some(
                 EntryKind::Ready { .. }
+                | EntryKind::Tool(_)
                 | EntryKind::Prompt(_)
                 | EntryKind::Steer { .. }
                 | EntryKind::Question { .. }
