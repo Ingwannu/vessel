@@ -278,3 +278,10 @@ No application consumer references them in this tree; that file is returned to
 package base 8 as part of the lead's dependency cleanup. This removes no usage
 API or approved sidebar-navigation preference. The original S2 commits remain
 in Git history for its owner to land through the shared app line.
+
+W19 confirms its reviewed adaptive-popover range does not add caller actions to
+DialogContent's header. Paseo UsageModalFrame puts HostFilter, Refresh all and
+Options beside the title. The native first version retains accessible controls in
+the body at the correct shared Wide width (640), but this title-row geometry is
+still a shared-producer gap. An additive header-actions seam is requested from
+one assigned owner; the area must not redraw or override the shared header.
