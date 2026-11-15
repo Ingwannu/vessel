@@ -1,17 +1,28 @@
 //! Registration and first delivery have separate failure boundaries.
 
 use super::{Answer, Ask, FirstInput, Target};
+use crate::connections::{RequestFailure, SelectedConnection};
 use std::time::Duration;
 use tokio::sync::mpsc;
 use vessel_app_view::creation::{Failure, Stage};
-use vessel_client::{CallError, NodeClient};
-use vessel_proto::{ContentBlock, Delivery, ProtocolVersion, SessionId, SessionInfo, SessionInput};
+use vessel_client::CallError;
+use vessel_proto::conversation::PromptSession;
+use vessel_proto::{
+    ContentBlock, CreateSession, Delivery, GetSession, SendInput, SessionId, SessionInfo,
+    SessionInput,
+};
 
 /// A legacy RPC bound is distinct from a provisioning-operation TTL.
 const CALL_DEADLINE: Duration = Duration::from_secs(120);
 
-pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<crate::Event>) {
-    if client.node().id != ask.expected_node {
+pub(crate) async fn create(
+    client: &SelectedConnection,
+    ask: Ask,
+    events: &mpsc::Sender<crate::Event>,
+) {
+    if ask.context.node() != ask.expected_node
+        || ask.context.machine().as_str() != ask.machine.as_str()
+    {
         let _closed = events
             .send(crate::Event::Creation(
                 ask.refused(Failure::Refused(vessel_proto::ErrorCode::Conflict)),
@@ -45,7 +56,8 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
             source,
             ticket,
             machine: ask.machine,
-            node: client.node().id,
+            node: ask.context.node(),
+            context: ask.context.clone(),
             session: Box::new(info),
         }))
         .await
@@ -78,31 +90,59 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
     let _closed = events.send(crate::Event::Creation(answer)).await;
 }
 
-async fn register(client: &NodeClient, target: Target) -> Result<SessionInfo, Failure> {
+async fn register(client: &SelectedConnection, target: Target) -> Result<SessionInfo, Failure> {
+    let expected = match &target {
+        Target::New(_) => None,
+        Target::Registered(session) => Some(*session),
+    };
     let register = async {
         match target {
-            Target::New(spec) => client.create_session(spec).await,
-            Target::Registered(session) => client.session(session).await,
+            Target::New(spec) => client.call(CreateSession { spec }).await,
+            Target::Registered(session) => client.call(GetSession { session }).await,
         }
     };
-    tokio::time::timeout(CALL_DEADLINE, register)
+    let info = tokio::time::timeout(CALL_DEADLINE, register)
         .await
         .map_err(|_elapsed| Failure::OutcomeUnknown)?
-        .map_err(|error| failure(&error))
+        .map_err(|error| failure(&error))?;
+    if expected.is_some_and(|expected| info.id != expected) {
+        return Err(Failure::Refused(vessel_proto::ErrorCode::Conflict));
+    }
+    Ok(info)
 }
 
-async fn deliver(client: &NodeClient, session: SessionId, text: &str) -> Result<(), Failure> {
+async fn deliver(
+    client: &SelectedConnection,
+    session: SessionId,
+    text: &str,
+) -> Result<(), Failure> {
     let send = async {
-        let content = vec![ContentBlock::Text {
-            text: text.to_owned(),
-        }];
-        if client.protocol() >= ProtocolVersion::new(10) {
-            client
-                .prompt(session, content, Delivery::Start)
+        let prompted = client
+            .call(PromptSession {
+                session,
+                content: vec![ContentBlock::Text {
+                    text: text.to_owned(),
+                }],
+                delivery: Delivery::Start,
+                notify: false,
+            })
+            .await;
+        match prompted {
+            Ok(_delivered) => Ok(()),
+            // The typed client refused this method before transport. Only this
+            // known preflight may fall back to the pre-protocol-10 send shape.
+            Err(RequestFailure::Call(CallError::NotInProtocol { .. })) => client
+                .call(SendInput {
+                    session,
+                    input: SessionInput::Prompt {
+                        content: vec![ContentBlock::Text {
+                            text: text.to_owned(),
+                        }],
+                    },
+                })
                 .await
-                .map(|_delivered| ())
-        } else {
-            client.send(session, SessionInput::Prompt { content }).await
+                .map(|_ack| ()),
+            Err(error) => Err(error),
         }
     };
     tokio::time::timeout(CALL_DEADLINE, send)
@@ -112,7 +152,14 @@ async fn deliver(client: &NodeClient, session: SessionId, text: &str) -> Result<
 }
 
 /// Transport loss may hide a committed side effect; never turn it into retry.
-fn failure(error: &CallError) -> Failure {
+fn failure(error: &RequestFailure) -> Failure {
+    match error {
+        RequestFailure::Refused(_) => Failure::OutcomeUnknown,
+        RequestFailure::Call(error) => call_failure(error),
+    }
+}
+
+fn call_failure(error: &CallError) -> Failure {
     match error {
         CallError::Remote(error) => match error.code {
             // Session persistence can fail after the process starts. A generic

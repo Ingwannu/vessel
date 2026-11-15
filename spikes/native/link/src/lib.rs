@@ -342,21 +342,6 @@ impl State {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl State {
-    /// Hand a workspace ask to its own task, with the machine's connection.
-    fn workspace(&self, machine: String, ask: workspace::Ask) {
-        let events = self.events.clone();
-        match self.client(&machine) {
-            Ok(client) => self.workspace.ask(client.clone(), machine, ask, events),
-            Err(error) => {
-                let problem = vessel_app_view::workspace::problem::Problem::Gone(error.to_string());
-                workspace::Hub::refuse(machine, ask, problem, events);
-            }
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 /// A session's records to the events channel, one event per record (the
 /// screen folds whatever has queued up in one update).
 async fn follow(client: NodeClient, session: SessionId, events: mpsc::Sender<Event>) {

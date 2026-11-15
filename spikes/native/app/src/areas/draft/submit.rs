@@ -38,18 +38,20 @@ impl Shell {
             cx.notify();
             return;
         };
-        let Some(expected_node) = self
+        let Some(context) = self
             .fleet
             .machines
             .iter()
             .find(|entry| entry.name == machine.as_str())
-            .and_then(|entry| entry.node)
+            .and_then(vessel_app_view::Machine::connection_context)
         else {
             self.areas.draft.error = Some(self.words.creation().offline().to_owned());
             cx.notify();
             return;
         };
-        let Some((ticket, target)) = self.draft_creation_target(&machine, &harness) else {
+        let expected_node = context.node();
+        let Some((ticket, target)) = self.draft_creation_target(&machine, expected_node, &harness)
+        else {
             cx.notify();
             return;
         };
@@ -82,6 +84,7 @@ impl Shell {
         }
         let ask = Ask {
             source: vessel_app_view::composer::drafts::DraftKey::New,
+            context,
             ticket,
             message,
             machine: machine.clone(),
@@ -181,6 +184,7 @@ impl Shell {
     fn draft_creation_target(
         &mut self,
         machine: &Name,
+        expected_node: vessel_proto::NodeId,
         harness: &HarnessRef,
     ) -> Option<(Ticket, Target)> {
         if let Flow::Failed {
@@ -191,7 +195,9 @@ impl Shell {
             && let Some(card) = &self.areas.draft.creation.registered
         {
             // A rejected first message never makes another agent.
-            if card.machine != machine.as_str() {
+            if card.machine != machine.as_str()
+                || self.areas.draft.creation.node != Some(expected_node)
+            {
                 self.areas.draft.error = Some(self.words.creation().refused().to_owned());
                 return None;
             }

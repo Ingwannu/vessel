@@ -12,6 +12,7 @@ mod tests;
 use std::sync::Arc;
 
 use vessel_app_view::composer::drafts::DraftKey;
+use vessel_app_view::connection::ConnectionContext;
 use vessel_app_view::creation::{Failure, Stage, Ticket};
 use vessel_app_view::machine_book::Name;
 use vessel_proto::{NodeId, SessionId, SessionInfo, SessionSpec};
@@ -48,6 +49,8 @@ impl std::fmt::Debug for FirstInput {
 pub struct Ask {
     /// The payload owner; tickets are local to this exact draft.
     pub source: DraftKey,
+    /// Original actor admission, including reconnect/credential retirement.
+    pub context: ConnectionContext,
     /// Local correlation, not a connection's request counter.
     pub ticket: Ticket,
     /// Canonical first-input identity retained across preparation and child retry.
@@ -73,6 +76,8 @@ pub enum Answer {
         ticket: Ticket,
         /// Node-book identity, retained even after navigation.
         machine: Name,
+        /// Original admission, retained for the eventual resident handoff.
+        context: ConnectionContext,
         /// Welcome identity of the client that actually registered the resource.
         node: NodeId,
         /// Exact session returned by the existing create call.
@@ -136,17 +141,16 @@ impl Ask {
 impl crate::State {
     /// A slow creation must not hold fleet refresh or commands for another node.
     pub(crate) fn create(&self, ask: Ask) {
-        let client = self
-            .clients
-            .get(ask.machine.as_str())
-            .map(|connected| connected.client.clone());
+        let client = self.selected_connection(&ask.context);
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             match client {
-                Some(client) => run::create(&client, ask, &events).await,
-                None => {
+                Ok(client) => run::create(&client, ask, &events).await,
+                Err(_changed) => {
                     let _closed = events
-                        .send(crate::Event::Creation(ask.refused(Failure::Offline)))
+                        .send(crate::Event::Creation(
+                            ask.refused(Failure::Refused(vessel_proto::ErrorCode::Conflict)),
+                        ))
                         .await;
                 }
             }
