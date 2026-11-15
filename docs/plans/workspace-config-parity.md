@@ -589,3 +589,9 @@ generation do not qualify the helper/Preview stack here. The parser now uses
 the incoming shared command and configuration byte-budget owners. Existing
 immutable narrow checks keep their original commits and evidence scopes;
 the merged runtime preparation still owes its own enclosing package gate.
+
+The later announced lifecycle/file/Skills head is also merged. Its session
+selection, migration and method contracts remain unchanged, and no local
+runtime module is activated. The corrected deadline fixture is still checked
+on its earlier immutable commit; that receipt will not qualify this new
+composition. Service value/SDK work remains in the separate values tree.
