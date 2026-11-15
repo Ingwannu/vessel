@@ -819,3 +819,14 @@ Prepared engine regressions cover selection of ASCII/Hangul/emoji before
 the first edit, keyboard/paste/IME refusal, re-enable with draft retained
 and reopen. Narrow compilation/runtime and actual dialog captures are
 still owed; prepared tests are not counted as passed.
+
+
+Pre-capture source comparison found an inherited button-state difference:
+Paseo's AdaptiveRenameModal disables submit for a blank draft, while the
+existing native condition enabled it whenever it differed from the name.
+Editing::rename_enabled now owns the nonblank/change/pending rule and the
+screen delegates to it. Enter still runs validation and shows the required
+name error. A pure transition fixture covers idle blank/unchanged, pending
+and failed-write retry. No input engine, grammar, store or control paint
+changes. This correction is prepared before the first normal capture
+compilation; its new fixture still needs execution with the package gate.
