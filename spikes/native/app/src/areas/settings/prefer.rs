@@ -78,6 +78,12 @@ impl Shell {
                 self.areas.settings.refused = Some(format!("{}: {refused}", words.refused));
             }
         }
+        if matches!(
+            change,
+            PreferenceChange::Shortcuts { .. } | PreferenceChange::ResetShortcuts
+        ) {
+            crate::areas::shortcuts::preferences_changed(self);
+        }
         cx.notify();
     }
 }

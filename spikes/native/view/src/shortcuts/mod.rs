@@ -4,6 +4,7 @@
 //! are; the app's one listener maps a keystroke to a [`KeyPress`] and
 //! asks [`matched`].
 
+pub mod badges;
 mod capture;
 pub mod composer;
 pub mod context;

@@ -226,7 +226,7 @@ fn chord_text(chord: &Chord) -> String {
 
 /// The modifiers a chord holds on `platform`, `Mod` resolved: Command and
 /// Control on a Mac, Control and the Windows key elsewhere.
-const fn held(chord: &Chord, platform: Platform) -> [bool; 4] {
+pub(super) const fn held(chord: &Chord, platform: Platform) -> [bool; 4] {
     let (command, control) = match platform {
         Platform::Mac => (chord.primary || chord.meta, chord.ctrl),
         Platform::Other => (chord.meta, chord.primary || chord.ctrl),

@@ -89,3 +89,48 @@ fn settings_records_multiple_steps_and_navigation_cancels_capture(cx: &mut TestA
         assert!(!shell.areas.shortcuts.page.recording())
     });
 }
+
+#[gpui::test]
+fn real_modifier_event_reveals_after_delay_and_binding_change_cancels_it(cx: &mut TestAppContext) {
+    use std::time::Duration;
+    use vessel_app_view::prefs::{
+        Bindings, PreferenceChange, ShortcutEdit, ShortcutEdits, ShortcutTarget,
+    };
+    use vessel_app_view::shortcuts::{Action, binding_id, default_context};
+    let (shell, cx) = setup(cx);
+    shell.update_in(cx, |_, window, _| window.activate_window());
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        let _event = window.dispatch_event(
+            gpui::PlatformInput::ModifiersChanged(gpui::ModifiersChangedEvent {
+                modifiers: gpui::Modifiers {
+                    control: Platform::native() == Platform::Other,
+                    platform: Platform::native() == Platform::Mac,
+                    ..gpui::Modifiers::default()
+                },
+                ..gpui::ModifiersChangedEvent::default()
+            }),
+            cx,
+        );
+    });
+    cx.executor().advance_clock(Duration::from_millis(149));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(!shell.shortcut_badges_visible(window, cx))
+    });
+    cx.executor().advance_clock(Duration::from_millis(1));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert!(shell.shortcut_badges_visible(window, cx));
+        let action = binding_id(Action::JumpSession, default_context(Platform::native())).unwrap();
+        let edits = ShortcutEdits::try_from(vec![ShortcutEdit {
+            action,
+            to: ShortcutTarget::Bindings {
+                keys: Bindings::default(),
+            },
+        }])
+        .unwrap();
+        shell.prefer(&PreferenceChange::Shortcuts { edits }, window, cx);
+        assert!(!shell.shortcut_badges_visible(window, cx));
+    });
+}

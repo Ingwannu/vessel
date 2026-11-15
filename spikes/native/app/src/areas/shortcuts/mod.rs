@@ -41,6 +41,7 @@ use vessel_app_view::shortcuts::{
     effective_bindings,
 };
 
+mod badges;
 mod core;
 pub(crate) mod dispatch;
 pub(crate) mod help_dialog;
@@ -71,6 +72,9 @@ pub(crate) struct ShortcutListener {
     window_observers: Option<(Subscription, Subscription)>,
     /// The chord held down, to tell the system's repeat from a press.
     held: Held,
+    badge_reveal: vessel_app_view::shortcuts::badges::Reveal,
+    badge_when: Option<vessel_app_view::shortcuts::context::When>,
+    badge_task: Option<gpui::Task<()>>,
 }
 
 #[derive(Default)]
@@ -104,6 +108,9 @@ impl ShortcutListener {
             subscription: None,
             window_observers: None,
             held: Held::default(),
+            badge_reveal: vessel_app_view::shortcuts::badges::Reveal::default(),
+            badge_when: None,
+            badge_task: None,
         }
     }
 
@@ -127,12 +134,14 @@ pub(crate) fn listen(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
         if !window.is_window_active() {
             shell.areas.shortcuts.engine.reset();
             shell.areas.shortcuts.held.release();
+            badges::clear(&mut shell.areas.shortcuts);
         }
     });
     let visibility = cx.observe_window_visibility(window, |shell, visibility, _window, _cx| {
         if !visibility.is_visible() {
             shell.areas.shortcuts.engine.reset();
             shell.areas.shortcuts.held.release();
+            badges::clear(&mut shell.areas.shortcuts);
         }
     });
     shell.areas.shortcuts.window_observers = Some((activation, visibility));
@@ -173,10 +182,12 @@ impl Shell {
             || TextField::focused_composing(window, cx)
         {
             self.areas.shortcuts.engine.reset();
+            badges::clear(&mut self.areas.shortcuts);
             return;
         }
         if !available(window) {
             self.areas.shortcuts.engine.reset();
+            badges::clear(&mut self.areas.shortcuts);
             self.areas.shortcuts.page.leave();
             return;
         }
@@ -205,6 +216,7 @@ impl Shell {
             Ok(true) => {
                 listener.engine.reset();
                 listener.held.release();
+                badges::clear(listener);
             }
             Ok(false) => {}
             Err(error) => {
@@ -325,5 +337,14 @@ pub(crate) fn navigation_changed(shell: &mut Shell) {
 pub(crate) fn modal_opened(shell: &mut Shell) {
     shell.areas.shortcuts.engine.reset();
     shell.areas.shortcuts.held.release();
+    badges::clear(&mut shell.areas.shortcuts);
     shell.areas.shortcuts.page.leave();
+}
+
+/// Preference writes cancel an old hold before another modifier/key arrives.
+pub(crate) fn preferences_changed(shell: &mut Shell) {
+    shell.areas.shortcuts.engine.reset();
+    shell.areas.shortcuts.held.release();
+    shell.areas.shortcuts.compiled.overrides = None;
+    badges::clear(&mut shell.areas.shortcuts);
 }

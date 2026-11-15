@@ -93,6 +93,7 @@ impl Shell {
                 } else {
                     CaptureRole::Ordinary
                 };
+                super::super::badges::clear(&mut self.areas.shortcuts);
                 self.areas.shortcuts.page.capture = Some(SequenceCapture::new(id, role));
                 window.blur(cx);
             }

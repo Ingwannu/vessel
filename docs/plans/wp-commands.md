@@ -262,3 +262,16 @@ and no longer labels workspace navigation as a fixed action. No complete local
 suite pass is claimed. From coordinator09:2x to12:30 all NEW Cargo work runs
 remotely; already waiting/running local jobs are left alone. Checks stay batched
 per meaningful slice, and one whole final native gate/review remains outstanding.
+
+## Workspace badge policy (written, not checked yet)
+
+The one root modifier observer feeds view::shortcuts::badges, which derives a
+single modifier from the effective workspace Digit template. Multi-step and
+multi-modifier overrides have no reveal key. One cancellable task reveals after
+150ms; Shift, blur/hidden, preference edits, capture and IME clear the hold. The
+listener and badge query share compiled definitions and their When predicate.
+The sidebar calls Shell::shortcut_badges_visible(window,cx); S2 alone supplies
+logical workspace target order (full filtered open groups, pinned first, with
+first9 badges, including rows beyond ShowMore paint caps). Child-agent sessions
+are excluded. No parallel target cache, defaults table or key interceptor exists.
+A GPUI modifier-event/timer/preference-reset regression is written, not run.
