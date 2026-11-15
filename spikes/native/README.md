@@ -1202,3 +1202,9 @@ are32/44 squares for Pointer/Touch, with no empty label or horizontal padding.
 its Button wrapper rejects on_click registration while disabled or pending.
 Catalog Add uses Outline+Small (28/px12 in both layouts), with the shared
 Small20 ActivityIndicator before its label. No area spinner or scaling is needed.
+
+Outline's compatibility entry now delegates to the same typed button renderer.
+Every variant uses Small28/px12/icon12 in either layout, or Medium32/px16/icon14
+for Pointer and44/px24/icon14 for Touch. Legacy signatures without a Window/App
+still choose Pointer; their owners can opt into the explicit layout API. This
+control does not infer one global layout for multiple windows.

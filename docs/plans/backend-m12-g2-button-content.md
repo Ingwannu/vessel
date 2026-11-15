@@ -40,3 +40,34 @@ A headless input regression deliberately supplies callbacks in every state.
 Existing legacy label APIs remain unchanged; their disabled callback convention
 is not retroactively changed by this new guarded entry. Source/narrow/UI proof
 is still owed for this checkpoint.
+
+Step3 unifies the existing outline compatibility wrapper with the same renderer.
+All five variants now share the measured Small/Medium geometry, icon-only width,
+text size/medium weight and pressed/disabled paint. Literal both-theme matrices
+cover every variant/size/layout/content state. No area caller is edited.
+The old outline wrapper retains its no-shrink behavior, but its label now uses
+the shared wrapping policy rather than a separate text subtree; affected existing
+caller files are listed below. Other legacy label behavior stays unchanged.
+
+The signature-compatible button_with_kind and outline_button receive no Window
+or App. Their Stateful<Div> is constructed before layout, so there is no reliable
+current window layout at that boundary. They remain Pointer32/px16; no guessed
+single-window global is introduced. Explicit typed callers get Touch44/px24.
+This is the coordinator-authorized compatibility limitation, not phone parity
+for every existing legacy caller. No other-owner caller migration is included.
+
+Existing outline caller inventory (source scan at this change):
+- `spikes/native/app/src/areas/about.rs`: 3 call(s).
+- `spikes/native/app/src/areas/about/marks.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/overview.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/sync/frame.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/general.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/devices/revoke.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/devices/invitation.rs`: 2 call(s).
+- `spikes/native/app/src/areas/settings/devices/rows.rs`: 2 call(s).
+- `spikes/native/app/src/areas/settings/devices/row/tests.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/agents/detail/defaults.rs`: 2 call(s).
+- `spikes/native/app/src/areas/settings/agents/detail.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/diagnostics.rs`: 3 call(s).
+- `spikes/native/app/src/areas/settings/agents/detail/facts.rs`: 1 call(s).
+- `spikes/native/app/src/areas/settings/agents/detail/sign_in.rs`: 1 call(s).

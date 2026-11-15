@@ -1,4 +1,6 @@
 //! Exact values from Paseo button.tsx and its light/default-dark theme.
+//! Kept as one419-line literal matrix so palette, legacy compatibility, content
+//! and size cases remain readable together; actual input has its own module.
 use super::*;
 use crate::Scheme;
 
@@ -285,6 +287,135 @@ fn catalog_small_outline_and_loading_have_literal_source_geometry_and_paint() {
                     }
                 );
             }
+        }
+    }
+}
+
+#[test]
+fn every_variant_size_layout_and_content_has_literal_source_dimensions() {
+    use crate::assets::Glyph;
+    for scheme in [Scheme::Light, Scheme::Dark] {
+        let tokens = Tokens::of(scheme);
+        for (size, sizing, height, horizontal, glyph, text) in [
+            (
+                ButtonSize::Small,
+                ControlSizing::Pointer,
+                28.0,
+                12.0,
+                12.0,
+                12.0,
+            ),
+            (
+                ButtonSize::Small,
+                ControlSizing::Touch,
+                28.0,
+                12.0,
+                12.0,
+                12.0,
+            ),
+            (
+                ButtonSize::Medium,
+                ControlSizing::Pointer,
+                32.0,
+                16.0,
+                14.0,
+                14.0,
+            ),
+            (
+                ButtonSize::Medium,
+                ControlSizing::Touch,
+                44.0,
+                24.0,
+                14.0,
+                14.0,
+            ),
+        ] {
+            for kind in [
+                ButtonKind::Primary,
+                ButtonKind::Secondary,
+                ButtonKind::Destructive,
+                ButtonKind::Ghost,
+                ButtonKind::Outline,
+            ] {
+                for state in [ButtonState::Enabled, ButtonState::Disabled] {
+                    for content in [
+                        ButtonContent::Label("Action".into()),
+                        ButtonContent::Icon(ButtonIcon::new(Glyph::ArrowUp)),
+                        ButtonContent::IconAndLabel {
+                            icon: ButtonIcon::new(Glyph::ArrowUp),
+                            label: "Action".into(),
+                        },
+                    ] {
+                        let only_icon = matches!(content, ButtonContent::Icon(_));
+                        let mut element = button_control(
+                            "matrix",
+                            content,
+                            ButtonConfig::new(kind, state, sizing).with_size(size),
+                            &tokens,
+                        );
+                        assert_eq!(element.style().min_size.height, Some(px(height).into()));
+                        assert_eq!(
+                            element.style().padding.left,
+                            Some(px(if only_icon { 0.0 } else { horizontal }).into())
+                        );
+                        assert_eq!(
+                            element.style().padding.right,
+                            Some(px(if only_icon { 0.0 } else { horizontal }).into())
+                        );
+                        assert_eq!(
+                            element.style().size.width,
+                            only_icon.then(|| px(height).into())
+                        );
+                        assert_eq!(element.style().text.font_size, Some(px(text).into()));
+                        assert_eq!(
+                            element.style().text.font_weight,
+                            Some(gpui::FontWeight::MEDIUM)
+                        );
+                        let mut actual_icon = icon_element(
+                            ButtonIcon::new(Glyph::ArrowUp),
+                            kind,
+                            state,
+                            size,
+                            &tokens,
+                        );
+                        assert_eq!(actual_icon.style().size.width, Some(px(glyph).into()));
+                        assert_eq!(actual_icon.style().size.height, Some(px(glyph).into()));
+                    }
+                }
+            }
+        }
+    }
+}
+#[test]
+fn outline_has_the_literal_reference_border_and_same_interaction_opacity() {
+    for (scheme, border, foreground) in [
+        (Scheme::Light, 0x00ec_ecf1, 0x001a_1a1e),
+        (Scheme::Dark, 0x002f_3534, 0x00fa_fafa),
+    ] {
+        let tokens = Tokens::of(scheme);
+        for (phase, opacity) in [
+            (ButtonPhase::Idle, 1.0),
+            (ButtonPhase::Hovered, 1.0),
+            (ButtonPhase::Pressed, 0.85),
+            (ButtonPhase::Disabled, 0.5),
+        ] {
+            assert_eq!(
+                button_paint(ButtonKind::Outline, phase, &tokens),
+                ButtonPaint {
+                    fill: gpui::transparent_black(),
+                    border: gpui::rgb(border).into(),
+                    text: gpui::rgb(foreground).into(),
+                    opacity
+                }
+            );
+        }
+        for enabled in [true, false] {
+            let mut legacy =
+                super::super::outline_button("legacy-outline", "Action", enabled, &tokens);
+            assert_eq!(legacy.style().min_size.height, Some(px(32.0).into()));
+            assert_eq!(legacy.style().padding.left, Some(px(16.0).into()));
+            assert_eq!(legacy.style().padding.right, Some(px(16.0).into()));
+            assert_eq!(legacy.style().border_color, Some(gpui::rgb(border).into()));
         }
     }
 }

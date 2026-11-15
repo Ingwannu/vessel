@@ -16,7 +16,7 @@ use gpui::prelude::*;
 use gpui::{Div, Hsla, SharedString, Stateful, div, px};
 
 /// Button meanings from Paseo (`default`, `secondary`, `destructive`,
-/// `ghost`). Outline retains its existing entry point.
+/// `ghost` and `outline`). The legacy outline entry delegates here too.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ButtonKind {
     /// The primary action, in the app's brand accent.
@@ -149,6 +149,8 @@ pub fn button_with_kind(
 
 /// The same shared button at the source's explicit pointer/touch geometry.
 /// Legacy entries remain Pointer until their owners migrate their callers.
+/// They receive neither Window nor App, so a multi-window layout cannot be
+/// discovered safely here; no global or guessed compact state is consulted.
 #[must_use]
 pub fn button_with_kind_at(
     id: impl Into<gpui::ElementId>,
