@@ -1,11 +1,9 @@
 //! Existing shared dialog, bound to the file owner's single original decision.
-use super::{
-    AnyElement, Context, IntoElement as _, LayoutKey, Shell, TabId, Tokens, Window, close::Decision,
-};
+use super::{AnyElement, Context, LayoutKey, Shell, TabId, Tokens, Window, close::Decision};
 use vessel_app_kit::{
     ButtonKind, ButtonState, Type, TypeExt as _, button, button_with_kind,
     dialog::{DialogContent, DialogSize, dialog as render_dialog},
-    ui::{ParentElement as _, StatefulInteractiveElement as _, Styled as _, div},
+    ui::{IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div},
 };
 
 pub(super) fn dialog(
