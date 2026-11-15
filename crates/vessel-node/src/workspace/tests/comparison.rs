@@ -43,6 +43,7 @@ async fn node_comparisons_keep_committed_working_and_all_distinct_and_reject_inv
         root,
         comparison,
         whitespace: GitWhitespace::Show,
+        reason: vessel_proto::workspace::GitReadReason::View,
     };
     assert_eq!(
         paths(
@@ -92,7 +93,10 @@ async fn node_comparisons_keep_committed_working_and_all_distinct_and_reject_inv
             }),
         }))
         .await;
-    assert!(matches!(invalid, Err(WorkspaceError::Invalid(_))));
+    assert_eq!(
+        invalid.unwrap_err().wire().code,
+        vessel_proto::ErrorCode::InvalidRequest
+    );
     assert_eq!(std::fs::read(repo.join(".git/index")).unwrap(), index);
     assert_eq!(
         std::fs::read_dir(&fixture.workspaces.dirs.scratch)
@@ -114,6 +118,7 @@ async fn an_unknown_root_fails_before_a_job_and_a_stopped_node_refuses_the_resol
         },
         comparison: GitComparison::Uncommitted,
         whitespace: GitWhitespace::Show,
+        reason: vessel_proto::workspace::GitReadReason::View,
     };
     assert!(matches!(
         fixture.workspaces.git_compare(unknown).await,
@@ -131,14 +136,13 @@ async fn an_unknown_root_fails_before_a_job_and_a_stopped_node_refuses_the_resol
             },
             comparison: GitComparison::Uncommitted,
             whitespace: GitWhitespace::Show,
+            reason: vessel_proto::workspace::GitReadReason::View,
         })
         .await;
-    assert!(matches!(
-        result,
-        Err(WorkspaceError::ComparisonJob(
-            super::super::comparison::JobError::Closed
-        ))
-    ));
+    assert_eq!(
+        result.unwrap_err().wire().code,
+        vessel_proto::ErrorCode::Unavailable
+    );
     assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }
@@ -155,6 +159,7 @@ async fn a_folder_cannot_be_requested_as_a_file_diff() {
                 },
                 comparison: GitComparison::Uncommitted,
                 whitespace: GitWhitespace::Show,
+                reason: vessel_proto::workspace::GitReadReason::View,
             },
             path: "".parse().unwrap(),
             from_hunk: GitHunkOffset::default(),
@@ -226,6 +231,7 @@ async fn the_same_resolved_snapshot_admits_only_the_recorded_worktree_stream() {
             }),
         },
         whitespace: GitWhitespace::Show,
+        reason: vessel_proto::workspace::GitReadReason::View,
     };
     assert!(paths(fixture.workspaces.git_compare(query("main")).await.unwrap()).is_empty());
     // A stopped tracker would refuse any admitted work. A mismatch still returns
@@ -263,6 +269,90 @@ async fn the_same_resolved_snapshot_admits_only_the_recorded_worktree_stream() {
             .count(),
         0
     );
+    assert!(fixture.tasks.close());
+    fixture.tasks.wait().await;
+}
+
+#[tokio::test]
+async fn explicit_refresh_bypasses_cached_working_changes_and_a_commit_invalidates_them() {
+    use vessel_proto::workspace::{CommitStage, GitReadReason};
+    let fixture = Fixture::new().await;
+    let repo = fixture.repo("comparison-cache", None);
+    let project = fixture
+        .workspaces
+        .add_project(repo.clone(), None)
+        .await
+        .unwrap();
+    let mut query = CompareGit {
+        root: WorkspaceRoot::Project {
+            project: project.id,
+        },
+        comparison: GitComparison::Uncommitted,
+        whitespace: GitWhitespace::Show,
+        reason: GitReadReason::View,
+    };
+    std::fs::write(repo.join("first"), "one\n").unwrap();
+    let first = BTreeSet::from(["first".to_owned()]);
+    assert_eq!(
+        paths(fixture.workspaces.git_compare(query.clone()).await.unwrap()),
+        first
+    );
+    std::fs::write(repo.join("second"), "two\n").unwrap();
+    assert_eq!(
+        paths(fixture.workspaces.git_compare(query.clone()).await.unwrap()),
+        first
+    );
+    query.reason = GitReadReason::Refresh;
+    assert_eq!(
+        paths(fixture.workspaces.git_compare(query.clone()).await.unwrap()),
+        BTreeSet::from(["first".to_owned(), "second".to_owned()])
+    );
+    let _outcome = fixture
+        .workspaces
+        .git_commit(
+            query.root,
+            &"save fixture".parse().unwrap(),
+            CommitStage::Everything,
+        )
+        .await
+        .unwrap();
+    query.reason = GitReadReason::View;
+    assert!(paths(fixture.workspaces.git_compare(query).await.unwrap()).is_empty());
+    fixture.stop.cancel();
+    assert!(fixture.tasks.close());
+    fixture.tasks.wait().await;
+}
+
+#[tokio::test]
+async fn a_cached_payload_cannot_bypass_revalidation_of_the_recorded_folder() {
+    let fixture = Fixture::new().await;
+    let repo = fixture.repo("removed-cached-root", None);
+    let project = fixture
+        .workspaces
+        .add_project(repo.clone(), None)
+        .await
+        .unwrap();
+    let query = CompareGit {
+        root: WorkspaceRoot::Project {
+            project: project.id,
+        },
+        comparison: GitComparison::Uncommitted,
+        whitespace: GitWhitespace::Show,
+        reason: vessel_proto::workspace::GitReadReason::View,
+    };
+    let _cached = fixture.workspaces.git_compare(query.clone()).await.unwrap();
+    std::fs::rename(&repo, repo.with_file_name("moved-cached-root")).unwrap();
+    assert_eq!(
+        fixture
+            .workspaces
+            .git_compare(query)
+            .await
+            .unwrap_err()
+            .wire()
+            .code,
+        vessel_proto::ErrorCode::Conflict
+    );
+    fixture.stop.cancel();
     assert!(fixture.tasks.close());
     fixture.tasks.wait().await;
 }

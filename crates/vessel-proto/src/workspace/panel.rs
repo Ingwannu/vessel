@@ -87,6 +87,30 @@ impl GitWhitespace {
     }
 }
 
+/// A forced refresh always carries a typed reason, never an unchecked flag.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum GitReadReason {
+    /// Ordinary demand uses the bounded freshness cache.
+    #[default]
+    View,
+    /// A person explicitly asked for a fresh comparison; this never fetches.
+    Refresh,
+    /// A known repository write requires facts after that mutation.
+    Mutation,
+    /// Observation recovered and needs a fresh baseline.
+    Recovery,
+}
+
+impl GitReadReason {
+    /// Ordinary reads omit this default on the pending wire contract.
+    #[must_use]
+    pub const fn is_view(&self) -> bool {
+        matches!(self, Self::View)
+    }
+}
+
 /// Pending `git.compare`: no arbitrary directory or command text is accepted.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -98,6 +122,9 @@ pub struct CompareGit {
     /// Included in the cache key so filtered output cannot poison other views.
     #[serde(default)]
     pub whitespace: GitWhitespace,
+    /// Bypassing freshness requires an explicit reason.
+    #[serde(default, skip_serializing_if = "GitReadReason::is_view")]
+    pub reason: GitReadReason,
 }
 
 /// Pending `git.compare_file`: one bounded file body in the same comparison.
@@ -173,6 +200,7 @@ mod tests {
                 root,
                 comparison: GitComparison::Uncommitted,
                 whitespace: GitWhitespace::Show,
+                reason: GitReadReason::View,
             },
             path: "src/main.rs".parse().unwrap(),
             from_hunk: GitHunkOffset::new(2),

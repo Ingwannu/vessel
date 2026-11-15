@@ -194,3 +194,44 @@ assert the same-snapshot facts, a successful main display alias, and summary/bod
 refusals even after the job tracker stops. Wire tests retain both identities.
 This changed tree still requires narrow checks and execution. Prior base-selection
 clippy at5f726c04 passed; it does not cover this admission addition.
+
+## Shared comparison cache and owned delivery
+
+The node now retains one bounded cache for typed summaries and file pages. The
+pure state follows checkout-diff-cache.ts and its own test fixtures: completed
+LRU64, active ownership independent of eviction, freshness15s, minimum read gap2s,
+forced-read reason, cancellation followed by cleanup, shared retry, and prevention
+of stale/failed completion repopulation. Root admission runs before a cache hit
+and again after waiting for an invalidated build. The existing four-worker/64-job
+Jobs tracker remains the only execution owner; dropping reply receivers does not
+drop preparation, subprocess cancellation or private-index cleanup.
+
+This is an API-shape departure: Vessel's existing lazy typed file pages share the
+same64-payload budget with summaries, instead of storing a whole text patch. File
+path and hunk continuation are cache identity, and a forced part refresh retires
+its sibling parts. There is no second patch parser. Arc shares result/error
+ownership with original typed error sources; the workspace wire adapter delegates
+to that original error rather than flattening it into a string or a false empty
+result. Existing writes retain a guard which invalidates both before and after
+their work, including partial failure/cancellation. File-system observation/push
+and the remaining history/generated-write work have not landed yet; this cache
+alone does not prove live observation or full C3 parity.
+
+Deterministic barriers cover shared active builds, cancellation cleanup, dropped
+receivers, failed-read retry, and reads during a write guard. Real repositories
+cover explicit refresh, a commit invalidating cached work, and revalidation of a
+moved cached root. The cache and new typed GitReadReason are new changed-source
+work and still require their narrow checks and execution. The previous
+f539a620 node/proto/workspace all-target clippy passed; its selected execution is
+still queued and does not include this cache.
+
+
+Selected f539a620 execution (wp-git-node-narrow-20261115T091000Z-f539a620)
+finished552 passed/1 failed: Node254/0, protocol298/1, then Cargo stopped before
+workspace. All real-node recorded-base summary/body admission cases passed.
+The remaining pinned-forwardable assertion still expected the two new methods
+beside git.changes, although gate40 integration correctly moved their table rows
+to the end. This change moves only those two expected entries to the table's end;
+no membership/version/permission is weakened. Its original red log is retained.
+The next changed-source suite must execute that regression and the previously
+unreached workspace cases along with the new cache tests.

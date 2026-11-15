@@ -111,3 +111,17 @@ Node shutdown cancels git commands and waits for tracked cleanup. The separate
 comparison queue admits at most64 reads and executes4 snapshots; it does not
 replace the runner's process pools. Cancellation/shutdown and resource-bound
 checks are required before pending method registration is called ready.
+
+
+## Comparison cache ownership
+
+The first cache implementation retains summaries and lazy typed body pages in
+one64-entry completed LRU. Active requests have a separate64 reservation bound and
+four execution slots. Tokio watch shares outcomes while the existing node task
+tracker owns execution through cleanup; no connection owns that future. A forced
+read names Refresh, Mutation or Recovery, retires sibling pages and awaits an
+older cancelled build before another root admission and a shared fresh build.
+Original callers can receive their own old snapshot; it never re-enters cache.
+Root resolution precedes every hit and every retry. Existing git writes invalidate
+before and after via a retained guard, including errors. File-system observation
+is still separate work; cache freshness is not proof of a push subscription.

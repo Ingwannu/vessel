@@ -164,7 +164,7 @@ pub(crate) struct Workspaces {
     state: Mutex<State>,
     indexes: Arc<Indexes>,
     /// Comparison reservations outlive disconnected reply receivers.
-    comparisons: comparison::Jobs,
+    comparisons: comparison::Reader,
     /// Running `file.find`s by caller and key, so a newer one stops the
     /// older one.
     searches: Mutex<HashMap<(Holder, u32), (u64, CancellationToken)>>,
@@ -236,7 +236,7 @@ impl Workspaces {
             places,
             state: Mutex::new(State::default()),
             indexes: Arc::new(Indexes::default()),
-            comparisons: comparison::Jobs::default(),
+            comparisons: comparison::Reader::default(),
             searches: Mutex::new(HashMap::new()),
             search_count: AtomicU64::new(0),
             removed,

@@ -1,6 +1,7 @@
 //! What a workspace call can fail with, mapped to the wire once.
 
-use super::comparison::JobError;
+use super::comparison::{CacheError, JobError};
+use std::sync::Arc;
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ErrorCode, ProjectId, WireError, WorktreeId};
 use vessel_store::StoreError;
@@ -49,6 +50,12 @@ pub(crate) enum WorkspaceError {
     /// Comparison admission, shutdown or reply delivery failed.
     #[error("{0}")]
     ComparisonJob(#[from] JobError),
+    /// Cache admission, typed payload validation or shared delivery failed.
+    #[error(transparent)]
+    ComparisonCache(#[from] CacheError),
+    /// Identical readers retain one typed failure and its source chain.
+    #[error("{0}")]
+    SharedComparison(#[source] Arc<WorkspaceError>),
     /// The store refused.
     #[error("the node could not record it")]
     Store(#[source] StoreError),
@@ -145,12 +152,17 @@ impl WorkspaceError {
             Self::Conflict(_) => ErrorCode::Conflict,
             Self::Busy(_)
             | Self::Git(GitError::TimedOut { .. })
-            | Self::ComparisonJob(JobError::Busy | JobError::Closed) => ErrorCode::Unavailable,
+            | Self::ComparisonJob(JobError::Busy | JobError::Closed)
+            | Self::ComparisonCache(CacheError::Refused(_)) => ErrorCode::Unavailable,
             Self::Git(_)
             | Self::Store(_)
             | Self::Io(_)
             | Self::Comparison(_)
-            | Self::ComparisonJob(JobError::Worker(_)) => ErrorCode::Internal,
+            | Self::ComparisonJob(JobError::Worker(_))
+            | Self::ComparisonCache(
+                CacheError::Channel(_) | CacheError::Payload { .. } | CacheError::Ownership,
+            ) => ErrorCode::Internal,
+            Self::SharedComparison(error) => return error.wire(),
         };
         if code == ErrorCode::Internal {
             tracing::warn!(error = %self, source = ?std::error::Error::source(self), "workspace call failed");

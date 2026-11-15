@@ -181,6 +181,9 @@ impl Workspaces {
         change: IndexChange,
     ) -> Result<GitStatus, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Working);
         let git = self.git()?;
         let dir = resolved.root.path();
         match change {
@@ -202,6 +205,9 @@ impl Workspaces {
         stage: CommitStage,
     ) -> Result<CommitOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Repository);
         Ok(self
             .git()?
             .commit(resolved.root.path(), message, stage)
@@ -218,6 +224,9 @@ impl Workspaces {
         remote: Option<&RemoteName>,
     ) -> Result<FetchOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::History);
         Ok(self.git()?.fetch(resolved.root.path(), remote).await?)
     }
 
@@ -232,6 +241,9 @@ impl Workspaces {
         set_upstream: bool,
     ) -> Result<PushOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::History);
         Ok(self
             .git()?
             .push(resolved.root.path(), remote, set_upstream)
@@ -247,6 +259,9 @@ impl Workspaces {
         root: WorkspaceRoot,
     ) -> Result<PullOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Repository);
         Ok(self.git()?.pull(resolved.root.path()).await?)
     }
 
@@ -261,6 +276,9 @@ impl Workspaces {
         create: Option<&WorktreeBase>,
     ) -> Result<SwitchOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Repository);
         let git = self.git()?;
         let outcome = git.switch(resolved.root.path(), branch, create).await?;
         if let Some(worktree) = resolved.worktree {
@@ -281,6 +299,9 @@ impl Workspaces {
         to: &BranchName,
     ) -> Result<RenameOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Repository);
         let git = self.git()?;
         let dir = resolved.root.path();
         let from = match from {
@@ -304,6 +325,9 @@ impl Workspaces {
         action: &StashAction,
     ) -> Result<StashOutcome, WorkspaceError> {
         let resolved = self.resolve_git(root).await?;
+        let _mutation = self
+            .comparisons
+            .mutating(root, super::comparison::Change::Working);
         Ok(self.git()?.stash(resolved.root.path(), action).await?)
     }
 }

@@ -564,8 +564,6 @@ const FORWARDABLE: &[&str] = &[
     "worktree.drop_snapshot",
     "git.status",
     "git.changes",
-    "git.compare",
-    "git.compare_file",
     "git.diff",
     "git.show",
     "git.branches",
@@ -636,6 +634,8 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "git.compare",
+    "git.compare_file",
 ];
 
 #[test]

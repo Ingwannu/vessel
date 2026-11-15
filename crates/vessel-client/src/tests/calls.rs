@@ -417,6 +417,7 @@ async fn pending_git_comparison_never_reaches_the_peer() {
             },
             comparison: GitComparison::Committed { base: None },
             whitespace: GitWhitespace::Show,
+            reason: vessel_proto::workspace::GitReadReason::View,
         })
         .await
         .unwrap_err();

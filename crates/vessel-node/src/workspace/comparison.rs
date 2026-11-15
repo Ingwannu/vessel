@@ -1,59 +1,37 @@
-//! ADR0087 reads use the existing root authority and tracker. A reply receiver
-//! owns no cleanup task; the node remains responsible after disconnection.
-
+//! ADR0087 reads share bounded completed payloads and node-owned active work.
+//! Every cache probe revalidates its root, including a retry after cancellation.
+mod cache;
 mod jobs;
+mod operation;
 mod pinned_base;
 
-use std::future::Future;
-use std::path::PathBuf;
-
-use vessel_proto::workspace::{
-    CompareGit, CompareGitFile, DiffSummary, FileDiff, GitCompared, GitComparison, GitWhitespace,
-    WorktreeBase,
-};
-use vessel_workspace::git::{Comparison, ComparisonError};
-use vessel_workspace::{Git, GitError};
-
 use super::{WorkspaceError, Workspaces};
+use cache::{Owner, ReadReason, ReadStep, Snapshot, Subject};
+use std::sync::Arc;
+use vessel_proto::workspace::{
+    CompareGit, CompareGitFile, DiffSummary, FileDiff, GitCompared, GitReadReason,
+};
+use vessel_workspace::GitError;
 
+pub(super) use cache::{CacheError, Change, PayloadKind, Reader};
 pub(crate) use jobs::JobError;
-pub(super) use jobs::Jobs;
-
-/// Prepared from one freshly validated workspace, never a client path.
-struct Operation {
-    git: Git,
-    directory: PathBuf,
-    base: Option<WorktreeBase>,
-    scratch: PathBuf,
-    comparison: GitComparison,
-    whitespace: GitWhitespace,
-}
-
-impl Operation {
-    fn query(&self) -> Comparison<'_> {
-        Comparison {
-            directory: &self.directory,
-            kind: &self.comparison,
-            base: self.base.as_ref(),
-            whitespace: self.whitespace,
-            scratch: &self.scratch,
-        }
-    }
-}
 
 impl Workspaces {
-    /// The pending comparison summary, with an honest absent-base/limit state.
     pub(crate) async fn git_compare(
         &self,
         request: CompareGit,
     ) -> Result<GitCompared<DiffSummary>, WorkspaceError> {
-        self.run_comparison(request, move |operation| async move {
-            operation.git.comparison_changes(operation.query()).await
-        })
-        .await
+        let snapshot = self.run_comparison(request, Subject::Summary).await?;
+        match snapshot.as_ref() {
+            Snapshot::Summary(data) => Ok(data.clone()),
+            Snapshot::File(_) => Err(CacheError::Payload {
+                expected: PayloadKind::Summary,
+                received: snapshot.kind(),
+            }
+            .into()),
+        }
     }
 
-    /// A bounded file body in the identical comparison/whitespace policy.
     pub(crate) async fn git_compare_file(
         &self,
         request: CompareGitFile,
@@ -63,47 +41,59 @@ impl Workspaces {
                 "a comparison body needs a file path".to_owned(),
             ));
         }
-        self.run_comparison(request.query, move |operation| async move {
-            operation
-                .git
-                .comparison_file(operation.query(), &request.path, request.from_hunk)
-                .await
-        })
-        .await
+        let snapshot = self
+            .run_comparison(
+                request.query,
+                Subject::File {
+                    path: request.path,
+                    offset: request.from_hunk,
+                },
+            )
+            .await?;
+        match snapshot.as_ref() {
+            Snapshot::File(data) => Ok(data.clone()),
+            Snapshot::Summary(_) => Err(CacheError::Payload {
+                expected: PayloadKind::File,
+                received: snapshot.kind(),
+            }
+            .into()),
+        }
     }
 
-    async fn run_comparison<T, F, Make>(
+    async fn run_comparison(
         &self,
-        request: CompareGit,
-        make: Make,
-    ) -> Result<GitCompared<T>, WorkspaceError>
-    where
-        T: Send + 'static,
-        F: Future<Output = Result<Option<T>, ComparisonError>> + Send + 'static,
-        Make: FnOnce(Operation) -> F,
-    {
-        // This precedes both reservation and I/O; a future cache hit must keep
-        // the same revalidation rather than trusting a previously resolved root.
-        let resolved = self.resolve_git(request.root).await?;
-        let comparison = match pinned_base::admit(resolved.pinned_base.as_ref(), request.comparison)
-        {
-            Ok(comparison) => comparison,
-            Err(pinned_base::BaseRefusal::Mismatch { stored, requested }) => {
-                return Ok(GitCompared::BaseMismatch { stored, requested });
+        mut request: CompareGit,
+        subject: Subject,
+    ) -> Result<Arc<Snapshot>, WorkspaceError> {
+        loop {
+            // A cached value is not root authority. After waiting for a cancelled
+            // job's cleanup the next loop resolves the registry snapshot again.
+            let prepared = self.prepare_comparison(&request, subject.clone()).await?;
+            let read = match prepared {
+                operation::Prepared::Refused(reply) => return Ok(reply),
+                operation::Prepared::Read(read) => read,
+            };
+            let operation::ReadOperation { key, operation } = *read;
+            let owner = Owner {
+                tasks: &self.tasks,
+                stop: &self.stop,
+            };
+            match self
+                .comparisons
+                .read(
+                    key,
+                    ReadReason::from(request.reason),
+                    owner,
+                    move |cancel| operation.run(cancel),
+                )
+                .await?
+            {
+                ReadStep::Complete(reply) => {
+                    return reply.map_err(WorkspaceError::SharedComparison);
+                }
+                ReadStep::Retry => request.reason = GitReadReason::View,
             }
-        };
-        let operation = Operation {
-            git: self.git()?.cancellable(self.stop.child_token()),
-            directory: resolved.root.path().to_owned(),
-            base: resolved.base(),
-            scratch: self.dirs.scratch.clone(),
-            comparison,
-            whitespace: request.whitespace,
-        };
-        let pending = self
-            .comparisons
-            .submit(&self.tasks, self.stop.clone(), make(operation))?;
-        compared(pending.result().await?.map_err(WorkspaceError::from))
+        }
     }
 }
 
