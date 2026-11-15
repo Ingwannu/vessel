@@ -269,3 +269,12 @@ shared Machine snapshot deliberately retains its authenticated epoch/protocol
 when that read is denied. Label availability now uses admission plus its own
 feature capability, never Reach (a session-read result). The capability
 regression distinguishes denied session reads from a missing/retired epoch.
+
+Two GPUI regressions now exercise the real Shell dispatch with its existing
+detached bounded link and isolated `without_io` factory. They verify that a
+same-node reconnect rejects an old Save before queue submission; a wrong-context
+or wrong-kind answer cannot settle the fresh operation; the original refusal
+still settles after transport retirement while retaining exact draft text; and
+an inspected deletion cannot be sent on a newer admission. The tests do not
+create connections, touch credentials/configuration or prove node persistence.
+Their execution is pending the next current-head remote native batch.

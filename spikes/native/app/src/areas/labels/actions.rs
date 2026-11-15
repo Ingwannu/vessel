@@ -270,3 +270,6 @@ mod admission_tests {
         assert!(!action.is_current(Some(opening), &manager, None));
     }
 }
+
+#[cfg(test)]
+mod dispatch_tests;
