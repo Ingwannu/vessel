@@ -1596,3 +1596,18 @@ every cron expression; only an elapsed interval count uses Body. Placeholder
 follows that same parsed cadence distinction. No new font override/control or
 parse-during-paint was introduced. This later source is not covered by queued
 2a20's outcome; combined consumer proof remains owed.
+
+
+### Selection-preference persistence remains a source gap
+
+Pinned schedule-form-sheet.tsx294–315 builds selection preferences and
+submitNewAgent334 awaits them before create/update. Heartbeat submit316–325
+does not persist new-agent choices. Current F1 Save dispatch has not yet wired
+this step: it is a gap, not a parity exception or an already working default.
+Existing native Prefs::choices/keep_choices and Command::SavePrefs are the
+canonical assets to inspect/reuse; Draft already uses them for a new session.
+Do not introduce a schedule-local preference store, copy the draft picker or
+claim isolation persistence before its actual runtime option exists. Its
+local-save failure/ordering and remembered-choice readback need explicit
+consumer coverage before the final F1 proof. No preferences were changed by
+this documentation inventory.
