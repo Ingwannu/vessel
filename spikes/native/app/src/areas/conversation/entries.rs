@@ -55,6 +55,8 @@ pub(super) struct Paint<'a> {
     pub(super) fleet: &'a vessel_app_view::Fleet,
     /// What a fork's first line has above or under it (`origin`).
     pub(super) above: super::origin::Above<'a>,
+    /// A message's files as they are drawn (track P's).
+    pub(super) files: crate::areas::composer::SentFiles<'a>,
 }
 
 /// Entry `index` as its row.
@@ -68,7 +70,7 @@ pub(super) fn entry(
 ) -> AnyElement {
     let words = paint.words;
     match &entry.kind {
-        EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None),
+        EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None, cx),
         EntryKind::Steer { text, attachments } => bubbles::person(
             paint,
             index,
@@ -79,6 +81,7 @@ pub(super) fn entry(
                 attachments: attachments.clone(),
             },
             Some(words.steered().to_owned()),
+            cx,
         ),
         // Claude's reply that only repeats the failure ending its turn
         // (Paseo holds it back): the failure says it once.

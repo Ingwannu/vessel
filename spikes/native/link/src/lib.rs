@@ -155,6 +155,13 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
 /// Something the link could not do.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum LinkError {
+    /// Preserve the node or transport cause of a failed preview read.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error(transparent)]
+    AttachmentCall(#[from] vessel_rpc::CallError),
+    /// A malformed or interrupted image read, without server content.
+    #[error("the attachment read failed: {0:?}")]
+    AttachmentRead(attachments::ReadProblem),
     /// No home or configuration directory.
     #[error("no configuration directory")]
     NoHome,
@@ -391,15 +398,8 @@ pub enum Event {
     },
     /// A session started from the app, to open.
     Started(Card),
-    /// A step of a composer's file on its way to its session.
-    Upload {
-        /// The session.
-        session: SessionId,
-        /// The file's place in the composer's tray.
-        key: vessel_app_view::composer::tray::ItemKey,
-        /// What happened.
-        step: attachments::Step,
-    },
+    /// A composer's file on its way, or a sent image read back.
+    Files(attachments::Answer),
     /// A prompt was delivered.
     Sent {
         /// The session.

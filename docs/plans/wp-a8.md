@@ -71,8 +71,26 @@ calls implement the entire transport; no new wire method is needed.
 
 ## Validation and resume point
 
-No runtime or gate evidence yet. Build skeleton first, finish sent-image
-reads and viewer, exercise the real UI against isolated fake nodes,
+First working skeleton is implemented: bounded image cache and reads,
+tray/sent-frame click wiring, full-window fit/zoom/pan modal with focus
+restoration, and ended-session resume-before-upload. File acquisition
+runs inspection in the background and captures its destination before
+waiting. Actual desktop input proof is still outstanding.
+
+Narrow view test run initially reported 75 passed and one failure: fit
+ratio rounding overshot a 960-point presentation cap. The implementation
+now fixes the limiting edge exactly; the corrected run is still owed.
+An earlier narrow invocation used the root toolchain by mistake and was
+refused before compiling; native commands run inside their own workspace.
+The native app narrow clippy is pending. No whole gate has run yet.
+
+Next: finish narrow checks and UI regressions, exercise the real UI against isolated fake nodes,
 then run one whole native gate and submit one package review. No live
 node, real agent, or preview process is involved. A centrally integrated
 base will be merged when supplied; no package-local node integration.
+
+The native link directly names the existing RPC error type to retain a
+read/resume cause; this adds no external dependency. Toolbar plus, minus
+and maximize glyphs reuse the kit's current glyph set instead of adding
+Paseo's zoom/scan drawings. The labels and tooltips retain the same
+meaning; compact buttons keep the kit's 44-point touch minimum.

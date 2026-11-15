@@ -133,3 +133,14 @@ then fill context and mention skeletons. The first narrow view run's
 rounding failure and clippy corrections are retained in the logs; there
 is no full gate or UI approval yet. The package is not complete merely
 because image attachments work.
+
+## Integration checkpoint
+
+The preview/context draft is committed to make the required package-base
+merge reviewable. Narrow compilation has not passed yet: the first runs
+found inherited sort/clamp lints, missing context error documentation,
+and a theme constant's misplaced doc comment; these were corrected. The
+latest source also adds a typed file-mention state skeleton which still
+owes its narrow tests. No full gate or runtime capture is claimed by this
+checkpoint. External receipt/create/directory/forge/plugin interfaces are
+being supplied by their owners; no duplicate protocol types are created.

@@ -17,7 +17,12 @@ use crate::shell::Shell;
 /// The person's message the moment it is sent, before the node records
 /// it (Paseo's pending `UserMessage`): drawn as the message it becomes,
 /// at `index`, the entry it will be.
-pub(super) fn pending(paint: &Paint<'_>, index: usize, text: &str) -> AnyElement {
+pub(super) fn pending(
+    paint: &Paint<'_>,
+    index: usize,
+    text: &str,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
     person(
         paint,
         index,
@@ -28,6 +33,7 @@ pub(super) fn pending(paint: &Paint<'_>, index: usize, text: &str) -> AnyElement
             attachments: Vec::new(),
         },
         None,
+        cx,
     )
 }
 
@@ -38,25 +44,16 @@ pub(super) fn person(
     index: usize,
     prompt: &Prompt,
     corner: Option<String>,
+    cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
-    let files = (!prompt.attachments.is_empty()).then(|| {
-        div()
-            .flex()
-            .flex_wrap()
-            .gap(px(4.0))
-            .children(prompt.attachments.iter().map(|file| {
-                div()
-                    .px(px(8.0))
-                    .py(px(2.0))
-                    .rounded(px(6.0))
-                    .border_1()
-                    .border_color(paint.look.border)
-                    .type_(Type::Meta)
-                    .text_color(paint.look.secondary)
-                    .child(file.name.to_string())
-            }))
-    });
+    // Its files as Paseo's user message shows them (track P's `SentFiles`).
+    let files = (paint.files).block(
+        &prompt.attachments,
+        !prompt.text.is_empty(),
+        paint.tokens,
+        cx,
+    );
     div()
         .flex()
         .flex_col()

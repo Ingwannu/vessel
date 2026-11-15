@@ -17,7 +17,7 @@ build it, and its tree (GPUI's) stays out of the main lock file.
 | Crate | Owns | Must not | Depends on |
 | --- | --- | --- | --- |
 | `view` (`vessel-app-view`) | what a screen means: the board's lanes and phrases, a conversation folded from its records, the permissions waiting; **the words** (`view/src/text/`, the legacy area tables; `view/locales/`, the staged Fluent catalog of ADR 0039) | use any UI toolkit; do I/O | `vessel-proto` |
-| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client` |
+| `link` (`vessel-app-link`) | the nodes: the book, connecting, the session list, a session's stream, prompts, answers, pairing; the app's remembered choices (`prefs.rs`); a tokio runtime of its own, commands in and events out on bounded channels (a command the queue does not take comes back typed from `Link::submit`, and the app settles what waited on it in its own words: `app/src/unsent.rs`) | use any UI toolkit | `vessel-app-view`, `vessel-proto`, `vessel-client`, `vessel-rpc` |
 | `kit` (`vessel-app-kit`) | Vessel's kit: the design system's tokens in both themes, the type scale with the faces embedded, the controls (button, choice, text field, Markdown), the window's chrome (title bar, window controls, resize edges), its glyphs | know about nodes or sessions | - |
 | `app` (`vessel-app`) | the window, the routes, the areas (screens), the binary | name `gpui-platform` outside its entry points (`main.rs`; `web.rs` in a browser build); depend on `gpui-component` (the kit's); hold a sentence of its own (words come from `view::localization` or the remaining `view::Text` tables) | `vessel-app-kit`, `vessel-app-link`, `vessel-app-view`, `vessel-proto`, `vessel-app-log`, `vessel-app-updater` |
 
@@ -123,7 +123,9 @@ app/src/
                    column (at most 820 wide, 16 from the edges), permissions, stop
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
-                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs), files
+                   attached and sent (attach.rs, files.rs), sent images' pictures
+                   in the conversation (sent.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update
@@ -997,3 +999,20 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+### Attachment previews
+
+Click an image in either the composer tray or a sent message to open the
+window lightbox. Its toolbar zooms in/out, resets fit, and closes; a
+modifier-wheel or a platform pinch zooms at the pointer, and dragging
+pans within the image bounds. Escape, the close action, and a tap outside
+the image dismiss it and restore the previous field's focus. Failed
+image reads and decodes show a translated failure rather than staying in
+a loading state. The overlay uses the shared surface transition, held
+still by the existing reduced-motion setting.
+
+An ended session resumes before its attachments upload; no text-only
+prompt is sent first. The same upload, progress and retry tray is used
+for new, running and resumed conversations. System file selection and
+file-manager clipboard/drop delivery depend on the platform integration;
+virtual-display captures cannot prove a desktop portal or URI-list paste.

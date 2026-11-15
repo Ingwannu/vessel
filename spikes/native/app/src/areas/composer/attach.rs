@@ -34,17 +34,20 @@ pub(crate) struct Incoming {
 }
 
 impl Incoming {
-    /// A file on this device (its size read now; one that cannot be read
-    /// is not attached).
-    pub(crate) fn file(path: PathBuf) -> Option<Self> {
-        let size = std::fs::metadata(&path)
-            .ok()
-            .filter(std::fs::Metadata::is_file)?
-            .len();
-        let name = path.file_name()?.to_string_lossy().into_owned();
-        Some(Self {
+    /// Inspect on the background executor; a refusal stays visible to the user.
+    pub(crate) fn file(path: PathBuf) -> Result<Self, LocalFileProblem> {
+        let metadata = std::fs::metadata(&path).map_err(LocalFileProblem::Read)?;
+        if !metadata.is_file() {
+            return Err(LocalFileProblem::NotFile);
+        }
+        let name = path
+            .file_name()
+            .ok_or(LocalFileProblem::NoName)?
+            .to_string_lossy()
+            .into_owned();
+        Ok(Self {
             name,
-            size,
+            size: metadata.len(),
             origin: Origin::File(path),
         })
     }
@@ -64,6 +67,14 @@ impl Incoming {
             origin: Origin::Pasted(Arc::from(bytes)),
         }
     }
+}
+
+/// Inspection failures stay typed and never include file contents.
+#[derive(Debug)]
+pub(super) enum LocalFileProblem {
+    Read(std::io::Error),
+    NotFile,
+    NoName,
 }
 
 /// A prompt waiting for its files.
@@ -209,6 +220,47 @@ impl Shell {
         true
     }
 
+    /// Resume an ended conversation before uploading, preserving the pending
+    /// text and tray if resuming fails. No plain-text prompt escapes first.
+    pub(crate) fn resume_attachment_prompt(
+        &mut self,
+        text: &str,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(open) = self.areas.session.open.as_ref() else {
+            return;
+        };
+        let session = open.session;
+        let machine = open.machine.clone();
+        let Ok(key) = vessel_app_view::machine_book::Name::parse(&machine) else {
+            self.toast(
+                self.words.composer().file_wake_failed(),
+                vessel_app_view::toasts::ToastTone::Error,
+                cx,
+            );
+            return;
+        };
+        drop(self.areas.composer.sends.insert(
+            session,
+            Waiting {
+                machine,
+                text: text.to_owned(),
+                delivery: Delivery::Queue,
+            },
+        ));
+        self.areas.session.resuming = Some(text.to_owned());
+        self.areas.session.resume_error = None;
+        self.command(Command::Files(Files::Wake(
+            vessel_app_link::attachments::Wake {
+                machine: key,
+                session,
+            },
+        )));
+        self.session_composer_sent(window, cx);
+        cx.notify();
+    }
+
     /// The new chat's start, with its files: a start without its prompt
     /// when the new chat holds files (the prompt follows them), the start
     /// as it was otherwise.
@@ -329,6 +381,7 @@ impl Shell {
             })
             .collect();
         if let Readiness::Ready(attachments) = tray.readiness() {
+            super::sent::seed(&composer.sent, &waiting.machine, session, tray);
             tray.clear();
             drop(composer.sends.remove(&session));
             commands.push(Command::Files(Files::Prompt(WithFiles {

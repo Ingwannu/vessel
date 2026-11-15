@@ -66,3 +66,23 @@ composer-file-changed = The file changed while it was sent
 composer-file-unreadable = The file couldn't be read
 # A pill's second line: the upload failed; a click tries it again.
 composer-file-failed = Upload failed. Click to try again
+
+# Lightbox status and accessible actions (Paseo message.attachments).
+# Image viewer action or status; a complete label.
+composer-image-loading = Loading image…
+# Image viewer action or status; a complete label.
+composer-image-failed = Failed to load image
+# Image viewer action or status; a complete label.
+composer-image-close = Close image
+# Image viewer action or status; a complete label.
+composer-image-zoom-in = Zoom in
+# Image viewer action or status; a complete label.
+composer-image-zoom-out = Zoom out
+# Image viewer action or status; a complete label.
+composer-image-reset = Reset zoom
+
+# Toast when the platform file dialog is unavailable or fails.
+composer-file-pick-failed = The file picker couldn't be opened
+
+# Resume failed before upload; the composer retains its files and restores text.
+composer-file-wake-failed = The session couldn't resume. Your attachments are still here.

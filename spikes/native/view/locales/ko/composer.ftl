@@ -57,3 +57,23 @@ composer-file-changed = 보내는 동안 파일이 바뀌었습니다
 composer-file-unreadable = 파일을 읽지 못했습니다
 # 첨부의 둘째 줄: 업로드 실패, 누르면 다시 시도.
 composer-file-failed = 업로드하지 못했습니다. 누르면 다시 시도합니다
+
+# 이미지 확대 보기 상태와 동작.
+# Image viewer action or status; a complete label.
+composer-image-loading = 이미지를 불러오는 중…
+# Image viewer action or status; a complete label.
+composer-image-failed = 이미지를 불러오지 못했습니다
+# Image viewer action or status; a complete label.
+composer-image-close = 이미지 닫기
+# Image viewer action or status; a complete label.
+composer-image-zoom-in = 확대
+# Image viewer action or status; a complete label.
+composer-image-zoom-out = 축소
+# Image viewer action or status; a complete label.
+composer-image-reset = 확대 초기화
+
+# Toast when the platform file dialog is unavailable or fails.
+composer-file-pick-failed = 파일 선택 창을 열지 못했습니다
+
+# Resume failed before upload; the composer retains its files and restores text.
+composer-file-wake-failed = 세션을 다시 시작하지 못했습니다. 첨부 파일은 그대로 보관됩니다.
