@@ -27,6 +27,9 @@ fn observed(shell: &mut Shell, notice: &Notice, _cx: &mut Context<'_, Shell>) {
     shell.areas.layout.menu_tab = Some((notice.workspace().clone(), notice.tab()));
     shell.notice = Some(format!("{:?}:{:?}", notice.reason(), notice.target()));
 }
+fn forbidden_replacement(_shell: &mut Shell, _notice: &Notice, _cx: &mut Context<'_, Shell>) {
+    panic!("a duplicate registration replaced the original owner");
+}
 fn retarget(
     shell: &mut Shell,
     key: &LayoutKey,
@@ -64,7 +67,7 @@ fn two_committed_retargets_notify_before_any_poll_and_duplicate_registration_ref
             .layout_register_retirement(Owner::Git, observed)
             .unwrap();
         assert_eq!(
-            shell.layout_register_retirement(Owner::Scripts, observed),
+            shell.layout_register_retirement(Owner::Scripts, forbidden_replacement),
             Err(LayoutError::InvalidState)
         );
         let key = key();
@@ -361,5 +364,32 @@ fn acknowledged_alias_change_notifies_even_if_local_collision_keeps_both_trees(
         );
         assert_eq!(shell.areas.layout.menu_tab.as_ref(), Some(&(old, tab)));
         assert_eq!(*shell.areas.layout.book.borrow(), before);
+    });
+}
+
+#[gpui::test]
+fn failed_first_transaction_creates_no_workspace_or_owner_notice(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _window, cx| {
+        shell
+            .layout_register_retirement(Owner::Scripts, observed)
+            .unwrap();
+        let key = key();
+        let result: Result<(), LayoutError> =
+            shell.update_layout(&key, |_layout| Err(LayoutError::MissingTab), cx);
+        assert_eq!(result, Err(LayoutError::MissingTab));
+        assert!(
+            shell
+                .areas
+                .layout
+                .book
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .get(&key)
+                .is_none()
+        );
+        assert!(shell.areas.layout.menu_tab.is_none());
     });
 }
