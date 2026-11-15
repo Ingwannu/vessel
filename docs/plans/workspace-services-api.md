@@ -80,16 +80,16 @@ Staged Handler defaults answer Unsupported and require the constant
 to stay None. Add exactly each new Method variant to workspace/policy.rs's
 refused deny arm, with no other node service edit in the values package.
 
-| Variant / client wrapper | Wire name | Scope | Request -> response |
-| --- | --- | --- | --- |
-| ListWorkspaceScripts / workspace_scripts | workspace.script.list | Read | WorkspaceScriptQuery -> WorkspaceScriptQueryResult |
-| StartWorkspaceScript / start_workspace_script | workspace.script.start | Operate | StartWorkspaceScript -> WorkspaceScriptOutcome |
-| StopWorkspaceScript / stop_workspace_script | workspace.script.stop | Operate | StopWorkspaceScript -> WorkspaceScriptOutcome |
-| RestartWorkspaceScript / restart_workspace_script | workspace.script.restart | Operate | RestartWorkspaceScript -> WorkspaceScriptOutcome |
-| GetWorkspaceServiceEnv / workspace_service_env | workspace.service.env | Read | GetWorkspaceServiceEnv -> ServiceEnvPlan |
-| GetServiceSettings / service_settings | service.settings | Admin | GetServiceSettings -> ServicesAdminSettings |
-| SetServiceGateway / set_service_gateway | service.set_gateway | Admin | SetServiceGateway -> ServiceSettingsOutcome |
-| SetServiceExposure / set_service_exposure | service.set_exposure | Admin | SetServiceExposure -> ServiceSettingsOutcome |
+| Variant / client wrapper | Wire name | Scope | Forwardable | Request -> response |
+| --- | --- | --- | --- | --- |
+| ListWorkspaceScripts / workspace_scripts | workspace.script.list | Read | false | WorkspaceScriptQuery -> WorkspaceScriptQueryResult |
+| StartWorkspaceScript / start_workspace_script | workspace.script.start | Operate | false | StartWorkspaceScript -> WorkspaceScriptOutcome |
+| StopWorkspaceScript / stop_workspace_script | workspace.script.stop | Operate | false | StopWorkspaceScript -> WorkspaceScriptOutcome |
+| RestartWorkspaceScript / restart_workspace_script | workspace.script.restart | Operate | false | RestartWorkspaceScript -> WorkspaceScriptOutcome |
+| GetWorkspaceServiceEnv / workspace_service_env | workspace.service.env | Read | false | GetWorkspaceServiceEnv -> ServiceEnvPlan |
+| GetServiceSettings / service_settings | service.settings | Admin | false | GetServiceSettings -> ServicesAdminSettings |
+| SetServiceGateway / set_service_gateway | service.set_gateway | Admin | false | SetServiceGateway -> ServiceSettingsOutcome |
+| SetServiceExposure / set_service_exposure | service.set_exposure | Admin | false | SetServiceExposure -> ServiceSettingsOutcome |
 
 Client wrappers live in a separate client module and delegate to the existing
 typed call path. No second method/number/dispatch table, raw call string or
@@ -98,6 +98,54 @@ inner refusal before effects, current/older peers, method scope/shape,
 default staged Unsupported and every new policy deny line. Keep existing
 family cases unchanged; append new names where the head's family test
 requires them. Only the real handler commit changes staged to pending.
+
+### Exact principal and delegation admission
+
+Every row above is nonforwardable, including both Read calls. Add its
+variant to the false arm of the existing Method::forwardable match;
+no second forwarding list or string-based routing is introduced. The
+current contract grants no fleet.forward, fleet.relay or fleet.deliver
+path. The staged Unsupported default is not the forwarding policy.
+This conservative staging choice does not inherit the legacy script
+calls' forwarding permission. Broader forwarding requires a separate
+coordinator decision and security review before the real handler changes it.
+
+For all five workspace-scoped Read/Operate methods, the intended real
+handler accepts only a directly authenticated Principal::Owner or
+Principal::Device with the row's scope granted by THIS node. It must still
+validate the canonical local WorkspaceId and the runtime admission rules.
+A foreign workspace id or caller-provided directory cannot select/create
+local ownership. Principal::Agent and Principal::Delegated always refuse,
+including a delegated origin claiming Owner or a forged Admin scope.
+
+The three dedicated settings methods use the stricter same direct rule:
+Principal::Owner or a directly authenticated Principal::Device with Admin,
+for BOTH settings Read and writes. A device with only Read/Operate is
+refused. Every Principal::Agent and Principal::Delegated is refused even
+if its scope vector contains Admin; an origin's Owner label is not the
+connection's Owner principal. No transport address or peer node label
+substitutes for this node's authenticated principal and grant. A paired
+device directly authenticated to this node is a direct Device; a call
+relayed on behalf of another node remains Delegated and is refused.
+
+The real handler must enforce this direct-principal check independently
+of the envelope's nonforwardable check, before settings lookup, registry
+lookup, snapshot construction, helper work, reservation, persistence or
+any network/process effect. Values-only staging adds only the required
+policy deny lines; it does not implement or claim this future admission.
+While the feature is None, the shared protocol/staged refusal remains
+in force even for otherwise eligible direct callers.
+
+Tests pin all eight forwardable=false choices and existing forwardable
+entries unchanged. Crafted Forward/Relay/Deliver envelopes must refuse
+before the handler/effect spy, including owner-labelled origins, foreign
+nodes, agent origins and forged Admin scopes. Direct handler admission
+tests cover Owner, direct Device with/without the exact scope, Agent with
+all scopes, and Delegated owner/device/agent origins with all scopes.
+Use retained lookup/write/reservation/spawn/dial counters to prove every
+refusal precedes effects; no private setting may be observed by a rejected
+Read. Staged tests pin pre-send refusal and default Unsupported separately
+from the real handler's later direct-principal tests.
 
 ## Snapshot and operation values
 
@@ -190,6 +238,52 @@ peer projection. Test every direct, nested and forwarded approval path;
 do not expose a digest/approved field to a peer that cannot display it.
 Unknown observations do not enable any operation; unknown mutation choices
 refuse. No ProcessLifetime, PID or kernel proof is serialized by these DTOs.
+
+## Retained snapshots and waiting reads
+
+Pagination does not create a retained snapshot archive. The runtime keeps
+at most the latest materialized snapshot per canonical workspace and no
+per-cursor copies. A replacement makes an old cursor Stale; a missing or
+expired current materialization is Unavailable/Stale, never reconstructed
+as though it were the old observation. A waiter retains only its etag and
+bounded watch state, not a page or prior row collection.
+
+The retained workspace count uses the qualified registry owner's
+vessel_store::registry::MAX_WORKSPACES; current configured row counts use
+MAX_PROJECT_COMMANDS, with removed-running rows bounded by the existing
+node terminal MAX_LIVE owner. These qualified dependencies are prerequisites
+for wiring, not constants copied into proto. If the owners are absent,
+the real handler stays Unavailable. Count caps do not replace a byte cap.
+
+The runtime's node-wide retained snapshot byte pool uses
+MAX_SERVICE_CACHE_BYTES from Bound ownership. It accounts for all owned
+rows, definitions, terminal metadata, generated environment peers and URL
+text, including any snapshot allocation still retained by an asynchronous
+operation after replacement. Charge capacity before allocating/retaining;
+release only when the actual owner is dropped, not when its caller times
+out. Over-budget data produces a typed unavailable/busy result without
+truncation. An old snapshot cannot remain current when new data failed
+admission. Idle materializations expire after the existing terminals
+MAX_WAIT_SECS duration, refreshed only by an actual complete new observation.
+No cursor access or caller activity extends an old observation's lifetime.
+
+After queries use the existing service Connection wait accounting:
+NodeService::wait_slot and Waits/WaitSlot from node/waits.rs, including their
+PER_CONNECTION and PER_ORIGIN owners. They additionally take a node-wide
+MAX_SERVICE_WAITERS permit. Past either share, return the current snapshot
+or NotChanged immediately without waiting, as the existing wait mechanism
+does. Page/Initial never hold a long-poll slot. The existing terminal
+MAX_WAIT_SECS is the deadline; transport close, workspace invalidation and
+node shutdown also end the wait. The actual wait task holds both shares
+until it settles; dropping only the caller must not release detached work's
+capacity. No alternate waiter registry or per-origin counter is introduced.
+
+Tests must pin no history retained for stale cursors, byte/count cap
+refusal, replacement/eviction invalidation, cancellation and close cleanup,
+expiry without activity renewal, node-wide waiter exhaustion across many
+connections/origins, existing share exhaustion, and release only after
+actual ownership ends. DTO/page/RPC frame limits alone are not evidence
+of these runtime bounds; this remains an explicit real-handler gate.
 
 ## Environment and URL values
 
@@ -286,6 +380,8 @@ their responsible types with the numeric copies removed in the code commit:
   MAX_PROJECT_COMMANDS, never a duplicated project-file count literal.
 - ServiceProxyUrl maximum encoded bytes: MAX_PROXY_URL_BYTES = 2048.
 - Public service choices per node: MAX_PUBLIC_SERVICE_CHOICES = 256.
+- Retained service snapshot bytes per node: MAX_SERVICE_CACHE_BYTES = 8 MiB.
+- Concurrent service long-poll waiters per node: MAX_SERVICE_WAITERS = 64.
 - Host label and complete hostname: MAX_PROXY_LABEL_BYTES = 63 and
   MAX_PROXY_HOST_BYTES = 253; the reference hash suffix uses
   PROXY_HASH_SUFFIX_BYTES = 8. Hostname generation is a single owner and
@@ -308,11 +404,15 @@ limits bound aggregate decode before these validated domain values.
 2. Validated constructor/serde bounds, unique names, cursor consistency,
    plain/service invariants, no empty-as-unavailable success, health/URL
    distinctions, credential-safe URI errors and unknown-choice refusals.
-3. Method table/shape/scopes/staged-default/None tests; typed client direct
-   and forwarded refusal; no parallel registry/dispatch/number mechanism.
+3. Method table/shape/scopes/staged-default/None tests; all eight explicit
+   nonforwardable choices, typed client/envelope/forged-origin refusal and
+   the exact direct-principal matrix above before effects. No parallel
+   registry/dispatch/number mechanism.
 4. Before runtime: canonical active/automation/approval/start and restart
    leases, actual prior wait, finite physical work, plan/cache ownership,
    rollback, all approved env peers and no effect on Read/cancellation.
+   Qualify the retained-snapshot byte/count/lifetime and global/shared waiter
+   limits above before wiring; values/page bounds do not discharge them.
 5. Before public routes: reviewed Settings envelope API, mandatory canonical
    incarnation, dedicated Admin validation, trusted ingress/header policy,
    failed-write preservation and active HTTP/WS revocation/drain tests.

@@ -565,3 +565,12 @@ incarnation is still missing, so public activation remains Unavailable.
 After security review, values/staged rows/client wrappers precede handlers
 and native consumer handover. Keep existing helper/Preview check receipts
 separate from this package and run its enclosing gate before real wiring.
+
+
+Consumer contract review correction: all eight proposed rows are explicitly
+nonforwardable. The private Admin read/write boundary admits only direct
+Owner/Admin Device, never Agent/Delegated even with forged/all scopes; the
+workspace Read/Operate rows use the same direct rule with their exact scope.
+The contract now owes no-history snapshot/cap/expiry tests and shared plus
+node-wide waiting-read admission before runtime wiring. DTO/source remains
+unimplemented until this security correction is accepted.

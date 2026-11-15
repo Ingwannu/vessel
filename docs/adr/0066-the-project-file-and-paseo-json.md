@@ -1162,3 +1162,18 @@ No helper is launched and no registry API is adopted by this contract change.
   acknowledgement and fresh owned routes; the request cannot supply proof.
   The linked contract names the reference, bounds, transport ordering,
   display/refusal tests and remaining listener/header qualification.
+
+
+### Consumer admission is direct and nonforwardable
+
+The service consumer contract in `../plans/workspace-services-api.md`
+explicitly chooses nonforwardable for each proposed row. Bare Admin scope
+is insufficient for the private settings read/write boundary: only this
+node's directly authenticated Owner or Admin Device can reach it; agents
+and all delegated/foreign-origin envelopes refuse before lookup or effects.
+The workspace service Read/Operate rows have the same direct-principal
+floor with their respective scope. Staged Unsupported is separate from
+these policy choices. Broader delegation needs a new reviewed decision.
+The same contract pins latest-only snapshot retention, aggregate byte and
+count admission, expiry and both shared and node-wide waiter ownership;
+per-page/frame bounds alone cannot qualify a real handler's retained state.
