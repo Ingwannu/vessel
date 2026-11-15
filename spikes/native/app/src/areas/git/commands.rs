@@ -117,13 +117,19 @@ impl Shell {
         }
         match entry {
             MenuEntry::Git(row) => self.git_choose(row.action, window, cx),
-            MenuEntry::Pull(_) | MenuEntry::Merge(_) => {
+            MenuEntry::Pull(_) => {
                 if self.areas.git.status.ready().is_none() {
                     return false;
                 }
                 // A live alias/root menu is not the origin of its drawn facts.
                 // Keep this unavailable menu open, as Paseo's Info guidance does.
-                self.git_unverified_view(cx);
+                self.pulls_chosen(window, cx);
+            }
+            MenuEntry::Merge(method) => {
+                if self.areas.git.status.ready().is_none() {
+                    return false;
+                }
+                self.pulls_merge(method, cx);
             }
         }
         true

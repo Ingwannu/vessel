@@ -108,7 +108,7 @@ fn retirement_reports_changed_only_for_the_original_admission() {
     entry.reads = Some(reads);
     let _old = entry
         .path_places
-        .insert("old.rs".parse().unwrap(), Default::default());
+        .insert("old.rs".parse().unwrap(), std::rc::Rc::default());
     let mut panels = super::Panels::default();
     let _old = panels.entries.insert(address.clone(), entry);
     let another = epochs
@@ -122,7 +122,7 @@ fn retirement_reports_changed_only_for_the_original_admission() {
         panels.retire(&context.tag()),
         "the shell must not take its no-device-page early return"
     );
-    let entry = panels.entries.get(&address).unwrap();
+    let entry = &panels.entries[&address];
     assert_eq!(entry.context, None);
     assert_eq!(entry.problem, Some(ReadFailure::DestinationChanged));
     assert!(entry.path_places.is_empty());

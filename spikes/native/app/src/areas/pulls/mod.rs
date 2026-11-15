@@ -30,7 +30,7 @@ mod merge;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, DialogState, TextField};
-use vessel_app_link::workspace::{Ask, GitAsk, PullAnswer, PullAsk};
+use vessel_app_link::workspace::{Ask, PullAnswer, PullAsk};
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::pull::{
@@ -48,10 +48,6 @@ pub(crate) use card::card_items;
 pub(crate) use facts::dialog as facts_dialog;
 pub(crate) use form::{base_list, dialog as form_dialog};
 pub(crate) use link::link;
-
-/// The most new commits the form's description lists (`gh` lists them
-/// all; a branch far ahead gives a description nobody reads).
-const PREFILL_COMMITS: u32 = 50;
 
 /// The session a dialog is for.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,74 +194,11 @@ impl Shell {
             .map_or(PullEntry::Hidden, |(_, pull)| pull_entry(pull, status))
     }
 
-    /// The entry chosen: View PR opens its page (Paseo's `handlePrAction`);
-    /// Create PR opens the form, or says why it cannot (Paseo's Info
-    /// toast, nothing sent).
-    pub(crate) fn pulls_chosen(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(status) = self.areas.git.status.shown().cloned() else {
-            return;
-        };
-        match self.pulls_entry(&status) {
-            PullEntry::Hidden => {}
-            PullEntry::View { url, .. } => cx.open_url(url.as_str()),
-            PullEntry::Unavailable(why) => {
-                let words = why.words(self.words).into_owned();
-                self.toast(words, ToastTone::Info, cx);
-            }
-            PullEntry::Create => self.pulls_open_form(&status, window, cx),
-        }
-    }
-
-    /// Open the form for the session shown, then read the branch's new
-    /// commits for its defaults.
-    fn pulls_open_form(
-        &mut self,
-        status: &GitStatus,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
-        let Some((subject, _)) = self.pulls_subject() else {
-            return;
-        };
-        let branch = status
-            .branch
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_default();
-        let proposed = status.base.as_ref().map(|base| base.name.clone());
-        // Without a count, the head commit alone gives the title (`gh`'s
-        // one-commit rule); the node says if nothing is new.
-        let limit = status
-            .base
-            .as_ref()
-            .map_or(1, |base| base.ahead.clamp(1, PREFILL_COMMITS));
-        let log = ReadLog {
-            root: subject.root,
-            from: None,
-            skip: 0,
-            limit: Some(limit),
-        };
-        self.areas.git.menu.close();
-        self.ask(&subject.machine, Ask::Git(GitAsk::Log(log.clone())));
-        let pulls = &mut self.areas.pulls;
-        pulls.form = Some(Form {
-            subject,
-            draft: OpenDraft::default(),
-            proposed,
-            base_chosen: false,
-            branch,
-            prefilling: Some(log),
-            fill: None,
-            sending: None,
-            issue: None,
-        });
-        pulls.title.clear(window, cx);
-        pulls.body.clear(window, cx);
-        pulls.dialog.focus(window, cx);
-        pulls.title.focus(window, cx);
-        // The base choices.
-        self.git_read_branches();
-        cx.notify();
+    /// The legacy toolbar cannot prove the origin of its displayed facts.
+    /// Its new scoped opener belongs to C4; never revive alias-only prefilling
+    /// or external navigation from this unverified callback.
+    pub(crate) fn pulls_chosen(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
+        self.git_unverified_view(cx);
     }
 
     /// The log asked for the defaults arrived: keep the defaults for the

@@ -3,7 +3,7 @@
 //! [Decision Log]
 //! - Existing asset: C5 owns the one shown-Changes controller; G4 owns original
 //!   connection admission. Its checked stamped acquisition/Explorer join is pending.
-//! - A legacy GitWrite carries no original authenticated read receipt. Looking up
+//! - A legacy `GitWrite` carries no original authenticated read receipt. Looking up
 //!   the current Machine, or comparing paths/counts, cannot supply that authority.
 //! - Choice: retire this unscoped sending path and use the shared Info guidance.
 //!   Future writes consume C5's actual opaque receipt and G4's selected typed call;
@@ -27,7 +27,9 @@ impl Shell {
         self.git_unverified_view(cx);
     }
 
-    pub(super) fn git_unverified_view(&mut self, cx: &mut Context<'_, Self>) {
+    /// Git and its legacy PR callbacks share the same origin refusal; no
+    /// callback may rebuild physical authority from the current alias.
+    pub(in crate::areas) fn git_unverified_view(&mut self, cx: &mut Context<'_, Self>) {
         let words = self.words;
         self.toast(words.git_panel().unverified_view(), ToastTone::Info, cx);
     }

@@ -19,15 +19,7 @@ impl Render for ListProbe {
     fn render(&mut self, _: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let address = self.address.clone();
         self.shell.update(cx, |shell, cx| {
-            let list = shell
-                .areas
-                .git
-                .panels
-                .entries
-                .get(&address)
-                .unwrap()
-                .files
-                .clone();
+            let list = shell.areas.git.panels.entries[&address].files.clone();
             list.element(cx.processor(move |shell: &mut Shell, index, window, _cx| {
                 let tokens = Tokens::of(vessel_app_kit::Scheme::Dark);
                 div()
@@ -109,15 +101,7 @@ fn the_actual_narrow_list_draws_a_long_code_path_without_nested_list_borrows(
     assert!(bounds.right() <= width);
     probe.read_with(cx, |probe, cx| {
         assert_eq!(
-            probe
-                .shell
-                .read(cx)
-                .areas
-                .git
-                .panels
-                .entries
-                .get(&probe.address)
-                .unwrap()
+            probe.shell.read(cx).areas.git.panels.entries[&probe.address]
                 .files
                 .rows(),
             1

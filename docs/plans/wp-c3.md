@@ -942,3 +942,21 @@ consumer; no authority is inferred from a successful read or stamp alone.
 - Limits: local generation is not physical connection authority or an atomic
   repository snapshot across pages. Body mounting, offset echo/pagination and
   global payload/editor retention bounds still need their real consumers.
+
+## Actual f1ab strict-check return
+
+The exact f1ab four-crate check reaches all4 crates and returns101. Removing
+unsafe toolbar dispatch exposed unused legacy PR opener/merge paths and the
+old prefill constant, plus one Git import; new origin docs also lacked code
+markup. Five fixture HashMap lookups and one ambiguous Default caused the
+remaining test lints. No failure is relabeled as a pass.
+
+The successor retains active PR callback entry points but puts the same Info
+origin refusal inside each, before any form/read/merge operation. It removes
+the unsafe alias-only form opener/prefill and merge-send implementation; no
+dummy call, unreachable branch or lint exemption keeps them alive. A new real
+Shell regression checks both callbacks queue no prefill/merge command and keep
+a prior merge payload. This proves local receipt retention, not a physically
+sent forge operation. Typed C4 physical-context opening still remains missing.
+Fixture lookups use test indexing and explicit Rc default; assertions unchanged.
+The existing f1ab test run remains prior-source and must not cover this change.

@@ -99,7 +99,7 @@ fn retargeted_visible_tab_drops_its_old_read_and_cannot_start_an_empty_mode_call
         let address = &captured.address;
         assert!(shell.layout_panel_visible(&address.workspace, address.tab, window));
         assert!(captured.is_current(
-            shell.areas.git.panels.entries.get(address).unwrap(),
+            &shell.areas.git.panels.entries[address],
             Some(&captured.context)
         ));
         assert_eq!(
@@ -135,13 +135,7 @@ fn retargeted_visible_tab_drops_its_old_read_and_cannot_start_an_empty_mode_call
             Err(tokio::sync::mpsc::error::TryRecvError::Empty)
         ));
         assert!(matches!(
-            shell
-                .areas
-                .git
-                .panels
-                .entries
-                .get(address)
-                .unwrap()
+            shell.areas.git.panels.entries[address]
                 .reads
                 .as_ref()
                 .unwrap()

@@ -99,3 +99,38 @@ fn refusing_a_new_unscoped_request_retains_the_existing_payload_and_intention(
         ));
     });
 }
+
+#[gpui::test]
+fn legacy_pr_callbacks_refuse_before_prefill_or_merge_and_keep_a_prior_merge_receipt(
+    cx: &mut TestAppContext,
+) {
+    use vessel_proto::forge::{MergeMethod, MergePullRequest, PullNumber};
+    language_tests::init(cx);
+    let (link, mut inbox) = Link::detached(8).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        let _root = followed_alias_with_current_context(shell);
+        while inbox.try_recv().is_ok() {}
+        let pending = Box::new(MergePullRequest {
+            session: vessel_proto::SessionId::random(),
+            number: PullNumber::new(42).unwrap(),
+            method: MergeMethod::Rebase,
+            head: "a".repeat(40).parse().unwrap(),
+        });
+        shell.areas.pulls.merging = Some(pending.clone());
+        shell.pulls_chosen(window, cx);
+        shell.pulls_merge(MergeMethod::Squash, cx);
+        assert!(shell.areas.pulls.form.is_none());
+        assert_eq!(shell.areas.pulls.merging, Some(pending));
+        assert!(matches!(
+            inbox.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
+        let toast = shell.areas.toasts.list().last().unwrap();
+        assert_eq!(toast.tone, ToastTone::Info);
+        assert_eq!(
+            toast.text,
+            "The repository shown here cannot be verified. Reopen the workspace before changing it."
+        );
+    });
+}

@@ -45,7 +45,7 @@ use vessel_app_link::workspace::{Ask, GitAsk, GitWrite};
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::workspace::git::{
     BranchMode, DirectWrite, Issue, PanelVisibility, REFRESH_EVERY, Reading, RequestKey,
-    RequestKeys, Step, WriteIntent, Writing, should_refresh,
+    RequestKeys, Step, Writing, should_refresh,
 };
 use vessel_proto::workspace::{BranchList, CommitStage, GitStatus, StashList, WorkspaceRoot};
 

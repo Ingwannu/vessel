@@ -8,9 +8,7 @@ use vessel_app_kit::ui::Context;
 use vessel_app_link::workspace::{Ask, PullAsk};
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_app_view::workspace::pull::{
-    Merged, merge_methods, merge_outcome, merge_refusal_words, merge_request,
-};
+use vessel_app_view::workspace::pull::{Merged, merge_methods, merge_outcome, merge_refusal_words};
 use vessel_proto::SessionId;
 use vessel_proto::forge::{
     GetPullRequest, MergeMethod, MergeOutcome, MergePullRequest, MergeRefusal, PullRequest,
@@ -77,21 +75,10 @@ impl Shell {
         );
     }
 
-    /// A merge row chosen: merge what is seen, once.
-    pub(crate) fn pulls_merge(&mut self, method: MergeMethod, cx: &mut Context<'_, Self>) {
-        if self.areas.pulls.merging.is_some() {
-            return;
-        }
-        let Some((subject, _)) = self.pulls_subject() else {
-            return;
-        };
-        let Some((session, seen)) = self.pulls_seen() else {
-            return;
-        };
-        let request = merge_request(session, &seen, method);
-        self.areas.pulls.merging = Some(Box::new(request.clone()));
-        self.ask(&subject.machine, Ask::Pull(PullAsk::Merge(request)));
-        cx.notify();
+    /// The legacy menu has no original drawn physical receipt. Refuse here,
+    /// rather than only at one caller, without changing an already sent merge.
+    pub(crate) fn pulls_merge(&mut self, _method: MergeMethod, cx: &mut Context<'_, Self>) {
+        self.git_unverified_view(cx);
     }
 
     /// What `pr.merge` answered: Paseo's toasts ("PR merged", or why not;
