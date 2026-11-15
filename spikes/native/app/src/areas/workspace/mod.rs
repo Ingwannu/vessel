@@ -125,6 +125,7 @@ impl Shell {
     ) -> bool {
         match answer {
             Answer::Intelligence { ask, result } => self.language_answered(machine, ask, result),
+            Answer::Layout(answer) => self.layout_renamed(answer, cx),
             Answer::Projects(result) => {
                 let _was = self
                     .areas
