@@ -137,3 +137,11 @@ are never stopped. App updates retain the release track's canonical updater.
 Verification: node-line all-target clippy passed at9d13f24f across proc/local-node/
 store/proto/node/testkit. Current onboarding model tests8 passed. Process fixture
 runs and native integration compilation are pending; no runtime or Windows claim.
+
+The release owner confirmed that NodeInfo.version (crate version) and the app's
+release label are different domains. They are never compared. Owned update
+restart always stops and reaps the old child before invoking the canonical
+updater, even if ordinary quit keeps the node running. An Attached node uses the
+existing handshake protocol range as compatibility evidence and is never re-owned.
+Interruption confirmations retain an opaque snapshot permit; an intervening
+controller operation invalidates it instead of interrupting a replacement launch.

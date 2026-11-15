@@ -81,27 +81,26 @@ impl crate::State {
             .clients
             .get(machine.as_str())
             .map(|connected| connected.client.clone());
-        if let Some(client) = &client {
-            if let Err(problem) = self
+        if let Some(client) = &client
+            && let Err(problem) = self
                 .onboarding_scope
                 .check(&MachineKey::from_book(machine.as_str()), client.node().id)
-            {
-                if let Some((target, visit)) = self.onboarding_scope.binding() {
-                    self.emit(crate::Event::Onboarding(Answer::Bound {
-                        target: target.clone(),
-                        visit,
-                        result: Err(problem),
-                    }))
-                    .await;
-                }
-                self.emit(crate::Event::Agents {
-                    machine,
-                    request,
-                    answer: Err(crate::agents::AgentsError::Setup(problem)),
-                })
+        {
+            if let Some((target, visit)) = self.onboarding_scope.binding() {
+                self.emit(crate::Event::Onboarding(Answer::Bound {
+                    target: target.clone(),
+                    visit,
+                    result: Err(problem),
+                }))
                 .await;
-                return;
             }
+            self.emit(crate::Event::Agents {
+                machine,
+                request,
+                answer: Err(crate::agents::AgentsError::Setup(problem)),
+            })
+            .await;
+            return;
         }
         self.agents
             .ask(client, machine, request, ask, self.events.clone())

@@ -201,7 +201,7 @@ impl Shell {
         match self.areas.onboarding.model.next(visit) {
             Ok(Effect::Complete) => {
                 scope::release(self, visit);
-                self.setup_complete(window, cx);
+                self.persist_setup_completion(window, cx);
             }
             Ok(Effect::None) => enter_step(self, window, cx),
             Err(_exhausted) => self.notice = Some(self.words.desktop().setup_failed().to_owned()),
@@ -220,6 +220,10 @@ impl Shell {
         let Effect::Complete = self.areas.onboarding.model.complete() else {
             return;
         };
+        self.persist_setup_completion(window, cx);
+    }
+
+    fn persist_setup_completion(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         self.prefs.onboarding = Some(CompletionRecord {
             completed_at: chrono::Utc::now(),
         });
@@ -233,3 +237,6 @@ impl Shell {
         cx.notify();
     }
 }
+
+#[cfg(test)]
+mod tests;

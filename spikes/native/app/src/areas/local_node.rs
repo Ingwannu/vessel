@@ -1,7 +1,7 @@
 //! Per-window observations contain no child handle or process lifetime authority.
 
 mod render;
-pub(crate) use render::section;
+pub(crate) use render::{dialog, section};
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
@@ -21,17 +21,28 @@ pub(crate) struct LocalNodeArea {
     tickets: Tickets,
     pending: Option<Ticket>,
     pub(crate) quit_refused: bool,
+    logs: Logs,
+    logs_dialog: vessel_app_kit::dialog::DialogState,
 }
-impl Default for LocalNodeArea {
-    fn default() -> Self {
+impl LocalNodeArea {
+    pub(crate) fn new(cx: &mut gpui::App) -> Self {
         Self {
             snapshot: None,
             target: None,
             tickets: Tickets::default(),
             pending: None,
             quit_refused: false,
+            logs: Logs::Closed,
+            logs_dialog: vessel_app_kit::dialog::DialogState::new(cx),
         }
     }
+}
+
+enum Logs {
+    Closed,
+    Loading(Ticket),
+    Ready(vessel_app_link::local_node::LogText),
+    Failed,
 }
 
 pub(crate) fn start(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
@@ -77,6 +88,33 @@ fn apply(shell: &mut Shell, snapshot: Snapshot, cx: &mut Context<'_, Shell>) {
 }
 
 impl Shell {
+    fn read_local_logs(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(controller) = cx
+            .try_global::<crate::local_node::Managed>()
+            .and_then(|managed| managed.controller.as_ref())
+        else {
+            return;
+        };
+        let read = controller.log_tail();
+        let Ok(ticket) = self.areas.local_node.tickets.next_ticket() else {
+            return;
+        };
+        self.areas.local_node.logs = Logs::Loading(ticket);
+        self.areas.local_node.logs_dialog.focus(window, cx);
+        cx.spawn(async move |this, cx| {
+            let result = read.await;
+            let _closed = this.update(cx, |shell, cx| {
+                if !matches!(shell.areas.local_node.logs, Logs::Loading(current) if current == ticket) { return; }
+                shell.areas.local_node.logs = match result {
+                    Ok(text) => Logs::Ready(text),
+                    Err(error) => {tracing::warn!(%error,"explicit local log read failed"); Logs::Failed}
+                };
+                cx.notify();
+            });
+        }).detach();
+        cx.notify();
+    }
+
     /// Exact hydrated local identity for project-open and onboarding consumers.
     pub(crate) fn managed_local_target(&self) -> Option<&LocalTarget> {
         self.areas.local_node.target.as_ref().filter(|target| {

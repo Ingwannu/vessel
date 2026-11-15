@@ -19,6 +19,8 @@ use vessel_local_node::{Launch, LocalNodeError, NodeHome, QuitPolicy, StopPolicy
 
 use crate::desktop::environment::ShellEnvironment;
 
+pub use vessel_local_node::LogText;
+
 const COMMAND_CAPACITY: usize = 8;
 
 /// A launch recipe resolved only by the application executable edge.
@@ -52,6 +54,12 @@ pub enum ManagerError {
     /// The displayed process state changed after a confirmation was shown.
     #[error("local node confirmation is stale")]
     StaleConfirmation,
+    /// An owned launch has no retained stderr collector.
+    #[error("local node logs are unavailable")]
+    NoLogs,
+    /// The bounded log actor retained the original read cause.
+    #[error("local node logs could not be read")]
+    Logs(#[source] vessel_local_node::LogError),
 }
 
 impl Configuration {
@@ -167,6 +175,22 @@ pub enum Action {
 }
 
 impl Controller {
+    /// Explicit read of the bounded tail, executed on the controller reactor.
+    ///
+    /// # Errors
+    /// No owned log source, bounded reader failure, or closed command queue.
+    pub fn log_tail(&self) -> impl Future<Output = Result<LogText, ManagerError>> + 'static {
+        let commands = self.commands.clone();
+        async move {
+            let (reply, wait) = oneshot::channel();
+            commands
+                .send(actor::Command::Logs(reply))
+                .await
+                .map_err(|_closed| ManagerError::Unavailable)?;
+            wait.await.map_err(|_closed| ManagerError::Unavailable)?
+        }
+    }
+
     /// Start one actor; ordinary missing binaries remain a visible status.
     ///
     /// # Errors

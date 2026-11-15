@@ -69,6 +69,10 @@ pub(crate) fn section(
             );
     }
     let note = status_text(shell, status);
+    controls = controls.child(
+        outline_button("local-node-logs", words.logs(), !working, tokens)
+            .on_click(cx.listener(|shell, _event, window, cx| shell.read_local_logs(window, cx))),
+    );
     let failed = shell
         .areas
         .local_node
@@ -200,4 +204,42 @@ fn status_text(shell: &Shell, status: Status) -> &str {
         Status::Disconnected => words.disconnected(),
         Status::Failed => words.failed(),
     }
+}
+
+pub(crate) fn dialog(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
+    let words = shell.words.local_node();
+    let body = match &shell.areas.local_node.logs {
+        Logs::Closed => return None,
+        Logs::Loading(_) => div().child(words.working()),
+        Logs::Ready(text) => div().child(text.as_str().to_owned()),
+        Logs::Failed => div().child(words.logs_unavailable()),
+    };
+    let footer = vec![
+        outline_button("local-logs-refresh", words.refresh_logs(), true, tokens)
+            .on_click(cx.listener(|shell, _event, window, cx| shell.read_local_logs(window, cx)))
+            .into_any_element(),
+    ];
+    Some(dialog(
+        &shell.areas.local_node.logs_dialog,
+        DialogContent {
+            title: words.logs().into(),
+            body: body.into_any_element(),
+            footer,
+            size: DialogSize::Wide,
+        },
+        tokens,
+        window,
+        crate::areas::draft::compact(window),
+        |shell: &mut Shell, _window, cx| {
+            shell.areas.local_node.logs = Logs::Closed;
+            cx.notify();
+        },
+        cx,
+    ))
 }

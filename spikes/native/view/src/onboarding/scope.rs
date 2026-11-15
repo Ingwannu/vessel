@@ -76,10 +76,11 @@ impl Scope {
     /// # Errors
     /// The protected alias was replaced by a different authenticated node.
     pub fn check(&self, machine: &MachineKey, node: NodeId) -> Result<(), Problem> {
-        if let Some((target, _)) = &self.0 {
-            if target.machine() == machine && target.node() != node {
-                return Err(Problem::Changed);
-            }
+        if let Some((target, _)) = &self.0
+            && target.machine() == machine
+            && target.node() != node
+        {
+            return Err(Problem::Changed);
         }
         Ok(())
     }

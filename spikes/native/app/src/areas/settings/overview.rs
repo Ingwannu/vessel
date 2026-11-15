@@ -188,6 +188,21 @@ pub(crate) fn render(
         return div().into_any_element();
     };
     let words = shell.t.lang.overview();
+    #[cfg(not(target_arch = "wasm32"))]
+    if shell.managed_local_target().is_some_and(|target| {
+        target.machine.as_str() == machine.name && machine.node == Some(target.node)
+    }) {
+        // Ephemeral local registration is not a book entry: its process policy
+        // belongs here, while book rename/remove must never target this alias.
+        return div()
+            .flex()
+            .flex_col()
+            .child(badges(machine, shell, tokens))
+            .child(crate::areas::local_node::section(
+                shell, tokens, compact, cx,
+            ))
+            .into_any_element();
+    }
     div()
         .flex()
         .flex_col()

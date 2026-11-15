@@ -36,12 +36,12 @@ pub(crate) fn ensure(prefs: &vessel_app_link::Prefs, cx: &mut App) {
             .and_then(|managed| managed.controller.clone());
         let after = crate::desktop::current_local_preferences(cx).after_quit;
         async move {
-            if let Some(controller) = controller {
-                if let Err(error) = controller.finalize(after, None).await {
-                    tracing::warn!(%error,"protected OS quit preserved the local node");
-                    if let Err(error) = controller.finalize(AfterQuit::KeepRunning, None).await {
-                        tracing::warn!(%error,"local node release on OS quit failed");
-                    }
+            if let Some(controller) = controller
+                && let Err(error) = controller.finalize(after, None).await
+            {
+                tracing::warn!(%error,"protected OS quit preserved the local node");
+                if let Err(error) = controller.finalize(AfterQuit::KeepRunning, None).await {
+                    tracing::warn!(%error,"local node release on OS quit failed");
                 }
             }
         }

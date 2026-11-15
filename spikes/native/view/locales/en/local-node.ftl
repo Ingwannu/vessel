@@ -46,3 +46,9 @@ local-node-keep-quit = Keep node running and quit
 local-node-interrupt-quit = Interrupt active sessions and quit
 # Desktop local-node control: cancel-quit. No credentials or process IDs.
 local-node-cancel-quit = Stay in Vessel
+# Explicit local-node log viewer: logs; never interpolate credentials.
+local-node-logs = Local node logs
+# Explicit local-node log viewer: refresh-logs; never interpolate credentials.
+local-node-refresh-logs = Refresh
+# Explicit local-node log viewer: logs-unavailable; never interpolate credentials.
+local-node-logs-unavailable = No retained local-node logs are available for this launch.

@@ -18,7 +18,7 @@ pub(crate) mod desktop;
 pub(crate) mod draft;
 pub(crate) mod edge;
 pub(crate) mod git;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(target_arch = "wasm32", path = "local_node_off.rs")]
 pub(crate) mod local_node;
 pub(crate) mod onboarding;
 pub(crate) mod pair;
@@ -66,7 +66,7 @@ impl Areas {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         let mut areas = Self {
             #[cfg(not(target_arch = "wasm32"))]
-            local_node: local_node::LocalNodeArea::default(),
+            local_node: local_node::LocalNodeArea::new(cx),
             onboarding: onboarding::Onboarding::new(cx),
             about: about::AboutState::new(cx),
             desktop: desktop::DesktopArea::new(cx),

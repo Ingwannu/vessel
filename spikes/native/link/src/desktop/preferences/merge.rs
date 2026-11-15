@@ -53,7 +53,17 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
         kept: _,
     } = after;
     let mut next = current.clone();
-    fields!(next,before,after;local_node,onboarding,machine,agent,manual_updates,last_label,update_notes);
+    fields!(next,before,after;onboarding,machine,agent,manual_updates,last_label,update_notes);
+    field(
+        &mut next.local_node.management,
+        &before.local_node.management,
+        &after.local_node.management,
+    );
+    field(
+        &mut next.local_node.after_quit,
+        &before.local_node.after_quit,
+        &after.local_node.after_quit,
+    );
     map(&mut next.folders, &before.folders, &after.folders);
     map(&mut next.choices, &before.choices, &after.choices);
     preferences(&mut next.settings, &before.settings, &after.settings);
@@ -196,6 +206,22 @@ mod tests {
         assert_eq!(next.settings.sidebar.group, Grouping::Status);
         assert_eq!(next.folders, current.folders);
         assert!(next.manual_updates);
+    }
+
+    #[test]
+    fn stale_local_node_windows_preserve_independent_policy_and_completion() {
+        let before = Prefs::default();
+        let mut current = before.clone();
+        current.local_node.management = vessel_app_view::local_node::Management::Paused;
+        current.onboarding = Some(vessel_app_view::onboarding::CompletionRecord {
+            completed_at: chrono::DateTime::UNIX_EPOCH,
+        });
+        let mut after = before.clone();
+        after.local_node.after_quit = vessel_app_view::local_node::AfterQuit::KeepRunning;
+        let next = apply(&current, &before, &after).unwrap();
+        assert_eq!(next.local_node.management, current.local_node.management);
+        assert_eq!(next.local_node.after_quit, after.local_node.after_quit);
+        assert_eq!(next.onboarding, current.onboarding);
     }
 
     #[test]

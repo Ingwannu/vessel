@@ -7,6 +7,7 @@ use vessel_app_view::local_node::{LocalProvenance, Management, Status};
 use vessel_local_node::{LocalNode, LocalNodeError, LocalStatus, QuitPolicy, StopPolicy};
 
 pub(super) enum Command {
+    Logs(oneshot::Sender<Result<super::LogText, ManagerError>>),
     Action(Action),
     Finalize {
         policy: QuitPolicy,
@@ -52,11 +53,18 @@ pub(super) async fn run(
             break;
         };
         match command {
+            Command::Logs(reply) => {
+                let result = match node.as_ref().and_then(LocalNode::logs) {
+                    Some(logs) => logs.read().await.map_err(ManagerError::Logs),
+                    None => Err(ManagerError::NoLogs),
+                };
+                let _closed = reply.send(result);
+            }
             Command::Action(action) => {
-                if let Action::InterruptConfirmed(confirmation) = &action {
-                    if !valid_confirmation(&published, confirmation) {
-                        continue;
-                    }
+                if let Action::InterruptConfirmed(confirmation) = &action
+                    && !valid_confirmation(&published, confirmation)
+                {
+                    continue;
                 }
                 let prior = published.borrow().clone();
                 let _previous = published.send_replace(Snapshot {

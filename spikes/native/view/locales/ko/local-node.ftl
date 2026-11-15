@@ -46,3 +46,9 @@ local-node-keep-quit = 노드를 유지하고 앱 종료
 local-node-interrupt-quit = 활성 세션을 중단하고 앱 종료
 # Desktop local-node control: cancel-quit. No credentials or process IDs.
 local-node-cancel-quit = Vessel 계속 사용
+# Explicit local-node log viewer: logs; never interpolate credentials.
+local-node-logs = 로컬 노드 로그
+# Explicit local-node log viewer: refresh-logs; never interpolate credentials.
+local-node-refresh-logs = 새로 고침
+# Explicit local-node log viewer: logs-unavailable; never interpolate credentials.
+local-node-logs-unavailable = 이 실행에 보관된 로컬 노드 로그가 없습니다.
