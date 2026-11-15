@@ -10,7 +10,7 @@ fn decode(frame: &Captured) -> Vec<i16> {
         .as_chunks::<2>()
         .0
         .iter()
-        .map(|bytes| i16::from_le_bytes(bytes.try_into().unwrap()))
+        .map(|bytes| i16::from_le_bytes(*bytes))
         .collect()
 }
 
