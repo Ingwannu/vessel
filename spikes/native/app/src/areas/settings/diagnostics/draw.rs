@@ -3,12 +3,16 @@ use crate::shell::Shell;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
 use vessel_app_view::devices::MachineKey;
-use vessel_app_view::diagnostics::{collection::Phase, words};
+use vessel_app_view::diagnostics::{
+    collection::{Collection, Phase},
+    words,
+};
+use vessel_app_view::localization::Translator;
 
 pub(crate) fn render(
     shell: &Shell,
@@ -29,6 +33,47 @@ pub(crate) fn render(
         compact,
         tokens,
     ));
+    let layout = if compact {
+        PageLayout::Compact
+    } else {
+        PageLayout::Wide
+    };
+    div()
+        .flex()
+        .flex_col()
+        .child(settings::section(framing.title(), app, tokens))
+        .child(settings::section(
+            labels.hosts(),
+            host_card(shell, tokens, layout, cx),
+            tokens,
+        ))
+        .child(settings::section(
+            labels.partial(),
+            source_card(shell, tokens, layout),
+            tokens,
+        ))
+        .into_any_element()
+}
+#[derive(Clone, Copy)]
+enum PageLayout {
+    Compact,
+    Wide,
+}
+impl PageLayout {
+    const fn compact(self) -> bool {
+        match self {
+            Self::Compact => true,
+            Self::Wide => false,
+        }
+    }
+}
+fn host_card(
+    shell: &Shell,
+    tokens: &Tokens,
+    layout: PageLayout,
+    cx: &mut Context<'_, Shell>,
+) -> Div {
+    let labels = shell.words.diagnostic_flow();
     let mut hosts = settings::card(tokens);
     for (index, machine) in shell.fleet.machines.iter().enumerate() {
         let key = MachineKey::from_book(&machine.name);
@@ -47,7 +92,7 @@ pub(crate) fn render(
             None,
             Some(run.into_any_element()),
             index == 0,
-            compact,
+            layout.compact(),
             tokens,
         ));
     }
@@ -58,10 +103,14 @@ pub(crate) fn render(
             None,
             None,
             true,
-            compact,
+            layout.compact(),
             tokens,
         ));
     }
+    hosts
+}
+fn source_card(shell: &Shell, tokens: &Tokens, layout: PageLayout) -> Div {
+    let labels = shell.words.diagnostic_flow();
     let mut sources = settings::card(tokens);
     let sections = [
         (labels.daemon(), labels.daemon_note()),
@@ -81,17 +130,11 @@ pub(crate) fn render(
                     .into_any_element(),
             ),
             index == 0,
-            compact,
+            layout.compact(),
             tokens,
         ));
     }
-    div()
-        .flex()
-        .flex_col()
-        .child(settings::section(framing.title(), app, tokens))
-        .child(settings::section(labels.hosts(), hosts, tokens))
-        .child(settings::section(labels.partial(), sources, tokens))
-        .into_any_element()
+    sources
 }
 
 pub(crate) fn dialogs(
@@ -105,8 +148,30 @@ pub(crate) fn dialogs(
         return None;
     }
     let framing = shell.words.diagnostics();
-    let labels = shell.words.diagnostic_flow();
-    let report = state.collection.report().cloned();
+    Some(dialog(
+        &state.dialog,
+        DialogContent {
+            title: framing.report_title().into(),
+            body: report_body(&state.collection, shell.words, tokens).into_any_element(),
+            footer: report_actions(shell, tokens, cx),
+            size: DialogSize::Wide,
+        },
+        tokens,
+        window,
+        crate::areas::draft::compact(window),
+        |shell: &mut Shell, _window, _cx| shell.areas.settings.diagnostics.collection.close(),
+        cx,
+    ))
+}
+fn report_actions(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Vec<AnyElement> {
+    let framing = shell.words.diagnostics();
+    let report = shell
+        .areas
+        .settings
+        .diagnostics
+        .collection
+        .report()
+        .cloned();
     let copy = outline_button(
         "settings-diagnostic-copy",
         framing.copy(),
@@ -127,24 +192,28 @@ pub(crate) fn dialogs(
     .on_click(cx.listener(|shell, _event, window, cx| {
         shell.run_diagnostic(shell.areas.settings.diagnostics.target.clone(), window, cx);
     }));
+    vec![refresh.into_any_element(), copy.into_any_element()]
+}
+fn report_body(run: &Collection, catalog: &'static Translator, tokens: &Tokens) -> Div {
+    let labels = catalog.diagnostic_flow();
     let mut body = div().flex().flex_col().gap(px(spacing::S3)).min_w_0();
     body = body.child(status_row(labels.client(), labels.done(), tokens));
     body = body.child(status_row(labels.desktop(), labels.unavailable(), tokens));
-    for row in state.collection.rows() {
+    for row in run.rows() {
         body = body.child(status_row(
             row.machine.as_str(),
-            words::progress(&row.progress, shell.words),
+            words::progress(&row.progress, catalog),
             tokens,
         ));
     }
-    if let Phase::Failed(problem) = state.collection.phase() {
+    if let Phase::Failed(problem) = run.phase() {
         body = body.child(
             div()
                 .type_(Type::Body)
-                .child(words::problem(*problem, shell.words)),
+                .child(words::problem(*problem, catalog)),
         );
     }
-    if let Some(report) = state.collection.report() {
+    if let Some(report) = run.report() {
         body = body.child(
             div()
                 .p(px(spacing::S3))
@@ -155,21 +224,9 @@ pub(crate) fn dialogs(
                 .child(report.as_str().to_owned()),
         );
     }
-    Some(dialog(
-        &state.dialog,
-        DialogContent {
-            title: framing.report_title().into(),
-            body: body.into_any_element(),
-            footer: vec![refresh.into_any_element(), copy.into_any_element()],
-            size: DialogSize::Wide,
-        },
-        tokens,
-        window,
-        crate::areas::draft::compact(window),
-        |shell: &mut Shell, _window, _cx| shell.areas.settings.diagnostics.collection.close(),
-        cx,
-    ))
+    body
 }
+
 fn status_row(label: &str, status: &str, tokens: &Tokens) -> impl vessel_app_kit::ui::IntoElement {
     div()
         .flex()

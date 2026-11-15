@@ -205,3 +205,9 @@ paths explicitly. Product source is frozen for scoped tests and capture build.
 The sole fixed-SHA retry of the interrupted prior narrow is registered and
 queued; no duplicate is running. Current code needs its own changed-crate
 Clippy/test evidence after that prior snapshot finishes.
+
+The existing screen composition is split into host/source cards, report body
+and actions so no long renderer owns unrelated page and dialog composition.
+This changes no labels, controls, layout values or data decisions. The compact
+settings registration converts its existing boolean into a local layout enum
+for the extracted card helpers; no second control renderer is introduced.
