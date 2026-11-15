@@ -14,15 +14,19 @@ not this package's skeleton, completion, product review or whole gate.
 Results are in `backend-m12-launch-profiles.md` and checkpoint `82776280`.
 The original failed Clippy log remains retained.
 
-The isolated node package contains the five pending rows, validated values,
-store CAS, retained node jobs/probes, shared agent mutation/read owner,
-session adapters, typed client/materialization/migration helpers, CLI and
-shared fake inputs. New runtime tests are written but have not yet executed
-successfully. Workspace and TS-enabled Clippy passed on the preparation source. Generated
-TypeScript now contains the inspected omission-only fields. The alias-table
-correction, complete package gate and implementation review remain pending;
-these source facts do not establish successful new runtime behavior. App screens and the MCP facade belong to their consumer
-packages. These source additions are not a completion or runtime claim.
+The isolated package implements validated values, store CAS, retained node
+jobs/probes, the shared agent mutation/read owner, session adapters, five
+pending table rows, client/materialization/migration helpers, CLI and fake
+inputs. Current source `2f1c9f5a` has 17/18 complete-run steps plus the sole
+unchanged LSP timeout closed by one explicitly authorized same-source
+replay. The raw whole run remains red. All new package runtime cases and
+TS freshness passed; implementation review and protocol assignment remain
+pending. See [the exact verification record](wp-a10-node-verification.md)
+and [the integration checkpoint](wp-a10-node-resume.md).
+
+Later implementation checkpoints preserve what was known at each stage;
+the linked verification record is the current result boundary. App screens,
+legacy marker persistence and MCP facade belong to their consumer packages.
 
 The announced node baseline `d432ef0f` is the package's direct base and
 contains Quality B's canonical table/accessor. The store migration is the
@@ -362,3 +366,15 @@ newest table before inbox rollback replay, and wait for actual terminal
 publication after a kill request inside the existing stop deadline. These
 are contract/fixture corrections; no product policy, assertion or timeout
 is relaxed. A clean changed-tree gate and implementation review remain owed.
+
+
+## Current package verification
+
+Source `2f1c9f5a` passed default/TS/fixture Clippy, generated-wire freshness,
+web units/E2E and the explicit fixture suite. The full Rust run is
+2,405/1/12; its sole unchanged LSP timed query passed exactly one authorized
+replay. The complete run is retained as 17/18 steps, not relabeled green.
+[The verification record](wp-a10-node-verification.md) preserves both runs,
+loads, source identity, the earlier four corrected failures and remaining
+integration/consumer obligations. No new runtime assertion or timeout was
+weakened, and the shared LSP owner's separate change was not imported.
