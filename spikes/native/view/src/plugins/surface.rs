@@ -5,10 +5,10 @@ mod controls;
 mod tests;
 
 use super::{Problem, Registry};
-use std::{collections::BTreeMap, fmt};
+use std::{collections::BTreeMap, fmt, sync::Arc};
 use vessel_proto::plugins::{
-    Action, ContentText, ContributionAddress, ContributionContent, ContributionId, ControlContent,
-    RpcName, Surface, ToggleState,
+    Action, ClientDocument, ContentText, ContributionAddress, ContributionContent, ContributionId,
+    ControlContent, RpcName, Surface, ToggleState,
 };
 
 /// Retained edits share the declaration-size budget rather than multiplying
@@ -72,6 +72,7 @@ pub enum SurfaceProblem {
 #[derive(Debug)]
 pub struct SurfaceState {
     address: ContributionAddress,
+    origin: Arc<ClientDocument>,
     surface: Surface,
     fields: BTreeMap<ContributionId, FieldValue>,
     field_bytes: usize,
@@ -82,6 +83,7 @@ pub struct SurfaceState {
 #[derive(Clone, PartialEq, Eq)]
 pub struct SurfaceRequest {
     address: ContributionAddress,
+    origin: Arc<ClientDocument>,
     submission: Submission,
 }
 impl fmt::Debug for SurfaceRequest {
@@ -134,6 +136,9 @@ impl SurfaceState {
     /// # Errors
     /// Refuses unavailable nodes/generations and non-surface contributions.
     pub fn new(registry: &Registry, address: ContributionAddress) -> Result<Self, SurfaceProblem> {
+        let origin = registry
+            .resolve_action(&address.installation)?
+            .document_snapshot();
         let contribution = registry.resolve_contribution(&address)?;
         let surface = surface(&contribution.content).ok_or(SurfaceProblem::Kind)?;
         let empty: ContentText = "".parse().map_err(|_invalid| SurfaceProblem::Value)?;
@@ -163,6 +168,7 @@ impl SurfaceState {
         }
         Ok(Self {
             address,
+            origin,
             surface: surface.clone(),
             fields,
             field_bytes,
@@ -254,6 +260,7 @@ impl SurfaceState {
         let value = self.fields.get(id).ok_or(SurfaceProblem::Missing)?.clone();
         Ok(SurfaceRequest {
             address: self.address.clone(),
+            origin: Arc::clone(&self.origin),
             submission: Submission::Field {
                 control: id.clone(),
                 method,
@@ -282,6 +289,7 @@ impl SurfaceState {
         let action = controls::action(button, menu_path)?.clone();
         Ok(SurfaceRequest {
             address: self.address.clone(),
+            origin: Arc::clone(&self.origin),
             submission: Submission::Action(action),
         })
     }
@@ -296,7 +304,7 @@ impl SurfaceState {
         request: &SurfaceRequest,
     ) -> Result<(), SurfaceProblem> {
         self.check_current(registry)?;
-        if request.address != self.address {
+        if request.address != self.address || request.origin.as_ref() != self.origin.as_ref() {
             return Err(SurfaceProblem::Catalog(Problem::Stale));
         }
         Ok(())
@@ -306,7 +314,10 @@ impl SurfaceState {
     /// # Errors
     /// Refuses offline, removed, replaced or semantically changed declarations.
     pub fn check_current(&self, registry: &Registry) -> Result<(), SurfaceProblem> {
-        if surface(&registry.resolve_contribution(&self.address)?.content) != Some(&self.surface) {
+        if !registry
+            .resolve_action(&self.address.installation)?
+            .matches_document(&self.origin)
+        {
             return Err(SurfaceProblem::Catalog(Problem::Stale));
         }
         Ok(())

@@ -140,6 +140,18 @@ Tests cover these transitions against the existing in-memory registry. Actual
 GPUI rendering, async result correlation, node transport and UI error words are
 still required and no current test proves those paths.
 
+V4 row230 found that checking only the receiving state's current graph and
+address did not bind an older request to its originating graph. A catalog could
+withdraw an entry, reuse the address for graph B, and let state B admit request
+A. Requests now retain an immutable Arc of the originating complete document;
+revalidation compares that origin with the receiving state and its live graph.
+The registry shares the existing checked allocation, with a pointer fast path
+for ordinary current reads; no whole document is copied into each request.
+Regressions transfer request A into newly constructed state B after an empty
+catalog and control removal, disabled ancestry or method replacement. Equivalent
+unchanged graph reconstruction remains valid and retains the originally captured
+literal even after later edits. These new cases are not covered by prior28 tests.
+
 ## Staged GPUI contribution renderer
 
 The app's plugins module is deliberately cfg(test) until the real node-backed

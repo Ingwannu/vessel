@@ -1,4 +1,5 @@
 use super::*;
+mod origin;
 use crate::plugins::{HostSupport, Installation, SnapshotApplied};
 use vessel_proto::plugins::{
     Availability, Button, ButtonBehavior, ChoiceOption, ClientDocument, Contribution,
