@@ -13,6 +13,19 @@ impl VesselTools {
         self.policy = policy;
         self
     }
+    /// Accept only an explicit transient launch context from the voice producer.
+    /// This is independent of core visibility and grants no playback authority.
+    #[must_use]
+    pub const fn with_voice_context(mut self, voice: vessel_proto::mcp::VoiceTools) -> Self {
+        self.voice = voice;
+        self
+    }
+
+    /// The producer uses this in addition to readiness and exact-session lease checks.
+    #[must_use]
+    pub const fn voice_context(&self) -> vessel_proto::mcp::VoiceTools {
+        self.voice
+    }
 }
 
 pub(super) fn visible(policy: &ToolPolicy) -> Vec<Tool> {

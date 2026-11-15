@@ -84,6 +84,7 @@ pub struct VesselTools {
     /// (protocol 11).
     own: Option<SessionId>,
     policy: vessel_proto::mcp::ToolPolicy,
+    voice: vessel_proto::mcp::VoiceTools,
 }
 
 /// Where a tool's calls go: this node (`None`) or another of the fleet.
@@ -97,6 +98,7 @@ impl VesselTools {
             client: Arc::new(client),
             own: None,
             policy: vessel_proto::mcp::ToolPolicy::default(),
+            voice: vessel_proto::mcp::VoiceTools::Disabled,
         }
     }
 

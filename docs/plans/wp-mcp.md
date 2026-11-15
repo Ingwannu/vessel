@@ -216,3 +216,15 @@ creation. A profile move can create or omit the next credential on the
 existing grant, and failure restores its prior credential state, including
 no credential. The node's data lock is acquired before migration and identity
 creation. Startup configuration I/O runs on the blocking worker.
+
+## Voice and browser consumer seams
+
+Voice remains outside the core tool ID/denylist. `VoiceTools` is transient,
+not deserializable from ordinary environment or prompts; the MCP constructor
+accepts an explicit context. No voice handler is registered by that hook.
+The voice producer must combine Enabled with readiness and an authenticated
+exact-session active lease; core injection off must not suppress an explicit
+voice-only attachment once that producer is integrated. Browser policy will
+use `ToolId::Browser(BrowserTool)` when the browser contract is ready, reusing
+its one name table; browser enable/qualified-engine/Operate/lease checks stay
+with the browser producer. These are consumer seams, not runtime proof.
