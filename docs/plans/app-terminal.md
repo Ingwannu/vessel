@@ -432,7 +432,12 @@ Repair resume: six old-code behaviour regressions failed as expected;
 13 repaired terminal tests now pass, including completion order and
 motion lifetime. The queue-refusal regression has also been added.
 One unnecessary qualification in that new test was corrected after the
-first source commit. Private captures and the native gate remain owed.
+first source commit. The completion-order test now delivers both the old
+history replay and old output replay on each side of the new history
+handover, and verifies the log cursor too. Product code is unchanged by
+this extra coverage. The queued gate was cancelled before execution so
+the next whole gate includes the strengthened test.
+Private captures have been inspected; the whole native gate remains owed.
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback

@@ -199,6 +199,12 @@ fn old_read_and_output_completions_cannot_replace_a_reopened_model_or_log_cursor
             let old = shell.areas.terminal.shown.clone().unwrap();
             let mut previous = shell.areas.terminal.model.take().unwrap();
             replay_all(&mut previous, b"old output\r\n");
+            let mut old_history =
+                TerminalModel::new(previous.grid().size(), ScrollbackLines::default());
+            let mut old_log = TerminalLog::default();
+            for bytes in old_log.apply(&[record(99, b"old history\r\n")]) {
+                replay_all(&mut old_history, bytes);
+            }
             open(shell, b, cx);
             open(shell, a, cx);
             let current = shell.areas.terminal.shown.clone().unwrap();
@@ -216,14 +222,17 @@ fn old_read_and_output_completions_cannot_replace_a_reopened_model_or_log_cursor
                 kind: ActKind::Log,
                 result: Ok(Acted::Log(vec![record(0, b"old history")])),
             };
-            assert!(shell.terminal_acted(&stale_read, cx));
             match order {
                 CompletionOrder::BeforeNewRead => {
+                    assert!(shell.terminal_acted(&stale_read, cx));
+                    shell.terminal_loaded(&old, old_history, old_log, cx);
                     shell.terminal_applied(&old, previous, cx);
                     shell.terminal_loaded(&current, model, log, cx);
                 }
                 CompletionOrder::AfterNewRead => {
                     shell.terminal_loaded(&current, model, log, cx);
+                    assert!(shell.terminal_acted(&stale_read, cx));
+                    shell.terminal_loaded(&old, old_history, old_log, cx);
                     shell.terminal_applied(&old, previous, cx);
                 }
             }
