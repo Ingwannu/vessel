@@ -85,10 +85,10 @@ impl Shell {
         {
             return Err(ContextProblem::Scope);
         }
-        if let ContextAttachment::WorkspaceFile(file) = &item {
-            if &file.scope != scope {
-                return Err(ContextProblem::Scope);
-            }
+        if let ContextAttachment::WorkspaceFile(file) = &item
+            && &file.scope != scope
+        {
+            return Err(ContextProblem::Scope);
         }
         self.areas.composer.contexts.tray(target).reattach(item)?;
         if let Some(field) = self.composer_field(target) {
@@ -199,11 +199,10 @@ impl Shell {
                 ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest | ContextKind::PluginResource,
             payload,
         } = &item
+            && let Some(url) = &payload.url
         {
-            if let Some(url) = &payload.url {
-                cx.open_url(url.as_str());
-                return;
-            }
+            cx.open_url(url.as_str());
+            return;
         }
         let preview = &mut self.areas.composer.context_preview;
         if preview.item.is_none() {

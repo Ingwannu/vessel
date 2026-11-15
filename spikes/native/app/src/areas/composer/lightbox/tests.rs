@@ -79,7 +79,7 @@ fn image_paste_is_attached_but_text_paste_remains_text(cx: &mut TestAppContext) 
     cx.simulate_keystrokes(paste);
     cx.run_until_parked();
     shell.update(cx, |shell, cx| {
-        assert_eq!(shell.areas.draft.composer.text(cx), "clipboard text")
+        assert_eq!(shell.areas.draft.composer.text(cx), "clipboard text");
     });
 }
 
@@ -101,6 +101,6 @@ fn escape_in_the_lightbox_cannot_submit_the_background_composer(cx: &mut TestApp
     cx.simulate_keystrokes("escape");
     cx.run_until_parked();
     shell.update(cx, |shell, _| {
-        assert!(shell.areas.composer.lightbox.preview.is_none())
+        assert!(shell.areas.composer.lightbox.preview.is_none());
     });
 }

@@ -160,12 +160,11 @@ impl ConversationArea {
         SentFiles::new(
             shell,
             shown.and_then(|shown| {
-                match vessel_app_view::machine_book::Name::parse(&shown.machine) {
-                    Ok(machine) => Some((machine, shown.session)),
-                    Err(_) => {
-                        tracing::warn!("a conversation has an invalid machine key");
-                        None
-                    }
+                if let Ok(machine) = vessel_app_view::machine_book::Name::parse(&shown.machine) {
+                    Some((machine, shown.session))
+                } else {
+                    tracing::warn!("a conversation has an invalid machine key");
+                    None
                 }
             }),
         )
@@ -189,7 +188,7 @@ impl Shell {
             Answer::Submitted { prompt, result } => self.composer_submitted(prompt, result, cx),
             Answer::Root(answer) => self.composer_mention_root(answer, cx),
             Answer::Suggestions(answer) => self.composer_mention_answer(answer, cx),
-            Answer::Capabilities { ask, result } => self.composer_capabilities(ask, result, cx),
+            Answer::Capabilities { ask, result } => self.composer_capabilities(&ask, result, cx),
             Answer::Woke { session, outcome } => match outcome {
                 vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
                 vessel_app_link::attachments::WakeOutcome::Refused => {

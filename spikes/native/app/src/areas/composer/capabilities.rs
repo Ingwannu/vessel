@@ -109,11 +109,11 @@ impl Shell {
     }
     pub(crate) fn composer_capabilities(
         &mut self,
-        ask: CapabilityAsk,
+        ask: &CapabilityAsk,
         result: Result<Target, CapabilityFailure>,
         cx: &mut Context<'_, Self>,
     ) {
-        let expected = matches!(self.areas.composer.capabilities.states.get(&ask.session), Some(State::Reading(current)) if current == &ask)
+        let expected = matches!(self.areas.composer.capabilities.states.get(&ask.session), Some(State::Reading(current)) if current == ask)
             && self
                 .areas
                 .composer

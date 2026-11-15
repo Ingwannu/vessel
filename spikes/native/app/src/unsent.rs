@@ -27,15 +27,15 @@
 use tokio::sync::mpsc;
 use vessel_app_kit::ui::{AsyncApp, WeakEntity};
 use vessel_app_link::agents::AgentsError;
-use vessel_app_link::attachments::{Answer, Files, Step};
 use vessel_app_link::{ActAnswer, ActFailed, Command, Event, Rejected, Unsent, devices};
-use vessel_app_view::composer::tray::{self, Again};
 use vessel_app_view::idle_release;
 use vessel_app_view::machine_book::Failure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::{ErrorCode, SessionId};
 
 use crate::shell::Shell;
+
+mod files;
 
 /// How a command the link did not take settles.
 #[derive(Debug)]
@@ -87,7 +87,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Rejected::Full => idle_release::Problem::Refused(ErrorCode::Unavailable),
             Rejected::Closed => idle_release::Problem::Offline,
         })),
-        Command::Start { .. } | Command::Files(Files::Create(_)) => Event::Failed(said()),
+        Command::Start { .. } => Event::Failed(said()),
+        Command::Files(files) => return files::settle(files, words),
         Command::Options { machine, harness } => Event::Options {
             machine,
             harness,
@@ -118,18 +119,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         },
         // The machine's page never asked: said under the Messages group as
         // that machine's failure, in the app's words.
-        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Root(ask))) => {
-            Event::Files(Answer::Root(vessel_app_link::mentions::RootAnswer {
-                ask,
-                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            }))
-        }
-        Command::Files(Files::Suggest(vessel_app_link::mentions::Ask::Suggestions(request))) => {
-            Event::Files(Answer::Suggestions(vessel_app_link::mentions::Answer {
-                request,
-                result: Err(vessel_app_view::composer::mentions::Failure::Offline),
-            }))
-        }
         Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
             machine: ask.machine,
             ticket: ask.ticket,
@@ -138,32 +127,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
-        Command::Files(Files::Prompt(prompt)) => Event::Files(Answer::Submitted {
-            prompt,
-            result: Err(vessel_app_link::attachments::SubmitFailure::NotSent),
-        }),
         Command::Prompt { session, text, .. } => {
             return Settle::Prompt { session, text };
         }
-        // A file the link never took: failed, to be tried again.
-        Command::Files(Files::Send(attach)) => Event::Files(Answer::Upload {
-            session: attach.session,
-            key: attach.key,
-            step: Step::Failed {
-                problem: tray::Problem::Node(said()),
-                again: Again::Restart,
-            },
-        }),
-        // A sent image the link never read: no picture this time.
-        Command::Files(Files::Capabilities(ask)) => Event::Files(Answer::Capabilities {
-            ask,
-            result: Err(vessel_app_link::attachments::CapabilityFailure::Offline),
-        }),
-        Command::Files(Files::Wake(wake)) => Event::Files(Answer::Woke {
-            session: wake.session,
-            outcome: vessel_app_link::attachments::WakeOutcome::Refused,
-        }),
-        Command::Files(Files::Read(sent)) => Event::Files(Answer::Read { sent, bytes: None }),
         Command::Open { .. }
         | Command::Stop { .. }
         | Command::Answer { .. }

@@ -279,7 +279,22 @@ impl Shell {
                 Root::Exhausted => true,
                 Root::Missing | Root::Ready(_, Ok(_)) => false,
             };
-        current || root_popup || matches!(state.model.phase(), mentions::Phase::Invalid(_))
+        let invalid = match state.model.phase() {
+            mentions::Phase::Invalid(problem) if self.composer_context_scope(target).is_some() => {
+                self.composer_field(target).is_some_and(|field| {
+                    mentions::active(&field.text(cx), field.caret(cx))
+                        .is_err_and(|current| &current == problem)
+                })
+            }
+            mentions::Phase::Hidden
+            | mentions::Phase::Debouncing { .. }
+            | mentions::Phase::Loading { .. }
+            | mentions::Phase::Rows { .. }
+            | mentions::Phase::Empty(_)
+            | mentions::Phase::Failed { .. }
+            | mentions::Phase::Invalid(_) => false,
+        };
+        current || root_popup || invalid
     }
 
     /// The composer shell delegates before slash handling so an active @ token wins.
