@@ -22,27 +22,32 @@ pub fn status(words: &Translator, state: RunState) -> &str {
 /// Complete failure text, independent from platform diagnostics and secrets.
 #[must_use]
 pub fn issue<'a>(words: &'a Translator, issue: &Issue) -> &'a str {
-    let words = words.scripts();
+    let labels = words.scripts();
     match issue {
-        Issue::Call(_) => words.call_failed(),
-        Issue::Approval => words.approval(),
-        Issue::Exhausted => words.exhausted(),
-        Issue::Retention => words.retained_limit(),
+        Issue::Call(_) => labels.call_failed(),
+        Issue::Approval => labels.approval(),
+        Issue::Exhausted => labels.exhausted(),
+        Issue::Retention => labels.retained_limit(),
         Issue::Preview(problem) => match problem {
-            PreviewProblem::MissingHost => words.missing_host(),
-            PreviewProblem::InvalidHost => words.invalid_host(),
-            PreviewProblem::ZeroPort => words.invalid_port(),
-            PreviewProblem::RemoteLoopback => words.remote_loopback(),
-            PreviewProblem::Stale => words.stale(),
+            PreviewProblem::MissingHost => labels.missing_host(),
+            PreviewProblem::InvalidHost => labels.invalid_host(),
+            PreviewProblem::ZeroPort => labels.invalid_port(),
+            PreviewProblem::RemoteLoopback => labels.remote_loopback(),
+            PreviewProblem::Stale => labels.stale(),
         },
-        Issue::Refused(reason) => match reason {
-            ScriptRefusal::NoProject => words.no_project(),
-            ScriptRefusal::NoSuchScript => words.missing_script(),
-            ScriptRefusal::NoSuchDir => words.missing_dir(),
-            ScriptRefusal::InvalidFile { .. } => words.invalid_file(),
-            ScriptRefusal::AlreadyRunning { .. } => words.already_running(),
-            ScriptRefusal::Unknown => words.refused(),
-        },
+        Issue::Refused(reason) => refusal(words, reason),
+    }
+}
+
+fn refusal<'a>(words: &'a Translator, reason: &ScriptRefusal) -> &'a str {
+    let labels = words.scripts();
+    match reason {
+        ScriptRefusal::NoProject => labels.no_project(),
+        ScriptRefusal::NoSuchScript => labels.missing_script(),
+        ScriptRefusal::NoSuchDir => labels.missing_dir(),
+        ScriptRefusal::InvalidFile { .. } => labels.invalid_file(),
+        ScriptRefusal::AlreadyRunning { .. } => labels.already_running(),
+        ScriptRefusal::Unknown => labels.refused(),
     }
 }
 
@@ -57,8 +62,6 @@ pub fn receipt<'a>(words: &'a Translator, write: &super::RetiredWrite) -> &'a st
         Some(Ok(None)) => labels.receipt_acknowledged(),
         Some(Ok(Some(ScriptRunOutcome::Started { .. }))) => labels.receipt_started(),
         Some(Ok(Some(ScriptRunOutcome::NeedsApproval { .. }))) => labels.approval(),
-        Some(Ok(Some(ScriptRunOutcome::Refused { reason }))) => {
-            issue(words, &Issue::Refused(reason.clone()))
-        }
+        Some(Ok(Some(ScriptRunOutcome::Refused { reason }))) => refusal(words, reason),
     }
 }
