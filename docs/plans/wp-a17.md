@@ -337,3 +337,11 @@ lints: doc path backticks, elidable groups lifetime and indexed route replacemen
 They are corrected; route selection uses iter_mut/find with unchanged same-node
 admission semantics. The immutable failure remains retained. No current native
 PASS is inferred from source corrections.
+
+Approved app package base8 91407173 is merged before the next remote check,
+per the current worker brief. It carries the shared FieldId/menu/Delivery seams
+and B0 node82ae7c91; this is an approved app-line merge, not a node-head import.
+The automatic merge had no conflicts. Existing shared behavior and Inbox's
+registrations/pending rows remain present; size/token ratchets are not raised.
+No final whole gate was running, so no frozen source was changed. Union checks
+remain owed; previous narrow results retain their original source scope.

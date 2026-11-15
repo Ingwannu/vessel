@@ -224,3 +224,6 @@ mod tests {
         assert_eq!(serde_json::from_str::<EventRecord>(&json).unwrap(), record);
     }
 }
+
+/// Read-only provider source identities and validated metadata.
+pub mod subagents;
