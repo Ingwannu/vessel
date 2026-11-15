@@ -1483,6 +1483,16 @@ events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
 
+### Startup recovery values (ADR 0059)
+
+`vessel-proto::restart` defines the disabled/reference-prompt policy and partial
+patch values using the existing bounded `PromptText`. The feature protocol is
+unassigned. Both settings replies pass through peer projection, including the
+existing recursive envelope walker; an unassigned field stays hidden from every
+peer. The node's existing response builder supplies only the disabled default.
+There is no recovery settings engine, request registration or startup service
+in this value-only slice; those remain for the staged and wiring slices.
+
 ## Ended conversations in the page (ADR 0036 amendment)
 
 The bridge's `wire::SidebarView::default` and the page's `prefs-change`

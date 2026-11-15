@@ -19,9 +19,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::harness::HarnessKind;
 use crate::parking::ParkAfter;
+use crate::restart::RestartRecovery;
 
 /// The node's settings in force.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct NodeSettings {
     /// How long a structured session may stay idle before its agent is
@@ -31,6 +32,32 @@ pub struct NodeSettings {
     /// absent when every agent runs over ACP.
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
+    /// Startup policy, hidden until its protocol is assigned (ADR 0059).
+    /// This value-only field does not enable an engine or register input.
+    #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
+    pub restart_recovery: RestartRecovery,
+}
+
+impl NodeSettings {
+    /// Project a reply for a peer, including a legacy settings mutation's
+    /// response. Unassigned fields stay hidden even from current peers.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
+        self.for_recovery_protocol(protocol, crate::restart::RESTART_RECOVERY_PROTOCOL)
+    }
+
+    fn for_recovery_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let supported = assigned.is_some_and(|required| protocol >= required);
+        (!supported && !self.restart_recovery.is_default()).then(|| {
+            let mut settings = self.clone();
+            settings.restart_recovery = RestartRecovery::default();
+            settings
+        })
+    }
 }
 
 /// Which protocol drives an agent's structured sessions (protocol 18, ADR
@@ -158,6 +185,35 @@ pub struct SetNodeSettings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recovery_projection_respects_a_synthetic_assigned_boundary() {
+        let original = NodeSettings {
+            park_after: ParkAfter::Never,
+            drivers: AgentDrivers::default(),
+            restart_recovery: RestartRecovery {
+                enabled: true,
+                prompt: "custom boundary prompt".parse().unwrap(),
+            },
+        };
+        let required = crate::PROTOCOL_VERSION;
+        let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
+        for (protocol, assignment) in [(older, Some(required)), (required, None)] {
+            let projected = original
+                .for_recovery_protocol(protocol, assignment)
+                .unwrap();
+            assert_eq!(projected.restart_recovery, RestartRecovery::default());
+            assert!(
+                !serde_json::to_string(&projected)
+                    .unwrap()
+                    .contains("restart_recovery")
+            );
+        }
+        assert_eq!(
+            original.for_recovery_protocol(required, Some(required)),
+            None
+        );
+    }
 
     /// A node of 17 answers without `drivers`: every agent over ACP. A
     /// change names only the agents it changes.

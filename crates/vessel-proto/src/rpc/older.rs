@@ -50,6 +50,8 @@ impl Reply {
             Self::OpenSideQuestion(session) => info(session).map(Self::OpenSideQuestion),
             Self::ResetSideQuestion(session) => info(session).map(Self::ResetSideQuestion),
             Self::NodeInfo(node) => node.for_protocol(protocol).map(Self::NodeInfo),
+            Self::GetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::GetNodeSettings),
+            Self::SetNodeSettings(settings) => settings.for_protocol(protocol).map(Self::SetNodeSettings),
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
@@ -291,8 +293,6 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
-            | Self::GetNodeSettings(_)
-            | Self::SetNodeSettings(_)
             | Self::GetAgentHistory(_) => None,
         }
     }
@@ -458,3 +458,6 @@ mod tests {
         assert!(!info.labels.is_empty() && !info.spec.labels.is_empty());
     }
 }
+
+#[cfg(test)]
+mod restart_tests;
