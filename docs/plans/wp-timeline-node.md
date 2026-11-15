@@ -121,3 +121,16 @@ unacknowledged admitted answers into OutcomeUnknown. Tests are written for
 deduplication, resolution/tombstones, invalid/concurrent answers, refusal retry
 and uncertain recovery, but are not yet executed. This is storage behavior
 only: no actor or real provider steering is connected or claimed.
+
+## Quality B and value follow-up
+
+Merged the announced Quality B node head under the standard merge policy;
+no conflicts. Method since/shape and pending-row registration now come from
+the shared table. The shared AgentEvent optional accessor is owned elsewhere
+and will be consumed rather than duplicated.
+
+Standalone value clippy passed on 96ed8b0b. Its queued local unit test was
+canceled before execution under the updated build-line ruling; rc143 is a
+cancellation, not passing or failing test evidence. Narrow checks now move to
+the remote runner. The follow-up adds safe caller UUID allocation, typed
+admission bytes, a stable task-id value and known-detail-preserving updates.

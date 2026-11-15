@@ -128,3 +128,44 @@ pub struct UnknownToolDetail {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<RawJson>,
 }
+
+impl ToolCallDetail {
+    /// Keep a known canonical body when an update only offers an opaque fallback.
+    /// Missing detail likewise cannot erase information already displayed.
+    #[must_use]
+    pub fn updated(self, update: Option<Self>) -> Self {
+        let Some(update) = update else {
+            return self;
+        };
+        match update {
+            Self::Unknown(_) if self.is_known() => self,
+            next @ (Self::Shell(_)
+            | Self::Read(_)
+            | Self::Edit(_)
+            | Self::Write(_)
+            | Self::Search(_)
+            | Self::Fetch(_)
+            | Self::WorktreeSetup(_)
+            | Self::SubAgent(_)
+            | Self::PlainText(_)
+            | Self::Plan(_)
+            | Self::Unknown(_)) => next,
+        }
+    }
+
+    fn is_known(&self) -> bool {
+        match self {
+            Self::Unknown(_) => false,
+            Self::Shell(_)
+            | Self::Read(_)
+            | Self::Edit(_)
+            | Self::Write(_)
+            | Self::Search(_)
+            | Self::Fetch(_)
+            | Self::WorktreeSetup(_)
+            | Self::SubAgent(_)
+            | Self::PlainText(_)
+            | Self::Plan(_) => true,
+        }
+    }
+}

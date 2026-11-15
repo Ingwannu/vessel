@@ -13,7 +13,7 @@ mod receipt;
 pub use detail::*;
 pub use identity::{
     ClientMessageId, ExternalAgentId, ExternalHostId, MAX_TIMELINE_IDENTITY_BYTES, PluginItemId,
-    PluginKind, TimelineIdentityError, TimelineName, TimelinePluginId,
+    PluginKind, TimelineIdentityError, TimelineName, TimelinePluginId, TimelineTaskId,
 };
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};

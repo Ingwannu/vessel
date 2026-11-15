@@ -98,9 +98,36 @@ identity!(
     "A display name or tool label whose spelling must remain intact."
 );
 
+impl ClientMessageId {
+    /// Mint once before prompt preparation; retain this identity across delivery retries.
+    #[must_use]
+    pub fn random() -> Self {
+        // A canonical UUID has no controls and fits the identity bound by construction.
+        Self(Arc::from(uuid::Uuid::new_v4().to_string()))
+    }
+}
+
+identity!(
+    TimelineTaskId,
+    "A provider's stable task id, independent of task text or list position."
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn generated_message_ids_are_valid_and_remain_stable_on_wire_roundtrip() {
+        let first = ClientMessageId::random();
+        let second = ClientMessageId::random();
+        assert_ne!(first, second);
+        assert_eq!(first.as_str().parse::<ClientMessageId>().unwrap(), first);
+        let encoded = serde_json::to_string(&first).unwrap();
+        assert_eq!(
+            serde_json::from_str::<ClientMessageId>(&encoded).unwrap(),
+            first
+        );
+    }
 
     #[test]
     fn every_deserialization_uses_the_validating_constructor() {

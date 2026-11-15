@@ -103,7 +103,7 @@ fn capacity(
     }
     if used
         .bytes
-        .checked_add(kind.reserved_bytes())
+        .checked_add(kind.reserved_bytes().get())
         .is_none_or(|bytes| bytes > max_bytes)
     {
         return Err(error(AdmissionResource::Bytes));
@@ -140,7 +140,7 @@ fn verify(connection: &Connection) -> Result<(), StoreError> {
         "SELECT count(*) FROM timeline_admissions WHERE
          (kind='receipt' AND (reserved_bytes<>?1 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?3)) OR
          (kind='question' AND (reserved_bytes<>?2 OR length(CAST(state AS BLOB))+length(CAST(identity AS BLOB))+length(fingerprint)>?4))",
-        params![AdmissionKind::Receipt.reserved_bytes(), AdmissionKind::Question.reserved_bytes(),
+        params![AdmissionKind::Receipt.reserved_bytes().get(), AdmissionKind::Question.reserved_bytes().get(),
             vessel_proto::timeline::admission::MAX_RECEIPT_STATE_BYTES,
             vessel_proto::timeline::admission::MAX_QUESTION_STATE_BYTES],
         |row| row.get(0),

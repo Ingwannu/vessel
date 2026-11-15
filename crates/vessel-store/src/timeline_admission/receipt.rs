@@ -75,7 +75,7 @@ pub(super) fn admit_receipt(
             session.to_string(),
             message.as_str(),
             fingerprint.bytes().as_slice(),
-            AdmissionKind::Receipt.reserved_bytes(),
+            AdmissionKind::Receipt.reserved_bytes().get(),
             codec::encode(&ReceiptState::Pending)?
         ],
     )?;
@@ -147,7 +147,9 @@ fn check_envelope(
         .and_then(|size| size.checked_add(state.len()))
         .ok_or(StoreError::AdmissionIntegrity)?;
     let encoded = u64::try_from(size).map_err(|_too_large| StoreError::AdmissionIntegrity)?;
-    if !AdmissionKind::Receipt.fits(encoded) {
+    if !AdmissionKind::Receipt.fits(vessel_proto::timeline::admission::AdmissionBytes::new(
+        encoded,
+    )) {
         return Err(StoreError::AdmissionIntegrity);
     }
     Ok(())

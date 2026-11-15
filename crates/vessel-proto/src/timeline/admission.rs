@@ -18,6 +18,26 @@ pub const MAX_QUESTION_STATE_BYTES: u64 = 512 * 1024;
 /// Each reservation charges fixed logical metadata in addition to its envelope.
 pub const ADMISSION_ROW_CHARGE_BYTES: u64 = 512;
 
+/// Encoded admission state uses a byte unit distinct from tokens or record counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(transparent)]
+pub struct AdmissionBytes(u64);
+
+impl AdmissionBytes {
+    /// Parse a measured encoded size into its unit at the store boundary.
+    #[must_use]
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// The magnitude for the database's integer codec and UI formatting.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 /// The capacity owner is explicit so clients do not retry a node-wide refusal per session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -65,23 +85,23 @@ pub enum AdmissionKind {
 impl AdmissionKind {
     /// The entire reserved charge, including fixed metadata, never shrinks on settlement.
     #[must_use]
-    pub const fn reserved_bytes(self) -> u64 {
+    pub const fn reserved_bytes(self) -> AdmissionBytes {
         let envelope = match self {
             Self::Receipt => MAX_RECEIPT_STATE_BYTES,
             Self::Question => MAX_QUESTION_STATE_BYTES,
         };
         // Constant envelopes cannot overflow, and saturation preserves refusal if expanded.
-        envelope.saturating_add(ADMISSION_ROW_CHARGE_BYTES)
+        AdmissionBytes(envelope.saturating_add(ADMISSION_ROW_CHARGE_BYTES))
     }
 
     /// Check serialized state against its already reserved envelope before effects.
     #[must_use]
-    pub const fn fits(self, encoded_bytes: u64) -> bool {
+    pub const fn fits(self, encoded_bytes: AdmissionBytes) -> bool {
         let maximum = match self {
             Self::Receipt => MAX_RECEIPT_STATE_BYTES,
             Self::Question => MAX_QUESTION_STATE_BYTES,
         };
-        encoded_bytes <= maximum
+        encoded_bytes.get() <= maximum
     }
 }
 
@@ -95,10 +115,10 @@ mod tests {
             (AdmissionKind::Receipt, MAX_RECEIPT_STATE_BYTES),
             (AdmissionKind::Question, MAX_QUESTION_STATE_BYTES),
         ] {
-            assert!(kind.fits(maximum));
-            assert!(!kind.fits(maximum.checked_add(1).unwrap()));
+            assert!(kind.fits(AdmissionBytes::new(maximum)));
+            assert!(!kind.fits(AdmissionBytes::new(maximum.checked_add(1).unwrap())));
             assert_eq!(
-                kind.reserved_bytes(),
+                kind.reserved_bytes().get(),
                 maximum.checked_add(ADMISSION_ROW_CHARGE_BYTES).unwrap()
             );
         }

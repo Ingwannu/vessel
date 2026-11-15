@@ -134,7 +134,7 @@ pub(super) fn admit_question(
         params![
             session.to_string(),
             record.source.as_str(),
-            AdmissionKind::Question.reserved_bytes(),
+            AdmissionKind::Question.reserved_bytes().get(),
             encoded
         ],
     )?;
@@ -311,8 +311,11 @@ fn fits(source: &ToolCallId, encoded: &str) -> Result<bool, StoreError> {
         .len()
         .checked_add(encoded.len())
         .ok_or(StoreError::AdmissionIntegrity)?;
-    Ok(AdmissionKind::Question
-        .fits(u64::try_from(size).map_err(|_too_large| StoreError::AdmissionIntegrity)?))
+    Ok(
+        AdmissionKind::Question.fits(vessel_proto::timeline::admission::AdmissionBytes::new(
+            u64::try_from(size).map_err(|_too_large| StoreError::AdmissionIntegrity)?,
+        )),
+    )
 }
 
 #[cfg(test)]

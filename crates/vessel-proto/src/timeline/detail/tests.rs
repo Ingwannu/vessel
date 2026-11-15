@@ -35,3 +35,21 @@ fn body_validation_keeps_unknown_content_opaque_without_accepting_bad_identities
     let parsed: ToolCallDetail = serde_json::from_value(unknown.clone()).unwrap();
     assert_eq!(serde_json::to_value(parsed).unwrap(), unknown);
 }
+
+#[test]
+fn partial_updates_cannot_erase_a_known_canonical_body() {
+    let known = ToolCallDetail::Plan(PlanDetail {
+        text: "# Plan".to_owned(),
+    });
+    let unknown = ToolCallDetail::Unknown(UnknownToolDetail {
+        input: None,
+        output: None,
+    });
+    assert_eq!(known.clone().updated(None), known);
+    assert_eq!(known.clone().updated(Some(unknown.clone())), known);
+    assert_eq!(unknown.updated(Some(known.clone())), known);
+    let changed = ToolCallDetail::Plan(PlanDetail {
+        text: "# Revised".to_owned(),
+    });
+    assert_eq!(known.updated(Some(changed.clone())), changed);
+}

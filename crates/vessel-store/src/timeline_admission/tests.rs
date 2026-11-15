@@ -214,7 +214,7 @@ fn every_count_and_byte_guard_refuses_at_its_boundary_without_reducing_reservati
             AdmissionResource::Records
         );
         for kind in [AdmissionKind::Receipt, AdmissionKind::Question] {
-            let fits = bytes.checked_sub(kind.reserved_bytes()).unwrap();
+            let fits = bytes.checked_sub(kind.reserved_bytes().get()).unwrap();
             assert!(
                 capacity(
                     Usage {
@@ -316,7 +316,7 @@ fn two_distinct_ids_cannot_overbook_the_final_session_reservation() {
     setup.execute_batch(SQL).unwrap();
     let id = session(&setup);
     let available = MAX_SESSION_ADMISSION_BYTES
-        .checked_div(AdmissionKind::Receipt.reserved_bytes())
+        .checked_div(AdmissionKind::Receipt.reserved_bytes().get())
         .unwrap();
     for index in 0..available.saturating_sub(1) {
         assert!(matches!(
