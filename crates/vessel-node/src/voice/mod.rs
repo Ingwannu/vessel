@@ -7,3 +7,4 @@
 mod boundary;
 
 mod prompt;
+mod segments;

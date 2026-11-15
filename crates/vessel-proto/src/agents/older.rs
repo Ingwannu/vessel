@@ -275,6 +275,13 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             // A hit names a session; the session itself comes from a list.
+            | Self::StartVoice(_)
+            | Self::CaptureVoice(_)
+            | Self::NextVoice(_)
+            | Self::PlayedVoice(_)
+            | Self::AbortVoice(_)
+            | Self::StopVoice(_)
+            | Self::SpeakVoice(_)
             | Self::SearchMessages(_) => None,
         }
     }

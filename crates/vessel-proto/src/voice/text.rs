@@ -24,7 +24,7 @@ impl TryFrom<String> for SpeechText {
     type Error = VoiceDecodeError;
 
     fn try_from(text: String) -> Result<Self, Self::Error> {
-        if text.trim().is_empty() || text.len() > MAX_SPEECH_BYTES {
+        if crate::workspace::trim_project_text(&text).is_empty() || text.len() > MAX_SPEECH_BYTES {
             return Err(VoiceDecodeError::Speech);
         }
         Ok(Self(Arc::from(text)))

@@ -149,3 +149,13 @@ The seven rows initially exceeded the shared rpc.rs 500-line budget.
 The coordinator directed consuming the already isolated Request/UnexpectedReply
 extraction, then awaiting the integrator's lasting table seam; no size
 record is raised. New drafts are preserved as WIP before that merge.
+
+## Pending-wire generation repair (2026-11-15 07:43 UTC)
+
+The first pending-row TS generation caught the exhaustive agent reply classifier; the next caught unclassified wire aliases. The seven voice handles/content aliases and the existing PCM format alias now follow the central handle/content/name rules. `VoiceEpoch` is an authority generation handle; `VoiceSeq` is a count. Speech blank validation reuses the existing JavaScript whitespace contract (BOM rejected, NEL retained). These failures are generation coverage, not a provider/runtime test. The pending node handlers remain fail-closed.
+
+## TTS segmentation source slice (2026-11-15 07:53 UTC)
+
+The staged `voice::segments` follows Paseo `tts-manager.ts:30–131`: JS whitespace normalization; sentence boundaries after .!?; greedy clause packing after ,;:; a late-enough space before a hard 260 UTF-16-unit cut. It reuses the existing JS trim validator rather than Rust's different NEL/BOM rules. Rust moves a hard cut before a surrogate pair (up to one unit earlier) because invalid UTF-8/unpaired surrogate output cannot become SpeechText. Added deterministic sentence/clause/word/astral cases; no provider call or playback proof. Provider/reload/codec integration is still outstanding.
+
+Pending-row TypeScript generation now passes locally: `VESSEL_WRITE_TS=1 cargo test -p vessel-proto --features ts --lib typescript` (3 passed, 287 filtered; log `/tmp/work/wp-voice/proto-wire-generation-3.log`). Committed generator output is unedited; ts-rs emits the same trailing-space style as preexisting declarations, so `git diff --check` reports generated lines. Source whitespace is checked separately; this does not claim a clean generated whitespace check. The bridge's combined declaration test and full proto/node checks remain owed.

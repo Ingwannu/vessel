@@ -54,6 +54,8 @@ fn speech_is_nonblank_bounded_and_diagnostic_safe() {
         )
         .is_err()
     );
+    assert!(SpeechText::try_from("\u{feff}".to_owned()).is_err());
+    assert!(SpeechText::try_from("\u{0085}".to_owned()).is_ok());
     assert!(SpeechText::try_from("a".repeat(MAX_SPEECH_BYTES)).is_ok());
     assert!(SpeechText::try_from("a".repeat(MAX_SPEECH_BYTES + 1)).is_err());
     let text = SpeechText::try_from("private spoken text".to_owned()).unwrap();
