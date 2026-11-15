@@ -7,7 +7,12 @@ use vessel_proto::creation::{MAX_RECEIPTS, MAX_RETAINED_BYTES, RESERVED_BYTES_PE
 fn seed_before_last_slot(dir: &DataDir) -> Result<(), StoreError> {
     let mut db = rusqlite::Connection::open(dir.database_path())?;
     let tx = db.transaction()?;
-    let slots = MAX_RECEIPTS.min(MAX_RETAINED_BYTES / RESERVED_BYTES_PER_RECEIPT);
+    // Only complete retained reservations fit; no partial last slot is admitted.
+    let slots = MAX_RECEIPTS.min(
+        MAX_RETAINED_BYTES
+            .checked_div(RESERVED_BYTES_PER_RECEIPT)
+            .unwrap(),
+    );
     for index in 0..slots.saturating_sub(1) {
         let admission = any_candidate(&format!("retained-{index}"));
         let reserved = admission.receipt.snapshot().reserved;

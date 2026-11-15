@@ -14,12 +14,10 @@ async fn dropped_ack_receiver_cannot_suppress_a_committed_creation_wakeup() {
     drop(receive);
     store
         .writes
-        .send(crate::writer::WriteOp::Write(
-            crate::writer::Write::Creation {
-                change: Box::new(CreationWrite::Admit(candidate)),
-                done,
-            },
-        ))
+        .send(crate::writer::WriteOp::Write(Write::Creation {
+            change: Box::new(CreationWrite::Admit(candidate)),
+            done,
+        }))
         .await
         .unwrap();
     tokio::time::timeout(std::time::Duration::from_secs(10), changes.changed())

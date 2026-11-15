@@ -244,7 +244,7 @@ fn corrupt_receipts_are_refused_instead_of_skipped_or_treated_as_absent() {
         )
         .unwrap();
     assert!(matches!(
-        projection::lookup(&connection, &identity),
+        lookup(&connection, &identity),
         Err(StoreError::CorruptCreation(_))
     ));
     let raw: String = connection
