@@ -1,8 +1,8 @@
 # Project pull-request provider/service candidate
 
-Status: provider/service candidate `04d32734` passed the additional
-builder's whole gate. Review returned its new test liveness boundary;
-the test-only correction below is awaiting changed-source validation.
+Status: provider/service candidate `04d32734` and liveness correction
+`c85e1531`/`ed34a92b` passed separate whole gates. The test-only correction
+is awaiting source review of the returned liveness boundary.
 The earlier local workspace run remains red; project listing is not callable.
 
 ## Implemented boundary
@@ -92,8 +92,8 @@ git output with an owned asynchronous child killed and reaped on timeout.
 A driven timeout probe checks that dropping the timed release sender lets
 the blocking worker exit before runtime shutdown; a held-input fake checks
 that the owned child is killed and reaped after its output deadline.
-The fixture also cancels
-its async owners when an assertion or safety boundary drops it. These are
+The fixture also cancels its async owners when an assertion or safety
+boundary drops it. These are
 test-only changes; the original source and passing gate remain retained.
 
 The correction's first selected run ended at the short-lane limit. Forge
@@ -107,7 +107,33 @@ blocking-channel wall-time safety net. Its outer budget explicitly includes
 the virtual advance. The original lifecycle/pool/barrier checks and finite
 HTTP/failed-job/root deadlines remain unchanged.
 
-Submit the candidate and both executions to source review as a staged
+### Corrected-source validation
+
+The ordinary selected check on `ed34a92b` completed 298 library tests:
+Forge 52 and node 246, with no failure or ignore. Both the timeout-release
+and owned-child kill/reap probes explicitly passed. No unchanged retry was
+used to erase the preceding short-lane limit or its stuck probe.
+
+The complete additional-builder gate then passed all eighteen steps on
+that same committed source. It reported 113 workspace summaries: 2,024
+passed, zero failed and twelve existing ignores; TypeScript two, web unit
+tests 417, E2E 62 and fixture-feature tests four. It actually recompiled
+node and forge. The gate ran from 04:14:33 to 04:27:32 UTC on 2026-11-15;
+start/end load was 10.36/8.00, workspace-test load 15.07/11.33, with eight
+build jobs and eight test threads. Every step returned zero without skips.
+
+All 1,740 selected source/policy/delta inputs matched immutable `ed34a92b`
+Git blobs and the local worktree after the run. All eighteen step logs
+matched their recorded digest prefixes. An assertion comparison, removing
+only new phase wrappers and normalizing whitespace/trailing commas, kept
+all 199 original assertions and found five additional cleanup assertions.
+This comparison supports the manually reviewed diff; it is not a general
+proof of semantic equivalence. Ignored configuration, dependencies and the
+whole runtime environment remain outside this selected-source proof.
+No local runtime remains; local isolated test storage is empty and retains
+UID/GID 1000 and mode 0700. No production permission was changed.
+
+Submit the corrected source and retained executions to review as a staged
 provider/service slice. It remains on the track branch: product wiring,
 authority/forwarding/older-peer fixtures, client/CLI/fleet consumers and
 their complete product-configuration gate remain later work. Shared

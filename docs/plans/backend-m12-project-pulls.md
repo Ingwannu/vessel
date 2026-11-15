@@ -133,3 +133,12 @@ These selected commands do not replace the whole root runner. Its two
 binary prebuilds and explicit fixture-feature Clippy/test steps remain
 required. Wire permissions, old peers, client/CLI/fleet consumers and the
 product configuration are still the following transport stage.
+
+The liveness correction is `c85e1531`/`ed34a92b`: finite whole-case and named
+phase waits, bounded owned git output/kill/reap and cleanup probes. Its
+selected check passed 298 tests, then its full gate passed 2,024 workspace
+tests plus the explicit TypeScript/web/fixture steps. The original passing
+source and the correction's failed short probe are both retained in the
+service-results record; source review remains pending. This changes only
+the new test fixtures and their documentation, not the staged product
+contract or its missing transport consumers.

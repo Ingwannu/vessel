@@ -1,5 +1,44 @@
 # N3 current checkpoint
 
+## Latest: liveness correction gated, source review pending
+
+V1 completed the provider/service source review and returned only the new
+tests' unbounded waits; it found no additional product/provider, shared-root,
+cache or credential blocker. That was a quality return, not invalidation
+of `04d32734`'s whole green run. Correction source is `c85e1531` followed by
+`ed34a92b`. It adds finite outer/phase safety, owned fixture git kill/reap,
+drop cancellation and two cleanup probes. Existing assertions, the original
+one-worker barrier and existing HTTP/failed-job/root deadlines remain.
+
+The first correction short check hit its limit because the new driven
+cleanup probe stalled; its source/logs remain retained. The corrected
+probe advances past timer rounding and also has an independent blocking
+wall-time safety net. The ordinary selected check on `ed34a92b` passed
+298/0/0. Its changed-source complete gate passed all eighteen steps:
+workspace 2,024/0/12, TypeScript two, web unit tests 417, E2E 62 and fixture
+four. Both cleanup probes passed; all 1,740 selected inputs matched Git
+and the worktree. Results are in the service-results document. Source
+acceptance is pending; neither a callable project-list method nor a node
+integration instruction is claimed. The older checkpoints below remain
+historical evidence.
+
+Next at the clean boundary: merge the announced node head `242076b5`
+(protocol 23, store 17; replaces `f453ec2e`) and gate the merged baseline.
+The next assigned slice is named launch profiles for the Agents/Providers
+screen, distinct from account profiles. ADR 0076 goes to V1 before code.
+Paseo 0.15.4's schema, config persistence/permissions, complete profile form
+and materialization code/tests were read; no launch-profile code exists.
+The contract must state typed bounds, Admin mutation and conflict rules,
+whole ordered-list replacement/clears, dynamic provider choices and the
+launch/running partial-application boundary.
+
+Quality B still owns the pending method-table row and generated metadata.
+Until its head is announced, register no new call: no dummy/current number
+and no parallel mechanism. Protocol and storage schema numbers belong to
+the integrator. Project-list wiring, registry/version row 6 and webhook
+row 7 remain incomplete. No native/page work, real agent/forge, production
+operation or permission change occurred; no local fleet/display remains.
+
 ## Current staged project-listing checkpoint
 
 This checkpoint supersedes the older fake-forge delivery instructions
