@@ -7,7 +7,10 @@ normal typed caller.
 
 ## Add a string
 
-1. Add a key to `en/<area>.ftl`, with a comment naming its screen, context,
+1. Use lowercase words separated by hyphens for the area filename and keys:
+   `chat-outline.ftl` has keys starting `chat-outline-`, such as
+   `chat-outline-label`; its Rust getter is `catalog.chat_outline().label()`.
+   Add the key to `en/<area>.ftl`, with a comment naming its screen, context,
    values, and whether it must stay short. Add its whole Korean message to
    `ko/<area>.ftl` with the same variables.
 2. Use the generated method: `catalog.pairing().title()` for a plain label.
@@ -18,7 +21,8 @@ normal typed caller.
 3. Prepare the catalog before drawing. Plain getters borrow cached strings.
    Format messages with values when the value changes and keep the result;
    handle a formatting error at that boundary, never by printing Display in
-   the screen. Run the coverage report and the complete native gate.
+   the screen. Run coverage and narrow checks; the complete native gate runs
+   once when the feature package closes.
 
 A whole sentence is one message. Use Fluent selectors for a count or a state,
 with whole sentences in every branch; do not join translated fragments. A
@@ -52,7 +56,7 @@ messages fall back individually to English, using English plural rules.
 A folder in this directory **ships and appears in General's language chooser**
 by its own name, after System. Move it here only when the report says
 `0 missing`, `complete=true` for every shipped language, with no syntax,
-variable or format-rule errors; run the complete native gate before committing.
+variable or format-rule errors; include the complete native gate at package close.
 Coverage covers migrated messages only: until every table moves, remaining
 screens still use the English/Korean tables. The partial Japanese folder lives
 only in `view/tests/fixtures/locales/`, never in the shipped registry.
@@ -72,6 +76,10 @@ unset it when checking that General's language change applies immediately.
 Use dark/light themes and desktop/phone sizes as described in the native README.
 
 
+During the staged migration, published languages are English and Korean.
+Coverage counts the Fluent catalog. Finish the remaining legacy-table
+migration before publishing a third language for the whole app.
+
 ## Move an area
 
 Audit each string's callers first. Move only that area's own messages; shared
@@ -86,11 +94,11 @@ Delete the old area table and its exports after its callers have moved.
 A mixed table such as `text/app.rs` loses only the audited area-only entries.
 Capture the same real screen before and after, English/Korean, dark/light,
 desktop/phone, long/empty/loading/failed states and the pseudo override.
-Inspect each capture against its reference. Change one area per commit;
-run the entire native fmt/Clippy/test gate and the coverage report, document
-shared strings and every other owner's registration seam, then send it to
-review before starting another area. Coordinate ownership before touching
-an actively edited table.
+Inspect each capture against its reference. Change one area per commit and
+run narrow checks. Close the feature package with one complete native gate,
+coverage report and review submission including its changed screens. Document
+shared strings and every other owner's registration seam. Coordinate ownership
+before touching an actively edited table.
 
 A field that retains a translated placeholder exposes one refresh method.
 Register it in `app/src/language.rs`'s `PLACEHOLDERS` list. Refresh only the
@@ -111,3 +119,25 @@ wording-preserving move exposes this old defect, make its typed correction a
 separate commit before submitting the screen as complete. Retained global
 notices refresh only while they still own the visible notice, preserving any
 later message from another area. A language change must not resend a request.
+
+## Package and Korean review
+
+Each feature owner adds its own English/Korean domain and normal typed callers.
+Use a unique area name; coordinate before editing another area's catalog. Send
+the final key diff and source commit for Korean review once before package close.
+Keep translator comments beside both messages. Check that a sentence states the
+same outcome/recovery in both languages, uses established machine/session
+terminology, has no untranslated diagnostic argument and remains concise where
+marked short. Use PARTICLE for a variable ending when the particle can vary.
+The coverage report checks shape, not the meaning of the Korean sentence.
+
+System uses the host provider's preferred tags in order: exact then base for
+each tag, English only if no embedded language matches. An explicit choice wins;
+VESSEL_APP_LANG remains the checking override. Selection and catalog preparation
+happen before drawing or at a preference event, never per frame. This is local
+state; no host language request is sent.
+
+Plugin text belongs to the plugin's resolver/namespace. A contribution receives
+the validated active Locale (serialized to its tag only at the plugin boundary)
+and refreshes its own prepared labels at a language event;
+it never loads resources or arbitrary keys into the core Fluent registry.
