@@ -725,3 +725,10 @@ back the canonical band, preserving payload/token and avoiding callbacks. Pure
 tests also cover priority replacement and canonical suppression. Tests are
 installed but not executed; the current ordinary strict run still checks033,
 not this later source. W19's actual consumer is not installed in this tree.
+
+Static follow-up after the sidebar root adapter: remove the now-unused
+app Panel::width_leaving forwarding method. Its sole former caller was the
+sidebar frame; width/share now comes from the single view::panels::sidebar_layout
+decision. Keep Panel::asked, width, drag/save/handle and the public pure
+Limits::width_leaving unchanged. No lint exemption or second budget decision.
+This is source inspection, not evidence from the still-queued033 strict run.
