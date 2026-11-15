@@ -54,7 +54,109 @@ pub(crate) enum FileOpenRefusal {
     /// The sole layout owner refused placement.
     Layout(vessel_app_view::layout::LayoutError),
 }
+// Preparing placement moves only local ownership. No file request is sent
+// before the sole layout owner accepts the actual target/placement.
+#[cfg(test)]
+struct PreparedOpen {
+    workspace: vessel_app_view::layout::LayoutKey,
+    file: super::buffers::FileKey,
+    active: ActiveFile,
+}
+#[cfg(test)]
+enum ActiveFile {
+    Reused,
+    Parked(Option<super::buffers::FileKey>),
+}
 impl Shell {
+    #[cfg(test)]
+    fn prepare_file_open(
+        &mut self,
+        origin: &FileOpenContext,
+        path: vessel_proto::workspace::RelPath,
+    ) -> Result<PreparedOpen, FileOpenRefusal> {
+        use super::buffers::FileKey;
+        use vessel_app_view::layout::{HostAlias, LayoutKey};
+        if !self.file_open_context_is_current(origin) {
+            return Err(FileOpenRefusal::Changed);
+        }
+        if path.is_root() {
+            return Err(FileOpenRefusal::Root);
+        }
+        let file = FileKey::new(origin.scope(), path);
+        let workspace = LayoutKey::Session {
+            machine: HostAlias::parse(origin.scope().connection().machine().as_str())
+                .map_err(FileOpenRefusal::Layout)?,
+            session: origin.session,
+        };
+        let panel = &self.areas.workspace.code;
+        if panel.file_mutating(&file) {
+            return Err(FileOpenRefusal::Busy);
+        }
+        if !panel.file_tabs.can_bind(&workspace, &file) {
+            return Err(FileOpenRefusal::Capacity);
+        }
+        let previous = panel.file_key();
+        let reuse = previous.as_ref() == Some(&file)
+            && panel
+                .files
+                .viewer
+                .as_ref()
+                .is_some_and(|viewer| viewer.scope == *origin.scope());
+        let active = if reuse {
+            ActiveFile::Reused
+        } else {
+            if !self.park_file() {
+                return Err(FileOpenRefusal::Capacity);
+            }
+            ActiveFile::Parked(previous)
+        };
+        Ok(PreparedOpen {
+            workspace,
+            file,
+            active,
+        })
+    }
+    #[cfg(test)]
+    fn install_file_open(
+        &mut self,
+        origin: &FileOpenContext,
+        prepared: PreparedOpen,
+        tab: vessel_app_view::layout::TabId,
+        location: Option<vessel_app_view::workspace::file_location::FileLocation>,
+        cx: &mut vessel_app_kit::ui::Context<'_, Self>,
+    ) {
+        let PreparedOpen {
+            workspace,
+            file,
+            active,
+        } = prepared;
+        self.areas
+            .workspace
+            .code
+            .file_tabs
+            .bind(workspace, tab, origin.clone(), file.clone());
+        // Protect a newly allocated tab before acquisition can enqueue a reply.
+        self.publish_file_tabs(&file, cx);
+        match active {
+            ActiveFile::Reused => {
+                if let Some(viewer) = self.areas.workspace.code.viewer_for(&file)
+                    && location.is_some()
+                {
+                    viewer.goto = location;
+                    if let Some(preview) = &mut viewer.markdown {
+                        preview.reveal_source();
+                    }
+                }
+            }
+            ActiveFile::Parked(_) => self.show_file(
+                origin.scope().connection().machine().as_str(),
+                origin.scope().root(),
+                file.path.clone(),
+                location,
+            ),
+        }
+        self.publish_file_tabs(&file, cx);
+    }
     /// Concrete compatibility opener, staged until its real UI and close-owner
     /// dispatch join. It uses only the actual returned tab id, never a local allocator.
     #[cfg(test)]
@@ -67,84 +169,31 @@ impl Shell {
         window: &mut vessel_app_kit::ui::Window,
         cx: &mut vessel_app_kit::ui::Context<'_, Self>,
     ) -> Result<vessel_app_view::layout::TabId, FileOpenRefusal> {
-        use super::buffers::FileKey;
-        use vessel_app_view::layout::{HostAlias, LayoutKey, OpenIntent, Target};
-        if !self.file_open_context_is_current(origin) {
-            return Err(FileOpenRefusal::Changed);
-        }
-        if path.is_root() {
-            return Err(FileOpenRefusal::Root);
-        }
-        let key = FileKey::new(origin.scope(), path.clone());
-        let workspace = LayoutKey::Session {
-            machine: HostAlias::parse(origin.scope().connection().machine().as_str())
-                .map_err(FileOpenRefusal::Layout)?,
-            session: origin.session,
-        };
-        let panel = &self.areas.workspace.code;
-        if panel.file_mutating(&key) {
-            return Err(FileOpenRefusal::Busy);
-        }
-        if !panel.file_tabs.can_bind(&workspace, &key) {
-            return Err(FileOpenRefusal::Capacity);
-        }
-        let previous = panel.file_key();
-        let reuse = previous.as_ref() == Some(&key)
-            && panel
-                .files
-                .viewer
-                .as_ref()
-                .is_some_and(|viewer| viewer.scope == *origin.scope());
-        if !reuse && !self.park_file() {
-            return Err(FileOpenRefusal::Capacity);
-        }
+        use vessel_app_view::layout::{OpenIntent, Target};
+        let prepared = self.prepare_file_open(origin, path)?;
         let opened = self.layout_open_target(
-            &workspace,
+            &prepared.workspace,
             Target::File {
-                root: key.root,
-                path: path.clone(),
+                root: prepared.file.root,
+                path: prepared.file.path.clone(),
             },
             OpenIntent::Reveal,
             placement,
             window,
             cx,
         );
-        let tab = match opened {
-            Ok(tab) => tab,
+        match opened {
+            Ok(tab) => {
+                self.install_file_open(origin, prepared, tab, location, cx);
+                Ok(tab)
+            }
             Err(error) => {
-                if !reuse && let Some(previous) = previous {
+                if let ActiveFile::Parked(Some(previous)) = prepared.active {
                     let files = &mut self.areas.workspace.code.files;
                     files.viewer = files.retained.remove(&previous);
                 }
-                return Err(FileOpenRefusal::Layout(error));
+                Err(FileOpenRefusal::Layout(error))
             }
-        };
-        self.areas.workspace.code.file_tabs.bind(
-            workspace.clone(),
-            tab,
-            origin.clone(),
-            key.clone(),
-        );
-        // Protect a newly allocated tab before acquisition can enqueue a reply.
-        self.publish_file_tabs(&key, cx);
-        if reuse {
-            if let Some(viewer) = self.areas.workspace.code.viewer_for(&key)
-                && location.is_some()
-            {
-                viewer.goto = location;
-                if let Some(preview) = &mut viewer.markdown {
-                    preview.reveal_source();
-                }
-            }
-        } else {
-            self.show_file(
-                origin.scope().connection().machine().as_str(),
-                origin.scope().root(),
-                path,
-                location,
-            );
         }
-        self.publish_file_tabs(&key, cx);
-        Ok(tab)
     }
 }

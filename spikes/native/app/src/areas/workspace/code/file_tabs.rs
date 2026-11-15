@@ -11,7 +11,9 @@ use vessel_app_kit::{
 use vessel_app_view::layout::{LayoutKey, Modified, TabId, Target};
 
 pub(super) struct Binding {
+    /// Original root receipt remains distinct from resource identity.
     pub(super) origin: FileOpenContext,
+    /// Canonical source owner, never a route alias or cursor.
     pub(super) file: FileKey,
     acknowledged: Option<Modified>,
 }
@@ -24,6 +26,7 @@ impl FileTabs {
     pub(super) fn contains(&self, file: &FileKey) -> bool {
         self.bindings.values().any(|binding| binding.file == *file)
     }
+    /// Path mutation admission sees existing resource references, not docking data.
     pub(super) fn files(&self) -> impl Iterator<Item = &FileKey> {
         self.bindings.values().map(|binding| &binding.file)
     }
@@ -37,6 +40,7 @@ impl FileTabs {
                 .iter()
                 .any(|((at, _), binding)| at == workspace && binding.file == *file)
     }
+    /// Install only the actual id returned by the sole layout owner.
     #[cfg(test)]
     pub(super) fn bind(
         &mut self,

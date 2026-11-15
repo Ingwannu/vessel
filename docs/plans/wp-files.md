@@ -800,3 +800,18 @@ Only a separate synthetic owner acknowledgement makes the source disposable.
 It also pins bound-path mutation refusal. Wide test geometry is explicit so
 placement-refusal assertions do not accidentally enter compact sheet promotion.
 These are owner/model regressions, not a registered close dispatcher or capture.
+
+
+### Strict19 concrete corrections
+
+Run wp-files-narrow-20261115T135928Z-9f7700db reached the current base8 View
+and found an owned metadata test constructor damaged during an earlier import
+change plus an implicit fixed hasher in the exported metadata tree API. The
+fixture now constructs explicit path/timestamp pairs, and both the public
+flattening function and recursive worker carry an independent metadata
+BuildHasher. Existing listing/expanded hashers and original tree assertions
+are unchanged. No lint allowance, head expectation or protocol export changes.
+The queued workspace run on the same known-red source was cancelled while
+still queued under the standing supersession rule; its143 record is retained.
+The next exact source batch must include these corrections and newer owner
+foundation tests. Strict19 remains failed, not partial package success.

@@ -117,11 +117,11 @@ pub fn tree_rows_with<S: std::hash::BuildHasher>(
 
 /// Flatten the same tree using timestamps from its accepted directory snapshots.
 #[must_use]
-pub fn tree_rows_with_metadata<S: std::hash::BuildHasher>(
+pub fn tree_rows_with_metadata<S: std::hash::BuildHasher, M: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath, FileModifiedMillis>,
+    modified: &HashMap<RelPath, FileModifiedMillis, M>,
 ) -> Vec<TreeRow> {
     let mut rows = Vec::new();
     rows_under(
@@ -136,13 +136,13 @@ pub fn tree_rows_with_metadata<S: std::hash::BuildHasher>(
     rows
 }
 
-fn rows_under<S: std::hash::BuildHasher>(
+fn rows_under<S: std::hash::BuildHasher, M: std::hash::BuildHasher>(
     listings: &HashMap<RelPath, Listing, S>,
     open: &HashSet<RelPath, S>,
     dir: &RelPath,
     depth: usize,
     options: ExplorerOptions,
-    modified: &HashMap<RelPath, FileModifiedMillis>,
+    modified: &HashMap<RelPath, FileModifiedMillis, M>,
     rows: &mut Vec<TreeRow>,
 ) {
     let listing = match listings.get(dir) {
@@ -257,7 +257,10 @@ mod tests {
             more: true,
         };
         let listings = HashMap::from([(RelPath::root(), Listing::Listed(listing))]);
-        let modified = HashMap::from([(path("a")(1)), (path("b")(2))]);
+        let modified = HashMap::from([
+            (path("a"), FileModifiedMillis(1)),
+            (path("b"), FileModifiedMillis(2)),
+        ]);
         let rows = tree_rows_with_metadata(
             &listings,
             &HashSet::new(),
