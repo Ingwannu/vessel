@@ -159,3 +159,21 @@ account flow or platform UI/IME claim is made.
 - W11 confirmed no checked runtime registry projection. W13 confirmed no
   competing comparison-cache hook: before/after file mutation invalidation is
   one pending post-C3 integration connection, not implemented in C5 or imported.
+
+## Exact bounded control branch selection
+
+The control worktree now checks out backend/wp-c3-diff-producer atab90a304b,
+which is exact27194 Rust plus ONLY a plan delta. Its17 owned files retain the
+same14 Kit/vendor source/test blobs as b011. The external prepared packet is
+control-producer-27194; all executions remain queued and no review/handoff pass
+is claimed. Original backend/wp-c3-diff-control preserves the laterfb8 header
+colour implementation and scope notes (386f95d8c); do not take that moving future
+branch as the tested producer. The app retains that uncompiled colour code via
+d7fee2bff, distinct from its queued b011 source.
+
+Lead ruling: split is not mounted in the summary-only registry. Preserve current
+View header duplication for now; exact Paseo full-width header/copy behavior is
+an unresolved renderer-mount follow-up requiring a lead+V1 plan first, then
+synchronized display-only header rows, action-capture source copy and the four
+reference fixtures. No second selection engine or patch7 copy change. The bounded
+control packet may proceed with this exclusion; full C3 remains skeleton.
