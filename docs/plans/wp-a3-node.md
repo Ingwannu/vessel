@@ -1,13 +1,13 @@
 # Session prompt index
 
-Status: contract, snapshot projection and pending RPC row implemented. Node head
-44 (`ede20014`) is merged; the wire remains unassigned. Five-library tests on
-`13149bdaf` passed all owned cases; raw 592/1 includes one named base TypeScript
-alias defect, explicitly accepted by the coordinator. The 20,001-record measurement passed on `59c2e95ce`; one durable reopen
-fixture raced asynchronous worker shutdown and is corrected to await close.
-The final root gate, V3 review
-and integrator protocol assignment remain pending. No active new-RPC runtime or
-large-history latency claim is made.
+Status: contract, snapshot projection and pending RPC row implemented. Frozen
+root code f7c8ba9f8 completed the whole gate as 17/18 steps green with one named
+runner-path case; all owned tests passed. The coordinator accepted closure of
+that case by the same-head vessel-remote narrow under the corrected runner,
+33/0/0. Both original red and closing green receipts are retained below.
+V3 final source review and integrator protocol assignment remain pending. The
+wire constant stays None; no positive assigned new-RPC runtime, native app or
+large-history frame-latency acceptance is claimed.
 
 ## Reference and asset check
 
@@ -127,9 +127,40 @@ review; then integrator protocol assignment and native consumption.
 - Measurement on the shared VM: 20,001 records, 10,000 prompts, 50 pages;
   first page 494.871783 ms, complete traversal 12.83429935 s; first reply 21,264
   bytes. This is debug-build data-path evidence under load (start39.08/end32.81),
-  not an app frame-latency claim. The raw failed suite remains retained at
-  `/tmp/work/wp-search/node-store-measure-01/cargo.log`; no unchanged measurement
-  rerun is needed. The final root gate must verify the corrected reopen case.
+  not an app frame-latency claim. The raw failed suite remains retained with run
+  `wp-search-node-narrow-20261115T132404Z-59c2e95c`, store measurement Cargo log;
+  no unchanged measurement rerun is needed. The final root gate must verify the corrected reopen case.
 
 These scoped results do not constitute the final root gate, V3 approval,
 assigned wire admission or native app/capture approval.
+
+## Frozen whole gate and named runner-case closure
+
+Source `f7c8ba9f82ac0c21db8df42376b05e792355150c` includes exactly the
+coordinator/integrator-authorized shared fix `9dfdf0a11` via cherry-pick -x; it
+removes one stale LimitPercent primitive-alias entry and changes no generated
+wire bytes. Earlier failed receipts remain unchanged.
+
+- Whole run `wp-search-node-narrow-20261115T154618Z-f7c8ba9f` completed all
+  18 steps: 17 rc 0, Rust tests raw 2388/1/13. Web unit 464, e2e 68 and forge 4 passed;
+  all three Clippy configurations, TS freshness, binaries and other steps rc 0.
+  Owned pending/old direct/enveloped admission, bounded scan cancellation,
+  retention and the corrected durable reopen test explicitly passed. The ignored
+  large-history measurement is retained as its earlier individual receipt.
+- The sole failing test was vessel-remote's private SSH control-directory case.
+  Its runner TMPDIR was 49 bytes; the default tempfile suffix plus `/ssh` made
+  the directory 64 bytes, beyond the product's conservative 63-byte limit. The
+  product correctly omitted sharing. SSH source/tests were unchanged. The
+  coordinator classified this as a named runner case, not a product failure.
+- T installed a short, private, ownership-checked per-label temporary directory.
+  Same-head narrow `wp-search-node-narrow-20261115T165918Z-f7c8ba9f` then ran
+  only vessel-remote tests (plus the tool's existing build prerequisites). It
+  completed 33/0/0, including the exact formerly failing case; Cargo rc 0, digest
+  prefix `8072f2eebe830115`. Runner facts record UID/GID 1000 and the 21-byte
+  temporary directory with mode 0700. No SSH test or product guard was edited.
+
+The accepted evidence is the original whole 17/18 plus its named runner case
+closed by that narrow, with both logs. The original whole remains raw rc1; it
+is not rewritten as an uninterrupted green run. This documentation-only receipt
+leaf changes no gated code or generated TypeScript and needs no unchanged gate.
+V3, wire assignment and native feature acceptance remain separate.
