@@ -40,6 +40,9 @@ pub(super) fn finish(
 pub(super) fn rejected(write: Write, error: &Arc<rusqlite::Error>) -> Answer {
     let failure = Err(StoreError::Commit(Arc::clone(error)));
     match write {
+        Write::Detach { done, .. } => {
+            Answer::Detached(done, Err(StoreError::Commit(Arc::clone(error))))
+        }
         Write::Mark { done, .. } | Write::Reopen { done, .. } => {
             Answer::Marked(done, Err(StoreError::Commit(Arc::clone(error))))
         }
@@ -53,6 +56,7 @@ pub(super) fn rejected(write: Write, error: &Arc<rusqlite::Error>) -> Answer {
         | Write::Attach { done, .. }
         | Write::Inbox { done, .. }
         | Write::Push { done, .. }
+        | Write::Registry { done, .. }
         | Write::Workspace { done, .. }
         | Write::Forge { done, .. }
         | Write::Automation { done, .. } => Answer::Done(done, failure),
@@ -126,16 +130,35 @@ mod tests {
         let mut connection = Connection::open_in_memory().unwrap();
         let transaction = connection.transaction().unwrap();
         let (done, mut reply) = oneshot::channel();
-        let mut writes = vec![Write::Checkpoint {
-            write: Box::new(CheckpointWrite::InvalidateCandidates),
-            done,
-        }];
+        let (detached, mut detached_reply) = oneshot::channel();
+        let (registry, mut registry_reply) = oneshot::channel();
+        let mut writes = vec![
+            Write::Checkpoint {
+                write: Box::new(CheckpointWrite::InvalidateCandidates),
+                done,
+            },
+            Write::Detach {
+                session: vessel_proto::SessionId::random(),
+                at: chrono::DateTime::UNIX_EPOCH,
+                done: detached,
+            },
+            Write::Registry {
+                mutation: crate::registry::RegistryWrite::RecoverCreating,
+                done: registry,
+            },
+        ];
         let error = Arc::new(begin(&transaction, &writes).unwrap_err());
         for write in writes.drain(..) {
             rejected(write, &error).send(None);
         }
         assert!(
             matches!(reply.try_recv().unwrap(), Err(StoreError::Commit(source)) if Arc::ptr_eq(&source, &error))
+        );
+        assert!(
+            matches!(detached_reply.try_recv().unwrap(), Err(StoreError::Commit(source)) if Arc::ptr_eq(&source, &error))
+        );
+        assert!(
+            matches!(registry_reply.try_recv().unwrap(), Err(StoreError::Commit(source)) if Arc::ptr_eq(&source, &error))
         );
         transaction.rollback().unwrap();
     }

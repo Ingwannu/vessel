@@ -1241,3 +1241,12 @@ bytes rather than hand-resolving generated unions. Regeneration on the build VM
 must restore the additive checkpoint declarations before the complete node gate.
 FILE_CHECKPOINTS remains None and production terminal admission remains Busy.
 This merge does not claim W17 terminal proof or complete startup lease adoption.
+
+The corrected merged-head priority run
+wp-checkpoints-node-narrow-20261115T164932Z-5606bd06 stopped at library compilation
+(cargo101): the merged Detach and Registry writer variants were missing from the
+checkpoint durability-admission failure fan-out. They now receive their correctly
+typed error replies, retaining the original shared commit failure. The existing
+fault test includes both variants and checks those replies. This remains unrun;
+no root-admission units ran, no leaf was extracted, and further narrow checks use
+the ordinary lane under the coordinator's priority ruling.
