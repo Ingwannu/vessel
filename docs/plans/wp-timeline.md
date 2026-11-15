@@ -320,3 +320,9 @@ an open turn, completion that hides earlier rows, find-style reveal, disclosure
 close and working-footer removal. It asserts stable final-answer entry identity
 and exactly one mounted tail throughout, including the brief interval when
 external running state has not caught up with the completion record.
+
+Local glyph tests initially found an ambiguous SharedString assertion and
+missing generated fonts; the assertion now names SharedString, and the exact
+pinned font packages are prepared under `/tmp/work/wp-timeline/` through the
+existing font script. The native ignore rule also covers a generated-font
+symlink, preserving the workspace's HDD artifact policy without shipping it.

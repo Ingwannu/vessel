@@ -1043,3 +1043,8 @@ notice are in `kit/licenses/lucide.txt`; only the stroke uses the kit's existing
 1.5-unit width. The asset regression test rasterizes these vectors and checks
 registration, visible pixels and a clear outer rim. Conversation renderers never
 embed their own SVG.
+
+For a development checkout whose generated fonts live on another disk,
+`assets/fonts` may be a symlink to that generated directory. The native ignore
+rule covers the directory and the symlink alike; the font preparation script
+and `include_bytes!` consumers use the same path in both cases.
