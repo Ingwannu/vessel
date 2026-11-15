@@ -1,7 +1,9 @@
 # Panel owner retirement notifications
 
-Status: direction contract accepted. A literal test-only implementation is in
-preparation; there is no product notification or actual owner-state approval.
+Status: bounded source review and requested strict App Clippy passed. The exact
+tested tree passed all 25 layout tests, including 11 hook fixtures and the three
+cold-cache cases. The notification module, field and calls remain literal
+test-only staging; there is no product notification or actual owner-state approval.
 
 ## Decision Log
 
@@ -24,15 +26,15 @@ preparation; there is no product notification or actual owner-state approval.
   committed book-write path must use the observer, including canonical preference
   replacement. A feature still supplies its actual retirement transition.
 
-## Proposed boundary
+## Staged boundary
 
-A closed `PanelOwner` set identifies the existing feature owners. Each owner
+A closed `Owner` set identifies the existing feature owners. Each owner
 registers one noncapturing typed retirement function with the same panel registry;
 duplicate registration refuses instead of silently replacing the first owner.
 Registration carries no resource identity or mutable feature state.
 
-`PanelRetirement` borrows the original LayoutKey, TabId and Target from the
-pre-transaction snapshot. Its reason distinguishes retarget, local close and
+`Notice` owns the original LayoutKey, TabId and Target metadata from the
+pre-transaction snapshot and lends them to the callback. Its reason distinguishes retarget, local close and
 external/unavailable replacement. The notice cannot authorize a backend stop,
 archive, save, discard, snapshot release or new request.
 
@@ -68,8 +70,15 @@ replacement for DeliveryGuard nor an authenticated resource lifetime.
 - Unknown mutation outcomes retain actual owner payload and do not retry or clear
   a successor. A registered real owner, not a marker fixture, proves this state.
 
-The current `layout_tab_matches` proposal remains a current-value predicate only.
+The checked `layout_tab_matches` query remains a current-value predicate only.
 It does not establish any of these notification or ABA guarantees.
+
+The executed source is recorded by narrow runs
+`wp-layout-core-union-20261115T153303Z-9982b5e1` (strict App Clippy) and
+`wp-layout-core-union-20261115T153746Z-9982b5e1` (25 layout tests). The straight
+portable source leaf has the identical entire tree. That equivalence is evidence
+about the executed tree, not a separate execution of another commit. A lead
+integration gate and each real owner consumer's source/runtime proof remain due.
 
 ## Staged write-path inventory
 

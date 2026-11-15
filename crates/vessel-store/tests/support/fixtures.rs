@@ -65,3 +65,11 @@ pub(crate) fn plain(records: &[Arc<EventRecord>]) -> Vec<EventRecord> {
 pub(crate) async fn open(dir: &DataDir, config: StoreConfig) -> Store {
     Store::open(dir, config).await.unwrap().store
 }
+
+#[path = "registry_rollback.rs"]
+mod registry_rollback;
+
+/// Remove the later append before replaying a legacy migration fixture.
+pub(crate) fn undo_registry_schema(connection: &rusqlite::Connection) {
+    registry_rollback::undo_registry_schema(connection);
+}

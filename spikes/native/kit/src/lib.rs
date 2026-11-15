@@ -77,6 +77,7 @@ pub mod vector;
 pub mod virtual_list;
 mod widgets;
 pub mod window_glyph;
+pub mod zoom;
 
 use gpui::{App, AppContext as _, Global, IntoElement as _, Styled as _, Window, WindowAppearance};
 
@@ -87,7 +88,7 @@ pub use code::CodeTokens;
 pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
-pub use field::{Editability, SendOn, TextField, composer_card};
+pub use field::{Editability, SearchField, SendOn, TextField, composer_card};
 pub use fonts::Type;
 pub use guarded_markdown::{
     ImagePolicy, MarkdownGuards, MarkdownImageResolver, MarkdownLinkHandler, markdown_guarded,
