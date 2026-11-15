@@ -1367,3 +1367,13 @@ references it on the wire; generated declaration recovery/freshness is still
 owed. First detach now includes the exact newly committed row time in its Info,
 while repeated detach keeps the existing time. Live acknowledgement publication
 remains the next implementation step; this field is hidden from all peers now.
+
+
+### Kept runtime metadata naming (behavior-preserving)
+
+Before copying acknowledged clock data, marks.rs/Marks becomes
+kept_metadata.rs/KeptMetadata. Its existing kept marks, detach receipt and
+actor-derived attention already share that one overlay lock. Only private
+module/type/field/accessor names move; public mark and receipt setters, reducer
+logic, locking and test expectations remain unchanged. The following behavior
+change can add durable time to this same bounded row-copy responsibility.

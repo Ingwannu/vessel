@@ -1,9 +1,9 @@
-//! A session's marks while the runtime has it (protocol 10, ADR 0026):
+//! A session's kept row metadata while the runtime has it (protocol 10, ADR 0026):
 //! the node's copy of what the store keeps, and the last record that asked
 //! for attention, so the session's info carries the same marks the store
 //! would give it, at once.
 //!
-//! Owns: the [`Marks`] in [`Shared`], updated by the publisher (attention)
+//! Owns: the [`KeptMetadata`] in [`Shared`], updated by the publisher (attention)
 //! and by the node ([`SessionHandle::set_marks`]), and adding them to an
 //! info ([`Marks::apply`]). Must not: decide a mark (the node applies it
 //! in the store first and hands the result here), or derive `unread` any
@@ -39,7 +39,7 @@ use crate::handle::{SessionHandle, Shared};
 
 /// What the runtime knows of a session's marks.
 #[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct Marks {
+pub(crate) struct KeptMetadata {
     /// The store's, as of the last mark the node applied.
     kept: KeptMarks,
     /// The separately durable current-parent boundary.
@@ -48,7 +48,7 @@ pub(crate) struct Marks {
     attention: Option<EventSeq>,
 }
 
-impl Marks {
+impl KeptMetadata {
     /// A session started again (protocol 10): `attention` is the last
     /// record of its stored log that asked for attention; the store's
     /// marks follow once its row is reopened ([`SessionHandle::set_marks`]).
@@ -88,8 +88,10 @@ impl Marks {
 impl Shared {
     /// The marks, recovering from a poisoned lock: each update is one
     /// assignment, so the value is whole.
-    pub(crate) fn marks(&self) -> MutexGuard<'_, Marks> {
-        self.marks.lock().unwrap_or_else(PoisonError::into_inner)
+    pub(crate) fn kept_metadata(&self) -> MutexGuard<'_, KeptMetadata> {
+        self.kept_metadata
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
     }
 }
 
@@ -99,13 +101,13 @@ impl SessionHandle {
     /// order its marks were stored, so the last one stored is the one
     /// kept. Works on an ended session too, until the runtime forgets it.
     pub fn set_marks(&self, kept: KeptMarks) {
-        self.0.marks().kept = kept;
+        self.0.kept_metadata().kept = kept;
     }
 
     /// Publish only the receipt the store has committed, serialized by the node
     /// with marks and resume. This never changes creation provenance or the actor.
     pub fn set_detach_receipt(&self, receipt: Option<vessel_proto::subagents::DetachReceipt>) {
-        self.0.marks().detached = receipt;
+        self.0.kept_metadata().detached = receipt;
     }
 
     /// The end of the session's log as published: the `seq` the next

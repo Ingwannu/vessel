@@ -25,7 +25,7 @@ use crate::conversation::Seen;
 use crate::error::ParkRefusal;
 use crate::error::{ModeKind, SessionError};
 use crate::forge::ForgeView;
-use crate::marks::Marks;
+use crate::kept_metadata::KeptMetadata;
 use crate::moving::Control;
 use crate::parking::{ParkOrder, Route};
 use crate::ring::{Follow, FollowError, Ring};
@@ -76,7 +76,7 @@ pub(crate) struct Shared {
     /// the node, and the attention point, set by the publisher. A `std`
     /// mutex held for one assignment or one copy, never across an
     /// `.await`.
-    pub(crate) marks: Mutex<Marks>,
+    pub(crate) kept_metadata: Mutex<KeptMetadata>,
     /// The session's pull request as the node gives it (protocol 11,
     /// `forge`): the latest wins, the actor reads it.
     pub(crate) forge: watch::Sender<Option<Arc<ForgeView>>>,
@@ -413,7 +413,7 @@ impl SessionHandle {
         let mut info = self.0.info.borrow().clone();
         // The watch's lock is released before the marks' is taken: neither
         // is held while the other is.
-        self.0.marks().apply(&mut info);
+        self.0.kept_metadata().apply(&mut info);
         info
     }
 

@@ -19,8 +19,8 @@ use crate::conversation::Seen;
 use crate::delivery::Desk;
 use crate::forge::ForgeView;
 use crate::handle::{Input, MetadataChange, SessionHandle, Shared};
+use crate::kept_metadata::KeptMetadata;
 use crate::lifecycle::Lifecycle;
-use crate::marks::Marks;
 use crate::moving::Control;
 use crate::publish::Publisher;
 use crate::ring::Ring;
@@ -114,7 +114,7 @@ impl SessionRuntime {
         let (model_calls, recorded) = mpsc::channel(MODEL_CALL_CAPACITY);
         let (metadata, metadata_changes) = mpsc::channel(METADATA_CAPACITY);
         let (forge, forge_view) = watch::channel(None);
-        let state = (seen, Marks::after(attention, info.detach_receipt));
+        let state = (seen, KeptMetadata::after(attention, info.detach_receipt));
         let channels = (model_calls, metadata, forge);
         let (info, kill, shared) = self.shared(info, (input, process), control, channels, state);
         let _previous = shared.limits.send_replace(limits);
@@ -141,7 +141,7 @@ impl SessionRuntime {
         (input, process): (Input, ProcessLifetime),
         (control, driver): (Option<mpsc::Sender<Control>>, Driver),
         (model_calls, metadata, forge): Channels,
-        (seen, marks): (Seen, Marks),
+        (seen, marks): (Seen, KeptMetadata),
     ) -> (watch::Sender<SessionInfo>, CancellationToken, Arc<Shared>) {
         let id = info.id;
         let next = info.next_seq;
@@ -163,7 +163,7 @@ impl SessionRuntime {
             seen: Mutex::new(seen),
             // A new session has no marks; one started again takes the
             // store's once its row is reopened.
-            marks: Mutex::new(marks),
+            kept_metadata: Mutex::new(marks),
             forge,
             pid: AtomicU32::new(process.pid().get()),
             process: Mutex::new(Some(process)),
