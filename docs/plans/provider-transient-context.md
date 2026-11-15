@@ -38,3 +38,11 @@ Contract recorded before implementation. Next: bounded value, AgentSetup field,
 transport capability and pre-spawn refusal; complete existing literals with
 None only. Then narrow checks, one package gate and review. Lifecycle owns reload
 orchestration; voice owns text and enable/restore state.
+
+## Launch contract extraction
+
+The handshake file is at its shrinking size budget. AgentSetup is moved intact
+to setup.rs and re-exported from its existing path before the field is added.
+This refactor changes no input, behaviour or test expectation; protocol logic
+stays in handshake.rs. The feature commit then adds the optional field and
+completes existing literals with None.

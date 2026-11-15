@@ -72,6 +72,7 @@ mod probe;
 mod process;
 mod questions;
 mod recent;
+mod setup;
 mod stderr;
 mod transport;
 
