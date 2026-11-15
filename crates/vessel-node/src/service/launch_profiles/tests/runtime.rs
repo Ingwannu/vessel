@@ -188,9 +188,18 @@ async fn check_partial_application(
             .iter()
             .any(|option| option.id.as_str() == "effort" && option.current_name() == Some("High"))
     );
-    phase("stop actual session", service.0.sessions.kill(id))
-        .await
-        .unwrap();
+    let mut ending = handle.watch_info();
+    phase("stop actual session", async {
+        // kill acknowledges a request, not terminal publication. Observe the
+        // real terminal event before testing the ended-session refusal.
+        service.0.sessions.kill(id).await.unwrap();
+        let _ended = ending
+            .wait_for(|info| !info.status.is_live())
+            .await
+            .unwrap();
+        assert!(handle.has_ended());
+    })
+    .await;
     assert!(
         phase(
             "ended process does not accept later bundle",

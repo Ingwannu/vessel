@@ -25,26 +25,29 @@ both the exact planned list and checked CAS revision increment before a
 legacy-migration completion receipt. Contradictory revision fixtures are
 written, with execution still outstanding.
 
-The preparation on `ea02a919b` passed workspace and TS-enabled Clippy and
-four generation tests. Inspection found omitted launch fields projected as
-required nullable fields; that first snapshot was not applied. Source
-`6093cb59e` adds explicit optional metadata and an actual declaration/
-serialization/null-refusal fixture, which passed in the next run.
+The preparation on `ea02a919b` passed workspace/TS-enabled Clippy. The
+corrected generated declarations and omission/null fixture passed; obsolete
+primitive-alias classifications were removed without changing shared tests.
+The first complete gate on `db2e4fdf2` then passed all non-workspace-test
+steps, including TS with zero diff, web units 464, E2E 67 and forge fixtures 4.
 
-That next run had five passing tests and one alias-completeness failure.
-Both declaration writers passed. The three unexported launch-helper entries
-and the pre-existing non-primitive `LimitPercent` classification are now
-removed; no shared test or assertion is changed. The exact corrected
-snapshot bytes are applied. The final gate must still prove the corrected
-alias table and zero generated diff, alongside every runtime case. No
-complete package gate or implementation-review acceptance is claimed.
+Its raw Rust result was 2,402 passed, four failed and 12 ignored. The exact
+Admin allowlist omitted the new replacement call; two inbox rollback cases
+did not remove schema 19's table before replaying earlier migrations; the
+new runtime fixture confused an immediate kill request with a terminal
+session. The current correction adds the explicit method/table preparation
+and waits for the real terminal watch inside the same existing stop phase.
+Existing assertions, outer/phase deadlines and product behavior remain.
+
+The failed gate is preserved. Narrow changed-test execution and a complete
+changed-tree gate remain outstanding; there is no implementation-review
+acceptance or callable/assigned feature claim.
 
 ## Resume order
 
-1. Preserve both preparation runs and their failures. The corrected artifact
-   commit/hashes are verified; declarations and null semantics passed, while
-   alias completeness still needs changed-tree execution after its source fix.
-2. Run the complete root gate with both test prebuilds,
+1. Preserve the preparation and first complete-gate failures. Execute the
+   corrected node/protocol/store tests, retaining every assertion and deadline.
+2. Run the complete changed-tree root gate with both test prebuilds,
    default/fixture Clippy, workspace tests, TS, web tests and E2E intact.
 3. Audit actual new runtime cases, source identity, totals and cleanup, then
    submit this implementation as one review package. Assigned happy-path
