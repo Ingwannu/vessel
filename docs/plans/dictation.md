@@ -1010,3 +1010,12 @@ then starts a replacement using the released capacity. The missing-guard path
 cleans its fixture before an immediate failing assertion, rather than timing out.
 The already queued merged checks predate this correction; changed-source narrow
 and final product evidence remain owed.
+
+### Existing diagnostics error-detail compatibility
+
+The merged CLI diagnostic mapper exhaustively names unrelated remote error
+details. Dictation's added detail variant belongs to the same existing fixed
+unavailable fallback; adding that arm changes no diagnostic collector policy
+or message. The first merged strict check exposed the missing arm as E0004
+before tests. Its retained failure is not a runtime result. The next changed-source
+strict check must cover both this completion and the buffered-start correction.

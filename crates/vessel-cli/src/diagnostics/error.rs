@@ -44,6 +44,7 @@ fn request_message(error: &DiagnosticError) -> &'static str {
                     }) => "diagnostics unavailable: node is stopping",
                     Some(
                         ErrorDetail::DeviceInvite { .. }
+                        | ErrorDetail::Dictation { .. }
                         | ErrorDetail::FleetControl { .. }
                         | ErrorDetail::SchedulePreview { .. }
                         | ErrorDetail::Unknown,
