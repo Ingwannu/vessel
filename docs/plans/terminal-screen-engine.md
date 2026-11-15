@@ -24,13 +24,16 @@ Seven executed whole steps passed: web install, format, size, boundaries and
 three Clippy variants. TS execution passed protocol3/0 and stopped at web1/1.
 The remaining ten planned whole steps DID NOT RUN; this is not a whole-green
 claim. The explicit gate disposition accepts this named base defect without
-another unchanged run. Final independent review closure is recorded externally
-on the existing package row before a consumer-ready handoff.
+another unchanged run. Independent review closes only bounded source/partial-gate adoption. Before
+ANY consumer-ready claim or activation, the engine must pass one FULL whole
+on a base carrying the gate49 alias fix. That qualification remains OPEN;
+there is no third unchanged worker gate.
 
 No native parser retirement, actor/transport integration, UI, operating-system
 or universal Unicode/grapheme-losslessness claim follows. Upstream cells have
-finite22-byte content; the corpus proves only its stated inputs. Next: hand
-this prerequisite to the node capture consumer after final review disposition;
+finite22-byte content; the corpus proves only its stated inputs. Next: provide
+conditional source for consumer integration and its enclosing full whole on
+the corrected base; consumer-ready handoff waits for that full qualification;
 continue modes/markers/frame/query presentation and native consumers separately.
 
 ## Historical implementation record (past checkpoints, not current debt)

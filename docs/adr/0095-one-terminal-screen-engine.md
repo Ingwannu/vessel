@@ -127,3 +127,12 @@ No native gate is owed before a native dependency exists. Node actor ordering,
 transport, native parser retirement/rendering, actual input, UI captures and OS
 runtime remain outside this prerequisite. Upstream Cell has finite22-byte
 content; the bounded corpus is not arbitrary-grapheme losslessness proof.
+
+## Full consumer qualification remains open
+
+Bounded source and partial-gate adoption is accepted with the named base
+defect; this is not consumer-ready. Before ANY consumer-ready claim or
+activation, this engine must pass one FULL whole on a base carrying the
+gate49 alias fix. The ten unexecuted steps remain unverified until then.
+No third unchanged worker gate is requested; consumer integration must
+satisfy this enclosing qualification before shipping or activation.
