@@ -35,8 +35,8 @@ fn config(root: &Path) -> Config {
 }
 
 pub(super) struct CallbackFleet {
-    _home_root: tempfile::TempDir,
-    _member_root: tempfile::TempDir,
+    home_root: tempfile::TempDir,
+    member_root: tempfile::TempDir,
     home: Node,
     member: Node,
     relay_stop: CancellationToken,
@@ -87,8 +87,8 @@ impl CallbackFleet {
         let member_root = tempfile::tempdir().unwrap();
         let member = callback_member(member_root.path(), offer, home.info().id).await;
         Self {
-            _home_root: home_root,
-            _member_root: member_root,
+            home_root,
+            member_root,
             home,
             member,
             relay_stop,
@@ -109,10 +109,10 @@ impl CallbackFleet {
     /// Use only this temporary node's own token at the local socket.
     pub(super) async fn owner(&self, node: &Node) -> vessel_client::NodeClient {
         let root = if node.info().id == self.home.info().id {
-            self._home_root.path()
+            self.home_root.path()
         } else {
             assert_eq!(node.info().id, self.member.info().id);
-            self._member_root.path()
+            self.member_root.path()
         };
         let token = DataDir::new(root.join("data")).read_token().unwrap();
         let credential = vessel_client::LocalCredential::Token(token.expose().parse().unwrap());

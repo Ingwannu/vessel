@@ -1088,3 +1088,8 @@ new label mutation/event, actual reload, actor capture or real-provider/platform
 behavior is inferred from these scopes. The future actor must preserve an explicit
 actual-launch provider/profile association; today's normalized profile name and
 quota-location association cannot supply that authority.
+
+The new local-owner fixture helper uses its temporary roots, so their earlier
+keep-alive-only underscore names are replaced with ordinary field names. This
+resolves the strict used-underscore-binding check without changing ownership,
+cleanup, deadlines or expected results. The original strict result is retained.
