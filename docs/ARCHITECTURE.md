@@ -1754,3 +1754,11 @@ use actor append under their owned pause. Neither path changes conversation,
 queue, status or ended_at. Checkpoint-bearing append batches require FULL sync.
 These store operations/projection remain staged under cfg(test) until controller
 wiring and recovery admission are complete; they are not an enabled capability.
+
+
+The staged checkpoint startup reconciles candidate/Prepared rows before retention,
+without promoting images or deleting payload. Its retention adapter transfers
+eligible captures/private allocations into independent garbage accounting before
+removing a session, while pending worker/recovery/result-metadata obligations pin
+it. Startup retention is transactional as well as writer-batch retention. Actual
+filesystem GC and recovery-root hydration remain controller integration work.

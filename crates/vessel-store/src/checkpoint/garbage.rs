@@ -43,7 +43,7 @@ pub(crate) fn retire_session(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_restores WHERE session=?1 AND phase IN ('prepared','recovery'))",
         [&session],|row|row.get(0),
     )?;
-    if recovering {
+    if recovering || awaiting_metadata(connection, &session)? {
         return Err(CheckpointError::RecoveryPending.into());
     }
     let pinned:bool=connection.query_row(
@@ -122,4 +122,23 @@ pub(crate) fn cleaned(connection: &Connection, object: Object) -> Result<(), Err
         [serde_json::to_string(&object)?],
     )?;
     Ok(())
+}
+
+// A successful restore is not complete to clients until its metadata marker is
+// durable. Even an expired preview must not let retention erase that obligation.
+fn awaiting_metadata(connection: &Connection, session: &str) -> Result<bool, Error> {
+    let mut statement = connection.prepare(
+        "SELECT outcome FROM checkpoint_restores WHERE session=?1 AND phase='complete' AND event_seq IS NULL",
+    )?;
+    let mut rows = statement.query([session])?;
+    while let Some(row) = rows.next()? {
+        let outcome: String = row.get(0)?;
+        if matches!(
+            serde_json::from_str::<vessel_proto::checkpoint::RestoreOutcome>(&outcome)?,
+            vessel_proto::checkpoint::RestoreOutcome::Restored { .. }
+        ) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }

@@ -354,7 +354,7 @@ pub(crate) fn prune_session(
 /// 0026). Retention deletes from the other end. The order is exactly the
 /// `sessions_retention` index's (schema 8), read backwards, so it is a
 /// walk of that index, never a sort.
-const KEPT_FIRST: &str = "ORDER BY pinned DESC, (archived_at IS NULL) DESC, ended_at DESC, \
+pub(crate) const KEPT_FIRST: &str = "ORDER BY pinned DESC, (archived_at IS NULL) DESC, ended_at DESC, \
                           created_at DESC";
 
 /// Delete the ended sessions beyond the `max_ended_sessions` retention
@@ -366,6 +366,7 @@ const KEPT_FIRST: &str = "ORDER BY pinned DESC, (archived_at IS NULL) DESC, ende
 ///
 /// Bounded: it runs when a session ends, with at most the cap and the
 /// sessions that ended since the last run to walk.
+#[cfg(not(test))]
 pub(crate) fn prune_ended(
     connection: &Connection,
     retention: &Retention,
@@ -386,6 +387,14 @@ pub(crate) fn prune_ended(
         tracing::debug!(deleted = deleted.len(), "pruned ended sessions");
     }
     Ok(deleted)
+}
+
+#[cfg(test)]
+pub(crate) fn prune_ended(
+    connection: &Connection,
+    retention: &Retention,
+) -> Result<Vec<SessionId>, StoreError> {
+    crate::checkpoint::retention::prune(connection, retention, Utc::now())
 }
 
 /// Sessions the log still shows as live, with their next sequence number.

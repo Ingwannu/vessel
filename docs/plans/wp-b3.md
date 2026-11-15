@@ -500,3 +500,23 @@ read only foreign-owned root metadata, and refuse 0750/setgid/sticky folders. On
 temporary fixture modes change. They are unrun; no production account/permission
 flow is claimed. Root safety, archive safety and actual service operation remain
 separate from source inspection.
+
+
+### Startup and retention (staged SQL path)
+
+Startup invalidates all candidate generations and drains bounded batches of
+Prepared→RecoveryRequired transitions under FULL sync before session retention.
+It never promotes a candidate or frees archive bytes. Ended-session pruning now
+has a staged checkpoint-aware path: the established retention order/cap remains,
+while busy workers, active previews, incomplete recovery and Restored rows still
+awaiting FilesRestored metadata stay additionally pinned. Eligible session rows
+and capture/private reservations move to independent garbage in the same
+transaction. Startup retention now also uses a transaction, so transfer and
+parent deletion cannot split across a crash. Filesystem garbage cleanup remains
+separate and unwired; no reservation is released by metadata deletion alone.
+
+SQL fixtures cover rollback of garbage transfer+session deletion, startup fencing
+and recovery pins before pruning, and an expired successful restore remaining
+pinned until its event marker is stored. They are unrun. Store checkpoint
+operations/startup/pruning still use cfg(test) staging; the production startup
+retention transaction is active but the checkpoint-specific path is not enabled.

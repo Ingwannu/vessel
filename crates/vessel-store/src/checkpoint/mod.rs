@@ -17,6 +17,7 @@ mod publication;
 mod quota;
 mod records;
 mod recovery;
+pub(crate) mod retention;
 mod write;
 
 pub(crate) use garbage::{Object as GarbageObject, retire_session};

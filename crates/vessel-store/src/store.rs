@@ -83,9 +83,18 @@ impl Store {
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
+            #[cfg(test)]
+            crate::checkpoint::retention::startup(&mut connection)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
-            // Outside a transaction: each deletion is committed as it runs.
-            for session in log::prune_ended(&connection, &retention)? {
+            // Checkpoint garbage transfer and its parent session deletion must
+            // commit together, including this startup path before the writer.
+            let pruned = {
+                let transaction = connection.transaction()?;
+                let pruned = log::prune_ended(&transaction, &retention)?;
+                transaction.commit()?;
+                pruned
+            };
+            for session in pruned {
                 attachments::remove_folder(&folders, session);
             }
             attachments::sweep(&connection, &folders)?;
