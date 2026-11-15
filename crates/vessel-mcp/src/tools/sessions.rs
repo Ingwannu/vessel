@@ -125,11 +125,13 @@ impl VesselTools {
                     vessel_proto::conversation::GetConversation { session },
                 )
                 .await?;
-            Some(if current.abilities.steer {
-                Delivery::Steer
-            } else {
-                Delivery::Interrupt
-            })
+            Some(
+                if current.abilities.is_some_and(|abilities| abilities.steer) {
+                    Delivery::Steer
+                } else {
+                    Delivery::Interrupt
+                },
+            )
         } else {
             delivery
         };

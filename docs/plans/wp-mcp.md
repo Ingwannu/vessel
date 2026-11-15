@@ -303,8 +303,8 @@ cross-node runtime or whole-package PASS.
 
 `create_session` accepts a validated title, typed structured option choices and
 the existing bounded label map. These populate SessionSpec rather than a new
-launch API; the adapter refuses nonempty labels while the lifecycle version is pending;
-assigned versions are still checked by shared client admission. Options are bounded, nonempty and unique by ID, and
+launch API; the shared client admission refuses unassigned lifecycle labels and checks
+assigned field requirements before transmission. Options are bounded, nonempty and unique by ID, and
 terminal sessions refuse structured model/options inputs before creation.
 `get_session` retains its existing metadata fields and adds current structured
 `permissions` from GetConversation, with a finite complete-result cap. The two
@@ -374,13 +374,10 @@ are corrected explicitly, without suppressions. Protocol's earlier 289/0/0
 result is retained separately from that strict failure.
 
 
-Until the lifecycle landing updates the shared pending-field gate, MCP itself
-refuses nonempty launch labels at the decoder. The earlier base's label
-version flattening did not refuse None at the client, although the node's
-temporary label guard did refuse before effects. This prevents the adapter
-from sending labels that an older peer could silently ignore. No foreign
-lifecycle request or version is introduced; mutation/list APIs await that
-owner's reviewed landing.
+The reviewed gate40 landing now makes Call::since the sole lifecycle field
+gate, including pending None. The temporary MCP-specific label refusal is
+removed; the adapter only decodes/validates the typed value. Label mutation
+and query facades still wait for the lifecycle owner's reviewed request types.
 
 
 ## Browser identity extraction
@@ -395,3 +392,12 @@ package's own checks. Browser names remain absent from this server's list;
 a direct allowed browser name returns a typed engine-unavailable failure.
 A disabled name still fails the shared policy first. The producer will mount
 its schemas/dispatch only with its own enable/readiness/lease checks.
+
+
+The gate40 merge preserves settings task tracking, provider launch watch and
+skill actor registration. All nine MCP pending rows are at the end of
+rpc/table.rs; the node file's size record decreases to 626. The first node
+unit command actually stopped compiling its MCP dependency on optional
+Conversation.abilities; default steer selection now handles absence as
+unsupported before falling back to interrupt. No failed command is counted
+as a node test execution.
