@@ -163,7 +163,7 @@ impl Workspaces {
         written: &commands::Written,
         admission: &StartGuard,
     ) -> Option<SetupFailure> {
-        if admission.folder() != info.path {
+        if admission.folder() != info.path.as_path() {
             tracing::warn!(worktree = %info.id, "worktree command borrowed another root's admission");
             return Some(SetupFailure::Spawn);
         }

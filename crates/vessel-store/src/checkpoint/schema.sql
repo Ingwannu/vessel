@@ -48,3 +48,13 @@ CREATE TABLE checkpoint_paths (
     phase TEXT NOT NULL CHECK(phase IN ('pending','applied','restored','conflict')),
     PRIMARY KEY(restore, path)
 ) STRICT, WITHOUT ROWID;
+
+CREATE TABLE checkpoint_allocations (
+    object TEXT PRIMARY KEY NOT NULL,
+    capture TEXT NOT NULL REFERENCES checkpoint_captures(id) ON DELETE RESTRICT,
+    owner TEXT NOT NULL,
+    reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes > 0),
+    phase TEXT NOT NULL CHECK(phase IN ('reserved','attached','cleaned')),
+    created_at INTEGER NOT NULL
+) STRICT;
+CREATE INDEX checkpoint_allocation_capture ON checkpoint_allocations(capture);

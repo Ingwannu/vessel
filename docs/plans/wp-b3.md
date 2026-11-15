@@ -394,3 +394,30 @@ now use Future directly; pause refusal is an associated operation and closes
 unavailable test-only control replies while paused. No lint exemption was added.
 The unchanged earlier source's registered test job remains queued; a latest-head
 clippy will cover the subsequent actor/event/lifecycle work as well.
+
+### Private preview/restore reservations (staged)
+
+The same single checkpoint migration now includes private-work allocations.
+Reservation classes derive conservative byte envelopes from the existing image
+cap (two images for preview work, four for restoration stages/before-images and
+journal); callers cannot choose a zero-byte envelope for those classes. One SQL
+accounting equation includes captures, private allocations and durable garbage.
+Reservations are bound to the full capture key and human principal. An unfinished
+private reservation pins session retirement. Once its worker is actually done,
+a published plan or terminal/recovery journal can attach the retained allocation;
+unpublished physical cleanup leaves an accounted, non-reusable id tombstone.
+Retirement transfers private charges into the parent capture's garbage charge,
+so metadata deletion alone never frees capacity.
+
+Real-writer and SQL fixtures cover quota exhaustion, source/owner rejection,
+non-recycled cleaned ids, unfinished-worker pins and garbage charge retention.
+They have not run. Node allocation admission/cleanup callbacks and public store
+facades are not wired, capture reservations still need minimum/actual-byte policy,
+and plan expiry/retention/GC/recovery assembly remains unfinished. These staged
+primitives do not establish an operational storage quota.
+
+The registered 448e2550 test run stopped in its nested node-binary prebuild on a
+missing TerminalHandle import and its resulting inference error; runtime tests
+were never reached. The import is restored in the current source. Its four
+Future warnings were already corrected by 420dcf66. Original failed logs remain
+available; no result is reported as a runtime pass.

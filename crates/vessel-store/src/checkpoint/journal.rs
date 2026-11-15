@@ -18,22 +18,7 @@ pub(super) fn candidate(
     at: DateTime<Utc>,
 ) -> Result<(), Error> {
     let bytes = i64::try_from(reserved.get()).map_err(|_large| CheckpointError::StorageFull)?;
-    if reserved.get() > vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES {
-        return Err(CheckpointError::StorageFull.into());
-    }
-    let used: i64 = connection.query_row(
-        "SELECT COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_captures),0)
-         + COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_garbage),0)",
-        [],
-        |row| row.get(0),
-    )?;
-    let used = u64::try_from(used).map_err(|_negative| CheckpointError::StorageFull)?;
-    let total = used
-        .checked_add(reserved.get())
-        .ok_or(CheckpointError::StorageFull)?;
-    if total > vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES {
-        return Err(CheckpointError::StorageFull.into());
-    }
+    super::quota::available(connection, reserved)?;
     let _changed = connection.execute("INSERT INTO checkpoint_captures(id,session,worktree,generation,boundary,state,reserved_bytes,created_at)
         VALUES (?1,?2,?3,?4,?5,'candidate',?6,?7)", params![key.capture.to_string(), key.session.to_string(), key.worktree.to_string(),
         encode(&key.generation)?, encode(&key.boundary)?, bytes, at.timestamp_millis()])?;

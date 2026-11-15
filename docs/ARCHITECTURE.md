@@ -1737,3 +1737,10 @@ not. TurnEnded requests an after-image before queue advancement, including an en
 pumped during a different delivery. Anchor admission/acknowledgement share the
 capture deadline. The node does not install this bridge yet: real SQL durability,
 physical scope and filesystem/storage assembly remain activation obligations.
+
+The staged store quota equation also counts durable preview/restore allocations.
+They bind conservative reservations to a capture key/full human principal and
+pin unfinished private work. Accounted id tombstones prevent reuse after cleanup;
+retirement transfers private reservations into durable capture garbage. The node
+must still connect actual worker/cleanup ownership, expiry, GC and recovery, and
+complete capture reservation policy before exposing a checkpoint capability.

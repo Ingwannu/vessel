@@ -414,3 +414,153 @@ async fn checkpoint_shared_writer_commits_verified_recovery_and_idempotent_statu
     );
     reopened.close().await;
 }
+
+#[tokio::test]
+async fn checkpoint_private_allocations_use_real_writer_quota_and_never_recycle_cleaned_ids() {
+    use super::allocation::Allocation;
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let info = info();
+    store.create_session(info.clone()).await.unwrap();
+    let plan = plan(info.id);
+    publish_capture(&store, &plan).await;
+    let preview = Allocation::Preview { plan: plan.id };
+    store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: preview,
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Plan {
+            plan: Box::new(plan.clone()),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::AllocationAttached {
+            key: plan.key,
+            allocation: preview,
+            owner: plan.owner,
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .checkpoint_write(CheckpointWrite::AllocationCleaned {
+                key: plan.key,
+                allocation: preview,
+                owner: plan.owner
+            })
+            .await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::RecoveryPending
+        )))
+    ));
+    let abandoned = Allocation::Restore {
+        restore: RestoreId::random(),
+    };
+    store
+        .checkpoint_write(CheckpointWrite::Allocate {
+            key: plan.key,
+            allocation: abandoned,
+            owner: plan.owner,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .checkpoint_write(CheckpointWrite::AllocationCleaned {
+                key: plan.key,
+                allocation: abandoned,
+                owner: CheckpointOwner::Device {
+                    device: vessel_proto::DeviceId::random()
+                }
+            })
+            .await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::Forbidden
+        )))
+    ));
+    for _retry in 0..2 {
+        store
+            .checkpoint_write(CheckpointWrite::AllocationCleaned {
+                key: plan.key,
+                allocation: abandoned,
+                owner: plan.owner,
+            })
+            .await
+            .unwrap();
+    }
+    assert!(matches!(
+        store
+            .checkpoint_write(CheckpointWrite::Allocate {
+                key: plan.key,
+                allocation: abandoned,
+                owner: plan.owner,
+                at: DateTime::UNIX_EPOCH
+            })
+            .await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::RestoreIdConflict
+        )))
+    ));
+    let reserved = store
+        .read(|reader| {
+            reader.with(|connection| {
+                let bytes: i64 = connection.query_row(
+                    "SELECT sum(reserved_bytes) FROM checkpoint_allocations",
+                    [],
+                    |row| row.get(0),
+                )?;
+                Ok(bytes)
+            })
+        })
+        .await
+        .unwrap();
+    assert!(
+        reserved > 0,
+        "cleaned-id metadata and the live preview remain accounted"
+    );
+    let mut extra = plan.key;
+    extra.capture = CaptureId::random();
+    let reserved = u64::try_from(reserved).unwrap().checked_add(1).unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Reserve {
+            key: extra,
+            bytes: ByteCount::new(
+                vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES
+                    .checked_sub(reserved)
+                    .unwrap(),
+            ),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    assert!(matches!(
+        store
+            .checkpoint_write(CheckpointWrite::Allocate {
+                key: plan.key,
+                allocation: Allocation::Preview {
+                    plan: RestorePlanId::random()
+                },
+                owner: plan.owner,
+                at: DateTime::UNIX_EPOCH
+            })
+            .await,
+        Err(StoreError::Checkpoint(CheckpointStoreError::Refused(
+            CheckpointError::StorageFull
+        )))
+    ));
+    store.close().await;
+}

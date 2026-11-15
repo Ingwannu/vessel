@@ -3,6 +3,7 @@
 //! The schema appends directly after this base. The integrator re-points the
 //! one schema constant at merge. The existing migration runner is unchanged.
 
+mod allocation;
 mod changes;
 mod garbage;
 mod journal;
@@ -12,6 +13,7 @@ mod list;
 mod paths;
 mod plans;
 mod publication;
+mod quota;
 mod records;
 mod recovery;
 mod write;

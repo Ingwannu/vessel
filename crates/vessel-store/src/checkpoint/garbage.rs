@@ -48,14 +48,15 @@ pub(crate) fn retire_session(
     }
     let pinned:bool=connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM checkpoint_plans p JOIN checkpoint_captures c ON c.id=p.capture WHERE c.session=?1 AND p.expires_at>?2)
-         OR EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1 AND state='candidate')",
+         OR EXISTS(SELECT 1 FROM checkpoint_captures WHERE session=?1 AND state='candidate')
+         OR EXISTS(SELECT 1 FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE c.session=?1 AND a.phase='reserved')",
         params![session,at.timestamp_millis()],|row|row.get(0),
     )?;
     if pinned {
         return Err(CheckpointError::Busy.into());
     }
     let mut statement = connection.prepare(
-        "SELECT id,worktree,reserved_bytes FROM checkpoint_captures WHERE session=?1 ORDER BY id",
+        "SELECT id,worktree,reserved_bytes + COALESCE((SELECT sum(a.reserved_bytes) FROM checkpoint_allocations a WHERE a.capture=checkpoint_captures.id),0) FROM checkpoint_captures WHERE session=?1 ORDER BY id",
     )?;
     let mut rows = statement.query([&session])?;
     while let Some(row) = rows.next()? {
@@ -77,6 +78,7 @@ pub(crate) fn retire_session(
     }
     drop(rows);
     drop(statement);
+    let _changed = connection.execute("DELETE FROM checkpoint_allocations WHERE capture IN (SELECT id FROM checkpoint_captures WHERE session=?1)", [&session])?;
     let _changed=connection.execute("DELETE FROM checkpoint_paths WHERE restore IN (SELECT id FROM checkpoint_restores WHERE session=?1)",[&session])?;
     let _changed = connection.execute(
         "DELETE FROM checkpoint_restores WHERE session=?1",

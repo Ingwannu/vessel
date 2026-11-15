@@ -15,7 +15,7 @@ use vessel_proto::terminals::{
 };
 use vessel_proto::{Ack, Creator, EventPage, TerminalId, TerminalInput, WireError};
 use vessel_session::FollowError;
-use vessel_session::terminals::InputError;
+use vessel_session::terminals::{InputError, TerminalHandle};
 
 use super::{Connection, NodeService};
 use crate::principal::Principal;

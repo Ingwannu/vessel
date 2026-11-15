@@ -1053,3 +1053,90 @@ fn checkpoint_recovery_refuses_equal_contents_on_a_replacement_inode() {
     )
     .unwrap();
 }
+
+#[test]
+fn checkpoint_private_reservation_pins_retirement_then_follows_garbage_until_cleanup() {
+    use super::{
+        allocation::{self, Allocation},
+        garbage,
+    };
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    let allocation = Allocation::Preview { plan: plan.id };
+    allocation::reserve(
+        &connection,
+        key,
+        allocation,
+        plan.owner,
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    let later = plan
+        .expires
+        .checked_add_signed(chrono::TimeDelta::seconds(1))
+        .unwrap();
+    assert!(matches!(
+        garbage::retire_session(&connection, key.session, later),
+        Err(Error::Refused(CheckpointError::Busy))
+    ));
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    allocation::attach(&connection, key, allocation, plan.owner).unwrap();
+    let charged: i64 = connection
+        .query_row(
+            "SELECT sum(reserved_bytes) FROM checkpoint_allocations",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    garbage::retire_session(&connection, key.session, later).unwrap();
+    let pending = garbage::pending(&connection).unwrap();
+    assert_eq!(pending.len(), 1);
+    assert_eq!(
+        pending[0].reserved.get(),
+        u64::try_from(charged).unwrap().checked_add(1).unwrap()
+    );
+    assert!(matches!(
+        super::quota::available(
+            &connection,
+            crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES)
+        ),
+        Err(Error::Refused(CheckpointError::StorageFull))
+    ));
+    garbage::cleaned(&connection, pending[0].object).unwrap();
+    super::quota::available(
+        &connection,
+        crate::ByteCount::new(vessel_proto::checkpoint::CHECKPOINT_NODE_BYTES),
+    )
+    .unwrap();
+}
+
+#[test]
+fn checkpoint_private_reservation_cannot_cross_delegated_origins_on_one_delivering_device() {
+    use super::allocation::{self, Allocation};
+    use vessel_proto::{DeviceId, NodeId, checkpoint::CheckpointHumanOrigin};
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    let delivering = DeviceId::random();
+    let origin = CheckpointHumanOrigin::Owner;
+    let owner = CheckpointOwner::DelegatedHuman {
+        delivering,
+        origin_node: NodeId::random(),
+        origin,
+    };
+    let other = CheckpointOwner::DelegatedHuman {
+        delivering,
+        origin_node: NodeId::random(),
+        origin,
+    };
+    let allocation = Allocation::Preview { plan: plan.id };
+    allocation::reserve(&connection, key, allocation, owner, DateTime::UNIX_EPOCH).unwrap();
+    assert!(matches!(
+        allocation::cleaned(&connection, key, allocation, other),
+        Err(Error::Refused(CheckpointError::Forbidden))
+    ));
+    assert!(matches!(
+        allocation::attach(&connection, key, allocation, other),
+        Err(Error::Refused(CheckpointError::Forbidden))
+    ));
+    allocation::cleaned(&connection, key, allocation, owner).unwrap();
+}

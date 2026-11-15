@@ -55,6 +55,22 @@ pub(crate) enum CheckpointWrite {
         observed: ObservedSnapshot,
         reason: CheckpointError,
     },
+    Allocate {
+        key: CaptureKey,
+        allocation: super::allocation::Allocation,
+        owner: vessel_proto::checkpoint::CheckpointOwner,
+        at: DateTime<Utc>,
+    },
+    AllocationAttached {
+        key: CaptureKey,
+        allocation: super::allocation::Allocation,
+        owner: vessel_proto::checkpoint::CheckpointOwner,
+    },
+    AllocationCleaned {
+        key: CaptureKey,
+        allocation: super::allocation::Allocation,
+        owner: vessel_proto::checkpoint::CheckpointOwner,
+    },
     InvalidateCandidates,
     GarbageCleaned {
         object: super::GarbageObject,
@@ -103,6 +119,22 @@ pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(
             observed,
             reason,
         } => super::recovery::resolved(connection, &operation, &observed, reason),
+        CheckpointWrite::Allocate {
+            key,
+            allocation,
+            owner,
+            at,
+        } => super::allocation::reserve(connection, key, allocation, owner, at),
+        CheckpointWrite::AllocationAttached {
+            key,
+            allocation,
+            owner,
+        } => super::allocation::attach(connection, key, allocation, owner),
+        CheckpointWrite::AllocationCleaned {
+            key,
+            allocation,
+            owner,
+        } => super::allocation::cleaned(connection, key, allocation, owner),
         CheckpointWrite::InvalidateCandidates => journal::invalidate_candidates(connection),
         CheckpointWrite::GarbageCleaned { object } => super::garbage::cleaned(connection, object),
     }

@@ -706,3 +706,16 @@ share the original capture deadline; a full durable event channel can leave
 capture unavailable rather than hold delivery for an unbounded capture wait.
 The node must still await actual SQL durability of accepted/ended anchors before
 filesystem capture. The session bridge alone does not establish that ordering.
+
+Private-work quota refinement: preview/restore allocations are durable, bound to
+the immutable capture association and full human principal, and reserve a fixed
+conservative envelope before filesystem work. The global equation includes those
+allocations alongside captures and garbage. Unfinished private workers pin
+retirement; attachment requires a published plan or terminal/recovery journal
+and the actual worker's completion. Unpublished cleanup keeps a positively
+accounted id tombstone to prevent delayed callbacks releasing a recycled object.
+Parent retirement transfers private charges into durable garbage until physical
+cleanup acknowledgement. SQL cannot prove kernel I/O completion: the node must
+retain the worker/object ownership through it. Those controller/GC adapters are
+not yet connected. This adds a table within the one unshipped checkpoint migration,
+not another schema number; the migration runner stays unchanged.
