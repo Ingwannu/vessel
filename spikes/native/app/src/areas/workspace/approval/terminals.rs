@@ -20,7 +20,7 @@ pub(super) fn render(
         div()
             .type_(Type::Kicker)
             .text_color(tokens.neutral.foreground_muted)
-            .child(translator.scripts().automatic_terminals()),
+            .child(translator.scripts().automatic_terminals().to_owned()),
     );
     for entry in lines {
         let (change, removed) = match entry {

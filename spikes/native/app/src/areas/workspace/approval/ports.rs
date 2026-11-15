@@ -47,20 +47,20 @@ pub(super) fn render(
             div()
                 .type_(Type::Kicker)
                 .text_color(tokens.neutral.foreground_muted)
-                .child(text.service_ports()),
+                .child(text.service_ports().to_owned()),
         )
         .child(line(words, change, body, tokens))
         .child(
             div()
                 .type_(Type::Meta)
                 .text_color(tokens.neutral.foreground_muted)
-                .child(text.allocation_declaration()),
+                .child(text.allocation_declaration().to_owned()),
         )
 }
 
 fn definition(
     translator: &Translator,
-    title: &'static str,
+    title: &str,
     fields: Option<&AllocationFields>,
     removed: bool,
     tokens: &Tokens,
@@ -69,9 +69,13 @@ fn definition(
     let mut body = div()
         .flex()
         .flex_col()
-        .child(div().type_(Type::Label).child(title));
+        .child(div().type_(Type::Label).child(title.to_owned()));
     let Some(fields) = fields else {
-        return body.child(div().type_(Type::Body).child(text.allocation_absent()));
+        return body.child(
+            div()
+                .type_(Type::Body)
+                .child(text.allocation_absent().to_owned()),
+        );
     };
     // Every declared choice must be visible even when another choice takes precedence.
     let ServicePortsView { range, port_script } = fields.view();
@@ -81,8 +85,16 @@ fn definition(
     );
     let program = port_script.map_or(text.allocation_not_declared(), |program| program.as_str());
     body = body
-        .child(div().type_(Type::Meta).child(text.allocation_range()))
+        .child(
+            div()
+                .type_(Type::Meta)
+                .child(text.allocation_range().to_owned()),
+        )
         .child(code(range, removed, tokens));
-    body.child(div().type_(Type::Meta).child(text.allocation_program()))
-        .child(code(program.to_owned(), removed, tokens))
+    body.child(
+        div()
+            .type_(Type::Meta)
+            .child(text.allocation_program().to_owned()),
+    )
+    .child(code(program.to_owned(), removed, tokens))
 }
