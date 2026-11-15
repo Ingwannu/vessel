@@ -1,8 +1,9 @@
 # Per-turn file checkpoints: contract-first plan
 
 Status: ADR 0077 design contract accepted, 2026-11-15, on `a852bde3`.
-Product implementation remains held pending central ownership assignment and
-the merge of the node contracts into the app baseline.
+Node implementation is authorized on base `d954fa3a`, skeleton first. New
+calls remain unregistered and services stay test-only until Quality B is
+announced. The app waits for the centrally supplied app baseline.
 
 ## Reference and existing assets
 
@@ -44,10 +45,11 @@ reservation until cleanup. Expired generations cannot publish ready checkpoints.
 Non-root metadata and held-I/O barrier tests remain required evidence for later
 implementation, not results of this document.
 
-No product edits, merge, runtime test, fake fleet, capture or compiled gate.
-Next: central owners assign baseline, implementation, schema and protocol
-integration. Contract acceptance does not assign that work or prove runtime
-capability; no package UI or node implementation starts before that sequence.
+The coordinator subsequently assigned the node implementation on `d954fa3a`.
+The staged code and its current verification status are recorded below. No
+registered capability, real prompt-actor wiring, user-facing restore or app
+capture is claimed. The final schema/protocol assignment remains integrator
+work; app code waits for the shared app base.
 
 
 ## Node implementation: skeleton
@@ -83,3 +85,19 @@ preview pagination/quota/retention and service authorization. Replace remaining
 ignored proof obligations only when the corresponding behavior exists.
 The app stays untouched until the shared app base is announced. Runtime
 permissions, held I/O and crash proof remain owed.
+
+
+### Verification and next fill-in point
+
+The proto crate's local all-target clippy completed without errors. The broader
+frame has had compile/lint failures, preserved in the evidence outside the
+repository; fixes include explicit path inference, private schema reexports,
+checked deadlines, row-count handling, bounded heap buffers and test assertion
+syntax. Five-crate clippy and filtered checkpoint tests are pending; these are
+not passing runtime evidence. No whole package gate or code review is claimed.
+
+Remaining actual mechanisms: durable Ready activation after accepting a live
+candidate, per-path restore and guarded undo, full preview/pagination/auth,
+retention/pins and quota release after real cleanup, and real session/workspace
+exclusion. The previously accepted held-I/O and metadata proof obligations are
+not waived. A test-only callback seam does not prove actual prompt delivery.

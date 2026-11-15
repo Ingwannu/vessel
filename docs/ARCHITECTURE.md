@@ -1544,5 +1544,6 @@ The checkpoint modules in `vessel-node`, `vessel-store`, `vessel-session` and
 `vessel-workspace` are test-only staging under A10, not advertised product
 capabilities. The node owns admission/fencing, store owns SQL, workspace owns
 filesystem operations and the session only waits for a bounded node
-acknowledgement. No dependency edge or registered method changes here. Wiring
-requires the centrally ordered schema predecessor and Quality B protocol work.
+acknowledgement. No dependency edge or registered method changes here. The table migration appends directly after this base's newest schema; the
+integrator re-points its constant at merge. Service wiring requires Quality B
+protocol work, reviewed ownership/exclusion and the remaining restore tests.

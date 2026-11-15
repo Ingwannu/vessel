@@ -480,14 +480,15 @@ needed for checkpoint operation.
 
 ## Resume point
 
-Contract accepted; no storage schema, RPC registration, checkpoint filesystem
-or UI exists from this ADR. The effective metadata-policy target and the
-separation of actor timeout from retained I/O-worker cleanup are part of the
-accepted contract. Required evidence above remains future work, including
-permission, held-I/O, publication-race and crash-recovery cases. Next: central
-implementation/baseline/schema/protocol assignment. Product code remains held
-until that ownership and integration sequence is supplied.
-
+Contract accepted, with node implementation subsequently assigned on `d954fa3a`.
+The branch now contains validated value types and test-only capture/storage/
+actor seams, plus one appended checkpoint table migration. This does not
+advertise a file restore capability: calls remain unregistered, FILE_CHECKPOINTS
+is None and actual session wiring/restore execution are not complete. The plan
+records narrow-check failures and remaining proof. No whole package gate,
+permission, held-I/O, publication-race or crash-recovery pass is implied here.
+Final schema/protocol integration belongs to the integrator; the app waits for
+the centrally supplied app base.
 
 ### Staged filesystem implementation note
 
