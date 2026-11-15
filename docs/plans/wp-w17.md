@@ -1372,3 +1372,23 @@ channel-module location needs no production test accessor. This tests the common
 actor connection; it is not a frame RPC, restore/checkpoint or runner-quiescence
 proof. It and the typed-target refusal fixtures still require remote execution.
 No unreviewed frame/mode/marker API or D1 row has been introduced.
+
+### Corrected host/core unit result and forwardable capture inventory
+
+Exact5738a012 run wp-cli-narrow-20261115T154358Z-5738a012 completed rc1:
+node258/0, proto329/1 (three TypeScript tests deliberately filtered), rpc53/0,
+session72/0, store77/0 and frozen terminal-screen11/0. Total800 passed/1 failed.
+The public Guarded/service/actor fixture now actually passed, as did the bounded
+field/authority checks and original Silent capture consumer tests. Client80/0
+from257 remains distinct unchanged-source evidence. Neither result tests the later
+typed common helper/TUI connection or latest CLI code.
+
+The sole failure was the explicit forwardable-method inventory: implementation
+already admits terminal.capture like terminal.read, while FORWARDABLE omitted the
+new method. Add ONLY terminal.capture at the end, preserving every existing name
+and the exact pinned-set assertion. This records the intended readonly remote
+capture contract, which uses the same terminal_for ownership gate as event reads;
+it does not admit host-registry forwarding or add an Admin entry. The unassigned
+feature gate still blocks direct/enveloped calls before dispatch, and all existing
+Admin expectations retain only the three previously approved host additions.
+Changed-source protocol/strict/consumer execution remains owed; the old red run is retained.
