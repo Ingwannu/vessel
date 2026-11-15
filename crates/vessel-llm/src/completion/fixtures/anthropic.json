@@ -1,0 +1,9 @@
+{
+  "id": "msg_fixture", "type": "message", "role": "assistant", "model": "fixture-model",
+  "content": [
+    {"type":"thinking","thinking":"private reasoning","signature":"fixture"},
+    {"type":"text","text":"{\"title\":\"Fix tests\"}"}
+  ],
+  "stop_reason":"end_turn", "stop_sequence":null,
+  "usage":{"input_tokens":17,"output_tokens":7,"cache_read_input_tokens":3,"cache_creation_input_tokens":2}
+}

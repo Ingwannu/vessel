@@ -44,7 +44,7 @@ fn the_label_append_keeps_an_unlabelled_legacy_row_and_is_idempotent() {
     let version: i64 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!(version, i64::try_from(LABELS_SCHEMA).unwrap());
+    assert_eq!(version, i64::try_from(MIGRATIONS.len()).unwrap());
     let (kept, labels): (String, Option<String>) = connection
         .query_row(
             "SELECT spec, labels FROM sessions WHERE id = ?1",

@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::{
     AgentAbilities, AgentEvent, ContextUsage, EventRecord, EventSeq, HarnessSessionId,
     OptionChoice, ProfileName, PromptQueue, SessionEvent, SessionId, SessionInfo, SessionOption,
-    SessionStatus, SessionTitle,
+    SessionStatus, SessionTitle, TitleOrigin,
 };
 
 use crate::codec::{
@@ -35,8 +35,8 @@ pub(crate) fn create_session(
             "INSERT INTO sessions
                  (id, spec, status, live, created_at, ended_at, next_seq, first_seq,
                   retained_bytes, harness_session, profile, created_by, via, origin, model,
-                  title, labels)
-             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                  title, labels, title_origin)
+             VALUES (?1, ?2, ?3, 1, ?4, NULL, 0, 0, 0, NULL, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
              ON CONFLICT (id) DO NOTHING",
         )?
         .execute(params![
@@ -53,6 +53,7 @@ pub(crate) fn create_session(
             (!info.labels.is_empty())
                 .then(|| encode(&info.labels))
                 .transpose()?,
+            origin_sql(info.title_origin)?,
         ])?;
     if inserted == 0 {
         return Err(StoreError::SessionExists(info.id));
@@ -97,7 +98,7 @@ struct Projection {
     /// The last profile change, if any.
     profile: ProfileMove,
     /// The last rename, if any.
-    title: Option<SessionTitle>,
+    title: Option<(SessionTitle, TitleOrigin)>,
     /// The choices of the last options report, if any.
     choices: Option<Vec<OptionChoice>>,
     /// Protocol 10's projections (schema 7): the last abilities, context
@@ -148,7 +149,9 @@ impl Projection {
             SessionEvent::ProfileChanged { to, .. } => {
                 self.profile = ProfileMove::To(to.clone());
             }
-            SessionEvent::Renamed { title } => self.title = Some(title.clone()),
+            SessionEvent::Renamed { title, origin } => {
+                self.title = Some((title.clone(), *origin));
+            }
             SessionEvent::OptionsChanged { options } => {
                 self.choices = Some(options.iter().filter_map(SessionOption::choice).collect());
             }
@@ -234,6 +237,7 @@ pub(crate) fn append<'a>(
                  harness_session = COALESCE(?7, harness_session),
                  profile = CASE WHEN ?8 THEN ?9 ELSE profile END,
                  title = COALESCE(?10, title),
+                 title_origin = CASE WHEN ?18 THEN ?19 ELSE title_origin END,
                  choices = COALESCE(?11, choices),
                  abilities = COALESCE(?12, abilities),
                  usage = COALESCE(?13, usage),
@@ -258,7 +262,10 @@ pub(crate) fn append<'a>(
                 ProfileMove::To(Some(name)) => Some(name.as_str()),
                 ProfileMove::To(None) | ProfileMove::Unchanged => None,
             },
-            projection.title.as_ref().map(SessionTitle::as_str),
+            projection
+                .title
+                .as_ref()
+                .map(|(title, _origin)| title.as_str()),
             projection.choices.as_ref().map(encode).transpose()?,
             projection.abilities.as_ref().map(encode).transpose()?,
             projection.usage.as_ref().map(encode).transpose()?,
@@ -269,6 +276,13 @@ pub(crate) fn append<'a>(
                 PlanMove::Cleared | PlanMove::Unchanged => None,
             },
             !matches!(projection.plan, PlanMove::Unchanged),
+            projection.title.is_some(),
+            projection
+                .title
+                .as_ref()
+                .map(|(_title, origin)| origin_sql(*origin))
+                .transpose()?
+                .flatten(),
         ])?;
     crate::usage::prune(connection, Utc::now())?;
     Ok(Appended { ended })
@@ -384,6 +398,16 @@ pub(crate) fn live_sessions(
         live.push((id, seq_from_sql(row.get(1)?)?));
     }
     Ok(live)
+}
+
+/// The origin column: unknown is `NULL`, so an old row and an unrecorded
+/// origin read the same and generation leaves both alone.
+fn origin_sql(origin: TitleOrigin) -> Result<Option<String>, StoreError> {
+    if origin.is_unknown() {
+        Ok(None)
+    } else {
+        encode(&origin).map(Some)
+    }
 }
 
 #[cfg(test)]

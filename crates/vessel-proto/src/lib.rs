@@ -48,6 +48,7 @@ mod proxy;
 pub mod push;
 mod raw;
 mod relay;
+pub mod restart;
 mod rpc;
 pub mod scripts;
 pub mod search;
@@ -118,7 +119,8 @@ pub use name::{
     ProviderName, SecretName,
 };
 pub use node::{
-    MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange, ProtocolVersion,
+    GENERATED_NAMES, MIN_PROTOCOL_VERSION, NodeInfo, NodeState, PROTOCOL_VERSION, ProtocolRange,
+    ProtocolVersion, speaks_generated_names,
 };
 pub use options::{
     ChoiceValue, GetHarnessOptions, GetSessionOptions, HarnessOptions, OptionCategory,
@@ -136,9 +138,9 @@ pub use relay::{
 };
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
-    Hello, KillSession, ListHarnesses, ListSessions, Method, Outcome, ReadEvents, RenameSession,
-    Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe, Subscribed,
-    SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    Hello, KillSession, ListHarnesses, ListSessions, Method, MethodShape, Outcome, ReadEvents,
+    RenameSession, Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe,
+    Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
@@ -146,7 +148,10 @@ pub use session::{
     SessionStatus,
 };
 pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
-pub use title::{InvalidTitle, SessionTitle};
+pub use title::{
+    GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, MAX_GENERATED_TITLE_UNITS, SessionTitle,
+    TitleOrigin,
+};
 pub use transfer::{
     CloseTransfer, ExportMemory, ExportSession, ImportMemory, ImportSession, MAX_TRANSFER_FILE,
     MAX_TRANSFER_TOTAL, MemoryImported, MemoryRef, ReadTransfer, SessionImported, SessionRef,
