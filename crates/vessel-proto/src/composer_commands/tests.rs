@@ -110,3 +110,31 @@ fn pending_metadata_is_hidden_in_events_records_and_legacy_log_projection() {
         }
     ));
 }
+
+#[test]
+fn draft_command_call_is_pending_operate_unary_and_nested_calls_remain_pending() {
+    use crate::{HarnessKind, MethodShape, ProjectId, Request as _, Scope};
+    let request = GetDraftCommands {
+        config: DraftCommandConfig {
+            harness: HarnessKind::ClaudeCode.into(),
+            profile: None,
+            root: crate::workspace::WorkspaceRoot::Project {
+                project: ProjectId::random(),
+            },
+            directory: None,
+            model: None,
+            options: Vec::new(),
+        },
+    };
+    let call = request.into_call();
+    assert_eq!(call.method().scope(), Some(Scope::Operate));
+    assert_eq!(call.method().shape(), MethodShape::Unary);
+    assert_eq!(call.since(), None);
+    assert_eq!(call.required_protocol(), None);
+    let forwarded = crate::Forward {
+        node: crate::NodeId::random(),
+        call: Box::new(call),
+    }
+    .into_call();
+    assert_eq!(forwarded.required_protocol(), None);
+}

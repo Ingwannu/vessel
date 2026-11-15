@@ -471,6 +471,8 @@ macro_rules! method_table {
             ForkSession / fork_session / "session.fork" [Operate, 14, unary]: $crate::forking::ForkSession => $crate::SessionInfo;
             /// Take a session back to a turn's end (protocol 14, ADR 0052).
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
+            /// Prompt-free command discovery for a validated draft (ADR 0085).
+            GetDraftCommands / draft_commands / "agent.draft_commands" [Operate, (pending $crate::composer_commands::COMPOSER_COMMANDS), unary]: $crate::composer_commands::GetDraftCommands => $crate::composer_commands::CommandCatalog;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
         }
