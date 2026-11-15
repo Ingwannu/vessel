@@ -178,26 +178,7 @@ pub(crate) fn event_with_reference(
             }
             AgentEvent::ToolCall(tool(call, context))
         }
-        AgentEvent::ToolCallUpdate(call) => {
-            if matches!(
-                call.scope.as_deref(),
-                Some(super::ToolCallScope::Record { .. })
-            ) {
-                return Some(AgentEvent::HarnessLog {
-                    line: "vessel: unassociated tool update requires a newer client".to_owned(),
-                });
-            }
-            if !needs_escape(&call.id)
-                && call.scope.is_none()
-                && call.detail.is_none()
-                && call.failure.is_none()
-                && call.agent_message.is_none()
-                && call.status != Some(ToolCallStatus::Canceled)
-            {
-                return None;
-            }
-            AgentEvent::ToolCallUpdate(update(call, context))
-        }
+        AgentEvent::ToolCallUpdate(call) => return update_event(call, context),
         AgentEvent::PermissionRequested(request) => {
             if !request.legacy_actionable() {
                 return Some(AgentEvent::HarnessLog {
@@ -270,6 +251,28 @@ pub(crate) fn event_with_reference(
         | AgentEvent::QuestionResolved { .. } => return None,
     };
     (adapted != *event).then_some(adapted)
+}
+
+fn update_event(call: &ToolCallUpdate, context: ReferenceContext) -> Option<AgentEvent> {
+    if matches!(
+        call.scope.as_deref(),
+        Some(super::ToolCallScope::Record { .. })
+    ) {
+        return Some(AgentEvent::HarnessLog {
+            line: "vessel: unassociated tool update requires a newer client".to_owned(),
+        });
+    }
+    if !needs_escape(&call.id)
+        && call.scope.is_none()
+        && call.detail.is_none()
+        && call.failure.is_none()
+        && call.agent_message.is_none()
+        && call.status != Some(ToolCallStatus::Canceled)
+    {
+        return None;
+    }
+    let adapted = update(call, context);
+    (adapted != *call).then_some(AgentEvent::ToolCallUpdate(adapted))
 }
 
 #[cfg(test)]

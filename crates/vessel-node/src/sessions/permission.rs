@@ -27,9 +27,7 @@ impl Sessions {
         match tokio::time::timeout(RESOLUTION_TIMEOUT, self.respond_permission_inner(request)).await
         {
             Ok(reply) => reply,
-            Err(_elapsed) => {
-                Ok(vessel_proto::timeline::RespondPermissionReply::OutcomeUnknown { permission })
-            }
+            Err(_elapsed) => Ok(RespondPermissionReply::OutcomeUnknown { permission }),
         }
     }
 

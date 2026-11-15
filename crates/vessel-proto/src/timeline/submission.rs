@@ -57,7 +57,7 @@ pub enum SubmissionAcceptedKind {
     Command {
         /// Localizable result; derives its kind without repeating the objective.
         status: NativeCommandStatus,
-        /// Sequence of the committed CommandAccepted event.
+        /// Sequence of the committed `CommandAccepted` event.
         echo: EventSeq,
     },
 }

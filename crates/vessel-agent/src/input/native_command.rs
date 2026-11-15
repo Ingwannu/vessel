@@ -9,9 +9,15 @@ use vessel_proto::timeline::NativeCommandRefusal;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeCommandDispatch {
     /// The actual native operation was accepted; this says nothing about a turn.
-    Accepted { status: NativeCommandStatus },
+    Accepted {
+        /// Closed success from the actual native transport.
+        status: NativeCommandStatus,
+    },
     /// Closed pre-effect refusal; never carries raw RPC or objective content.
-    Refused { reason: NativeCommandRefusal },
+    Refused {
+        /// A typed refusal before any external mutation.
+        reason: NativeCommandRefusal,
+    },
     /// A possibly sent mutating operation lost its acknowledgement.
     OutcomeUnknown,
 }

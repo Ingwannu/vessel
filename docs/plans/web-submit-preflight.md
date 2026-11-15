@@ -37,3 +37,12 @@ submit frames, and no automatic retries. They use isolated nodes/fake harness
 installation and a socket fixture, never a real provider. Changed-source strict,
 generated TypeScript equality and actual tests remain owed; source preparation
 alone is not runtime evidence.
+
+Historical runs wp-timeline-ts-next-20261115T130039Z-a6f2c252 and
+wp-timeline-plan-actor-20261115T131825Z-c7aaa45e stopped on a moved ToolCallId in
+an old-peer fixture; the latter also found a compatibility dispatcher size lint
+and a CommandAccepted doc lint. The fixture now clones its borrowed identity,
+and tool-update compatibility keeps the same equality check in a separate
+function. Native carrier field docs and redundant qualifications reported by the
+TS build are corrected as well. These fixes do not change the contract; the
+historical failed runs remain failed and current checks are still required.

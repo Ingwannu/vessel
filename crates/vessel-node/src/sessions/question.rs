@@ -21,9 +21,7 @@ impl Sessions {
         match tokio::time::timeout(QUESTION_ACK_TIMEOUT, self.respond_question_inner(request)).await
         {
             Ok(reply) => reply,
-            Err(_elapsed) => {
-                Ok(vessel_proto::timeline::RespondQuestionReply::OutcomeUnknown { question })
-            }
+            Err(_elapsed) => Ok(RespondQuestionReply::OutcomeUnknown { question }),
         }
     }
 

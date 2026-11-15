@@ -39,7 +39,7 @@ pub enum SteerOutcome {
 #[derive(Debug)]
 pub(crate) enum Command {
     NativeCommandOffers {
-        reply: oneshot::Sender<native_command::NativeCommandOffers>,
+        reply: oneshot::Sender<NativeCommandOffers>,
     },
     DecidePlan {
         request: vessel_proto::timeline::DecidePlan,
