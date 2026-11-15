@@ -34,7 +34,7 @@ pub(super) fn start(cx: &mut Context<'_, Shell>) {
 impl Shell {
     fn usage_cached_tick(&mut self) {
         let state = &self.areas.usage;
-        if state.policy_pending.is_some() {
+        if state.policy_pending.is_some() || state.source_pending.is_some() {
             return;
         }
         if matches!(state.target, Target::Online(_))

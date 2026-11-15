@@ -55,6 +55,12 @@ impl Shell {
                 .policy_pending
                 .as_ref()
                 .is_some_and(|pending| pending.machine == selected.machine)
+                || self
+                    .areas
+                    .usage
+                    .source_pending
+                    .as_ref()
+                    .is_some_and(|pending| pending.machine == selected.machine)
         }) {
             return;
         }

@@ -32,6 +32,15 @@ pub enum Ask {
         /// Explicit administrator choice.
         policy: ExternalLookup,
     },
+    /// Accept/revoke one explicitly displayed source disclosure; never starts a fetch.
+    SourceLookup {
+        /// Captured destination.
+        machine: MachineKey,
+        /// Non-reused mutation correlation.
+        ticket: Ticket,
+        /// Typed registered source, permission and exact displayed revision.
+        request: vessel_proto::usage_reports::SetUsageSourceLookup,
+    },
     /// The node resolves the session's immutable launch association.
     Session {
         /// Session, machine and observed binding epoch.
@@ -76,6 +85,15 @@ pub enum Answer {
         /// What the node acknowledged; no raw error text.
         result: Result<ExternalLookup, RequestFailure>,
     },
+    /// The source owner acknowledged its persisted grant, or requires a cache readback.
+    SourceLookup {
+        /// Captured destination.
+        machine: MachineKey,
+        /// Original mutation identity.
+        ticket: Ticket,
+        /// No raw node/credential/provider text crosses the event boundary.
+        result: Result<vessel_proto::usage_reports::UsageSourceDescriptor, RequestFailure>,
+    },
     /// Saved account facts for one session's current launch association.
     Session {
         /// Original session scope and lifetime.
@@ -107,6 +125,13 @@ impl Ask {
                 ticket,
                 result: Err(reason),
             },
+            Self::SourceLookup {
+                machine, ticket, ..
+            } => Answer::SourceLookup {
+                machine,
+                ticket,
+                result: Err(reason),
+            },
             Self::Session { request, .. } => Answer::Session {
                 request,
                 result: Err(reason),
@@ -118,7 +143,7 @@ impl Ask {
         match self {
             Self::Accounts { request, .. } => &request.selection,
             Self::Ledger(request) => &request.selection.machine,
-            Self::Lookup { machine, .. } => machine,
+            Self::Lookup { machine, .. } | Self::SourceLookup { machine, .. } => machine,
             Self::Session { request, .. } => &request.selection.machine,
         }
     }

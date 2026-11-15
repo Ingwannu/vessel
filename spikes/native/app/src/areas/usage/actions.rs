@@ -45,7 +45,10 @@ impl Shell {
             return;
         };
         let machine = machine.clone();
-        if state.policy_pending.is_none() && state.inventory.selection() != Some(&machine) {
+        if state.policy_pending.is_none()
+            && state.source_pending.is_none()
+            && state.inventory.selection() != Some(&machine)
+        {
             self.usage_accounts(InventoryRefresh::Cached);
         }
         let state = &mut self.areas.usage;

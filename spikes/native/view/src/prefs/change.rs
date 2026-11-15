@@ -22,7 +22,12 @@ pub enum PreferenceChange {
     /// Explicit usage host selected by handshake identity.
     UsageHost(Option<NodeId>),
     /// Explicit quota windows shared by settings and the summary.
-    UsagePins(crate::usage::PinSelection<vessel_proto::HarnessRef, vessel_proto::limits::LimitKey>),
+    UsagePins(
+        crate::usage::PinSelection<
+            vessel_proto::usage_reports::UsageSourceId,
+            vessel_proto::limits::LimitKey,
+        >,
+    ),
     /// The app language; applies at once on every screen.
     Language(crate::localization::LanguagePreference),
     /// The theme.

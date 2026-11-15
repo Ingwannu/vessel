@@ -216,3 +216,123 @@ usage-show-sidebar = Show in sidebar
 usage-pin = Pin window
 # Usage summary short window labels or pinning controls.
 usage-unpin = Unpin window
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-active-plan = No active coding plan was reported.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-allowance = This login has no reported allowance.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-inactive-plan = The reported subscription is inactive.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-unreachable = The source could not reach its fixed usage service. Try again later.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-off = Source lookup is off.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-needs-consent = Review this source’s updated sign-in access before enabling it.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-disclosure = An explicit refresh may read { $login } on this machine and send that sign-in to { $recipient }. Enabling access does not fetch usage.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-claude = the configured Claude Code sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-codex = the configured Codex sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-opencode = OpenCode’s saved OpenAI sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-copilot = Copilot/GitHub environment credentials or the GitHub CLI sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-cursor = Cursor environment credentials, its read-only desktop sign-in database, or its headless sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-grok = Grok environment credentials or the Grok CLI sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-kimi = Kimi environment credentials or saved Kimi Code/Kimi credentials
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-minimax = MiniMax environment credentials or saved MiniMax configuration and sign-in
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-opencode-go = OpenCode’s saved Go API key
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-zai = the Z.ai/GLM environment API key
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-anthropic = Anthropic
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-openai = OpenAI’s ChatGPT usage service
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-github = GitHub
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-cursor = Cursor
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-xai = xAI’s Grok CLI service
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-kimi = Kimi’s coding service
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-minimax = MiniMax’s global or China service, as configured locally
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-opencode = OpenCode’s Go usage service
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-zai = Z.ai
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-usd = USD
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-credits = credits
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-requests = requests
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-tokens = tokens
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-allowance = Allowance
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-attempted-at = Last attempt: { $time }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-retry-at = Reported retry time: { $time }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-runs-out-at = Source forecast: runs out at { $time }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-shortfall = Source forecast shortfall: { $percent }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-enable-source = Enable source access
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-disable-source = Disable source access
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-reports = Account reports
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-source-reports = No accounts have been discovered. Enable a supported source, then explicitly refresh.
+
+# Source adapter availability, independent of its currently saved permission.
+usage-source-unsupported = This source is not available on this machine.

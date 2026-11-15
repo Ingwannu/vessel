@@ -216,3 +216,123 @@ usage-show-sidebar = 사이드바에 표시
 usage-pin = 기간 고정
 # Usage summary short window labels or pinning controls.
 usage-unpin = 기간 고정 해제
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-active-plan = 활성 코딩 요금제가 보고되지 않았습니다.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-allowance = 이 로그인에 보고된 사용 한도가 없습니다.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-inactive-plan = 보고된 구독이 비활성 상태입니다.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-unreachable = 소스가 사용량 서비스에 연결하지 못했습니다. 나중에 다시 시도하세요.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-off = 이 소스 조회가 꺼져 있습니다.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-needs-consent = 소스의 변경된 로그인 접근 범위를 검토한 뒤 켜세요.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-disclosure = 명시적으로 새로고침하면 이 머신의 { $login }을(를) 읽어 { $recipient }에 전달할 수 있습니다. 접근을 켜는 것만으로 조회하지 않습니다.
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-claude = 구성된 Claude Code 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-codex = 구성된 Codex 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-opencode = OpenCode에 저장된 OpenAI 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-copilot = Copilot/GitHub 환경 자격 증명 또는 GitHub CLI 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-cursor = Cursor 환경 자격 증명, 읽기 전용 데스크톱 로그인 데이터베이스 또는 헤드리스 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-grok = Grok 환경 자격 증명 또는 Grok CLI 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-kimi = Kimi 환경 자격 증명 또는 Kimi Code/Kimi에 저장된 자격 증명
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-minimax = MiniMax 환경 자격 증명 또는 저장된 MiniMax 구성과 로그인
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-opencode-go = OpenCode에 저장된 Go API 키
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-store-zai = Z.ai/GLM 환경 API 키
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-anthropic = Anthropic
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-openai = OpenAI의 ChatGPT 사용량 서비스
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-github = GitHub
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-cursor = Cursor
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-xai = xAI의 Grok CLI 서비스
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-kimi = Kimi의 코딩 서비스
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-minimax = 로컬 구성에 따른 MiniMax의 글로벌 또는 중국 서비스
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-opencode = OpenCode의 Go 사용량 서비스
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-recipient-zai = Z.ai
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-usd = USD
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-credits = 크레딧
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-requests = 요청
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-unit-tokens = 토큰
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-allowance = 한도
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-attempted-at = 마지막 시도: { $time }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-retry-at = 보고된 재시도 시각: { $time }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-runs-out-at = 소스 예측: { $time }에 소진
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-shortfall = 소스의 부족분 예측: { $percent }
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-enable-source = 소스 접근 켜기
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-disable-source = 소스 접근 끄기
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-source-reports = 계정 보고서
+
+# Account report or source access; keep this whole phrase and its typed values together.
+usage-no-source-reports = 발견된 계정이 없습니다. 지원되는 소스의 접근을 켠 뒤 명시적으로 새로고침하세요.
+
+# Source adapter availability, independent of its currently saved permission.
+usage-source-unsupported = 이 머신에서 이 소스를 사용할 수 없습니다.

@@ -20,6 +20,25 @@ impl<S, W> Default for PinSelection<S, W> {
     }
 }
 impl<S: Clone + Eq, W: Clone + Eq> PinSelection<S, W> {
+    /// Migrate a source namespace while preserving default/explicit-empty and first occurrence.
+    #[must_use]
+    pub fn map_sources(mut self, mut map: impl FnMut(S) -> S) -> Self {
+        let Some(pins) = self.0.take() else {
+            return self;
+        };
+        let mut mapped = Vec::new();
+        for Pin { source, window } in pins {
+            let pin = Pin {
+                source: map(source),
+                window,
+            };
+            if !mapped.contains(&pin) {
+                mapped.push(pin);
+            }
+        }
+        self.0 = Some(mapped);
+        self
+    }
     /// Import an explicit selection, including the intentionally empty one.
     #[must_use]
     pub fn explicit(pins: Vec<Pin<S, W>>) -> Self {

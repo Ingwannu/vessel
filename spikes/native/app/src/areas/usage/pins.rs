@@ -7,12 +7,12 @@ use vessel_app_view::{
     sidebar::navigation::{Builtin, Key, Section, Visibility},
     usage::{Pin, default_pins},
 };
-use vessel_proto::{HarnessRef, limits::LimitKey};
+use vessel_proto::{limits::LimitKey, usage_reports::UsageSourceId};
 impl Shell {
     pub(super) fn usage_toggle_pin(
         &mut self,
         machine: MachineKey,
-        pin: Pin<HarnessRef, LimitKey>,
+        pin: Pin<UsageSourceId, LimitKey>,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {

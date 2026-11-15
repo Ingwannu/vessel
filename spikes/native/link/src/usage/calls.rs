@@ -15,7 +15,7 @@ use vessel_proto::{
 
 const ADMITTED_CALLS: usize = 4;
 const LEDGER_DEADLINE: Duration = Duration::from_secs(30);
-const INVENTORY_DEADLINE: Duration = Duration::from_secs(60);
+const INVENTORY_DEADLINE: Duration = Duration::from_secs(120);
 const POLICY_DEADLINE: Duration = Duration::from_secs(15);
 const SESSION_DEADLINE: Duration = Duration::from_secs(30);
 
@@ -61,7 +61,7 @@ fn deadline(ask: &Ask) -> Duration {
     match ask {
         Ask::Accounts { .. } => INVENTORY_DEADLINE,
         Ask::Ledger(_) => LEDGER_DEADLINE,
-        Ask::Lookup { .. } => POLICY_DEADLINE,
+        Ask::Lookup { .. } | Ask::SourceLookup { .. } => POLICY_DEADLINE,
         Ask::Session { .. } => SESSION_DEADLINE,
     }
 }
@@ -110,6 +110,15 @@ async fn execute(client: &NodeClient, ask: Ask) -> Answer {
                 result,
             }
         }
+        Ask::SourceLookup {
+            machine,
+            ticket,
+            request,
+        } => Answer::SourceLookup {
+            machine,
+            ticket,
+            result: client.call(request).await.map_err(problem),
+        },
         Ask::Session { request, refresh } => {
             let result = client
                 .call(GetUsageLimits {
@@ -125,7 +134,7 @@ async fn execute(client: &NodeClient, ask: Ask) -> Answer {
     }
 }
 
-async fn inventory(
+async fn saved_inventory(
     client: &NodeClient,
     refresh: &InventoryRefresh,
 ) -> Result<Inventory, RequestFailure> {
@@ -163,9 +172,71 @@ async fn inventory(
             });
         reports.push(AccountReport { account, result });
     }
-    Ok(Inventory {
+    Ok(Inventory::Saved {
         accounts: reports,
-        refresh_problem: (!matched).then_some(RequestFailure::Refused(ErrorCode::NotFound)),
+        refresh_problem: if matches!(refresh, InventoryRefresh::Report(_)) {
+            Some(RequestFailure::Unsupported)
+        } else {
+            (!matched).then_some(RequestFailure::Refused(ErrorCode::NotFound))
+        },
+    })
+}
+async fn inventory(
+    client: &NodeClient,
+    refresh: &InventoryRefresh,
+) -> Result<Inventory, RequestFailure> {
+    if vessel_proto::Method::ListUsageReports
+        .since()
+        .is_some_and(|needed| client.protocol() >= needed)
+    {
+        source_inventory(client, refresh).await
+    } else {
+        saved_inventory(client, refresh).await
+    }
+}
+async fn source_inventory(
+    client: &NodeClient,
+    refresh: &InventoryRefresh,
+) -> Result<Inventory, RequestFailure> {
+    use vessel_proto::usage_reports::{
+        InspectUsageReport, ListUsageReports, UsageReportLookup, UsageReportScope,
+    };
+    let refresh_problem = match refresh {
+        InventoryRefresh::Report(id) => match client
+            .call(InspectUsageReport {
+                id: id.clone(),
+                refresh: LimitRefresh::Refresh,
+            })
+            .await
+        {
+            Ok(UsageReportLookup::Found { report, .. }) if report.id() == id => None,
+            Ok(UsageReportLookup::Found { .. }) => return Err(RequestFailure::InvalidReply),
+            Ok(UsageReportLookup::NotFound { .. }) => {
+                Some(RequestFailure::Refused(ErrorCode::NotFound))
+            }
+            Ok(UsageReportLookup::Off) => Some(RequestFailure::Refused(ErrorCode::Conflict)),
+            Err(error) => Some(problem(error)),
+        },
+        InventoryRefresh::Account(_) => Some(RequestFailure::Unsupported),
+        InventoryRefresh::Cached | InventoryRefresh::All => None,
+    };
+    let reports = client
+        .call(ListUsageReports {
+            scope: UsageReportScope::Machine,
+            refresh: if *refresh == InventoryRefresh::All {
+                LimitRefresh::Refresh
+            } else {
+                LimitRefresh::Cached
+            },
+        })
+        .await
+        .map_err(problem)?;
+    let _encoded = reports
+        .validate_budget()
+        .map_err(|_budget| RequestFailure::InvalidReply)?;
+    Ok(Inventory::Sources {
+        reports,
+        refresh_problem,
     })
 }
 

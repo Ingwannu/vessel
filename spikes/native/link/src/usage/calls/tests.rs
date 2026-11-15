@@ -60,12 +60,12 @@ async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failu
     let report = inventory(&peer.client, &InventoryRefresh::Account(binding))
         .await
         .unwrap();
-    assert_eq!(report.accounts.len(), 2);
+    assert_eq!(report.accounts().len(), 2);
     assert!(matches!(
-        report.accounts[0].result,
+        report.accounts()[0].result,
         Err(RequestFailure::Refused(ErrorCode::Forbidden))
     ));
-    assert!(report.accounts[1].result.is_ok());
+    assert!(report.accounts()[1].result.is_ok());
     let calls = calls.lock().unwrap();
     let modes: Vec<_> = calls
         .iter()
@@ -99,7 +99,7 @@ async fn cached_inventory_rejects_a_reply_for_another_account() {
         .await
         .unwrap();
     assert!(matches!(
-        report.accounts[0].result,
+        report.accounts()[0].result,
         Err(RequestFailure::InvalidReply)
     ));
 }
@@ -137,11 +137,11 @@ async fn refresh_all_targets_the_bounded_inventory_and_cached_reads_never_refres
     let all = inventory(&peer.client, &InventoryRefresh::All)
         .await
         .unwrap();
-    assert_eq!(all.accounts.len(), 2);
+    assert_eq!(all.accounts().len(), 2);
     let cached = inventory(&peer.client, &InventoryRefresh::Cached)
         .await
         .unwrap();
-    assert_eq!(cached.accounts.len(), 2);
+    assert_eq!(cached.accounts().len(), 2);
     assert_eq!(
         *modes.lock().unwrap(),
         [

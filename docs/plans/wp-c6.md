@@ -120,3 +120,30 @@ account in that machine's validated inventory. Stale callbacks cannot refresh a
 new host. Passive clocks/sidebar reads always select Cached; queued requests retain
 their exact refresh choice. A fake framed peer checks both whole-inventory Refresh
 and subsequent cache-only reads, independently from UI rendering.
+
+### Generic report transport and shared source pins
+
+[Decision Log]
+- Reuse: consume the node's usage_reports DTO directly; view only projects status,
+  facts, source disclosure and sidebar candidates. There is no native provider
+  parser or quota engine. Older peers retain their real protocol-23 saved limits.
+- Boundary: method-table since() selects generic calls only after integrator
+  assignment and peer support. A pending None never becomes an invented wire call.
+  Explicit report refresh resolves its exact opaque id, then rereads Cached; a
+  stale legacy action cannot turn into a different generic account refresh.
+- Identity: Inventory is Saved or Sources, never both. Pins now use typed source ids
+  shared by the registry; legacy saved-source preference keys migrate through one
+  canonical source registration. Null defaults and explicit empty remain distinct.
+  Equal human labels never merge accounts. Only actual Available data feeds the
+  summary; retained failures and disabled sources do not.
+- Consent: source actions capture host/id/disclosure, keep non-reused tickets and
+  only reread Cached after acknowledgment or uncertainty. They never fetch.
+  Unsupported sources have no working-looking toggle or refresh. Every new source
+  describes known local candidates and fixed recipients in EN/KO without private
+  paths, credentials or arbitrary endpoints.
+- Rendering: the shared kit meter handles independent used/remaining percentages,
+  typed source tone, reset and optional reported forecasts. Node balance units are
+  preserved; Withheld hides amounts even if a malformed peer populates them.
+  Original success time stays separate from current attempt/cooldown/retained state.
+  Additional-source Session and F6 are still explicitly unsupported upstream;
+  native UI, fixture captures, assigned-wire checks and final gates remain owed.

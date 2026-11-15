@@ -11,6 +11,10 @@ mod modal;
 mod pins;
 mod rows;
 mod session;
+mod source_controls;
+mod source_policy;
+mod source_reports;
+mod source_windows;
 mod windows;
 pub(crate) use modal::dialogs;
 pub(crate) use session::{limit_notice, session_card};
@@ -34,6 +38,12 @@ pub(super) struct PolicyPending {
     pub(super) machine: MachineKey,
     pub(super) policy: ExternalLookup,
 }
+#[derive(Debug)]
+pub(super) struct SourcePending {
+    pub(super) ticket: Ticket,
+    pub(super) machine: MachineKey,
+    pub(super) request: vessel_proto::usage_reports::SetUsageSourceLookup,
+}
 
 /// All requests live as long as their selected machine, never a visible label.
 #[derive(Debug)]
@@ -53,6 +63,7 @@ pub(crate) struct State {
     pub(super) inventory: Reader<MachineKey, Inventory>,
     pub(super) refresh_account: InventoryRefresh,
     pub(super) policy_pending: Option<PolicyPending>,
+    pub(super) source_pending: Option<SourcePending>,
     pub(super) policy_error: Option<RequestFailure>,
     pub(super) tickets: Tickets,
     pub(super) offset: FixedOffset,
@@ -79,6 +90,7 @@ impl State {
             inventory: Reader::default(),
             refresh_account: InventoryRefresh::Cached,
             policy_pending: None,
+            source_pending: None,
             policy_error: None,
             tickets: Tickets::default(),
             offset: *chrono::Local::now().offset(),

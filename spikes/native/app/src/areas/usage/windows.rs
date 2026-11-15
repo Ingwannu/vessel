@@ -86,8 +86,11 @@ pub(super) fn draw(
     let Some(machine) = state.inventory.selection().cloned() else {
         return body.into_any_element();
     };
+    let Some(source) = vessel_app_view::usage::saved_source(account.harness()) else {
+        return body.into_any_element();
+    };
     let pin = Pin {
-        source: account.harness().clone(),
+        source,
         window: window.id.clone(),
     };
     let defaults = state

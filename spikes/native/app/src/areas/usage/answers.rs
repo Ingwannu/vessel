@@ -39,6 +39,14 @@ impl Shell {
                 self.usage_policy_answer(machine, ticket, result);
                 None
             }
+            Answer::SourceLookup {
+                machine,
+                ticket,
+                result,
+            } => {
+                self.usage_source_answer(machine, ticket, result);
+                None
+            }
             Answer::Session { request, result } => self
                 .areas
                 .usage

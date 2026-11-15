@@ -15,17 +15,12 @@ use vessel_app_view::{
     devices::MachineKey,
     sidebar::navigation::{Builtin, Visibility},
     usage::{
-        Inventory, InventorySurface, LimitStatus, MIN_SUMMARY_METER_WIDTH, Phase,
-        SUMMARY_METER_GAP, SummaryAccount, SummaryLayout, SummaryMeasurements, SummaryWidth,
-        SummaryWindow, SummaryWindowCount, limit_view, pinned_windows, summary_layout,
-        window_label,
+        Inventory, InventorySurface, MIN_SUMMARY_METER_WIDTH, Phase, SUMMARY_METER_GAP,
+        SummaryAccount, SummaryLayout, SummaryMeasurements, SummaryWidth, SummaryWindowCount,
+        pinned_windows, summary_layout,
     },
 };
-use vessel_proto::{
-    HarnessRef,
-    conversation::FiniteNumber,
-    limits::{LimitKey, LimitPeriod},
-};
+use vessel_proto::{limits::LimitKey, usage_reports::UsageSourceId};
 
 pub(super) fn visible(shell: &Shell) -> bool {
     shell
@@ -76,6 +71,10 @@ impl Shell {
                 .policy_pending
                 .as_ref()
                 .is_some_and(|pending| pending.machine == machine)
+                || state
+                    .source_pending
+                    .as_ref()
+                    .is_some_and(|pending| pending.machine == machine)
             {
                 return;
             }
@@ -156,8 +155,11 @@ pub(crate) fn sidebar_summary(
     let mut previous = None;
     for pinned in pinned {
         if previous != Some(pinned.group) {
-            row = row.child(crate::agent_mark::mark(
-                Some(pinned.source),
+            row = row.child(vessel_app_kit::agent_mark::agent_mark(
+                crate::agent_mark::artwork(vessel_app_view::usage::source_mark(
+                    inventory,
+                    pinned.source,
+                )),
                 Size::Sixteen,
                 Space::Compact,
                 tokens,
@@ -204,7 +206,7 @@ pub(crate) fn sidebar_summary(
     reason = "Shaped summary text and gaps are layout geometry, never token or monetary arithmetic"
 )]
 fn measure(
-    pinned: &[vessel_app_view::usage::PinnedWindow<'_, HarnessRef, LimitKey>],
+    pinned: &[vessel_app_view::usage::PinnedWindow<'_, UsageSourceId, LimitKey>],
     layout: SummaryLayout,
     window: &Window,
 ) -> f32 {
@@ -233,40 +235,8 @@ fn measure(
 pub(super) fn candidates(
     inventory: &Inventory,
     words: &'static vessel_app_view::localization::Translator,
-) -> Vec<SummaryAccount<HarnessRef, LimitKey>> {
-    inventory
-        .accounts
-        .iter()
-        .filter_map(|account| {
-            let limits = account.result.as_ref().ok()?;
-            let view = limit_view(limits);
-            if view.status != LimitStatus::Current {
-                return None;
-            }
-            let snapshot = view.snapshot?;
-            let windows = snapshot
-                .windows
-                .iter()
-                .map(|window| SummaryWindow {
-                    id: window.id.clone(),
-                    label: window_label(window, words),
-                    short_label: match window.period {
-                        LimitPeriod::FiveHour => Some(words.usage().short_five_hour().to_owned()),
-                        LimitPeriod::Weekly => Some(words.usage().short_weekly().to_owned()),
-                        LimitPeriod::Unknown => Some(String::new()),
-                        LimitPeriod::Other { .. } => None,
-                    },
-                    summary: false,
-                    used: window.used.and_then(|used| FiniteNumber::new(used.get())),
-                    remaining: None,
-                })
-                .collect();
-            Some(SummaryAccount {
-                source: account.account.harness().clone(),
-                windows,
-            })
-        })
-        .collect()
+) -> Vec<SummaryAccount<UsageSourceId, LimitKey>> {
+    vessel_app_view::usage::summary_candidates(inventory, words)
 }
 
 fn measure_probe(shell: &Shell, cx: &Context<'_, Shell>) -> AnyElement {

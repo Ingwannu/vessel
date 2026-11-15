@@ -42,7 +42,7 @@ pub(super) fn render(
     let Some(inventory) = state.inventory.phase().observation() else {
         return body.into_any_element();
     };
-    if let Some(error) = inventory.refresh_problem {
+    if let Some(error) = inventory.refresh_problem() {
         body = body.child(notice(
             error.message(shell.words),
             vessel_app_kit::alert::Variant::Error,
@@ -50,7 +50,14 @@ pub(super) fn render(
         ));
     }
     body = body.child(policy(shell, inventory.policy(), tokens, density, cx));
-    if inventory.accounts.is_empty() {
+    if let Some(reports) = inventory.source_reports() {
+        return body
+            .child(super::source_reports::render(
+                shell, reports, density, tokens, cx,
+            ))
+            .into_any_element();
+    }
+    if inventory.accounts().is_empty() {
         return body.child(message(text.empty(), tokens)).into_any_element();
     }
     let enabled = inventory.policy() == Some(ExternalLookup::On)
@@ -70,7 +77,7 @@ pub(super) fn render(
             },
         ),
     );
-    for account in &inventory.accounts {
+    for account in inventory.accounts() {
         body = body.child(account_card(shell, account, density, tokens, cx));
     }
     body.into_any_element()
