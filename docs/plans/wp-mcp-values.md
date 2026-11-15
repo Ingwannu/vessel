@@ -31,11 +31,14 @@ package and is retained there; this extraction contains no receipt types or rows
 `browser` owns bounded browser command/result values and one tool catalogue.
 `mcp` owns the policy interpretation of those identifiers plus core tool names.
 Their only dependency direction is `mcp` to `browser`. Both use existing protocol
-identities and serde. No crate dependency, method table, client, node handler,
-settings storage, generated wire declaration or native source changes here.
+identities and serde. The original pure slice added no method/client/node/wire changes. The approved
+Skills extension below adds only staged rows, SDK wrappers, denial projections
+and their generated declarations; there is still no runtime handler, settings
+storage, dependency or native source change.
 `BROWSER_PROTOCOL` and `MCP_PARITY` remain `None`; no protocol/schema is assigned.
 The transient `VoiceTools` value is not serialized and supplies no runtime
-admission or lease. Skills, settings calls, receipt calls and engines stay out.
+admission or lease. Settings calls, receipt calls and engines stay out; the approved Skills
+transport-only extension below is part of the final carrier.
 
 ## Validation and handoff
 
@@ -93,3 +96,26 @@ five deny entries. This adapter enables no route or runtime. The real wiring
 package must separately review its intended web admission with actual handlers.
 Exact four-crate strict (including web), regenerated wire and freshness remain
 owed; the original three-crate strict result is retained with its precise scope.
+
+
+## Executed carrier evidence and central TS correction
+
+V3 row227 source acceptance extends through `4e7c0d39` (including the exact
+five web FALSE classifications). Run
+`wp-mcp-values-narrow-20261115T150907Z-4e7c0d39` passed four-crate all-target
+strict checking with proto TS: proto, client, node and web, 159 seconds. Run
+`wp-mcp-values-20261115T141924Z-bb50f99f` passed 679 unit tests: client 80,
+node 253, proto 346, none failed or ignored. It executed the real SDK memory
+handshake/refusal/id-zero writer-barrier regression. The later web-only
+classification change leaves those proto/client/node sources unchanged.
+
+The corrected web compile then reached TS generation in
+`wp-mcp-values-ts-20261115T150907Z-4e7c0d39`; the remaining failure was the
+inherited stale `LimitPercent` primitive-alias entry. Both the wrapper and
+classification were unchanged from the announced base. The coordinator required
+the integrator's exact central fix `9dfdf0a1`, cherry-picked with provenance;
+no local alternative was written. This removes only that stale entry, not the
+wire type. One corrected TS run,
+`wp-mcp-values-ts-20261115T155003Z-a1245f8e`, is queued. Generated-byte adoption,
+current-source freshness, receiving union and announced integration remain owed.
+Failed logs are retained and no earlier subset is called a whole-package pass.
