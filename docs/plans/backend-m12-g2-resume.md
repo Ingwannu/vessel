@@ -7,6 +7,48 @@ stop checkpoints below are records only. Read current worker/common briefs and
 the shared-control ledger before further integration. All Rust/Cargo work,
 including metadata and capture builds, runs through the remote gate only.
 
+## Latest checkpoint (2026-11-15 19:0x UTC)
+
+- App announced base10 3e7820e3 merged4cbf09d32. Own latest correction91f723d7a
+  follows opaque fixture fixd921 and explicit writer-order fixturec12. Exact3a5
+  consumer run183805 ended compileRED before any tests: View29/Link27 errors,
+  plus14 qualification warnings. Complete batch fixed canonical constructors,
+  explicit fixture imports, schedule-only key visibility, typed HarnessRef.known
+  comparisons and unused qualifications. App tests were not reached; corrected
+  checks remain owed. Raw15-file failed packet/digests retained privately.
+- Exactaf52 Kit on base9b: strict1809120 and full lib181950236/0/0, all three
+  Code/Retry/submission-feedback cases explicitly ok;28 run files/four step
+  hashes checked. This is AUTHOR-scoped Kit evidence, not V1/currentbase10/F1/UI.
+- Coordinator3993 assigns additive segmented sizing only. Isolated branch
+  backend/m12-shared-segmented, producer577bb0a01 on3e, four paths; V1same-row
+  SOURCE PRECHECK CLEAR3bcbc360. APIs segmented_at/segment_at(ControlSizing),
+  ONE renderer, MD32/44 outer28/40 inner, SMunchanged, new-source pressed3;
+  legacy pointer/hover-only defaults exact. F1 has NOT opted in. Current only
+  schedules run185339577 strict then fullKitlib is queued ordinarySHORT0.
+  No other compilation is running under schedules; wait for its actual result.
+- After that label is free, gate corrected F1 consumers on CURRENT announced
+  line, not old3a5. Never submit while the same label is busy. The earlier9440
+  rc3 was unregistered helper refusal, not a compiler result. No priority or new
+  temporary labels; picker-control/schedules-menu remain retired.
+- L c829 producer now has V4row248 bounded SOURCE/View strict0+1086/0/0.
+  Wait for its announced combined LINE hash, then align that canonical tuple
+  generator. Do not copy General/F6/moving L branch or borrow1086 for Schedules.
+  Current5a15 older generator still has recorded child-prefix strict failure.
+- Separate node base275024369 (gate54/schema21/protocol25) merged926f14c54,
+  receipt aa66d263f. Ended product d26 bytes unchanged, V3row260 producer PASS;
+  integrator batch17e0eb0a55 gating. App Ended guard remains unchanged. Five-path
+  App adaptation is prepared outside worktree in private ended-app-awaiting-line
+  only (patchSHA74d6b4af...), not compiled/installed/reviewed. Wait ANNOUNCED App
+  line carrying it; no trial node-head merge into App.
+- W12 owns Tooltips/Toolbar and the two loading Points constants with its real
+  consumer. F1's unlanded FOURTEEN must union with one canonical definition;
+  pixels/TEN/SIXTEEN already exist. No G2 loading.rs edit is active. S2 owns
+  FooterIconButton. Do not edit menu hierarchy/Tooltips/Toolbar in parallel.
+- Final whole/native export/captures still NOT started. Isolation/runtime ports,
+  admitted history opening/production delivery guard and native Linux F5 HOLD
+  remain as below. No local Cargo/Rust, real agents, fleet/display/app or service
+  permission changes in this checkpoint.
+
 ## Live checkpoint (2026-11-15 18:1x UTC)
 
 - Latest product9440b963: F1 Code/MD textarea/Form/select/Empty, ordered prefs
