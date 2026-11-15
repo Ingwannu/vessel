@@ -119,7 +119,7 @@ impl Shell {
                 self.command(vessel_app_link::Command::SavePrefs(self.prefs.clone()));
             }
             Err(LayoutError::Modified) => {
-                self.notice = Some(self.words.layout().modified().to_owned())
+                self.notice = Some(self.words.layout().modified().to_owned());
             }
             Err(
                 LayoutError::InvalidIdentity

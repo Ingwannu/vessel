@@ -19,7 +19,7 @@ impl Shell {
                     vessel_app_view::layout::forget_alias(book, &HostAlias::parse(alias.as_str())?);
                     Ok(())
                 }
-                Edit::MakeDefault(_) => return Ok(()),
+                Edit::MakeDefault(_) => Ok(()),
             }
         })();
         if !matches!(edit, Edit::MakeDefault(_)) {

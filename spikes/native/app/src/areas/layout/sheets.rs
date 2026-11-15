@@ -32,7 +32,7 @@ pub(super) fn overlay(
             tokens,
         )
         .on_click(cx.listener(move |shell, _event, _window, cx| {
-            shell.layout_dismiss_sheet(&close_key, id, cx)
+            shell.layout_dismiss_sheet(&close_key, id, cx);
         })),
     );
     if sheet.promotion == SheetPromotion::Allowed {
@@ -77,7 +77,7 @@ pub(super) fn overlay(
         content.into_any_element(),
         tokens,
         cx.listener(move |shell, _event, _window, cx| {
-            shell.layout_dismiss_sheet(&dismiss_key, id, cx)
+            shell.layout_dismiss_sheet(&dismiss_key, id, cx);
         }),
     ))
 }
