@@ -132,6 +132,8 @@ pub use identity::FieldId;
 
 mod editability;
 pub use editability::Editability;
+mod search;
+pub use search::SearchField;
 
 impl TextField {
     /// Which press sends a composer's text (a form field ignores it).

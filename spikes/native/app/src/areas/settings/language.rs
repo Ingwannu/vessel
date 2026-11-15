@@ -14,7 +14,7 @@ use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::select::Anchor;
 use vessel_app_kit::ui::{
-    AnyElement, Context, IntoElement as _, StatefulInteractiveElement as _, Window,
+    AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _, Window,
 };
 use vessel_app_kit::{ComboHandlers, ComboRow, ComboboxState, Tokens, combobox, select, settings};
 use vessel_app_view::localization::LanguagePreference;
@@ -53,7 +53,7 @@ pub(crate) fn row(
     let value = shell.prefs.settings.language;
     let trigger = select::trigger(
         "settings-language",
-        value.label(shell.words),
+        SharedString::new_static(value.label(shell.words)),
         &state.anchor,
         state.list.is_open(),
         true,
@@ -73,8 +73,8 @@ pub(crate) fn row(
     }));
     // The first row of General's card (Paseo's `GeneralSection`).
     settings::row_at(
-        words.language(),
-        Some(words.language_note().into()),
+        SharedString::new_static(words.language()),
+        Some(SharedString::new_static(words.language_note())),
         None,
         Some(trigger.into_any_element()),
         true,
@@ -97,7 +97,7 @@ pub(crate) fn picker(
     let rows: Vec<_> = LanguagePreference::choices()
         .map(|value| ComboRow {
             checked: value == shell.prefs.settings.language,
-            ..ComboRow::new(value.label(shell.words))
+            ..ComboRow::new(SharedString::new_static(value.label(shell.words)))
         })
         .collect();
     let handlers = ComboHandlers {
