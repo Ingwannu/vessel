@@ -118,10 +118,13 @@ pub struct TextField {
     /// submits).
     send: Rc<Cell<SendOn>>,
     form_minimum: FormMinimum,
+    submit_press: Rc<Cell<Option<SubmitPress>>>,
 }
 
 mod multiline;
 pub use multiline::SendOn;
+mod submit_press;
+pub use submit_press::SubmitPress;
 mod events;
 use events::{Callbacks, Handlers, listen};
 mod form_minimum;
@@ -150,10 +153,12 @@ impl TextField {
         let placeholder = placeholder.to_owned();
         let state = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         listen(
             &state,
             Handlers {
                 callbacks,
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: None,
             },
@@ -162,6 +167,7 @@ impl TextField {
         );
         register(Known::Line(state.downgrade()));
         Self {
+            submit_press,
             kind: Kind::Line(state),
             focused,
             form_minimum: FormMinimum::Default,

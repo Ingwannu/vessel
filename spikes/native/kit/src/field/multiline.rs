@@ -115,6 +115,7 @@ impl TextField {
                 .placeholder(placeholder)
         });
         let focused = Rc::new(Cell::new(false));
+        let submit_press = Rc::new(Cell::new(None));
         let shortcut = match style {
             MultilineStyle::Composer => SendOn::Enter,
             MultilineStyle::Form => SendOn::ModEnter,
@@ -124,6 +125,7 @@ impl TextField {
             &state,
             Handlers {
                 callbacks,
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -132,6 +134,7 @@ impl TextField {
         );
         register(Known::Lines(state.downgrade()));
         Self {
+            submit_press,
             kind: Kind::Lines(state, style),
             focused,
             form_minimum: FormMinimum::Default,
