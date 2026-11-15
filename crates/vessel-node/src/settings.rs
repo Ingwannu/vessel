@@ -45,7 +45,7 @@
 //!   copy fails, the change fails and nothing changes.
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use tokio::sync::{Mutex, Semaphore, watch};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
@@ -57,6 +57,12 @@ use vessel_proto::settings::{
 };
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
+
+#[cfg(test)]
+mod diagnostic_tests;
+mod writer;
+#[cfg(test)]
+mod writer_tests;
 
 /// Bound detached persistence so cancelling RPCs cannot accumulate writers.
 const MAX_SETTINGS_CHANGES: usize = 8;
@@ -104,7 +110,10 @@ pub(crate) struct Settings {
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Mutex<SetNodeSettings>,
+    saved: Arc<Mutex<SetNodeSettings>>,
+    writers: TaskTracker,
+    #[cfg(test)]
+    gate: writer_tests::GateSlot,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -151,7 +160,10 @@ impl Settings {
             data_dir,
             runtime,
             flag,
-            saved: Mutex::new(saved.clone()),
+            saved: Arc::new(Mutex::new(saved.clone())),
+            writers: TaskTracker::new(),
+            #[cfg(test)]
+            gate: writer_tests::GateSlot::default(),
             kept,
             later: AtomicBool::new(later),
             tool_policy,
@@ -233,7 +245,7 @@ impl Settings {
         // Register before checking shutdown so teardown cannot pass an empty tracker
         // while this admitted request is about to install its durable writer.
         let admitted = self.tasks.token();
-        if self.stop.is_cancelled() {
+        if self.stop.is_cancelled() || self.writers.is_closed() {
             return Err(SettingsError::Stopping);
         }
         let settings = Arc::clone(self);
@@ -248,9 +260,12 @@ impl Settings {
 
     /// Change what `change` names, keep it, then apply it; answers what is
     /// in force.
-    async fn apply(&self, change: SetNodeSettings) -> Result<NodeSettings, SettingsError> {
-        let mut saved = self.saved.lock().await;
-        let mut next = saved.clone();
+    async fn apply(
+        self: &Arc<Self>,
+        change: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        let saved = Arc::clone(&self.saved).lock_owned().await;
+        let mut next = (*saved).clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
@@ -260,36 +275,7 @@ impl Settings {
         if let Some(mcp) = change.mcp {
             next.mcp = Some(mcp.over(next.mcp.unwrap_or_default()));
         }
-        if next == *saved {
-            return Ok(self.in_force(&saved));
-        }
-        if let Some(reason) = &self.kept {
-            return Err(SettingsError::Kept(Arc::clone(reason)));
-        }
-        let data_dir = self.data_dir.clone();
-        let later = self.later.load(Ordering::Relaxed);
-        let persisted = next.clone();
-        let aside = tokio::task::spawn_blocking(move || {
-            let aside = later
-                .then(|| data_dir.set_aside_settings(chrono::Utc::now(), SetAside::Later))
-                .transpose()?;
-            data_dir.write_settings(&persisted).map(|()| aside)
-        })
-        .await
-        .map_err(SettingsError::Lost)?
-        .map_err(SettingsError::Write)?;
-        if let Some(aside) = aside {
-            tracing::info!(aside = %aside.display(), "settings.json held a later build's settings; a copy was kept before this change");
-            self.later.store(false, Ordering::Relaxed);
-        }
-        *saved = next;
-        let in_force = self.in_force(&saved);
-        if let Some(policy) = &in_force.mcp {
-            let _previous = self.tool_policy.send_replace(policy.clone());
-        }
-        self.runtime.set_park_after(in_force.park_after.duration());
-        self.runtime.set_drivers(in_force.drivers);
-        Ok(in_force)
+        self.persist(saved, next).await
     }
 }
 

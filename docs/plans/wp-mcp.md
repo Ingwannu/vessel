@@ -1,7 +1,7 @@
 # Agent tools and orchestration skills
 
 Contract: ADR 0065, extending ADR 0013. Status: implementation in progress.
-Baseline: protocol 23, with the shared pending method table merged. No protocol or schema number is selected here.
+Baseline: announced gate-50 node head `9c150c6e`, with the shared pending method table. This package selects no protocol or schema number.
 Browser tools belong to the browser package; voice output belongs to voice.
 
 ## Reference and reuse decision
@@ -605,3 +605,36 @@ ObservationUnavailable irrevocably ends the observer, so the single extra
 checkpoint slot is terminal OR unavailable. Retention releases accounting only
 through committed authorized whole-parent-session removal; pruning, replacement
 or revocation never releases it.
+
+## Gate-50 node-base merge and settings writer join
+
+The announced green node head `9c150c6e` is merged, not rebased. It carries the
+reviewed binary parser seam, canonical settings retained writer/shutdown, new
+workspace/detach/diagnostic contracts and portable timeline body values. Method
+rows and exhaustive projections retain both sets; this package's nine pending
+rows remain at the end, with MCP_PARITY None and no assigned number.
+
+Settings persistence now uses the landed `settings/writer.rs` owned mutex guard,
+blocking writer, retained writer tracker, write/apply publication and shutdown
+join. The MCP field makes the saved patch non-Copy: the blocking closure keeps
+its own cloned snapshot while the same guard survives through apply; policy
+watch publication occurs only after persistence. The existing MCP operation
+admission still owns pre-lock cancellation through its bounded tracked task.
+That is admission for ALL settings operations, not a separate MCP file writer
+or physical-I/O pool. Nodectl's future common admission lane will replace that
+operation-admission boundary at its reviewed join; its unreviewed private
+settings envelope/new lane are not adopted here. There is one actual persistence
+implementation. Existing canonical real-blocking-writer/cancellation/shutdown
+assertions remain, with MCP switch/watch and omitted-field preservation checks
+added at the same real blocking gate. The startup read remains on its existing
+blocking preparation path; the now-unused synchronous config wrapper is not
+retained beside it. No file-size allowance is raised.
+
+The generated TypeScript merge keeps the incoming node head's exact generated
+file as a temporary snapshot. It is intentionally not hand-merged: the complete
+new union must be regenerated remotely and verified before a final gate/handoff.
+Its generator's inherited trailing spaces are not manually edited. New merged
+source strict/tests, the canonical writer union security check, complete wire
+freshness and whole package acceptance remain owed. The successful exact
+0c812 runtime strict and queued 0c812 tests remain prior-source receipts, not
+this merge's execution proof. No row 618 persistence code is included.

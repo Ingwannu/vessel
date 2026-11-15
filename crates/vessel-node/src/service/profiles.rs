@@ -4,14 +4,12 @@
 use std::sync::Arc;
 
 use vessel_proto::{
-    Creator, ListModels, ListProfiles, ModelRoute, MoveProfile, ProfileInfo, ReloadProfiles,
-    SessionId, SessionInfo, WireError,
+    ListModels, ListProfiles, ModelRoute, MoveProfile, ProfileInfo, ReloadProfiles, SessionId,
+    SessionInfo, WireError,
 };
 
-use crate::agents::MAX_DEPTH;
 use crate::error::ServiceError;
 use crate::principal::Principal;
-use crate::profiles::launch::agent_session;
 use crate::profiles::moving;
 
 use super::{Connection, NodeService, wire};
@@ -134,27 +132,16 @@ impl NodeService {
         if matches!(principal, Principal::Agent { .. }) && !self.agents.is_live(agent.1) {
             return Err(wire(&ServiceError::AgentGone(agent.1)));
         }
-        let here = self.lifecycle.info().id;
-        let mut current = session;
-        // A chain longer than the depth limit cannot lead to the agent.
-        for _step in 0..=MAX_DEPTH {
-            let info = self
-                .sessions
-                .get(current)
-                .await
-                .map_err(|error| wire(&error))?;
-            let Creator::Agent { node, session } = info.created_by else {
-                break;
-            };
-            if (node, session) == agent {
-                return Ok(());
-            }
-            // Only this node's sessions can be followed further.
-            match agent_session(&info.created_by, here) {
-                Some(parent) => current = parent,
-                None => break,
-            }
-        }
-        Err(wire(&ServiceError::NotOwned(session)))
+        self.sessions
+            .check_parentage(
+                self.lifecycle.info().id,
+                vessel_proto::SessionRef {
+                    node: agent.0,
+                    session: agent.1,
+                },
+                session,
+            )
+            .await
+            .map_err(|error| wire(&error))
     }
 }
