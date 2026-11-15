@@ -1,6 +1,7 @@
 //! Real `SQLite` transaction boundaries for leases, revocation and stale 410s.
 use super::*;
 use crate::{CredentialHash, devices, schema};
+use rusqlite::OptionalExtension as _;
 use vessel_proto::{DeviceInfo, DeviceSecret};
 const LEASE_STEP: TimeDelta = TimeDelta::hours(1);
 fn now() -> DateTime<Utc> {
