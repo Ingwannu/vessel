@@ -78,7 +78,11 @@ fn context_menu_restores_input_focus_and_disabled_copy_is_skipped(cx: &mut TestA
             cx.write_to_clipboard(gpui::ClipboardItem::new_string("replacement".to_owned()));
         });
         cx.run_until_parked();
-        cx.simulate_keystrokes("ctrl-a");
+        cx.simulate_keystrokes(if cfg!(target_os = "macos") {
+            "cmd-a"
+        } else {
+            "ctrl-a"
+        });
         view.update_in(cx, |probe, window, cx| {
             probe.shell.update(cx, |shell, cx| {
                 assert!(crate::areas::desktop::open_edit_context(

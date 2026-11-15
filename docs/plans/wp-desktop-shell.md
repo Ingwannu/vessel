@@ -72,6 +72,12 @@ latest session and one latest directory independently. Book hydration plus an
 installed owner handler permits consumption; a missing project handler cannot
 erase or delay an independently received session link.
 
+Automatic OS launch routing recognizes vessel scheme spelling case-insensitively
+before generic CLI passthrough; the shared destination parser still accepts only
+the canonical credential-free route. Noncanonical/malformed OS links are refused,
+and extra arguments beside a valid link cannot become CLI commands. Explicit
+local CLI forcing remains a separate trusted startup mode.
+
 Settings and nonsettings mutations still use the existing SavePrefs command.
 Desktop intercepts it before the per-window link actor, derives a delta against
 that client's acknowledged/optimistic baseline, applies it to the latest canonical
@@ -95,7 +101,7 @@ writes debounce 400 ms, serialize, and flush the latest state at exit; malformed
 newer documents are preserved. macOS reopen uses the latest in-memory geometry.
 Capture-only size overrides do not relax normal product minimums.
 
-GPUI0.3.10 cancels on_app_quit observer futures after200ms, so that observer is
+GPUI0.3.10 app.rs:79,1220-1258 cancels on_app_quit observer futures after200ms, so that observer is
 only a best-effort backstop. desktop::flush_state captures canonical preference
 flush plus the latest geometry checkpoint for the lifecycle owner to await before
 ordinary quit/updater restart. WindowWriter::flush acknowledges a serial save
@@ -141,6 +147,9 @@ G2 confirmed the shared producer has no per-open render lease. The coordinator
 assigned S2, sole menu writer, an opaque per-open token checked before pointer,
 key, highlight, outside, close and focus mutations, with retained-render A-to-B
 regressions. V1 reviews and the lead lands that shared fix before consumption.
+S2 reports exactd0954f4b V1 source/Kit narrow PASS (173/0, strict Clippy0), including
+direct and nested retained-render paths. Lead landing is still awaited; no moving
+S2 branch is consumed. The historical native/Linux focused-field F5 proof remains open.
 The app action guard is retained but is not claimed to protect dismissal; this
 package does not edit a second menu renderer or work around it by reopening.
 
