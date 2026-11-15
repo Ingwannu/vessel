@@ -11,13 +11,29 @@ pub(crate) struct SelectedFollow {
     selected: SelectedConnection,
     stream: SessionStream,
 }
+/// Attach provenance is distinct from actual shared-lease retirement.
+#[derive(Debug)]
+pub(crate) enum FollowFailure {
+    /// Keep the original typed request failure, including local lease refusal.
+    Connection(RequestFailure),
+    /// The peer described another session; no record source was admitted.
+    WrongSession,
+}
 impl SelectedConnection {
     pub(crate) async fn follow_session(
         &self,
         session: SessionId,
         from: EventSeq,
-    ) -> Result<SelectedFollow, RequestFailure> {
-        let stream = self.guard(self.lease.client.follow(session, from)).await?;
+    ) -> Result<SelectedFollow, FollowFailure> {
+        let stream = self
+            .guard(self.lease.client.follow(session, from))
+            .await
+            .map_err(FollowFailure::Connection)?;
+        // A valid physical lease cannot bless records from a subscription whose
+        // own metadata names another session. Drop it before exposing any pump.
+        if stream.info().id != session {
+            return Err(FollowFailure::WrongSession);
+        }
         Ok(SelectedFollow {
             selected: self.clone(),
             stream,

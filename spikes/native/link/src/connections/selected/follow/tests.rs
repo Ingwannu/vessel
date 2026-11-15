@@ -61,7 +61,9 @@ async fn retired_attach_is_not_dispatched_and_an_admitted_attach_is_not_exposed(
             })));
         assert!(matches!(
             phase("refuse the retired attach reply", attaching).await,
-            Err(RequestFailure::Refused(Refusal::Changed))
+            Err(FollowFailure::Connection(RequestFailure::Refused(
+                Refusal::Changed
+            )))
         ));
         assert!(matches!(
             phase(
@@ -69,11 +71,41 @@ async fn retired_attach_is_not_dispatched_and_an_admitted_attach_is_not_exposed(
                 selected.follow_session(session, EventSeq::ZERO)
             )
             .await,
-            Err(RequestFailure::Refused(Refusal::Changed))
+            Err(FollowFailure::Connection(RequestFailure::Refused(
+                Refusal::Changed
+            )))
         ));
         assert_eq!(peer.calls.lock().unwrap().len(), 1);
     })
     .await;
+}
+
+#[tokio::test]
+async fn wrong_subscription_metadata_admits_no_stream_and_does_not_retire_the_lease() {
+    within(async {
+        let (_home, state, mut peer, selected) = setup(true).await;
+        let session = SessionId::random();
+        let context = selected.lease.context.clone();
+        let attaching = selected.follow_session(session, EventSeq::ZERO);
+        tokio::pin!(attaching);
+        let request = phase("observe original subscribe target", async {
+            tokio::select! {
+                result = &mut attaching => {panic!("attach completed before peer reply: {}", result.is_ok());}
+                request = peer.requests.as_mut().unwrap().recv() => request.unwrap(),
+            }
+        }).await;
+        assert!(matches!(request.call, Call::Subscribe(ask) if ask.session == session));
+        let other = SessionId::random();
+        assert_ne!(other, session);
+        request.answer.send(Outcome::Ok(Reply::Subscribe(Subscribed {
+            subscription: SubscriptionId::new(1), info: peer::info(other),
+        }))).unwrap();
+        assert!(matches!(phase("reject mismatched attach metadata before a record pump", attaching).await,
+            Err(FollowFailure::WrongSession)));
+        assert!(selected.delivery_guard().validate(&context).is_ok());
+        assert!(state.selected_connection(&context).is_ok());
+        assert!(peer.calls.lock().unwrap().iter().all(|call| matches!(call, Call::Subscribe(_) | Call::Unsubscribe(_))));
+    }).await;
 }
 
 #[tokio::test]
