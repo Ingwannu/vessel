@@ -419,3 +419,48 @@ evidence paragraph; this checkpoint supplies that missing record. Existing
 red outputs remain in provider-mcp-clippy-node42-resize-recovery. No new local
 cargo/rustc invocation is permitted; the already waiting TS job finished with
 the previously recorded browser-classification error, and all new work is remote.
+
+## Protocol reservation and account identity boundary (2026-11-15)
+
+The integrator reserved protocol24 exclusively for PROVIDERS. This is not
+assignment: the constant remains None and no client may send these calls until
+the reviewed, whole-gated wiring merge announces an assigned head. MIN remains2;
+providers.json needs no SQLite schema number. Only the three provider rows use
+this constant. The future wiring commit assigns the constant and current
+protocol together and regenerates TypeScript, with a Version24 changelog.
+
+[Decision Log]
+- Purpose: keep provider display identity distinct from credential/account and
+  installation authority while the modern provider boundary is introduced.
+- Constraint: the discovery producer resolves a ProviderDefinition's launch
+  settings with explicit node HarnessEnv, without selecting a legacy profile
+  or AddedAgent. Built-in entries can have command/environment overrides.
+- Alternatives: join by provider ID, implementation kind, or display name; all
+  can associate an alias or plugin with another installation's account.
+- Choice: the current snapshot deliberately exposes no HarnessRef/profile
+  binding or sign-in verdict. SnapshotSource::Custom does not imply removable
+  AddedAgent; Builtin does not imply a particular legacy credential context.
+- Reason: an unavailable binding must remain unknown until its actual actor
+  can attest the launch/account identity. A catalogue handshake is not a
+  successful authentication check.
+- Effects: G3 initially displays modern provider models/diagnostic/enable apart
+  from legacy installation/account controls, keyed by their own returned
+  HarnessRef/profile. No account, sign-in, defaults or removal join is inferred.
+
+Coordinator's next core increment requires an actor-owned typed binding and
+actual known/unknown sign-in verdict, then one combined row per provider. It
+also assigns W22 the name-overlap settlement: current AgentName reserves only
+the four HarnessKind names, so copilot/pi/omp remain valid legacy Added names
+in a separate registry, while the modern registry reserves its six built-ins.
+This checkpoint has not changed that legacy rule or mapped the registries;
+the next increment must enforce one explicit node rule with a typed refusal
+or genuine mapping, before any shared-identity claim.
+
+Exact fa4afdc4 agent selection passed139/0/2ignored on the remote VM (run
+wp-providers-20261115T104558Z-fa4afdc4). The two external-installed Claude SDK
+contracts remain ignored. The selected MCP start/resume, native catalogue and
+options fakes use isolated homes and synthetic values only. Exact ddc587212
+strict seven-crate Clippy and remote TypeScript generation are queued; the
+earlier fa4 strict red and infrastructure143 results remain recorded. No latest
+whole-gate or provider-core V3 pass is claimed. Native mode preparation76364ecd
+passed113/0/2ignored separately; it has not been adopted into this checkpoint.

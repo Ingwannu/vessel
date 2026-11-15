@@ -413,3 +413,17 @@ it (`selectable` true). Choices made here:
 - **Checked**: `schema/app-server.json` grows to the 61 definitions the
   driver follows; the contract test checks each field and value used,
   and that a granted permission profile has the requested one's shape.
+
+## Codex native MCP increment (2026-11-15, ADR 0081)
+
+The earlier slice checkpoints above describe their original state. Native MCP
+is now implemented for both thread/start and thread/resume as
+config.mcp_servers, using a native-only serializer of ResolvedMcpServers.
+Stdio env and HTTP headers stay secret-wrapped until explicit serialization;
+Debug prints only the server count. An empty set omits config to retain native
+defaults. This reuses the resolved launch snapshot and does not create a
+second secret resolver or environment transport. The positive test checks
+exact synthetic native payloads for both start/resume and empty omission.
+The old MCP-omission assertion narrowed only after that positive passed;
+unsupported option refusals remain. Source review and the combined package
+gate are still owed; no real helper or endpoint was executed.

@@ -446,3 +446,12 @@ checked against `/doc`.
   the bookkeeping (offered decisions, the bound, withdrawal, resolution)
   and the mode's choice. The node's setting accepts `direct` for Codex
   (e2e), and the runtime chooses it (unit).
+
+### Later native MCP checkpoint (2026-11-15)
+
+The historical slice1 MCP omission above is superseded by the ADR0081 native
+MCP increment: start and resume now serialize resolved stdio/HTTP servers as
+config.mcp_servers. Empty snapshots omit the override; the exact synthetic
+transport and redacted Debug tests passed in the remote agent selection.
+This does not enable other still unsupported choices or constitute a package
+review, real MCP execution or installed-vendor compatibility result.
