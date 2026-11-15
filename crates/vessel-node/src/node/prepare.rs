@@ -1,7 +1,7 @@
 //! Blocking node preparation under the data-directory lock. Extracted before
 //! provider initialization so startup assembly keeps its existing size budget.
 
-use super::setup::SetupDirs;
+use super::setup::{SetupDirs, model_client};
 use crate::{
     attachments::staging, config::Config, error::NodeError, fleet::FleetFiles, models::Models,
     profiles::NodeProfiles, transfers,
@@ -87,14 +87,4 @@ pub(super) async fn prepare_off_thread(config: &Config) -> Result<Prepared, Node
     tokio::task::spawn_blocking(move || prepare(&dir, env))
         .await
         .map_err(NodeError::Task)?
-}
-
-fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
-    let limits = vessel_llm::client::Limits::default();
-    vessel_llm::client::Client::new(limits)
-        .or_else(|error| {
-            tracing::warn!(%error, "model calls to https providers will fail");
-            vessel_llm::client::Client::with_roots(rustls::RootCertStore::empty(), limits)
-        })
-        .map_err(NodeError::ModelClient)
 }

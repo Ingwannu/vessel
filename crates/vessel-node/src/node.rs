@@ -33,7 +33,6 @@ use crate::guard::Guarded;
 use crate::identity;
 use crate::ipc::{self, AgentGateway, Endpoint, LocalGateway, LocalListener};
 use crate::lifecycle::Lifecycle;
-use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::relays::{self, Relays};
@@ -53,7 +52,7 @@ mod setup;
 
 use self::attachment_setup::{ATTACHMENT_LOADS, attachments};
 use self::prepare::{Prepared, prepare_off_thread};
-use self::setup::SessionSetup;
+use self::setup::{SessionSetup, model_proxy};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -574,17 +573,6 @@ fn relaying(config: &Config) -> Result<Option<(RelayToken, TlsConfig)>, NodeErro
     Ok(Some((token, relays::relay_tls(&config.relays)?)))
 }
 
-/// The model proxy's listener, on a port of loopback's the system picks
-/// (harnesses learn it from their environment). It is served from `core`'s
-/// stop: model calls end with the node, a harness still calling gets its
-/// connection closed, as its session is interrupted anyway.
-async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListener), NodeError> {
-    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
-        .await
-        .map_err(NodeError::ModelProxy)?;
-    models.listening(listener.local_addr().map_err(NodeError::ModelProxy)?);
-    Ok((Arc::new(models), listener))
-}
 
 /// Bind the TCP listen address.
 async fn listen(bind: SocketAddr, dir: &DataDir) -> Result<(TcpListener, SocketAddr), NodeError> {
