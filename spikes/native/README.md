@@ -1287,7 +1287,10 @@ The additive kit code_editor::DiffEditor is the readonly profile of the same
 Base editor, not a second engine. DiffText validates exact buffer-row coverage;
 DiffLine maps source numbers and semantic tones without application identities.
 Only the diff opts into optional vendor patch7; ordinary CodeEditor keeps its
-existing syntax/style path. Details and pending actual-window checks are in
+existing syntax/style path. The diff-only selection uses terminal blue at0.45
+alpha, matching Paseo paint.web.ts paintSelection. A both-theme production-style
+policy regression keeps the ordinary selection unchanged; actual path visibility
+still requires captures. Details and pending actual-window checks are in
 spikes/release/patches/README.md change7. Selection/copy/wrap/input proof and
 actual Git first-use/reference geometry remain unverified until those checks.
 
@@ -1306,7 +1309,8 @@ uses no per-file vertical source inset or empty bottom rows, and reports changed
 focused caret bounds to the owner's VirtualList. It uses patch7
 parent-viewport correction, whose changed-source checks are pending; no new
 production pane consumes it yet, and its
-actual keyboard/selection window regression is unexecuted. It does not implement
+keyboard/selection window regression passed on prior0813 (15/1 overall, wheel
+failed); the current wheel/alpha successor is still unverified. It does not implement
 cross-file selection or claim the complete Paseo document surface.
 
 
