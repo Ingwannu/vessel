@@ -1,3 +1,263 @@
+## Older fork/rewind visual appendix: bounded independent pass
+
+This appendix uses the retained exact `0ca69ede` app and its already accepted
+native/source gate; it changes no product source and does not repeat that gate.
+The author directly opened and hash/dimension checked 52 originals: 36 rewind
+trigger/tooltip and rewind/fork menu frames, 12 existing-fork origin captions,
+and four frames around actual normal-app actions. The menu/caption coverage is
+English, Korean and the checking pseudo-language, both themes, at 1280×800 and
+390×844, scale one on the software renderer. Phone triggers intentionally have
+no pointer tooltip. Whole menu words and source-title captions fit the inspected
+frames; neighboring unmigrated tables stay plain in pseudo mode and agent text
+and session titles remain data. No before/after geometry parity is claimed.
+
+A normal app fork created a separate fake-agent session from the source's turn
+end 54. A later normal app rewind returned the source to that same point: the
+latest turn disappeared and `plain` returned to the composer. Separate CLI
+queries read both the fork's origin/point and the source's persisted rewind
+record. The first readback script incorrectly read only stdout, whereas the
+CLI deliberately sends these status records to stderr; a merged-descriptor
+read confirmed both events without replaying either action. A fixture index
+also omitted eight existing long-title sessions, so an initial assumption of
+one unindexed session was rejected rather than used to identify the fork.
+Both failed setup checks remain in the evidence. The source was reopened after
+its next fake prompt to refresh released-session metadata before the menu check.
+
+Limits: these are isolated fake agents, not real coding agents or updater
+install/restart I/O. Typed failure, unreadable-origin and empty-fork sentences
+remain covered by the earlier whole-sentence/native regressions; this appendix
+adds no screen captures for those states. Extra display scales, persisted
+language preference I/O, parent late-answer routing, current combined head,
+wasm/browser/Windows/real-GPU/accessibility and an independent licence audit
+remain outside this proof. The independent reviewer verified all 52 image hashes/dimensions and opened
+32 risk-selected originals, including every phone menu, six desktop rewind
+tooltips, ten captions and all four actual-action frames. Retained CLI logs
+hash-match both operations. The bounded inspected visual/retained fake-action
+evidence pass includes no independent live execution. The earlier About and
+Settings verdicts keep their own scopes.
+
+All capture work ran under the ordinary development UID/GID with private
+home/config/runtime directories, an owner-only display authority and retained
+owner-executable binaries. The two fake nodes, 16 fake-agent descendants and
+authenticated display were stopped only after PID/executable/ownership checks;
+per-case capture apps had already exited. No production permissions or shared
+build artifacts changed. Appearance remains held for the other owners and B0.
+
+## Settings package: bounded independent source, gate and visual pass
+
+Diagnostics `205f1e01` and Chat `b3ef8338` form this vocabulary package over
+`df11d9d5`. Exact product source `b3ef8338a09079319b4d4e03055e8865c0a4f530`
+passed A13 run `i18n-20261115T051353Z-b3ef8338`: all six native steps exit
+zero, no skips. Raw totals are 1,203 passed (1,201 ordinary plus two
+compile-fail doctests), zero failed, one existing ignored explicit display
+harness. App 50, kit 110, link 56, view 855, contract 10, matcher 3, page 117
+and doctests two. All four native crates actually recompiled. The gate took
+4m25 after its queue; sampled load started at 8.92 and ended at 21.92,
+with 29.01 before tests; no failure or saturation replay was needed.
+The released-catalog completeness and both directions of the one-language-only
+key rejection tests passed. Earlier failed test setup logs remain preserved.
+
+The author directly inspected 140 originals: 32 English/Korean before frames,
+48 English/Korean/pseudo after frames in both themes and four viewport sizes,
+24 picker/report popup frames at desktop/phone sizes, 24 English/Korean glyph
+frames at scales 1.25, 1.5 and two, and 12 actual copied-notice frames.
+All 32 before/after base-screen pairs are pixel-identical. The normal app's
+Run/Copy paths produced the report dialog and translated notice; its technical
+report schema/data remains intentionally English and unchanged. The isolated
+report has zero saved machines; these are no new node-probe or network tests.
+Capture manifests retain the exact binary/source hashes and rejected early
+navigation frames separately. The app and scratch data run under one ordinary
+development UID/GID with private config/home/runtime directories and an
+owner-only authority file. No production account or permissions changed.
+
+Unverified: current browser/wasm/Windows/real-GPU/accessibility and new actual
+persisted-preference I/O. The native input tests exercise the real language
+ dispatcher, selected display preference and composer caret, plus collected
+report/clipboard retention; they are not parent act-routing or real-node proof.
+Unmigrated neighboring Settings labels remain plain in pseudo mode. About's
+previous bounded reviewer pass stays separate; real fork/rewind and updater
+I/O evidence from that earlier package remains owed.
+
+The independent reviewer returned a bounded source/native/inspected visual pass
+on this exact package and its two docs-only follow-ups. All 140 PNG hashes and
+dimensions and the retained app hash were independently verified; all 32
+English/Korean base-page before/after pixel encodings match. The reviewer
+personally opened 32 risk-selected originals, not all 140, and found no new
+overlap or clipping in that sample. The report generator remains unchanged.
+This is no approval of the latest combined application or the excluded flows
+above. No unchanged gate or additional capture matrix was requested.
+
+Resume point: coordinator acceptance and lead merge remain separate from that
+bounded reviewer pass. The lead has held Appearance while the terminal and
+theme owners change the same files; no Appearance source is changed. After
+the announced app-base B0 lands, merge that head and coordinate the next area. Other
+Settings sections, Sidebar/Palette, Agents and Overview retain their owners.
+The older fork/rewind appendix below now has actual fake-node readback and
+author-inspected frames. Its display, capture apps, both isolated nodes and
+all 16 fake-agent descendants were stopped by verified PID and executable.
+No compiler, capture process or gate remains running for this package.
+
+## Capture documentation correction
+
+The capture instructions now require a private authenticated display and the
+same HOME/config for the app and paired fixture CLI. A mismatched scratch
+home was observed to make stored credentials unavailable; that rejected run
+was replaced with a correctly connected isolated fleet, without changing the
+app or credential handling. The browser-only wording harness reads a FIFO
+through its existing file reader, so the instructions no longer recommend
+keeping a pairing link in a regular file. This docs-only correction changes
+no product source or gate result and makes no new browser-transport claim.
+
+## Settings vocabulary package: Diagnostics and Chat
+
+Source checkpoint: Diagnostics `205f1e01`; native format, size, boundaries and
+tokens were repeated successfully after the interrupted outer check session.
+Chat is next; the package receives one whole native gate and one review under
+the common brief's package rule. Earlier exact-source approvals remain scoped.
+
+[Decision Log]
+- Purpose: let translators own every visible Chat sentence, including its
+  navigation title and both values of the display picker.
+- Existing assets: generated Fluent plain getters and the exhaustive About
+  role adapter already borrow prepared strings without frame-time formatting.
+- Alternatives: a new formatter/dependency or a Fluent selector for this closed
+  enum would add work during rendering without improving translation context.
+- Choice: extend the existing catalog with six whole messages and a typed
+  ConversationDisplay adapter. Keep the existing picker and preference path.
+- Why: labels have separate context from Appearance's content-width Full;
+  the shared width label stays in its current table until that area moves.
+- Effect: no dependency, behavior, default or geometry change. Paseo's
+  screens/settings/chat/chat-section.tsx lines 13–79 were read: its third
+  display and reasoning/outline switches remain the previously stated native
+  gaps, not changes made by this vocabulary package.
+
+Narrow view/app all-target Clippy passes, as do 855 view library tests and
+ten contract tests, including rejection of a key present in only English or
+only Korean. The native picker regression covers actual pseudo-language and
+Korean refresh with the preference/checked row and live composer caret intact.
+The final pseudo/Korean native picker test and repeated all-target Clippy pass.
+An initial test setup incorrectly tried to look up the pseudo tag in the public
+chooser registry; its intentional rejection exposed that setup error. The test
+now resolves pseudo through the checking override, exactly as the app does;
+the failed run remains in the evidence. Source coverage has no missing keys
+in either shipped language. Before Settings captures are retained from the
+previous exact binary; eight draft-screen frames were rejected and replaced
+by inspected captures of the intended screens.
+The later package result at the top of this plan supersedes this source-only
+checkpoint: the whole native gate and after screen comparisons are complete.
+
+The Settings owner released chat.rs/diagnostics.rs words, the Display arms
+in choices.rs, their view fields/adapters/catalogs and the transitional
+SettingsText::section catalog argument. Other Settings sections and the
+sidebar/palette vocabulary remain outside this package.
+
+## About visual appendix: bounded reviewer pass
+
+For exact `0ca69ede`, independent review now passed the translated About
+labels, roles and licence rows within the inspected empty-state captures.
+All 252 original image hashes/dimensions and the retained app hash were
+verified independently; the reviewer personally opened 41 risk-selected
+originals, not all 252. The author opened all 252. Four viewport sizes,
+English/Korean/pseudo and both themes are covered at scale one; extra
+English/Korean top and initial-role frames cover scales 1.25, 1.5 and two.
+The existing source/native gate disposition is unchanged.
+
+This is not a blanket layout pass: About BEFORE/geometry parity is absent,
+and the known pseudo phone log-path column remains the layout owner's
+follow-up. It gives no updater I/O/install/restart, real-node fork/rewind,
+new Diagnostics/Chat, browser/wasm/Windows/real-GPU, accessibility or
+independent licence-audit approval. No unchanged gate/capture rerun was
+requested. The first failed scale-navigation attempt remains rejected.
+
+## Diagnostics vocabulary (source ready; whole gate/UI owed)
+
+The lead released Diagnostics and Chat; Sidebar Display/palette vocabulary
+remain held for the layout repair, Agents and Overview stay with their owners.
+`1d1f11df` is merged as `df11d9d5` without conflicts before this next slice.
+Root crates/lock still match `56a7cbd3`; the required `d30804b2` fixture is
+already an ancestor. Proven shared root binaries were hash-checked before a
+fresh isolated standard fleet finished successfully. The older failed attempt
+remains rejected; its processes were stopped without using it for UI evidence.
+
+Decision: reuse generated plain getters and the retained-notice ownership
+pattern. Seven Diagnostics interface messages move intact from the mixed
+Settings table to `diagnostics.ftl`: navigation/page title, report title/hint,
+Run/Copy/Refresh and copied notice. The report schema/data remains unchanged,
+including its original English labels and redaction tests: this is Paseo's
+fixed technical report, not interface labels. A live language change rewords
+only the still-owned copy notice; it never recollects, translates or replaces
+the collected report or clipboard contents. Existing geometry is unchanged.
+
+References read: Paseo `components/app-diagnostic-sheet.tsx`,
+`diagnostics/app-diagnostic-report.ts` and `DiagnosticsSection` in
+`screens/settings-screen.tsx`; the existing view report's decision log.
+Unlike Paseo's host probes/progress, Vessel's existing Run collects already
+held facts synchronously; that behavior stays unchanged.
+
+The Settings owner approved the mixed-table seam: `SettingsText::section`
+takes the already prepared static catalog, and only Diagnostics uses its new
+getter in this slice. Remaining section labels keep their exact old sentences.
+Actual mechanical callers are General, Settings title/frame, navigation,
+host-agents and palette (the latter separately approved by its owner);
+Diagnostics reads its generated title directly. Existing four section-test
+expressions gain the catalog argument, with cases/expected labels unchanged.
+The language dispatcher adds the one-purpose copied-notice refresh. No other
+Settings/Sidebar/Palette strings, behavior or styles are changed.
+
+Narrow app all-target Clippy passes. View library tests (854), catalog-contract
+tests (10), and both actual native copy-handler/language/input tests pass; the
+clipboard retains the same report bytes and a later unrelated notice is not
+replaced. Native format/size/boundaries/tokens pass without new allowances;
+explicit-root source coverage reports zero missing keys in en/ko. The whole
+native gate and before/after screen checks of this slice remain owed. The
+existing technical-report/redaction suite is unchanged.
+
+
+## Current checkpoint: full native batch gate passed
+
+Product source is fixed at `0ca69edeb5846944b7aa9394e21553883ed4a005`.
+The corrected A13 run `i18n-20261115T040137Z-0ca69ede` passed all six
+native steps without skips: fonts, format, quality, all-target Clippy, app
+build and tests. The raw summaries total 1,176 ordinary tests plus two
+compile-fail doctests: 1,178 passed, zero failed, one existing ignored
+explicit pairing display harness. App 47, kit 110, link 56, view 833,
+contract 10, matcher 3 and page 117 all passed. View/kit/link/app actually
+recompiled; the run took 59 seconds after its queue, load 10.85 to 10.36.
+The prior failed run remains a failure; its one Copy-argument lint is fixed
+by this final commit. No unchanged gate rerun is required by these notes.
+
+Independent review passed SOURCE/NATIVE GATE ONLY for exact `0ca69ede`,
+before coordinator/lead acceptance. No blocker was found in the member
+inventory, updater cache/typed errors, rewind/fork notices or caption cache.
+The reviewer verified the six-step log and totals independently and inspected
+zero new capture PNGs: this is no UI, real-node, platform, security or
+independent licence-audit approval. The previously accepted About move/role
+pair is separate from this follow-up inventory/update/rewind/fork batch. The native tests now
+execute the added updater, rewind and fork/origin language-retention paths;
+they are synthetic inner-handler inputs, not real-node or parent-routing proof.
+
+The final product source also built locally for captures. Normal About
+runs against a new empty config produced after-captures for en/ko/en-XA,
+dark/light, 1280×800, 390×844, 800×600 and 1024×700 on software Vulkan.
+Image inspection is in progress; generated files alone are not a UI pass.
+The inherited 390-wide log row becomes a very tall narrow path column with
+pseudo-expanded buttons and a long scratch path; the layout owner was told.
+Settings headings/sidebar and Agent artwork still use their owners' tables
+and remain plain English in pseudo mode. Before comparisons, remaining
+inspection/scales and live rewind/fork/update failure captures remain owed.
+The incompatible shared test-fleet attempt was rejected and all eight
+verified owned node/fake processes stopped. No production node was used.
+Windows, real GPU, full browser, current standalone wasm and actual updater
+network/install/restart behavior were not verified in this batch.
+
+Sidebar Display remains held for its layout repair. Settings Diagnostics and
+Chat were subsequently released by the lead and Settings owner, with narrow
+shared caller seams agreed before editing; this later work is outside the
+exact reviewed `0ca69ede` snapshot. The PR title change remains on its own area's
+line: `175491aa`, reported final `3c48fd4b`/gate `d230934a`. Its supplied
+Korean 390/800 captures were independently opened and both heading and
+button say “PR 생성”; its independent review is pending, not merged here.
+
 ## Batch gate correction
 
 The first full native run on `c3ad12fd` passed fonts, format and quality, then
