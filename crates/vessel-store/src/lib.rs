@@ -93,7 +93,7 @@ pub use lock::{KernelLock, KernelProbe, NodeLock, NodeOwner, StartLock};
 pub use node_key::{NODE_KEY_BYTES, NodeKeySecret};
 pub use push::{PushAttention, StoredPush};
 pub use push_key::{PushKeyError, PushPrivateKey};
-pub use settings_file::{SetAside, SettingsFileError};
+pub use settings_file::{SetAside, SettingsDecodeFailure, SettingsFileError};
 pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
 pub use token::{InvalidToken, NodeToken};

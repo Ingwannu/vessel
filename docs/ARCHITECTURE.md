@@ -1667,3 +1667,11 @@ owned group/job cleanup result. The immutable receipt or typed retained cause
 never retries a delayed numeric group id. Legacy wait and ProcessLifetime revocation remain compatible; neither an observer nor a stored
 PID supplies this receipt. Its accepted cleanup request does not assert every
 descendant's observed OS death (docs/plans/checked-process-cleanup.md).
+
+### Saved-settings diagnostic boundary
+
+The store's settings-file decoder owns safe parse diagnostics: only the file
+path, category and bounded path shape leave it; the raw serde cause is private.
+The node's startup recovery logger uses that diagnostic while retaining the
+existing set-aside behavior. It reuses serde_path_to_error already in the
+workspace; no workspace-crate edge changes (ADR 0038).
