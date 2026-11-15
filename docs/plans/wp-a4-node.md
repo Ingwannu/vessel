@@ -27,7 +27,15 @@ The sections below retain design and earlier checkpoint context.
   history test files. Its older typed-peer4/0 and fake-process2/0 executions remain
   scoped predecessor evidence, not a fresh standalone build.
 
-Before final node handoff: merge the announced checked node head under A8, run
+Exact477ae375, after the announced gate50c base merge, passed strict all-target
+Clippy for agent/node/proto/client/rpc. Its TypeScript generation run remains
+queued and has not supplied a union snapshot yet. The next A8 merge consumes
+announced1c762ccf (gate52 wholly green, Rust2550/0/12), preserving the registry's
+assigned protocol25 and all own feature constants as None. That merge has no
+manual conflict resolution. Its already-gated upstream web feedback changes are
+part of the base, separate from this package's own provider behavior.
+
+Before final node handoff: verify/apply the generated union snapshot, run
 one whole root gate, then obtain the package review. Existing scoped V3 approvals
 for the durable detach/security contract do not approve the complete provider
 implementation. Native import, keyed resident/child rendering, archive-finished
