@@ -57,3 +57,49 @@ The browser UUID allocator reuses the existing validated-handle boundary; it
 creates one identity for an owner to retain, never a server admission token.
 These browser follow-ups are authored; browser tests and current wire generation
 remain pending. They do not activate the identified composer flow by themselves.
+
+## Retained browser preparation kernel (staged)
+
+[Decision Log]
+- Purpose: one client message id and exact original text/policy/files must survive
+  component unmounts and a possibly dispatched prompt's lost acknowledgement.
+- Existing constraint: the tray and chunk sender retain files/upload progress but
+  have no model-submission identity or uncertain-outcome owner.
+- Alternatives: component state alone, an LRU that may forget an uncertain send,
+  a browser queue mirroring the node, or a second upload protocol.
+- Choice: PreparedSubmissions reserves one synchronous owner per captured
+  NodeId/session before async work, then calls the existing check, UploadCalls
+  sender and SubmitPrompt. Opaque object identity, not id spelling, identifies
+  its local handle. prepared-files retains the existing sender's resumable
+  upload token and finished references.
+- Reason: the existing node queue and SDK remain authoritative; the browser only
+  retains one user-approved attempt and cannot restart an uncertain dispatch.
+- Tradeoff: uncertain records keep their logical reservations and blobs for the
+  tab lifetime. New local work can receive capacity refusal instead of evicting
+  or replaying an older attempt. This does not claim exact browser heap usage.
+
+The tab owner allows at most 16 retained attempts and 128 MiB of logical reserved
+bytes, including original text, reported immutable Blob sizes, identity/name/type
+bytes and a conservative 4096-byte row envelope per attempt/file. It reuses the
+existing 128 KiB draft-text limit and caps captured file count at the existing
+16-file default. Existing-owner lookup precedes capacity refusal. These are local
+retention floors; node admission and attachment limits are checked independently.
+No socket allocation/predecode or physical-memory claim follows from this budget.
+
+A preparation failure retains the same handle and partial upload token for an
+explicit retry; finished files are reused. An explicitly abandoned attempt may
+release only before prompt dispatch. A post-dispatch transport loss, wrong
+message id, conflicting key, contradictory acceptance or OutcomeUnknown keeps the
+owner inert. Even another call with the same handle performs no check/upload/send.
+Accepted prompt receipts must match the original id and a compatible actual prompt
+outcome; a Command receipt cannot settle a prompt. Typed capacity/no-admission/
+no-effect-refusal replies remain distinct from uncertainty and can release local
+retention. A first unsupported check can select legacy compatibility before upload;
+support loss after preparation has begun cannot trigger that branch.
+
+Private fixtures are authored for captured-input mutation, retained uncertainty,
+no upload on unsupported preflight, explicit chunk resume, finite count/byte
+admission without eviction, and mismatched/command/contradictory receipts. This
+kernel is not yet wired into the composer, and no browser execution or full
+identified-send readiness is claimed. The final UI must preserve its original
+context/editor guards and reconcile optimistic rows only through canonical ids.

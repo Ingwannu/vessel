@@ -1718,3 +1718,11 @@ refuse a changed recipient. Browser submission-calls reuses the chunk uploader's
 UploadCalls interface with that constraint on begin/write/finish and final submit.
 No new node method, provider work or dependency is introduced; composer retention
 and activation remain separate. See docs/plans/web-submit-preflight.md.
+
+The staged browser prepared-submission owner adds no crate edge or RPC. It holds
+one captured attempt per NodeId/session under finite local record/byte budgets;
+prepared-files reuses the existing chunk uploader and retains its resume tokens.
+submission-receipt validates the actual prompt acceptance without treating native
+command acceptance as a turn. An uncertain attempt cannot retry, be abandoned or
+be evicted through this owner. Composer wiring and canonical row reconciliation
+remain separate work; the node queue stays the only delivery queue.
