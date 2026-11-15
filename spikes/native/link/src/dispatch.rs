@@ -10,8 +10,6 @@
 //! - Alternatives: raise the root's recorded size (the list only shrinks).
 //! - Choice: a child module of the crate root, as `options.rs` is.
 //! - Cost: one more file; no API, behaviour or dependency change.
-//! - A5 registration crossed the function budget; preference persistence is
-//!   extracted unchanged below so this exhaustive match stays within it.
 
 use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
@@ -109,12 +107,16 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
-            Command::SavePrefs(prefs) => save_preferences(prefs).await,
+            Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
     }
 }
 
-async fn save_preferences(prefs: Box<super::Prefs>) {
+// [Decision Log]
+// Keep the command match within its function budget so feature registrations
+// remain one-line arms. The same blocking save remains awaited before the
+// actor handles its next command; errors and logging remain unchanged.
+async fn save_prefs(prefs: Box<super::Prefs>) {
     let saved = tokio::task::spawn_blocking(move || prefs.save()).await;
     match saved {
         Ok(Ok(())) => {}
