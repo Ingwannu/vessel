@@ -169,3 +169,12 @@ retry keeps that identity and SessionId; a new ticket receives another id.
 The legacy text transport still lacks submit_prompt activation, so retaining
 this id does not claim server-side prompt deduplication. Pending local byte
 acquisition/recovered uncertainty disables submission before preparation.
+
+The workspace form now has separate Chat/Blank terminal controls and a
+localized Create workspace action that also accepts an empty form without
+requiring an agent. Changing the launch target retains all text/context.
+Configured profile selection waits for the authoritative catalog; no local
+empty catalog is advertised as the server's settings. The shared composer
+renderer moved to draft/draw.rs to preserve the file budget; its existing
+four literal allowances moved with the unchanged drawing, without increases.
+Submission still reports unsupported while the registry driver is pending.

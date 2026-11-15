@@ -25,3 +25,8 @@ creation-retry-first-message = Retry first message
 creation-new-workspace = New workspace
 # Seed acceptance must not overwrite another draft.
 creation-seed-busy = A draft already contains unsent or pending work. Finish it before opening another.
+
+# Workspace launch and primary action; empty Chat creates only a workspace.
+creation-create-workspace = Create workspace
+creation-launch-chat = Chat
+creation-launch-shell = Blank terminal

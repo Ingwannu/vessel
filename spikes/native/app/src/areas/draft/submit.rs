@@ -21,7 +21,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.composer_attachments_blocked(vessel_app_view::composer::drafts::DraftKey::New) {
+        if !self.areas.draft.creation.flow.may_submit()
+            || self.composer_attachments_blocked(vessel_app_view::composer::drafts::DraftKey::New)
+        {
             return;
         }
         if self.route == Route::NewWorkspace {
