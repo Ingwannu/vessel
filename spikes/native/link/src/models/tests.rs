@@ -35,6 +35,12 @@ fn transport_page_and_protocol_failures_are_not_successful_empty_lists() {
         (ModelsError::NoTransport, Problem::NoTransport),
         (ModelsError::Call(CallError::Disconnected), Problem::Offline),
         (
+            ModelsError::Call(CallError::UnassignedProtocol {
+                method: Method::ListModels,
+            }),
+            Problem::Unsupported,
+        ),
+        (
             ModelsError::Call(CallError::RequestIdsExhausted),
             Problem::Failed,
         ),

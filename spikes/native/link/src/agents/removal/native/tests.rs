@@ -270,3 +270,20 @@ fn every_other_wire_failure_has_an_explicit_mutation_verdict() {
     assert_eq!(error.problem(), Problem::Call);
     assert!(!error.is_uncertain());
 }
+
+#[test]
+fn an_unassigned_requirement_is_an_unsupported_unsent_call_not_an_uncertain_removal() {
+    // RPC admission rejects this category before allocating an id/writer entry;
+    // see vessel-rpc/src/client/protocol.rs. It is never a dispatched timeout.
+    let error = RemovalError::Call(CallError::UnassignedProtocol {
+        method: vessel_proto::Method::RemoveAgent,
+    });
+    assert_eq!(error.problem(), Problem::OlderNode);
+    assert!(!error.is_uncertain());
+    assert!(matches!(
+        error,
+        RemovalError::Call(CallError::UnassignedProtocol {
+            method: vessel_proto::Method::RemoveAgent,
+        })
+    ));
+}

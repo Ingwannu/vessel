@@ -65,7 +65,8 @@ impl ModelsError {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Call(error) => match error {
                 vessel_client::CallError::Disconnected => Problem::Offline,
-                vessel_client::CallError::NotInProtocol { .. } => Problem::Unsupported,
+                vessel_client::CallError::NotInProtocol { .. }
+                | vessel_client::CallError::UnassignedProtocol { .. } => Problem::Unsupported,
                 vessel_client::CallError::RequestIdsExhausted
                 | vessel_client::CallError::UnexpectedReply(_) => Problem::Failed,
                 vessel_client::CallError::Remote(error) => match error.code {

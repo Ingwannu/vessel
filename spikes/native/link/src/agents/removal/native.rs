@@ -45,7 +45,10 @@ impl RemovalError {
     pub const fn problem(&self) -> Problem {
         match self {
             Self::NodeChanged { .. } => Problem::NodeChanged,
-            Self::OlderNode | Self::Call(CallError::NotInProtocol { .. }) => Problem::OlderNode,
+            Self::OlderNode
+            | Self::Call(CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. }) => {
+                Problem::OlderNode
+            }
             Self::Timeout | Self::Call(CallError::Disconnected | CallError::UnexpectedReply(_)) => {
                 Problem::RemovalUnknown
             }

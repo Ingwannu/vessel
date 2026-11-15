@@ -242,3 +242,25 @@ narrow checks run remotely. Disposable fixture nodes and the authenticated
 virtual display used for preparation were stopped by verified PID/UID/exe;
 no app capture run was started. Generated wire whitespace inherited from
 the package base is kept unchanged.
+
+
+## First package-base narrow result and compatibility repair
+
+Exact candidate `3792ceba` reached remote native fonts (0), then Clippy
+returned 101 because the assigned RPC error enum has a new local
+`UnassignedProtocol` refusal. Both exhaustive adapters (Models and removal)
+intentionally failed to compile until its meaning was handled. This remains
+red evidence; no test or UI result is inferred from it. The first submission
+was stopped before registration during the build tool's approved recovery;
+only the same unregistered commit was resubmitted once, as instructed.
+
+The new refusal is unsupported and definitely not sent, matching the
+assigned base's other error adapters. Models preserves its typed source and
+uses the existing unsupported meaning. Removal also preserves the source,
+uses its existing unsupported category, and does not invalidate definitions
+as if a mutation might have occurred. RPC admission in
+`crates/vessel-rpc/src/client/protocol.rs` rejects it before request-id or
+writer admission. The 30-second removal deadline, physical identity guard,
+acknowledgement checks and no-resend policy are unchanged. Direct category
+regressions cover the new source, including removal's non-uncertain verdict.
+No pending method, dummy version or new RPC call is introduced.
