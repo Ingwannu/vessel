@@ -132,6 +132,17 @@ impl Shell {
             );
             return;
         }
+        let composer = &self.areas.composer;
+        if composer.trays.get(key).is_none()
+            && composer.trays.len() >= vessel_app_view::composer::trays::Trays::MAX
+            && !composer.sends.is_empty()
+        {
+            self.composer_context_refused(
+                vessel_app_view::composer::context::ContextProblem::Busy,
+                cx,
+            );
+            return;
+        }
         let target = self.composer_target(key);
         let tray = self.areas.composer.trays.tray(key);
         tray.target(target);

@@ -20,7 +20,7 @@ fn card(machine: &str) -> Card {
         phrase: Phrase::Starting,
         attention: Attention::AtRest,
         at: chrono::Utc::now(),
-        detail: vessel_app_view::CardDetail::default(),
+        detail: vessel_app_view::board::CardDetail::default(),
     }
 }
 #[gpui::test]
