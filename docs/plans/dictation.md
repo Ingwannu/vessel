@@ -1092,3 +1092,9 @@ Default-only projected overrides normalize to absent; the original remains in
 the existing later-file copy. The central decoder, startup logger, shared test
 assertions and deadlines are unchanged. A new file regression exercises empty
 and future-only blocks through actual read, copy and write. Execution is owed.
+
+The deletion-race fixture now selects between the held write boundary and the
+same saving future, so its real asynchronous presence lookup can finish before
+the gate is observed. An unexpected early completion fails immediately. The
+secret deletion, key-presence/refusal assertions and outer deadline are unchanged.
+This fixes test scheduling; no product writer or selection behavior changes.

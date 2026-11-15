@@ -76,8 +76,12 @@ async fn deletion_between_selection_and_save_keeps_only_a_reference_and_start_re
         let gate = Arc::get_mut(&mut f.settings).unwrap().hold_writes();
         let service = f.service();
         let mut saving = Box::pin(f.settings.change_dictation(f.patch(), service.reader()));
-        assert!(futures_util::poll!(saving.as_mut()).is_pending());
-        gate.entered().await;
+        // Presence lookup can suspend before the write gate. Keep driving
+        // that same future until it actually reaches the selected boundary.
+        tokio::select! {
+            () = gate.entered() => {}
+            result = saving.as_mut() => panic!("settings bypassed the held write boundary: {result:?}"),
+        }
         assert!(crate::fleet::delete_secret(&f.files, &f.name).unwrap());
         gate.release();
         let reply = saving.await.unwrap();
