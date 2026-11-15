@@ -170,3 +170,55 @@ fn a_genuine_queued_old_query_is_invalid_before_the_replacement_debounce(cx: &mu
         scene.close(shell.fixture_link()).unwrap();
     });
 }
+
+#[gpui::test]
+fn retiring_the_original_peer_invalidates_a_painted_and_prepared_search_hit(
+    cx: &mut TestAppContext,
+) {
+    use vessel_proto::{HarnessKind, SessionInfo, SessionMode, SessionSpec};
+
+    language_tests::init(cx);
+    let (link, mut scene) = Scenario::start(&Name::parse("fixture").unwrap()).unwrap();
+    let context = scene.context();
+    let (shell, cx) = cx.add_window_view(move |window, cx| {
+        let mut shell = Shell::with_test_link(window, cx, link);
+        shell.fleet.machines = vec![machine(&context)];
+        shell.message_search_query("needle", cx);
+        shell
+    });
+    settle(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let answer = queued(&mut scene, shell);
+        let found = &answer.result.as_ref().unwrap().hits[0];
+        let hit = HitId {
+            machine: answer.machine.clone(),
+            session: found.session,
+            seq: found.seq,
+        };
+        let info = SessionInfo::new(
+            hit.session,
+            SessionSpec::new(
+                HarnessKind::ClaudeCode,
+                SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
+            ),
+            chrono::Utc::now(),
+        );
+        shell.fleet.machines[0]
+            .sessions
+            .push(Card::from_session(&hit.machine, &info));
+        shell.message_searched(answer, cx);
+        let prepared = shell.message_search_destination(&hit).unwrap();
+        scene.retire(shell.fixture_link()).unwrap();
+        assert!(shell.message_search_destination(&hit).is_none());
+        shell.open_search_hit(prepared, window, cx);
+        assert!(shell.areas.session.open.is_none());
+        assert_eq!(shell.route, crate::routes::Route::Draft);
+        assert!(shell.notice.is_some());
+        assert_eq!(scene.transcript(shell.fixture_link()).unwrap().len(), 1);
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}

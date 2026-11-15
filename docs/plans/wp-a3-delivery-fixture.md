@@ -96,3 +96,10 @@ settlement. These are staged contract names, not a checked live opener API.
 A3 navigation remains unclaimed/held until that carrier and the core's global
 removal union exist; metadata uses the canonical Timeline ticket under its exact
 binding. An open reply never mints admission. No A3 registry/open manager is added.
+
+A fourth prepared actual-actor case accepts a current page and prepares its
+destination while the original lease is active, then retires that exact peer.
+Both preparing the painted hit again and activating the retained destination
+must refuse without selecting a session. This proves only the pre-queue UI
+refusal once executed; it cannot substitute for the context-bound actor Open
+carrier described above. Execution remains pending the same shared fixture.
