@@ -6,16 +6,24 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Merged for the proof package: the designated Quality B node head, without
+  conflicts or manual merge edits. Protocol and schema remain the head's;
+  existing head tests and tables were retained. The full proof gate covers
+  this merge. This is separate from service-observation gate debt.
+
+
 - Approved: process ownership contract (2p0) and its binding restrictions
   passed review, and the integration decision permits Store to Proc.
 - Done: 2p1's query move passed review and its whole gate (2,211 Rust
   tests, no failures, 12 ignored; forge 4, web unit 442 and e2e 65).
 - Source: 2p2a adds candidate descriptor possession to the opaque snapshot.
-  Its focused clippy passed; focused tests are pending.
+  Final focused clippy and the combined lock tests passed (20 tests, no
+  failures); the initial lint failures remain recorded.
 - Source: 2p2b brackets descriptor capture with generation and active PID
   namespace evidence. First focused clippy found two redundant decoding
-  closures, now corrected without changing the rule. Final focused checks
-  and the proof package whole gate are pending; no signal caller is included.
+  closures, now corrected without changing the rule. A later fixture literal
+  separator was corrected. Final clippy and all 20 focused lock tests pass;
+  the proof package whole gate is pending. No signal caller is included.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
