@@ -38,40 +38,35 @@ async fn cached_manager_and_trusted_reads_never_discover_and_handles_end_with_th
                 reason: UnavailableReason::NotChecked
             }
         ));
-        drop(
-            registrations
-                .cached(id.clone(), scope.clone())
-                .await
-                .unwrap(),
-        );
-        drop(
-            manager
-                .snapshot(scope.clone(), DiagnosticRead::Cached)
-                .await
-                .unwrap(),
-        );
+        registrations
+            .cached(id.clone(), scope.clone())
+            .await
+            .map(drop)
+            .unwrap();
+        manager
+            .snapshot(scope.clone(), DiagnosticRead::Cached)
+            .await
+            .map(drop)
+            .unwrap();
     }
     assert_eq!(probes.load(Ordering::SeqCst), 0);
-    drop(
-        manager
-            .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Discover)
-            .await
-            .unwrap(),
-    );
+    manager
+        .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Discover)
+        .await
+        .map(drop)
+        .unwrap();
     assert_eq!(probes.load(Ordering::SeqCst), 1);
-    drop(
-        manager
-            .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Cached)
-            .await
-            .unwrap(),
-    );
+    manager
+        .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Cached)
+        .await
+        .map(drop)
+        .unwrap();
     assert_eq!(probes.load(Ordering::SeqCst), 1);
-    drop(
-        manager
-            .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Refresh)
-            .await
-            .unwrap(),
-    );
+    manager
+        .diagnostic(id.clone(), scope.clone(), DiagnosticRead::Refresh)
+        .await
+        .map(drop)
+        .unwrap();
     assert_eq!(probes.load(Ordering::SeqCst), 2);
     let disabled = manager.set_enabled(id.clone(), Enabled::Off).await.unwrap();
     assert_eq!(disabled.enabled, Enabled::Off);
