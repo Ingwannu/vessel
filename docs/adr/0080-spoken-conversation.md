@@ -624,7 +624,7 @@ execute none of it:
    positive native/notice/metadata members into a fresh task-owned private
    directory outside product trees. Reuse the bounded parsers and original
    member/count/path/CRC/digest rules; do not create aliases or traverse links.
-   Files become0400, directories0700, owned by the task UID/GID. Temporary
+   Files remain0600, directories0700, owned by the task UID/GID. Temporary
    files are accepted by exact size+SHA before atomic rename; on mismatch no
    candidate final file is retained. Preserve original archives and first
    refusal. No new artifact URL or fallback download is introduced.
@@ -673,8 +673,11 @@ panic paths cannot become the error policy.
 
 There is currently no supported gate API to inject private external binary
 fixtures into a VM label. A named, digest/size/ownership-preserving fixture
-handoff must be agreed with the build owner/coordinator before any transfer;
-never commit binary/model files into Git or substitute arbitrary SSH builds.
+handoff is now assigned to the build-tool owner by the coordinator: a fixed
+voice-label allowlist, exact SHA/size manifest, UID/GID/mode preservation,
+per-file receipt and refusal of mismatch/extra files/links. No handoff has run.
+Prepare only task-private0600 files/0700 directories after this phase is
+approved; never commit binaries into Git or substitute arbitrary SSH builds.
 Both-platform offline/log privacy, ABI and reference probability/boundary
 compatibility, native allocation/latency/loaded size and hardware quality are
 still owed. This phase cannot establish a hard native heap bound or unblocked
