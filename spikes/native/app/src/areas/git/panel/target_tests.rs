@@ -72,8 +72,8 @@ pub(super) fn prepare_uninitialized(
     };
     let comparison = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Show);
     let instance = shell.areas.git.keys.issue().unwrap();
-    let mut reads = PanelReads::new(repository, comparison.clone());
-    let ticket = reads.begin_status(shell.areas.git.keys.issue().unwrap());
+    let (reads, summary, ticket) =
+        accepted_reads(repository, comparison.clone(), &mut shell.areas.git.keys);
     let mut entry = Entry::new(PanelTarget::WorkingDiff, Some(context.clone()));
     entry.instance = Some(instance);
     entry.reads = Some(reads);
@@ -91,9 +91,46 @@ pub(super) fn prepare_uninitialized(
             context,
             repository,
             comparison,
+            summary,
         },
         ticket,
     )
+}
+
+/// A drawn empty-state callback must have actual accepted data, not an Empty store.
+pub(super) fn accepted_reads(
+    repository: RepositoryKey,
+    comparison: Comparison,
+    keys: &mut vessel_app_view::workspace::git::RequestKeys,
+) -> (
+    PanelReads,
+    vessel_app_view::workspace::git::panel::ComparisonTicket,
+    StatusTicket,
+) {
+    let mut reads = PanelReads::new(repository, comparison);
+    let status = reads.begin_status(keys.issue().unwrap());
+    assert!(reads.finish_status(
+        status,
+        Ok(vessel_proto::workspace::GitStatus {
+            branch: Some("fixture".parse().unwrap()),
+            head: None,
+            upstream: None,
+            base: None,
+            operation: None,
+            files: Vec::new(),
+            more: false,
+        })
+    ));
+    let summary = reads.begin_summary(keys.issue().unwrap());
+    assert!(reads.finish_summary(
+        &summary,
+        Ok(vessel_proto::workspace::DiffSummary {
+            from: None,
+            files: Vec::new(),
+            more: false,
+        })
+    ));
+    (reads, summary, status)
 }
 
 #[gpui::test]
@@ -159,5 +196,84 @@ fn retargeted_visible_tab_drops_its_old_read_and_cannot_start_an_empty_mode_call
             cx,
         );
         assert!(!shell.areas.git.panels.entries.contains_key(address));
+    });
+}
+
+#[gpui::test]
+fn a_retained_mode_callback_cannot_reenter_after_identical_summary_round_trip(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (link, mut inbox) = Link::detached(8).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    shell.update_in(cx, |shell, window, cx| {
+        let (old, _) = prepare(shell, window, cx);
+        while inbox.try_recv().is_ok() {}
+        let changed = {
+            let git = &mut shell.areas.git;
+            let reads = git
+                .panels
+                .entries
+                .get_mut(&old.address)
+                .unwrap()
+                .reads
+                .as_mut()
+                .unwrap();
+            reads.select(Comparison::new(
+                ComparisonMode::Uncommitted,
+                None,
+                Whitespace::Show,
+            ));
+            reads.select(old.comparison.clone());
+            let changed = reads.begin_summary(git.keys.issue().unwrap());
+            assert!(reads.finish_summary(
+                &changed,
+                Ok(vessel_proto::workspace::DiffSummary {
+                    from: None,
+                    files: Vec::new(),
+                    more: false,
+                })
+            ));
+            changed
+        };
+        assert_ne!(old.summary, changed);
+        assert_eq!(
+            shell.areas.git.panels.entries[&old.address].instance,
+            Some(old.instance)
+        );
+        shell.git_panel_compare(&old, ComparisonMode::Committed, window, cx);
+        assert!(matches!(
+            inbox.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
+        assert_eq!(
+            shell.areas.git.panels.entries[&old.address]
+                .reads
+                .as_ref()
+                .unwrap()
+                .comparison(),
+            &old.comparison
+        );
+        let current = ComparisonChange {
+            summary: changed,
+            ..old
+        };
+        shell.git_panel_compare(&current, ComparisonMode::Committed, window, cx);
+        let Command::GitPanel(vessel_app_link::git_panel::Ask::Summary {
+            address,
+            context,
+            ticket,
+        }) = inbox.try_recv().unwrap()
+        else {
+            panic!("a fresh callback sends one original-context comparison");
+        };
+        assert_eq!(address, current.address);
+        assert_eq!(context, current.context);
+        assert_eq!(ticket.repository(), current.repository);
+        assert_eq!(ticket.comparison().mode(), Some(ComparisonMode::Committed));
+        assert!(matches!(
+            inbox.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
     });
 }

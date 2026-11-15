@@ -152,6 +152,8 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
     let comparison = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Show);
     let mut keys = RequestKeys::default();
     let instance = keys.issue().unwrap();
+    let (reads, summary, _) =
+        super::target_tests::accepted_reads(repository, comparison.clone(), &mut keys);
     let captured = ComparisonChange {
         target: super::PanelTarget::WorkingDiff,
         instance,
@@ -165,10 +167,11 @@ fn empty_mode_callback_refuses_another_root_epoch_comparison_or_commit_target() 
         context: context.clone(),
         repository,
         comparison: comparison.clone(),
+        summary,
     };
     let mut entry = super::Entry::new(super::PanelTarget::WorkingDiff, Some(context.clone()));
     entry.instance = Some(instance);
-    entry.reads = Some(PanelReads::new(repository, comparison.clone()));
+    entry.reads = Some(reads);
     assert!(captured.is_current(&entry, Some(&context)));
     entry.instance = Some(keys.issue().unwrap());
     assert!(

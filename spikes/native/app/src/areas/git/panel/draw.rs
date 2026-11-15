@@ -177,16 +177,17 @@ fn empty(
         .as_ref()
         .zip(entry.reads.as_ref())
         .zip(entry.instance)
-        .map(
-            |((context, reads), instance)| super::comparison::ComparisonChange {
+        .and_then(|((context, reads), instance)| {
+            Some(super::comparison::ComparisonChange {
                 address: address.clone(),
                 target: entry.target.clone(),
                 instance,
                 context: context.clone(),
                 repository: reads.repository(),
                 comparison: reads.comparison().clone(),
-            },
-        );
+                summary: reads.summary_ticket()?.clone(),
+            })
+        });
     div()
         .size_full()
         .flex()

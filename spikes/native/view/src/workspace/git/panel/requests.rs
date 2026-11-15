@@ -333,14 +333,22 @@ impl PanelReads {
         self.files.get(path)
     }
 
+    /// Exact accepted summary receipt, unavailable during status/summary refresh
+    /// or failure. It correlates data-dependent callbacks, not write authority.
+    #[must_use]
+    pub fn summary_ticket(&self) -> Option<&ComparisonTicket> {
+        let _ready_status = self.status.ready()?;
+        let _ready_summary = self.summary.ready()?;
+        self.accepted_summary.as_ref()
+    }
+
     /// Capture only a file in the actually accepted summary, never retained
     /// refresh data. The generation is local read correlation, not authority
     /// or a promise of an atomic filesystem snapshot across paged reads.
     #[must_use]
     pub fn file_target(&self, path: &RelPath) -> Option<FileReadTarget> {
-        let _ready_status = self.status.ready()?;
+        let ticket = self.summary_ticket()?;
         let summary = self.summary.ready()?;
-        let ticket = self.accepted_summary.as_ref()?;
         if !summary.files.iter().any(|file| file.path == *path) {
             return None;
         }

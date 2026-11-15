@@ -4,7 +4,8 @@ use crate::shell::Shell;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::git_panel::Ask;
 use vessel_app_view::workspace::git::panel::{
-    Comparison, ComparisonMode, PanelAddress, PanelTarget, ReadFailure, RepositoryKey,
+    Comparison, ComparisonMode, ComparisonTicket, PanelAddress, PanelTarget, ReadFailure,
+    RepositoryKey,
 };
 
 pub(super) struct ComparisonChange {
@@ -14,6 +15,7 @@ pub(super) struct ComparisonChange {
     pub(super) context: vessel_app_view::connection::ConnectionContext,
     pub(super) repository: RepositoryKey,
     pub(super) comparison: Comparison,
+    pub(super) summary: ComparisonTicket,
 }
 
 impl ComparisonChange {
@@ -31,7 +33,9 @@ impl ComparisonChange {
                 PanelTarget::WorkingDiff | PanelTarget::Changes
             )
             && entry.reads.as_ref().is_some_and(|reads| {
-                reads.repository() == self.repository && reads.comparison() == &self.comparison
+                reads.repository() == self.repository
+                    && reads.comparison() == &self.comparison
+                    && reads.summary_ticket() == Some(&self.summary)
             })
     }
 }

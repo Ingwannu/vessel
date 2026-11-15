@@ -1089,3 +1089,21 @@ current App owner union still has no runtime/compile pass; its480 ordinary tests
 remain queued. No unchanged whole rerun, body mount, global cache bound, real
 node, authority, OS, captures or C3 completion is claimed. Full immutable source
 and log digests are in the external file-pages-ad9-result.json evidence record.
+
+## Empty-mode callbacks retain their accepted summary receipt
+
+The existing comparison/root/context/entry guard cannot distinguish a comparison
+A-to-B-to-A after an identical summary refresh in the same pane instance. Reuse
+PanelReads' accepted ComparisonTicket as the data-dependent callback receipt;
+summary_ticket is unavailable during status/summary refresh or failure. This is
+not another authority cache. The empty-state drawing captures only a Ready
+receipt and does not draw a stale action while retained data is refreshing.
+
+ComparisonChange now checks that receipt as well as the existing complete pane,
+instance, root and original connection guard. A real detached-Link Shell test
+keeps those other facts equal, changes comparison away/back, accepts identical
+empty data, and proves the old callback sends no command while a newly captured
+one sends exactly its original-context comparison. Ready fixtures now accept
+actual status and summary data instead of treating an Empty store as actionable.
+This test is written/unexecuted, not a native input/capture or authority claim.
+No destructive action or legacy write barrier is opened.
