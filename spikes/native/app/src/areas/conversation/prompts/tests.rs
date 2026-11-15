@@ -107,6 +107,40 @@ fn seed(shell: &mut Shell, cx: &mut Context<'_, Shell>) -> (IndexTarget, PromptI
 }
 
 #[gpui::test]
+fn metadata_success_without_an_actor_guard_cannot_install_addresses(cx: &mut TestAppContext) {
+    use vessel_app_view::prompt_index::{IndexPhase, IndexProblem};
+    let (probe, cx) = harness(cx);
+    update(&probe, cx, |shell, _, cx| {
+        let ask = shell.areas.conversation.prompts.index.restart().unwrap();
+        let page = PromptIndexPage::new(
+            ask.target.session,
+            PromptIndexEpoch::new(EventSeq::ZERO, None).unwrap(),
+            vec![PromptLocation {
+                seq: EventSeq::new(10),
+                timestamp: chrono::DateTime::UNIX_EPOCH,
+                preview: PromptPreview::from_text("not an admitted server reply"),
+            }],
+            None,
+        )
+        .unwrap();
+        // This is a rejection fixture, not a fake valid lease or wire success.
+        shell.prompt_index_answered(
+            IndexAnswer {
+                ask,
+                delivery: None,
+                result: Ok(page),
+            },
+            cx,
+        );
+        assert_eq!(
+            shell.areas.conversation.prompts.index.phase(),
+            IndexPhase::Failed(IndexProblem::Connection)
+        );
+        assert!(shell.areas.conversation.prompts.index.entries().is_none());
+    });
+}
+
+#[gpui::test]
 fn prompt_navigation_rejects_stale_painted_identity_and_bounds_an_unloaded_jump(
     cx: &mut TestAppContext,
 ) {
