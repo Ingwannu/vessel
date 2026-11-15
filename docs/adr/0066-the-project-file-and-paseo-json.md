@@ -325,19 +325,61 @@ does not add a filesystem probe to either decoding or hashing.
   compatibility and Windows command-script refusal are execution checks
   still owed; the value slice cannot claim they have run.
 
+#### Service declarations before parser and approval integration
+
+- Purpose and intent: a declared port belongs to a service, and every
+  consumer of an approval must handle it. Deserialize-only checks are not
+  enough if a caller can later change a service into a plain script while
+  retaining its port.
+- Existing constraints: `ScriptEntry` publicly exposes its kind, command,
+  name and folder. Adding a public optional port would permit exactly
+  that invalid mutation. Its existing JSON kind remains a string, and
+  earlier approvals and clients must keep that shape.
+- Alternatives considered: leave public fields and validate at every use;
+  replace the kind with a flattened tagged execution enum; or privately
+  own the kind and port and expose a complete borrowed display view. The
+  first repeats a safety check and permits invalid domain values. The
+  tagged enum is sound, but changes the existing kind's Rust and generated
+  TypeScript API beyond this additive field.
+- Choice: privately own `ScriptEntry`'s kind and optional `ServicePort`.
+  A validating constructor and the wire decoder both refuse a plain
+  script with a port as `InvalidScriptEntry::PortOnScript`. No setter can
+  change either half independently. The already validated name, command
+  and folder need no new representation. JSON keeps its current kind
+  string and gains only the optional port.
+- Why this choice: validation is at construction, with the smallest change
+  to the wire. A `ScriptEntryView` borrows every approved field for display;
+  `view()` exhaustively destructures the owner without `..`, so another
+  field breaks this projection too. Runtime and digest operations take
+  the owner, never a caller-constructed display view.
+- Costs and effects: native constructor/getter call sites need an API
+  adaptation owned by the native lead. The native approval card must
+  exhaustively name every view field, and web coverage/comparison must
+  project every `ScriptEntry` field by type, as they already do for the
+  listed set and `CommandSet`. They show the port/allocation block in full
+  or refuse approval, including a port-only change and its removal from
+  `last_approved`. This does not assign `PROJECT_FILE_KEYS`; the web dialog,
+  web command-changes and native card must display all approved terminal
+  and port data before it is assigned. This is a contract for the later
+  field integration; the value preparation has not changed `ScriptEntry`.
+
 Relative program resolution is a deliberate difference from Paseo. Its
 allocator passes the trimmed command to the plugin's `execFile` wrapper
 (`workspace-service-port-allocator.ts:58–72`,
 `packages/plugin/src/server/process.ts:76–100`); a bare command name uses
 Node's [PATH lookup](https://github.com/nodejs/node/blob/v22.x/doc/api/child_process.md).
-Vessel treats even a bare name as relative to the approved project root,
-without consulting PATH. It also keeps `RelPath`'s portable forward-slash
+Vessel treats even a bare name as relative to the checkout root the way
+`dir` is, without consulting PATH. For a worktree this is its own folder,
+so it runs that worktree's copy of the program while approval covers the
+project file's text. The allocator's cwd is this checkout root; `dir`
+changes the named script's cwd only. Vessel also keeps `RelPath`'s portable forward-slash
 grammar and refusals, including parent, backslash, control and repository
 metadata components. These are the existing project containment floor:
 approval must not silently select an executable elsewhere through PATH
 or a relative path that escapes the root. The runtime test
 `bare_port_script_is_resolved_under_the_approved_root` must put a different
-fake program on PATH and prove that the project program is selected.
+fake program on PATH and prove that the checkout's program is selected,
+including the worktree's copy when it differs from the project's copy.
 Relative symlinks are resolved and checked by `Root::existing` at execution;
 the digest continues to cover the approved text, not a machine's resolved
 filename. These runtime tests remain unimplemented in the value slice.
