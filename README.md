@@ -1447,3 +1447,7 @@ offline synthetic fixtures.
 Startup continuation is being prepared in separate slices (ADR 0059). Its
 policy values and settings reply projection exist, with an unassigned protocol;
 there is no new startup setting or automatic resume behavior in this slice.
+
+The shared CLI presentation boundary is described in
+[W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
+default listing and accepts explicit JSON/YAML, quiet and headerless output.
