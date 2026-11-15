@@ -12,7 +12,7 @@ slice order. The docs commit adds both and no command.
   proc; the store facade, parser behavior and existing assertions remain.
   Manifest, active map and name restriction land together. Its exact whole
   gate passed (2,211 Rust tests, no failures, 12 ignored; forge 4,
-  web unit 442 and e2e 65). Review is pending.
+  web unit 442 and e2e 65). Review passed.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -55,8 +55,8 @@ slice order. The docs commit adds both and no command.
   with bounded decoding, pre-RPC warnings and isolated CLI fixtures. No disk
   match gives loaded-manager authority. The first focused clippy found a
   test-doc Markdown issue; final auxiliary clippy, 16 service units and
-  18 stop cases passed. The merged-tree focused checks and whole gate
-  are pending.
+  18 stop cases passed. The merged-tree clippy and all 170 CLI unit/
+  integration cases also passed; its whole gate is pending.
 
 ## Existing asset check
 
