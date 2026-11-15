@@ -344,15 +344,18 @@ There are no native UI changes/captures or operator-home/service mutations.
 | cb836083a | MCP suite stopped compiling a borrowed ID assertion; fixed c7f0; no MCP tests executed | mcp-tests-cb836 |
 | 7bfc7f72e | TS failed three unclassified aliases; fixed 146c83 | ts-7bfc7 |
 | 9e2be4d25 | TS generators 4 passed; stale file diff keeps step rc1; six artifact hashes verified and exact generated patch applied | ts-9e2be |
-| c7f0c5df1 | Strict stopped on a new module-doc backtick lint; fixed with the matching ToolId doc spelling; functional suite stopped after 91 passed/1 failed/1 ignored at the new default-notification fixture | strict-c7f0, functional-c7f0 |
+| c7f0c5df1 | Strict stopped on a module-doc backtick lint; fixed 3ded; functional suite stopped after 91 passed/1 failed/1 ignored at the new default-notification fixture | strict-c7f0, functional-c7f0 |
+| 24fd5a5a5 | TS freshness passed: generator tests 4/0, wire diff 0 | ts-24fd5 |
+| 3ded9d636 | Merged-head changed-crate strict queued, not passed | strict-3ded |
+| c17b45819 | Corrected functional suite queued with no-fail-fast, not passed | functional-c17b |
 
 The alias registry brands node-minted PromptReceiptId; SkillName and
 StoredTool remain plain names validated at the Rust boundary. Generated TS was applied from the verified remote artifact after confirming
 its source commit and unchanged proto/web generator input. The local file
-matches the artifact byte-for-byte. A subsequent exact-head freshness pass
-is still required; regeneration with a diff is not a green TS step.
+matches the artifact byte-for-byte. The subsequent exact-24fd5a5a5 freshness check passes with no diff.
+Regeneration with a diff remains distinct from that green freshness result.
 
-New unexecuted regression coverage includes delegated identity separation on
+New regression coverage awaiting the final successful functional run includes delegated identity separation on
 both receipt read/close, cancellation returning long-poll reader budget,
 paused-time expiry reclaiming admission, default MCP create/send delivering
 notices into the actual parent queue without wait tools, and actual shipped
@@ -363,8 +366,7 @@ process-kill crash proof.
 Failed logs are retained. Canceled own local waiters never reached compilation
 and are not evidence. V3's earlier security checkpoint of 504161f9 returned
 one strict-source finding; subsequent runtime wiring and the changed exact
-strict result still need source review. Strict success, generated TS freshness,
-final functional checks, one whole root A12 gate and package review remain
+strict result still need source review. Strict success, final functional checks, one whole root A12 gate and package review remain
 required before a numbered consumer handover. Source review, scoped test
 success, runtime behavior and integration readiness are reported separately.
 
@@ -384,3 +386,9 @@ report, an explicit temporary cwd, the existing node-notice test's typed
 queued-or-started observation, and named per-stage deadlines. Both exact
 completion replies and the absence of a wait-tool call remain asserted.
 This correction does not yet prove the product path passes; rerun is owed.
+
+The tracker records built source or skeleton gaps only, never a package
+PASS. Native Skills settings ownership (tracker row 594, obsolete W21 label)
+was raised with the coordinator because the initial W18 assignment is node-side;
+W15 already owns its onboarding consumer. No app scope or readiness is inferred
+from a node-only check.
