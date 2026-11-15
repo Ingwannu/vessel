@@ -492,11 +492,13 @@ Left out, nothing behind them yet: Paseo's colour and sidebar-badge rows
 (the app keeps no machine appearance), "Restart daemon" and "Update
 daemon" (the node-control track brings the calls). Stand-ins until the
 shared controls land: the pencil is a plain glyph button (G2's
-`host_rename_button` is not on the lead's branch), Remove has no Trash2
-before its label (the kit's button has no leading content yet), the
-name is not selected when the dialog opens (no select-all in the kit's
-field yet). The badges are the kit's (pills on `surface3`, where Paseo's
-are bare outlines).
+`host_rename_button` is taken once it passes review; the call site then
+changes), the name is not selected when the dialog opens (no select-all
+in the kit's field yet; it waits on `kit/src/field.rs` being split in the
+quality audit). The badges are the kit's (pills on `surface3`, where
+Paseo's are bare outlines). Remove now has Paseo's Trash2 before its
+words (`kit::outline_button_with_glyph`, 14 square, 8 to the words, both
+in the destructive colour; the lead's decision for 0.0.0.0.18).
 
 ### Slice 5: the machine's Connections
 

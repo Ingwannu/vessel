@@ -226,6 +226,9 @@ with the ordinary line grid at action 16/menu 14; legacy ArrowUp/Update stay.
 Shared action glyphs also include `Trash2`, `ArchiveRestore`, `Minus`,
 `GitBranchPlus`, `Commit` and `Undo2`; existing `Pencil`/`Archive` stay.
 Each is registered once in `assets.rs` on the same 24-unit line grid.
+`outline_button_with_glyph` puts one before an outline button's words
+(Paseo's `leftIcon`: 14 square, the button's 8 gap, glyph and words in one
+tone), as Settings › Overview's Remove draws its Trash2.
 
 `kit/badge.rs` supplies Paseo's StatusBadge for every area: typed success,
 warning, error and muted variants; small and extra-small sizes; optional

@@ -89,7 +89,7 @@ pub use tooltip::Tooltips;
 pub use virtual_list::{Reveal, VirtualList};
 pub use widgets::{
     ButtonKind, ButtonState, TypeExt, button, button_with_kind, choice, dot, kicker, mark,
-    mark_mono, markdown, outline_button,
+    mark_mono, markdown, outline_button, outline_button_with_glyph,
 };
 
 /// What a screen needs of GPUI's layout and view types, re-exported so

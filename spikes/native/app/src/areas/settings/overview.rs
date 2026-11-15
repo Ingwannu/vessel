@@ -17,11 +17,11 @@
 //! - Not shown, nothing behind them yet: Paseo's colour and sidebar-badge
 //!   rows (the app keeps no machine appearance), "Restart daemon" and
 //!   "Update daemon" (no such call; the node-control track brings them).
-//! - Stand-ins until the shared controls land (G2): the pencil is a plain
-//!   glyph button here, not `host_rename_button`; Remove has no Trash2
-//!   leading glyph (the kit's button has no leading content yet). The
-//!   field is focused when the dialog opens but its text is not selected
-//!   (the kit's field has no select-all yet).
+//! - Stand-ins until the shared controls land: the pencil is a plain
+//!   glyph button here, not G2's `host_rename_button` (taken once it
+//!   passes review). The field is focused when the dialog opens but its
+//!   text is not selected (the kit's field has no select-all yet; it waits
+//!   on `kit/src/field.rs` being split).
 //! - Difference: the badges are the kit's (the pills on `surface3`, where
 //!   Paseo's are bare outlines).
 
@@ -36,7 +36,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, TextField, Tokens, Type, TypeExt as _, button_with_kind, dot, glyph,
-    outline_button, settings,
+    outline_button_with_glyph, settings,
 };
 use vessel_app_link::Command;
 use vessel_app_link::machines::{self, Answer};
@@ -333,13 +333,16 @@ fn remove_row(
 ) -> Div {
     let words = shell.t.lang.overview();
     let name = Name::parse(&machine.name).ok();
-    let button = outline_button(
+    // Paseo's outline Remove with its Trash2 before the words, both in
+    // the destructive colour.
+    let button = outline_button_with_glyph(
         "settings-overview-remove",
+        Glyph::Trash2,
         words.remove,
+        tokens.neutral.destructive,
         name.is_some(),
         tokens,
     )
-    .text_color(tokens.neutral.destructive)
     .when_some(name, |button, name| {
         button.on_click(cx.listener(move |shell, _event, window, cx| {
             let state = &mut shell.areas.settings.overview;
