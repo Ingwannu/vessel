@@ -263,12 +263,8 @@ pub(crate) fn inbox(
         }
         InboxItem::Question { question } => question_changed(question),
         InboxItem::InSession {
-            question: Some(question),
-            ..
-        } => {
-            let _metadata = question;
-            true
-        }
+            question: Some(_), ..
+        } => true,
         InboxItem::InSession { question: None, .. }
         | InboxItem::Finished
         | InboxItem::Failed
