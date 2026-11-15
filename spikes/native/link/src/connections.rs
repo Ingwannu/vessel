@@ -21,6 +21,7 @@ pub(crate) struct Connected {
     binding: BookEntry,
     pub(crate) context: ConnectionContext,
     validity: watch::Sender<Validity>,
+    lease: std::sync::Arc<SelectedLease>,
 }
 
 /// Retirement is irreversible for an admitted generation.
@@ -37,25 +38,30 @@ impl Connected {
         binding: BookEntry,
         context: ConnectionContext,
     ) -> Self {
-        let (validity, _receiver) = watch::channel(Validity::Active);
+        let (validity, receiver) = watch::channel(Validity::Active);
+        let lease = std::sync::Arc::new(SelectedLease::new(
+            client.clone(),
+            context.clone(),
+            receiver,
+        ));
         Self {
             client,
             agents,
             binding,
             context,
             validity,
+            lease,
         }
     }
     pub(crate) fn retire(&self) {
         let _old = self.validity.send_replace(Validity::Retired);
     }
+    #[cfg(test)]
     pub(crate) fn validity(&self) -> watch::Receiver<Validity> {
         self.validity.subscribe()
     }
     pub(crate) fn matches(&self, expected: &ConnectionContext) -> bool {
-        self.context == *expected
-            && *self.validity.borrow() == Validity::Active
-            && self.client.node().id == expected.node()
+        self.lease.validate(expected).is_ok()
     }
     pub(crate) fn renamed(&self, context: ConnectionContext) -> Self {
         self.retire();
@@ -90,7 +96,7 @@ impl Connected {
 mod edits;
 mod selected;
 mod snapshots;
-pub(crate) use selected::{RequestFailure, SelectedConnection};
+pub(crate) use selected::{RequestFailure, SelectedConnection, SelectedLease};
 
 impl State {
     pub(crate) async fn closed_connection(
