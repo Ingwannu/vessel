@@ -458,3 +458,12 @@ are unchanged. New lifecycle candidate/listing schema is not consumed before
 its green announcement. The queued c957 strict run was superseded only after
 verified cancelled143; one normal-short replacement checks this merged source.
 No running unit/rollback execution was cancelled, and their b028 scope remains.
+
+Exact4ad52654 five-crate all-target strict passed after the gate52 merge and
+private claim savepoint extraction: wp-inbox-node-20261115T171238Z-4ad52654,
+rc0/116s, actual Node checked. The completed b028 units955/0/0 and Store
+integration42/0/0 remain their prior-source scope; the later Rust changes are
+that extraction plus canonical protocol/registry metadata assignment25.
+Owning whole gate, positive assigned-wire/hook runtime and complete later
+security source adoption remain owed. The workspace mutation-clock requirement
+now belongs lifecycle; A5 introduces no duplicate clock/schema/RPC for it.
