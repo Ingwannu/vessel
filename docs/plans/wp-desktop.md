@@ -547,3 +547,25 @@ lower ManagedLocalAlias value waits for an announced base. The unavailable local
 registration has no generated-name path. Native wrappers will be restored only
 as delegations to proto::book_values::ManagedLocalAlias; no duplicate prefix or
 UUID grammar is retained in product or test code.
+
+### Remaining acceptance boundaries
+
+The app checkpoint's bundled local-node/Proc source is still preparatory. The
+separate controller package must first be rebuilt on the announced portable
+checked-wait node head and reviewed/landed by the node integrator. Its later app
+base is the production dependency; app-only adapter checks do not substitute for
+that root join or grant approval to the earlier root ancestry in this worktree.
+
+Paseo defers a downloaded app installer until quit, bounded to five seconds.
+Vessel's existing signed updater verifies and replaces its artifact before Ready;
+restart selects that installed set. There is no separate quit-time install call
+to duplicate. Ordinary quit honors the explicit keep-running policy; explicit
+Restart to update always finalizes Owned first. Attached nodes remain untouched.
+This preserves the release owner's update/trust boundary rather than inventing a
+second installer or comparing the app release label with the node crate version.
+
+C1's earlier values carrier was withdrawn from the app line. Guarded project
+inventory/readiness and controlled forms wait for the full canonical registry
+handlers in the announced app base. WorkspaceId already on the line is unchanged;
+no alternate registry identity, pending wire row or cache-based empty decision is
+introduced to bypass that owner handoff.
