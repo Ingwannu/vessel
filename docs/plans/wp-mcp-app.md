@@ -110,3 +110,10 @@ retained Tickets source supplies both identities without wrapping. Modal
 content changes retain the original focus-return cycle; actual dismissal
 alone restores it. Host-row callbacks cannot act behind an open dialog. A
 controller regression rejects a prior dialog's close and save in one visit.
+
+Coordinator ruling for tracker598: no automatic native legacy file migration.
+Vessel has never written that file, and it must never read Paseo's real Electron
+profile or invent a prior Vessel path. An explicitly supplied legacy selection
+can use the node owner's typed import-only-if-unset acknowledgement/AlreadySet
+contract after it is reviewed and numbered. Its restart/import tests belong to
+the node package; this app does not claim an automatic migration consumer.
