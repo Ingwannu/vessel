@@ -121,14 +121,14 @@ pub enum ContextKind {
     ForgeIssue,
     /// A forge change request snapshot.
     ForgeChangeRequest,
-    /// A selected plugin resource snapshot; no plugin code runs on send.
-    PluginResource,
 }
 
 /// Every non-byte attachment is explicit; image/file bytes stay in the
 /// existing upload tray. Feature owners adapt canonical source types here.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContextAttachment {
+    /// Canonical captured plugin/source/item identity and validated retained text.
+    Plugin(vessel_proto::plugins::ContextAttachment),
     /// File explorer and diff actions supply this pointer.
     WorkspaceFile(WorkspaceFile),
     /// Other panels provide an immutable text snapshot and its semantic kind.
@@ -145,6 +145,7 @@ impl ContextAttachment {
     #[must_use]
     pub fn text(&self) -> String {
         match self {
+            Self::Plugin(item) => item.item.text.as_str().to_owned(),
             Self::WorkspaceFile(file) => match file.selection {
                 Selection::Whole => format!("Workspace file: {}", file.path.as_str()),
                 Selection::Lines(lines) => format!(
@@ -162,6 +163,7 @@ impl ContextAttachment {
     #[must_use]
     pub fn title(&self) -> &str {
         match self {
+            Self::Plugin(item) => item.item.title.as_str(),
             Self::WorkspaceFile(file) => file
                 .path
                 .as_str()
@@ -174,6 +176,7 @@ impl ContextAttachment {
 
     fn same_key(&self, other: &Self) -> bool {
         match (self, other) {
+            (Self::Plugin(a), Self::Plugin(b)) => a.key() == b.key(),
             (Self::WorkspaceFile(a), Self::WorkspaceFile(b)) => a == b,
             (
                 Self::Snapshot {
@@ -185,7 +188,9 @@ impl ContextAttachment {
                     payload: y,
                 },
             ) => a == b && x.id == y.id,
-            (Self::WorkspaceFile(_), Self::Snapshot { .. })
+            (Self::Plugin(_), Self::WorkspaceFile(_) | Self::Snapshot { .. })
+            | (Self::WorkspaceFile(_) | Self::Snapshot { .. }, Self::Plugin(_))
+            | (Self::WorkspaceFile(_), Self::Snapshot { .. })
             | (Self::Snapshot { .. }, Self::WorkspaceFile(_)) => false,
         }
     }

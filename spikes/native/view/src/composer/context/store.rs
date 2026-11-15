@@ -238,7 +238,7 @@ impl ContextTray {
 
 fn replaceable(attachment: &ContextAttachment) -> bool {
     match attachment {
-        ContextAttachment::WorkspaceFile(_) => false,
+        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Plugin(_) => false,
         ContextAttachment::Snapshot { kind, .. } => match kind {
             ContextKind::ChatHistory
             | ContextKind::PullComment
@@ -247,15 +247,14 @@ fn replaceable(attachment: &ContextAttachment) -> bool {
             ContextKind::BrowserElement
             | ContextKind::Review
             | ContextKind::ForgeIssue
-            | ContextKind::ForgeChangeRequest
-            | ContextKind::PluginResource => false,
+            | ContextKind::ForgeChangeRequest => false,
         },
     }
 }
 
 fn source_owned(attachment: &ContextAttachment) -> bool {
     match attachment {
-        ContextAttachment::WorkspaceFile(_) => false,
+        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Plugin(_) => false,
         ContextAttachment::Snapshot { kind, .. } => match kind {
             ContextKind::BrowserElement
             | ContextKind::Review
@@ -263,9 +262,7 @@ fn source_owned(attachment: &ContextAttachment) -> bool {
             | ContextKind::PullComment
             | ContextKind::PullReview
             | ContextKind::PullCheck => true,
-            ContextKind::ForgeIssue
-            | ContextKind::ForgeChangeRequest
-            | ContextKind::PluginResource => false,
+            ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest => false,
         },
     }
 }

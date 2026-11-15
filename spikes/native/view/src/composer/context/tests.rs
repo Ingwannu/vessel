@@ -119,11 +119,7 @@ fn accepted_or_queued_submission_does_not_remove_newer_replacements_or_new_items
 
 #[test]
 fn external_picker_selection_toggles_and_submit_does_not_execute_or_fetch() {
-    for kind in [
-        ContextKind::ForgeIssue,
-        ContextKind::ForgeChangeRequest,
-        ContextKind::PluginResource,
-    ] {
+    for kind in [ContextKind::ForgeIssue, ContextKind::ForgeChangeRequest] {
         let mut tray = ContextTray::default();
         let item = snapshot(kind, "producer-captured-key", "exact context");
         tray.toggle(item.clone()).unwrap();
@@ -181,4 +177,64 @@ fn history_accepts_recent_unicode_context_and_bounds_the_complete_submission() {
         .add(snapshot(ContextKind::Review, "two", "extra"))
         .unwrap();
     assert_eq!(too_much.prepare(), Err(ContextProblem::Text));
+}
+
+#[test]
+fn plugin_context_uses_canonical_source_item_key_and_preserves_captured_generation() {
+    use vessel_proto::plugins::{
+        AttachmentItem, AttachmentSourceAddress, ContributionAddress, ContributionKind,
+        PluginAddress, RuntimeGeneration,
+    };
+    let node = vessel_proto::NodeId::random();
+    let source = ContributionAddress {
+        installation: PluginAddress {
+            node,
+            plugin: "fixture".parse().unwrap(),
+            generation: RuntimeGeneration::random(),
+        },
+        kind: ContributionKind::AttachmentSource,
+        contribution: "issues".parse().unwrap(),
+    };
+    let item = AttachmentItem {
+        id: "ISSUE:42".parse().unwrap(),
+        identifier: "ISSUE-42".parse().unwrap(),
+        title: "Retained title".parse().unwrap(),
+        subtitle: None,
+        url: "https://example.invalid/issues/42".parse().unwrap(),
+        text: "Exact retained context".parse().unwrap(),
+        resource_type: "issue".parse().unwrap(),
+    };
+    let first = vessel_proto::plugins::ContextAttachment {
+        source: AttachmentSourceAddress::try_from(source.clone()).unwrap(),
+        item: item.clone(),
+    };
+    let mut restarted = source;
+    restarted.installation.generation = RuntimeGeneration::random();
+    let later = vessel_proto::plugins::ContextAttachment {
+        source: AttachmentSourceAddress::try_from(restarted.clone()).unwrap(),
+        item: item.clone(),
+    };
+    assert_eq!(first.key(), later.key());
+    let mut tray = ContextTray::default();
+    tray.add(ContextAttachment::Plugin(first.clone())).unwrap();
+    tray.add(ContextAttachment::Plugin(later.clone())).unwrap();
+    assert_eq!(tray.visible().count(), 1);
+    assert_eq!(
+        tray.visible().next(),
+        Some(&ContextAttachment::Plugin(first))
+    );
+    restarted.installation.node = vessel_proto::NodeId::random();
+    let other = vessel_proto::plugins::ContextAttachment {
+        source: AttachmentSourceAddress::try_from(restarted).unwrap(),
+        item,
+    };
+    tray.add(ContextAttachment::Plugin(other)).unwrap();
+    assert_eq!(tray.visible().count(), 2);
+    tray.toggle(ContextAttachment::Plugin(later)).unwrap();
+    assert_eq!(tray.visible().count(), 1);
+    let submitted = tray.prepare().unwrap().unwrap();
+    assert_eq!(
+        submitted.attachments().next().unwrap().text(),
+        "Exact retained context"
+    );
 }

@@ -90,6 +90,20 @@ impl Shell {
         {
             return Err(ContextProblem::Scope);
         }
+        if let ContextAttachment::Plugin(plugin) = &item {
+            let node = match target {
+                DraftKey::Workspace { node, .. } => Some(node),
+                DraftKey::New | DraftKey::Session { .. } => self
+                    .fleet
+                    .machines
+                    .iter()
+                    .find(|machine| machine.name == scope.machine.as_str())
+                    .and_then(|machine| machine.node),
+            };
+            if node != Some(plugin.source.address().installation.node) {
+                return Err(ContextProblem::Scope);
+            }
+        }
         self.context_intake_tray(target)?.reattach(item)?;
         if let Some(field) = self.composer_field(target) {
             field.focus(window, cx);
@@ -235,13 +249,16 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if let ContextAttachment::Snapshot {
-            kind:
-                ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest | ContextKind::PluginResource,
+            kind: ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest,
             payload,
         } = &item
             && let Some(url) = &payload.url
         {
             cx.open_url(url.as_str());
+            return;
+        }
+        if let ContextAttachment::Plugin(item) = &item {
+            cx.open_url(item.item.url.as_str());
             return;
         }
         let preview = &mut self.areas.composer.context_preview;
@@ -253,6 +270,10 @@ impl Shell {
         cx.notify();
     }
     fn context_closed(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if let ContextAttachment::Plugin(item) = &item {
+            cx.open_url(item.item.url.as_str());
+            return;
+        }
         let preview = &mut self.areas.composer.context_preview;
         preview.item = None;
         if let Some(previous) = preview.previous.take() {
@@ -293,6 +314,7 @@ pub(super) fn tray(
         );
         let words = shell.words.composer();
         let (icon, subtitle) = match item {
+            ContextAttachment::Plugin(_) => (Glyph::Boxes, words.context_plugin().to_owned()),
             ContextAttachment::WorkspaceFile(file) => {
                 (Glyph::FileText, file.path.as_str().to_owned())
             }
@@ -307,7 +329,6 @@ pub(super) fn tray(
                     (Glyph::PullRequest, words.context_pull().to_owned())
                 }
                 ContextKind::ForgeIssue => (Glyph::CircleDot, words.context_issue().to_owned()),
-                ContextKind::PluginResource => (Glyph::Boxes, words.context_plugin().to_owned()),
             },
         };
         attachment_pill_scoped(
