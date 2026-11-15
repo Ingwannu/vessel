@@ -209,7 +209,7 @@ impl Turn {
     /// Take in the next record of the session's log (from the turn's
     /// first); a notice if it calls for one.
     pub(crate) fn take(&mut self, event: &SessionEvent) -> Option<Notice> {
-        if let SessionEvent::Renamed { title } = event {
+        if let SessionEvent::Renamed { title, .. } = event {
             self.title = Some(title.as_str().to_owned());
             return None;
         }
