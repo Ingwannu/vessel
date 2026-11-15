@@ -525,3 +525,10 @@ identical to the previously narrow-tested preparation. The parser command
 bound is unchanged while its shared lower-layer successor is reviewed.
 This merge has no conflict resolution. The final service-runtime package
 still owes its canonical ownership producers, actual callers and whole gate.
+
+### Preview matcher/context implementation
+
+The A10 preview module now carries exact literal-loopback origin matchers
+and canonical connection observers without the guard. This does not grant
+network access; no lease, dial or positive proof source is wired. The next
+commit adds the closed unavailable producer and owned connection lifecycle.

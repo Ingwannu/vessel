@@ -1,6 +1,7 @@
 # Node-internal service Preview API
 
-Status: proposed contract; no producer code or runtime grant yet.
+Status: contract source reviewed; staged matcher/context values only.
+Canonical admission, verified connections and runtime grants are not implemented.
 ADR 0066 defines the bounds and security obligations.
 
 ## Consumer shape
@@ -56,7 +57,11 @@ this API, and connection_life.rs provides the canonical close observer.
 
 ## Resume point
 
-Only the contract exists. The prior staged helper/health preparation is
+The staged matcher and context values preserve exact origin equality and
+canonical connection/transport close observers without the lifetime guard.
+Their three tests are authored; narrow execution is pending. Lease, owned
+connection flow and unavailable backend follow in the next source commit.
+The prior staged helper/health preparation is
 narrow checked and separately reviewed; it does not satisfy this API's
 kernel, scheme, ownership or engine qualification. The parser command-bound
 successor belongs to its other owner and remains untouched here.

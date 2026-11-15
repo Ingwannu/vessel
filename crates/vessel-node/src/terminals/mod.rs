@@ -30,6 +30,9 @@ mod port_allocator;
 // Staged until the approval-checked service allocator connects one invocation.
 #[cfg(test)]
 mod port_script;
+// Staged until canonical ownership/peer/scheme admission and browser wiring qualify it.
+#[cfg(test)]
+pub(crate) mod preview;
 mod registry;
 mod scripts;
 mod subscribe;
