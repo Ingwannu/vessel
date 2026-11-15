@@ -1,6 +1,6 @@
 //! Pending field admission and projection cover direct and every nested reply.
 use super::*;
-use crate::dictation::{DictationChange, DictationSettings, SINCE};
+use crate::dictation::{DictationChange, DictationSettings, DictationSwitch, SINCE};
 use crate::forward::Forwarded;
 use crate::{Call, ProtocolVersion, Reply, Request as _};
 
@@ -39,6 +39,42 @@ fn envelopes(reply: Reply) -> [Reply; 3] {
             reply: Box::new(reply),
         }),
     ]
+}
+
+#[test]
+fn default_dictation_keeps_legacy_bytes_and_nondefault_values_remain_visible() {
+    let original = settings();
+    let mut legacy = original.clone();
+    legacy.dictation = None;
+    for (reply, expected) in [
+        (
+            Reply::GetNodeSettings(original.clone()),
+            Reply::GetNodeSettings(legacy.clone()),
+        ),
+        (
+            Reply::SetNodeSettings(original.clone()),
+            Reply::SetNodeSettings(legacy.clone()),
+        ),
+    ] {
+        assert_eq!(
+            serde_json::to_vec(&reply).unwrap(),
+            serde_json::to_vec(&expected).unwrap()
+        );
+        for (nested, expected) in envelopes(reply).into_iter().zip(envelopes(expected)) {
+            assert_eq!(
+                serde_json::to_vec(&nested).unwrap(),
+                serde_json::to_vec(&expected).unwrap()
+            );
+        }
+    }
+    let mut changed = original;
+    changed.dictation.as_mut().unwrap().switch = DictationSwitch::Off;
+    assert!(
+        serde_json::to_value(changed)
+            .unwrap()
+            .get("dictation")
+            .is_some()
+    );
 }
 
 #[test]

@@ -931,6 +931,15 @@ expects the ADR's Unavailable rather than mirroring the earlier incorrect
 Conflict. No input, deadline, refusal reason or admission policy is relaxed.
 The new tests remain unexecuted until the checked-writer integration runtime.
 
+A later contract audit also found that the optional effective-view field skipped
+only None, although this ADR promises omission when every dictation value is the
+default. Serialization now reuses DictationSettings::is_default; capability still
+comes from negotiated protocol. A regression compares actual serialized bytes
+with the legacy settings shape on both replies and all three envelope forms,
+then proves a nondefault switch remains visible. It changes no assigned number
+or projection rule. The queued merged-runtime snapshot predates this correction;
+its new pure-Proto test and final package freshness remain owed separately.
+
 The presence-read availability tradeoff is now explicit in ADR 0067. A regression
 uses the real selected secret store, corrupts it, and requests only a parking
 change: the supported reply must refuse before either the saved settings file or

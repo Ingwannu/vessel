@@ -41,9 +41,16 @@ pub struct NodeSettings {
     /// This value-only field does not enable an engine or register input.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
-    /// Dictation support and effective settings; hidden for unsupported peers.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Effective dictation settings; default and unsupported views omit them.
+    /// Capability follows the peer's protocol, not the presence of this field.
+    #[serde(default, skip_serializing_if = "dictation_is_default")]
     pub dictation: Option<crate::dictation::DictationSettings>,
+}
+
+fn dictation_is_default(value: &Option<crate::dictation::DictationSettings>) -> bool {
+    value
+        .as_ref()
+        .is_none_or(crate::dictation::DictationSettings::is_default)
 }
 
 impl NodeSettings {
