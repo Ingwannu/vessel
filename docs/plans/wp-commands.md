@@ -859,3 +859,18 @@ picker size allowance decreases to804. Incoming W19 popover/W12 close-target,
 attention/save-prefs extraction do not grant missing desktop or session-open
 controller authority. New union checks are owed; f0eb results above stay scoped
 to the preceding base8b combination. Gating e670 zoom source is not adopted.
+
+Exact73881ef48dff51dd66bea047044db2e54b0ec433 base8d union is checked:
+Kit+App all-target strict R18 rc0, run
+wp-commands-narrow-20261115T161437Z-73881ef4; actual App+Kit lib/bins R10
+331pass/0fail/2ignore (App126/0/2, Kit205/0/0), run
+wp-commands-20261115T161437Z-73881ef4. Updated shared picker/dialog/popover
+admission tests and actual window-search/Backspace/focus/CodeEditor IME cases
+executed and passed. View1049/0/0 remains exactf0eb prior-source evidence, not
+a repeated current-View execution claim. This is still a narrow union result;
+no final whole gate, captures, V4 or missing feature-owner acceptance.
+
+W19 native OS edit-menu wrappers088a6c266 are a source-only follow-up beyond
+ec90's actual unit21 result. Retained popup/recorder UI tests do not establish
+OS native Undo/Redo/Cut/Copy/Paste/SelectAll admission; eventual recorder union
+must use the checked owner routing delta. No E3 moving branch is adopted.
