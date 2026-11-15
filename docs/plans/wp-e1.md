@@ -432,3 +432,16 @@ leave their whole outcomes red. No combined head was announced, and no
 app adoption or seven native compatibility tests are inferred. The
 individual test receipt neither waives those failures nor authorizes a
 parallel root-value definition or duplicate own test run.
+
+The later node head9c150c6efbff583762d02e6a8576b3fa66cc7ae9 is now
+announced with whole gate50c green:
+node-line-20261115T153809Z-9c150c6e, `/tmp/work/int-node/gate50c-attach`.
+All18 step return codes and original log SHA prefixes were independently
+matched; raw Rust totals are2549/0/12 and all nine named book_ tests are
+ok. The five producer/source-test blobs still equal7becce7f. This closes
+the public-value producer's whole-node execution debt; earlier red
+receipts remain accurately red. The app receives these values through
+the lead's base9 decision, which is still separate from this receipt.
+No frozen native source was merged, and the seven native old-path
+compatibility tests, client route/private-file executions and E1 format/
+transaction/upsert/real-transport/permission implementation remain owed.
