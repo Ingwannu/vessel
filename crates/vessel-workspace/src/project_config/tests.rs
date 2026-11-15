@@ -40,15 +40,22 @@ async fn malformed_source_can_be_repaired_but_an_invalid_save_changes_nothing() 
     std::fs::write(&path, "[worktree\nsetup = 'broken'").unwrap();
     let invalid = read(root.clone()).await.unwrap();
     assert_eq!(invalid.validity, ConfigValidity::Invalid);
-    assert!(matches!(
-        write(
-            root.clone(),
-            invalid.revision.clone(),
-            source("[worktree\n")
-        )
-        .await,
-        Err(ConfigEditError::Invalid)
-    ));
+    let rejected_source = "[worktree\n";
+    let error = write(
+        root.clone(),
+        invalid.revision.clone(),
+        source(rejected_source),
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(error, ConfigEditError::Invalid(_)));
+    assert!(
+        std::error::Error::source(&error)
+            .unwrap()
+            .is::<ProjectFileError>()
+    );
+    assert!(!format!("{error:?}").contains(rejected_source));
+    assert!(!error.to_string().contains(rejected_source));
     assert_eq!(
         std::fs::read_to_string(&path).unwrap(),
         invalid.text.as_str()

@@ -49,7 +49,7 @@ impl Workspaces {
 
 fn edit_error(error: &ConfigEditError) -> WireError {
     let code = match error {
-        ConfigEditError::Invalid
+        ConfigEditError::Invalid(_)
         | ConfigEditError::NotText(_)
         | ConfigEditError::Text(_)
         | ConfigEditError::Read(_)

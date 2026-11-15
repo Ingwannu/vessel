@@ -7,6 +7,7 @@
 
 use sha2::{Digest as _, Sha256};
 use std::{
+    fmt,
     path::{Path, PathBuf},
     str,
 };
@@ -22,7 +23,7 @@ use crate::{
 };
 
 /// Failures intentionally do not format source bytes or parser diagnostics into messages.
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 pub enum ConfigEditError {
     /// The registered root is gone or unreadable.
     #[error("the project directory cannot be read")]
@@ -38,7 +39,7 @@ pub enum ConfigEditError {
     Text(#[source] ConfigTextError),
     /// Validation fails before writing; parser source is not echoed.
     #[error("the project configuration does not match the vessel.toml schema")]
-    Invalid,
+    Invalid(#[source] ProjectFileError),
     /// Ordinary atomic-file replacement or its content precondition failed.
     #[error("the project configuration could not be saved")]
     Write(#[source] files::FileError),
@@ -48,6 +49,15 @@ pub enum ConfigEditError {
     /// Runtime shutdown/panic is not a successful read or write.
     #[error("the project configuration task stopped")]
     Task(#[source] tokio::task::JoinError),
+}
+
+// Parser causes remain typed for callers, while Debug must never echo TOML source.
+impl fmt::Debug for ConfigEditError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConfigEditError")
+            .field("message", &format_args!("{self}"))
+            .finish()
+    }
 }
 
 /// Read missing files as an editable empty document; malformed TOML stays repairable.
@@ -93,9 +103,8 @@ pub async fn write(
     expected: ConfigRevision,
     text: ConfigText,
 ) -> Result<ConfigDocument, ConfigEditError> {
-    if ProjectFile::parse(text.as_str().as_bytes()).is_err() {
-        return Err(ConfigEditError::Invalid);
-    }
+    let _validated =
+        ProjectFile::parse(text.as_str().as_bytes()).map_err(ConfigEditError::Invalid)?;
     let root = tokio::task::spawn_blocking(move || Root::open(&folder))
         .await
         .map_err(ConfigEditError::Task)?

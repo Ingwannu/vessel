@@ -144,3 +144,11 @@ intact; the architecture merge appends the project sections after the head's new
 sections. Current strict/config checks are owed on this union, and generated
 wire freshness will be checked remotely before a whole C1 gate. No real actor,
 editor, service or filesystem outside isolated tests was started.
+
+A manual source audit also found invalid-save parsing discarded its typed cause
+through is_err. ConfigEditError now keeps ProjectFileError as its source, while
+a manual Debug delegates only to the already-redacted public Display message.
+The invalid-save regression checks both retained typed cause and absence of the
+rejected TOML in Display/Debug, while preserving the existing no-write assertion.
+This requires a new current-head check; the previous source's 4/0 result does
+not verify the new error surface. No config payload is added to wire errors.
