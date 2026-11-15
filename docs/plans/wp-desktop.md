@@ -347,3 +347,30 @@ The local Overview contribution is read-only provenance plus navigation to
 General; it no longer embeds stop/restart or policy controls under host context.
 Canonical Machine provenance/Unknown and Book-only edit fences remain the E2/G4
 integration contract; no alias-only locality inference is introduced.
+
+### Irrevocable OS exit and GPUI's 200ms shutdown window
+
+Verified local GPUI0.3.10 app.rs:79 and shutdown:1219-1268: on_app_quit cannot
+veto and waits only SHUTDOWN_TIMEOUT=200ms, then cancels its futures. Waiting for
+our 15s protected stop there could cancel the callback before its Keep fallback
+and drop the runtime/owned child. Ordinary quit/update remain unchanged: they
+check documents, flush canonical preferences and await protected finalization
+BEFORE App::quit or updater.restart.
+
+The backstop now synchronously sends Preserve to a bounded one-slot supervisor
+created before any local child starts. That existing supervisor owns the reactor,
+requests KeepRunning without an interruption confirmation, and retains runtime
+and direct-child reaper while the launcher lives until observed exit. Controller
+Drop's later Ordinary message cannot override the first handed-off policy. No
+saved Keep preference is changed. Thread creation failure occurs before actor
+launch, with the existing typed runtime error. There is still one process-wide
+controller, not a second quit manager or a process signal API.
+
+The observer does NOT promise a release acknowledgement within200ms. If the OS
+ends the process before the queued release executes, releasable-process
+launcher-death semantics apply (including the documented Windows crash-policy
+cost); no PID is re-owned later. No document recovery journal or forced-OS-exit
+save guarantee is claimed. Synthetic runtime tests cover real supervisor/thread
+ownership, original UI sender drop while release acknowledgement is held, reaper
+runtime survival, eventual observed exit and ordinary owner cleanup. Actual
+GPUI/OS-exit/node integration and Windows/macOS remain unverified.
