@@ -83,6 +83,18 @@ have identical membership. Node-run eligibility remains authoritative.
 Recording an entry does not execute or install it. No mutation producer or
 screen is implemented by these pure rules yet.
 
+The borrowed catalog presentation now distinguishes never requested, the
+node's still-unfetched cache, initial loading/failure, fetched empty,
+filtered empty and nonempty ranked rows. A successfully fetched copy stays
+visible during refresh/failure, with a retained failure said only once;
+an unfetched default reply cannot masquerade as successful empty data.
+This module owns no second cache or request channel. The existing page must
+still supply only its own node/ticket-accepted copy when the reader is wired.
+These network states are a necessary difference from Paseo's static ACP
+catalog; loading/error furniture follows ProviderModalBody 488–570.
+The new Korean registry words use “프로바이더”, matching the existing
+Settings section label rather than introducing another noun for that page.
+
 ## Resume point and verification
 
 The configured-route Models candidate and protocol-admission compatibility

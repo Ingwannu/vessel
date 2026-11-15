@@ -35,3 +35,9 @@ agent-catalog-empty = No providers are listed in the registry.
 
 # A nonempty search yields no matching registry title/id. No values.
 agent-catalog-no-matches = No providers match your search.
+
+# The node has no fetched copy yet; never claims successful empty results.
+agent-catalog-not-read = The provider registry has not been read yet.
+
+# Initial fetch, beside the existing small loader. No values.
+agent-catalog-reading = Reading the provider registry…

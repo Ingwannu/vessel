@@ -17,6 +17,9 @@ use vessel_proto::{HarnessKind, HarnessRef, HttpUrl};
 
 use crate::{alphabetical, matcher::Query};
 
+mod presentation;
+pub use presentation::{Activity, Body, Presentation, Read, present};
+
 /// Whether the node found the command's package runner; neither value says
 /// that the agent has been installed or signed in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
