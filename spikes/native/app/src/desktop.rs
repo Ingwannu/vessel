@@ -229,6 +229,21 @@ pub(crate) fn with_focused_shell(
     }
 }
 
+/// Quit admission reads document owners through the existing window registry.
+/// Closed windows and expired entities grant no retained document target.
+pub(crate) fn shells(cx: &App) -> Vec<WeakEntity<Shell>> {
+    let Some(desktop) = cx.try_global::<Desktop>() else {
+        return Vec::new();
+    };
+    let windows = cx.windows();
+    desktop
+        .records
+        .iter()
+        .filter(|record| windows.contains(&record.window))
+        .filter_map(|record| record.shell.upgrade().map(|shell| shell.downgrade()))
+        .collect()
+}
+
 /// Canonical current local policy is shared across every window.
 pub(crate) fn current_local_preferences(cx: &App) -> vessel_app_view::local_node::Preferences {
     cx.global::<Desktop>().preferences.current().local_node
