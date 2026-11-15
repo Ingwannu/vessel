@@ -17,6 +17,7 @@ fn ask() -> IndexAsk {
         .refresh(
             IndexTarget {
                 machine: MachineKey::from_book("fixture"),
+                node: None,
                 session: SessionId::random(),
             },
             None,

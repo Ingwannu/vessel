@@ -29,6 +29,7 @@ impl Shell {
                     return;
                 }
                 let earlier = std::mem::replace(&mut self.fleet, fleet);
+                self.prompt_index_fleet_changed();
                 self.offers_fleet(&earlier);
                 if !self.loaded {
                     self.loaded = true;

@@ -80,6 +80,12 @@ impl Shell {
         };
         let target = IndexTarget {
             machine: MachineKey::from_book(&shown.machine),
+            node: self
+                .fleet
+                .machines
+                .iter()
+                .find(|machine| machine.name == shown.machine)
+                .and_then(|machine| machine.node),
             session: shown.session,
         };
         let latest = area
@@ -118,6 +124,9 @@ impl Shell {
     }
 
     pub(super) fn prompt_index_records(&mut self, records: &[EventRecord]) {
+        if self.route != crate::routes::Route::Session {
+            return;
+        }
         if self.areas.conversation.prompts.jump.is_some()
             && self.areas.conversation.reveal.is_none()
         {
@@ -137,6 +146,13 @@ impl Shell {
             self.prompt_index_ask(ask);
         }
         self.prompt_index_refresh();
+    }
+
+    /// A replaced welcome id invalidates pages even if book name/session UUID match.
+    pub(crate) fn prompt_index_fleet_changed(&mut self) {
+        if self.route == crate::routes::Route::Session {
+            self.prompt_index_refresh();
+        }
     }
 
     /// A loaded prompt reveals immediately; an unloaded address waits on Follow.

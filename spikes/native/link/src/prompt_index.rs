@@ -60,6 +60,15 @@ mod native {
                     .await;
                 return;
             };
+            if ask.target.node.is_some_and(|node| client.node().id != node) {
+                let _closed = events
+                    .send(crate::Event::PromptIndex(IndexAnswer {
+                        ask,
+                        result: Err(IndexProblem::Connection),
+                    }))
+                    .await;
+                return;
+            }
             let Ok(permit) = Arc::clone(&self.0).try_acquire_owned() else {
                 let _closed = events
                     .send(crate::Event::PromptIndex(IndexAnswer {

@@ -216,6 +216,8 @@ impl Shell {
         if let Some(shown) = self.areas.conversation.shown.as_mut()
             && shown.machine_renamed(from, to)
         {
+            self.areas.conversation.prompts.clear();
+            self.areas.conversation.outline_pointer.clear();
             cx.notify();
         }
     }

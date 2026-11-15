@@ -5,7 +5,7 @@ use crate::devices::MachineKey;
 use vessel_proto::prompt_index::{
     INDEX_ENTRIES, ListSessionPrompts, PromptIndexEpoch, PromptIndexPage, PromptLocation,
 };
-use vessel_proto::{ErrorCode, EventSeq, SessionId};
+use vessel_proto::{ErrorCode, EventSeq, NodeId, SessionId};
 
 mod rows;
 pub use rows::{PromptRow, PromptRows};
@@ -15,6 +15,8 @@ pub use rows::{PromptRow, PromptRows};
 pub struct IndexTarget {
     /// Already admitted node-book key.
     pub machine: MachineKey,
+    /// Welcome identity from the shared fleet projection, when connected.
+    pub node: Option<NodeId>,
     /// The retained log to navigate.
     pub session: SessionId,
 }

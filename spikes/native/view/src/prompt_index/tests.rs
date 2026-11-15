@@ -5,6 +5,7 @@ use vessel_proto::prompt_index::PromptPreview;
 fn target(name: &str) -> IndexTarget {
     IndexTarget {
         machine: MachineKey::from_book(name),
+        node: None,
         session: SessionId::random(),
     }
 }
