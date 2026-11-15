@@ -12,7 +12,7 @@ use vessel_app_view::schedules::{
 #[derive(Debug)]
 pub(super) struct Data {
     pub(super) page: Page,
-    pub(super) editor: vessel_app_view::schedules::editor::io::Mailbox,
+    pub(super) editor: vessel_app_view::schedules::editor::session::Model,
     pub(super) history: vessel_app_view::schedules::history::reader::Reader,
     pub(super) history_cache:
         Result<Option<vessel_app_view::schedules::history::presentation::Page>, Notice>,
@@ -27,7 +27,7 @@ impl Default for Data {
     fn default() -> Self {
         Self {
             page: Page::default(),
-            editor: vessel_app_view::schedules::editor::io::Mailbox::default(),
+            editor: vessel_app_view::schedules::editor::session::Model::default(),
             history: vessel_app_view::schedules::history::reader::Reader::default(),
             history_cache: Ok(None),
             rows: Vec::new(),
@@ -63,7 +63,17 @@ impl Data {
                 let result = answer
                     .result
                     .map_err(|error| error.editor_failure(answer.request.operation()));
-                self.editor.settle(&answer.request, result)
+                match self.editor.received(&answer.request, result) {
+                    vessel_app_view::schedules::editor::session::Received::Ignored => false,
+                    vessel_app_view::schedules::editor::session::Received::Changed => true,
+                    vessel_app_view::schedules::editor::session::Received::Saved { .. } => {
+                        // Only an actual matching node save invalidates the list.
+                        // The model closes its visit first; UI dismissal must ACK
+                        // that same visit when the editor surface is mounted.
+                        self.page.refresh();
+                        true
+                    }
+                }
             }
         }
     }

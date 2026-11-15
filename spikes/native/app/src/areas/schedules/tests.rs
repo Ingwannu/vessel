@@ -196,12 +196,14 @@ fn a_form_submission_refused_by_the_local_queue_settles_its_original_mailbox() {
         (Rejected::Closed, Failure::Offline),
     ] {
         let (mut data, original) = initial().unwrap();
-        let request = io::Request::on(
-            original.connection().clone(),
-            original.ticket,
-            io::Operation::Targets,
-        );
-        data.editor.begin(request.clone());
+        let zone = vessel_proto::automation::TimeZoneName::utc();
+        let cadence = vessel_app_view::schedules::editor::cadence::initial(zone.clone()).unwrap();
+        let visit = data.editor.create(cadence, zone).unwrap().unwrap();
+        let opened = data
+            .editor
+            .select_host(visit, original.connection().clone())
+            .unwrap();
+        let request = opened.request;
         let returned = Unsent::new(why, Command::Schedules(request.clone().into()));
         let crate::unsent::Settle::Answer(event) =
             crate::unsent::settle(returned, "unused private diagnostic")
@@ -212,7 +214,13 @@ fn a_form_submission_refused_by_the_local_queue_settles_its_original_mailbox() {
             panic!("not schedules")
         };
         assert!(data.message(message));
-        assert_eq!(data.editor.request(), Some(&request));
+        assert_eq!(
+            data.editor
+                .mailbox(&io::Operation::Targets)
+                .unwrap()
+                .request(),
+            Some(&request)
+        );
         assert_eq!(data.editor.failure(), Some(&failure));
         assert!(data.editor.value().is_none());
     }

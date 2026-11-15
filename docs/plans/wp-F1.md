@@ -924,3 +924,16 @@ the original archived result. No resident, follow or layout slot is allocated,
 and no legacy alias-only opener is called. W12's checked context-bound live
 opener and post-queue delivery capability are still required before an Open chat
 control can be enabled. New source is not the frozen c79 narrow's evidence.
+
+
+### App editor replies use the form owner
+
+The temporary single editor mailbox in app Data is replaced with the existing
+pure session::Model. Actual FormReplied messages now settle its exact operation
+slot/context/ticket and preserve its form visit, authority and save state; no
+second App correlation store is added. Only matching authoritative Saved closes
+the model and invalidates the list for a fresh node read. The local queue-refusal
+regression now opens/selects a real model visit rather than directly beginning
+a raw mailbox. This is controller plumbing only: the New/Edit surfaces and
+actual-close dialog ACK are still not exposed or verified. The c79 check remains
+an earlier immutable source and cannot prove this later integration.
