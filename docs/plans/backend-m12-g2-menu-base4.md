@@ -93,3 +93,12 @@ requires current keyed-target/pending/authority guards in callers; a rendered
 snapshot/index guard is not stale-ticket protection. Historical Linux F5 and
 actual hit/clip/neighbor/consumer evidence remain open. No whole F1 branch or
 unimplemented ProviderRow/modal/passive control was handed off.
+
+The same exact8158be6d ordinary App Clippy run
+schedules-narrow-20261115T091044Z-8158be6d finished0 (fonts/cargo0/no skip),
+with actual View/Kit/Link/App checking. Steps SHA256
+eefd457ec994075a0ab1ea21b7fdaf690f431d40f546ced5052252c76b2d911c.
+The prior queued statement records the earlier submission state; it is not a
+second source review or an assertion of full native/consumer/runtime/UI approval.
+This completes the planned narrow suite for that immutable producer; no unchanged
+whole gate is added. The existing V1 Kit source disposition remains bounded.
