@@ -230,3 +230,19 @@ without a label filter; a project emptied by hidden rows or label filtering
 drops. The picker must continue reading the unfiltered project catalog. These
 helpers follow `sidebar-model.tsx:89–167`, `sidebar-project-filter.ts` and
 `sidebar-labels.ts`; real registry hydration and row integration remain owed.
+
+The matching pure `sidebar::callouts::State<I,C>` retains provider-owned typed
+identity and payload. Replacement preserves source tie order but advances an
+opaque token, so old cleanup cannot remove a new registration. Highest priority
+wins; ties keep first registration. Durable notices wait for the preference
+read before admission; ephemeral notices can show immediately. Dismissing
+retains the key, while clearing providers preserves keys and token history.
+Tests cover replacement/cleanup, loading, priority, durable suppression, a
+different project's key and serialization restart.
+
+Unlike the source's unbounded arrays, this native edge refuses more than32
+providers,128 retained dismissal keys or512 UTF-8 bytes per key. The bounds
+limit retained file/provider input and never evict older choices. A refusal
+leaves the prior state intact and must be surfaced by the caller; the source
+provider facts and final persistence hooks remain outside this pure module.
+This model is not a claim that setup/update/Rosetta admission is wired.

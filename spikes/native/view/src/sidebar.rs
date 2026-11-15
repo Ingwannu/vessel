@@ -26,6 +26,7 @@ use vessel_proto::SessionId;
 use crate::board::{Card, Fleet, Machine, Reach};
 use crate::prefs::{Grouping, SessionSort, SidebarView};
 
+pub mod callouts;
 pub mod display;
 pub mod filters;
 pub mod navigation;
