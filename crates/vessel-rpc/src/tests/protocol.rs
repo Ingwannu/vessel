@@ -373,4 +373,7 @@ async fn malformed_creation_labels_are_refused_before_dispatch() {
     );
 }
 
+mod decode_privacy;
 mod inbox;
+
+mod labels;

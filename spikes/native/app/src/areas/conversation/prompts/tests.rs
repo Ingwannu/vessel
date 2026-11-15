@@ -239,6 +239,7 @@ fn prompt_navigation_retries_after_the_same_node_negotiates_new_capabilities(
             sessions: Vec::new(),
             agents: Vec::new(),
             node: Some(NodeId::random()),
+            connection_epoch: None,
             protocol: Some(ProtocolVersion::new(
                 PROTOCOL_VERSION.get().checked_sub(1).unwrap(),
             )),

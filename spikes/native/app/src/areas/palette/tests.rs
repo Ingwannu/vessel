@@ -75,6 +75,7 @@ fn machine(name: &str) -> Machine {
         protocol: Some(vessel_proto::PROTOCOL_VERSION),
         version: None,
         node: None,
+        connection_epoch: None,
     }
 }
 
