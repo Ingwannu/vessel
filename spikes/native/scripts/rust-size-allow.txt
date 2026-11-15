@@ -13,7 +13,7 @@ spikes/native/app/src/areas/draft/pickers.rs 1190
 spikes/native/app/src/areas/session.rs 720
 spikes/native/app/src/areas/workspace/detail.rs 522
 spikes/native/app/src/areas/workspace/projects.rs 593
-spikes/native/kit/src/picker.rs 829
+spikes/native/kit/src/picker.rs 805
 spikes/native/kit/src/slider.rs 711
 spikes/native/link/src/demo.rs 515
 spikes/native/view/src/text/conversation/session.rs 555
