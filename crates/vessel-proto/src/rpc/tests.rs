@@ -634,6 +634,7 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "session.detach",
     "workspace.registry",
     "workspace.list",
     "workspace.get",
