@@ -856,23 +856,6 @@ impl State {
         }
     }
 
-    /// Keep a session's reported commands for `harness` on `machine`'s
-    /// node (by its id, as its options are); a machine not connected has no
-    /// id to keep them under, and they are dropped (its next session
-    /// reports them again).
-    fn keep_commands(&self, machine: &str, harness: HarnessRef, commands: Vec<AgentCommand>) {
-        let Ok(client) = self.client(machine) else {
-            return;
-        };
-        drop(tokio::spawn(offers::keep_answer(
-            std::sync::Arc::clone(&self.offers),
-            client.node().id,
-            harness,
-            offers::Said::Commands(commands),
-            Utc::now(),
-        )));
-    }
-
     fn client(&self, machine: &str) -> Result<&NodeClient, LinkError> {
         self.clients
             .get(machine)

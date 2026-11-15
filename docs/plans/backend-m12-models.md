@@ -94,3 +94,32 @@ records the measured 952 lines instead of 988. The root actor's existing
 `Command::Options` arm is unchanged; the moved method is now reachable
 through that same caller. A13 on this registered head is pending. No Models
 screen, loader or registry behavior is included in this move/registration.
+
+## A16 package boundary and remaining dispatcher headroom
+
+Under A14, Models is the user-visible feature package. The extra queued
+options-only whole gate was cancelled before acquiring a slot (exit 143,
+not a pass). The registered move did pass local narrow link Clippy and all
+65 link tests. Final Models source, one A13 gate and first-use captures are
+submitted together; there is no further whole gate for a helper commit.
+The earlier removal correction independently has V1 source/gate pass.
+
+The reviewed minimal shared loader was consumed as `df4ee7ae` (upstream
+`434933b3`) plus its results-only note `d35508fc` (`533b21ff`). The assigned
+shell-event extraction is `8317ee05` (`31495e4d`), with one unchanged event
+dispatcher, creating room for a single Models forwarding arm. No menu or
+newer vendor-mark chain was taken.
+
+The coordinator also delegated the unchanged `State::keep_commands` method
+to `options.rs`, beside the same retained-agent-list cache path. Its real
+root actor caller stays in place and visibility becomes `pub(super)`. This
+move-only commit keeps the current 952 record unchanged; the following
+Models registration measures and lowers the final record. This is necessary
+because adding registration lines must never raise a shrunken allowance.
+The function body, its client lookup, cache data, timestamp and task order
+remain unchanged. No new RPC, assertion or dependency belongs to the move.
+
+New Models words use `locales/en/models.ftl` and `locales/ko/models.ftl`
+through the generated, cached Fluent scope already on this lead baseline.
+The translation owner confirmed that the new domain is not otherwise owned.
+Existing Agents tables and translation-engine code are not changed.

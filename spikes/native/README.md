@@ -80,9 +80,10 @@ The original page ticket/ACK path applies the result. The Remove UI producer
 is still absent pending its shared control, not a second area trigger.
 See `docs/plans/backend-m12-agents-removal.md` for the contract and test scope.
 
-The existing agent-option query/cache method lives in private native
-`link/src/options.rs`; the root actor still calls it for `Command::Options`.
-Its module split changes no request, cache order or event.
+The existing agent-option query and retained-command cache updater live in
+private native `link/src/options.rs`; the root actor still calls their
+existing `Command::Options` and `Command::KeepCommands` paths. Their module
+split changes no request, cache order or event.
 
 Data flow: `link` lists every book node's sessions every two seconds (the
 page's cadence) and sends a `Fleet`; opening a session follows its log
