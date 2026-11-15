@@ -407,6 +407,11 @@ mod tests {
                 process: NodeProcess(child.pid()),
                 file: fixture.writer.file.clone(),
             };
+            let reference = Directory::open(Path::new("/proc"), selected.process).unwrap();
+            let generation =
+                crate::lock::generation::Proof::capture(&reference.path(), selected.process)
+                    .unwrap();
+            generation.confirm(&reference.path()).unwrap();
             let error = Proof::capture(&selected).unwrap_err();
             assert!(matches!(
                 error.get_ref().and_then(|e| e.downcast_ref::<Error>()),
@@ -421,6 +426,15 @@ mod tests {
             // its fake grandchild. No PID from the observation is signalled.
             drop(stdin);
             assert_eq!(child.wait().await.unwrap(), Some(0));
+            let gone = generation.confirm(&reference.path()).unwrap_err();
+            assert!(
+                gone.kind() == io::ErrorKind::NotFound
+                    || gone.raw_os_error()
+                        == io::Error::from(nix::errno::Errno::ESRCH).raw_os_error(),
+                "a retained reference to the exited fake must refuse: {gone}"
+            );
+            // Actual process disappearance is checked here; reusing its
+            // numeric PID is not simulated or inferred from this case.
             drop(stderr);
             held.unlock().unwrap();
         })

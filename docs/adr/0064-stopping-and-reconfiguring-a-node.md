@@ -965,7 +965,10 @@ and alternative filesystem behavior remains unverified.
   hierarchy or namespace facility is a refusal, never permission to signal.
   Candidate processes in another PID namespace are conservatively refused.
 
-The real held-lock fixture exercises capture on Linux. Tests cover opaque
+The real held-lock fixture exercises capture on Linux. The unrelated live
+fake is also observed through a retained proc reference; after its owned
+child exits, the old reference must refuse with the OS disappearance error.
+Tests cover opaque
 command bytes, missing and invalid numbers, changed generation, namespace
 hierarchy ambiguity and actual namespace-file identity disagreement. These
 are not a demonstration of real PID reuse or a child entering a PID namespace;

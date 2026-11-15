@@ -504,5 +504,6 @@ types, and bracket the descriptor evidence with equal captures. The observer
 must have exactly its own NStgid namespace level and the candidate's active
 namespace file must match the retained observer namespace. Refuse ambiguous,
 missing or changed data. Test numeric/opaque-command boundaries, generation
-change, an independent stat-layout fixture and hierarchy/namespace mismatch; actual PID reuse and child namespace
+change, actual owned-child disappearance, an independent stat-layout fixture
+and hierarchy/namespace mismatch; actual PID reuse and child namespace
 mutation remain unverified. No signal API or unused future public wrapper.
