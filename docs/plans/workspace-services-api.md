@@ -459,3 +459,8 @@ reads; the values package provides no qualified web consumer. Its complete
 refused-method test gains only the new methods, and decoding tests cover
 service Read and Admin requests. A future browser admission change needs a
 separate reviewed decision, rather than inheriting CLI/native admission.
+
+The third strict check reached the client fixtures and rejected ownership of
+an error that the assertion only inspects. The fixture now borrows each
+returned error; its exact variant/method assertions and all budgets remain
+unchanged. That earlier check ran no tests either.

@@ -22,8 +22,10 @@ fn start() -> StartWorkspaceScript {
     }
 }
 
-fn unassigned(error: crate::CallError, expected: Method) {
-    assert!(matches!(error, crate::CallError::UnassignedProtocol { method } if method == expected));
+fn unassigned(error: &crate::CallError, expected: Method) {
+    assert!(
+        matches!(error, crate::CallError::UnassignedProtocol { method } if *method == expected)
+    );
 }
 
 async fn direct_reads(client: &NodeClient) -> Vec<Call> {
@@ -37,11 +39,11 @@ async fn direct_reads(client: &NodeClient) -> Vec<Call> {
         snapshot: request.snapshot,
     };
     unassigned(
-        client.workspace_scripts(query.clone()).await.unwrap_err(),
+        &client.workspace_scripts(query.clone()).await.unwrap_err(),
         Method::ListWorkspaceScripts,
     );
     unassigned(
-        client.workspace_service_env(env.clone()).await.unwrap_err(),
+        &client.workspace_service_env(env.clone()).await.unwrap_err(),
         Method::GetWorkspaceServiceEnv,
     );
     vec![query.into_call(), env.into_call()]
@@ -59,21 +61,21 @@ async fn direct_operations(client: &NodeClient) -> Vec<Call> {
         definition: request.definition.clone(),
     };
     unassigned(
-        client
+        &client
             .start_workspace_script(request.clone())
             .await
             .unwrap_err(),
         Method::StartWorkspaceScript,
     );
     unassigned(
-        client
+        &client
             .stop_workspace_script(stop.clone())
             .await
             .unwrap_err(),
         Method::StopWorkspaceScript,
     );
     unassigned(
-        client
+        &client
             .restart_workspace_script(restart.clone())
             .await
             .unwrap_err(),
@@ -93,18 +95,18 @@ async fn direct_admin(client: &NodeClient) -> Vec<Call> {
         change: ServiceExposureChange::Private,
     };
     unassigned(
-        client.service_settings().await.unwrap_err(),
+        &client.service_settings().await.unwrap_err(),
         Method::GetServiceSettings,
     );
     unassigned(
-        client
+        &client
             .set_service_gateway(gateway.clone())
             .await
             .unwrap_err(),
         Method::SetServiceGateway,
     );
     unassigned(
-        client
+        &client
             .set_service_exposure(exposure.clone())
             .await
             .unwrap_err(),
@@ -153,7 +155,7 @@ async fn forged_envelopes(client: &NodeClient, id: NodeId, call: &Call) {
         ] {
             let method = envelope.method();
             let unary = crate::UnaryCall::try_from(envelope).unwrap();
-            unassigned(client.call_any(unary).await.unwrap_err(), method);
+            unassigned(&client.call_any(unary).await.unwrap_err(), method);
         }
     }
 }
