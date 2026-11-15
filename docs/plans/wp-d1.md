@@ -215,3 +215,8 @@ saved alias is replaced by B before the asynchronous task runs. Peer RPC tests
 use the real typed NodeClient over in-memory framed transport, no process/agent.
 No transport/hardware/whole-D1 pass is inferred. Per-commit security review is
 owed after exact changed-source narrow checks.
+
+The bound-history changed-package strict check caught `get_unwrap` in the
+keyboard oracle test, before a green report. Direct test indexing replaces
+that spelling; fixture values and every assertion remain unchanged. The
+failed log is preserved and a changed-source check is still owed.

@@ -60,7 +60,7 @@ fn all_named_keys_modifiers_protocols_and_cursor_modes_match_paseo_bytes() {
     assert_eq!(reference.cases.len(), 4352);
     for (index, mask, application, mode, expected) in reference.cases {
         assert!(mask < 16);
-        let name = reference.keys.get(index).unwrap();
+        let name = &reference.keys[index];
         let modes = KeyModes {
             cursor: match application {
                 0 => CursorKeys::Normal,
