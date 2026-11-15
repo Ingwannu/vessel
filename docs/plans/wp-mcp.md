@@ -573,3 +573,15 @@ closes that selected test only; the preceding functional run remains
 1317 passed, one timeout failure, four ignored. V3 has source-settled the
 diagnostic and bounded-owner corrections through `b853fdda`; this does not
 replace the exact changed-source execution or whole-package gate.
+
+## Row 618: durable finish subscription proposal
+
+The proposed ADR 0033 amendment records the restart difference against Paseo
+0.15.4 finish-subscriptions, the existing watcher/Store reuse, a bounded private
+NoticeKey and exact source identity, captured grant/current parent lifetime,
+acknowledged replacement, finite storage and recovery admission. W23 owns the
+missing durable actor-ticket binding and internal receipt namespace; public
+SubmitPrompt cannot select it and Unobserved cannot license resend. W10's
+canonical notification body remains unchanged. No persistence, schema number,
+RPC or duplicate watcher is implemented. W23 alignment and V3 contract review
+precede implementation; row 618 remains pending those dependencies.

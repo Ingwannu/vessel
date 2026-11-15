@@ -294,3 +294,237 @@ UTC offset, so the first and last civil days of the extreme years are not
 all supported instants. A request outside those bounds is `time_out_of_range`;
 a search with no remaining cron instant is `no_future_run`. Neither returns
 a partial run list.
+
+## Proposed amendment: durable finish subscriptions (2026-11-15, row 618)
+
+**Status: proposed, not accepted or implemented.** The accepted decisions above
+remain in force until this security-relevant amendment is reviewed. W18 owns
+subscription intent and the existing notice watcher; W23 owns submission
+receipts, authoritative actor-ticket binding and internal notice admission.
+W10 renders the canonical timeline notification. W7 retains OS notifications
+and Inbox. This proposal registers no RPC or schema and assigns no number.
+
+### Evidence, problem and alternatives
+
+Paseo 0.15.4, source revision `1c00b365c9e0`, restores durable finish
+subscriptions. `packages/server/src/server/agent/finish-subscriptions/index.ts`
+lines 16–61 define its record, observation and dispatch acknowledgement
+boundaries; startup groups saved records and attaches one observation per
+caller/child/destination. Its `internal/json-store.ts`, `observation.ts` and
+`observation-buffer.ts` preserve unacknowledged intent, wait for recovery and
+dispatch, and deduplicate permission checkpoints. Accepted replacement and
+rejected candidate are distinct; a late acknowledgement removes only the exact
+record it captured. Shutdown leaves unacknowledged records for recovery.
+
+Vessel's `automation/notices.rs` currently explains that nothing is stored
+because sessions do not outlive the node. That implementation assumption is
+insufficient once structured sessions can recover under ADR 0059. Simply
+starting another log follower on boot can miss the actual queued turn, consume
+a transient startup interruption as a finish, or duplicate a parent prompt
+whose acknowledgement was lost.
+
+Options considered:
+
+- Keep notices transient: small and consistent with the original runtime, but
+  loses a requested finish subscription across a restart.
+- Copy Paseo's JSON catalogue and add a second watcher: local file recovery is
+  possible, but cannot atomically deduplicate Vessel's parent queue/event and
+  submission receipt, and duplicates the authoritative observation owner.
+- Extend the existing SQLite Store actor and existing notices/notify watcher,
+  sharing W23's receipt owner for delivery and exact-turn binding. This is the
+  proposed choice: no dependency, second observer or second receipt store.
+  It requires explicit transaction and recovery work rather than treating
+  current in-memory tickets or a saved file as proof of durable admission.
+
+### Intent identity, source identity and finite storage
+
+`FinishIntentId` is one node-minted UUID, allocated once before registration
+and never reminted to retry an uncertain effect. It is not the stream RPC's
+`SubscriptionId`. A durable intent is bound to the local owner `NodeId` and
+contains these typed fields:
+
+| Field | Meaning and invariant |
+| --- | --- |
+| parent | Exact local `SessionId`, derived from a direct authenticated local Agent principal; never caller-selected or defaulted to Owner. |
+| target | Exact `{ NodeId, SessionId }`; a route name is never target identity or durable authority. |
+| ownership | Descendant ownership for prompt follow-up, or exact creation-parent ownership for creation callbacks; rechecked against authoritative parentage, including detach. |
+| grant ceiling | Captured Read/Operate scopes only, intersected with the current authenticated parent grant at every effect. No credential, route token or provider secret is saved. |
+| binding | Original W23 submission identity and fingerprint, then the actor's authoritative queued-entry/actual-turn binding. A remote binding also retains its exact destination and origin. |
+| phase | PendingDispatch, Active, CapturedNotice or Acknowledged, with retained uncertain observations distinct from confirmed refusal/admission. |
+| checkpoint | Authoritative source record/request identity and immutable captured notice payload, not a scan heuristic or next-turn guess. |
+
+Replacement uses compare-and-set of the exact intent id for the pair
+(parent, target). A pending candidate does not suppress its predecessor until
+its original dispatch is authoritatively accepted; a rejected candidate leaves
+the predecessor intact. Recovery coalesces an accepted replacement and its
+predecessor into one observation. An old task or late acknowledgement cannot
+remove, activate or overwrite a newer intent. An id collision is refused.
+
+Existing named limits remain authoritative: `ON_NODE` (256), `PER_SESSION`
+(32), `HOURLY` (60) and `NEEDS_YOU_MAX` (8). Pending and uncertain candidates
+count against those finite admission limits too. Retained permission payloads
+are bounded by `NEEDS_YOU_MAX`, plus one terminal/unavailable checkpoint per
+intent; the checked aggregate follows from those limits. Captured content uses
+the existing bounded prompt type and `REPLY_TAIL` (1500 characters), with a
+separately checked aggregate encoded-byte bound beside its storage owner.
+Durable rate accounting must not reset the hourly allowance on restart.
+
+Acknowledged tombstones use the same finite retention/admission owner as W23's
+receipts. No unresolved receipt or intent is silently evicted to make room;
+full capacity refuses new work. The implementation must define named retention
+and aggregate-byte limits before storage is enabled. It must not invent a
+schema number: the integrator assigns migration/protocol numbers at wiring.
+
+### Exact private notice key and W23 admission boundary
+
+Proposed internal key, consisting only of bounded typed values:
+
+```text
+NoticeKey {
+    owner: NodeId,
+    intent: FinishIntentId,
+    checkpoint: NoticeCheckpoint,
+}
+NoticeCheckpoint =
+    NeedsYou { request: PermissionId | QuestionId, source: EventSeq }
+  | Terminal { source: EventSeq }
+  | ObservationUnavailable
+```
+
+The request alternatives are a closed Rust enum, not a string union. Source
+sequences belong to the intent's exact target and authoritative actual turn;
+`ObservationUnavailable` is a singleton for that intent. It is an explicit
+unknown outcome, never a fabricated terminal sequence or a claim of finish.
+The first captured payload, reason and randomized output fence are persisted
+before admission; retries use that same payload/fingerprint and key.
+
+This is a **trusted internal namespace in W23's existing receipt/store owner**.
+Public `SubmitPrompt` must neither accept nor select it. It must not reuse the
+session/client-message user namespace or synthesize `Creator::Owner`.
+A private producer entry point accepts the key, captured source/provenance,
+immutable payload and an authenticated current parent-lifetime fence. A forged
+public call cannot obtain that fence or turn a caller-supplied notice key into
+authority. The new fence is an integration requirement, not an existing API.
+
+W23 must retain the actor ticket's actual `EventSeq` or `QueueEntryId` binding,
+including the later actual turn for a queued prompt, in its receipt owner.
+Current `Started`/`Steered` are unit variants and interrupted disposition names
+only the interrupted turn. Echoed client ids in history cannot recover this
+binding after pruning. No history scan, tool-name branch or next-event guess
+substitutes for it. Likewise, `SubmitPrompt` is read-or-admit: observing a
+missing result must remain Unobserved, never authorize resend. A read-only
+same-fingerprint/creator observation, if needed, belongs to W23 and requires
+its separate coordinator ruling; this amendment silently adds no node RPC.
+
+Internal admission must durably return or replay the **same canonical parent
+EventSeq** for the same NoticeKey and fingerprint. It must record queue/event,
+receipt outcome and internal provenance atomically, or provide an equivalent
+recoverable transaction in the same owner. The result must distinguish
+Accepted, Refused, Unobserved and OutcomeUnknown; no timeout is confirmed
+absence of an effect. This durable transaction is new work, not a statement
+about the pending W23 runtime. The private key is not a field added to
+`TimelineNotification`.
+
+### Parent lifetime, captured grant and recovery admission
+
+Registration is available only through the existing direct local-agent path,
+after current Read/Operate, descendant/exact-parent and count checks. A
+Delegated or foreign-agent principal cannot leave intent on another node or
+inherit its owner. A saved record is intent, not authorization or a capability.
+Every later enqueue rechecks the current parent grant intersected with its
+saved ceiling and current parentage, after awaits and at atomic admission.
+
+The runtime captures the exact parent execution lifetime before asynchronous
+work and subscribes to parent termination before reading its live state.
+Old work cannot cross an explicit new grant/session execution. Across restart,
+only the lifecycle owner's authoritative recovery of the same committed parent
+execution may rebind the intent to its new runtime fence. An explicit resume,
+archive, delete, person stop or detach is not such a rebind. Never resurrect a
+parent or child, unarchive it or turn a startup snapshot into admission.
+Current `Agents::scopes`/`is_live` are observations, not a durable lifetime
+fence; the shared atomic fence remains an implementation dependency.
+
+Load and validate bounded intents before cleanup/retention or a query can
+conclude that no subscription is pending. During load/reconciliation the
+pending answer is conservative. Wait for the lifecycle recovery and dispatch
+barriers before following exact accepted work or treating an interruption as
+terminal. No ad hoc startup sleep is a barrier. Start one existing observer per
+accepted pair and feed it the retained actual-turn binding and checkpoints.
+
+If a binding is Unobserved or unavailable after pruning/remote expiry, retain
+uncertainty or emit the single explicit unavailable outcome after the bounded
+owner policy. Never attach to a later turn or reissue the original prompt with
+a fresh id. The current expiring remote receipt is not by itself a restart
+contract. Remote durable recovery requires W23's checked retained binding at
+that exact node; losing/forgetting the route gives unknown, not worker finish.
+
+Shutdown cancels active observation but preserves unacknowledged durable
+intent. Parent termination revokes future admission and retires only matching
+intent generations. The cancellation-vs-ack transaction must preserve an
+already admitted callback outcome while preventing admission after revocation.
+This ordering belongs to the shared Store/actor owner, not a stale UI or RPC
+snapshot.
+
+### Delivery, recovery and presentation
+
+The existing `automation::notices`, `Teller`/`RemoteTeller` and notify watcher
+remain the observation and notification path. Persist intent before following,
+and capture a checkpoint before admission. Await the exact original dispatch
+acknowledgement before selecting the active replacement. Checkpoint dedupe
+belongs to the retained request/source identity, including permission answers
+that arrive before recovery's first current snapshot.
+
+Callback prompts retain ADR 0033's **Queue**, never steer/interrupt, policy and
+its no-automatic-restart-after-person-stop rule. Queue acknowledgement means
+durable admission, not that the model consumed it. After lost acknowledgement,
+observe/replay only the same internal key through W23's owner. Once accepted,
+a failed intent-removal commit retries that commit alone, not another callback.
+After the final acknowledgement retire only the captured intent id. Permission
+acknowledgements retain the terminal subscription and their dedupe checkpoints.
+
+All waits use named finite owner budgets. Reuse the reviewed remote setup and
+post-follow supervision boundaries (120 seconds and 5 seconds); setup timeout
+or failed notice/close remains uncertain. Offline observation retries use one
+named bounded policy, distinct from delivery/storage retries. As in Paseo,
+connecting alone does not spend the unreachable budget; exhausted unreachable
+attempts or a removed host produce unknown. No retry spins on all records or
+creates a second periodic watcher. Persisted retry/rate state is bounded and
+cannot be reset to gain effects by restarting.
+
+W23's canonical `TimelineNotification { level, message }` remains the body.
+The producer's stable `EventRecord.seq` identifies the timeline item; internal
+provenance prevents an extra ordinary-user bubble. W10 uses its single alert
+renderer and literal selectable text. No new SessionEvent presentation union,
+body id, OS notification or Inbox owner is introduced here. Captured worker
+output retains the randomized fence and safe diagnostic categories; malformed
+records do not expose private payloads through Display/Debug/source chains.
+
+### Required proof and integration holds
+
+Before implementation, W23 must align its actual-turn binding, read-only
+observation disposition and internal namespace/admission outcome with this key
+and lifetime contract; V3 must review the amendment. Producer readiness, not a
+None constant or a values carrier, controls later wiring. Row 618 stays pending.
+No RPC/table row, schema, persistence or second watcher is added by this text.
+
+Implementation acceptance requires actual isolated-home regressions for:
+
+- Restart/process loss before and after intent commit, original dispatch,
+  checkpoint capture, parent queue/event receipt, acknowledgement and removal;
+  no duplicate callback or ordinary-user bubble, same canonical EventSeq.
+- Pending startup recovery, accepted/rejected/unknown candidates, queued entry
+  later becoming a turn, pruned history and remote binding expiry; no resend
+  or falsely reported next-turn completion.
+- Exact supersession and stale acknowledgement, repeated permission/current
+  snapshots, grant shrink, parent end, detach, explicit resume/person stop,
+  foreign-node records and removed routes.
+- All named slot/payload/storage/rate/retention limits across restart; full
+  capacity refusal, cancellation and held setup/notice/close futures; malformed
+  versioned storage and canary diagnostics without silent empty-state reset.
+
+Paused futures and pure model tests prove mechanisms only. Actual crash/restart
+and cross-node tests, the changed-source strict/functional/whole gates, canonical
+producer integration and final timeline consumer review remain separate proof.
+The benefit is durable requested notification without new authority or duplicate
+watchers. The cost is coordinated actor/store recovery and finite retained
+state; until that work is checked, restart parity must not be advertised.
