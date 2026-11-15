@@ -1,8 +1,10 @@
 # E2 isolated relay registration lifetime
 
-Current disposition: V3 SOURCE PASS through498; all seven new runtime cases
-passed on corrected ef78, but the full gate is RED on one session-start E2E.
-No consumer-ready or full relay-consent claim. Physical DNS work remains open.
+Current disposition: V3 SOURCE PASS through 498, extended over the additive
+3ab9 merge; the exact 3ab9 whole gate now completes all 18 steps at 0, including
+all seven new mechanism cases. Final same-row V3 evidence review is requested;
+this is not a full relay-consent or physical DNS-work claim. Earlier checkpoint
+sections below retain their original red/pending states as history.
 
 Modify the existing NodeLink runner and node Relays accept closure; use std,
 Tokio JoinSet and existing cancellation tokens. A second relay runner or a
@@ -190,3 +192,45 @@ web wire file. That file is byte-identical to gated node9c150c6e and is not
 rewritten here. The resolved relay module and documentation paths pass their
 scoped whitespace check. This is a qualification of the merge check, not an
 extra product edit or a green whole-tree whitespace claim.
+
+
+## Authorized changed-merge whole: all stages executed and green
+
+On 2026-11-15, the coordinator authorized one full whole for the changed
+3ab9af24 merge. Run `devices-relay-life-20261115T164613Z-3ab9af24`
+finished all 18 actual steps at 0, with no skipped stage: formatting, size,
+boundaries, all three strict Clippy variants, TS, the explicit binary/fake
+prebuilds, workspace runtime, web lint/typecheck/unit/fonts/E2E and forge.
+Main Rust has 117 sections, 2556 passed, 0 failed, 12 ignored. Web unit tests
+passed 464, E2E passed 68 and forge passed 4. Both vessel-relay and vessel-node
+actually compiled for runtime and were checked in the strict variants.
+
+Each of the five pending-owner unit regressions and both actual public-run/
+encrypted-carrier integration cases appears exactly once as passed in the
+main runtime log. The author independently matched 1439 selected source Git
+blobs and SHA256 values with frozen 3ab9, all 18 step-log receipt prefixes with
+the retained raw logs, and the exact request/checkout commit. The steps log
+SHA256 is `7fc8281de381a92741fec953da1c792649e465b87f17ddb8cc2b22386879f696`.
+The main runtime log SHA256 is
+`6b171109966251f26a2f511a4c51b9bded2de8afc23ea8dd08e2d2212438a484`.
+These records are submitted to V3 on the same isolated lifetime review row;
+no extra unchanged whole is requested. The following documentation-only result
+commit changes no compiled source.
+
+The previous ef78 whole remains RED 17/18. Its missing error-context artifact
+and retained E2E log cannot decide whether WEB-IDENTITY-1 caused that earlier
+failure: neither 4401 nor the fixed refused heading occurs in the remaining
+log, which does not prove their absence from the deleted artifact. The build
+tool owner confirmed that the old temporary tree/context was already gone;
+the deletion actor was not established. The coordinator explicitly accepted
+this as inconclusive, not a proven base race. The newer changed-source pass
+does not relabel that predecessor or establish its cause.
+
+Works in these isolated tests: bounded pending async opens, cancellation and
+normal-stop joining through the final accept/discard callback, public stop
+acknowledgement after that join, and independent established encrypted data.
+Does not provide: relay-settings consent, its CLI/UI, a protocol assignment or
+bounds on physical OS resolver work across repeated toggles. Drop/abort still
+is not a normal stop receipt. No real relay/node/account/service/permission
+was changed; remote numeric service UID/GID and other-platform customer flows
+remain unverified. Physical DNS/full-consent lifetime remains open and unwaived.
