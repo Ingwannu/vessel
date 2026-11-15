@@ -125,3 +125,15 @@ Original callers can receive their own old snapshot; it never re-enters cache.
 Root resolution precedes every hit and every retry. Existing git writes invalidate
 before and after via a retained guard, including errors. File-system observation
 is still separate work; cache freshness is not proof of a push subscription.
+
+
+## History payload and identity
+
+Classified history extends the protected runner instead of the legacy paged
+log decoder: all workspace commits plus ten fork ancestors are one bounded read,
+with explicit failure on output limits. File summaries/bodies remain lazy
+immutable comparisons (an API-shape departure, not a loss of commit metadata).
+The Git-observed abbreviation is a display-only4–64 digit value distinct from
+CommitId, so core.abbrev does not become request authority. Publication is
+observed reachability from all remote refs, without network access. Strict
+metadata errors retain their causes instead of dropping commits or guessing time.

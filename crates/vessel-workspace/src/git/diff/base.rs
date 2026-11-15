@@ -27,52 +27,27 @@ impl Git {
                 .await?
                 .ok_or(GitError::Unexpected { what: "base" })?),
             WorktreeBase::Ref { name } => {
-                let name = name.as_str();
-                if name.starts_with(LOCAL) || name.starts_with(REMOTE) {
+                if name.as_str().starts_with(LOCAL) || name.as_str().starts_with(REMOTE) {
                     return Ok(self
-                        .exact_comparison_ref(dir, name)
+                        .exact_branch_commit(dir, name)
                         .await?
                         .ok_or(GitError::Unexpected { what: "base" })?);
                 }
-                let branch = name.strip_prefix("origin/").unwrap_or(name);
-                let origin = format!("{ORIGIN}{branch}");
-                let local = format!("{LOCAL}{branch}");
+                let branch = name
+                    .as_str()
+                    .strip_prefix("origin/")
+                    .unwrap_or(name.as_str());
+                let origin: vessel_proto::workspace::RefName =
+                    format!("{ORIGIN}{branch}").parse()?;
+                let local: vessel_proto::workspace::RefName = format!("{LOCAL}{branch}").parse()?;
                 let (origin, local) = tokio::try_join!(
-                    self.exact_comparison_ref(dir, &origin),
-                    self.exact_comparison_ref(dir, &local),
+                    self.exact_branch_commit(dir, &origin),
+                    self.exact_branch_commit(dir, &local),
                 )?;
                 Ok(origin
                     .or(local)
                     .ok_or(GitError::Unexpected { what: "base" })?)
             }
         }
-    }
-
-    /// Check existence before peeling the ref to a commit: a malformed remote
-    /// ref is a failure, not permission to substitute the local branch.
-    async fn exact_comparison_ref(
-        &self,
-        dir: &Path,
-        name: &str,
-    ) -> Result<Option<CommitId>, ComparisonError> {
-        let exists = self
-            .command(dir)
-            .args(["show-ref", "--verify", "--quiet"])
-            .arg(name)
-            .output()
-            .await?;
-        if exists.code == Some(1) && !exists.stdout_cut {
-            return Ok(None);
-        }
-        let _exists = exists.checked()?;
-        let commit = self
-            .command(dir)
-            .args(["rev-parse", "--verify", "--quiet"])
-            .arg(format!("{name}^{{commit}}"))
-            .output()
-            .await?
-            .checked()?;
-        let text = std::str::from_utf8(&commit.stdout)?;
-        Ok(Some(text.trim_end_matches(['\r', '\n']).parse()?))
     }
 }

@@ -253,3 +253,32 @@ test-helper lint: extracting a build ID did not consume the generic decision.
 The helper now borrows that decision explicitly; production ownership is unchanged.
 The original red log remains node-comparison-cache-fixed-clippy. Execution of
 cache and previously unreached workspace cases is still pending.
+
+
+## Complete classified history core
+
+The new panel history reader follows checkout-git.ts2585–2695/1736–1774 and
+checkout-git.commits.test.ts: all workspace commits (not the legacy200 cap),
+ten ancestors starting at the true fork, exact current metadata, and publication
+against every observed remote ref. A most-ahead local/origin tie keeps local;
+comparison's separate origin preference remains unchanged. A shared strict ref
+reader removes duplicate subprocess admission without changing comparison errors.
+Missing qualified refs refuse; only stale unqualified names may use the same
+snapshot's project default. Detached/unborn checkouts have no branch history.
+
+The proposed wire values keep location/publication as enums with Unknown decode
+fallbacks; observed abbreviations have a distinct4–64 digit display type and
+requests continue using full IDs. Strict NUL metadata avoids record-separator
+subjects, dropped bad parents, truncated subjects and false epoch timestamps.
+Per-commit file lists remain lazy immutable comparison reads rather than repeated
+history payloads, a deliberate API-shape difference. Legacy git.log is unchanged.
+Real-repository cases use the reference's shapes, including205 workspace commits,
+a remote other than origin, diverged/tied bases, missing bases, detached/unborn
+HEAD and core.abbrev4. These new library/value additions are uncompiled and
+unexecuted until their own changed-source narrow check; they are not a registered
+ready git.history call, actor integration or package completion.
+
+The node tree merged announced head d432ef0f at f8a583d77. Only the architecture
+appendix conflicted; both the comparison-cache note and all incoming speech,
+connection-lifetime/process/system-context notes are retained. The app tree did
+not take this node head. Prior narrow evidence keeps its original source hashes.

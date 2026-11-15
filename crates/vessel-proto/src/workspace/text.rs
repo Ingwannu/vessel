@@ -34,6 +34,8 @@ pub enum TextKind {
     Remote,
     /// A commit id: 7 to 64 hexadecimal digits.
     Commit,
+    /// A Git-observed unique display abbreviation: 4 to 64 hexadecimal digits.
+    CommitAbbreviation,
     /// A commit message: not blank, at most 64 KiB, no NUL.
     CommitMessage,
     /// A project's display name: 1 to 80 characters, one line.
@@ -62,6 +64,7 @@ impl fmt::Display for TextKind {
             Self::Ref => "ref name",
             Self::Remote => "remote name",
             Self::Commit => "commit id",
+            Self::CommitAbbreviation => "commit abbreviation",
             Self::CommitMessage => "commit message",
             Self::ProjectName => "project name",
             Self::Command => "project command",
@@ -141,6 +144,7 @@ impl TextKind {
             Self::Ref => ref_rule(text, true).map(|()| Arc::from(text)),
             Self::Remote => ref_rule(text, false).map(|()| Arc::from(text)),
             Self::Commit => hex(text, 7, 64),
+            Self::CommitAbbreviation => hex(text, 4, 64),
             Self::Digest | Self::Hash => hex(text, 64, 64),
             Self::Folder => folder(text).map(|()| Arc::from(text)),
             Self::CommitMessage => free_text(text, 64 * 1024),
@@ -325,6 +329,8 @@ bounded_text! {
     RemoteName = Remote;
     /// A commit's id, in full or abbreviated, lower case.
     CommitId = Commit;
+    /// Git’s unique display abbreviation; never used as request identity.
+    CommitAbbreviation = CommitAbbreviation;
     /// A commit's message.
     CommitMessage = CommitMessage;
     /// What a project is called on the page.
@@ -466,6 +472,12 @@ mod tests {
         let id: CommitId = "ABCDEF1".parse().unwrap();
         assert_eq!(id.as_str(), "abcdef1");
         assert!("abc".parse::<CommitId>().is_err(), "too short");
+        assert_eq!(
+            "ABCD".parse::<CommitAbbreviation>().unwrap().as_str(),
+            "abcd"
+        );
+        assert!("abc".parse::<CommitAbbreviation>().is_err());
+        assert!("a".repeat(65).parse::<CommitAbbreviation>().is_err());
         assert!("g123456".parse::<CommitId>().is_err());
         assert!("a".repeat(65).parse::<CommitId>().is_err());
         assert!("a".repeat(64).parse::<CommandsDigest>().is_ok());

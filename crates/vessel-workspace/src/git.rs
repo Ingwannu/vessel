@@ -5,8 +5,10 @@ mod clone;
 mod diff;
 pub mod gitfile;
 mod history;
+mod panel_history;
 mod patch;
 mod redact;
+mod ref_read;
 mod refusal;
 mod repo;
 mod repository_lock;
@@ -24,6 +26,7 @@ use vessel_proto::workspace::{GitSupport, GitVersion};
 
 pub use clone::{Failed as CloneFailed, Progress as CloneProgress};
 pub use diff::{Comparison, ComparisonError, Resolved};
+pub use panel_history::{HistoryError, HistoryField, HistoryQuery};
 pub(crate) use redact::{redact, tail};
 pub use run::GitSetup;
 pub use run::own_config::OwnConfigRefusal;
