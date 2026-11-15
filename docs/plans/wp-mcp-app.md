@@ -125,3 +125,9 @@ lock fix dd13ce378 and shared menu seam were merged; no dependency version was
 selected locally and no Cargo ran on dev-host. This failure is retained and is
 not an app compiler/runtime outcome. The current dialog-ticket union still
 requires its actual strict and controller tests.
+
+The exact c0c6 strict batch passed resource generation/lock resolution and
+stopped in the view crate on a missing semicolon in a unit-returning block.
+That is corrected, and the access-error pattern uses the exact Forbidden
+variant rather than a redundant equality guard. The run did not reach the
+app controller check; no UI/runtime success is inferred from it.

@@ -265,7 +265,7 @@ pub(super) fn problem(shell: &Shell, cause: Problem) -> &str {
         Problem::Changed => words.changed(),
         Problem::Busy => words.busy(),
         Problem::TimedOut => words.unconfirmed(),
-        Problem::Refused(code) if code == vessel_proto::ErrorCode::Forbidden => words.access(),
+        Problem::Refused(vessel_proto::ErrorCode::Forbidden) => words.access(),
         Problem::Refused(_) | Problem::InvalidReply => words.failed(),
     }
 }

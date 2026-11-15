@@ -242,7 +242,7 @@ impl Page {
                 }
             }
             Ok(Output::Skills(_) | Output::Tools(_)) => {
-                self.skills.finish(Err(Problem::InvalidReply))
+                self.skills.finish(Err(Problem::InvalidReply));
             }
             Err(problem) => self.skills.finish(Err(problem)),
         }
