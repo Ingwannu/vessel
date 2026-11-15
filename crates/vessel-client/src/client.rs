@@ -165,7 +165,7 @@ impl NodeClient {
     /// # Errors
     /// See [`CallError`].
     pub async fn sessions(&self) -> Result<Vec<SessionInfo>, CallError> {
-        self.connection.call(ListSessions).await
+        self.connection.call(ListSessions::default()).await
     }
 
     /// `session.get`.
