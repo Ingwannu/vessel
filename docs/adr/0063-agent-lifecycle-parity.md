@@ -135,6 +135,18 @@ importing node receive a silently projected classification. They use the returne
 manifest, without another remote lookup or a new Origin field. Requests, shared
 call admission and all reply projections remain unchanged.
 
+A returned manifest already owns a source transfer. Before refusing that result,
+the forwarding node schedules the existing CloseTransfer for that exact handle
+on the retained destination and Origin, including Links' callback route. The
+receiving guard still intersects the same scopes and checks the same holder;
+cleanup grants no extra authority. The node tracks this task independently of
+the caller, so cancelling the caller while close waits does not discard it.
+The existing transfer idle lifetime bounds an uncertain close; failure or timeout
+is logged without replacing the original typed metadata refusal. Normal shutdown
+keeps its existing bounded forwarding-task grace, and expiry/restart remains the
+fallback if the source cannot confirm closure. No export is replayed.
+
+
 This deliberately also refuses a non-starting history export when its current
 metadata cannot travel: the existing export request carries no import-start
 intent, so the source cannot promise preservation only for one future consumer.

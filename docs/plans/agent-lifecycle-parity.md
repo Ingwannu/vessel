@@ -951,3 +951,19 @@ into envelope::route. It keeps Links' existing callback selection, destination,
 origin, permission checks and response unchanged. The retained descriptor will
 let rejected-transfer cleanup use the export's exact holder rather than rebuild
 an origin after the original call has completed.
+
+### Rejected returned-transfer ownership
+
+[Decision Log]
+- Purpose: an unreadable successful export must not strand a handle the caller
+  never receives. Preserve the typed metadata refusal and its original authority.
+- Existing assets: CloseTransfer, exact Origin, Links' member/callback routing,
+  the node forwarding TaskTracker, and the transfer idle/expiry policy.
+- Alternatives: awaiting close in the request loses cleanup on cancellation;
+  replaying export or rebuilding an owner origin changes resources or authority.
+- Choice: modify the envelope to retain its route; register an independently
+  tracked close before awaiting settlement, bounded by the existing idle lifetime.
+- Effect: confirmed closes release admission; uncertain closes retain the original
+  Unsupported and rely on source expiry/restart. Shutdown grace is unchanged.
+- Tests: exact transfer/Origin and holder, successful settlement, caller abort
+  while close is held, timeout and transport refusal. Assignment remains synthetic.
