@@ -6,10 +6,12 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
-- Reviewed: process ownership contract (2p0) passed review. The move still
-  awaits its integration decision; no proc code has changed. Binding name
-  restrictions are recorded in ADR 0001 before implementation. Active map
-  rows and manifests are still unchanged.
+- Approved: process ownership contract (2p0) and its binding restrictions
+  passed review, and the integration decision permits Store to Proc.
+- Source: 2p1 moves only the generic kernel query and opaque snapshots to
+  proc; the store facade, parser behavior and existing assertions remain.
+  Manifest, active map and name restriction land together. Focused checks
+  and the merged-tree whole gate are pending.
 
 - Done: slices 1, 2a (launchd), 2b (graceful stop).
 - Source committed: 2c (`337f92b8`) adds authenticated directory binding
@@ -37,13 +39,17 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `f453ec2e`, including the shared protocol accessor,
   settings preservation and lifecycle labels. The merge was conflict-free;
   the next slice's whole gate covers the merged tree.
-- Source: 2g2 moves only identity/preflight reads off the runtime's blocking
-  pool. Two Linux FIFO cases test child exit and a still-Serving node;
-  the first focused clippy found an unused test exit status. The test now
-  asserts that status; final focused checks and the whole gate are pending.
-- Next: gate 2g2, then service observations and finalization, force/restart
-  and slices 3/4. Proc implementation still awaits its integration decision.
-  Actual managers and agents are unverified.
+- Gated: 2g2's two identity/preflight FIFO cases and existing behavior
+  pass the exact final whole gate (2,207 Rust tests, no failures,
+  12 ignored; forge 4, web unit 442 and e2e 65). Review passed;
+  the first narrow clippy failure is retained, not called green.
+- Merged: node head `242076b5`, conflict-free, before the proc move. Its
+  existing tables, documents and tests remain intact.
+- Next: gate the pure query move, then descriptor/generation verification
+  and the real force caller as separate slices. Service observations and
+  config/reload/session-restart work remain; actual managers and agents
+  are unverified. The separate service-observation source has only focused
+  checks and is not included in this move.
 
 ## Existing asset check
 
@@ -457,3 +463,15 @@ budget and find the node Serving after the CLI exits. No service manager,
 signal, new wire call or dependency is introduced. Book/credential/pinning
 paths are explicitly outside this proof. The named node head was merged at the clean slice boundary.
 This source is not yet compiled or gated.
+
+
+### Slice 2p1: behavior-preserving process-query move
+
+Move the decoder file to proc, without parser cleanup. The new store shim
+uses a different file name so the old file is genuinely moved and ordinary
+`git diff -M` shows that move. Store keeps its public API, record ownership
+and fallback. Its only new dependency is proc and its name rule restricts
+that use to `src/lock/`, in the same commit as the active map. Existing
+private PID assertions relocate to a real held-file fixture in proc;
+all data-directory and owner-byte assertions remain in store. No PID
+getter, external dependency, signal, new call or descriptor proof is added.

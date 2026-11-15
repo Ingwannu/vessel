@@ -797,16 +797,17 @@ reader. Only new validated templates are written. This changes installation
 comparison behavior; no independent reporting-only refactor is included.
 
 
-## Proposed process-mechanism ownership amendment
+## Process-mechanism ownership amendment
 
-ADR 0001's proposed node-control amendment replaces the earlier no-new-edge
+ADR 0001's approved node-control amendment replaces the earlier no-new-edge
 assumption for the following process-control phases only. The existing
 store-facing `NodeLock` contract stays unchanged while the generic kernel
 query moves to proc. Store-to-proc is added with that behavior-preserving
 move; CLI-to-proc is added only with the real caller. No external dependency
 or wire change is proposed. The separate descriptor/generation/namespace
 verification phase must not grant signal authority from a kernel PID alone.
-The documents-only contract adds neither an edge nor process-control code.
+The documents-only contract added neither an edge nor process-control code;
+the query move below implements its first approved edge.
 
 
 ## XML comment delimiter safety
@@ -881,3 +882,13 @@ connection credential reads and best-effort book pinning are separate paths;
 this slice does not establish deadline-safe process exit for all file inputs.
 Real macOS/Windows blocked-read behavior is unverified. Paseo's previously
 stated PID-polling difference is unchanged.
+
+
+### Process-query ownership move (slice 2p1)
+
+The approved ADR 0001 edge is implemented without changing stop behavior:
+`NodeLock::kernel_holder` still maps the same query and I/O cause, now from
+proc through the store's restricted lock shim. Selected-file decoding,
+bounds, errors, duplicate handling, fallback and owner bytes are unchanged.
+The snapshot is still no signal authority. No force/restart caller, signal,
+wire change or new external dependency is included in this move.
