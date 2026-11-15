@@ -16,7 +16,7 @@ its exact dd13 lock correction are adopted. Node and native work remain separate
 
 ## Paseo evidence
 
-Paths are relative to `~/refs/paseo-latest/packages/`.
+Reference paths below are relative to the Paseo 0.15.4 `packages/` tree.
 
 | Source | Required behavior |
 |---|---|
