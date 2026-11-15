@@ -1,7 +1,7 @@
 //! One weak registry for every kit text engine. Shortcut admission must not
 //! infer composition from the active route, displayed file or selected session.
 //! The registry is shared by fields and code editors; the existing public
-//! TextField query remains the only shortcut-facing boundary.
+//! `TextField` query remains the only shortcut-facing boundary.
 use gpui::{App, Entity, EntityInputHandler as _, Focusable as _, WeakEntity, Window};
 use gpui_base::input::{EditorState, InputState, TextareaState};
 

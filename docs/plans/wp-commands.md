@@ -513,3 +513,12 @@ No route/displayed-file guess, duplicate cache or composer_hooks change is added
 The actual CodeEditor constructor + marked-text regression checks focus switches
 and commit. It is written, not executed yet. Field callback factories and K's
 pending callback/state split must be preserved when integrating their deltas.
+
+
+Exact cc7883ca full View library run completed:1038 passed/1failed/0ignored,
+with the sole failure in the new file UI empty-query fixture (invalid FindQuery),
+already corrected by explicit FileQuery::All at c198fb75. All shortcut/default,
+compatibility migration and other View tests passed in this immutable run.
+This is NOT a full green View result and excludes later source; current fixed
+model and App/Kit GPUI changes still require execution. Composition extraction
+lowers field.rs allowance635→587; no file budget is raised.

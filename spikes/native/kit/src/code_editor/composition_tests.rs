@@ -1,4 +1,4 @@
-//! Real marked text through the production CodeEditor constructor and registry.
+//! Real marked text through the production `CodeEditor` constructor and registry.
 use super::*;
 use crate::TextField;
 use gpui::{EntityInputHandler as _, Render, TestAppContext};
