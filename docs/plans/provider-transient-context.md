@@ -34,8 +34,9 @@ values. No live agent, account file or network is needed to test the refusal.
 
 ## Resume point
 
-Implementation and narrow checks are complete. Next: one package gate and V3
-review before the integrator handoff. Lifecycle owns reload orchestration;
+Implementation, narrow checks and the corrected-base whole gate are complete.
+Next: V3 source/security review and the integrator's combined proof after the
+required package-base merge. Lifecycle owns reload orchestration;
 voice owns text and enable/restore state.
 
 ## Launch contract extraction
@@ -97,3 +98,25 @@ under /tmp/work/wp-providers/prompt-whole, with both replay folders beside it.
 This is not a green whole gate. The coordinator/integrator own the baseline
 security correction and combined proof; this package has no web/bridge changes.
 Source/security review is requested with that gate limitation stated explicitly.
+
+The coordinator identified the security assertion as a known base race and
+authorized exact c5da5305 plus one whole rerun. That merge is b7e8c329. Its whole
+run wp-providers-20261115T081109Z-b7e8c329 passed: Rust 2271/0/12, web unit
+442/0, browser 66/0, forge 4/0, with every other step zero. Logs are in
+/tmp/work/wp-providers/prompt-whole-basefix. No real agent or credential was used.
+
+After that run finished, the required base 6c782cb6 merged cleanly as 5b036eba.
+The agent, harness and session trees are byte-identical to the green b7e8c329;
+the base's independent scripts/project changes and native-app files are not
+this feature. V3 must audit that merge; the new combined head is not claimed
+to have run this package's whole gate. The integrator's combined proof remains
+owed before consumer-ready handoff.
+
+The feature commit's short message omitted the A8 literal inventory; history
+has not been rewritten. Mechanical None additions are audited here: test setup
+constructors in agent/tests/{agent,codex,conversation,options,questions}.rs;
+agent/src/drivers.rs::tests::setup, claude/launch/tests.rs and
+claude/session/tests.rs::setup, codex/session.rs::tests::setup; session/again.rs,
+session/runtime/agent.rs (probe and start), and session/runtime/launch.rs. No
+existing test assertion changed. The field-bearing commit includes those
+completions, and source review can verify the one-line-only head-test diffs.
