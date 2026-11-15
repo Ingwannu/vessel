@@ -1,6 +1,7 @@
 # ADR 0090: Subagent parentage, durable detach and provider-child projection
 
-Status: proposed. Protocol number assigned at integration; the feature uses
+Status: accepted (architecture contract only; implementation and exact provider
+projection budgets still require review). Protocol number assigned at integration; the feature uses
 one pending `Option<ProtocolVersion>` constant. No method is registered before
 the central Quality B method table reaches this branch.
 
