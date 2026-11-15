@@ -274,14 +274,35 @@ fn soft_reset_clears_vt_negotiation_but_preserves_server_keyboard_tracker_stack(
 #[test]
 fn redundant_alternate_activation_does_not_reset_retained_marker_identity() {
     let mut engine = Screen::new(Size::new(8, 3).unwrap(), ScrollbackLines::default()).unwrap();
-    engine.feed(b"\x1b[?1049hA").replies.unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b[?1049hA")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
     let marker = engine.create_marker(LineIndex(0)).unwrap();
     let before = engine.resolve_marker(&marker).unwrap();
     let retained = engine.snapshot();
-    engine.feed(b"\x1b[?1049hB").replies.unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b[?1049hB")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
     assert_eq!(engine.resolve_marker(&marker).unwrap(), before);
     assert_eq!(retained.resolve_marker(&marker).unwrap(), before);
-    engine.feed(b"\x1b[?1049l\x1b[?1049h").replies.unwrap();
+    assert!(
+        engine
+            .feed(b"\x1b[?1049l\x1b[?1049h")
+            .replies
+            .unwrap()
+            .as_bytes()
+            .is_empty()
+    );
     assert_eq!(
         engine.resolve_marker(&marker).unwrap().state,
         crate::AnchorState::Reset

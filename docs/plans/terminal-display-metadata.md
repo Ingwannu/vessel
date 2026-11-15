@@ -63,3 +63,10 @@ resets only the active buffer's saved presentation. Oracle checks include
 repeated entry, restore position and foreground; a marker regression guards
 against a spurious epoch reset. Earlier readonly snapshots are checked again
 after every later mutation. Actual changed-source checks remain owed.
+
+Exact202764a2 red executed43 passed/two failed, reproducing both named
+returns without a compiler failure. Corrected346653a9 executed46/0/0,
+including retained snapshot and marker checks. Its strict check found only
+three unused test Replies results; the follow-up strengthens these to explicit
+empty-reply assertions, with no product or golden change. Corrected strict and
+the final enclosing whole remain owed. Original red logs are retained.
