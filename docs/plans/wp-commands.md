@@ -621,7 +621,7 @@ App/Kit test job123242-db95665d was verified by its ticket and local submit PID,
 then canceled queued-only to avoid spending a slot on the known compile failure.
 Replacement waits for that exact job's terminal state; all original logs remain.
 
-Reference workspace-file-search.ts116 uses JavaScript trim to choose immediate
+Reference workspace-file-search.ts119 uses JavaScript trim to choose immediate
 listing vs100ms debounce, and command-center.tsx364 uses it for empty-scope Back.
 Files UI parsing and nested-page Backspace now reuse matcher::Query::is_empty
 instead of Rust trim or byte emptiness. This shares the existing ECMAScript
