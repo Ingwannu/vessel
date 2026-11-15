@@ -385,9 +385,10 @@ to the page; ReleaseAll releases only buttons that target admitted. The page
 rechecks coordinates against its last acknowledged viewport before sending, and
 retains a changed viewport only after a real metrics ACK. Input.insertText is
 direct CDP text insertion, never an eval string. Lost/failed delivery quarantines
-the page as before. The keyboard adapter is not yet implemented and returns
-Unsupported, without a text/eval fallback. These paths remain outer cfg(test),
-not a supported/advertised input surface, and their new fixtures are unexecuted.
+the page as before. The later staged keyboard section below extends the sealed
+vocabulary with a finite human raw-key subset; unrecognized keys refuse without
+a text/eval fallback. These paths remain outer cfg(test), not a supported or
+advertised input surface; their new Rust fixtures remain unexecuted.
 
 ## Input focus boundary found in the reference
 
@@ -664,3 +665,19 @@ surface or process identity implementation is introduced by this prerequisite.
   modifier keys, F1-F12), not complete browser_keypress chord/layout/IME parity.
   It remains test-staged and does not register a native focus/raw-key producer.
   Actual multi-tab keyboard routing/cancellation and Windows behavior are owed.
+
+
+The actual149 two-target keyboard diagnostic completed at13:19 UTC: while B was
+active, A's session received Control+A then Backspace; A became empty, B retained
+its synthetic value, and only A's field observed3 trusted keydowns. Same browser
+window, service UID/GID1000, sandbox on, normal close0 and private inspected
+profile/files. Script/result: /tmp/work/wp-browser/pipe-multitab-keyboard.
+This mirrors the raw-key wire shape but does not execute the Rust adapter, prove
+all keys/layout/IME/pointer/dialog paths, or settle simultaneous actor cancellation,
+Windows, product proxy, private Preview or the future input-focus transaction.
+
+New human key state normalizes ASCII physical identity for repeated upper/lower
+letter keydowns, refuses keyup for a key this target never pressed and releases
+only this target's held set. It never accepts arbitrary editing commands or
+keyboard text: committed text uses the separate Text channel. Shared pointer/key
+modifier masks now have one CDP owner. Node/renderer/MCP admission is unchanged.
