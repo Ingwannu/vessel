@@ -166,8 +166,10 @@ book alias never authorizes a mutation against a new node under the same name.
 ## Adapter ownership and migration
 
 - Layout: resource registry, claims, admission, selection/focus and lifetime.
-- Timeline: `ConversationArea`, keyed Seat rows, folds/scroll/find/request UI,
+- Timeline: `ConversationArea`, keyed Seat rows, folds/scroll/find and record projection,
   bounded history paging, and its typed dehydration snapshot.
+- Permissions/questions: request forms and answer drafts behind the same context,
+  typed eviction holds, and identity-scoped answer effects.
 - Composer: per-session field/fullscreen/slash/recall and its typed snapshot.
 - Attachments: trays, upload/send leases and release notifications per composer.
 - Lifecycle: archive/close/reload/deep-link hooks and expected-node checks.
