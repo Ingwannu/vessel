@@ -165,7 +165,7 @@ async fn a_workspace_id_cannot_be_reused_for_another_project() {
     let first = fixture.project("first", None).await;
     let second = fixture.project("second", None).await;
     let id = WorkspaceId::random();
-    fixture
+    let _ready = fixture
         .workspaces
         .provision_workspace(Creator::Owner, id, local(first.id))
         .await
