@@ -21,10 +21,14 @@ async fn off_after_prompt_admission_does_not_kill_that_turn_or_reconstruct_it_la
             assert!(installed.restart_recovery.enabled);
             assert_eq!(installed.restart_recovery.prompt.as_str(), "wait");
             let original = f.active(&owner).await;
+            let after_initial = after_initial_turn(&owner, original.id).await;
             node.stop().await.unwrap();
             let node = f.start().await;
+            // Listening does not promise that the stored session has been
+            // reopened: its ordinary subscription may still end at that log.
+            done(&node).await;
             let owner = f.client(&node).await;
-            let mut stream = owner.follow(original.id, original.next_seq).await.unwrap();
+            let mut stream = owner.follow(original.id, after_initial).await.unwrap();
             loop {
                 let record = stream.next().await.unwrap().unwrap();
                 if waited(&record) {
@@ -65,6 +69,21 @@ async fn off_after_prompt_admission_does_not_kill_that_turn_or_reconstruct_it_la
     )
     .await
     .unwrap();
+}
+async fn after_initial_turn(owner: &NodeClient, session: vessel_proto::SessionId) -> EventSeq {
+    // Use the actual committed event, not a possibly earlier info-watch
+    // snapshot, so the second wait cannot observe the original turn again.
+    owner
+        .read(session, EventSeq::ZERO, EVENT_PAGE)
+        .await
+        .unwrap()
+        .records
+        .into_iter()
+        .find(waited)
+        .unwrap()
+        .seq
+        .next()
+        .unwrap()
 }
 fn waited(record: &EventRecord) -> bool {
     matches!(&record.event, SessionEvent::Agent {

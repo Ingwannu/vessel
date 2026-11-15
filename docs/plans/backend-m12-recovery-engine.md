@@ -242,7 +242,7 @@ The newly announced node head includes title-origin storage and the upstream
 labels/inbox fixture correction. It will be merged at the next clean boundary
 before the package gate, and the recovery schema fact will follow that head's
 newest named constant. No unknown input field or protocol number is registered
-by these lower journal APIs. Review routing for the node package is now V3.
+by these lower journal APIs.
 
 ## Journal candidate before the Quality B merge
 

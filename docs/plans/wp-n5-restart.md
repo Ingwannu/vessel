@@ -8,7 +8,7 @@ R2's typed journal, passive projection, node-owned settings and startup runtime.
 The implementation is built; the final changed-base package gate and source
 review remain pending. No whole-package pass is claimed. Existing R1 and narrow source verdicts do not
 stand in for the final product gate. No native or page implementation belongs
-to this node package. Future node review routes to V3 under the parity plan.
+to this node package.
 
 ## Specification and existing owners
 
@@ -138,3 +138,29 @@ restart while it was still queued. No gate step ran; this is neither a code
 failure nor a pass. The source stayed identical to its recorded input hashes.
 The combined immutable tree is submitted once under the infrastructure retry
 ruling. The earlier narrow results retain their original source scope.
+
+## First complete execution and fixture repairs
+
+The first complete combined run passed formatting, size/boundary checks, all
+three Clippy modes, TypeScript freshness, web lint/typecheck, 464 web unit
+tests, 67 browser tests and four forge tests. Workspace tests reported
+2405 passed, four failed and 12 existing ignored cases. This is a failed
+whole gate, not a partial pass promoted to success.
+
+The recovery case subscribed while startup could still expose the stored
+ended log. A listening node intentionally does not wait for the boot batch.
+The test now waits on the existing boot-completion watch and starts after
+the actual committed first-turn event, preventing an old info snapshot from
+being mistaken for the recovered turn. The same Off, busy-input, history
+count and subsequent-restart assertions remain.
+
+Three older migration cases retained recovery tables while rolling back to
+an earlier schema. Their fixtures now undo only the appended recovery
+migration before the original inbox/title-origin rollback. Existing SQL,
+assertions and deadlines are retained; production migrations are unchanged.
+
+At the subsequent clean boundary the package also consumed announced node
+`ede20014`. Its plugin values, event protocol accessor and CLI/web changes
+remain intact. Recovery has no AgentEvent since() caller to adapt. The
+repaired immutable tree still requires narrow checks and its clean whole
+gate before package approval.
