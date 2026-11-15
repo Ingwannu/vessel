@@ -20,7 +20,7 @@ use vessel_app_kit::attachment::{Body, attachment_frame, attachment_tray};
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     Context, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, Styled as _, div, px,
+    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_link::Command;
 use vessel_app_link::attachments::{Answer, Files};
@@ -109,10 +109,7 @@ impl<'a> SentFiles<'a> {
         });
         let file = file.clone();
         frame
-            .id(vessel_app_kit::ui::SharedString::from(format!(
-                "sent-image-{}",
-                file.id
-            )))
+            .id(SharedString::from(format!("sent-image-{}", file.id)))
             .when(file.kind == AttachmentKind::Image, |frame| {
                 frame
                     .cursor_pointer()

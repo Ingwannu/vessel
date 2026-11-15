@@ -2,7 +2,10 @@
 
 use super::{Gesture, PictureState, decode, pointer, source};
 use crate::shell::Shell;
-use gpui::{AnimationExt as _, KeyDownEvent, ObjectFit, anchored, deferred, img};
+use gpui::{
+    AnimationExt as _, KeyDownEvent, MouseDownEvent, ObjectFit, StatefulInteractiveElement as _,
+    StyledImage as _, anchored, deferred, img,
+};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::{IMAGE_SCRIM, spacing};
 use vessel_app_kit::ui::{
@@ -60,7 +63,7 @@ pub(crate) fn render(
         }))
         .on_mouse_down(
             MouseButton::Left,
-            cx.listener(|shell, event, _window, _cx| {
+            cx.listener(|shell, event: &MouseDownEvent, _window, _cx| {
                 shell.areas.composer.lightbox.gesture =
                     pointer(event.position).map(Gesture::Pressed);
             }),
@@ -70,7 +73,7 @@ pub(crate) fn render(
             MouseButton::Left,
             cx.listener(|shell, event, window, cx| shell.image_released(event, window, cx)),
         )
-        .on_scroll_wheel(cx.listener(|shell, event, _window, cx| shell.image_scrolled(event, cx)))
+        .on_scroll(cx.listener(|shell, event, _window, cx| shell.image_scrolled(event, cx)))
         .on_pinch(cx.listener(|shell, event, _window, cx| shell.image_pinched(event, cx)))
         .child(content)
         .child(toolbar(shell, tokens, window, cx))
@@ -154,11 +157,14 @@ enum Action {
     Close,
 }
 
+/// Paseo lightbox pointer control is20px; the shared spacing scale has no20px step.
+const POINTER_CONTROL: f32 = 20.0;
+
 fn toolbar(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Div {
     let side = px(if vessel_app_kit::breakpoint::phone(window) {
         vessel_app_kit::breakpoint::TOUCH_TARGET
     } else {
-        spacing::S5
+        POINTER_CONTROL
     });
     let scale = shell.areas.composer.lightbox.viewport.map(Viewport::scale);
     let words = shell.words.composer();

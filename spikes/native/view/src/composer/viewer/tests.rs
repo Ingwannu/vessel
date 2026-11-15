@@ -16,7 +16,7 @@ fn fit_preserves_aspect_with_padding_and_presentation_caps() {
     assert_eq!(view.size(), extent(768.0, 384.0));
     let large = Viewport::new(extent(1600.0, 800.0), extent(2000.0, 1400.0));
     assert_eq!(large.size(), extent(MAX_WIDTH, 480.0));
-    assert_eq!(large.scale(), MIN_SCALE);
+    assert_eq!(large.scale().to_bits(), MIN_SCALE.to_bits());
     assert!(!view.contains(position(400.0, 10.0)));
     assert!(view.contains(position(400.0, 300.0)));
 }
@@ -27,7 +27,7 @@ fn a_portrait_fits_on_the_phone_and_resets_on_resize() {
     assert_eq!(view.size(), extent(320.0, MAX_HEIGHT));
     view.zoom_center(MAX_SCALE);
     view.resize(extent(800.0, 600.0));
-    assert_eq!(view.scale(), MIN_SCALE);
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
     assert_eq!(view.size(), extent(284.0, 568.0));
 }
 
@@ -36,16 +36,16 @@ fn zoom_keeps_the_focal_point_and_clamps_scale_and_pan() {
     let mut view = viewport();
     let focal = position(500.0, 300.0);
     view.zoom(2.0, focal);
-    assert_eq!(view.left(), -468.0);
+    assert_eq!(view.left().to_bits(), (-468.0_f32).to_bits());
     view.drag(position(0.0, 0.0), position(10000.0, -10000.0));
-    assert_eq!(view.left(), 0.0);
-    assert_eq!(view.top(), -168.0);
+    assert_eq!(view.left().to_bits(), (0.0_f32).to_bits());
+    assert_eq!(view.top().to_bits(), (-168.0_f32).to_bits());
     view.zoom_center(f32::MAX);
-    assert_eq!(view.scale(), MAX_SCALE);
+    assert_eq!(view.scale().to_bits(), MAX_SCALE.to_bits());
     view.zoom_center(f32::MIN_POSITIVE);
-    assert_eq!(view.scale(), MIN_SCALE);
-    assert_eq!(view.left(), 16.0);
-    assert_eq!(view.top(), 108.0);
+    assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
+    assert_eq!(view.left().to_bits(), (16.0_f32).to_bits());
+    assert_eq!(view.top().to_bits(), (108.0_f32).to_bits());
 }
 
 #[test]

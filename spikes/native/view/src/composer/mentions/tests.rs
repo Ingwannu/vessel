@@ -110,14 +110,14 @@ fn results_are_cached_only_within_the_same_scope_and_ttl() {
         Ok(vec![row("src", SuggestionKind::Directory)]),
         Duration::ZERO
     ));
-    menu.observe(None, "", 0, Duration::ZERO).unwrap();
+    assert!(menu.observe(None, "", 0, Duration::ZERO).unwrap().is_none());
     assert!(
         menu.observe(Some(scope()), "@", 1, Duration::from_secs(1))
             .unwrap()
             .is_none()
     );
     assert!(matches!(menu.phase(), Phase::Rows { .. }));
-    menu.observe(None, "", 0, CACHE_TTL).unwrap();
+    assert!(menu.observe(None, "", 0, CACHE_TTL).unwrap().is_none());
     assert!(
         menu.observe(Some(scope()), "@", 1, CACHE_TTL)
             .unwrap()
@@ -139,7 +139,7 @@ fn empty_failure_and_oversized_replies_remain_distinct() {
             .observe(Some(scope()), "@", 1, Duration::ZERO)
             .unwrap()
             .unwrap();
-        menu.begin(query.ticket).unwrap();
+        assert!(menu.begin(query.ticket).is_some());
         let expected_empty = result.as_ref().is_ok_and(Vec::is_empty);
         assert!(menu.arrived(query.ticket, result, Duration::ZERO));
         assert_eq!(matches!(menu.phase(), Phase::Empty(_)), expected_empty);

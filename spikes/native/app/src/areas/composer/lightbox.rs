@@ -9,7 +9,7 @@ pub(crate) fn overlay(
     tokens: &vessel_app_kit::Tokens,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
-    started: std::time::Instant,
+    started: Option<std::time::Instant>,
 ) -> vessel_app_kit::ui::Div {
     use vessel_app_kit::ui::ParentElement as _;
     vessel_app_kit::ui::div()
