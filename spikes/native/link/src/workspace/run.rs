@@ -18,7 +18,9 @@ use super::{
 /// Run one ask to its answer.
 pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask) {
     let answer = match ask {
-        Ask::Scripts(ask) => Answer::Scripts(super::scripts::run(client, ask).await),
+        // Script operations require the actor's SelectedConnection preflight.
+        // A raw-client Hub route must never bypass that admission boundary.
+        Ask::Scripts(ask) => Answer::Scripts(super::scripts::refused(ask, &Problem::Unsent)),
         Ask::Layout(ask) => Answer::Layout(super::layout::run(client, ask).await),
         Ask::Project(ask) => project(hub, client, reply, ask).await,
         Ask::Worktree(ask) => worktree(client, ask).await,

@@ -44,7 +44,9 @@ pub enum AllocationLine {
     Removed(AllocationFields),
     /// Both complete sets, including choices with lower runtime precedence.
     Changed {
+        /// Current declared allocation choices.
         now: AllocationFields,
+        /// Previously approved choices, including removed values.
         was: AllocationFields,
     },
 }

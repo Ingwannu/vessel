@@ -90,7 +90,7 @@ pub struct Preview {
 
 impl Preview {
     /// Capture the terminal publication drawn with the listener. Restart keeps a
-    /// live service's TerminalId, so that id alone cannot identify this callback.
+    /// live service's `TerminalId`, so that id alone cannot identify this callback.
     #[must_use]
     pub fn observed(
         run: &vessel_proto::terminals::TerminalInfo,
@@ -237,7 +237,9 @@ impl Model {
     /// Capture only a successful, settled display, never retained/loading facts.
     #[must_use]
     pub fn action_ticket(&self) -> Option<ActionTicket> {
-        self.read.ready()?;
+        if self.read.ready().is_none() {
+            return None;
+        }
         if self.writing.is_some() {
             return None;
         }

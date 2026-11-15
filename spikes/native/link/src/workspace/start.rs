@@ -232,7 +232,7 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
         let setup_commands: Vec<String> = asked.setup.iter().map(ToString::to_string).collect();
         walk.show(Step::Approval {
             commands: listed.clone(),
-            compared: compared.clone(),
+            compared: Box::new(compared.clone()),
             busy: false,
         })
         .await;
@@ -248,7 +248,7 @@ async fn make(walk: &mut Walk<'_>, place: &ProjectPlace) -> Made {
             Some(ApprovalAnswer::Approve) => {
                 walk.show(Step::Approval {
                     commands: listed,
-                    compared,
+                    compared: Box::new(compared),
                     busy: true,
                 })
                 .await;

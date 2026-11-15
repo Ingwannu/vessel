@@ -397,7 +397,7 @@ impl WorkspaceWords for Ko {
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {
-        super::comparison_words::ko(self, compared, local)
+        super::comparison_words::ko(*self, compared, *local)
     }
 
     fn scope_label(&self, scope: &DiffScope) -> String {

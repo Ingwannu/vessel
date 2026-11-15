@@ -154,7 +154,7 @@ scripts-terminal-changes = 자동 터미널 변경 사항은 아래에 표시됩
 # Approval: complete terminal inspection does not enable pending approval support.
 scripts-terminal-approval-pending = 터미널 정의를 확인할 수 있습니다. 이 설정을 승인하는 기능은 아직 활성화되지 않았습니다.
 
-# Passive reveal of this exact script TerminalId in the same workspace layout.
+# Passive reveal of this exact script `TerminalId` in the same workspace layout.
 scripts-open-terminal = 터미널 열기
 
 # Runtime facts are distinct from the current project file declaration.

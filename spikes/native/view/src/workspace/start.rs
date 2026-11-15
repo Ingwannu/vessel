@@ -49,7 +49,7 @@ pub enum Step {
         /// The set asked for (listed).
         commands: ProjectCommands,
         /// What it is compared with.
-        compared: Compared,
+        compared: Box<Compared>,
         /// Whether the approval is being sent.
         busy: bool,
     },

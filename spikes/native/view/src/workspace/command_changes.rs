@@ -380,6 +380,7 @@ pub enum Compared {
     None,
 }
 
+#[derive(Clone, Copy)]
 struct Basis<'a> {
     source: ComparedWith,
     setup: &'a [ProjectCommand],
@@ -406,7 +407,7 @@ fn against(asked: &Listed<'_>, before: Basis<'_>) -> Compared {
 }
 
 /// Compare every executable field with the last approval, or the approved folder
-/// on older nodes. A field added to CommandSet must break this projection.
+/// on older nodes. A field added to `CommandSet` must break this projection.
 #[must_use]
 pub fn compare_approved(asked: &Listed<'_>, folder: Option<&ProjectCommands>) -> Compared {
     if let Some(last) = asked.last_approved {

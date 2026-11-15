@@ -23,7 +23,7 @@ fn terminal_part(language: crate::Lang, terminals: &[TerminalLine]) -> Option<St
     ))
 }
 
-pub(super) fn en(words: &En, compared: &Compared, local: &Local) -> String {
+pub(super) fn en(words: En, compared: &Compared, local: Local) -> String {
     let Compared::Changed {
         against,
         setup,
@@ -63,7 +63,7 @@ pub(super) fn en(words: &En, compared: &Compared, local: &Local) -> String {
     }
 }
 
-pub(super) fn ko(words: &Ko, compared: &Compared, local: &Local) -> String {
+pub(super) fn ko(words: Ko, compared: &Compared, local: Local) -> String {
     let Compared::Changed {
         against,
         setup,

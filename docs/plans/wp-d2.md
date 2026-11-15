@@ -324,3 +324,10 @@ current declaration and recorded TerminalKind command/kind plus actual folder;
 the explicit Restart note states which command/directory are repeated. Retained
 rows already show that recorded plan. A changed file therefore cannot silently
 relabel the command a Restart action will execute.
+
+The first changed-source strict native probe reported documentation/copy-argument
+lints, an oversized legacy approval Step and one unconsumed ready reference.
+These are corrected without assertion/lint exceptions. The Step boxes its
+comparison payload to keep additive declaration fields from growing every
+setup event. The old raw-client scripts Hub branch now refuses explicitly;
+only actor SelectedConnection preflight may dispatch script RPCs.
