@@ -15,7 +15,7 @@ The whole native gate now belongs to the designated builder; do not run
 it locally. The first resumed implementation `3177e772` passed that gate
 (run `agents-20261115T022821Z-3177e772`): every native step zero, 1046 runtime
 passes plus two document passes and one ignored browser capture. Its nine
-new cases passed. Source-only review is pending; no removal UI/call or
+new cases passed. V1 passed rules-only source/A13 verification; no removal UI/call or
 complete Agents/Models result is claimed. Use short-lane checks for iteration.
 
 Read the current strict-worker, app-track and overnight briefs before work.
@@ -234,9 +234,18 @@ current connection before sending, keep uncertain mutation results explicit,
 and never automatically repeat removal. The shared ProviderRow trigger is
 still awaiting an integrated reviewed control; do not duplicate it.
 
-No new captures exist yet. The current normal application build passed; the
+Forty fresh captures now exist for EN/KO, dark/light, 1280/390: list, long
+detail, defaults, sign-in help and failed refresh retained above details.
+Every final image was opened personally; historical and preliminary shots
+are excluded. Program and command clipboard reads matched whole values at
+both widths. This is submitted visual evidence, not a visual pass.
+The current normal application build passed; the
 first reused fixture binaries failed home-role setup, were not treated as a
 successful fleet, and their nodes were stopped by verified PID. Matching
-fixture binaries and new authenticated-display captures remain in progress.
+fixture binaries also built. Their fleet passed agent checks, then failed
+the shell fixture's outdated `url` loopback guard; its owner was notified,
+the guard was not bypassed and full fleet success is not claimed. Captures
+use only this disposable fleet on an authenticated display. See the track
+plan's fresh-evidence section for exact scope and deliberate differences.
 Full named launch profiles need a node contract beyond account-profile list/
 reload and local default choices; see the parity boundary in the track plan.

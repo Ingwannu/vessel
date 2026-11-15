@@ -50,8 +50,8 @@ new tests describe Vessel's additional identity boundaries explicitly.
 
 Verification for this resumed slice is recorded with its submitted commit.
 The local whole native gate is intentionally not run on the saturated
-development machine. Compiling checks use the short lane; the whole native
-gate is owed on the designated builder once its command is announced.
+development machine. Compiling checks use the short lane; the final native
+gate ran on the designated builder, as recorded below.
 The shared ProviderRow trigger remains its control owner's preparation,
 with no reviewed integrated hash; no duplicate trigger or glyph is added.
 The existing snapshot now also carries the connection's `NodeId` beside
@@ -70,8 +70,8 @@ corrected, a queued narrow compile saw the new node-identity API with old
 fixture arguments and failed (missing field/argument and old enum syntax).
 The failed log is retained, not counted as a pass. Earlier eight-case and
 Clippy results predate the node-bound extension; exact-commit verification
-of the corrected tree is owed on the designated builder.
-Next: review these rules, wire the existing call, then consume the reviewed
+of the corrected tree passed on the designated builder.
+Next: wire the existing call, then consume the reviewed
 shared menu/confirmation controls for Providers and capture their states.
 
 ### Removal-rules verification (native only)
@@ -91,13 +91,70 @@ flaky-test exception and no assertion was relaxed. Source was frozen for
 the final exact-commit run. The normal local application build for captures
 also passed; it is not a second whole native gate.
 
-The slice is with the designated reviewer for source-only review. There
-are no new screen captures and no UI approval. A capture fleet started
+V1 passed the exact implementation and its documentation follow-up for
+rules-only source and A13 verification. This is not a removal-call or UI
+approval. A capture fleet started
 with pre-existing development binaries failed its home-role fixture before
 agent seeding. Those binaries' source commit was not independently known;
 the two disposable nodes were stopped and no successful fleet or screen
-claim is derived from that run. Matching source-built fixture binaries
-and fresh captures remain the next verification work.
+claim is derived from that run. The fresh evidence below uses matching
+source-built fixture binaries instead.
+
+### Fresh baseline screen evidence, 2026-11-15
+
+Forty new captures were personally opened: English/Korean, dark/light,
+1280 by 900 and 390 by 844, covering the provider list, long added-agent
+details, scrolled defaults, machine-reported sign-in steps, and a failed
+list refresh retained above the subsequently selected details. These
+exercise the baseline's returned-layout corrections; no drawing changed
+in the removal-rules commit. Image, executable and source identities stay
+with the private evidence manifest. Historical captures are excluded.
+
+The list follows Paseo 0.15.4 `screens/settings/providers-section.tsx:195–349`
+(`ProviderRow` and `StatusIndicator`) and shared settings furniture. The
+expanded list shows 16 Claude Code models and two added-agent models from
+read options; compact rows retain only the status marker. Known sign-out
+appears as the warning status. Option probes can replace the node's cached
+authentication verdict, so captures do not claim every initially signed-out
+fixture remains signed out after a probe. The dedicated sign-in fixture
+reports its method and remains available for the sign-in captures.
+
+The detail target follows `provider-settings-host.tsx:17–29`; the reference's
+`provider-diagnostic-sheet.tsx:575–749` heads that target and presents models
+in a sheet. Vessel currently uses its existing native detail page/header,
+settings fact rows and additional readiness/sign-in/default facts. This is
+the already documented native-page difference, not a claim that its body
+implements that model sheet. Program values are middle-elided with the
+whole value in a tooltip; copy is visible at both widths. Commands have a
+separate divided row and horizontal scroll. Independent X11 clipboard reads
+matched the full 56-byte program and 461-byte command at both widths.
+
+The new failure captures stop only the verified disposable node, invoke
+Refresh and select the cached added agent. The translated connection alert
+stays above its details at both widths. Sign-in captures also show a failed
+options read with its actual reload action; two English scrolled captures
+include the hovered raw-machine diagnostic tooltip. That diagnostic is
+separate from the translated failure sentence.
+
+The matching root fixture build passed, and agent-specific fixture checks
+passed. The full fleet script then failed in the shell fixture's loopback
+guard: `shell-fixtures.py:23` still reads a `url` key, whereas the current
+book reports secure `direct` routes. That owner was notified; the guard was
+not bypassed or changed. These are agent captures against a partially
+initialized fleet, not a successful full-fleet assertion. The application
+uses that disposable fleet's HOME so relative credential paths resolve;
+it uses no real node or user configuration. Credentials and display cookie
+are owner-only, generated and used by the same UID; no ownership repair or
+production permission change was needed.
+
+Unverified here: installation/loading phases, empty/registry/Add/Remove
+screens, intermediate widths and scale factors, and complete Providers or
+Models parity. The shared remove trigger still has no integrated reviewed
+handoff. No enable switch is drawn because the node exposes no enable
+operation; removal's missing control is pending work, not a wire limitation.
+Only the marks already shipped on the baseline are used. The named launch-
+profile contract gap below remains open. V1/coordinator visual review of
+this new family is separate from the accepted rules-only gate.
 
 ### Profile parity boundary found on resumption
 
