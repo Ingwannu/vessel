@@ -116,15 +116,26 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
     .await;
 }
 
-struct Transport {
+pub(super) struct Transport {
     client: vessel_client::NodeClient,
     peer: Peer,
-    shutdown: tokio_util::sync::CancellationToken,
+    shutdown: CancellationToken,
     task: tokio::task::JoinHandle<
         Result<(), vessel_rpc::ServeError<vessel_rpc::memory::Disconnected>>,
     >,
 }
 impl Transport {
+    pub(super) fn client(&self) -> &vessel_client::NodeClient {
+        &self.client
+    }
+    pub(super) async fn close(self) {
+        self.shutdown.cancel();
+        drop(self.client);
+        phase("per-node transport shuts down", self.task)
+            .await
+            .unwrap()
+            .unwrap();
+    }
     fn context(&self, principal: Principal) -> Connection {
         Connection::new(
             Peer {
@@ -136,10 +147,10 @@ impl Transport {
         )
     }
 }
-async fn transport(node: &Node) -> Transport {
+pub(super) async fn transport(node: &Node) -> Transport {
     let (client_end, server_end) =
         vessel_rpc::memory::pair(std::num::NonZeroUsize::new(4).unwrap());
-    let shutdown = tokio_util::sync::CancellationToken::new();
+    let shutdown = CancellationToken::new();
     let server = Server::new(
         Arc::clone(&node.secure.service),
         node.secure.lifecycle.watch_info(),

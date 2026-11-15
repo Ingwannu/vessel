@@ -5,6 +5,7 @@ use super::{
     admission::Lease,
     inventory::{Entry, Inventory},
 };
+use crate::readiness::Key;
 use chrono::Utc;
 use std::sync::Arc;
 use vessel_proto::{

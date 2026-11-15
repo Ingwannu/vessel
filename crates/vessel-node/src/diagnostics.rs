@@ -113,4 +113,6 @@ impl State {
 }
 
 #[cfg(test)]
+mod machines;
+#[cfg(test)]
 mod tests;

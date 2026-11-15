@@ -23,23 +23,26 @@ async fn real_node_reports_only_safe_sources_without_running_an_agent() {
         config.name = Some(PRIVATE.to_owned());
         let bin = temp.path().join("bin");
         std::fs::create_dir(&bin).unwrap();
-        let forbidden = temp.path().join("must-not-execute");
-        vessel_testkit::write_executable(
-            &forbidden,
-            "#!/bin/sh\nprintf 'executed\\n' >> \"$0.invocations\"\nexit 97\n",
-        )
-        .unwrap();
-        for role in [
-            vessel_harness::fakes::Role::Structured,
-            vessel_harness::fakes::Role::Terminal,
-        ] {
-            let _installed = vessel_harness::fakes::install(
-                &bin,
-                vessel_proto::HarnessKind::ClaudeCode,
-                role,
+        #[cfg(unix)]
+        {
+            let forbidden = temp.path().join("must-not-execute");
+            vessel_testkit::write_executable(
                 &forbidden,
+                "#!/bin/sh\nprintf 'executed\\n' >> \"$0.invocations\"\nexit 97\n",
             )
             .unwrap();
+            for role in [
+                vessel_harness::fakes::Role::Structured,
+                vessel_harness::fakes::Role::Terminal,
+            ] {
+                let _installed = vessel_harness::fakes::install(
+                    &bin,
+                    vessel_proto::HarnessKind::ClaudeCode,
+                    role,
+                    &forbidden,
+                )
+                .unwrap();
+            }
         }
         config.harness_lookup = Lookup::new([bin.clone()]);
         let node = phase("start real diagnostic node", Node::start(config))

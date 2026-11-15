@@ -19,7 +19,7 @@ async fn diagnostics_pending_direct_self_and_every_envelope_send_no_frame() {
             let info = node();
             let id = info.id;
             let peer = tokio::spawn(async move {
-                node_end.next().await.unwrap().unwrap();
+                let _hello = node_end.next().await.unwrap().unwrap();
                 node_end
                     .send(
                         serde_json::to_string(&ServerFrame::Welcome(Welcome {

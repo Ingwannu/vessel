@@ -695,3 +695,24 @@ normalized version text. The guard fixture owns its transport in a separate
 helper; checks/assertions and all named deadlines remain unchanged. These
 changes still require compilation and focused tests, and generated types
 remain stale. No red run is described as a pass.
+
+Narrow `diagnostics-20261115T073758Z-b7c806e8` is also retained red:
+Cargo rc 101 after 16 seconds, with a missing readiness Key import and three
+new-test warnings (ignored hello frame and two redundant qualifications).
+The correction fixes these together. A newly authored supported-read assertion
+also incorrectly expected the shared Fake's separately random welcome and
+node.info identities to match. Only that new assertion now checks the typed
+NodeInfo/Serving reply plus its request id; forced wrapper targets still use
+the welcome id, and refusal/no-dispatch and observed supported-call checks
+remain. The shared fake and all older tests are unchanged.
+
+The shell marker setup is Unix-only. The additional two-node fixture creates
+one fake ACP session through the existing authenticated session-create call,
+then directly collects each node's own store/runtime projection. This is an
+in-process source/identity test while diagnostics remains unassigned, not an
+assigned-wire, physical-machine or other-OS claim. Its transport helper is
+shared only inside cfg(test).
+
+The exact owner correction c5da5305 is merged without conflicts before the
+package gate. All five incoming web test/docs blobs are preserved. No local
+edit to the shared security test or deadline/assertion relaxation is made.
