@@ -11,7 +11,7 @@ enum Invalidate {
     Off,
     Stop,
 }
-async fn pair(node: &Node, owner: &NodeClient) -> (DeviceId, NodeClient) {
+pub(super) async fn pair(node: &Node, owner: &NodeClient) -> (DeviceId, NodeClient) {
     let mut offer = owner
         .invite_with_scopes(None, 600, vec![Scope::Read, Scope::Operate])
         .await

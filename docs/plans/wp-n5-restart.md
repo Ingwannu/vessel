@@ -82,3 +82,11 @@ the actual inner completion. The saved-file compatibility view now decodes
 the registered optional patch too, with the same verbatim policy and redacted
 parse diagnostics. These adjustments and the expanded tests remain candidates
 until the next immutable narrow run and final package gate.
+
+The final baseline now consumes the announced shared package base 3,
+`6c782cb6`, including the separately reviewed tab-session receipt race fix.
+The automatic merge preserved the incoming script/port and fake-provider plan
+behavior; the recovery load gate remains present alongside it. The previous
+Node/CLI all-target narrow Clippy passed before this merge. Two further
+regressions cover an already-admitted turn surviving Off, and a held fresh
+grant fencing actual device revocation; their execution is still owed.
