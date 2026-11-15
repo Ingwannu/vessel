@@ -202,3 +202,14 @@ unchanged; no broader test pass is claimed until the corrected immutable run.
 Strict frame a78 separately returned unused-result/arithmetic findings, corrected
 with explicit outcomes, bounded count iteration and panic-free access; no lint
 allowance or weakened assertions were added.
+
+## Workspace-relative root policy
+
+Paseo workspace-root-policy.ts6–16 treats an attached child in another known
+workspace as a root tab in that workspace. Relation::workspace_role joins current
+parentage with W11 registry ownership and returns the existing W12 AgentRole,
+rather than defining another role enum. No-current-parent is Root; attached with
+both known equal workspaces is Child, known unequal is Root; missing ownership or
+unknown relation remains Unknown. W11 supplies both memberships by full SessionRef
+and owns newest-root activity selection. This advisory policy does not change the
+node's global delegated boundary or authorize cached lifecycle mutations.

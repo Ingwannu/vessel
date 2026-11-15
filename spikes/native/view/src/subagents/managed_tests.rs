@@ -257,3 +257,33 @@ fn old_and_unassigned_peers_never_turn_audit_creator_into_a_root_fact() {
     let cached: crate::Card = serde_json::from_value(json).unwrap();
     assert_eq!(cached.detail.relation, Relation::Unknown);
 }
+
+#[test]
+fn workspace_root_role_keeps_cross_workspace_children_visible_and_unknown_ownership_explicit() {
+    use crate::layout::AgentRole;
+    let relation = Relation::Known(Some(id(NodeId::random())));
+    assert_eq!(
+        Relation::Known(None).workspace_role::<Workspace>(None, None),
+        AgentRole::Root
+    );
+    assert_eq!(
+        relation.workspace_role(Some(&Workspace::One), Some(&Workspace::One)),
+        AgentRole::Child
+    );
+    assert_eq!(
+        relation.workspace_role(Some(&Workspace::One), Some(&Workspace::Two)),
+        AgentRole::Root
+    );
+    assert_eq!(
+        relation.workspace_role(Some(&Workspace::One), None),
+        AgentRole::Unknown
+    );
+    assert_eq!(
+        relation.workspace_role(None, Some(&Workspace::Two)),
+        AgentRole::Unknown
+    );
+    assert_eq!(
+        Relation::Unknown.workspace_role(Some(&Workspace::One), Some(&Workspace::Two)),
+        AgentRole::Unknown
+    );
+}

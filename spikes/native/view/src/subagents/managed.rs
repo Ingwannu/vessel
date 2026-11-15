@@ -20,6 +20,23 @@ pub enum Relation {
     Unknown,
 }
 impl Relation {
+    /// Workspace-relative root policy joins current relation with registry facts.
+    /// A cross-workspace child is a normal root tab in its own workspace.
+    /// Missing ownership remains Unknown rather than guessing from cwd/Creator.
+    #[must_use]
+    pub fn workspace_role<W: Eq>(
+        self,
+        child_workspace: Option<&W>,
+        parent_workspace: Option<&W>,
+    ) -> crate::layout::AgentRole {
+        use crate::layout::AgentRole;
+        match (self, child_workspace, parent_workspace) {
+            (Self::Known(None), _, _) => AgentRole::Root,
+            (Self::Known(Some(_)), Some(child), Some(parent)) if child != parent => AgentRole::Root,
+            (Self::Known(Some(_)), Some(_), Some(_)) => AgentRole::Child,
+            (Self::Known(Some(_)) | Self::Unknown, _, _) => AgentRole::Unknown,
+        }
+    }
     /// A missing/unassigned relationship capability is not evidence of a root.
     #[must_use]
     pub fn for_session(
