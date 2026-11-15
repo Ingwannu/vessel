@@ -144,6 +144,47 @@ requires them. Only the real handler commit changes staged to pending.
   Stopping/revoking remains visible until actual owned cleanup/drain settles.
   A lost response is reconciled by observation, never a blind start retry.
 
+Record fields are pinned for the values package (enum tags use `kind`):
+
+| Record | Fields |
+| --- | --- |
+| WorkspaceScriptRef | workspace, script |
+| ServiceCursor | snapshot, after (ScriptName) |
+| ServicePage | workspace, snapshot, configuration, rows, next |
+| WorkspaceScriptRow | definition (ScriptEntry), origin, terminal (optional TerminalInfo), service (optional ServiceObservation) |
+| ServiceObservation | port_plan, health, proxy |
+| ServiceProxyUrls | local, public (optional ServiceLink values); preferred is a derived getter, not a third stored fact |
+| ServiceLink | access (NodeLoopback/AnonymousPublic), url (ServiceProxyUrl) |
+| ReadyServiceEnv | workspace, snapshot, script, host, port, url (optional), peers |
+| ServiceEnvPeer | script, env_name, port, url (optional) |
+| ServicesAdminSettings | revision (optional ServicesSettingsRevision), gateway, exposures |
+| ServiceExposureView | target (WorkspaceScriptRef), choice, effective |
+| SetServiceGateway | expected (optional ServicesSettingsRevision), gateway |
+| SetServiceExposure | target, expected (optional ServicesSettingsRevision), change |
+
+A query carries workspace and Initial, After { snapshot }, or Page { cursor }.
+Start/restart carry target, snapshot and definition digest; stop carries
+only target and snapshot. Accepted/Already replies carry workspace, snapshot
+and row; NeedsApproval carries workspace and commands; Refused carries
+workspace and a typed reason. An outcome never claims OS cleanup from an ack.
+
+Proxy Planned/Registered carry ServiceProxyUrls; Unavailable carries its
+reason. Public exposure change is Private or AnonymousPublic { snapshot,
+definition, acknowledgement }; acknowledgement has one explicit
+ReachableWithoutVesselAuthentication choice, never an implicit boolean.
+Effective publication is Private, Inactive(reason), Registered(url),
+Revoking, or Unknown. Settings outcomes distinguish Unchanged(settings),
+Saved(settings, Applying/Applied/Unavailable), Refused(reason), and Unknown.
+
+Unavailable reasons distinguish RegistryUnavailable, RuntimeUnavailable,
+AutomationBlocked, ApprovalRequired, InvalidConfiguration, PlanUnavailable,
+OwnershipUnavailable, ObservationExpired, SchemeUnavailable,
+ListenerUnavailable, IncarnationUnavailable, SettingsUnavailable,
+WorkspaceInactive and Unknown. Mutation refusals distinguish stale snapshot
+or settings, missing script, wrong kind, inactive/blocked workspace,
+configuration/approval refusal, Busy and typed Unavailable. Future unknown
+control choices refuse; observations remain non-authoritative data.
+
 The new methods' responses and any nested NeedsApproval go through existing
 peer projection. Test every direct, nested and forwarded approval path;
 do not expose a digest/approved field to a peer that cannot display it.
