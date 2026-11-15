@@ -790,3 +790,22 @@ This merge is not adoption of the full unreviewed A7 branch or its body cut,
 and it does not import the selected Requests producer into product globals.
 A8's own stale-source and exact-resolution intake hooks remain present.
 Fresh combined-source checking remains owed before claiming this union works.
+
+## Selected portable Requests prerequisite result
+
+V1 row258 finalized bounded staged source plus requested narrow PASS for
+executable3eaa330f0 and docs-only successord18624d69, on82ca. Exact strict run
+wp-side-narrow-20261115T170412Z-3eaa330f is0 (View/App requested; fresh Kit/App,
+Viewcached). Actual App-bin runtime run
+wp-side-narrow-20261115T180719Z-3eaa330f is4/0/0/105filtered, test-threads1,
+with fresh View/Link/Kit/App compilation. The initialc3d API-error run remains
+negative history, not test evidence. This is separate from full-A8 source730's
+1492 prior-runtime result; current main A8 has not inherited a whole-package pass.
+
+W12 selected only this13path native prerequisite into its resource-owner prep
+union, with all staging gates retained and its own combined compile/source
+checks still owed. W12 owns actual bundle field, factory, readiness vote and
+atomic admission/retirement/ingress installation. Main A8's older staged adapter
+has not been promoted or silently substituted. No populated resource lifetime,
+original-lease authority, painting, keyboard/IME, live wire, rich-state admission,
+CLI mutation, captures or complete A8 acceptance follows from the four cases.
