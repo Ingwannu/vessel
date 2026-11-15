@@ -119,7 +119,7 @@ pub struct Deliver {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Forwarded {
     /// Read-only node ingress provenance; never accepted as caller authority.
-    /// Carried only between peers supporting TIMELINE_PARITY.
+    /// Carried only between peers supporting `TIMELINE_PARITY`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reference_origin: Option<crate::timeline::TimelineReferenceOrigin>,
     /// What the target answered.

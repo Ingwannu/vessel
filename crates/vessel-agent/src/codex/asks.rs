@@ -431,7 +431,7 @@ mod tests {
             question: format!("{id}?"),
             is_other,
             allow_other: false,
-            multi_select: super::protocol::NativeSelection::Single,
+            multi_select: crate::codex::protocol::NativeSelection::Single,
             allow_empty: vessel_proto::timeline::EmptyAnswerPolicy::RequireText,
             placeholder: None,
             dismiss_label: None,
