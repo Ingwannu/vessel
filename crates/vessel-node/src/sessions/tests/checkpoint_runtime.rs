@@ -75,7 +75,7 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let project=workspaces.add_project(repo.path().to_path_buf(),None).await.unwrap();
         let CreateWorktreeOutcome::Created {worktree}=workspaces.create_worktree(Creator::Owner,CreateWorktree {project:project.id,branch:WorktreeBranch::New {name:None,base:None},setup:SetupChoice::Run},None).await.unwrap()
         else {panic!("no managed worktree");};
-        let closed = crate::checkpoint::start(Arc::clone(&fixture.sessions), Arc::clone(&workspaces), fixture.store.clone(), fixture.tasks.clone(), stop.clone(), requests);
+        let closed = crate::checkpoint::start(Arc::clone(&fixture.sessions), Arc::clone(&workspaces), fixture.store.clone(), fixture.tasks.clone(), stop.clone(), requests, vessel_workspace::checkpoint::IgnoreDefaults::new(fixture.data.path().join("git/ignore")).map_err(|error| error.reason()));
         let controller = closed.clone().no_terminal_fixture();
         let mut spec=fixture.structured().with_cwd(worktree.path.clone());
         spec.place=Some(Box::new(SessionPlace::Worktree {worktree:worktree.id}));

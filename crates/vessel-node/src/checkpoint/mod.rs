@@ -33,8 +33,12 @@ pub(crate) fn start(
     tasks: tokio_util::task::TaskTracker,
     stop: tokio_util::sync::CancellationToken,
     requests: tokio::sync::mpsc::Receiver<vessel_session::CheckpointRequest>,
+    defaults: Result<
+        vessel_workspace::checkpoint::IgnoreDefaults,
+        vessel_proto::checkpoint::CheckpointError,
+    >,
 ) -> Controller {
-    let context = bridge::Context::new(sessions, workspaces, store, tasks, stop);
+    let context = bridge::Context::new(sessions, workspaces, store, tasks, stop, defaults);
     let controller = Controller::new(context.clone());
     bridge::serve(context, requests);
     controller

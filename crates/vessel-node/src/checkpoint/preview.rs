@@ -6,7 +6,7 @@
 //! - Choice: the tracker owns deadline cancellation and actual cleanup, retaining
 //!   the shared worker/root/SQL escrow. Submitted SQL may commit after RPC timeout.
 //! - Cost: uncertain SQL/cleanup keeps capacity unavailable until reconciliation.
-use super::{Controller, backend::reason, bridge, workers::WorkerLease};
+use super::{Controller, backend::reason, workers::WorkerLease};
 use crate::workspace::PreviewRead;
 use std::sync::Arc;
 use tokio::{sync::oneshot, time::Instant};
@@ -58,7 +58,7 @@ impl Controller {
         lease: &Arc<WorkerLease>,
     ) -> Result<RestorePreview, CheckpointError> {
         let (selected, guard) = self.preview_selection(request, deadline).await?;
-        let defaults = bridge::defaults()?;
+        let defaults = self.context.defaults.clone()?;
         let key = selected.key;
         let plan = RestorePlanId::random();
         self.allocate_preview(key, plan, owner, lease).await?;

@@ -81,16 +81,7 @@ pub(super) fn apply(
             });
             Answer::Detached(done, applied)
         }
-        Write::Delete { session, done } => {
-            let applied = isolated(transaction, |connection| {
-                crate::checkpoint::retire_session(connection, session, chrono::Utc::now())?;
-                marks::delete(connection, session)
-            });
-            if applied.is_ok() {
-                effects.removed.push(session);
-            }
-            Answer::Done(done, applied)
-        }
+        Write::Delete { session, done } => deleted(transaction, session, done, effects),
         Write::Reopen {
             session,
             next,
@@ -129,6 +120,24 @@ pub(super) fn apply(
             Answer::Done(done, applied)
         }
     }
+}
+
+// Retirement accounting and deletion must share the same savepoint. Effects
+// become visible only after both succeed, never after partial retirement.
+fn deleted(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        crate::checkpoint::retire_session(connection, session, chrono::Utc::now())?;
+        marks::delete(connection, session)
+    });
+    if applied.is_ok() {
+        effects.removed.push(session);
+    }
+    Answer::Done(done, applied)
 }
 
 // State-only writes keep the same savepoint and acknowledgement boundary,

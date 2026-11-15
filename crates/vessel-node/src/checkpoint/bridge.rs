@@ -1,7 +1,7 @@
 //! One bounded actor bridge: durable anchor, opened-root exclusion, then capture.
 use super::{backend, runner::Client};
 use crate::{sessions::Sessions, workspace::Workspaces};
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use tokio::{sync::mpsc, task::JoinSet};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::{
@@ -23,6 +23,7 @@ pub(crate) struct Context {
     pub(crate) tasks: TaskTracker,
     pub(crate) stop: CancellationToken,
     workers: super::workers::Workers,
+    pub(super) defaults: Result<IgnoreDefaults, CheckpointError>,
 }
 impl Context {
     pub(crate) fn new(
@@ -31,6 +32,7 @@ impl Context {
         store: Store,
         tasks: TaskTracker,
         stop: CancellationToken,
+        defaults: Result<IgnoreDefaults, CheckpointError>,
     ) -> Self {
         Self {
             sessions,
@@ -38,6 +40,7 @@ impl Context {
             store,
             tasks,
             stop,
+            defaults,
             workers: super::workers::Workers::default(),
         }
     }
@@ -45,21 +48,8 @@ impl Context {
         self.workers.clone()
     }
 }
-/// Resolve Git's default once at the node edge; workers never read ambient HOME.
-pub(super) fn defaults() -> Result<IgnoreDefaults, CheckpointError> {
-    let config = std::env::var_os("XDG_CONFIG_HOME")
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-        .or_else(|| {
-            std::env::var_os("HOME")
-                .filter(|value| !value.is_empty())
-                .map(|home| PathBuf::from(home).join(".config"))
-        })
-        .ok_or(CheckpointError::UnsupportedScope)?;
-    IgnoreDefaults::new(config.join("git").join("ignore")).map_err(|error| error.reason())
-}
 pub(crate) fn serve(context: Context, mut requests: mpsc::Receiver<CheckpointRequest>) {
-    let defaults = defaults();
+    let defaults = context.defaults.clone();
     let tasks = context.tasks.clone();
     let _owner = tasks.spawn(async move {
         let workers = context.workers();

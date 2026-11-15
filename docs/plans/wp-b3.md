@@ -1318,3 +1318,25 @@ unlinks only its temporary fixture root, checks that the original inode remains
 pinned, refuses a replacement name, then verifies final guard release closes the
 root FD. No service, external directory or product permission is changed. This
 new test remains unrun; the checkpoint_root unit filter now selects six units.
+
+### Library environment isolation and writer dispatch (unverified)
+
+Run wp-checkpoints-node-narrow-20261115T171417Z-d437c087 failed at store clippy:
+writer::apply reached 102 lines after the union. Its checkpoint retirement plus
+session deletion now has one focused helper preserving the exact savepoint and
+post-success removal notification; no lint limit or assertion is weakened.
+
+A separate source audit found that bridge::defaults read ambient HOME/XDG inside
+the node library. Config::new now derives typed ignore defaults from its explicit
+HarnessEnv home. Only the two binary entry points provide XDG_CONFIG_HOME through
+with_checkpoint_environment's explicit reader, following the existing config
+snapshot pattern. Context retains the same validated default for capture,
+preview and restore. Empty XDG uses the supplied home; relative locations refuse.
+The private runtime fixture supplies its own value. New isolated-config tests
+cover these cases without changing process environment. They remain unrun.
+
+The immutable IgnoreDefaults value supports equality without opening either path.
+Platform hook construction moved into the existing bootstrap module and the
+node.rs budget shrinks to 667. No dependency, protocol, schema or live account
+configuration changes. The next ordinary narrow includes the CLI caller as well
+as proto/workspace/node; all actual root/runtime tests still remain owed.

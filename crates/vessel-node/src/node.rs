@@ -55,7 +55,7 @@ use crate::workspace::{Opening, Workspaces};
 
 mod setup;
 
-use self::setup::{SessionSetup, SetupDirs, model_client, runtime};
+use self::setup::{SessionSetup, SetupDirs, model_client};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -302,12 +302,10 @@ async fn core(
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
     #[cfg(target_os = "linux")]
-    let (checkpoint_hooks, checkpoint_requests) = vessel_session::CheckpointHooks::channel();
-    #[cfg(target_os = "linux")]
-    let checkpoint_hooks = Some(checkpoint_hooks);
+    let (runtime, checkpoint_requests) =
+        setup::checkpoint_runtime(config, loader, setup.private_dir.clone());
     #[cfg(not(target_os = "linux"))]
-    let checkpoint_hooks = None;
-    let runtime = runtime(config, loader, setup.private_dir.clone(), checkpoint_hooks);
+    let runtime = setup::runtime(config, loader, setup.private_dir.clone(), None);
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
@@ -405,6 +403,7 @@ async fn core(
         tasks.clone(),
         stop.clone(),
         checkpoint_requests,
+        config.checkpoint_ignores.clone(),
     );
     // Worktrees whose sessions are gone are tidied at start and after
     // each prune (`tidying`); deletions tidy their own.

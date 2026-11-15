@@ -133,6 +133,20 @@ pub(super) fn runtime(
     )
 }
 
+/// Keep platform capture setup out of the node's transport assembly.
+#[cfg(target_os = "linux")]
+pub(super) fn checkpoint_runtime(
+    config: &Config,
+    loader: vessel_session::AttachmentLoader,
+    private_dir: PathBuf,
+) -> (
+    Arc<vessel_session::SessionRuntime>,
+    tokio::sync::mpsc::Receiver<vessel_session::CheckpointRequest>,
+) {
+    let (hooks, requests) = vessel_session::CheckpointHooks::channel();
+    (runtime(config, loader, private_dir, Some(hooks)), requests)
+}
+
 /// The LSP manager's configuration with the operator's roots filled in:
 /// executables and toolchains inside any configured root are not trusted
 /// for conservative analysis, so the registry needs the full list.

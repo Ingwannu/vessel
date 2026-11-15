@@ -253,6 +253,10 @@ async fn node_start(
         std::env::var_os(name)
     });
     let mut config = Config::new(data_dir(target)?, env);
+    #[cfg(target_os = "linux")]
+    {
+        config = config.with_checkpoint_environment(|name| std::env::var_os(name));
+    }
     config.limits = vessel_harness::LimitProbe::Local;
     config.limit_environment =
         vessel_harness::LimitEnvironment::from_vars(|name| std::env::var_os(name));

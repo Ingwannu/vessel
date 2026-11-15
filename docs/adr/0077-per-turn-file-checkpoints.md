@@ -784,3 +784,14 @@ one open descriptor per registered worktree. This adds no second root authority
 or workspace identity. A private Linux fixture must observe the actual root FD
 through nested admission, unlink/replacement and final lease release; a copied
 fingerprint alone cannot satisfy this obligation. The fixture is unrun.
+
+### Explicit environment boundary for ignore defaults
+
+Ignore-default resolution follows the existing HarnessEnv/configuration boundary:
+Config::new uses its caller-supplied home, and binaries may snapshot the nonsecret
+XDG_CONFIG_HOME value through an explicit reader. Library capture/preview/restore
+reuse that immutable validated value and never read HOME or XDG from their own
+process. Empty XDG falls back to the supplied home's .config; relative defaults
+refuse. In-process fixtures supply temporary values without mutating the process
+environment. This implements the existing isolation rule, adds no setting or
+external dependency, and remains an unrun implementation/test obligation.

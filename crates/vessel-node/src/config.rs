@@ -1,4 +1,6 @@
 //! How to run a node.
+#[cfg(target_os = "linux")]
+mod checkpoint;
 
 use std::ffi::OsString;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -41,6 +43,11 @@ pub struct Config {
     /// The account harnesses run as: the user's home and the harness home
     /// variables (`Config::new` says why it is required).
     pub harness_env: HarnessEnv,
+    #[cfg(target_os = "linux")]
+    pub(crate) checkpoint_ignores: Result<
+        vessel_workspace::checkpoint::IgnoreDefaults,
+        vessel_proto::checkpoint::CheckpointError,
+    >,
     /// Where harness binaries are looked up (`PATH` by default).
     pub harness_lookup: Lookup,
     /// Event log limits and retention.
@@ -170,6 +177,8 @@ impl Config {
             bind: Some(SocketAddr::from((Ipv4Addr::LOCALHOST, DEFAULT_PORT))),
             name: None,
             data_dir,
+            #[cfg(target_os = "linux")]
+            checkpoint_ignores: checkpoint::defaults(harness_env.user_home(), None),
             harness_env,
             harness_lookup: Lookup::from_env(),
             store: StoreConfig::default(),

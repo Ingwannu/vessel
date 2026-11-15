@@ -1,5 +1,5 @@
 //! Owned restore jobs outlive RPC cancellation; existing ids never reapply files.
-use super::{Controller, backend::reason, bridge, execution::Execution, workers::WorkerLease};
+use super::{Controller, backend::reason, execution::Execution, workers::WorkerLease};
 use std::sync::Arc;
 use tokio::{
     sync::{oneshot, watch},
@@ -162,7 +162,7 @@ impl Controller {
         recovering: Option<Operation>,
         job: &Job,
     ) -> Result<(crate::workspace::CheckpointFiles, Option<Operation>), CheckpointError> {
-        let defaults = bridge::defaults()?;
+        let defaults = self.context.defaults.clone()?;
         let workspaces = Arc::clone(&self.context.workspaces);
         let read_plan = plan.clone();
         let read_runtime = tokio::runtime::Handle::current();
@@ -254,7 +254,7 @@ impl Controller {
         let mutate_operation = operation.clone();
         let stopped = job.cancel.clone();
         let runtime = tokio::runtime::Handle::current();
-        let defaults = bridge::defaults()?;
+        let defaults = self.context.defaults.clone()?;
         tokio::task::spawn_blocking(move || {
             let _worker = actual;
             // Actual writes retain exclusion even if their async owner is lost.
