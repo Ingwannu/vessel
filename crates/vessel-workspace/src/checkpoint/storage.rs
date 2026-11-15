@@ -1,10 +1,20 @@
 //! Typed private namespaces; the node reserves quota before calling creation.
 //! Every operation runs on its retained admitted blocking worker, never at Drop.
+mod cleanup;
 mod directory;
 use super::{Archive, Error, archive};
 use directory::Directory;
 use std::{ffi::CString, path::Path};
 use vessel_proto::checkpoint::{CaptureKey, CheckpointError, RestoreId, RestorePlanId};
+
+/// A bounded private cleanup pass; only Complete permits a quota acknowledgement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Cleanup {
+    /// More private entries remain; keep the durable charge and retry a pass.
+    Pending,
+    /// Namespace absence and its parent directory are durably synced.
+    Complete,
+}
 
 /// Opened service-owned checkpoint storage below the prepared node data folder.
 #[derive(Debug)]

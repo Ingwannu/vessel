@@ -45,7 +45,7 @@ pub enum Error {
 
 pub use api::{Archive, IgnoreDefaults, Restore, Tree, image_fingerprint};
 pub use restore::{RecoveryState, Undo as Rollback};
-pub use storage::{CaptureStorage, StageDirectory, Storage};
+pub use storage::{CaptureStorage, Cleanup, StageDirectory, Storage};
 
 impl Error {
     /// Classify once without putting paths or file contents into RPC errors.

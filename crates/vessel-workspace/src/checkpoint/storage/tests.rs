@@ -116,3 +116,73 @@ fn checkpoint_storage_umask_child() {
         0o700
     );
 }
+
+#[test]
+fn checkpoint_storage_cleanup_is_bounded_repeatable_and_never_removes_sibling_capture() {
+    let data = tempfile::tempdir().unwrap();
+    fs::set_permissions(data.path(), fs::Permissions::from_mode(0o700)).unwrap();
+    let storage = Storage::open(data.path()).unwrap();
+    let key = key();
+    let capture = storage.create_capture(key).unwrap();
+    let sibling = CaptureKey {
+        capture: CaptureId::random(),
+        ..key
+    };
+    let _sibling = storage.create_capture(sibling).unwrap();
+    let blobs = capture.folder.path.join("blobs");
+    for index in 0..super::cleanup::test_pass_limit().saturating_add(1) {
+        let mut bytes = [0_u8; 32];
+        bytes
+            .get_mut(..8)
+            .unwrap()
+            .copy_from_slice(&u64::try_from(index).unwrap().to_le_bytes());
+        fs::write(
+            blobs.join(vessel_proto::BlobHash::from_bytes(bytes).to_string()),
+            b"private",
+        )
+        .unwrap();
+    }
+    let current = capture.create_preview(RestorePlanId::random()).unwrap();
+    drop(current);
+    let stage = capture.create_restore(RestoreId::random()).unwrap();
+    fs::write(stage.path().join("desired-0"), b"staged").unwrap();
+    assert_eq!(
+        storage.clean_capture(key.worktree, key.capture).unwrap(),
+        Cleanup::Pending
+    );
+    assert!(capture.folder.path.exists());
+    assert_eq!(
+        storage.clean_capture(key.worktree, key.capture).unwrap(),
+        Cleanup::Complete
+    );
+    assert!(!capture.folder.path.exists());
+    assert_eq!(
+        storage.clean_capture(key.worktree, key.capture).unwrap(),
+        Cleanup::Complete
+    );
+    assert!(storage.open_capture(sibling).is_ok());
+}
+
+#[test]
+fn checkpoint_storage_cleanup_refuses_symlink_hardlink_unknown_names_and_preserves_outside_data() {
+    let data = tempfile::tempdir().unwrap();
+    fs::set_permissions(data.path(), fs::Permissions::from_mode(0o700)).unwrap();
+    let storage = Storage::open(data.path()).unwrap();
+    let foreign = tempfile::tempdir().unwrap();
+    let outside = foreign.path().join("preserve");
+    fs::write(&outside, b"outside").unwrap();
+    for kind in ["symlink", "hardlink", "unknown"] {
+        let key = key();
+        let capture = storage.create_capture(key).unwrap();
+        let path = capture.folder.path.join("blobs").join("candidate");
+        match kind {
+            "symlink" => symlink(&outside, &path).unwrap(),
+            "hardlink" => fs::hard_link(&outside, &path).unwrap(),
+            "unknown" => fs::write(capture.folder.path.join("unexpected"), b"retain").unwrap(),
+            _ => unreachable!(),
+        }
+        assert!(storage.clean_capture(key.worktree, key.capture).is_err());
+        assert!(capture.folder.path.exists());
+        assert_eq!(fs::read(&outside).unwrap(), b"outside");
+    }
+}

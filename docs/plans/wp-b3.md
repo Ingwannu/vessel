@@ -753,3 +753,17 @@ Pure SQL fixtures explicitly model no worker; there is no production bypass.
 The writer regression covers timeout, refused deletion/no garbage, cleanup
 acknowledgement, then successful deletion with retained metadata accounting.
 This is source evidence until the next immutable remote test completes.
+
+### Private garbage cleanup mechanism (source; remote verification pending)
+
+Storage::clean_capture consumes only typed worktree/capture identities after the
+node proves worker/pin retirement. A bounded pass traverses the fixed private
+layout through no-follow FDs; only canonical blob, plan, restore and stage-slot
+names are accepted. Opened UID, regular-file/link count, mount and attributes
+are checked before unlink, with directory identity checks and parent fsync.
+Pending keeps the charge; Complete requires synced namespace absence. Unknown
+entries, symlinks, hardlinks, mount crossings and I/O errors retain accounting.
+No project paths, recursive path deletion, chmod-on-reuse or Drop cleanup.
+Fixtures cover repeated bounded passes, retry after absence, sibling isolation
+and refusal without changing linked outside bytes. Runtime GC assembly remains
+outstanding, and these new Linux fixtures have not executed yet.
