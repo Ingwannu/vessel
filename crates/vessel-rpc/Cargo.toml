@@ -21,6 +21,7 @@ tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
 
 [dev-dependencies]
+vessel-testkit = { path = "../vessel-testkit" }
 chrono.workspace = true
 criterion.workspace = true
 tokio = { workspace = true, features = ["io-util", "test-util"] }

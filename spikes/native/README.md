@@ -1318,3 +1318,20 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+`kit::SearchField` is the shared standalone filter profile over TextField's
+one-line engine and bare renderer. It owns Search14/X14, the source420-point
+maximum,34-point shell and focus palette; areas provide only localized placeholder
+and the existing change callback. Its X uses the ordinary replacement event/undo
+path and retains focus; navigation clear remains programmatic. Do not add search
+chrome or another editor in an area. See docs/plans/shared-search-field.md for
+the source values and unverified keyboard/accessibility/first-use boundaries. Exact corrected13c46693
+Kit all-target Clippy and its two focused tests completed0; this is not a full
+Kit suite, consumer UI or whole A9 gate. Selected-producer review remains distinct
+from area first-use evidence.
+
+Glyph declarations live once in kit/src/assets/inventory.rs; one macro
+generates the existing Glyph, ALL and const path match in their original
+module. Append future declarations there and keep the separate exhaustive
+drawing match. The frozen pre-refactor order/path snapshot guards this
+mechanical registry change; it does not approve new glyphs or consumer ink.
