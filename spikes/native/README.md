@@ -1187,7 +1187,7 @@ written to the fixture report.
 
 ## Attention and notification flow
 
-`view::inbox` owns exact source identity, whole-node counts, partial-page state,
+`view::inbox` consumes the shared G4 connection context for exact source identity, whole-node counts, partial-page state,
 non-repeating request tickets and stale-connection rejection. A connection
 incarnation changes even when a reconnect reports the same node id. The node
 persists the inbox and read state; the app never reconstructs either from a
@@ -1231,3 +1231,10 @@ actual input/focus still use the existing presence path. This first-version
 difference avoids claiming whole-desktop activity from Xwayland-only input.
 The optional idle-age wire field is staged under ADR 0089; until its assigned
 contract is merged, link refuses this report rather than inventing a wire call.
+
+Terminal attention metadata lives in the same Inbox snapshots; the terminal
+owner retains its parser, renderer and resident focus. Only explicit semantic
+activity and exact revisions drive claims/clears. Unassigned or old peers remain
+unsupported rather than receiving a provisional method number. Direct terminal
+pane reveal and passive focused-terminal clearing await the checked C2/W12
+producer; the Inbox row remains the explicit fallback.

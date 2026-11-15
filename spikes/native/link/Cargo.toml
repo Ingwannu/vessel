@@ -25,8 +25,6 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-# Opaque per-transport incarnation, shared with the existing proto UUID dependency.
-uuid = { workspace = true, features = ["v4"] }
 
 # The link to real nodes: `vessel-client` (tokio's network and runtime,
 # rustls, files on disk), none of which a browser has.
