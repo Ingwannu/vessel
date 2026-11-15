@@ -81,6 +81,10 @@ The per-user service starts at login and restarts a failed process. A clean
 shutdown stays stopped. Existing service files are preserved; an older
 macOS agent with unconditional `KeepAlive` still starts again after a
 clean exit until you remove and recreate it with `vessel init --service`.
+New service files store an absolute data-directory path, so they work from
+the service manager's working directory. Existing relative-path units stay
+unchanged; remove and recreate one to adopt that behavior. Paths and PATH
+must be Unicode without control characters to be stored in a unit.
 
 `vessel node stop` requests graceful shutdown through the node's Admin
 permission. With live sessions it lists them and refuses; `--when-idle`
@@ -95,6 +99,18 @@ Forced cleanup, service-manager finalization and restart are pending.
 
 Sessions survive client disconnects; stopping the node marks live ones
 `Interrupted`, and their logs stay readable after a restart.
+
+`vessel log ID --tail N` prints only the last N records after `--from`.
+Omit `--tail` to read the whole log; `--tail 0` prints nothing. A count must
+be a complete non-negative integer, validated before connecting. The tail
+window grows only as records arrive, without reserving the requested count.
+stdout keeps session output and stderr keeps status and retention notices.
+
+Add `--filter tools|text|errors|permissions` for one event kind or
+`--since 2026-01-01T00:00:00Z` for an inclusive RFC 3339 start time.
+Selection applies sequence, then time, then kind, then tail. Unknown filters
+and incomplete timestamps fail before connecting. Terminal bytes have none
+of the four structured kinds.
 
 ### A conversation: the queue, files, questions, marks
 
@@ -1214,6 +1230,11 @@ for Clippy and its launcher tests. Normal product/release builds never enable
 that feature. See [ADR 0060](docs/adr/0060-a-file-seeded-forge-for-test-fleets.md)
 and the [test fleet instructions](spikes/native/README.md#trying-it-against-fake-nodes-and-capturing-a-screen).
 
+On Unix, the generated-service plist regression test also uses `python3`
+with its standard-library XML/plist parser. It runs in isolated, no-site
+mode and reads only synthetic test data from stdin; Python is not used by
+the installed service or product binary.
+
 ## License
 
 Vessel is **source-available, not open source.** It is licensed under the
@@ -1347,6 +1368,9 @@ if unknown, supply it explicitly. `--after` fixes the UTC cursor for a
 reproducible preview; `--count` is 1–10. API callers reuse the returned
 cadence when saving so an interval keeps its preview anchor. `vessel status`
 also reports the node's time zone. ADR 0033 defines the daylight-saving rules.
+
+The page's sidebar keeps ended conversations visible until archived.
+Display → Show ended sessions can hide them; a saved off choice stays off.
 
 ### Inbox and push
 

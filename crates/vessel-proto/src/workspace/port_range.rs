@@ -4,7 +4,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use super::{InvalidServicePort, ServicePort};
+use super::{InvalidServicePort, ServicePort, trim_project_text};
 
 const MIN_ENDPOINT_DIGITS: usize = 1;
 const MAX_ENDPOINT_DIGITS: usize = 5;
@@ -63,9 +63,7 @@ impl FromStr for PortRange {
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         // Paseo trims the whole string as JavaScript does, not either endpoint.
-        let text = text.trim_matches(|character: char| {
-            (character.is_whitespace() && character != '\u{0085}') || character == '\u{feff}'
-        });
+        let text = trim_project_text(text);
         let (start, end) = text.split_once('-').ok_or(InvalidPortRange::Format)?;
         if !endpoint_shape(start) || !endpoint_shape(end) {
             return Err(InvalidPortRange::Format);

@@ -366,7 +366,7 @@ Done as staged source: the JSON decoder and six tests, with the whole gate
 (Rust 1998/0/12, web unit 417, e2e 62). It returns only validated Transcript or a
 fixed typed error; the escape-looking speech fixture prevents a second parse.
 
-Half-done: the stream-owned HTTP client is staged. URL/header validation precedes
+Done as staged source: the stream-owned HTTP client. URL/header validation precedes
 root loading; redirects, proxies and retries are disabled, with named connect,
 request and response bounds. The reader checks Content-Length and every append
 before decoding. Its fixed Debug hides nested transport diagnostics while
@@ -378,11 +378,13 @@ transport diagnostics, 503/429 hints with one upload and a fully accepted upload
 whose socket closes before headers. A rustls store probe adds the isolation test.
 Narrow clippy and the 27 helper tests pass; a strengthened body-deadline test
 also waits for client-side headers before advancing its clock and passes alone.
-The client still needs this commit's whole gate; product wiring remains absent.
+The HTTP snapshot's whole gate passed (Rust 2008/0/12, web unit 417, e2e 62);
+its node-value-contract merge also passed (Rust 2203/0/12, web unit 436,
+e2e 63, forge 4). Product wiring remains absent.
 
-Next: finish the HTTP whole gate, then the stream contract amendment and actor.
+Next: the stream contract amendment and actor.
 Active commit/stream quotas and fresh secret resolution belong to the service,
-not to the client's idle pool. Cancellation cannot retract accepted provider work. Wiring waits for the shared protocol accessor and call-table refactor,
+not to the client's idle pool. Cancellation cannot retract accepted provider work. The shared protocol accessor is merged; wiring still waits for the call-table refactor,
 removes staging, and gets a whole product gate with actual transport close and
 scope tests. Name the one-second input-chunk duration beside the segment bound
 when wiring it; the segment limit must keep following the proto chunk rule.

@@ -9,6 +9,33 @@ use crate::session::{SessionInput, SessionMode};
 use super::Call;
 
 impl Call {
+    /// The assigned requirement for admission. A feature awaiting a
+    /// protocol number returns `None`; senders must refuse it rather than
+    /// manufacture a version. Fleet envelopes propagate the inner call's
+    /// requirement before considering their own assigned version.
+    #[must_use]
+    pub fn required_protocol(&self) -> Option<ProtocolVersion> {
+        if let Self::Forward(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Relay(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        if let Self::Deliver(request) = self {
+            return request
+                .call
+                .required_protocol()
+                .map(|inner| inner.max(self.method().since()));
+        }
+        Some(self.since())
+    }
+
     /// The protocol version this call needs: its method's, or a later one
     /// when it uses a field added since or wraps a newer inner call. Every
     /// hop must decode the full typed call. A node that predates a field would
@@ -286,5 +313,53 @@ fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
         crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
+    }
+}
+
+#[cfg(test)]
+mod requirement_tests {
+    use crate::rpc::samples;
+    use crate::{Deliver, Forward, Method, NodeId, RelayCall, Request as _};
+
+    #[test]
+    fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {
+        let mut failures = Vec::new();
+        for &method in Method::ALL {
+            let request = match samples::call(method) {
+                Ok(request) => request,
+                Err(error) => {
+                    failures.push(format!("{method:?}: {error}"));
+                    continue;
+                }
+            };
+            assert_eq!(request.method(), method);
+            let wrappers = [
+                Forward {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                }
+                .into_call(),
+                RelayCall {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+                Deliver {
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+            ];
+            for call in std::iter::once(request).chain(wrappers) {
+                assert_eq!(
+                    call.required_protocol(),
+                    Some(call.since()),
+                    "{method:?} via {:?}",
+                    call.method()
+                );
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
     }
 }

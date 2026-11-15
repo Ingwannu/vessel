@@ -1493,3 +1493,45 @@ These values register no call and add no fields to existing replies or
 events. Their feature version remains unassigned; `pr.list` continues to
 mean watched sessions. Project resolution, provider listing and client/CLI
 transport are a following stage, not exposed by these value definitions.
+
+## Ended conversations in the page (ADR 0036 amendment)
+
+The bridge's `wire::SidebarView::default` and the page's `prefs-change`
+start with ended sessions visible. `data/sidebar` reuses that page default
+and still applies archive exclusion separately. The existing `PrefsDoc`
+field reader fills an absent choice from the wire default, preserving an
+explicit false and unknown file fields without a migration or rewrite.
+
+## Timeline following during layout
+
+The page's `data/follow-end` decides end intent from consecutive scroll
+and layout geometry. `features/session/window-follow` owns the DOM snapshot;
+`window-watch` applies it to scroll, container resize and row measurement,
+while `window-pin` still owns a requested row. A layout-queued scroll must
+not turn an end reader into an upward reader before resize delivery.
+An actual upward move stays authoritative, so resize does not pull that
+reader down. Listener/observer cleanup remains local to the timeline.
+
+## Planned node-control process boundary (proposed)
+
+The proposed amendment in ADR 0001 moves the generic selected-file Linux
+lock observation from store into proc. Store retains `NodeLock`, its data
+layout, record handling and caller-facing API; proc owns only OS mechanisms.
+The move adds `vessel-store -> vessel-proc` in its implementation commit.
+The later real force/restart caller adds `vessel-cli -> vessel-proc` in its
+own commit. These are planned edges: the active table above and manifests
+stay unchanged in the documents-only contract, so the boundary check still
+compares the current implementation exactly.
+
+A kernel PID is never signal authority on its own. Descriptor possession,
+process generation and namespace verification precede the separate CLI
+caller; authenticated directory binding and session consent remain in the
+CLI. ADR 0001 records rejected alternatives and the tests owed by each step;
+ADR 0064 retains the product contract and platform refusals.
+
+The reviewed contract also requires name-level restrictions in the same
+implementation commits as the edges. The store-to-proc move restricts the
+name `vessel_proc` in store to `src/lock/`, which delegates the lock query
+only. The real CLI caller restricts proc's signal entry point to the force
+module. These rows belong in `Names only some files may use`; a graph edge
+alone would otherwise expose the owner's unrelated process operations.

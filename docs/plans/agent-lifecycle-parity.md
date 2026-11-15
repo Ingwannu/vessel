@@ -125,6 +125,14 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   `permissions` is a type containing `permission`; any other string is
   a substring of the type. Vessel accepts only the four names and
   refuses the rest, so a typo is not an empty log.
+- The permission filter has a representation difference: `logs.ts:238-240`
+  checks timeline item type names, but `packages/protocol/src/agent-types.ts:
+  375-389` has no permission item, and request/resolution are separate stream
+  events (`:424-435`). The live callback consumes timeline items only
+  (`logs.ts:384-393`), as does one-shot history (`:288-295`). Vessel selects
+  its durable typed permission request and resolution records instead, so
+  the named filter can show the approval activity present in its log. This
+  is source inspection, not an executed Paseo behavior claim.
 - Paseo's count parser is `Number.parseInt` (`logs.ts:201-209`), so a
   numeric prefix such as `2x` is accepted. Vessel parses the whole
   non-negative count and refuses a suffix; this prevents a mistyped count
@@ -136,12 +144,34 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   before checking the count. Early validation avoids that unnecessary work.
   Paseo uses `Date.parse`; Vessel uses
   RFC 3339 with an explicit offset so machine locale cannot alter selection.
+- The `--since` unit also differs: CLI `utils/timeline.ts:16-26` fetches
+  projected history, then compares each item's timestamp; under the server's
+  `agent/timeline-projection.ts:156,234,286`, that is the last merged tool,
+  reasoning or assistant fragment's time. Paseo keeps or drops the whole
+  projected item. Vessel compares raw records, the same unit as `--from`,
+  `--tail` and retention, so output can start inside a message or tool
+  lifecycle without its earlier fragments. No CLI projection is added:
+  history and live use the same predicate, while Paseo's live path already
+  compares each event (`logs.ts:385-386`).
 - Follow prints the tail of what exists (default 10 when `--tail` is
   omitted, `:334-335`) and then streams. One-shot with no `--tail` prints
   the whole selection. Follow joins assistant and reasoning fragments
   (`createFollowTranscriptWriter`). Vessel already joins reply chunks
   in the CLI view; follow uses that, and does not reprint Paseo's
   banners for a replaced timeline. The log has no epoch.
+- Tail's unit differs: the callers `logs.ts:60-71,314,355` pass the
+  limit to `curateAgentActivity`. Under `packages/server/src/server/agent/`,
+  `activity-curator.ts:84-90,135-144,189-194` projects before taking the last
+  items; `timeline-projection.ts:543-554` collapses tool lifecycles and merges
+  assistant/reasoning chunks. Vessel counts raw log records, including
+  terminal and status records, before rendering. This preserves the existing
+  `--from` and retention cursor unit in both modes. Tail can begin inside a
+  streamed message; it does not count visible lines or complete messages.
+- `activity-curator.ts:200-207` returns "No activity to display." when
+  curation has no entries; one-shot prints that result (`logs.ts:314-315`).
+  Vessel's existing renderer emits only selected records and real retention
+  notices. A filter with no match is quiet, preserving stdout capture rather
+  than synthesizing an activity banner. A CLI case checks both streams.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -280,20 +310,44 @@ No row of the crate table changes.
   column/source errors remain; the quote/backslash, title trimming and
   corruption tests are unchanged. `QUALITY.md` records the removal without
   guessing a new global debt count. No dependency is added.
-- Half-done: this decoder refactor needs narrow store checks and its own
-  whole Rust gate. Later filtering, actor patches, CLI and MCP remain
-  protected drafts. Unwired services may be staged under `cfg(test)` until
-  the shared accessor and call plumbing are ready; they are not a product
-  build claim.
-- In progress, independent of wire assignment: log selectors are a source
-  draft using the existing read/follow cursor. Typed count, kind and timestamp
-  inputs precede connection. Tail follows time/kind selection; filtered gaps
-  separate streamed messages and cannot fabricate a retention warning. The
-  fake-node selection and history-to-live tests have not run yet.
+- The independent decoder refactor passed its narrow store checks and whole
+  Rust gate: 1980 passed, none failed, 12 ignored; both prebuilds, format,
+  size, boundaries and clippy passed. No waiver or rerun was needed. The wire
+  and page were unchanged. Later label filtering, actor patches, CLI and MCP
+  remain protected drafts until the shared accessor and call plumbing are
+  ready; staged services are not a product build claim.
+- Slice 5a tail passed its complete Rust gate on an independent build runner:
+  1984 passed, none failed, 12 ignored. Format, size, boundaries, clippy,
+  both prebuilds and dependency setup passed. Local narrow checks passed too.
+  Zero, window eviction, raw chunk boundaries and the real CLI tail were
+  covered. The original module-path lint was fixed before the whole run.
+  The count is parsed before connection; retained records allocate on arrival.
+  Tail uses the existing sequence/retention unit and can begin inside a message.
+- Selection slice 5b's first narrow compile found two test-only errors: a
+  failure fixture bypassed the existing status constructor, and a turn cursor
+  was unused. Both are corrected without changing assertions; the narrow
+  clippy, ten log units and two fake-node CLI cases passed. The complete
+  Rust gate passed 1989/0/12, with two TS freshness tests and all applicable
+  checks passing. No waiver or rerun was needed; forge checks were explicitly
+  skipped because the base has no forge-fixture feature. The review's
+  documentation-only correction now states the raw `--since` unit and effect;
+  no selection logic or assertion changes.
+- Slice 5b passed its complete code gate: time/kind predicates precede
+  the existing tail window. Sequence gaps separate message chunks, but only
+  raw page gaps generate retention notices. Parser, predicate, render-boundary
+  and fake-node selection tests passed in the narrow runs. Existing render
+  expectations stay unchanged. A no-match CLI assertion also checks that no banner is
+  fabricated. Follow and its transition test remain a protected draft for
+  slice 5c, which must reuse these predicates and the raw history cursor.
+  The inherited stream-end wait and the new turn-end wait share one named
+  event budget; their expected records and output remain unchanged.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
-- Next: report the independent decoder gate, then gate the log draft while
+- Next: submit the documentation correction with fast checks, then continue
+  checking the follow draft against the verified predicates while
   label call wiring awaits the shared accessor. No new wire call or dependency
-  is added by log options. Windows, macOS, native UI and real harnesses remain
+  is added by log options. Both slices include the caller-to-projection
+  citations and retain the raw-chunk test; the selection render context changes
+  without changing its expected fragment. Windows, macOS, native UI and real harnesses remain
   unverified.

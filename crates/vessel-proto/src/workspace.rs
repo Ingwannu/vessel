@@ -15,8 +15,11 @@ mod files;
 mod git;
 mod path;
 mod port_range;
+mod port_script;
 mod project;
+mod project_text;
 mod service_port;
+mod service_ports;
 mod support;
 mod text;
 mod url;
@@ -43,12 +46,15 @@ pub use git::{
 };
 pub use path::{InvalidRelPath, RelPath, is_git_dir};
 pub use port_range::{InvalidPortRange, PortRange};
+pub use port_script::{InvalidPortScript, PortScript, PortScriptPath};
 pub use project::{
     AddProject, ApproveCommands, CloneFailure, CloneProject, CloneStage, GetProject,
     GetProjectCommands, InitProject, ListProjects, ProjectCommands, ProjectInfo, ProjectList,
     ProjectState, RemoveProject,
 };
+pub use project_text::trim_project_text;
 pub use service_port::{InvalidServicePort, ServicePort};
+pub use service_ports::{InvalidServicePorts, ServicePorts};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,
