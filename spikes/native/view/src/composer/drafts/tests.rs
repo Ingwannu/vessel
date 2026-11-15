@@ -94,12 +94,37 @@ fn workspace_draft_keys_isolate_tabs_workspaces_and_nodes_and_round_trip() {
     let node = vessel_proto::NodeId::random();
     let workspace = vessel_proto::WorkspaceId::random();
     let draft = crate::layout::DraftId::random();
-    let key = DraftKey::Workspace {node, workspace, draft};
-    assert_eq!(serde_json::from_str::<DraftKey>(&serde_json::to_string(&key).unwrap()).unwrap(), key);
+    let key = DraftKey::Workspace {
+        node,
+        workspace,
+        draft,
+    };
+    assert_eq!(
+        serde_json::from_str::<DraftKey>(&serde_json::to_string(&key).unwrap()).unwrap(),
+        key
+    );
     assert_ne!(key, DraftKey::New);
-    assert_ne!(key, DraftKey::Workspace {node: vessel_proto::NodeId::random(), workspace, draft});
-    assert_ne!(key, DraftKey::Workspace {node, workspace: vessel_proto::WorkspaceId::random(), draft});
-    let other = DraftKey::Workspace {node, workspace, draft: crate::layout::DraftId::random()};
+    assert_ne!(
+        key,
+        DraftKey::Workspace {
+            node: vessel_proto::NodeId::random(),
+            workspace,
+            draft
+        }
+    );
+    assert_ne!(
+        key,
+        DraftKey::Workspace {
+            node,
+            workspace: vessel_proto::WorkspaceId::random(),
+            draft
+        }
+    );
+    let other = DraftKey::Workspace {
+        node,
+        workspace,
+        draft: crate::layout::DraftId::random(),
+    };
     assert_ne!(key, other);
     let mut drafts = Drafts::default();
     let at = chrono::Utc::now();
