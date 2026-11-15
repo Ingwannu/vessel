@@ -206,12 +206,14 @@ Seed acceptance does not navigate/open layout, so a later open refusal retains
 the accepted editor. Existing identities refuse reseeding; capacity refuses
 without evicting another editor. Isolated shell tests cover these boundaries.
 
-The W6 keyed payload bridge is still pending: history-bearing workspace seeds
-currently refuse intake before mutation, and scoped submission reports
-unsupported without clearing text. Two narrowly documented dead-code
-expectations apply only to the staged cross-worker accessors/intake and must
-be removed with their actual consumers. This producer is not a working fork,
-attachment, persistence or creation flow and must not be advertised as ready.
+W6's staged keyed payload bridge now accepts history into a newly admitted
+empty workspace editor, then installs its initial text. Refused history intake
+rolls back only that new editor and preserves other drafts. History requires
+no authorized file root; file scope remains explicitly absent. Workspace
+seeding does not request focus before W12 opens the tab. Scoped submission
+still reports unsupported without clearing text until the registry/creation
+driver is available. The seed method's temporary dead-code expectation must
+be removed with W2's actual action consumer; this is no runtime readiness claim.
 
 The link's Ask and every Answer now carry the canonical DraftKey in addition
 to the local Ticket. Per-draft counters may legitimately allocate the same

@@ -2,7 +2,9 @@
 use super::*;
 use crate::shell::language_tests;
 use gpui::TestAppContext;
-use vessel_app_view::composer::context::{ContextProblem, ContextText};
+use vessel_app_view::composer::context::{
+    ChatHistory, ContextId, ContextProblem, ContextText, ContextTitle, Payload,
+};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::{Machine, Reach};
 use vessel_proto::{NodeId, WorkspaceId};
@@ -30,6 +32,45 @@ fn seed(destination: DraftDestination, workspace: WorkspaceId, text: &str) -> Dr
         text: ContextText::parse(text).unwrap(),
         history: None,
     }
+}
+#[gpui::test]
+fn history_and_initial_text_share_the_exact_admitted_workspace_editor(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, window, cx| {
+        let node = NodeId::random();
+        let workspace = WorkspaceId::random();
+        let draft = DraftId::random();
+        let destination = connect(shell, node);
+        let mut input = seed(destination, workspace, "new question");
+        input.history = Some(ChatHistory::new(Payload {
+            id: ContextId::parse("fork-history").unwrap(),
+            title: ContextTitle::parse("Recent conversation").unwrap(),
+            text: ContextText::parse("retained history").unwrap(),
+            url: None,
+        }));
+        shell.seed_draft(draft, input, window, cx).unwrap();
+        let target = DraftKey::Workspace {
+            node,
+            workspace,
+            draft,
+        };
+        assert!(shell.composer_has_context(target));
+        assert!(!shell.composer_has_context(DraftKey::New));
+        assert_eq!(
+            shell
+                .workspace_draft_field(&LayoutKey::Workspace { node, workspace }, draft)
+                .unwrap()
+                .text(cx),
+            "new question"
+        );
+        assert!(shell.areas.draft.composer.text(cx).is_empty());
+        assert!(
+            shell
+                .workspace_draft_context_scope(&LayoutKey::Workspace { node, workspace }, draft)
+                .is_none()
+        );
+    });
 }
 #[gpui::test]
 fn exact_workspace_and_draft_are_required_and_busy_reseed_preserves_the_editor(
