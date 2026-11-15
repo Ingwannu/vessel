@@ -13,7 +13,7 @@ use crate::StoreError;
 const FINGERPRINT_BYTES: usize = 32;
 
 /// A fingerprint never exposes prompt content or its digest in diagnostics.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct ReceiptFingerprint([u8; FINGERPRINT_BYTES]);
 
 impl fmt::Debug for ReceiptFingerprint {

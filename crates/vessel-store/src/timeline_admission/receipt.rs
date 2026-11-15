@@ -50,8 +50,7 @@ pub(super) fn admit_receipt(
     if !exists {
         return Err(StoreError::UnknownSession(session));
     }
-    if let Some(reply) = lookup_receipt(connection, session, message.clone(), fingerprint.clone())?
-    {
+    if let Some(reply) = lookup_receipt(connection, session, message.clone(), fingerprint)? {
         return Ok(ReceiptAdmission::Existing(reply));
     }
     if let Err(capacity) = reserve(connection, session, AdmissionKind::Receipt)? {

@@ -2,9 +2,7 @@
 //! Question claims stay staged until the actor/provider bridge is connected.
 
 mod fingerprint;
-// Async question claims are staged until the actor persistence bridge exists.
-#[cfg(test)]
-mod question;
+pub(crate) mod question;
 mod receipt;
 #[cfg(test)]
 mod tests;
@@ -20,6 +18,10 @@ use crate::{ByteCount, StoreError, codec};
 use vessel_proto::timeline::admission::AdmissionBytes;
 
 use fingerprint::ReceiptFingerprint;
+pub use question::{
+    AnswerAdmission as QuestionAnswerAdmission, AnswerNotSent as QuestionAnswerNotSent,
+    AnswerTarget as QuestionAnswerTarget, AnswerToken as QuestionAnswerToken, QuestionAdmission,
+};
 pub use receipt::{ReceiptAdmission, ReceiptToken};
 use receipt::{admit_receipt, finish_receipt};
 

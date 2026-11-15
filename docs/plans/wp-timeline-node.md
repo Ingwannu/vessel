@@ -215,3 +215,11 @@ capability difference; no rich value is ignored or reported as accepted. ACP
 responder/send failures and Codex closed output now return failure instead of
 emitting a false accepted resolution. Fake rich-field refusal tests are written;
 end-to-end resolution/race/persistence proof remains owed.
+
+The durable question SQL service now uses public commit-acknowledged Store
+operations and startup converts abandoned Answering claims to OutcomeUnknown.
+Only typed known-not-sent refusals restore Pending; uncertainty/settlement never
+release replay reservations. Writer dispatch is split into a retained-admission
+module so central dispatch stays within its existing function/file budgets.
+The session callback/foreground dispatch bridge is still unconnected, and these
+new public storage operations have not yet passed their actual tests.

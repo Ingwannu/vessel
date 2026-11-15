@@ -97,6 +97,9 @@ pub use push_key::{PushKeyError, PushPrivateKey};
 pub use settings_file::{SetAside, SettingsFileError};
 pub use side_context::{LatestPlan, SideContext};
 pub use store::{Opened, Store};
-pub use timeline_admission::{ReceiptAdmission, ReceiptToken};
+pub use timeline_admission::{
+    QuestionAdmission, QuestionAnswerAdmission, QuestionAnswerNotSent, QuestionAnswerTarget,
+    QuestionAnswerToken, ReceiptAdmission, ReceiptToken,
+};
 pub use token::{InvalidToken, NodeToken};
 pub use workspace::{ApprovalChange, MAX_APPROVED_SETS, StoredWorkspace};

@@ -5,7 +5,10 @@ use vessel_proto::timeline::{PromptReceipt, SubmitPrompt, SubmitPromptReply};
 use vessel_proto::{Creator, Delivered};
 
 use super::Store;
-use crate::{ReceiptAdmission, ReceiptToken, StoreError, writer::Write};
+use crate::{
+    ReceiptAdmission, ReceiptToken, StoreError,
+    writer::{TimelineWrite, Write},
+};
 
 impl Store {
     /// Look up a retained outcome without reserving a fresh identity or dispatching.
@@ -37,11 +40,11 @@ impl Store {
         creator: Creator,
     ) -> Result<ReceiptAdmission, StoreError> {
         let (done, committed) = oneshot::channel();
-        self.send(Write::AdmitPrompt {
+        self.send(Write::Timeline(TimelineWrite::AdmitPrompt {
             request: Box::new(request),
             creator,
             done,
-        })
+        }))
         .await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
     }
@@ -57,11 +60,11 @@ impl Store {
         delivered: Delivered,
     ) -> Result<PromptReceipt, StoreError> {
         let (done, committed) = oneshot::channel();
-        self.send(Write::AcceptPrompt {
+        self.send(Write::Timeline(TimelineWrite::AcceptPrompt {
             token,
             delivered,
             done,
-        })
+        }))
         .await?;
         committed.await.map_err(|_dropped| StoreError::Closed)?
     }

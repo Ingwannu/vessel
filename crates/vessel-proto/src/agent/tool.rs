@@ -109,7 +109,7 @@ pub struct ToolCall {
     pub failure: Option<ToolFailure>,
     /// Semantic source attribution, never caller authority.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent_message: Option<AgentMessageProvenance>,
+    pub agent_message: Option<Box<AgentMessageProvenance>>,
     /// Files involved.
     #[serde(default)]
     pub locations: Vec<ToolLocation>,
@@ -145,7 +145,7 @@ pub struct ToolCallUpdate {
     pub failure: Option<ToolFailure>,
     /// Semantic source attribution supplied with this update.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent_message: Option<AgentMessageProvenance>,
+    pub agent_message: Option<Box<AgentMessageProvenance>>,
     /// Replacement locations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locations: Option<Vec<ToolLocation>>,
