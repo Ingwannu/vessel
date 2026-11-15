@@ -380,3 +380,15 @@ These changes are source only until the VM-generated declarations land and the
 web gate runs. New typed response calls, authoritative snapshot-through recovery
 and keyed prepared-submission integration still need wiring; no old fire-and-forget
 reply is treated as a durable receipt. Pending protocol None prevents activation.
+
+### Trusted plugin observation append (source only)
+
+SessionHandle::append_plugin(PluginTimelineItem) now orders a bounded canonical
+observation through the existing structured-session control channel, returning
+its real EventSeq. It does not call a provider, wake a parked process or create
+a turn. This is actor admission only: the trusted node broker must recheck its
+actual target grant and wait for the existing persistence watermark past seq
+before acknowledging success. There is no new RPC, plugin runtime or independent
+plugin store. W16's append remains unsupported until its broker and this seam are
+checked together. A private fake fixture awaits the real store barrier, reads the
+exact committed Plugin record and checks that no turn is running; execution owed.

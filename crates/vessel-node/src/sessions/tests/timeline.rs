@@ -385,3 +385,45 @@ async fn accepted_queued_receipts_have_a_committed_queue_and_keep_the_exact_entr
     );
     fixture.stop().await;
 }
+
+/// The future trusted plugin broker uses the actor and the existing durable log;
+/// no helper runtime/grant parser is activated by this test-only producer.
+#[tokio::test]
+async fn plugin_observation_uses_the_owning_actor_and_existing_persistence_barrier() {
+    use vessel_proto::timeline::{PluginTimelineData, PluginTimelineItem, PluginTimelineVersion};
+    let fixture = Fixture::new().await;
+    let session = create(&fixture).await;
+    let Found::Live {
+        handle,
+        mut durability,
+    } = fixture.sessions.find(session).await.unwrap()
+    else {
+        panic!("live fake")
+    };
+    let item = PluginTimelineItem {
+        id: "fixture-item".parse().unwrap(),
+        plugin: "fixture-plugin".parse().unwrap(),
+        kind: "fixture-view".parse().unwrap(),
+        version: PluginTimelineVersion::new(1).unwrap(),
+        data: PluginTimelineData::try_from(
+            vessel_proto::RawJson::from_text(r#"{"text":"opaque fixture"}"#).unwrap(),
+        )
+        .unwrap(),
+    };
+    let seq = handle.append_plugin(item.clone()).await.unwrap();
+    crate::persist::wait_until(session, &mut durability, seq.next().unwrap())
+        .await
+        .unwrap();
+    let page = fixture.store.read_events(session, seq, 1).await.unwrap();
+    assert_eq!(page.records.len(), 1);
+    assert_eq!(page.records[0].seq, seq);
+    assert_eq!(
+        page.records[0].event,
+        SessionEvent::Agent {
+            event: AgentEvent::Plugin(item)
+        }
+    );
+    assert!(!handle.turn_running().await.unwrap());
+    handle.kill();
+    fixture.settle().await;
+}
