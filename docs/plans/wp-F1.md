@@ -8,13 +8,23 @@ node schedule/store/CLI contract remains the base; a catalog entry is not a clai
 that its native screen is built. Native View decides, Link calls, App draws, and
 Kit owns shared controls. The screen must never contain fixture schedules.
 
-Current announced app line074ade16 is merged at800aa1a91, following package
-base4 (3cd0d3fc) and its Quality B/root race-fix ancestry. The complete reviewed
-G4 dialog captured-close/weak-focus prerequisite is present. Separate node work
-is on announced gate40 ba45a6e3 (protocol23/store18). No later unannounced app
-head or moving producer branch is assumed. The independent isolation field
-will use one Option<ProtocolVersion> constant set to None until the integrator
-assigns its number, not a capability RPC. It is not implemented by this note.
+Current announced app base9b a7aab9d6 (base9 db42d9c5 plus shared dialog
+header actions) is merged at700b61e32. The source includes canonical FieldId,
+SearchField, multiline identity/minimum and picker admission through their
+announced line; later Code/MD textarea/Form/select/Empty and ordered preference
+save extensions remain F1-owned unreviewed source. No final F1 whole gate,
+export or first-use captures have run. The private evidence record retains
+older-source red checks and narrowly scoped successful producer results.
+
+The separate node known-Ended edit producer d26b0b775 has V3 bounded
+SOURCE/NARROW PASS (strict0,41/0/0). Receipt059f1dab is in integrator batch17
+trial b68ae267b; the combined gate/head is not announced green. App Ended edit
+permission stays refused until that qualified combined contract arrives.
+Per-run isolation remains a separate unimplemented dependency on canonical
+provision/receipt/archive runtime; no protocol/schema number is claimed here.
+The shared translation generator currently blocks combined View/App checks:
+L confirmed the generated Root child-prefix lint and owns its correction.
+No local generator workaround or borrowed producer pass is used.
 
 The list uses the existing pure Page model and correlated, bounded Link hub.
 PreparedRow/Clock format authoritative node facts outside painting. UI state
