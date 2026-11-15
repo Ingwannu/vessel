@@ -6,11 +6,12 @@ mod pipe_tests;
 use std::collections::BTreeMap;
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, AtomicU64, Ordering},
+    atomic::{AtomicU64, Ordering},
 };
 use std::time::Duration;
 
 use super::transport::{self, Transport};
+use crate::delivery::{Attempt, Caller};
 use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
@@ -92,7 +93,7 @@ struct Command {
     id: CommandId,
     session: Option<SessionId>,
     text: String,
-    delivered: Arc<AtomicBool>,
+    attempt: Arc<Attempt>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
 struct Pending {
@@ -180,6 +181,16 @@ impl Client {
         session: Option<SessionId>,
         request: R,
     ) -> Result<R::Response, CdpError> {
+        self.execute_with_budget(session, request, COMMAND_TIMEOUT)
+            .await
+    }
+
+    async fn execute_with_budget<R: Request>(
+        &self,
+        session: Option<SessionId>,
+        request: R,
+        budget: Duration,
+    ) -> Result<R::Response, CdpError> {
         let sequence = self
             .shared
             .next
@@ -198,7 +209,8 @@ impl Client {
         if text.len() > MAX_OUTGOING_BYTES {
             return Err(CdpError::Size);
         }
-        let delivered = Arc::new(AtomicBool::new(false));
+        let attempt = Arc::new(Attempt::new());
+        let caller = Caller::new(Arc::clone(&attempt));
         let (answer, result) = oneshot::channel();
         self.shared
             .commands
@@ -206,26 +218,26 @@ impl Client {
                 id,
                 session,
                 text,
-                delivered: Arc::clone(&delivered),
+                attempt,
                 answer,
             })
             .map_err(|error| match error {
                 mpsc::error::TrySendError::Full(_command) => CdpError::Busy,
                 mpsc::error::TrySendError::Closed(_command) => CdpError::Closed,
             })?;
-        let outcome = tokio::time::timeout(COMMAND_TIMEOUT, result)
+        let outcome = tokio::time::timeout(budget, result)
             .await
             .map_err(|source| CdpError::TimedOut {
-                effect: delivery(&delivered),
+                effect: caller.cancel(),
                 source,
             })?
             .map_err(|_closed| CdpError::Disconnected {
-                effect: delivery(&delivered),
+                effect: caller.cancel(),
             })?;
         let reply = match outcome {
             Err(CdpError::Closed) => {
                 return Err(CdpError::Disconnected {
-                    effect: delivery(&delivered),
+                    effect: caller.cancel(),
                 });
             }
             result => result?,
@@ -279,8 +291,10 @@ async fn run<T: Transport>(
                 let Some(command)=command else {break Ok(())};
                 if command.answer.is_closed() {continue;}
                 if pending.len()>=PENDING_CAPACITY {let _gone=command.answer.send(Err(CdpError::Busy));continue;}
+                // Withdrawal and the start of any write have one atomic winner.
+                // A caller told NotDelivered can no longer become a late send.
+                if !command.attempt.start() {continue;}
                 let _old=pending.insert(command.id,Pending{session:command.session,answer:command.answer});
-                command.delivered.store(true,Ordering::Release);
                 match tokio::time::timeout(WRITE_TIMEOUT,socket.send(command.text)).await {
                     Ok(Ok(()))=>{},Ok(Err(error))=>break Err(error),Err(source)=>break Err(CdpError::TimedOut{effect:BrowserEffect::Uncertain,source}),
                 }
@@ -314,12 +328,4 @@ async fn run<T: Transport>(
     // make shutdown wait for another application-level closing handshake.
     drop(socket);
     result
-}
-
-fn delivery(delivered: &AtomicBool) -> BrowserEffect {
-    if delivered.load(Ordering::Acquire) {
-        BrowserEffect::Uncertain
-    } else {
-        BrowserEffect::NotDelivered
-    }
 }

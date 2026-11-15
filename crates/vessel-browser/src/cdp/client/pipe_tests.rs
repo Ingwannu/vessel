@@ -25,3 +25,46 @@ async fn typed_driver_uses_the_owned_nul_pipe_without_discovering_a_socket() {
         client.shutdown().await.unwrap();peer.await.unwrap();
     }).await.unwrap();
 }
+
+struct HeldWrite {
+    sent: tokio::sync::mpsc::Sender<String>,
+    release: Arc<tokio::sync::Semaphore>,
+    replies: tokio::sync::mpsc::Receiver<String>,
+}
+impl Transport for HeldWrite {
+    async fn send(&mut self, text: String) -> Result<(), CdpError> {
+        self.sent.send(text).await.unwrap();
+        let permit = self.release.acquire().await.unwrap();
+        permit.forget();
+        Ok(())
+    }
+    async fn next(&mut self) -> Result<Option<String>, CdpError> {
+        Ok(self.replies.recv().await)
+    }
+}
+#[tokio::test]
+async fn withdrawn_queued_command_cannot_write_after_its_not_delivered_timeout() {
+    const PEER_CAPACITY: usize = 4;
+    const QUEUED_BUDGET: Duration = Duration::from_millis(1);
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (sent, mut writes) = mpsc::channel(PEER_CAPACITY);
+        let (reply, replies) = mpsc::channel(PEER_CAPACITY);
+        let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let (client, _events) = Client::start(HeldWrite {sent, release: Arc::clone(&release), replies});
+        let first_client = client.clone();
+        let first = tokio::spawn(async move {first_client.execute(None,requests::Version{}).await});
+        let first_write = writes.recv().await.unwrap();
+        let first_wire: serde_json::Value = serde_json::from_str(&first_write).unwrap();
+        assert!(matches!(
+            client.execute_with_budget(None, requests::Version{}, QUEUED_BUDGET).await,
+            Err(CdpError::TimedOut{effect:BrowserEffect::NotDelivered,..})
+        ));
+        release.add_permits(1);
+        let response = serde_json::json!({"id":first_wire["id"],"result":{"protocolVersion":"fixture","product":"not-qualified","revision":"fixture","userAgent":"fixture","jsVersion":"fixture"}});
+        reply.send(response.to_string()).await.unwrap();
+        first.await.unwrap().unwrap();
+        client.shutdown().await.unwrap();
+        // Joined driver: there is no remaining worker that could publish a late write.
+        assert!(writes.try_recv().is_err());
+    }).await.unwrap();
+}

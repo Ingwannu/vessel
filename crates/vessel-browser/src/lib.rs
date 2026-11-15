@@ -29,4 +29,6 @@ mod references;
 mod snapshot;
 
 #[cfg(test)]
+mod delivery;
+#[cfg(test)]
 mod input_lane;

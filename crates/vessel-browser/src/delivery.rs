@@ -12,12 +12,12 @@ const PENDING: u8 = 0;
 const STARTED: u8 = 1;
 const CANCELLED: u8 = 2;
 
-pub(super) struct Attempt(AtomicU8);
+pub(crate) struct Attempt(AtomicU8);
 impl Attempt {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self(AtomicU8::new(PENDING))
     }
-    pub(super) fn start(&self) -> bool {
+    pub(crate) fn start(&self) -> bool {
         self.0
             .compare_exchange(PENDING, STARTED, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
@@ -33,12 +33,12 @@ impl Attempt {
     }
 }
 /// Also withdraws on a dropped/aborted run future, before its receiver disappears.
-pub(super) struct Caller(Arc<Attempt>);
+pub(crate) struct Caller(Arc<Attempt>);
 impl Caller {
-    pub(super) fn new(attempt: Arc<Attempt>) -> Self {
+    pub(crate) fn new(attempt: Arc<Attempt>) -> Self {
         Self(attempt)
     }
-    pub(super) fn cancel(&self) -> BrowserEffect {
+    pub(crate) fn cancel(&self) -> BrowserEffect {
         self.0.cancel()
     }
 }

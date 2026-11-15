@@ -876,3 +876,12 @@ blocked broad check as evidence for the later cursor/bundle additions.
 Current source-fast rustfmt/size/diff checks passed. No changed-source compile or
 execution result is claimed: the development-only b37 dependency must first be
 joined by the announced gate49 head before the next gate/review/adoption request.
+
+
+The same pending/start/withdraw owner now protects the CDP command queue. Its
+previous read-only delivery flag could race a timed-out queued command's later
+socket write. The sealed request driver must atomically start before its first
+write; a caller timeout/drop withdraws that same pending state. An independently
+held-write peer fixture blocks one write, times out a queued request, then joins
+shutdown and asserts the withdrawn request never reached the transport. This is
+byte-transport cancellation evidence when executed, not actual browser proof.

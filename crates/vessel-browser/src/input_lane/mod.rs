@@ -4,11 +4,10 @@
 //! only with the actual driver and cleanup proof. A driver must revalidate the
 //! owned target/context before effects; metadata/caller ids cannot authorize it.
 //! Closing/drain must retain real process/profile resources on unconfirmed cleanup.
-mod attempt;
 #[cfg(test)]
 mod tests;
 
-use attempt::{Attempt, Caller};
+use crate::delivery::{Attempt, Caller};
 use std::future::Future;
 use std::sync::{
     Arc,
