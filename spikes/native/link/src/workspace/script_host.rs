@@ -9,7 +9,7 @@ use vessel_client::book::BookFile;
 pub(super) async fn read(path: Option<PathBuf>, machine: String) -> Option<PreviewHost> {
     let path = path?;
     tokio::task::spawn_blocking(move || {
-        let file = BookFile::open(path).ok()?;
+        let file = BookFile::open(&path).ok()?;
         let (_, entry) = file.book().get(&machine)?;
         match &entry.address {
             NodeAddress::Ws(url) => host(&Endpoint::of_url(&url.to_string())),
