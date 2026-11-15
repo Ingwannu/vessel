@@ -16,11 +16,19 @@
 //!   "Ultracode": the agent's words, translated or renamed by a release);
 //!   a rule over categories (Claude Code's fast mode is `model_config`, as
 //!   are options that are neither).
-//! - Choice: a typed table, [`KNOWN`], per agent kind: the top step's
-//!   switch and the fast switch by option id, each either a toggle or a
-//!   select of an on and an off value (Claude Code has shipped both
-//!   shapes). An agent the table does not know gets its levels only; an
-//!   option the table names that the agent does not send is ignored.
+//! - Choice: a typed table, [`ROLES`], of the options the control folds in
+//!   by their role (the top step's switch, fast), each row one agent kind
+//!   and the ids its adapters use, each option either a toggle or a select
+//!   of an on and an off value (Claude Code has shipped both shapes). A
+//!   third agent, or a new adapter's id, is one row (the coordinator,
+//!   2026-11-14: Codex-only options such as a multi-tier speed may come;
+//!   the controls are written against the role, not today's ids). An
+//!   agent the table does not know gets its levels only; an option the
+//!   table names that the agent does not send is ignored.
+//! - The top stop: the purple state (the Codex app's "maximum") belongs to
+//!   the last step when it is the folded top switch or a level the table
+//!   [`MAXIMUM_LEVELS`] names (Codex's `ultra`, Claude Code's `max`), never
+//!   to a word in the drawing code ([`Effort::maximum`]).
 //! - The levels leave out "default": the control's reset is the default.
 
 use vessel_proto::{
@@ -28,48 +36,53 @@ use vessel_proto::{
     SessionOption,
 };
 
-/// A switch the control folds in, as the table names it.
+/// What an option folded into the control does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Role {
+    /// The step after the highest level ("ultra").
+    Top,
+    /// Fast mode.
+    Fast,
+}
+
+/// One row of [`ROLES`]: an agent kind's option of a role, by the ids its
+/// adapters have used (one per release shape, first match wins).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Known {
-    /// The option's ids the agent has used for it (one per release
-    /// shape), first match wins.
+    /// The agent.
+    pub kind: HarnessKind,
+    /// What the option does.
+    pub role: Role,
+    /// Its ids.
     pub ids: &'static [&'static str],
 }
 
-/// What the effort control folds in for one agent kind.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Shape {
-    /// The agent.
-    pub kind: HarnessKind,
-    /// The switch that is the step after the highest level ("ultra").
-    pub top: Option<Known>,
-    /// The fast switch.
-    pub fast: Option<Known>,
-}
-
-/// The agents whose switches the control knows, by the ids their adapters
-/// send (read off the preview node, 2026-11-13, through the app's log of
-/// each probe): Claude Code's `ultracode` and `fast` (on|off selects; its
-/// older adapter's `fast_mode` toggle), Codex's `fast-mode` (an off|on
-/// select). Codex's top levels (Max, Ultra) are levels of its own.
-pub const KNOWN: &[Shape] = &[
-    Shape {
+/// The options the control knows, by the ids the adapters send (read off
+/// the preview node, 2026-11-13, through the app's log of each probe):
+/// Claude Code's `ultracode` and `fast` (on|off selects; its older
+/// adapter's `fast_mode` toggle), Codex's `fast-mode` (an off|on select).
+/// Codex's top levels (Max, Ultra) are levels of its own.
+pub const ROLES: &[Known] = &[
+    Known {
         kind: HarnessKind::ClaudeCode,
-        top: Some(Known {
-            ids: &["ultracode"],
-        }),
-        fast: Some(Known {
-            ids: &["fast", "fast_mode"],
-        }),
+        role: Role::Top,
+        ids: &["ultracode"],
     },
-    Shape {
+    Known {
+        kind: HarnessKind::ClaudeCode,
+        role: Role::Fast,
+        ids: &["fast", "fast_mode"],
+    },
+    Known {
         kind: HarnessKind::Codex,
-        top: None,
-        fast: Some(Known {
-            ids: &["fast-mode"],
-        }),
+        role: Role::Fast,
+        ids: &["fast-mode"],
     },
 ];
+
+/// The level values that are an agent's maximum when they are its last
+/// step: Codex's `ultra`, Claude Code's `max`.
+pub const MAXIMUM_LEVELS: &[&str] = &["ultra", "max"];
 
 /// A switch found among the agent's options.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,11 +154,13 @@ impl Switch {
     /// `on` and `off` (by id, as the agents send them).
     fn of(option: &SessionOption) -> Option<Self> {
         match &option.kind {
-            OptionKind::Toggle { on } => Some(Self::Toggle {
+            OptionKind::Toggle { on, .. } => Some(Self::Toggle {
                 id: option.id.clone(),
                 on: *on,
             }),
-            OptionKind::Select { current, values } => {
+            OptionKind::Select {
+                current, values, ..
+            } => {
                 let find = |word: &str| {
                     values
                         .iter()
@@ -208,7 +223,6 @@ impl Effort {
     /// sends no levels.
     #[must_use]
     pub fn of(kind: Option<HarnessKind>, options: &[SessionOption]) -> Option<Self> {
-        let shape = kind.and_then(|kind| KNOWN.iter().find(|shape| shape.kind == kind));
         let (level_id, current_value, values) =
             options
                 .iter()
@@ -226,15 +240,19 @@ impl Effort {
                 name: value.name.clone(),
             })
             .collect();
-        let find = |known: Option<Known>| {
-            let known = known?;
-            known.ids.iter().find_map(|id| {
-                let option = options.iter().find(|option| option.id.as_str() == *id)?;
-                Switch::of(option).map(|switch| (option.name.clone(), switch))
-            })
+        let find = |role: Role| {
+            let kind = kind?;
+            ROLES
+                .iter()
+                .filter(|known| known.kind == kind && known.role == role)
+                .flat_map(|known| known.ids.iter())
+                .find_map(|id| {
+                    let option = options.iter().find(|option| option.id.as_str() == *id)?;
+                    Switch::of(option).map(|switch| (option.name.clone(), switch))
+                })
         };
-        let top = find(shape.and_then(|shape| shape.top));
-        let fast = find(shape.and_then(|shape| shape.fast)).map(|(_, switch)| switch);
+        let top = find(Role::Top);
+        let fast = find(Role::Fast).map(|(_, switch)| switch);
         let top_on = top.as_ref().is_some_and(|(_, switch)| switch.on());
         if let Some((name, _)) = &top {
             steps.push(Step::Top { name: name.clone() });
@@ -302,6 +320,18 @@ impl Effort {
             choices.push(top.choose(false));
         }
         choices
+    }
+
+    /// The top stop, drawn in the maximum's colours: the last step, when
+    /// it is the folded top switch or a level [`MAXIMUM_LEVELS`] names.
+    #[must_use]
+    pub fn maximum(&self) -> Option<usize> {
+        let last = self.steps.len().checked_sub(1)?;
+        let top = match self.steps.get(last)? {
+            Step::Top { .. } => true,
+            Step::Level { value, .. } => MAXIMUM_LEVELS.contains(&value.as_str()),
+        };
+        top.then_some(last)
     }
 
     /// Whether `id` is one of the options this control drives (the

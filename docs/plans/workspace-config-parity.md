@@ -106,20 +106,17 @@ crates while writing ADR 0066.
    keys keeps digest version 1 or 2 byte for byte. Wire fields are
    additive; a peer older than the assigned protocol sees a version 3
    set as invalid and cannot approve it.
-3. **Handed to the project/workspace registry package (ADR 0082).**
-   Auto-archive after a merged pull request, with
+3. **Not started.** Auto-archive after a merged pull request, with
    Paseo's safety conditions, default off. Reads the forge's merge
    state; does not change the forge client or the git implementation
    beyond that read. Its own section of ADR 0066 when it is designed,
    not before.
-4. **Handed to the project/workspace registry package (ADR 0082).**
-   Editor targets: detect on the node's machine, open a
+4. **Not started.** Editor targets: detect on the node's machine, open a
    path in one. A validated target enum, never a shell string. Its own
    section of ADR 0066 when it is designed.
 
-Out of this plan: `.worktreeinclude` and a node-wide port range.
-The service proxy and routes now belong to the service runtime package
-below; the earlier exclusion is superseded. `metadataGeneration` is ADR 0062's `[metadata.title]`,
+Out of this plan: `.worktreeinclude`, a node-wide port range, and a
+service proxy. `metadataGeneration` is ADR 0062's `[metadata.title]`,
 `[metadata.branch]`, `[metadata.commit]` and `[metadata.pull]`, not this
 track's parser, and not part of the command digest. A streaming setup
 panel is not a slice: Paseo pushes `workspace_setup_progress`, and Vessel
@@ -286,9 +283,81 @@ A new approval does not implicitly withdraw an earlier digest.
 Resume: allocation approval block is committed and its exact-commit root
 gate passed; native full-view integration remains owed. Next implement and
 narrow-check one direct invocation with the path/cleanup/decoder cases in
-the ADR, then the plan owner and health. Auto terminals remain unimplemented here. Archive and editor targets are
-now the registry package's responsibility (ADR 0082), with no implementation
-handed over from this track. No new protocol number is assigned.
+the ADR, then the plan owner and health. Auto terminals, archive and editor
+targets remain unimplemented. No new protocol number is assigned.
+
+## Independent process lifetime carrier
+
+A standalone change on the assigned node head adds Proc's process-id and
+lifetime modules, runner-owned revocation and read-only handle transport.
+This does not include the staged allocator or a browser consumer. The ADR
+records the reuse choice, accepted platform limits and event-based tests.
+The node scanner and Preview must continue refusing authority from cached
+PID/port data until their own fresh ownership integration is implemented.
+
+### Carrier implementation checkpoint
+
+The separate process carrier now has runner-issued observations in Proc and
+PTY, delegated through AgentProcess and current session/terminal handles.
+Revocation precedes signal attempts, follows observed exit/wait uncertainty,
+and runs on owner drop. PTY's blocking waiter independently revokes its run.
+Session park, wake, profile replacement and service restart replace or clear
+the current observation; old observations cannot become live again. No wire,
+Preview admission or new dependency is introduced. Source is awaiting its
+narrow checks, security review and standalone package gate. Windows execution
+and fresh socket/workspace ownership remain unverified.
+
+The direct terminal-session test also checks the SessionHandle's PTY observer,
+separately from a standalone shell handle. The issuer guard type itself is
+must-use because dropping it revokes authority; its Self-returning methods
+rely on that one annotation. Narrow evidence for the earlier snapshot is
+kept separately from this pending revision.
+
+The first carrier narrow build found the new explicit wait-error branch
+returning std::io::Error rather than the existing WaitError wrapper. The
+revision keeps revocation first and restores the existing source-preserving
+From conversion. No test or deadline changed; the failed build log is kept,
+and no tests ran in that build.
+
+The release-capable child integration has a separate obligation: reject a
+bound release without revocation, but revoke before successful ownership
+release. Its detached direct-child wait remains the actual exit observation.
+This carrier's assigned base has no release operation; these joint tests
+belong to the later combined lifecycle integration and are not claimed here.
+
+The next narrow check reached the PTY integration tests and rejected an
+unquoted Rust item in their module documentation. The revision fixes only
+that documentation and explains why watch revocation is retained even when
+no observer has subscribed yet. The source error and documentation-lint
+failures remain distinct recorded checks; neither ran tests.
+
+The Proc child stores its private guard as observation, keeping that name
+separate from a release-capability lifetime policy in the lifecycle work.
+The public lifetime() accessor and all revocation points are unchanged;
+this private rename changes no test expectation or runtime behavior.
+
+## Process carrier qualification checkpoint
+
+The four changed crates passed all-target Clippy and their full tests at
+3d982ce9: 334 passed, none failed, two ignored across 27 result groups.
+All fourteen new PID/watch/child/PTY/session/terminal cases ran. The first
+compile-error and later test-documentation lint checks remain recorded as
+failures rather than test passes. No deadline or assertion was weakened.
+
+The composed carrier now includes the designated shared base 6c782cb6 and
+the reviewed receipt fix c5da5305. The incoming native, proto, store, node,
+workspace, testkit and web trees are unchanged. The only later product edit
+is the private observation-field rename, with the same public API and
+revocation behavior. Qualification of this composition requires the whole
+root gate and security review before integration. It introduces no D2
+helper/allocator caller, protocol field, number or dependency.
+
+Release-capable child integration, durable process identity and the actual
+service/Preview consumers remain separate work. This carrier cannot prove
+OS death, persistent ownership or socket/workspace authority. Windows and
+native execution are outside this checkpoint's evidence.
+
+## Runtime preparation retained after the shared carrier landing
 
 Direct-helper primitive: staged under the node terminal module's test-only
 declaration. One owner resolves the approved program, supplies literal
@@ -374,83 +443,10 @@ health implementation is claimed by this merge. New method rows, when the
 runtime is ready, use the shared table and its unassigned feature gate.
 The composed preparation still needs its focused checks before new behavior.
 
-## Independent process lifetime carrier
-
-A standalone change on the assigned node head adds Proc's process-id and
-lifetime modules, runner-owned revocation and read-only handle transport.
-This does not include the staged allocator or a browser consumer. The ADR
-records the reuse choice, accepted platform limits and event-based tests.
-The node scanner and Preview must continue refusing authority from cached
-PID/port data until their own fresh ownership integration is implemented.
-
-### Carrier implementation checkpoint
-
-The separate process carrier now has runner-issued observations in Proc and
-PTY, delegated through AgentProcess and current session/terminal handles.
-Revocation precedes signal attempts, follows observed exit/wait uncertainty,
-and runs on owner drop. PTY's blocking waiter independently revokes its run.
-Session park, wake, profile replacement and service restart replace or clear
-the current observation; old observations cannot become live again. No wire,
-Preview admission or new dependency is introduced. Source is awaiting its
-narrow checks, security review and standalone package gate. Windows execution
-and fresh socket/workspace ownership remain unverified.
-
-The direct terminal-session test also checks the SessionHandle's PTY observer,
-separately from a standalone shell handle. The issuer guard type itself is
-must-use because dropping it revokes authority; its Self-returning methods
-rely on that one annotation. Narrow evidence for the earlier snapshot is
-kept separately from this pending revision.
-
-The first carrier narrow build found the new explicit wait-error branch
-returning std::io::Error rather than the existing WaitError wrapper. The
-revision keeps revocation first and restores the existing source-preserving
-From conversion. No test or deadline changed; the failed build log is kept,
-and no tests ran in that build.
-
-The release-capable child integration has a separate obligation: reject a
-bound release without revocation, but revoke before successful ownership
-release. Its detached direct-child wait remains the actual exit observation.
-This carrier's assigned base has no release operation; these joint tests
-belong to the later combined lifecycle integration and are not claimed here.
-
-The next narrow check reached the PTY integration tests and rejected an
-unquoted Rust item in their module documentation. The revision fixes only
-that documentation and explains why watch revocation is retained even when
-no observer has subscribed yet. The source error and documentation-lint
-failures remain distinct recorded checks; neither ran tests.
-
-The Proc child stores its private guard as observation, keeping that name
-separate from a release-capability lifetime policy in the lifecycle work.
-The public lifetime() accessor and all revocation points are unchanged;
-this private rename changes no test expectation or runtime behavior.
-
-## Process carrier qualification checkpoint
-
-The four changed crates passed all-target Clippy and their full tests at
-3d982ce9: 334 passed, none failed, two ignored across 27 result groups.
-All fourteen new PID/watch/child/PTY/session/terminal cases ran. The first
-compile-error and later test-documentation lint checks remain recorded as
-failures rather than test passes. No deadline or assertion was weakened.
-
-The composed carrier now includes the designated shared base 6c782cb6 and
-the reviewed receipt fix c5da5305. The incoming native, proto, store, node,
-workspace, testkit and web trees are unchanged. The only later product edit
-is the private observation-field rename, with the same public API and
-revocation behavior. Qualification of this composition requires the whole
-root gate and security review before integration. It introduces no D2
-helper/allocator caller, protocol field, number or dependency.
-
-Release-capable child integration, durable process identity and the actual
-service/Preview consumers remain separate work. This carrier cannot prove
-OS death, persistent ownership or socket/workspace authority. Windows and
-native execution are outside this checkpoint's evidence.
-
-The qualified carrier a7697906 is now joined into this preparation branch.
-Its older package-base ancestry is not a native package update here: paths
-outside its qualified 29-file change retain the assigned node-head content.
-The lock-query module and its reaping-grace export remain alongside the new
-lifetime/PID exports. Architecture, ADR and plan conflicts retain the current
-head text before appending the carrier's sections. Automatic session merges
-keep the head's lifecycle logic and substitute only the actual-run observer.
-Focused checks of this composition are still required; the separate carrier
-PASS does not qualify D2 wiring or actual group cleanup.
+The designated node head now includes the qualified carrier and the common
+application/node base. Its complete tree is retained; the earlier preparation
+merge exclusions do not apply to this head. The runtime preparation above
+remains test-only and does not qualify allocator, proxy or health execution.
+Archive and editor targets belong to the registry package (ADR 0082); this
+track has handed over no implementation for either. Focused composition checks
+remain owed before further runtime wiring.

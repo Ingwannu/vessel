@@ -276,7 +276,7 @@ jobs:
         run: |
           umask 077
           printf '%s\n' "$UPDATE_SECRET" > "$RUNNER_TEMP/update.key"
-          cargo run --quiet --locked -p vessel-app-feed -- sums --key "$RUNNER_TEMP/update.key" "$GITHUB_WORKSPACE/feed/$LABEL"
+          cargo run --quiet --locked -p vessel-app-feed -- sums --key "$RUNNER_TEMP/update.key" --label "$LABEL" "$GITHUB_WORKSPACE/feed/$LABEL"
           if [ "${{ inputs.publish }}" = "true" ] || [[ "$GITHUB_REF_NAME" == app-v* ]]; then
             cargo run --quiet --locked -p vessel-app-feed -- publish --key "$RUNNER_TEMP/update.key" \
               --feed "$GITHUB_WORKSPACE/feed" --channel "$VESSEL_UPDATE_CHANNEL" --label "$LABEL" \

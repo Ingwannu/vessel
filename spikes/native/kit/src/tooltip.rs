@@ -40,8 +40,62 @@ pub type Place = Rc<std::cell::Cell<Option<Bounds<Pixels>>>>;
 /// The tooltip shown, if any.
 #[derive(Debug, Clone)]
 struct Tip {
-    text: SharedString,
+    content: Content,
     place: Place,
+}
+
+/// Content keeps an exact path/hash in its own code face instead of
+/// styling an interpolated fragment of an ordinary sentence.
+#[derive(Debug, Clone)]
+enum Content {
+    Text(SharedString),
+    Code(SharedString),
+}
+
+impl Content {
+    const fn face(&self) -> Type {
+        match self {
+            Self::Text(_) => Type::Body,
+            Self::Code(_) => Type::Mono,
+        }
+    }
+
+    const fn text(&self) -> &SharedString {
+        match self {
+            Self::Text(text) | Self::Code(text) => text,
+        }
+    }
+}
+
+/// Resolved sizes stay on the same scale as their face.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Metrics {
+    face: Type,
+    size: f32,
+    line: f32,
+}
+
+impl Content {
+    fn metrics(&self) -> Metrics {
+        self.metrics_with(crate::fonts::ui, crate::fonts::code)
+    }
+
+    // Separate callbacks let regressions exercise unequal UI/code settings
+    // without changing the process-wide font settings of parallel tests.
+    fn metrics_with(&self, interface: fn(f32) -> f32, code: fn(f32) -> f32) -> Metrics {
+        match self {
+            Self::Text(_) => Metrics {
+                face: self.face(),
+                size: interface(14.0),
+                line: interface(LINE),
+            },
+            Self::Code(_) => Metrics {
+                face: self.face(),
+                size: code(CODE_SIZE),
+                line: code(CODE_LINE),
+            },
+        }
+    }
 }
 
 /// A screen's tooltips: at most one shown.
@@ -68,10 +122,33 @@ impl Tooltips {
         text: impl Into<SharedString>,
         touch: bool,
     ) -> Stateful<gpui::Div> {
+        self.attach(trigger, place, Content::Text(text.into()), touch)
+    }
+
+    /// The same tooltip chrome and placement, with the supplied path/hash
+    /// in the fixed-width face. GOAT's `StartTruncatedPath` uses a code
+    /// tooltip for the full path; existing body-text callers stay unchanged.
+    #[must_use]
+    pub fn on_code(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        text: impl Into<SharedString>,
+        touch: bool,
+    ) -> Stateful<gpui::Div> {
+        self.attach(trigger, place, Content::Code(text.into()), touch)
+    }
+
+    fn attach(
+        &self,
+        trigger: Stateful<gpui::Div>,
+        place: &Place,
+        content: Content,
+        touch: bool,
+    ) -> Stateful<gpui::Div> {
         if touch {
             return trigger;
         }
-        let text = text.into();
         let hover_shown = Rc::clone(&self.shown);
         let hover_place = Rc::clone(place);
         let press_shown = Rc::clone(&self.shown);
@@ -81,7 +158,7 @@ impl Tooltips {
                 let mut shown = hover_shown.borrow_mut();
                 if *hovered {
                     *shown = Some(Tip {
-                        text: text.clone(),
+                        content: content.clone(),
                         place: Rc::clone(&hover_place),
                     });
                 } else if shown
@@ -109,6 +186,7 @@ impl Tooltips {
             Scheme::Dark => neutral.surface2,
         };
         let top = point(bounds.center().x, bounds.top());
+        let metrics = tip.content.metrics();
         let card = div()
             .max_w(px(280.0))
             .py(px(4.0))
@@ -118,10 +196,21 @@ impl Tooltips {
             .border_1()
             .border_color(neutral.border_accent)
             .shadow(popup::shadow_md(tokens))
-            .type_(Type::Body)
-            .line_height(px(crate::fonts::ui(LINE)))
+            .type_(metrics.face)
+            .text_size(px(metrics.size))
+            .line_height(px(metrics.line))
             .text_color(neutral.foreground)
-            .child(tip.text);
+            .children(lines(tip.content.text(), neutral.foreground));
+        // Word 39: a tooltip arrives quickly (keyed by its words, so the
+        // next trigger's plays again) and goes at once.
+        let card = popup::appear(
+            gpui::ElementId::NamedChild(
+                std::sync::Arc::new(gpui::ElementId::Name(tip.content.text().clone())),
+                "tip".into(),
+            ),
+            card,
+            crate::motion::QUICK,
+        );
         Some(
             deferred(
                 anchored()
@@ -137,8 +226,77 @@ impl Tooltips {
     }
 }
 
+/// A tooltip's words: its first line in the ink, the lines after it at
+/// 65 % (the Codex app's two-line tooltips, "1.5x speed" over "More
+/// usage"); a one-line tooltip is unchanged.
+fn lines(text: &SharedString, ink: gpui::Hsla) -> Vec<gpui::Div> {
+    text.split('\n')
+        .enumerate()
+        .map(|(index, line)| {
+            let colour = if index == 0 { ink } else { ink.opacity(SECOND) };
+            div().text_color(colour).child(line.to_owned())
+        })
+        .collect()
+}
+
+/// The second line's opacity (the reference's 65 %).
+const SECOND: f32 = 0.65;
+
 /// 8 above the trigger (upward, so negative).
 const ABOVE: f32 = -8.0;
 
 /// Paseo's `fontSize.base * 1.4`.
 const LINE: f32 = 19.6;
+
+/// GOAT's code tooltip: text-[11px], leading-relaxed (11 × 1.625).
+const CODE_SIZE: f32 = 11.0;
+const CODE_LINE: f32 = 17.875;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_code_tooltip_changes_only_the_face_of_its_exact_content() {
+        let path: SharedString = "packages/긴-경로/src/sidebar-with-a-long-name.rs".into();
+        let text = Content::Text(path.clone());
+        let code = Content::Code(path.clone());
+        assert_eq!(text.face(), Type::Body);
+        assert_eq!(code.face(), Type::Mono);
+        assert_eq!(text.text(), &path);
+        assert_eq!(code.text(), &path);
+    }
+}
+
+#[cfg(test)]
+mod independent_scale_tests {
+    use super::*;
+
+    #[test]
+    fn code_size_eighteen_does_not_take_its_line_height_from_interface_size_fourteen() {
+        fn interface_fourteen(points: f32) -> f32 {
+            points
+        }
+        fn code_eighteen(points: f32) -> f32 {
+            points.mul_add(1.5, 0.0)
+        }
+        let code = Content::Code("a-long-unbroken-path.rs".into());
+        let text = Content::Text("An ordinary tooltip.".into());
+        assert_eq!(
+            code.metrics_with(interface_fourteen, code_eighteen),
+            Metrics {
+                face: Type::Mono,
+                size: 16.5,
+                line: 26.8125,
+            }
+        );
+        assert_eq!(
+            text.metrics_with(interface_fourteen, code_eighteen),
+            Metrics {
+                face: Type::Body,
+                size: 14.0,
+                line: 19.6,
+            }
+        );
+    }
+}
