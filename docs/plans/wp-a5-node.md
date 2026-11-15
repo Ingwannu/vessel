@@ -273,3 +273,19 @@ tests and version assignments are preserved. The worker notification-claims
 migration is appended after registry, with the existing rollback helpers
 removing it first. Five A5 pending rows remain unassigned. Current merged
 root/native narrow checks are owed; earlier1432 evidence remains prior-source.
+
+## Shared host fallback receiving union
+
+[Decision Log]
+- Purpose: notification activation must remain useful after its original window closes.
+- Existing assets: V1 row273 bounded shared host slice d8b73397/docs89e2 includes the sole weak window registry and root helper993; it is provisionally adopted for this receiving union, not a full E3 branch.
+- Alternatives: retaining old Shells, an Inbox-owned window list, or forwarding the old destination to a successor would break lifetime or source authority.
+- Choice: keep exact delivery in the original handle/root/weak/context checks; otherwise ask the shared host owner to show generic Inbox. If no host exists, call its optional desktop factory, then resolve a current host again.
+- Why: fallback receives no Source, key, session or terminal destination. A replacement never gains the old recipient's action even if its connection happens to match.
+- Impact: dispatcher/reexport/factory field are promoted with this real caller; set_factory remains individually cfg(test) until E3 startup. A missing factory remains typed unavailable. There is no second window manager.
+
+The original callback/window tests now include actual sole-registry registration,
+closed-window generic fallback and consumed/evicted tags. Additional GPUI cases
+cover a registered replacement root with a matching source and all windows
+closed followed by an actual test factory. Own union strict/tests remain owed;
+V1 host/helper verdicts do not grant notification authority or OS delivery proof.

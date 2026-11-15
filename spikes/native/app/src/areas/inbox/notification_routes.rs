@@ -25,7 +25,8 @@ impl Global for Routes {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Opened {
     Original,
-    /// The desktop owner has not supplied its reviewed host fallback yet.
+    /// A current host receives only generic Inbox activation, never this source.
+    Generic,
     GenericUnavailable,
     OtherNotification,
 }
@@ -67,7 +68,7 @@ pub(super) fn remember(
 fn open(tag: &str, cx: &mut App) -> Opened {
     let Some(tag) = super::notifications::parse_tag(tag) else {
         return if tag == super::notifications::SUMMARY_TAG {
-            Opened::GenericUnavailable
+            generic(cx)
         } else {
             Opened::OtherNotification
         };
@@ -83,7 +84,7 @@ fn open(tag: &str, cx: &mut App) -> Opened {
             .map(|(_, recipient)| recipient)
     };
     let Some(recipient) = recipient else {
-        return Opened::GenericUnavailable;
+        return generic(cx);
     };
     let opened = recipient.window.update(cx, |root, window, cx| {
         if !vessel_app_kit::root_contains_view(&root, recipient.shell.entity_id(), cx) {
@@ -121,8 +122,31 @@ fn open(tag: &str, cx: &mut App) -> Opened {
     if matches!(opened, Ok(true)) {
         Opened::Original
     } else {
+        generic(cx)
+    }
+}
+
+// The host registry owns window selection. No notice source or destination is
+// passed through this boundary, so a successor cannot inherit its authority.
+fn generic(cx: &mut App) -> Opened {
+    use crate::host_windows::{Delivery, open_additional, with_focused_shell};
+    if with_focused_shell(cx, show_inbox) == Delivery::Delivered {
+        return Opened::Generic;
+    }
+    if open_additional(cx) == Delivery::Delivered
+        && with_focused_shell(cx, show_inbox) == Delivery::Delivered
+    {
+        Opened::Generic
+    } else {
         Opened::GenericUnavailable
     }
+}
+
+fn show_inbox(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    shell.route_to(Route::Inbox);
+    cx.notify();
+    cx.activate(true);
+    window.activate_window();
 }
 
 #[cfg(test)]

@@ -1241,8 +1241,9 @@ opaque random tags map to original window, weak Shell, exact connection source
 and destination in one bounded App Global. Its response callback is installed
 once. The original handle must still contain that Shell through the kit root
 boundary; a retired connection opens only that original Inbox. Unknown, consumed,
-evicted or dead recipients explicitly return GenericUnavailable until the
-desktop owner provides its reviewed generic-host fallback. No second window
+evicted or dead recipients use the shared host owner for generic Inbox activation;
+no source or destination crosses that fallback. A missing live root and desktop
+factory returns GenericUnavailable. No second window
 registry or successor source action is introduced. The Linux GPUI
 patch suppresses daemon sound, and the app independently requests the system
 bell when selected. Actual display/audibility remains OS-controlled.

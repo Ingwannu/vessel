@@ -70,3 +70,12 @@ all-target strict Clippy and tests all returned zero. The raw aggregate was
 and all five host-window cases plus the root-owner helper. The logs show the
 changed Kit/App being checked and compiled. This is selected source evidence;
 review, final consumer union and the lead's combined gate remain separate.
+
+## W7 receiving caller
+
+The A5 notification process callback now uses with_focused_shell/open_additional
+only for generic Inbox activation after the original recipient cannot be used.
+No notice source/destination crosses this host boundary. Dispatcher/reexport and
+factory storage are product callers; only set_factory remains cfg(test) until
+E3 installs its startup factory. W7 receiving-union checks remain independent of
+the producer's V1 row273 selected1490/0/2 evidence.

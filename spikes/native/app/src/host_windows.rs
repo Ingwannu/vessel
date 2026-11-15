@@ -20,7 +20,6 @@ pub(crate) struct WindowRecord {
 #[derive(Default)]
 pub(crate) struct Registry {
     pub(crate) records: Vec<WindowRecord>,
-    #[cfg(test)]
     factory: Option<dispatch::Factory>,
 }
 impl Global for Registry {}
@@ -57,11 +56,11 @@ pub(crate) fn register(shell: &Entity<Shell>, window: &Window, cx: &mut App) {
     });
 }
 
-// These host operations gain product callers in the W7/E3 owner unions. The
-// literal staging attributes are removed only with those real callers.
-#[cfg(test)]
+// W7 supplies real generic Inbox callers. Only the desktop factory setter
+// remains staged until the E3 startup owner installs it.
 mod dispatch;
 #[cfg(test)]
-pub(crate) use dispatch::{Delivery, open_additional, set_factory, with_focused_shell};
+pub(crate) use dispatch::set_factory;
+pub(crate) use dispatch::{Delivery, open_additional, with_focused_shell};
 #[cfg(test)]
 mod tests;

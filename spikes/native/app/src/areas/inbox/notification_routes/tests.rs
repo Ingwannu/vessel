@@ -13,6 +13,7 @@ fn window(cx: &mut TestAppContext) -> (Entity<Shell>, AnyWindowHandle) {
         let window = cx
             .open_window(WindowOptions::default(), |window, cx| {
                 let content = cx.new(|cx| Shell::without_io(window, cx));
+                crate::host_windows::register(&content, window, cx);
                 shell = Some(content.clone());
                 vessel_app_kit::root(content, window, cx)
             })
@@ -76,12 +77,23 @@ fn later_window_does_not_replace_the_process_callback_or_steal_an_earlier_notice
         assert_eq!(shell.route, Route::Inbox);
         assert_eq!(shell.areas.inbox.terminals.selected, Some(second_key));
     });
-    // A duplicate has no recipient and cannot pick the newest window.
+    // A duplicate has no source authority; the current host gets generic Inbox.
     first.update(cx, |shell, _| {
         shell.route = Route::Draft;
     });
+    second.update(cx, |shell, _| {
+        shell.route = Route::Draft;
+        shell.areas.inbox.terminals.selected = None;
+    });
+    second_window
+        .update(cx, |_, window, _| window.activate_window())
+        .unwrap();
     click(tag, cx);
     first.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
+    second.read_with(cx, |shell, _| {
+        assert_eq!(shell.route, Route::Inbox);
+        assert_eq!(shell.areas.inbox.terminals.selected, None);
+    });
 }
 
 #[gpui::test]
@@ -98,7 +110,13 @@ fn closed_window_and_replaced_root_cannot_route_to_a_retained_or_successor_shell
     assert_ne!(old_window, successor_window);
     click(old_tag, cx);
     old.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
-    successor.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
+    successor.read_with(cx, |shell, _| {
+        assert_eq!(shell.route, Route::Inbox);
+        assert_eq!(shell.areas.inbox.terminals.selected, None);
+    });
+    successor.update(cx, |shell, _| {
+        shell.route = Route::Draft;
+    });
 
     let (tag, _) = notice(&successor, successor_window, &source(), cx);
     let replacement = successor_window
@@ -134,7 +152,7 @@ fn exact_connection_retirement_only_opens_the_original_inbox_without_source_navi
 }
 
 #[gpui::test]
-fn process_routes_are_bounded_and_dead_recipients_have_an_explicit_unavailable_result(
+fn process_routes_are_bounded_and_missing_hosts_have_an_explicit_unavailable_result(
     cx: &mut TestAppContext,
 ) {
     crate::shell::language_tests::init(cx);
@@ -148,7 +166,7 @@ fn process_routes_are_bounded_and_dead_recipients_have_an_explicit_unavailable_r
         assert_eq!(cx.global::<Routes>().entries.len(), MAX_PENDING_NOTICES);
         assert_eq!(
             open(&super::super::notifications::tag(oldest), cx),
-            Opened::GenericUnavailable
+            Opened::Generic
         );
         assert_eq!(open("another-feature", cx), Opened::OtherNotification);
     });
@@ -163,4 +181,70 @@ fn process_routes_are_bounded_and_dead_recipients_have_an_explicit_unavailable_r
             Opened::GenericUnavailable
         );
     });
+}
+
+#[gpui::test]
+fn registered_replacement_receives_generic_inbox_without_inheriting_the_old_destination(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (old, handle) = window(cx);
+    let original_source = source();
+    let (tag, _) = notice(&old, handle, &original_source, cx);
+    let replacement = handle
+        .update(cx, |_, window, cx| {
+            let replacement = window.replace_root(cx, Shell::without_io);
+            crate::host_windows::register(&replacement, window, cx);
+            replacement
+        })
+        .unwrap();
+    // Even an otherwise matching connection does not transfer a notice's target.
+    replacement.update(cx, |shell, _| {
+        shell.areas.inbox.targets = vec![Target::Online(original_source)];
+    });
+    click(tag, cx);
+    old.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
+    replacement.read_with(cx, |shell, _| {
+        assert_eq!(shell.route, Route::Inbox);
+        assert_eq!(shell.areas.inbox.terminals.selected, None);
+    });
+}
+
+fn factory(cx: &mut App) -> crate::host_windows::Delivery {
+    match cx.open_window(WindowOptions::default(), |window, cx| {
+        let shell = cx.new(|cx| Shell::without_io(window, cx));
+        crate::host_windows::register(&shell, window, cx);
+        vessel_app_kit::root(shell, window, cx)
+    }) {
+        Ok(_) => crate::host_windows::Delivery::Delivered,
+        Err(_) => crate::host_windows::Delivery::Unavailable,
+    }
+}
+
+#[gpui::test]
+fn callback_survives_all_windows_closing_and_uses_only_the_desktop_factory(
+    cx: &mut TestAppContext,
+) {
+    crate::shell::language_tests::init(cx);
+    let (old, handle) = window(cx);
+    let (tag, _) = notice(&old, handle, &source(), cx);
+    handle
+        .update(cx, |_, window, _| window.remove_window())
+        .unwrap();
+    cx.run_until_parked();
+    cx.update(|cx| {
+        assert!(cx.windows().is_empty());
+        crate::host_windows::set_factory(factory, cx);
+    });
+    click(tag, cx);
+    cx.update(|cx| {
+        assert_eq!(cx.windows().len(), 1);
+        let records = &cx.global::<crate::host_windows::Registry>().records;
+        assert_eq!(records.len(), 1);
+        let shell = records[0].shell.upgrade().unwrap();
+        assert_ne!(shell.entity_id(), old.entity_id());
+        assert_eq!(shell.read(cx).route, Route::Inbox);
+        assert_eq!(shell.read(cx).areas.inbox.terminals.selected, None);
+    });
+    old.read_with(cx, |shell, _| assert_eq!(shell.route, Route::Draft));
 }
