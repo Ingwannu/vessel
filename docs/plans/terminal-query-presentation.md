@@ -153,3 +153,30 @@ The first corrected strict run reached tests and reported only a wildcard on
 the owned AnchorState and a map get/unwrap. Explicit remaining variants and
 direct fixture indexing preserve every assertion. No whole gate or review is
 claimed from this lint correction.
+
+## Borrowed frame projection
+
+[Decision Log]
+- Purpose: atomically project cells, cursor position/visibility, negotiated modes
+  and marker disposition for an on-demand authoritative frame.
+- Existing asset: the one engine's retained cells and snapshot cut. Cloning a
+  maximum-size grid for every viewport read defeats the bounded frame request.
+- Alternatives: restore a mutable decoder from visible rows or clone all cells
+  before selecting the requested viewport. Neither preserves the required cost
+  or decoder state boundary.
+- Choice: a borrowed FrameView over live Screen or immutable Snapshot. It holds
+  no runtime/actor and allocates no cell grid. Typed viewport intent chooses
+  FollowLive or a caller-owned pinned marker; adjustments remain explicit.
+- Why: the node actor can preflight cell count and enforce its actual encoded
+  response-byte budget before copying selected borrowed cells into wire DTOs.
+- Cost: a live borrowed view cannot outlive its authority borrow. The node owns
+  frame revision/event cut, bounded waiters and transport/admission; no pure
+  frame identity is treated as authentication or derived from EventSeq here.
+
+Frame origin records retained/evicted/reset/inactive/beyond-live adjustment,
+requested marker projection and actual first row. Released handles refuse.
+The viewport height is explicitly limited to the current screen's row count;
+latent alternate right columns remain available to capture but never leak into
+visible frame columns. Program cursor shape, CLI rendering and UI validation
+remain separate unfinished D1 work; this projection exposes the prerequisite's
+position/visibility contract only.
