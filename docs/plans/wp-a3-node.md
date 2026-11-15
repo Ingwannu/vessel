@@ -3,8 +3,9 @@
 Status: contract, snapshot projection and pending RPC row implemented. Node head
 44 (`ede20014`) is merged; the wire remains unassigned. Five-library tests on
 `13149bdaf` passed all owned cases; raw 592/1 includes one named base TypeScript
-alias defect, explicitly accepted by the coordinator. Durable integration and
-20,000-record measurement are queued on `59c2e95ce`; final root gate, V3 review
+alias defect, explicitly accepted by the coordinator. The 20,001-record measurement passed on `59c2e95ce`; one durable reopen
+fixture raced asynchronous worker shutdown and is corrected to await close.
+The final root gate, V3 review
 and integrator protocol assignment remain pending. No active new-RPC runtime or
 large-history latency claim is made.
 
@@ -118,7 +119,17 @@ review; then integrator protocol assignment and native consumption.
   bridge SHA-256 `aac2f47064fb6f343e2c73588f6405f8cb32fc9c864dec3d23f3c03903e5734a`.
 - Durable integration and the explicitly ignored 20,001-record measurement run
   once together using `cargo test -p vessel-store prompt_index -- --include-ignored --nocapture`.
-  Its immutable source is `59c2e95ce`; it has not finished at this receipt.
+  Immutable source `59c2e95ce` finished as raw 8/1: six owned unit tests,
+  retention integration and measurement passed; the reopen fixture failed with
+  DatabaseBusy because it dropped the facade without awaiting worker shutdown.
+  The fixture now awaits the existing Store::close before reopen and closes the
+  reopened store, preserving all durability/unknown-session assertions.
+- Measurement on the shared VM: 20,001 records, 10,000 prompts, 50 pages;
+  first page 494.871783 ms, complete traversal 12.83429935 s; first reply 21,264
+  bytes. This is debug-build data-path evidence under load (start39.08/end32.81),
+  not an app frame-latency claim. The raw failed suite remains retained at
+  `/tmp/work/wp-search/node-store-measure-01/cargo.log`; no unchanged measurement
+  rerun is needed. The final root gate must verify the corrected reopen case.
 
 These scoped results do not constitute the final root gate, V3 approval,
 assigned wire admission or native app/capture approval.
