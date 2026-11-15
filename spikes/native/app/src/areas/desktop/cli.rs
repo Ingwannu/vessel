@@ -2,7 +2,9 @@
 
 use crate::shell::Shell;
 use gpui::{Context, Window};
-use vessel_app_kit::ui::{Div, InteractiveElement as _, IntoElement as _, ParentElement as _};
+use vessel_app_kit::ui::{
+    Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+};
 use vessel_app_kit::{Tokens, outline_button, settings};
 use vessel_app_link::desktop::{
     DesktopError,

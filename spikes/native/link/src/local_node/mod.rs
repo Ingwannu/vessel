@@ -191,7 +191,9 @@ impl Controller {
     ///
     /// # Errors
     /// No owned log source, bounded reader failure, or closed command queue.
-    pub fn log_tail(&self) -> impl Future<Output = Result<LogText, ManagerError>> + 'static {
+    pub fn log_tail(
+        &self,
+    ) -> impl Future<Output = Result<LogText, ManagerError>> + 'static + use<> {
         let commands = self.commands.clone();
         async move {
             let (reply, wait) = oneshot::channel();
@@ -260,7 +262,7 @@ impl Controller {
         &self,
         after: AfterQuit,
         confirmation: Option<Confirmation>,
-    ) -> impl Future<Output = Result<(), ManagerError>> + 'static {
+    ) -> impl Future<Output = Result<(), ManagerError>> + 'static + use<> {
         let commands = self.commands.clone();
         let policy = match after {
             AfterQuit::KeepRunning => QuitPolicy::KeepRunning,

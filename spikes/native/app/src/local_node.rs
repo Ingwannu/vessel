@@ -96,7 +96,7 @@ pub(crate) fn finalize(
     after: AfterQuit,
     confirmation: Option<Confirmation>,
     cx: &App,
-) -> impl Future<Output = Result<(), ManagerError>> + 'static {
+) -> impl Future<Output = Result<(), ManagerError>> + 'static + use<> {
     let controller = cx
         .try_global::<Managed>()
         .and_then(|managed| managed.controller.clone());

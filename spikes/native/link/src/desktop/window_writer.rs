@@ -53,7 +53,7 @@ impl WindowWriter {
     pub fn finalize(
         &self,
         state: WindowState,
-    ) -> impl Future<Output = Result<(), DesktopError>> + 'static {
+    ) -> impl Future<Output = Result<(), DesktopError>> + 'static + use<> {
         let commands = self.commands.clone();
         async move {
             let (done, wait) = oneshot::channel();

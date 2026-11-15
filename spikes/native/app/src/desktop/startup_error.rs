@@ -24,7 +24,7 @@ struct RestartFailure {
 
 impl Render for RestartFailure {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
-        use gpui::InteractiveElement as _;
+        use gpui::StatefulInteractiveElement as _;
         let tokens = vessel_app_kit::tokens(cx);
         let words = self.words.desktop_shell();
         let (title, hint) = match self.kind {

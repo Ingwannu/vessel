@@ -191,7 +191,7 @@ fn install(
 /// Update restart and normal quit await the same canonical preferences queue.
 pub(crate) fn flush_preferences(
     cx: &App,
-) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static {
+) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static + use<> {
     let flush = cx
         .try_global::<Desktop>()
         .map(|desktop| desktop.preferences.flush());

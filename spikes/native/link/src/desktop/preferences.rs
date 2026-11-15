@@ -182,7 +182,7 @@ impl Coordinator {
     ///
     /// # Errors
     /// Returns worker startup or closure failures; save errors remain in outcomes.
-    pub fn flush(&self) -> impl Future<Output = Result<(), DesktopError>> + 'static {
+    pub fn flush(&self) -> impl Future<Output = Result<(), DesktopError>> + 'static + use<> {
         let commands = self.commands.clone();
         async move {
             let (done, wait) = oneshot::channel();
