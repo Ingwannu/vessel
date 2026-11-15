@@ -509,3 +509,10 @@ context comment. The file-level group comment did not meet that rule. All
 three EN/KO action messages now have their own context comments; label text is
 unchanged. No current overlay/App strict or runtime pass is claimed. The next
 immutable strict snapshot also contains the newer duplex/cue source.
+
+A source audit applying the root run's same-name/result-fake diagnostics to
+the newer native bundle found the analogous risks before its queued run. The
+raw-input trait now names input_format/start_input/input_failure/next_input,
+distinct from native Input methods; start-failure fakes return a typed failure
+instead of unwrapping a lock in Result functions. No behavior or lint policy
+is relaxed. The queued36a1 source predates these corrections.

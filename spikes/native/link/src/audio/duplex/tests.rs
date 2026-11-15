@@ -27,17 +27,20 @@ struct InputFake {
     drops: Arc<AtomicUsize>,
 }
 impl CaptureSource for InputFake {
-    fn format(&self) -> Format {
+    fn input_format(&self) -> Format {
         self.format
     }
-    fn start(&self) -> Result<(), DeviceFailure> {
-        self.starts.lock().unwrap().push("input");
+    fn start_input(&self) -> Result<(), DeviceFailure> {
+        self.starts
+            .lock()
+            .map_err(|_private| DeviceFailure::Thread)?
+            .push("input");
         self.failure.map_or(Ok(()), Err)
     }
-    fn failure(&self) -> Option<DeviceFailure> {
+    fn input_failure(&self) -> Option<DeviceFailure> {
         self.failure
     }
-    async fn receive(&mut self) -> Result<Samples, DeviceFailure> {
+    async fn next_input(&mut self) -> Result<Samples, DeviceFailure> {
         self.frames.recv().await.ok_or(DeviceFailure::Interrupted)
     }
 }
@@ -57,7 +60,10 @@ impl SpeakerSource for OutputFake {
         self.format
     }
     fn start(&self) -> Result<(), DeviceFailure> {
-        self.starts.lock().unwrap().push("output");
+        self.starts
+            .lock()
+            .map_err(|_private| DeviceFailure::Thread)?
+            .push("output");
         self.failure.map_or(Ok(()), Err)
     }
     fn failure(&self) -> Option<DeviceFailure> {

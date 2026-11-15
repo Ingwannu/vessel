@@ -26,22 +26,22 @@ use std::{fmt, sync::Arc, time::Instant};
 use vessel_app_view::audio::CaptureLease;
 
 trait CaptureSource {
-    fn format(&self) -> Format;
-    fn start(&self) -> Result<(), DeviceFailure>;
-    fn failure(&self) -> Option<DeviceFailure>;
-    async fn receive(&mut self) -> Result<Samples, DeviceFailure>;
+    fn input_format(&self) -> Format;
+    fn start_input(&self) -> Result<(), DeviceFailure>;
+    fn input_failure(&self) -> Option<DeviceFailure>;
+    async fn next_input(&mut self) -> Result<Samples, DeviceFailure>;
 }
 impl CaptureSource for Input {
-    fn format(&self) -> Format {
+    fn input_format(&self) -> Format {
         Input::format(self)
     }
-    fn start(&self) -> Result<(), DeviceFailure> {
+    fn start_input(&self) -> Result<(), DeviceFailure> {
         Input::start(self)
     }
-    fn failure(&self) -> Option<DeviceFailure> {
+    fn input_failure(&self) -> Option<DeviceFailure> {
         Input::failure(self)
     }
-    async fn receive(&mut self) -> Result<Samples, DeviceFailure> {
+    async fn next_input(&mut self) -> Result<Samples, DeviceFailure> {
         Input::receive(self).await
     }
 }
@@ -87,7 +87,7 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
         output: O,
         ports: Ports,
     ) -> Result<Self, DeviceFailure> {
-        let processor = Processor::new(input.format(), output.format())
+        let processor = Processor::new(input.input_format(), output.format())
             .map_err(|_private| DeviceFailure::Processing)?;
         let pump = Pump::new(lease, Arc::clone(&fence), output.format())
             .map_err(|_private| DeviceFailure::Processing)?;
@@ -129,7 +129,7 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
                     }
                 },
                 () = wait_deadline(deadline) => {},
-                samples = self.input.receive() => {
+                samples = self.input.next_input() => {
                     let (samples, permit, access) = samples?.into_parts();
                     let audio = self.processor.capture(&samples).map_err(|_private| DeviceFailure::Processing)?;
                     return Ok(Held::new(audio, permit, access));
@@ -150,14 +150,14 @@ impl<I: CaptureSource, O: SpeakerSource> CaptureDevice for Streams<I, O> {
             return Err(DeviceFailure::Interrupted);
         }
         self.input
-            .start()
+            .start_input()
             .inspect_err(|_private| self.fence.close())
     }
     async fn receive(&mut self) -> Result<Held, DeviceFailure> {
         self.next().await
     }
     fn failure(&self) -> Option<DeviceFailure> {
-        self.output.failure().or_else(|| self.input.failure())
+        self.output.failure().or_else(|| self.input.input_failure())
     }
 }
 impl<I: CaptureSource, O: SpeakerSource> Drop for Streams<I, O> {
