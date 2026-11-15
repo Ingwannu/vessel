@@ -64,6 +64,8 @@ pub(crate) struct Devices {
     /// stored after a forget comes from an invitation made before it.
     withdrawals: AtomicU64,
     connected: Arc<Connected>,
+    /// Fresh synthetic recovery grants and revocations share actual admission.
+    authority: Arc<tokio::sync::RwLock<()>>,
 }
 
 impl Devices {
@@ -76,6 +78,7 @@ impl Devices {
             invitations: Mutex::new(Invitations::default()),
             withdrawals: AtomicU64::new(0),
             connected: Arc::new(Connected::default()),
+            authority: Arc::new(tokio::sync::RwLock::new(())),
         }
     }
 
@@ -203,10 +206,20 @@ impl Devices {
     /// `device.revoke`: revoke the device and close its open connections.
     /// Revoking a revoked device succeeds and changes nothing.
     pub(crate) async fn revoke(&self, device: DeviceId) -> Result<(), ServiceError> {
-        self.store.revoke_device(device, Utc::now()).await?;
-        let closed = self.connected.close(device);
-        tracing::info!(%device, closed, "revoked a device");
-        Ok(())
+        // Wait without starting an effect. Once admitted, this one writer
+        // owns the fence through commit even if its RPC reply is cancelled.
+        let fence = Arc::clone(&self.authority).write_owned().await;
+        let store = self.store.clone();
+        let connected = Arc::clone(&self.connected);
+        tokio::spawn(async move {
+            let _fence = fence;
+            store.revoke_device(device, Utc::now()).await?;
+            let closed = connected.close(device);
+            tracing::info!(%device, closed, "revoked a device");
+            Ok::<(), ServiceError>(())
+        })
+        .await
+        .map_err(ServiceError::Task)?
     }
 
     /// A device's scopes now; `None` once it is revoked or unknown. What
@@ -407,3 +420,42 @@ fn scopes(asked: Option<&[Scope]>) -> Result<Vec<Scope>, ServiceError> {
 
 #[cfg(test)]
 mod tests;
+
+/// An actual stored grant held through one synchronous recovery admission.
+#[derive(Debug)]
+pub(crate) struct RecoveryGrant {
+    pub(crate) principal: crate::principal::Principal,
+    _fence: Option<tokio::sync::OwnedRwLockReadGuard<()>>,
+}
+impl Devices {
+    pub(crate) async fn recovery_grant(
+        &self,
+        creator: &vessel_proto::Creator,
+    ) -> Result<RecoveryGrant, vessel_proto::WireError> {
+        use crate::principal::Principal;
+        use vessel_proto::{Creator, ErrorCode, Method, WireError};
+        let (principal, fence) = match creator {
+            Creator::Owner => (Principal::Owner, None),
+            Creator::Device { id } => {
+                // No synthetic connection or presence registration: authority
+                // is freshly read at each launch/prompt, not replayed from boot.
+                let fence = Arc::clone(&self.authority).read_owned().await;
+                let scopes = self.scopes_now(*id).await.map_err(|error| error.to_wire())?
+                    .ok_or_else(|| WireError::new(ErrorCode::Forbidden, "the session creator was revoked; startup recovery did not send a prompt"))?;
+                (Principal::Device { id: *id, scopes }, Some(fence))
+            }
+            Creator::Agent { .. } => {
+                return Err(WireError::new(
+                    ErrorCode::Forbidden,
+                    "startup recovery is unavailable to agent-created sessions",
+                ));
+            }
+        };
+        principal.permit(Method::ResumeSession)?;
+        principal.permit(Method::PromptSession)?;
+        Ok(RecoveryGrant {
+            principal,
+            _fence: fence,
+        })
+    }
+}

@@ -94,3 +94,26 @@ producer's checks and source review. The node must then retain its original
 attempt through actual preparation settlement and recheck authority/policy at
 final admission. No second claim registry, tracker or quota is introduced.
 The source port remains uncompiled until the complete joint assembly.
+
+
+## Node runtime-only port
+
+The node source leaf adds recovery ownership, typed checkpoint persistence,
+creation provenance, fresh device fences and exact-run person-stop routing.
+It contains no settings lane, disk record, Opening or boot/shutdown replacement.
+The common settings implementation owns their actual joint assembly.
+
+Approved semantic joins keep the guarded dispatch boxed future and its
+completed diagnostics unchanged around the added Operation lease. All refusal
+paths still pass through that diagnostic boundary. Connection initialization
+retains both its lifecycle token and the new operation field. Reopen changes
+only the Store call to reopen_exact; the existing match, restore_metadata,
+subagent metadata and cleanup remain. The models test collector only adapts
+JournalEntry to the records-only event it previously collected.
+
+This source includes the exact-run Kill repair and its held real-ACK cases;
+the original physical-preparation return remains open until the qualified
+shared seam and retained node-attempt consumer join. Recovery fixtures still
+require canonical settings test adapter updates; the old settings implementation
+is not included merely to make them compile. Checkpoints from previous source
+lineages establish no execution claim for this port.

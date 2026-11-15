@@ -94,7 +94,7 @@ impl NodeService {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
         let marked = match mark {
-            Mark::Archive => self.put_away(session).await,
+            Mark::Archive => self.put_away_held(session, connection.operation()).await,
             Mark::Read { .. } | Mark::Unread | Mark::Pin | Mark::Unpin | Mark::Unarchive => {
                 self.sessions.mark(session, mark).await
             }
@@ -115,7 +115,20 @@ impl NodeService {
     /// (node)", meeting point 3). A schedule's session must not outlive
     /// what a person's own would ("Integration 3 (node)").
     pub(super) async fn put_away(&self, session: SessionId) -> Result<SessionInfo, ServiceError> {
-        let archived = self.sessions.mark(session, Mark::Archive).await?;
+        self.put_away_held(session, None).await
+    }
+    async fn put_away_held(
+        &self,
+        session: SessionId,
+        operation: Option<std::sync::Arc<crate::recovery::Operation>>,
+    ) -> Result<SessionInfo, ServiceError> {
+        let sessions = std::sync::Arc::clone(&self.sessions);
+        let archived = self
+            .sessions
+            .hold(operation, async move {
+                sessions.mark(session, Mark::Archive).await
+            })
+            .await?;
         self.unwatch_session(session);
         self.terminals.end_beside(session).await;
         Ok(archived)

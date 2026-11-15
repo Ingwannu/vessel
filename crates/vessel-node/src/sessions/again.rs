@@ -176,14 +176,46 @@ impl Sessions {
     ) -> Result<SessionHandle, ServiceError> {
         let id = ended.info.id;
         let next = ended.info.next_seq;
+        let generation = self.store.restart_generation(id).await?;
+        let reopening = self.runtime.start_again(continued(ended), launch).await?;
+        self.adopt_again(
+            reopening,
+            next,
+            generation,
+            vessel_store::ReopenMode::Manual,
+        )
+        .await
+    }
+
+    pub(crate) async fn prepare_again(
+        &self,
+        ended: EndedSession,
+        launch: Relaunch,
+    ) -> Result<vessel_session::PreparedAgain<'_>, ServiceError> {
+        Ok(self.runtime.prepare_again(continued(ended), launch).await?)
+    }
+
+    /// After synchronous spawn admission this must settle, including when
+    /// the attempt was cancelled. Its known run is never abandoned mid-write.
+    pub(crate) async fn adopt_again(
+        self: &Arc<Self>,
+        reopening: Reopening,
+        next: EventSeq,
+        generation: vessel_proto::restart::RestartGeneration,
+        mode: vessel_store::ReopenMode,
+    ) -> Result<SessionHandle, ServiceError> {
         let Reopening {
             created: Created { handle, durable },
             gate,
-        } = self.runtime.start_again(continued(ended), launch).await?;
+        } = reopening;
+        let id = handle.id();
+        handle
+            .initialise_restart_generation(generation)
+            .map_err(SessionError::from)?;
         let (durability, reopened) = {
             let _order = self.marking.lock().await;
             let durability = self.track(&handle, next);
-            let reopened = match self.store.reopen(id, next).await {
+            let reopened = match self.store.reopen_exact(id, next, generation, mode).await {
                 Ok(kept) => self.restore_metadata(&handle, kept).await,
                 Err(error) => Err(error),
             };
