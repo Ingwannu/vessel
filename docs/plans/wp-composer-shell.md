@@ -1,7 +1,12 @@
 # Composer shell and commands
 
-Status (2026-11-15 13:06 UTC): incomplete B2 package. App integration is source-stage;
-no whole gate, capture matrix or final reviewer approval exists. Packagebase8 91407173 (including the FieldId seam and dd13 lock correction) is adopted. Node and native work remain separate.
+Status (2026-11-15 18:25 UTC): incomplete B2 package. Official App base10
+3e7820e3 is adopted. App root crates/Cargo/web/scripts match that official base;
+private node catalog/runtime ancestry is excluded. Native source still requires
+the canonical CommandKind/AgentCommand.kind values carrier through an announced
+base. No whole gate, capture matrix, final reviewer approval or live resident
+cutover is claimed. The bounded current evidence is listed below; older source
+checks do not qualify a later union.
 
 ## Decision and existing assets
 
@@ -43,8 +48,8 @@ Reference paths below are relative to the Paseo 0.15.4 `packages/` tree.
 | `kit/chat_markdown` and the existing vendored TextView | Backward-compatible options/actions over the same renderer, source positions, find state and selection aggregator. |
 | `app/areas/composer_shell` | Current surface orchestration; staged resident policy/retirement adapter. |
 | `app/areas/composer/slash` | Existing hook wrappers, file-key-before-slash ordering, typed menus, captured-owner checks and early client-command dispatch. |
-| `app/areas/session/resource.rs` | SessionView construction accepts one retained field; parent session.rs shrinks604→570. Open/Pending/lifecycle/submit bodies are unchanged. |
-| Root `proto::composer_commands` / `native_commands` | Catalog values, optional kind/native metadata, protocol projection, closed native intents/status. Runtime catalog/receipt/transport stay separate owners. |
+| `app/areas/session/resource.rs` | SessionView construction accepts one retained field and shrinks the parent session.rs. Open/Pending/lifecycle/submit bodies are unchanged. |
+| Separate node `proto::composer_commands` / `native_commands` work | Catalog/native values and discovery remain outside this App tree until canonical node/integrator/base adoption. The current minimal carrier contains kind and masking only; native intent/receipts remain separate. |
 | Fluent EN/KO | Shell/menu text and accessible fullscreen labels. |
 
 Rust/GPUI, the existing kit, Fluent, Tokio and vessel-client remain the stack.
@@ -82,8 +87,7 @@ must preserve this same invocation; there is no second subscription.
 
 ## Resident preparation: test-only
 
-W12's exact checked staged producer1d93 is adopted with its checked W1 search
-constructor prerequisite. The literal cfg(test) registry/resource boundaries remain.
+W12's checked resident foundation/minter and W1 search prerequisite are adopted through the announced official line. The literal cfg(test) registry/resource boundaries remain.
 `SessionView::new_scoped` also remains literal cfg(test): it captures one context,
 refreshes only the same resident+claim for local submit, and requires current
 Visible+Focused. It never resolves a selected route or refreshes network authority.
@@ -229,7 +233,7 @@ G3 confirms that the canonical `view::options::Controls` projection classifies s
 The scoped constructor scenario now uses named setup/first-submit/release helpers instead of a208-line test function, with the same sequential field and every assertion/expected token preserved. A missing unit-tail semicolon is corrected. This closes the two test-only lint findings from the separate minimal producer's exactfb83 priority run; no pass, product change or assertion weakening is inferred.
 
 
-Actual App binary execution on exactccfb692e6931eacddc842b01f165fbb2a154bfce passed125/0/2ignored in run `wp-composer-shell-markdown-tests-20261115T163804Z-ccfb692e` (76 seconds, completed17:06:26 UTC). This includes the manually presented scoped constructor, ticket/uncertain/snapshot, top-sheet fullscreen, unavailable context and original-address tests on the announced82ca union. The new_scoped method body/API is byte-identical in the minimal26d2 constructor producer. That producer's independent strict and direct FieldId assertion execution remain pending, while the full B2 test's later helper-only correction preserves all assertions. No live minter factory, presentation synchronization, guarded network delivery, Workspace input union or UI approval is inferred.
+Actual App binary execution on exactccfb692e6931eacddc842b01f165fbb2a154bfce passed125/0/2ignored in run `wp-composer-shell-markdown-tests-20261115T163804Z-ccfb692e` (76 seconds, completed17:06:26 UTC). This includes the manually presented scoped constructor, ticket/uncertain/snapshot, top-sheet fullscreen, unavailable context and original-address tests on the announced82ca union. The new_scoped method body/API is byte-identical in the minimal26d2 constructor producer. The minimal26d2 four-crate strict subsequently passed, but its predecessor fb83 execution exposed a leading newline from the bare composer Enter bubble. Corrected minimal2fb adds the same existing propagation guard and retains the literal draft assertion; its new strict/runtime are pending. The full B2 renderer already had the guard, so method-body parity alone did not prove minimal control behavior. No live minter factory, presentation synchronization, guarded network delivery, Workspace input union or UI approval is inferred.
 
 
 ### Readonly history fallback
@@ -237,7 +241,16 @@ Actual App binary execution on exactccfb692e6931eacddc842b01f165fbb2a154bfce pas
 - Purpose: a recalled draft must remain unchanged while its editor is readonly or covered by audio, and terminal input must not recall agent prompts.
 - Existing path and constraint: the shared engine registers Enter/edit handlers only for editable inputs, but history recall uses programmatic replace_all. The command-menu policy already suppresses these surfaces; the no-menu fallback previously delegated to recall anyway.
 - Choice: the B2 slash fallback rechecks the same current surface's autocomplete policy before invoking the existing W6 recall implementation. Rejected arrows pass to ordinary cursor/selection handling. No second history state, engine change or new listener is added.
-- Validation: an actual Shell/field regression seeds the existing public Recall state, verifies blocked Down preserves text/selection/recall under readonly/voice/terminal conditions, then verifies normal Down clears after restoration. The source correction still awaits its exact VM test and strict result.
+- Validation: an actual Shell/field regression seeds the existing public Recall state, verifies blocked Down preserves text/selection/recall under readonly/voice/terminal conditions, then verifies normal Down clears after restoration. Exact f36c runtime run `wp-composer-shell-markdown-tests-20261115T173424Z-f36c38c7` passed1/0. This is the old-source functional regression only; current official-root common strict remains outstanding.
 
 
 Official base9b a7aab9d6 is merged while every inherited private root crate/Cargo/web/script change is archived and removed. Those root paths match the official base exactly; no private method row or node runtime is promoted by the native merge. The IO-free Areas constructor now threads the one canonical PreparedGeneral alongside decoded drafts; SearchField is registered while retaining the existing single field renderer and factories. Native compilation is explicitly blocked on the missing official CommandKind/AgentCommand.kind contract. The coordinator approved one values-only carrier on node93970acb, with exact node binary build, proto/TS strict and V3/integrator order. Native consumes it only after the next announced base. No local DTO, fallback or private root restoration is used.
+
+
+## Current receiving-line validation boundary
+
+The owner-only lint cut d5b8d6aa corrects three unit callback semicolons and one documentation code reference; it changes no behavior and is prepared on W6's clean common snapshot. The earlier Main54df strict reached App and returned22 findings across partial B1/A1 and these B2 callbacks/docs. Only the four owned corrections are carried here; other owners' future source is not imported to manufacture a pass.
+
+Minimal constructor2fb has one ordinary four-crate strict and one ordinary Kit/App execution request after the genuine Enter-bubble correction. All resource/minter/scoped constructor cfg(test) boundaries remain. W6 owns the one future common Workspace input strict/owned-test run after the canonical kind carrier/base; this tree has no duplicate common integration job.
+
+The separate Node52 wire-equality run `wp-composer-shell-typescript-20261115T172034Z-680a966a` passed3 proto and2 web tests with zero generated-file changes. It does not qualify the minimal kind carrier or a rich command receipt pipeline. The carrier is built separately on node93970, source reviewed by V3, and requires its own node binary build/proto TS strict/tests before integrator adoption.
