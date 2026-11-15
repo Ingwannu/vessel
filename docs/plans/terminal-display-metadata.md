@@ -47,7 +47,7 @@ changed-source enclosing whole and source review remain owed.
 Frozen2d5 whole is unchanged; no full consumer
 or universal Unicode/control-stream parity follows from finite fixtures.
 
-V3 returned two additional concrete cases: DECSTR left the facade's VT input
+Source review returned two additional concrete cases: DECSTR left the facade's VT input
 switches stale, and repeated1049 erased already active alternate cells. A new
 oracle attachment adds nine checkpoints, preserving every original34 snapshot
 field/value and program event. Its red regression is202764a2, submitted before
@@ -81,3 +81,19 @@ The pending repair shares entry/exit transitions, carries coordinates without
 extra save/restore for47/1047, and disposes alternate markers on actual exit.
 Repeated1049 still performs only its specified cursor save. No other parser,
 reference adaptation or additional foreign merge is introduced.
+
+Final verification before the changed-source enclosing gate: corrected
+baselineba03bc1f executed46/2, specifically47 wrong cursor and1047 retaining
+primary text instead of entering alternate. Correctedf0c71a8e executed48/0/0
+and all-target strict Clippy passed on that exact source. All55 actual reference
+checkpoints ran through live and retained snapshots, with original43 unchanged.
+Raw test/strict log SHA prefixes are9626dfab74f365d3/e439d815ea849109.
+The earlier40/8 harness error,43/2 semantic return,46/0 intermediate correction
+and unused-result strict failure remain preserved as their actual dispositions.
+
+The frozen predecessor2d5 completed its whole with18 actual steps/18 zero,
+Rust2589/0/12, web464, E2E80 and forge4. It does not contain these later fixes.
+One meaningful changed-source whole on this final producer is still required;
+its result and source recheck must precede any consumer qualification. No node
+responder, actor, EOF sealed owner, wire/frame DTO, native/CLI renderer or OS
+evidence is borrowed from the pure producer tests. NodeAuthority remains off.
