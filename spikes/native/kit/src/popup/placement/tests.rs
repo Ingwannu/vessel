@@ -17,17 +17,22 @@ fn options(alignment: Alignment, side: Side) -> Options {
         edge: px(8.0),
     }
 }
-#[test]
-fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
-    let viewport = rect(0.0, 0.0, 400.0, 300.0);
-    for (trigger, content, alignment, requested, x, y, actual) in [
+type Case = (
+    Bounds<Pixels>,
+    Size<Pixels>,
+    Alignment,
+    Side,
+    Point<Pixels>,
+    Side,
+);
+fn normal_cases() -> [Case; 4] {
+    [
         (
             rect(330.0, 260.0, 40.0, 20.0),
             size(px(100.0), px(80.0)),
             Alignment::Start,
             Side::Bottom,
-            292.0,
-            176.0,
+            point(px(292.0), px(176.0)),
             Side::Top,
         ),
         (
@@ -35,8 +40,7 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(100.0), px(80.0)),
             Alignment::End,
             Side::Bottom,
-            270.0,
-            176.0,
+            point(px(270.0), px(176.0)),
             Side::Top,
         ),
         (
@@ -44,8 +48,7 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(120.0), px(100.0)),
             Alignment::Start,
             Side::Top,
-            10.0,
-            34.0,
+            point(px(10.0), px(34.0)),
             Side::Bottom,
         ),
         (
@@ -53,17 +56,19 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(120.0), px(100.0)),
             Alignment::End,
             Side::Top,
-            8.0,
-            34.0,
+            point(px(8.0), px(34.0)),
             Side::Bottom,
         ),
+    ]
+}
+fn edge_cases() -> [Case; 5] {
+    [
         (
             rect(100.0, 140.0, 20.0, 20.0),
             size(px(100.0), px(200.0)),
             Alignment::Start,
             Side::Bottom,
-            100.0,
-            92.0,
+            point(px(100.0), px(92.0)),
             Side::Bottom,
         ),
         (
@@ -71,18 +76,16 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(100.0), px(200.0)),
             Alignment::Start,
             Side::Top,
-            100.0,
-            8.0,
+            point(px(100.0), px(8.0)),
             Side::Top,
         ),
-        // Raw room is exactly the content height: offset/edge do not cause a flip.
+        // Raw room is exactly the height: offset/edge do not cause a flip.
         (
             rect(100.0, 100.0, 20.0, 20.0),
             size(px(80.0), px(180.0)),
             Alignment::Start,
             Side::Bottom,
-            100.0,
-            112.0,
+            point(px(100.0), px(112.0)),
             Side::Bottom,
         ),
         (
@@ -90,8 +93,7 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(500.0), px(400.0)),
             Alignment::Start,
             Side::Bottom,
-            8.0,
-            8.0,
+            point(px(8.0), px(8.0)),
             Side::Top,
         ),
         (
@@ -99,17 +101,20 @@ fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
             size(px(40.25), px(20.5)),
             Alignment::End,
             Side::Bottom,
-            40.75,
-            79.75,
+            point(px(40.75), px(79.75)),
             Side::Bottom,
         ),
-    ] {
+    ]
+}
+#[test]
+fn measured_policy_matches_literal_reference_flip_alignment_and_clamp_cases() {
+    let viewport = rect(0.0, 0.0, 400.0, 300.0);
+    for (trigger, content, alignment, requested, origin, side) in
+        normal_cases().into_iter().chain(edge_cases())
+    {
         assert_eq!(
             compute(trigger, content, viewport, options(alignment, requested)),
-            Placed {
-                origin: point(px(x), px(y)),
-                side: actual
-            },
+            Placed { origin, side },
         );
     }
 }
@@ -152,7 +157,7 @@ impl Render for Probe {
                 .w(self.content.width)
                 .h(self.content.height)
                 .on_children_prepainted(move |bounds, _, _| {
-                    *seen.borrow_mut() = bounds.first().copied()
+                    *seen.borrow_mut() = bounds.first().copied();
                 })
                 .child(
                     div()

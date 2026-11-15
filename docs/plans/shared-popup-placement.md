@@ -65,3 +65,9 @@ The loaded file bytes independently equal the pinned1c00 Git blob.
 Evidence: /tmp/work/m12-shell-s2/placement-source-oracle.{mjs,json}.
 This validates the expected numeric cases against the actual reference; it is
 NOT execution of the Rust helper, actual GPUI input, OS motion or consumer UI.
+
+Preflight keeps the nine literal policy cases in two named fixture groups,
+separate from the one compute/assertion runner, to stay below strict function
+length without dropping numeric cases. Terminate the measurement callback's
+unit assignment explicitly. These are pre-compile test-source corrections;
+no Rust pass is inferred from formatting or the independent TS oracle.
