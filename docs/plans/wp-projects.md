@@ -216,3 +216,30 @@ Pure tests cover cancellation, stale replies, host identity and capacity; a
 headless shell test covers clone observation and host rebinding. New source has
 not compiled or run yet; earlier 27/0 and strict Clippy evidence applies only to
 the preceding checkpoint.
+
+## Add Project navigation source checkpoint (unverified)
+
+`view::workspace::projects::navigation` models all seven source page kinds from
+Paseo `app/src/add-project-flow/model.ts:29-146,153-269`: host, method, directory
+search, GitHub search/location and new-directory parent/name. Preferred/sole
+host skips the initial chooser; late discovery can only resolve that initial
+page. Later refresh never retargets a captured Name+NodeId. Registration and each
+method have separate support, and Browse returns an explicit local-bridge intent
+without opening anything. Back restores earlier query state and eventually
+closes; name and clone-parent drafts are kept by target+parent/remote. Paths are
+node-local opaque draft values, never client-side filesystem identity.
+
+[Decision Log]
+- Purpose: preserve in-flow state across Back without dispatching mutations.
+- Existing assets: ProjectActions owns in-flight correlation and readiness;
+  PaletteCursor already owns keyboard result selection. Neither models this
+  page stack or per-target draft cache, so navigation is a small separate model.
+- Alternatives: further expand the current inline AddForm or use a generic wizard.
+- Choice: one closed seven-page enum, three previous pages at most, bounded
+  non-evicting draft cache (64 entries, 64 KiB per input/key).
+- Reason: source transitions have at most four pages; bounded drafts prevent
+  repeated Back/target changes retaining unlimited input. At capacity new keys
+  refuse while existing edits still work.
+- Effects: navigation and draft tests are added, but query/loading/error rendering,
+  keyboard row wiring and all node-backed submission remain to be connected.
+  This checkpoint is not the complete Add Project UI or a green consumer API.

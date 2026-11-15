@@ -127,6 +127,10 @@ impl ProjectActions {
         if self.pending.is_some() {
             return Err(ProjectActionError::Busy);
         }
+        let serial = self
+            .serial
+            .checked_add(1)
+            .ok_or(ProjectActionError::Exhausted)?;
         self.activities.retain(|activity| {
             !(activity.state == ActivityState::Failed
                 && activity.key.host == host
@@ -135,10 +139,7 @@ impl ProjectActions {
         if self.activities.len() >= MAX_PROJECT_RECONCILIATIONS {
             return Err(ProjectActionError::ReconciliationFull);
         }
-        self.serial = self
-            .serial
-            .checked_add(1)
-            .ok_or(ProjectActionError::Exhausted)?;
+        self.serial = serial;
         let key = ProjectActionKey {
             host,
             node,
@@ -256,6 +257,27 @@ mod tests {
             Err(ProjectActionError::Exhausted)
         );
         assert!(state.pending().is_none());
+    }
+
+    #[test]
+    fn identifier_exhaustion_does_not_erase_an_unreconciled_failure() {
+        let mut state = ProjectActions::default();
+        let host = host("laptop");
+        let node = NodeId::random();
+        let key = state.begin(host.clone(), node).unwrap();
+        assert_eq!(
+            state.finish(&key, ProjectSettlement::Failed),
+            ProjectReply::Current
+        );
+        state.serial = u64::MAX;
+        assert_eq!(
+            state.begin(host.clone(), node),
+            Err(ProjectActionError::Exhausted)
+        );
+        assert_eq!(
+            state.setup_readiness(&host, node),
+            ProjectSetupReadiness::Failed
+        );
     }
 
     #[test]

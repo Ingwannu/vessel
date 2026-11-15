@@ -19,6 +19,8 @@
 
 /// Host-bound mutation correlation shared by registration and removal screens.
 pub mod actions;
+/// Pure Add Project page stack and target-scoped in-flow drafts; screen wiring is separate.
+pub mod navigation;
 
 use std::path::Path;
 
