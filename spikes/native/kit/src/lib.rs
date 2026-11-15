@@ -38,6 +38,7 @@ pub mod command;
 pub mod copy;
 pub mod dialog;
 pub mod field;
+pub mod focus;
 pub mod fonts;
 pub mod form_summary;
 pub mod frame;
