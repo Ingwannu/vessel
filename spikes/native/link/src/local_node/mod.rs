@@ -274,7 +274,7 @@ impl Controller {
             .spawn(move || {
                 // No child can start before supervisor creation succeeds.
                 drop(runtime.spawn(actor::run(configuration, inbox, published)));
-                shutdown::run(runtime, policy, keep_commands, keep_state);
+                shutdown::run(runtime, &policy, keep_commands, keep_state);
             })
             .map_err(ManagerError::Runtime)?;
         drop(supervisor);
