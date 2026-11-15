@@ -75,6 +75,10 @@ export function applyAgent(
         replayed: false,
         turn: work.turns,
         attachments,
+        ...(event.client_message_id === undefined ||
+        event.client_message_id === null
+          ? {}
+          : { clientMessage: event.client_message_id }),
       });
       return;
     }
@@ -216,7 +220,16 @@ function conversationEntry(
   switch (event.event) {
     case "steered": {
       const { text, attachments } = promptParts(event.content);
-      work.entries.push({ ...base, kind: "steer", text, attachments });
+      work.entries.push({
+        ...base,
+        kind: "steer",
+        text,
+        attachments,
+        ...(event.client_message_id === undefined ||
+        event.client_message_id === null
+          ? {}
+          : { clientMessage: event.client_message_id }),
+      });
       return;
     }
     case "question_asked": {

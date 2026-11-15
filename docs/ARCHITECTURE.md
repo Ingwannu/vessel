@@ -1882,6 +1882,12 @@ Read-only observation routes authorized original requests to that retained owner
 without wake or attachment loading. The pending method remains unassigned and
 refuses on every current connection; positive runtime proof is still owed.
 
+Canonical web prompt/steer entries retain their optional client identity for
+display reconciliation. The pure pending-prompt overlay uses the existing
+prepared owner and deduplicates only matching identity and displayed payload;
+it creates no EventSeq, turn or second queue and cannot settle/release uncertainty.
+Legacy entries keep their prior shape. Composer activation remains separate.
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and

@@ -5,6 +5,7 @@
 import type {
   AgentEvent,
   AttachmentRef,
+  ClientMessageId,
   ContentBlock,
   ModelCall,
   PermissionOutcome,
@@ -45,6 +46,8 @@ export type Entry =
       turn: number;
       /** The files it carried (protocol 10). */
       attachments: readonly AttachmentRef[];
+      /** Exact keyed echo; absent for legacy/provider-replayed input. */
+      clientMessage?: ClientMessageId;
       /** A new session's first prompt shown before its log has it
        * (data/openings.ts); never set on a record of the log. */
       sending?: true;
@@ -54,6 +57,8 @@ export type Entry =
       kind: "steer";
       text: string;
       attachments: readonly AttachmentRef[];
+      /** Display reconciliation only, never an acceptance capability. */
+      clientMessage?: ClientMessageId;
     })
   /** A question the agent asked, and how it was settled (`null` while it
    * waits); the form itself is docked over the composer. */
