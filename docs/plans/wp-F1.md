@@ -890,3 +890,13 @@ One cached source error remains authoritative; no parsing or translation occurs
 inside drawing. Opened wire fields begin unedited, and an actual edit owns its
 feedback until corrected. This is F1 source, not a new field engine or an
 assertion about the still-unimplemented editor screen's runtime behavior.
+
+
+### Explicit initial rule zone
+
+Pinned schedule-form-model.ts143/647 normalizes the default one-hour cadence
+to the wall-clock Hour preset, not Daily09. The typed initial-rule helper now
+uses that existing preset and parser with a required explicit viewer zone.
+There is no unknown-to-UTC fallback; bootstrap UI must request a zone if the
+viewer does not report one. Two-zone source regression pins expression and
+selected preset without claiming any future-run calculation or UI execution.

@@ -138,3 +138,22 @@ fn custom_choice_invalid_input_and_zone_changes_never_guess_a_rule() {
         Err(EditError::Unknown)
     ));
 }
+
+#[test]
+fn a_new_rule_uses_the_source_hour_boundary_in_the_explicit_viewer_zone() {
+    for name in ["Asia/Seoul", "America/New_York"] {
+        let cadence = initial(zone(name)).unwrap();
+        let Cadence::Cron {
+            expr,
+            zone: selected,
+        } = &cadence
+        else {
+            panic!("wall-clock default")
+        };
+        assert_eq!(expr.as_str(), "0 * * * *");
+        assert_eq!(selected.as_str(), name);
+        let draft = Draft::open(cadence, zone("UTC")).unwrap();
+        assert_eq!(draft.choice(), Choice::Preset(Preset::Hour));
+        assert_eq!(draft.zone().as_str(), name);
+    }
+}

@@ -68,6 +68,14 @@ impl Preset {
         }
     }
 }
+/// New forms start at the next wall-clock hour in the explicitly known viewer
+/// zone, as the reference normalizes its default one-hour interval. An absent
+/// viewer zone must be selected before calling this; UTC is not inferred.
+/// # Errors
+/// Preserve the existing protocol parser's typed failure.
+pub fn initial(zone: TimeZoneName) -> Result<Cadence, CadenceError> {
+    super::super::cadence::cron(Preset::Hour.expression(), zone)
+}
 /// Which control the form exposes; custom never precedes the presets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Choice {
