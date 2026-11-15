@@ -1,9 +1,11 @@
 # Borrowed tool-detail body prerequisite
 
-Status: native source preparation only. This delta is based on official app
-package base8 91407173. It does not compile standalone until W23's canonical
-body-values prerequisite is reviewed, checked and integrator-adopted. Proposed
-body-values leaf d596635d7dbe0b5f690dac6d8031fcd147907f04 is not assumed ready.
+Status: native source preparation only, originally cut from official app
+base8 91407173. The full canonical body vocabulary is now present for preparation
+after W23/integrator announced node9c150c6e (gate50c); no rich fields/events/RPC
+or runtime are added. Coordinator requires a normal announced green app base9
+merge before the package handoff. This isolated native source has not yet been
+compiled/tested; no consumer-ready or adoption verdict is inferred.
 
 [Decision Log]
 - Purpose: A8 draws a reported proposed ToolCallDetail without constructing a
