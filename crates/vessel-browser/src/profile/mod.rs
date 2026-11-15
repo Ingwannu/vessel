@@ -1,7 +1,7 @@
 //! Linux private profile initialization, staged below the future supervised launcher.
 //!
 //! Caller paths are trusted node storage configuration, never browser/tool input.
-//! Run this synchronous preparation through the finite Preparation owner. This
+//! Run this synchronous preparation through the finite `Preparation` owner. This
 //! module does not launch/qualify a runtime or delete a profile on caller drop.
 //! The supervisor must hold this lock until actual child cleanup completes.
 use std::fs::{self, DirBuilder, File, OpenOptions, TryLockError};

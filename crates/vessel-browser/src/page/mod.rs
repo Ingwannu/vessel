@@ -41,7 +41,7 @@ enum DeliveryState {
     Uncertain,
 }
 
-/// Backend identity stays inside the execution crate; public BrowserId is owned above it.
+/// Backend identity stays inside the execution crate; public `BrowserId` is owned above it.
 pub(crate) struct Page {
     client: Client,
     target: TargetId,

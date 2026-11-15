@@ -118,7 +118,7 @@ impl PointerState {
     }
 }
 
-/// Only this fixed shape can invoke Input.dispatchMouseEvent.
+/// Only this fixed shape can invoke `Input.dispatchMouseEvent`.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct MouseEvent {
@@ -213,7 +213,7 @@ mod tests {
         );
         assert_eq!(
             serde_json::to_value(pressed).unwrap(),
-            json!({"type":"mousePressed","x":10.5,"y":20,"button":"left","buttons":1,"modifiers":15,"clickCount":1})
+            json!({"type":"mousePressed","x":10.5,"y":20.0,"button":"left","buttons":1,"modifiers":15,"clickCount":1})
         );
         let moved = MouseEvent::pointer(point, PointerAction::Move, modifiers, &mut state);
         assert_eq!(serde_json::to_value(moved).unwrap()["buttons"], json!(1));

@@ -2,7 +2,7 @@
 //!
 //! Removal of outer cfg(test): `browser: wire the qualified node browser actor`,
 //! together with W18 ToolId::Browser admission. This module does not register or
-//! advertise tools. Names come only from BrowserTool; JSON is inspected only at
+//! advertise tools. Names come only from `BrowserTool`; JSON is inspected only at
 //! this foreign edge, then converted into the node's closed command vocabulary.
 
 mod schema;
