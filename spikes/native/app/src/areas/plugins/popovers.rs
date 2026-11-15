@@ -155,7 +155,7 @@ impl SurfaceView {
     }
 
     pub(super) fn retire_popover(&mut self, lease: &Lease) -> Dismissal {
-        if !self.popover.is_current(lease) {
+        if !self.inputs.is_live() || !self.popover.is_current(lease) {
             return Dismissal::KeepOpen;
         }
         // Taking the owner drops its subscription and revokes all descendants.

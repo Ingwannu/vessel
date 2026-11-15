@@ -542,3 +542,7 @@ The popup fixture clicks the same inset geometry as existing button tests.
 A deterministic deferred-open case takes the host offline before the first
 scheduled owner check; no new body/lease may be published afterward. This
 case is authored, with execution still owed alongside the opening cases.
+
+Dismissal admission also checks the body's ancestor input lifetime before kit
+may acknowledge focus; a separately retained nested owner cannot admit close
+after its ancestor retires, even if its local kit lease still compares current.
