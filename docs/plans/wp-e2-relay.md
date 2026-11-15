@@ -66,3 +66,13 @@ this branch assigns no protocol or schema number. The node still reports no
 relay field internally until its existing owner is wired. Runtime/CLI/app
 consumers, generated TypeScript and security/gate proof are not ready; this
 skeleton must not be integrated or used as an implemented relay operation.
+
+
+Pure wire-skeleton check: exact2d3683e9 passed8/0/0 in
+`devices-relay-narrow-20261115T113015Z-2d3683e9`, ordinary remote lane,
+with actual vessel-proto compilation. Evidence/step digests:
+`/tmp/work/m12-g4/relay-20261115/proto-test-evidence-01.json`.
+This is not Clippy, generated-TS freshness, a root/native whole gate,
+actual settings persistence/application, Admin guard or relay runtime proof.
+The field is still pending None and must not be consumed as an available
+app operation. Remote numeric UID/GID and live service flow are unverified.
