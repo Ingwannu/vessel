@@ -35,7 +35,7 @@ fn page() -> Page {
         authority,
         Ok(vessel_proto::DeviceSelf {
             device: None,
-            scopes: vec![vessel_proto::Scope::Admin],
+            scopes: vec![Scope::Admin],
         })
     ));
     page.listing = Listing::Ready(vec![device()]);

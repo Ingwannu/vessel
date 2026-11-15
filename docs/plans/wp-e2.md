@@ -212,3 +212,13 @@ this checkpoint neither fabricates that guard nor claims queue/credential
 installation safety. No new kit control, resolver, SDK or dependency is added.
 Dialog actual-close focus adoption and pairing/book partial-outcome wiring
 remain final-package work, separately from this authority checkpoint.
+
+
+The first adapter/screen narrow at7eb62220 returned red on exactly two
+unnecessary Scope qualifications in View fixture helpers. Those qualifiers
+are removed without changing any assertion or product byte. Tests were not
+submitted after the failure. The log shows actual View/Link/Kit checking;
+App checking did not complete, so no three-crate success is claimed.
+The correction remains unchecked while the coordinator's isolated relay
+lifetime security package is prioritized; queued Unary guard adoption still
+uses W12's exact reviewed staging only after the lead grants its writer slot.
