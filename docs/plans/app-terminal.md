@@ -333,6 +333,18 @@ grid, and that an unchanged generation draws nothing), not described.
   6.1.0-beta.336's order (`addon-webgl/src/TextureAtlas.ts` 519–526
   swaps, then 355 and 364–366 brighten; `DomRendererRowFactory.ts`
   347–355, then 437–438).
+- The code face is the app's own Geist Mono (regular, bold, italic,
+  bold italic, embedded), then Pretendard for Hangul; Paseo's stack
+  starts with JetBrains Mono (`terminal-font.ts` 3–21). One code face
+  across the app, and TYPE-07 (a real code face before any fallback)
+  holds without a system lookup. Hangul glyphs, narrower than two of
+  its cells, are drawn from the pair's left edge, leaving a gap inside
+  the pair; how xterm.js places a wide fallback glyph was not read.
+- Double, dotted and dashed underlines are drawn as one straight line,
+  curly as a wave; xterm.js draws each style. The grid draws through
+  GPUI's text runs, which have only those two.
+- Under reduced motion the cursor does not blink (the app's motion
+  rule); whether Paseo stops it then was not read.
 - No inline images, no mouse reports, no saved shell profiles, no
   terminal-activity hooks.
 - A file that is not already on the node is not uploaded. There is no
@@ -423,9 +435,31 @@ Each a few hundred lines with tests, captures (1280×800, 1024×700,
   leaving one; a 16 KiB call of line feeds at 1,024 columns is about
   320 MiB of allocation and fill. Measure one worst-case `feed` before
   choosing the thread live bytes are applied on.
-- Next: T1's
-  screen with the kit control (agreed with the lead: a control-only
-  commit, the palette in `kit/src/theme/terminal.rs` as
-  `tokens.terminal`, the grid view reading only its own frame, the
-  cursor blinking at 500 ms and still under reduced motion, measured
-  by `VESSEL_APP_FRAME_LOG`'s draw lines and the process's CPU).
+- T1, the screen (2026-11-15): the palette as `tokens.terminal`
+  (`kit/src/theme/terminal.rs`, d004dfe4), the grid control
+  (`kit/src/terminal_grid.rs`, 923add77: runs shaped with every glyph
+  forced to the cell's width, a wide scalar a run of its own, fills
+  under them, the bar cursor), the painted rows in `view`
+  (`paint/rows.rs`, 6bb89631) and the app's screen
+  (`app/src/areas/terminal/`). The log is read whole and replayed on
+  the background executor; the follow's records are held meanwhile and
+  applied after through `TerminalLog`. Live bytes: at most 4 KiB a
+  batch on the UI thread, more on the background executor. Measured
+  first (release, a scratch bench over `replay` with a full history):
+  text costs about 3 ms per 64 KiB, line feeds a row each (16 KiB:
+  6.2 ms at 80 columns, 11.8 ms at 200, 51 ms at 1,024; 64 KiB at 200:
+  47 ms), so the line is drawn by line feeds, not bytes. The screen's
+  box is measured on the frame after it is drawn, while the log is
+  read too, so the history is replayed at its drawn width; a later
+  size waits 100 ms and reflows once (a full 10,000-line history:
+  5.8 ms from 80 to 200 columns, 16–17 ms from 200 to 120 or 80, on
+  the UI thread). Text at the code size, as Paseo's pane passes it.
+- Found by T1's first captures and fixed: GPUI's descent is negative
+  (rows were four pixels short); an unlined blank took the underline of
+  the word before it; a terminal session asked the node for its
+  conversation and showed the refusal; only Geist Mono Regular was
+  embedded, so bold and italic were drawn regular (three faces added,
+  461 KB, `scripts/fonts.sh`).
+- Next: T1's release measurements (idle CPU with the screen shown, a
+  200×50 repaint's draw time and the process's CPU under `flood`) and
+  captures, then T2 (input, paste, resize, the query duty).
