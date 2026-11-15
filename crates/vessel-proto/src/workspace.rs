@@ -60,7 +60,7 @@ pub use recovery::{
     WorkspaceRecoveryUnavailable, WorkspaceRestoreOutcome, WorkspaceRestoreReport,
 };
 pub use service_port::{InvalidServicePort, ServicePort};
-pub use service_ports::{InvalidServicePorts, ServicePorts};
+pub use service_ports::{InvalidServicePorts, ServicePorts, ServicePortsView};
 pub use support::{GitSupport, GitVersion};
 pub use text::{
     BranchName, CommandsDigest, CommitId, CommitMessage, ConfigKey, ContentHash, FindQuery,
