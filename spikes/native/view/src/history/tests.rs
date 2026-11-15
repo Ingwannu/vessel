@@ -347,11 +347,11 @@ fn refusing_a_large_next_page_preserves_accepted_rows_selection_and_cursor() {
     let mut history = History::default();
     history.choose(scope());
     let first = history.refresh().unwrap().unwrap();
-    history.answer(page(
+    assert!(history.answer(page(
         first,
         vec![entry("retained")],
         Some(Cursor::parse("next".into()).unwrap()),
-    ));
+    )));
     let id = HarnessSessionId::new("retained");
     history.toggle(&id);
     let next = history.more().unwrap().unwrap();
@@ -372,7 +372,7 @@ fn oversized_import_selection_refuses_without_clearing_selected_rows() {
         .map(|index| entry(&format!("row-{index}")))
         .collect();
     let ask = history.refresh().unwrap().unwrap();
-    history.answer(page(ask, rows, None));
+    assert!(history.answer(page(ask, rows, None)));
     let ids: Vec<_> = history.entries().iter().map(|row| row.id.clone()).collect();
     for id in &ids {
         history.toggle(id);
