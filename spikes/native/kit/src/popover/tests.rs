@@ -18,6 +18,8 @@ struct Probe {
     context: u8,
     admissions: usize,
     body: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+    host: Option<DialogState>,
+    host_open: bool,
 }
 
 impl Render for Probe {
@@ -30,7 +32,7 @@ impl Render for Probe {
             .on_children_prepainted(move |bounds, _, _| *measured.borrow_mut() = bounds)
             .child(div().w_full().h(px(1.0)).flex_shrink_0())
             .child(self.inside.element(&tokens, false, cx));
-        div()
+        let body = div()
             .size_full()
             .child(self.outside.element(&tokens, false, cx))
             .child(div().track_focus(&self.newer))
@@ -57,7 +59,32 @@ impl Render for Probe {
                 window,
                 self.narrow,
                 cx,
-            ))
+            ));
+        let Some(host) = self.host.as_ref() else {
+            return body.into_any_element();
+        };
+        if !self.host_open {
+            return div().into_any_element();
+        }
+        crate::dialog::dialog(
+            host,
+            crate::DialogContent {
+                title: "Usage".into(),
+                body: body.into_any_element(),
+                footer: Vec::new(),
+                size: crate::DialogSize::Normal,
+            },
+            &tokens,
+            window,
+            self.narrow,
+            |probe, window, cx| {
+                probe.host_open = false;
+                if let Some(host) = &probe.host {
+                    host.dismissed(window, cx);
+                }
+            },
+            cx,
+        )
     }
 }
 
@@ -80,13 +107,22 @@ fn compact_default_uses_paseos_content_sized_eighty_percent_cap() {
     assert!(Width::new(0).is_none());
 }
 
-fn mount(cx: &mut TestAppContext, narrow: bool) -> (Entity<Probe>, &mut VisualTestContext) {
+fn mount(
+    cx: &mut TestAppContext,
+    narrow: bool,
+    hosted: bool,
+) -> (Entity<Probe>, &mut VisualTestContext) {
     cx.update(|cx| {
         crate::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap();
         cx.set_reduce_motion(true);
     });
     let (probe, cx) = cx.add_window_view(move |window, cx| {
         window.activate_window();
+        let host = hosted.then(|| {
+            let host = DialogState::new(cx);
+            host.focus(window, cx);
+            host
+        });
         let outside = TextField::new("", |_, _, _, _| {}, window, cx);
         let inside = TextField::new("", |_, _, _, _| {}, window, cx);
         outside.focus(window, cx);
@@ -102,6 +138,8 @@ fn mount(cx: &mut TestAppContext, narrow: bool) -> (Entity<Probe>, &mut VisualTe
             context: 1,
             admissions: 0,
             body: Rc::default(),
+            host,
+            host_open: true,
         }
     });
     cx.simulate_resize(size(px(if narrow { 390.0 } else { 1280.0 }), px(900.0)));
@@ -132,7 +170,7 @@ fn activate(path: Path, cx: &mut VisualTestContext) {
 #[gpui::test]
 fn arbitrary_field_keeps_input_and_escape_returns_to_the_actual_opener(cx: &mut TestAppContext) {
     for narrow in [false, true] {
-        let (probe, cx) = mount(cx, narrow);
+        let (probe, cx) = mount(cx, narrow, false);
         probe.update_in(cx, |probe, window, cx| probe.inside.focus(window, cx));
         cx.simulate_input("retained input");
         cx.run_until_parked();
@@ -150,7 +188,7 @@ fn arbitrary_field_keeps_input_and_escape_returns_to_the_actual_opener(cx: &mut 
 #[gpui::test]
 fn desktop_is_end_anchored_340_and_compact_reuses_the_existing_dialog(cx: &mut TestAppContext) {
     for (narrow, expected_width) in [(false, 338.0), (true, 390.0)] {
-        let (probe, cx) = mount(cx, narrow);
+        let (probe, cx) = mount(cx, narrow, false);
         probe.read_with(cx, |probe, _| {
             let measured = probe.body.borrow();
             let marker = measured.first().unwrap();
@@ -174,7 +212,7 @@ fn pending_and_replaced_openings_refuse_every_old_rendered_dismissal_before_focu
             vec![Path::Escape, Path::Outside]
         };
         for path in paths {
-            let (probe, cx) = mount(cx, narrow);
+            let (probe, cx) = mount(cx, narrow, false);
             probe.update_in(cx, |probe, window, cx| {
                 probe.pending = true;
                 probe.inside.focus(window, cx);
@@ -213,7 +251,7 @@ fn pending_and_replaced_openings_refuse_every_old_rendered_dismissal_before_focu
 fn explicit_close_preserves_newer_focus_and_stale_receipt_cannot_close_reopen(
     cx: &mut TestAppContext,
 ) {
-    let (probe, cx) = mount(cx, false);
+    let (probe, cx) = mount(cx, false, false);
     probe.update_in(cx, |probe, window, cx| {
         let old = probe.state.open(anchor(), Alignment::Start, window, cx);
         let current = probe.state.open(anchor(), Alignment::End, window, cx);
@@ -224,4 +262,25 @@ fn explicit_close_preserves_newer_focus_and_stale_receipt_cannot_close_reopen(
         assert!(probe.newer.is_focused(window));
         assert!(!probe.state.close(&current, window, cx));
     });
+}
+
+#[gpui::test]
+fn nested_popover_outside_and_escape_close_only_the_options_surface(cx: &mut TestAppContext) {
+    for narrow in [false, true] {
+        for path in [Path::Escape, Path::Outside] {
+            let (probe, cx) = mount(cx, narrow, true);
+            probe.update_in(cx, |probe, window, cx| probe.inside.focus(window, cx));
+            cx.run_until_parked();
+            activate(path, cx);
+            cx.run_until_parked();
+            probe.update_in(cx, |probe, window, cx| {
+                assert!(!probe.state.is_open());
+                assert!(
+                    probe.host_open,
+                    "options dismissal must preserve its host dialog"
+                );
+                assert!(probe.outside.focus_handle(cx).is_focused(window));
+            });
+        }
+    }
 }
