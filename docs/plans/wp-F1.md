@@ -1370,3 +1370,10 @@ proof is borrowed from G3's bounded check.
   No local compilation or current F1/IME/UI/font-face execution is claimed.
 - Check boundary: queued66735 Kit-only suite is immutable PRE-Code source. Its
   result cannot prove this change; the next meaningful F1 suite includes it.
+
+
+Raw cron now opts into the shared FormText::Code constructor; interval counts
+remain FormText::Body. Rule resets still replace the identified engine and
+retain the same visit/editability guard. No area typography/style override is
+added. This closes the source wiring gap only; new Code tests and the F1 input
+consumer still await their exact remote checks and actual first-use evidence.

@@ -1,7 +1,7 @@
 //! Actual engine identity is paired with the current pure form visit. New host,
 //! reopen and explicit rule reset create fresh engines rather than reuse ids.
 use super::{Context, Shell, Visit, Window, kit};
-use kit::field::{Editability, FieldId, FormMinimum, TextField};
+use kit::field::{Editability, FieldId, FormMinimum, FormText, TextField};
 use vessel_app_view::schedules::editor::session::FieldChange;
 #[derive(Debug, Clone, Copy)]
 enum Input {
@@ -89,14 +89,21 @@ impl Inputs {
 }
 fn rule(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) -> Option<TextField> {
     let draft = shell.areas.schedules.data.editor.draft()?;
-    let field = TextField::with_source(
-        if draft.cadence.choice() == vessel_app_view::schedules::editor::cadence::Choice::Custom {
+    let custom =
+        draft.cadence.choice() == vessel_app_view::schedules::editor::cadence::Choice::Custom;
+    let field = TextField::with_source_text(
+        if custom {
             shell.words.schedules().form_cron_placeholder()
         } else {
             ""
         },
         submit,
         change,
+        if custom {
+            FormText::Code
+        } else {
+            FormText::Body
+        },
         window,
         cx,
     );
