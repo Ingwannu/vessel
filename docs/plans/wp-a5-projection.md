@@ -39,3 +39,7 @@ responsibilities. GPUI dock badge API is an approved later desktop-host item.
 Tests cover source-backed empty behavior, distinct icon priority, unknown facts,
 counting and Untracked interactions. All Rust checks run via the build VM;
 no production permission/service/configuration or infrastructure changes.
+
+Bucket ordering/ALL is aggregate urgency. Sidebar display/shortcut groups are
+separate: Paseo utils/sidebar-agent-state.ts:36-42 places review before working.
+The producer does not prescribe display order or maintain shortcut state.

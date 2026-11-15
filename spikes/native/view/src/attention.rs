@@ -16,7 +16,8 @@ pub enum Bucket {
     Done,
 }
 impl Bucket {
-    /// Stable sidebar priority; shortcuts consume the same groups.
+    /// Aggregate urgency order. Sidebar display/shortcut groups separately
+    /// place review before working, following their own reference order.
     pub const ALL: [Self; 5] = [
         Self::NeedsInput,
         Self::Failed,
