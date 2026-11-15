@@ -206,6 +206,25 @@ impl Glyph {
             Self::Reset => line_glyph!(
                 r#"<path d="M4.75 12a7.25 7.25 0 1 0 2.12-5.13L4.75 9"/><path d="M4.75 4.75V9H9"/>"#
             ),
+            Self::MoreVertical => line_glyph!(
+                r#"<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>"#
+            ),
+            Self::Pause => line_glyph!(
+                r#"<rect x="6.5" y="4.5" width="3.5" height="15" rx="0.5"/><rect x="14" y="4.5" width="3.5" height="15" rx="0.5"/>"#
+            ),
+            Self::Play => line_glyph!(r#"<path d="M7.5 4.5 19.5 12 7.5 19.5z"/>"#),
+            Self::RotateCw => {
+                line_glyph!(r#"<path d="M20 10a8.25 8.25 0 1 0-1.1 6.5M20 4.5V10h-5.5"/>"#)
+            }
+            Self::ActivityIndicator => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14" opacity="0.2"/><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
+            Self::ActivityTrack => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><circle cx="16" cy="16" r="14"/></svg>"#
+            }
+            Self::ActivityArc => {
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="4"><path d="M30 16A14 14 0 0 1 17.984442561589 29.858643069210"/></svg>"#
+            }
             Self::Spinner => {
                 line_glyph!(r#"<path d="M12 3.75A8.25 8.25 0 1 1 3.75 12" stroke-width="2"/>"#)
             }
