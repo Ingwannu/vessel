@@ -144,6 +144,9 @@ async fn revoked_without_setter_continuation(held: Held) {
     }
     control.release();
     assert!(refreshing.await.unwrap().is_err());
+    // A revoked waiter may end before its physical credential worker. Observe
+    // the actual job's completion before proving it never began HTTP.
+    service.0.limits.sources.drained().await;
     let expected = if matches!(held, Held::Credential) {
         1
     } else {

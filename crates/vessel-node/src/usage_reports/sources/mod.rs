@@ -52,6 +52,10 @@ enum Command {
     CachedEntries {
         reply: oneshot::Sender<usize>,
     },
+    #[cfg(test)]
+    Drained {
+        reply: oneshot::Sender<()>,
+    },
     Snapshot {
         global: Observation,
         reply: oneshot::Sender<Result<Snapshot, WireError>>,
@@ -101,6 +105,17 @@ struct Completed {
     at: DateTime<Utc>,
 }
 impl Sources {
+    #[cfg(test)]
+    pub(crate) async fn drained(&self) {
+        let (reply, response) = oneshot::channel();
+        self.0
+            .as_ref()
+            .unwrap()
+            .send(Command::Drained { reply })
+            .await
+            .unwrap();
+        response.await.unwrap();
+    }
     #[cfg(test)]
     pub(crate) async fn cached_entries(&self) -> usize {
         let (reply, response) = oneshot::channel();

@@ -17,6 +17,15 @@ impl Owner {
                 command=commands.recv()=>match command{
                     #[cfg(test)]
                     Some(Command::CachedEntries{reply})=>{let _closed=reply.send(self.entries.len());},
+                    #[cfg(test)]
+                    Some(Command::Drained{reply})=>{
+                        // A deterministic test barrier observes physical completion;
+                        // it neither revokes work nor prunes publication state.
+                        while let Some(result)=self.jobs.join_next().await {
+                            self.completed(result.unwrap());
+                        }
+                        let _closed=reply.send(());
+                    },
                     Some(Command::Snapshot{global,reply})=>{let result=if global.still_current(){self.prune(&global);self.snapshot(&global)}else{Err(changed())};let _closed=reply.send(result);},
                     Some(Command::Refresh{source,global,reply})=>self.refresh(source,global,reply),
                     Some(Command::Set{request,global,reply})=>{let result=self.set(request,&global).await;let _closed=reply.send(result);},
