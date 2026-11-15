@@ -1,17 +1,28 @@
 # Workspace files, editor and document panels
 
-Status: implementation in progress; no package acceptance yet. App base 4 and
-the checked dialog seams (`e5e654b47`, containing `074ade16`) are merged. Node
-companion includes Quality B, app base 3 and announced node head `ba45a6e3`.
+Status: C5/C6 implementation remains incomplete; no package acceptance.
+The app includes official package base8 (91407173), canonical layout values,
+G4 preflight, FieldId and the checked shared IME control. Native source now
+retains actual NodeId/root/path buffers and original scoped write obligations.
+Typed file-pane/Explorer runtime placement and live desktop finalization remain
+unwired; their metadata or test-staged seams are not authority/runtime proof.
 
-Current evidence: exact `0df7abd9` strict app all-target Clippy passed and eight
-focused real GPUI file/find/mutation tests passed. Later navigation, frontmatter
-and preview work is pending a new narrow check; the first frontmatter test build
-failed on an ambiguous test `Arc` constructor, now corrected. Node's five new
-methods remain pending `None`: current wiring checks, unit tests, generated
-TypeScript, whole root gate and V3 security review are outstanding. No whole
-native gate, visual acceptance, PDF/SVG renderer or complete C5 claim exists.
-The dated checkpoints below preserve their original scoped evidence.
+Current evidence: the earlier exact0df7abd9 app Clippy/eight GPUI passes are
+prior-source only. Strict18 on0eb404312 failed on metadata map type arguments;
+those concrete signatures are fixed. Current strict19 and scoped workspace
+regressions are queued on9f7700db (official base8 plus terminal-write recovery).
+The later per-node readiness addition c047016b4 has source/fast checks only.
+No whole native gate, captures, PDF/SVG renderer or C5 completion is claimed.
+
+The node companion now includes announced82ae7c91 and registers all five
+canonical pending None methods. V3 accepted the read-pass/query corrections
+with exact100da283's808/0/1 scoped execution, not the later SDK extraction.
+Actuald9c96a5f TS generator tests3/0 and bridge1/0 produced declarations;
+verified artifact bytes are committed, freshness and final node gate are owed.
+The node source is frozen for its first enclosing gate submission. No assigned
+protocol or app-ready binary transfer API is claimed. Historical checkpoints
+below retain their original evidence and may describe superseded identities;
+this opening status and the current resume point take precedence.
 
 ## Reference and existing assets
 
@@ -107,29 +118,29 @@ Primary sources: <https://github.com/linebender/resvg>,
 
 ## Validation and resume point
 
-Per-commit narrow checks use the assigned build slot and private target.
-At package end: one native gate, fake-node UI capture matrix, each image
-inspected, then one app review. The node companion has its own root gate
-and node review. No live preview or real harness is used.
+All Rust compilation/test/gate work runs on the designated build VM. Local
+checks are direct pinned rustfmt, size, boundary and token scripts only. At
+package end: freeze for one complete native gate, fake-node capture matrix,
+inspection, then V4 review. The node companion has its own complete root gate
+and V3 review; no live preview or real harness is used.
 
-Done: reference/source and existing-asset survey; own isolated app and node
-trees; missing node contracts reported and assigned to this package.
-In progress: correlated editor read/write tickets, serialized saves after
-typing during an in-flight write, root/path-owned retained buffers with a
-dirty-buffer eviction refusal; name/size sorting and persisted hidden-file
-choices; root create controls and portable one-segment name validation.
-The layout adapter exports `ExplorerKind`, `show_layout_explorer` and
-`render_explorer`, used by the existing panel as well. Native fast checks
-(format, size, boundaries and tokens) pass. Narrow compile is still pending.
+Implemented source: retained identity/tickets; serialized guarded saves with
+sticky no-terminal effects and later confirmation only for a terminal direct
+write; complete bounded readonly text; existing engine find/replacement;
+request-local folder/search tickets, saved-file observation and rich timestamp
+sorting gated behind pending ADR0083; shared Markdown/frontmatter and scoped
+relative links; pure panel selection/association and typed LSP navigation.
+These sources have distinct earlier/current test receipts, not one acceptance.
 
-The companion node core has bounded binary pages, exclusive sibling
-duplication, parent-directory observation, directory suggestions and rich
-directory metadata; its narrow workspace clippy passed. It is not yet a
-registered API or a consumer-ready commit. Next: narrow tests and app
-compile; finish persisted expansions, modified ordering, retained I/O
-routing and pane rendering; integrate the common node base, then LSP,
-document rendering, captures and the final gates. Nothing is claimed
-complete yet.
+Next: consume strict19/workspace results and fix concrete errors, execute the
+current FieldId/IME/captured-callback union, finish node freshness/full gate and
+its admitted SDK review/number assignment. Then consume actual owner-context
+runtime seams from the sole layout/desktop/composer/plugin owners: file tabs,
+Explorer mounting, keyed presentations/close lifecycle, typed context intake,
+qualified image/HTML/download/upload flows, panel preferences and complete LSP
+UX. PDF/SVG follow file parity under the ADR below. The node's pending methods
+must remain visibly unavailable until integrated; do not duplicate a client
+transfer loop or infer an owning node/root from cwd or a mutable alias.
 
 ## Correlation regression checks (2026-11-15)
 
