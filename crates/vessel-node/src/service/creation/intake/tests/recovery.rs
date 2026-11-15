@@ -19,7 +19,7 @@ async fn cancelling_pre_effect_admission_rolls_back_the_acquired_lease_and_drive
                     let lease = reserve(&count)?;
                     prepared.send(()).unwrap();
                     std::future::pending::<()>().await;
-                    Ok(lease)
+                    Ok::<CountLease, Refused>(lease)
                 })
                 .await
         }
@@ -184,5 +184,51 @@ async fn known_prompt_retry_continues_registered_identity_without_new_child_coun
         .unwrap();
     assert!(matches!(&retry, Admitted::Start(_)));
     drop(retry);
+    for update in [
+        Advance::Begin(Stage::Prompt),
+        Advance::Finished(Stage::Prompt),
+        Advance::Complete,
+    ] {
+        receipt = store
+            .advance_creation(reservation.operation, receipt.snapshot().revision, update)
+            .await
+            .unwrap();
+    }
+    let calls = AtomicUsize::new(0);
+    let completed = intake
+        .admit(&store, candidate("prompt", 7), |_stored| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            std::future::ready(Ok::<(), Refused>(()))
+        })
+        .await
+        .unwrap();
+    assert!(matches!(&completed, Admitted::Observe(_)));
+    assert_eq!(snapshot(&completed), &receipt);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    store.close().await;
+}
+
+#[tokio::test]
+async fn a_reconciled_writer_winner_never_receives_the_losing_ids_count_lease() {
+    let (_temp, _dir, store, intake) = fixture().await;
+    let requested = candidate("writer-race", 7);
+    let winner = candidate("writer-race", 7);
+    let canonical = winner.receipt.clone();
+    let count = Arc::new(AtomicUsize::new(0));
+    let admitted = intake
+        .admit(&store, requested, |_prepared| async {
+            let lease = reserve(&count)?;
+            // Simulates a trusted older internal writer outside this staged gate.
+            // The Store remains authoritative even if that writer wins admission.
+            let _committed = store.admit_creation(winner).await.unwrap();
+            Ok::<CountLease, Refused>(lease)
+        })
+        .await
+        .unwrap();
+    assert!(matches!(&admitted, Admitted::Observe(_)));
+    assert_eq!(snapshot(&admitted), &canonical);
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    assert!(intake.active.lock().is_empty());
+    assert_eq!(intake.slots.available_permits(), MAX_ACTIVE_CREATIONS);
     store.close().await;
 }
