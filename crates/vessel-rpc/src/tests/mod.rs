@@ -504,6 +504,12 @@ impl Handler for Fake {
     }
 
     unserved! {
+        get_registry: vessel_proto::registry::GetRegistry => vessel_proto::registry::RegistrySnapshot;
+        list_workspaces: vessel_proto::registry::ListWorkspaces => Vec<vessel_proto::registry::WorkspaceDescriptor>;
+        get_workspace: vessel_proto::registry::GetWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        rename_workspace: vessel_proto::registry::RenameWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        pin_workspace: vessel_proto::registry::PinWorkspace => vessel_proto::registry::WorkspaceDescriptor;
+        release_workspace_automation: vessel_proto::registry::ReleaseWorkspaceAutomation => vessel_proto::registry::WorkspaceDescriptor;
         forward: vessel_proto::Forward => vessel_proto::Forwarded;
         relay: vessel_proto::RelayCall => vessel_proto::Forwarded;
         deliver: vessel_proto::Deliver => vessel_proto::Forwarded;
