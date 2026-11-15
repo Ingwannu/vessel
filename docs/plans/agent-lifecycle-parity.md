@@ -425,9 +425,11 @@ No row of the crate table changes.
 - The corrected follow gate passed 1992/0/12 plus its two TS freshness tests,
   with no waiver or rerun, and was submitted for review. The next clean slice
   begins on the newly announced node head. The older attach/ports interrupt
-  repair is implemented separately; its new Linux signal cases and gates
-  have not run yet.
-- Next: repair and gate the older interrupt loops while
+  repair passed narrow clippy and all five CLI cases selected by interrupt,
+  including both new script/ports signal cases. They check normal real signals
+  and resource survival, with the exact write interleaving still unforced.
+  Its separate complete gate remains owed.
+- Next: run the complete gate for the older interrupt-loop repair while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
