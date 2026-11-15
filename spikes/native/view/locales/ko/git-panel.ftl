@@ -111,6 +111,8 @@ git-panel-problem-timeout = 읽기를 제시간에 마치지 못했습니다. �
 git-panel-problem-workspace = 워크스페이스의 저장소 정보를 사용할 수 없습니다. 등록된 워크스페이스를 열고 다시 시도하세요.
 # Complete recovery when lifetime correlation identities are exhausted; retry alone cannot help.
 git-panel-problem-keys = 요청을 안전하게 구분할 수 없습니다. Vessel을 다시 시작하고 시도하세요.
+# Complete recovery when this screen's retirement owner has not initialized; no request is sent.
+git-panel-problem-owner = 이 화면에서 저장소 변경을 안전하게 추적할 수 없습니다. Vessel을 다시 시작하고 워크스페이스를 다시 여세요.
 
 # Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
 git-panel-partial = 목록에 없는 변경 파일이 있습니다. 새로고침하거나 비교 범위를 줄이세요.

@@ -6,43 +6,47 @@ limits. No current C3 capture or final whole-package gate/review exists.
 
 ## Source
 
-**Current checkpoint,16:52 UTC:** the source/check chronology below is retained,
-but the App safety batch isf1ab56456, after announced6ebdf8e8. Later1541d314b
-adds the pure accepted-summary FileReadTarget/callback-generation guard and its
-four regressions; it is UNCOMPILED and not covered by the f1ab selections.
-The single View-only regression selection170244 on1541 is queued; the later
-doc-comment clarification changes no rule or assertion and does not borrow an
-exact-source pass. Accepted does not prove painted or physically authorized.
-Its actual body consumer, pagination and retention budget remain pending. Node head
-is34bb9f843, after announced9c150c6e. The isolated control Rust head is4133964f6;
-The isolated producer's final docs record V1 bounded SOURCE/requested Kit
-NARROW PASS: ordinary syntax163829 passed1/0/0, closing the sole hold.
-The19 passing tests are11 GPUI window tests plus8 ordinary units. No all-Kit,
-App, whole C3, UI/OS or physical-write acceptance follows from that result.
+**Current source checkpoint:** App announced82ca is merged asb658675c1,
+then0ec69ca3c fixes the actual f1ab Clippy return while preserving hard legacy
+PR/Git origin refusal. The conditional80c9 shared promotion and REAL Git owner
+registration/callback/startup are now one prepared union; its six owner GPUI
+regressions and whole EN/KO startup refusal are UNCOMPILED/UNEXECUTED. Empty
+Owners and duplicate refusal remain; no Scripts feature branch is adopted.
+Own summary-generation1541 tests are separately queued and predates the owner
+union. Root BODY mounting, pagination, retention budget and actual Explorer
+still remain pending. Node merge0e2d8bea7 brings announced1c762ccf in NODE only;
+GIT_PANEL remainsNone. See its own node plan for exact prior-source evidence.
 
-Active registered runs (no retry/duplicate):
+The isolated control Rust head4133964f6 has V1 FINAL bounded shared-control
+SOURCE/requested Kit NARROW PASS; docs41673003d records the exact scope.
+Diff19 =11 GPUI windows+8 ordinary units; separate ordinary syntax163829 is
+1/0/0. Exact old/new wheel evidence is retained, as are the capture/split-copy
+exclusions. Only this isolated producer was handed to the lead, not moving
+App/Node branches. No whole Kit/C3, App integration, UI/OS or authority pass.
 
-- wp-git-narrow-20261115T164951Z-f1ab5645: short/no-priority exact App four-crate
-  all-target strict Clippy, queued. Includes actual15a fixture fixes plus the
-  failclosed unscoped-write barrier.15a remains RED, not relabeled.
-- wp-git-app-tests-20261115T164951Z-f1ab5645: ordinary/no-priority exact View,
-  Link and App all-target git-filter tests, queued. No Kit filter rerun.
-- wp-git-control-tests-20261115T163829Z-4133964f: terminal0, short/no-priority
-  existing ordinary syntax regression1/0/0 outside the diff filter; Base,
-  gpui-component and Kit actually compiled, no skips. Original19 source pins
-  remain unchanged. Lead/coordinator received only the reviewed control range,
-  not the moving App/Node branches. Actual UI/capture obligations remain.
-- wp-git-node-narrow-20261115T162346Z-34bb9f84: ordinary TS generation, queued;
-  retrieve generated artifacts through the helper, never hand-edit wire bytes.
+Registered runs (never relabel source or duplicate a live request):
 
-W13's proposed ShownChangesContext/ShownDiffContext retains ORIGINAL acquisition
-Context+root/session receipt+summary/diff tickets; its implementation/checks are
-not ready. Never attach the current Machine context to old drawn facts. Until
-the checked C5/W12 Explorer join, legacy write dispatch deliberately emits Info
-without allocating a key, reserving pending or sending. This is suspended write
-functionality, not parity. The old controller lifecycle still needs real owner
-retirement. W8's common97 hook promotion/real Scripts startup is also unverified;
-do not race those cfg attributes or manufacture a local owner table.
+- wp-git-narrow-20261115T164951Z-f1ab5645: terminal RED101, all4 crates reached;
+  unused unsafe legacy PR entry paths/import, origin doc markup, five fixture
+  HashMap lookups and one explicit-default lint. Fixed0ec; source remains RED.
+- wp-git-app-tests-20261115T164951Z-f1ab5645: prior-source ordinary git tests,
+  queued at this checkpoint. Only a verified queued cancellation under the
+  standing source-supersession rule may replace it; acquired/running stays.
+- wp-git-view-tests-20261115T170244Z-1541d314: queued, View git regressions only;
+  does not validate later owner enums/words/startup or App changes.
+- wp-git-node-narrow-20261115T162346Z-34bb9f84: queued TS generation on prior
+  source; retrieve helper artifacts, never hand-edit generated wire bytes.
+
+W13's opaque ShownChangesContext/ShownDiffContext source remains unchecked;
+its original acquisition Context/root/session/summary/diff receipts must be
+captured while drawing and checked again at effect time. The unready C5 helper
+is NOT replaced by this new local summary-generation value or the owner hook.
+Legacy writes stay refused; no current-Machine stamp, count equality or fake
+Ready DTO is accepted. V1 clears common80 ONLY in a real checked/gated consumer
+union: our new Git union still owes that check and the lead's combined gate.
+Its callback owns only matching pane UI/read tickets and retains global pending
+payloads. Physically sent/uncertain writes, C4 and actual C5 source invalidation
+are not proved. Earlier sections below retain historical source assignments.
 
 - App work: `backend/wp-c3-git`, announced line e1b73c9e merged as b95213aaf.
   Own code through b0110b040: fa1 token/import correction;762+ae7 move private

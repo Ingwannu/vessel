@@ -66,6 +66,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.areas.git.panels.registration.problem().is_some() {
+            return;
+        }
         if !self.layout_tab_matches(
             &address.workspace,
             address.tab,
@@ -90,6 +93,9 @@ impl Shell {
     }
 
     pub(crate) fn git_panel_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
+        if self.areas.git.panels.registration.problem().is_some() {
+            return;
+        }
         let current_target = self
             .areas
             .git

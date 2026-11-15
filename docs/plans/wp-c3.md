@@ -960,3 +960,34 @@ a prior merge payload. This proves local receipt retention, not a physically
 sent forge operation. Typed C4 physical-context opening still remains missing.
 Fixture lookups use test indexing and explicit Rc default; assertions unchanged.
 The existing f1ab test run remains prior-source and must not cover this change.
+
+## Git consumes the conditional shared retirement mechanism
+
+[Decision Log]
+- Prerequisite: announced82ca and ONLY shared80c9a8b4, whose V1 bounded source
+  clearance is conditional on a real owner in the same checked consumer union.
+  It is not the W8 feature branch. Exactbc Scripts Clippy0 and PRIOR368 runtime
+  22/0/0 establish their stated scopes, not a Git result or standalone80 pass.
+- Startup: one Git registration from Shell::new after shortcuts::listen, before
+  route arrival. Empty Owners::new stays empty. Duplicate registration retains
+  its typed error, does not replace a hook, and keeps Git pane reads/commands
+  unavailable through a whole EN/KO recovery message. Without-IO fixtures must
+  deliberately call the same initializer for actual owner behavior.
+- Callback: use the original Notice workspace/tab/target to drop only that
+  pane's UI and read tickets synchronously after a committed mutation. Matching
+  target equality on its own never serves as a visit/ABA fence. Reopening goes
+  through the existing discovery and lifetime key issuer again.
+- No layout reentry, IO, RPC, second table or task cancellation. The Link keeps
+  its detached reads; global pending mutation payloads/intentions are retained.
+  This does not establish a physically sent/uncertain write lifecycle.
+- Tests: actual Git owner startup missing/duplicate, real retarget A-to-B-to-A
+  with fresh discovery and late callback/answer, failed transaction rollback,
+  retained pending payload, same TabId in another workspace, and failed versus
+  confirmed close. All are WRITTEN/UNEXECUTED until this exact union's checks.
+- Shared edits are exactly the six authorized common promotion files from80
+  plus the startup call in shell.rs; registry keeps G1's existing renderer arms.
+  No Scripts renderer/startup or canonical-preferences/resident promotion.
+- C5's original drawn-context producer/helper is still unready, and the actual
+  Changes Explorer is unmounted. This callback cannot invalidate C5's source
+  until that exact delegated helper is consumed. Legacy writes remain refused;
+  C4 PullRequest is also unmounted, so no forge ownership cutover is claimed.

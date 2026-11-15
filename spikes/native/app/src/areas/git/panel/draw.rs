@@ -20,6 +20,9 @@ pub(crate) fn render_panel(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    if let Some(why) = shell.areas.git.panels.registration.problem() {
+        return failure(shell, &why, tokens, window, cx);
+    }
     let address = PanelAddress {
         workspace: panel.workspace.clone(),
         tab: panel.tab,

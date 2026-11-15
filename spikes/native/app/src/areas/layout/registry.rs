@@ -1,5 +1,4 @@
 //! One typed panel registration point. Resource state belongs to the owning area.
-#[cfg(test)]
 pub(crate) mod retirement;
 use crate::shell::Shell;
 use vessel_app_kit::Tokens;

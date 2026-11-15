@@ -44,6 +44,9 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.areas.git.panels.registration.problem().is_some() {
+            return;
+        }
         let address = &captured.address;
         if !self.layout_tab_matches(
             &address.workspace,

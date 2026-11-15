@@ -11,6 +11,8 @@ use crate::workspace::git_quick::GitAction;
 /// Honest recovery after a failed read, independent of diagnostic language.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReadIssue {
+    /// The app cannot fence a retired git view until its owner initializes.
+    Owner,
     /// No comparison base exists; never present it as an empty successful diff.
     NoBase,
     /// The complete bounded comparison cannot fit the preview.
@@ -74,6 +76,7 @@ impl ReadIssue {
     #[must_use]
     pub fn for_failure(failure: &ReadFailure) -> Self {
         match failure {
+            ReadFailure::OwnerUnavailable { .. } => Self::Owner,
             ReadFailure::NoBase => Self::NoBase,
             ReadFailure::TooLarge => Self::TooLarge,
             ReadFailure::WorkspaceUnavailable => Self::Workspace,
@@ -99,7 +102,8 @@ impl ReadIssue {
             Self::NoBase | Self::TooLarge | Self::Workspace | Self::Version | Self::Unsupported => {
                 crate::alert::Variant::Info
             }
-            Self::Keys
+            Self::Owner
+            | Self::Keys
             | Self::Unsent
             | Self::Connection
             | Self::Capacity
@@ -119,6 +123,7 @@ impl ReadIssue {
     pub fn words(self, catalog: &Translator) -> &str {
         let words = catalog.git_panel();
         match self {
+            Self::Owner => words.problem_owner(),
             Self::NoBase => words.problem_no_base(),
             Self::TooLarge => words.problem_too_large(),
             Self::Workspace => words.problem_workspace(),
@@ -179,7 +184,8 @@ impl ReadFailure {
                     words.detail_requested_base()
                 ))
             }
-            Self::NoBase
+            Self::OwnerUnavailable { .. }
+            | Self::NoBase
             | Self::TooLarge
             | Self::Call(Problem::Unsent | Problem::Older)
             | Self::WorkspaceUnavailable
@@ -240,6 +246,11 @@ mod tests {
         ))
         .unwrap();
         for (issue, english, korean) in [
+            (
+                ReadIssue::Owner,
+                "This view cannot follow repository changes safely. Restart Vessel and reopen the workspace.",
+                "이 화면에서 저장소 변경을 안전하게 추적할 수 없습니다. Vessel을 다시 시작하고 워크스페이스를 다시 여세요.",
+            ),
             (
                 ReadIssue::TooLarge,
                 "This comparison is too large to preview. Narrow the comparison and try again.",
@@ -468,5 +479,24 @@ mod original_view_words {
             ko.git_panel().unverified_view(),
             "여기에 표시된 저장소를 확인할 수 없습니다. 변경하기 전에 워크스페이스를 다시 여세요."
         );
+    }
+}
+
+#[cfg(test)]
+mod owner_failure {
+    use super::*;
+    use crate::layout::LayoutError;
+
+    #[test]
+    fn local_registration_failure_keeps_its_cause_without_inventing_a_node_error() {
+        for cause in [None, Some(LayoutError::InvalidState)] {
+            let failure = ReadFailure::OwnerUnavailable { cause };
+            assert_eq!(ReadIssue::for_failure(&failure), ReadIssue::Owner);
+            assert_eq!(ReadIssue::Owner.variant(), crate::alert::Variant::Error);
+            assert_eq!(
+                std::error::Error::source(&failure).is_some(),
+                cause.is_some()
+            );
+        }
     }
 }

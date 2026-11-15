@@ -24,6 +24,7 @@ use vessel_app_view::workspace::git::panel::{
 #[derive(Default)]
 pub(super) struct Panels {
     entries: HashMap<PanelAddress, Entry>,
+    registration: super::retirement::Registration,
 }
 struct Entry {
     target: PanelTarget,
@@ -75,6 +76,45 @@ impl Entry {
         }
     }
 }
+
+impl Panels {
+    /// Other Git entry points share the same startup refusal as the pane.
+    pub(super) fn owner_problem(&self) -> Option<ReadFailure> {
+        self.registration.problem()
+    }
+
+    /// No pre-initialization UI may acquire admission just because startup ran.
+    pub(super) fn initialize(&mut self, result: Result<(), vessel_app_view::layout::LayoutError>) {
+        // Pre-start/test data cannot be promoted into an initialized owner.
+        // These entries own no sent task or mutation receipt.
+        self.entries.clear();
+        self.registration = match result {
+            Ok(()) => super::retirement::Registration::Ready,
+            Err(why) => super::retirement::Registration::Refused(why),
+        };
+    }
+
+    /// Match the original notice so equal tab ids in other workspaces survive.
+    pub(super) fn retire_owner(
+        &mut self,
+        notice: &crate::areas::layout::registry::retirement::Notice,
+    ) -> bool {
+        let address = PanelAddress {
+            workspace: notice.workspace().clone(),
+            tab: notice.tab(),
+        };
+        if self
+            .entries
+            .get(&address)
+            .is_some_and(|entry| layout_target(&entry.target) == *notice.target())
+        {
+            let _removed = self.entries.remove(&address);
+            true
+        } else {
+            false
+        }
+    }
+}
 pub(crate) use draw::render_panel;
 
 #[cfg(test)]
@@ -92,3 +132,6 @@ fn layout_target(target: &PanelTarget) -> vessel_app_view::layout::Target {
 
 #[cfg(test)]
 mod target_tests;
+
+#[cfg(test)]
+mod owner_tests;

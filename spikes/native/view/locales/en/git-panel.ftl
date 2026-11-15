@@ -112,6 +112,8 @@ git-panel-problem-timeout = This read did not finish in time. Try again.
 git-panel-problem-workspace = Workspace repository information is unavailable. Open a registered workspace and try again.
 # Complete recovery when lifetime correlation identities are exhausted; retry alone cannot help.
 git-panel-problem-keys = No more requests can be identified safely. Restart Vessel and try again.
+# Complete recovery when this screen's retirement owner has not initialized; no request is sent.
+git-panel-problem-owner = This view cannot follow repository changes safely. Restart Vessel and reopen the workspace.
 
 # Honest notice when the node marks the summary incomplete; zero listed files is not an empty comparison.
 git-panel-partial = Some changed files are not listed. Refresh or narrow the comparison.

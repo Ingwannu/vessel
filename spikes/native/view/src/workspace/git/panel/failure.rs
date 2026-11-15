@@ -14,6 +14,14 @@ pub type PanelRead<T> = ReadState<T, ReadFailure>;
 /// A recovery is chosen from the typed failure, never a diagnostic substring.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ReadFailure {
+    /// The sole layout retirement callback was not registered. Its original
+    /// typed failure is retained; uninitialized fixtures have no failure yet.
+    #[error("the git view owner is unavailable")]
+    OwnerUnavailable {
+        /// Internal registration cause; never presented as a node error.
+        #[source]
+        cause: Option<crate::layout::LayoutError>,
+    },
     /// Successful comparison admission found no registered or explicit base.
     #[error("there is no comparison base")]
     NoBase,

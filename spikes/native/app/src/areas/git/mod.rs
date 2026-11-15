@@ -37,6 +37,7 @@ mod menu;
 mod name;
 mod origin;
 pub(crate) mod panel;
+mod retirement;
 mod stashes;
 
 use vessel_app_kit::ui::{Context, Window};
@@ -53,6 +54,7 @@ use crate::shell::Shell;
 
 pub(crate) use head::slot;
 pub(crate) use menu::{failure_body, glyph};
+pub(crate) use retirement::start;
 
 /// The repository the area follows: the one the Changes tab shows.
 #[derive(Debug, Clone, PartialEq, Eq)]

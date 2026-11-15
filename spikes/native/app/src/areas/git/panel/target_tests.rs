@@ -8,7 +8,6 @@ use vessel_app_link::{Command, Link};
 use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
 use vessel_app_view::layout::{AgentRole, HostAlias, LayoutKey, OpenIntent, Placement, Target};
 use vessel_app_view::workspace::git::panel::{RepositoryKey, StatusTicket};
-use vessel_app_view::workspace::git::{ReadState, RequestKeys};
 use vessel_proto::{NodeId, ProjectId, SessionId};
 
 fn install_context(shell: &mut Shell) -> ConnectionContext {
@@ -23,7 +22,18 @@ fn install_context(shell: &mut Shell) -> ConnectionContext {
     context
 }
 
-fn prepare(
+/// Actual owner fixtures use the product initializer before reading pane data.
+pub(super) fn prepare(
+    shell: &mut Shell,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> (ComparisonChange, StatusTicket) {
+    assert!(crate::areas::git::start(shell, cx).is_ok());
+    prepare_uninitialized(shell, window, cx)
+}
+
+/// The negative startup fixture deliberately keeps an unregistered old view.
+pub(super) fn prepare_uninitialized(
     shell: &mut Shell,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -61,10 +71,9 @@ fn prepare(
         },
     };
     let comparison = Comparison::new(ComparisonMode::Uncommitted, None, Whitespace::Show);
-    let mut keys = RequestKeys::default();
-    let instance = keys.issue().unwrap();
+    let instance = shell.areas.git.keys.issue().unwrap();
     let mut reads = PanelReads::new(repository, comparison.clone());
-    let ticket = reads.begin_status(keys.issue().unwrap());
+    let ticket = reads.begin_status(shell.areas.git.keys.issue().unwrap());
     let mut entry = Entry::new(PanelTarget::WorkingDiff, Some(context.clone()));
     entry.instance = Some(instance);
     entry.reads = Some(reads);
@@ -134,14 +143,10 @@ fn retargeted_visible_tab_drops_its_old_read_and_cannot_start_an_empty_mode_call
             inbox.try_recv(),
             Err(tokio::sync::mpsc::error::TryRecvError::Empty)
         ));
-        assert!(matches!(
-            shell.areas.git.panels.entries[address]
-                .reads
-                .as_ref()
-                .unwrap()
-                .summary(),
-            ReadState::Empty
-        ));
+        assert!(
+            !shell.areas.git.panels.entries.contains_key(address),
+            "the real owner retires before the transaction returns, not on its late answer"
+        );
         shell.git_panel_answer(
             vessel_app_link::git_panel::Answer {
                 address: address.clone(),

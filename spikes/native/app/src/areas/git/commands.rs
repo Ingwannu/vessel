@@ -41,6 +41,9 @@ impl Shell {
     #[must_use]
     pub(crate) fn git_command_entries(&self) -> Option<GitCommands> {
         let git = &self.areas.git;
+        if git.panels.owner_problem().is_some() {
+            return None;
+        }
         let repository = git.target.as_ref()?;
         let (machine, root) = self.code_git_context()?;
         if repository.machine != machine || repository.root != *root {

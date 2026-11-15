@@ -108,6 +108,9 @@ impl Shell {
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);
+        if let Err(error) = areas::git::start(&mut shell, cx) {
+            tracing::error!(%error, "could not initialize the Git view owner");
+        }
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell
