@@ -2,6 +2,9 @@
 //! A lookup reads session.get only; opening history never resumes a provider.
 
 mod access;
+// Promote only with the sole resident's real consumer and removal of raw ingress.
+#[cfg(all(test, not(target_arch = "wasm32")))]
+pub mod resident;
 pub mod lifecycle;
 pub use access::{Access, Binding, Read};
 

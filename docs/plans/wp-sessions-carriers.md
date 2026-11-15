@@ -108,3 +108,34 @@ The current package-base-6 projection merge retains G4's reconcile/read-refusal
 policy and protects stale Fleet publication. It has not performed this carrier
 conversion. Source review, changed-source tests, whole native gate and inspected
 captures remain separate evidence.
+
+## Staged typed ingress envelopes
+
+The exact dd13..e42a387bf4 delivery producer is adopted with its staging intact.
+`link::sessions::resident` remains literal cfg(test), native only. Scope captures
+the original selected guard once, the canonical binding and one shared immutable
+context; record envelopes clone only those immutable/weak facts. Queued payloads
+retain no raw client or alternative identity allocator. Envelope::install checks
+actual delivery immediately before a synchronous canonical receive/settle callback
+and rejects metadata with another SessionId. Peer payload Debug is opaque.
+
+Completion headers retain the original owner kind/ticket. A separate control-only
+CorrelatedRefusal carries no fake guard or peer data: actor preflight can prove
+NotSent, whereas an attempted uncertain write must retain input. Its receiver
+must match the exact original pending admission and cannot retire a successor.
+Only observed retirement of the actual shared lease may invoke
+connection_retired(originalContext). Lost, EOF, attach failure and follow-only
+cancellation must retire the exact FollowBinding instead; another follow on the
+same physical connection may already be current. A refusal wrapper cannot turn
+a stream boundary into proof that the shared lease retired.
+These types are not registered as product Event/Command variants. Their real
+consumer must replace the converted raw Records/SessionLost/Acted paths and global
+accessors in the same coordinated product union.
+
+Written component regressions use a real framed subscription for metadata, a
+record and actual SessionEnded/Unsubscribed frames. They queue envelopes before
+retirement and require receiver-side rejection; same-connection reattach, metadata
+identity, wrong owner/duplicate tickets and obsolete guardless refusals are also
+covered. These tests have not executed yet and do not prove App timeline/form/input
+mutation, dirty/IME retention or live scoped admission. Cross-crate guard staging
+remains intact; App tests cannot manufacture a guard through Link::detached.
