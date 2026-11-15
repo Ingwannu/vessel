@@ -2,6 +2,7 @@
 //! Pure state and credential policy live in `view::devices`; this area
 //! holds field/focus handles and wires their actions to `link::devices`.
 
+mod inspection;
 mod invitation;
 mod revoke;
 mod row;
@@ -109,6 +110,7 @@ impl Shell {
         match answer {
             Answer::Listed(ticket, result) => {
                 state.page.listing.answer(ticket, result);
+                state.page.reconcile_inspection();
                 if let Listing::Ready(devices) = &state.page.listing {
                     state.places.retain(|id, _place| {
                         devices
@@ -158,6 +160,7 @@ pub(super) fn dialogs(
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
     revoke::dialog(shell, tokens, window, cx)
+        .or_else(|| inspection::dialog(shell, tokens, window, cx))
 }
 
 pub(super) fn start(shell: &Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
