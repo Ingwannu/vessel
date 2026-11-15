@@ -35,6 +35,18 @@ impl Shell {
         let Some(key) = self.file_destination(new_chat) else {
             return KeyAnswer::Pass;
         };
+        self.composer_pasted_at(key, pasted, cx)
+    }
+
+    pub(crate) fn composer_pasted_at(
+        &mut self,
+        key: DraftKey,
+        pasted: Vec<Pasted>,
+        cx: &mut Context<'_, Self>,
+    ) -> KeyAnswer {
+        if pasted.is_empty() || self.composer_field(key).is_none() {
+            return KeyAnswer::Pass;
+        }
         for paste in pasted {
             match paste {
                 Pasted::Image { mime, bytes } => self.composer_pasted_image(key, mime, bytes, cx),
@@ -52,8 +64,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let new_chat = self.areas.composer.attach_for.take().unwrap_or(false);
-        let Some(key) = self.file_destination(new_chat) else {
+        let Some(key) = self
+            .areas
+            .composer
+            .attach_for
+            .take()
+            .filter(|key| self.composer_field(*key).is_some())
+        else {
             return;
         };
         if choice == Acquire::ClipboardImage {
