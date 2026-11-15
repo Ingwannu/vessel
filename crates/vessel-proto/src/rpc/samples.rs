@@ -74,7 +74,8 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListPrompts
         | Method::GetNodeSettings
         | Method::SetNodeSettings
-        | Method::ListInbox => json!({}),
+        | Method::ListInbox
+        | Method::ReloadNodeSettings => json!({}),
         Method::RevokeDevice => json!({"device":id}),
         Method::ReadBlob => json!({"hash":hash}),
         Method::WatchFleet => json!({"after":0}),
@@ -211,7 +212,6 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         }
         Method::SetUsageLookup => json!({"policy":"off"}),
         Method::UnsetNodeSettings => json!({"keys":["park_after"]}),
-        Method::ReloadNodeSettings => json!({}),
     };
     serde_json::from_value(json!({"method":method,"params":params}))
 }

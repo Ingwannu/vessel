@@ -697,3 +697,12 @@ The existing byte-edge/valid/unknown/null/trailing tests are retained, with
 snapshot/field duplicate canaries and actual CLI pre-contact / reload no-publish
 regressions added. Both row 200 corrections now have source fixtures; changed
 strict/TS/runtime evidence and the final package gate/review remain owed.
+
+
+The earlier f3 strict check executed and failed on three newly added fixture
+expressions: a duplicate empty-object match arm, a two-arm Option match and an
+unqualified default. The sample now adds ReloadNodeSettings only to the existing
+empty-parameter group, and the test uses is_none plus the explicit reply default.
+All old sample values and assertions are retained. That source correction joins
+the reload/duplicate repairs for the next exact changed-source narrow check;
+f3 ran no runtime tests or TS generation.

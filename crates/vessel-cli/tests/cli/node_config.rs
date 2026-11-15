@@ -114,29 +114,29 @@ async fn config_mutations_follow_the_assignment_and_keep_their_state_contract() 
             .vessel(&["node", "config", "unset", "park_after"], b"")
             .await;
         let reload = fixture.vessel(&["node", "reload"], b"").await;
-        match vessel_proto::settings::NODE_CONFIG_PROTOCOL {
-            None => {
-                for ran in [unset, reload] {
-                    assert!(!ran.ok);
-                    assert!(
-                        ran.stderr.contains("protocol version is not assigned"),
-                        "{}",
-                        ran.stderr
-                    );
-                }
-                assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), saved);
+        if vessel_proto::settings::NODE_CONFIG_PROTOCOL.is_none() {
+            for ran in [unset, reload] {
+                assert!(!ran.ok);
+                assert!(
+                    ran.stderr.contains("protocol version is not assigned"),
+                    "{}",
+                    ran.stderr
+                );
             }
-            Some(_) => {
-                assert!(unset.ok, "{}", unset.stderr);
-                assert!(reload.ok, "{}", reload.stderr);
-                let current: vessel_proto::settings::NodeSettings =
-                    serde_json::from_str(&unset.stdout).unwrap();
-                assert_eq!(current.park_after, ParkAfter::DEFAULT);
-                assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), current);
-                let report: vessel_proto::settings::ReloadedNodeSettings =
-                    serde_json::from_str(&reload.stdout).unwrap();
-                assert_eq!(report, Default::default());
-            }
+            assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), saved);
+        } else {
+            assert!(unset.ok, "{}", unset.stderr);
+            assert!(reload.ok, "{}", reload.stderr);
+            let current: vessel_proto::settings::NodeSettings =
+                serde_json::from_str(&unset.stdout).unwrap();
+            assert_eq!(current.park_after, ParkAfter::DEFAULT);
+            assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), current);
+            let report: vessel_proto::settings::ReloadedNodeSettings =
+                serde_json::from_str(&reload.stdout).unwrap();
+            assert_eq!(
+                report,
+                vessel_proto::settings::ReloadedNodeSettings::default()
+            );
         }
         fixture.stop().await;
     })
