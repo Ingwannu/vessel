@@ -108,16 +108,23 @@ pub(super) fn request(
         Clipping::Whole => "End of source material.",
         Clipping::Cut => "Source material was cut at its input bound.",
     };
-    Ok(Prompt(ir::Request {
+    let mut neutral = neutral(model, effort)?;
+    neutral.system = vec![system];
+    neutral.messages = vec![ir::Message {
+        role: ir::Role::User,
+        parts: vec![ir::Part::Text(format!(
+            "Source material:\n{}\n\n{ending}",
+            material.text
+        ))],
+    }];
+    Ok(Prompt(neutral))
+}
+
+fn neutral(model: &ModelId, effort: Option<MetadataEffort>) -> Result<ir::Request, TextError> {
+    Ok(ir::Request {
         model: model.as_str().to_owned(),
-        system: vec![system],
-        messages: vec![ir::Message {
-            role: ir::Role::User,
-            parts: vec![ir::Part::Text(format!(
-                "Source material:\n{}\n\n{ending}",
-                material.text
-            ))],
-        }],
+        system: Vec::new(),
+        messages: Vec::new(),
         tools: Vec::new(),
         tool_choice: ir::ToolChoice::None,
         parallel_tool_calls: None,
@@ -126,7 +133,7 @@ pub(super) fn request(
         stop_sequences: Vec::new(),
         reasoning: reasoning(effort)?,
         cache_key: None,
-    }))
+    })
 }
 
 fn reasoning(effort: Option<MetadataEffort>) -> Result<ir::Reasoning, TextError> {

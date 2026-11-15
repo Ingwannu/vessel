@@ -702,3 +702,11 @@ effort, actual thinking-budget refusal, positive shared output budget,
 source/style preparation and API mismatch with zero recorded attempts.
 Constructor extraction is a separate behavior-preserving step before the
 new preflight entry points. Production settings and observer wiring follow.
+
+
+Preflight reuse extraction checkpoint: neutral request defaults and manual
+candidate construction move into private functions used by their existing
+callers. The requested model, style/source prompt, effort, route ordering
+and failure variants are unchanged. No new entry point or behavior is
+registered here. The following preflight extension reuses these functions
+rather than repeat provider/model/effort policy in Settings.

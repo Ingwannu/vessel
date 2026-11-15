@@ -5,7 +5,7 @@
 
 use super::config::{Provider, Route, Routes};
 use std::fmt;
-use vessel_proto::settings::{MetadataEffort, MetadataSettings};
+use vessel_proto::settings::{MetadataEffort, MetadataProvider, MetadataSettings};
 use vessel_proto::{ModelId, ModelRouteName};
 
 /// A tuple checked against one immutable catalog, borrowing its owners.
@@ -77,15 +77,7 @@ pub(super) fn select<'a>(
     if !settings.is_automatic() {
         for candidate in settings.providers() {
             if let Some((route, provider)) = catalog.get(&candidate.route) {
-                return checked(
-                    route,
-                    provider,
-                    candidate
-                        .model
-                        .as_ref()
-                        .unwrap_or_else(|| default_model(route)),
-                    candidate.effort,
-                );
+                return manual(route, provider, candidate);
             }
         }
         return Err(SelectError::NoRoute);
@@ -103,6 +95,22 @@ pub(super) fn select<'a>(
         .and_then(|name| catalog.get(name))
         .ok_or(SelectError::NoRoute)?;
     checked(route, provider, default_model(route), None)
+}
+
+fn manual<'a>(
+    route: &'a Route,
+    provider: &'a Provider,
+    candidate: &'a MetadataProvider,
+) -> Result<Selection<'a>, SelectError> {
+    checked(
+        route,
+        provider,
+        candidate
+            .model
+            .as_ref()
+            .unwrap_or_else(|| default_model(route)),
+        candidate.effort,
+    )
 }
 
 fn checked<'a>(
