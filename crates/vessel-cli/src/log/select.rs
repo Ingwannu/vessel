@@ -41,6 +41,7 @@ pub(crate) struct Selection {
 
 impl Selection {
     /// Apply one predicate to history and live records so their boundary is invisible.
+    #[must_use]
     pub(crate) fn keeps(self, record: &EventRecord) -> bool {
         self.since.is_none_or(|since| record.at >= since.0)
             && self

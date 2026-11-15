@@ -89,6 +89,7 @@ fn render(timeline: &mut Timeline, expected: EventSeq, records: &[EventRecord]) 
 }
 
 impl Timeline {
+    #[must_use]
     fn show<'a>(&mut self, record: &'a EventRecord) -> (Stream, Cow<'a, [u8]>) {
         match &record.event {
             SessionEvent::Terminal(output) => (Stream::Out, Cow::Borrowed(output.data.bytes())),
@@ -271,6 +272,33 @@ mod tests {
             [Run {
                 stream: Stream::Out,
                 text: b"\ntwo!".to_vec()
+            }]
+        );
+    }
+    #[test]
+    fn a_tail_counts_raw_chunks_and_can_begin_inside_a_rendered_message() {
+        let mut window = super::tail::Window::new("1".parse().unwrap());
+        for (seq, text) in [(0, "hel"), (1, "lo")] {
+            window.push(agent(
+                seq,
+                AgentEvent::MessageChunk {
+                    content: ContentBlock::Text {
+                        text: text.to_owned(),
+                    },
+                },
+            ));
+        }
+        let mut records = window.into_records();
+        let expected = records.front().unwrap().seq;
+        assert_eq!(
+            render(
+                &mut Timeline::default(),
+                expected,
+                records.make_contiguous()
+            ),
+            [Run {
+                stream: Stream::Out,
+                text: b"lo".to_vec()
             }]
         );
     }
