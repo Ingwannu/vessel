@@ -55,7 +55,9 @@ pub fn filter_help<'a, A: Clone>(
     query: &str,
     platform: Platform,
 ) -> Vec<HelpSection<'a, A>> {
-    let query = query.trim().to_lowercase();
+    let query = query
+        .trim_matches(crate::matcher::whitespace)
+        .to_lowercase();
     sections
         .iter()
         .filter_map(|section| {
@@ -179,7 +181,14 @@ mod tests {
                 },
             ],
         }];
-        for query in ["center", "TEXT FIELD", "cmd k", "command+k", "⌘K"] {
+        for query in [
+            "center",
+            "TEXT FIELD",
+            "cmd k",
+            "command+k",
+            "⌘K",
+            "\u{feff}center\u{feff}",
+        ] {
             assert_eq!(
                 filter_help(&sections, query, Platform::Mac)[0].rows[0].action,
                 1,
@@ -199,6 +208,13 @@ mod tests {
             1
         );
         assert!(filter_help(&sections, "command+x", Platform::Mac).is_empty());
+        assert_eq!(
+            filter_help(&sections, "\u{feff}", Platform::Mac)[0]
+                .rows
+                .len(),
+            2
+        );
+        assert!(filter_help(&sections, "\u{85}center\u{85}", Platform::Mac).is_empty());
     }
 
     #[test]

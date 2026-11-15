@@ -138,12 +138,13 @@ pub fn project<'a, I, T>(
 /// the value identically to the forge owner's data.
 #[must_use]
 pub fn change_request_query(text: &str) -> Option<PullNumber> {
-    let text = text.trim();
+    let text = text.trim_matches(crate::matcher::whitespace);
     let prefix = text
         .get(..2)
         .filter(|prefix| prefix.eq_ignore_ascii_case("pr") || prefix.eq_ignore_ascii_case("mr"));
     let text = if prefix.is_some() {
-        text.get(2..)?.trim_start()
+        text.get(2..)?
+            .trim_start_matches(crate::matcher::whitespace)
     } else {
         text
     };
@@ -215,13 +216,21 @@ mod tests {
             project(&rows, "usage", Category::Agents, Scope::All)[0].id,
             1
         );
-        for query in ["42", "#42", "!42", "pr 42", "PR #42", "mr!42"] {
+        for query in [
+            "42",
+            "#42",
+            "!42",
+            "pr 42",
+            "PR #42",
+            "mr!42",
+            "\u{feff}PR\u{feff}#42\u{feff}",
+        ] {
             assert_eq!(
                 project(&rows, query, Category::Workspaces, Scope::All)[0].id,
                 3
             );
         }
-        for query in ["fix-42-retries", "pr # 42", "42x", "0"] {
+        for query in ["fix-42-retries", "pr # 42", "42x", "0", "pr\u{85}42"] {
             assert!(change_request_query(query).is_none());
         }
     }

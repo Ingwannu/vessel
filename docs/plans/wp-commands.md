@@ -697,3 +697,12 @@ already exists on the shared line. No second default table, fabricated binding
 id, partial enum migration or whole moving F4 branch is handed over as a tiny
 hint producer. NewWorkspace/NewSession and command-center/Palette typed variant
 identities stay stable across the eventual adapter change.
+
+Follow-up source audit found the same trim difference in help search and exact
+PR/MR promotion: shortcut-help-search.ts67 and workspace-search.ts11-21 use
+ECMAScript trim/whitespace. Adopted ONLY B2's agreed0e78261de matcher change
+fn whitespace→pub(crate) fn whitespace; body, default Query, scoring and marks
+are byte-for-byte unchanged. Both consumers now trim with that one predicate.
+Existing behavior tables add BOM around/inside valid searches and NEL refusal
+cases. No copied whitespace helper or borrowed B2 test pass is introduced;
+these later changes require the next immutable narrow check.
