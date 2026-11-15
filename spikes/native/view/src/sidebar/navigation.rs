@@ -109,6 +109,17 @@ impl Navigation {
         }
     }
 
+    /// Whether a builtin is requested, independent of current data availability.
+    /// Usage fetch policy reads this same choice as the footer renderer.
+    #[must_use]
+    pub fn visibility(&self, builtin: Builtin) -> Visibility {
+        self.entries(builtin.section())
+            .items()
+            .iter()
+            .find(|item| item.key.builtin() == Some(builtin))
+            .map_or_else(|| builtin.default_visibility(), |item| item.visible)
+    }
+
     /// Replace only one band through the existing preference writer.
     pub(crate) fn set(&mut self, section: Section, entries: Entries) {
         match section {

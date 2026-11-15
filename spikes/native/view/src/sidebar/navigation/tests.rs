@@ -228,3 +228,25 @@ fn malformed_band_does_not_erase_the_other_band() {
         [item("usage", true)]
     );
 }
+
+#[test]
+fn usage_fetch_policy_reads_the_same_opt_in_choice_as_the_footer() {
+    let prefs = Preferences::default();
+    assert_eq!(
+        prefs.sidebar_navigation.visibility(Builtin::Usage),
+        Visibility::Hidden
+    );
+    let change = PreferenceChange::SidebarNavigation {
+        section: Section::Footer,
+        entries: entries(vec![item("usage", true), item("usage", false)]),
+    };
+    let next = prefs.changed(&change).unwrap();
+    assert_eq!(
+        next.sidebar_navigation.visibility(Builtin::Usage),
+        Visibility::Shown
+    );
+    assert_eq!(
+        next.sidebar_navigation.visibility(Builtin::Search),
+        Visibility::Shown
+    );
+}
