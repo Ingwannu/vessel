@@ -124,3 +124,12 @@ check: uuid's general parser also accepts braced/simple/URN forms that the
 reference browser-id regex rejects. Tests cover those forms and legacy
 minimum timestamp length, case normalization and non-ASCII element digits.
 There is no engine, page fixture or visible native entry in this commit.
+
+## Runtime correction shared with the native contract
+
+The contract passed review before implementation. Unified Chrome then leaked
+UDP with the shell's force-prefixed WebRTC flag; the Chrome-specific switch
+is required instead. ADR 0078 records the exact source mapping, failed and
+inconclusive experiments, successful scoped IPv4 canaries, runtime hash and
+remaining qualification obligations. Product browser readiness remains
+absent; no API or agent tool has been registered by this branch.

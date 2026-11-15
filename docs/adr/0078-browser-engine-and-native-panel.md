@@ -1,12 +1,14 @@
 # ADR 0078: A Chromium engine and a native view of the same tabs
 
-Status: proposed. No engine, new call, or visible entry is enabled by this document.
+Status: contract accepted; implementation and runtime qualification pending.
+No engine, new call, or visible entry is enabled by this document.
 
 ## Purpose and intent
 
 Give a person a browser panel in the native app and give their agents the
-same twenty-two browser tools as Paseo. A sign-in must belong to the page
-both are driving; a second browser with a second cookie store is not parity.
+same twenty-two browser tools as Paseo. Within General or a particular Preview binding, a sign-in must belong to
+the page both are driving. A separate front-end engine with another cookie
+store would be misleading; Preview isolation is an explicit security boundary.
 The browser tools default off. The panel must never display a test fixture
 as a page the engine actually loaded.
 
@@ -143,7 +145,11 @@ A mixed DNS answer containing forbidden addresses is refused as a whole.
 | Any direct UDP, QUIC, WebRTC, WebTransport | Refused | Runtime switches plus qualification tests below; HTTP proxy alone is not enforcement. |
 | file, data top-level, javascript navigation, external handlers | Refused | Typed URL parsing and interception of page navigations/popups; no external launcher. about:blank is an internal empty target only. |
 
-Use --force-webrtc-ip-handling-policy=disable_non_proxied_udp and --disable-quic.
+For unified Chrome use
+--webrtc-ip-handling-policy=disable_non_proxied_udp and --disable-quic.
+The older --force-webrtc-ip-handling-policy spelling is not sufficient for
+this engine: the real-runtime experiment below observed direct UDP with it.
+Do not certify a launch merely because Chromium silently accepted the flag.
 The proxy never offers UDP. WebRTC TCP must also pass the destination policy;
 a loopback TCP ICE test is required. A switch being present on argv does not
 prove it works: qualify actual browser traffic before marking this runtime
@@ -482,5 +488,58 @@ flag behavior. A green Rust gate is not the qualification gate. The native
 capture matrix proves toolbar/layout/input only for the engine actually
 used. Read every capture. Finish one whole native gate and the root gate for
 node changes; submit engine/security commits and the completed panel to their
-assigned reviewers. Until those proofs exist, status stays proposed and the
-feature stays hidden.
+assigned reviewers. Until those implementation proofs exist, the engine remains unsupported and
+the feature stays hidden.
+
+
+## Unified Chrome WebRTC correction from real-runtime evidence
+
+The initial contract's force-prefixed switch came from a content/headless
+shell implementation. This ADR chooses unified Chrome, which has a distinct
+command-line preference mapping. At Chrome tag 149.0.7827.55:
+
+- chrome/common/chrome_switches.cc:703-705 defines
+  kWebRtcIPHandlingPolicy as webrtc-ip-handling-policy.
+- chrome/browser/prefs/chrome_command_line_pref_store.cc:55 maps that Chrome
+  switch to prefs::kWebRTCIPHandlingPolicy.
+- chrome/common/pref_names.h:1230-1232 names the preference
+  webrtc.ip_handling_policy; chrome/browser/renderer_preferences_util.cc:
+  158-159 reads that preference into renderer preferences.
+
+Primary source revision:
+<https://chromium.googlesource.com/chromium/src/+/refs/tags/149.0.7827.55/chrome/browser/prefs/chrome_command_line_pref_store.cc>.
+The source was downloaded and read; a symbol's presence in an unrelated
+shell implementation is not proof that the chosen executable applies it.
+
+Actual diagnostic runtime: Chrome for Testing 149.0.7827.55, binary SHA-256
+2d18db9d8608b052b6a552ee00ec1e830f93692e928b65ecc67d693bd33fe801,
+278568152 binary bytes. Its root-owned installation and parents are mode
+0755; the worker executes as UID/GID 1000 with a fresh mode-0700 profile,
+minimal environment and sandbox enabled. Initial startup failed without a
+usable sandbox; only the operator's dedicated sandbox-capable installation
+was used afterward. No --no-sandbox experiment or system modification is
+part of this package. Captured credits identify a Google Chrome for Testing
+distribution; Chromium's root license alone does not describe that bundle.
+Its credits/notices were captured for inspection, not approved for shipment.
+
+The force-prefixed switch run loaded a synthetic public-origin fixture and
+captured a real PNG, but the loopback UDP canary received six packets and
+ICE gathering hit its deadline. That is a failed configuration, not a
+qualified runtime. A separate Preferences-file experiment never loaded the
+page, so its zero UDP count is inconclusive and is not counted as a pass.
+
+With the Chrome switch, the public-origin fixture loaded, ICE gathering
+completed, a real PNG was captured, and the IPv4 direct TCP and UDP canaries
+both received zero packets after independent successful positive-control
+connections/datagrams. The profile, proxy, sandbox and binary were otherwise
+isolated in a fresh run. That is scoped diagnostic evidence for the switch
+correction. The proxy was a synthetic fixture that served a test origin and
+refused other destinations; it was not the product's resolve/classify/pin
+proxy. It proves no production proxy, IPv6, QUIC/WebTransport or Windows
+behavior, and does not allow a visible supported engine.
+
+Qualification is bound to binary hash, platform, launcher/sandbox policy,
+profile policy and exact flags. A changed executable at the same path,
+changed preferences, policy override or launch options invalidates it.
+After the product path exists, repeat its real network/credential/lifetime
+suite with that exact path/configuration. Keep typed NoEngine until then.
