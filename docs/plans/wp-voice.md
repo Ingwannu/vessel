@@ -330,3 +330,7 @@ hold a playback receipt to check real prefetch progress, stable output ordering,
 failed playback, cancellation cleanup and independent deadlines. All are new
 and unexecuted. Actual exact-session authorization/single-speech admission,
 canonical outbound receipt adapter and product speak registration remain owed.
+
+Spoken-input wrapper prose is independently authored; only the spoken-input
+and instruction framing/behavior is retained from the reference. No Paseo
+source, embedded cue PCM or native bundle is imported into this package.

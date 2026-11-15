@@ -1625,7 +1625,12 @@ returns typed runtime-unavailable and advertises no support. The existing base64
 has an opt-in bounded decoder so audio is capped before decoded allocation.
 `vessel-node::voice` is staged under tests until service wiring; its outer
 VAD boundary counts Silero windows without wall-clock drift, and does not
-stand in for inference. No dependency edge or persistence schema is added.
+stand in for inference. Its connection-owned reservation registry retains
+uncertain restoration and cancelled-before-start nonces; finalization and
+ordered synthesis futures reuse the shared codec/HTTP and receipt-duration
+owners. Typed fake adapters exercise these staged boundaries; they do not
+establish a product actor, actual VAD, reload transport or MCP speak support.
+No dependency edge or persistence schema is added.
 
 The first process-mechanism edge of ADR 0001 is active: store delegates its
 selected-file kernel query to proc through `lock/query`. Its public

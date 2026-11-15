@@ -8,7 +8,7 @@ use std::fmt;
 use vessel_proto::{ContentBlock, SessionInput, voice::VoiceTranscript};
 
 const PREFIX: &str = "<spoken-input>\n";
-const SUFFIX: &str = "\n</spoken-input>\n<instruction>This message was spoken by the user. Respond using the speak tool only, not normal messages, because the user may not be looking at the chat.</instruction>";
+const SUFFIX: &str = "\n</spoken-input>\n<instruction>The user spoke this message. Answer through speak; they may be listening without watching the conversation.</instruction>";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub(super) enum InputError {
