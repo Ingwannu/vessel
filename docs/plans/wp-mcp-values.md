@@ -82,3 +82,14 @@ budget was a call-site literal. `SDK_FIXTURE_DEADLINE` now owns that unchanged
 value beside the fixture. Handshake, five refusal assertions and the accepted
 request writer barrier are unchanged. Exact corrected strict/unit execution and
 generated-wire freshness remain owed; the source review is not runtime proof.
+
+
+The first wire-generation run stopped at compile time in the existing web
+bridge's exhaustive method classification: its match did not yet name the five
+new Skills variants. No TypeScript test ran or new wire bytes were generated in
+that failed run. The carrier now explicitly refuses those five methods at this
+bridge and extends its pinned refusal set; node policy remains exactly the same
+five deny entries. This adapter enables no route or runtime. The real wiring
+package must separately review its intended web admission with actual handlers.
+Exact four-crate strict (including web), regenerated wire and freshness remain
+owed; the original three-crate strict result is retained with its precise scope.
