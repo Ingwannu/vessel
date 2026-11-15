@@ -2,14 +2,16 @@
 //! The shared pure engine is Silent here; this module owns only actor/DTO glue.
 
 mod channel;
+mod ended;
 mod render;
 pub(super) use channel::{CaptureCommand, CaptureEndpoint};
+use std::sync::Arc;
 use tokio::sync::{mpsc, watch};
 use vessel_proto::{
     TerminalSize,
     terminals::{CaptureOptions, TerminalAddress, TerminalCapture},
 };
-use vessel_terminal_screen::{Screen, ScreenError, ScrollbackLines, Size, Snapshot};
+use vessel_terminal_screen::{Screen, ScreenError, ScrollbackLines, Size};
 
 const CAPTURE_QUEUE: usize = 8;
 
@@ -65,7 +67,7 @@ pub(super) struct ScreenAuthority {
 #[derive(Debug, Clone)]
 struct FinalScreen {
     target: TerminalAddress,
-    screen: Result<Snapshot, CaptureError>,
+    owner: Arc<ended::FinalOwner>,
 }
 impl std::fmt::Debug for ScreenAuthority {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -130,15 +132,14 @@ impl ScreenAuthority {
             Err(error) => Err(*error),
         }
     }
-    pub(super) fn finish(&self) {
-        let screen = self
-            .screen
-            .as_ref()
-            .map(Screen::snapshot)
-            .map_err(|error| *error);
+    pub(super) fn finish(&mut self) {
+        if self.final_screen.borrow().is_some() {
+            return;
+        }
+        let screen = std::mem::replace(&mut self.screen, Err(CaptureError::Unavailable));
         let _previous = self.final_screen.send_replace(Some(FinalScreen {
             target: self.target,
-            screen,
+            owner: Arc::new(ended::FinalOwner::seal(screen)),
         }));
     }
 }

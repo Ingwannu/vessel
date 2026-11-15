@@ -1434,3 +1434,15 @@ presentation plus reply-admission fault latches Silent replies while preserving
 the shell; presentation failure retains produced output/failure and stops only
 that PTY. Writer success is Admitted, never Delivered. No fallback or prefix retry.
 Implementation/tests and V3 responder acceptance remain owed after C2 whole.
+
+### Sealed final engine ownership (D1 foundation)
+
+C2 agreed EOF views may retain the original Screen behind a node sealed owner;
+Snapshot has no later marker metadata and must not be treated as a mutable decoder.
+Transfer the frozen Silent engine at finish instead of cloning its full grid, and
+keep only readonly capture today. No feed/resize/scrollback method is exposed by
+the final owner. Repeat finish preserves the first cut, even if late actor calls
+occur. A regression checks original owner identity, cells and geometry after those
+calls; the actual fake TUI fixture reads its test-only readonly snapshot. No new
+pure API, marker/frame call or NodeAuthority is activated. Changed-source tests and
+strict are owed; queued exactece8 strict predates this final-owner foundation.

@@ -80,15 +80,22 @@ without sharing diagnostic policy or exposing an untyped Value. Client decoding
 must bound incremental cell/text input too; transport length alone is insufficient.
 A refusal is explicit FrameTooLarge, never a truncated complete frame.
 
-## EOF boundary requiring pure-owner agreement
+## EOF sealed-owner agreement
 
-Live actor markers can be created/replaced/released. The reviewed Snapshot is
-readonly: it resolves existing anchors but cannot create a new one. Thus a new
-peer after EOF cannot yet pin an arbitrary retained row using that API. W17 has
-asked C2 to agree one finalized-view owner or readonly row-selection facade. Do
-not fabricate a marker, clone/reseed a decoder, or claim arbitrary ended scrolling.
-Until agreed, final FollowLive/existing-marker reads and explicit new-pin refusal
-are the honest boundary. Final event cursor must include final status publication.
+C2 confirmed the original Screen may move into a node sealed FinalOwner at EOF:
+no feed, resize or set_scrollback is exposed there; only bounded marker metadata
+operations and readonly frame projection may be added after producer qualification.
+A new EOF marker must be resolved against that retained final Screen, never an
+older Snapshot which has no record of the new marker. Snapshot remains readonly
+capture/final-data material, not a decoder seed. No pure-core change is required.
+
+The current node foundation transfers the original frozen Silent Screen into a
+sealed final owner, without cloning the full grid at EOF. Existing CLI capture
+projects it readonly; no marker or frame API is implemented yet. Repeated finish
+cannot replace the retained cut, and the old actor no longer owns a mutable engine.
+Pin/FollowLive always require a full frame even if ScreenRevision did not change;
+Unchanged applies only to Keep with identical view state. Final event cursor must
+include final status publication. Latest actual execution is still owed.
 
 ## Required evidence before registration/readiness
 

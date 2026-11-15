@@ -80,10 +80,7 @@ impl CaptureEndpoint {
         let final_screen = self.final_screen.borrow();
         let snapshot = final_screen.as_ref().ok_or(CaptureError::Unavailable)?;
         let terminal = render::standalone(snapshot.target)?;
-        match &snapshot.screen {
-            Ok(screen) => render::capture(terminal, screen.capture(render::range(options))),
-            Err(error) => Err(*error),
-        }
+        snapshot.owner.capture(terminal, options)
     }
 }
 

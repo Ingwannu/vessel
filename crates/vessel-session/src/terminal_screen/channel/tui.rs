@@ -52,7 +52,7 @@ async fn tui_screen_has_the_session_identity_and_final_cells_after_the_ring_is_g
         drop(handle);
         let retained = endpoint.final_screen.borrow().clone().unwrap();
         assert_eq!(retained.target, TerminalAddress::Session(id));
-        let snapshot = retained.screen.unwrap();
+        let snapshot = retained.owner.snapshot().unwrap();
         assert_eq!(snapshot.size().cols(), 32);
         assert_eq!(snapshot.size().rows(), 2);
         let rows = snapshot
