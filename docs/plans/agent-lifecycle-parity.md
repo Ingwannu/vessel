@@ -415,10 +415,12 @@ conversion is implemented by this document.
 
 ```rust
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(transparent)]
 pub struct ListSessions(Option<SessionSelection>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct SessionSelection {
     pub scope: ListingScope,
     #[serde(default)]
