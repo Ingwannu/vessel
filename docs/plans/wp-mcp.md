@@ -151,50 +151,30 @@ changes or captures are required by this node-only package.
 
 ## Resume point
 
-- Done: baseline/source survey and full 41-row correspondence; reused the
-  committed tool-name enum; original ADR review corrections are recorded.
-- Done: nine existing-call wrappers (session get/cancel/rename/option,
-  schedule get/update, harness/profile/options) with fake-node integration
-  coverage adapted from the previous implementation draft.
-- In progress: policy/injection and skills contracts. No new RPC method is
-  registered; wrappers use existing calls. First narrow clippy found an empty
-  string guard, fixed; the second found seven public API documentation lints,
-  fixed in the following adapter commit. Test execution is pending.
-- Draft adapter now applies one immutable policy to listing and direct calls,
-  exposes `machine` beside compatible `node`, and refuses local-only routing
-  before mutation. This is not yet a persisted node launch setting.
-- Done: skills selection/status/request value skeleton, plus one shared portable
-  skill name used by fleet and skills. No skill file is installed by these values.
-- Done: private atomic selection persistence using the existing settings file
-  backup helper. Synthetic-file tests cover unknown fields, malformed JSON,
-  owner-only mode and refusal to read/write through a link (execution pending).
-- Done: bounded pending-permission aggregate over existing current conversation
-  reads. It is explicitly sequential, not an atomic node snapshot. Fake-node
-  regression verifies answered requests disappear while their log remains.
-- Done: six independently written orchestration skill assets and a directory-
-  derived embedded catalogue. Fleet validates declaration identities, portable
-  paths and byte/file/count bounds before any home can be modified. These
-  assets are not installed by build or by catalogue reads.
-- Staged: `fleet::orchestration::staged` holds explicit home roots and safe
-  relative file primitives using the existing directory handles. It and two
-  directory helpers compile only in tests until the pending-row wiring commit;
-  no product endpoint can call them. Regression fixtures cover obsolete-file
-  edits, symlink refusal and same-root directory staging. Execution pending.
-- Staged: complete status derivation, non-destructive reconcile/startup repair,
-  ownership manifests and retirement of unchanged managed legacy Codex files.
-  Unknown selections refuse before creating homes; startup leaves fresh homes
-  empty; update preflights every managed path before changing a declaration.
-  User-added files and edited obsolete files are preserved. Tests added, not
-  yet executed. Selection transactions and node wiring remain incomplete.
-- Wiring in progress: pending-version `node.settings.mcp` and partial edits,
-  fresh/upgrade migration before identity creation under the node lock,
-  launch snapshots at create/import/resume/profile move, and bounded tracked
-  persistence that completes despite RPC cancellation. Fixture opt-in changes
-  were explicitly approved; old assertions are retained. Protocol tests cover
-  direct get, legacy mutation and forwarded/nested reply hiding.
-- Next: compile this wiring, regenerate TypeScript, finish selection transactions
-  and skill node calls, then remote notifications and the package gate;
-  wire only after the shared method-table gate, then package gate/review.
+- Implemented in source: the 41-row source correspondence, shared tool IDs,
+  existing-call session/schedule/provider wrappers, machine alias, immutable
+  listing/direct-call policy, typed launch metadata and current permissions,
+  matching JSON text/structured results.
+- Implemented in source: private settings migration (fresh injection off,
+  existing identity on, partial policy retained), partial MCP edits, exact
+  provider launch snapshots and credential Mint/Omit rollback.
+- Implemented in source: six embedded skills, private selection persistence,
+  safe directory-relative sync, confirmed/frozen-plan deletion and patch
+  recovery, serialized cancellation-independent node writer and five pending
+  Admin-only local skill methods. This machinery is no longer test-only.
+- Implemented in source: default completion notices and exact-turn remote
+  receipt/follower calls. Their version, and all new settings/skills calls,
+  remain MCP_PARITY=None; no protocol/schema number is chosen here.
+- Checked: protocol tests 289/0/0 (a694cda2), store tests 85/0/0 (ee3be73e),
+  repeated fmt/size/boundary checks. Strict Clippy and fleet/node/MCP execution
+  remain incomplete; failed and queued checks are recorded separately.
+- Pending: TS generation, strict and functional checks on the final integrated
+  head, full root gate once, V3 review and the numbered consumer handover.
+- Dependencies: W3's principal-bound agent creation receipts, N3's named launch
+  bundles, W22's provider catalogue, W17's permitted agent host-directory view,
+  and browser/voice producer readiness. No staged foreign contract is consumed.
+  The coordinator's next node head must be merged when announced; pending
+  method rows then belong at the end of its single rpc/table.rs.
 
 ## Bundled asset decision
 

@@ -1,5 +1,5 @@
 //! Host skill administration: one bounded, cancellation-independent blocking writer.
-//! Explicit HarnessEnv roots keep library nodes and test fixtures out of real homes.
+//! Explicit `HarnessEnv` roots keep library nodes and test fixtures out of real homes.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
