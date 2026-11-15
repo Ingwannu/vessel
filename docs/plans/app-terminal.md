@@ -405,8 +405,32 @@ on its executor, not Paseo's client xterm event loop. Reduced motion
 continues to hold the cursor steady. The original font/cluster/underline
 differences above remain. No new wire, protocol assignment or dependency.
 
-Repair resume: contract recorded; behavioural regressions are next,
-followed by source fixes, private fake-fleet captures and the native gate.
+The opening identity is an `Arc` ownership token alongside the existing
+`NodeName` and `SessionId`, echoed by `Act::TerminalLog` and `ActAnswer`,
+including link-queue refusal. It is process-local and adds no wire field.
+An old token is rejected before touching model, log cursor, held output
+or pending bytes. Terminal receipts are consumed before conversation
+failure handling, so one failed history read has one shared error alert.
+
+Further reference reread: `terminal/runtime/terminal-emulator-runtime.ts`
+1031–1043 delegates focus and blur to xterm. Vessel ties blink work to
+window presentation and terminal focus; the explicit no-blink motion
+policy remains its stated difference. Wheel and recognized touch pans
+use the existing snapshot viewport through a bounded `Viewport`; only
+visible rows are converted and painted. A fractional gesture accumulates
+until it crosses a complete cell row. A quiet appearance change checks
+scheme, code size and measured cell metrics before the equal-size path.
+
+The ignored Linux `terminal_states_capture` test uses the real shell,
+link and a verified disposable fake fleet. Ready state is an ordinary
+history read. Loading holds that read's completion; Unread supplies its
+typed refusal to the actual handler while the real follow continues.
+Those two images prove application rendering, not transport failure.
+No fixture override exists in an installed build.
+
+Repair resume: six old-code behaviour regressions failed as expected;
+13 repaired terminal tests now pass, including completion order and
+motion lifetime. Private captures and the native gate remain owed.
 
 - Done: ADR 0073 (status proposed) and this contract. `replay` never
   answers. Path quoting is stated for both node platforms. Scrollback
@@ -485,9 +509,10 @@ followed by source fixes, private fake-fleet captures and the native gate.
   (`paint/rows.rs`, 6bb89631) and the app's screen
   (`app/src/areas/terminal/`). The log is read whole and replayed on
   the background executor; the follow's records are held meanwhile and
-  applied after through `TerminalLog`. Live bytes: at most 4 KiB a
-  batch on the UI thread, more on the background executor. Measured
-  first (release, a scratch bench over `replay` with a full history):
+  applied after through `TerminalLog`. The original per-event inline
+  cutoff was returned in review; all live bytes now replay on the
+  background executor. The earlier measurements which motivated that
+  original cutoff (release, a scratch bench with a full history) were:
   text costs about 3 ms per 64 KiB, line feeds a row each (16 KiB:
   6.2 ms at 80 columns, 11.8 ms at 200, 51 ms at 1,024; 64 KiB at 200:
   47 ms), so the line is drawn by line feeds, not bytes. The screen's

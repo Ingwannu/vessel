@@ -24,7 +24,7 @@ use vessel_app_link::Command;
 use vessel_app_view::prefs::ContentWidth;
 use vessel_app_view::session::{SendFacts, send_delivery, shows_at_once};
 use vessel_app_view::{Card, Conversation};
-use vessel_proto::{Delivery, EventRecord, SessionId, TerminalSize};
+use vessel_proto::{Delivery, EventRecord, SessionId};
 
 use super::common::title_bar;
 use crate::routes::Route;
@@ -125,6 +125,8 @@ impl Shell {
             .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
+        } else {
+            self.focus_terminal(window, cx);
         }
     }
 
@@ -134,12 +136,8 @@ impl Shell {
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
-        // A terminal session is followed too: its output comes as records
-        // (`terminal`, ADR 0073). Its size comes with the first frame.
-        if open.structured {
-            self.terminal_closed();
-        } else {
-            self.terminal_opened(&open.machine, open.session, TerminalSize::default(), cx);
+        if !self.terminal_follow(&open, cx) {
+            return;
         }
         self.command(Command::Open {
             machine: open.machine.clone(),

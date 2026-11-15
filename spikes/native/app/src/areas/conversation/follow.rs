@@ -78,7 +78,10 @@ impl Shell {
     /// ([`ConversationArea::answered`]).
     pub(crate) fn acted(&mut self, answer: ActAnswer, cx: &mut Context<'_, Self>) {
         // A terminal session's log, read whole (`terminal`).
-        self.terminal_acted(&answer, cx);
+        if self.terminal_acted(&answer, cx) {
+            cx.notify();
+            return;
+        }
         match &answer.result {
             Ok(Acted::Session(info)) => {
                 let card = Card::from_session(&answer.machine, info);

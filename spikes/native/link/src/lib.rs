@@ -78,7 +78,7 @@ use vessel_proto::{
 #[cfg(not(target_arch = "wasm32"))]
 pub use nodes::{NameProblem, Offer, default_name, name_problem, read_link};
 pub use prefs::{Kept, Prefs, UpdateNotes};
-pub use session::{Act, ActAnswer, ActFailed, ActKind, Acted};
+pub use session::{Act, ActAnswer, ActFailed, ActKind, Acted, NodeName, TerminalOpening};
 #[cfg(target_arch = "wasm32")]
 pub use web::{Link, NameProblem, Offer, default_name, name_problem, read_link};
 
