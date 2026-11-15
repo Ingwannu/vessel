@@ -119,7 +119,7 @@ enum Closure {
     Lost,
 }
 #[derive(Debug, thiserror::Error)]
-pub(super) enum SnapshotError {
+enum SnapshotCause {
     #[error("the node is stopping")]
     Stopping,
     #[error("the diagnostic observation queue closed")]
@@ -137,10 +137,10 @@ pub(super) enum SnapshotError {
     #[error("the diagnostic failure window could not be constructed: {0}")]
     Invalid(#[source] InvalidDiagnostic),
 }
-impl SnapshotError {
+impl SnapshotCause {
     // The collector projects one closed section state at this privacy edge;
     // internal callers still have the bounded constructor/channel cause.
-    pub(super) fn unavailable(&self) -> DiagnosticUnavailable {
+    fn unavailable(&self) -> DiagnosticUnavailable {
         match self {
             Self::Stopping
             | Self::Request {
@@ -164,6 +164,17 @@ impl SnapshotError {
     }
 }
 
+// Keep actor command/state types private while preserving the full cause.
+// A collector needs only the closed unavailable projection.
+#[derive(Debug, thiserror::Error)]
+#[error("diagnostic failure snapshot failed")]
+pub(super) struct SnapshotError(#[source] SnapshotCause);
+impl SnapshotError {
+    pub(super) fn unavailable(&self) -> DiagnosticUnavailable {
+        self.0.unavailable()
+    }
+}
+
 /// Nonblocking observer; tracked child task owns the history.
 pub(super) struct Journal {
     send: mpsc::Sender<Command>,
@@ -179,6 +190,9 @@ impl std::fmt::Debug for Journal {
     }
 }
 impl Journal {
+    pub(super) async fn snapshot(&self) -> Result<DiagnosticFailureWindow, SnapshotError> {
+        self.read_snapshot().await.map_err(SnapshotError)
+    }
     pub(super) fn new(parent: &CancellationToken, tasks: &TaskTracker) -> Self {
         let stop = parent.child_token();
         let cancel = stop.clone().drop_guard();
@@ -218,23 +232,23 @@ impl Journal {
             Closure::Lost
         }
     }
-    pub(super) async fn snapshot(&self) -> Result<DiagnosticFailureWindow, SnapshotError> {
+    async fn read_snapshot(&self) -> Result<DiagnosticFailureWindow, SnapshotCause> {
         if self.stop.is_cancelled() {
-            return Err(SnapshotError::Stopping);
+            return Err(SnapshotCause::Stopping);
         }
         let (reply, result) = oneshot::channel();
         self.send
             .send(Command::Snapshot(reply))
             .await
-            .map_err(|source| SnapshotError::Request {
+            .map_err(|source| SnapshotCause::Request {
                 when: self.closure(),
                 source,
             })?;
-        let snapshot = result.await.map_err(|source| SnapshotError::Reply {
+        let snapshot = result.await.map_err(|source| SnapshotCause::Reply {
             when: self.closure(),
             source,
         })?;
-        snapshot.map_err(SnapshotError::Invalid)
+        snapshot.map_err(SnapshotCause::Invalid)
     }
 }
 async fn run(

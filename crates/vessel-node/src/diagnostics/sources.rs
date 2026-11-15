@@ -7,7 +7,7 @@ use super::{
 };
 use crate::readiness::Key;
 use chrono::Utc;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use vessel_proto::{
     HarnessRef,
     agents::UnknownReason,
@@ -41,7 +41,7 @@ impl State {
         let readiness = Arc::clone(&self.readiness);
         let stop = self.stop.clone();
         let runtime = Arc::clone(&self.runtime);
-        let relays = self.relays.clone();
+        let relays = Weak::clone(&self.relays);
         tokio::task::spawn_blocking(move || {
             let _retained = lease;
             if stop.is_cancelled() {

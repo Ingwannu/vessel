@@ -26,7 +26,7 @@ async fn pending_diagnostics_refuse_correlated_direct_and_nested_before_dispatch
                 assert!(served.seen.try_recv().is_err(), "pending handler must not run");
             }
             let text = tokio::time::timeout(PHASE, call_raw(&mut client, u64::MAX, GetNode.into_call())).await.expect("supported call after refusals");
-            assert!(matches!(serde_json::from_str::<ServerFrame>(&text).unwrap(), ServerFrame::Response { id, outcome: Outcome::Ok(Reply::NodeInfo(info)) } if id==RequestId::new(u64::MAX) && info.state==vessel_proto::NodeState::Serving));
+            assert!(matches!(serde_json::from_str::<ServerFrame>(&text).unwrap(), ServerFrame::Response { id, outcome: Outcome::Ok(Reply::NodeInfo(info)) } if id==RequestId::new(u64::MAX) && info.state==NodeState::Serving));
             assert_eq!(tokio::time::timeout(PHASE, served.seen.recv()).await.expect("supported dispatch observed").unwrap(), GetNode.into_call());
             served.shutdown.cancel();
             drop(client);

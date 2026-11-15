@@ -716,3 +716,19 @@ shared only inside cfg(test).
 The exact owner correction c5da5305 is merged without conflicts before the
 package gate. All five incoming web test/docs blobs are preserved. No local
 edit to the shared security test or deadline/assertion relaxation is made.
+
+Narrow `diagnostics-20261115T081036Z-b563198e` remains red (Cargo 101,
+19 seconds). Its full diagnostics were read: one redundant test qualification,
+getter placement after the Proc test module, private actor types exposed by
+journal error fields, unchecked Instant addition, needless error ownership,
+implicit Weak cloning, and two function-length warnings. The correction keeps
+journal actor types private behind a source-preserving opaque error, checks
+the deadline addition, borrows refusal causes, explicitly clones Weak, moves
+getters before tests and extracts fixture/startup setup without changing their
+order or assertions. Node assembly is now 695 product lines against 709 before
+the startup extraction. No existing deadline or validation assertion is reduced.
+
+Shared package base 3, exact 6c782cb6, is consumed as instructed. Its sole
+conflict was docs/PROTOCOL.md: the incoming project-port paragraph stays intact
+first, followed by the pending diagnostics paragraph. Native sources are only
+incoming base material; this node track authors no native screen changes.

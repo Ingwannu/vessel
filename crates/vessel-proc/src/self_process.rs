@@ -244,6 +244,21 @@ pub fn observation() -> Result<Snapshot, SnapshotError> {
     Err(SnapshotError::Unsupported)
 }
 
+impl ProcessId {
+    /// The checked operating-system id.
+    #[must_use]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+}
+impl MemoryBytes {
+    /// Checked bytes; never a parsed unit string.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,20 +341,5 @@ mod tests {
     #[test]
     fn unsupported_platforms_do_not_run_a_fallback_command() {
         assert!(matches!(observation(), Err(SnapshotError::Unsupported)));
-    }
-}
-
-impl ProcessId {
-    /// The checked operating-system id.
-    #[must_use]
-    pub const fn get(self) -> u32 {
-        self.0
-    }
-}
-impl MemoryBytes {
-    /// Checked bytes; never a parsed unit string.
-    #[must_use]
-    pub const fn get(self) -> u64 {
-        self.0
     }
 }

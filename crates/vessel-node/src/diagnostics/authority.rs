@@ -13,16 +13,7 @@ use vessel_store::DataDir;
 #[tokio::test]
 async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read() {
     deadline::run(async {
-        let temp = tempfile::tempdir().unwrap();
-        let mut config = Config::new(
-            DataDir::new(temp.path().join("data")),
-            HarnessEnv::new(temp.path().join("user")),
-        );
-        config.bind = None;
-        config.harness_lookup = Lookup::new(Vec::<std::path::PathBuf>::new());
-        let node = phase("start authority fixture", Node::start(config))
-            .await
-            .unwrap();
+        let (_temp, node) = node().await;
         let transport = transport(&node).await;
         let guard = &node.secure.service;
         let id = node.info().id;
@@ -191,4 +182,18 @@ pub(super) async fn transport(node: &Node) -> Transport {
         shutdown,
         task,
     }
+}
+
+async fn node() -> (tempfile::TempDir, Node) {
+    let temp = tempfile::tempdir().unwrap();
+    let mut config = Config::new(
+        DataDir::new(temp.path().join("data")),
+        HarnessEnv::new(temp.path().join("user")),
+    );
+    config.bind = None;
+    config.harness_lookup = Lookup::new(Vec::<std::path::PathBuf>::new());
+    let node = phase("start authority fixture", Node::start(config))
+        .await
+        .unwrap();
+    (temp, node)
 }

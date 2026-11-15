@@ -27,8 +27,13 @@ impl State {
         &self,
         lifecycle: &Lifecycle,
     ) -> Result<DiagnosticReport, WireError> {
-        let lease = self.admission.admit().map_err(refusal)?;
-        let deadline = Instant::now() + RESPONSE_BUDGET;
+        let lease = self.admission.admit().map_err(|error| refusal(&error))?;
+        let deadline = Instant::now().checked_add(RESPONSE_BUDGET).ok_or_else(|| {
+            WireError::new(
+                ErrorCode::Internal,
+                format!("diagnostic response budget {RESPONSE_BUDGET:?} cannot be represented"),
+            )
+        })?;
         let metadata = self.metadata(Arc::clone(&lease));
         let (metadata, store, recent_failures) = tokio::join!(
             timeout_at(deadline, metadata),
@@ -98,7 +103,7 @@ impl State {
         }
     }
 }
-fn refusal(error: admission::Refused) -> WireError {
+fn refusal(error: &admission::Refused) -> WireError {
     let reason = match error {
         admission::Refused::Busy(_) => DiagnosticRefusal::Busy,
         admission::Refused::Stopping => DiagnosticRefusal::Stopping,
