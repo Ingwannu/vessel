@@ -1,4 +1,4 @@
-## Older fork/rewind visual appendix: author inspected, review pending
+## Older fork/rewind visual appendix: bounded independent pass
 
 This appendix uses the retained exact `0ca69ede` app and its already accepted
 native/source gate; it changes no product source and does not repeat that gate.
@@ -29,8 +29,12 @@ remain covered by the earlier whole-sentence/native regressions; this appendix
 adds no screen captures for those states. Extra display scales, persisted
 language preference I/O, parent late-answer routing, current combined head,
 wasm/browser/Windows/real-GPU/accessibility and an independent licence audit
-remain outside this proof. Independent visual review of this appendix is still
-pending; the earlier About and Settings verdicts keep their own scopes.
+remain outside this proof. The independent reviewer verified all 52 image hashes/dimensions and opened
+32 risk-selected originals, including every phone menu, six desktop rewind
+tooltips, ten captions and all four actual-action frames. Retained CLI logs
+hash-match both operations. The bounded inspected visual/retained fake-action
+evidence pass includes no independent live execution. The earlier About and
+Settings verdicts keep their own scopes.
 
 All capture work ran under the ordinary development UID/GID with private
 home/config/runtime directories, an owner-only display authority and retained
