@@ -1,9 +1,9 @@
-use vessel_app_view::Reach;
 //! UI-controller regression: Finish must persist the model's completion effect.
 
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::onboarding::Answer;
+use vessel_app_view::Reach;
 use vessel_app_view::onboarding::scope::Target;
 use vessel_proto::NodeId;
 
