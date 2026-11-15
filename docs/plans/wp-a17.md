@@ -217,10 +217,13 @@ checks read source only and have passed on current app source. Exact commands,
 SHAs and raw failed/queued results are retained in the private A5 evidence packet.
 VM-restart rc143 logs remain infrastructure interruption, not compiler PASS.
 
-Latest completed runtime generation evidence: TS run
-`wp-inbox-ts-20261115T112026Z-294d9cca` passed 3 proto + 1 web generator tests;
-its tracked proto.ts patch/hash was retained. A later explicit_unread field needs
-regeneration. No current whole gate or final feature runtime result exists.
+Latest node generation evidence: run wp-inbox-ts-20261115T134300Z-4d7ac8d6
+passed three proto tests and the web declaration test. Its additional primitive
+alias test failed only on the coordinator-classified base LimitPercent defect,
+fixed centrally in the pending gate49 batch. This run counts with that named
+defect; no head expectation is edited or unchanged TS run repeated. The exact
+generated explicit_unread/Untracked declarations are retained on the node tree.
+This does not establish current native/whole/runtime or assigned-wire behavior.
 
 Final gate commands use --only native / the prescribed root gate once source is
 complete, then freeze through captures/review. Export the app via --export-app
