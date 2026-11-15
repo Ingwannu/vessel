@@ -1070,3 +1070,19 @@ Moved that test-only type to module scope; no lint suppression, wire change or
 allowlist weakening. No test execution or strict pass is claimed. Retained
 /tmp/work/wp-cli/public-host-cli-clippy contains exact spec, cargo.log and steps.tsv.
 Later base/CLI receipt/no-force changes also need the changed-source check.
+
+### Public read guard/service/actor regression (2026-11-15 13:58 UTC)
+
+Added a real node-unit chain test using the existing test gateway and memory handshake
+(no new production test hook). A fake already-authenticated context enters the actual
+Guarded Handler, public service method and persisted registry actor: local Agent+Read
+sees Owner/Device public rows, private management still denies that agent, each direct
+management source sees only its own row, and missing Read/foreign Agent refuse. The
+saved registry must remain byte-semantically unchanged. No harness/provider starts; all
+node/user paths are private temporary homes and the lookup is empty.
+
+This intentionally calls Guarded directly after creating a real Peer/Outbound: the None
+wire gate is not disabled or assigned a pretend protocol. It tests admission and handler
+composition, not credential authentication or a live pending RPC. The separate client
+no-frame test keeps pending admission covered. This fixture is drafted after queued8545
+strict and still needs execution with the host_ suite; no new runtime pass is claimed.

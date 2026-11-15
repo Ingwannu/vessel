@@ -1,5 +1,6 @@
 use super::*;
 use vessel_proto::{DeviceId, Origin, OriginBy, Scope, SessionId};
+mod guarded;
 
 #[test]
 fn public_host_inventory_requires_local_read_without_inheriting_owner() {
