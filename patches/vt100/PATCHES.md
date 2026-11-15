@@ -32,6 +32,11 @@ Numbered patch list (implementation in progress):
    logical line. Upstream deliberately used tmux's unlinked behavior here;
    xterm links it. The independent wide-padding shrink/grow golden catches
    the extra history row caused by losing that link.
+6. Restore upstream's exact `.rustfmt.toml` from the archive's Git revision
+   (the published crate omits it). Root `cargo fmt --all` visits this path
+   dependency. Its edition/width settings preserve the original twelve
+   untouched archive members; only already-owned additions are formatted.
+   UPSTREAM-FORMAT-SHA256 records the exact source URL and checksum.
 
 Wide-continuation attributes are corrected by the facade, not another parser.
 No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate.

@@ -43,21 +43,20 @@ pub(crate) fn reflow_rows(
             // History can store trimmed physical rows. Restore internal gaps,
             // except the single padding cell before a wide glyph wraps.
             row.cells.resize(usize::from(old_cols), crate::Cell::new());
-            if row
-                .cells
-                .last()
-                .is_some_and(|cell| !cell.has_contents() && !cell.is_wide_continuation())
-                && source
-                    .peek()
-                    .is_some_and(|(_, next)| next.cells.first().is_some_and(crate::Cell::is_wide))
-            {
+            if row.cells.last().is_some_and(|cell| {
+                !cell.has_contents() && !cell.is_wide_continuation()
+            }) && source.peek().is_some_and(|(_, next)| {
+                next.cells.first().is_some_and(crate::Cell::is_wide)
+            }) {
                 drop(row.cells.pop());
             }
         } else {
             let keep = row
                 .cells
                 .iter()
-                .rposition(|cell| cell.has_contents() || cell.is_wide_continuation())
+                .rposition(|cell| {
+                    cell.has_contents() || cell.is_wide_continuation()
+                })
                 .map_or(0, |last| last.saturating_add(1));
             row.cells.truncate(keep);
         }
@@ -123,10 +122,9 @@ fn cut(
             consumed = consumed.saturating_add(1);
         }
         let wrapped = cells.peek().is_some();
-        while marks
-            .peek()
-            .is_some_and(|(_, offset)| *offset < consumed || !wrapped && *offset <= total)
-        {
+        while marks.peek().is_some_and(|(_, offset)| {
+            *offset < consumed || !wrapped && *offset <= total
+        }) {
             if let Some((old, _)) = marks.next() {
                 if let Some(at) = mapping.get_mut(old) {
                     *at = out.len();

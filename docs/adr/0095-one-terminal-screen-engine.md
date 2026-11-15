@@ -1,6 +1,6 @@
 # ADR 0095: one maintained terminal screen engine
 
-Status: proposed implementation; corpus corrections, gate and V3 review pending.
+Status: source reviewed; whole package gate owed.
 Separate prerequisite package before the terminal UI.
 
 ## Decision log

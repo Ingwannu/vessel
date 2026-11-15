@@ -99,11 +99,20 @@ impl Grid {
 
         // Vessel patch 3: only the primary buffer reflows; the alternate
         // buffer retains hidden right columns exactly as headless xterm does.
-        if self.scrollback.is_some() && size.cols() != self.size.cols() && !self.rows.is_empty() {
+        if self.scrollback.is_some()
+            && size.cols() != self.size.cols()
+            && !self.rows.is_empty()
+        {
             // The reference resizes height before deciding which logical run
             // contains the cursor during width reflow.
             if size.rows() != self.size.rows() {
-                self.resize_impl(Size { rows: size.rows, cols: self.size.cols }, on_row);
+                self.resize_impl(
+                    Size {
+                        rows: size.rows,
+                        cols: self.size.cols,
+                    },
+                    on_row,
+                );
             }
             self.reflow_primary(size, on_row);
             return;
@@ -289,7 +298,8 @@ impl Grid {
                 drop(scrollback.rows.pop_front());
             }
             scrollback.offset = scrollback.offset.min(scrollback.rows.len());
-            scrollback.unbounded_len = scrollback.unbounded_len.min(scrollback.rows.len());
+            scrollback.unbounded_len =
+                scrollback.unbounded_len.min(scrollback.rows.len());
         }
     }
 

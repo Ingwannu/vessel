@@ -79,11 +79,13 @@ impl Grid {
         self.pos.row = u16::try_from(layout.cursor)
             .unwrap_or(u16::MAX)
             .min(size.rows().saturating_sub(1));
-        self.saved_pos.row = u16::try_from(layout.saved.saturating_sub(layout.base))
-            .unwrap_or(u16::MAX)
-            .min(size.rows().saturating_sub(1));
+        self.saved_pos.row =
+            u16::try_from(layout.saved.saturating_sub(layout.base))
+                .unwrap_or(u16::MAX)
+                .min(size.rows().saturating_sub(1));
         self.pos.col = self.pos.col.min(size.cols().saturating_sub(1));
-        self.saved_pos.col = self.saved_pos.col.min(size.cols().saturating_sub(1));
+        self.saved_pos.col =
+            self.saved_pos.col.min(size.cols().saturating_sub(1));
         self.scroll_top = 0;
         self.scroll_bottom = size.rows().saturating_sub(1);
         self.size = size;
@@ -134,8 +136,9 @@ impl Layout {
             let needs_reflow = start != last
                 || self.rows.get(last).is_some_and(|row| {
                     (cols..row.cols()).any(|col| {
-                        row.get(col)
-                            .is_some_and(|cell| cell.has_contents() || cell.is_wide_continuation())
+                        row.get(col).is_some_and(|cell| {
+                            cell.has_contents() || cell.is_wide_continuation()
+                        })
                     })
                 });
             if needs_reflow && (cursor < start || cursor >= end) {
@@ -173,17 +176,26 @@ impl Layout {
         self.rows = rows;
     }
 
-    fn repack(&mut self, start: usize, end: usize, old_cols: u16, cols: u16) -> Vec<Row> {
+    fn repack(
+        &mut self,
+        start: usize,
+        end: usize,
+        old_cols: u16,
+        cols: u16,
+    ) -> Vec<Row> {
         let mut group = Vec::new();
         if let Some(rows) = self.rows.get_mut(start..end) {
             for row in rows.iter_mut() {
                 group.push(core::mem::replace(row, Row::new(0)));
             }
         }
-        let (mut packed, _) = crate::row::reflow_rows(group, None, old_cols, cols);
-        let extra = packed.split_off(packed.len().min(end.saturating_sub(start)));
+        let (mut packed, _) =
+            crate::row::reflow_rows(group, None, old_cols, cols);
+        let extra =
+            packed.split_off(packed.len().min(end.saturating_sub(start)));
         for (index, row) in packed.into_iter().enumerate() {
-            if let Some(old) = self.rows.get_mut(start.saturating_add(index)) {
+            if let Some(old) = self.rows.get_mut(start.saturating_add(index))
+            {
                 *old = row;
             }
         }
@@ -191,12 +203,15 @@ impl Layout {
     }
 
     fn adjust_narrow(&mut self, count: usize, added: usize) {
-        let occupied = if self.base == 0 && self.cursor != self.rows.len().saturating_sub(1) {
+        let occupied = if self.base == 0
+            && self.cursor != self.rows.len().saturating_sub(1)
+        {
             self.cursor
         } else {
             self.rows.len()
         };
-        let trimmed = occupied.saturating_add(count).saturating_sub(self.limit);
+        let trimmed =
+            occupied.saturating_add(count).saturating_sub(self.limit);
         for _ in 0..count.saturating_sub(trimmed) {
             if self.base == 0 {
                 if self.cursor < self.height.saturating_sub(1) {

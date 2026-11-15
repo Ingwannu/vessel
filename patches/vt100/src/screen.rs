@@ -154,7 +154,9 @@ impl Screen {
     /// Number of physical buffer rows, including retained primary history.
     #[must_use]
     pub fn buffer_len(&self) -> usize {
-        self.grid().scrollback_len().saturating_add(usize::from(self.size().0.get()))
+        self.grid()
+            .scrollback_len()
+            .saturating_add(usize::from(self.size().0.get()))
     }
 
     /// Physical width of a retained row, including hidden right columns.
@@ -165,7 +167,11 @@ impl Screen {
 
     /// Borrow one cell of the physical retained buffer without changing viewport state.
     #[must_use]
-    pub fn buffer_cell(&self, index: usize, column: u16) -> Option<&crate::Cell> {
+    pub fn buffer_cell(
+        &self,
+        index: usize,
+        column: u16,
+    ) -> Option<&crate::Cell> {
         self.grid().buffer_row(index)?.get(column)
     }
 
@@ -915,7 +921,8 @@ impl Screen {
     // leaves one padding cell. Without that link, resize splits one logical
     // line into unrelated runs and invents an extra history row.
     fn new_character_should_wrap(&self, width: u16) -> bool {
-        self.grid().pos().col.saturating_add(width) > self.grid().size().cols()
+        self.grid().pos().col.saturating_add(width)
+            > self.grid().size().cols()
     }
 
     // if we already have a character in a cell, but adding a continuation

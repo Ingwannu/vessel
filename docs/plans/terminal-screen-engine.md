@@ -1,6 +1,6 @@
 # Terminal screen prerequisite (ADR 0095)
 
-Base: announced node gate40 ba45a6e3; merge new node d432ef0f before checks.
+Base: announced node gate44 ede20014; prior d432ef0f is retained in history.
 The app stays on the package line and does not merge node heads. Native
 keyboard work is retained separately at 9c3065231; no native edit belongs
 in this prerequisite package.
@@ -11,9 +11,9 @@ rerun all eight real-output checkpoints plus primary resize cases; run narrow
 strict checks, one whole root gate and one V3 review; hand W17 the reviewed
 API/hash. D1 retires its native parser only after switching to this engine.
 
-Current source is unfinished and unverified: facade/buffer access, capacity,
-hidden-column retention and primary reflow exist; golden execution and review
-are still owed. No consumer-ready head or parity pass is claimed.
+Current source passed the bounded golden tests and V3 source review, with the
+whole package gate still owed. No consumer-ready head or full D1 parity is
+claimed. The evidence below distinguishes prior failures from exact passes.
 
 The next correction candidate retains alternate-buffer right columns directly
 in vt100's grid and reflows only the primary buffer, preserving the cursor's
@@ -135,6 +135,16 @@ width guard and announced node-head merge. Exact10404 strict checking passed
 product compilation but caught three test-helper style lints; imports/reference
 iteration/direct test slicing correct them without changing any expectation.
 Final changed-source checks, whole gate and review remain owed.
+
+V3 row217 source-passed exacte792 after independently auditing the vendor,
+all31 oracle cell hashes and field expectations, source/provenance, and exact
+strict/11-test logs. The first whole root run stopped at formatting because
+the published vt100 archive omits its own formatter configuration. The repair
+restores that exact file from the archive's pinned upstream Git revision and
+formats only already-owned additions. Twelve original archive members remain
+byte-identical, including the license. No behavior or test expectation changes.
+The original whole failure is retained; the permitted corrected whole run is
+owed on this same package/review row.
 
 The strict changed-package check caught a collapsible nested slice match in
 query decoding. A single nested slice pattern keeps the exact accepted shape;
