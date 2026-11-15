@@ -109,7 +109,7 @@
 //!   - `usage-reasoning`: as `usage`, with reported zero reasoning/write and 12 cached reads;
 //!   - `usage`: a `usage_update` (1,200 of 200,000 tokens, 0.5 USD), one
 //!     message chunk `used`, then `end_turn` with the turn's tokens (30:
-//!     20 in, 10 out);
+//!     20 in, 10 out); `usage <tokens>` uses that many of the 200,000 tokens;
 //!   - `report <path>`: writes its arguments, its whole environment and
 //!     the MCP servers of the last `session/new` or `session/load` to that
 //!     file as JSON (`vessel_testkit::write_report`), then one message
@@ -133,6 +133,8 @@
 //!     the real adapters' shapes (Claude Code leaving plan mode, Codex's
 //!     five answers, two at once; `permits` module), then one message
 //!     chunk `permitted: <option>` per request;
+//!   - `plans`: a changing plan in Claude Code shape (`plans` module),
+//!     followed by `plans done`;
 //!   - `fail`: one message chunk `failing`, then the prompt's request
 //!     answers an error (`fake-acp: the turn failed`) and the agent stays
 //!     up: a turn that fails with the agent alive;
@@ -180,6 +182,8 @@ mod history;
 mod options;
 #[path = "fake_acp/permits.rs"]
 mod permits;
+#[path = "fake_acp/plans.rs"]
+mod plans;
 #[path = "fake_acp/real.rs"]
 mod real;
 #[path = "fake_acp/shapes.rs"]
@@ -652,10 +656,15 @@ async fn serve() -> ExitCode {
                         ))?;
                         return responder.respond(PromptResponse::new(StopReason::EndTurn));
                     }
-                    if matches!(
-                        prompt.as_str(),
-                        "usage" | "usage-reasoning" | "usage-after-load" | "usage-later"
-                    ) {
+                    let used = prompt
+                        .strip_prefix("usage")
+                        .and_then(|tokens| tokens.trim().parse::<u64>().ok());
+                    if used.is_some()
+                        || matches!(
+                            prompt.as_str(),
+                            "usage" | "usage-reasoning" | "usage-after-load" | "usage-later"
+                        )
+                    {
                         let amount = match prompt.as_str() {
                             "usage-after-load" => 12.0,
                             "usage-later" => 14.0,
@@ -664,7 +673,8 @@ async fn serve() -> ExitCode {
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
                             SessionUpdate::UsageUpdate(
-                                UsageUpdate::new(1200, 200_000).cost(Cost::new(amount, "USD")),
+                                UsageUpdate::new(used.unwrap_or(1200), 200_000)
+                                    .cost(Cost::new(amount, "USD")),
                             ),
                         ))?;
                         cx.send_notification(SessionNotification::new(
@@ -884,6 +894,7 @@ async fn run_turn(
         }
         "exit" | "garbage" => return failing_turn(cx, session, prompt == "exit", turn).await,
         "flood" => return flood(cx, session, turn).await,
+        "plans" => return plans::turn(cx, session, turn),
         "shapes" => return shapes::shapes(cx, session, turn).await,
         _ => {}
     }

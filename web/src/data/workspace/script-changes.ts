@@ -15,6 +15,7 @@ function entryOf(script: ScriptEntry): Required<ScriptEntry> {
     kind: script.kind,
     command: script.command,
     dir: script.dir ?? null,
+    port: script.port ?? null,
   };
 }
 
@@ -25,7 +26,8 @@ function sameScript(a: ScriptEntry, b: ScriptEntry): boolean {
   return (
     before.kind === after.kind &&
     before.command === after.command &&
-    before.dir === after.dir
+    before.dir === after.dir &&
+    before.port === after.port
   );
 }
 
@@ -53,4 +55,9 @@ export function compareScripts(
   return lines.sort((a, b) =>
     a.script.name < b.script.name ? -1 : a.script.name > b.script.name ? 1 : 0,
   );
+}
+
+/** Refuse partial approval until a declaration can be displayed in full. */
+export function hasDeclaredPorts(scripts: readonly ScriptEntry[]): boolean {
+  return scripts.some((script) => entryOf(script).port !== null);
 }

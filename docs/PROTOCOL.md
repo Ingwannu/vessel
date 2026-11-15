@@ -1865,6 +1865,16 @@ new readers treat omission as no terminal commands. Parsing and approval are
 staged ahead of automatic terminal creation, which is not implemented yet.
 
 
+The same unassigned `PROJECT_FILE_KEYS` also gates a declared `ScriptEntry.port`
+(nonzero TCP port, optional/absent by default). A current or previous approval
+with one is invalid for every peer while unassigned, through every direct and
+nested approval reply. `ScriptEntry` keeps its JSON kind string and validates
+kind and port together; a plain script with a port is refused. The TOML parser
+reads `services.<name>.port` through that validated declaration and includes it
+in the version-three approval. It assigns no number and starts no allocator
+or process; the allocation block is not parsed yet.
+
+
 ## Pending MCP/skills parity (ADR 0065)
 
 `settings::NodeSettings.mcp` reports injection and exact-provider tool policy;
