@@ -1,7 +1,9 @@
 # Search, chat find and prompt outline
 
-Status: message search, expanded find/outline and the typed prompt-index consumer
-are implemented. New regression execution, final gates, captures and review remain.
+Status: source for message search, expanded find/outline and the typed prompt-index
+consumer is present; the complete feature is not ready for acceptance. The checked
+shared delivery fixture and original-connection destination/follow carrier remain
+prerequisites, alongside regression execution, final gates, captures and review.
 The new RPC is pending protocol assignment; the complete followed-log outline is
 the compatibility path. Extends ADR 0037; the node slice lives in
 docs/plans/wp-a3-node.md on the node track. No new dependency or crate edge.
@@ -81,7 +83,9 @@ Tests cover actual shell callbacks as well as cursor and stale-result rules.
 
 ## Validation
 
-Per commit: native fmt, size/boundaries/tokens; narrow changed-crate checks.
+Per meaningful commit: local native fmt, static size/tokens and diff checks;
+remote-only dependency-boundary and changed-crate checks. All Rust compilation
+runs through the shared remote gate; one own queued/running build at a time.
 At package end: one complete native gate on the exact commit and fake-fleet
 captures in both themes/languages at desktop and compact sizes. Review includes
 the evidence and all unverified surfaces. No production node or real agent.
@@ -316,3 +320,12 @@ Machine epoch field; the later language-fact regression remains alongside it.
 The incoming staged resident/minter modules and boxed preference command remain
 unchanged. All architecture notes from both lines are retained. This source
 resolution is not a changed-union compile or runtime receipt.
+
+The canonical session owner confirmed that alias-only Open/Command::Open cannot
+authorize an original-connection search destination. The eventual owner entry
+resolves a SessionOpening against the current workspace lookup, admits the real
+claim/context and FollowBinding before hydration, then selects the exact original
+connection at actor dispatch. That carrier is not a checked live API yet. A3
+does not add an opener or registry to bypass it; current navigation remains
+unclaimed pending the sole core cutover. Queued search preparation and test
+requirements are recorded in `wp-a3-delivery-fixture.md`.
