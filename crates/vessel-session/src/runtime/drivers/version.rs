@@ -6,28 +6,32 @@ use std::time::Duration;
 
 use tokio::io::AsyncReadExt as _;
 use tokio::task::JoinSet;
-use vessel_proc::{CheckedWaitError, Child, CommandSpec, OwnedGroupExit, Signal, Spawned};
+#[cfg(test)]
+use vessel_proc::CommandSpec;
+use vessel_proc::{CheckedWaitError, Child, OwnedGroupExit, Signal, Spawned};
 
 const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
 const VERSION_BYTES: u64 = 4096;
 
+#[cfg(test)]
 pub(super) async fn read_version(command: CommandSpec) -> Result<Option<String>, CheckedWaitError> {
-    read_version_with(command, drop).await
+    let Ok(spawned) = vessel_proc::spawn(&command) else {
+        return Ok(None);
+    };
+    observe_version(spawned, tokio::time::Instant::now(), drop).await
 }
 
-pub(super) async fn read_version_with(
-    command: CommandSpec,
+pub(super) async fn observe_version(
+    spawned: Spawned,
+    started: tokio::time::Instant,
     stdin_owner: impl FnOnce(tokio::process::ChildStdin) + Send,
 ) -> Result<Option<String>, CheckedWaitError> {
-    let Ok(Spawned {
+    let Spawned {
         mut child,
         stdin,
         stdout,
         mut stderr,
-    }) = vessel_proc::spawn(&command)
-    else {
-        return Ok(None);
-    };
+    } = spawned;
     stdin_owner(stdin);
     let mut readers = JoinSet::new();
     let _stderr = readers.spawn(async move {
@@ -48,14 +52,15 @@ pub(super) async fn read_version_with(
             None
         })
     };
-    let observed = match tokio::time::timeout(VERSION_TIMEOUT, read).await {
-        Ok(Err(CheckedWaitError::Wait(error))) => unobserved(&mut child, error).await,
-        Ok(observed) => observed,
-        Err(_elapsed) => {
-            let _kill_requested = child.signal(Signal::Kill);
-            settled(&mut child).await.map(|_exit| None)
-        }
-    };
+    let observed =
+        match tokio::time::timeout(VERSION_TIMEOUT.saturating_sub(started.elapsed()), read).await {
+            Ok(Err(CheckedWaitError::Wait(error))) => unobserved(&mut child, error).await,
+            Ok(observed) => observed,
+            Err(_elapsed) => {
+                let _kill_requested = child.signal(Signal::Kill);
+                settled(&mut child).await.map(|_exit| None)
+            }
+        };
     readers.shutdown().await;
     observed
 }
@@ -69,12 +74,11 @@ async fn settled(child: &mut Child) -> Result<OwnedGroupExit, CheckedWaitError> 
 }
 
 async fn unobserved<T>(
-    child: &mut Child,
+    _child: &mut Child,
     error: vessel_proc::WaitError,
 ) -> Result<T, CheckedWaitError> {
     // Outside the version timeout: uncertainty must never become permission
     // to signal a delayed numeric id or to release the original physical owner.
-    let _original_child = child;
     let _private_evidence = error;
     tracing::error!(
         class = "root_wait",

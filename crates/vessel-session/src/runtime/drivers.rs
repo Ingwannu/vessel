@@ -45,6 +45,7 @@ use super::preparation_gate::{
 use crate::SessionError;
 
 pub(super) mod version;
+#[cfg(test)]
 use version::read_version;
 
 /// The node's setting and what is known of the installed agents. Each
@@ -212,17 +213,22 @@ impl SessionRuntime {
         let held = (ownership, Arc::clone(&gate));
         self.admit_preparation(&gate, PreparationEffect::Version)
             .await?;
+        // Kernel spawn follows the host's logical commit in this same poll.
+        // The existing token and original context were retained before admission.
+        let started = tokio::time::Instant::now();
+        let Ok(spawned) = vessel_proc::spawn(&command) else {
+            return Ok(None);
+        };
         #[cfg(test)]
         let control = Arc::clone(&self.version_control);
         let running = self.tasks.spawn(async move {
             let _tracked = tracked;
             let _held = held;
             #[cfg(not(test))]
-            let observed = read_version(command).await;
+            let stdin_owner = drop;
             #[cfg(test)]
-            let observed =
-                version::read_version_with(command, move |stdin| control.publish(stdin)).await;
-            observed
+            let stdin_owner = move |stdin| control.publish(stdin);
+            version::observe_version(spawned, started, stdin_owner).await
         });
         running
             .await
