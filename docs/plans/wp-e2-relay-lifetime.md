@@ -8,7 +8,8 @@ the pending registration drain. ADR0096 records why the join is required.
 
 ## Scope and references
 
-This package is based on the coordinator-announced gated node head ede20014.
+This isolated package started on gated node head ede20014 and now includes
+the announced node head82ae7c91 (gate46g), merged before its final package gate.
 Vessel's `link.rs199–240/339–351` was the source finding: detached data opens
 could survive the registration future. Paseo's relay consent remains the
 feature reference in ADR0096; its implementation is not copied. This seam
@@ -63,3 +64,13 @@ worker inside Tokio/tungstenite. Loopback tests do not prove physical DNS
 cancellation or resolver-work bounds across repeated control enable/disable;
 that full-consent limitation was sent to V3, not silently treated as a pass.
 The existing accepted secure-carrier lifetime remains the handoff boundary.
+
+
+## Node base reconciliation
+
+The82ae7c91 merge preserved both the incoming CLI presentation notes and this
+package's shutdown notes in README. Its incoming changes alter no byte under
+vessel-relay or in vessel-node's relays.rs. The queued corrected narrow run
+devices-relay-life-20261115T133940Z-5a02b847 remains evidence for its exact
+pre-merge source only. The final root package gate must use the merged head;
+no old result is relabelled as a combined-tree pass.
