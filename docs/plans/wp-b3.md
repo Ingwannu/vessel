@@ -2,7 +2,7 @@
 
 ADR 0077 passed design review at `a852bde3`; acceptance is a contract decision,
 not a product/runtime pass. The node branch consumes the reviewed integration
-head `82ae7c91` (Quality B and gate 46g); pending rows live at the end of
+head `9c150c6e` (Quality B and gate 50c); pending rows live at the end of
 `rpc/table.rs`. The separate app branch consumes package base 8 `91407173`
 through app-line merge `da48212c`; no app feature is implemented yet.
 
@@ -1226,3 +1226,18 @@ reconnecting client stop its metadata retry while the recovery fence remained
 held. The private real-worktree fixture checks both the failed-marker status and
 the successful same-id metadata retry; status itself never reapplies files.
 These new assertions and the implementation remain unverified by execution.
+
+### Announced node union (source; validation pending)
+
+The node tree now consumes announced head 9c150c6e (gate 50c, protocol24,
+store20). Existing registry/diagnostics methods, metadata restoration and startup
+reconciliation are retained alongside checkpoint hooks and physical admission.
+Checkpoint SQL appends once after REGISTRY_SCHEMA (21 locally); migrate() is
+unchanged. Legacy rollback fixtures drop checkpoint tables before registry tables.
+The shared node.rs budget shrinks to 668; no size record increases.
+
+Generated TypeScript currently retains the announced head's exact generated
+bytes rather than hand-resolving generated unions. Regeneration on the build VM
+must restore the additive checkpoint declarations before the complete node gate.
+FILE_CHECKPOINTS remains None and production terminal admission remains Busy.
+This merge does not claim W17 terminal proof or complete startup lease adoption.

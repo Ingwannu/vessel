@@ -456,16 +456,21 @@ const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 
 /// The provisional title-origin schema follows the newest head migration.
 /// Integration changes this one assignment if another migration lands first.
-pub(super) const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
+const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
-/// Checkpoint schema follows this base's newest migration. Integration re-points
-/// this one assignment in merge order; no slot is reserved or skipped.
-pub(crate) const CHECKPOINTS_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+/// One provisional append follows the head; the integrator alone rebinds it.
+pub(super) const SUBAGENT_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
+/// Current delegation is metadata, never a rewrite of creation provenance.
+const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt TEXT;";
 
-/// Every checkpoint table in one additive migration (ADR 0077).
+/// Provisional next migration; integration re-points this one constant.
+const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+
+/// Checkpoint tables append without reserving a schema gap; integration rebinds this assignment.
+pub(crate) const CHECKPOINTS_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
 pub(crate) const CHECKPOINTS: &str = include_str!("../checkpoint/schema.sql");
 
 /// Every migration, oldest first. Index `n` takes the schema from version
@@ -489,5 +494,7 @@ pub(super) const MIGRATIONS: &[&str; CHECKPOINTS_SCHEMA] = &[
     INBOX,
     LABELS,
     TITLE_ORIGIN,
+    SUBAGENT_RELATIONS,
+    super::workspace_registry::SQL,
     CHECKPOINTS,
 ];

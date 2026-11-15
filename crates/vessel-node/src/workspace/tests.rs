@@ -1048,10 +1048,13 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
 mod approvals;
 mod git_apart;
 
+mod project_admission;
+
 #[cfg(target_os = "linux")]
 mod checkpoint_starting;
 #[cfg(target_os = "linux")]
 mod checkpoint_writing;
+mod project_task;
 
 #[cfg(target_os = "linux")]
 mod checkpoint_backend;

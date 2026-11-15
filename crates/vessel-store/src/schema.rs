@@ -9,6 +9,11 @@
 #[cfg(test)]
 mod labels;
 mod migrations;
+mod workspace_registry;
+
+// Diagnostic schema projection reads the canonical migration list only.
+mod diagnostics;
+pub(super) use diagnostics::{DiagnosticSchemaError, version as diagnostic_version};
 
 use rusqlite::Connection;
 

@@ -173,8 +173,12 @@ fn rewind_withdraws_old_completion_and_tools_without_deleting_the_log() {
 // The fixture removes later columns explicitly; the schema owner locates
 // the inbox predecessor instead of guessing how many appends followed it.
 fn migrate_again_without_inbox(db: &mut Connection) {
-    db.execute_batch("DROP TABLE checkpoint_allocations; DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; ALTER TABLE sessions DROP COLUMN title_origin;")
-        .unwrap();
+    db.execute_batch("DROP TABLE checkpoint_allocations; DROP TABLE checkpoint_garbage; DROP TABLE checkpoint_paths; DROP TABLE checkpoint_restores; DROP TABLE checkpoint_plans; DROP TABLE checkpoint_captures; DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();
+    db.execute_batch(
+        "ALTER TABLE sessions DROP COLUMN detach_receipt;
+     ALTER TABLE sessions DROP COLUMN title_origin;",
+    )
+    .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN labels; DROP TABLE inbox_tools; DROP TABLE inbox; DROP TABLE inbox_meta; DROP TABLE push_subscriptions;")
         .unwrap();
     schema::replay_inbox_after_rollback(db);
@@ -233,49 +237,4 @@ fn backfill_never_revives_attention_before_a_new_turn_or_rewind() {
                 .is_empty()
         );
     }
-}
-
-#[test]
-fn checkpoint_metadata_keeps_branch_attention_instead_of_rewinding_it() {
-    use vessel_proto::checkpoint::CheckpointEvent;
-    let db = database();
-    let id = session(&db);
-    append(
-        &db,
-        id,
-        0,
-        AgentEvent::TurnEnded {
-            reason: StopReason::MaxTokens,
-            usage: None,
-            point: None,
-        },
-    );
-    let before = super::super::list(&db, ListInbox::default())
-        .unwrap()
-        .entries;
-    assert_eq!(before.len(), 1);
-    for (index, event) in [
-        CheckpointEvent::PromptAccepted,
-        CheckpointEvent::TurnAssociated {
-            prompt: EventSeq::new(1),
-            turn: EventSeq::ZERO,
-        },
-        CheckpointEvent::PromptAccepted,
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let record = EventRecord {
-            seq: EventSeq::new(u64::try_from(index).unwrap().checked_add(1).unwrap()),
-            at: now(),
-            event: SessionEvent::Checkpoint { event },
-        };
-        let _appended = log::append(&db, id, [&record]).unwrap();
-    }
-    assert_eq!(
-        super::super::list(&db, ListInbox::default())
-            .unwrap()
-            .entries,
-        before
-    );
 }

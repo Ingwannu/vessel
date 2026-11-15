@@ -72,6 +72,7 @@ mod checkpoint;
 pub mod cleanup;
 mod config;
 mod devices;
+mod diagnostics;
 mod envelope;
 mod error;
 pub mod fleet;
@@ -136,6 +137,15 @@ pub use vessel_store::{KernelLock, KernelProbe, NodeLock};
 #[cfg(test)]
 mod speech_audio;
 
-// The first connection-owned resource wires this into the real context once.
-#[cfg(test)]
+// Every connection's context carries one (`service::Connection::life`).
+// A temporary A10 exception: nothing reads it outside tests until its
+// consumers, workspace D2 Preview and W14, land. The first of them removes
+// this expectation and the one on the accessor.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "A10 exception until D2 Preview or W14 reads the owner and close observer"
+    )
+)]
 mod connection_life;

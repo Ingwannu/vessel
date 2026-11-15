@@ -8,6 +8,7 @@ mod checkpoint_runtime;
 #[cfg(target_os = "linux")]
 mod checkpoint_starting;
 mod handover;
+mod subagents;
 
 use std::sync::Arc;
 
