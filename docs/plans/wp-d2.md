@@ -54,8 +54,8 @@ at most ten dynamic uniqueness attempts; the node implementation must own them.
 ## Resume point
 
 Execution/status/observed-port/card skeleton is committed. Changed-crate clippy
-and tests are in progress, not yet green. Central Step 0 is still pending; do not
-merge the node line independently. Next: make the current vertical slice compile,
+and tests are in progress. The central Step 0/package bases have been merged;
+no independent node-line merge is used for the app. Next: make the current vertical slice compile,
 add workspace-scoped entry point and terminal reveal using the terminal package's
 existing API, audit setup observation against the current start card, and consume
 only reviewed node runtime contracts. One whole native gate and one package review
@@ -124,3 +124,15 @@ cancelling while the last successful output page was in flight could still
 create a session. The existing button now says Cancel session creation; its
 channel closure does not signal the node's setup runner. Actual runner
 cancellation remains the separately correlated ADR0093 operation.
+
+## Shared package base 2 and provider-ledger boundary
+
+Consumed announced app base 6036eeb8 after the local app build completed. Its
+Machine.node is the welcome identity, and its kit owns TextField Editability
+and event listening. The size conflict retains both this package's existing
+reductions and the head's smaller field module; no record was raised.
+
+Coordinator ruling moves managed-process helper ledger tracker508 to A9/W22.
+The survey says it belongs to provider helpers, not scripts/terminals; W8
+adds no parallel persistent process reaper. D2 still owns the native surface
+and ADR0093 setup runner/observation/automatic terminal bootstrap.

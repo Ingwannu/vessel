@@ -131,15 +131,16 @@ impl Shell {
                     .scripts
                     .model
                     .accept_read(&target, key, result);
-                if accepted && self.scripts_visible() {
-                    if let Some(commands) = commands {
-                        self.project_commands(
-                            target.machine.as_str(),
-                            target.project,
-                            None,
-                            Ok(commands),
-                        );
-                    }
+                if accepted
+                    && self.scripts_visible()
+                    && let Some(commands) = commands
+                {
+                    self.project_commands(
+                        target.machine.as_str(),
+                        target.project,
+                        None,
+                        Ok(commands),
+                    );
                 }
                 (accepted, false, target)
             }
@@ -194,12 +195,12 @@ impl Shell {
         );
         cx.notify();
     }
-    pub(super) fn script_preview(&mut self, preview: Preview, cx: &mut Context<'_, Self>) {
+    pub(super) fn script_preview(&mut self, preview: &Preview, cx: &mut Context<'_, Self>) {
         if !self.scripts_visible() {
             return;
         }
         let scripts = &mut self.areas.workspace.scripts;
-        let result = scripts.model.preview_url(&preview, &scripts.host.text(cx));
+        let result = scripts.model.preview_url(preview, &scripts.host.text(cx));
         match result {
             Ok(url) => cx.open_url(url.as_str()),
             Err(problem) => scripts.model.issue = Some(Issue::Preview(problem)),

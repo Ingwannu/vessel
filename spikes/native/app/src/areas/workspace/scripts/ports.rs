@@ -36,7 +36,7 @@ pub(super) fn scan(shell: &Shell, tokens: &Tokens) -> Div {
     match &ports.scan {
         PortScan::Pending => column = column.child(notice(words.scan_pending(), tokens)),
         PortScan::Unavailable { .. } | PortScan::Unknown => {
-            column = column.child(notice(words.scan_failed(), tokens))
+            column = column.child(notice(words.scan_failed(), tokens));
         }
         PortScan::Scanned { .. } => {}
     }
@@ -98,12 +98,12 @@ pub(super) fn for_run(
         .min_h(px(vessel_app_kit::breakpoint::TOUCH_TARGET));
         if destination.is_ok() {
             preview = preview.on_click(cx.listener(move |shell, _event, _window, cx| {
-                shell.script_preview(preview_request.clone(), cx)
+                shell.script_preview(&preview_request, cx);
             }));
         }
         match destination {
             Ok(url) => {
-                column = column.child(div().type_(Type::Meta).child(url.as_str().to_owned()))
+                column = column.child(div().type_(Type::Meta).child(url.as_str().to_owned()));
             }
             Err(problem) => {
                 column = column.child(
@@ -114,7 +114,7 @@ pub(super) fn for_run(
                         )
                         .to_owned(),
                     ),
-                )
+                );
             }
         }
         column = column.child(

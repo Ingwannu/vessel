@@ -58,7 +58,7 @@ pub(in crate::areas::workspace) fn render(
     }
     match &model.read {
         Reading::Empty | Reading::Loading { previous: None, .. } => {
-            body = body.child(empty(words.loading(), tokens))
+            body = body.child(empty(words.loading(), tokens));
         }
         Reading::Failed(_) => body = body.child(ports::notice(words.read_failed(), tokens)),
         Reading::Ready(_)
