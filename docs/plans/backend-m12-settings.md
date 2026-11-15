@@ -651,3 +651,38 @@ and its first-use evidence remain a separate slice.
 Current resume: the shared rename consumer and input audit are committed
 as `ae6ba8f6`; their native gate is queued. Local normal app build and new
 captures are in progress. No editor engine or select-all change is included.
+
+### Long name and release isolation follow-ups
+
+The shared-action consumer `ae6ba8f6` passed its complete native gate
+(run `settings2-20261115T040434Z-ae6ba8f6`, all six steps zero, 1,169 passed,
+zero failed, one ignored). Desktop and compact input probes measured the
+same 38-point hit and passed nine edge/inside/outside cases each. The
+74-image matrix covers both schemes and languages, four widths and the
+requested larger scales. The original scale-two display clipped two
+physical pixels; those six images were excluded and recaptured on a
+larger virtual display with the same requested application dimensions.
+
+A supported maximum-length book name exposed a separate layout defect:
+the trailing value squeezed the title into a letter per line. The name
+was saved successfully; the first file check raced its asynchronous
+completion. The capture harness now waits for the saved-name condition.
+Choice (modify): use the existing custom-content row frame, keep the
+name title nonshrinking and one line, and let the right-aligned value
+share the remaining width and ellipsize. The reference's name row
+(`host-appearance-section.tsx:279-288`) stays on one line in both layouts;
+its shared frame is reused rather than copied.
+
+The sibling-overlap audit remains an open finding: a later transparent
+neighbour and rename can both receive the same press. The expected
+neighbour-only result is retained, not changed to pass. At native line
+`1d1f11df` there is no product call to this shared action; Overview's
+existing name value has no clickable neighbour. A global button hit-test
+occlusion policy requires its own kit decision. It is outside this
+follow-up. The separately assigned rename-control repair will isolate
+its bubble-phase release from a parent while preserving its caller's
+click; it must not stop capture phase or add a second click callback.
+
+Current resume: first fix and capture the long-name row; then add a
+failing parent-release event regression and the small shared-control
+repair. Select-all follows those changes and the field module split.
