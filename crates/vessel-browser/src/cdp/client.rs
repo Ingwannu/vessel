@@ -96,6 +96,10 @@ struct Command {
     attempt: Arc<Attempt>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
 }
+struct Queued {
+    caller: Caller,
+    result: oneshot::Receiver<Result<Payload, CdpError>>,
+}
 struct Pending {
     session: Option<SessionId>,
     answer: oneshot::Sender<Result<Payload, CdpError>>,
@@ -191,6 +195,32 @@ impl Client {
         request: R,
         budget: Duration,
     ) -> Result<R::Response, CdpError> {
+        let Queued { caller, result } = self.enqueue(session, request)?;
+        let outcome = tokio::time::timeout(budget, result)
+            .await
+            .map_err(|source| CdpError::TimedOut {
+                effect: caller.cancel(),
+                source,
+            })?
+            .map_err(|_closed| CdpError::Disconnected {
+                effect: caller.cancel(),
+            })?;
+        let reply = match outcome {
+            Err(CdpError::Closed) => {
+                return Err(CdpError::Disconnected {
+                    effect: caller.cancel(),
+                });
+            }
+            result => result?,
+        };
+        reply.decode().map_err(CdpError::Json)
+    }
+
+    fn enqueue<R: Request>(
+        &self,
+        session: Option<SessionId>,
+        request: R,
+    ) -> Result<Queued, CdpError> {
         let sequence = self
             .shared
             .next
@@ -225,24 +255,7 @@ impl Client {
                 mpsc::error::TrySendError::Full(_command) => CdpError::Busy,
                 mpsc::error::TrySendError::Closed(_command) => CdpError::Closed,
             })?;
-        let outcome = tokio::time::timeout(budget, result)
-            .await
-            .map_err(|source| CdpError::TimedOut {
-                effect: caller.cancel(),
-                source,
-            })?
-            .map_err(|_closed| CdpError::Disconnected {
-                effect: caller.cancel(),
-            })?;
-        let reply = match outcome {
-            Err(CdpError::Closed) => {
-                return Err(CdpError::Disconnected {
-                    effect: caller.cancel(),
-                });
-            }
-            result => result?,
-        };
-        reply.decode().map_err(CdpError::Json)
+        Ok(Queued { caller, result })
     }
 
     /// Close the connection before profile cleanup; joining retains the driver's original error.

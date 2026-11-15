@@ -885,3 +885,8 @@ write; a caller timeout/drop withdraws that same pending state. An independently
 held-write peer fixture blocks one write, times out a queued request, then joins
 shutdown and asserts the withdrawn request never reached the transport. This is
 byte-transport cancellation evidence when executed, not actual browser proof.
+
+The command enqueue/typed result wait are separated by a private Queued value;
+its caller guard remains alive through result decoding and withdraws on drop.
+This keeps the delivery-state owner explicit without changing the public sealed
+request vocabulary or selecting a different ordinary command deadline.
