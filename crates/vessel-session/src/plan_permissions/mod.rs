@@ -59,7 +59,7 @@ impl StructuredActor {
                 if let Some(id) = displaced {
                     self.plan_resolved(id, PermissionOutcome::Cancelled).await;
                 }
-                self.publish_plan_event(AgentEvent::PermissionRequested(request))
+                self.publish_plan_event(AgentEvent::PermissionRequested(*request))
                     .await;
             }
         }

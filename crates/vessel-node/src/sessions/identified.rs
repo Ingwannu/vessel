@@ -36,11 +36,7 @@ impl Sessions {
         {
             return Ok(reply);
         }
-        let Found::Live {
-            handle,
-            mut durability,
-        } = found
-        else {
+        let Found::Live { handle, durability } = found else {
             return Ok(not_admitted(&request, SubmissionRefusal::SessionEnded));
         };
         if handle.info().spec.side_question_of.is_some() {
@@ -53,6 +49,18 @@ impl Sessions {
             ReceiptAdmission::New(token) => token,
             ReceiptAdmission::Existing(reply) => return Ok(reply),
         };
+        self.dispatch_identified(request, by, handle, durability, token)
+            .await
+    }
+
+    async fn dispatch_identified(
+        &self,
+        request: SubmitPrompt,
+        by: Creator,
+        handle: SessionHandle,
+        mut durability: tokio::sync::watch::Receiver<persist::Durability>,
+        token: ReceiptToken,
+    ) -> Result<SubmitPromptReply, ServiceError> {
         let message = request.message;
         let result = handle
             .submit_identified(

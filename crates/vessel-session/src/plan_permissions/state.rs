@@ -30,7 +30,7 @@ pub(super) enum Offer {
     Duplicate,
     Full,
     New {
-        request: PermissionRequest,
+        request: Box<PermissionRequest>,
         displaced: Option<PermissionId>,
     },
 }
@@ -71,7 +71,10 @@ impl PlanApprovals {
                 actions,
             })
             .map(|pending| pending.request.id);
-        Offer::New { request, displaced }
+        Offer::New {
+            request: Box::new(request),
+            displaced,
+        }
     }
     pub(super) fn current_is(&self, id: PermissionId) -> bool {
         self.current
