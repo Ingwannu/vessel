@@ -4,6 +4,8 @@
 
 use super::{ConversationArea, origin::Origin};
 use crate::shell::Shell;
+use vessel_app_kit::ui::App;
+use vessel_app_view::prefs::{ConversationDisplay, ReasoningExpansion};
 use vessel_app_view::residents::{
     FollowBinding, HoldReason, OperationKind, OperationTicket, OwnerReadiness, PanelFocus,
     ResidentProblem, ResidentToken, SessionContext, Visibility,
@@ -41,6 +43,24 @@ impl std::fmt::Debug for TimelineSnapshot {
 }
 
 impl ConversationArea {
+    /// A new admitted resource uses the kept Chat choices, not whichever empty
+    /// defaults happened to seed the old selected window. Identity/admission
+    /// remains entirely in the registry; this constructor launches no follow.
+    pub(crate) fn with_presentation(
+        display: ConversationDisplay,
+        reasoning: ReasoningExpansion,
+        cx: &mut App,
+    ) -> Self {
+        let mut area = Self::new(cx);
+        area.collapse = super::area::collapsing(Some(display));
+        area.turns = super::turns::enabled(Some(display)).then(super::turns::Turns::default);
+        area.folds = area
+            .collapse
+            .then(vessel_app_view::timeline::Folds::default);
+        area.reasoning = reasoning;
+        area
+    }
+
     /// W1 supplies its navigation hold; A8 and lifecycle owners separately vote in
     /// the same registry. Their forms/confirmations are never inferred from text.
     pub(crate) fn snapshot_readiness(&self, navigation: OwnerReadiness) -> OwnerReadiness {

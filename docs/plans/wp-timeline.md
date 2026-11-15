@@ -954,3 +954,13 @@ proposal, and never claims execution, completion or approval. A8 uses Ready for
 reported proposed content while its outer card remains Pending. The same section
 renderer has no success styling derived from this state. This amendment is source
 only until the next meaningful checked handoff.
+
+The staged owner factory can use
+ConversationArea::with_presentation(ConversationDisplay, ReasoningExpansion, App).
+It reuses the existing Area constructor and display predicates, then seeds an
+empty timeline's folds/turns/reasoning from the kept Chat choices. It has no
+context allocator, selected-session lookup, follow or second preference store.
+The same populated registry fixture now creates both actual areas with Full and
+Expanded, verifying these saved choices survive admission instead of silently
+using constructor defaults. W12 still supplies the scoped factory after capacity
+admission; B2's real scoped composer constructor remains a separate prerequisite.

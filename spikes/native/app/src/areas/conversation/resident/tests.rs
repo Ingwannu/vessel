@@ -8,6 +8,7 @@ use vessel_app_kit::Reveal;
 use vessel_app_view::layout::{
     AgentRole, Layout, LayoutKey, LayoutMode, OpenIntent, PaneId, Placement, Target,
 };
+use vessel_app_view::prefs::{ConversationDisplay, ReasoningExpansion};
 use vessel_app_view::residents::{
     HoldReason, OperationKind, OwnerReadiness, PanelClaim, ResidentProblem, SessionAddress,
     SessionContext, Visibility,
@@ -68,7 +69,11 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
             let (claim_a, claim_b) = (claim(&mut layout, &key), claim(&mut layout, &key));
             let mut build = |_: &SessionContext| SessionResources {
                 session: SessionView::new(window, cx),
-                conversation: ConversationArea::new(cx),
+                conversation: ConversationArea::with_presentation(
+                    ConversationDisplay::Full,
+                    ReasoningExpansion::Expanded,
+                    cx,
+                ),
             };
             let a = residents
                 .claim_session(
@@ -114,6 +119,12 @@ fn scoped_hidden_records_and_effect_settlement_reach_only_the_admitted_timeline(
         );
         let seat = ResidentSeat::main(a.clone());
         let captured = seat.clone();
+        assert!(seat.get(shell).unwrap().turns.is_none());
+        assert!(!seat.get(shell).unwrap().collapse);
+        assert_eq!(
+            seat.get(shell).unwrap().reasoning,
+            ReasoningExpansion::Expanded
+        );
         seat.get_mut(shell).unwrap().list.reveal(0, Reveal::Top);
         assert_eq!(text(captured.get(shell).unwrap()), "A");
         let origin_seat = ResidentSeat::origin(a.clone());
