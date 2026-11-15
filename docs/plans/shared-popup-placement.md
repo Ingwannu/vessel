@@ -55,3 +55,13 @@ point anchor; caller-local relative motion stays inside the positioned wrapper.
 An additional actual GPUI case expects the caller's literal4 local offset to
 survive in both painted/prepaint and hit bounds. No animation engine or timer
 is added; this test is still unexecuted.
+
+Independent reference oracle: Node24.22.1 directly imported the unchanged
+Paseo anchor.ts (type-only React Native import erased; no app/runtime boot).
+Eleven literal cases passed against the original computePosition, including
+both alignments/sides, equal space, exact raw fit despite offset, oversized
+content, fractional points, shifted viewport and the second real-child height.
+The loaded file bytes independently equal the pinned1c00 Git blob.
+Evidence: /tmp/work/m12-shell-s2/placement-source-oracle.{mjs,json}.
+This validates the expected numeric cases against the actual reference; it is
+NOT execution of the Rust helper, actual GPUI input, OS motion or consumer UI.
