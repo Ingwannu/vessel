@@ -52,7 +52,14 @@ pub(super) const fn glyph_of(target: &Target) -> Glyph {
         }
         PaletteTarget::Theme(Theme::System) => Glyph::Monitor,
         PaletteTarget::Theme(Theme::Light) => Glyph::Sun,
-        PaletteTarget::Theme(Theme::Dark) => Glyph::Moon,
+        PaletteTarget::Theme(
+            Theme::Dark
+            | Theme::Zinc
+            | Theme::Midnight
+            | Theme::Claude
+            | Theme::Ghostty
+            | Theme::PureBlack,
+        ) => Glyph::Moon,
     }
 }
 

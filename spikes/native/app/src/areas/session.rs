@@ -199,6 +199,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         self.conversation_records(session, records, cx);
+        self.terminal_records(session, records, cx);
         let view = &mut self.areas.session;
         if view
             .open
@@ -379,13 +380,7 @@ pub(crate) fn render(
     let body: AnyElement = if open.structured {
         crate::region::timeline(shell, tokens, window, cx)
     } else {
-        div()
-            .flex_1()
-            .p(px(24.0))
-            .type_(Type::Body)
-            .text_color(tokens.text_secondary)
-            .child(t.terminal_not_yet)
-            .into_any_element()
+        crate::areas::terminal::body(shell, tokens, window, cx)
     };
     let working = view.conversation.turn_running();
     let screen = div()

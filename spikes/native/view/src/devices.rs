@@ -12,6 +12,8 @@
 //!   reaches no log, no capture's name and no test's failure message.
 
 mod details;
+mod inspection;
+pub use inspection::{DeviceMetadata, SelectionError};
 mod row;
 pub use row::{Access, DeviceBadge};
 mod invitation;

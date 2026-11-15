@@ -139,9 +139,9 @@ pub(crate) fn render(
     let body = match (machine, state.page.as_ref()) {
         (Some(machine), Some(page)) if machine.reach == Reach::Online => {
             match idle_card(machine, page, shell, tokens, compact, cx) {
-                Ok(card) => {
-                    card.map(|card| settings::section(words.section(Section::Agents), card, tokens))
-                }
+                Ok(card) => card.map(|card| {
+                    settings::section(words.section(Section::Agents, shell.words), card, tokens)
+                }),
                 Err(Offline) => Some(unavailable(words.agents_unavailable, tokens)),
             }
         }

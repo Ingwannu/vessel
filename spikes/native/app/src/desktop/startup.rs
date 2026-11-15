@@ -1,6 +1,5 @@
 //! Startup chooses CLI or one GUI owner before initializing any renderer.
 
-use gpui::App;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::ExitCode;

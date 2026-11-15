@@ -4,8 +4,8 @@ use crate::shell::Shell;
 use vessel_app_kit::dialog::{DialogContent, DialogSize, dialog};
 use vessel_app_kit::theme::spacing::{S2, S4, S8};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, Window, div, px,
+    AnyElement, Context, Div, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, markdown, outline_button};
 use vessel_app_view::desktop::changelog::{self, Release, Revealed};

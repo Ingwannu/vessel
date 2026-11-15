@@ -14,30 +14,25 @@ use vessel_proto::{EventRecord, EventSeq, SessionId};
 
 use super::Seat;
 use super::area::{Followup, collapsing};
+use crate::areas::session::Open;
 use crate::shell::Shell;
 
 impl Shell {
-    /// The session area opened `session` on `machine`: start again from
-    /// its first record, and read what the node says of it.
-    pub(crate) fn conversation_opened(
-        &mut self,
-        machine: &str,
-        session: SessionId,
-        binding: Option<&vessel_app_link::sessions::Binding>,
-        cx: &mut Context<'_, Self>,
-    ) {
+    /// Hydrate metadata for either presentation; only structured sessions have a
+    /// conversation projection. Retain authenticated identity for every read.
+    pub(crate) fn conversation_opened(&mut self, open: &Open, cx: &mut Context<'_, Self>) {
         self.hear_find(cx);
-        self.areas.conversation.open(machine, session);
-        // Opened again: a fork's origin that could not be read is read.
+        self.areas.conversation.open(&open.machine, open.session);
         self.origin_read();
-        for (act, read) in [
-            (Act::Info, Read::Info),
-            (Act::Conversation, Read::Conversation),
-        ] {
-            self.command(binding.map_or_else(
+        let mut reads = vec![(Act::Info, Read::Info)];
+        if open.structured {
+            reads.push((Act::Conversation, Read::Conversation));
+        }
+        for (act, read) in reads {
+            self.command(open.binding.as_ref().map_or_else(
                 || Command::Act {
-                    machine: machine.to_owned(),
-                    session,
+                    machine: open.machine.clone(),
+                    session: open.session,
                     act,
                 },
                 |binding| {
@@ -87,6 +82,11 @@ impl Shell {
     /// state happens only when it is for the session shown
     /// ([`ConversationArea::answered`]).
     pub(crate) fn acted(&mut self, answer: ActAnswer, cx: &mut Context<'_, Self>) {
+        // A terminal session's log, read whole (`terminal`).
+        if self.terminal_acted(&answer, cx) {
+            cx.notify();
+            return;
+        }
         match &answer.result {
             Ok(Acted::Session(info)) => {
                 let card = Card::from_session(&answer.machine, info);

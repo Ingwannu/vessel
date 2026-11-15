@@ -8,7 +8,8 @@
 //!   that works.
 //! - Choice: the page's fourteen actions in its order with its defaults,
 //!   and GOAT's two queue actions (send the first queued message now,
-//!   edit the last one) after the composer's focus;
+//!   edit the last one) after the composer's focus; Paseo's theme cycling
+//!   joins General through the same primary-modifier grammar;
 //!   an action has at most two bindings; "session 1–9" is fixed (Alt and
 //!   a digit, one per session) and cannot be reassigned. An override
 //!   replaces an action's defaults whole (an empty list unbinds it); ids
@@ -20,7 +21,7 @@
 
 use std::collections::BTreeMap;
 
-use super::keys::{Binding, Chord};
+use super::keys::{Binding, Chord, Platform};
 use crate::prefs::{ActionId, Bindings, MAX_BINDINGS};
 
 /// What a shortcut can run.
@@ -32,6 +33,8 @@ pub enum Action {
     NewSession,
     /// Open Settings.
     Settings,
+    /// Advance the appearance preference through the theme catalogue.
+    CycleTheme,
     /// Go to the board.
     GoBoard,
     /// Go to Settings › Machines.
@@ -76,6 +79,18 @@ pub enum ShortcutGroup {
     Panels,
 }
 
+/// The surface that must keep a scoped shortcut for itself. An open
+/// command center takes precedence over the previously focused surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShortcutScope {
+    /// The command center is open, even if its old focus is retained.
+    CommandCenter,
+    /// A terminal owns keyboard input.
+    Terminal,
+    /// No surface with a special exclusion owns the input.
+    Elsewhere,
+}
+
 impl ShortcutGroup {
     /// Every group, in Settings' order.
     pub const ALL: [Self; 4] = [Self::General, Self::Navigation, Self::Session, Self::Panels];
@@ -83,10 +98,11 @@ impl ShortcutGroup {
 
 impl Action {
     /// Every action, in the registry's order.
-    pub const ALL: [Self; 16] = [
+    pub const ALL: [Self; 17] = [
         Self::Palette,
         Self::NewSession,
         Self::Settings,
+        Self::CycleTheme,
         Self::GoBoard,
         Self::GoMachines,
         Self::GoSync,
@@ -109,6 +125,7 @@ impl Action {
             Self::Palette => "palette",
             Self::NewSession => "new-session",
             Self::Settings => "settings",
+            Self::CycleTheme => "cycle-theme",
             Self::GoBoard => "go-board",
             Self::GoMachines => "go-machines",
             Self::GoSync => "go-sync",
@@ -142,7 +159,9 @@ impl Action {
     #[must_use]
     pub const fn group(self) -> ShortcutGroup {
         match self {
-            Self::Palette | Self::NewSession | Self::Settings => ShortcutGroup::General,
+            Self::Palette | Self::NewSession | Self::Settings | Self::CycleTheme => {
+                ShortcutGroup::General
+            }
             Self::GoBoard
             | Self::GoMachines
             | Self::GoSync
@@ -165,6 +184,7 @@ impl Action {
             Self::Palette => &["Mod+K", "/"],
             Self::NewSession => &["N"],
             Self::Settings => &["Mod+,"],
+            Self::CycleTheme => &["Mod+Alt+T"],
             Self::GoBoard => &["G S"],
             Self::GoMachines => &["G M", "G F"],
             Self::GoSync => &["G Y"],
@@ -187,6 +207,35 @@ impl Action {
     #[must_use]
     pub const fn fixed(self) -> bool {
         matches!(self, Self::JumpSession)
+    }
+
+    /// Keep Paseo's theme-cycle exclusions on rebound keys too; the
+    /// other actions retain their existing dispatch rules.
+    #[must_use]
+    pub const fn enabled(self, scope: ShortcutScope, platform: Platform) -> bool {
+        match self {
+            Self::CycleTheme => match scope {
+                ShortcutScope::CommandCenter => false,
+                ShortcutScope::Terminal => matches!(platform, Platform::Mac),
+                ShortcutScope::Elsewhere => true,
+            },
+            Self::Palette
+            | Self::NewSession
+            | Self::Settings
+            | Self::GoBoard
+            | Self::GoMachines
+            | Self::GoSync
+            | Self::GoDevices
+            | Self::PreviousSession
+            | Self::NextSession
+            | Self::JumpSession
+            | Self::Find
+            | Self::FocusComposer
+            | Self::SteerQueued
+            | Self::EditQueued
+            | Self::ToggleSidebar
+            | Self::ToggleInspector => true,
+        }
     }
 
     /// Every action of a group, in the registry's order.

@@ -26,10 +26,12 @@ pub(crate) mod sessions;
 pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
+pub(crate) mod terminal;
 pub(crate) mod toasts;
 pub(crate) mod workspace;
 
 use vessel_app_kit::ui::{Context, Window};
+use vessel_proto::{EventRecord, SessionId};
 
 use crate::shell::Shell;
 
@@ -56,6 +58,8 @@ pub(crate) struct Areas {
     pub(crate) composer: composer::ComposerArea,
     /// The parts drawn as views of their own (`crate::region`).
     pub(crate) regions: crate::region::Regions,
+    /// A terminal session's screen (ADR 0073).
+    pub(crate) terminal: terminal::TerminalArea,
 }
 
 impl Areas {
@@ -79,9 +83,44 @@ impl Areas {
             toasts: vessel_app_view::toasts::Toasts::default(),
             composer: composer::ComposerArea::new(cx),
             regions: crate::region::Regions::default(),
+            terminal: terminal::TerminalArea::new(cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, window, cx);
         areas
+    }
+}
+
+/// Whether a batch of records needs the shell drawn again.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Redraw {
+    /// Something the shell draws may have changed.
+    Shell,
+    /// Only the shown terminal's output: its grid view, which the terminal
+    /// area notifies by itself, is all that changed (ADR 0073).
+    GridAlone,
+}
+
+impl Shell {
+    /// A batch of the followed session's records: the session area, the
+    /// conversation and the terminal take it, and the session's reported
+    /// `/` commands are kept for its agent (track P). Here, not in
+    /// `shell.rs`, which is at its 500 lines.
+    pub(crate) fn link_records(
+        &mut self,
+        session: &SessionId,
+        records: &[EventRecord],
+        cx: &mut Context<'_, Self>,
+    ) -> Redraw {
+        self.records(session, records, cx);
+        // Track P: a session's reported `/` commands kept for its agent,
+        // and a composer's files waiting on their prompt's records.
+        self.offers_commands_seen();
+        self.composer_files_seen(cx);
+        if self.terminal_output_only(session, records) {
+            Redraw::GridAlone
+        } else {
+            Redraw::Shell
+        }
     }
 }

@@ -40,21 +40,20 @@ impl Open {
 impl crate::shell::Shell {
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
-        self.conversation_opened(&open.machine, open.session, open.binding.as_ref(), cx);
+        self.conversation_opened(&open, cx);
         let view = &mut self.areas.session;
         view.conversation = Conversation::default();
         view.entries.reset(0);
-        if open.structured {
-            self.command(open.binding.clone().map_or_else(
-                || Command::Open {
-                    machine: open.machine.clone(),
-                    session: open.session,
-                },
-                |binding| {
-                    Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding))
-                },
-            ));
+        if !self.terminal_follow(&open, cx) {
+            return;
         }
+        self.command(open.binding.clone().map_or_else(
+            || Command::Open {
+                machine: open.machine.clone(),
+                session: open.session,
+            },
+            |binding| Command::SessionAccess(vessel_app_link::sessions::Access::Follow(binding)),
+        ));
         self.areas.session.open = Some(open);
         self.route = Route::Session;
         cx.notify();
@@ -108,6 +107,14 @@ impl crate::shell::Shell {
             .set_placeholder(&placeholder, window, cx);
         if takes_prompts {
             self.areas.session.composer.focus(window, cx);
+        } else if self
+            .areas
+            .session
+            .open
+            .as_ref()
+            .is_some_and(|open| !open.structured)
+        {
+            self.focus_terminal(window, cx);
         }
     }
 }

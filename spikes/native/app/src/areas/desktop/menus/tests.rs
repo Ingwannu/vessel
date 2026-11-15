@@ -1,7 +1,7 @@
 //! Real menu keys dispatch into the original input after popup focus is restored.
 
 use super::*;
-use gpui::{AppContext as _, Entity, Render, TestAppContext};
+use gpui::{AppContext as _, Entity, IntoElement, Render, TestAppContext};
 use vessel_app_kit::{Scheme, TextField};
 use vessel_app_view::desktop::{CopyState, EditContext, PasteState};
 

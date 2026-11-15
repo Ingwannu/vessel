@@ -100,7 +100,7 @@ impl Shell {
             updates: crate::update_words::UpdateUi::new(words),
             sidebar_sheet: None,
         };
-        crate::areas::desktop::start(&mut shell, window, cx);
+        areas::desktop::start(&mut shell, window, cx);
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);
@@ -114,7 +114,7 @@ impl Shell {
     /// answer would reach (`crate::unsent`: callers that set what waits
     /// after sending settle too).
     pub(crate) fn command(&self, command: Command) {
-        let taken = match crate::areas::desktop::preferences::submit(self, command) {
+        let taken = match areas::desktop::preferences::submit(self, command) {
             Ok(None) => return,
             Err(unsent) => Err(unsent),
             Ok(Some(command)) => match &self.link {
@@ -135,7 +135,7 @@ impl Shell {
     /// app's words. Without a link at all, the foot keeps saying why the
     /// link did not start.
     pub(crate) fn unsent(&mut self, unsent: vessel_app_link::Unsent, cx: &mut Context<'_, Self>) {
-        crate::areas::desktop::preferences::refused(self, &unsent);
+        areas::desktop::preferences::refused(self, &unsent);
         tracing::warn!(why = %unsent.why, "the link did not take a command");
         let words = self.t.unsent;
         match crate::unsent::settle(unsent, words) {
@@ -301,14 +301,13 @@ impl Render for Shell {
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
-        crate::areas::desktop::pending(self, window, cx);
+        areas::desktop::pending(self, window, cx);
         self.settle_settings(window);
         self.settle_sessions(window, cx);
         self.settle_session_lifecycle(window, cx);
+        self.terminal_present(window, cx);
         let tokens = tokens(cx);
-        // ADR 0036: below the phone's width the sidebar is a sheet from the
-        // title bar; it closes when the person goes anywhere from it, and
-        // when the window grows past the width.
+        // ADR 0036: navigation and a wider window close the phone sidebar sheet.
         let phone = vessel_app_kit::breakpoint::phone(window);
         if !phone
             || self

@@ -217,3 +217,21 @@ compilation/execution; OS-native close callbacks still require platform smoke.
 
 Merged package base 3 (6c782cb6); only announced base changes touch root crates.
 This package adds no node method and has no independently changed root sources.
+
+## Package-base 4 integration
+
+Merged 3cd0d3fc while no whole gate ran. Retained W21's extracted session-open
+module and authenticated Binding while restoring base terminal follow/focus,
+Info-only hydration for terminal sessions and all three render settlement hooks.
+The session root ratchet shrinks to 660. Base terminal fixtures receive only the
+new optional archive/binding fields, without changing their expectations. C2 and
+W21 still own the bound terminal-history cutover; no safety/parity claim is made
+for that staged path until their typed adapter is integrated.
+
+App narrow 6 reached the app and found missing toolkit trait imports plus an
+escaping quit-future lifetime. Explicit precise captures (`use<>`) now make the
+cloned-channel final-save/flush futures independent of their borrowed handles.
+The callbacks still await the same existing writers; no detached save or second
+store is introduced. Source imports and the real-input fixture trait are fixed.
+Fast format, size, dependency-boundary and token ratchets pass after integration;
+app compilation and behavioral tests remain pending.
