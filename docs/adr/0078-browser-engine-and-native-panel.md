@@ -746,3 +746,60 @@ WebTransport, credential isolation and complete Preview revocation remain owed.
 There is no generic public pipe constructor, raw CDP tool or new MCP permission.
 The whole supported feature remains hidden until the complete first-engine gate,
 including Preview authority, passes; this proposal is not an exception.
+
+## Proposed reference DOM snapshot adapter (review before implementation)
+
+[Decision Log]
+- Purpose: preserve Paseo's actual ARIA snapshot names, state attributes, form
+  fingerprint rules and actionability instead of approximating them with a new
+  translation of Chromium's native AX roles.
+- Existing asset: Paseo desktop aria-snapshot-script.ts (Apache-2.0, adapted from
+  Playwright with Microsoft's notice), snapshot-engine.ts and actionability.ts.
+  Their static algorithm can execute through the sealed CDP subset already
+  chosen here; it requires no page-to-node bridge or additional network reach.
+- Alternatives: implement a second native AX role/name/state formatter, or run
+  the reference static DOM algorithm behind typed CDP and Rust decoding.
+- Choice: reuse/adapt the reference DOM algorithm, with source pin/Apache license
+  and copyright notices retained in the repository, a typed decoded graph and
+  Rust renderer/reference ownership. Vendor assets keep their original license;
+  this is not Chromium runtime redistribution or an installation.
+- Reason: its element labeling, input-value fingerprints and same-origin iframe
+  behavior are directly specified and covered by Paseo's tests. A native AX
+  approximation would introduce many extra behavior differences.
+- Tradeoffs: a private isolated realm and script result parser are required;
+  they do not replace actual engine, frame, actionability or isolation tests.
+
+The script executes only in a node-created isolated world of the admitted
+page/frame. No universal-access grant, host object, node filesystem, credential
+or CDP handle is exposed. User browser_evaluate runs separately in the ordinary
+page context; it cannot select this realm. Script source is implementation-owned.
+Arguments/configuration are serialized typed JSON, never string-concatenated page
+source or a caller-supplied function. The raw result is decoded immediately into
+a bounded tagged graph/fingerprints; unknown/malformed shapes refuse and clear
+host refs, never return an empty successful snapshot or evaluate echo.
+
+Runtime script and Rust bounds have one named owner each. The existing1500 node,
+500 reference and80000 rendered-text ceilings remain; final rendering counts
+UTF-8 bytes, as already recorded. A new32-level graph depth ceiling protects the
+nested JSON decoder and stack; deeper branches truncate visibly, a deliberate
+difference from Paseo's node-count-only depth. Iteration stops at the same node
+budget without eagerly copying an unbounded DOM child list. Bindings use exact
+BigInt/decimal sequence values from the node's monotonic ref namespace rather
+than reusing @e1 after a snapshot/navigation. The host accepts only the expected
+current names/fingerprints from this target/realm and invalidates before a new
+snapshot or failed traversal. Generation/world loss clears the entire binding.
+
+Rust retains at most the existing current-ref cap and renders complete escaped
+lines plus the reference truncation marker within the UTF-8 cap. Counts report
+actual retained/rendered work, not a claim that the full DOM/frames fit. The
+same-origin iframe limitations are preserved and stated; no new cross-origin
+frame authority follows from the private world. Active DOM script/input stays
+below existing Operate/session-start/tool policy and profile/destination checks.
+The default-off tools warning still applies to signed-in DOM content and agent
+input/results retained by the harness. Direct human input gains no extra logs.
+
+Qualification requires real same/cross-origin iframe fixtures, hostile DOM/global
+prototype changes, realm destruction/navigation, replaced elements/fingerprints,
+deep/wide/long-Unicode documents, script timeout/cancellation and stale refs from
+older snapshots. A static script/graph fixture is not a supported page or proof
+of process/network/Preview isolation. No engine or tools become visible here.
