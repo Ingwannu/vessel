@@ -254,3 +254,25 @@ fn legacy_sidechains_keep_real_tool_identity_with_unknown_lifecycle() {
         vec!["legacy reply"]
     );
 }
+
+#[test]
+fn a_declared_background_task_without_a_tool_alias_keeps_real_identity_and_honest_coverage() {
+    let mut children = Children::new(false);
+    let mut task = started("background-task", "absent", Some(true));
+    let _alias = task.as_object_mut().unwrap().remove("tool_use_id");
+    let events = feed(&mut children, task);
+    assert_eq!(descriptors(&events)[0].id.as_str(), "background-task");
+    assert_eq!(descriptors(&events)[0].status, Some(ChildStatus::Running));
+    assert!(children.aliases.is_empty());
+    assert!(events.iter().any(|event| matches!(
+        event,
+        AgentEvent::ProviderChild(ProviderObservation::Gap {
+            reason: ChildGap::Retention
+        })
+    )));
+    let events = feed(
+        &mut children,
+        json!({"type":"system","subtype":"task_notification","task_id":"background-task","status":"completed"}),
+    );
+    assert_eq!(descriptors(&events)[0].status, Some(ChildStatus::Completed));
+}

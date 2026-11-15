@@ -229,3 +229,8 @@ history. Historical child replay and final streamed-text suffix repair remain
 explicit gaps until the canonical provider/timeline owner supplies those paths.
 Native Task/Agent display details remain that owner's canonical SubAgent mapper;
 this router does not decode semantic tool input a second time.
+
+A declared native Claude task does not require a tool-use alias to exist. Its real
+task id and lifecycle remain visible when that optional alias is absent; the
+router reports partial retained history because unlabelled sidechain attribution
+cannot be proven. It never invents an alias or replaces the actual task identity.

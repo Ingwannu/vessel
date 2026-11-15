@@ -2,7 +2,7 @@
 use super::super::wire::{
     TaskKind, TaskNotification, TaskProgress, TaskStarted, TaskStatus, TaskUpdated,
 };
-use super::{Children, identity};
+use super::{ChildBudget, Children, identity};
 use vessel_proto::subagents::{
     ChildDescriptor, ChildGap, ChildStatus, ProviderChildId, ProviderText,
 };
@@ -15,10 +15,11 @@ impl Children {
         if !task.is_child() {
             return out;
         }
-        let Some(tool) = task
+        let Ok(tool) = task
             .tool_use_id
             .as_deref()
-            .and_then(|id| id.parse::<ProviderChildId>().ok())
+            .map(str::parse::<ProviderChildId>)
+            .transpose()
         else {
             out.extend(self.gap(ChildGap::IngestionBudget));
             return out;
@@ -34,20 +35,14 @@ impl Children {
             .get(&task_id)
             .cloned()
             .unwrap_or_else(|| task_id.clone());
-        let mut budget = self.budget;
-        if (!self.tasks.contains_key(&task_id)
-            && !budget.pair(task_id.as_str(), canonical.as_str()))
-            || (!self.aliases.contains_key(&tool)
-                && !budget.pair(tool.as_str(), canonical.as_str()))
-        {
-            out.extend(self.gap(ChildGap::IngestionBudget));
-            return out;
-        }
-        if self.aliases.get(&tool).is_some_and(|id| id != &canonical) {
-            out.extend(self.gap(ChildGap::Nesting));
-            return out;
-        }
-        let descriptor = match self.started_descriptor(&canonical, &tool, task) {
+        let budget = match self.reserve_task(&task_id, tool.as_ref(), &canonical) {
+            Ok(budget) => budget,
+            Err(reason) => {
+                out.extend(self.gap(reason));
+                return out;
+            }
+        };
+        let descriptor = match self.started_descriptor(&canonical, tool.as_ref(), task) {
             Ok(descriptor) => descriptor,
             Err(reason) => {
                 out.extend(self.gap(reason));
@@ -63,7 +58,13 @@ impl Children {
         }
         self.budget = budget;
         let _previous = self.tasks.insert(task_id, canonical.clone());
-        let _previous = self.aliases.insert(tool, canonical.clone());
+        if let Some(tool) = tool {
+            let _previous = self.aliases.insert(tool, canonical.clone());
+        } else {
+            // A real task remains visible even when its sidechain alias is absent.
+            // Attribution of earlier/unlabelled activity is not proven.
+            out.extend(self.gap(ChildGap::Retention));
+        }
         if let Some(child) = self
             .entries
             .iter_mut()
@@ -89,10 +90,32 @@ impl Children {
         }
         out
     }
+    fn reserve_task(
+        &self,
+        task: &ProviderChildId,
+        tool: Option<&ProviderChildId>,
+        canonical: &ProviderChildId,
+    ) -> Result<ChildBudget, ChildGap> {
+        let mut budget = self.budget;
+        if (!self.tasks.contains_key(task) && !budget.pair(task.as_str(), canonical.as_str()))
+            || tool.is_some_and(|tool| {
+                !self.aliases.contains_key(tool) && !budget.pair(tool.as_str(), canonical.as_str())
+            })
+        {
+            return Err(ChildGap::IngestionBudget);
+        }
+        if tool
+            .and_then(|tool| self.aliases.get(tool))
+            .is_some_and(|id| id != canonical)
+        {
+            return Err(ChildGap::Nesting);
+        }
+        Ok(budget)
+    }
     fn started_descriptor(
         &self,
         canonical: &ProviderChildId,
-        tool: &ProviderChildId,
+        tool: Option<&ProviderChildId>,
         task: &TaskStarted,
     ) -> Result<ChildDescriptor, ChildGap> {
         let mut descriptor = self
@@ -100,7 +123,12 @@ impl Children {
             .iter()
             .find(|row| &row.descriptor.id == canonical)
             .map_or_else(
-                || identity(canonical.clone(), self.owners.get(tool).cloned()),
+                || {
+                    identity(
+                        canonical.clone(),
+                        tool.and_then(|tool| self.owners.get(tool)).cloned(),
+                    )
+                },
                 |child| child.descriptor.clone(),
             );
         if let Some(kind) = task.subagent_type.as_deref() {
