@@ -152,6 +152,8 @@ pub struct TextField {
 
 mod events;
 use events::{Handlers, listen};
+mod editability;
+pub use editability::Editability;
 
 impl TextField {
     /// A form field showing `placeholder` while empty. Enter in it calls
@@ -164,7 +166,6 @@ impl TextField {
     ) -> Self {
         Self::line(placeholder, on_submit, None, window, cx)
     }
-
     /// The same, also calling `on_change` with the text after every edit
     /// (to say what is wrong with it beside the field as it is typed).
     pub fn with_change<V: 'static>(
@@ -176,7 +177,6 @@ impl TextField {
     ) -> Self {
         Self::line(placeholder, on_submit, Some(on_change), window, cx)
     }
-
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
     /// `on_submit` with the text, Shift+Enter starts a new line.
