@@ -2,6 +2,7 @@
 //! Extracted without changing the reviewed child geometry or paint values.
 use super::MenuItem;
 use super::draw::{LEADING_SLOT, ROW_LINE, SUCCESS_GLYPH};
+use super::hierarchy::{Check, RowProfile};
 use super::item::Leading;
 use crate::{fonts::Type, popup, theme::spacing, widgets::TypeExt as _};
 use gpui::prelude::*;
@@ -38,21 +39,98 @@ fn leading(index: usize, item: &MenuItem, ink: gpui::Hsla) -> Option<AnyElement>
     )
 }
 
+/// Additive slots enter the same frame; a default value is byte-for-behavior
+/// compatible with the legacy row body. Selection adds only a check, not fill.
+#[derive(Default)]
+pub(super) struct Content {
+    pub profile: RowProfile,
+    pub check: Check,
+    pub leading: Option<AnyElement>,
+    pub trailing: Option<AnyElement>,
+}
+
+// ui/menu/menu-geometry.ts:2; legacy compact44 remains its default profile.
+const COMPACT_ROW: f32 = 40.0;
+// menu-item.tsx checkSlot and selected trailing mark both use sixteen.
+const CHECK_GLYPH: f32 = 16.0;
+fn height(profile: RowProfile, narrow: bool) -> f32 {
+    match profile {
+        RowProfile::Legacy => popup::row_height(narrow),
+        RowProfile::Reference if narrow => COMPACT_ROW,
+        RowProfile::Reference => popup::row_height(false),
+    }
+}
+
 pub(super) fn body(
     index: usize,
     item: &MenuItem,
     paint: super::item::Paint,
     narrow: bool,
+    surfaces: &popup::Surfaces,
 ) -> gpui::Stateful<gpui::Div> {
+    enhanced(
+        ElementId::NamedInteger("menu-row".into(), u64::try_from(index).unwrap_or(u64::MAX)),
+        index,
+        item,
+        paint,
+        narrow,
+        surfaces,
+        Content::default(),
+    )
+}
+
+pub(super) fn enhanced(
+    id: ElementId,
+    index: usize,
+    item: &MenuItem,
+    paint: super::item::Paint,
+    narrow: bool,
+    surfaces: &popup::Surfaces,
+    content: Content,
+) -> gpui::Stateful<gpui::Div> {
+    let leading_content = if matches!(item.status, super::ItemStatus::Idle) {
+        content
+            .leading
+            .map(slot)
+            .or_else(|| leading(index, item, paint.glyph))
+    } else {
+        leading(index, item, paint.glyph)
+    };
+    let check_leading = match content.check {
+        Check::Leading(selected) => Some(
+            div()
+                .w(LEADING_SLOT)
+                .flex_none()
+                .flex()
+                .items_center()
+                .justify_center()
+                .children(selected.then(|| {
+                    crate::picker::glyph(
+                        crate::assets::Glyph::Check,
+                        CHECK_GLYPH,
+                        surfaces.foreground,
+                    )
+                })),
+        ),
+        Check::None | Check::Trailing(_) => None,
+    };
+    let trailing = content.trailing.or_else(|| match content.check {
+        Check::Trailing(true) => Some(
+            crate::picker::glyph(
+                crate::assets::Glyph::Check,
+                CHECK_GLYPH,
+                surfaces.foreground_muted,
+            )
+            .into_any_element(),
+        ),
+        Check::None | Check::Leading(_) | Check::Trailing(false) => None,
+    });
     div()
-        .id(ElementId::NamedInteger(
-            "menu-row".into(),
-            u64::try_from(index).unwrap_or(u64::MAX),
-        ))
+        .id(id)
         .flex()
         .items_center()
         .gap(px(spacing::S2))
-        .min_h(px(popup::row_height(narrow)))
+        .min_h(px(height(content.profile, narrow)))
         .mx(px(spacing::S1))
         .px(px(spacing::S2))
         .py(px(spacing::S1))
@@ -63,7 +141,8 @@ pub(super) fn body(
         .opacity(paint.opacity)
         .border_1()
         .border_color(gpui::transparent_black())
-        .children(leading(index, item, paint.glyph))
+        .children(check_leading)
+        .children(leading_content)
         .child(
             div()
                 .flex_shrink(1.0)
@@ -71,4 +150,22 @@ pub(super) fn body(
                 .truncate()
                 .child(crate::picker::one_line(item.words())),
         )
+        .children(trailing.map(|trailing| {
+            div()
+                .ml_auto()
+                .flex()
+                .items_center()
+                .justify_center()
+                .child(trailing)
+        }))
+}
+fn slot(content: AnyElement) -> AnyElement {
+    div()
+        .w(LEADING_SLOT)
+        .flex_none()
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(content)
+        .into_any_element()
 }

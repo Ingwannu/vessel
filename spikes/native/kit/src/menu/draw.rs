@@ -307,7 +307,7 @@ fn row<V: 'static>(
     let wash = surfaces.surface2;
     let get = handlers.state;
     let chose = Rc::clone(&handlers.chose);
-    let mut element = super::row::body(index, item, paint, narrow);
+    let mut element = super::row::body(index, item, paint, narrow, surfaces);
     if item.selectable() {
         let choice = item.clone();
         element = element

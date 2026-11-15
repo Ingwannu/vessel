@@ -99,8 +99,8 @@ mod tests {
         let mut path = Path::default();
         assert!(!path.back());
         assert!(!path.close(PageDepth::ROOT));
-        path.open(id("show"), PageDepth::ROOT);
-        path.open(id("colors"), PageDepth::at(1));
+        assert!(path.open(id("show"), PageDepth::ROOT));
+        assert!(path.open(id("colors"), PageDepth::at(1)));
         assert!(path.contains_at(&id("show"), PageDepth::ROOT));
         assert!(path.contains_at(&id("colors"), PageDepth::at(1)));
         assert!(!path.contains_at(&id("colors"), PageDepth::ROOT));
@@ -109,7 +109,7 @@ mod tests {
         assert!(path.close(PageDepth::at(1)));
         assert_eq!(path.pages(), &[id("show")]);
         assert!(!path.close(PageDepth::at(1)));
-        path.open(id("colors"), PageDepth::at(1));
+        assert!(path.open(id("colors"), PageDepth::at(1)));
         assert!(path.back());
         assert_eq!(path.current(), Some(&id("show")));
         assert!(path.back());
@@ -118,15 +118,15 @@ mod tests {
     #[test]
     fn shared_menu_path_missing_definition_prunes_descendants_and_reopens_at_root() {
         let mut path = Path::default();
-        path.open(id("list"), PageDepth::ROOT);
-        path.open(id("row"), PageDepth::at(1));
+        assert!(path.open(id("list"), PageDepth::ROOT));
+        assert!(path.open(id("row"), PageDepth::at(1)));
         assert!(!path.prune(|_| true));
         assert!(path.prune(|page| page == &id("list")));
         assert_eq!(path.pages(), &[id("list")]);
-        path.open(id("row"), PageDepth::at(1));
+        assert!(path.open(id("row"), PageDepth::at(1)));
         assert!(path.prune(|page| page == &id("row")));
         assert!(path.pages().is_empty());
-        path.open(id("list"), PageDepth::ROOT);
+        assert!(path.open(id("list"), PageDepth::ROOT));
         path.reset();
         assert!(path.current().is_none());
     }

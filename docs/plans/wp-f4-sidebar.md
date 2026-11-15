@@ -522,3 +522,24 @@ child geometry, input handler, QUICK/fill and layer logic while keeping each
 product file under 500 lines. The existing literal geometry/feedback/focus/
 modal tests remain the regression suite; no mirror implementation test is added.
 Runtime/narrow proof of this extraction is still pending.
+
+### Additive hierarchy data and the same row frame
+
+`hierarchy::{Hierarchy,Page,Entry,Role,Subtrigger,Check,Handlers}` wraps the
+existing MenuItem instead of changing its public fields or flat callback.
+An entry is an action with check semantics or a submenu, so setting a value on
+an action cannot silently do nothing. Caller-prepared leading content stays
+in the same sixteen-point rail and pending/success feedback takes precedence.
+The new addressed callback is page plus row, retaining captured owner targets.
+This is list-page data; no custom form/fill-page implementation is claimed.
+
+The extracted row body now accepts additive check/leading/trailing slots and
+an explicit RowProfile. Legacy remains 28/44; Reference uses source 28/40.
+A leading check reserves sixteen points when unchecked; a trailing unchecked
+value adds no column. Checked values add no selection fill. Leading checks
+use neutral foreground and trailing checks muted foreground independently of
+a destructive label or success feedback. The original flat entry delegates
+with default-empty slots. Literal GPUI fixtures in both themes check 28/44/40
+heights, the 13-point content rail, and the 37-point label rail after a reserved
+check. Execution remains pending; this is not a complete hierarchy renderer,
+page input/hover controller, compact sheet, Sidebar first-use or F4 approval.
