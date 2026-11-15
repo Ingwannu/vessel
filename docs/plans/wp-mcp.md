@@ -144,7 +144,10 @@ changes or captures are required by this node-only package.
 
 - Done: baseline/source survey and full 41-row correspondence; reused the
   committed tool-name enum; original ADR review corrections are recorded.
-- In progress: typed existing-call wrappers, policy/injection and skills
-  contracts. No new method is registered.
+- Done: nine existing-call wrappers (session get/cancel/rename/option,
+  schedule get/update, harness/profile/options) with fake-node integration
+  coverage adapted from the previous implementation draft.
+- In progress: policy/injection and skills contracts. No new RPC method is
+  registered; wrappers use existing calls. Compilation is pending.
 - Next: fill existing node adapters, stage missing services, narrow checks;
   wire only after the shared method-table gate, then package gate/review.

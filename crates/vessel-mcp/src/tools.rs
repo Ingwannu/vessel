@@ -25,10 +25,12 @@
 mod args;
 mod automation;
 mod conversation;
+mod driving;
 mod forge;
 mod forking;
 mod id;
 mod lsp;
+mod offer;
 mod search;
 mod sessions;
 mod terminals;
@@ -172,6 +174,28 @@ impl VesselTools {
                 let _ack = self.on(node, KillSession { session }).await?;
                 Ok(json!({ "killed": session }))
             }
+            id::ToolId::Added(tool) => self.added(tool, args).await,
+        }
+    }
+
+    /// Encode a parity tool's protocol value as the MCP result.
+    async fn added(&self, tool: id::AddedId, args: &JsonObject) -> Result<Value, ToolError> {
+        match tool {
+            id::AddedId::GetSession => Ok(json!(self.get_session(args).await?)),
+            id::AddedId::CancelTurn => {
+                let cancelled = self.cancel_turn(args).await?;
+                Ok(match cancelled.turn {
+                    Some(turn) => json!({ "cancelled": cancelled.cancelled, "turn": turn }),
+                    None => json!({ "cancelled": cancelled.cancelled }),
+                })
+            }
+            id::AddedId::RenameSession => Ok(json!(self.rename_session(args).await?)),
+            id::AddedId::SetSessionOption => Ok(json!(self.set_session_option(args).await?)),
+            id::AddedId::GetSchedule => Ok(json!(self.get_schedule(args).await?)),
+            id::AddedId::UpdateSchedule => Ok(json!(self.update_schedule(args).await?)),
+            id::AddedId::ListHarnesses => Ok(json!(self.list_harnesses(args).await?)),
+            id::AddedId::ListProfiles => Ok(json!(self.list_profiles(args).await?)),
+            id::AddedId::HarnessOptions => Ok(json!(self.harness_options(args).await?)),
         }
     }
 
@@ -311,6 +335,7 @@ fn tools() -> Vec<Tool> {
     let node = node_schema();
     session_tools(&node, &session)
         .into_iter()
+        .chain(driving::tools(&node, &session))
         .chain(conversation::tools(&node, &session))
         .chain(search::tools(&node, &session))
         .chain(forking::tools(&node, &session))
@@ -318,6 +343,7 @@ fn tools() -> Vec<Tool> {
         .chain(forge::tools(&node, &session))
         .chain(terminals::tools(&node))
         .chain(automation::tools())
+        .chain(offer::tools(&node))
         .chain(lsp::tools())
         .collect()
 }
