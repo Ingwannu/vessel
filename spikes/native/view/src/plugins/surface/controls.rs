@@ -94,6 +94,7 @@ pub(super) fn behavior<'a>(
                 availability,
                 behavior: selected,
                 title: selected_title,
+                ..
             } => {
                 if *availability != Availability::Enabled {
                     return Err(SurfaceProblem::Disabled);

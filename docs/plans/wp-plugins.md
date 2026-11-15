@@ -561,3 +561,8 @@ Direct callback delivery intentionally bypasses the shared UI input fence so
 that fence cannot conceal a missing owner guard. No network or browser opens.
 The original security assertions and live positive control remain required.
 These new assertions have not executed yet; original returned records remain.
+
+Precompile source inspection found that the extracted MenuEntry pattern omitted
+its unused id field. Restoring the existing .. pattern changes no selected
+identity, availability check, assertion or data. The own queued previous check
+was superseded before compilation; no executed failure/pass is inferred.
