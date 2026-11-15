@@ -471,3 +471,10 @@ The separately registered four-crate strict run on `392f2fcc0` remains queued;
 it predates this base merge. No duplicate replacement was submitted. Current
 union tests must include the new search-opening regression. Registry wiring
 still waits for announced base 9, and both external adapter drafts stay unapplied.
+
+The four-crate strict run `wp-labels-narrow-20261115T155619Z-392f2fcc` reached
+App and stopped on five owned lints: two missing documentation backticks and
+three change handlers taking an unconsumed String. Callback closures now accept
+the kit's owned string and borrow it into internal handlers. No kit signature,
+behavior, allowance or test assertion changed. This log is retained as RED;
+current execution and strict acceptance remain owed.

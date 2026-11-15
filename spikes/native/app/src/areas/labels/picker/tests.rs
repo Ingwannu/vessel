@@ -283,7 +283,7 @@ fn labels_replaced_create_field_cannot_deliver_queued_text_to_its_successor(
         shell.labels_picker_create(first, window, cx);
         let source = shell.areas.labels.picker.as_ref().unwrap().name.id();
         cx.defer_in(window, move |shell, _window, cx| {
-            field_changed(shell, source, "stale editor text".to_owned(), cx);
+            field_changed(shell, source, "stale editor text", cx);
         });
         shell.labels_picker_open(target, Vec::new(), EditAccess::Editable, window, cx);
         let next = shell.areas.labels.picker.as_ref().unwrap().opening;

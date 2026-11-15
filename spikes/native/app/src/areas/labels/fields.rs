@@ -2,7 +2,7 @@
 //!
 //! [Decision Log]
 //! - Purpose: queued edits from a replaced editor must not change a new draft.
-//! - Constraint: the shared field now supplies engine-owned FieldId callbacks.
+//! - Constraint: the shared field now supplies engine-owned `FieldId` callbacks.
 //! - Choice: use that existing API and replace the editor on a new edit target;
 //!   retain the same editor through async/language changes for selection/copy.
 //!   Search gets a fresh field per opening and accepts input only in its visible
@@ -23,13 +23,13 @@ pub(super) fn search(
     TextField::with_source(
         placeholder,
         |_shell: &mut Shell, _source, _text, _window, _cx| {},
-        search_changed,
+        |shell, source, text, cx| search_changed(shell, source, &text, cx),
         window,
         cx,
     )
 }
 
-fn search_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
+fn search_changed(shell: &mut Shell, source: FieldId, text: &str, cx: &mut Context<'_, Shell>) {
     let state = &mut shell.areas.labels;
     if state.opening.is_none()
         || state.search.id() != source
@@ -37,7 +37,7 @@ fn search_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Con
     {
         return;
     }
-    state.manager.search(&text);
+    state.manager.search(text);
     cx.notify();
 }
 
@@ -49,13 +49,13 @@ pub(super) fn manager(
     TextField::with_source(
         placeholder,
         |_shell: &mut Shell, _source, _text, _window, _cx| {},
-        changed,
+        |shell, source, text, cx| changed(shell, source, &text, cx),
         window,
         cx,
     )
 }
 
-fn changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
+fn changed(shell: &mut Shell, source: FieldId, text: &str, cx: &mut Context<'_, Shell>) {
     let state = &mut shell.areas.labels;
     if state.name.id() != source {
         return;
@@ -67,7 +67,7 @@ fn changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_
         return;
     }
     if let Some(draft) = state.manager.draft_mut() {
-        draft.set_text(&text);
+        draft.set_text(text);
         cx.notify();
     }
 }
@@ -92,10 +92,10 @@ mod tests {
         shell.update_in(cx, |shell, window, cx| {
             shell.labels_open(window, cx);
             let source = shell.areas.labels.search.id();
-            search_changed(shell, source, "old query".to_owned(), cx);
+            search_changed(shell, source, "old query", cx);
             assert_eq!(shell.areas.labels.manager.query(), "old query");
             cx.defer_in(window, move |shell, _window, cx| {
-                search_changed(shell, source, "queued old query".to_owned(), cx);
+                search_changed(shell, source, "queued old query", cx);
             });
             let state = &shell.areas.labels;
             let dismissal = super::super::surface::Dismiss::capture(
@@ -103,7 +103,7 @@ mod tests {
                 state.manager.state(),
             );
             shell.labels_close(dismissal, window, cx);
-            search_changed(shell, source, "hidden query".to_owned(), cx);
+            search_changed(shell, source, "hidden query", cx);
             assert!(shell.areas.labels.manager.query().is_empty());
             shell.labels_open(window, cx);
             assert_ne!(source, shell.areas.labels.search.id());
@@ -112,7 +112,7 @@ mod tests {
         shell.update(cx, |shell, cx| {
             assert!(shell.areas.labels.manager.query().is_empty());
             let source = shell.areas.labels.search.id();
-            search_changed(shell, source, "fresh query".to_owned(), cx);
+            search_changed(shell, source, "fresh query", cx);
             assert_eq!(shell.areas.labels.manager.query(), "fresh query");
         });
     }
@@ -142,7 +142,7 @@ mod tests {
             state.manager.edit(label).unwrap();
             let source = state.name.id();
             cx.defer_in(window, move |shell, _window, cx| {
-                changed(shell, source, "stale".to_owned(), cx);
+                changed(shell, source, "stale", cx);
             });
             state.name = manager("", window, cx);
             assert_ne!(source, state.name.id());
@@ -154,7 +154,7 @@ mod tests {
                 "Ready"
             );
             let source = shell.areas.labels.name.id();
-            changed(shell, source, "fresh".to_owned(), cx);
+            changed(shell, source, "fresh", cx);
             assert_eq!(
                 shell.areas.labels.manager.state().draft().unwrap().text(),
                 "fresh"

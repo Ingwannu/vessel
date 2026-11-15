@@ -4,7 +4,7 @@
 //! - Purpose: prepare the whole workflow without inferring a workspace owner.
 //! - Constraint: the reviewed native registry row/header caller is not present.
 //! - Choice: literal cfg(test) registration until that real caller can supply
-//!   WorkspaceTarget, ordered names and active/read-only policy. No fake route.
+//!   `WorkspaceTarget`, ordered names and active/read-only policy. No fake route.
 //! - Tradeoff: tests compile/render this adapter; it is not a shipped entry yet.
 
 mod create;
@@ -227,7 +227,7 @@ fn field_submitted(
     }
 }
 
-fn field_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Context<'_, Shell>) {
+fn field_changed(shell: &mut Shell, source: FieldId, text: &str, cx: &mut Context<'_, Shell>) {
     let state = &mut shell.areas.labels;
     let Some(picker) = &state.picker else {
         return;
@@ -238,13 +238,19 @@ fn field_changed(shell: &mut Shell, source: FieldId, text: String, cx: &mut Cont
     if let Some(picker) = &mut state.picker
         && let Some(draft) = picker.page.draft_mut()
     {
-        draft.set_text(&text);
+        draft.set_text(text);
         cx.notify();
     }
 }
 
 fn name_field(placeholder: &str, window: &mut Window, cx: &mut Context<'_, Shell>) -> TextField {
-    TextField::with_source(placeholder, field_submitted, field_changed, window, cx)
+    TextField::with_source(
+        placeholder,
+        field_submitted,
+        |shell, source, text, cx| field_changed(shell, source, &text, cx),
+        window,
+        cx,
+    )
 }
 
 fn next_opening(state: &mut super::Labels) -> Option<Opening> {
