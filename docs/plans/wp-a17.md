@@ -394,3 +394,10 @@ The response dispatcher delegates list and presence settlement to small typed
 helpers; notification settings separate platform permission/test status rows.
 This preserves the same behavior while keeping each function within strict
 Clippy size limits, without lint exceptions or increasing file-size records.
+
+Workspace/icon/dock projections accept explicit optional facts: unknown
+membership, root role or attention yields unknown, never empty/Done/zero.
+A genuinely empty known workspace remains Done. W11 also confirms that an
+Attached child in a known different workspace can be a root relative to this
+workspace; callers must use the canonical workspace-relative role seam rather
+than blanket-excluding Attached or using immutable Creator as current parentage.
