@@ -1,7 +1,8 @@
 # Original notification recipient and root identity
 
-Status: shared helper source prepared; changed-source narrow checks and bounded
-review are owed. This is not a desktop registry or whole A5 handoff.
+Status: exact993c60b5 Kit all-target strict and the root_owner GPUI test pass.
+Bounded V1 source review is still owed. This is not a desktop registry or whole
+A5 handoff; the current documentation successor changes no Rust source.
 
 [Decision Log]
 - Purpose: notification and desktop host callbacks must not send an old source
@@ -28,3 +29,13 @@ manual Result-to-Option predicate lint. It is corrected to Result::is_ok_and;
 no runtime/ownership behavior changes. The sequential wrapper stopped before
 the test. The failed evidence remains recorded; corrected normal-lane checks
 and V1 source review are still required before adoption.
+
+Actual exact-source evidence:
+
+- wp-inbox-adapter-20261115T164833Z-993c60b5: Kit all-target strict rc0,33s.
+- wp-inbox-tests-20261115T171102Z-993c60b5: actual Kit compilation and one
+  root_owner GPUI case1/0/0,339s build plus the test.
+
+The corrected checks ran sequentially in the normal short lane, with no second
+priority allowance. App consumer platform/window tests are separate evidence
+and do not promote an unreviewed host registry or OS delivery.
