@@ -14,6 +14,12 @@ actions!(
         ZoomIn,
         ZoomOut,
         ActualSize,
+        Undo,
+        Redo,
+        Cut,
+        Copy,
+        Paste,
+        SelectAll,
         Fullscreen,
         Reload,
         ForceReload,
@@ -123,7 +129,17 @@ fn action(item: Item) -> Box<dyn gpui::Action> {
             DesktopAction::ActualSize => Box::new(ActualSize),
             DesktopAction::Fullscreen => Box::new(Fullscreen),
         },
-        Item::Edit(edit) => menus::edit_action(edit),
+        // Native menu invocations must pass the same recorder admission before
+        // dispatching kit editing actions to the current input. Passing the kit
+        // action here would bypass that gate when native menu state is stale.
+        Item::Edit(edit) => match edit {
+            menus::Edit::Undo => Box::new(Undo),
+            menus::Edit::Redo => Box::new(Redo),
+            menus::Edit::Cut => Box::new(Cut),
+            menus::Edit::Copy => Box::new(Copy),
+            menus::Edit::Paste => Box::new(Paste),
+            menus::Edit::SelectAll => Box::new(SelectAll),
+        },
         Item::Reload => Box::new(Reload),
         Item::ForceReload => Box::new(ForceReload),
         Item::Minimize => Box::new(Minimize),
@@ -149,6 +165,12 @@ pub(super) fn listen(cx: &mut App) {
     route!(ZoomIn, Item::Desktop(DesktopAction::ZoomIn));
     route!(ZoomOut, Item::Desktop(DesktopAction::ZoomOut));
     route!(ActualSize, Item::Desktop(DesktopAction::ActualSize));
+    route!(Undo, Item::Edit(menus::Edit::Undo));
+    route!(Redo, Item::Edit(menus::Edit::Redo));
+    route!(Cut, Item::Edit(menus::Edit::Cut));
+    route!(Copy, Item::Edit(menus::Edit::Copy));
+    route!(Paste, Item::Edit(menus::Edit::Paste));
+    route!(SelectAll, Item::Edit(menus::Edit::SelectAll));
     route!(Fullscreen, Item::Desktop(DesktopAction::Fullscreen));
     route!(Reload, Item::Reload);
     route!(ForceReload, Item::ForceReload);

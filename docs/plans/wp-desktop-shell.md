@@ -433,6 +433,13 @@ and clipboard before redraw; the shortcut owner stages its real Capture test
 against the same predicate and adapter. No new shortcut table, recorder, capture
 visibility or test-only product hook is introduced. Changed-source checks remain
 pending and the staged owner regression has not been executed here.
+Native edit menu entries now use typed desktop Undo/Redo/Cut/Copy/Paste/SelectAll
+actions routed through that same admission before forwarding to kit editing.
+Returning a kit action directly from native menu construction bypassed the gate
+if the OS still retained an older enabled menu. The focused input still owns
+editing semantics; no clipboard implementation or shortcut binding is added.
+This native edit routing follow-up is source-only until its next changed-source
+check; the earlier popup regression is not a native OS menu/recorder verdict.
 Windows check3 on552 independently confirmed the Shell import cascade and also
 found that App test waits named Linux-only futures_lite. The source now uses one
 test-only std Wake/park helper with a10s deadline. It intentionally does not pump
