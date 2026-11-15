@@ -3,6 +3,7 @@
 
 mod archive;
 mod deletion;
+mod discovery;
 mod handover;
 mod subagents;
 

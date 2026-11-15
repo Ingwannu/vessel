@@ -26,6 +26,7 @@
 mod archive;
 
 mod error;
+mod file_panels;
 mod files;
 mod forge;
 mod git;

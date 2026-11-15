@@ -497,6 +497,7 @@ impl Sessions {
 pub(crate) mod again;
 mod archive;
 mod conversation;
+mod discovery;
 mod marks;
 mod read;
 mod side_questions;
