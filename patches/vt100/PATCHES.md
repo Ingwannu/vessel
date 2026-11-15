@@ -51,3 +51,8 @@ No byte parser, runtime, PTY, toolkit, or harness is added to the upstream crate
    marker mappings while cell construction remains unchanged. Region scrolling
    preserves marker coordinates as the pinned reference does; row contents may
    change. Marker creation/replacement validates before retiring prior state.
+
+9. Expose the existing cell-content capacity and Unicode width measurement as
+   readonly facade metadata. Why: validated wire/display cells must use the
+   same table and ceiling without another dependency, parser or mutable grid
+   restoration. No terminal interpretation or stored cell layout changes.

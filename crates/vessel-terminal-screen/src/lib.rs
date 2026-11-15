@@ -1,5 +1,6 @@
 //! One pure terminal interpreter. Actors own bytes/PTY ordering; views own drawing.
 //! vt100 is private to this crate. No runtime, filesystem, environment or toolkit.
+mod ansi;
 mod cell;
 mod frame;
 mod geometry;
@@ -11,6 +12,7 @@ mod projection;
 mod queries;
 mod range;
 
+pub use ansi::{AnsiFrame, MAX_ANSI_FRAME_BYTES, paint_cells, paint_frame};
 pub use cell::{
     Attributes, BufferKind, Cell, Color, Column, Cursor, Row, Style, Visibility, Width,
 };
@@ -78,6 +80,12 @@ pub enum ScreenError {
     /// Replacement names an already released handle.
     #[error("terminal viewport marker was released")]
     MarkerReleased,
+    /// A wire/display cell cannot inject control sequences or exceed cell storage.
+    #[error("terminal display cell contents are invalid")]
+    CellContents,
+    /// A full physical display update exceeds its admitted serialized-byte budget.
+    #[error("terminal display frame exceeds its byte budget")]
+    DisplayTooLarge,
 }
 
 #[cfg(test)]

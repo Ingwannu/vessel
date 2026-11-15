@@ -22,7 +22,7 @@
 
 ## Staging boundary
 
-The initial renderer and adapters are test-only until typed frame transport,
+The initial pure renderer is not connected to attach until typed frame transport,
 old-peer compatibility and ownership are agreed and checked. No runtime
 attach cutover, new RPC, query delegation or NodeAuthority activation occurs.
 The frozen engine producer at2807 is unchanged in its own worktree/whole gate.
@@ -43,5 +43,25 @@ that lifecycle. Output ANSI is a physical display backend, never engine replay.
 
 ## Resume
 
-Renderer/readonly cell construction and tests are next. No new compile result,
+A pure bounded display serializer and readonly cell constructors are staged
+inside the existing screen facade. The CLI will call that single serializer;
+no separate renderer/parser crate or GUI control is added. Validation rejects
+cell control injection before the caller obtains any output bytes. Program
+cursor shape remains inherited rather than guessed in this first stage.
+Renderer/readonly cell construction tests are next. No new compile result,
 consumer integration, ANSI oracle or visual evidence exists for this branch.
+
+## Staged implementation and next verification
+
+The pure serializer is implemented with one callback adapter for engine or
+wire cells, a1MiB encoded-byte ceiling, early cursor/cell validation, explicit
+positions, default-blank skipping and clipped-wide handling. Modes replace
+local Kitty flags at the current stack entry; enter_display supplies one push
+for the CLI guard to pop later. No runtime CLI caller is connected yet.
+Read-only constructors validate control-free cell text and declared span
+against the vendored engine width table, with the original22-byte ceiling.
+Tests include injection/geometry/pair refusal, early byte-budget termination
+and four stdout-only probe cases for an independent pinned terminal oracle.
+No process/filesystem/environment/toolkit or testkit dependency is added.
+Probe export is data generation, not a terminal-parity test; the independent
+oracle must run and be inspected separately. Source checks remain owed.

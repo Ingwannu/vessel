@@ -70,21 +70,31 @@ pub struct Attributes {
 }
 impl Attributes {
     pub(crate) fn of(cell: &vt100::Cell) -> Self {
-        let mut styles = 0;
-        for (on, style) in [
-            (cell.bold(), Style::Bold),
-            (cell.dim(), Style::Dim),
-            (cell.italic(), Style::Italic),
-            (cell.underline(), Style::Underline),
-            (cell.inverse(), Style::Inverse),
-        ] {
-            if on {
-                styles |= style.bit();
-            }
-        }
+        Self::new(
+            cell.fgcolor().into(),
+            cell.bgcolor().into(),
+            [
+                (cell.bold(), Style::Bold),
+                (cell.dim(), Style::Dim),
+                (cell.italic(), Style::Italic),
+                (cell.underline(), Style::Underline),
+                (cell.inverse(), Style::Inverse),
+            ]
+            .into_iter()
+            .filter_map(|(on, style)| on.then_some(style)),
+        )
+    }
+    /// Decode readonly wire ink without constructing a mutable decoder or guessing flags.
+    #[must_use]
+    pub fn new(
+        foreground: Color,
+        background: Color,
+        styles: impl IntoIterator<Item = Style>,
+    ) -> Self {
+        let styles = styles.into_iter().fold(0, |bits, style| bits | style.bit());
         Self {
-            foreground: cell.fgcolor().into(),
-            background: cell.bgcolor().into(),
+            foreground,
+            background,
             styles,
         }
     }
@@ -112,6 +122,23 @@ pub struct Cell<'a> {
     attributes: Attributes,
 }
 impl<'a> Cell<'a> {
+    /// Validate a readonly wire/display cell; this never restores mutable parser state.
+    ///
+    /// # Errors
+    /// Refuses control injection, oversized content and inconsistent empty/wide metadata.
+    pub fn from_parts(
+        text: &'a str,
+        width: Width,
+        attributes: Attributes,
+    ) -> Result<Self, crate::ScreenError> {
+        validate_display_text(text, width)?;
+        Ok(Self {
+            text,
+            width,
+            attributes,
+        })
+    }
+
     pub(crate) fn of(body: &'a vt100::Cell, lead: &vt100::Cell) -> Self {
         let width = if body.is_wide_continuation() {
             Width::Continuation
@@ -168,4 +195,20 @@ pub struct Cursor {
     pub column: Column,
     /// Program-requested visibility, never presentation/blink state.
     pub visibility: Visibility,
+}
+
+pub(crate) fn validate_display_text(text: &str, width: Width) -> Result<(), crate::ScreenError> {
+    if text.len() > vt100::Cell::MAX_CONTENT_BYTES {
+        return Err(crate::ScreenError::CellContents);
+    }
+    let measured = vt100::Cell::text_width(text);
+    let valid = match width {
+        Width::One => text.is_empty() || measured == 1,
+        Width::Two => !text.is_empty() && measured == 2,
+        Width::Continuation => text.is_empty(),
+    };
+    if !valid || text.len() > vt100::Cell::MAX_CONTENT_BYTES || text.chars().any(char::is_control) {
+        return Err(crate::ScreenError::CellContents);
+    }
+    Ok(())
 }

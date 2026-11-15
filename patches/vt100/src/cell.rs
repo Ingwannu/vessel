@@ -30,6 +30,15 @@ impl PartialEq<Self> for Cell {
 }
 
 impl Cell {
+    /// Published cell storage ceiling for readonly frame decoding at the facade edge.
+    pub const MAX_CONTENT_BYTES: usize = CONTENT_BYTES;
+
+    /// Readonly display-cell validation uses the engine's existing width table.
+    #[must_use]
+    pub fn text_width(text: &str) -> usize {
+        text.width()
+    }
+
     pub(crate) const DEFAULT: Self = Self::new();
 
     pub(crate) const fn new() -> Self {

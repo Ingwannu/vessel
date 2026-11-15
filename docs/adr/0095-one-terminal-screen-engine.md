@@ -223,3 +223,18 @@ separate route. Exactly-once is not claimed for that exception. This limitation
 is necessary while preserving the approved unchanged legacy span; tickets
 alone cannot constrain old clients that never send a settlement acknowledgement.
 NodeAuthority remains off until the reviewed responder contract and whole pass.
+
+## Proposed CLI display serializer
+
+A pure bounded ANSI display serializer consumes typed readonly cells from a
+borrowed engine frame or a future validated wire-frame adapter. Upstream's
+whole-grid formatter cannot consume that selected viewport/wire representation
+without rebuilding a decoder. This serializer never reads/writes a terminal,
+uses environment/files, answers queries or feeds ANSI into the source engine.
+CLI stdout, raw-mode lifecycle and transport remain outside the library.
+Readonly cell construction rejects control injection, storage overflow and
+width-span mismatch using the same engine's Unicode width table. It does not
+restore mutable state. Wide cells cropped at the physical right edge use a
+blank span rather than wrapping/scrolling the display. Program cursor shape
+is not yet projected; the host's chosen shape is left untouched in this step.
+This amendment is staged and has no runtime attach cutover or approval yet.
