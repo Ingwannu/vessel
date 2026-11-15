@@ -230,9 +230,10 @@ visible progress. Existing proxy decoder behavior remains unchanged.
 `MAX_COMPLETION_BYTES` is the one response-byte bound, shared with the
 caller's HTTP limit. A normal explicit end/status is required; missing,
 unknown or incomplete endings, declared errors, tool/refusal content,
-non-text output and multiple Chat choices are unusable. Reported usage and
-known stop reasons survive output refusal rather than being fabricated as
-an end turn. Credentials are checked on both the raw envelope and decoded
+non-text output and multiple Chat choices are unusable. Successfully
+decoded API envelopes retain reported usage and known stops when output is
+refused, rather than fabricating an end turn. A body that cannot decode as
+its API has unknown counts and stop; partial fields are not inferred. Credentials are checked on both the raw envelope and decoded
 text with the existing Redactor; node schema decoding checks the final
 value too. Completion text and errors have safe Debug output. JSON causes
 stay typed behind a safe diagnostic wrapper because serde messages may

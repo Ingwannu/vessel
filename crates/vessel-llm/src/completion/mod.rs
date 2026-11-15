@@ -1,6 +1,8 @@
 //! Strict, bounded tool-free complete replies. Provider grammar stays here;
 //! routing, credentials, semantic JSON and publishing belong to the caller.
 
+#[cfg(test)]
+mod api_tests;
 mod read;
 #[cfg(test)]
 mod tests;
@@ -14,6 +16,9 @@ use std::{fmt, sync::Arc};
 
 /// The whole-reply byte cap, also used by the caller's HTTP policy.
 pub const MAX_COMPLETION_BYTES: usize = 64 * 1024;
+
+// Metadata consumers request one plain answer, never select among candidates.
+const COMPLETION_OUTPUTS: usize = 1;
 
 /// A text result whose Debug representation cannot quote provider content.
 #[derive(Clone, PartialEq, Eq)]
@@ -91,9 +96,9 @@ pub enum CompletionError {
     /// Never repair a missing, unknown or incomplete ending.
     #[error("provider did not explicitly finish a normal turn")]
     NotComplete,
-    /// API support is staged separately; it is never guessed from text.
-    #[error("complete replies for {0:?} are not supported")]
-    UnsupportedApi(Api),
+    /// Never choose one of multiple answers or guess an absent result.
+    #[error("completion must contain exactly {COMPLETION_OUTPUTS} answer")]
+    Outputs,
     /// Tool calls are refused even when the finish reason says stop.
     #[error("completion contains a tool call")]
     Tool,
@@ -132,7 +137,8 @@ pub fn decode(api: Api, bytes: &[u8], redactor: &Redactor) -> Completion {
         let failed = json::<ErrorHeader>(text)?.error.is_some();
         let answer = match api {
             Api::AnthropicMessages => read::anthropic(text),
-            Api::OpenAiResponses | Api::OpenAiChat => Err(CompletionError::UnsupportedApi(api)),
+            Api::OpenAiResponses => read::responses(text),
+            Api::OpenAiChat => read::chat(text),
         };
         if failed {
             // An error-only body has no accounting. A complete envelope
@@ -177,7 +183,7 @@ fn finish(
             | CompletionError::Decode(_)
             | CompletionError::Failed
             | CompletionError::NotComplete
-            | CompletionError::UnsupportedApi(_)
+            | CompletionError::Outputs
             | CompletionError::Unsupported
             | CompletionError::Empty
             | CompletionError::QuotedKey,
@@ -201,4 +207,11 @@ fn finish(
         Ok(CompletionText(Arc::from(text)))
     });
     Completion { usage, stop, text }
+}
+
+fn only<T>(mut values: Vec<T>) -> Result<T, CompletionError> {
+    if values.len() != COMPLETION_OUTPUTS {
+        return Err(CompletionError::Outputs);
+    }
+    values.pop().ok_or(CompletionError::Outputs)
 }
