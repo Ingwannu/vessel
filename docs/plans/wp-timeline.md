@@ -999,3 +999,14 @@ installed Area. Both owners have been informed; the temporary child frame has
 no scoped find, and the final keyed finder/installation handshake is still owed.
 No global find_grew fallback, dropped input or default-recreated controller is
 claimed as that migration.
+
+Actual 0ce app/kit and strict runs completed 13:12/13:13 UTC without executing
+tests: both found duplicate connection_epoch in the merged W1/W12 Machine test
+literal. Exactly the duplicate fixture field is removed; no W1 controller or
+search algorithm changes. Strict also reported the already-fixed qualified Seat
+test import and ToolView rustdoc plus needless ownership in borrowed_body.
+The helper now borrows &ElementId, and BorrowedDetail is Clone+Copy of borrowed
+DTO/failure refs and content-loading state. Child IDs still own structural parent
+clones; no borrowed element identity escapes. The corrected current-source
+checks remain owed, and the old exact logs remain in resident-seat-tests and
+resident-seat-narrow; no GPUI/test pass is inferred from their compilation.

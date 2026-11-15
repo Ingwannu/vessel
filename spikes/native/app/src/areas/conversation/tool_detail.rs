@@ -119,7 +119,7 @@ pub(super) fn body(
 ) -> Div {
     borrowed_body(
         paint,
-        ElementId::NamedInteger("canonical-tool".into(), super::entries::id(index)),
+        &ElementId::NamedInteger("canonical-tool".into(), super::entries::id(index)),
         BorrowedDetail {
             detail,
             state: if source.tool().working() {
@@ -144,6 +144,7 @@ pub(super) enum DetailContentState {
 
 /// Shared borrowed body for canonical timeline and permission presentation DTOs.
 /// The caller retains identity/disclosure/approval; no `ToolView` or log is needed.
+#[derive(Clone, Copy)]
 pub(super) struct BorrowedDetail<'a> {
     pub(super) detail: &'a ToolCallDetail,
     pub(super) state: DetailContentState,
@@ -152,7 +153,7 @@ pub(super) struct BorrowedDetail<'a> {
 
 pub(super) fn borrowed_body(
     paint: &Paint<'_>,
-    id: ElementId,
+    id: &ElementId,
     source: BorrowedDetail<'_>,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
@@ -166,7 +167,7 @@ pub(super) fn borrowed_body(
     if sections.is_empty() && reported.is_none() {
         return div().child(super::tool_sheet::empty_at(
             paint,
-            child_id(&id, "loading"),
+            child_id(id, "loading"),
             match state {
                 DetailContentState::Loading => true,
                 DetailContentState::Ready => false,
@@ -180,7 +181,7 @@ pub(super) fn borrowed_body(
         .children(sections.iter().enumerate().map(|(part, section)| {
             section_body(
                 paint,
-                child_id(&id, &format!("section-{part}")),
+                child_id(id, &format!("section-{part}")),
                 section,
                 window,
                 cx,
@@ -188,7 +189,7 @@ pub(super) fn borrowed_body(
         }))
         .children(
             reported
-                .map(|reported| failure_at(paint, child_id(&id, "failure"), reported, window, cx)),
+                .map(|reported| failure_at(paint, child_id(id, "failure"), reported, window, cx)),
         )
 }
 
