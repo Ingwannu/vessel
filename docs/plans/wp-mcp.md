@@ -146,12 +146,16 @@ on malformed wire input is not accepted.
 
 Per commit: fmt, size/boundaries and narrow changed-crate checks. One whole
 root gate at package end on the exact commit through the remote gate. All
-fixtures use temporary synthetic homes and fake harnesses. No native UI
-changes or captures are required by this node-only package.
+fixtures use temporary synthetic homes and fake harnesses. This gate covers
+the node half only. The package also owns the native Skills settings section
+(row 594): its separate root-zero consumer requires the current app-base
+union, guarded delivery, native gate, inspected captures and native review.
+Onboarding consumes that owner; it does not duplicate settings storage.
 
 ## Current implementation and integration boundary
 
-Gate40 ba45a6e3 and the green gate42 node head d432ef0f are merged. Nine pending rows are at the end of the single
+The announced gate53 node head `93970acb` and its earlier green bases are
+merged. Nine pending rows are at the end of the single
 `rpc/table.rs`: five local Admin skills calls and four forwardable prompt
 tracking calls. `MCP_PARITY=None`; the integrator assigns the number at the
 wiring merge. Skills JSON needs no SQLite schema number. No HTTP listener,
@@ -160,7 +164,7 @@ agent grant expansion, browser engine or voice playback is enabled here.
 | Area | Current source | Remaining boundary |
 | --- | --- | --- |
 | Existing-call MCP facade | get_session with current permissions; cancel_turn; rename_session; set_session_option; get/update_schedule; list_harnesses; account list_profiles; harness_options; list_pending_permissions | Provider catalogue, named launch bundles and lifecycle query/update contracts remain with their owners |
-| Tool edge | Typed ToolId, immutable exact-provider policy for list/direct call, machine alias, selector refusal, identical structured/text JSON success | Browser/voice producers must add their own admission and readiness |
+| Tool edge | Typed ToolId, immutable exact-provider policy for list/direct call, machine alias, selector refusal, revision-compatible structured success and unchanged JSON text | Actual compatibility suite is queued; browser/voice producers must add their own admission and readiness |
 | Launch | Title, typed bounded options, existing labels; default notify; steer when supported, otherwise interrupt | W3 owns asynchronous creation receipt acknowledgement; no parallel receipt store here |
 | Settings | Partial mcp edits, private fresh/upgrade migration, snapshot before credential creation, cancellation-independent bounded persistence | Pending feature assignment, reviewed consumer handover |
 | Skills | Shipped bundle, safe filesystem sync/recovery, single node writer, typed client calls, selection persistence/import | Pending feature assignment; human-facing confirmation belongs to the client |
@@ -172,8 +176,10 @@ not consumer-ready. Person-only receipts and Owner/Device-only host
 registrations do not become agent authorization. Account profiles and model
 routing are not substitutes for launch bundles or provider discovery. The
 lifecycle gate in Call::since is the sole label admission gate; there is no
-second MCP-specific protocol check. Label mutation/query facades wait for
-reviewed types. No unreviewed foreign runtime is adopted.
+second MCP-specific protocol check. The reviewed lifecycle query types are now landed, with their None gate;
+legacy list adapters preserve the implicit null request. Explicit selection
+facade support and label mutations remain incomplete, and no SetLabels type
+is invented. No unreviewed foreign runtime is adopted.
 
 ## Settings, cancellation and launch decision
 
