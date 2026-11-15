@@ -29,7 +29,7 @@ their authenticated owner adapters; desktop never substitutes a book alias.
 ## Current status
 
 Implementation is source under integration, not a completed parity claim. The
-latest application base is the package line9e18cf0db (base5 + shared pane producer),
+latest application base is the package line 9e18cf0db (base 5 + shared pane producer),
 merged in a3dc5c099. No node head was merged directly into this application tree.
 There is no final whole native gate, inspected capture set or V4 package verdict.
 Shared producer review and narrow checks do not substitute for those proofs.
@@ -81,7 +81,7 @@ window observes the resulting canonical revision with pending local edits rebase
 
 The primary restores validated geometry (1200×800 default,400×300 minimum),
 clamped to visible work areas. Additional windows start independently. Geometry
-writes debounce400ms, serialize, and flush the latest state at exit; malformed or
+writes debounce 400 ms, serialize, and flush the latest state at exit; malformed or
 newer documents are preserved. macOS reopen uses the latest in-memory geometry.
 Capture-only size overrides do not relax normal product minimums.
 
@@ -89,11 +89,11 @@ The active live window is preferred, then a visible window, then the first live
 window. Closed handles and expired Shell entities cannot be routing destinations.
 Visibility is read from GPUI, without a second cached window registry.
 
-Single instance uses private local IPC, never TCP. Packets are bounded4096bytes,
-queue32, acknowledgment deadline3s. A kernel bootstrap gate prevents a secondary
+Single instance uses private local IPC, never TCP. Packets are bounded 4096 bytes,
+queue 32, acknowledgment deadline 3 s. A kernel bootstrap gate prevents a secondary
 connecting before IPC exists; the long login-shell/GUI initialization follows
 that gate. Windows publishes its next pipe instance before acknowledging the
-previous connection. Updater relaunch waits up to15s for the old process lock and
+previous connection. Updater relaunch waits up to 15 s for the old process lock and
 never forwards back into the quitting process. Timeout opens a clear error-only
 window. No early primary-lock release is needed.
 
@@ -130,7 +130,7 @@ save/discard or quit policy. W15 owns registration and finalization integration.
 ## Environment and CLI
 
 Shell capture uses vessel-proc's existing groups/jobs and cancellation behavior,
-with one30s overall deadline, interactive then noninteractive attempts and1MiB
+with one 30 s overall deadline, interactive then noninteractive attempts and 1 MiB
 output bounds. Values stay redacted and apply only to explicit child commands;
 XDG_RUNTIME_DIR is not inherited from a stale login profile. Windows/failure uses
 the inherited environment. Hermetic process tests use a checked-in /bin/sh fixture,
@@ -150,13 +150,13 @@ Settings share snapshot/set_installed; only explicit Continue applies a choice.
 - Purpose: support Korean and other Unicode install paths.
 - Constraint: UTF-8 .cmd text is interpreted through an OEM code page and can corrupt the path; native crates forbid unsafe Win32 calls.
 - Alternatives: OEM batch conversion or script/PInvoke bypass.
-- Choice: Windows-only winreg0.56 (already locked), raw UTF-16 HKCU Environment Path and transactional updates.
+- Choice: Windows-only winreg 0.56 (already locked), raw UTF-16 HKCU Environment Path and transactional updates.
 - Reason: one exact directory entry can be added/removed without expanding or replacing unrelated entries. Transaction conflict/failure cannot fall back to an unsafe plain overwrite.
 - Consequences: REG_EXPAND_SZ is retained, malformed/interior-NUL/oversized values are refused, optional/repeated trailing NULs are accepted and written back once. A REG_SZ containing percent expressions and a new literal-percent directory are refused to preserve their meaning.
 
 Entry comparison folds single Unicode uppercase scalars without expanding
 mappings; unpaired UTF-16 units survive. Extended drive/UNC prefixes use ordinary
-installer spelling;8.3 alias equivalence is not resolved. A trailing separator is
+installer spelling; 8.3 alias equivalence is not resolved. A trailing separator is
 reused. Pure tests never touch the real registry. Disabled transactions have a
 specific translated refusal. The release installer owns corresponding cleanup.
 
@@ -170,7 +170,7 @@ Real Windows execution remains unverified; Wine packaging checks are separate.
 Exhaustive Prefs/Preferences/nested patterns force new fields to select a merge
 policy. Per-key removal is real; independent machines, providers and default
 records survive stale windows. Provider option bags remain atomic under their
-existing bounds. Queue64 refusal is visible, unreadable files remain launch-only,
+existing bounds. Queue 64 refusal is visible, unreadable files remain launch-only,
 and old failures cannot roll back newer accepted edits.
 
 Each workspace layout merges by LayoutKey; its validated pane tree stays atomic
@@ -200,20 +200,20 @@ W15 owns canonical pre-update flush and owned-node/document finalization; its
 checked consumer is required before claiming restart lifecycle completion.
 
 Changelog uses the shared dialog and snap engine, not another renderer:
-packages/app/src/changelog/internal/changelog-sheet.ts:80-90 specifies620 width,
-exact desktop85%, and compact85%/95% draggable stops. Legacy dialog520/640 widths
-and85%/90% fitting caps remain unchanged. Captured open cycles protect close and
+packages/app/src/changelog/internal/changelog-sheet.ts:80-90 specifies 620 width,
+exact desktop 85%, and compact 85%/95% draggable stops. Legacy dialog 520/640 widths
+and 85%/90% fitting caps remain unchanged. Captured open cycles protect close and
 reveal callbacks; actual close alone acknowledges ReturnFocus and clears snap
 state. Configured bounds and snap/scroll handoff have regression tests.
 
-The complete available release-owner notes0.4 through0.20 are bundled newest first,
+The complete available release-owner notes 0.4 through 0.20 are bundled newest first,
 including historical known problems/unchecked flows and Korean-only early notes.
 CHANGELOG.sources retains source hashes. Notes19/20 additionally match the supplied
-signed-manifest hashes:98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae
-andf5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e.
+signed-manifest hashes: 98e33a5ed2edc2031f48cbb44fbb84f220f20466f14513da6a5b126f731b24ae
+and f5dae40d1c84944ef01e8da26894c84297e710c6987b1475f7de3b212af4ca9e.
 Running signed-feed notes supplement that history. No published Vessel changelog
-endpoint exists; never fetch Paseo releases. Reveal is1 immediately,5 after yield,
-then10 more;17 real releases make the paging controls meaningful.
+endpoint exists; never fetch Paseo releases. Reveal is 1 immediately, 5 after yield,
+then 10 more; 17 real releases make the paging controls meaningful.
 
 ## Remaining integrations and deliberate differences
 
@@ -228,16 +228,16 @@ then10 more;17 real releases make the paging controls meaningful.
 ## Verification and completion
 
 Old scoped evidence: nine early pure model tests passed. One later link desktop
-run passed16 and failed one fixture before IPC because the runner's TMPDIR exceeded
+run passed 16 and failed one fixture before IPC because the runner's TMPDIR exceeded
 Unix socket address length; that fixture now uses a unique short path. These are
 not current combined-source passes. Strict narrow runs reached typechecking and
 reported actual lints; fixes added no blanket allowances. The latest unit attempt
 stopped at a missing translator-context comment before tests, now fixed.
 
-One queued run ended143 during the approved build-VM resize before compilation;
+One queued run ended 143 during the approved build-VM resize before compilation;
 its logs remain infrastructure interruption evidence. Only one replacement was
-submitted. Current immutable unit13 targets all four native library test suites;
-its result is pending. Local source-size checks passed694 files/14 existing
+submitted. Current immutable unit 13 targets all four native library test suites;
+its result is pending. Local source-size checks passed 694 files/14 existing
 exceptions; no size allowance was increased.
 
 All new cargo/rustc, clippy, tests, whole gates and capture builds run through the
@@ -246,13 +246,13 @@ started under the operator's VM-only rule. Direct rustfmt only formats source.
 
 Before handoff: finish owner integration, run focused checks, freeze one final
 commit/base, run the whole native gate with app-only export, then inspect EN/KO
-and dark/light captures at1280×900,390×844 and800×600. Submit one V4 review packet
+and dark/light captures at 1280×900, 390×844 and 800×600. Submit one V4 review packet
 with precise works/does-not/unverified evidence; only reviewed results advance
 tracker rows or reach the release lead.
 
-The lead approved read-only protocol23 shared root binaries from6036 on base5
-for E3 windows/menus/changelog/session navigation: protocol and178 wire names are
-unchanged. They omit base5 service-port/allocation approval, strict decode-failure
+The lead approved read-only protocol 23 shared root binaries from 6036 on base 5
+for E3 windows/menus/changelog/session navigation: protocol and 178 wire names are
+unchanged. They omit base 5 service-port/allocation approval, strict decode-failure
 handling, session.delete handover wait and pending-label admission. Exclude those
 flows from captures and never claim a same-commit root build. Desktop does not
 rebuild these shared binaries or access the live preview/real agents.
