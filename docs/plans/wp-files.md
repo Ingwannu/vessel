@@ -1017,3 +1017,11 @@ the fixture invokes the canonical ToggleFocus action instead. Unused imports
 and one redundant token qualification are removed. No assertion or production
 layout visibility policy changed. The queued same-source tests8 was verified
 queued and cancelled terminal143 before one corrected-source replacement.
+
+
+Exact6419ad03 strict27 compiled the normal App binary, then stopped on three
+new presentation-test lints: two BTreeMap get/unwrap expressions and an unused
+PaneId from a query-only test callback. Indexing replaces those fixture lookups;
+the callback now returns unit after the same target assertion. Product code and
+all assertions are unchanged. The still-queued tests9 is superseded once on the
+corrected source so the next actual execution and strict check share a head.

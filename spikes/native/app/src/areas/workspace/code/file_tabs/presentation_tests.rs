@@ -55,14 +55,8 @@ impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         self.shell.update(cx, |shell, cx| {
             let tokens = Tokens::of(vessel_app_kit::Scheme::Dark);
-            let file = &shell
-                .areas
-                .workspace
-                .code
-                .file_tabs
-                .bindings
-                .get(&(self.workspace.clone(), self.tab))
-                .unwrap()
+            let file = &shell.areas.workspace.code.file_tabs.bindings
+                [&(self.workspace.clone(), self.tab)]
                 .file;
             let target = Target::File {
                 root: file.root,
@@ -118,14 +112,8 @@ fn explorer_keeps_the_tree_while_bound_file_paints_the_existing_editor(cx: &mut 
     cx.simulate_input("accepted");
     probe.read_with(cx, |probe, cx| {
         let shell = probe.shell.read(cx);
-        let file = &shell
-            .areas
-            .workspace
-            .code
-            .file_tabs
-            .bindings
-            .get(&(probe.workspace.clone(), probe.tab))
-            .unwrap()
+        let file = &shell.areas.workspace.code.file_tabs.bindings
+            [&(probe.workspace.clone(), probe.tab)]
             .file;
         let editing = shell
             .areas
@@ -222,7 +210,7 @@ fn focused_retained_file_routes_find_and_hidden_pane_refuses_it(cx: &mut TestApp
                                 path: b.path.clone(),
                             }
                         );
-                        Ok(layout.focused_pane())
+                        Ok(())
                     },
                     cx,
                 )
