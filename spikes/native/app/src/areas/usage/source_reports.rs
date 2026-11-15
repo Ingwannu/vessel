@@ -1,8 +1,5 @@
 //! One generic card renderer consumes canonical node report values and independent current status.
-use super::{
-    draw,
-    rows::{Density, message, notice},
-};
+use super::rows::{Density, message, notice};
 use crate::shell::Shell;
 use vessel_app_kit::{
     Tokens, outline_button, settings,

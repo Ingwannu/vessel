@@ -14,6 +14,7 @@ use vessel_app_view::usage::{
     LimitStatus, Phase, SessionSelection, limit_failure, limit_view, quota_facts, timestamp,
 };
 use vessel_proto::{EventRecord, SessionId, limits::LimitRefresh};
+const SESSION_CARD_MAX_WIDTH: f32 = 300.0;
 
 impl Shell {
     pub(super) fn settle_session_usage(&mut self) {
@@ -137,7 +138,7 @@ pub(crate) fn session_card(
         return Some(
             div()
                 .min_w_0()
-                .max_w(px(300.0))
+                .max_w(px(SESSION_CARD_MAX_WIDTH))
                 .children(draw::read_status(state.session.phase(), shell, tokens))
                 .into_any_element(),
         );
@@ -146,7 +147,7 @@ pub(crate) fn session_card(
     let view = limit_view(limits);
     let mut card = div()
         .min_w_0()
-        .max_w(px(300.0))
+        .max_w(px(SESSION_CARD_MAX_WIDTH))
         .flex()
         .flex_col()
         .gap(px(spacing::S2))

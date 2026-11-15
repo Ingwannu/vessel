@@ -198,3 +198,13 @@ row. A pending/failed transport read that still draws the same immutable success
 keeps its ticket. This reuses the correlation owner rather than allocating a second
 UI generation or capturing a separate defaults vector for every window. The pure
 reader regression covers replacement, failed refresh retention and same-scope reopen.
+
+### Shared base and remaining producer ownership
+Package base 7 (`d18bb794`) is merged before the next native check. Its README
+additions and this area's usage contract notes are both retained; its shared
+field identity and control changes do not create a second usage policy or renderer.
+The coordinator assigned the executable F6 usage adapter to W16 and the additional
+seven sources' actual-launch provider/environment/sign-in proof to W22. Until their
+reviewed executable producers arrive, those cases remain Unsupported. Configured
+metadata and data-only launch values cannot replace that proof. Current native
+and node checks are still narrow pending results, with no full package acceptance.
