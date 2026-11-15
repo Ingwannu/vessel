@@ -292,3 +292,242 @@ also found workspace clone-follow tasks retain client clones: that owner's
 cancel/rekey seam is required before whole-app disconnect is claimed. The
 watched-forget regression here covers the session follow and two real RPC
 clients, not every area's background work.
+
+## E3: Paseo's Settings, section by section (2026-11-14)
+
+The owner (words 43 and 45): this version carries Paseo's features and
+settings over as they are. Worker E3 rebuilds Settings on Paseo 0.15.4
+(`packages/app/src/screens/settings-screen.tsx` and the section
+components it names), branch `backend/m12-app-settings2`. The gap list
+is outside the repository (the coordinator's survey of every Paseo
+setting against Vessel's).
+
+### Slice 1: the frame
+
+Followed: `settings-screen.tsx` (`SIDEBAR_SECTION_ITEMS`,
+`HOST_SECTION_ITEMS`, `SettingsSidebar`, `SidebarGroup`, `HostPicker`,
+`sidebarStyles`), labels from `i18n/resources/en.ts` and `ko.ts`
+(`settings.sections`, `settings.hostSections`, `settings.groups`).
+
+- **Sections and order** (`view/src/settings.rs`): Paseo's 26 sections
+  in its two groups. App: General, Appearance, Sidebar, Chat, Terminal,
+  Browser, Editor, Files, Shortcuts, Integrations, Notifications,
+  Permissions, Diagnostics, About. Machine (Paseo's Host): Overview,
+  Projects, Connections, Pair device, Agents, Metadata, Voice,
+  Workspaces, Providers, Usage, Terminals, Plugins; then Vessel's own
+  Models and Sync. Paseo's `desktopOnly` (Browser, Shortcuts,
+  Integrations, Notifications, Permissions) and `webOnly` (Editor) are
+  `Section::available_on(Surface)`, and the app names its surface at
+  build time (`settings/sections.rs`, `SURFACE`).
+- **Where the page's sections went**: Machines is Paseo's Overview;
+  Devices is Paseo's "Pair device" slot and label (the page also lists
+  and revokes paired devices, which Paseo's does not); the agents page
+  (installed, signed in, install, sign-in, defaults) is Paseo's
+  Providers, so Paseo's host Agents section (Paseo tools, system
+  prompt, restart recovery, idle release) is free for slice 3's
+  idle-release card.
+- **One registry** (`app/src/areas/settings/sections.rs`, `page`): a
+  section is listed exactly when a renderer is registered for it, so
+  the list and the pages cannot disagree; the placeholder page
+  (`page::elsewhere`) and its sentence are gone.
+- **The machine group** exists while the book has a machine, headed by
+  the picker (Paseo's `HostPicker`); with an empty book it is one row
+  under no heading, "Add a machine" (Paseo's "Add host"). Paseo's
+  settings list has no search.
+- **Motion** (word 39): a section's page fades in when it arrives
+  (`motion::STANDARD`), the selected row's fill fades in as the
+  selection moves (`motion::QUICK`); both are one-shot GPUI animations
+  keyed by an arrival count, drawn at their end while motion is held.
+
+Listed in this build: General, Appearance, About; Projects, Pair
+device, Providers. Hidden, nothing behind them yet: Sidebar, Chat,
+Notifications, Diagnostics, Overview, Agents (the next slices);
+Shortcuts (track S3's page, one line in `page` when it lands); Terminal,
+Browser, Editor, Files, Integrations, Permissions, Connections,
+Metadata, Voice, Workspaces, Usage, Terminals, Plugins, Models (no
+Vessel feature behind them yet); Sync (held back by the coordinator).
+
+Differences from Paseo, stated:
+
+- The group Paseo calls "Host" is "Machine" ("머신"), Vessel's word
+  for a host everywhere else in the app ("Add a machine").
+- The list keeps the workspace sidebar's width (264) and ground, not
+  Paseo's 320 on `surfaceSidebar` (unchanged from slice 3).
+- Glyphs: the kit gained Stethoscope (G2's, as it is), FolderGit and
+  Boxes (original drawings after Paseo's FolderGit2 and Boxes) for the
+  sections listed now and next; the hidden sections' glyphs the kit
+  still lacks stand in, named in `nav::section_glyph`.
+- The Providers page's list heading says "Providers on <machine>"
+  ("<machine>의 프로바이더"), as its title, where it said "Agents on".
+- The picker's name is in the foreground and it has no open fill, as
+  Paseo's trigger (before: muted, with the selected fill while open).
+
+### Slice 2: the app sections that have something behind them
+
+Followed: `settings-screen.tsx` (`GeneralSection`, `DiagnosticsSection`,
+`AboutSection`), `settings/general/sending-section.tsx`,
+`settings/appearance/appearance-section.tsx`, `settings/chat/chat-section.tsx`,
+`diagnostics/app-diagnostic-report.ts`, `components/app-diagnostic-sheet.tsx`;
+labels from `en.ts` and `ko.ts`.
+
+- **General**: Paseo's two sections. "General" holds Language (the row
+  track L wrote, now a row of this card rather than a card of its own);
+  "Sending" ("전송") holds "Send shortcut" (no hint, as Paseo's) and
+  "Default send" with its hint for the value in effect, its list in
+  Paseo's order (Interrupt, Steer, Queue). Paseo's default, Steer, and
+  the hints' sentences are the conversation track's (C, `65cd84bc`,
+  which owns what Send does); "Steer" is "지시" as Paseo's Korean.
+  "Kept" (where the preferences are) stays as Vessel's own, after
+  Paseo's sections.
+  "Send shortcut" is not shown on a compact layout, as Paseo's (its
+  `useKeyboardShortcutsAvailable`: a phone has no shortcuts).
+- **Appearance**: "Theme" (the tiles), "Fonts" ("Interface size", "Code
+  size") and "Layout" ("Content width") with Paseo's hints; the chat
+  display moved to Chat.
+- **Chat**: "Detail level" ("세부 수준") with "Chat display" ("채팅
+  표시"), Paseo's hint.
+- **Diagnostics**: "App diagnostic" with Run; the report
+  (`view::diagnostics`, Paseo's text shape: the app, then each machine)
+  opens in the kit's dialog with Copy and Refresh. Addresses, keys,
+  pairing links and secret values are taken out (Paseo's
+  `redactAppDiagnosticReport`), tested. The home folder shows as `~`
+  (Paseo shows paths whole; Vessel's report is pasted elsewhere and an
+  account's name in a path says nothing about the problem).
+- **About**: the lead's card as it is (version, What's new, updates, the
+  automatic-update switch, the log), then Paseo's "Connected hosts" as
+  "Connected machines" ("연결된 머신", `settings/connected.rs`): each
+  machine with its node's version ("v0.1.0", "Offline", or "—"). The
+  version comes from the node's own `NodeInfo` at connection
+  (`view::NodeVersion` on `Machine`, the lead's request: a type, not a
+  string); it is also in the diagnostic. Not compared with the app's
+  (Paseo marks a differing one): app builds and the node are numbered
+  apart.
+
+Hidden, with why: Sidebar (the sidebar does not read its group, sort or
+items yet; S3's next slice, Paseo keeps those in the sidebar's menu) and
+Notifications (nothing delivers one yet; S3's slice 4). Not drawn as
+rows, nothing reads them yet: "Show setup again" (no walkthrough),
+"Open location" (no side panes), "Always expand reasoning", "Chat
+outline", font families, content size, syntax theme, "Test audio".
+
+Differences, stated: three of Paseo's eight themes; sizes and width are
+selects over closed ranges where Paseo types a number; two of Paseo's
+three chat displays ("Collapse turns" waits on the conversation), so the
+default stays Full; the diagnostic asks no machine anything new (it
+reports what the app holds), so Paseo's per-host progress rows have
+nothing to show; its text is English, as Paseo's.
+
+### Slice 3: the machine's sections
+
+Followed: `screens/settings/host-page.tsx` (`HostAgentsPage`),
+`screens/settings/idle-runtime-cleanup-card.tsx`,
+`components/settings/headings/settings-info-tip.tsx`; labels from
+`en.ts` and `ko.ts` (`settings.host.agents`).
+
+- **Agents** (`app/src/areas/settings/host_agents.rs`): Paseo's "Agents"
+  section with "Release idle agents" ("유휴 에이전트 해제"): its title
+  with the info tip (the kit's tooltip on a 16 info glyph), Paseo's hint
+  and info, the kit's switch. It reads the machine's own settings
+  (`node.settings`, protocol 12) when the page is shown for a machine
+  and sends `node.set_settings` when switched; the switch waits while a
+  change is out; a refused change says why under the hint and the switch
+  shows what the node still keeps. While the machine is not connected
+  the page is Paseo's one card, "Connect to this machine to manage
+  agents", under no heading.
+- **The model** (`view::idle_release`, tested): on is any number of idle
+  minutes, off is never; turning it on restores Paseo's hour (the node's
+  default, 60), and the hint names minutes other than 60 ("after 30
+  minutes"); answers carry the machine and a ticket, and one for another
+  machine or an older request changes nothing.
+- **The call** (`link::node_settings`): one request for a read or a
+  change, answered with the settings in force; failures cross as codes
+  only. `link/src/lib.rs` gains six registration lines (1082 of its
+  1086).
+- **The kit**: `settings::row_titled`, the row with the caller's title
+  element, for a title with its info tip; `row_at` delegates to the same
+  body.
+
+Differences, stated: a node older than protocol 12 says so in the row
+(Paseo draws nothing; an empty section would mislead); the info tip
+shows on a pointer only (the kit's tooltip has no touch mode); minutes
+other than an hour are shown, and lost when the switch is turned off and
+on (the command line still sets any number). Not shown, nothing behind
+them in Vessel: Paseo tools, browser tools, the appended system prompt,
+resume after restart, skills, agent profiles.
+
+### Slice 4: the machine's Overview
+
+Followed: `screens/settings/host-page.tsx` (`HostSettingsPage`,
+`HostStatusBadges`, `HostConnectionError`, `RemoveHostSection`),
+`screens/settings/host-appearance-section.tsx` (`HostAppearanceSection`,
+`HostRenameButton`), `components/rename-modal.tsx`
+(`AdaptiveRenameModal`); labels from `en.ts` and `ko.ts`
+(`settings.host.appearance`, `daemon.rename`, `daemon.dangerZone`,
+`daemon.remove`), "machine" where Paseo says "host".
+
+- **Badges**: the status ("Online", or "Offline" in Paseo's warning
+  tone), how the book reaches the machine (Direct, Over SSH, Paired; read
+  from the book when the page is shown), the node's version ("v0.1.0",
+  `NodeVersion::label`, shared with About).
+- **Not answering**: Paseo's connection-error alert, in the app's own
+  words (the sidebar's sentence), not the connection's raw error.
+- **Appearance › Name**: the name, muted, and a pencil that opens Paseo's
+  rename dialog: the field holds the name, Rename is off while the name
+  is unchanged or being saved, an invalid name says why after Rename
+  (Paseo clears it as the name is typed again), the dialog stays open
+  until the book answers and shows its refusal inside.
+- **Danger zone › Remove machine**: Paseo's row and confirm ("Remove
+  laptop? This will delete its saved connection."); the confirm stays
+  open until the book answers. The machine leaves the book (the CLI's
+  `nodes remove`), never its node.
+- **Rules** (`view::overview`, tested): what the typed name asks for
+  (unchanged, a rename, or why not; a name another machine has is
+  refused here first), and a dialog closing only on its own edit's
+  success.
+- The book's edits are the existing `link::machines` actor; the page's
+  own dialog says a refusal, so `book.rs` no longer repeats it as a
+  notice.
+
+Left out, nothing behind them yet: Paseo's colour and sidebar-badge rows
+(the app keeps no machine appearance), "Restart daemon" and "Update
+daemon" (the node-control track brings the calls). Stand-ins until the
+shared controls land: the pencil is a plain glyph button (G2's
+`host_rename_button` is not on the lead's branch), Remove has no Trash2
+before its label (the kit's button has no leading content yet), the
+name is not selected when the dialog opens (no select-all in the kit's
+field yet). The badges are the kit's (pills on `surface3`, where Paseo's
+are bare outlines).
+
+### Slice 5: the machine's Connections
+
+Followed: `screens/settings/host-page.tsx` (`HostConnectionsPage`,
+`HostConnectionError`, `ConnectionsSection`, `ConnectionRow`,
+`formatHostConnectionLabel`); labels from `en.ts` and `ko.ts`
+(`settings.host.connections.title`, `badges.relay`, `badges.remoteSsh`).
+
+- **Routes** (`view::connections`, tested): every way the book reaches
+  the machine, in the order the client tries them: a websocket with a
+  token, an `ssh` target, or a paired machine's own addresses and then
+  its relays. The link fills them from the book when it reads it
+  (`link::machines::Machine::routes`).
+- **Endpoints only**: a route shows its host and port (Paseo shows
+  endpoints); the scheme, a `user@` part, the path, the query and the
+  fragment are cut where the route is made, so nothing more of a URL
+  reaches the screen. An ssh target shows as the book names it.
+- **Rows**: Paseo's titles: "TCP (127.0.0.1:7077)" for any direct
+  address (a paired machine's too, as Paseo names every direct
+  endpoint), "Relay (relay.example:443)" / "릴레이 (…)", "Remote SSH
+  (me@gpu-box)" / "원격 SSH (…)"; one line, cut with an ellipsis.
+- **Not answering**: the same alert as Overview (Paseo's page puts
+  `HostConnectionError` above the section).
+- **One read of the book**: Overview and Connections share it
+  (`settings/book.rs`): asked when either page is shown for a machine
+  it was not read for, asked again after an edit succeeds, dropped
+  when both are left.
+
+Left out, nothing behind them yet: the latency probe beside each row
+(Paseo's "…", "12 ms", "Timeout") and the ghost "Remove" with its
+confirm: the book's actor edits a machine (rename, default, forget),
+never one of its routes, so a route cannot be removed here; removing
+the machine is Overview's "Danger zone", and a paired machine gets a
+new set of routes by pairing it again through the CLI.
