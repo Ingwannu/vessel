@@ -151,6 +151,8 @@ impl SessionResidents {
 
     /// Independent lease retirement must run even when replacement admission
     /// refuses. Exact original context prevents an old notice retiring a successor.
+    /// The caller must observe actual shared lease retirement. A follow-only
+    /// EOF/error/cancel uses `retire_follow` with its exact binding instead.
     pub(crate) fn connection_retired(
         &mut self,
         connection: &ConnectionContext,

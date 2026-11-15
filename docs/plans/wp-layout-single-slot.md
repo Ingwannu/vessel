@@ -154,6 +154,9 @@ A refusal leaves the previous layout, fields and still-valid tickets intact.
 Independent `connection_retired` processing matches only the stored original
 context, invalidates old binding/tickets and notifies owners despite a refused
 switch; a delayed old notice cannot retire a newer admitted connection.
+Only actual shared lease retirement takes this context-scoped path. A follow-only
+EOF/error/cancel retires its exact `FollowBinding`; it must not retire a newer
+follow sharing the still-active physical connection.
 
 These methods remain inside the literal test-only resource module. Product
 conversion still owes removal of every converted global/raw ingress, actual
