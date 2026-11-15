@@ -6,6 +6,17 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- First get/set narrow clippy found a missing documentation backtick and a
+  get_mut/unwrap test idiom. Both are corrected without changing the byte
+  boundary or any assertion; no runtime tests ran in that failed check.
+
+- Source preparation: the existing selected-field read admission is extracted
+  unchanged into check_read, with older/unassigned boundary tests. This does
+  not change get/set behavior; narrow evidence for the later package is owed.
+- Draft: unset/reload now has the pending table rows and actual node/CLI callers,
+  bounded strict reload reads and persistence/runtime fixtures. It is not yet
+  committed or compiled, and generated TypeScript still needs regeneration.
+
 - Contract review correction: the JSON budget is pinned with units and its
   complete-value/headroom rationale in ADR 0064. Implementation uses the one
   matching constant; checks, errors and boundary tests derive from it.

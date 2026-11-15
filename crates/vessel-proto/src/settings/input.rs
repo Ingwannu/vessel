@@ -129,7 +129,9 @@ mod tests {
     #[test]
     fn the_byte_budget_precedes_json_parsing_and_supplies_the_diagnostic() {
         let mut at_limit = vec![b' '; SetNodeSettings::MAX_JSON_BYTES];
-        at_limit.get_mut(..2).unwrap().copy_from_slice(b"{}");
+        for (byte, initial) in at_limit.iter_mut().zip(b"{}") {
+            *byte = *initial;
+        }
         assert!(decode(&at_limit).is_ok());
         at_limit.push(b'!');
         let error = decode(&at_limit).unwrap_err();
