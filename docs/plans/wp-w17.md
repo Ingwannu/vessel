@@ -102,13 +102,13 @@ The Vessel column names the baseline equivalent, including meaningful difference
 | `daemon config get [path] ` | — | none | nodectl | Owned elsewhere / excluded; W17 does not modify its handler. | W; { idField: () => "configuration", columns: [], renderHuman: () => JSON.stringify(data, null, 2), }; 0/1 | `packages/cli/src/commands/daemon/config.ts:78` |
 | `daemon config set <path> <value> ` | `--string`: Interpret value literally as a string | none | nodectl | Owned elsewhere / excluded; W17 does not modify its handler. | W; { idField: () => "configuration", columns: [], renderHuman: () => JSON.stringify(data, null, 2), }; 0/1 | `packages/cli/src/commands/daemon/config.ts:93` |
 | `daemon config unset <path> ` | — | none | nodectl | Owned elsewhere / excluded; W17 does not modify its handler. | W; { idField: () => "configuration", columns: [], renderHuman: () => JSON.stringify(data, null, 2), }; 0/1 | `packages/cli/src/commands/daemon/config.ts:109` |
-| `host ls ` | — | nodes list (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:85` |
-| `host add <connection>` | `--label <name>`<br>`--meta <key=value>`: Set metadata; default=[] | nodes add NAME ADDRESS (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:88` |
-| `host update <registration-id>` | `--label <name>`<br>`--connection <connection>`<br>`--replace-identity`: Accept a new destination identity<br>`--meta <key=value>`: Replace supplied metadata keys; default=[]<br>`--remove-meta <key>`: Remove a metadata key; default=[] | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:99` |
+| `host ls ` | — | nodes list (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:85` |
+| `host add <connection>` | `--label <name>`<br>`--meta <key=value>`: Set metadata; default=[] | nodes add NAME ADDRESS (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:88` |
+| `host update <registration-id>` | `--label <name>`<br>`--connection <connection>`<br>`--replace-identity`: Accept a new destination identity<br>`--meta <key=value>`: Replace supplied metadata keys; default=[]<br>`--remove-meta <key>`: Remove a metadata key; default=[] | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:99` |
 | `host inspect <registration-id>` | — | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:112` |
-| `host enable <registration-id>` | — | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:112` |
-| `host disable <registration-id>` | — | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:112` |
-| `host rm <registration-id>` | — | nodes remove NAME (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; { ...schema, renderHuman: () => JSON.stringify(host, null, 2) }; 0/1 | `packages/cli/src/commands/host/index.ts:112` |
+| `host enable <registration-id>` | — | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:112` |
+| `host disable <registration-id>` | — | none (local node book; not daemon host registrations) | W17 | Missing entry point or backend contract; see dependencies below. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:112` |
+| `host rm <registration-id>` | — | nodes remove NAME (local node book; not daemon host registrations) | W17 | Different argument/output contract; not full parity. | W; host schema (ID/LABEL/SERVER/ENABLED/STATUS/SOURCE); 0/1 | `packages/cli/src/commands/host/index.ts:112` |
 | `project create [path]` | — | project add ABS_PATH | W17 | Different argument/output contract; not full parity. | W; projectSchema; 0/1 | `packages/cli/src/commands/project/index.ts:12` |
 | `project ls ` | — | project list | W17 | Different argument/output contract; not full parity. | W; projectSchema; 0/1 | `packages/cli/src/commands/project/index.ts:19` |
 | `project rename <project-id> [name]` | `--reset`: Clear the custom name and use the directory name | none | W17 | Missing entry point or backend contract; see dependencies below. | W; projectRenameSchema; 0/1 | `packages/cli/src/commands/project/index.ts:23` |
@@ -812,14 +812,14 @@ No compilation/test pass for this implementation or consumer-ready hash is claim
 
 [Decision Log]
 - Purpose: explicit table/header choices must reach an actual row renderer, including
-  one-result commands. Source inspection found project create and host inspect/mutation
+  one-result commands. Source inspection found project create and host mutations
   using object serialization in table mode, and terminal ls serializing its entire list.
 - Existing assets: reuse Row/render_list and the accepted structured single serializer.
   No dependency, node call, credential or transport change is needed.
 - Alternatives: duplicate per-command output branches, or lose object shape by wrapping
   every single structured result in an array.
 - Choice: add output::record for table/quiet row emission and object-shaped JSON/YAML.
-  Project creation, host single rows and terminal kill consume it; existing run/send and
+  Project creation, host mutation rows and terminal kill consume it; existing run/send and
   schedule receipt branches reuse it without changing their result shapes.
 - Reason/consequences: terminal ls now has ID/NAME/CWD/WORKSPACE columns, quiet still
   emits actual IDs, and its structured output deliberately retains native TerminalInfo
@@ -870,3 +870,15 @@ not feed emitted ANSI back into the interpreter. NodeAuthority activates only
 after that renderer lands and passes. Existing raw attach is not refused here.
 No additional parser/regex/filter is introduced by W17. Thus query policy does
 not block pure capture adoption once C2's core source/gate/review is ready.
+
+
+### Preserve host inspect's intentional JSON human renderer (2026-11-15 13:05 UTC)
+
+Reopened exact host/index.ts39-81: inspect alone overrides renderHuman with
+JSON.stringify; ls/add/update/enable/disable/remove use the six-column schema.
+The blanket one-row table change at dd33 was too broad. Restored inspect's JSON
+human renderer, retaining structured object/quiet behavior. Host lists/mutations
+now use ID/LABEL/SERVER/ENABLED/STATUS/SOURCE; source text explicitly describes the
+actual Owner/Device enum, not invented Paseo id/key or authority inheritance.
+The earlier baseline inventory's host output shorthand was overgeneralized;
+only inspect has the human JSON override. No pending call was activated.

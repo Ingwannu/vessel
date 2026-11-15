@@ -55,7 +55,11 @@ pub(super) async fn run(
             let record = client.add_host_registration(input).await?;
             show_record(&client, presentation, record).await
         }
-        HostCommand::Inspect { id } => show(presentation, find(&client, id).await?).await,
+        HostCommand::Inspect { id } => {
+            // Paseo's inspect deliberately supplies a JSON human renderer, unlike mutations.
+            let row = HostRow::from(find(&client, id).await?);
+            output::single(presentation, &row.registration_id.to_string(), &row).await
+        }
         HostCommand::Rm { id } => {
             let old = find(&client, id).await?;
             client
@@ -207,7 +211,7 @@ impl Row for HostRow {
         self.registration_id.to_string()
     }
     fn headers() -> &'static [&'static str] {
-        &["REGISTRATION", "LABEL", "STATUS", "TARGET"]
+        &["ID", "LABEL", "SERVER", "ENABLED", "STATUS", "SOURCE"]
     }
     fn cells(&self) -> Vec<String> {
         vec![
@@ -215,8 +219,13 @@ impl Row for HostRow {
             self.label
                 .as_ref()
                 .map_or_else(|| "-".to_owned(), ToString::to_string),
+            self.server_id.to_string(),
+            (self.enabled.0 == HostEnabled::Enabled).to_string(),
             format!("{:?}", self.status).to_ascii_lowercase(),
-            self.target_description.clone(),
+            match self.source {
+                HostSource::Owner => "owner".to_owned(),
+                HostSource::Device { device } => format!("device:{device}"),
+            },
         ]
     }
 }
