@@ -114,3 +114,13 @@ Add the missing generation/freshness/revocation boundary as part of this
 package. Do not invent a guarantee that script status or an old PID gives.
 Protocol/schema assignment stays with integration. Node work starts on the
 announced node head in its own worktree.
+
+## Identity skeleton
+
+The first node types stage BrowserId, ElementRef and the single twenty-two
+name catalogue without registering a method, changing settings or advertising
+any tool. Reuse the earlier grammar intent, with an exact canonical UUIDv4
+check: uuid's general parser also accepts braced/simple/URN forms that the
+reference browser-id regex rejects. Tests cover those forms and legacy
+minimum timestamp length, case normalization and non-ASCII element digits.
+There is no engine, page fixture or visible native entry in this commit.
