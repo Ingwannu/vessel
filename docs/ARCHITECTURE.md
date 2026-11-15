@@ -778,7 +778,9 @@ In the crate table's order.
     `vesseld version` and `cleanup`; `node.stop` (`now`, or drain).
   - Devices (milestone 3): every connection has a principal (`Owner`,
     `Device`, `Agent`, `Delegated`), and every call is checked against its
-    method's scope by `guard::Guarded`, generated from one row per method;
+    method's scope by `guard::Guarded`, generated from the protocol's one
+    method table (`vessel_proto::method_table!`, which also generates the
+    envelope's `run_here` and the client's unary marker, Quality B);
     `NodeService`'s calls are inherent methods, so only `Guarded` can be
     served. `device.invite` (single-use, in memory by hash, at most a day,
     at most 64 waiting), `device.list`, `device.revoke` (closes the
