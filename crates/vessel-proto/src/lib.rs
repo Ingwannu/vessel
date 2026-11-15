@@ -138,9 +138,9 @@ pub use relay::{
 };
 pub use rpc::{
     Ack, Call, ClientFrame, ClientInfo, CreateSession, EventPage, GetNode, GetSession, Handler,
-    Hello, KillSession, ListHarnesses, ListSessions, Method, Outcome, ReadEvents, RenameSession,
-    Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe, Subscribed,
-    SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
+    Hello, KillSession, ListHarnesses, ListSessions, Method, MethodShape, Outcome, ReadEvents,
+    RenameSession, Reply, Request, SendInput, ServerFrame, StopNode, StopWhen, Subscribe,
+    Subscribed, SubscriptionEnd, UnexpectedReply, Unsubscribe, Welcome, dispatch,
 };
 pub use secret::{CopySecret, DeleteSecret, ListSecrets, SecretValue, SetSecret};
 pub use session::{
