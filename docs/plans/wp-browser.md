@@ -340,3 +340,18 @@ file/debug/internal history entries refuse, a deliberate HTTP(S)-only safety
 difference. Raster admission checks the existing 32MiB RGBA cap before metrics
 change, in addition to the wire side limits. No script echo or test PNG is
 published as a page. Controller fixtures are protocol tests, not qualification.
+
+
+## MCP argument edge (staged, no registration)
+
+The browser adapter consumes shared BrowserTool values, not a second name table.
+Paseo tools.ts fields are converted explicitly: browserId/ref, doubleClick,
+modifier names, timeoutMs, fullPage, filePaths, sourceRef/targetRef, maxEntries,
+function and CSS deltas/size. Defaults remain left/single/no modifiers, viewport
+screenshot, 50 logs and omitted wait's distinct 15s broker budget. Tool URLs trim
+outer whitespace and use the reference HTTP scheme default. Null optional values
+refuse as in Zod; extra keys are ignored and never become node/workspace/session
+selectors. All upload paths remain untrusted intent. Invalid inputs expose only
+fixed field/cause diagnostics, never the submitted text. The outer cfg(test)
+boundary stays until actual W18 shared policy/engine wiring; no schemas or tool
+offering/dispatch are registered by the decoder.

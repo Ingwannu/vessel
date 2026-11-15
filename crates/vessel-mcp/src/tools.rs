@@ -24,6 +24,8 @@
 
 mod args;
 mod automation;
+#[cfg(test)]
+mod browser;
 mod conversation;
 mod forge;
 mod forking;

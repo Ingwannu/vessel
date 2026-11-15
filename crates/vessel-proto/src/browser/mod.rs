@@ -1,6 +1,6 @@
 //! Browser identities and commands, staged before the engine (ADR 0078).
 //!
-//! No method is registered and no product engine is represented by a fixture.
+//! The four method rows remain pending; no product engine is represented by a fixture.
 //! The protocol constant remains unassigned until the common method-table
 //! integration. Page execution and network policy do not belong in this crate.
 
