@@ -351,7 +351,9 @@ No row of the crate table changes.
   first so its listener exists before the first live write. A Linux CLI case
   verifies the owned child executable before SIGINT, successful exit and the
   still-live fake session. It cannot force the signal-during-write interleaving.
-  These corrective runtime checks and a new complete gate remain owed.
+  Corrective clippy and all four log CLI cases passed, including actual
+  SIGINT, successful CLI exit and the still-live fake session. The new
+  complete gate remains owed.
 - Implementation slice 5c, verification pending: follow reuses these predicates,
   the tail window and the raw history cursor. Its omitted history count has
   one constant, also used by the CLI help. The CLI edge owns the execution
@@ -362,7 +364,7 @@ No row of the crate table changes.
   bytes stay untouched. Follow passed narrow clippy, eleven log units and
   three fake-node CLI cases, including history-to-live output exactly once
   and EOF. The prior complete gate passed 1991/0/12, but the listener fix and
-  signal case need their own narrow checks and new complete gate.
+  signal case passed their narrow checks and need a new complete gate.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
