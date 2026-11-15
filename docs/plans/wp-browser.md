@@ -1168,3 +1168,28 @@ is script semantics only, not browser DOM/CDP or Rust runtime evidence. New Rust
 fixtures also require metadata, reject aggregate overflow and prevent YAML
 escaping from spending the metadata budget a second time; their execution and
 updated TS generation remain owed at the next changed-source narrow batch.
+
+
+## Changed snapshot document script: actual isolated-world diagnostic
+
+The script at1d4b93f5a (SHA256 c64e39d0db845ca3871825ce4519da958a62851820c3ce57a57412c4430e9828)
+was exercised through the approved Chrome149 candidate's private child pipe.
+The disposable probe ran as UID/GID1000 with sandbox enabled, cleared private
+environment, synthetic proxy/page and700 profile. Binary/shell hashes match
+the earlier candidate. Same-origin frame content, cross-origin opacity, hidden
+content exclusion, hostile main-world Map/prototype separation and exact refs
+above2^53 remained intact. The first snapshot kept its observed title/address
+after a same-document title/fragment change; the next traversal reported the
+new values. Main frame/loader remained stable. The owned leader exited0, profile
+inspection found zero nonprivate entries and a post-run exact-profile scan found
+zero matching processes. No service, permission, runtime installation or real
+credentials were changed.
+
+Evidence is the snapshot-document-runtime diagnostic's result/provenance and two
+graph files. Its executed probe is retained unchanged. The total-alarm handler
+was incomplete; no alarm fired and normal close completed. A corrected future
+probe is explicitly unexecuted: this receipt proves no timeout cleanup.
+
+This is Python/CDP execution of our script, not Rust decoding, the product policy
+proxy, private Preview ownership/revocation, process/profile supervisor, UDP/ICE/
+QUIC/WebTransport or Windows qualification. NoEngine and pending versions remain.
