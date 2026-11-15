@@ -533,3 +533,32 @@ confirm: the book's actor edits a machine (rename, default, forget),
 never one of its routes, so a route cannot be removed here; removing
 the machine is Overview's "Danger zone", and a paired machine gets a
 new set of routes by pairing it again through the CLI.
+
+## Overview module boundary and native quality (2026-11-15)
+
+[Decision Log]
+- Purpose: restore the native size gate without changing a screen or the
+  browser demo's results.
+- Existing assets and constraints: Overview already separates book-edit
+  rules (`view::overview`) from drawing, but its page and dialogs share a
+  file. The browser demo similarly mixes its catalog with its log actor.
+- Alternatives: a larger allowance would preserve both mixed
+  responsibilities; a new implementation would risk changing behaviour.
+- Choice (modify): move Overview's dialog drawing into `overview/dialogs.rs`
+  and the demo's agent/options catalog into `demo/catalog.rs`. Keep the
+  same functions, expressions, callbacks and visibility at existing callers.
+  Neither responsibility needs an external library.
+- Consequences: existing tests remain unchanged. The modules become small
+  enough to inspect independently; the demo's old size allowance shrinks
+  or disappears, and the link entry's allowance records its current size.
+- Reference: this is a structural change only; the Overview reference
+  remains `screens/settings/host-page.tsx` and
+  `screens/settings/host-appearance-section.tsx` listed in slice 4.
+
+### Resume point
+
+- Saved baseline: Connections and the shared outline-with-glyph Remove
+  control are committed; their inherited captures have not been re-reviewed.
+- Next: apply the two module extractions and run the complete native gate
+  on the committed tree. After that, consume the shared rename control and
+  verify its actual input bounds. No select-all change is included.
