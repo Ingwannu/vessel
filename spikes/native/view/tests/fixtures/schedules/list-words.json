@@ -1,0 +1,90 @@
+[
+  {
+    "id": "empty-active",
+    "input": {
+      "kind": "empty",
+      "bucket": "active"
+    },
+    "en": "No active schedules",
+    "ko": "활성 예약 없음",
+    "hint_en": "Schedules run agents on a cadence.",
+    "hint_ko": "예약은 정해진 주기로 에이전트를 실행합니다."
+  },
+  {
+    "id": "empty-ended",
+    "input": {
+      "kind": "empty",
+      "bucket": "ended"
+    },
+    "en": "No ended schedules",
+    "ko": "종료된 예약 없음",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "empty-unknown",
+    "input": {
+      "kind": "empty",
+      "bucket": "unknown"
+    },
+    "en": "No schedules in other states",
+    "ko": "다른 상태의 예약 없음",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "pending-pause",
+    "input": {
+      "kind": "pending",
+      "action": "pause"
+    },
+    "en": "Pausing...",
+    "ko": "일시 정지 중...",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "pending-resume",
+    "input": {
+      "kind": "pending",
+      "action": "resume"
+    },
+    "en": "Resuming...",
+    "ko": "재개 중...",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "pending-run-now",
+    "input": {
+      "kind": "pending",
+      "action": "run-now"
+    },
+    "en": "Starting...",
+    "ko": "실행 시작 중...",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "pending-delete",
+    "input": {
+      "kind": "pending",
+      "action": "delete"
+    },
+    "en": "Deleting...",
+    "ko": "삭제 중...",
+    "hint_en": null,
+    "hint_ko": null
+  },
+  {
+    "id": "unwired-edit-has-no-caption",
+    "input": {
+      "kind": "pending",
+      "action": "edit"
+    },
+    "en": null,
+    "ko": null,
+    "hint_en": null,
+    "hint_ko": null
+  }
+]
