@@ -197,3 +197,12 @@ delete, resume or a slash-command close. It shows a localized reopen requirement
 before any confirmation/request is issued. W3's creation receipt and W12's
 resident context will supply the original admitted address for new/resident
 sessions; until cutover a legacy unbound open must be reopened to admit it.
+
+W3 creation receipts enter through `Shell::started_at(card, SessionAddress, cx)`.
+It verifies card/session agreement and validates the saved host name before
+clearing draft sending state, then installs the receipt's original binding before
+conversation hydration and follow. It does not infer the node from current Fleet.
+The legacy `started` path retains its previous unbound behavior until W3 cutover;
+its later lifecycle actions require reopening. The shared completion body moves
+to the existing session opening sidecar, lowering session.rs's measured ratchet
+to 641. This is the legacy receipt adapter, not a resident or connection manager.

@@ -45,3 +45,52 @@ fn immutable_creator_cannot_authorize_close_without_current_parentage(cx: &mut T
         });
     }
 }
+
+#[gpui::test]
+fn creation_receipt_retains_original_node_before_following(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, cx| {
+        let info = SessionInfo::new(
+            SessionId::random(),
+            SessionSpec::new(
+                HarnessKind::ClaudeCode,
+                SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
+            ),
+            chrono::DateTime::UNIX_EPOCH,
+        );
+        let card = vessel_app_view::Card::from_session("fixture", &info);
+        let address = vessel_app_view::sessions::SessionAddress {
+            node: NodeId::random(),
+            session: info.id,
+        };
+        shell.route = Route::Session;
+        shell.areas.session.pending = Some(crate::areas::session::Pending {
+            machine: "fixture".to_owned(),
+            agent: "fixture".to_owned(),
+            prompt: "first prompt".to_owned(),
+        });
+        let mut replacement =
+            vessel_app_view::Machine::unreachable("fixture".to_owned(), "fixture");
+        replacement.node = Some(NodeId::random());
+        shell.fleet.machines = vec![replacement];
+        let wrong = vessel_app_view::sessions::SessionAddress {
+            session: SessionId::random(),
+            ..address
+        };
+        shell.started_at(&card, wrong, cx);
+        assert!(shell.areas.session.open.is_none());
+        assert!(shell.areas.session.pending.is_some());
+        shell.started_at(&card, address, cx);
+        let host = vessel_app_view::machine_book::Name::parse("fixture").unwrap();
+        assert_eq!(shell.opened_session_address(&host, info.id), Some(address));
+        assert_eq!(
+            shell.areas.session.open.as_ref().unwrap().title,
+            "first prompt"
+        );
+    });
+}

@@ -151,25 +151,6 @@ impl Shell {
         cx.notify();
     }
 
-    /// The node created the session the draft asked for: follow it, the
-    /// prompt still shown until its first record arrives.
-    pub(crate) fn started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
-        self.draft_started();
-        let Some(pending) = self.areas.session.pending.clone() else {
-            return;
-        };
-        if self.route == Route::Session {
-            let mut open = Open::of(card);
-            if open.title.is_empty() {
-                // The node titles a session from its first prompt when the
-                // turn starts (80 characters of its first line); until then
-                // the same, here.
-                open.title = first_line(&pending.prompt);
-            }
-            self.follow(open, cx);
-        }
-    }
-
     /// The fleet was read again: the open session's title, if the node
     /// has given it one since.
     pub(crate) fn retitle(&mut self) {

@@ -1,4 +1,5 @@
 //! The visible session identity shared by navigation and session rendering.
+use super::first_line;
 use crate::routes::Route;
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
@@ -124,6 +125,65 @@ impl crate::shell::Shell {
             self.areas.session.composer.focus(window, cx);
         } else if !structured {
             self.focus_terminal(window, cx);
+        }
+    }
+}
+
+impl crate::shell::Shell {
+    /// Legacy creation completion; the original creation authority was not retained.
+    pub(crate) fn started(&mut self, card: &Card, cx: &mut Context<'_, Self>) {
+        self.started_bound(card, None, cx);
+    }
+    /// Adopt the original creation receipt address before any hydration/follow.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "W3 consumes this creation receipt adapter after its checked source"
+        )
+    )]
+    pub(crate) fn started_at(
+        &mut self,
+        card: &Card,
+        address: SessionAddress,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if card.session != address.session {
+            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+            cx.notify();
+            return;
+        }
+        let Ok(host) = Name::parse(&card.machine) else {
+            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+            cx.notify();
+            return;
+        };
+        self.started_bound(
+            card,
+            Some(vessel_app_link::sessions::Binding { host, address }),
+            cx,
+        );
+    }
+    fn started_bound(
+        &mut self,
+        card: &Card,
+        binding: Option<vessel_app_link::sessions::Binding>,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.draft_started();
+        let Some(pending) = self.areas.session.pending.clone() else {
+            return;
+        };
+        if self.route == Route::Session {
+            let mut open = Open::of(card);
+            open.binding = binding;
+            if open.title.is_empty() {
+                // The node titles a session from its first prompt when the
+                // turn starts (80 characters of its first line); until then
+                // the same, here.
+                open.title = first_line(&pending.prompt);
+            }
+            self.follow(open, cx);
         }
     }
 }
