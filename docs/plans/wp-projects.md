@@ -184,3 +184,9 @@ retarget an existing path draft, and a response from the old node cannot hydrate
 a different current node. A framed in-memory test verifies no request is sent
 to the replacement peer. The earlier import cleanup accidentally removed part
 of a trait name; it is corrected explicitly rather than by substring editing.
+
+Native registration checkpoint: strict all-target Clippy for view/link/app and
+font validation passed on the current source. Narrow project tests passed 27/0:
+2 headless app input/correlation, 4 framed link tests and 21 view cases selected
+by the filter (including existing projection/Git cases). These are scoped checks,
+not screen captures, real fleet behavior, full C1 or V4 acceptance.
