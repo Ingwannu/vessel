@@ -420,3 +420,47 @@ Deliberate differences:
   starts it again with the text (as before); its files go with the next
   send once it runs.
 
+
+Not seen on screen: the three ways a file reaches the composer besides an
+image pasted (the system's file dialog, a file list pasted, files dropped
+on the card). Under the capture display (Xvfb) GPUI's dialog needs the
+desktop portal, which is absent; GPUI's X11 clipboard does not read a
+file list (`text/uri-list` is not among its formats); and a drop reaches
+GPUI (its `XDND_DATA` is read, the drag source is told it succeeded) but
+the card's `on_drop` and `drag_over` did not run. They wait for a run on a
+real desktop.
+
+### Captures: a screen behind its keys (measured, not a defect)
+
+Two c2 captures showed keys handled but not drawn: typed text missing
+from the screen until the next pointer event, and a Return whose effect
+showed only after a click. One capture's bubble read its text twice: the
+first typing was in the composer but not yet on screen, so it was typed
+again, and the app sent what the composer held (one text block; the fake
+agent's echo has no space between the two copies). The capture was
+retaken with the text typed once.
+
+No state change lacks a notify. The composer's text is its model, kept as
+the draft (`drafts.json`), and the model held every key while the screen
+did not show them; the next frame showed them all. GPUI draws a dirty
+window before it dispatches each key (`Window::dispatch_key_event`) and
+presents only when the X events of that wake are handled (the 60 Hz
+refresh timer). A burst of keys therefore costs one draw a key before
+anything is presented. Measured on the capture display (software
+renderer), 24 keys typed in about 0.3 s:
+
+| build | main thread CPU | screen 0.6 s after the last key |
+| --- | --- | --- |
+| debug | 1.42 s and 1.61 s (about 60 ms a key) | before the burst |
+| release | 0.15 s and 0.16 s (about 6 ms a key) | after the burst |
+
+The capture host adds a second stall: the debug binary (over 400 MB) is on
+a spinning data disk under heavy I/O pressure (`/proc/pressure/io` "some"
+about 55 %), and code run for the first time waits for its pages: the
+main thread was seen waiting on the disk (`folio_wait_bit_common`) for
+12.5 s while a cold binary started and for 0.6 s when a session first
+opened. Replays of both captures' paths, with the binary's pages cached,
+drew every key at once.
+
+So a capture waits until the app's main thread has been idle in its event
+loop (`ep_poll`, ten samples 50 ms apart) before it is taken.
