@@ -111,7 +111,7 @@ async fn generated_guard_checks_scope_before_collector_and_preserves_agent_read(
     .await;
 }
 
-// Snapshot is ordered after the completed calls on the journal's channel.
+// Snapshot follows the completed calls on the channel and returns newest first.
 // This catches an observer moved below the guard's early scope refusal.
 fn assert_recorded_guard_failures(report: &DiagnosticReport) {
     let DiagnosticSection::Available { value, .. } = &report.fields().recent_failures else {
@@ -126,11 +126,11 @@ fn assert_recorded_guard_failures(report: &DiagnosticReport) {
     assert_eq!(
         codes,
         [
+            ErrorCode::Unavailable,
+            ErrorCode::Unavailable,
+            ErrorCode::Unavailable,
             ErrorCode::Forbidden,
             ErrorCode::Forbidden,
-            ErrorCode::Unavailable,
-            ErrorCode::Unavailable,
-            ErrorCode::Unavailable,
         ]
     );
     assert_eq!(value.omitted.get(), 0);

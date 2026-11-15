@@ -182,3 +182,11 @@ The generated-guard regression also checks the actual collected recent-error
 window: both pre-handler scope refusals and the three saturated-collector
 refusals must be present in order without loss. This verifies the journal's
 real caller rather than relying only on its actor component tests.
+
+The first expanded node/Proc narrow execution stopped after the node crate:
+273 tests passed and the added guard-window assertion failed because it
+expected oldest-first rather than the journal's existing newest-first order.
+The product returned all five expected codes; only the test's expected order
+is corrected. Proc tests were not reached in that fail-fast invocation.
+The subsequent run keeps all assertions and uses no-fail-fast to report both
+selected crates even if one fails. No deadline or product policy changes.
