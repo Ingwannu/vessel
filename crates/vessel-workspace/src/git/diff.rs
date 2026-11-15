@@ -15,7 +15,12 @@ mod file;
 mod scope;
 mod summary;
 
-use std::path::Path;
+// ADR 0087, pending Quality B admission: private-index All comparisons are
+// exercised here before any RPC can expose them. Wiring removes this flag.
+#[cfg(test)]
+mod all_index;
+
+use std::path::{Path, PathBuf};
 
 use vessel_proto::workspace::CommitId;
 
@@ -42,6 +47,9 @@ pub struct Resolved {
     from: Option<CommitId>,
     /// Whether untracked files count as added.
     untracked: bool,
+    /// Only a node-created private index; never a client path. Legacy scopes
+    /// leave it absent, preserving their existing admitted behaviour.
+    index: Option<PathBuf>,
 }
 
 impl Git {
@@ -58,6 +66,9 @@ impl Git {
         ]);
         if ignore_whitespace {
             command = command.arg("--ignore-all-space");
+        }
+        if let Some(index) = &resolved.index {
+            command = command.env("GIT_INDEX_FILE", index);
         }
         command.args(&resolved.sides)
     }

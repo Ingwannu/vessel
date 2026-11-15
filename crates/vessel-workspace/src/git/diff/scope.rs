@@ -48,6 +48,7 @@ impl Git {
                         sides: vec![empty.clone(), empty],
                         from: None,
                         untracked: false,
+                        index: None,
                     }));
                 };
                 let fork = self.merge_base(dir, &commit).await?.unwrap_or(commit);
@@ -55,6 +56,7 @@ impl Git {
                     sides: vec![fork.to_string(), head.to_string()],
                     from: Some(fork),
                     untracked: false,
+                    index: None,
                 }));
             }
         };
@@ -81,11 +83,13 @@ impl Git {
                 sides: Vec::new(),
                 from: head,
                 untracked: true,
+                index: None,
             },
             DiffScope::Staged => Resolved {
                 sides: vec!["--cached".to_owned()],
                 from: head,
                 untracked: false,
+                index: None,
             },
             DiffScope::Uncommitted => {
                 let side = match &head {
@@ -96,6 +100,7 @@ impl Git {
                     sides: vec![side],
                     from: head,
                     untracked: true,
+                    index: None,
                 }
             }
             DiffScope::Base { base: asked } => {
@@ -112,6 +117,7 @@ impl Git {
                     sides: vec![fork.to_string()],
                     from: Some(fork),
                     untracked: true,
+                    index: None,
                 }
             }
             DiffScope::Commit { id } => {
@@ -128,6 +134,7 @@ impl Git {
                     sides: vec![from, commit.to_string()],
                     from: parent,
                     untracked: false,
+                    index: None,
                 }
             }
         })

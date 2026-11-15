@@ -1,0 +1,318 @@
+//! Staged All comparison restoration after checkout-git.ts:3533–3577.
+//! A path removed from HEAD/index but recreated on disk must be compared to
+//! its base blob once, rather than reported as deleted plus separately added.
+//!
+//! [Decision Log]
+//! - Existing asset: protected runner and snapshot's private-index strategy.
+//! - Choice: retain a copy of the real index, restoring only untracked paths
+//!   present in the comparison base; every mutation targets the private copy.
+//! - Alternative: stage the person's index, or interpret patches in the app.
+//!   Both change authority and lose rename/mode behaviour.
+//! - Repeated cacheinfo arguments avoid extending the runner with stdin.
+//! - Quality B must give the runtime explicit lease/cancellation ownership;
+//!   this module remains test-staged, not an admitted service or cache.
+
+use std::path::Path;
+
+use vessel_proto::workspace::{
+    CommitId, DiffSummary, FileDiff, GitComparison, GitHunkOffset, GitWhitespace, RelPath,
+    WorktreeBase,
+};
+
+use super::Resolved;
+use crate::git::{Git, GitError};
+
+/// Bound both argv size (including worst-case quote expansion on Windows)
+/// and path count; ordinary short paths still share one subprocess.
+const MAX_BATCH_ARG_BYTES: usize = 16 * 1024;
+const MAX_BATCH_PATHS: usize = 128;
+/// Leave space for executable, flags, mode and object ids in each batch.
+const ARG_FIXED_BYTES: usize = 1024;
+/// --cacheinfo, mode, object id and separators, independent of path length.
+const CACHEINFO_ENTRY_BYTES: usize = 128;
+
+/// Keep disk and git failures typed without erasing their source.
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum IndexError {
+    #[error("git could not prepare the All comparison")]
+    Git(#[from] GitError),
+    #[error("the comparison index could not be prepared")]
+    Io(#[from] std::io::Error),
+    #[error("the comparison index worker stopped")]
+    Task(#[from] tokio::task::JoinError),
+    #[error("the All comparison failed and its private index could not be removed: {cleanup}")]
+    Cleanup {
+        #[source]
+        read: GitError,
+        cleanup: std::io::Error,
+    },
+    #[error("the All comparison failed and its cleanup worker stopped: {cleanup}")]
+    CleanupTask {
+        #[source]
+        read: GitError,
+        cleanup: tokio::task::JoinError,
+    },
+}
+
+/// A staging lease; tests close it explicitly on a blocking worker. Before
+/// admission, the runtime must also prove cancellation and shutdown cleanup.
+#[must_use]
+#[derive(Debug)]
+pub(crate) struct Prepared {
+    scope: Resolved,
+    directory: Option<tempfile::TempDir>,
+}
+
+impl Prepared {
+    pub(super) async fn changes(
+        &self,
+        git: &Git,
+        dir: &Path,
+        whitespace: GitWhitespace,
+    ) -> Result<DiffSummary, GitError> {
+        git.changes(dir, &self.scope, whitespace.ignored()).await
+    }
+
+    pub(super) async fn file(
+        &self,
+        git: &Git,
+        dir: &Path,
+        path: &RelPath,
+        whitespace: GitWhitespace,
+        offset: GitHunkOffset,
+    ) -> Result<FileDiff, GitError> {
+        git.file_diff(dir, &self.scope, path, whitespace.ignored(), offset.get())
+            .await
+    }
+
+    pub(super) async fn close(self) -> Result<(), IndexError> {
+        if let Some(directory) = self.directory {
+            tokio::task::spawn_blocking(move || directory.close()).await??;
+        }
+        Ok(())
+    }
+}
+
+impl Git {
+    /// Only All may restore entries; other comparisons stay on the original
+    /// read-only index and all reads borrow the lease until they finish.
+    pub(crate) async fn prepare_comparison(
+        &self,
+        dir: &Path,
+        comparison: &GitComparison,
+        base: Option<&WorktreeBase>,
+    ) -> Result<Option<Prepared>, IndexError> {
+        let Some(scope) = self.resolve_comparison(dir, comparison, base).await? else {
+            return Ok(None);
+        };
+        match comparison {
+            GitComparison::All { .. } => self.prepare_all_index(dir, scope).await.map(Some),
+            GitComparison::Uncommitted
+            | GitComparison::Committed { .. }
+            | GitComparison::Commit { .. } => Ok(Some(Prepared {
+                scope,
+                directory: None,
+            })),
+        }
+    }
+
+    /// Restore base entries only when a current untracked path needs one.
+    async fn prepare_all_index(
+        &self,
+        dir: &Path,
+        mut scope: Resolved,
+    ) -> Result<Prepared, IndexError> {
+        let Some(base) = &scope.from else {
+            return Ok(Prepared {
+                scope,
+                directory: None,
+            });
+        };
+        let paths = self.untracked(dir, None).await?;
+        let mut entries = Vec::new();
+        for batch in batches(&paths) {
+            let output = self.command(dir).args(["ls-tree", "-r", "-z"])
+                .arg(base.as_str()).arg("--")
+                // The shared runner already sets GIT_LITERAL_PATHSPECS=1.
+                .args(batch.iter().map(|path| path.as_str()))
+                .output().await?.checked()?;
+            entries.extend(parse_entries(&output.stdout)?);
+        }
+        if entries.is_empty() {
+            return Ok(Prepared {
+                scope,
+                directory: None,
+            });
+        }
+        let index = self
+            .command(dir)
+            .args(["rev-parse", "--git-path", "index"])
+            .output()
+            .await?
+            .checked()?;
+        let text = String::from_utf8_lossy(&index.stdout);
+        let source = dir.join(text.trim_end_matches(['\r', '\n']));
+        let directory = tokio::task::spawn_blocking(move || copy_index(&source)).await??;
+        let destination = directory.path().join("index");
+        let installed = self.restore_entries(dir, &destination, &entries).await;
+        if let Err(error) = installed {
+            // Close even when git refuses restoration. A cleanup failure must
+            // retain the original git error as well; no success is reported.
+            let closed = tokio::task::spawn_blocking(move || directory.close()).await;
+            return match closed {
+                Ok(Ok(())) => Err(error.into()),
+                Ok(Err(cleanup)) => Err(IndexError::Cleanup {
+                    read: error,
+                    cleanup,
+                }),
+                Err(cleanup) => Err(IndexError::CleanupTask {
+                    read: error,
+                    cleanup,
+                }),
+            };
+        }
+        scope.index = Some(destination);
+        Ok(Prepared {
+            scope,
+            directory: Some(directory),
+        })
+    }
+
+    async fn restore_entries(
+        &self,
+        dir: &Path,
+        index: &Path,
+        entries: &[Entry],
+    ) -> Result<(), GitError> {
+        // Reuse path batching for the larger cacheinfo argv with an allowance
+        // for mode/object fields accounted separately in each path's cost.
+        let paths: Vec<_> = entries.iter().map(|entry| entry.path.clone()).collect();
+        let mut offset = 0;
+        for batch in batches(&paths) {
+            let mut command = self
+                .command(dir)
+                .env("GIT_INDEX_FILE", index)
+                .args(["update-index", "--add"]);
+            for entry in entries.iter().skip(offset).take(batch.len()) {
+                command = command.arg("--cacheinfo").arg(format!(
+                    "{},{},{}",
+                    entry.mode.text(),
+                    entry.object,
+                    entry.path.as_str()
+                ));
+            }
+            command.run().await?;
+            offset = offset.saturating_add(batch.len());
+        }
+        Ok(())
+    }
+}
+
+fn copy_index(source: &Path) -> Result<tempfile::TempDir, std::io::Error> {
+    let directory = tempfile::Builder::new()
+        .prefix("vessel-git-comparison-")
+        .tempdir()?;
+    let destination = directory.path().join("index");
+    match std::fs::copy(source, destination) {
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    Ok(directory)
+}
+
+#[derive(Debug)]
+struct Entry {
+    mode: Mode,
+    object: CommitId,
+    path: RelPath,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Mode {
+    Regular,
+    Executable,
+    Link,
+    Gitlink,
+}
+
+impl Mode {
+    const fn text(self) -> &'static str {
+        match self {
+            Self::Regular => "100644",
+            Self::Executable => "100755",
+            Self::Link => "120000",
+            Self::Gitlink => "160000",
+        }
+    }
+}
+
+fn parse_entries(bytes: &[u8]) -> Result<Vec<Entry>, GitError> {
+    let unexpected = || GitError::Unexpected {
+        what: "base index entry",
+    };
+    bytes
+        .split(|byte| *byte == 0)
+        .filter(|record| !record.is_empty())
+        .map(|record| {
+            let text = std::str::from_utf8(record).map_err(|_| unexpected())?;
+            let (metadata, path) = text.split_once('\t').ok_or_else(unexpected)?;
+            let mut fields = metadata.split(' ');
+            let mode = fields.next().ok_or_else(unexpected)?;
+            let kind = fields.next().ok_or_else(unexpected)?;
+            let object = fields
+                .next()
+                .ok_or_else(unexpected)?
+                .parse()
+                .map_err(|_| unexpected())?;
+            if fields.next().is_some() {
+                return Err(unexpected());
+            }
+            let mode = match (mode, kind) {
+                ("100644", "blob") => Mode::Regular,
+                ("100755", "blob") => Mode::Executable,
+                ("120000", "blob") => Mode::Link,
+                ("160000", "commit") => Mode::Gitlink,
+                _ => return Err(unexpected()),
+            };
+            let path: RelPath = path.parse().map_err(|_| unexpected())?;
+            if path.is_root() {
+                return Err(unexpected());
+            }
+            Ok(Entry { mode, object, path })
+        })
+        .collect()
+}
+
+fn batches(paths: &[RelPath]) -> Vec<&[RelPath]> {
+    let mut result = Vec::new();
+    let mut start = 0;
+    let mut bytes = ARG_FIXED_BYTES;
+    for (index, path) in paths.iter().enumerate() {
+        // Double quotes can double during Windows escaping. An additional
+        // fixed allowance per entry covers --cacheinfo, mode and SHA-256 ids.
+        let cost = path
+            .as_str()
+            .len()
+            .saturating_mul(2)
+            .saturating_add(CACHEINFO_ENTRY_BYTES);
+        if index > start
+            && (index.saturating_sub(start) >= MAX_BATCH_PATHS
+                || bytes.saturating_add(cost) > MAX_BATCH_ARG_BYTES)
+        {
+            if let Some(batch) = paths.get(start..index) {
+                result.push(batch);
+            }
+            start = index;
+            bytes = ARG_FIXED_BYTES;
+        }
+        bytes = bytes.saturating_add(cost);
+    }
+    if let Some(batch) = paths.get(start..).filter(|batch| !batch.is_empty()) {
+        result.push(batch);
+    }
+    result
+}
+
+#[cfg(test)]
+mod tests;

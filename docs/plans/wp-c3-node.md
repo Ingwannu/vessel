@@ -18,14 +18,23 @@ repositories, including mixed changes, index bytes and unborn HEAD.
 
 ## Resume point
 
-The first narrow clippy stopped on documentation markup in the new contract;
-corrected before rerunning. Protocol round trips/path validation and staged
-resolver execution remain unverified. No runtime or parity claim yet.
+The first narrow clippy stopped on documentation markup; the correction passed
+protocol/workspace clippy. Library tests passed 382, failed 0, ignored 1.
+This proves the staged resolver and contract cases, not node RPC/UI parity.
 
-Next: complete the All private-index case from `checkout-git.ts:3533–3577`
+The staged All private-index case from `checkout-git.ts:3533–3577` is implemented
 (a path present in the comparison tree but absent from the current index must
 not appear as a spurious deletion plus a duplicate untracked addition). The
-staged All adapter still uses legacy behaviour and is not complete. Then add
+shared diff/summary/file readers accept a node-owned optional index; legacy
+scopes leave it absent. Restoration uses repeated `--cacheinfo` arguments,
+avoiding a stdin runner extension. Path batches bound both count and escaped
+argv size; the runner's existing literal-path environment is reused. Scoped
+summary and file reads both use the same private index. It reuses the existing
+snapshot pattern and test-only tempfile dependency; no manifest/edge change.
+Restoration errors retain cleanup errors as well. Explicit blocking-worker
+close is covered; active cancellation/shutdown lease ownership remains a
+Quality B blocker before this module can leave test staging. New All cases
+await narrow checks. Next: merge the announced Quality B node base, then add
 revision/cache/watch ownership, classified history, branch stash metadata,
 merge-to/from-base and bounded commit generation before Quality B wiring.
 No TypeScript output changes yet: the pending types are not request roots.
