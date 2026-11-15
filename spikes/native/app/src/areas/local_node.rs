@@ -339,13 +339,13 @@ impl Shell {
         }
         self.prefs.local_node.management = if enabled {
             Management::Enabled
-        } else if matches!(status, Status::Owned(_)) {
+        } else {
             Management::Paused
         };
         self.command(Command::SavePrefs(self.prefs.clone()));
         if enabled {
             self.local_node_action(Action::Start, cx);
-        } else {
+        } else if matches!(status, Status::Owned(_)) {
             // Protect refuses live work; changing automatic intent never grants
             // interruption authority and a reused process always remains alone.
             self.local_node_action(Action::Stop, cx);
