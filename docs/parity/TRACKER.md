@@ -238,9 +238,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 232 | B2 | W12 | Find in pane widget and Cmd/Ctrl+F policy | area-2-composer-input.md | unknown |
 | 233 | B2 | W12 | Keyboard shortcuts for composer actions | area-2-composer-input.md | skeleton |
 | 234 | C1 | W11 | 01 Add Project flow: open/close modal request. | p1-projects-workspaces.md | skeleton |
-| 235 | C1 | W11 | 01 Host selection and preferred/single-host skip. | p1-projects-workspaces.md | unknown |
-| 236 | C1 | W11 | 01 Method selection and per-host capability/update gates. | p1-projects-workspaces.md | unknown |
-| 237 | C1 | W11 | 01 Back stack, remembered in-flow input drafts, keyboard selection and loading/error/empty states. | p1-projects-workspaces.md | unknown |
+| 235 | C1 | W11 | 01 Host selection and preferred/single-host skip. | p1-projects-workspaces.md | skeleton |
+| 236 | C1 | W11 | 01 Method selection and per-host capability/update gates. | p1-projects-workspaces.md | skeleton |
+| 237 | C1 | W11 | 01 Back stack, remembered in-flow input drafts, keyboard selection and loading/error/empty states. | p1-projects-workspaces.md | skeleton |
 | 238 | C1 | W11 | 01 Electron local Browse. | p1-projects-workspaces.md | unknown |
 | 239 | C1 | W11 | 02 Register existing directory without workspace creation. | p1-projects-workspaces.md | skeleton |
 | 240 | C1 | W11 | 02 Exact-root project deduplication and snapshot/navigation update. | p1-projects-workspaces.md | skeleton |
@@ -256,7 +256,7 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 250 | C1 | W11 | 05 Root grouping, exclusions, ranking and limits. | p1-projects-workspaces.md | unknown |
 | 251 | C1 | W11 | 05 Default preselection and user override. | p1-projects-workspaces.md | unknown |
 | 252 | C1 | W11 | 05 Sequential add, partial failure and late-provider arrivals. | p1-projects-workspaces.md | unknown |
-| 253 | C1 | W11 | 06 Project custom name/reset. | p1-projects-workspaces.md | unknown |
+| 253 | C1 | W11 | 06 Project custom name/reset. | p1-projects-workspaces.md | skeleton |
 | 254 | C1 | W11 | 06 Choose image, URL/website icon import, preview and automatic icon reset. | p1-projects-workspaces.md | unknown |
 | 255 | C1 | W11 | 06 Server icon validation and host-local icon persistence. | p1-projects-workspaces.md | unknown |
 | 256 | C1 | W11 | 06 Icon discovery/revision/cache and placeholder display. | p1-projects-workspaces.md | unknown |
@@ -706,9 +706,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 700 | A8 | W4 | Permission event fan-out, cancellation and mode policy | gaps.md | skeleton |
 | 701 | A8 | W11 | Agent attention policy — corrections and missing boundary details | gaps.md | unknown |
 | 702 | A8 | W4 | CLI permission listing, allow and deny | gaps.md | skeleton (parser/preflight/confirmation staged; checked output/respond wiring pending) |
-| 703 | A10 | N3+G3 | Host agent profiles: create, edit, remove and reorder | gaps.md | missing |
-| 704 | A10 | N3+G3 | Applying profiles to drafts and existing agents | gaps.md | missing |
-| 705 | A10 | N3+G3 | Legacy favorites migration and account boundary | gaps.md | missing |
+| 703 | A10 | N3+G3 | Host agent profiles: create, edit, remove and reorder | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
+| 704 | A10 | N3+G3 | Applying profiles to drafts and existing agents | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
+| 705 | A10 | N3+G3 | Legacy favorites migration and account boundary | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
 | 706 | F5 | E2+K+L | Agent skills: coverage boundary and provider-native skills | gaps.md | unknown |
 | 707 | N(titles)/F5 | titles+E2 | Agent titles versus workspace generated titles | gaps.md | skeleton (node provenance built; app/workspace pending) |
 | 708 | N(titles)/F5 | titles+E2 | Metadata generation selection and project prompt overrides | gaps.md | built (node selector/styles; settings UI pending) |
@@ -737,9 +737,9 @@ Generated 2026-11-15 from FEATURES.md; the state column starts at 'unknown' unti
 | 731 | A8 | W4 | Cross-client request/resolution events, direct acknowledgement and cancellation | gaps.md | skeleton (selected-connection response fence source built; durable receipts/live resident cutover pending) |
 | 732 | A8 | W11 | Presence selection, delegated callback suppression and unread corrections | gaps.md | unknown |
 | 733 | A8 | W4 | CLI permit listing, batch allow default, deny flags and confirmation errors | gaps.md | skeleton |
-| 734 | A10 | N3+G3 | Profile CRUD, order, notes, glyph/color and catalog-backed form | gaps.md | missing |
-| 735 | A10 | N3+G3 | Profile draft apply, live bundle apply, invalid-mode omission and partial failure | gaps.md | missing |
-| 736 | A10 | N3+G3 | Legacy favorite migration markers, deduplication and catalog retry | gaps.md | missing |
+| 734 | A10 | N3+G3 | Profile CRUD, order, notes, glyph/color and catalog-backed form | gaps.md | skeleton (node/client/CLI source; protocol unassigned; checks pending; app unstarted) |
+| 735 | A10 | N3+G3 | Profile draft apply, live bundle apply, invalid-mode omission and partial failure | gaps.md | skeleton (node/client source; runtime pending; app unstarted) |
+| 736 | A10 | N3+G3 | Legacy favorite migration markers, deduplication and catalog retry | gaps.md | skeleton (typed helper source; checks pending; app markers missing) |
 | 737 | F5 | E2+K+L | Provider account/usage boundary and absent core account switcher | gaps.md | unknown |
 | 738 | F5 | E2+K+L | Bundled skill install versus native provider skill autocomplete | gaps.md | unknown |
 | 739 | N(titles)/F5 | titles+E2 | Agent provisional/manual titles versus generated workspace names | gaps.md | skeleton (node provenance built; app/workspace pending) |
