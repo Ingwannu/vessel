@@ -123,7 +123,7 @@ fn generic_custom_and_text_answers_share_ecmascript_blank_semantics() {
             .check(&answer(&[("custom", AnswerValue::Text("\u{0085}".into()))]))
             .is_ok()
     );
-    question.fields.remove(0);
+    let _choice = question.fields.remove(0);
     question.fields[0].required = true;
     question.fields[0].presentation = Some(QuestionFieldPresentation {
         custom_answer: None,

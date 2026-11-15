@@ -106,7 +106,7 @@ pub enum AnswerNotSent {
 pub struct AnswerToken {
     session: SessionId,
     source: SourceKey,
-    record: Record,
+    record: Box<Record>,
 }
 
 impl AnswerToken {
@@ -270,7 +270,7 @@ pub(crate) fn begin_answer(
     Ok(AnswerAdmission::New(AnswerToken {
         session,
         source: record.source.clone(),
-        record,
+        record: Box::new(record),
     }))
 }
 
@@ -356,7 +356,7 @@ fn displayed(record: &Record) -> Option<Question> {
 fn require_claim(connection: &Connection, token: &AnswerToken) -> Result<(), StoreError> {
     require_transaction(connection)?;
     let kept = load(connection, token.session, &token.source)?;
-    if kept.as_ref() != Some(&token.record) {
+    if kept.as_ref() != Some(token.record.as_ref()) {
         return Err(StoreError::AdmissionIntegrity);
     }
     Ok(())
