@@ -1048,3 +1048,43 @@ with request echoes or joined from a later document.
   shape. These tests are UNEXECUTED pending the announced-node join. Other result,
   dialog, log, summary/context and actual execution debts remain in the linked
   checklist; this change enables no tool, method or browser engine.
+
+
+## Announced gate50c dependency join and actual preference owner
+
+Merged announced9c150c6efbff583762d02e6a8576b3fa66cc7ae9 as9d6bc48dc,
+not a trial head or rebase. It contains the EXACT portable b37 already used for
+private development, the checked AA writer and privacy decoder. The prior
+pre-announced dependency hold is now satisfied. Eight append/exhaustive-list
+conflicts retain canonical registry/diagnostics/detach/book values plus W14's
+browser module/refusals/samples; the four None browser rows remain at the END of
+the single method table. Checked Proc implementation/assertions are unchanged.
+No ConnectionLife consumer was invented to remove staging expectations.
+
+[Decision Log]
+- Purpose: save the explicit agent-browser preference without another file,
+  writer, runtime grant or a cancelled write overtaking a later update.
+- Existing asset: announced AA holds an owned saved-settings guard through its
+  independently tracked write and runtime publication, and preserves later or
+  unreadable files with the shared privacy-safe decoder. Reuse that exact owner.
+- Choice: validate the browser choice while holding its owned guard, merge only
+  a named field into next, and use the existing persist. Missing/unknown saved
+  choices remain effectively Off; omission preserves a saved choice. Known On/Off
+  now persist, rather than the old pre-AA BrowserPending placeholder refusal.
+- Why: preference persistence and browser admission are different facts. A saved
+  On is not an engine qualification, provider start or offered-tool lease. Public
+  mutations still require the None browser field version at every hop and direct
+  human Admin; no method number or tool offering is enabled.
+- Impact: actual-writer fixtures cover restart, unrelated concurrent updates,
+  all-or-nothing unknown refusal, write failure, cancellation/serialization,
+  service-account file ownership/modes, and future/unreadable original backups.
+  Existing AA writer code/negative controls are not copied or changed; only its
+  test fixture/gate helpers are shared with the browser's own tests.
+
+BrowserTools also now decodes ONLY a JSON string. Its generic enum form must not
+accept a unit-variant object such as an on/null map as a preference. Direct enum,
+named request and real saved-file fixtures require those object forms to refuse;
+null/malformed input cannot become omission. Later strings remain Unknown/Off and
+follow the existing preserved-original backup rule. These new implementation
+checks are still unexecuted at this source checkpoint; prior scoped passes do
+not qualify the changed writer consumer, decoder, field or actor admission.

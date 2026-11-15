@@ -76,9 +76,6 @@ pub(crate) enum SettingsError {
     /// A newer browser preference is never interpreted as an enable request.
     #[error("this node does not know that browser-tools choice; send on or off")]
     UnknownBrowser,
-    /// Persistence is not wired before the shared writer/cancellation repair.
-    #[error("browser tools are not available on this node")]
-    BrowserPending,
     /// An agent's own protocol this build does not offer yet.
     #[error("this build of Vessel does not offer {0} over its own protocol yet; it runs over ACP")]
     NoDirect(HarnessKind),
@@ -183,6 +180,16 @@ impl Settings {
             // A newer build's choice, read after a downgrade: the flag's.
             Some(ParkAfter::Unknown) | None => self.flag,
         };
+        let browser_tools = match saved.browser_tools {
+            Some(vessel_proto::browser::BrowserTools::On) => {
+                vessel_proto::browser::BrowserTools::On
+            }
+            Some(
+                vessel_proto::browser::BrowserTools::Off
+                | vessel_proto::browser::BrowserTools::Unknown,
+            )
+            | None => vessel_proto::browser::BrowserTools::Off,
+        };
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -198,9 +205,9 @@ impl Settings {
             open_code: driver(HarnessKind::OpenCode, saved.open_code),
         };
         NodeSettings {
-            // Typed pending plumbing only: checked shared writer integration
-            // and actual session-offer/engine wiring still precede any enable.
-            browser_tools: vessel_proto::browser::BrowserTools::Off,
+            // A saved preference is not engine qualification or a session-start
+            // offered-tool lease. Every real browser admission remains separate.
+            browser_tools,
             park_after,
             drivers,
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
@@ -219,13 +226,6 @@ impl Settings {
         self: &Arc<Self>,
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
-        if let Some(browser) = change.browser_tools {
-            return Err(match browser {
-                vessel_proto::browser::BrowserTools::Unknown => SettingsError::UnknownBrowser,
-                vessel_proto::browser::BrowserTools::Off
-                | vessel_proto::browser::BrowserTools::On => SettingsError::BrowserPending,
-            });
-        }
         if change.park_after == Some(ParkAfter::Unknown) {
             return Err(SettingsError::Unknown);
         }
@@ -239,7 +239,13 @@ impl Settings {
             }
         }
         let saved = Arc::clone(&self.saved).lock_owned().await;
+        if change.browser_tools == Some(vessel_proto::browser::BrowserTools::Unknown) {
+            return Err(SettingsError::UnknownBrowser);
+        }
         let mut next = *saved;
+        if let Some(browser) = change.browser_tools {
+            next.browser_tools = Some(browser);
+        }
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
         }
@@ -280,3 +286,6 @@ fn offered(kind: HarnessKind) -> bool {
 
 #[cfg(test)]
 mod diagnostic_tests;
+
+#[cfg(test)]
+mod browser_tests;

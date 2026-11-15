@@ -41,6 +41,9 @@ mod tests {
             r#"{"browser_tools":false}"#,
             r#"{"browser_tools":1}"#,
             r#"{"browser_tools":{}}"#,
+            r#"{"browser_tools":{"on":null}}"#,
+            r#"{"browser_tools":{"off":null}}"#,
+            r#"{"browser_tools":{"unknown":null}}"#,
             r#"{"browser_tools":[]}"#,
         ] {
             assert!(serde_json::from_str::<SetNodeSettings>(input).is_err());

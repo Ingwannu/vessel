@@ -18,7 +18,7 @@ impl GateSlot {
         self.0.lock().unwrap().take()
     }
 
-    fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
+    pub(super) fn install(&self) -> (oneshot::Receiver<()>, oneshot::Sender<()>) {
         let (entered, observing) = oneshot::channel();
         let (release, released) = oneshot::channel();
         *self.0.lock().unwrap() = Some(Gate { entered, released });
@@ -40,7 +40,7 @@ impl Gate {
     }
 }
 
-fn settings(root: &std::path::Path) -> Arc<Settings> {
+pub(super) fn settings(root: &std::path::Path) -> Arc<Settings> {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
             harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),

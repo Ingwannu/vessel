@@ -34,9 +34,7 @@ impl NodeService {
                 SettingsError::Unknown
                 | SettingsError::UnknownDriver(_)
                 | SettingsError::UnknownBrowser => ErrorCode::InvalidRequest,
-                SettingsError::NoDirect(_) | SettingsError::BrowserPending => {
-                    ErrorCode::Unsupported
-                }
+                SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 // The node's own file needs a person's hand first.
                 SettingsError::Kept(_) | SettingsError::Stopping => ErrorCode::Conflict,
                 SettingsError::Write(_) | SettingsError::Lost(_) => ErrorCode::Internal,
