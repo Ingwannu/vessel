@@ -135,6 +135,41 @@ fn lit(outline: &[OutlineItem], top_entry: usize) -> Option<usize> {
 }
 
 /// The rail, when the conversation has two prompts and room for it.
+/// Whether the rail fits the conversation's width this frame, measured
+/// where the list is drawn.
+///
+/// [Decision Log]
+/// - Purpose: [`rail`] decides from the list's width at its last layout,
+///   and the timeline is a cached region: after the window narrowed past
+///   918 the region was not drawn again, so a rail Paseo would hide stayed
+///   in the gutter (the coordinator's 0.0.0.0.19 smoke at 800x600).
+/// - Choice: a canvas over the list compares this frame's width with the
+///   decision the rail was drawn with and, only when the two fall on
+///   different sides of 918, marks the timeline region dirty: one more
+///   frame on the crossing, nothing on an ordinary frame.
+/// - Alternatives: drawing the region on every resize (loses the cache),
+///   or the window's width less the panels (repeats the frame's layout).
+pub(super) fn width_probe(shell: &Shell, cx: &Context<'_, Shell>) -> AnyElement {
+    let drawn = shell.areas.conversation.list.width() >= px(MIN_PANEL);
+    let target = shell
+        .areas
+        .regions
+        .timeline
+        .as_ref()
+        .map_or_else(|| cx.entity_id(), gpui::Entity::entity_id);
+    gpui::canvas(
+        |_, _, _| (),
+        move |bounds, (), _window, cx| {
+            if (bounds.size.width >= px(MIN_PANEL)) != drawn {
+                cx.notify(target);
+            }
+        },
+    )
+    .absolute()
+    .inset_0()
+    .into_any_element()
+}
+
 pub(super) fn rail(
     shell: &Shell,
     tokens: &Tokens,
