@@ -109,3 +109,24 @@ first final whole root gate will cover the corrected current merged source,
 including strict Clippy and all new actual relay tests. No extra unchanged
 narrow or whole pass is inferred. The separate settings runtime and internal
 OS DNS-work limitation remain outside this source verdict.
+
+## First final whole gate: partial, not a runtime pass
+
+Run devices-relay-life-20261115T142643Z-498465b2 checked frozen498465b29.
+web-ci, fmt, rust-size, boundaries, whole strict Clippy, TS-feature Clippy
+and forge-feature Clippy each returned0. The TS step returned101: proto's
+three selected tests and web's declaration freshness passed, while
+wire::ts::tests::every_primitive_alias_is_classified_and_every_entry_still_declared
+failed with the stale LimitPercent alias entry. The gate stopped there.
+Runtime, loopback, workspace, web checks and E2E after TS did not run; zero
+runtime tests cannot be presented as a pass or a completed package gate.
+
+The coordinator identified this as the inherited base defect fixed by the
+integrator's9dfdf0a1 in gate49's batch. This package has no changes to proto,
+web wire or root Cargo relative to82ae7c91. It does not edit that allowlist.
+After the announced gated node head49 is available, merge that exact head
+and run the full whole once. The first red log remains retained.
+
+V3 extended SOURCE PASS to498, including the public-run callback fixture and
+lint-only changes, with GATE OWED. This is separate from the unreviewed
+settings runtime370, and does not waive physical DNS-work lifetime/bounds.
