@@ -133,6 +133,7 @@ struct Probe {
     trigger: Bounds<Pixels>,
     content: Size<Pixels>,
     options: Options,
+    shift: Pixels,
     seen: Rc<RefCell<Option<Bounds<Pixels>>>>,
     presses: Rc<Cell<usize>>,
 }
@@ -146,6 +147,8 @@ impl Render for Probe {
             self.trigger,
             self.options,
             div()
+                .relative()
+                .top(self.shift)
                 .w(self.content.width)
                 .h(self.content.height)
                 .on_children_prepainted(move |bounds, _, _| {
@@ -165,9 +168,11 @@ impl Render for Probe {
 fn measured_native_child_flips_with_its_real_size_and_keeps_actual_hit_bounds(
     cx: &mut TestAppContext,
 ) {
-    for (alignment, height, expected) in [
-        (Alignment::Start, 80.0, rect(292.0, 176.0, 100.0, 80.0)),
-        (Alignment::End, 120.0, rect(270.0, 136.0, 100.0, 120.0)),
+    for (alignment, height, shift, expected) in [
+        (Alignment::Start, 80.0, 0.0, rect(292.0, 176.0, 100.0, 80.0)),
+        (Alignment::End, 120.0, 0.0, rect(270.0, 136.0, 100.0, 120.0)),
+        // The caller's local entrance offset must survive measured placement.
+        (Alignment::Start, 80.0, 4.0, rect(292.0, 180.0, 100.0, 80.0)),
     ] {
         let seen = Rc::new(RefCell::new(None));
         let presses = Rc::new(Cell::new(0));
@@ -178,6 +183,7 @@ fn measured_native_child_flips_with_its_real_size_and_keeps_actual_hit_bounds(
                 trigger: rect(330.0, 260.0, 40.0, 20.0),
                 content: size(px(100.0), px(height)),
                 options: options(alignment, Side::Bottom),
+                shift: px(shift),
                 seen,
                 presses,
             }

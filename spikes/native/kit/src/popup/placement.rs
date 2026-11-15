@@ -4,6 +4,8 @@
 //!
 //! One native child is measured and translated during the same prepaint,
 //! keeping painted and input bounds together without a second render cycle.
+//! As with GPUI's point anchor, pass a margin-free child; any caller-owned
+//! relative entrance offset remains inside the positioned wrapper.
 mod element;
 pub use element::{Measured, measured};
 

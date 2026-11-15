@@ -46,3 +46,12 @@ This isolated source is based on announced e1b73c9e and starts only after the
 previous F4 strict033 terminated. The unrelated glyph registry producer has
 its own immutable check; all subsequent Rust execution remains serialized on
 the build VM. V1 source+narrow and real input test results are owed.
+
+Pre-compile source correction: translate from the wrapper's native origin,
+matching GPUI Anchored, rather than from the child's relative origin. Otherwise
+the placement helper would cancel the existing popup::appear local rise and
+accidentally own animation. The contract is a margin-free child, as with GPUI's
+point anchor; caller-local relative motion stays inside the positioned wrapper.
+An additional actual GPUI case expects the caller's literal4 local offset to
+survive in both painted/prepaint and hit bounds. No animation engine or timer
+is added; this test is still unexecuted.

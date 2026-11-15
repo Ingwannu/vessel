@@ -64,7 +64,7 @@ impl Element for Measured {
         &mut self,
         _id: Option<&GlobalElementId>,
         _inspector_id: Option<&InspectorElementId>,
-        _bounds: Bounds<Pixels>,
+        bounds: Bounds<Pixels>,
         child_layout: &mut LayoutId,
         window: &mut Window,
         cx: &mut App,
@@ -72,13 +72,15 @@ impl Element for Measured {
         let child = window.layout_bounds(*child_layout);
         let viewport = Bounds::new(point(px(0.0), px(0.0)), window.viewport_size());
         let placed = compute(self.trigger, child.size, viewport, self.options);
+        // Anchor the wrapper, as GPUI's own point anchor does. Subtracting
+        // the child's origin would cancel its caller-owned relative motion.
         let translation = point(
-            px(child
+            px(bounds
                 .origin
                 .x
                 .as_f32()
                 .mul_add(-1.0, placed.origin.x.as_f32())),
-            px(child
+            px(bounds
                 .origin
                 .y
                 .as_f32()
