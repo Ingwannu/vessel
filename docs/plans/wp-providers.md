@@ -266,3 +266,51 @@ This stage does not add a Driver variant, mark Pi/OMP built/selectable or change
 the existing not-built assertions. Native process framing, turn events, UI
 requests, history and fake-harness execution remain unfinished. No live Pi or
 account file is used. The parser's tests are pending execution.
+
+## Pending service composition checkpoint
+
+[Decision Log]
+- Purpose: make one provider owner reachable from node lifecycle, typed clients
+  and trusted diagnostics without a second collector or arbitrary config RPC.
+- Existing assets: Quality B's optional method version and generated request,
+  reply/handler table, Principal scope checks, TaskTracker, and the existing
+  serialized provider owners/file helpers cover the required boundaries.
+- Alternatives: a separate diagnostics collector, accepting the lenient file
+  override DTO over RPC, or starting probes during startup/cache misses.
+- Choice: modify those existing boundaries; no dependency or schema number.
+  Append provider.list, provider.diagnostic and provider.set_enabled as pending
+  rows using the single PROVIDERS=None constant. Strict wire requests differ
+  from forward-compatible owner file decoding. Only targeted enabled edits are
+  remotely expressible; trusted plugin contributions use a local typed handle.
+- Why: absent protocol assignment refuses both direct and nested calls before
+  mutation. Cached diagnostics remain usable without process/credential access.
+- Effects: normal node startup validates/recover-preserves providers.json under
+  its data lock, then tracks configuration/cache owners and shutdown. Cached
+  requires Read, active Discover/Refresh additionally local person/Operate;
+  enabled mutation requires Admin and a local person. Current delegation policy
+  refuses active discovery and enabled changes rather than weakening authority.
+
+Discover joins or reuses an observation; Refresh explicitly supersedes one.
+The total snapshot budget and each admitted observation are bounded at 120s;
+capacity, supersession and shutdown remain typed refusals. Safe diagnostics
+contain cached entry/version only, never launch config, stderr, login output or
+private error causes. Unlike Paseo's getProviderDiagnostic, this request does
+not force an unrelated global catalogue refresh; that difference is explicit.
+Cached miss stays NotChecked. Trusted ProviderRegistrations.cached shares this
+projection with host diagnostics, and changes are scoped invalidation hints;
+lagged readers reread and retained handles refuse after owner shutdown.
+
+The required node40 merge is7a4160b2. Head model setup remains in node/setup.rs,
+preparation uses that same helper and explicit tracing target; both architecture
+appendices remain intact. The inherited generated TypeScript trailing spaces
+were preserved at merge. New declarations will be regenerated through the
+existing Rust generator, never hand-maintained. No existing test assertion or
+size allowance is raised. New pending-envelope, authority, cache-no-probe,
+durable-enabled and tracked-shutdown tests are drafted; execution is pending.
+
+Still unfinished: authoritative create-config/session inheritance binding,
+per-turn output-schema transport, native missing drivers/permissions, actual
+plugin session adapter, and persistent provider helper ledger. The ledger must
+consume nodectl's reviewed seeded identity producer and pidfd-only verified
+signal; ProcessLifetime is solely an in-process observer. Root verified signal
+is not checked process-group cleanup and cannot acknowledge whole-group reap.

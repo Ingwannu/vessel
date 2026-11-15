@@ -19,24 +19,33 @@ use vessel_store::{DataDir, ProvidersFileError};
 const EDIT_CAPACITY: usize = 16;
 type Reply = oneshot::Sender<Result<(), ConfigurationFailure>>;
 
+/// A provider generation could not be validated, durably stored or published.
+/// Native command/environment content is absent from formatted diagnostics.
 #[derive(Debug, thiserror::Error)]
-pub(super) enum ConfigurationFailure {
+pub enum ConfigurationFailure {
+    /// Complete registry validation failed before any durable mutation.
     #[error("provider configuration generation is invalid")]
     Invalid(#[source] RegistryError),
+    /// Preservation or owner-only file replacement failed; old state stays.
     #[error("provider configuration cannot be kept")]
     Store(#[from] ProvidersFileError),
+    /// A filesystem worker did not finish; its cause is retained internally.
     #[error("provider configuration task did not finish")]
     Task(#[from] tokio::task::JoinError),
+    /// The node or its configuration actor already stopped.
     #[error("provider configuration owner is stopped")]
     Stopped,
+    /// No configured provider can receive this targeted change.
     #[error("provider is not configured")]
     Unknown,
+    /// The catalogue owner ended; no further generation is admitted.
     #[error("provider catalogue owner is unavailable")]
     Owner(#[from] OwnerError),
 }
 
 #[derive(Debug)]
 enum Edit {
+    #[cfg(test)]
     Replace {
         overrides: ProviderOverrides,
         reply: Reply,
@@ -130,6 +139,7 @@ impl Prepared {
 }
 
 impl Configuration {
+    #[cfg(test)]
     pub(super) async fn open<P, F>(
         directory: DataDir,
         plugins: Vec<PluginDefinition>,
@@ -144,6 +154,7 @@ impl Configuration {
         Ok(prepared.start(producer))
     }
 
+    #[cfg(test)]
     pub(super) async fn replace(
         &self,
         overrides: ProviderOverrides,
@@ -219,6 +230,7 @@ async fn run(
                 let _gone = reply.send(());
                 return;
             }
+            #[cfg(test)]
             Edit::Replace { overrides, reply } => (overrides, plugins.clone(), reply),
             Edit::Plugins { definitions, reply } => (overrides.clone(), definitions, reply),
             Edit::Enabled {

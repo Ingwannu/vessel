@@ -1,5 +1,5 @@
 //! Provider policy values (ADR 0081). A definition is not driver availability.
-//! Requests remain unregistered until the shared method table admits them.
+//! Method-table rows remain pending until integrator protocol assignment.
 
 mod catalogue;
 mod config;
@@ -26,7 +26,8 @@ pub use output_schema::{MAX_OUTPUT_SCHEMA_BYTES, OutputSchema, OutputSchemaError
 pub use snapshot::{
     CatalogueDirectory, CatalogueScope, DiagnosticRead, DiscoveryFailure, DiscoveryPhase,
     GetProviderDiagnostic, GetProviders, InvalidCatalogueDirectory, ProviderDiagnostic,
-    ProviderSnapshotEntry, ProviderState, ResolveProviderCreate, SnapshotSource, UnavailableReason,
+    ProviderSnapshotEntry, ProviderState, ResolveProviderCreate, SetProviderEnabled,
+    SnapshotSource, UnavailableReason,
 };
 pub use text::{InvalidProvider, MAX_MODE_ID, MAX_PROVIDER_ID, ModeId, ProviderId};
 

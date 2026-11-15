@@ -31,6 +31,9 @@ pub(crate) fn chain(error: &(dyn std::error::Error + 'static)) -> String {
 /// A node failed to start, or its server failed.
 #[derive(Debug, thiserror::Error)]
 pub enum NodeError {
+    /// Provider configuration could not be validated or safely recovered.
+    #[error("provider configuration is unusable")]
+    Providers(#[source] crate::ProviderConfigurationError),
     /// The data directory, node id or token could not be prepared.
     #[error("the data directory is unusable")]
     DataDir(#[source] StoreError),

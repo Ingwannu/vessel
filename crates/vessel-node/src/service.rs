@@ -38,6 +38,7 @@ use crate::workspace::{Occupant, Workspaces};
 mod fleet;
 mod fleet_control;
 mod profiles;
+mod providers;
 mod sessions;
 mod transfers;
 // Protocol 9's calls: what a session runs with, and titles.
@@ -83,6 +84,7 @@ mod side_questions;
 /// The node's protocol implementation.
 #[derive(Debug)]
 pub(crate) struct NodeService {
+    pub(crate) providers: crate::providers::Providers,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -155,6 +157,7 @@ pub(crate) struct NodeService {
 
 /// The parts a [`NodeService`] serves.
 pub(crate) struct Parts {
+    pub(crate) providers: crate::providers::Providers,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
@@ -186,6 +189,7 @@ pub(crate) struct Parts {
 impl NodeService {
     pub(crate) fn new(parts: Parts) -> Self {
         let Parts {
+            providers,
             lsp,
             lsp_roots,
             lifecycle,
@@ -215,6 +219,7 @@ impl NodeService {
         } = parts;
         let store = sessions.store().clone();
         Self {
+            providers,
             lsp,
             lsp_roots,
             lifecycle,

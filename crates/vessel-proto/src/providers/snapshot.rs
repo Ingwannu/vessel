@@ -1,4 +1,4 @@
-//! Reader-safe snapshots and unregistered requests. Cached reads never probe an
+//! Reader-safe snapshots and pending requests. Cached reads never probe an
 //! executable or disclose launch configuration; active refresh is explicit.
 
 use super::{Catalogue, CreateInput, Enabled, ProviderId, ProviderKind};
@@ -180,13 +180,17 @@ pub struct ProviderSnapshotEntry {
 pub enum DiagnosticRead {
     /// Read permission, no process/filesystem/network discovery.
     Cached,
+    /// Operate permission; discover a miss and join current work, retaining a
+    /// completed observation instead of forcing another provider process.
+    Discover,
     /// Operate permission, explicit bounded discovery permitted.
     Refresh,
 }
 
-/// Unregistered provider diagnostic request.
+/// Pending provider diagnostic request.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
 pub struct GetProviderDiagnostic {
     /// Effective identity.
     pub provider: ProviderId,
@@ -206,14 +210,27 @@ pub struct ProviderDiagnostic {
     pub version: Option<AgentVersion>,
 }
 
-/// Unregistered snapshot request; active discovery needs Operate authority.
+/// Pending snapshot request; active discovery needs Operate authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
 pub struct GetProviders {
     /// Explicit target scope.
     pub scope: CatalogueScope,
     /// Cache-only reads start no provider.
     pub read: DiagnosticRead,
+}
+
+/// Change participation only, preserving command/env/model overrides. Admin
+/// authorization and person-only mutation are enforced by the destination node.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct SetProviderEnabled {
+    /// Effective provider identity, including a configured alias.
+    pub provider: ProviderId,
+    /// Explicit participation state, never inferred from availability.
+    pub enabled: Enabled,
 }
 
 /// Unregistered pure preflight; the node must derive parent authority from the
@@ -229,7 +246,7 @@ pub struct ResolveProviderCreate {
 mod tests {
     use super::*;
     #[test]
-    fn passive_request_roundtrips_without_registering_any_method() {
+    fn passive_request_roundtrips_while_the_feature_is_unassigned() {
         assert!(serde_json::from_str::<CatalogueDirectory>(r#""relative""#).is_err());
         let request = GetProviderDiagnostic {
             provider: "claude".parse().unwrap(),
@@ -258,5 +275,56 @@ mod tests {
         assert!(!generated.contains("ids:"));
         assert!(generated.contains("ProviderCatalogue"));
         assert!(generated.contains("CatalogueScope"));
+    }
+}
+
+#[cfg(test)]
+mod pending_tests {
+    use super::*;
+    use crate::{Forward, NodeId, Request as _};
+
+    #[test]
+    fn provider_calls_and_forwarded_envelopes_refuse_unassigned_protocols() {
+        let calls = [
+            GetProviders {
+                scope: CatalogueScope::Global,
+                read: DiagnosticRead::Cached,
+            }
+            .into_call(),
+            GetProviderDiagnostic {
+                provider: "codex".parse().unwrap(),
+                scope: CatalogueScope::Global,
+                read: DiagnosticRead::Refresh,
+            }
+            .into_call(),
+            SetProviderEnabled {
+                provider: "codex".parse().unwrap(),
+                enabled: Enabled::Off,
+            }
+            .into_call(),
+        ];
+        for call in calls {
+            assert_eq!(call.since(), None);
+            assert_eq!(call.required_protocol(), None);
+            let nested = Forward {
+                node: NodeId::random(),
+                call: Box::new(call),
+            }
+            .into_call();
+            assert_eq!(nested.since(), None);
+            assert_eq!(nested.required_protocol(), None);
+        }
+        assert!(
+            serde_json::from_str::<GetProviders>(
+                r#"{"scope":{"scope":"global"},"read":"cached","refresh":true}"#
+            )
+            .is_err()
+        );
+        assert!(
+            serde_json::from_str::<SetProviderEnabled>(
+                r#"{"provider":"codex","enabled":"off","command":["ignored"]}"#
+            )
+            .is_err()
+        );
     }
 }

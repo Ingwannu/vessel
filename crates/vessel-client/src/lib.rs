@@ -55,6 +55,7 @@ mod local;
 pub mod pairing;
 mod pinned;
 mod prompts;
+mod providers;
 mod push;
 mod resume;
 mod schedules;

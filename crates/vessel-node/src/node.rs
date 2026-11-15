@@ -69,6 +69,7 @@ pub struct Node {
     relays: Arc<Relays>,
     stop: CancellationToken,
     task: JoinHandle<Result<(), NodeError>>,
+    provider_registrations: crate::ProviderRegistrations,
 }
 
 impl Node {
@@ -94,6 +95,7 @@ impl Node {
             profiles,
             models,
             dirs,
+            providers,
         } = prepare_off_thread(&config).await?;
         let store = open_store(&config).await?;
         let (models, proxy) = model_proxy(models).await?;
@@ -109,7 +111,16 @@ impl Node {
             agents,
             service,
             relays,
-        } = core(&config, id, &store, &keypair, relaying, session_setup).await?;
+        } = core(
+            &config,
+            id,
+            &store,
+            &keypair,
+            relaying,
+            session_setup,
+            providers,
+        )
+        .await?;
         drop(tokio::spawn(serve_models(models, proxy, stop.clone())));
         let closing = CancellationToken::new();
         let rpc = Arc::new(Server::new(
@@ -125,6 +136,7 @@ impl Node {
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
 
+        let provider_registrations = service.0.providers.registrations();
         let secure = SecureGateway {
             keypair,
             channel: vessel_secure::Config::default(),
@@ -182,6 +194,7 @@ impl Node {
             relays,
             stop,
             task,
+            provider_registrations,
         })
     }
 
@@ -211,6 +224,13 @@ impl Node {
     #[must_use]
     pub fn info(&self) -> NodeInfo {
         self.lifecycle.info()
+    }
+
+    /// Trusted host-side plugin supervision can publish inert provider
+    /// contributions. This handle grants no plugin execution or RPC authority.
+    #[must_use]
+    pub fn provider_registrations(&self) -> crate::ProviderRegistrations {
+        self.provider_registrations.clone()
     }
 
     /// Resolves once the node was asked to stop, by [`Node::stop`] or by a
@@ -300,6 +320,7 @@ async fn core(
     keypair: &Arc<NodeKeypair>,
     relaying: Option<(RelayToken, TlsConfig)>,
     setup: SessionSetup,
+    provider_setup: crate::providers::PreparedProviders,
 ) -> Result<Core, NodeError> {
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
@@ -323,6 +344,14 @@ async fn core(
         .map_err(NodeError::Task)?;
     let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
     let tasks = TaskTracker::new();
+    let provider_source: Arc<dyn crate::profiles::launch::McpSource> = setup.fleet_mcp.clone();
+    let providers = provider_setup.start(
+        config,
+        setup.probe_dir.clone(),
+        provider_source,
+        &tasks,
+        stop.clone(),
+    );
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(
         Arc::clone(&runtime),
@@ -454,6 +483,7 @@ async fn core(
         .map_err(NodeError::Store)?;
     let limits = crate::limits::Limits::configured(config, stop.clone(), &tasks).await;
     let service = Arc::new(Guarded(NodeService::new(Parts {
+        providers,
         lsp,
         lsp_roots: config.lsp_roots.clone(),
         lifecycle: lifecycle.clone(),
@@ -572,7 +602,6 @@ fn relaying(config: &Config) -> Result<Option<(RelayToken, TlsConfig)>, NodeErro
     let token = token.ok_or(NodeError::NoRelayToken)?;
     Ok(Some((token, relays::relay_tls(&config.relays)?)))
 }
-
 
 /// Bind the TCP listen address.
 async fn listen(bind: SocketAddr, dir: &DataDir) -> Result<(TcpListener, SocketAddr), NodeError> {

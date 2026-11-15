@@ -77,13 +77,17 @@ pub(super) enum Observation {
 
 /// Unknown providers and exhausted resources are not silently defaulted.
 #[derive(Debug, Clone, thiserror::Error)]
-pub(super) enum CacheError {
+pub enum CacheError {
+    /// The effective registry has no such provider identity.
     #[error("provider is not configured")]
     UnknownProvider,
+    /// The bounded provider/scope catalogue cache is full.
     #[error("provider catalogue cache exceeds {MAX_CATALOGUES} entries")]
     Capacity,
+    /// Discovery execution has no free bounded admission slot.
     #[error("provider discovery execution capacity is full")]
     Busy,
+    /// A fresh generation cannot be issued without wrapping its identity.
     #[error("provider discovery ticket sequence is exhausted")]
     Exhausted,
 }

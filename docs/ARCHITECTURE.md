@@ -1609,11 +1609,12 @@ this dependency inside that lock boundary. Proc still has no internal
 normal dependency; its snapshot alone grants no signal authority. The later
 CLI signal edge remains proposed and is not added by this move.
 
-## Provider registry and catalogue policy (ADR 0081, staged service)
+## Provider registry and catalogue policy (ADR 0081, pending protocol)
 
 `vessel-proto::providers` owns validated identities, bounded launch settings,
 model/mode catalogues, create inputs and reader-safe diagnostic request values.
-Its feature version is unassigned and no method is registered.
+Its feature version remains unassigned. Three single-table pending rows expose
+list, diagnostic and participation mutation only after integrator assignment.
 `vessel-harness::providers` owns the pure manifest, inheritance, command/env
 overlays, model merge and registry generation; plugin definitions enter as inert
 values. `vessel-agent::probe_provider_with` uses one prompt-free observation
@@ -1621,13 +1622,20 @@ for models and modes. Codex reads paged model/list and configuration through
 its existing JSON-RPC codec, without creating a thread or turn; ACP reuses the
 existing finite probe. Only a compatible existing driver can be used.
 
-The test-only node provider module owns cache admission and bounded asynchronous
+The node provider module owns cache admission and bounded asynchronous
 refresh, scoped invalidations and passive snapshots. A passive diagnostic never
 starts a process; a late old generation cannot publish after replacement.
 The configuration owner serializes validation, durable writes and registry
 publication independently of a caller's cancellation. vessel-store's provider
 file boundary reuses settings preservation and private atomic file writes;
-commands and environment never appear in reader snapshots. Product wiring and
-missing native drivers remain separate work. Existing ACP sessions and node
+commands and environment never appear in reader snapshots. Startup reads the
+provider file under the data-directory lock before runtime tasks, then tracks
+both owners and their ordered shutdown alongside node tasks. Cached reads are
+passive; Discover joins/reuses cache work and Refresh supersedes an observation.
+Both active intents additionally need local person/Operate authority. Admin
+participation edits preserve other overrides. Trusted plugin supervision uses
+ProviderRegistrations, with the same cache projection and inert definition
+replacement, rather than self-RPC or another collector. Missing native drivers,
+plugin session execution and atomic creation integration remain separate work. Existing ACP sessions and node
 settings retain their current behaviour. No crate edge or external dependency
 is added by this stage.

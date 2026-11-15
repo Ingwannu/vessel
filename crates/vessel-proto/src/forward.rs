@@ -388,6 +388,8 @@ impl Method {
             // Protocol 11: what a node can run is read like its harnesses.
             | Self::ListAgents
             | Self::GetAgentStatus
+            | Self::GetProviders
+            | Self::GetProviderDiagnostic
             // Schedules (protocol 11): forwardable; who may do what from
             // another node is the target's scheduler's rule (ADR 0033).
             | Self::GetDeviceSelf
@@ -443,6 +445,7 @@ impl Method {
             // read and changed by its owner and its own devices.
             | Self::GetNodeSettings
             | Self::SetNodeSettings
+            | Self::SetProviderEnabled
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice

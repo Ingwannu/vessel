@@ -27,6 +27,7 @@ pub(super) struct Prepared {
     pub(super) models: Models,
     /// The directories sessions, probes and worktrees use.
     pub(super) dirs: SetupDirs,
+    pub(super) providers: crate::providers::PreparedProviders,
 }
 
 /// The blocking part of start-up: directory, identity, token, key, lock.
@@ -62,6 +63,8 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
     // A profile naming a route that is not there is not fatal: its
     // sessions are refused, with the route named, until the file has it.
     models.check_profiles(&profiles.list(None));
+    let providers =
+        crate::providers::PreparedProviders::read(dir.clone()).map_err(NodeError::Providers)?;
     Ok(Prepared {
         id,
         token,
@@ -69,6 +72,7 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
         lock,
         profiles,
         models,
+        providers,
         dirs: SetupDirs {
             mcp: mcp_dir,
             probe: probe_dir,

@@ -378,6 +378,12 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Provider metadata; discovery intent has a separate Operate check.
+            GetProviders / get_providers / "provider.list" [Read, (pending $crate::providers::PROVIDERS), unary]: $crate::providers::GetProviders => Vec<$crate::providers::ProviderSnapshotEntry>;
+            /// Safe provider diagnostic; cached reads never discover implicitly.
+            GetProviderDiagnostic / get_provider_diagnostic / "provider.diagnostic" [Read, (pending $crate::providers::PROVIDERS), unary]: $crate::providers::GetProviderDiagnostic => $crate::providers::ProviderDiagnostic;
+            /// Change provider participation without disclosing its launch values.
+            SetProviderEnabled / set_provider_enabled / "provider.set_enabled" [Admin, (pending $crate::providers::PROVIDERS), unary]: $crate::providers::SetProviderEnabled => $crate::providers::ProviderSnapshotEntry;
         }
     };
 }

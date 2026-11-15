@@ -1,4 +1,4 @@
-//! Staged asynchronous catalogue owner. One task owns the cache and waiters;
+//! Asynchronous catalogue owner. One task owns the cache and waiters;
 //! bounded producer futures support native transports and plugin connections.
 
 use super::cache::{Admission, Cache, CacheError, Observation, Refresh, Ticket, Work, WorkBudget};
@@ -13,8 +13,8 @@ use vessel_proto::providers::{
 };
 
 /// Reference discovery budget; queued work shares this finite budget here.
-const REFRESH_TIMEOUT: Duration = Duration::from_secs(120);
-const PER_PROVIDER: usize = 4;
+pub(super) const REFRESH_TIMEOUT: Duration = Duration::from_secs(120);
+pub(super) const PER_PROVIDER: usize = 4;
 const MAX_JOBS: usize = 32;
 const MAX_WAITERS: usize = 64;
 const MAILBOX: usize = 32;
@@ -26,24 +26,38 @@ type Answer = oneshot::Sender<Result<ProviderDiagnostic, OwnerError>>;
 /// Notifications are invalidation hints. Consumers reread after lag and never
 /// confuse an observation for one workspace with another workspace's state.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum Change {
+pub enum Change {
+    /// One scoped observation became available.
     Observed {
+        /// Canonical cache scope of the provider family.
         scope: CatalogueScope,
+        /// Reader-safe projection, without launch or secret values.
         diagnostic: Arc<ProviderDiagnostic>,
     },
+    /// A complete definition generation changed; reread the desired scope.
     Registry,
+    /// The owning node task stopped; no more results will be published.
+    Stopped,
 }
 
+/// A discovery request could not be admitted or completed by the bounded owner.
 #[derive(Debug, Clone, thiserror::Error)]
-pub(super) enum OwnerError {
+pub enum OwnerError {
+    /// A checked identity or bounded cache admission failed.
     #[error(transparent)]
     Cache(#[from] CacheError),
+    /// Owner/channel shutdown.
     #[error("provider discovery owner is stopped")]
     Stopped,
+    /// A bounded discovery/waiter queue is full.
     #[error("provider discovery admission capacity is full")]
     Capacity,
+    /// Configuration changed before the current observation could publish.
     #[error("provider discovery was superseded")]
     Superseded,
+    /// The whole snapshot request's finite discovery budget elapsed.
+    #[error("provider snapshot discovery deadline elapsed")]
+    Deadline,
 }
 
 #[derive(Debug)]
@@ -76,7 +90,7 @@ struct Pending {
     waiters: Vec<Answer>,
 }
 
-/// Internal service seam; no product request registration exists yet.
+/// Internal service seam shared by pending RPC handlers and trusted consumers.
 #[derive(Debug, Clone)]
 pub(super) struct Owner {
     mail: mpsc::Sender<Mail>,
@@ -166,7 +180,14 @@ impl Owner {
     }
 
     pub(super) fn changes(&self) -> broadcast::Receiver<Change> {
-        self.changes.subscribe()
+        let subscription = self.changes.subscribe();
+        if self.mail.is_closed() {
+            let (closed, receiver) = broadcast::channel(CHANGE_CAPACITY);
+            drop(closed);
+            receiver
+        } else {
+            subscription
+        }
     }
 
     pub(super) async fn stop(&self) -> Result<(), OwnerError> {
@@ -248,6 +269,7 @@ async fn run<P, F>(
         }
     }
     drop(jobs);
+    let _unobserved = changes.send(Change::Stopped);
 }
 
 fn join(pending: &mut BTreeMap<Ticket, Pending>, ticket: Ticket, reply: Answer) {
