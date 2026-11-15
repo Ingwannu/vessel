@@ -218,3 +218,15 @@ the shared migration list is at500 lines; it derives from BACKGROUND_SCHEMA,
 without an invented numeric version or raised size allowance. Preserve W11's
 same-transaction assignment hydration and the new producer's separate metadata
 visibility/refusal logic. Current merged runtime still owes its own checks.
+
+
+Exact source `171d8036f` passed the six-package all-target strict run
+`wp-labels-node-narrow-20261115T181311Z-171d8036` (proto/store/node/client/rpc/web,
+rc0, 138 seconds). The log confirms actual checking of all six changed crates.
+This establishes current default-feature compilation/lint acceptance only.
+The same immutable source's real filtered runtime suite is registered as
+`wp-labels-node-narrow-20261115T182754Z-171d8036` on the ordinary lane; its plan
+includes web-ci and nested fixture binaries before Cargo. Runtime counts,
+TS generation, final whole gate and V3 review are still pending. No parallel
+or duplicate test request was submitted. This checkpoint changes documentation
+only; the test's Rust source remains byte-identical.
