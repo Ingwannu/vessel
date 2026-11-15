@@ -1,7 +1,7 @@
 //! Typed launch-only setup, separate from the ACP handshake state machine.
 //! Keeping the input contract here lets new launch policy avoid growing protocol logic.
 
-use crate::handshake::{DEFAULT_HANDSHAKE_TIMEOUT, ForkFrom};
+use crate::handshake::ForkFrom;
 use std::path::PathBuf;
 use std::time::Duration;
 use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, ResolvedMcpServers};
@@ -10,7 +10,9 @@ use vessel_proto::{HarnessSessionId, ModelId, OptionChoice, ResolvedMcpServers};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentSetup {
     /// Launch-only system instructions for a transport with a tested replace
-    /// and restore contract. Never copied into persistent specs or user logs.
+    /// and restore contract. None selects the original native instruction source;
+    /// supported transports must also prove that restoration on a resumed session.
+    /// Never copied into persistent specs or user logs.
     pub system_prompt: Option<crate::SystemPromptOverride>,
     /// Working directory of the ACP session (absolute).
     pub cwd: PathBuf,
@@ -32,7 +34,7 @@ pub struct AgentSetup {
     /// HTTP server is left out (and logged) if the agent cannot take HTTP.
     pub mcp_servers: ResolvedMcpServers,
     /// Longest the whole handshake may take (normally
-    /// [`DEFAULT_HANDSHAKE_TIMEOUT`]); past it the connection ends with
+    /// [`crate::DEFAULT_HANDSHAKE_TIMEOUT`]); past it the connection ends with
     /// `Disconnect::Handshake`.
     pub handshake_timeout: Duration,
     /// Whether the agent may ask the person questions (protocol 10): ACP's

@@ -64,3 +64,9 @@ integration test setup and Claude launch/session test setup. No existing test
 assertion, provider choice or option-completion arm is changed. New tests pin
 the shared bound, controls, redacted setup/error Debug and pre-spawn refusal
 for every current transport. Checks and execution are pending.
+
+None selects the original native instruction source for this launch; a future
+Supported transport must prove that resumed sessions actually restore it. All
+current transports are Unsupported, so no override can be installed by this
+change. The initial narrow compile found an import used only by a doc link;
+the link now uses its fully qualified public path.
