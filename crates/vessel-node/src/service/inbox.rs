@@ -121,7 +121,7 @@ impl NodeService {
         if request.sessions.len() > ATTENTION_BATCH || distinct.len() != request.sessions.len() {
             return Err(WireError::new(
                 ErrorCode::InvalidRequest,
-                "request at most 256 distinct sessions for inbox attention",
+                format!("request at most {ATTENTION_BATCH} distinct sessions for inbox attention"),
             ));
         }
         self.sessions

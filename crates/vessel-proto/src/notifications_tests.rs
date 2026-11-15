@@ -141,7 +141,7 @@ fn elapsed_idle_is_gated_even_when_focusing_no_terminal_and_cannot_encode_future
     let request = crate::push::ReportPushPresence {
         focus: crate::push::PushFocus::Elsewhere,
         activity: crate::push::PushActivity::Unchanged,
-        idle_age: Some(crate::push::PushIdleAge::new(180_001)),
+        idle_age: Some(crate::push::PushIdleAge::new(42)),
     }
     .into_call();
     assert_eq!(request.since(), ATTENTION_NOTIFICATIONS_PROTOCOL);
@@ -171,7 +171,7 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
         crate::push::ReportPushPresence {
             focus: crate::push::PushFocus::Background,
             activity: crate::push::PushActivity::Unchanged,
-            idle_age: Some(crate::push::PushIdleAge::new(180_000)),
+            idle_age: Some(crate::push::PushIdleAge::new(57)),
         }
         .into_call(),
     ] {

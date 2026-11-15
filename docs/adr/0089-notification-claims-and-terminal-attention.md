@@ -23,7 +23,7 @@ that the person needs to answer anything.
 
 Paseo reference (0.15.4): server `agent-attention-policy.ts:3-79`,
 `websocket-server.ts:2838-3010`, and
-`terminal/activity/terminal-activity-tracker.ts:12-53`; client
+`packages/server/src/terminal/activity/terminal-activity-tracker.ts:12-80`; client
 `hooks/client-activity-tracker.ts:1-117`,
 `notification-open/model.ts:16-84`. Read source before implementing the
 corresponding service; this decision does not assert runtime parity yet.

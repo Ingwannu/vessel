@@ -21,7 +21,7 @@ older-peer tests. No production node or real agent is used.
 
 ## Wiring checkpoint after Quality B
 
-Merged green node29eebb8b under A8. Three pending rows use only method_table:
+Initial checkpoint merged green node29eebb8b under A8. Its first three pending rows used only method_table:
 notification.claim (Read, direct person connection only), terminal.attention_clear
 (Read, person only), terminal.activity (Operate plus existing terminal ownership).
 The one protocol constant remains None; no production peer can receive or send
@@ -47,8 +47,10 @@ rechecked after preparation. Lost local grants never authorize a second display.
 
 Validation checkpoint: first narrow proto check found serde(other) positioned
 before other variants, corrected. Subsequent contract clippy/tests are pending.
-Size gate is blocked solely by shared rpc.rs 503/500 with the three added rows;
-requested W17's approved contract extraction from the integrator. No budget raised.
+At that earlier checkpoint the size gate was blocked solely by shared rpc.rs
+503/500 with the first three rows. The authorized W17 extraction and gate40
+merge removed that blocker; five pending rows now live at the end of table.rs.
+No budget was raised.
 No whole gate, V3 security review or app consumer handover has occurred.
 
 ## Producer extension
@@ -86,3 +88,14 @@ activity; actual input is node-timestamped. Existing paired push leases renew
 only after half of their 48-hour life; expired/revoked/readless leases never
 resurrect, and an old 410 cannot delete a newer lease. New tests are drafted;
 these additions are not yet compile/runtime verified.
+
+## V3 security source return and bounded correction
+
+Row162 source review of ba45a6e3..a032bfe65 returned one A7 issue: duplicated
+bounds in a service error and boundary fixtures. The service message now formats
+ATTENTION_BATCH. Lease half/full/after-bound tests derive from PUSH_LEASE and a
+named one-hour step, preserving every assertion. Wire-only presence gating uses
+arbitrary non-boundary elapsed samples. The exact terminal tracker reference
+path is corrected. TypeScript quantities classify elapsed idle and revision;
+regeneration and exact changed-source checks are still owed. V3 asserted no
+other inspected security defect; this is not a source PASS or runtime evidence.

@@ -2,6 +2,7 @@
 use super::*;
 use crate::{CredentialHash, devices, schema};
 use vessel_proto::{DeviceInfo, DeviceSecret};
+const LEASE_STEP: TimeDelta = TimeDelta::hours(1);
 fn now() -> DateTime<Utc> {
     DateTime::from_timestamp(1_700_000_000, 0).unwrap()
 }
@@ -38,9 +39,7 @@ fn stored(id: DeviceId) -> StoredPush {
             p256dh: vessel_proto::push::PushPublicKey::from_bytes(&point).unwrap(),
             auth: vessel_proto::push::PushAuth::from_bytes([9; 16]),
         },
-        expires_at: now()
-            .checked_add_signed(chrono::TimeDelta::hours(48))
-            .unwrap(),
+        expires_at: now().checked_add_signed(PUSH_LEASE).unwrap(),
     }
 }
 #[test]
@@ -93,9 +92,7 @@ fn sixty_four_subscriptions_allow_renewal_but_not_another_device_until_expiry() 
         Err(StoreError::PushFull)
     ));
     let renewal = extra.expires_at;
-    extra.expires_at = renewal
-        .checked_add_signed(chrono::TimeDelta::hours(48))
-        .unwrap();
+    extra.expires_at = renewal.checked_add_signed(PUSH_LEASE).unwrap();
     subscribe(&db, &extra, renewal).unwrap();
     assert_eq!(list(&db, now()).unwrap().len(), 1);
 }
@@ -144,12 +141,12 @@ fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal(
         &db,
         &PushWrite::Renew {
             device: lease.device,
-            now: now() + TimeDelta::hours(24),
+            now: now() + (PUSH_LEASE / 2),
         },
     )
     .unwrap();
     assert_eq!(list(&db, now()).unwrap()[0].expires_at, lease.expires_at);
-    let later = now() + TimeDelta::hours(25);
+    let later = now() + (PUSH_LEASE / 2 + LEASE_STEP);
     apply(
         &db,
         &PushWrite::Renew {
@@ -158,10 +155,7 @@ fn activity_renews_only_after_half_life_and_stale_410_cannot_remove_the_renewal(
         },
     )
     .unwrap();
-    assert_eq!(
-        list(&db, later).unwrap()[0].expires_at,
-        later + TimeDelta::hours(48)
-    );
+    assert_eq!(list(&db, later).unwrap()[0].expires_at, later + PUSH_LEASE);
     apply(&db, &PushWrite::Expire(Box::new(lease))).unwrap();
     assert_eq!(list(&db, later).unwrap().len(), 1);
 }
@@ -172,9 +166,9 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
         let lease = stored(device(&db, vec![Scope::Read]));
         subscribe(&db, &lease, now()).unwrap();
         let later = if state == 2 {
-            now() + TimeDelta::hours(49)
+            now() + (PUSH_LEASE + LEASE_STEP)
         } else {
-            now() + TimeDelta::hours(25)
+            now() + (PUSH_LEASE / 2 + LEASE_STEP)
         };
         match state {
             0 => devices::revoke(&db, lease.device, now()).unwrap(),
