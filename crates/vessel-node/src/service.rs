@@ -38,6 +38,7 @@ use crate::workspace::{Occupant, Workspaces};
 mod fleet;
 mod fleet_control;
 mod profiles;
+mod provider_children;
 mod sessions;
 mod subagents;
 mod transfers;
@@ -143,6 +144,8 @@ pub(crate) struct NodeService {
     /// Places for listings of agents' histories running at once
     /// (protocol 17, `history`).
     listings: tokio::sync::Semaphore,
+    /// Finite non-queueing provider-child read admission.
+    child_reads: tokio::sync::Semaphore,
     /// The node's settings (protocol 12, `crate::settings`).
     settings: Arc<crate::settings::Settings>,
     limits: crate::limits::Limits,
@@ -248,6 +251,7 @@ impl NodeService {
             prompts: SavedPrompts::new(store),
             searches: tokio::sync::Semaphore::new(search::AT_ONCE),
             listings: tokio::sync::Semaphore::new(history::AT_ONCE),
+            child_reads: tokio::sync::Semaphore::new(provider_children::AT_ONCE),
             settings,
             limits,
             notices: Arc::default(),

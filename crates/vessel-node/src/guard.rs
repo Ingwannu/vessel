@@ -201,6 +201,8 @@ untargeted!(
     // An agent's own history (ADR 0053): no session's, and refused to
     // agents (`workspace::policy`).
     vessel_proto::history::GetAgentHistory,
+    vessel_proto::subagents::ListProviderChildren,
+    vessel_proto::subagents::ReadProviderChild,
     vessel_proto::automation::ListPrompts,
     vessel_proto::automation::CreatePrompt,
     vessel_proto::automation::UpdatePrompt,

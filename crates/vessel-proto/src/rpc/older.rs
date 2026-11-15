@@ -55,6 +55,7 @@ impl Reply {
             Self::JoinFleet(joined) => joined.home.for_protocol(protocol).map(|home| {
                 Self::JoinFleet(crate::JoinedFleet { home })
             }),
+            Self::ReadProviderChild(page) => page.for_protocol(protocol).map(Self::ReadProviderChild),
             Self::ReadEvents(page) => page.for_protocol(protocol).map(Self::ReadEvents),
             Self::GetDeviceSelf(authority) => {
                 let newer = |scope: &Scope| scope.since() > protocol;
@@ -298,6 +299,7 @@ impl Reply {
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
+            | Self::ListProviderChildren(_)
             | Self::GetAgentHistory(_) => None,
         }
     }

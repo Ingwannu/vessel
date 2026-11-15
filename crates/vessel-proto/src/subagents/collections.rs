@@ -134,6 +134,73 @@ pub struct ProviderChildPage {
     pub history: ChildHistory,
 }
 
+impl ProviderChildPage {
+    pub(crate) fn for_protocol(&self, protocol: crate::ProtocolVersion) -> Option<Self> {
+        if !self
+            .records
+            .as_slice()
+            .iter()
+            .any(|record| record.for_protocol(protocol).is_some())
+        {
+            return None;
+        }
+        let projected = self
+            .records
+            .as_slice()
+            .iter()
+            .map(|record| {
+                record
+                    .for_protocol(protocol)
+                    .unwrap_or_else(|| record.clone())
+            })
+            .collect::<Vec<_>>();
+        let (records, history) = match ChildRecords::try_from(projected) {
+            Ok(records) => (records, self.history),
+            Err(_) => {
+                // An attachment stand-in may grow. Withhold that page rather
+                // than leak an unmasked field or silently claim completeness.
+                let first = self.records.as_slice().first()?;
+                (
+                    ChildRecords(Vec::new()),
+                    ChildHistory::Partial {
+                        reason: super::ChildGap::ScanBudget,
+                        from: first.seq,
+                    },
+                )
+            }
+        };
+        Some(Self {
+            records,
+            history,
+            next: self.next,
+            at_end: self.at_end,
+        })
+    }
+}
+
+/// A projection accounts for every examined parent record, including unrelated
+/// main events. Byte counting uses actual serialized bytes, without a copy.
+#[derive(Debug, Default)]
+pub struct ChildScanBudget {
+    records: usize,
+    bytes: usize,
+}
+impl ChildScanBudget {
+    /// Admit before observing/retaining a record; failed admission changes no state.
+    /// # Errors
+    /// The record count or actual serialized byte budget would be exceeded.
+    pub fn admit(&mut self, record: &EventRecord) -> Result<(), InvalidChildCollection> {
+        if self.records == bounds::MAX_SCAN_RECORDS {
+            return Err(InvalidChildCollection::Count);
+        }
+        let remaining = bounds::MAX_SCAN_BYTES.saturating_sub(self.bytes);
+        let size = serialized_bytes(record, remaining)?;
+        self.records = self.records.saturating_add(1);
+        self.bytes = self.bytes.saturating_add(size);
+        Ok(())
+    }
+}
+
 /// Count escaping and field overhead without allocating a second serialized copy.
 pub(crate) fn serialized_bytes<T: Serialize>(
     value: &T,

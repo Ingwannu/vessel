@@ -380,6 +380,10 @@ macro_rules! method_table {
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
             /// Make a managed child independent without changing its process or conversation.
             DetachSession / detach_session / "session.detach" [Operate, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::DetachSession => $crate::subagents::DetachedSession;
+            /// Actual provider-owned children observed in a managed parent's log.
+            ListProviderChildren / list_provider_children / "session.provider_children" [Read, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::ListProviderChildren => $crate::subagents::ProviderChildren;
+            /// A bounded canonical timeline for one provider child, using parent cursors.
+            ReadProviderChild / read_provider_child / "session.provider_timeline" [Read, (pending $crate::subagents::SUBAGENT_RELATIONS), unary]: $crate::subagents::ReadProviderChild => $crate::subagents::ProviderChildPage;
         }
     };
 }

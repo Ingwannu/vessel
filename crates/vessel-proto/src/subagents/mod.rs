@@ -4,6 +4,7 @@
 mod activity;
 pub mod bounds;
 mod collections;
+pub(crate) mod compat;
 mod older;
 mod parentage;
 mod provider;
@@ -11,7 +12,8 @@ mod values;
 
 pub use activity::{ChildActivity, InvalidChildActivity, ProviderObservation};
 pub use collections::{
-    ChildDescriptors, ChildRecords, InvalidChildCollection, ProviderChildPage, ProviderChildren,
+    ChildDescriptors, ChildRecords, ChildScanBudget, InvalidChildCollection, ProviderChildPage,
+    ProviderChildren,
 };
 
 pub use parentage::{

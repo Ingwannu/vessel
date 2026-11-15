@@ -162,3 +162,9 @@ They are not reviewed implementation or consumer-ready; exact narrow and package
 checks remain owed. Provider observations/projection, native consumer wiring,
 generated wire declarations and final package gates remain outstanding. See
 `docs/plans/wp-a4-node.md` for module/data flow and evidence boundaries.
+
+## Registered projection and queue owner
+
+The pending unary Read methods are session.provider_children and session.provider_timeline. Their sole gate is SUBAGENT_RELATIONS from the canonical method table. Provider projections share NodeService.child_reads, a non-queueing semaphore with AT_ONCE=4; excess calls refuse Unavailable before disk work. READ_DEADLINE includes metadata lookup, durable read and reduction. Expiry before any actual record is an Unavailable refusal, never a fabricated Partial.from; expiry after actual progress reports ScanBudget from the first real scanned parent record. Each durable batch retains the store's existing page/byte cap as well as the projection's total budget. Reads snapshot the starting next_seq so concurrent appends cannot extend a scan indefinitely. No independent provider storage, credential access or runtime configuration is added.
+
+Absent observation evidence reports Missing (history unavailable), not a successful empty list or an inferred Unsupported provider. Implementing drivers explicitly report Supported; the canonical wrapper carries descriptors, read-only activity or an honest gap. New reply withholding runs through the existing central Reply::withheld path before added-agent compatibility, including nested fleet replies; method requirements still come only from the canonical table.

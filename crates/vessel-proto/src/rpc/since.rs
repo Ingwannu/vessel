@@ -265,6 +265,8 @@ impl Call {
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::GetAgentHistory(_)
+            | Self::ListProviderChildren(_)
+            | Self::ReadProviderChild(_)
             | Self::DetachSession(_) => None,
         };
         let required = fields.map_or(method, |since| method.max(ProtocolVersion::new(since)));
