@@ -284,3 +284,29 @@ async fn a_changed_setting_applies_to_live_sessions() {
     }))
     .await;
 }
+
+#[tokio::test]
+async fn parking_revokes_the_old_process_and_waking_issues_a_new_observation() {
+    within(Box::pin(async {
+        let fixture = Fixture::new();
+        let handle = fixture.start(structured(Vec::new())).await;
+        let mut log = Log::of(&handle);
+        handle.send(prompt("plain")).await.unwrap();
+        log.turn_over().await;
+        let before = handle.process_lifetime().unwrap();
+        assert_eq!(Some(before.pid().get()), handle.pid());
+        let _parked = handle.park().await.unwrap();
+        before.ended().await;
+        assert!(handle.process_lifetime().is_none());
+        let _woken = handle.wake().await.unwrap();
+        let after = handle.process_lifetime().unwrap();
+        assert!(!before.same_run(&after));
+        assert!(!before.is_live());
+        assert!(after.is_live());
+        handle.kill();
+        let _end = handle.ended().await;
+        after.ended().await;
+        assert!(handle.process_lifetime().is_none());
+    }))
+    .await;
+}
