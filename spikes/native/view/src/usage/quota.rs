@@ -106,3 +106,51 @@ fn boolean(value: bool, words: &'static Translator) -> &'static str {
         words.usage().no()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::localization::ENGLISH;
+    use vessel_proto::{
+        DurationMs,
+        limits::{LimitKey, LimitSlot},
+    };
+    #[test]
+    fn unknown_duration_and_code_review_scope_are_not_inferred_from_slots() {
+        let words = Translator::get(ENGLISH).unwrap();
+        let mut window = LimitWindow {
+            id: "window".parse::<LimitKey>().unwrap(),
+            period: LimitPeriod::Unknown,
+            slot: LimitSlot::Primary,
+            scope: LimitScope::CodeReview,
+            used: None,
+            resets_at: None,
+        };
+        assert_eq!(
+            window_label(&window, words),
+            "Code review · Window duration not reported"
+        );
+        window.period = LimitPeriod::Other {
+            duration: DurationMs::from_duration(std::time::Duration::from_secs(42)),
+        };
+        assert!(window_label(&window, words).contains("42000 ms"));
+        assert_eq!(
+            reset_label(
+                None,
+                FixedOffset::east_opt(0).unwrap(),
+                DateTime::UNIX_EPOCH,
+                words
+            ),
+            words.usage().reset_unknown()
+        );
+        assert_eq!(
+            reset_label(
+                Some(DateTime::UNIX_EPOCH),
+                FixedOffset::east_opt(0).unwrap(),
+                DateTime::UNIX_EPOCH,
+                words
+            ),
+            words.usage().reset_past()
+        );
+    }
+}

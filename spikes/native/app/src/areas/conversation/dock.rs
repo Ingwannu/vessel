@@ -31,16 +31,18 @@ pub(crate) fn dock(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
+    let limits = crate::areas::usage::limit_notice(shell, tokens, cx);
     let ended = super::ended::banner(shell, tokens, window, cx);
     let requests = requests::<SessionPlace>(shell, tokens, window, cx);
     let queue = super::queue::queue(shell, tokens, window, cx);
-    if ended.is_none() && requests.is_empty() && queue.is_none() {
+    if limits.is_none() && ended.is_none() && requests.is_empty() && queue.is_none() {
         return None;
     }
     Some(
         div()
             .flex()
             .flex_col()
+            .children(limits)
             .children(ended.map(|banner| div().pb(px(8.0)).child(banner)))
             .children(
                 requests

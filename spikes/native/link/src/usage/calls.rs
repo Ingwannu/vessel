@@ -173,16 +173,4 @@ fn problem(error: CallError) -> RequestFailure {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn raw_node_error_text_never_crosses_the_usage_event_boundary() {
-        let raw = "untrusted provider body must stay out of UI and logs";
-        let safe = problem(CallError::Remote(vessel_proto::WireError::new(
-            ErrorCode::Forbidden,
-            raw,
-        )));
-        assert_eq!(safe, RequestFailure::Refused(ErrorCode::Forbidden));
-        assert!(!format!("{safe:?}").contains(raw));
-    }
-}
+mod tests;

@@ -6,6 +6,7 @@ use crate::localization::{Date, Translator};
 
 /// Percent drawing and its complement share exactly one bound.
 const FULL_PERCENT: f64 = 100.0;
+const FULL_DRAW_PERCENT: u8 = 100;
 const EMPTY_PERCENT: f64 = 0.0;
 
 /// Paseo's used/remaining choice changes presentation only.
@@ -39,9 +40,9 @@ impl DisplayPercent {
     /// Integer drawing shares avoid a float-to-integer cast at the kit boundary.
     #[must_use]
     pub fn whole(self) -> u8 {
-        (0..=100_u8)
+        (0..=FULL_DRAW_PERCENT)
             .find(|value| f64::from(*value) >= self.0.round())
-            .unwrap_or(100)
+            .unwrap_or(FULL_DRAW_PERCENT)
     }
     /// Rounded whole percentages match Paseo's usage window labels.
     #[must_use]

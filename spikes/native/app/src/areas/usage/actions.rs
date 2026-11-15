@@ -16,6 +16,7 @@ use vessel_proto::limits::{ExternalLookup, LimitAccount};
 
 impl Shell {
     pub(crate) fn settle_usage(&mut self, window: &Window) {
+        self.settle_session_usage();
         let visible = self.route == Route::Settings
             && self.areas.settings.section == Section::Usage
             && (!vessel_app_kit::breakpoint::phone(window) || self.areas.settings.pushed);
@@ -105,6 +106,7 @@ impl Shell {
         let machine = machine.clone();
         // Disabling immediately revokes old snapshots' publishing rights in this UI.
         state.inventory.close();
+        state.session.close();
         state.policy_error = None;
         state.policy_pending = Some(PolicyPending {
             ticket,
@@ -151,7 +153,13 @@ impl Shell {
                 self.usage_accounts(None);
                 return;
             }
-            Answer::Session { .. } => None,
+            Answer::Session { request, result } => state
+                .session
+                .answer(request.ticket, result)
+                .map(|request| Ask::Session {
+                    request,
+                    refresh: vessel_proto::limits::LimitRefresh::Cached,
+                }),
         };
         if let Some(ask) = next {
             self.command(Command::Usage(ask));

@@ -28,7 +28,7 @@ mod inventory;
 pub use inventory::{AccountReport, Inventory, account_binding};
 
 mod session;
-pub use session::SessionSelection;
+pub use session::{SessionSelection, binding_epoch};
 
 mod quota;
 pub use quota::{quota_facts, reset_label, window_label};

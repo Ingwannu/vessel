@@ -54,6 +54,7 @@ impl Shell {
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
                 self.records(&session, &records, cx);
+                self.usage_records(session, &records);
                 // Track P: a session's reported `/` commands kept for its agent.
                 self.offers_commands_seen();
                 self.composer_files_seen(cx);

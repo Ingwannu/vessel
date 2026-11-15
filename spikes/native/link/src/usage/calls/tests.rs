@@ -1,0 +1,109 @@
+use super::*;
+mod peer;
+use std::sync::Mutex;
+use vessel_proto::{
+    Call, Outcome, ProfileInfo, Reply,
+    limits::{AccountLimitState, UsageLimits},
+    usage::CostVisibility,
+};
+fn profile(name: &str) -> ProfileInfo {
+    ProfileInfo {
+        name: name.parse().unwrap(),
+        label: Some("shared label".into()),
+        harness: "codex".parse().unwrap(),
+        sets: Vec::new(),
+        model: None,
+    }
+}
+fn limits(account: LimitAccount) -> UsageLimits {
+    UsageLimits {
+        policy: vessel_proto::limits::ExternalLookup::On,
+        account,
+        source: None,
+        state: AccountLimitState::NotRequested,
+        cost_visibility: CostVisibility::Permitted,
+        notice: None,
+    }
+}
+#[tokio::test]
+async fn inventory_refreshes_only_the_explicit_profile_and_preserves_other_failures() {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let seen = calls.clone();
+    let peer = peer::connect(move |call| {
+        seen.lock().unwrap().push(call.clone());
+        match call {
+            Call::ListProfiles(_) => Outcome::Ok(Reply::ListProfiles(vec![
+                profile("first"),
+                profile("second"),
+            ])),
+            Call::GetUsageLimits(ask) => {
+                let LimitsScope::Account { account } = ask.scope else {
+                    panic!("account only");
+                };
+                if account.profile.as_ref().unwrap().as_str() == "first" {
+                    Outcome::Err(vessel_proto::WireError::new(
+                        ErrorCode::Forbidden,
+                        "private fixture body",
+                    ))
+                } else {
+                    Outcome::Ok(Reply::GetUsageLimits(limits(account)))
+                }
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    })
+    .await;
+    let binding = LimitAccount {
+        harness: "codex".parse().unwrap(),
+        profile: Some("second".parse().unwrap()),
+    };
+    let report = inventory(&peer.client, Some(&binding)).await.unwrap();
+    assert_eq!(report.accounts.len(), 2);
+    assert!(matches!(
+        report.accounts[0].result,
+        Err(RequestFailure::Refused(ErrorCode::Forbidden))
+    ));
+    assert!(report.accounts[1].result.is_ok());
+    let calls = calls.lock().unwrap();
+    let modes: Vec<_> = calls
+        .iter()
+        .filter_map(|call| {
+            if let Call::GetUsageLimits(ask) = call {
+                Some(ask.refresh)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(modes, [LimitRefresh::Cached, LimitRefresh::Refresh]);
+}
+#[tokio::test]
+async fn cached_inventory_rejects_a_reply_for_another_account() {
+    let peer = peer::connect(|call| match call {
+        Call::ListProfiles(_) => Outcome::Ok(Reply::ListProfiles(vec![profile("first")])),
+        Call::GetUsageLimits(ask) => {
+            assert_eq!(ask.refresh, LimitRefresh::Cached);
+            Outcome::Ok(Reply::GetUsageLimits(limits(LimitAccount {
+                harness: "codex".parse().unwrap(),
+                profile: Some("other".parse().unwrap()),
+            })))
+        }
+        other => panic!("unexpected {other:?}"),
+    })
+    .await;
+    let report = inventory(&peer.client, None).await.unwrap();
+    assert!(matches!(
+        report.accounts[0].result,
+        Err(RequestFailure::InvalidReply)
+    ));
+}
+#[test]
+fn raw_node_error_text_never_crosses_the_usage_event_boundary() {
+    let raw = "untrusted provider body must stay out of UI and logs";
+    let safe = problem(CallError::Remote(vessel_proto::WireError::new(
+        ErrorCode::Forbidden,
+        raw,
+    )));
+    assert_eq!(safe, RequestFailure::Refused(ErrorCode::Forbidden));
+    assert!(!format!("{safe:?}").contains(raw));
+}
