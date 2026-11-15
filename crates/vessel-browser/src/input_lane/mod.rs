@@ -248,15 +248,8 @@ async fn worker<D: Driver>(
     };
     match result {
         Some(Ok(())) => {
-            if answer.send(Ok(())).is_ok() {
-                let received = tokio::select! {
-                    biased;
-                    ()=shared.closing.cancelled()=>false,
-                    receipt=consumed=>receipt.is_ok(),
-                };
-                if received {
-                    return;
-                }
+            if handoff(&shared, answer, consumed).await {
+                return;
             }
             schedule_stop(&shared);
             let _retained_stop = stopped(&shared).await;
@@ -272,5 +265,22 @@ async fn worker<D: Driver>(
             schedule_stop(&shared);
             let _retained_stop = stopped(&shared).await;
         }
+    }
+}
+
+/// Keep transport handoff separate from backend completion: an abandoned
+/// receiver after send must still take the worker's stop/drain path.
+async fn handoff<D: Driver>(
+    shared: &Shared<D>,
+    answer: oneshot::Sender<Result<(), InputError<D::Error>>>,
+    consumed: oneshot::Receiver<()>,
+) -> bool {
+    if answer.send(Ok(())).is_err() {
+        return false;
+    }
+    tokio::select! {
+        biased;
+        ()=shared.closing.cancelled()=>false,
+        receipt=consumed=>receipt.is_ok(),
     }
 }
