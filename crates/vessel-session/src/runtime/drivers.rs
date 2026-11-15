@@ -123,7 +123,7 @@ impl SessionRuntime {
         spec: &SessionSpec,
         profile: &Profile,
         ownership: Arc<T>,
-        gate: Arc<PreparationGate<F>>,
+        admission: Arc<PreparationGate<F>>,
     ) -> Result<Chosen, SessionError>
     where
         T: Send + Sync + 'static,
@@ -142,7 +142,7 @@ impl SessionRuntime {
             Gate::Refused(line) => return Ok(Chosen::acp_because(line)),
             Gate::Direct(direct) => direct,
         };
-        let line = self.version_line(profile, ownership, gate).await?;
+        let line = self.version_line(profile, ownership, admission).await?;
         Ok(fit(spec_kind(spec), direct, line.as_deref()))
     }
 
