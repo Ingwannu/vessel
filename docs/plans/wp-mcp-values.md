@@ -45,3 +45,27 @@ Size and formatting checks precede submission. These checks are still owed on
 this extraction. Earlier full-package checks are provenance evidence only.
 V3 source disposition and the integrator's checked landing are required before
 publishing this as a consumer contract. No whole MCP/browser readiness is claimed.
+
+## Approved Skills carrier amendment
+
+The coordinator approved extending this carrier with the already-owned Skills
+DTOs, portable name type and tests, five client wrappers, and five `staged`
+method rows. This is a transport contract for the guarded native Skills consumer;
+there is no skill runtime, second store or `NodeSettings.mcp` field here. Native
+Tools read/patch remains Unsupported until its actual node contract lands.
+
+Each Skills row requires Admin, is nonforwardable, remains unnumbered, and uses
+the existing staged default Unsupported handler. The only node change is one
+explicit deny entry per method in the canonical workspace agent policy. This
+keeps local and delegated agents outside host skill administration. Exhaustive
+protocol projections and fictional request samples name the new variants; no
+projection enables their execution. Wiring later changes these exact rows from
+`staged` to `pending` together with their real handlers before number assignment.
+
+The original skill admission test retains every assertion and additionally pins
+`is_staged()` on all five rows. It covers Admin/nonforwardable/None properties,
+full call round trips and nested-envelope admission. Existing staged-handler
+regressions enforce Unsupported and forbid assigning a staged row a number.
+Strict checks cover proto, client and the node that consumes the canonical denial
+list. The proto/client unit suites and existing node policy tests remain owed on
+this amendment; earlier extraction checks are provenance only.

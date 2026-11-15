@@ -383,6 +383,17 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+
+            /// Host orchestration skills (staged ADR 0065, Admin only).
+            GetSkillsStatus / skills_status / "skills.status" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::GetSkillsStatus => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (staged ADR 0065, Admin only).
+            ReconcileSkills / reconcile_skills / "skills.reconcile" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::ReconcileSkills => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (staged ADR 0065, Admin only).
+            UninstallSkills / uninstall_skills / "skills.uninstall" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::UninstallSkills => $crate::skills::SkillsSnapshot;
+            /// Host orchestration skills (staged ADR 0065, Admin only).
+            SaveSkillsSelection / save_skills_selection / "skills.save_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::SaveSkillsSelection => $crate::skills::SkillsSaved;
+            /// Host orchestration skills (staged ADR 0065, Admin only).
+            ImportSkillsSelection / import_skills_selection / "skills.import_selection" [Admin, (staged $crate::mcp::MCP_PARITY), unary]: $crate::skills::ImportSkillsSelection => $crate::skills::SkillsImported;
         }
     };
 }

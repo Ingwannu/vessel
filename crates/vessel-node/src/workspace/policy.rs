@@ -99,6 +99,11 @@ const fn refused(method: Method) -> bool {
         // The workspace but orchestration: an agent uses its own file and
         // git tools in its folder.
         Method::AddProject
+        | Method::GetSkillsStatus
+        | Method::ReconcileSkills
+        | Method::UninstallSkills
+        | Method::SaveSkillsSelection
+        | Method::ImportSkillsSelection
         | Method::CloneProject
         | Method::InitProject
         | Method::RemoveProject
