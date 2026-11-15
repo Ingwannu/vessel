@@ -10,7 +10,7 @@ use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{Tokens, Type, TypeExt as _, cached_view};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
 
 use super::{Phase, convert, font_size};
 use crate::shell::Shell;
@@ -55,7 +55,7 @@ pub(crate) fn body(
             .child(t.terminal_loading)
             .into_any_element()
     } else {
-        cached_view(&area.grid).into_any_element()
+        area.grid.clone().into_any_element()
     };
     div()
         .flex_1()

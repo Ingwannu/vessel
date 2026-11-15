@@ -36,3 +36,12 @@ Final adoption is a portable owned delta on the announced app line with consumer
 checks. First write a GPUI regression observing the real prepare/paint callbacks
 across cursor-only updates, then implement retention, check and measure a new
 release build. No improvement or new retained-paint proof is claimed yet.
+
+Resume: the kit control now owns one cached static-row entity and an uncached
+cursor overlay, both using the original drawing helpers. The app's aggregate
+grid is deliberately uncached. Tests observe actual preparation/paint callbacks
+and cover cursor reuse, output/background/font-size/metrics invalidation, and
+full typed code-stack replacement with fixed metrics. The first baseline probe
+had an incorrect test-only Strike variant; the corrected baseline is retained
+as66bd6963. Its original queued compile remains untouched. No semantic failing
+baseline or passing corrected runtime is claimed until the remote logs exist.

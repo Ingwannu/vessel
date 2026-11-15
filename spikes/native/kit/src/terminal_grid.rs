@@ -327,7 +327,16 @@ fn paint(
         // left out; the rest of the grid still draws.
         let _painted = line.paint(*origin, cell.height, TextAlign::Left, None, window, cx);
     }
-    if let Some(cursor) = frame.cursor {
+    paint_cursor(frame.cursor, cell, bounds, window);
+}
+
+fn paint_cursor(
+    cursor: Option<GridCursor>,
+    cell: CellSize,
+    bounds: Bounds<Pixels>,
+    window: &mut Window,
+) {
+    if let Some(cursor) = cursor {
         let x = at(bounds.origin.x, cell.width, cursor.col);
         let y = at(bounds.origin.y, cell.height, cursor.row);
         window.paint_quad(fill(
