@@ -1838,3 +1838,6 @@ The existing forwarding TaskTracker owns cleanup across caller cancellation;
 Links keeps direct/callback selection and the source guard keeps holder/scope
 checks. Cleanup waits no longer than the existing transfer idle lifetime, while
 normal shutdown grace and source expiry/restart remain unchanged.
+
+
+The optional composer command-kind values live in vessel-proto::composer_commands. AgentCommand gains an optional classification; the existing event and reply projection removes it while the feature has no assigned protocol. This carrier adds no RPC, method row, runtime/driver behavior or crate edge. Existing constructors supply no classification; the full discovery producer and native intent/receipt path remain separate. See docs/plans/composer-kind-values-carrier.md.
