@@ -213,7 +213,7 @@ impl Shell {
                 .folders
                 .insert(machine.as_str().to_owned(), folder.clone());
         }
-        self.command(Command::SavePrefs(self.prefs.clone()));
+        self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         let mut spec = SessionSpec::new(
             harness.clone(),
             SessionMode::Structured {

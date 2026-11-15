@@ -310,3 +310,5 @@ The creation owner's actual shared309 execution reached App117 passed/1 failed/2
 
 
 The candidate strict run wp-composer-20261115T150635Z-e1e3c729 reached App and rejected its unused typed image-error payload. Intake now consumes the error kind: encoded size refusal uses the existing size message, while unsupported or undecodable images use the existing format message. This preserves the typed failure instead of discarding its reason or adding a lint exception. The next candidate includes the announced native-green package base c3429952; the draft merge preserves the correlated creation and extracted renderer rather than resurrecting the removed uncorrelated sender. No whole gate or capture had started before this base update.
+
+The c3429952 preference-command change boxes Prefs. Three extracted draft/file-tree call sites do not exist on that base's original paths, so the union wraps their same existing preference snapshots in Box::new. This is a transport representation migration only; persistence ownership, values and scheduling stay with the existing owners.
