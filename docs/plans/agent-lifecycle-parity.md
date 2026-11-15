@@ -534,3 +534,8 @@ remain the head's. The head's newly added title-origin event assertion uses
 `Some` around the same assigned version under the single-accessor contract.
 The owned event fixture fills its new origin field with Unknown; its previous
 wire/sequence/value assertions are unchanged. A new exact-tree gate is owed.
+
+The labelled-request invariant now asserts `since() == None` as well as
+`required_protocol() == None` for every direct and nested call. Its previous
+numeric-accessor comparison is obsolete on the integrated optional API; this
+strengthens the pending check without changing any assigned expectation.
