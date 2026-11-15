@@ -458,10 +458,6 @@ const LABELS: &str = "ALTER TABLE sessions ADD COLUMN labels TEXT;";
 /// Integration changes this one assignment if another migration lands first.
 const TITLE_ORIGIN_SCHEMA: usize = LABELS_SCHEMA.saturating_add(1);
 
-/// Integration repoints this one assignment when another package lands first.
-const CREATION_RECEIPTS_SCHEMA: usize = REGISTRY_SCHEMA.saturating_add(1);
-const CREATION_OWNER_SCHEMA: usize = CREATION_RECEIPTS_SCHEMA.saturating_add(1);
-
 /// NULL preserves unknown provenance on rows written before this addition.
 const TITLE_ORIGIN: &str = "ALTER TABLE sessions ADD COLUMN title_origin TEXT;";
 
@@ -471,11 +467,11 @@ pub(super) const SUBAGENT_SCHEMA: usize = TITLE_ORIGIN_SCHEMA.saturating_add(1);
 const SUBAGENT_RELATIONS: &str = "ALTER TABLE sessions ADD COLUMN detach_receipt TEXT;";
 
 /// Provisional next migration; integration re-points this one constant.
-const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
+pub(super) const REGISTRY_SCHEMA: usize = SUBAGENT_SCHEMA.saturating_add(1);
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(super) const MIGRATIONS: &[&str; CREATION_OWNER_SCHEMA] = &[
+pub(super) const MIGRATIONS: &[&str; super::creation::OWNER_SCHEMA] = &[
     V1,
     V2,
     V3,

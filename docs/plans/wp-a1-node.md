@@ -57,6 +57,13 @@ arms now delegate to their own existing savepoint/notification/typed-answer
 logic. No budget is raised, and other writer branches and commit ordering are
 unchanged. The failed run is retained; the corrected source still owes its check.
 
+The post-merge static size check also found migrations.rs at501 lines. The two
+owned version appends now live beside their SQL in schema/creation.rs, deriving
+RECEIPTS_SCHEMA from the existing REGISTRY_SCHEMA and OWNER_SCHEMA from that.
+The central list still fixes ordering and its array length checks the result;
+registry visibility changes only within the schema module. No version, SQL or
+size allowance changes. Integration repoints only the owned receipt assignment.
+
 Approved shared identitye45a5d89 is merged. Announced gate50c head9c150c6e
 is now merged with the reviewed registry and project admission/fixed-id
 primitive. Its old unreviewed prototype remains excluded. New adapter/intake
