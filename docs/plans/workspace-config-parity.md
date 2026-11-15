@@ -254,3 +254,9 @@ the current observation; old observations cannot become live again. No wire,
 Preview admission or new dependency is introduced. Source is awaiting its
 narrow checks, security review and standalone package gate. Windows execution
 and fresh socket/workspace ownership remain unverified.
+
+The direct terminal-session test also checks the SessionHandle's PTY observer,
+separately from a standalone shell handle. The issuer guard type itself is
+must-use because dropping it revokes authority; its Self-returning methods
+rely on that one annotation. Narrow evidence for the earlier snapshot is
+kept separately from this pending revision.

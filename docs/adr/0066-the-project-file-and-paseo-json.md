@@ -602,7 +602,7 @@ approval; that send is its own decision.
 - Reuse decision: add focused `process_id` and `lifetime` modules to Proc,
   reusing standard nonzero storage, Arc and Tokio's existing watch channel.
   Do not put process facts, lock/FD inspection or session policy there.
-  N1's self-process observations reuse the PID value; those observations
+  Self-process observations reuse the PID value; those observations
   cannot issue a lifetime. No crate dependency edge changes.
 - Costs and effects: the extra shared state is one bounded watch per run,
   retained only while an owner or observer holds it. Revocation is a

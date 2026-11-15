@@ -60,7 +60,6 @@ pub struct ProcessLifetimeGuard(Arc<Run>);
 
 impl ProcessLifetimeGuard {
     /// Issue a run only at successful process creation, never from a PID snapshot.
-    #[must_use]
     pub fn begin(pid: ProcessId) -> Self {
         Self(Arc::new(Run {
             pid,
@@ -81,7 +80,6 @@ impl ProcessLifetimeGuard {
 
     /// Give an actual waiter a guard whose return or unwind also revokes the run.
     /// This is deliberately not Clone: a temporary copy must not look harmless.
-    #[must_use]
     pub fn end_on_drop(&self) -> Self {
         Self(Arc::clone(&self.0))
     }

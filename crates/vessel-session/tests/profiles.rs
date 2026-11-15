@@ -1068,3 +1068,27 @@ async fn a_profile_move_replaces_the_actual_process_observation() {
     }))
     .await;
 }
+
+#[tokio::test]
+async fn a_terminal_session_carries_its_actual_pty_observation() {
+    within(async {
+        let fixture = Fixture::new();
+        let created = fixture
+            .create(terminal(HarnessKind::ClaudeCode), LaunchOptions::default())
+            .await
+            .unwrap();
+        drop(created.durable);
+        let mut reader = Reader::new(created.handle);
+        let _ready = reader.line("ready").await;
+        let observed = reader.handle().process_lifetime().unwrap();
+        assert_eq!(Some(observed.pid().get()), reader.handle().pid());
+        assert!(observed.is_live());
+        reader.type_line("exit 0").await;
+        let _ended = reader.handle().ended().await;
+        observed.ended().await;
+        assert!(!observed.is_live());
+        assert!(reader.handle().process_lifetime().is_none());
+        fixture.runtime.shutdown().await;
+    })
+    .await;
+}
