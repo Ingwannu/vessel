@@ -57,8 +57,7 @@ use gpui_base::input::{Input, Textarea};
 
 use super::styles::project;
 use super::{
-    COMPOSER_MIN, FORM_INSET_X, FORM_INSET_Y, FORM_MAX, FORM_MIN, FORM_MIN_TOUCH, Kind,
-    MultilineStyle, TextField,
+    FORM_INSET_X, FORM_INSET_Y, FORM_MAX, FORM_MIN, FORM_MIN_TOUCH, Kind, MultilineStyle, TextField,
 };
 use crate::fonts::{self, Type};
 use crate::theme::Tokens;
@@ -117,18 +116,11 @@ impl TextField {
                     .child(Textarea::new(state))
                     .into_any_element()
             }
-            Kind::Lines(state, MultilineStyle::Composer) => {
-                project(state, tokens, neutral.surface4, cx);
-                div()
-                    .w_full()
-                    .min_h(px(COMPOSER_MIN))
-                    .type_(Type::Body)
-                    .text_size(px(fonts::ui(15.0)))
-                    .line_height(px(fonts::ui(21.0)))
-                    .text_color(neutral.foreground)
-                    .child(Textarea::new(state))
-                    .into_any_element()
-            }
+            Kind::Lines(_, MultilineStyle::Composer) => self.composer_element(
+                super::composer_layout::ComposerLayout::legacy(self.send.get()),
+                tokens,
+                cx,
+            ),
         }
     }
 }

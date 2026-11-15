@@ -22,6 +22,9 @@ use gpui::{div, px};
 use gpui_base::input::{InputState, TextareaState};
 
 pub mod composer_hooks;
+pub mod composer_layout;
+mod send;
+pub use send::SendOn;
 mod editability;
 mod events;
 pub use editability::Editability;
@@ -90,29 +93,6 @@ const FORM_MAX: f32 = 256.0;
 const FORM_INSET_X: f32 = 9.0;
 const FORM_INSET_Y: f32 = 3.0;
 
-/// Which press sends a composer's text (Settings › General › Send
-/// shortcut, the page's `compose-keys.ts`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum SendOn {
-    /// Enter (and Mod+Enter) sends; Shift+Enter starts a line.
-    #[default]
-    Enter,
-    /// Mod+Enter sends; Enter and Shift+Enter start a line.
-    ModEnter,
-}
-
-impl SendOn {
-    /// Whether an Enter that is not Shift+Enter sends; `with_mod` when
-    /// Command (Control elsewhere) was held.
-    #[must_use]
-    pub const fn sends(self, with_mod: bool) -> bool {
-        match self {
-            Self::Enter => true,
-            Self::ModEnter => with_mod,
-        }
-    }
-}
-
 /// A text field: a form's one line, or a composer's text.
 #[derive(Debug, Clone)]
 pub struct TextField {
@@ -123,6 +103,7 @@ pub struct TextField {
     /// Which press sends (a composer's; a form field's Enter always
     /// submits).
     send: Rc<Cell<SendOn>>,
+    composer_rows: Rc<Cell<Option<composer_layout::Rows>>>,
 }
 
 impl TextField {
@@ -226,16 +207,10 @@ impl TextField {
         );
         register(Known::Lines(state.downgrade()));
         Self {
+            composer_rows: Rc::new(Cell::new(None)),
             kind: Kind::Lines(state, style),
             focused,
             send,
-        }
-    }
-
-    /// Which press sends a composer's text (a form field ignores it).
-    pub fn set_send_on(&self, send: SendOn) {
-        if matches!(self.kind, Kind::Lines(_, MultilineStyle::Composer)) {
-            self.send.set(send);
         }
     }
 
@@ -262,6 +237,7 @@ impl TextField {
         );
         register(Known::Line(state.downgrade()));
         Self {
+            composer_rows: Rc::new(Cell::new(None)),
             kind: Kind::Line(state),
             focused,
             send: Rc::new(Cell::new(SendOn::Enter)),
