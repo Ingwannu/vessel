@@ -142,6 +142,15 @@ Read first, and reproduced except for the differences ADR 0063 lists.
   (`createFollowTranscriptWriter`). Vessel already joins reply chunks
   in the CLI view; follow uses that, and does not reprint Paseo's
   banners for a replaced timeline. The log has no epoch.
+- Tail's unit differs: `activity-curator.ts:84-90,135-144,189-194`
+  projects before taking the last items; `timeline-projection.ts:543-554`
+  collapses a tool lifecycle and merges assistant/reasoning chunks. These
+  files live under `packages/server/src/server/agent/`. Vessel counts raw
+  log records, including terminal and status records, before rendering.
+  This is the existing `--from` and retention cursor unit for both session
+  modes. It does not claim a count of visible lines or whole messages, and
+  tail can begin within a streamed message. The same raw-record predicate
+  order applies to timestamps and kinds.
 - Paseo waits for an explicit stop even after timeline activity ends
   (`logs.ts:401-407`). Vessel follows through the current session run,
   ending at the stream's final status or Ctrl-C. This preserves the existing
@@ -302,6 +311,9 @@ No row of the crate table changes.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
+- Source review additionally confirmed and documented the raw-record tail
+  unit versus Paseo's projected items. A chunk-boundary test remains due
+  with the first tail verification; no runtime parity is claimed.
 - Next: report the independent decoder gate, then gate tail slice 5a and
   selection slice 5b and follow slice 5c in order while
   label call wiring awaits the shared accessor. No new wire call or dependency
