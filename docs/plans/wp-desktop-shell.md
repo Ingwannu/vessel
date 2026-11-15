@@ -274,6 +274,17 @@ projection. The cache hook receives old canonical before observe and new canonic
 from Snapshot, before shell.prefs is replaced. Shortcut, prepared-word and terminal
 cache invalidation remain feature-owned callbacks on canonical/rebased changes.
 
+Future sidebar bands are not yet adopted from S2's unchecked source. Header and
+Footer navigation edits must merge independently. Callout dismissal edits are set
+deltas by logical key, preserving concurrent unrelated additions and removals.
+S2 conditionally authorizes the dedicated Refused::SidebarCalloutDismissals for a
+merged set over128 once its producer is checked; never silently clip or reuse the
+shortcut/machine refusal. Coordinate its exhaustive prepared/translated expression
+with Settings before that union. The reserved owner hook is
+areas::sidebar::callouts::preferences_changed(shell,cx), called once after the
+projected Prefs replacement including rollback. It reconciles the existing store
+from current validated preferences, without a watcher, writer or provider facts.
+
 Optional Receipt::completed retains the exact per-write Snapshot/Outcome even
 when watch updates coalesce. prefer_with_receipt wraps the existing prefer once;
 it neither duplicates validation nor emits another SavePrefs. Validation refusal
