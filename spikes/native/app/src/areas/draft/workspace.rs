@@ -8,6 +8,7 @@ use crate::{
     areas::layout::registry::{PanelContext, PanelFocus},
     shell::Shell,
 };
+use gpui::AppContext as _;
 use std::collections::BTreeMap;
 use vessel_app_kit::ui::{
     AnyElement, Context, Entity, IntoElement as _, ParentElement as _, Styled as _, WeakEntity,
