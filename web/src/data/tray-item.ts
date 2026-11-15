@@ -1,9 +1,26 @@
 // What a composer's attached file is at each moment, and whether the
 // files can go with a prompt (the tray, `tray.ts`, moves them along).
 
-import type { AttachmentKind, AttachmentRef } from "../wire/proto";
+import type {
+  AgentAbilities,
+  AttachmentKind,
+  AttachmentLimits,
+  AttachmentRef,
+  NodeId,
+} from "../wire/proto";
 import { looksLike } from "./attach";
-import type { Again, Begun } from "./upload";
+import type { Again, Begun, UploadCalls } from "./upload";
+
+/** Where a tray's files go, once there is a session. */
+export interface TrayTarget {
+  /** Authenticated recipient captured by the upload closures, when known. */
+  node?: NodeId;
+  calls: UploadCalls;
+  abilities: AgentAbilities | null;
+  limits: AttachmentLimits;
+  /** The agent's name, for a refusal's words. */
+  agent: string;
+}
 
 export type ItemState =
   /** Not checked yet: no session, or the agent has not said what it
@@ -14,7 +31,7 @@ export type ItemState =
   | { kind: "attached" }
   | { kind: "waiting"; resume: Begun | null }
   | { kind: "uploading"; received: number }
-  | { kind: "ready"; ref: AttachmentRef }
+  | { kind: "ready"; ref: AttachmentRef; node?: NodeId }
   | { kind: "failed"; reason: string; again: Again; resume: Begun | null };
 
 export interface TrayItem {
@@ -37,12 +54,22 @@ export type TrayReady =
   | { kind: "blocked"; reason: string };
 
 /** Whether `items` can go with a prompt now. */
-export function trayReady(items: readonly TrayItem[]): TrayReady {
+export function trayReady(
+  items: readonly TrayItem[],
+  node?: NodeId,
+): TrayReady {
   const refs: AttachmentRef[] = [];
   let uploading = false;
   for (const item of items) {
     switch (item.state.kind) {
       case "ready":
+        if (node !== undefined && item.state.node !== node) {
+          return {
+            kind: "blocked",
+            reason:
+              "The selected machine changed. Attach these files again before sending.",
+          };
+        }
         refs.push(item.state.ref);
         break;
       case "refused":

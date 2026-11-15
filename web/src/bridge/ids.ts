@@ -32,7 +32,7 @@ import type {
   Nonce,
   StreamId,
 } from "../wire/bridge";
-import type { SearchKey, SessionId } from "../wire/proto";
+import type { ClientMessageId, SearchKey, SessionId } from "../wire/proto";
 
 /** This machine's own node on the wire (`NodeKey::HERE`). */
 const HERE_TEXT = "_here";
@@ -59,6 +59,17 @@ export function isNodeKey(text: string): text is NodeKey {
 
 /** Whether `text` is a session's id as a node mints it. */
 export function isSessionId(text: string): text is SessionId {
+  return UUID.test(text);
+}
+
+/** Mint once before preparing a submission; its owner retains it through uncertainty. */
+export function newClientMessageId(): ClientMessageId {
+  const value = crypto.randomUUID();
+  return isClientMessageId(value)
+    ? value
+    : unreachable("a client message UUID");
+}
+function isClientMessageId(text: string): text is ClientMessageId {
   return UUID.test(text);
 }
 

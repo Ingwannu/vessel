@@ -26,9 +26,14 @@ function node() {
   let most = 0;
   let made = 0;
   const waiting: (() => void)[] = [];
+  let didBegin = () => {};
+  const begun = new Promise<void>((resolve) => {
+    didBegin = resolve;
+  });
   const calls: UploadCalls = {
     begin: () => {
       open += 1;
+      didBegin();
       most = Math.max(most, open);
       made += 1;
       return Promise.resolve({
@@ -63,7 +68,7 @@ function node() {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
   };
-  return { calls, release, most: () => most };
+  return { calls, release, begun, most: () => most };
 }
 
 const file = (name: string, type = "text/plain") =>
@@ -160,4 +165,35 @@ test("the new-session page's files go to the session it made", () => {
   handOver("new", "s1");
   expect(trayOf("s1")).toBe(tray);
   expect(trayOf("new")).not.toBe(tray);
+});
+
+test("a retarget cannot reuse the finished reference or relabel an in-flight upload", async () => {
+  const tray = new Tray();
+  tray.add([file("retained.txt")]);
+  const first = node();
+  const second = node();
+  const original = fixtureId("NodeId", "original");
+  tray.target({
+    node: original,
+    calls: first.calls,
+    abilities: null,
+    limits: LIMITS,
+    agent: "fake",
+  });
+  const uploading = tray.upload();
+  await first.begun;
+  tray.target({
+    node: fixtureId("NodeId", "replacement"),
+    calls: second.calls,
+    abilities: null,
+    limits: LIMITS,
+    agent: "fake",
+  });
+  await first.release();
+  expect(await uploading).toMatchObject({ kind: "blocked" });
+  expect(second.most()).toBe(0);
+  expect(tray.items.get()[0]?.state).toMatchObject({
+    kind: "ready",
+    node: original,
+  });
 });

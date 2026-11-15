@@ -46,3 +46,14 @@ and tool-update compatibility keeps the same equality check in a separate
 function. Native carrier field docs and redundant qualifications reported by the
 TS build are corrected as well. These fixes do not change the contract; the
 historical failed runs remain failed and current checks are still required.
+
+The existing tray target now supplies constrained upload closures captured from
+an authenticated connected NodeId, and a finished reference retains that upload
+origin. Retargeting while an upload runs does not relabel its origin or switch
+its remaining chunks to another client. A ready reference from a different or
+untracked origin blocks sending rather than being silently reused or uploaded
+again. The private deferred-upload regression checks that exact interleaving.
+The browser UUID allocator reuses the existing validated-handle boundary; it
+creates one identity for an owner to retain, never a server admission token.
+These browser follow-ups are authored; browser tests and current wire generation
+remain pending. They do not activate the identified composer flow by themselves.

@@ -6,11 +6,8 @@
 import { useEffect } from "react";
 
 import { useFleet } from "../../context";
-import {
-  beginUpload,
-  finishUpload,
-  writeUpload,
-} from "../../data/conversation-calls";
+import { preparedUploads } from "../../data/submission-calls";
+import { useStore } from "../../data/store";
 import type { Tray } from "../../data/tray";
 import type { NodeKey } from "../../wire/bridge";
 import type { AgentAbilities, SessionId } from "../../wire/proto";
@@ -26,23 +23,20 @@ export function useTrayTarget(
   agent: string,
 ): void {
   const fleet = useFleet();
+  const status = useStore(fleet.store, (state) => state.statuses[node]);
+  const recipient = status?.state === "connected" ? status.node.id : null;
   const read = limits.kind === "read" ? limits.limits : null;
   useEffect(() => {
-    if (!live || read === null) {
+    if (!live || read === null || recipient === null) {
       tray.target(null);
       return;
     }
     tray.target({
-      calls: {
-        begin: (name, mime, size) =>
-          beginUpload(fleet, node, session, name, mime, size),
-        write: (upload, offset, data) =>
-          writeUpload(fleet, node, upload, offset, data),
-        finish: (upload) => finishUpload(fleet, node, upload),
-      },
+      node: recipient,
+      calls: preparedUploads(fleet, node, recipient, session),
       abilities,
       limits: read,
       agent,
     });
-  }, [tray, fleet, node, session, live, abilities, read, agent]);
+  }, [tray, fleet, node, session, live, abilities, read, agent, recipient]);
 }

@@ -29,11 +29,7 @@
 //   is a small `data:` thumbnail drawn from the file (the page's content
 //   policy takes no `blob:` address, data/thumbnail.ts).
 
-import type {
-  AgentAbilities,
-  AttachmentLimits,
-  AttachmentRef,
-} from "../wire/proto";
+import type { AttachmentRef, NodeId } from "../wire/proto";
 import { attachmentName, kindOf, mimeOf, refusal, refusalLine } from "./attach";
 import { Store } from "./store";
 import { thumbnail } from "./thumbnail";
@@ -42,18 +38,12 @@ import {
   type ItemState,
   type TrayItem,
   type TrayReady,
+  type TrayTarget,
   trayReady,
 } from "./tray-item";
 import { type Begun, send, type UploadCalls } from "./upload";
 
-/** Where a tray's files go, once there is a session. */
-export interface TrayTarget {
-  calls: UploadCalls;
-  abilities: AgentAbilities | null;
-  limits: AttachmentLimits;
-  /** The agent's name, for a refusal's words. */
-  agent: string;
-}
+export type { TrayTarget } from "./tray-item";
 
 /** Files uploading at once from one composer (the node allows a caller
  * four; two leaves room for another tab). */
@@ -178,7 +168,7 @@ export class Tray {
 
   /** Whether the files can go with a prompt. */
   ready(): TrayReady {
-    return trayReady(this.items.get());
+    return trayReady(this.items.get(), this.#target?.node);
   }
 
   /** Empty the tray once its files went with a prompt; its images are
@@ -237,12 +227,17 @@ export class Tray {
       }
       if (item.state.kind === "waiting") {
         running += 1;
-        this.#upload(item, item.state.resume, target.calls);
+        this.#upload(item, item.state.resume, target.calls, target.node);
       }
     }
   }
 
-  #upload(item: TrayItem, resume: Begun | null, calls: UploadCalls): void {
+  #upload(
+    item: TrayItem,
+    resume: Begun | null,
+    calls: UploadCalls,
+    node?: NodeId,
+  ): void {
     this.#stopping.delete(item.key);
     this.#set(item.key, { kind: "uploading", received: resume?.received ?? 0 });
     const stopped = () => this.#stopping.has(item.key);
@@ -273,7 +268,11 @@ export class Tray {
       this.#stopping.delete(item.key);
       switch (end.kind) {
         case "done":
-          this.#set(item.key, { kind: "ready", ref: end.ref });
+          this.#set(item.key, {
+            kind: "ready",
+            ref: end.ref,
+            ...(node === undefined ? {} : { node }),
+          });
           break;
         case "failed":
           this.#set(item.key, {
