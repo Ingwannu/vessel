@@ -159,7 +159,7 @@ fn stale_nested_menu_key_keeps_parent_and_b_then_fresh_escape_closes_only_one_la
                 cx.simulate_keystrokes("escape");
                 cx.run_until_parked();
                 view.read_with(cx, |this, _| {
-                    assert!(!this.open, "next Escape reaches actual parent")
+                    assert!(!this.open, "next Escape reaches actual parent");
                 });
             }
         }
@@ -178,7 +178,10 @@ fn stale_nested_pointer_and_outside_do_not_dismiss_parent_or_b(cx: &mut TestAppC
                 let at = view.update(cx, |this, cx| {
                     let bounds = this.anchor.get().expect("trigger");
                     this.open_menu(window, cx);
-                    point(bounds.right() - px(30.0), bounds.bottom() + px(18.0))
+                    point(
+                        px(f32::from(bounds.right()).mul_add(1.0, -30.0)),
+                        px(f32::from(bounds.bottom()).mul_add(1.0, 18.0)),
+                    )
                 });
                 click(window, cx, at);
                 click(window, cx, point(px(5.0), px(5.0)));
