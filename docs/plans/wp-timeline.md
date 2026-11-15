@@ -1192,3 +1192,34 @@ its new call site. A source scan against the pinned GPUI trait definitions found
 that `.when` belongs to this separate trait, not InteractiveElement/Styled. The
 old queued draw-test source lacks that moved import and is superseded only if
 still queued; no source pass is claimed from a canceled run.
+
+### Paced assistant and reasoning text (independent A7 gap)
+
+[Decision Log — 수정 사용]
+- Purpose: preserve Paseo's display-only text reveal, not raw coalesced arrival
+  jumps. Read app/agent-stream/text-reveal.ts and hooks/use-revealed-text.ts in
+  full, plus layout.ts live-head phase and message.tsx find bypass.
+- Existing assets/constraints: the timeline owns full text/revisions and exact
+  entry identity; GPUI use_keyed_state/request_animation_frame already own mounted
+  output state. unicode-segmentation1.13.3 is already in the native lock. Existing
+  composer Reveal is a scalar surface tween, not a text/grapheme policy.
+- Alternatives: duplicate transcript strings or a per-session timer map would
+  burden snapshots/retirement; a byte/Unicode-scalar cut can split Korean/emoji;
+  a second renderer would break copy and find semantics.
+- Choice: pure view TextReveal counter/FrameClock with Rust Duration and UTF-16
+  release units, plus conformant grapheme boundaries from the already-locked
+  segmentation crate. Mounted-row GPUI state stores counters/version/epoch only,
+  never another message. The source150ms backlog horizon, max250ms elapsed,
+  60Hz frame commits, first-sight full hydration/remount, completion flush and
+  streaming trailing-ZWJ/odd-regional-indicator hold are preserved. Rust str
+  cannot contain a dangling UTF-16 surrogate, so no surrogate repair is needed.
+- Why: canonical full text, outline, global search and reply copy stay unchanged;
+  only the displayed prefix changes. Existing keyed state dies on unmount, and
+  frames are requested only while a drawn row has backlog. No detached task or
+  new session manager is introduced. Reduced motion and the selected find result
+  complete immediately through the native motion/accessibility policy.
+- Effects/tradeoffs: one already-transitive dependency becomes direct in view;
+  no new dependency version or node contract. UTF-16 counting is cached per text
+  revision, and grapheme scanning is confined to mounted streaming text. Native
+  keeps its uncapped full-text rule. This section records intended implementation,
+  not an executed pacing/latency/UI pass.
