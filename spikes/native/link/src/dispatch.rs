@@ -14,6 +14,8 @@
 use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
 
+const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
+
 impl State {
     pub(super) async fn handle(&mut self, command: Command) {
         match command {
@@ -72,10 +74,7 @@ impl State {
                 session,
                 text,
             } => self.resume(&machine, session, text).await,
-            Command::Stop { machine, session } => {
-                self.input(&machine, session, SessionInput::CancelTurn { turn: None })
-                    .await
-            }
+            Command::Stop { machine, session } => self.input(&machine, session, CANCEL_TURN).await,
             Command::Answer {
                 machine,
                 session,

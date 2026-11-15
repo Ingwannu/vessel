@@ -118,3 +118,29 @@ multiple seeded drafts using W12's DraftId, registry-backed empty workspace
 and terminal flows, receipt reconciliation, terminal profile selection,
 whole gates/captures/reviews. The node receipt/profile work is separate in
 ADR0091. No full parity claim or user-flow capture exists yet.
+
+Shared base6036eeb8 is merged. Creation captures `Machine.node` and refuses
+before worktree/session effects if the connected welcome identity differs;
+late completion also requires the same name/node mapping before handoff.
+This guards A1's boundary; W6 is separately pinning capability/upload calls
+and adding `prepare_draft_files_on`, so a later queued upload cannot retarget
+a reused book name. The current Ticket-only adapter remains transitional.
+`Editability` locks the actual draft editor while creating/unknown, retaining
+copy/selection. Known initial-input failure offers an explicit same-session
+retry. In-memory peer regressions assert identity mismatch sends no request
+and a retry reads the registered session rather than issuing create again.
+
+`view::creation::Launch` now distinguishes empty workspace, chat, blank shell
+and configured profile plans, using the reviewed pure profile values5c39da5f.
+Blank shell input is trimmed and followed by one CR (reference terminal.ts
+100-103); profile argv is substituted literally and never typed as shell
+source. A missing persisted profile visibly reconciles to Chat before submit;
+a removal racing preparation is refused. Terminal plans refuse attached chat
+payload instead of dropping it. These are pure plans, not working terminal RPCs.
+
+The shared DraftSeed values carry explicit Name+NodeId, NewWorkspace project
+context or authoritative ExistingWorkspaceId, canonical bounded ContextText
+and W6 ChatHistory. Approved identitye45a5d89 was cherry-picked asd24486f1;
+no registry/store/runtime producer was imported. The seed has no duplicate
+UUID: W12's DraftId will be the seed_draft parameter when its module lands.
+No seed opener or multiple-draft renderer is claimed consumer-ready yet.

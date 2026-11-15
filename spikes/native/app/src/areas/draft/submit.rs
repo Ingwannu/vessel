@@ -31,11 +31,23 @@ impl Shell {
             cx.notify();
             return;
         };
+        let Some(expected_node) = self
+            .fleet
+            .machines
+            .iter()
+            .find(|entry| entry.name == machine.as_str())
+            .and_then(|entry| entry.node)
+        else {
+            self.areas.draft.error = Some(self.words.creation().offline().to_owned());
+            cx.notify();
+            return;
+        };
         let Some((ticket, target)) = self.draft_creation_target(&machine, &harness) else {
             cx.notify();
             return;
         };
-        let Some(input) = self.prepare_creation_input(ticket, &machine, &text, cx) else {
+        let Some(input) = self.prepare_creation_input(ticket, expected_node, &machine, &text, cx)
+        else {
             return;
         };
         let stage = if matches!(target, Target::Registered(_)) {
@@ -45,20 +57,43 @@ impl Shell {
         } else {
             Stage::Resource
         };
-        if self.areas.draft.creation.flow.begin(ticket, stage) != Transition::Applied {
+        let transition = if matches!(target, Target::Registered(_)) {
+            self.areas.draft.creation.flow.retry_input(ticket)
+        } else {
+            self.areas.draft.creation.flow.begin(ticket, stage)
+        };
+        if transition != Transition::Applied {
             self.rejected_draft_files(ticket, cx);
             return;
         }
         let ask = Ask {
             ticket,
             machine: machine.clone(),
+            expected_node,
             target,
             input,
         };
+        self.dispatch_creation(ask, &harness, text, window, cx);
+    }
+
+    fn dispatch_creation(
+        &mut self,
+        ask: Ask,
+        harness: &HarnessRef,
+        text: String,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.draft.creation.node = Some(ask.expected_node);
         self.areas.draft.error = None;
         self.areas.draft.sending = Some(text.clone());
         self.areas.draft.composer.clear(window, cx);
-        self.begin_pending(machine.as_str().to_owned(), agent_name(&harness), text, cx);
+        self.begin_pending(
+            ask.machine.as_str().to_owned(),
+            agent_name(harness),
+            text,
+            cx,
+        );
         self.brand.sent();
         self.route = Route::Session;
         let ask = if matches!(ask.target, Target::New(_)) {
@@ -71,14 +106,16 @@ impl Shell {
         }
         cx.notify();
     }
+
     fn prepare_creation_input(
         &mut self,
         ticket: Ticket,
+        expected_node: vessel_proto::NodeId,
         machine: &Name,
         text: &str,
         cx: &mut Context<'_, Self>,
     ) -> Option<FirstInput> {
-        match self.prepare_draft_files(ticket, machine.as_str(), text) {
+        match self.prepare_draft_files_on(ticket, expected_node, machine.as_str(), text) {
             Ok(Some(prepared)) => {
                 if prepared.ticket() == ticket {
                     Some(FirstInput::Deferred)
@@ -94,7 +131,9 @@ impl Shell {
                         PrepareProblem::Busy | PrepareProblem::Capacity => {
                             self.words.creation().queue_full()
                         }
-                        PrepareProblem::Machine(_) => self.words.creation().refused(),
+                        PrepareProblem::Machine(_) | PrepareProblem::Target(_) => {
+                            self.words.creation().refused()
+                        }
                     }
                     .to_owned(),
                 );

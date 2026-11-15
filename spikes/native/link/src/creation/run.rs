@@ -11,6 +11,14 @@ use vessel_proto::{ContentBlock, Delivery, ProtocolVersion, SessionId, SessionIn
 const CALL_DEADLINE: Duration = Duration::from_secs(120);
 
 pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<crate::Event>) {
+    if client.node().id != ask.expected_node {
+        let _closed = events
+            .send(crate::Event::Creation(
+                ask.refused(Failure::Refused(vessel_proto::ErrorCode::Conflict)),
+            ))
+            .await;
+        return;
+    }
     let ticket = ask.ticket;
     let stage = match &ask.target {
         Target::New(_) => Stage::Resource,
@@ -34,6 +42,7 @@ pub(crate) async fn create(client: &NodeClient, ask: Ask, events: &mpsc::Sender<
         .send(crate::Event::Creation(Answer::Registered {
             ticket,
             machine: ask.machine,
+            node: client.node().id,
             session: Box::new(info),
         }))
         .await
