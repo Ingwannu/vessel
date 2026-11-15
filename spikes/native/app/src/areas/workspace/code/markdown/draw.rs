@@ -115,12 +115,14 @@ fn document_element(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let key = FileKey::new(&viewer.scope, viewer.path.clone());
-    let scope = viewer.scope.clone();
+    let origin = shell.file_open_context();
     let unavailable = shell.words().labels().file_image_unavailable;
     let weak = cx.entity().downgrade();
     let actions = Actions::new(move |href, _, app| {
         let _gone = weak.update(app, |shell, cx| {
-            shell.markdown_link(&key, &scope, href.as_str(), cx);
+            if let Some(origin) = &origin {
+                shell.markdown_link(&key, origin, href.as_str(), cx);
+            }
         });
     })
     .with_images(move |_| {

@@ -4,34 +4,34 @@
 //! is typed in where an action asked for one; a right click opens the
 //! entry's actions.
 
+use super::file_open::FileOpenContext;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, glyph};
-use vessel_app_view::workspace::file_scope::FileScope;
 use vessel_app_view::workspace::file_tree::{Listing, TreeRow};
 use vessel_proto::workspace::{EntryKind, RelPath};
 
 impl Shell {
     /// Visibility of the existing legacy Files host plus its original scope.
     /// W12 supplies actual typed pane visibility when that host is mounted.
-    pub(super) fn file_tree_scope_is_current(&self, scope: &FileScope) -> bool {
+    pub(super) fn file_tree_scope_is_current(&self, origin: &FileOpenContext) -> bool {
         self.route == crate::routes::Route::Session
             && self.areas.workspace.code.open
             && self.areas.workspace.code.tab == super::Tab::Files
-            && self.active_file_scope().as_ref() == Some(scope)
+            && self.file_open_context_is_current(origin)
     }
     /// A rendered row retains its original scope across queued input delivery.
     pub(super) fn activate_file_row(
         &mut self,
-        scope: &FileScope,
+        origin: &FileOpenContext,
         path: &RelPath,
         kind: EntryKind,
         cx: &mut Context<'_, Self>,
     ) {
-        if !self.file_tree_scope_is_current(scope) {
+        if !self.file_tree_scope_is_current(origin) {
             return;
         }
         if kind == EntryKind::Dir {
@@ -132,7 +132,7 @@ fn entry_row(
     };
     let kind = entry.kind;
     let folder = kind == EntryKind::Dir;
-    let scope = shell.areas.workspace.code.scope();
+    let origin = shell.file_open_context();
     let path = path.clone();
     // Paseo's tree row (`tree-primitives.tsx`, `file-explorer-pane.tsx`):
     // 6 above and below, 8 at the right, one 16 slot (a folder's
@@ -194,10 +194,10 @@ fn entry_row(
             MouseButton::Right,
             cx.listener({
                 let path = path.clone();
-                let scope = scope.clone();
+                let origin = origin.clone();
                 let open = *open;
                 move |this, event: &MouseDownEvent, window, cx| {
-                    if scope
+                    if origin
                         .as_ref()
                         .is_none_or(|original| !this.file_tree_scope_is_current(original))
                     {
@@ -209,8 +209,8 @@ fn entry_row(
             }),
         )
         .on_click(cx.listener(move |this, _event, _window, cx| {
-            if let Some(scope) = &scope {
-                this.activate_file_row(scope, &path, kind, cx);
+            if let Some(origin) = &origin {
+                this.activate_file_row(origin, &path, kind, cx);
             }
         }))
         .into_any_element()

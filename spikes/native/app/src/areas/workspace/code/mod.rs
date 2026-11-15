@@ -40,6 +40,7 @@ mod elsewhere;
 mod entry_forms;
 #[cfg(test)]
 mod entry_forms_tests;
+pub(crate) mod file_open;
 mod file_search;
 mod files;
 mod found;

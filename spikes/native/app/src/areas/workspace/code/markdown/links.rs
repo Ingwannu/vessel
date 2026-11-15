@@ -6,17 +6,17 @@ use vessel_app_view::composer_shell::links::{Link, Origin, Workspace, classify};
 use vessel_app_view::workspace::file_location::FileLocation;
 use vessel_proto::workspace::RelPath;
 
+use super::super::file_open::FileOpenContext;
 use super::{FileKey, Mode};
 use crate::shell::Shell;
-use vessel_app_view::workspace::file_scope::FileScope;
 
 impl Shell {
-    fn markdown_link_is_current(&self, key: &FileKey, scope: &FileScope) -> bool {
+    fn markdown_link_is_current(&self, key: &FileKey, origin: &FileOpenContext) -> bool {
         let panel = &self.areas.workspace.code;
-        self.file_tree_scope_is_current(scope)
+        self.file_tree_scope_is_current(origin)
             && panel.file_key().as_ref() == Some(key)
             && panel.files.viewer.as_ref().is_some_and(|viewer| {
-                viewer.scope == *scope
+                viewer.scope == *origin.scope()
                     && viewer
                         .markdown
                         .as_ref()
@@ -26,14 +26,14 @@ impl Shell {
     pub(super) fn markdown_link(
         &mut self,
         key: &FileKey,
-        scope: &FileScope,
+        origin: &FileOpenContext,
         href: &str,
         cx: &mut Context<'_, Self>,
     ) {
         // Buffer identity deliberately excludes connection epochs. A click
         // also carries its original admission: reconnecting the same file
         // cannot silently turn an old rendered link into new-connection I/O.
-        if !self.markdown_link_is_current(key, scope) {
+        if !self.markdown_link_is_current(key, origin) {
             return;
         }
         match classify(href, Origin::Href, Workspace::Known) {
@@ -114,6 +114,7 @@ mod tests {
     ) {
         use crate::areas::workspace::code::io_tests;
         use vessel_app_view::connection::{ConnectionEpochs, MachineKey};
+        use vessel_app_view::workspace::file_scope::FileScope;
         crate::shell::language_tests::init(cx);
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update(cx, |shell, cx| {
@@ -154,7 +155,9 @@ mod tests {
             machine.node = Some(key.node);
             machine.connection_epoch = Some(first.epoch());
             shell.fleet.machines.push(machine);
-            assert!(shell.markdown_link_is_current(&key, &old));
+            let old_open = shell.file_open_context().unwrap();
+            assert_eq!(old_open.scope(), &old);
+            assert!(shell.markdown_link_is_current(&key, &old_open));
             let second = epochs
                 .admit(MachineKey::from_book("node"), key.node)
                 .unwrap();
@@ -173,22 +176,39 @@ mod tests {
                 .context = second;
             shell.areas.workspace.code.viewer_for(&key).unwrap().scope = new.clone();
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
-            assert!(!shell.markdown_link_is_current(&key, &old));
-            shell.markdown_link(&key, &old, "../other.md", cx);
+            assert!(!shell.markdown_link_is_current(&key, &old_open));
+            shell.markdown_link(&key, &old_open, "../other.md", cx);
             shell.activate_file_row(
-                &old,
+                &old_open,
                 &"other.txt".parse().unwrap(),
                 vessel_proto::workspace::EntryKind::File,
                 cx,
             );
             assert_eq!(shell.areas.workspace.code.file_key().as_ref(), Some(&key));
-            assert!(shell.markdown_link_is_current(&key, &new));
+            let new_open = shell.file_open_context().unwrap();
+            assert_eq!(new_open.scope(), &new);
+            assert!(shell.markdown_link_is_current(&key, &new_open));
             shell.areas.workspace.code.open = false;
-            assert!(!shell.markdown_link_is_current(&key, &new));
-            assert!(!shell.file_tree_scope_is_current(&new));
+            assert!(!shell.markdown_link_is_current(&key, &new_open));
+            assert!(!shell.file_tree_scope_is_current(&new_open));
             shell.areas.workspace.code.open = true;
+            let next_receipt = shell.next_file_ticket().unwrap();
+            shell
+                .areas
+                .workspace
+                .code
+                .target
+                .as_mut()
+                .unwrap()
+                .admission
+                .as_mut()
+                .unwrap()
+                .ticket = next_receipt;
+            assert!(!shell.markdown_link_is_current(&key, &new_open));
+            let refreshed = shell.file_open_context().unwrap();
+            assert!(shell.markdown_link_is_current(&key, &refreshed));
             shell.areas.session.open.as_mut().unwrap().session = vessel_proto::SessionId::random();
-            assert!(!shell.markdown_link_is_current(&key, &new));
+            assert!(!shell.markdown_link_is_current(&key, &new_open));
             assert!(shell.active_file_scope().is_none());
         });
     }

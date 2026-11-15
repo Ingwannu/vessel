@@ -753,3 +753,15 @@ The existing Viewer/CodeEditor, saved-file observer and one retained buffer map
 are extended; no editor engine, transfer loop, tab allocator or connection cache
 is added. New UI activations must capture the full opening context, rather than
 reconstructing the original session from whichever session is selected later.
+
+
+The opening contract is now concrete source in code/file_open: private-field
+FileOpenContext captures FileScope, original SessionId and the metadata
+FileTicket, and only the file owner constructs it. Tree and Markdown activation
+consume that same value rather than keeping just a scope. The owner-produced
+value is rejected after same-node reconnect, a new root receipt with identical
+scope/session, switched session or closed host. Its scope accessor supplies
+existing search/read facts without granting a capability. No layout opener,
+main File renderer or close dispatcher is enabled by this values change.
+The same GPUI source fixture now covers identical-scope receipt refresh as well
+as reused-key reconnect; it still needs actual execution on this newer source.
