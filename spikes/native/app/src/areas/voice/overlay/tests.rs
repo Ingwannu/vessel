@@ -1,6 +1,6 @@
 //! Production composition with typed fake state: no shell, node or audio device.
 use super::*;
-use gpui::{Context, Modifiers, Render, TestAppContext, VisualTestContext, size};
+use gpui::{Context, IntoElement, Modifiers, Render, TestAppContext, VisualTestContext, size};
 use vessel_app_kit::Scheme;
 use vessel_app_view::{
     localization::Locale,
@@ -69,7 +69,7 @@ impl Render for Probe {
                 }
             }),
         };
-        div().size_full().children(super::render(
+        div().size_full().children(render(
             &model,
             self.words,
             &Tokens::of(self.scheme),
@@ -160,7 +160,7 @@ fn disabled_voice_has_no_overlay_and_state_mute_overrides_stale_telemetry() {
         mute: |_event: &ClickEvent, _window: &mut Window, _cx: &mut App| {},
         stop: |_event: &ClickEvent, _window: &mut Window, _cx: &mut App| {},
     };
-    assert!(super::render(&model, words("en"), &Tokens::of(Scheme::Dark), actions).is_none());
+    assert!(render(&model, words("en"), &Tokens::of(Scheme::Dark), actions).is_none());
     assert_eq!(words("en").voice().mute(), "Mute realtime voice");
     assert_eq!(words("ko").voice().unmute(), "실시간 음성 음소거 해제");
 }

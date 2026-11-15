@@ -80,7 +80,7 @@ impl fmt::Debug for Reference {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(in crate::audio) struct Scheduled {
     pub(in crate::audio) lease: Lease,
     pub(in crate::audio) now: Instant,

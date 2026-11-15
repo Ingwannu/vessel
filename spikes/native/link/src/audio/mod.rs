@@ -50,5 +50,6 @@ pub(super) enum AudioError {
     Processor(#[source] sonora::Error),
 }
 
-#[cfg(all(test, any(target_os = "linux", target_os = "windows")))]
+#[cfg(test)]
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 pub(crate) mod testing;

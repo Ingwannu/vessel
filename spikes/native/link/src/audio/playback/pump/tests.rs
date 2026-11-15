@@ -25,7 +25,7 @@ fn setup() -> (Pump, Processor, Callback, Ports, Arc<Fence>) {
 }
 fn packet(blocks: usize) -> Packet {
     Packet::new(
-        Bytes::from(vec![0x20; blocks * 480]),
+        Bytes::from(vec![0x20; blocks.checked_mul(480).unwrap()]),
         RateHz::new(24_000).unwrap(),
     )
     .unwrap()

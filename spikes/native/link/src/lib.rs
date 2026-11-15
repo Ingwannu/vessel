@@ -36,7 +36,8 @@ mod event;
 pub mod machines;
 #[cfg(not(target_arch = "wasm32"))]
 mod nodes;
-#[cfg(all(test, not(target_arch = "wasm32")))]
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 mod testing;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod voice;

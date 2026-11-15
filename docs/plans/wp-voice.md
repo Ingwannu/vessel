@@ -523,3 +523,20 @@ labels, generation/input guards and debug selectors remain the same existing
 Kit controls. Existing actual-composition tests remain the verification; no
 parallel button renderer or test mirroring was introduced. Queued30bc strict
 predates this structural change; latest combined compilation remains owed.
+
+### Native multi-crate strict feedback and test-condition restoration
+
+Run wp-voice-narrow-20261115T141213Z-30bc681a returned101. During the base6
+merge, W19 combined the base's separate cfg(test)/platform attributes on shared
+testing into cfg(all(...)). Clippy no longer recognized that helper subtree as
+test code, producing panic/unwrap diagnostics in unchanged base fixtures. The
+base's exact two-attribute shape is restored; own audio testing uses it too.
+No fixture body or lint exemption is added and platform/test conditions are
+logically unchanged. This corrects the merge rather than editing foreign tests.
+
+Own corrections borrow classified playback failures, make the immutable
+lease/time-only Scheduled event Copy, check fixture multiplication, import the
+IntoElement return trait explicitly and use the existing imported renderer
+without redundant qualification. The new settings types are outside this native
+check. Root189e2cc0 strict(node/proto/web) separately passed; it predates shared
+patch adoption/new voice settings and does not prove their runtime.

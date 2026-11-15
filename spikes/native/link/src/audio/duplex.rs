@@ -111,13 +111,13 @@ impl<I: CaptureSource, O: SpeakerSource> Streams<I, O> {
             self.pump.advance(Instant::now());
             self.pump
                 .prepare(&mut self.processor, &self.ports.blocks)
-                .map_err(playback_failure)?;
+                .map_err(|failure| playback_failure(&failure))?;
             let deadline = self.pump.next_deadline();
             tokio::select! { biased;
                 () = self.fence.closed() => return Err(DeviceFailure::Interrupted),
                 reference = self.ports.references.recv() => {
                     let reference = reference.ok_or(DeviceFailure::Interrupted)?;
-                    self.pump.reference(&mut self.processor, &reference).map_err(playback_failure)?;
+                    self.pump.reference(&mut self.processor, &reference).map_err(|failure| playback_failure(&failure))?;
                 },
                 completed = self.ports.completions.recv() => {
                     let completed = completed.ok_or(DeviceFailure::Interrupted)?;
@@ -172,7 +172,7 @@ async fn wait_deadline(deadline: Option<Instant>) {
         None => std::future::pending().await,
     }
 }
-fn playback_failure(failure: Failure) -> DeviceFailure {
+fn playback_failure(failure: &Failure) -> DeviceFailure {
     match failure {
         Failure::Audio(_) => DeviceFailure::Processing,
         Failure::Receipt(_) | Failure::Disconnected => DeviceFailure::Interrupted,
