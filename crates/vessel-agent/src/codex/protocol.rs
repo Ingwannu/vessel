@@ -18,6 +18,9 @@
 //!   each Codex release); `serde_json::Value` throughout (no test catches
 //!   a rename).
 
+mod question_flags;
+pub(super) use question_flags::NativeSelection;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -463,9 +466,9 @@ pub(super) struct UserInputQuestion {
     #[serde(default)]
     pub(super) allow_other: bool,
     #[serde(default)]
-    pub(super) multi_select: bool,
-    #[serde(default)]
-    pub(super) allow_empty: bool,
+    pub(super) multi_select: NativeSelection,
+    #[serde(default, deserialize_with = "question_flags::empty_policy")]
+    pub(super) allow_empty: vessel_proto::timeline::EmptyAnswerPolicy,
     #[serde(default)]
     pub(super) placeholder: Option<String>,
     #[serde(default)]

@@ -3,9 +3,7 @@
 use crate::codex::protocol::UserInputRequest;
 use crate::mapper::cut;
 use vessel_proto::conversation::{ChoiceOption, FieldKind, FieldName, QuestionField};
-use vessel_proto::timeline::{
-    EmptyAnswerPolicy, QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime,
-};
+use vessel_proto::timeline::{QuestionDeliveryState, QuestionFieldPresentation, QuestionLifetime};
 use vessel_proto::{Question, QuestionId, ToolCallId};
 
 pub(in crate::codex) fn user_input_question(
@@ -50,7 +48,7 @@ pub(in crate::codex) fn user_input_question(
                             .map(|text| cut(text, Question::MAX_LABEL)),
                     })
                     .collect(),
-                multiple: question.multi_select,
+                multiple: question.multi_select.is_multiple(),
                 min_items: None,
                 max_items: None,
                 default: vec![],
@@ -68,11 +66,7 @@ pub(in crate::codex) fn user_input_question(
                     .placeholder
                     .clone()
                     .map(|text| cut(text, Question::MAX_LABEL)),
-                empty: if question.allow_empty {
-                    EmptyAnswerPolicy::AllowEmpty
-                } else {
-                    EmptyAnswerPolicy::RequireText
-                },
+                empty: question.allow_empty,
                 dismiss_label: question
                     .dismiss_label
                     .clone()
@@ -90,6 +84,13 @@ pub(in crate::codex) fn user_input_question(
             });
         }
     }
+    assembled(asked, fields)
+}
+
+fn assembled(
+    asked: &UserInputRequest,
+    fields: Vec<QuestionField>,
+) -> Result<Question, &'static str> {
     if fields.len() > Question::MAX_FIELDS {
         return Err("custom companions exceed the complete form bound");
     }

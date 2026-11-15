@@ -27,7 +27,7 @@ impl Snapshots {
     pub(crate) fn observe(&mut self, event: &mut AgentEvent) {
         match event {
             AgentEvent::TurnStarted { .. } => {
-                self.turn = Some(self.turn.unwrap_or_default().saturating_add(1))
+                self.turn = Some(self.turn.unwrap_or_default().saturating_add(1));
             }
             AgentEvent::ToolCall(call) => self.remember(call),
             AgentEvent::ToolCallUpdate(update) => self.enrich(update),
@@ -107,10 +107,10 @@ impl Snapshots {
         };
         if let Some(raw) = &update.raw_input {
             let kind = update.kind.or_else(|| previous.map(|value| value.kind));
-            if let (Some(kind), Ok(input)) = (kind, serde_json::from_str(raw.as_text())) {
-                if let Some(next) = super::for_kind(kind, &input) {
-                    detail = Some(next);
-                }
+            if let (Some(kind), Ok(input)) = (kind, serde_json::from_str(raw.as_text()))
+                && let Some(next) = super::for_kind(kind, &input)
+            {
+                detail = Some(next);
             }
         }
         let text = update.content.as_deref().and_then(text_content);
@@ -126,10 +126,10 @@ impl Snapshots {
                 attach_text(detail, text);
             }
         }
-        if let Some(detail) = detail {
-            if serde_json::to_vec(&detail).is_ok_and(|encoded| encoded.len() <= MAX_DETAIL_BYTES) {
-                update.detail = Some(Box::new(detail));
-            }
+        if let Some(detail) = detail
+            && serde_json::to_vec(&detail).is_ok_and(|encoded| encoded.len() <= MAX_DETAIL_BYTES)
+        {
+            update.detail = Some(Box::new(detail));
         }
     }
 }
@@ -163,7 +163,7 @@ fn attach_text(detail: &mut ToolCallDetail, text: &str) {
         ToolCallDetail::Fetch(detail) => detail.result = Some(text.to_owned()),
         ToolCallDetail::PlainText(detail) => detail.text = Some(text.to_owned()),
         ToolCallDetail::Unknown(detail) => {
-            detail.output = vessel_proto::RawJson::from_serialize(text).ok()
+            detail.output = vessel_proto::RawJson::from_serialize(text).ok();
         }
         ToolCallDetail::Edit(_)
         | ToolCallDetail::Write(_)

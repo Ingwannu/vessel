@@ -58,11 +58,20 @@ method, schema table or authority is introduced.
    Unsupported/protocol error. It must not resolve a ToolCallId to a canonical
    tool or permission by spelling. Existing node-assigned PermissionId authority
    remains distinct; the marker never substitutes for it or for option ownership.
-7. Reserved `reference_origin` input on client request/frame headers (including
-   nested forward/relay/deliver call headers) is refused before dispatch. This
-   guard does not inspect opaque user/tool JSON or message content, and does not
-   reject unrelated forward-compatible fields. The typed read-only marker is
-   accepted only on node-to-node reply decode.
+7. There is no special client-header scan or second parse path. The marker is
+   only a reply field; no client request type reads it. A client-sent unknown
+   `reference_origin` key is inert and cannot construct provenance. If a header
+   type later chooses explicit unknown-field refusal, its ordinary typed decode
+   reports through the existing DecodeFailure privacy path.
+8. Unknown origin spellings from a newer peer decode conservatively as
+   LegacyProjected (serde's other arm), never as canonical or as new authority.
+9. While TIMELINE_PARITY is None, every forwarded reply's tool references are
+   legacy. The new scoped-reference mutation resolver therefore refuses across
+   fleet hops during staging. Existing permission answers use PermissionId, not
+   tool-id resolution; today's forward/relay flows must keep their original tests.
+10. Typed reference context is applied inside one existing for_protocol traversal.
+    Each recursive Forwarded/Relay/Deliver reply is visited once, without a
+    pre-pass or a second rewriting pass.
 
 Fleet subscriptions are not forwarded by these envelopes: existing Subscribe /
 Unsubscribe machinery remains separate. Its direct owned/borrowed event encoder
@@ -83,8 +92,9 @@ than reuse an unclassified EventRecord as canonical input.
   ids, record sequence numbers, timestamps and page cursors stable.
 - Modern -> modern keeps original canonical scope/id; a received legacy marker
   survives a modern hop and only downgrades trust.
-- Client-supplied marker headers refuse before handler/provider/store effects;
-  opaque user JSON containing the same key is ordinary content, not provenance.
+- Client-supplied marker keys never construct provenance or enable dispatch;
+  opaque user JSON containing the same key is ordinary content. Unknown future
+  reply origins only downgrade to legacy. DecodeFailure remains the sole reporter.
 - Scoped mutation resolution from a legacy tool reference refuses. No id-prefix
   recognition or permission-label matching grants authority.
 - Existing head tests remain unchanged; actual merged-head strict checks,
