@@ -1,5 +1,7 @@
 //! One id's serial generations; real preparation and actor teardown retain quota.
-use super::{Caller, Entry, Phase, RegistryError, Result, Snapshot, Start, State, remove_current};
+use super::{
+    Caller, Entry, Phase, RegistryError, Result, Snapshot, Start, StartReady, State, remove_current,
+};
 use crate::dictation::{
     commands::Handle,
     control::Control,
@@ -112,7 +114,11 @@ impl Worker {
                             .phase
                             .send_replace(Phase::Live(active.handle.clone())),
                     );
-                    if command.reply.send(Ok(())).is_err() {
+                    if command
+                        .reply
+                        .send(Ok(StartReady::new(control.clone())))
+                        .is_err()
+                    {
                         let _first = Self::stop(&control, StreamError::Cancelled);
                     } else {
                         self.wait_live(&active.handle).await;
@@ -138,7 +144,7 @@ impl Worker {
     }
     async fn prepare(
         &mut self,
-        reply: &mut oneshot::Sender<Result<()>>,
+        reply: &mut oneshot::Sender<Result<StartReady>>,
         format: Pcm16Mono,
         control: &Control<StreamError>,
     ) -> Result<Active> {
@@ -184,7 +190,7 @@ impl Worker {
     }
     async fn await_preparation<F>(
         &self,
-        reply: &mut oneshot::Sender<Result<()>>,
+        reply: &mut oneshot::Sender<Result<StartReady>>,
         control: &Control<StreamError>,
         preparing: F,
     ) -> Result<crate::dictation::jobs::Source>

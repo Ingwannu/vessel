@@ -366,6 +366,13 @@ An accepted chunk can finish forwarding after its caller drops the reply: cancel
 of a pending next consumes nothing, while cancellation of a start must leave no
 orphan. Those are separate responsibilities, not one blanket stream cancellation.
 
+The prepared start acknowledgement carries a cancellation guard until its waiting
+call accepts readiness. Dropping that call while its acknowledgement is buffered
+still retires only that generation; a successful internal send alone is not proof
+that the call completed. Once the handler has accepted readiness, subsequent
+transport delivery loss has no RPC replay guarantee: the client can cancel the
+known id, and connection closure still retires its resources.
+
 At most the existing in-flight commit cap's independent HTTP jobs run per stream.
 They capture the running/finishing phase when the provider operation returns,
 before update backpressure can delay the actor folding that result. A TooSmall

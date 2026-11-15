@@ -991,3 +991,22 @@ The service assembly exceeded its existing file budget after both constructor
 additions met. Only the owned ServiceTasks bundle moves to service/tasks.rs; its
 constructor, existing trackers and call sites are unchanged. No head handler or
 shared guard is split, and no budget exception is raised.
+
+### Buffered start acknowledgement ownership
+
+A source audit found a gap after preparation: sending a unit acknowledgement into
+an unpolled oneshot receiver consumed the worker's only cancellation observer.
+Dropping that still-pending start could leave a live recording reservation. The
+buffered acknowledgement now owns a generation-local cancellation guard. The
+waiting call disarms it only when accepting readiness; dropping the buffer stops
+that generation through the existing first-stop primitive. No new transport
+hook, identity, quota or wire data is added. Normal handler completion remains
+the response-ready boundary, not a network replay promise.
+
+A current-thread regression leaves start unpolled after Live publication, drops
+it, requires synchronous retirement selection and waits for actual release. It
+keeps another stream active, proves that stream and the connection still work,
+then starts a replacement using the released capacity. The missing-guard path
+cleans its fixture before an immediate failing assertion, rather than timing out.
+The already queued merged checks predate this correction; changed-source narrow
+and final product evidence remain owed.

@@ -6,7 +6,7 @@
 
 use super::{
     commands::Handle,
-    control::Control,
+    control::{Control, Retention},
     input::Input,
     prepare::{Factory, PrepareError},
     quota::{ConnectionBudget, NodeBudget, QuotaError},
@@ -100,7 +100,25 @@ impl std::fmt::Debug for RegistryError {
 
 struct Start {
     format: Pcm16Mono,
-    reply: oneshot::Sender<Result<()>>,
+    reply: oneshot::Sender<Result<StartReady>>,
+}
+
+/// A buffered acknowledgement still belongs to its waiting call, not the worker.
+struct StartReady(Option<Control<StreamError>>);
+impl StartReady {
+    fn new(control: Control<StreamError>) -> Self {
+        Self(Some(control))
+    }
+    fn accept(mut self) {
+        let _accepted = self.0.take();
+    }
+}
+impl Drop for StartReady {
+    fn drop(&mut self) {
+        if let Some(control) = self.0.take() {
+            let _first = control.stop(Arc::new(StreamError::Cancelled), Retention::Forget);
+        }
+    }
 }
 #[derive(Clone)]
 enum Phase {
@@ -179,6 +197,7 @@ impl Registry {
         response
             .await
             .map_err(|source| Arc::new(RegistryError::Reply(source)))?
+            .map(StartReady::accept)
     }
     async fn entry(&self, caller: &Caller, id: &DictationId) -> Result<Arc<Entry>> {
         let entries = self.state.entries.lock().await;

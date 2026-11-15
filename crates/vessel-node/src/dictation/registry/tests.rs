@@ -392,6 +392,70 @@ async fn a_cancelled_start_keeps_preparing_capacity_until_teardown_and_cannot_pu
 }
 
 #[tokio::test]
+async fn dropping_a_buffered_start_acknowledgement_retires_only_its_generation() {
+    within(async {
+        let f = Fixture::new().await;
+        let link = Link::new().await;
+        let kept_id = id("kept-start");
+        f.registry
+            .start(&link.caller, kept_id.clone(), format())
+            .await
+            .unwrap();
+        let abandoned_id = id("unread-start-ack");
+        let mut starting = Box::pin(
+            f.registry
+                .start(&link.caller, abandoned_id.clone(), format()),
+        );
+        assert!(futures_util::poll!(starting.as_mut()).is_pending());
+        let entry = f.registry.entry(&link.caller, &abandoned_id).await.unwrap();
+        let mut phase = entry.phase.subscribe();
+        while !matches!(&*phase.borrow(), Phase::Live(_)) {
+            phase.changed().await.unwrap();
+        }
+        // This current-thread test never polls starting again. The worker sends
+        // its acknowledgement after publishing Live, before it can yield here.
+        let control = phase.borrow().control();
+        assert!(control.chosen().is_none());
+        drop(starting);
+        let retired = control.retiring().is_cancelled();
+        if !retired {
+            // Preserve fixture cleanup even against the old missing-guard code;
+            // the assertion still fails rather than hiding it behind a timeout.
+            f.registry
+                .cancel(&link.caller, &abandoned_id)
+                .await
+                .unwrap();
+        }
+        assert!(
+            retired,
+            "a queued start acknowledgement lost its cancellation owner"
+        );
+        entry.finished.cancelled().await;
+        assert!(!link.context.life().closed().is_cancelled());
+        assert_eq!(
+            f.registry
+                .chunk(&link.caller, &kept_id, ChunkSeq::new(0), pcm())
+                .await
+                .unwrap(),
+            Some(ChunkSeq::new(0))
+        );
+        let replacement_id = id("reused-capacity");
+        f.registry
+            .start(&link.caller, replacement_id.clone(), format())
+            .await
+            .unwrap();
+        f.registry.cancel(&link.caller, &kept_id).await.unwrap();
+        f.registry
+            .cancel(&link.caller, &replacement_id)
+            .await
+            .unwrap();
+        link.close().await;
+        f.finish().await;
+    })
+    .await;
+}
+
+#[tokio::test]
 async fn only_the_last_service_handle_drop_closes_its_records_and_does_not_close_the_connection() {
     within(async {
         let f = Fixture::new().await;
