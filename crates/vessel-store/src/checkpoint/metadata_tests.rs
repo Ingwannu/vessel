@@ -14,7 +14,7 @@ use vessel_proto::{
     checkpoint::{CheckpointEvent, PathCount, RestoreId, RestoreOutcome},
 };
 
-async fn completed(store: &Store) -> Operation {
+pub(super) async fn completed(store: &Store) -> Operation {
     let info = info();
     store.create_session(info.clone()).await.unwrap();
     let plan = plan(info.id);
@@ -73,7 +73,7 @@ async fn completed(store: &Store) -> Operation {
     read_operation(store, &plan, restore).await
 }
 
-async fn ended(store: &Store, operation: &Operation) -> DateTime<Utc> {
+pub(super) async fn ended(store: &Store, operation: &Operation) -> DateTime<Utc> {
     let at = DateTime::from_timestamp(100, 0).unwrap();
     let events = [
         SessionEvent::QueueChanged {

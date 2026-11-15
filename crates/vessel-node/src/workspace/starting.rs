@@ -180,3 +180,29 @@ impl Workspaces {
         })
     }
 }
+
+#[cfg(target_os = "linux")]
+impl Workspaces {
+    /// A completed retry uses the original pin identity, even if its image has
+    /// since expired. This lookup grants no authority to mutate project files.
+    pub(crate) async fn checkpoint_completion_admission(
+        self: &Arc<Self>,
+        restore: vessel_proto::checkpoint::RestoreId,
+    ) -> Result<Option<StartGuard>, vessel_proto::checkpoint::CheckpointError> {
+        use vessel_proto::checkpoint::CheckpointError;
+        let deadline = tokio::time::Instant::now()
+            .checked_add(ADMISSION_TIMEOUT)
+            .ok_or(CheckpointError::Busy)?;
+        let Some(pin) = self
+            .exclusion
+            .lookup_recovery(restore, deadline)
+            .await
+            .map_err(|_refused| CheckpointError::RecoveryPending)?
+        else {
+            return Ok(None);
+        };
+        self.checkpoint_recovery_admission(pin.worktree, pin.physical, restore)
+            .await
+            .map(Some)
+    }
+}

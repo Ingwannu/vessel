@@ -26,7 +26,7 @@ pub enum Object {
         /// Capture storage namespace.
         capture: CaptureId,
     },
-    /// An expired unconsumed preview, after its actual worker settled.
+    /// An expired or completed preview, after its actual worker settled.
     Preview {
         /// Worktree storage namespace.
         worktree: WorktreeId,
@@ -35,7 +35,7 @@ pub enum Object {
         /// Non-reusable preview namespace.
         plan: vessel_proto::checkpoint::RestorePlanId,
     },
-    /// An unpublished previous-process restore allocation, with no operation row.
+    /// An unpublished or completed restore stage, with its durable state retained.
     Restore {
         /// Worktree storage namespace.
         worktree: WorktreeId,

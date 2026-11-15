@@ -1128,3 +1128,33 @@ Nested vesseld compiled, but the selected tests did not run: workspace test code
 referenced undeclared serde_json. This followup uses saved typed evidence instead;
 codec roundtrip tests stay in proto/store, which own JSON, with no new dependency.
 The reported test-only qualification/unused-result warnings are also corrected.
+
+
+### Completed payload collection and completion retry (source; unverified)
+
+[Decision Log]
+- Purpose: free terminal stage/preview payloads without forgetting an old
+  RestoreId outcome or turning a lost result-marker ack into repeated file I/O.
+- Constraint: completed result/plan metadata has foreign-key and idempotency
+  obligations beyond the raw image's retention lifetime.
+- Choice: only settled Attached private allocations with a complete outcome and
+  durable required result marker retire. Their payload charges move to typed
+  garbage; exact encoded metadata, conservative copies and per-row overhead
+  remain charged on non-reusable allocation ids. Completed plans/results remain
+  in SQL, while expired images stop authorizing new restoration.
+- Why: deleting result rows would let a reconnecting client mistake a retry for a
+  new operation; retaining worst-case stage escrow indefinitely would exhaust
+  quota despite completed cleanup. Pending child garbage still pins parent GC.
+- Tradeoff: in-flight/recovery journals remain fully pinned; metadata lives until
+  session retention. SQL accounting tests model physical acknowledgements and do
+  not prove namespace cleanup or real runtime outcomes.
+
+The same canonical RootGate now supports lookup of a pending operation's original
+physical/worktree pin. A completed retry uses that identity to acquire its exact
+recovery lease, publishes metadata only, and settles the pin. It never infers
+write authority from a point-in-time lookup or replays file changes. The private
+real-worktree/fake-provider fixture injects a failed result-marker trigger after
+file success, checks that admission stays fenced, then retries publication and
+checks root admission releases without file reapply. A later external edit is
+preserved. The new writer regression retains the completed result through payload
+collection, image expiration and database reopen. All additions remain unrun.

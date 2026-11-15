@@ -38,7 +38,7 @@ impl Controller {
             }
             if !matches!(operation.outcome, RestoreOutcome::RecoveryRequired { .. }) {
                 if matches!(operation.outcome, RestoreOutcome::Restored { .. }) {
-                    self.publish_ended(&operation).await?;
+                    self.complete_existing(&operation).await?;
                 }
                 return Ok(operation.outcome);
             }
@@ -386,6 +386,23 @@ impl Controller {
             })
             .await
             .map_err(reason)
+    }
+    async fn complete_existing(&self, operation: &Operation) -> Result<(), CheckpointError> {
+        let guard = self
+            .context
+            .workspaces
+            .checkpoint_completion_admission(operation.id)
+            .await?;
+        self.publish_ended(operation).await?;
+        if let Some(guard) = guard {
+            guard
+                .revalidate()
+                .await
+                .map_err(|_changed| CheckpointError::RecoveryPending)?;
+            guard.settle_restore(operation.id).await?;
+            drop(guard);
+        }
+        Ok(())
     }
     async fn publish_ended(&self, operation: &Operation) -> Result<(), CheckpointError> {
         if self

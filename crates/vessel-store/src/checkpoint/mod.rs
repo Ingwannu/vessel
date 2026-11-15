@@ -5,6 +5,7 @@
 
 mod allocation;
 mod changes;
+mod completed;
 mod garbage;
 mod journal;
 #[cfg(test)]

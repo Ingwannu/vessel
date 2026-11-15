@@ -8,6 +8,12 @@ use vessel_proto::{
 
 #[derive(Debug, Default)]
 pub(crate) struct RecoveryRoots(BTreeMap<PhysicalRoot, BTreeMap<RestoreId, WorktreeId>>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RecoveryRoot {
+    pub(crate) physical: PhysicalRoot,
+    pub(crate) worktree: WorktreeId,
+}
+
 impl RecoveryRoots {
     pub(in crate::workspace) fn add(
         &mut self,
@@ -31,6 +37,24 @@ impl RecoveryRoots {
         }
         let _inserted = pending.insert(restore, worktree);
         Ok(())
+    }
+    pub(super) fn operation(
+        &self,
+        restore: RestoreId,
+    ) -> Result<Option<RecoveryRoot>, RootRefusal> {
+        let mut found = None;
+        for (physical, pending) in &self.0 {
+            if let Some(worktree) = pending.get(&restore) {
+                if found.is_some() {
+                    return Err(RootRefusal::RecoveryPending);
+                }
+                found = Some(RecoveryRoot {
+                    physical: *physical,
+                    worktree: *worktree,
+                });
+            }
+        }
+        Ok(found)
     }
     pub(super) fn contains(&self, root: &PhysicalRoot) -> bool {
         self.0.contains_key(root)

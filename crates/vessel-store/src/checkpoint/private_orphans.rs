@@ -9,7 +9,7 @@ const TOMBSTONE_BYTES: i64 = 64 * 1024;
 /// objects remain fully charged/pinned; this does not verify their file payloads.
 /// The restore worker verifies referenced archives again before first mutation.
 pub(super) fn collect(connection: &Connection, at: DateTime<Utc>) -> Result<(), Error> {
-    let mut statement = connection.prepare("SELECT a.object,a.capture,c.worktree,a.reserved_bytes FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE a.phase='orphaned' ORDER BY a.object LIMIT ?1")?;
+    let mut statement = connection.prepare("SELECT a.object,a.capture,c.worktree,a.reserved_bytes,a.owner FROM checkpoint_allocations a JOIN checkpoint_captures c ON c.id=a.capture WHERE a.phase='orphaned' ORDER BY a.object LIMIT ?1")?;
     let limit =
         i64::try_from(CHECKPOINT_PAGE_ENTRIES).map_err(|_large| CheckpointError::TooManyPaths)?;
     let rows = statement
@@ -19,21 +19,22 @@ pub(super) fn collect(connection: &Connection, at: DateTime<Utc>) -> Result<(), 
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
             ))
         })?
         .collect::<Result<Vec<_>, _>>()?;
     drop(statement);
-    for (object, capture, worktree, reserved) in rows {
+    for (object, capture, worktree, reserved, owner) in rows {
         let allocation = serde_json::from_str::<Allocation>(&object)?;
         let referenced = match allocation {
             Allocation::Preview { plan } => connection.query_row(
-                "SELECT EXISTS(SELECT 1 FROM checkpoint_plans WHERE id=?1)",
-                [plan.to_string()],
+                "SELECT EXISTS(SELECT 1 FROM checkpoint_plans WHERE id=?1 AND capture=?2 AND owner=?3)",
+                params![plan.to_string(), capture, owner],
                 |row| row.get::<_, bool>(0),
             )?,
             Allocation::Restore { restore } => connection.query_row(
-                "SELECT EXISTS(SELECT 1 FROM checkpoint_restores WHERE id=?1)",
-                [restore.to_string()],
+                "SELECT EXISTS(SELECT 1 FROM checkpoint_restores r JOIN checkpoint_plans p ON p.id=r.plan WHERE r.id=?1 AND p.capture=?2 AND r.owner=?3)",
+                params![restore.to_string(), capture, owner],
                 |row| row.get::<_, bool>(0),
             )?,
         };

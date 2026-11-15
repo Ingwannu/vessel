@@ -1870,6 +1870,14 @@ and cursor identity. Global pressure plans reclamation while quota still counts
 pending garbage. Startup fences old private reservations independently from live
 workers, preserving referenced data and collecting only unpublished allocations.
 Completed restore metadata replays atomically under FULL sync after interrupting
-previous live sessions and before retention/admission. Terminal restore journals
-remain pinned pending their own completed-stage retirement; source tests remain
-unverified and production restore admission remains closed.
+previous live sessions and before retention/admission. Completed private payloads now retire after actual-worker settlement and durable
+outcome/result-marker acknowledgement, while idempotency metadata remains charged
+and survives image expiry. In-flight/recovery journals stay pinned. Source tests
+remain unverified and production restore admission remains closed.
+
+A completed retry can discover its original recovery pin through the same sole
+RootGate, independent of an expired image's list/preview association. It acquires
+the matching physical recovery lease, finishes only metadata publication, and
+settles that exact operation before release. This lookup grants no file-mutation
+authority. Missing/error publication acknowledgements cannot force file reapply,
+lose the original fence or leave an otherwise completed root permanently locked.

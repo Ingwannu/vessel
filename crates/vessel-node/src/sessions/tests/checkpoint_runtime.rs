@@ -116,7 +116,17 @@ async fn checkpoint_node_runtime_bridge_persists_before_and_after_real_fake_prov
         let preview = controller.preview(CheckpointOwner::LocalOwner, PreviewCheckpoint { session: session.id, checkpoint }).await.unwrap();
         let before = fixture.store.session(session.id).await.unwrap().unwrap();
         let restore = vessel_proto::checkpoint::RestoreCheckpoint { session: session.id, plan: preview.page.plan, restore: vessel_proto::checkpoint::RestoreId::random() };
+        let fault = rusqlite::Connection::open(data.database_path()).unwrap();
+        fault.execute_batch("CREATE TRIGGER deny_restore_projection BEFORE UPDATE OF event_seq ON checkpoint_restores BEGIN SELECT RAISE(ABORT,'fixture lost marker'); END;").unwrap();
+        assert!(controller.restore(CheckpointOwner::LocalOwner, restore).await.is_err());
+        assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"checkpoint bytes\n", "a projection failure does not replay or undo a durable file success");
+        assert!(workspaces.admit_start(&worktree.path).await.is_err(), "uncertain completion retains its recovery fence");
+        fault.execute_batch("DROP TRIGGER deny_restore_projection").unwrap();
+        drop(fault);
         let result = controller.restore(CheckpointOwner::LocalOwner, restore).await.unwrap();
+        let released = workspaces.admit_start(&worktree.path).await.unwrap();
+        drop(released);
+
         assert!(matches!(result, vessel_proto::checkpoint::RestoreOutcome::Restored { changed } if changed.get() == 1));
         assert_eq!(std::fs::read(worktree.path.join("README.md")).unwrap(), b"checkpoint bytes\n");
         let after = fixture.store.session(session.id).await.unwrap().unwrap();

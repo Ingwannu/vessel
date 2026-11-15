@@ -5,7 +5,7 @@
 //! - Constraint: active workers, preview leases and restore journals own payloads.
 //! - Choice: one bounded writer transaction transfers obsolete bytes to durable
 //!   garbage and leaves Expired boundary/id tombstones. Pinned images are extra.
-//! - Cost: GC failure retains the full charge; no restore journal is pruned here.
+//! - Cost: GC failure retains the full charge; completed result metadata survives.
 use super::{GarbageObject, records::CheckpointStoreError as Error};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
@@ -13,12 +13,14 @@ use vessel_proto::checkpoint::{CHECKPOINT_PAGE_ENTRIES, CHECKPOINTS_PER_SESSION,
 const TOMBSTONE_BYTES: i64 = 64 * 1024;
 const ELIGIBLE: &str = "state='ready' AND worker='settled'
  AND NOT EXISTS(SELECT 1 FROM checkpoint_plans p WHERE p.capture=c.id AND p.expires_at>?1 AND p.consumed_by IS NULL)
- AND NOT EXISTS(SELECT 1 FROM checkpoint_restores r JOIN checkpoint_plans p ON p.id=r.plan WHERE p.capture=c.id)
+ AND NOT EXISTS(SELECT 1 FROM checkpoint_restores r JOIN checkpoint_plans p ON p.id=r.plan WHERE p.capture=c.id AND (r.phase!='complete' OR (json_extract(r.outcome,'$.kind')='restored' AND r.event_seq IS NULL)))
+ AND NOT EXISTS(SELECT 1 FROM checkpoint_allocations a WHERE a.capture=c.id AND a.phase='attached' AND EXISTS(SELECT 1 FROM checkpoint_restores r JOIN checkpoint_plans p ON p.id=r.plan WHERE p.capture=c.id))
  AND NOT EXISTS(SELECT 1 FROM checkpoint_allocations a WHERE a.capture=c.id AND a.phase IN ('reserved','orphaned'))
  AND NOT EXISTS(SELECT 1 FROM checkpoint_garbage g WHERE json_extract(g.object,'$.capture')=c.id)";
 
 pub(super) fn collect(connection: &Connection, at: DateTime<Utc>) -> Result<(), Error> {
     super::private_orphans::collect(connection, at)?;
+    super::completed::collect(connection, at)?;
     expire_previews(connection, at)?;
     let query = format!("WITH eligible AS (SELECT id,worktree,session,created_at FROM checkpoint_captures c WHERE {ELIGIBLE}), ranked AS (
         SELECT id,worktree,ROW_NUMBER() OVER (PARTITION BY session ORDER BY created_at DESC,id DESC) AS position FROM eligible)
@@ -46,10 +48,13 @@ fn retire(
     at: DateTime<Utc>,
 ) -> Result<crate::ByteCount, Error> {
     let total: i64 = connection.query_row("SELECT reserved_bytes+COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_allocations WHERE capture=?1),0) FROM checkpoint_captures WHERE id=?1", [capture], |row| row.get(0))?;
-    // Eligible captures have no consuming restore, so expired plans have no FK
-    // readers or remaining file authority. Allocation ids remain non-reusable.
-    let _plans = connection.execute("DELETE FROM checkpoint_plans WHERE capture=?1", [capture])?;
-    let _allocations = connection.execute("UPDATE checkpoint_allocations SET phase='cleaned',reserved_bytes=MIN(reserved_bytes,?2) WHERE capture=?1", params![capture,TOMBSTONE_BYTES])?;
+    // Eligible captures have no consuming restore, so unconsumed expired plans have no remaining file authority. Completed plan/
+    // result metadata and allocation ids remain for truthful idempotent retries.
+    let _plans = connection.execute(
+        "DELETE FROM checkpoint_plans WHERE capture=?1 AND consumed_by IS NULL",
+        [capture],
+    )?;
+    let _allocations = connection.execute("UPDATE checkpoint_allocations SET phase='cleaned',reserved_bytes=CASE WHEN phase='cleaned' THEN reserved_bytes ELSE MIN(reserved_bytes,?2) END WHERE capture=?1", params![capture,TOMBSTONE_BYTES])?;
     let kept: i64 = connection.query_row("SELECT MIN(reserved_bytes,?2)+COALESCE((SELECT sum(reserved_bytes) FROM checkpoint_allocations WHERE capture=?1),0) FROM checkpoint_captures WHERE id=?1", params![capture,TOMBSTONE_BYTES],|row|row.get(0))?;
     let garbage = total
         .checked_sub(kept)

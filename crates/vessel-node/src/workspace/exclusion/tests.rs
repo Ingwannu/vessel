@@ -278,9 +278,21 @@ async fn checkpoint_original_writer_can_settle_its_own_verified_pin_without_unlo
     gate.pin_recovery(&held, worktree, restore, deadline())
         .await
         .unwrap();
+    assert_eq!(
+        gate.lookup_recovery(restore, deadline()).await.unwrap(),
+        Some(RecoveryRoot {
+            physical: root(1),
+            worktree
+        })
+    );
     gate.resolve_recovery(&held, restore, deadline())
         .await
         .unwrap();
+    assert_eq!(
+        gate.lookup_recovery(restore, deadline()).await.unwrap(),
+        None
+    );
+
     assert!(matches!(
         gate.claim(root(1), deadline()).await,
         Err(RootRefusal::Busy)

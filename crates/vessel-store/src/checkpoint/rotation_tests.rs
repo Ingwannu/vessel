@@ -242,3 +242,182 @@ fn checkpoint_pressure_plans_reclamation_but_never_spends_pending_garbage_early(
     }
     assert!(quota::available(&db, ByteCount::new(CHECKPOINT_CAPTURE_RESERVATION_BYTES)).is_ok());
 }
+
+#[tokio::test]
+async fn checkpoint_completed_payload_retirement_keeps_idempotent_results_after_image_expiry_and_restart()
+ {
+    use super::{Allocation, CheckpointWrite};
+    use crate::{DataDir, Store, StoreConfig};
+    let temp = tempfile::tempdir().unwrap();
+    let dir = DataDir::new(temp.path());
+    dir.prepare().unwrap();
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    let operation = super::metadata_tests::completed(&store).await;
+    let (selected, _) = store
+        .checkpoint_plan(operation.plan, operation.owner)
+        .await
+        .unwrap();
+    for allocation in [
+        Allocation::Preview { plan: selected.id },
+        Allocation::Restore {
+            restore: operation.id,
+        },
+    ] {
+        store
+            .checkpoint_write(CheckpointWrite::AllocationAttached {
+                key: selected.key,
+                allocation,
+                owner: selected.owner,
+            })
+            .await
+            .unwrap();
+    }
+    store
+        .checkpoint_write(CheckpointWrite::Collect {
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    assert!(
+        store.checkpoint_garbage().await.unwrap().is_empty(),
+        "missing result marker pins completed payloads too"
+    );
+    let _ended_at = super::metadata_tests::ended(&store, &operation).await;
+    store
+        .checkpoint_write(CheckpointWrite::EndedMetadata {
+            operation: Box::new(operation.clone()),
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    store
+        .checkpoint_write(CheckpointWrite::Collect {
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let garbage = store.checkpoint_garbage().await.unwrap();
+    assert_eq!(
+        garbage.len(),
+        2,
+        "preview and restore payloads retire without forgetting result metadata"
+    );
+    assert_eq!(
+        store
+            .checkpoint_operation(operation.session, operation.id, operation.owner)
+            .await
+            .unwrap(),
+        operation
+    );
+    // Accounting-only fixture: physical cleanup is exercised by workspace/node
+    // fixtures; these explicit acks model its verified terminal completion.
+    for item in garbage {
+        store
+            .checkpoint_write(CheckpointWrite::GarbageCleaned {
+                object: item.object,
+            })
+            .await
+            .unwrap();
+    }
+    for index in 1..=CHECKPOINTS_PER_SESSION {
+        let newer = plan(operation.session);
+        let at = DateTime::UNIX_EPOCH
+            .checked_add_signed(TimeDelta::seconds(i64::try_from(index).unwrap()))
+            .unwrap();
+        store
+            .checkpoint_write(CheckpointWrite::Reserve {
+                key: newer.key,
+                bytes: ByteCount::new(1),
+                at,
+            })
+            .await
+            .unwrap();
+        store
+            .checkpoint_write(CheckpointWrite::Candidate {
+                key: newer.key,
+                snapshot: Box::new(super::tests::observed(newer.desired.image().clone())),
+            })
+            .await
+            .unwrap();
+        store
+            .checkpoint_write(CheckpointWrite::Activate {
+                key: newer.key,
+                checkpoint: CheckpointId::random(),
+            })
+            .await
+            .unwrap();
+    }
+    store
+        .checkpoint_write(CheckpointWrite::Collect {
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    let marks = store
+        .checkpoint_page(operation.session, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        marks
+            .marks
+            .iter()
+            .filter(|mark| mark.state == CheckpointState::Expired)
+            .count(),
+        1
+    );
+    assert!(
+        store
+            .checkpoint_plan(operation.plan, operation.owner)
+            .await
+            .is_err(),
+        "expired image never authorizes a new restore"
+    );
+    assert_eq!(
+        store
+            .checkpoint_operation(operation.session, operation.id, operation.owner)
+            .await
+            .unwrap(),
+        operation
+    );
+    assert!(
+        store
+            .checkpoint_event_seq(operation.clone())
+            .await
+            .unwrap()
+            .is_some()
+    );
+    store.close().await;
+    let store = Store::open(&dir, StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    store
+        .checkpoint_write(CheckpointWrite::Admit {
+            plan: Box::new(selected),
+            restore: operation.id,
+            at: DateTime::UNIX_EPOCH,
+        })
+        .await
+        .unwrap();
+    assert_eq!(
+        store
+            .checkpoint_operation(operation.session, operation.id, operation.owner)
+            .await
+            .unwrap(),
+        operation,
+        "same-id retry after expiry/restart reads the completed outcome"
+    );
+    assert_eq!(
+        store
+            .read_events(operation.session, vessel_proto::EventSeq::ZERO, 10)
+            .await
+            .unwrap()
+            .records
+            .len(),
+        4
+    );
+    store.close().await;
+}

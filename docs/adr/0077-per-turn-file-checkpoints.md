@@ -230,6 +230,17 @@ unavailable/restore refuses `StorageFull`. Session deletion removes unpinned
 images; a pending recovery blocks deletion of its data. Old list cursors report
 expiration explicitly. No new node settings key is required by this draft.
 
+Completed private stage/preview payloads may retire only after actual worker
+settlement, verified durable outcome and the required result-event marker. Their
+result/plan/idempotency metadata remains conservatively charged until session
+retention, including after the selected image expires; an expired image cannot
+authorize a new restore. In-flight and recovery journals retain their full pin.
+A lost completion acknowledgement permits metadata-only retry under the exact
+original canonical recovery lease; it never permits reapplying files or clearing
+another operation's root pin. This clarification accompanies the implementation
+for node contract review; it is not runtime acceptance.
+
+
 ## Preview, confirmation and restore semantics
 
 New additive methods, provisional names, number given at merge:

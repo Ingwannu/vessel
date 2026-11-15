@@ -46,7 +46,7 @@ pub(crate) enum RootRefusal {
 }
 mod recovery;
 mod resolving;
-pub(crate) use recovery::RecoveryRoots;
+pub(crate) use recovery::{RecoveryRoot, RecoveryRoots};
 
 #[derive(Debug)]
 pub(crate) struct RootLease {
@@ -67,6 +67,11 @@ impl Drop for RootLease {
 }
 #[derive(Debug)]
 enum Request {
+    LookupRecovery {
+        restore: vessel_proto::checkpoint::RestoreId,
+        deadline: Instant,
+        reply: oneshot::Sender<Result<Option<RecoveryRoot>, RootRefusal>>,
+    },
     Claim {
         root: PhysicalRoot,
         worktrees: BTreeSet<WorktreeId>,
@@ -158,6 +163,18 @@ impl RootGate {
         })
         .await
     }
+    pub(crate) async fn lookup_recovery(
+        &self,
+        restore: vessel_proto::checkpoint::RestoreId,
+        deadline: Instant,
+    ) -> Result<Option<RecoveryRoot>, RootRefusal> {
+        self.request(deadline, |reply| Request::LookupRecovery {
+            restore,
+            deadline,
+            reply,
+        })
+        .await
+    }
     async fn request<T>(
         &self,
         deadline: Instant,
@@ -197,6 +214,18 @@ struct Active {
 fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
     prune(&mut state.active);
     match request {
+        Request::LookupRecovery {
+            restore,
+            deadline,
+            reply,
+        } => {
+            let result = if Instant::now() >= deadline {
+                Err(RootRefusal::TimedOut)
+            } else {
+                state.recovering.operation(restore)
+            };
+            let _gone = reply.send(result);
+        }
         Request::Claim {
             root,
             worktrees,
