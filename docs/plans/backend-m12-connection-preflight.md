@@ -170,8 +170,10 @@ Exact-source remote all-target Clippy for View/Link/App passed:
 passed **1187/0/2**: `devices-narrow-20261115T093535Z-3f4fc488`. Both runs
 have native-fonts/cargo zero and no skip. App75/0/2, Link78/0/0 and View
 sections1034/0/0 are separate; no real-node permission claim follows from
-the framed semantic-Forbidden fixture. Actual changed App/Link compilation
-is retained; unchanged View sources reuse valid artifacts and run all tests.
+the framed semantic-Forbidden fixture. The07 run actually checked/compiled Kit+App; unchanged Link was actually
+compiled/checked in06 and its78 tests executed in07. Unchanged View sources
+reuse valid artifacts and run all tests. This is not three fresh compilations
+in07.
 
 The input regression measures frame identity inside window dispatch; a normal
 notify-driven redraw at update completion is not mistaken for a newer tree
@@ -196,3 +198,28 @@ real invitation/QR was generated. Synthetic peers only. Local preparation ran as
 account was configured by the approved tool, without separate numeric UID/GID
 attestation retained here. No live service-account flow was exercised and
 no production service or permission changed.
+
+
+## V1 complete batch and liveness correction
+
+V1 returned source3f4fc488 for one P2 test-liveness category (audit
+`/tmp/work/m12-review/g4-3f4f-preflight/evidence-audit.json`). The review
+found no additional product identity/fence defect; this is not a SOURCE
+adoption pass. The exact3f4f1187/0/2 result remains prior-source evidence.
+
+The test-only correction keeps every assertion, ordering barrier and existing
+five-second phase budget. Every new Tokio actor regression has a named
+30-second outer safety net; setup handshakes, injected-frame receipts, RPC
+barriers, attach/next/closure waits and ordered publication have named finite
+five-second phases. Memory-only tests use native Tokio per V1's explicit
+ruling, without the root testkit edge that would prepare unrelated executables.
+The shared peer owns its task before awaiting the handshake, so failing setup
+also aborts its single task and both transport halves. The tag collector and
+semantic-refusal responder are scoped joined futures; a timeout/assertion
+failure drops them together rather than leaving detached JoinHandles.
+
+This changes test support only, not the product API, staged follow visibility,
+wire, permissions or UI. One corrected Link narrow batch and same-row V1
+closure are required before broadcasting any consumer hash. Whole gates and
+captures are not repeated for this correction. Remote numeric UID/GID and
+live service flows remain explicitly unverified.
