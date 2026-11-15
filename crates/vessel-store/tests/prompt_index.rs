@@ -1,5 +1,7 @@
 //! Durable snapshot metadata remains paged across appends and rejects rewinds.
 
+#![cfg(test)]
+
 use vessel_proto::prompt_index::{ListSessionPrompts, PromptIndexLimit};
 use vessel_proto::{EventSeq, SessionEvent, SessionId};
 use vessel_store::{StoreConfig, StoreError};
