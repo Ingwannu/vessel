@@ -45,7 +45,6 @@ impl clap::builder::TypedValueParser for Parser {
         argument: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
-        use clap::builder::TypedValueParser as _;
         use clap::error::{ContextKind, ContextValue};
         clap::builder::StringValueParser::new()
             .try_map(|text: String| text.parse::<ModifiedInput>())

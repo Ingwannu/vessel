@@ -62,7 +62,7 @@ struct Envelope {
 
 // A present JSON null must not be mistaken for an absent envelope key.
 fn present<'de, D: serde::Deserializer<'de>>(input: D) -> Result<bool, D::Error> {
-    serde::de::IgnoredAny::deserialize(input)?;
+    let _present = serde::de::IgnoredAny::deserialize(input)?;
     Ok(true)
 }
 

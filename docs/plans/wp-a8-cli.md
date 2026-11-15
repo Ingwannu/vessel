@@ -268,3 +268,13 @@ body/identity vocabulary is now present; rich permission/question carrier fields
 response RPCs and receipts are still absent from this announced head. Permit
 remains test-only and must not activate merely because body types are available.
 The app tree consumes its own official line; no whole node head is merged there.
+
+## Exact staged Clippy result
+
+Run wp-side-node-narrow-20261115T163134Z-d4e55629 compiled the private permit
+module and failed five lints: one redundant parser trait import, three test
+slice clones, and one ignored envelope-deserializer result. The correction
+keeps the same parser/privacy and canonical envelope checks, borrows the same
+formatter row, and explicitly binds the ignored value. Changed-source strict
+and actual private permit test execution remain owed. No product permit handler
+or rich response call is enabled by this source correction.
