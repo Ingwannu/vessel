@@ -81,3 +81,9 @@ fn single_and_split_keep_the_reference_frame_and_small_label_in_both_schemes(
         }
     }
 }
+
+#[test]
+fn the_grid_changes_at_the_reference_viewport_breakpoint() {
+    assert_eq!(Columns::at(px(599.0)), Columns::Two);
+    assert_eq!(Columns::at(px(600.0)), Columns::Four);
+}

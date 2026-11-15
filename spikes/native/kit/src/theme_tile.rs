@@ -11,7 +11,7 @@
 //! - Cost: grid composition is explicit so no identity leaks into this control.
 
 use gpui::prelude::*;
-use gpui::{Div, ElementId, Hsla, SharedString, Stateful, div, px, relative};
+use gpui::{Div, ElementId, Hsla, Pixels, SharedString, Stateful, div, px, relative};
 
 use crate::{Tokens, Type, TypeExt as _};
 
@@ -45,6 +45,19 @@ pub enum Columns {
     Two,
     /// Four columns in the wide grid.
     Four,
+}
+
+impl Columns {
+    /// The source's medium breakpoint is viewport-wide, not card-wide.
+    #[must_use]
+    pub fn at(width: Pixels) -> Self {
+        const MEDIUM: f32 = 600.0;
+        if width < px(MEDIUM) {
+            Self::Two
+        } else {
+            Self::Four
+        }
+    }
 }
 
 const HALF_GAP: f32 = 6.0;
