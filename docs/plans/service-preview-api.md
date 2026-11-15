@@ -57,12 +57,20 @@ this API, and connection_life.rs provides the canonical close observer.
 
 ## Resume point
 
-The A10 control producer now includes the closed unavailable backend,
-renewable model bindings, lease revocation and exact-lease drain receipts.
-It issues no real permission. Positive authority observations are private
-cfg(test) fixtures; no kernel, scheme or canonical registry source exists.
+The A10 producer now includes the closed unavailable backend, renewable
+model bindings, lease close/registration gate, owned connection wrapper,
+and physical-worker admission/drain ownership. Positive authority and peer
+checks are private cfg(test) fixtures only. Their controlled loopback tests
+cannot attest kernel ownership or qualify a browser engine. No source
+backend consumes legacy listener metadata or infers a workspace generation.
 
-Owned connection/physical-worker registration is the next commit, with
-controlled loopback tests. The matcher/context commit has its own immutable
-narrow suite queued. The control commit will run strict node all-target
-Clippy and Preview tests after it. Final runtime/package gates remain owed.
+The matcher/context commit has its own immutable narrow suite queued.
+The lease/transport commit will run strict node all-target Clippy and the
+Preview tests after that suite; no local Cargo or Rust compiler is used.
+The real registry/incarnation, seeded identity, socket-peer and bounded
+scheme producers, browser adapter and enclosing package gate remain owed.
+
+The control commit separately establishes unavailable admission and lease
+freshness/cancellation. The following connection commit adds registration
+under its existing gate and preserves those control tests. Its fake
+inspection is a transport-ordering model, not an OS peer collector.

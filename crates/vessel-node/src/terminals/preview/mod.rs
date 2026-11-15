@@ -3,12 +3,14 @@
 //! producers are wired and qualified with the browser adapter's package gate.
 
 mod budget;
+mod connection;
 mod context;
 mod error;
 #[cfg(test)]
 mod fixtures;
 mod lease;
 mod origin;
+mod preparation;
 mod source;
 #[cfg(test)]
 mod tests;
@@ -19,15 +21,16 @@ use tokio::sync::Semaphore;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 pub(crate) use budget::PreviewBudget;
+pub(crate) use connection::PreviewConnection;
 pub(crate) use context::{PreviewContext, PreviewScope};
 pub(crate) use error::{MissingPreviewProof, PreviewError};
 pub(crate) use lease::{PreviewDrain, PreviewLease};
 pub(crate) use origin::{PreviewOrigin, PreviewScheme};
 
-use budget::MAX_PREVIEW_LEASES;
+use budget::{MAX_PREVIEW_LEASES, MAX_PREVIEW_PREPARATIONS, MAX_PREVIEW_STREAMS};
 use source::Source;
 
-/// One node service shares the lease budget; connections are a later stage.
+/// One node service shares physical-work and stream budgets across all leases.
 #[derive(Clone)]
 pub(crate) struct PreviewService {
     source: Source,
@@ -38,6 +41,8 @@ struct Runtime {
     shutdown: CancellationToken,
     tasks: TaskTracker,
     leases: Arc<Semaphore>,
+    connections: Arc<Semaphore>,
+    preparations: Arc<Semaphore>,
 }
 
 impl PreviewService {
@@ -53,6 +58,8 @@ impl PreviewService {
                 shutdown,
                 tasks,
                 leases: Arc::new(Semaphore::new(MAX_PREVIEW_LEASES)),
+                connections: Arc::new(Semaphore::new(MAX_PREVIEW_STREAMS)),
+                preparations: Arc::new(Semaphore::new(MAX_PREVIEW_PREPARATIONS)),
             }),
         }
     }

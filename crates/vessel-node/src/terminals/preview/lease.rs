@@ -2,12 +2,14 @@
 
 use std::sync::{Arc, Weak};
 
-use tokio::sync::{Mutex, OwnedSemaphorePermit};
+use tokio::sync::{Mutex, OwnedSemaphorePermit, Semaphore};
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
-    PreviewBudget, PreviewContext, PreviewError, PreviewOrigin, PreviewService,
-    budget::{self, FRESH_FOR, PREVIEW_OPERATION_TIMEOUT},
+    PreviewBudget, PreviewConnection, PreviewContext, PreviewError, PreviewOrigin, PreviewService,
+    Runtime,
+    budget::{self, FRESH_FOR, MAX_LEASE_STREAMS, PREVIEW_OPERATION_TIMEOUT},
+    preparation,
     source::{Binding, Source},
 };
 
@@ -19,8 +21,10 @@ pub(super) struct Inner {
     pub(super) context: PreviewContext,
     pub(super) binding: Binding,
     pub(super) source: Source,
+    pub(super) runtime: Arc<Runtime>,
     pub(super) cancelled: CancellationToken,
     pub(super) attempts: TaskTracker,
+    pub(super) connections: Arc<Semaphore>,
     pub(super) gate: Mutex<()>,
     _lease: OwnedSemaphorePermit,
 }
@@ -47,8 +51,10 @@ impl PreviewLease {
             context,
             binding,
             source: service.source.clone(),
+            runtime: Arc::clone(&service.runtime),
             cancelled: service.runtime.shutdown.child_token(),
             attempts: TaskTracker::new(),
+            connections: Arc::new(Semaphore::new(MAX_LEASE_STREAMS)),
             gate: Mutex::new(()),
             _lease: permit,
         });
@@ -66,6 +72,23 @@ impl PreviewLease {
             let _gate = self.0.gate.lock().await;
             self.0.check_context(context, origin)?;
             self.0.validate()
+        })
+        .await
+        .map_err(PreviewError::Deadline)?
+    }
+
+    /// Own dial and inspection so metadata never enables an independent dial.
+    pub(crate) async fn connect_verified(
+        &self,
+        context: &PreviewContext,
+        origin: PreviewOrigin,
+    ) -> Result<PreviewConnection, PreviewError> {
+        tokio::time::timeout(PREVIEW_OPERATION_TIMEOUT, async {
+            tokio::select! {
+                biased;
+                () = self.0.cancelled.cancelled() => Err(PreviewError::Revoked),
+                result = preparation::connect(self, context, origin) => result,
+            }
         })
         .await
         .map_err(PreviewError::Deadline)?
@@ -161,7 +184,9 @@ async fn observe(weak: Weak<Inner>) {
         drop(inner);
         tokio::select! {
             biased;
-            () = source.changed() => continue,
+            changed = source.changed() => {
+                if changed.is_ok() { continue; }
+            },
             () = cancelled.cancelled() => {},
             () = closed.cancelled() => {},
             () = transport_closed.cancelled() => {},

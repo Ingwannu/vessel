@@ -61,11 +61,23 @@ impl Source {
         }
     }
 
-    pub(super) async fn changed(&mut self) {
+    pub(super) async fn changed(&mut self) -> Result<(), tokio::sync::watch::error::RecvError> {
         match self {
             Self::Unavailable => std::future::pending().await,
             #[cfg(test)]
             Self::Fixture(fixture) => fixture.changed().await,
+        }
+    }
+
+    pub(super) fn inspect(
+        &self,
+        socket: &std::net::TcpStream,
+        expected: &Binding,
+    ) -> Result<(), PreviewError> {
+        match self {
+            Self::Unavailable => Err(PreviewError::Unavailable(MissingPreviewProof::SocketPeer)),
+            #[cfg(test)]
+            Self::Fixture(fixture) => fixture.inspect(socket, expected),
         }
     }
 }

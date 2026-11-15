@@ -56,6 +56,10 @@ pub(crate) enum PreviewError {
         #[source]
         source: TryAcquireError,
     },
+    #[error("service Preview connection failed")]
+    Socket(#[source] std::io::Error),
+    #[error("service Preview inspection did not finish")]
+    Worker(#[source] tokio::task::JoinError),
     #[error("service Preview operation exceeded its budget")]
     Deadline(#[source] tokio::time::error::Elapsed),
 }

@@ -1064,8 +1064,8 @@ No helper is launched and no registry API is adopted by this contract change.
   separate trusted proof performed only after peer verification, never
   inferred from TCP health. The browser does not dial origin metadata.
 - Freshness: initial and refreshed evidence is timestamped by its trusted
-  producer at observation, not by the request. Its validity is at most two
-  terminal scan PERIODs. A complete refresh for the same canonical binding,
+  producer at observation, not by the request. Its validity is bounded by
+  preview/budget.rs FRESH_FOR, derived from the terminal scan PERIOD. A complete refresh for the same canonical binding,
   run and origin renews that short evidence window; activity does not. No
   fresh observation, scan failure/truncation, unknown/ambiguous owner,
   changed binding/run/origin or authority loss revokes rather than renewing.
@@ -1090,10 +1090,8 @@ No helper is launched and no registry API is adopted by this contract change.
   permit/drain-token release. Closing admission and registering attempts
   share one lease gate, so a drain cannot race a newly admitted worker.
 - Bounds: `terminals/preview/budget.rs` is the sole numeric owner of
-  MAX_PREVIEW_LEASES and PREVIEW_OPERATION_TIMEOUT. The connection commit
-  will own MAX_PREVIEW_STREAMS (64 node-wide), MAX_LEASE_STREAMS (8 per
-  lease) and MAX_PREVIEW_PREPARATIONS (4 physical workers), then remove
-  those documentary values. Admission is
+  MAX_PREVIEW_LEASES, MAX_PREVIEW_STREAMS, MAX_LEASE_STREAMS,
+  MAX_PREVIEW_PREPARATIONS and PREVIEW_OPERATION_TIMEOUT. Admission is
   non-queueing with typed Busy; diagnostics format that owner's limit.
   Evidence freshness derives from the existing terminal scan PERIOD.
   Budgets are shared by the node service, never recreated for each lease.

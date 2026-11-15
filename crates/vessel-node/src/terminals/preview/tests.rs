@@ -7,9 +7,11 @@ use std::{
     net::{Ipv4Addr, Ipv6Addr, SocketAddr},
     sync::Arc,
 };
+use tokio::net::TcpListener;
 use tokio_util::task::TaskTracker;
 
 mod lifetime;
+mod transport;
 
 use tokio_util::sync::CancellationToken;
 use vessel_proto::{SessionId, WorkspaceId, workspace::ServicePort};
@@ -83,6 +85,8 @@ fn port_refusal_preserves_its_validating_source() {
     assert!(error.source().is_some());
 }
 
+const TEST_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
+
 struct Rig {
     _connection: ConnectionLife,
     context: PreviewContext,
@@ -132,12 +136,28 @@ fn origin() -> PreviewOrigin {
     .unwrap()
 }
 
+async fn listener() -> (TcpListener, PreviewOrigin) {
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+    let origin = PreviewOrigin::new(PreviewScheme::Http, listener.local_addr().unwrap()).unwrap();
+    (listener, origin)
+}
+
+async fn pending<F: std::future::Future>(mut future: std::pin::Pin<&mut F>) {
+    std::future::poll_fn(|cx| {
+        assert!(future.as_mut().poll(cx).is_pending());
+        std::task::Poll::Ready(())
+    })
+    .await;
+}
+
 #[tokio::test]
-async fn unavailable_cannot_issue_a_lease_from_matcher_metadata() {
+async fn unavailable_never_dials_or_reserves_physical_capacity() {
+    let (listener, origin) = listener().await;
     let connection = ConnectionLife::default();
+    let context = context(&connection);
     let service = PreviewService::unavailable(CancellationToken::new(), TaskTracker::new());
     assert!(matches!(
-        service.admit(context(&connection), origin()).await,
+        service.admit(context, origin).await,
         Err(PreviewError::Unavailable(
             MissingPreviewProof::CanonicalAuthority
         ))
@@ -146,6 +166,15 @@ async fn unavailable_cannot_issue_a_lease_from_matcher_metadata() {
         service.runtime.leases.available_permits(),
         MAX_PREVIEW_LEASES
     );
+    assert_eq!(
+        service.runtime.connections.available_permits(),
+        MAX_PREVIEW_STREAMS
+    );
+    assert_eq!(
+        service.runtime.preparations.available_permits(),
+        MAX_PREVIEW_PREPARATIONS
+    );
+    pending(std::pin::pin!(listener.accept())).await;
 }
 
 #[tokio::test]

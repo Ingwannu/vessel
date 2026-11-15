@@ -533,11 +533,13 @@ and canonical connection observers without the guard. This does not grant
 network access; no lease, dial or positive proof source is wired. The next
 commit adds the closed unavailable producer and owned connection lifecycle.
 
-### Preview lease control preparation
+### Preview lease and connection preparation
 
-The A10 control producer now has an unavailable backend and per-command
-context/source revalidation, same-binding refresh and revocation watchers.
-Drain receipts retain the exact lease association. No actual connection or
-worker can register yet; that ownership and its tests are the next commit.
-Positive authority remains test-only; no runtime grant or source readiness
-is claimed by the control model.
+The staged node service now reserves node/per-lease/physical-work capacity
+before dialing, registers attempts under the same gate as close/drain,
+and retains a connected socket through blocking inspection and late-result
+refusal. The owned I/O wrapper has no raw-socket extraction and checks
+revocation/freshness on every payload poll. Tests model canonical authority
+and accepted-peer/scheme evidence; real mode refuses without dialing.
+Budgets live beside the API in preview/budget.rs. The absent canonical
+producers and final runtime/package gate remain explicit prerequisites.
