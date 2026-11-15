@@ -1239,3 +1239,18 @@ session/terminal-screen unit targets, with vessel-proto/ts and --skip typescript
 The skip keeps the separately required named generator from failing on known stale
 wire output; it is not a waiver. CLI binary/process and latest strict lint are still
 separate owed checks. No local Cargo, new number, or consumer readiness is claimed.
+
+### Follow-on terminal quiescence producer assignment (2026-11-15 15:21 UTC)
+
+The coordinator assigned W17 a node producer required by W9 checkpoint restore,
+to follow the current CLI work. This is an assignment record, not an API proposal
+or implementation. Contract-first work must add an ADR section and typed API,
+obtain V3 review, then implement and verify the producer before W9 adopts it.
+
+The proof must cover every runner belonging to the canonical WorkspaceId, with
+confirmed termination AND reap, including forgotten-but-unconfirmed runner debt.
+Ended status, registry absence, cwd, PID or ProcessLifetime by itself cannot prove
+quiescence. Placement must use W11 identity/ownership rather than cwd aliases.
+Admission fencing/proof lifetime must be agreed with W9 so a new start/restart
+cannot invalidate restore safety after a snapshot. No request/row/number is added;
+no producer or consumer-ready head exists. W9 must keep production restore Busy.
