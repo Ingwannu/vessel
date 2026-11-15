@@ -138,3 +138,29 @@ run `i18n-narrow-20261115T175914Z-54b728e7` compiled View and found one
 unnecessary raw-string delimiter in the new bad-prefix control. Only that
 delimiter is corrected; the fixture text is unchanged. View tests did not
 run after this strict failure. Corrected strict/test evidence remains owed.
+
+## Corrected producer evidence
+
+The corrected executable source is `c8290e56e`, still linear on the approved
+green fallback `2b806402`. The coordinator approved replacing the queued
+broad check with these sequential short checks on that same source:
+
+- `i18n-narrow-20261115T181022Z-c8290e56`: locked View all-target strict Clippy,
+  fonts and Cargo both zero, no skipped step.
+- `i18n-narrow-20261115T182110Z-c8290e56`: locked View tests, started only after
+  strict passed; fonts and Cargo both zero, no skipped step.
+
+Raw test groups independently sum to 1086 passed, zero failed, zero ignored:
+1084 ordinary tests and two compile-fail doc tests. View actually recompiled.
+The large-cache compiler test explicitly passed with both real negative
+controls and all three positive cases under all/pedantic/naming/length lints.
+Original getter values, retained pointers, resolution counts and first-error
+assertions remain in that execution. Local format, size, token and diff checks
+passed; no new size/token exception was introduced.
+
+This is changed-View evidence, not a new App/Kit/Link or six-stage native whole
+gate/export. The prior green whole-tree counts, failed strict runs and
+queued-only cancellations remain separately scoped records. V4 recheck and
+the lead's combined-line gate are pending. Actual Usage/Schedules consumers,
+new screen/release measurements, wasm/browser/Windows/GPU/plugin validators
+and the subsequent amount-formatter task remain outside this result.
