@@ -797,3 +797,22 @@ input methods, OS integration or the latest combined build. The code hash
 was sent to the lead for the normal selected-package integration route;
 no unchanged gate or capture matrix was rerun. E1 and F5 continuation
 boundaries are now recorded in `wp-e1.md` and `wp-f5.md`.
+
+### Field responsibility split on the validated package base
+
+Merged the announced package base `8d5513e4` as `0671404b`. The field's
+state factories, weak line registry, focus/IME queries and event listener
+remain in `field.rs`; `field/presentation.rs` owns the existing form and
+composer drawing, and `field/styles.rs` owns engine/component color
+projection. Public methods and the original composer-card/theme-apply
+paths are preserved. Only the internal projection helper gains sibling
+visibility. All moved function bodies and existing test expectations are
+unchanged; the composer hooks file is unchanged. The field allowance is
+removed once its measured product size is below 500. This commit adds no
+selection, readonly, composer key mode or layout configuration behavior.
+
+The next separate behavior commit owns rename select-all/Editability.
+K owns the later additive blur factory and Appearance profiles; W12 owns
+the later composer layout/ButtonOnly policy. Neither is folded into this
+move-only change. Narrow compilation and existing field tests are owed
+before reporting the split as usable.
