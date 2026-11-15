@@ -8,3 +8,4 @@ mod boundary;
 
 mod prompt;
 mod segments;
+mod transcript;
