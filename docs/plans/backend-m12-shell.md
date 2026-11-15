@@ -790,8 +790,11 @@ each).
 Commit: `ad667abe`. The sidebar draws through the view's model of the
 page's sidebar (`Fleet::sidebar_machines`, `sidebar_statuses`; the same
 list Alt+[ and Alt+] walk): grouped by machine (the default) or by
-status, sorted by creation or last activity, ended sessions only when
-asked, pinned first, five to a machine and ten to a status group, then
+status, sorted by creation or last activity, ended sessions listed
+unless hidden (on by default since the 0.0.0.0.17 smoke test; the page
+and the bridge still default to hidden until the node line moves them,
+`prefs::SidebarView::default`), pinned first, five to a machine and ten
+to a status group, then
 "N more", which opens the board (on that machine when grouped by
 machine). A row leads with the agent's mark and the page's mark of what
 the session is doing (spinner, needs-you dot, hollow dot, dash, the muted
