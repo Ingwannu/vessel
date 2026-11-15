@@ -57,6 +57,8 @@ sys-locale = { version = "0.3", features = ["js"] }
 gpui = { workspace = true, features = ["test-support"] }
 # `Link::detached`: the tests that fill the link's queue (`unsent.rs`).
 vessel-app-link = { workspace = true, features = ["testing"] }
+# Decode the real atomic-file output in the two-window writer regression.
+serde_json.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 gpui-windows.workspace = true

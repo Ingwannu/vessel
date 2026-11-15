@@ -305,6 +305,10 @@ Both window projections, canonical memory and disk must converge; exact failure
 acknowledgment must neither replay old preferences nor duplicate the notice.
 This new fixture is not executed yet and does not replace feature-owned cache,
 complete Settings, native OS or accessibility validation.
+Its first App-only run23 stopped before tests: the App did not declare serde_json
+for decoding the actual file. Add the existing workspace dependency only under
+dev-dependencies and align its one lockfile edge, with no new package or runtime
+dependency. Do not substitute manual JSON string parsing or a second reader/store.
 
 Future sidebar bands are not yet adopted from S2's unchecked source. Header and
 Footer navigation edits must merge independently. Callout dismissal edits are set
