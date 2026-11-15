@@ -372,7 +372,7 @@ pub enum Compared {
         /// Automatic terminal definitions in executable file order.
         terminals: Vec<TerminalLine>,
         /// Every allocation choice, including lower-precedence choices and removal.
-        allocation: AllocationLine,
+        allocation: Box<AllocationLine>,
         /// Earlier executable fields whose approval is not enabled.
         unshown: Option<ApprovalRefusal>,
     },
@@ -397,7 +397,10 @@ fn against(asked: &Listed<'_>, before: Basis<'_>) -> Compared {
         teardown: compare_commands(before.teardown, asked.teardown),
         scripts: compare_scripts(before.scripts, asked.scripts),
         terminals: terminal_changes::compare(before.terminals, asked.terminals),
-        allocation: allocation_changes::compare(before.allocation, asked.service_ports),
+        allocation: Box::new(allocation_changes::compare(
+            before.allocation,
+            asked.service_ports,
+        )),
         unshown: before.unshown,
     }
 }

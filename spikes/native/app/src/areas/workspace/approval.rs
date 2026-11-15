@@ -107,10 +107,10 @@ pub(super) fn render(
                 })
                 .collect(),
             vessel_app_view::workspace::terminal_changes::compare(asked.terminals, asked.terminals),
-            vessel_app_view::workspace::allocation_changes::compare(
+            Box::new(vessel_app_view::workspace::allocation_changes::compare(
                 asked.service_ports,
                 asked.service_ports,
-            ),
+            )),
         ),
     };
     let mut card = div()
