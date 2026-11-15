@@ -147,3 +147,10 @@ No JSON is decoded twice and valid values retain their original opaque bytes.
 A regression walks the complete actual clap error chain for malformed JSON
 containing a private canary. Source inspection uses pinned clap_builder4.6.7's
 public TypedValueParser/Error::insert boundary; VM execution remains pending.
+
+
+Permit command Debug also omits a denial's provider-visible message while keeping
+request scope and explicit interrupt intent. Allow keeps ModifiedInput's existing
+redacted Debug. The actual parsed denial-message regression verifies the original
+text remains available for the future typed provider call but cannot appear in
+Command diagnostics. No product registration or send is added by this change.

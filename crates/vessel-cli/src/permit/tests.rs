@@ -73,14 +73,15 @@ fn denial_message_and_interrupt_are_distinct_and_preserved() {
         SESSION,
         "abcd",
         "--message",
-        "Try another approach",
+        "synthetic-private-denial-message",
         "--interrupt",
     ]);
+    assert!(!format!("{command:?}").contains("synthetic-private-denial-message"));
     assert_eq!(command.interruption(), Interruption::Interrupt);
     let Command::Deny { message, .. } = command else {
         panic!("deny")
     };
-    assert_eq!(message.as_deref(), Some("Try another approach"));
+    assert_eq!(message.as_deref(), Some("synthetic-private-denial-message"));
     assert_eq!(
         parse(&["permit", "ls"]).interruption(),
         Interruption::KeepRunning

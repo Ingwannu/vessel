@@ -46,7 +46,7 @@ pub(crate) enum Interruption {
 }
 
 /// `permit` mirrors the surveyed command family, not `session answer` defaults.
-#[derive(Debug, Subcommand)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     /// List pending requests, including archived sessions.
     Ls,
@@ -68,6 +68,30 @@ pub(crate) enum Command {
         #[arg(long)]
         interrupt: bool,
     },
+}
+
+// An explanation is a provider payload, not a diagnostic label. Keep argument
+// correlation without printing that text through an enclosing Cli::Debug.
+impl std::fmt::Debug for Command {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Ls => formatter.write_str("Ls"),
+            Self::Allow { requests, input } => formatter
+                .debug_struct("Allow")
+                .field("requests", requests)
+                .field("input", input)
+                .finish(),
+            Self::Deny {
+                requests,
+                interrupt,
+                ..
+            } => formatter
+                .debug_struct("Deny")
+                .field("requests", requests)
+                .field("interrupt", interrupt)
+                .finish_non_exhaustive(),
+        }
+    }
 }
 
 impl Command {
