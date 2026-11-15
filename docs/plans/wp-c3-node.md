@@ -1,8 +1,10 @@
 # C3 git runtime
 
 Status: unadmitted runtime implementation. No new method has an assigned protocol
-number. ADR0087 defines the contract. Current Rust head34bb9f843 merges the
-announced9c150c6e node line. Its sole registered TS generation run162346 remains
+number. ADR0087 defines the contract. Current merge0e2d8bea7 brings announced
+1c762ccf (Gate52); registry metadata is protocol25/schema20, while GIT_PANEL
+remainsNone. The previous34bb9f843 merges announced9c150c6e. Its sole registered
+TS generation run162346 remains
 queued; no replacement or current merged-source compile/test pass is claimed.
 The incoming generated comparison declarations stay byte-exact to9c150c6e;
 own history generation remains owed. The shared values-only leaf194/3fde is
@@ -14,6 +16,13 @@ actual Node compilation. These are PRIOR-source results, not current34bb checks.
 Earlier860 library proof stays on860, e103 remains65/1 on a corrected fixture,
 and no final whole package gate/runtime review has passed. Historical sections
 below retain their original queue/result source assignments.
+
+The1c merge is NODE-only and conflict-free; own pending comparison/history rows
+and empty WORKSPACE_FAMILIES_LATER are preserved. Only pinned standalone
+rustfmt, pure file-size and diff checks were run locally. The base's whole-green
+result is not this union's result. The existing34bb TS run stays in its queue;
+do not duplicate or relabel it as the new merge's TS/compile proof. App remains
+on its separately announced native line until the native lead's base merge.
 
 ## Structure and decisions
 
