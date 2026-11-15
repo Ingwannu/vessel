@@ -109,3 +109,11 @@ Base4 narrow schedules-narrow-20261115T083634Z-bfb3a809 failed at Kit lib-test
 Clippy: two missing terminal semicolons in the new input regression. Fonts0,
 cargo101; no tests ran. This test-only correction keeps every assertion and
 production byte unchanged and requires a fresh corrected-head narrow result.
+
+The exact67b723a6 base4 producer passed Kit Clippy and134/0/0 Kit tests, runs
+schedules-narrow-20261115T083948Z-67b723a6 and20261115T084249Z-67b723a6.
+This result predates the multiline correction: it is retained as prior-source
+proof, not a corrected-head gate. The new source removes invented vertical
+padding from typed content, keeps the legacy filled-label inset through an
+explicit compatibility presentation, and tests real two-line Medium42/Small34
+versus legacy50 bounds in both themes. Corrected-head narrow remains owed.

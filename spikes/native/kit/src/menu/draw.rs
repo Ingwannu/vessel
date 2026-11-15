@@ -149,6 +149,7 @@ pub fn menu_with<V: 'static>(
 // Placement is one named decision, not an argument-count tuple. The existing
 // right-entry keeps its TopRight corner; measured end placement still comes
 // from MenuState's authoritative inner trigger bounds.
+#[derive(Clone, Copy)]
 struct MenuPlacement<'a> {
     state: &'a MenuState,
     pointer_corner: Anchor,
