@@ -12,6 +12,39 @@ fn rows() -> FrameRows {
     FrameRows::new(3).unwrap()
 }
 #[test]
+fn trimmed_history_still_projects_every_promised_live_and_snapshot_cell() {
+    let mut engine = screen();
+    feed(&mut engine, b"first\r\n\r\nthird\r\nfourth\r\nlast");
+    let anchor = engine.create_marker(LineIndex(0)).unwrap();
+    let snapshot = engine.snapshot();
+    let frame = engine
+        .frame(ViewportRequest::Pinned(&anchor), rows())
+        .unwrap();
+    let retained = snapshot
+        .frame(ViewportRequest::Pinned(&anchor), rows())
+        .unwrap();
+    assert_eq!(frame.cells().get(), 24);
+    for projected in [&frame, &retained] {
+        let mut visited = 0;
+        for row in 0..projected.rows().get() {
+            for column in 0..projected.columns() {
+                let cell = projected.cell(Row(row), Column(column)).unwrap();
+                visited += 1;
+                if row == 1 || column >= 5 {
+                    assert_eq!(cell, Cell::blank());
+                }
+            }
+        }
+        assert_eq!(visited, projected.cells().get());
+        assert!(projected.cell(Row(3), Column(0)).is_none());
+        assert!(projected.cell(Row(0), Column(8)).is_none());
+    }
+    assert!(engine.buffer_cell(LineIndex(0), Column(7)).is_none());
+    assert!(engine.buffer_cell(LineIndex(1), Column(0)).is_none());
+    assert_eq!(frame.cell(Row(0), Column(0)).unwrap().text(), "f");
+    assert_eq!(frame.cell(Row(2), Column(0)).unwrap().text(), "t");
+}
+#[test]
 fn live_and_pinned_frames_report_actual_origin_cursor_modes_and_borrowed_cells() {
     let mut engine = screen();
     feed(&mut engine, b"0\r\n1\r\n2\r\n3\r\n4\x1b[>7u");

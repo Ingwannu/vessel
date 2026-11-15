@@ -112,6 +112,18 @@ pub struct Cell<'a> {
     attributes: Attributes,
 }
 impl<'a> Cell<'a> {
+    pub(crate) const fn blank() -> Self {
+        Self {
+            text: "",
+            width: Width::One,
+            attributes: Attributes {
+                foreground: Color::Default,
+                background: Color::Default,
+                styles: 0,
+            },
+        }
+    }
+
     pub(crate) fn of(body: &'a vt100::Cell, lead: &vt100::Cell) -> Self {
         let width = if body.is_wide_continuation() {
             Width::Continuation
