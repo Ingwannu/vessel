@@ -553,3 +553,20 @@ prepared Fluent domain, which are not on package-base8. Its test correction5845
 retains literal count and byte boundaries. Do not hand8fd to another consumer as
 a standalone patch without those prerequisites or an approved isolated handoff.
 The preference owner received these exact results and the dependency warning.
+
+
+### Local screen callback regressions
+
+Pure view tests cannot exercise the screen's retained editor and Rc callback
+identity. New test-only App cases use the existing isolated Shell constructor
+and bounded Link::detached command recorder, with no actor, node, updater or
+filesystem. A stale Add form cannot close/submit its successor; a sending form's
+actually focused editor refuses keyboard edits; closing leaves the sent ticket.
+An old machine's successful ACK keeps the newer machine's form and emits no
+options probe, discovery, install or reload. An old removal decision cannot
+dismiss/confirm a newer decision, and repeated confirmation records one command.
+This adds no production action path or visibility widening. The fixture reports
+no transport/scopes/lease: these tests do not claim real authorization, current
+lease fencing, native mouse geometry or screenshots. Expected behavior would fail
+without the existing actual callback/read-only guards. Exact App narrow results
+for these new tests are still owed; older624/062 results exclude them.

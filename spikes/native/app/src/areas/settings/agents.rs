@@ -9,6 +9,8 @@ mod progress;
 mod removal;
 mod rows;
 mod state;
+#[cfg(test)]
+mod testing;
 pub(crate) use state::AgentSettings;
 
 use crate::shell::Shell;

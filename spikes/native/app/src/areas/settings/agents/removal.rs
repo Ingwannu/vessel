@@ -212,3 +212,6 @@ pub(super) fn refresh_words(shell: &mut Shell, _window: &mut Window, cx: &mut Co
     }
     cx.notify();
 }
+
+#[cfg(test)]
+mod tests;

@@ -85,3 +85,6 @@ pub(super) fn refresh_words(shell: &mut Shell, window: &mut Window, cx: &mut Con
             .set_placeholder(words.arguments_placeholder(), window, cx);
     }
 }
+
+#[cfg(test)]
+mod tests;
