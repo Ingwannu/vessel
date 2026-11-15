@@ -6,7 +6,7 @@
 //! vessel-app-feed publish --key FILE --feed DIR --channel NAME --label LABEL
 //!                         [--notes FILE] [--published TEXT]
 //!                         --artifact TARGET:PACKAGING:PATH ...
-//! vessel-app-feed sums --key FILE DIR
+//! vessel-app-feed sums --key FILE --label LABEL DIR
 //! vessel-app-feed check --feed DIR --public KEY --channel NAME
 //! vessel-app-feed check-sums --public KEY DIR
 //! ```
@@ -45,7 +45,7 @@ fn main() -> ExitCode {
     let result = match command {
         Command::Keygen { dir } => keygen(&dir),
         Command::Publish(publish) => publish::publish(&publish).map(|line| say(&line)),
-        Command::Sums { key, dir } => sums::write(&key, &dir).map(|line| say(&line)),
+        Command::Sums { key, label, dir } => sums::write(&key, &label, &dir).map(|line| say(&line)),
         Command::CheckSums { public, dir } => sums::check(&public, &dir).map(|line| say(&line)),
         Command::Check {
             feed,

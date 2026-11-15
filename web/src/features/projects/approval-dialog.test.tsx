@@ -30,7 +30,7 @@ function listed(): ListedCommands {
 
 function render(
   commands: ListedCommands,
-  comparison: "none" | "unsupported_terminals" = "none",
+  comparison: "none" | "unsupported_terminals" | "unsupported_ports" = "none",
 ): string {
   return renderToStaticMarkup(
     <ApprovalDialog
@@ -77,5 +77,36 @@ describe("terminal approval refusal", () => {
 
   it("still renders approval for a legacy set", () => {
     expect(render(listed())).toContain("Approve and run");
+  });
+});
+
+describe("declared port approval refusal", () => {
+  const service = { name: "dev", kind: "service", command: "serve" } as const;
+  it("shows a refusal and no approve button for a current declaration", () => {
+    const html = render({ ...listed(), scripts: [{ ...service, port: 3210 }] });
+    expect(html).toContain("service port declarations");
+    expect(html).not.toContain("Approve and run");
+  });
+  it("refuses a declaration removed from the previous approval", () => {
+    const html = render({
+      ...listed(),
+      scripts: [service],
+      last_approved: {
+        commands: {
+          setup: [],
+          teardown: [],
+          scripts: [{ ...service, port: 3210 }],
+        },
+        digest: listed().digest,
+        approved_at: "2026-11-12T09:30:00Z",
+      },
+    });
+    expect(html).toContain("service port declarations");
+    expect(html).not.toContain("Approve and run");
+  });
+  it("honours a folder comparison refusal", () => {
+    const html = render(listed(), "unsupported_ports");
+    expect(html).toContain("service port declarations");
+    expect(html).not.toContain("Approve and run");
   });
 });
