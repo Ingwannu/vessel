@@ -68,8 +68,8 @@ impl Endpoint {
     /// The local endpoint of the node of `dir`, whose id is `node`.
     #[cfg(unix)]
     #[must_use]
-    pub(crate) fn of(dir: &DataDir, _node: NodeId) -> Self {
-        Self(dir.local_endpoint(_node))
+    pub(crate) fn of(dir: &DataDir, node: NodeId) -> Self {
+        Self(dir.local_endpoint(node))
     }
 
     /// The local endpoint of the node of `dir`, whose id is `node`.
