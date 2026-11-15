@@ -217,13 +217,21 @@ async fn make_folder(
 /// when they need a person's approval first (or cannot be used).
 fn plan(choice: SetupChoice, commands: &ProjectCommands) -> Option<Planned> {
     Some(match (choice, commands) {
-        (SetupChoice::Skip, ProjectCommands::Listed { setup, .. }) if !setup.is_empty() => {
-            Planned::Skipped
-        }
+        (
+            SetupChoice::Skip,
+            ProjectCommands::Listed {
+                setup, terminals, ..
+            },
+        ) if !setup.is_empty() || !terminals.is_empty() => Planned::Skipped,
         (SetupChoice::Skip, _) | (SetupChoice::Run, ProjectCommands::None) => Planned::Nothing,
-        (SetupChoice::Run, ProjectCommands::Listed { setup, .. }) if setup.is_empty() => {
-            Planned::Nothing
-        }
+        // Terminal-only plans still contain approved executable shell input.
+        // Empty setup must not skip the command-set approval boundary.
+        (
+            SetupChoice::Run,
+            ProjectCommands::Listed {
+                setup, terminals, ..
+            },
+        ) if setup.is_empty() && terminals.is_empty() => Planned::Nothing,
         (
             SetupChoice::Run,
             ProjectCommands::Listed {
@@ -231,7 +239,13 @@ fn plan(choice: SetupChoice, commands: &ProjectCommands) -> Option<Planned> {
                 setup,
                 ..
             },
-        ) => Planned::Run(setup.clone()),
+        ) => {
+            if setup.is_empty() {
+                Planned::Nothing
+            } else {
+                Planned::Run(setup.clone())
+            }
+        }
         (SetupChoice::Run, ProjectCommands::Listed { .. } | ProjectCommands::Invalid { .. }) => {
             return None;
         }
@@ -296,3 +310,7 @@ async fn canonical(path: PathBuf) -> PathBuf {
         .await
         .unwrap_or_default()
 }
+
+#[cfg(test)]
+#[path = "create/terminal_plan_tests.rs"]
+mod terminal_plan_tests;

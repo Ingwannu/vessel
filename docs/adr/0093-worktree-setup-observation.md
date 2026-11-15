@@ -162,3 +162,9 @@ its direct row lookup is unchanged. A full-limit producer regression checks
 every approved row and the actual-runner cancellation test checks observed
 ordinals. The merged node44 head supplies ProcessLifetime but this setup
 observation does not treat that producer as workspace/Preview authority.
+
+Terminal-only worktree creation now checks exact command-set approval before
+the empty-setup branch; explicit Skip records Skipped. This closes the planning
+bypass without enabling automatic terminal creation. Approved terminal-only
+plans still do not spawn anything until the reviewed registry backend and
+post-setup hook are integrated. The plan regression tests only that boundary.
