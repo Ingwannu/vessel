@@ -20,6 +20,7 @@ impl State {
             Command::SessionAccess(access) => self.session_access(access),
             Command::Sessions(ask) => self.session_navigation(ask),
             Command::SessionLifecycle(request) => self.session_lifecycle(&request),
+            Command::History(ask) => self.history(ask).await,
             Command::Reload => self.reload().await,
             Command::RetireConnection(tag) => self.closed_connection(&tag).await,
             Command::Agents {

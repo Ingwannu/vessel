@@ -70,6 +70,7 @@ pub mod tabs;
 pub mod terminal_grid;
 pub mod theme;
 pub mod toast;
+pub mod toolbar_button;
 pub mod toolbar_label;
 pub mod tooltip;
 pub mod vector;

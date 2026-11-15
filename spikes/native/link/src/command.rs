@@ -14,7 +14,6 @@
 use super::{
     Act, Offer, Prefs, agents, attachments, devices, machines, node_settings, search, workspace,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::Delivery;
 use vessel_proto::{
     AgentCommand, HarnessRef, OptionChoice, PermissionId, PermissionOptionId, SessionId,
@@ -29,6 +28,8 @@ pub enum Command {
     Sessions(crate::sessions::Ask),
     /// A correlated lifecycle mutation through existing session RPCs.
     SessionLifecycle(vessel_app_view::sessions::PendingLifecycle),
+    /// Scoped own-history discovery and import.
+    History(crate::history::Ask),
     /// A request for one machine’s Agents settings.
     Agents {
         /// Validated book key.

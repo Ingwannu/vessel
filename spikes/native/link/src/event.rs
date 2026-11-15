@@ -24,6 +24,8 @@ pub enum Event {
     Sessions(crate::sessions::Answer),
     /// The matching lifecycle mutation result.
     SessionLifecycle(crate::sessions::lifecycle::Answer),
+    /// An original-admission guarded history result or correlated refusal.
+    History(crate::history::Answer),
     /// An Agents response, including background install progress.
     Agents {
         /// Originating machine.
