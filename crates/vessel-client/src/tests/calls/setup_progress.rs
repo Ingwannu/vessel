@@ -42,7 +42,7 @@ async fn unassigned_setup_progress_and_cancel_never_reach_the_wire() {
     assert_eq!(error.code(), Some(ErrorCode::Unsupported));
     drop(client);
     assert!(
-        node.await.unwrap().is_none(),
+        serving.await.unwrap().is_none(),
         "no pending operation was sent"
     );
 }
