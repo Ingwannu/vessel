@@ -29,7 +29,8 @@ slice order. The docs commit adds both and no command.
   12 ignored; forge 4, web unit 417 and e2e 62), then review found overlapping
   hyphens in the launchd comment encoder. The revision uses single-pass
   character emission and an independent XML/plist parsing regression; its
-  focused checks and whole gate are pending.
+  parser helper is inside the existing test module. Final focused checks
+  and the whole gate are pending.
 - Next: gate the 2f revision, then deadline-safe local reads, service
   observation/finalization, force/restart and slices 3/4. Actual service
   managers and real agents remain unverified.
