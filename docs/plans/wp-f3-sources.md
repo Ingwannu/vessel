@@ -392,3 +392,10 @@ pending indicators must remain separate from a foreign cached Refreshing phase.
 The newly announced green node base 1c762ccf (protocol25/schema20) is merged;
 feature constants remain pending None. Earlier exact narrow evidence remains
 scoped to its recorded source, and current whole proof is still owed.
+
+The first saved-admission strict run e884d5f9 returned RED on two unused policy
+reply values in the authored barrier test. The correction asserts both actual
+Off/On acknowledgments rather than discarding them. Production admission, gates,
+barriers, cache refusal and fresh recorded-success control are unchanged. Its
+separate e884 runtime run is retained independently; a strict pass is not inferred
+from a successful ordinary test execution or an older d918 snapshot.

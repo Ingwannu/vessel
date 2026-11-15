@@ -121,8 +121,14 @@ async fn check_revocation() {
         .await
     });
     gate.entered.acquire().await.unwrap().forget();
-    cached.limits.policy(ExternalLookup::Off).await.unwrap();
-    cached.limits.policy(ExternalLookup::On).await.unwrap();
+    assert_eq!(
+        cached.limits.policy(ExternalLookup::Off).await.unwrap(),
+        ExternalLookup::Off
+    );
+    assert_eq!(
+        cached.limits.policy(ExternalLookup::On).await.unwrap(),
+        ExternalLookup::On
+    );
     gate.release();
     assert_eq!(
         pending.await.unwrap().unwrap_err().code,
