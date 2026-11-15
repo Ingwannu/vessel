@@ -439,3 +439,9 @@ The existing before/after mutation guard carries both root and project. Pure
 fixtures cover all three change classes against Uncommitted/Committed/All/fixed
 Commit, active and completed sibling entries and a different project. Actual
 changed-source checks are pending; earlier860/e103 evidence is not relabeled.
+
+The e103 changed-source all-target Clippy reached Node test compilation and
+returned three queued-root fixture lints (two semicolons and an open error
+wildcard). The fixture now asserts the exact expected direct/shared error by
+its closed Reader kind. No lint is suppressed. The new sibling-cache scope is
+included in the next meaningful Node Clippy source; e103 itself is not green.

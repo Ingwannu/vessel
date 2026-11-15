@@ -70,17 +70,22 @@ async fn queued_change(reader: Reader, changed: ChangedFact) {
         match changed {
             ChangedFact::Path => entry.info.root = replacement,
             ChangedFact::DefaultBranch => {
-                entry.info.default_branch = Some("release".parse().unwrap())
+                entry.info.default_branch = Some("release".parse().unwrap());
             }
         }
     }
     drop(occupied);
-    match answer.await.unwrap().unwrap_err() {
-        WorkspaceError::GitTargetChanged => assert!(matches!(reader, Reader::History)),
-        WorkspaceError::SharedComparison(error) => {
-            assert!(matches!(error.as_ref(), WorkspaceError::GitTargetChanged))
-        }
-        other => panic!("unexpected refusal: {other:?}"),
+    let error = answer.await.unwrap().unwrap_err();
+    match reader {
+        Reader::History => assert!(
+            matches!(&error, WorkspaceError::GitTargetChanged),
+            "{error:?}"
+        ),
+        Reader::Comparison => assert!(
+            matches!(&error, WorkspaceError::SharedComparison(source)
+            if matches!(source.as_ref(), WorkspaceError::GitTargetChanged)),
+            "{error:?}"
+        ),
     }
     fixture.stop.cancel();
     assert!(fixture.tasks.close());
