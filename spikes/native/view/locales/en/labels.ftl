@@ -3,6 +3,10 @@
 labels-title = Labels
 # Label manager manage text; shown inside the adaptive dialog.
 labels-manage = Manage labels
+# Header for a retained name/color draft, including pending save/inspection.
+labels-edit = Edit label
+# Destructive confirmation target; $name is the original host label, never the unsaved replacement.
+labels-delete-title = Delete “{ $name }”?
 # Label manager search text; shown inside the adaptive dialog.
 labels-search = Search labels
 # Label manager name text; shown inside the adaptive dialog.

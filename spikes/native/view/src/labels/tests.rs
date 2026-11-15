@@ -261,6 +261,7 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
     let mut manager = Manager::default();
     manager.select(key("a")).unwrap();
     manager.edit(label("Ready", Color::Violet)).unwrap();
+    manager.draft_mut().unwrap().set_text("Unsaved replacement");
     let mut tickets = Tickets::default();
     let inspect = ticket(&mut tickets);
     let remove = ticket(&mut tickets);
@@ -275,6 +276,14 @@ fn delete_requires_matching_inspection_explicit_confirmation_and_online_host() {
     assert_eq!(manager.reset(), Err(Failure::Pending));
     assert!(!manager.inspected(remove, Ok(Count::new(9))));
     assert!(manager.inspected(inspect, Ok(Count::new(2))));
+    assert_eq!(
+        manager.state().draft().unwrap().text(),
+        "Unsaved replacement"
+    );
+    assert_eq!(
+        manager.state().draft().unwrap().original().name,
+        name("Ready")
+    );
     assert!(matches!(
         manager.state(),
         ManagerState::Confirming { count, .. } if count.get() == 2

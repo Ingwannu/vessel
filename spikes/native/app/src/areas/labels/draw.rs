@@ -25,7 +25,7 @@ pub(crate) fn overlay(
     Some(dialog(
         &state.dialog,
         DialogContent {
-            title: shell.words.labels().manage().into(),
+            title: title(shell).into(),
             body: body.into_any_element(),
             footer: Vec::new(),
             size: DialogSize::Normal,
@@ -36,6 +36,19 @@ pub(crate) fn overlay(
         move |shell, window, cx| shell.labels_close(dismiss, window, cx),
         cx,
     ))
+}
+
+fn title(shell: &Shell) -> String {
+    let words = shell.words.labels();
+    match shell.areas.labels.manager.state() {
+        ManagerState::Listing => words.manage().to_owned(),
+        ManagerState::Editing(_)
+        | ManagerState::Saving { .. }
+        | ManagerState::Inspecting { .. } => words.edit().to_owned(),
+        ManagerState::Confirming { draft, .. } | ManagerState::Deleting { draft, .. } => words
+            .delete_title(draft.original().name.as_str())
+            .unwrap_or_else(|_| words.confirm().to_owned()),
+    }
 }
 
 fn body(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {

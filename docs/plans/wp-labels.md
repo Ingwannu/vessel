@@ -202,3 +202,10 @@ while hiding an accepted write leaves it owned until its result arrives.
 Two pure regressions cover old openings, replaced inspections, confirmation
 cancellation and hidden in-flight work. Focus restoration remains the shared
 kit's weak-opener policy, not a feature-local focus engine. Checks are pending.
+
+Delete confirmation names the original host label explicitly, even when the
+editor contains an unsaved replacement. The pending/read-only field must not
+make that replacement look like the deletion target. The existing inspection
+regression now retains an unsaved rename through inspection and verifies that
+only the original label is submitted for deletion. Edit/delete headers use
+whole Fluent messages in both languages.
