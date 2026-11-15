@@ -107,6 +107,7 @@ pub(crate) mod make {
             key: EntryKey::Record(EventSeq::new(seq)),
             seq: EventSeq::new(seq),
             through: EventSeq::new(seq.saturating_add(1)),
+            extra_sources: vessel_app_view::timeline::ExtraSources::default(),
             at: DateTime::UNIX_EPOCH,
             kind,
             rev: 0,

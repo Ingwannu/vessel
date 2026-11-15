@@ -74,6 +74,9 @@ impl ConversationArea {
                 | EntryKind::Parking(_)
                 | EntryKind::Forked { .. }
                 | EntryKind::Profile { .. }
+                | EntryKind::Notification(_)
+                | EntryKind::Compaction(_)
+                | EntryKind::Plugin(_)
                 | EntryKind::Model(_),
             )
             | None => false,

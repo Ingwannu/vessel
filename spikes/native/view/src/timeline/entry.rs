@@ -6,6 +6,9 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::parking::ParkReason;
+use vessel_proto::timeline::{
+    Compaction, PluginItemId, PluginTimelineItem, TimelineNotification, TimelinePluginId,
+};
 use vessel_proto::{
     AttachmentRef, ContentBlock, EventSeq, HarnessSessionId, ModelCall, PermissionId,
     PermissionOutcome, PermissionRequest, PlanEntry, PlanStatus, ProfileName, Question, QuestionId,
@@ -28,6 +31,13 @@ pub enum EntryKey {
     Permission(PermissionId),
     /// A question, by the node's id.
     Question(QuestionId),
+    /// Plugin row identity is contribution-local, scoped by the plugin.
+    Plugin {
+        /// Owning installed plugin name.
+        plugin: TimelinePluginId,
+        /// Item id within that plugin.
+        id: PluginItemId,
+    },
     /// A row of a plan update: one record can say several things changed
     /// (a step done, the next started), each its own row.
     Plan {
@@ -49,6 +59,8 @@ pub struct Entry {
     /// A snapshot through an earlier cursor cannot safely copy its current body.
     /// Gaps may exist between contributing records; this is not a record range.
     pub through: EventSeq,
+    /// Exact later source membership; first/through alone may include gaps.
+    pub extra_sources: super::source::ExtraSources,
     /// When that record was written.
     pub at: DateTime<Utc>,
     /// What it is.
@@ -218,6 +230,12 @@ pub enum EntryKind {
     },
     /// A tool call.
     Tool(ToolView),
+    /// Provider information/warning/error, independent of ending the turn.
+    Notification(TimelineNotification),
+    /// Context compression stays visible through whole-turn collapse.
+    Compaction(Compaction),
+    /// Payload is opaque here; only the plugin owner can render it.
+    Plugin(PluginTimelineItem),
     /// The agent's plan at that point, and what changed in it (Paseo's
     /// task activity, `plan.rs`).
     Plan {
@@ -289,6 +307,7 @@ impl EntryKind {
     pub(crate) const fn text_mut(&mut self, kind: TextKind) -> Option<&mut String> {
         match (self, kind) {
             (Self::Prompt(prompt), TextKind::Prompt) => Some(&mut prompt.text),
+            (Self::Steer { text, .. }, TextKind::Prompt) => Some(text),
             (Self::Message { text }, TextKind::Message)
             | (Self::Thought { text }, TextKind::Thought) => Some(text),
             (
@@ -299,6 +318,9 @@ impl EntryKind {
                 | Self::Message { .. }
                 | Self::Thought { .. }
                 | Self::Tool(_)
+                | Self::Notification(_)
+                | Self::Compaction(_)
+                | Self::Plugin(_)
                 | Self::Plan { .. }
                 | Self::Permission(_)
                 | Self::TurnEnded { .. }

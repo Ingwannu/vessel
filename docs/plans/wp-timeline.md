@@ -573,3 +573,51 @@ Row mutations moved unchanged from the 497-line `fold.rs` into `append.rs` befor
 the remaining canonical item adapters are added. Admission/public queries stay
 in `fold.rs`; there is still one push/change path and the same exclusive source
 bound. `touch` remains with its private file index; no size record is raised.
+
+
+### Notice and context-maintenance source adapter
+
+The canonical standalone DTOs now have explicit view variants and one renderer
+per kind. Notifications use the existing severity Alert and a thin selectable
+literal-prose wrapper over the existing text engine. Escaped bare-pre HTML keeps
+provider markup literal and preserves logical whitespace; the same global
+selection adapter supplies Plain copy, including its standard paragraph separator.
+HTML line-ending normalization remains a limitation. No engine/Markdown API or
+selection manager is introduced. Plugin data remains opaque; its localized
+unavailable card identifies the plugin/kind and has no action. This is a fallback,
+not installed-plugin rendering (W16 owns that future adapter).
+
+Compaction follows Paseo `message-compaction-label.ts`: loading precedes explicit
+trigger, positive pre-token count rounded to integer thousands, then completion.
+Every loading starts a marker; completion upgrades the earliest non-rewound
+outstanding marker across intervening rows and retains unreported metadata.
+Markers remain visible when turn work is collapsed. A paired plugin/item id
+updates its original row through the same append/change path. Direct typed
+projection fixtures cover this source behavior without inventing wire events.
+Actual AgentEvent activation is held for W23's checked runtime/contract handoff.
+
+### User-message continuity and exact source navigation
+
+[Decision Log]
+- Purpose: a diagnostic log between replayed user chunks must not split one
+  prompt, and searching its later chunk must reveal that same prompt.
+- Existing constraint: appending only to the last row splits across HarnessLog;
+  first/through bounds overlap when an older tool receives a late update.
+- Alternatives: infer containment from spans, or create another projection.
+- Choice: retain the current user-stream row across the canonical prompt-index
+  metadata classifier; true content/status/terminal/rewind boundaries end it.
+  TurnStarted and Steered establish new streams. Steer chunks preserve its key.
+  Each entry retains exact later source membership alongside its conservative
+  exclusive through bound. Navigation prefers an exact creating record, then an
+  explicitly contributing record, with the existing earlier-row fallback for a
+  record that has no visible contribution.
+- Why: the sole projection sees both admission and mutation; conservative bounds
+  alone cannot distinguish a gap or an unrelated late update. No provider message
+  id or session-wide tool-id uniqueness is assumed.
+- Effects: one optional Vec per entry records changed source sequences, growing
+  with the loaded log; unchanged rows allocate no membership storage. The existing
+  find scheduling/cache remains unchanged. Its searchable-kind classifier moved
+  to a dedicated module to preserve the file budget. Real ingestion regressions
+  cover chunks across HarnessLog/Woken, Steered, invisible Terminal boundaries,
+  overlapping late tool spans, search start and native list reveal. Shared W1
+  controller identity/state is outside this change.
