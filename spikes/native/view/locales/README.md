@@ -119,6 +119,12 @@ language events; invalidate cached rows/measurements when that text changes.
 prepared value instead of formatting it again. Evict cache entries with their
 source data, and test unchanged refreshes as well as renames/language changes.
 
+Dynamic Fluent values deliberately retain Unicode FSI/PDI direction isolates.
+Whole raw sentence goldens include `\u{2068}` and `\u{2069}` around their
+placeables, as the existing localization/updates/fork tests do. Keep clipboard,
+identifier and API values sourced from the original typed data rather than the
+formatted sentence. Formatting controls are not payload data.
+
 Project errors from typed variants/codes into complete recovery messages.
 Keep original diagnostics in the host's logs or authoritative state, never in a
 translated sentence's argument. Test every variant in both languages. When a

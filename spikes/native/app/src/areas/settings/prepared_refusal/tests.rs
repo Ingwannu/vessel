@@ -40,7 +40,7 @@ fn a_machine_limit_refusal_keeps_its_cause_and_changes_language_without_losing_i
                     .unwrap()
                     .words
                     .as_ref(),
-                "That change was not kept. Defaults can be kept for at most 32 machines."
+                "That change was not kept. Defaults can be kept for at most \u{2068}32\u{2069} machines."
             );
         },
         |shell| &shell.areas.session.composer,
@@ -54,7 +54,7 @@ fn a_machine_limit_refusal_keeps_its_cause_and_changes_language_without_losing_i
                     .unwrap()
                     .words
                     .as_ref(),
-                "그 변경은 보관되지 않았습니다. 기본값은 최대 32대의 머신에 대해서만 보관할 수 있습니다."
+                "그 변경은 보관되지 않았습니다. 기본값은 최대 \u{2068}32\u{2069}대의 머신에 대해서만 보관할 수 있습니다."
             );
             assert_eq!(shell.prefs.settings.defaults.len(), MAX_MACHINES);
         },
@@ -97,7 +97,7 @@ fn an_action_limit_refusal_is_cleared_by_the_same_success_path_as_before(
                     .unwrap()
                     .words
                     .as_ref(),
-                "That change was not kept. Keys can be kept for at most 64 actions."
+                "That change was not kept. Keys can be kept for at most \u{2068}64\u{2069} actions."
             );
             shell.prefer(&PreferenceChange::Send(SendKey::ModEnter), window, cx);
             assert!(shell.areas.settings.refused.is_none());
