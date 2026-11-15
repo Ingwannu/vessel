@@ -189,14 +189,26 @@ fn the_answer_holds_every_field_with_a_value_picks_and_notes_both() {
 }
 
 #[test]
-fn a_refusal_names_its_field() {
+fn a_refusal_uses_its_typed_field_and_never_error_wording() {
+    use vessel_proto::conversation::InvalidAnswer;
     let question = claude();
+    for refusal in [
+        InvalidAnswer::Missing(name("question_2")),
+        InvalidAnswer::Wrong {
+            field: name("question_2"),
+            why: "field `question_1`: this text must not route the refusal",
+        },
+    ] {
+        assert_eq!(
+            refused_field(&question, &refusal).map(FieldName::as_str),
+            Some("question_2")
+        );
+    }
+    assert_eq!(refused_field(&question, &InvalidAnswer::Unanswerable), None);
     assert_eq!(
-        refused_field(&question, "field `question_2`: a value of another kind")
-            .map(FieldName::as_str),
-        Some("question_2")
+        refused_field(&question, &InvalidAnswer::UnknownField(name("not_offered"))),
+        None
     );
-    assert_eq!(refused_field(&question, "something else"), None);
 }
 
 const YES_NO: (&str, &str) = ("Yes", "No");

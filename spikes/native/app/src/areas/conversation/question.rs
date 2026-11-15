@@ -328,7 +328,7 @@ impl Shell {
         let answer = answer_of(&question, &answering.drafts);
         if let Err(refused) = question.check(&answer) {
             let message = refused.to_string();
-            let at = refused_field(&question, &message).and_then(|name| {
+            let at = refused_field(&question, &refused).and_then(|name| {
                 steps.iter().position(|step| {
                     step.field.name == *name || step.other.is_some_and(|other| other.name == *name)
                 })

@@ -28,6 +28,8 @@ use std::collections::BTreeMap;
 
 mod trim;
 use trim::answer_text;
+mod validation;
+pub use validation::{answerable, refused_field};
 
 use vessel_proto::conversation::{AnswerValue, FieldKind, FieldName, FiniteNumber, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionOutcome};
@@ -412,28 +414,6 @@ pub fn answer_of(question: &Question, drafts: &Drafts) -> QuestionAnswer {
         })
         .collect();
     QuestionAnswer::Accept { values }
-}
-
-/// The field the node's refusal names (its message reads "field `x` …"),
-/// so the card shows the refusal at that step; `None` for the form.
-#[must_use]
-pub fn refused_field<'q>(question: &'q Question, message: &str) -> Option<&'q FieldName> {
-    let (_before, rest) = message.split_once("field `")?;
-    let (named, _after) = rest.split_once('`')?;
-    question
-        .fields
-        .iter()
-        .find(|field| field.name.as_str() == named)
-        .map(|field| &field.name)
-}
-
-/// Whether a question can be answered here at all.
-#[must_use]
-pub fn answerable(question: &Question) -> bool {
-    question
-        .fields
-        .iter()
-        .all(|field| !matches!(field.kind, FieldKind::Unknown))
 }
 
 /// The answers of `outcome`, in the steps' order; empty for a question

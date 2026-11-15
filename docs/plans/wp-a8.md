@@ -447,3 +447,13 @@ whose copy region, horizontal layout and fixed line virtualization have differen
 semantics. Consume the existing wrapped-text engine through the kit when the
 reviewed ChoiceOption.preview producer becomes available; description selection
 continues to claim its pointer event independently of the option label.
+
+
+Local validation navigation now consumes the existing typed InvalidAnswer field
+identity directly. Parsing a `Display` sentence to choose a step
+coupled behavior to human wording and duplicated a decoder outside its owning
+edge. The view exhaustively matches the current error enum and verifies the
+field belongs to the offered form; the app still presents its validation message.
+A regression puts a different field name inside explanatory text and requires the
+typed field to win. No node or wire change is involved; new producer error variants
+will deliberately require an exhaustive consumer update.
