@@ -7,7 +7,7 @@
 //!   next start.
 //! - Choice: only what a person changed is kept (every field optional),
 //!   laid over the flags' values when the node starts; a setting nobody
-//!   changed keeps following its flag. A private SavedNodeSettings envelope
+//!   changed keeps following its flag. A private `SavedNodeSettings` envelope
 //!   reuses the wire patch's typed generic fields without making the disk
 //!   document itself serializable as a Read/wire reply.
 //! - It is written owner-only and atomically, as `agents.toml` is, so a
