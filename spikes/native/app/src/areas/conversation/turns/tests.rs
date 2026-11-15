@@ -127,3 +127,39 @@ fn changing_reasoning_default_preserves_the_visible_answer_and_exact_scroll_offs
         assert_eq!(area.list.top(), kept);
     });
 }
+
+#[gpui::test]
+fn an_explicitly_opened_lone_call_preopens_its_future_group(cx: &mut gpui::TestAppContext) {
+    cx.update(|cx| {
+        use vessel_app_view::prefs::ReasoningExpansion;
+        use vessel_proto::{AgentEvent, ToolCallId};
+        let session = SessionId::random();
+        let mut area = ConversationArea::new(cx);
+        area.open("fake", session);
+        area.turns = None;
+        let first = records();
+        assert!(area.take(&session, &first[..2]));
+        assert!(area.folds.as_ref().unwrap().run_of(1).is_none());
+        area.toggle_entry(1);
+        assert!(area.entry_expanded(1));
+        assert!(area.open_runs.contains(&1));
+        let mut second = first[1].clone();
+        second.seq = EventSeq::new(2);
+        if let SessionEvent::Agent {
+            event: AgentEvent::ToolCall(call),
+        } = &mut second.event
+        {
+            call.id = ToolCallId::new("second");
+        }
+        assert!(area.take(&session, &[second]));
+        assert_eq!(area.folds.as_ref().unwrap().run_of(2).unwrap().lead, 1);
+        assert_eq!(area.rows.entry(2), Some(2));
+        // A call inside the group has independent disclosure state.
+        area.toggle_entry(1);
+        assert!(!area.entry_expanded(1));
+        assert!(area.open_runs.contains(&1));
+        area.set_reasoning(ReasoningExpansion::Expanded);
+        assert!(area.open_runs.contains(&1));
+        assert_eq!(area.rows.entry(2), Some(2));
+    });
+}

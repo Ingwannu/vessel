@@ -472,3 +472,11 @@ original row; only runs of at least two groupable members get a group. Native
 `Folds` now applies that same threshold (including thought/tool pairs), rather
 than replacing one call with a summary. Auto-expanded reasoning splits runs;
 the isolated tools on either side therefore remain individual disclosures.
+
+Paseo `tool-calls/expansion.ts:7-14,43-46` also pre-opens a future group when
+the person explicitly opens its lone host call. `remember_standalone` now
+records that intent in the existing `open_runs`; running-status defaults do not
+open a group. A call within an existing group keeps its own independent choice.
+Display/reasoning changes preserve those group choices for the same entry
+identities. A native list-state regression covers single-call arrival, explicit
+open, group formation, inner-call close and reasoning-default change.

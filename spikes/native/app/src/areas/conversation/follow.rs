@@ -54,7 +54,6 @@ impl Shell {
         area.turns = turn_collapse.then(super::turns::Turns::default);
         area.folds = collapse
             .then(|| Folds::with_reasoning(area.timeline.entries(), area.reasoning.expanded()));
-        area.open_runs.clear();
         area.rows_again();
         self.origin_display(collapse);
         let area = &mut self.areas.conversation;

@@ -7,6 +7,38 @@ use super::ConversationArea;
 use crate::shell::Shell;
 
 impl ConversationArea {
+    /// Opening a lone call pre-opens the group it will host when another arrives
+    /// (`tool-calls/expansion.ts`). Automatic running defaults never do this.
+    pub(super) fn remember_standalone(&mut self, index: usize) {
+        if !self
+            .timeline
+            .entries()
+            .get(index)
+            .is_some_and(|entry| entry.kind.folds())
+        {
+            return;
+        }
+        let grouped = self
+            .folds
+            .as_ref()
+            .and_then(|folds| folds.run_of(index))
+            .is_some();
+        let detailed_turn = self.turns.as_ref().is_some_and(|turns| {
+            turns
+                .folds
+                .containing(index)
+                .is_some_and(|turn| turns.open.contains(&turn.host))
+        });
+        if grouped && !detailed_turn {
+            return;
+        }
+        if self.entry_expanded(index) {
+            let _new = self.open_runs.insert(index);
+        } else {
+            let _old = self.open_runs.remove(&index);
+        }
+    }
+
     /// Plans default by outcome; tool status and reasoning preferences are defaults
     /// only. An explicit choice survives later completion and preference changes.
     pub(super) fn entry_expanded(&self, index: usize) -> bool {
@@ -61,7 +93,6 @@ impl ConversationArea {
         self.folds = self
             .collapse
             .then(|| Folds::with_reasoning(self.timeline.entries(), expansion.expanded()));
-        self.open_runs.clear();
         self.rows_again();
         self.list.reset(self.at(self.rows.len()));
         self.tail_dropped();

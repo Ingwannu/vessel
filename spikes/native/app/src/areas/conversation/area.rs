@@ -379,6 +379,7 @@ impl ConversationArea {
                 .toggle(&tool.id, plan_outcome(self.timeline.entries(), &tool.id));
         } else {
             self.disclosures.toggle(entry, self.entry_default(entry));
+            self.remember_standalone(entry);
         }
         if let Some(row) = self.rows.row_index(entry, self.folds.as_ref(), &self.logs) {
             let row = self.at(row);
