@@ -6,6 +6,14 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- Real Policy core is joined without engine admission/watch methods. Settings
+  current reads the same primitive under the saved guard; candidate preparation
+  remains saved-document based. Producer file/SQL failure, same-value debt,
+  namespace preservation and legacy-wire fixtures are complete source but have
+  not executed. The next step is the one joint changed-source strict/test set,
+  generated wire freshness and producer whole gate. Recovery engine stays off.
+
+
 - The common Settings producer is split from the unqualified recovery engine.
   It retains the real Policy/SQL hook, bounded lane, opaque record, one-read boot
   snapshot and early drain/teardown ordering. Recovery start/runtime remain off

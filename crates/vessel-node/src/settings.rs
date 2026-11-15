@@ -55,6 +55,8 @@ mod recovery_apply;
 pub(crate) use opening::Opening;
 pub(crate) use recovery_apply::RecoveryApply;
 #[cfg(test)]
+mod settlement_tests;
+#[cfg(test)]
 mod shutdown_tests;
 mod writer;
 #[cfg(test)]
@@ -228,11 +230,6 @@ impl Settings {
         }
     }
 
-    /// One shared policy Arc binds the settings fence to actual recovery enqueue.
-    pub(crate) fn policy(&self) -> Arc<crate::recovery::policy::Policy> {
-        self.state.recovery.policy()
-    }
-
     #[cfg(test)]
     pub(crate) fn pause_write(
         &self,
@@ -255,8 +252,12 @@ impl Settings {
 
     /// The settings in force.
     pub(crate) async fn current(&self) -> NodeSettings {
-        let public = self.state.saved.lock().await.public_settings();
-        self.state.in_force(&public)
+        // Keep the saved guard through the primitive read: another mutation
+        // must not mix its recovery value with this generic saved snapshot.
+        let saved = self.state.saved.lock().await;
+        let mut current = self.state.in_force(&saved.public_settings());
+        current.restart_recovery = self.state.recovery.current();
+        current
     }
 
     /// Success transfers the typed intent before the caller awaits its reply.

@@ -106,6 +106,9 @@ mod tests {
             br#"{"park_after":{"kind":"idle","minutes":15},"drivers":{"codex":"direct"}}"#,
             br#"{"drivers":{"claude_code":"acp","codex":"acp","open_code":"acp"}}"#,
             br#"{"drivers":{"codex":"future"},"future":{"nested":true}}"#,
+            br#"{"restart_recovery":{"enabled":true,"prompt":"  Keep exact.\n"}}"#,
+            br#"{"park_after":{"kind":"never"},"restart_recovery":{"enabled":false,"prompt":"Keep while off."}}"#,
+            br#"{"restart_recovery":{"enabled":null,"prompt":null,"future":true}}"#,
         ] {
             let public: SetNodeSettings = serde_json::from_slice(input).unwrap();
             let saved = SavedNodeSettings::decode(input).unwrap();

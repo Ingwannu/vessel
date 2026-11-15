@@ -5,9 +5,9 @@ use std::task::Poll;
 
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
+use vessel_proto::StopWhen;
 use vessel_proto::restart::SetRestartRecovery;
 use vessel_proto::settings::SetNodeSettings;
-use vessel_proto::{ErrorCode, StopWhen};
 
 use super::writer_tests::{WRITE_TEST_BUDGET, runtime_with_stop};
 use super::*;
@@ -53,7 +53,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             .public_settings();
         assert!(!saved_off.restart_recovery.unwrap().effective().enabled);
         assert!(settings.state.saved.try_lock().is_err());
-        assert!(!settings.policy().snapshot().0.enabled);
+        assert!(!settings.state.recovery.current().enabled);
         let mut queued_on = Box::pin(settings.change(recovery(true)));
         assert!(matches!(futures_util::poll!(&mut queued_on), Poll::Pending));
         let teardown = crate::shutdown::Teardown {
@@ -69,11 +69,10 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         assert!(matches!(futures_util::poll!(&mut stop), Poll::Pending));
         assert!(!runtime_stop.is_cancelled());
         assert!(store.sessions().await.is_ok());
-        let (_, generation) = settings.policy().snapshot();
-        assert_eq!(
-            settings.policy().check(generation).unwrap_err().code,
-            ErrorCode::Unavailable
-        );
+        assert!(matches!(
+            settings.admission.submit(recovery(true)),
+            Err(SettingsError::Stopping)
+        ));
         release.send(()).unwrap();
         assert!(queued_on.await.unwrap().restart_recovery.enabled);
         stop.await;
@@ -82,18 +81,17 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             store.sessions().await,
             Err(vessel_store::StoreError::Closed)
         ));
-        let (_, generation) = settings.policy().snapshot();
-        assert_eq!(
-            settings.policy().check(generation).unwrap_err().code,
-            ErrorCode::Unavailable
-        );
+        assert!(matches!(
+            settings.admission.submit(recovery(true)),
+            Err(SettingsError::Stopping)
+        ));
     })
     .await
     .unwrap();
 }
 
 #[tokio::test]
-async fn now_and_drain_seal_the_settings_and_effect_owners_synchronously() {
+async fn now_and_drain_close_settings_before_the_idle_waiter_polls() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
@@ -122,13 +120,9 @@ async fn now_and_drain_seal_the_settings_and_effect_owners_synchronously() {
             lifecycle.stop(when);
             assert!(lifecycle.is_draining());
             // WhenIdle has not polled its spawned waiter yet on this runtime.
-            // The synchronous request itself must already have sealed effects.
+            // The synchronous request itself must already close settings.
+            // The real primitive's irreversible effect seal is tested beside it.
             assert_eq!(stop.is_cancelled(), matches!(when, StopWhen::Now));
-            let (_, generation) = settings.policy().snapshot();
-            assert_eq!(
-                settings.policy().check(generation).unwrap_err().code,
-                ErrorCode::Unavailable
-            );
             assert!(matches!(
                 settings.admission.submit(recovery(true)),
                 Err(SettingsError::Stopping)

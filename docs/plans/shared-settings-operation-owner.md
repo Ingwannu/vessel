@@ -267,3 +267,21 @@ full union is retained separately rather than reverted or rewritten. The
 engine-only Policy admission extension and its assertions belong to the later
 consumer. Common core state/SQL/queue/drain tests remain actual producer tests.
 No executable engine dispatch is enabled just to give a future API a caller.
+
+The real Policy core is separated from engine-only watching/admission without
+a fallback. Settings responses now read its actual configured value while
+retaining the saved guard, preventing a later publication from mixing a new
+recovery value into an older generic snapshot. Candidate preparation still
+uses the prospective saved document. Engine-only assertions remain unchanged
+on the preserved consumer line; producer private-core tests inspect the actual
+seal/debt/generation transitions, and producer teardown tests exercise the real
+queue, SQL and runtime/Store lifetime.
+
+Additional producer tests force an actual file replacement failure, close the
+real Store to exercise cleanup/apply debt and identical retry, pin no second
+replacement, and preserve the exact recovery patch/prompt through ordinary
+mutations. Canonical codec fixtures include enabled/disabled/null recovery.
+The raw legacy wire matrix and full public diagnostic-chain fixtures are
+ported without Recovery.start; their whole-case and RPC-step budgets retain
+their prior values. The RPC-step budget is independent of the physical writer
+budget: changing one must not silently change the other. All remain unexecuted.
