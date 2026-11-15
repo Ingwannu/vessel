@@ -338,7 +338,10 @@ No row of the crate table changes.
 - Tests planned: each of the five direct requests, Forward/Relay/Deliver and
   nested combinations at the named current protocol, a synthetic assignment
   threshold, SDK no-frame admission and raw-server no-dispatch admission.
-  The existing node refusal reason remains a separate boundary assertion.
+  The existing node case uses a raw websocket so SDK admission cannot hide
+  the server boundary. Its reason is exact equality with the shared typed
+  unassigned error; the server now refuses before the old node guard. Its
+  Unsupported and no-work checks remain, and starting import is unchanged.
 - Paseo contract remains the labels record and optional update at
   `messages.ts:915,989-996`, and reserved keys in `agent-labels.ts:2-6`.
   This is the already stated temporary Vessel difference: labels await their
