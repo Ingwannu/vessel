@@ -88,8 +88,9 @@ pub use output::{
     Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
 };
 pub use picker::{
-    ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, SendKind, Side,
-    anchor_probe, combobox, glyph, initial_of, initial_tile, pill, pill_parts, send_button,
+    ComboHandlers, ComboHeader, ComboRow, ComboboxContent, ComboboxState, ComboboxWidth, Leading,
+    PillParts, SendKind, Side, anchor_probe, combobox, combobox_with, glyph, initial_of,
+    initial_tile, pill, pill_parts, send_button,
 };
 pub use screen_header::{compact_header, screen_header};
 pub use sheet::{Edge, sheet};

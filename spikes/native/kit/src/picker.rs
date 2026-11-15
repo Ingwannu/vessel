@@ -36,9 +36,8 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    Anchor, AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent,
-    MouseButton, Pixels, SharedString, Stateful, Window, anchored, canvas, deferred, div, point,
-    px, rgba, svg,
+    AnyElement, App, Bounds, Context, Div, ElementId, FocusHandle, Hsla, KeyDownEvent, MouseButton,
+    Pixels, SharedString, Stateful, Window, canvas, div, px, svg,
 };
 
 use crate::assets::Glyph;
@@ -48,6 +47,8 @@ use crate::popup::{self, Surfaces};
 use crate::theme::Tokens;
 use crate::widgets::TypeExt as _;
 
+mod combobox;
+pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with};
 mod rows;
 mod send;
 use rows::{note_row, rows_list, title_row};
@@ -599,164 +600,6 @@ pub struct ComboHandlers<V> {
 impl<V> std::fmt::Debug for ComboHandlers<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ComboHandlers").finish_non_exhaustive()
-    }
-}
-
-/// The list, when open: over everything, above its trigger, `width`
-/// wide; a sheet from the bottom below the compact width.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "a list is drawn from its state, its content, its handlers and the window's size"
-)]
-pub fn combobox<V: 'static>(
-    id: impl Into<ElementId>,
-    state: &ComboboxState,
-    header: &ComboHeader,
-    rows: &[ComboRow],
-    handlers: &ComboHandlers<V>,
-    width: f32,
-    tokens: &Tokens,
-    window: &Window,
-    cx: &mut Context<'_, V>,
-) -> Option<AnyElement> {
-    let list_id: ElementId = id.into();
-    if !state.open {
-        return None;
-    }
-    let compact = window.viewport_size().width < px(COMPACT);
-    let surfaces = Surfaces::of(tokens);
-    let neutral = tokens.neutral;
-    let get = handlers.state;
-    let on_key = key_handler(rows, handlers, cx);
-    let on_outside = cx.listener(move |view: &mut V, _event, _window, cx| {
-        get(view).close();
-        cx.notify();
-    });
-
-    let mut panel = div()
-        .id(list_id.clone())
-        .track_focus(&state.focus)
-        .capture_key_down(on_key)
-        // The popover takes the pointer and shows the arrow (`popup::layer`).
-        .occlude()
-        .cursor_default()
-        .flex()
-        .flex_col()
-        .bg(surfaces.surface0)
-        .border_1()
-        .border_color(neutral.border)
-        .overflow_hidden()
-        .type_(Type::Body)
-        .text_color(surfaces.foreground);
-    let anchor = state.anchor.get();
-    let room = room(anchor, header.side, window);
-    panel = if compact {
-        panel
-            .w_full()
-            .max_h(gpui::relative(0.9))
-            .rounded_t(px(popup::SHEET_RADIUS))
-            .pb(px(16.0))
-    } else {
-        panel
-            .w(px(width))
-            .max_h(px(room))
-            .rounded(px(popup::MENU_RADIUS))
-            .shadow(popup::shadow_md(tokens))
-            .on_mouse_down_out(on_outside)
-    };
-    if let Some(title) = &header.title {
-        panel = panel.child(title_row(
-            title.clone(),
-            header.back,
-            state.header_leading.clone(),
-            handlers,
-            tokens,
-            cx,
-        ));
-    }
-    if header.search {
-        panel = panel.child(search_row(state, tokens, cx));
-    }
-    if let Some(note) = &header.note {
-        panel = panel.child(note_row(note.clone(), tokens));
-    }
-    panel = panel.child(rows_list(
-        header, rows, state, handlers, compact, tokens, cx,
-    ));
-
-    // Word 39: the list arrives as Paseo's popover does (opacity and a
-    // small rise, `popup::appear`); a phone's sheet over the surface
-    // length. It leaves at once, as Paseo's desktop popovers do.
-    let panel = popup::appear(
-        ElementId::NamedChild(std::sync::Arc::new(list_id), "appear".into()),
-        panel,
-        if compact {
-            crate::motion::STANDARD
-        } else {
-            crate::motion::QUICK
-        },
-    );
-    let element = placed(panel, compact, header.side, anchor, get, window, cx);
-    // Over a dialog too (`kit::dialog` is at 2): a feature's list opens
-    // from a row of the features sheet.
-    // A row's tooltip draws over the list (the tooltip's own priority).
-    let tips = state.tips.render(tokens);
-    Some(
-        div()
-            .child(deferred(element).with_priority(3))
-            .children(tips)
-            .into_any_element(),
-    )
-}
-
-/// Where the list is drawn: below the compact width a sheet from the
-/// bottom over the dimmed page (a press on the dim closes it); wider, at
-/// its trigger on the caller's side.
-fn placed<V: 'static>(
-    panel: impl IntoElement,
-    compact: bool,
-    side: Side,
-    anchor: Option<Bounds<Pixels>>,
-    get: fn(&mut V) -> &mut ComboboxState,
-    window: &Window,
-    cx: &mut Context<'_, V>,
-) -> AnyElement {
-    if compact {
-        // A sheet: the page dimmed behind, the list from the bottom.
-        let viewport = window.viewport_size();
-        let on_scrim = cx.listener(move |view: &mut V, _event, _window, cx| {
-            get(view).close();
-            cx.notify();
-        });
-        anchored()
-            .position(point(px(0.0), px(0.0)))
-            .child(
-                div()
-                    .w(viewport.width)
-                    .h(viewport.height)
-                    .flex()
-                    .flex_col()
-                    .justify_end()
-                    .bg(rgba(0x0000_0073))
-                    .on_mouse_down(MouseButton::Left, on_scrim)
-                    .child(panel),
-            )
-            .into_any_element()
-    } else {
-        // Paseo's `offset(5)` from the trigger, on the caller's side.
-        let (at, corner, offset) = match (side, anchor) {
-            // Not drawn yet (the first frame): near the window's middle.
-            (_, None) => (point(px(8.0), px(240.0)), Anchor::BottomLeft, 0.0),
-            (Side::Above, Some(bounds)) => (bounds.origin, Anchor::BottomLeft, LIFT),
-            (Side::Below, Some(bounds)) => (bounds.bottom_left(), Anchor::TopLeft, OFFSET),
-        };
-        anchored()
-            .position(at)
-            .offset(point(px(0.0), px(offset)))
-            .anchor(corner)
-            .snap_to_window_with_margin(px(EDGE))
-            .child(panel)
-            .into_any_element()
     }
 }
 

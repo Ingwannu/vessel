@@ -1133,3 +1133,24 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+
+### Schedule host selector presentation
+
+`select::trigger` keeps its existing signature, rounded Settings presentation
+and disabled-over-open opacity precedence. `select::host_filter` opts into the
+reference HostFilter: Server/status leading in a14-point slot, gap6, px12/py6,
+radius6, surface1 with neutral border, surface2 hover and surface3 press,
+medium14 text; pointer/touch share this source-specific geometry and there is
+no open-state wash. Screens own its callbacks and connection evidence. Until
+E2's separately reviewed dot-size seam exists, schedules uses the existing
+status-dot6 inside that slot, as explicitly authorized.
+
+`combobox` keeps its fixed-width signature. `combobox_with(ComboboxContent)`
+uses the same renderer with `ComboboxWidth::Fixed(Pixels)` or `Content`.
+Content uses the measured anchor width as minimum and max(400, minimum) as
+maximum, with200 minimum only when no anchor exists. Compact sheets retain
+their existing full-width geometry. Drawing/placement lives in
+`picker/combobox.rs`; existing row meaning, focus, selection and motion stay
+in the same parent/control. This extension does not claim focus restoration or
+first-use UI approval. Its captures belong to the final F1 package.

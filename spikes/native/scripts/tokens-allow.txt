@@ -15,7 +15,6 @@ hex spikes/native/kit/src/assets/icon.rs 1
 hex spikes/native/kit/src/chat_markdown.rs 4
 hex spikes/native/kit/src/chrome.rs 2
 hex spikes/native/kit/src/code.rs 18
-hex spikes/native/kit/src/picker.rs 1
 hex spikes/native/kit/src/picker/send.rs 1
 hex spikes/native/kit/src/popup.rs 2
 hex spikes/native/kit/src/settings.rs 1

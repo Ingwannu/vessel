@@ -22,11 +22,21 @@
 //!   no checked row, and a select without its check reads as a menu of
 //!   actions.
 
+// [Decision Log: HostFilter]
+// - Purpose: the schedules host filter is not SettingsSelect's rounded outline.
+// - Constraint: existing entry/defaults and one shared renderer must remain.
+// - Alternatives: an area-local pill, or overriding a select's padding/paint.
+// - Choice: named typed presentation and content; a ready host entry delegates.
+// - Why: the same label/anchor/caret retains source-specific geometry and paint.
+// - Cost: only the caller owns host identities, status meaning and picker state.
+//   HostFilter's source has natural text height +6 vertical padding per side,
+//   without a separate touch-size override or an invented open-state wash.
+
 use std::cell::Cell;
 use std::rc::Rc;
 
 use gpui::prelude::*;
-use gpui::{Bounds, Div, ElementId, Pixels, SharedString, Stateful, div, point, px};
+use gpui::{AnyElement, Bounds, Div, ElementId, Pixels, SharedString, Stateful, div, point, px};
 
 use crate::assets::Glyph;
 use crate::fonts::Type;
@@ -40,9 +50,47 @@ pub const WIDTH: f32 = 220.0;
 /// Where a trigger was last drawn, in the window.
 pub type Anchor = Rc<Cell<Option<Bounds<Pixels>>>>;
 
-/// The trigger: `label` (the value in effect) and a caret; where it is
-/// drawn goes to `anchor`. `open`: its list is showing. `touch`: sized for
-/// a finger. The screen handles its click (open the list).
+/// The reference surface, independent of its current selected value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Presentation {
+    /// Existing `SettingsSelect`: outline, round, 32/44.
+    Settings,
+    /// `HostFilter`: surface1, radius6, natural body height plus 6+6 padding.
+    HostFilter,
+}
+/// Whether an existing select's popover is showing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Visibility {
+    /// Closed.
+    Closed,
+    /// Open; Settings retains its existing pressed-opacity presentation.
+    Open,
+}
+/// Named options keep the additive API's call sites free of boolean flags.
+pub struct TriggerContent {
+    /// Whole cached translated value.
+    pub label: SharedString,
+    /// Caller-owned shared glyph/dot; `HostFilter` keeps its 14-point slot.
+    pub leading: Option<AnyElement>,
+    /// One of the two reference presentations.
+    pub presentation: Presentation,
+    /// Existing Settings input density; `HostFilter` does not change by density.
+    pub sizing: crate::ControlSizing,
+    /// Input availability. Callers attach handlers only while enabled.
+    pub availability: crate::ButtonState,
+    /// Popover visibility, distinct from pointer hover/press.
+    pub visibility: Visibility,
+}
+impl std::fmt::Debug for TriggerContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TriggerContent")
+            .field("label", &self.label)
+            .field("presentation", &self.presentation)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Existing select signature/defaults; all drawing delegates to one renderer.
 #[must_use]
 pub fn trigger(
     id: impl Into<ElementId>,
@@ -53,8 +101,91 @@ pub fn trigger(
     touch: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
-    let neutral = tokens.neutral;
-    div()
+    trigger_with(
+        id,
+        TriggerContent {
+            label: label.into(),
+            leading: None,
+            presentation: Presentation::Settings,
+            sizing: crate::ControlSizing::from_compact(touch),
+            availability: if enabled {
+                crate::ButtonState::Enabled
+            } else {
+                crate::ButtonState::Disabled
+            },
+            visibility: if open {
+                Visibility::Open
+            } else {
+                Visibility::Closed
+            },
+        },
+        anchor,
+        tokens,
+    )
+}
+/// `HostFilter`'s ready trigger; leading is the shared Server glyph or status dot.
+/// Its source has the same geometry on pointer/touch and no open-state wash.
+#[must_use]
+pub fn host_filter(
+    id: impl Into<ElementId>,
+    label: impl Into<SharedString>,
+    leading: AnyElement,
+    anchor: &Anchor,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    trigger_with(
+        id,
+        TriggerContent {
+            label: label.into(),
+            leading: Some(leading),
+            presentation: Presentation::HostFilter,
+            sizing: crate::ControlSizing::Pointer,
+            availability: crate::ButtonState::Enabled,
+            visibility: Visibility::Closed,
+        },
+        anchor,
+        tokens,
+    )
+}
+/// One shared renderer for legacy Settings and the named `HostFilter` surface.
+#[must_use]
+pub fn trigger_with(
+    id: impl Into<ElementId>,
+    content: TriggerContent,
+    anchor: &Anchor,
+    tokens: &Tokens,
+) -> Stateful<Div> {
+    let g = geometry(content.presentation, content.sizing);
+    let paint = paint(content.presentation, tokens);
+    let trigger = frame(id, g, paint);
+    let trigger = interactions(trigger, &content, paint);
+    trigger
+        .child(anchor_probe(anchor))
+        .children(content.leading.map(|leading| {
+            div()
+                .size(px(crate::theme::icon::SM))
+                .flex_none()
+                .flex()
+                .items_center()
+                .justify_center()
+                .child(leading)
+        }))
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .whitespace_nowrap()
+                .text_ellipsis()
+                .child(content.label),
+        )
+        .child(glyph(
+            Glyph::ChevronDown,
+            crate::theme::icon::SM,
+            tokens.neutral.foreground_muted,
+        ))
+}
+fn frame(id: impl Into<ElementId>, g: Geometry, paint: Paint) -> Stateful<Div> {
+    let mut trigger = div()
         .id(id)
         .relative()
         .flex()
@@ -62,29 +193,152 @@ pub fn trigger(
         .items_center()
         .flex_shrink_0()
         .max_w_full()
-        .gap(px(8.0))
-        .min_h(px(if touch { 44.0 } else { 32.0 }))
-        .px(px(if touch { 24.0 } else { 16.0 }))
-        .rounded_full()
+        .gap(px(g.gap))
+        .px(px(g.horizontal))
         .border_1()
-        .border_color(neutral.border_accent)
-        .type_(Type::Body)
-        .text_color(neutral.foreground)
-        .when(open, |trigger| trigger.opacity(0.85))
-        .when(enabled, |trigger| {
-            trigger.cursor_pointer().active(|style| style.opacity(0.85))
-        })
-        .when(!enabled, |trigger| trigger.opacity(0.5))
-        .child(anchor_probe(anchor))
-        .child(
-            div()
-                .min_w_0()
-                .overflow_hidden()
-                .whitespace_nowrap()
-                .text_ellipsis()
-                .child(label.into()),
-        )
-        .child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
+        .border_color(paint.border)
+        .bg(paint.background)
+        .type_(g.type_)
+        .text_color(paint.foreground);
+    if let Some(height) = g.minimum {
+        trigger = trigger.min_h(px(height));
+    }
+    if let Some(vertical) = g.vertical {
+        trigger = trigger.py(px(vertical));
+    }
+    trigger = match g.radius {
+        Radius::Full => trigger.rounded_full(),
+        Radius::Points(value) => trigger.rounded(px(value)),
+    };
+    trigger
+}
+fn interactions(
+    mut trigger: Stateful<Div>,
+    content: &TriggerContent,
+    paint: Paint,
+) -> Stateful<Div> {
+    let enabled = content.availability == crate::ButtonState::Enabled;
+    if enabled {
+        trigger = trigger.cursor_pointer();
+        trigger = match content.presentation {
+            Presentation::Settings => trigger.active(|style| style.opacity(PRESSED_OPACITY)),
+            Presentation::HostFilter => {
+                let mut host = trigger;
+                if let Some(fill) = paint.hover {
+                    host = host.hover(move |style| style.bg(fill));
+                }
+                if let Some(fill) = paint.pressed {
+                    host = host.active(move |style| style.bg(fill));
+                }
+                host
+            }
+        };
+    }
+    if let Some(opacity) = opacity(
+        content.presentation,
+        content.availability,
+        content.visibility,
+    ) {
+        trigger = trigger.opacity(opacity);
+    }
+    trigger
+}
+fn opacity(
+    presentation: Presentation,
+    availability: crate::ButtonState,
+    visibility: Visibility,
+) -> Option<f32> {
+    // Legacy disabled wins even while open; the HostFilter source has no
+    // disabled/open opacity. A caller never attaches a disabled handler.
+    match (presentation, availability, visibility) {
+        (
+            Presentation::HostFilter,
+            crate::ButtonState::Enabled | crate::ButtonState::Disabled,
+            Visibility::Closed | Visibility::Open,
+        ) => None,
+        (
+            Presentation::Settings,
+            crate::ButtonState::Disabled,
+            Visibility::Closed | Visibility::Open,
+        ) => Some(DISABLED_OPACITY),
+        (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Open) => {
+            Some(PRESSED_OPACITY)
+        }
+        (Presentation::Settings, crate::ButtonState::Enabled, Visibility::Closed) => None,
+    }
+}
+const POINTER_HEIGHT: f32 = 32.0;
+const PRESSED_OPACITY: f32 = 0.85;
+const DISABLED_OPACITY: f32 = 0.5;
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Radius {
+    Full,
+    Points(f32),
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Geometry {
+    minimum: Option<f32>,
+    horizontal: f32,
+    vertical: Option<f32>,
+    gap: f32,
+    radius: Radius,
+    type_: Type,
+}
+fn geometry(presentation: Presentation, sizing: crate::ControlSizing) -> Geometry {
+    use crate::{
+        ControlSizing,
+        theme::{radius, spacing},
+    };
+    match presentation {
+        Presentation::Settings => Geometry {
+            minimum: Some(match sizing {
+                ControlSizing::Pointer => POINTER_HEIGHT,
+                ControlSizing::Touch => crate::breakpoint::TOUCH_TARGET,
+            }),
+            horizontal: match sizing {
+                ControlSizing::Pointer => spacing::S4,
+                ControlSizing::Touch => spacing::S6,
+            },
+            vertical: None,
+            gap: spacing::S2,
+            radius: Radius::Full,
+            type_: Type::Body,
+        },
+        Presentation::HostFilter => Geometry {
+            minimum: None,
+            horizontal: spacing::S3,
+            vertical: Some(spacing::S1_5),
+            gap: spacing::S1_5,
+            radius: Radius::Points(radius::MD),
+            type_: Type::Label,
+        },
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Paint {
+    background: gpui::Hsla,
+    border: gpui::Hsla,
+    hover: Option<gpui::Hsla>,
+    pressed: Option<gpui::Hsla>,
+    foreground: gpui::Hsla,
+}
+fn paint(presentation: Presentation, tokens: &Tokens) -> Paint {
+    match presentation {
+        Presentation::Settings => Paint {
+            background: gpui::transparent_black(),
+            border: tokens.neutral.border_accent,
+            hover: None,
+            pressed: None,
+            foreground: tokens.neutral.foreground,
+        },
+        Presentation::HostFilter => Paint {
+            background: tokens.neutral.surface1,
+            border: tokens.neutral.border,
+            hover: Some(tokens.neutral.surface2),
+            pressed: Some(tokens.neutral.surface3),
+            foreground: tokens.neutral.foreground,
+        },
+    }
 }
 
 /// The bounds to open a list `width` wide from, for a trigger drawn at
@@ -110,5 +364,159 @@ pub fn header() -> ComboHeader {
         empty: SharedString::default(),
         note: None,
         side: Side::Below,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ControlSizing, theme::Scheme};
+    #[test]
+    fn public_entries_apply_legacy_opacity_and_host_padding_to_the_actual_frame() {
+        for scheme in [Scheme::Light, Scheme::Dark] {
+            let tokens = Tokens::of(scheme);
+            let anchor = Anchor::default();
+            for touch in [false, true] {
+                for open in [false, true] {
+                    let mut legacy =
+                        trigger("legacy", "Value", &anchor, open, false, touch, &tokens);
+                    assert_eq!(legacy.style().opacity, Some(0.5));
+                    assert_eq!(
+                        legacy.style().min_size.height,
+                        Some(px(if touch { 44.0 } else { 32.0 }).into())
+                    );
+                    assert_eq!(
+                        legacy.style().padding.left,
+                        Some(px(if touch { 24.0 } else { 16.0 }).into())
+                    );
+                }
+            }
+            let mut host = host_filter(
+                "host",
+                "All machines",
+                div().into_any_element(),
+                &anchor,
+                &tokens,
+            );
+            assert_eq!(host.style().padding.left, Some(px(12.0).into()));
+            assert_eq!(host.style().padding.top, Some(px(6.0).into()));
+            assert_eq!(host.style().opacity, None);
+            assert_eq!(
+                host.style().text.font_weight,
+                Some(gpui::FontWeight::MEDIUM)
+            );
+            assert_eq!(host.style().text.color, Some(tokens.neutral.foreground));
+        }
+    }
+    #[test]
+    fn disabled_settings_stay_half_faded_even_while_their_list_is_open() {
+        for visibility in [Visibility::Closed, Visibility::Open] {
+            assert_eq!(
+                opacity(
+                    Presentation::Settings,
+                    crate::ButtonState::Disabled,
+                    visibility
+                ),
+                Some(0.5)
+            );
+            for availability in [crate::ButtonState::Enabled, crate::ButtonState::Disabled] {
+                assert_eq!(
+                    opacity(Presentation::HostFilter, availability, visibility),
+                    None
+                );
+            }
+        }
+        assert_eq!(
+            opacity(
+                Presentation::Settings,
+                crate::ButtonState::Enabled,
+                Visibility::Open
+            ),
+            Some(0.85)
+        );
+        assert_eq!(
+            opacity(
+                Presentation::Settings,
+                crate::ButtonState::Enabled,
+                Visibility::Closed
+            ),
+            None
+        );
+    }
+    #[test]
+    fn legacy_settings_and_named_host_filter_keep_exact_geometry() {
+        for sizing in [ControlSizing::Pointer, ControlSizing::Touch] {
+            assert_eq!(
+                geometry(Presentation::HostFilter, sizing),
+                Geometry {
+                    minimum: None,
+                    horizontal: 12.0,
+                    vertical: Some(6.0),
+                    gap: 6.0,
+                    radius: Radius::Points(6.0),
+                    type_: Type::Label
+                }
+            );
+            let (height, horizontal) = match sizing {
+                ControlSizing::Pointer => (32.0, 16.0),
+                ControlSizing::Touch => (44.0, 24.0),
+            };
+            assert_eq!(
+                geometry(Presentation::Settings, sizing),
+                Geometry {
+                    minimum: Some(height),
+                    horizontal,
+                    vertical: None,
+                    gap: 8.0,
+                    radius: Radius::Full,
+                    type_: Type::Body
+                }
+            );
+        }
+    }
+    #[test]
+    fn both_themes_keep_literal_reference_colors_and_legacy_settings_paint() {
+        for (scheme, fill, border, hover, pressed, foreground, accent) in [
+            (
+                Scheme::Light,
+                0x00fa_fafa,
+                0x00e4_e4e7,
+                0x00f4_f4f5,
+                0x00e4_e4e7,
+                0x001a_1a1e,
+                0x00ec_ecf1,
+            ),
+            (
+                Scheme::Dark,
+                0x001e_2120,
+                0x0025_2b2a,
+                0x0027_2a29,
+                0x0043_4645,
+                0x00fa_fafa,
+                0x002f_3534,
+            ),
+        ] {
+            let tokens = Tokens::of(scheme);
+            assert_eq!(
+                paint(Presentation::Settings, &tokens),
+                Paint {
+                    background: gpui::transparent_black(),
+                    border: gpui::rgb(accent).into(),
+                    hover: None,
+                    pressed: None,
+                    foreground: gpui::rgb(foreground).into()
+                }
+            );
+            assert_eq!(
+                paint(Presentation::HostFilter, &tokens),
+                Paint {
+                    background: gpui::rgb(fill).into(),
+                    border: gpui::rgb(border).into(),
+                    hover: Some(gpui::rgb(hover).into()),
+                    pressed: Some(gpui::rgb(pressed).into()),
+                    foreground: gpui::rgb(foreground).into()
+                }
+            );
+        }
     }
 }
