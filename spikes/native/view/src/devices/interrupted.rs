@@ -42,10 +42,38 @@ impl Page {
             (false, true) => Unconfirmed::Revocation,
             (false, false) => return,
         };
-        self.unconfirmed = Some(Interrupted {
-            context: context.clone(),
-            operation,
-        });
+        self.remember(context.clone(), operation);
+    }
+    /// A timed-out sent write has no definite remote result, even when its
+    /// original connection is still active. Only its current ticket settles.
+    #[must_use]
+    pub fn cannot_confirm(&mut self, context: &ConnectionContext, ticket: super::Ticket) -> bool {
+        if self.check_context(context).is_err() {
+            return false;
+        }
+        let operation = if matches!(self.inviting, Inviting::Loading(expected) if expected == ticket)
+        {
+            self.inviting = Inviting::Empty;
+            Unconfirmed::Invitation
+        } else if matches!(self.revoking, Revoking::Sending { ticket: expected, .. } if expected == ticket)
+        {
+            self.revoking = Revoking::Empty;
+            Unconfirmed::Revocation
+        } else {
+            return false;
+        };
+        self.remember(context.clone(), operation);
+        true
+    }
+    fn remember(&mut self, context: ConnectionContext, mut operation: Unconfirmed) {
+        if let Some(previous) = &self.unconfirmed
+            && previous.context.machine() == context.machine()
+            && previous.context.node() == context.node()
+            && previous.operation != operation
+        {
+            operation = Unconfirmed::Both;
+        }
+        self.unconfirmed = Some(Interrupted { context, operation });
     }
     /// Show only for this explicitly selected machine and welcome identity.
     /// A newer admission to the same node may help check the actual result.

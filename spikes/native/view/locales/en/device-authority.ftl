@@ -39,6 +39,6 @@ device-authority-management = Device management
 
 # A sent write lost its admission; no success or definite failure is inferred.
 device-authority-uncertain-title = Result unconfirmed
-device-authority-uncertain-invitation = The connection changed while creating a pairing link. A link may have been created, but it cannot be shown safely. Reconnect and create a fresh link when needed.
-device-authority-uncertain-revocation = The connection changed while revoking access. Access may already have been revoked. Reconnect and check the paired devices before trying again.
-device-authority-uncertain-both = The connection changed while creating a pairing link and revoking access. Either change may already have happened. Reconnect and check the paired devices before trying again; create a fresh link when needed.
+device-authority-uncertain-invitation = Could not confirm whether a pairing link was created. It cannot be shown safely. Create a fresh link when needed.
+device-authority-uncertain-revocation = Could not confirm whether access was revoked. Check the paired devices before trying again; reconnect first if needed.
+device-authority-uncertain-both = Could not confirm whether the pairing link was created or access was revoked. Check the paired devices before trying again; reconnect first if needed, and create a fresh link when needed.

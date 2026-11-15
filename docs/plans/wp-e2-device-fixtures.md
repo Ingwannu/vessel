@@ -190,8 +190,9 @@ same field. The notice is shown only for the explicit same alias and NodeId,
 including reconnect, never for a replacement physical machine. A confirmation
 that was never dispatched is not uncertain. Preflight refusal is definite;
 remote permission refusal stays a permission result, not a disconnected scope.
-No automatic write retry occurs. Existing deadline/unavailable behavior is not
-claimed as a new node-side exactly-once guarantee.
+No automatic write retry occurs. A local write deadline also returns a typed
+unconfirmed result while preserving live authority; read deadlines remain
+retryable failures. This is not a node-side exactly-once guarantee.
 
 The old detached success-Answer tests have been replaced with real framed
 actor callbacks. Added source cases cover held authority before Fleet, access
@@ -221,3 +222,12 @@ The browser receipt has only the local error body; native-only success/retired
 constructors and their private body variants are target-gated. Public guard
 representation stays uninhabited on wasm, with no demo minting path. This is
 source preparation; the actual Link testing-target check is still required.
+
+
+Local invitation/revoke deadlines now have a separate typed Unconfirmed
+outcome rather than a fabricated remote Unavailable refusal. The pure reducer
+settles only the matching current ticket, preserves live authority, and merges
+uncertainty for both kinds in one bounded record. It never retries or clears a
+successor. The whole recovery sentences cover retirement and a deadline alike.
+The source tests distinguish write deadlines from read failure and current
+versus wrong/already-consumed tickets; actual timer execution remains owed.

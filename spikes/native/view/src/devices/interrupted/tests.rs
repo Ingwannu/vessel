@@ -116,3 +116,25 @@ fn permission_refresh_cannot_silently_forget_an_outstanding_write() {
         );
     }
 }
+
+#[test]
+fn a_local_write_deadline_settles_only_its_current_ticket_without_losing_live_authority() {
+    let (mut page, context, machine) = setup();
+    let ticket = page.tickets.next_ticket().unwrap();
+    page.inviting = Inviting::Loading(ticket);
+    let wrong = page.tickets.next_ticket().unwrap();
+    assert!(!page.cannot_confirm(&context, wrong));
+    assert!(matches!(page.inviting, Inviting::Loading(current) if current == ticket));
+    assert!(page.cannot_confirm(&context, ticket));
+    assert!(matches!(page.inviting, Inviting::Empty));
+    assert!(page.authority().may_manage());
+    assert_eq!(page.context(), Some(&context));
+    assert_eq!(page.unconfirmed(&machine), Some(Unconfirmed::Invitation));
+    assert!(!page.cannot_confirm(&context, ticket));
+    confirm(&mut page, &context);
+    let intent = page.revoke_intent().unwrap();
+    let ticket = page.tickets.next_ticket().unwrap();
+    assert!(page.confirm_revoke(&context, intent, ticket).is_some());
+    assert!(page.cannot_confirm(&context, ticket));
+    assert_eq!(page.unconfirmed(&machine), Some(Unconfirmed::Both));
+}

@@ -219,6 +219,9 @@ impl Shell {
     ) {
         let state = &mut self.areas.settings.devices;
         match outcome {
+            Outcome::Unconfirmed(ticket) => {
+                let _accepted = state.page.cannot_confirm(context, ticket);
+            }
             Outcome::Authority(ticket, result) => {
                 if state.page.authority_answer(context, ticket, result)
                     && state.page.authority().may_manage()

@@ -36,6 +36,8 @@ pub enum Ask {
 /// A response tagged with the outstanding page request's identity.
 #[derive(Debug)]
 pub enum Outcome {
+    /// A sent write hit the local deadline; its remote outcome is unknown.
+    Unconfirmed(Ticket),
     /// Facts of this exact authenticated caller, never a guessed default grant.
     Authority(Ticket, Result<vessel_proto::DeviceSelf, Problem>),
     /// The current devices.
@@ -58,6 +60,16 @@ enum Kind {
     Revoke,
 }
 impl Kind {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn timed_out(self, ticket: Ticket) -> Outcome {
+        match self {
+            Self::Invite | Self::Revoke => Outcome::Unconfirmed(ticket),
+            Self::Authority | Self::List => self.refused(
+                ticket,
+                Problem::Refused(vessel_proto::ErrorCode::Unavailable),
+            ),
+        }
+    }
     fn refused(self, ticket: Ticket, why: Problem) -> Outcome {
         match self {
             Self::Authority => Outcome::Authority(ticket, Err(why)),
@@ -224,11 +236,8 @@ async fn bounded_call(
 ) -> Outcome {
     // Keep the operation kind to answer a timeout without retaining a
     // credential or cloning a request. A timed-out write may have taken
-    // effect; the page refreshes instead of applying an optimistic edit.
-    let timed_out = ask.kind().refused(
-        ticket,
-        Problem::Refused(vessel_proto::ErrorCode::Unavailable),
-    );
+    // effect; preserve that uncertainty rather than call it a refusal.
+    let timed_out = ask.kind().timed_out(ticket);
     tokio::time::timeout(CALL_DEADLINE, call(client, ticket, ask))
         .await
         .unwrap_or(timed_out)

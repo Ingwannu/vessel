@@ -116,17 +116,17 @@ fn interrupted_writes_do_not_claim_a_definite_failure_in_either_language() {
             "en",
             Lang::En,
             "Result unconfirmed",
-            "The connection changed while creating a pairing link. A link may have been created, but it cannot be shown safely. Reconnect and create a fresh link when needed.",
-            "The connection changed while revoking access. Access may already have been revoked. Reconnect and check the paired devices before trying again.",
-            "The connection changed while creating a pairing link and revoking access. Either change may already have happened. Reconnect and check the paired devices before trying again; create a fresh link when needed.",
+            "Could not confirm whether a pairing link was created. It cannot be shown safely. Create a fresh link when needed.",
+            "Could not confirm whether access was revoked. Check the paired devices before trying again; reconnect first if needed.",
+            "Could not confirm whether the pairing link was created or access was revoked. Check the paired devices before trying again; reconnect first if needed, and create a fresh link when needed.",
         ),
         (
             "ko",
             Lang::Ko,
             "결과 확인 필요",
-            "페어링 링크를 만드는 동안 연결이 바뀌었습니다. 링크가 만들어졌을 수 있지만 안전하게 표시할 수 없습니다. 다시 연결한 뒤 필요하면 새 링크를 만드세요.",
-            "접근을 해제하는 동안 연결이 바뀌었습니다. 이미 해제되었을 수 있습니다. 다시 연결해 페어링된 기기를 확인한 뒤 재시도하세요.",
-            "페어링 링크 생성과 접근 해제 중에 연결이 바뀌었습니다. 두 작업 모두 이미 처리되었을 수 있습니다. 다시 연결해 페어링된 기기를 확인한 뒤 재시도하고, 필요하면 새 링크를 만드세요.",
+            "페어링 링크가 만들어졌는지 확인하지 못했습니다. 안전하게 표시할 수 없으므로 필요하면 새 링크를 만드세요.",
+            "접근이 해제되었는지 확인하지 못했습니다. 필요하면 다시 연결하고, 페어링된 기기를 확인한 뒤 재시도하세요.",
+            "페어링 링크 생성과 접근 해제의 결과를 확인하지 못했습니다. 필요하면 다시 연결해 페어링된 기기를 확인한 뒤 재시도하고, 새 링크가 필요하면 다시 만드세요.",
         ),
     ] {
         let t = Translator::get(Locale::from_tag(tag).unwrap()).unwrap();
