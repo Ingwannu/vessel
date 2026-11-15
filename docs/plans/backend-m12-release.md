@@ -1078,7 +1078,9 @@ never rebuilt.
     workspace, the app's two update-words files, one `Cargo.lock` edge
     (`flate2`) and documents. Its own native gate on the build VM is
     green: tests 1431 passed, 0 failed, 2 ignored, the same counts as the
-    lead's gate on base 8.
+    lead's gate on base 8. Its Windows typecheck is clean too
+    (`--native-windows-check -p vessel-app --all-targets`, cargo-xwin for
+    x86_64-pc-windows-msvc, 50 s on a warm target).
   - Compiled on the build VM: `--release-compile 0.0.0.0.21 windows-x64
     linux-x64`, in the priority lane the coordinator opened for labels.
     It waited 50 s and took 1038 s, Windows and Linux together. This was
