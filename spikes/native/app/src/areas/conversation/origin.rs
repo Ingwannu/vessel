@@ -301,7 +301,7 @@ impl Shell {
         let in_origin = area
             .origin
             .area()
-            .zip((seat.get)(self))
+            .zip(seat.get(self))
             .is_some_and(|(origin, toggled)| std::ptr::eq(origin, toggled));
         if in_origin {
             let after = area.head();

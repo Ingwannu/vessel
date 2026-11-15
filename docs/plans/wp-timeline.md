@@ -678,3 +678,11 @@ arms, fixed97db0fd6; strict Clippy found the equivalent-body Steer text arm,
 merged with the Message/Thought arm in07bd40d3. These are scoped failed checks,
 not passing gates. Replacement checks retain immutable source and separate logs.
 No new local Cargo/Rustc process was started after the VM-only rule.
+
+
+Seat now also exposes borrowed `get`/`get_mut` methods, used by A7 render/actions
+instead of reading function-pointer fields directly. The current legacy readers
+and Copy behavior remain compatible while W4 owns its permission/question callsite
+migration. This is a mechanical access boundary, not resident activation: the
+future keyed branch must resolve both methods through W12's same validated
+SessionContext and must never fall back to the selected conversation.

@@ -110,7 +110,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        let Some(area) = (seat.get_mut)(self) else {
+        let Some(area) = seat.get_mut(self) else {
             return false;
         };
         let Some(selection) = entry_selection(area, index) else {
@@ -131,7 +131,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        let Some(area) = (seat.get_mut)(self) else {
+        let Some(area) = seat.get_mut(self) else {
             return false;
         };
         if area
@@ -163,7 +163,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let Some(area) = (seat.get_mut)(self) else {
+        let Some(area) = seat.get_mut(self) else {
             return;
         };
         let Some(_shown) = area.tool_sheet.take(generation) else {
@@ -182,7 +182,7 @@ pub(super) fn overlay(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let area = (seat.get)(shell)?;
+    let area = seat.get(shell)?;
     let shown = area.tool_sheet.shown.as_ref()?;
     let generation = shown.generation;
     let paint = super::timeline::paint(shell, area, seat, tokens, window);

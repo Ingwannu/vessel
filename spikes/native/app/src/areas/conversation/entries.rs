@@ -238,7 +238,9 @@ pub(super) fn marked_work_row(
         .cursor_pointer()
         .hover(move |row| row.text_color(hover))
         .on_click(cx.listener(move |shell, _event, window, cx| {
-            let inline_details = (seat.get)(shell).is_some_and(|area| area.tool_sheet.group_open());
+            let inline_details = seat
+                .get(shell)
+                .is_some_and(|area| area.tool_sheet.group_open());
             if !inline_details
                 && vessel_app_kit::breakpoint::phone(window)
                 && shell.entry_sheet(seat, index, window, cx)

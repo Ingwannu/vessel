@@ -78,7 +78,7 @@ pub(crate) fn rows(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let Some(area) = (seat.get)(shell) else {
+    let Some(area) = seat.get(shell) else {
         return div().into_any_element();
     };
     area.bench
@@ -156,7 +156,7 @@ fn row_element(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let Some(area) = (seat.get)(shell) else {
+    let Some(area) = seat.get(shell) else {
         return div().into_any_element();
     };
     let paint = paint(shell, area, seat, tokens, window);

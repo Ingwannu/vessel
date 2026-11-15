@@ -55,7 +55,7 @@ impl Shell {
     /// Ask the node to act on the session the conversation at `seat`
     /// shows.
     pub(crate) fn act_at(&self, seat: Seat, act: Act) {
-        if let Some(shown) = (seat.get)(self).and_then(|area| area.shown.as_ref()) {
+        if let Some(shown) = seat.get(self).and_then(|area| area.shown.as_ref()) {
             self.command(Command::Act {
                 machine: shown.machine.clone(),
                 session: shown.session,

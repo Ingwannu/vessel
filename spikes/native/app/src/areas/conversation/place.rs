@@ -24,6 +24,17 @@ pub(crate) struct Seat {
 }
 
 impl Seat {
+    /// Resolve the exact conversation named by this seat. Keeping access behind
+    /// methods lets the resident cutover validate a captured context in one place.
+    pub(crate) fn get<'a>(&self, shell: &'a Shell) -> Option<&'a ConversationArea> {
+        (self.get)(shell)
+    }
+
+    /// Resolve that same conversation for mutation; missing never means selected.
+    pub(crate) fn get_mut<'a>(&self, shell: &'a mut Shell) -> Option<&'a mut ConversationArea> {
+        (self.get_mut)(shell)
+    }
+
     /// The session area's conversation.
     pub(crate) const SESSION: Self = Self {
         get: session_seat,
@@ -90,7 +101,9 @@ pub(crate) trait Place: 'static {
     /// it. An area holding a request without its session's log (the
     /// inbox) gives the call it keeps, never a record made up for it.
     fn tool<'a>(shell: &'a Shell, id: &ToolCallId) -> Option<&'a ToolView> {
-        (Self::SEAT.get)(shell).and_then(|area| area.timeline.tool_call(id))
+        Self::SEAT
+            .get(shell)
+            .and_then(|area| area.timeline.tool_call(id))
     }
 }
 
