@@ -56,7 +56,7 @@ impl State {
 
     async fn read_machine(
         &mut self,
-        name: vessel_app_view::machine_book::Name,
+        name: vessel_client::book::NodeName,
         entry: &vessel_client::book::BookEntry,
     ) -> Machine {
         let name = name.as_str().to_owned();

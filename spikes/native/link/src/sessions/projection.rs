@@ -123,7 +123,11 @@ mod tests {
             },
         );
         tokio::pin!(publish);
-        assert!(futures_util::poll!(&mut publish).is_pending());
+        std::future::poll_fn(|cx| {
+            assert!(std::future::Future::poll(publish.as_mut(), cx).is_pending());
+            std::task::Poll::Ready(())
+        })
+        .await;
         projection.after(ActKind::Mark);
         assert!(matches!(receiving.recv().await, Some(Event::Fleet(_))));
         publish.await;
