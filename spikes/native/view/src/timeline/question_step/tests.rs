@@ -98,3 +98,43 @@ fn whitespace_is_not_an_answer_and_encoding_trims_without_changing_the_draft() {
         ))
     );
 }
+
+#[test]
+fn an_unoffered_queued_option_cannot_change_drafts_or_advance() {
+    for multiple in [false, true] {
+        let question = question(multiple);
+        let steps = steps_of(&question);
+        let mut drafts = empty_drafts(&question);
+        let before = drafts.clone();
+        assert_eq!(pick(steps[0], &mut drafts, "retired-option"), Pick::Ignored);
+        assert_eq!(drafts, before);
+        assert_eq!(step_after_pick(&steps, 0, &drafts), None);
+        assert_eq!(pick(steps[0], &mut drafts, "a"), Pick::Picked);
+        let before = drafts.clone();
+        assert_eq!(pick(steps[0], &mut drafts, "retired-option"), Pick::Ignored);
+        assert_eq!(drafts, before);
+    }
+}
+
+#[test]
+fn malformed_boolean_option_is_not_silently_treated_as_false() {
+    let question: Question = serde_json::from_value(json!({
+        "id": "00000000-0000-4000-8000-000000000001",
+        "message": "Choose explicitly",
+        "fields": [{"name":"answer", "kind":"boolean", "required":true}]
+    }))
+    .unwrap();
+    let steps = steps_of(&question);
+    let mut drafts = empty_drafts(&question);
+    assert_eq!(pick(steps[0], &mut drafts, "true"), Pick::Picked);
+    let before = drafts.clone();
+    for invalid in ["", "TRUE", "retired-option"] {
+        assert_eq!(pick(steps[0], &mut drafts, invalid), Pick::Ignored);
+        assert_eq!(drafts, before);
+    }
+    assert_eq!(pick(steps[0], &mut drafts, "false"), Pick::Picked);
+    assert_eq!(
+        drafts.get(&"answer".parse().unwrap()),
+        Some(&Draft::Boolean(Some(false)))
+    );
+}

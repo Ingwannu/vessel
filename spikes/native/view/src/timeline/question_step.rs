@@ -162,7 +162,7 @@ pub fn typed(step: Step<'_>, drafts: &mut Drafts, text: String) {
 /// What a pick did, for the text box the app keeps.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pick {
-    /// The step has no options: nothing changed.
+    /// The step does not currently offer this value: nothing changed.
     Ignored,
     /// The drafts changed; the box keeps its text.
     Picked,
@@ -175,6 +175,19 @@ pub enum Pick {
 /// (picking it again clears it), a checkbox's toggle. Picking a single
 /// choice empties its "Other".
 pub fn pick(step: Step<'_>, drafts: &mut Drafts, value: &str) -> Pick {
+    // A queued option click can outlive the schema that offered it. Refuse it
+    // before touching a draft or clearing the person's custom answer.
+    let offered = match &step.field.kind {
+        FieldKind::Choice { options, .. } => options.iter().any(|option| option.value == value),
+        FieldKind::Boolean { .. } => value.parse::<bool>().is_ok(),
+        FieldKind::Text { .. }
+        | FieldKind::Number { .. }
+        | FieldKind::Integer { .. }
+        | FieldKind::Unknown => false,
+    };
+    if !offered {
+        return Pick::Ignored;
+    }
     let was = picked(step, drafts, value);
     let draft = match &step.field.kind {
         FieldKind::Boolean { .. } => Draft::Boolean((!was).then_some(value == "true")),

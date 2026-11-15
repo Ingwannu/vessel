@@ -457,3 +457,11 @@ field belongs to the offered form; the app still presents its validation message
 A regression puts a different field name inside explanatory text and requires the
 typed field to win. No node or wire change is involved; new producer error variants
 will deliberately require an exhaustive consumer update.
+
+
+Queued option events are checked against the current offered values before the
+pure pick reducer changes any draft or clears custom text. Previously any string
+could become a choice, and every non-`true` string silently became Boolean false.
+The current form's options (or the standard Boolean decoder) now determine
+admission. Single/multiple choice and malformed Boolean regressions preserve the
+previous draft on refusal; no response RPC is needed to reject a stale UI event.
