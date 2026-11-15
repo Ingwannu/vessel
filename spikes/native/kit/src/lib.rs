@@ -85,7 +85,7 @@ pub use code::CodeTokens;
 pub use control_sizing::ControlSizing;
 pub use copy::{CopyLook, copy_button};
 pub use dialog::{DialogContent, DialogSize, DialogState, dialog};
-pub use field::{Editability, SendOn, TextField, composer_card};
+pub use field::{Editability, SearchField, SendOn, TextField, composer_card};
 pub use fonts::Type;
 pub use host_rename::host_rename_button;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
