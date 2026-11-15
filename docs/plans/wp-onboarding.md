@@ -254,8 +254,15 @@ The ten test-result groups sum to1304 passed /0 failed /2 ignored; both new
 Refresh and held-dispatch tests ran and passed, and view/link/app recompiled.
 Logs: /tmp/work/wp-onboarding/review-fix-testcfg-suite. This selection omits
 native-build and exports no binary: it is not another whole gate or new
-capture claim. No local Cargo/Rustc ran during this correction. V4 approval
-is pending on the same row173.
+capture claim. No local Cargo/Rustc ran during this correction. V4 passed
+the bounded app consumer on the same row173, reviewed range through6a523cc1c,
+corrected source62eb56555. All three original findings are closed. The verdict
+is /tmp/work/gk-review/findings/w20-e4-diagnostics-v4-correction-pass.md.
+This is not full parity/producer approval: Active RTT remains omitted and
+full daemon/desktop/process/raw-log sources remain unavailable. Tracker566
+is passed for the reviewed app consumer;569 remains skeleton and node/provider
+rows567/568 are unchanged. The lead integrates this frozen range while
+preserving its later shared seams and running combined validation.
 
 Correction validation checkpoint: exact64c44a435 remote format/quality passed,
 but Clippy rejected unchecked Duration addition in the new test. Tests did not
