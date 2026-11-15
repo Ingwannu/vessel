@@ -1014,3 +1014,54 @@ restriction remains. Diagnostics still has no assigned report RPC. No new
 method or wire field is introduced by A2a, which uses existing usage.query.
 The next step is actual scoped-browser acceptance on the committed merged
 tree, then its first complete remote gate and local captures.
+
+
+### A2a verified checkpoint: reported agent/profile selection
+
+Executed source: `d34e86dbdb5f81f9057a8c30b1d73c29f22b075b`, after
+source checkpoint `31920bf7` and merge `62570304` of the green shared-accessor
+node head. A2a adds no Rust, native, dependency, RPC, wire field, protocol
+or schema change. It uses the existing usage.query contract. The earlier
+source-checkpoint paragraphs above are history, not the final run's result.
+
+The complete remote run exits zero at every one of its 18 steps: bundle,
+format/size/boundaries, default/TypeScript/forge Clippy, TypeScript generation,
+fresh binaries, both nested prebuilds, workspace tests and every web stage,
+then the forge fixture. Raw Rust summaries total 2,205 passed, zero failed,
+12 ignored across 114 sections; the separate forge fixture passes four.
+TypeScript generation/freshness runs four checks in two test sections.
+Web lint/types/fonts pass, unit tests pass 450 in 87 files, and the entire
+browser suite passes 66. Its run is
+`webparity-20261115T043236Z-d34e86db`; start/end load is 6.55/10.15.
+The remote tool retains the immutable commit/checkout and step logs; no
+custom remote pre/post source manifest is claimed. The earlier narrow real
+browser run on the same commit passes the new scoped flow and unchanged
+A1 flow, two cases, before the first whole run. The first narrow frontend
+lint failure remains retained as history; no exemption or deadline changed.
+
+Local visual verification is a separate capture run, with a fresh bundle
+and binaries: eight cases pass and produce 24 inspected original images.
+They cover en-US/ko-KR number/date locales, light/dark, 1280x900/390x844,
+and choices/selected/coverage views. A valid 50-character recorded profile
+wraps in both the open list and selected trigger. All eight cases observe
+zero page/console errors; 18 actual served static assets match the bundle.
+Contemporary local pre/post selected inputs are identical: 2,607 inputs,
+identity `a2ccd9cfda83bffde0c34c480a46e717f7bac70ba093d4b6cc9015760a67bc01`;
+all 2,438 tracked contents match the executed commit. Dependency/toolchain
+caches are outside that attestation. Five fleet processes and three helpers
+are gone, and the private SSD test folder is empty. No live service, account,
+credential lookup, permission change or deployment was involved.
+
+These images show normal synthetic long-profile reports, after desktop
+authentication and resize. English labels remain; locale coverage is not
+complete translation. Rendered redaction/partial/error/offline/empty/many
+or added-agent states, cold phone startup, physical devices, accessibility,
+OS IME and native/combined integration are not verified by this checkpoint.
+Source, whole-run and bounded visual evidence are submitted for review;
+no reviewer approval or complete web parity is inferred here.
+
+Work proceeds by feature package: narrow checks for intermediate commits,
+one whole gate and one combined review/capture submission at package end.
+The next package is the three assigned toast/modal defects listed above;
+its focus regressions begin with failing page tests. Their source is not
+part of this executed A2a checkpoint.

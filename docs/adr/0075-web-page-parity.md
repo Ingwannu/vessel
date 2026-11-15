@@ -94,11 +94,14 @@ reference behavior and platform-specific UI checks. Existing English page
 labels and responsive layout are not a claim of translated or installed
 phone-app parity; shared translation integration remains a separate gap.
 
-Documentation uses fast checks only. Every code slice retains the complete
-Rust/web gate, both testkit and daemon prebuilds before tests, isolated
-owned SSD test data, frozen source identities, actual rebuilt binaries and
-served-asset verification. Tests use fake agents and synthetic vendor-shaped
-fixtures only; no real agent prompt, vendor account, real credential store,
+Documentation uses fast checks only. Implementation commits run narrow
+checks of their changed modules; each completed feature package retains
+one complete Rust/web gate before hand-over. This avoids repeating the
+whole queue for intermediate commits while preserving package-level
+regression coverage. The whole run includes both testkit and daemon
+prebuilds before tests, isolated owned SSD test data, identified source
+inputs, actual rebuilt binaries and served-asset verification. Tests use
+fake agents and synthetic vendor-shaped fixtures only; no real agent prompt, vendor account, real credential store,
 live preview or production service is touched. Browser traces/video and
 automatic failure screenshots remain off to keep credentials out of artifacts;
 intentional content-only visual evidence follows the separate capture path.
