@@ -6,25 +6,27 @@ use tokio::sync::watch;
 
 #[cfg(unix)]
 use crate::ProcessGroup;
-use crate::child::os;
+use crate::child::{ChildPid, os};
 use crate::{Child, WaitError};
 
 /// Detach was refused without consuming the caller's cleanup authority.
 #[derive(Debug, thiserror::Error)]
 #[error("child was launched without release capability")]
 pub struct DetachRefused {
-    child: Child,
+    child: Box<Child>,
 }
 
 impl DetachRefused {
-    pub(crate) const fn new(child: Child) -> Self {
-        Self { child }
+    pub(crate) fn new(child: Child) -> Self {
+        Self {
+            child: Box::new(child),
+        }
     }
 
     /// Recover the still-owned child for its ordinary stop/wait path.
     #[must_use]
     pub fn into_child(self) -> Child {
-        self.child
+        *self.child
     }
 }
 
@@ -48,7 +50,7 @@ enum State {
 
 /// Private launch facts identify this unreaped child; none grants signal authority.
 struct Identity {
-    pid: u32,
+    pid: ChildPid,
     started: Instant,
     #[cfg(unix)]
     group: ProcessGroup,
@@ -106,7 +108,7 @@ impl Detached {
 
 pub(crate) fn start(
     inner: Option<os::Inner>,
-    pid: u32,
+    pid: ChildPid,
     started: Instant,
     #[cfg(unix)] group: ProcessGroup,
     runtime: &tokio::runtime::Handle,

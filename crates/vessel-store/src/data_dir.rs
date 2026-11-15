@@ -56,7 +56,7 @@ const NODE_LOG_FILE: &str = "vesseld.log";
 /// next background node starts, so the log stays bounded.
 const NODE_LOG_ROTATE: u64 = 10 * 1024 * 1024;
 const OWNER_FILE: &str = "vesseld.owner";
-const SOCKET_FILE: &str = "vesseld.sock";
+mod local_endpoint;
 const BIN_DIR: &str = "bin";
 const LOG_DIR: &str = "logs";
 const PROFILES_FILE: &str = "profiles.toml";
@@ -148,13 +148,6 @@ impl DataDir {
     #[must_use]
     pub fn owner_path(&self) -> PathBuf {
         self.root.join(OWNER_FILE)
-    }
-
-    /// The node's local socket on Unix (ADR 0007). Windows uses a named
-    /// pipe instead, named after the node id by `vessel-node`.
-    #[must_use]
-    pub fn socket_path(&self) -> PathBuf {
-        self.root.join(SOCKET_FILE)
     }
 
     /// Installed `vesseld` binaries, side by side by version (ADR 0008).

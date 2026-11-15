@@ -341,3 +341,11 @@ and wait, and cannot signal or become an owned Child again. A dropped detached
 handle has an explicit reaper while the launch runtime lives; after the launcher
 exits, the OS reparents the child. Ordinary Child drop still kills its group/job.
 These conditions and adversarial tests are reviewed before implementation.
+
+The release-capable launch is explicit: standard Proc spawn retains Windows
+KillOnDrop/kill-on-close; only spawn_releasable creates a job that can survive a
+hard launcher crash even before detach. Its owned Child still performs RAII error
+and drop cleanup while the launcher lives. Detach refuses a bound child and
+returns it still owned. No equivalence to kernel cleanup after hard process death
+is claimed for releasable jobs. Shared readiness is in proto::local_launch, so
+there is no reverse node-to-launcher edge.

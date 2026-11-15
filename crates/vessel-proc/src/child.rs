@@ -148,6 +148,16 @@ pub struct Child {
     started: std::time::Instant,
 }
 
+/// Minted only from the OS handle of this module's newly spawned child.
+#[derive(Clone, Copy)]
+pub(crate) struct ChildPid(u32);
+
+impl std::fmt::Debug for ChildPid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ChildPid").field(&self.0).finish()
+    }
+}
+
 /// Whether the child has been reaped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -173,7 +183,7 @@ impl Child {
         self.state = State::Released;
         Ok(crate::detached::start(
             self.inner.take(),
-            self.pid,
+            ChildPid(self.pid),
             self.started,
             #[cfg(unix)]
             self.group,
