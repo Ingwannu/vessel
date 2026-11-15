@@ -36,6 +36,11 @@ use gpui::{
 
 use crate::fonts::{Typeface, active};
 
+mod retained;
+pub use retained::RetainedGrid;
+#[cfg(test)]
+mod probe;
+
 /// A text run's line under or through its glyphs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Underline {
@@ -205,10 +210,37 @@ pub fn cell_size(window: &Window, font_size: Pixels) -> CellSize {
 /// parent.
 #[must_use]
 pub fn terminal_grid(frame: Rc<GridFrame>, cell: CellSize) -> impl IntoElement {
+    control(
+        frame,
+        cell,
+        #[cfg(test)]
+        None,
+    )
+}
+
+fn control(
+    frame: Rc<GridFrame>,
+    cell: CellSize,
+    #[cfg(test)] probe: Option<probe::DrawProbe>,
+) -> impl IntoElement {
     let shaped = Rc::clone(&frame);
+    #[cfg(test)]
+    let prepared = probe.clone();
     canvas(
-        move |bounds, window, _cx| shape(&shaped, cell, bounds, window),
-        move |bounds, lines, window, cx| paint(&frame, cell, bounds, &lines, window, cx),
+        move |bounds, window, _cx| {
+            #[cfg(test)]
+            if let Some(probe) = &prepared {
+                probe.note(probe::Stage::Prepare);
+            }
+            shape(&shaped, cell, bounds, window)
+        },
+        move |bounds, lines, window, cx| {
+            #[cfg(test)]
+            if let Some(probe) = &probe {
+                probe.note(probe::Stage::Paint);
+            }
+            paint(&frame, cell, bounds, &lines, window, cx);
+        },
     )
     .size_full()
 }
