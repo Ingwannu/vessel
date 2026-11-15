@@ -94,6 +94,7 @@ pub(in crate::codex) fn user_input_question(
         return Err("custom companions exceed the complete form bound");
     }
     let question = Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: cut(
             asked

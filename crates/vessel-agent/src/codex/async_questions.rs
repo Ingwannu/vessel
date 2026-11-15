@@ -103,6 +103,7 @@ pub(super) fn question(item: &ThreadItem) -> Result<Option<Question>, &'static s
         }
     }
     let question = Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: crate::mapper::cut(
             questions

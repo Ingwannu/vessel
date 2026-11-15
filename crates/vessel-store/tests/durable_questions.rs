@@ -17,6 +17,7 @@ mod fixtures;
 
 fn form() -> Question {
     Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Which route?".into(),
         tool_call: Some(ToolCallId::new("async-item")),

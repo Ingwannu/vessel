@@ -56,7 +56,7 @@ fn read<T: DeserializeOwned>(value: &Value) -> Option<T> {
     serde_json::from_value(value.clone()).ok()
 }
 
-pub(super) fn named(name: &str, input: &Value) -> ToolCallDetail {
+pub(crate) fn named(name: &str, input: &Value) -> ToolCallDetail {
     let detail = match name {
         "Task" | "Agent" => super::sub_agent_input(input).map(ToolCallDetail::SubAgent),
         "Bash" | "bash" | "shell" | "exec_command" => for_kind(ToolKind::Execute, input),
@@ -90,7 +90,7 @@ pub(super) fn named(name: &str, input: &Value) -> ToolCallDetail {
     detail.unwrap_or_else(|| unknown(Some(input), None))
 }
 
-pub(super) fn for_kind(kind: ToolKind, input: &Value) -> Option<ToolCallDetail> {
+pub(crate) fn for_kind(kind: ToolKind, input: &Value) -> Option<ToolCallDetail> {
     match kind {
         ToolKind::Execute => read::<ShellInput>(input).map(|args| {
             ToolCallDetail::Shell(ShellDetail {
@@ -160,7 +160,7 @@ fn search(input: &Value, source: SearchSource) -> Option<ToolCallDetail> {
     }))
 }
 
-pub(super) fn unknown(input: Option<&Value>, output: Option<&Value>) -> ToolCallDetail {
+pub(crate) fn unknown(input: Option<&Value>, output: Option<&Value>) -> ToolCallDetail {
     ToolCallDetail::Unknown(UnknownToolDetail {
         input: input.and_then(|value| RawJson::from_serialize(value).ok()),
         output: output.and_then(|value| RawJson::from_serialize(value).ok()),

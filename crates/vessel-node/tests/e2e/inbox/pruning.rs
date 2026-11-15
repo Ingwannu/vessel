@@ -48,6 +48,7 @@ fn assert_exact_form(question: &Question) {
     assert_eq!(
         question,
         &Question {
+            tool_scope: None,
             id: question.id,
             message: "Choose every field, including the final option.".to_owned(),
             tool_call: None,

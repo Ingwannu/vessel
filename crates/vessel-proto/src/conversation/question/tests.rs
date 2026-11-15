@@ -6,6 +6,7 @@ fn name(text: &str) -> FieldName {
 
 fn question() -> Question {
     Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Which approach?".to_owned(),
         tool_call: None,

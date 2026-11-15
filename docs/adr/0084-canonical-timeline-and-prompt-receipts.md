@@ -365,3 +365,12 @@ receipt writer and event persist task are independent: an actor acknowledgement
 alone cannot prove that a queue entry survives a crash. A persistence failure or
 bounded wait expiry leaves the committed Pending receipt uncertain, with its
 reservation and replay protection intact. It cannot authorize another send.
+
+Durable async question source identity likewise includes the actual provider
+conversation and turn (`Question.tool_scope`) together with its native tool/item
+id. The store's typed source key is shared by lookup, claim and update; a reused
+raw item id in another turn cannot replay an earlier question's settlement.
+Native async offers lacking a stable actual turn origin refuse before becoming
+actionable. The legacy unscoped source path remains available to existing typed
+store callers, with the same retained-state budget; no raw source text grants
+permission or caller authority. A restart retains the complete typed source key.

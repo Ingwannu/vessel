@@ -12,6 +12,7 @@ use crate::timeline_admission::{
 
 fn form() -> Question {
     Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Choose a route".to_owned(),
         tool_call: None,
@@ -70,7 +71,17 @@ fn replay_keeps_the_original_request_id_and_resolution_is_independent_of_a_tool_
         )
         .unwrap();
     assert!(matches!(
-        load(&db, session, &source).unwrap().unwrap().state,
+        load(
+            &db,
+            session,
+            &SourceKey {
+                call: source.clone(),
+                scope: None
+            }
+        )
+        .unwrap()
+        .unwrap()
+        .state,
         QuestionState::Pending
     ));
     let transaction = db.transaction().unwrap();
@@ -246,7 +257,17 @@ fn dismissal_retains_source_tombstone_and_changed_source_content_conflicts() {
     transaction.commit().unwrap();
     assert_eq!(usage(&db, Some(session)).unwrap().records, 1);
     assert!(matches!(
-        load(&db, session, &source).unwrap().unwrap().state,
+        load(
+            &db,
+            session,
+            &SourceKey {
+                call: source.clone(),
+                scope: None
+            }
+        )
+        .unwrap()
+        .unwrap()
+        .state,
         QuestionState::Settled { .. }
     ));
 }
@@ -292,4 +313,58 @@ fn unsupported_and_pre_send_refusals_never_settle_the_pending_request() {
         ));
         transaction.commit().unwrap();
     }
+}
+
+#[test]
+fn repeated_native_item_ids_in_distinct_actual_turns_admit_independent_questions() {
+    let mut db = database();
+    let session = session(&db);
+    let source = ToolCallId::new("reused-native-item");
+    let mut first = form();
+    first.tool_call = Some(source.clone());
+    first.tool_scope = Some(Box::new(ToolCallScope::ProviderTurn {
+        thread: "thread".parse().unwrap(),
+        turn: "turn-1".parse().unwrap(),
+    }));
+    let transaction = db.transaction().unwrap();
+    assert!(matches!(
+        admit_question(&transaction, session, source.clone(), first.clone()).unwrap(),
+        QuestionAdmission::New(_)
+    ));
+    let AnswerAdmission::New(token) = begin_answer(
+        &transaction,
+        session,
+        first.id,
+        QuestionAnswer::Decline,
+        AnswerTarget::Idle,
+    )
+    .unwrap() else {
+        panic!("claim")
+    };
+    let _outcome = finish_answer(&transaction, token).unwrap();
+    transaction.commit().unwrap();
+    let mut second = first.clone();
+    second.id = QuestionId::random();
+    second.tool_scope = Some(Box::new(ToolCallScope::ProviderTurn {
+        thread: "thread".parse().unwrap(),
+        turn: "turn-2".parse().unwrap(),
+    }));
+    let transaction = db.transaction().unwrap();
+    assert_eq!(
+        admit_question(&transaction, session, source.clone(), second.clone()).unwrap(),
+        QuestionAdmission::New(second.clone())
+    );
+    let mut replay = second.clone();
+    replay.id = QuestionId::random();
+    assert_eq!(
+        admit_question(&transaction, session, source.clone(), replay).unwrap(),
+        QuestionAdmission::Existing(second)
+    );
+    assert_eq!(
+        admit_question(&transaction, session, source, first).unwrap(),
+        QuestionAdmission::Settled
+    );
+    transaction.commit().unwrap();
+    assert_eq!(usage(&db, Some(session)).unwrap().records, 2);
+    verify(&db).unwrap();
 }

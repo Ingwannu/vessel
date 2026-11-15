@@ -129,6 +129,7 @@ fn a_turn_that_asks_tells_each_ask_up_to_its_bound() {
     );
     assert_eq!(fenced(&notice.text), "Run cargo test");
     let question = agent(AgentEvent::QuestionAsked(Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Which branch?".to_owned(),
         tool_call: None,

@@ -109,3 +109,36 @@ fn invalid_companions_are_refused_before_answers_can_have_effects() {
         QuestionPresentationError::DuplicateField
     );
 }
+
+#[test]
+fn generic_custom_and_text_answers_share_ecmascript_blank_semantics() {
+    let mut question = form();
+    assert!(
+        question
+            .check(&answer(&[("custom", AnswerValue::Text("\u{feff}".into()))]))
+            .is_err()
+    );
+    assert!(
+        question
+            .check(&answer(&[("custom", AnswerValue::Text("\u{0085}".into()))]))
+            .is_ok()
+    );
+    question.fields.remove(0);
+    question.fields[0].required = true;
+    question.fields[0].presentation = Some(QuestionFieldPresentation {
+        custom_answer: None,
+        placeholder: None,
+        empty: EmptyAnswerPolicy::RequireText,
+        dismiss_label: None,
+    });
+    assert!(
+        question
+            .check(&answer(&[("custom", AnswerValue::Text("\u{feff}".into()))]))
+            .is_err()
+    );
+    assert!(
+        question
+            .check(&answer(&[("custom", AnswerValue::Text("\u{0085}".into()))]))
+            .is_ok()
+    );
+}

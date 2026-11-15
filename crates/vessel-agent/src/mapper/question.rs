@@ -133,6 +133,7 @@ pub(crate) fn question(
         }
     }
     Ok(Question {
+        tool_scope: None,
         id,
         message: cut(request.message, Question::MAX_MESSAGE),
         tool_call,

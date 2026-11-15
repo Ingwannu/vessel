@@ -38,6 +38,9 @@ pub use presentation::{InvalidQuestionPresentation, QuestionPresentationError};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct Question {
+    /// Actual tool origin, retained across native question replay and turns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_scope: Option<Box<crate::timeline::ToolCallScope>>,
     /// Async question lifetime is independent of its completed provider tool.
     #[serde(default, skip_serializing_if = "QuestionLifetime::is_turn")]
     pub lifetime: QuestionLifetime,

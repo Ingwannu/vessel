@@ -54,7 +54,8 @@ fn permission(request: &PermissionRequest) -> PermissionRequest {
 }
 
 fn question_changed(request: &Question) -> bool {
-    request.lifetime != QuestionLifetime::Turn
+    request.tool_scope.is_some()
+        || request.lifetime != QuestionLifetime::Turn
         || request.delivery_state != QuestionDeliveryState::Pending
         || request.fields.iter().any(|field| {
             field.presentation.is_some()
@@ -94,6 +95,11 @@ fn question(request: &Question) -> Option<Question> {
         return None;
     }
     let mut adapted = request.clone();
+    adapted.tool_call = request
+        .tool_call
+        .as_ref()
+        .map(|id| legacy_id(id, request.tool_scope.as_deref()));
+    adapted.tool_scope = None;
     for field in &mut adapted.fields {
         field.presentation = None;
         match &mut field.kind {

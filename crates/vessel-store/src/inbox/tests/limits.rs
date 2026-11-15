@@ -4,6 +4,7 @@ use vessel_proto::conversation::{ChoiceOption, FieldKind, QuestionField};
 use vessel_proto::{Question, QuestionId, QuestionOutcome};
 fn form() -> Question {
     Question {
+        tool_scope: None,
         lifetime: vessel_proto::timeline::QuestionLifetime::Turn,
         delivery_state: vessel_proto::timeline::QuestionDeliveryState::Pending,
         id: QuestionId::random(),

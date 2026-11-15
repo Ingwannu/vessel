@@ -203,6 +203,7 @@ fn agent_events_of_ten_reach_older_clients_too() {
         log("vessel: steered: also run the tests")
     );
     let asked = agent(AgentEvent::QuestionAsked(Question {
+        tool_scope: None,
         id: QuestionId::random(),
         message: "Which one?\nPick one".to_owned(),
         tool_call: None,

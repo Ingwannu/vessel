@@ -2,8 +2,8 @@
 
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use vessel_proto::timeline::QuestionDeliveryState;
 use vessel_proto::timeline::admission::{AdmissionCapacity, AdmissionKind};
+use vessel_proto::timeline::{QuestionDeliveryState, ToolCallScope};
 use vessel_proto::{
     EventSeq, Question, QuestionAnswer, QuestionId, QuestionOutcome, SessionId, ToolCallId,
 };
@@ -42,9 +42,15 @@ enum QuestionState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct SourceKey {
+    call: ToolCallId,
+    scope: Option<Box<ToolCallScope>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct Record {
     question: Question,
-    source: ToolCallId,
+    source: SourceKey,
     state: QuestionState,
 }
 
@@ -99,7 +105,7 @@ pub enum AnswerNotSent {
 #[derive(Debug)]
 pub struct AnswerToken {
     session: SessionId,
-    source: ToolCallId,
+    source: SourceKey,
     record: Record,
 }
 
@@ -175,6 +181,10 @@ pub(crate) fn admit_question(
     // is a store projection, never a state a provider can assert.
     question.lifetime = vessel_proto::timeline::QuestionLifetime::Session;
     question.delivery_state = QuestionDeliveryState::Pending;
+    let source = SourceKey {
+        call: source,
+        scope: question.tool_scope.clone(),
+    };
     let known = load(connection, session, &source)?;
     if let Some(known) = known {
         // A driver's freshly minted node id is not the provider's stable source identity.
@@ -206,7 +216,7 @@ pub(crate) fn admit_question(
          VALUES (?1,'question',?2,X'',?3,?4)",
         params![
             session.to_string(),
-            record.source.as_str(),
+            codec::encode(&record.source)?,
             super::sql_bytes(AdmissionKind::Question.reserved_bytes())?,
             encoded
         ],
@@ -362,15 +372,22 @@ fn require_transaction(connection: &Connection) -> Result<(), StoreError> {
 fn load(
     connection: &Connection,
     session: SessionId,
-    source: &ToolCallId,
+    source: &SourceKey,
 ) -> Result<Option<Record>, StoreError> {
     let state:Option<String>=connection.query_row(
         "SELECT state FROM timeline_admissions WHERE session=?1 AND kind='question' AND identity=?2",
-        params![session.to_string(),source.as_str()],|row|row.get(0),
+        params![session.to_string(),codec::encode(source)?],|row|row.get(0),
     ).optional()?;
-    state
+    let record: Option<Record> = state
         .map(|state| codec::decode(session, Column::Admission, &state))
-        .transpose()
+        .transpose()?;
+    if record
+        .as_ref()
+        .is_some_and(|record| &record.source != source)
+    {
+        return Err(StoreError::AdmissionIntegrity);
+    }
+    Ok(record)
 }
 
 fn update(
@@ -383,16 +400,15 @@ fn update(
         return Err(StoreError::AdmissionIntegrity);
     }
     let changed=connection.execute("UPDATE timeline_admissions SET state=?1 WHERE session=?2 AND kind='question' AND identity=?3",
-        params![encoded,session.to_string(),record.source.as_str()])?;
+        params![encoded,session.to_string(),codec::encode(&record.source)?])?;
     if changed != 1 {
         return Err(StoreError::AdmissionIntegrity);
     }
     Ok(())
 }
 
-fn fits(source: &ToolCallId, encoded: &str) -> Result<bool, StoreError> {
-    let size = source
-        .as_str()
+fn fits(source: &SourceKey, encoded: &str) -> Result<bool, StoreError> {
+    let size = codec::encode(source)?
         .len()
         .checked_add(encoded.len())
         .ok_or(StoreError::AdmissionIntegrity)?;

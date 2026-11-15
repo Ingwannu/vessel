@@ -95,6 +95,7 @@ fn newer_events() -> Vec<AgentEvent> {
             client_message_id: None,
         },
         AgentEvent::QuestionAsked(Question {
+            tool_scope: None,
             id: QuestionId::random(),
             message: "fixture".into(),
             tool_call: None,

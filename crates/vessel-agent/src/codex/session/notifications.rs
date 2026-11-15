@@ -95,8 +95,17 @@ impl Session {
             });
         let item = notification.item;
         match super::super::async_questions::question(&item) {
-            Ok(Some(question)) => {
+            Ok(Some(mut question)) => {
                 if !started {
+                    let Some(scope) = scope.clone() else {
+                        self.emit(AgentEvent::Error {
+                            message: "A nonblocking question has no stable provider turn identity"
+                                .into(),
+                        })
+                        .await;
+                        return;
+                    };
+                    question.tool_scope = Some(scope);
                     self.emit(AgentEvent::QuestionAsked(question)).await;
                 }
                 return;

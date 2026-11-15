@@ -190,6 +190,7 @@ mod tests {
 
     fn question() -> Question {
         Question {
+            tool_scope: None,
             id: QuestionId::random(),
             message: "Which way?".to_owned(),
             tool_call: None,
