@@ -25,3 +25,12 @@ creation-retry-first-message = 첫 메시지 다시 보내기
 creation-new-workspace = 새 워크스페이스
 # Seed acceptance must not overwrite another draft.
 creation-seed-busy = 아직 보내지 않았거나 처리 중인 초안이 있습니다. 먼저 해당 작업을 마쳐 주세요.
+
+# Workspace launch and primary action; empty Chat creates only a workspace.
+creation-create-workspace = 워크스페이스 만들기
+
+# Launch target: a chat, or only a workspace when there is no payload.
+creation-launch-chat = 대화
+
+# Launch target: the node configured shell, distinct from a stored profile.
+creation-launch-shell = 빈 터미널
