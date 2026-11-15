@@ -367,3 +367,6 @@ fn upsert_failure(
         failures.push(failure);
     }
 }
+
+#[cfg(test)]
+mod tests;
