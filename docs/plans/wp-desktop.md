@@ -194,3 +194,10 @@ focus restoration; stale cancel/approve handlers cannot dismiss a replacement
 prompt. Process-interruption authority is still independently checked by the
 actor's opaque Snapshot permit. Added GPUI stale-close/rail regression; execution
 is pending the combined native gate.
+
+The ba0518c3 combined narrow suite reached the kit and stopped on dialog's
+101-line function limit after the shared base merge. Card-width selection is now
+owned by DialogSize rather than the renderer; dimensions and behavior are
+unchanged and no lint/size allowance was raised. This is a failed narrow result,
+not app type-check or runtime evidence. The earlier 51949423 NodeHome type error
+was already corrected before this suite.

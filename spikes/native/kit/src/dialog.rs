@@ -77,6 +77,16 @@ pub enum DialogSize {
     Setup,
 }
 
+impl DialogSize {
+    const fn card_width(self) -> f32 {
+        match self {
+            Self::Normal => CARD_WIDTH,
+            Self::Wide => WIDE_CARD_WIDTH,
+            Self::Setup => SETUP_CARD_WIDTH,
+        }
+    }
+}
+
 /// A dialog's focus, kept by the screen that shows it.
 #[derive(Debug)]
 pub struct DialogState {
@@ -128,11 +138,7 @@ pub fn dialog<V: 'static>(
     cx: &mut Context<'_, V>,
 ) -> AnyElement {
     let surfaces = Surfaces::of(tokens);
-    let width = match content.size {
-        DialogSize::Normal => CARD_WIDTH,
-        DialogSize::Wide => WIDE_CARD_WIDTH,
-        DialogSize::Setup => SETUP_CARD_WIDTH,
-    };
+    let width = content.size.card_width();
     let setup = content.size == DialogSize::Setup;
     let footer = (!content.footer.is_empty()).then(|| {
         div()
