@@ -101,7 +101,6 @@ impl From<FileError> for WorkspaceError {
             | FileError::TransferTooLarge
             | FileError::Offset
             | FileError::CopyLimit
-            | FileError::SuggestionLimit
             | FileError::InvalidEntry(_) => Self::Invalid(error.to_string()),
             FileError::Changed(_) | FileError::Exists(_) | FileError::NotEmpty(_) => {
                 Self::Conflict(error.to_string())

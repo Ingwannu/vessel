@@ -32,7 +32,17 @@ impl Observation {
     async fn start(root: &Root, path: &RelPath) -> Result<Self, FileError> {
         let (root, path) = (root.clone(), path.clone());
         blocking(move || {
-            let target = path.under(root.path());
+            let mut targets = vec![path.under(root.path())];
+            let actual = match root.existing(&path) {
+                Ok(actual) => Some(actual),
+                Err(crate::paths::PathError::NotFound(_)) => None,
+                Err(error) => return Err(error.into()),
+            };
+            match root.entry(&path) {
+                Ok(entry) => targets.push(entry.path),
+                Err(crate::paths::PathError::NotFound(_)) => {}
+                Err(error) => return Err(error.into()),
+            }
             let mut parent = path.parent().ok_or(crate::paths::PathError::Root)?;
             let directory = loop {
                 match root.existing(&parent) {
@@ -43,11 +53,21 @@ impl Observation {
                     Err(error) => return Err(error.into()),
                 }
             };
+            let actual_parent = actual
+                .as_ref()
+                .and_then(|path| path.parent())
+                .map(std::path::Path::to_path_buf);
+            if let Some(actual) = actual {
+                targets.push(actual);
+            }
             let (sender, changed) = watch::channel(Signal::Quiet);
             let mut watcher =
                 notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
                     let signal = match event {
-                        Ok(event) if !event.kind.is_access() && relevant(&event.paths, &target) => {
+                        Ok(event)
+                            if !event.kind.is_access()
+                                && targets.iter().any(|target| relevant(&event.paths, target)) =>
+                        {
                             Signal::Dirty
                         }
                         Ok(_) => return,
@@ -64,6 +84,11 @@ impl Observation {
                     });
                 })
                 .map_err(watch_error)?;
+            if let Some(parent) = actual_parent.filter(|parent| parent != &directory) {
+                watcher
+                    .watch(&parent, RecursiveMode::NonRecursive)
+                    .map_err(watch_error)?;
+            }
             watcher
                 .watch(&directory, RecursiveMode::NonRecursive)
                 .map_err(watch_error)?;

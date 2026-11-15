@@ -82,12 +82,6 @@ pub enum FileError {
     /// A copy cannot traverse links, special files, git metadata or an unbounded tree.
     #[error("copy refused: links, special files, git metadata or copy limits")]
     CopyLimit,
-    /// A picker cannot request an unbounded result set.
-    #[error(
-        "directory suggestions require 1 to {} results",
-        vessel_proto::workspace::suggestions::MAX_SUGGESTIONS
-    )]
-    SuggestionLimit,
     /// An actual filesystem name cannot be represented by the portable path contract.
     #[error("a directory entry has an invalid portable path")]
     InvalidEntry(#[source] vessel_proto::workspace::InvalidRelPath),

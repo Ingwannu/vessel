@@ -1,6 +1,6 @@
 //! Bounded binary pages, duplicates and file observation (ADR 0083).
-//! These values remain unregistered until the integration method table
-//! assigns their shared feature a protocol number.
+//! The method table registers these values as pending; admission refuses
+//! them until integration assigns their shared feature a protocol number.
 
 use base64::Engine as _;
 use bytes::Bytes;
@@ -20,9 +20,41 @@ const MAX_PAGE_BASE64_CHARS: usize = MAX_PAGE_BYTES.div_ceil(3) * 4;
 
 /// A byte position in a file, independent of character positions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(transparent)]
-pub struct FileOffset(pub u64);
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "number"))]
+#[serde(try_from = "u64", into = "u64")]
+pub struct FileOffset(u64);
+
+/// Refuse impossible source offsets before any filesystem work starts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("a transfer offset is at most {MAX_FILE_BYTES} bytes")]
+pub struct InvalidFileOffset;
+
+impl TryFrom<u64> for FileOffset {
+    type Error = InvalidFileOffset;
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value > MAX_FILE_BYTES {
+            Err(InvalidFileOffset)
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+impl From<FileOffset> for u64 {
+    fn from(offset: FileOffset) -> Self {
+        offset.0
+    }
+}
+
+impl FileOffset {
+    /// The initial byte position, also valid for an empty source.
+    pub const ZERO: Self = Self(0);
+    /// A validated byte offset, independent of source character positions.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
 
 /// A source byte count, distinct from a position within that source.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -186,5 +218,47 @@ mod tests {
         let encoded = serde_json::to_string(&page).unwrap();
         assert_eq!(serde_json::from_str::<FileBytes>(&encoded).unwrap(), page);
         assert!(FileBytes::new(Bytes::from(vec![0; MAX_PAGE_BYTES + 1])).is_err());
+    }
+
+    #[test]
+    fn pending_file_methods_pin_scope_shape_and_direct_and_envelope_admission() {
+        use crate::{Method, MethodShape, Request as _, Scope};
+        let methods = [
+            (Method::InspectDirectory, Scope::Read),
+            (Method::ReadFileBytes, Scope::Read),
+            (Method::DuplicateFileEntry, Scope::Operate),
+            (Method::ObserveFile, Scope::Read),
+            (Method::SuggestEntries, Scope::Read),
+        ];
+        assert_eq!(
+            FILE_PANELS_PROTOCOL, None,
+            "the integrator assigns the package protocol at wiring merge"
+        );
+        for (method, scope) in methods {
+            assert_eq!(method.since(), None);
+            assert_eq!(method.scope(), Some(scope));
+            assert_eq!(method.shape(), MethodShape::Unary);
+            let call = crate::rpc::samples::call(method).unwrap();
+            assert_eq!(call.required_protocol(), None);
+            let forwarded = crate::Forward {
+                node: crate::NodeId::random(),
+                call: Box::new(call.clone()),
+            }
+            .into_call();
+            let relayed = crate::RelayCall {
+                node: crate::NodeId::random(),
+                origin: crate::rpc::samples::origin(),
+                call: Box::new(call.clone()),
+            }
+            .into_call();
+            let delivered = crate::Deliver {
+                origin: crate::rpc::samples::origin(),
+                call: Box::new(call),
+            }
+            .into_call();
+            for envelope in [forwarded, relayed, delivered] {
+                assert_eq!(envelope.required_protocol(), None);
+            }
+        }
     }
 }

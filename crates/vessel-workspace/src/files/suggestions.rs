@@ -7,8 +7,8 @@ use std::collections::VecDeque;
 
 use vessel_proto::workspace::EntryKind;
 use vessel_proto::workspace::suggestions::{
-    DEFAULT_SUGGESTIONS, EntrySuggestions, MAX_SUGGESTIONS, SuggestEntries, SuggestedEntry,
-    SuggestionKinds, SuggestionMatch,
+    EntrySuggestions, SuggestEntries, SuggestedEntry, SuggestedEntryKind, SuggestionKinds,
+    SuggestionMatch,
 };
 
 use super::{FileError, list, list_marked};
@@ -54,10 +54,7 @@ pub async fn suggest(
     root: &Root,
     request: &SuggestEntries,
 ) -> Result<EntrySuggestions, FileError> {
-    let limit = request.limit.unwrap_or(DEFAULT_SUGGESTIONS);
-    if limit == 0 || limit > MAX_SUGGESTIONS {
-        return Err(FileError::SuggestionLimit);
-    }
+    let limit = request.limit.unwrap_or_default().get();
     let query = request.query.as_str().to_lowercase();
     let needle: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).collect();
     let mut pending = VecDeque::from([(request.directory.clone(), 0_usize)]);
@@ -81,7 +78,7 @@ pub async fn suggest(
             }
             let path = directory
                 .child(&entry.name)
-                .map_err(|_invalid| FileError::SuggestionLimit)?;
+                .map_err(FileError::InvalidEntry)?;
             if entry.kind == EntryKind::Dir && !query.is_empty() {
                 if depth < MAX_SUGGESTION_DEPTH {
                     pending.push_back((path.clone(), depth.saturating_add(1)));
@@ -96,7 +93,12 @@ pub async fn suggest(
                     SuggestionMatch::Suffix => lower.ends_with(&query).then_some(0),
                 };
                 if let Some(score) = score {
-                    matches.push((Reverse(score), path, entry.kind));
+                    let kind = match entry.kind {
+                        EntryKind::Dir => SuggestedEntryKind::Directory,
+                        EntryKind::File => SuggestedEntryKind::File,
+                        EntryKind::Symlink | EntryKind::Other | EntryKind::Unknown => continue,
+                    };
+                    matches.push((Reverse(score), path, kind));
                 }
             }
         }
@@ -175,7 +177,6 @@ mod tests {
                 .all(|entry| !entry.path.as_str().contains("node_modules")
                     && !entry.path.as_str().contains(".private"))
         );
-        request.limit = Some(0);
-        assert!(suggest(None, &root, &request).await.is_err());
+        assert!(vessel_proto::workspace::suggestions::SuggestionLimit::try_from(0).is_err());
     }
 }

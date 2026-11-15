@@ -634,6 +634,11 @@ const FORWARDABLE: &[&str] = &[
     "session.fork",
     "session.rewind",
     "agent.history",
+    "file.inspect",
+    "file.read_bytes",
+    "file.duplicate",
+    "file.observe",
+    "file.suggest",
 ];
 
 #[test]

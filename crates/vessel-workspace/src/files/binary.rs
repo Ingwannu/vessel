@@ -30,15 +30,15 @@ pub async fn read_bytes(
         let mut file = open_file(&full, &path)?;
         let revision = revision(&mut file)?;
         if expected.as_ref().is_some_and(|at| at != &revision)
-            || (offset.0 != 0 && expected.is_none())
+            || (offset.get() != 0 && expected.is_none())
         {
             return Err(FileError::Changed(path));
         }
-        if offset.0 > revision.size.0 {
+        if offset.get() > revision.size.0 {
             return Err(FileError::Offset);
         }
         let _position = file
-            .seek(SeekFrom::Start(offset.0))
+            .seek(SeekFrom::Start(offset.get()))
             .map_err(FileError::Io)?;
         let mut bytes = Vec::new();
         let limit = u64::try_from(MAX_PAGE_BYTES).map_err(|_invalid| FileError::Task)?;
@@ -53,13 +53,17 @@ pub async fn read_bytes(
             return Err(FileError::Changed(path));
         }
         let end = offset
-            .0
+            .get()
             .saturating_add(u64::try_from(bytes.len()).map_err(|_invalid| FileError::Task)?);
         if end > revision.size.0 || (end < revision.size.0 && bytes.is_empty()) {
             return Err(FileError::Changed(path));
         }
         Ok(FileBytePage {
-            next: (end < revision.size.0).then_some(FileOffset(end)),
+            next: if end < revision.size.0 {
+                Some(FileOffset::try_from(end).map_err(|_invalid| FileError::Offset)?)
+            } else {
+                None
+            },
             revision,
             offset,
             bytes: FileBytes::new(bytes.into()).map_err(|_invalid| FileError::Task)?,
@@ -126,18 +130,82 @@ mod tests {
         let mut source = vec![0xff; MAX_PAGE_BYTES + 5];
         source[0] = 0;
         std::fs::write(temp.path().join("data.pdf"), &source).unwrap();
-        let first = read_bytes(&root, &path, FileOffset(0), None).await.unwrap();
+        let first = read_bytes(&root, &path, FileOffset::ZERO, None)
+            .await
+            .unwrap();
         assert_eq!(first.bytes.bytes().len(), MAX_PAGE_BYTES);
         let second = read_bytes(&root, &path, first.next.unwrap(), Some(&first.revision))
             .await
             .unwrap();
         assert_eq!(second.bytes.bytes().as_ref(), &source[MAX_PAGE_BYTES..]);
         assert!(second.next.is_none());
-        assert!(read_bytes(&root, &path, FileOffset(1), None).await.is_err());
+        assert!(
+            read_bytes(&root, &path, FileOffset::try_from(1).unwrap(), None)
+                .await
+                .is_err()
+        );
         std::fs::write(temp.path().join("data.pdf"), b"changed").unwrap();
         assert!(matches!(
-            read_bytes(&root, &path, FileOffset(0), Some(&first.revision)).await,
+            read_bytes(&root, &path, FileOffset::ZERO, Some(&first.revision)).await,
             Err(FileError::Changed(_))
+        ));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn external_and_git_links_are_refusals_not_missing_snapshots() {
+        let temp = tempfile::tempdir().unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("private"), "private").unwrap();
+        std::fs::create_dir(temp.path().join(".git")).unwrap();
+        std::fs::write(temp.path().join(".git/config"), "git").unwrap();
+        std::os::unix::fs::symlink(outside.path().join("private"), temp.path().join("external"))
+            .unwrap();
+        std::os::unix::fs::symlink(
+            temp.path().join(".git/config"),
+            temp.path().join("git-link"),
+        )
+        .unwrap();
+        let root = Root::open(temp.path()).unwrap();
+        for name in ["external", "git-link"] {
+            let path = name.parse().unwrap();
+            assert!(
+                read_bytes(&root, &path, FileOffset::ZERO, None)
+                    .await
+                    .is_err()
+            );
+            assert!(observed(&root, &path).await.is_err());
+        }
+        assert_eq!(
+            observed(&root, &"missing".parse().unwrap()).await.unwrap(),
+            ObservedFile::Missing
+        );
+    }
+
+    #[tokio::test]
+    async fn oversized_source_and_past_eof_offsets_refuse_before_a_page() {
+        let temp = tempfile::tempdir().unwrap();
+        let file = std::fs::File::create(temp.path().join("large")).unwrap();
+        file.set_len(MAX_FILE_BYTES + 1).unwrap();
+        let root = Root::open(temp.path()).unwrap();
+        assert!(matches!(
+            read_bytes(&root, &"large".parse().unwrap(), FileOffset::ZERO, None).await,
+            Err(FileError::TransferTooLarge)
+        ));
+        std::fs::write(temp.path().join("small"), "a").unwrap();
+        let path = "small".parse().unwrap();
+        let first = read_bytes(&root, &path, FileOffset::ZERO, None)
+            .await
+            .unwrap();
+        assert!(matches!(
+            read_bytes(
+                &root,
+                &path,
+                FileOffset::try_from(2).unwrap(),
+                Some(&first.revision)
+            )
+            .await,
+            Err(FileError::Offset)
         ));
     }
 }

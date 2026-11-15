@@ -378,6 +378,16 @@ macro_rules! method_table {
             RewindSession / rewind_session / "session.rewind" [Operate, 14, unary]: $crate::forking::RewindSession => $crate::SessionInfo;
             /// A page of an agent's own conversations, to import one (protocol 17, ADR 0053).
             GetAgentHistory / agent_history / "agent.history" [Operate, 17, unary]: $crate::history::GetAgentHistory => $crate::history::AgentHistoryPage;
+            /// Rich explorer listing with honest modification metadata (ADR 0083).
+            InspectDirectory / inspect_directory / "file.inspect" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::directory_metadata::InspectDirectory => $crate::workspace::directory_metadata::InspectedDirectory;
+            /// Exact, version-bound binary page (ADR 0083).
+            ReadFileBytes / read_file_bytes / "file.read_bytes" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::ReadFileBytes => $crate::workspace::panel_files::FileBytePage;
+            /// Exclusive sibling duplication, never an overwrite (ADR 0083).
+            DuplicateFileEntry / duplicate_file_entry / "file.duplicate" [Operate, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::DuplicateFileEntry => $crate::workspace::panel_files::DuplicatedFileEntry;
+            /// Finite parent-directory observation of one saved file (ADR 0083).
+            ObserveFile / observe_file / "file.observe" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::panel_files::ObserveFile => $crate::workspace::panel_files::ObservedFile;
+            /// Bounded root-scoped file/directory discovery (ADR 0083).
+            SuggestEntries / suggest_entries / "file.suggest" [Read, (pending $crate::workspace::panel_files::FILE_PANELS_PROTOCOL), unary]: $crate::workspace::suggestions::SuggestEntries => $crate::workspace::suggestions::EntrySuggestions;
         }
     };
 }

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{EntryKind, RelPath, WorkspaceRoot};
+use super::{RelPath, WorkspaceRoot};
 
 /// Paseo's maximum query length is bounded here before any scan starts.
 pub const MAX_SUGGESTION_QUERY_CHARS: usize = 256;
@@ -10,6 +10,48 @@ pub const MAX_SUGGESTION_QUERY_CHARS: usize = 256;
 pub const DEFAULT_SUGGESTIONS: u16 = 30;
 /// Paseo's maximum result count.
 pub const MAX_SUGGESTIONS: u16 = 100;
+
+/// A validated result count, decoded before root resolution or disk work.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "number"))]
+#[serde(try_from = "u16", into = "u16")]
+pub struct SuggestionLimit(u16);
+
+/// A picker cannot allocate an unbounded response or request zero entries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("directory suggestions require 1 to {MAX_SUGGESTIONS} results")]
+pub struct InvalidSuggestionLimit;
+
+impl TryFrom<u16> for SuggestionLimit {
+    type Error = InvalidSuggestionLimit;
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        if value == 0 || value > MAX_SUGGESTIONS {
+            Err(InvalidSuggestionLimit)
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+impl Default for SuggestionLimit {
+    fn default() -> Self {
+        Self(DEFAULT_SUGGESTIONS)
+    }
+}
+
+impl From<SuggestionLimit> for u16 {
+    fn from(limit: SuggestionLimit) -> Self {
+        limit.0
+    }
+}
+
+impl SuggestionLimit {
+    /// Validated entry count, distinct from a byte budget.
+    #[must_use]
+    pub const fn get(self) -> u16 {
+        self.0
+    }
+}
 
 /// A bounded, possibly empty query; empty lists immediate children.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,7 +128,18 @@ pub struct SuggestEntries {
     /// How paths match the query.
     pub matching: SuggestionMatch,
     /// Requested result budget, validated by the node against the shared maximum.
-    pub limit: Option<u16>,
+    pub limit: Option<SuggestionLimit>,
+}
+
+/// The two entry kinds a picker can actually consume.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum SuggestedEntryKind {
+    /// A regular file.
+    File,
+    /// A directory eligible for discovery.
+    Directory,
 }
 
 /// A usable regular file or directory, with a validated in-root path.
@@ -96,7 +149,7 @@ pub struct SuggestedEntry {
     /// Relative to the authorized workspace, never a client-local path.
     pub path: RelPath,
     /// Files/directories only; symlinks and special entries are excluded.
-    pub kind: EntryKind,
+    pub kind: SuggestedEntryKind,
 }
 
 /// Results are bounded and explicitly disclose an incomplete scan.
