@@ -127,9 +127,7 @@ async fn registry_fence_managed_backing_blocks_discard_before_teardown_and_keeps
                 .state()
                 .worktrees
                 .get(&worktree.id)
-                .unwrap()
-                .running
-                .is_none()
+                .is_some_and(|entry| entry.running.is_none())
         );
         fixture.stop.cancel();
     })
