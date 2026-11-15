@@ -244,11 +244,7 @@ impl Shell {
                 answer,
             } => self.agents_answer(&machine, request, answer, cx),
             Event::Records { session, records } => {
-                self.records(&session, &records, cx);
-                // Track P: a session's reported `/` commands kept for its agent.
-                self.offers_commands_seen();
-                // A terminal's output draws its grid alone (ADR 0073).
-                if self.terminal_output_only(&session, &records) {
+                if self.link_records(&session, &records, cx) == areas::Redraw::GridAlone {
                     return;
                 }
             }
