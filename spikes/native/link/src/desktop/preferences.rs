@@ -84,12 +84,47 @@ pub enum Observation {
     },
 }
 
+/// One accepted write retains its exact outcome even if watch updates coalesce.
+#[derive(Debug)]
+pub struct Receipt(oneshot::Receiver<Snapshot>);
+
+#[derive(Debug, Clone)]
+struct Publication(Arc<()>);
+
+/// A completed queue checkpoint with an opaque accepted-publication identity.
+/// Lifecycle admission rechecks it on the same UI executor as its Clients.
+#[derive(Debug)]
+pub struct Checkpoint {
+    publication: Publication,
+    snapshot: Snapshot,
+}
+
+impl Checkpoint {
+    /// Preserve launch-only and failed-write outcomes rather than claiming saved.
+    #[must_use]
+    pub const fn snapshot(&self) -> &Snapshot {
+        &self.snapshot
+    }
+}
+
+impl Receipt {
+    /// Await this request, not an unrelated later write. Observe this snapshot
+    /// through Client before applying; a newer revision still wins.
+    ///
+    /// # Errors
+    /// A stopped writer cannot acknowledge an accepted request.
+    pub async fn completed(self) -> Result<Snapshot, DesktopError> {
+        self.0.await.map_err(|_closed| DesktopError::Closed)
+    }
+}
+
 enum Command {
     Change {
         before: Arc<Prefs>,
         after: Arc<Prefs>,
         sequence: Sequence,
         acknowledged: watch::Sender<Acknowledged>,
+        receipt: Option<oneshot::Sender<Snapshot>>,
     },
     Flush(oneshot::Sender<()>),
 }
@@ -99,6 +134,7 @@ enum Command {
 pub struct Coordinator {
     commands: mpsc::SyncSender<Command>,
     current: watch::Receiver<Snapshot>,
+    publication: watch::Sender<Publication>,
 }
 
 /// UI-thread client tracks its own optimistic baseline between acknowledgements.
@@ -106,11 +142,14 @@ pub struct Coordinator {
 pub struct Client {
     commands: mpsc::SyncSender<Command>,
     baseline: RefCell<Arc<Prefs>>,
+    canonical: RefCell<Arc<Prefs>>,
     revision: std::cell::Cell<Revision>,
     sequence: std::cell::Cell<Sequence>,
     pending: RefCell<VecDeque<Pending>>,
     acknowledged: watch::Sender<Acknowledged>,
     acknowledgements: watch::Receiver<Acknowledged>,
+    refused: std::cell::Cell<Option<crate::Rejected>>,
+    publication: watch::Sender<Publication>,
 }
 
 impl Coordinator {
@@ -144,7 +183,12 @@ impl Coordinator {
         let _worker = std::thread::Builder::new()
             .name("vessel-preferences".into())
             .spawn(move || run(snapshot, path.as_deref(), &published, &receiver))?;
-        Ok(Self { commands, current })
+        let (publication, _initial) = watch::channel(Publication(Arc::new(())));
+        Ok(Self {
+            commands,
+            current,
+            publication,
+        })
     }
 
     /// A new window starts from the latest committed snapshot, including launch-only edits.
@@ -156,11 +200,14 @@ impl Coordinator {
             Client {
                 commands: self.commands.clone(),
                 baseline: RefCell::new(snapshot.preferences()),
+                canonical: RefCell::new(snapshot.preferences()),
                 revision: std::cell::Cell::new(snapshot.revision()),
                 sequence: std::cell::Cell::new(Sequence::default()),
                 pending: RefCell::new(VecDeque::new()),
                 acknowledged,
                 acknowledgements,
+                refused: std::cell::Cell::new(None),
+                publication: self.publication.clone(),
             },
             self.current.clone(),
         )
@@ -176,6 +223,35 @@ impl Coordinator {
     #[must_use]
     pub fn snapshot(&self) -> Snapshot {
         self.current.borrow().clone()
+    }
+
+    /// Capture before awaiting; a later accepted edit invalidates this receipt
+    /// even if its disk write has not published a newer canonical revision yet.
+    ///
+    /// # Errors
+    /// Returns the same worker/spawn failures as flush.
+    pub fn checkpoint(
+        &self,
+    ) -> impl Future<Output = Result<Checkpoint, DesktopError>> + 'static + use<> {
+        let publication = self.publication.borrow().clone();
+        let current = self.current.clone();
+        let flush = self.flush();
+        async move {
+            flush.await?;
+            let snapshot = current.borrow().clone();
+            Ok(Checkpoint {
+                publication,
+                snapshot,
+            })
+        }
+    }
+
+    /// Called immediately before quit/restart, without a subsequent await and
+    /// on the same UI executor that publishes through this coordinator's Clients.
+    #[must_use]
+    pub fn is_current(&self, checkpoint: &Checkpoint) -> bool {
+        Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
+            && self.current.borrow().revision() == checkpoint.snapshot.revision()
     }
 
     /// Wait for every accepted edit before the process exits.
@@ -195,12 +271,42 @@ impl Coordinator {
 }
 
 impl Client {
+    /// The last observed canonical value excludes this window's optimistic edits.
+    #[must_use]
+    pub fn canonical_preferences(&self) -> Arc<Prefs> {
+        Arc::clone(&self.canonical.borrow())
+    }
+
     /// Publish only changes since this window's last observed/submitted snapshot.
     ///
     /// # Errors
-    /// A full or closed queue leaves the baseline unchanged for an explicit retry.
+    /// A full or closed queue leaves the baseline unchanged. Observe canonical
+    /// state before another attempt so refused fields cannot leak into a later edit.
     pub fn publish(&self, prefs: &Prefs) -> Result<(), crate::Rejected> {
+        self.enqueue(prefs, None)
+    }
+
+    /// The same writer and merge path, with an exact per-request acknowledgment.
+    ///
+    /// # Errors
+    /// Queue refusal leaves the optimistic baseline unchanged and requires
+    /// canonical observation before a later write can be admitted.
+    pub fn publish_with_receipt(&self, prefs: &Prefs) -> Result<Receipt, crate::Rejected> {
+        let (done, receipt) = oneshot::channel();
+        self.enqueue(prefs, Some(done))?;
+        Ok(Receipt(receipt))
+    }
+
+    fn enqueue(
+        &self,
+        prefs: &Prefs,
+        receipt: Option<oneshot::Sender<Snapshot>>,
+    ) -> Result<(), crate::Rejected> {
+        if let Some(why) = self.refused.get() {
+            return Err(why);
+        }
         if self.pending.borrow().len() >= QUEUE_CAPACITY {
+            self.refused.set(Some(crate::Rejected::Full));
             return Err(crate::Rejected::Full);
         }
         let sequence = Sequence(
@@ -212,17 +318,26 @@ impl Client {
         );
         let after = Arc::new(prefs.clone());
         let before = Arc::clone(&self.baseline.borrow());
-        self.commands
+        let sent = self
+            .commands
             .try_send(Command::Change {
                 before: Arc::clone(&before),
                 after: Arc::clone(&after),
                 sequence,
                 acknowledged: self.acknowledged.clone(),
+                receipt,
             })
             .map_err(|error| match error {
                 mpsc::TrySendError::Full(_) => crate::Rejected::Full,
                 mpsc::TrySendError::Disconnected(_) => crate::Rejected::Closed,
-            })?;
+            });
+        if let Err(why) = sent {
+            // A rejected full snapshot still exists in the caller's UI. Until
+            // canonical observation replaces it, a later snapshot could retry
+            // its refused fields as if they were a fresh unrelated edit.
+            self.refused.set(Some(why));
+            return Err(why);
+        }
         self.sequence.set(sequence);
         self.pending.borrow_mut().push_back(Pending {
             sequence,
@@ -230,7 +345,20 @@ impl Client {
             after: Arc::clone(&after),
         });
         let _previous = self.baseline.replace(after);
+        let _previous = self.publication.send_replace(Publication(Arc::new(())));
         Ok(())
+    }
+
+    /// A live window must reconcile its optimistic state/refusals before exit.
+    /// An accepted write's acknowledgment alone does not update its UI projection.
+    #[must_use]
+    pub fn is_settled(&self, checkpoint: &Checkpoint) -> bool {
+        let acknowledged = *self.acknowledgements.borrow();
+        self.refused.get().is_none()
+            && self.pending.borrow().is_empty()
+            && acknowledged.sequence == self.sequence.get()
+            && acknowledged.revision <= checkpoint.snapshot.revision()
+            && Arc::ptr_eq(&self.publication.borrow().0, &checkpoint.publication.0)
     }
 
     /// Rebase pending intent; an old failure cannot roll back a newer committed edit.
@@ -240,6 +368,7 @@ impl Client {
             return Observation::Stale;
         }
         self.revision.set(snapshot.revision);
+        let _previous = self.canonical.replace(snapshot.preferences());
         let acknowledged = *self.acknowledgements.borrow();
         let mut pending = self.pending.borrow_mut();
         // A later acknowledgement may race an earlier watch delivery. Only a
@@ -257,6 +386,7 @@ impl Client {
         }
         let prefs = Arc::new(projection);
         let _previous = self.baseline.replace(Arc::clone(&prefs));
+        self.refused.set(None);
         match refused {
             Some(failure) => Observation::Refused { prefs, failure },
             None => Observation::Applied(prefs),
@@ -278,6 +408,7 @@ fn run(
                 after,
                 sequence,
                 acknowledged,
+                receipt,
             } => {
                 let Some(revision) = snapshot.revision.0.checked_add(1) else {
                     snapshot.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
@@ -285,6 +416,9 @@ fn run(
                         sequence,
                         revision: snapshot.revision,
                     });
+                    if let Some(done) = receipt {
+                        drop(done.send(snapshot.clone()));
+                    }
                     let _previous = published.send_replace(snapshot);
                     break;
                 };
@@ -313,121 +447,13 @@ fn run(
                     revision: snapshot.revision,
                 });
                 let _previous = published.send_replace(snapshot.clone());
+                if let Some(done) = receipt {
+                    drop(done.send(snapshot.clone()));
+                }
             }
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use vessel_app_view::prefs::{Grouping, Theme};
-
-    #[tokio::test]
-    async fn older_ack_keeps_pending_intent_and_old_failure_cannot_roll_back_newer_commit() {
-        let initial = Prefs::default();
-        let coordinator = Coordinator::start(initial.clone()).unwrap();
-        let (client, _updates) = coordinator.client();
-        let mut first = initial;
-        first.settings.appearance.theme = Theme::Light;
-        client.publish(&first).unwrap();
-        coordinator.flush().await.unwrap();
-        let older = coordinator.snapshot();
-        let mut next = first;
-        next.settings.sidebar.group = Grouping::Status;
-        client.publish(&next).unwrap();
-        // This explicit older snapshot remains deterministic even if the writer
-        // has already acknowledged the newer request on the other thread.
-        let Observation::Applied(projected) = client.observe(&older) else {
-            panic!("valid projection");
-        };
-        assert_eq!(projected.settings.sidebar.group, Grouping::Status);
-        coordinator.flush().await.unwrap();
-        let Observation::Applied(committed) = client.observe(&coordinator.snapshot()) else {
-            panic!("current projection");
-        };
-        assert_eq!(committed.settings.sidebar.group, Grouping::Status);
-        let mut old_failure = older;
-        old_failure.outcome = Outcome::Failed(Arc::new(DesktopError::Closed));
-        assert!(matches!(client.observe(&old_failure), Observation::Stale));
-        assert_eq!(
-            client.baseline.borrow().settings.sidebar.group,
-            Grouping::Status
-        );
-    }
-
-    #[tokio::test]
-    async fn stale_windows_merge_and_failed_save_keeps_canonical_state() {
-        let root =
-            std::env::temp_dir().join(format!("vessel-central-prefs-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let initial = Prefs {
-            kept: Kept::File {
-                path: root.join("prefs.json").display().to_string(),
-            },
-            ..Prefs::default()
-        };
-        let coordinator = Coordinator::start(initial.clone()).unwrap();
-        let (first, _updates) = coordinator.client();
-        let (second, mut updates) = coordinator.client();
-        let mut one = initial.clone();
-        one.settings.appearance.theme = Theme::Light;
-        first.publish(&one).unwrap();
-        coordinator.flush().await.unwrap();
-        let mut two = initial;
-        two.settings.sidebar.group = Grouping::Status;
-        second.publish(&two).unwrap();
-        coordinator.flush().await.unwrap();
-        updates.changed().await.unwrap();
-        assert_eq!(
-            coordinator.current().settings.appearance.theme,
-            Theme::Light
-        );
-        assert_eq!(
-            coordinator.current().settings.sidebar.group,
-            Grouping::Status
-        );
-        std::fs::remove_file(root.join("prefs.json")).unwrap();
-        std::fs::create_dir(root.join("prefs.json")).unwrap();
-        let committed = coordinator.current();
-        let mut refused = (*committed).clone();
-        refused.manual_updates = true;
-        second.publish(&refused).unwrap();
-        coordinator.flush().await.unwrap();
-        assert_eq!(coordinator.current(), committed);
-        assert!(matches!(updates.borrow().outcome(), Outcome::Failed(_)));
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
-    #[tokio::test]
-    async fn corrupt_file_remains_launch_only_and_never_gets_replaced() {
-        let root =
-            std::env::temp_dir().join(format!("vessel-corrupt-prefs-{}", std::process::id()));
-        std::fs::create_dir_all(&root).unwrap();
-        let path = root.join("prefs.json");
-        std::fs::write(&path, b"unreadable").unwrap();
-        let initial = Prefs {
-            kept: Kept::ThisLaunch {
-                why: vessel_app_view::prefs::LaunchOnly::Unreadable {
-                    fault: vessel_app_view::files::FileFault {
-                        path: path.display().to_string(),
-                        at: None,
-                        problem: vessel_app_view::files::FileProblem::CannotOpen,
-                        field: None,
-                    },
-                },
-            },
-            ..Prefs::default()
-        };
-        let coordinator = Coordinator::start(initial.clone()).unwrap();
-        let (client, updates) = coordinator.client();
-        let mut next = initial;
-        next.manual_updates = true;
-        client.publish(&next).unwrap();
-        coordinator.flush().await.unwrap();
-        assert!(coordinator.current().manual_updates);
-        assert!(matches!(updates.borrow().outcome(), Outcome::LaunchOnly));
-        assert_eq!(std::fs::read(path).unwrap(), b"unreadable");
-        std::fs::remove_dir_all(root).unwrap();
-    }
-}
+mod tests;

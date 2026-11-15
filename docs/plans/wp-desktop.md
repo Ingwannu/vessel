@@ -480,3 +480,35 @@ with an actual consumer (whichever owner lands it) plus W12's actual follow
 promotion, both green on the line, followed by an explicit third-slot grant.
 Staged exports remain insufficient. This changes writer scheduling, not the
 accepted source-lifetime, classification, reservation or barrier contract.
+
+### Current-state persistence fence before exit
+
+[Decision Log]
+- Selection: consume the desktop-shell owner's bounded source packet 552b3f526;
+  modify the existing normal quit/update consumer, without another writer.
+- Purpose: a successful old write is not proof that the latest preferences and
+  geometry can be abandoned. A→B→A bounds changes also invalidate old receipts.
+- Constraint: accepted preference writes may precede canonical publication or a
+  Shell's observation; launch-only storage cannot bypass unsettled local edits.
+- Choice: one owner receipt checks canonical revision/publication identity, all
+  live clients settled/no refusal, and latest geometry plus publication token.
+  Then the existing document guard and actual quit/restart execute synchronously
+  in that same App update, with no subsequent await.
+- Tradeoff: each persistence phase allows four attempts and ten seconds total;
+  changed receipts yield to reconcile UI observations, then take a fresh receipt.
+  Exhaustion, write failure and deadline retain the app with a save/retry notice.
+  LaunchOnly is admitted only after the owner's earlier settlement checks.
+
+The first bounded phase settles policy/preferences before node effects. Owned
+node finalization runs exactly once. A fresh post-node persistence phase handles
+later changes; it never retries the node stop/release. Refusal restores the same
+app-wide phase, and writer checkpoint workers remain alive after a veto or failed
+updater restart. The short OS observer uses the same owner facade as best effort;
+its 200ms window promises neither durable save nor veto.
+
+The mirrored Link preference actor, tests and window writer and App receipt
+fixtures are exact source552 blobs, with the existing merge/layout implementation
+and local-node/onboarding fields retained. Desktop geometry wiring is surgical;
+no moving session/project/menu policy is imported. Producer unit18 and this actual
+consumer union are not yet checked; no scoped predecessor result is borrowed as
+proof of the new fence, retry deadline or app-wide exit behavior.

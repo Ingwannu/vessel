@@ -1,7 +1,9 @@
 //! Process-wide local-node ownership and the asynchronous quit boundary.
 
 mod documents;
+mod state;
 pub(crate) use documents::{admit as admit_documents, admit_node};
+pub(crate) use state::flush_then;
 
 use gpui::{App, Global};
 use std::rc::Rc;
@@ -142,37 +144,45 @@ fn quit(after: Option<AfterQuit>, confirmation: Option<Confirmation>, cx: &mut A
     if !begin_finalization(cx) {
         return;
     }
-    // A window can request quit immediately after its preference edit. Settle
-    // the canonical actor first so the quit policy cannot read an older window.
-    let before = crate::desktop::flush_preferences(cx);
     cx.spawn(async move |cx| {
         // App-level admission runs after a menu/button's Shell borrow ends.
-        if !cx.update(admit_documents) {
-            cx.update(end_finalization);
-            return;
-        }
-        if let Err(error) = before.await {
-            cx.update(|cx| failed(cx, &error, Failure::State));
-            return;
-        }
-        let after = after.unwrap_or_else(|| {
-            cx.update(|cx| crate::desktop::current_local_preferences(cx).after_quit)
-        });
+        let settled = flush_then(cx, |cx| {
+            if !admit_documents(cx) {
+                end_finalization(cx);
+                return None;
+            }
+            Some(after.unwrap_or_else(|| crate::desktop::current_local_preferences(cx).after_quit))
+        })
+        .await;
+        let after = match settled {
+            Ok(Some(after)) => after,
+            Ok(None) => return,
+            Err(error) => {
+                cx.update(|cx| failed(cx, &error, Failure::State));
+                return;
+            }
+        };
+        // Node finalization is exactly once; Changed state receipts below retry
+        // only their persistence phase, with a fresh independent deadline.
         let finalize = cx.update(|cx| finalize(after, confirmation, cx));
-        let result = finalize.await;
-        match result {
-            Ok(()) => match cx.update(|cx| crate::desktop::flush_preferences(cx)).await {
-                Ok(()) => cx.update(|cx| {
+        match finalize.await {
+            Ok(()) => {
+                if let Err(error) = flush_then(cx, |cx| {
                     if admit_documents(cx) {
                         cx.quit();
                     } else {
                         end_finalization(cx);
                     }
-                }),
-                Err(error) => cx.update(|cx| failed(cx, &error, Failure::State)),
-            },
+                })
+                .await
+                {
+                    cx.update(|cx| failed(cx, &error, Failure::State));
+                }
+            }
             Err(error) => {
-                cx.update(|cx| failed(cx, &error, Failure::Node(error.failure_snapshot().cloned())))
+                cx.update(|cx| {
+                    failed(cx, &error, Failure::Node(error.failure_snapshot().cloned()))
+                });
             }
         }
     })

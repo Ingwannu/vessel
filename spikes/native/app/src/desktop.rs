@@ -1,18 +1,23 @@
 //! Process-wide desktop ownership; screens use typed host adapters only.
 
+mod persistence;
 pub(crate) mod preferences;
 mod startup;
 mod startup_error;
+#[cfg(test)]
+mod testing;
 mod windows;
 
 use crate::shell::Shell;
 use gpui::{AnyWindowHandle, App, Global, WeakEntity};
+use std::sync::Arc;
 use vessel_app_link::desktop::{
     environment::ShellEnvironment, preferences::Coordinator, store::Store,
     window_writer::WindowWriter,
 };
 use vessel_app_view::desktop::window::WindowState;
 
+pub(crate) use persistence::{StateReadiness, StateReceipt, flush_current, flush_state};
 pub(crate) use startup::run;
 pub(crate) use windows::open_additional;
 
@@ -34,6 +39,7 @@ pub(crate) struct Desktop {
     records: Vec<WindowRecord>,
     saved: Option<WindowState>,
     latest: WindowState,
+    geometry_publication: Arc<()>,
     writer: Option<WindowWriter>,
     environment: ShellEnvironment,
     quit: Option<fn(&mut App)>,
@@ -72,6 +78,7 @@ impl Desktop {
             records: Vec::new(),
             saved,
             latest: saved.unwrap_or_default(),
+            geometry_publication: Arc::new(()),
             writer,
             environment,
             quit: None,
@@ -80,6 +87,18 @@ impl Desktop {
             project: None,
             preferences,
         })
+    }
+
+    fn remember(&mut self, state: WindowState) {
+        self.saved = Some(state);
+        self.latest = state;
+        // Every publication fences A -> B -> A while B may still be in flight.
+        self.geometry_publication = Arc::new(());
+        if let Some(writer) = &self.writer
+            && let Err(error) = writer.changed(state)
+        {
+            tracing::warn!(%error,"window position could not be queued for saving");
+        }
     }
 }
 
@@ -184,40 +203,23 @@ fn install(
     })
     .detach();
     cx.on_app_quit(|cx| {
-        let desktop = cx.global::<Desktop>();
-        let flush = flush_preferences(cx);
-        let final_write = desktop
-            .writer
-            .as_ref()
-            .map(|writer| writer.finalize(desktop.latest));
+        // GPUI cancels observers after 200ms; ordinary quit awaits admission.
+        let flush = flush_state(cx);
         async move {
-            if let Err(error) = flush.await {
-                tracing::warn!(%error,"preferences could not finish saving before quit");
-            }
-            if let Some(final_write) = final_write
-                && let Err(error) = final_write.await
-            {
-                tracing::warn!(%error,"final window state could not be saved");
+            match flush.await {
+                Err(error) => {
+                    tracing::warn!(%error,"desktop state could not finish saving before quit")
+                }
+                Ok(receipt) => {
+                    if let Some(error) = receipt.failure() {
+                        tracing::warn!(%error,"preferences could not be saved before quit");
+                    }
+                }
             }
         }
     })
     .detach();
     Ok(())
-}
-
-/// Update restart and normal quit await the same canonical preferences queue.
-pub(crate) fn flush_preferences(
-    cx: &App,
-) -> impl Future<Output = Result<(), vessel_app_link::desktop::DesktopError>> + 'static + use<> {
-    let flush = cx
-        .try_global::<Desktop>()
-        .map(|desktop| desktop.preferences.flush());
-    async move {
-        match flush {
-            Some(flush) => flush.await,
-            None => Ok(()),
-        }
-    }
 }
 
 pub(crate) fn with_focused_shell(

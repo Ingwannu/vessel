@@ -285,11 +285,23 @@ impl Shell {
             confirmation,
             cx,
         );
-        let flush = crate::desktop::flush_preferences(cx);
         cx.spawn(async move |this, cx| {
-            if !cx.update(crate::local_node::admit_documents) {
-                cx.update(crate::local_node::end_finalization);
-                return;
+            let before = crate::local_node::flush_then(cx, crate::local_node::admit_documents).await;
+            match before {
+                Ok(true) => {}
+                Ok(false) => {
+                    cx.update(crate::local_node::end_finalization);
+                    return;
+                }
+                Err(error) => {
+                    tracing::warn!(%error, "update restart could not settle desktop state");
+                    cx.update(crate::local_node::end_finalization);
+                    let _closed = this.update(cx, |shell, cx| {
+                        shell.notice = Some(shell.words.quit().state_unsaved().to_owned());
+                        cx.notify();
+                    });
+                    return;
+                }
             }
             let result = finalize.await;
             if let Err(error) = result {
@@ -302,16 +314,7 @@ impl Shell {
                 });
                 return;
             }
-            if let Err(error) = flush.await {
-                tracing::warn!(%error, "update restart could not flush canonical preferences");
-                cx.update(crate::local_node::end_finalization);
-                let _closed = this.update(cx, |shell, cx| {
-                    shell.notice = Some(shell.words.quit().state_unsaved().to_owned());
-                    cx.notify();
-                });
-                return;
-            }
-            cx.update(|cx| {
+            let saved = crate::local_node::flush_then(cx, |cx| {
                 // No Shell entity is mutably borrowed during the all-window
                 // guard, and there is no await before spawning the update.
                 if !crate::local_node::admit_documents(cx) {
@@ -334,7 +337,15 @@ impl Shell {
                         });
                     }
                 }
-            });
+            }).await;
+            if let Err(error) = saved {
+                tracing::warn!(%error, "update restart could not settle desktop state");
+                cx.update(crate::local_node::end_finalization);
+                let _closed = this.update(cx, |shell, cx| {
+                    shell.notice = Some(shell.words.quit().state_unsaved().to_owned());
+                    cx.notify();
+                });
+            }
         }).detach();
     }
 

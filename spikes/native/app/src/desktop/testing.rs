@@ -1,0 +1,21 @@
+//! Explicit no-home/no-node process owner for desktop behavior fixtures.
+
+use super::Desktop;
+use vessel_app_link::desktop::{environment::ShellEnvironment, preferences::Coordinator};
+use vessel_app_view::desktop::window::WindowState;
+
+pub(super) fn desktop(preferences: Coordinator) -> Desktop {
+    Desktop {
+        records: Vec::new(),
+        saved: None,
+        latest: WindowState::default(),
+        geometry_publication: std::sync::Arc::new(()),
+        writer: None,
+        environment: ShellEnvironment::inherited(),
+        quit: None,
+        window_close: None,
+        session: None,
+        project: None,
+        preferences,
+    }
+}

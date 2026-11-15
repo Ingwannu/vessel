@@ -24,6 +24,7 @@ fn test_desktop() -> Desktop {
         records: Vec::new(),
         saved: None,
         latest: WindowState::default(),
+        geometry_publication: std::sync::Arc::new(()),
         writer: None,
         environment: vessel_app_link::desktop::environment::ShellEnvironment::inherited(),
         quit: Some(retain_while_finalizing),
