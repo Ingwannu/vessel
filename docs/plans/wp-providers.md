@@ -793,3 +793,12 @@ thread. A test-only one-shot gate pauses that real post-preparation continuation
 before spawn; a second resumed create must still receive ConversationTaken.
 The gate releases on drop and exists only in runtime unit tests. Successful
 registration replaces the starting guard with the runtime's live entry.
+
+Generated-wire checkpoint: run wp-providers-20261115T162914Z-ea7b8dad
+actually ran the TS generation tests (proto 3/0, web 2/0). The run returned
+rc1 because proto.ts differed after generation. The exact post-step artifact,
+commit and all six manifest hashes were verified before applying its patch;
+all three wire files match the artifact bytes. Node52 changes protocol/feature
+constants and tests, not emitted DTO shapes. Current combined-head generated
+wire consistency remains part of the owning whole gate, not inferred from this
+predecessor generation run. No generated whitespace was normalized by hand.
