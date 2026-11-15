@@ -16,10 +16,17 @@ transition mechanics, not another registry or permission source.
 - Connected alone owns W12's canonical SelectedLease anchor. Managed binding
   retains provenance/source correlation and a bounded observer cancellation
   handle, not another client or admission allocator.
-- A source observer holds only a WEAK selected lease. On source retirement it
-  immediately revokes old validity, then reports the exact source + context to
-  the actor. It must not retain a client/strong lease while waiting. Retiring
-  Connected cancels its old observer before another admission is published.
+- Qualification after reading e42: SelectedLease has a receiver, NO revoker.
+  The earlier proposed weak-lease revoke call does not exist and will not be
+  implemented by retaining another validity Sender/client. Instead the SAME
+  SelectedLease gets a private optional controller-source receiver (Book=None).
+  Synchronous validate and the existing pre/post-await and bounded-send races
+  fail on source retirement OR sender loss, even before actor cleanup delivery.
+  DeliveryGuard delegates that same predicate; no parallel guard is introduced.
+- The observer only queues the exact original source + context for actor cleanup;
+  it owns no selected lease, client or validity Sender. Retiring Connected cancels
+  its old observer before another admission is published. W12/G4 gave direction
+  only; V1/lead confirmation and the fixed third slot remain prerequisites.
 
 ## Transition table
 
@@ -34,7 +41,7 @@ transition mechanics, not another registry or permission source.
 | Reload | Retire old map/watch, clear receipt, then re-admit still-active recipe | Fresh canonical epoch stored BEFORE publication |
 | External book collision | Retire local before book dial/publication | Book wins, visible BookCollision, no shadow |
 | Refused/failed ordinary book edit | Preserve both admissions and original book fences | No local retirement |
-| Source loss while book read is held | Weak observer retires validity; recheck source after await | No new admission/publication for retired source |
+| Source loss while book read is held | Canonical source criterion refuses immediately; recheck after await | No new admission/publication for retired source |
 
 A current source may retry admission after an external collision is removed,
 through the existing actor refresh/reload path, only while that actual controller
@@ -58,3 +65,12 @@ Book writer reservation uses E2's sole proto::book_values::ManagedLocalAlias.
 Existing explicit Book entries may be removed/renamed away/no-op renamed; only
 new generated destinations are reserved. Held blocking I/O, caller cancellation
 and actual worker completion remain ordered by E2's existing owner/receipt.
+
+## Required source-lifetime barriers
+
+Direct cases cover source withdrawal after an accepted queue send but BEFORE
+App installation; in-flight Unary retirement; body-ready completion racing source
+loss; source sender dropped while its last value remains Active; canonical owner
+drop with old work still alive; bounded-send backpressure retirement; and stale
+observer cleanup versus a successor. Unchanged Book=None cases remain required.
+These are planned tests, not current execution or product-promotion evidence.
