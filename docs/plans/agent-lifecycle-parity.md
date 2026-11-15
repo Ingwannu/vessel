@@ -336,9 +336,12 @@ No row of the crate table changes.
 - Selection slice 5b's first narrow compile found two test-only errors: a
   failure fixture bypassed the existing status constructor, and a turn cursor
   was unused. Both are corrected without changing assertions; the narrow
-  clippy, ten log units and two fake-node CLI cases now pass. The complete
-  gate is the remaining verification.
-- Implementation slice 5b, verification pending: time/kind predicates precede
+  clippy, ten log units and two fake-node CLI cases passed. Its complete
+  Rust gate also passed: 1989 passed, none failed, 12 ignored, plus the two
+  TS freshness tests. Both prebuilds and all applicable checks passed; no
+  waiver or rerun was needed. Forge checks were skipped because this base
+  has no forge-fixture feature. The wire and page are unchanged.
+- Slice 5b passed its complete gate: time/kind predicates precede
   the existing tail window. Sequence gaps separate message chunks, but only
   raw page gaps generate retention notices. Parser, predicate, render-boundary
   and fake-node selection tests passed in the narrow runs. Existing render
@@ -355,8 +358,7 @@ No row of the crate table changes.
   EOF, interruption and stream notices finish an open text line; terminal
   bytes stay untouched. Follow passed narrow clippy, eleven log units and
   three fake-node CLI cases, including history-to-live output exactly once
-  and EOF. Selection's complete gate is queued; follow still owes its
-  separate complete gate.
+  and EOF. Follow's separate complete gate is queued.
 - The contract's follow bullet and EOF explanation now name the same end.
   Parser and command-level checks are documented together: an invalid tail
   is refused by both products, with earlier validation in Vessel.
@@ -364,11 +366,11 @@ No row of the crate table changes.
   step and left conflict markers in an unverified follow commit. A new
   follow-up repaired both owned files with every prior scenario retained.
   That intermediate commit was never compiled or used as gate evidence.
-- Background value slice 3a is prepared, not compiled: closed shown/background
-  and shown/all enums with explicit defaults, exhaustive inclusion and serde
-  refusal tests. It does not make background sessions available yet.
-- Next: finish selection slice 5b's complete gate, then run the separate
-  complete gate for follow slice 5c while
+- Background value slice 3a passed narrow TypeScript-enabled clippy and three
+  listing/default/serde tests. Its complete gate is still owed. It adds no
+  request field, store column or actual discovery filtering yet.
+- Next: finish follow slice 5c's queued complete gate, then run the complete
+  gate for the background values while
   label call wiring awaits the shared accessor. No new wire call or dependency
   is added by log options. All slices include the caller-to-projection
   citations and retain the raw-chunk test; the selection render context changes
