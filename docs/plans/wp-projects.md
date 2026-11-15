@@ -263,3 +263,62 @@ this seam does not claim the complete new-directory or suggestions flow.
 A headless input test puts a remote host first, opens another exact target, and
 checks that rebinding that alias cannot replace the draft. New code awaits strict
 Clippy and project tests; no consumer-ready hash is declared here.
+
+
+## Shared native projection dependency: next implementation
+
+The registry/store dependency must pass before this runtime consumer is wired.
+The next native delivery is the single shared workspace projection used by the
+sidebar, panes and command center, with a bounded source review before adoption.
+It takes priority over the remaining project presentation and editor features.
+
+[Decision Log]
+- Purpose: empty workspaces and multiple independent workspaces sharing one root
+  must have stable rows, pane keys and navigation without a selected session.
+- Existing assets: the authenticated fleet supplies NodeId; projects.rs supplies
+  host project data; W12 owns WorkspaceLookup and LayoutKey; W2 owns parentage;
+  W7 owns attention. Standard collections and Arc suffice; no new dependency.
+- Alternatives: cwd grouping, choosing a member session as workspace identity,
+  treating missing attention as zero, or adding another pane routing registry.
+- Choice: modify these existing boundaries and add one registry cache/projector.
+  NodeId+ProjectId is project placement identity; NodeId+WorkspaceId is workspace
+  identity. A captured host alias is a route revalidated against its current
+  authenticated node, never another identity source.
+- Reason: aliases can be renamed/rebound, a workspace can be empty, membership
+  can include retained historical resources, and loading is not an empty result.
+- Effects: one complete registry snapshot is replaced atomically. The app must
+  reject old tickets, wrong-node responses and decreasing global revisions,
+  expose loading/offline/unsupported/failure separately, and stop one finite
+  long-poll when its connection/host binding changes. Full snapshots are shared
+  rather than cloned for each row consumer.
+
+The view adapter implements the existing
+`layout::ownership::WorkspaceLookup::{session_workspace,workspace_location}`.
+`WorkspaceLocation::Root(WorkspaceRoot)` comes from canonical backing, never
+from cwd. No authoritative snapshot returns LookupProblem::NotHydrated; a
+disconnected/unsupported/failed owner returns Unavailable. A known unowned
+session alone returns None and permits W12's explicit legacy session bridge.
+The workspace entry includes the exact owning project and validated host route;
+W12 owns the empty-workspace activation sink and pane-frame integration. Project
+settings navigation rechecks the same captured placement before opening it.
+
+W2's SessionInfo::parentage is interpreted only when the authenticated peer
+advertises its assigned SUBAGENT_RELATIONS feature. Root and Detached have no
+current parent; Attached carries its real SessionRef across nodes/workspaces.
+Missing receipts on pending/old peers and invalid parentage stay Unknown.
+Creator remains audit metadata. Registry membership cannot replace this check.
+W7's attention supplies unread/waiting/failed; missing/deleted sessions are
+omitted, not known-zero. Actual working phase is a separate session fact. Its
+new native bucket and current merged producer are still unreviewed, so no new
+status implementation or runtime readiness is claimed by this plan. Title/pin
+come directly from the registry; lifecycle never substitutes for attention.
+
+Reference: projects/workspace-structure.ts:53-116 joins each host's project and
+workspace records, including projects without workspaces. Its 161-179 placement
+fallback avoids treating an ambiguous project equivalence key as identity.
+Cross-host project equivalence is later presentation work; it cannot alter
+authorization, workspace membership or this stable placement key.
+
+The announced shared pane line was merged, retaining both layout and project
+action registration arms. Fast root size/boundary and whitespace checks passed;
+new merged-head native compilation and this runtime projection remain owed.
