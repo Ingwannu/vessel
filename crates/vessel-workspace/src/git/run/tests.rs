@@ -31,15 +31,12 @@ async fn output_past_its_limit_is_cut_and_said_so() {
 #[cfg(unix)]
 #[tokio::test]
 async fn hooks_run_only_when_asked_and_a_slow_run_is_stopped() {
-    use std::os::unix::fs::PermissionsExt;
-
     let sandbox = Sandbox::new();
     let repo = sandbox.repo("r");
     let git = sandbox.git().await;
     let marker = sandbox.path().join("hook-ran");
     let hook = repo.join(".git/hooks/pre-commit");
-    std::fs::write(&hook, format!("#!/bin/sh\ntouch '{}'\n", marker.display())).unwrap();
-    std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    Sandbox::executable(&hook, &format!("#!/bin/sh\ntouch '{}'\n", marker.display()));
     let commit = |message: &'static str| {
         git.command(&repo)
             .args(["commit", "-q", "--allow-empty", "-m", message])

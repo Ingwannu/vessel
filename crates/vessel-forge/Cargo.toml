@@ -28,6 +28,9 @@ tracing.workspace = true
 [dev-dependencies]
 axum.workspace = true
 tempfile.workspace = true
+# `write_executable`: the stand-in `gh` written so running it never meets
+# ETXTBSY.
+vessel-testkit.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "time"] }
 
 [lints]

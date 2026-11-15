@@ -54,6 +54,9 @@ pub(crate) struct Workspace {
     starts: u64,
     /// The code panel beside a session.
     pub(crate) code: code::CodePanel,
+    /// The sidebar's projects unfolded past their first rows ("All
+    /// projects (N)" pressed).
+    pub(crate) projects_unfolded: bool,
 }
 
 impl Workspace {
@@ -65,6 +68,7 @@ impl Workspace {
             start: None,
             starts: 0,
             code: code::CodePanel::new(window, cx),
+            projects_unfolded: false,
         }
     }
 }

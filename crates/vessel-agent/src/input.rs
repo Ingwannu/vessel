@@ -34,6 +34,7 @@ pub(crate) enum Command {
     Prompt {
         content: Vec<ContentBlock>,
         attachments: Attachments,
+        context: Option<crate::PromptContext>,
         reply: Reply,
     },
     CancelTurn {
@@ -111,6 +112,32 @@ impl AgentInput {
         self.call(|reply| Command::Prompt {
             content,
             attachments,
+            context: None,
+            reply,
+        })
+        .await
+    }
+
+    /// Send a visible question with transient node-prepared context.
+    /// Only the visible content becomes `TurnStarted`; context is consumed
+    /// by this one request, including when the provider refuses it.
+    ///
+    /// # Errors
+    /// As prompt, plus `ContextLimit` for an oversized provider request.
+    pub async fn prompt_context(
+        &self,
+        question: vessel_proto::automation::PromptText,
+        prefix: crate::PromptContext,
+    ) -> Result<(), InputError> {
+        // The only context-bearing constructor takes bounded plain text;
+        // final serialization cannot allocate from an unbounded block list.
+        let content = vec![ContentBlock::Text {
+            text: question.as_str().to_owned(),
+        }];
+        self.call(|reply| Command::Prompt {
+            content,
+            attachments: Attachments::new(),
+            context: Some(prefix),
             reply,
         })
         .await

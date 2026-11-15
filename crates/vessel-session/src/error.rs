@@ -103,10 +103,19 @@ pub enum SessionError {
     /// not offer `session/fork`, or it did not fork at the point.
     #[error("{}", fork_refusal(*.0))]
     ForkRefused(vessel_agent::ForkRefusal),
+    /// An agent's own conversations could not be listed
+    /// (`SessionRuntime::history`, protocol 17).
+    #[error(transparent)]
+    History(#[from] vessel_agent::HistoryError),
     /// The rewound agent did not start; the session goes on with its old
     /// conversation.
     #[error("the agent did not start at the point: {0}")]
     RewindFailed(String),
+    /// Another live session is on the agent's conversation this one would
+    /// start on, or starting on it (protocol 17, ADR 0053): two agents on
+    /// one transcript would corrupt it.
+    #[error("session {0} is already on that conversation; open it, or end it first")]
+    ConversationTaken(SessionId),
     /// An ended session cannot start again (protocol 10's
     /// `session.resume`).
     #[error("the session cannot start again: {0}")]
@@ -200,8 +209,25 @@ pub enum RemoveError {
 }
 
 impl SessionError {
+    /// An agent that did not start, as the session answers it: a fork its
+    /// direct driver refused before spawning is the adapters' refusal of
+    /// the same fork (`ForkRefused`, `unsupported`; ADR 0057), so a client
+    /// cannot tell which driver refused.
+    pub(crate) fn agent_not_started(error: vessel_agent::AgentError) -> Self {
+        if let vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(refusal)) = error
+        {
+            return Self::ForkRefused(refusal);
+        }
+        Self::StartAgent(error)
+    }
+
     /// The wire error code for this failure.
     #[must_use]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one arm per kind of failure, so a new kind must choose its code; the list is \
+                  the point"
+    )]
     pub const fn code(&self) -> ErrorCode {
         match self {
             // An added agent's program not found is its "not installed"
@@ -209,7 +235,15 @@ impl SessionError {
             Self::Launch(HarnessError::NotInstalled { .. } | HarnessError::AgentMissing { .. }) => {
                 ErrorCode::HarnessNotInstalled
             }
-            Self::Launch(HarnessError::StructuredUnavailable { .. } | HarnessError::NoTerminal { .. })
+            Self::Launch(
+                HarnessError::StructuredUnavailable { .. }
+                | HarnessError::NoTerminal { .. }
+                | HarnessError::NoDirect { .. },
+            )
+            | Self::StartAgent(
+                vessel_agent::AgentError::NoDriver(_)
+                | vessel_agent::AgentError::Refused(vessel_agent::LaunchRefusal::Fork(_)),
+            )
             | Self::Unsupported { .. }
             | Self::NoOptions
             | Self::Terminal(_)
@@ -217,8 +251,11 @@ impl SessionError {
             | Self::NotParked(ParkRefusal::Terminal | ParkRefusal::CannotResume)
             | Self::NotRewound(RewindRefusal::Terminal)
             | Self::ForkRefused(_)
+            | Self::History(vessel_agent::HistoryError::CannotList)
             | Self::Attachment(AttachmentError::NoLoader)
-            | Self::Input(InputError::CannotSteer) => ErrorCode::Unsupported,
+            | Self::Input(InputError::CannotSteer | InputError::ContextNotTaken) => {
+                ErrorCode::Unsupported
+            }
             Self::Launch(
                 HarnessError::NoSuchDirectory { .. }
                 | HarnessError::RelativeDirectory { .. }
@@ -230,12 +267,20 @@ impl SessionError {
             | Self::Delivery(DeliveryError::Empty)
             | Self::Queue(QueueError::NotNow | QueueError::TooLarge)
             | Self::Input(
-                InputError::InvalidContent(_)
+                InputError::ContextLimit
+            | InputError::InvalidContent(_)
                 | InputError::UnknownOption { .. }
                 | InputError::Option(_)
                 | InputError::InvalidAnswer { .. }
                 | InputError::AttachmentNotTaken { .. },
             )
+            | Self::History(vessel_agent::HistoryError::Refused(_))
+            // A choice a direct driver cannot launch with (ADR 0057), as a
+            // running session's option change it does not offer.
+            | Self::StartAgent(vessel_agent::AgentError::Refused(
+                vessel_agent::LaunchRefusal::Option(_)
+                | vessel_agent::LaunchRefusal::Conversation(_),
+            ))
             | Self::Attachment(
                 AttachmentError::TooMany { .. }
                 | AttachmentError::TooLarge { .. }
@@ -247,6 +292,11 @@ impl SessionError {
             | Self::StartAgent(_)
             | Self::McpFile(_)
             | Self::Probe(_)
+            | Self::History(
+                vessel_agent::HistoryError::Spawn(_)
+                | vessel_agent::HistoryError::Failed { .. }
+                | vessel_agent::HistoryError::TimedOut { .. },
+            )
             | Self::WakeFailed(_)
             | Self::RewindFailed(_) => ErrorCode::SpawnFailed,
             Self::Input(InputError::PermissionNotFound(_) | InputError::QuestionNotFound(_))
@@ -259,6 +309,7 @@ impl SessionError {
             // node's state, which `secret.set` changes.
             | Self::Launch(HarnessError::SecretMissing { .. })
             | Self::Moving
+            | Self::ConversationTaken(_)
             // Nothing waits on a parked session: an answer has no request.
             | Self::Parked
             | Self::NotParked(
@@ -340,7 +391,9 @@ impl From<InputError> for SessionError {
     fn from(error: InputError) -> Self {
         match error {
             InputError::Closed => Self::Ended,
-            refused @ (InputError::TurnInProgress
+            refused @ (InputError::ContextLimit
+            | InputError::ContextNotTaken
+            | InputError::TurnInProgress
             | InputError::InvalidContent(_)
             | InputError::PermissionNotFound(_)
             | InputError::PermissionSettled(_)
@@ -413,5 +466,37 @@ impl fmt::Display for InputKind {
             Self::AnswerPermission => "a permission answer",
             Self::AnswerQuestion => "an answer to a question",
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_agent::{AgentError, ForkRefusal, LaunchRefusal, OptionError};
+    use vessel_proto::ErrorCode;
+
+    use super::SessionError;
+
+    /// A direct driver's refusal before its agent starts (ADR 0057) is
+    /// answered as the ACP path answers the same problem.
+    #[test]
+    fn a_launch_refusal_is_answered_as_the_same_refusal_over_acp() {
+        let refused = |refusal| SessionError::agent_not_started(AgentError::Refused(refusal));
+        let fork = refused(LaunchRefusal::Fork(ForkRefusal::NotAtPoint));
+        assert!(matches!(
+            fork,
+            SessionError::ForkRefused(ForkRefusal::NotAtPoint)
+        ));
+        assert_eq!(fork.code(), ErrorCode::Unsupported);
+        let option = refused(LaunchRefusal::Option(OptionError::Unknown {
+            id: vessel_proto::OptionId::new("mode"),
+            offered: Vec::new(),
+        }));
+        assert_eq!(option.code(), ErrorCode::InvalidRequest);
+        let conversation = refused(LaunchRefusal::Conversation("/etc/passwd".to_owned()));
+        assert_eq!(conversation.code(), ErrorCode::InvalidRequest);
+        assert_eq!(
+            refused(LaunchRefusal::NoPrivateDir).code(),
+            ErrorCode::SpawnFailed
+        );
     }
 }

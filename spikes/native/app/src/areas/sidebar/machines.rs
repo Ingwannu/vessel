@@ -97,7 +97,7 @@ fn group(
     }
     for card in &listed.sessions {
         rows = rows.child(super::session_row::session_row(
-            card, None, shell, tokens, cx,
+            card, None, shell, tokens, touch, cx,
         ));
     }
     if listed.more > 0 {

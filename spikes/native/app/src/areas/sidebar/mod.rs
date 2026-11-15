@@ -39,12 +39,17 @@ use crate::shell::Shell;
 mod display;
 mod foot;
 mod machines;
+mod row_menu;
 mod session_row;
 mod statuses;
 
 /// A row's inset from the sidebar's padding (the page's 10, between the
 /// kit's 8 and 12 steps).
 const INSET: f32 = 10.0;
+/// The list heading closer to its list than the sidebar's gap: one
+/// `spacing::S1` taken back (a negative literal, since the workspace
+/// denies arithmetic on sizes).
+const HEADING_BACK: f32 = -4.0;
 
 /// The sidebar's own state: its tooltips, and where each unreachable
 /// machine's line is drawn (by machine name).
@@ -56,6 +61,8 @@ pub(crate) struct SidebarState {
     page_tips: Tooltips,
     /// The Display menu.
     display: display::DisplayMenu,
+    /// A session row's menu.
+    rows: row_menu::RowMenu,
     /// Its right edge, dragged to resize it.
     pub(crate) edge: PanelEdge,
 }
@@ -67,6 +74,7 @@ impl SidebarState {
             places: RefCell::new(HashMap::new()),
             page_tips: Tooltips::new(),
             display: display::DisplayMenu::new(window, cx),
+            rows: row_menu::RowMenu::new(cx),
             edge: PanelEdge::new(),
         }
     }
@@ -149,7 +157,7 @@ pub(crate) fn render(
     } else {
         match view.group {
             Grouping::Machine => machines::groups(view, shell, tokens, touch, cx),
-            Grouping::Status => statuses::groups(view, shell, tokens, cx),
+            Grouping::Status => statuses::groups(view, shell, tokens, touch, cx),
         }
     };
     div()
@@ -190,6 +198,7 @@ pub(crate) fn render(
         .child(foot::foot(shell, tokens, cx))
         .children(shell.areas.sidebar.tips.render(tokens))
         .children(display::menu(shell, tokens, window, cx))
+        .children(row_menu::render(shell, tokens, touch, window, cx))
 }
 
 /// The list's heading, as Paseo's section header: what the list is
@@ -207,7 +216,7 @@ fn heading(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
         .items_center()
         .pl(px(INSET))
         // Closer to its list than the sidebar's gap (`spacing::S1` back).
-        .mb(px(-4.0))
+        .mb(px(HEADING_BACK))
         .child(div().flex_1().child(kicker(title, tokens)))
         .child(display::trigger(shell, tokens, cx))
 }
