@@ -14,7 +14,7 @@ use vessel_app_kit::{
 };
 use vessel_app_view::{connection::ConnectionContext, devices::Ticket, usage::OptionsContext};
 
-const OPTIONS_WIDTH: f32 = 340.0;
+const OPTIONS_WIDTH: u16 = 340;
 
 #[derive(Debug, Clone)]
 pub(super) struct Opening {

@@ -334,3 +334,8 @@ A route/agent switch before redraw cannot retarget an old notice to the new agen
 Pure tests cover changed agent, same-node reconnect, binding replacement, closed
 reader and absent active conversation. The existing node notice remains factual
 saved-account data; it still does not diagnose a stopped turn or resume prompts.
+The first popover consumer test at `163cbb7c6` stopped during compilation because
+the shared validated Width constructor takes u16, whereas the local authored
+constant was f32. The constant now uses the constructor's exact input type with
+no cast or geometry override. No runtime or capture proof is inferred from that
+failed run; the next consumer suite includes the newer picker/notice admissions.
