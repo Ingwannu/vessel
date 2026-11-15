@@ -63,3 +63,6 @@ diagnostic-flow-connection-changed = 머신 연결이 변경되었습니다. 보
 
 # Availability is resolved by each explicit host report, never inferred from this badge.
 diagnostic-flow-host-dependent = 머신에 따라 다름
+
+# Collection admission refused because this node is shutting down; not a missing API.
+diagnostic-flow-stopping = 머신이 종료 중입니다. 다시 연결한 뒤 진단 정보를 수집하세요.

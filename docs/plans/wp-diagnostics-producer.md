@@ -106,3 +106,10 @@ app/link adapter. View all-target Clippy on `07ea44bd` then found three redundan
 test qualifications; these are removed without weakening any assertion/lint.
 Its failed run remains evidence, not a compile/test success. No full consumer
 validation is claimed before the guarded adapter lands.
+
+The typed Stopping admission refusal has a distinct recovery sentence. Mapping
+it to the old build-unavailable problem would falsely claim the API is missing.
+Only ErrorCode::Unavailable with the diagnostics detail selects Busy/Stopping;
+a contradictory detail never overrides an authority failure code. All Problem
+variants have whole EN/KO goldens; the framing acceptance before this small
+addition remains limited to its previously reviewed FTL delta.

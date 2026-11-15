@@ -149,6 +149,7 @@ fn all_failure_categories_remain_explicit_and_a_zero_host_report_is_copyable() {
         Problem::Offline,
         Problem::ConnectionChanged,
         Problem::Busy,
+        Problem::Stopping,
         Problem::Unavailable,
         Problem::Unsupported,
         Problem::Forbidden,
@@ -156,6 +157,7 @@ fn all_failure_categories_remain_explicit_and_a_zero_host_report_is_copyable() {
         Problem::InvalidReply,
         Problem::Failed,
         Problem::Exhausted,
+        Problem::TooLarge,
     ];
     let mut tickets = Tickets::default();
     for problem in failures {

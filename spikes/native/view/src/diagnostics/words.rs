@@ -11,6 +11,7 @@ pub fn problem(problem: Problem, words: &'static Translator) -> &'static str {
         Problem::ConnectionChanged => words.connection_changed(),
         Problem::Busy => words.busy(),
         Problem::Unavailable => words.unavailable(),
+        Problem::Stopping => words.stopping(),
         Problem::Unsupported => words.unsupported(),
         Problem::Forbidden => words.forbidden(),
         Problem::TimedOut => words.timed_out(),
@@ -61,6 +62,11 @@ mod tests {
                 Problem::Busy,
                 "Diagnostics is busy. Try again when the current read finishes.",
                 "진단이 진행 중입니다. 현재 조회가 끝나면 다시 시도하세요.",
+            ),
+            (
+                Problem::Stopping,
+                "The host is stopping. Reconnect before collecting diagnostics again.",
+                "머신이 종료 중입니다. 다시 연결한 뒤 진단 정보를 수집하세요.",
             ),
             (
                 Problem::Unavailable,

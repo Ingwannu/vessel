@@ -64,6 +64,9 @@ pub enum Problem {
     /// A bounded collector has no free permit.
     #[error("diagnostics is busy")]
     Busy,
+    /// The node is shutting down and refuses new collection work.
+    #[error("node is stopping")]
+    Stopping,
     /// A producer has not been registered.
     #[error("diagnostic API is not available in this build")]
     Unavailable,
