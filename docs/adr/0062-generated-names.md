@@ -781,3 +781,34 @@ stated format choice, not a claim of identical whitespace classification.
 The node material/prompt/result module is staged under cfg(test) until
 shared-accessor wiring supplies the real caller. This edge performs no
 file or socket I/O, discovers no route and mutates no session.
+
+### One bounded completion transport
+
+[Decision Log]
+- Purpose and intent: bound the one metadata HTTP exchange independently
+  of the proxy's long stream budgets and retries.
+- Existing implementation and constraints: vessel-llm Client already owns
+  TLS, the declared endpoint, credential headers, redirect/proxy refusal,
+  response-body bounds and Redactor. Limits are fixed when it is built.
+  Reusing the proxy instance would inherit its longer bounds and retries.
+- Alternatives considered: another HTTP stack, changing proxy limits, or
+  a trait with one production implementation. All introduce a second
+  transport policy or change unrelated model traffic.
+- Choice: the node constructs one dedicated existing Client with the named
+  metadata policy and retains its pool. A private wrapper accepts only
+  that policy, adds the total title-call timeout around send and body,
+  then delegates whole-response decoding to vessel-llm. Retries are off.
+- Why this choice: the same existing transport enforces the byte bound
+  while reading, before complete decoding. Endpoint and credential are
+  passed in by the later route/permission owner, never discovered here.
+- Effects: provider Failure is retained typed behind a sealed diagnostic
+  wrapper because its message may quote input; only its class is exposed.
+  Deadline keeps its typed elapsed cause. Complete decode results keep
+  reported usage and stop even when content is unusable. The only test
+  alternatives are cfg(test) recorded and stalled arms; product builds
+  cannot answer with a fake. Tests perform no network or real-key access.
+
+This client module remains staged under the generation module's cfg(test)
+until shared-accessor wiring installs its production caller. It does not
+choose a route, read a key, acquire session permits, record a ModelCall or
+apply a title; the later owner must do those operations in that order.

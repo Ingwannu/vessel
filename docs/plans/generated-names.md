@@ -556,3 +556,19 @@ only gain the provenance DROP before their own SQL. A separate authorized
 test repair will remove assumptions that a particular migration is the
 latest one. Generated TypeScript must be regenerated before the combined
 gate. That gate and corrected-accessor integration are still owed.
+
+### Dedicated completion transport: contract and resume point
+
+Decision: modify/reuse vessel-llm Client, Limits, Answer and complete decode.
+Build a dedicated client once with named metadata connect/total bounds,
+MAX_COMPLETION_BYTES and no retries; retain its pool. A private wrapper
+rejects another policy before use and wraps send plus body in the total
+deadline. Do not mutate the proxy client or duplicate HTTP/TLS behavior.
+Seal typed provider failures so Debug/Display/error chains cannot quote
+model content. Return complete accounting separately from text usability.
+Adjacent recorded/stalled tests owe policy rejection, one attempt on
+success/refusal/transport failure, total deadline, body-cap refusal, usage
+retention, redaction and sealed causes. No real provider, route/key read,
+session permit, record append or actor mutation belongs to this slice.
+The module stays cfg(test) until production wiring; that wiring and its
+whole product gate remain required before the module can land.
