@@ -233,3 +233,15 @@ Chat translation base arrives. Pending approval and question forms are owned by
 the approvals package; assistant link/image/copy actions by the composer package.
 Plugin items retain opaque data and show an explicit unavailable-contribution
 fallback until the plugin runtime supplies its validated renderer.
+
+### Shared timeline glyph decision
+
+Existing kit `Glyph` owns registration, paths, vectors and raster tests. The
+coordinator assigned W10 the four missing glyphs, so the native renderers can
+reuse one asset source instead of keeping unrelated icon fallbacks. Wrench, Eye,
+MicVocal and Scissors append to the inventory; existing vectors are unchanged.
+Source is Lucide itself at immutable revision `55782beff3a0133df79c417eb68f96e8f19e2404`,
+not Paseo's files. The ISC notice is retained in `kit/licenses/lucide.txt` and the
+only adaptation is the existing kit stroke width. No control or screen asset is
+introduced. Pending canonical tool rendering keeps its explicit fallback until
+its typed consumer is integrated.

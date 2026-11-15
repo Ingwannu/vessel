@@ -214,10 +214,18 @@ pub enum Glyph {
     PanelLeft,
     /// The compact sidebar's two full bars and one short bar, painted 16 by 12.
     MenuCompact,
+    /// A tool's generic activity (Lucide's `Wrench`).
+    Wrench,
+    /// Reading a file (Lucide's `Eye`).
+    Eye,
+    /// Voice tool activity (Lucide's `MicVocal`).
+    MicVocal,
+    /// Context compaction (Lucide's `Scissors`).
+    Scissors,
 }
 
 /// Every glyph, for the asset source.
-const ALL: [Glyph; 85] = [
+const ALL: [Glyph; 89] = [
     Glyph::Mark,
     Glyph::Minimize,
     Glyph::Maximize,
@@ -303,6 +311,10 @@ const ALL: [Glyph; 85] = [
     Glyph::PanelRight,
     Glyph::PanelLeft,
     Glyph::MenuCompact,
+    Glyph::Wrench,
+    Glyph::Eye,
+    Glyph::MicVocal,
+    Glyph::Scissors,
 ];
 
 impl Glyph {
@@ -395,6 +407,10 @@ impl Glyph {
             Self::Steer => "kit/steer.svg",
             Self::Grip => "kit/grip.svg",
             Self::Remove => "kit/remove.svg",
+            Self::Wrench => "kit/wrench.svg",
+            Self::Eye => "kit/eye.svg",
+            Self::MicVocal => "kit/mic-vocal.svg",
+            Self::Scissors => "kit/scissors.svg",
         }
     }
 }
@@ -463,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn archive_and_git_glyphs_are_registered_and_unclipped() {
+    fn action_and_timeline_glyphs_are_registered_and_unclipped() {
         for glyph in [
             Glyph::Trash2,
             Glyph::ArchiveRestore,
@@ -472,8 +488,13 @@ mod tests {
             Glyph::Commit,
             Glyph::Undo2,
             Glyph::Split,
+            Glyph::Wrench,
+            Glyph::Eye,
+            Glyph::MicVocal,
+            Glyph::Scissors,
         ] {
             assert_eq!(view_box(glyph.svg()), Some([0.0, 0.0, 24.0, 24.0]));
+            assert_eq!(Assets.list(glyph.path()).unwrap(), [glyph.path().into()]);
             let bytes = Assets.load(glyph.path()).unwrap().unwrap();
             let tree =
                 resvg::usvg::Tree::from_data(&bytes, &resvg::usvg::Options::default()).unwrap();

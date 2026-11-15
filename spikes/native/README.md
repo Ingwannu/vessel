@@ -1036,3 +1036,10 @@ with `VESSEL_CONFIG_DIR`); it can read local history, cannot see member
 identities and is refused sync/leave. `node pair --read-only` creates that
 credential through the same public invitation RPC; no credential or link is
 written to the fixture report.
+
+Timeline uses shared `Glyph::{Wrench, Eye, MicVocal, Scissors}` assets, appended
+without changing existing glyph geometry. Their Lucide source revision and ISC
+notice are in `kit/licenses/lucide.txt`; only the stroke uses the kit's existing
+1.5-unit width. The asset regression test rasterizes these vectors and checks
+registration, visible pixels and a clear outer rim. Conversation renderers never
+embed their own SVG.
