@@ -46,6 +46,7 @@ impl Prepared {
         desired: &EffectiveDesiredImage,
         cancellation: &CancellationToken,
     ) -> Result<Self, Error> {
+        root.check_mount(&stage.folder)?;
         let changes = desired.changes(before);
         let mut steps = Vec::new();
         for (index, change) in changes.into_iter().enumerate() {

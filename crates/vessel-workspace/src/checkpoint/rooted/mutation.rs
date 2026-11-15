@@ -50,6 +50,7 @@ impl Root {
                 Err(error) => return Err(io::Error::from(error).into()),
             };
             let found = child.metadata()?;
+            self.check_mount(&child)?;
             use std::os::unix::fs::MetadataExt as _;
             if found.dev() != self.identity.device || found.uid() != self.identity.owner {
                 return Err(CheckpointError::UnsupportedMetadata.into());
@@ -62,6 +63,7 @@ impl Root {
     fn same_root(&self) -> Result<(), Error> {
         let current = Self::open(&self.path)?;
         if current.identity.device != self.identity.device
+            || current.mount != self.mount
             || current.identity.inode != self.identity.inode
             || current.identity.owner != self.identity.owner
             || current.identity.group != self.identity.group

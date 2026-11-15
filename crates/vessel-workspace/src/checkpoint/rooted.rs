@@ -1,8 +1,10 @@
 //! Handle-relative no-follow traversal, identity and unsupported ACL refusal.
 
+mod mount;
 pub(super) mod mutation;
 
 use super::Error;
+use mount::MountId;
 use rustix::fs::{CWD, Mode, OFlags};
 use std::{
     fs::{File, Metadata},
@@ -63,6 +65,7 @@ impl Identity {
 #[derive(Debug)]
 pub(super) struct Root {
     file: File,
+    mount: MountId,
     identity: Identity,
     path: std::path::PathBuf,
 }
@@ -76,16 +79,24 @@ impl Root {
         );
         let metadata = file.metadata()?;
         refuse_attributes(&file)?;
+        let mount = MountId::of(&file)?;
         Ok(Self {
             identity: Identity::of(&metadata),
             file,
+            mount,
             path: path.to_path_buf(),
         })
     }
     pub(super) fn revalidate(&self) -> Result<(), Error> {
         let current = Self::open(&self.path)?;
-        if current.identity != self.identity {
+        if current.identity != self.identity || current.mount != self.mount {
             return Err(CheckpointError::CaptureUnstable.into());
+        }
+        Ok(())
+    }
+    pub(in crate::checkpoint) fn check_mount(&self, file: &File) -> Result<(), Error> {
+        if MountId::of(file)? != self.mount {
+            return Err(CheckpointError::UnsafeEntry.into());
         }
         Ok(())
     }
@@ -119,6 +130,7 @@ impl Root {
                 Err(error) => return Err(io::Error::from(error).into()),
             };
             let metadata = opened.metadata()?;
+            self.check_mount(&opened)?;
             if metadata.dev() != self.identity.device {
                 return Err(CheckpointError::UnsafeEntry.into());
             }
