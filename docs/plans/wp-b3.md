@@ -169,3 +169,12 @@ require both image and evidence. Preview persistence additionally requires the
 selected capture and current preview to have the same PhysicalRoot and ignore
 policy digest; current root/file access observations still freeze separately
 for stale admission. These new storage and runner changes need scoped proof.
+
+RecoveryRequired is no longer a permanently unresolvable metadata pin. A separate
+recovery writer command may commit RolledBack only after a whole observed before
+image matches content/metadata, root/access/ignore policy and every original
+object identity. It cannot report Restored or accept an equal-content replacement
+inode. Resolution is idempotent for the same durable rollback decision; different
+terminal decisions refuse. The caller must hold root exclusion through actual
+verification and the FULL-sync acknowledgement. Startup filesystem replay and
+post-resolution physical garbage collection still need production assembly.

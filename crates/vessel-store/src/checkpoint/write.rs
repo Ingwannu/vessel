@@ -21,7 +21,7 @@ pub(crate) enum CheckpointWrite {
     },
     Candidate {
         key: CaptureKey,
-        snapshot: ObservedSnapshot,
+        snapshot: Box<ObservedSnapshot>,
     },
     Activate {
         key: CaptureKey,
@@ -49,6 +49,11 @@ pub(crate) enum CheckpointWrite {
     Outcome {
         operation: Box<Operation>,
         result: RestoreOutcome,
+    },
+    Recovered {
+        operation: Box<Operation>,
+        observed: ObservedSnapshot,
+        reason: CheckpointError,
     },
     InvalidateCandidates,
     GarbageCleaned {
@@ -93,6 +98,11 @@ pub(crate) fn apply(connection: &Connection, write: CheckpointWrite) -> Result<(
         CheckpointWrite::Outcome { operation, result } => {
             journal::outcome(connection, &operation, &result)
         }
+        CheckpointWrite::Recovered {
+            operation,
+            observed,
+            reason,
+        } => super::recovery::resolved(connection, &operation, &observed, reason),
         CheckpointWrite::InvalidateCandidates => journal::invalidate_candidates(connection),
         CheckpointWrite::GarbageCleaned { object } => super::garbage::cleaned(connection, object),
     }

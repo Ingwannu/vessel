@@ -897,3 +897,159 @@ fn preview_refuses_changed_capture_policy_and_a_different_physical_root() {
     }
     journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
 }
+
+#[test]
+fn checkpoint_recovery_resolves_only_a_verified_whole_before_image_and_never_success() {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{IgnoreFingerprint, ObservedSnapshot, SnapshotEvidence},
+    };
+    let (connection, key) = fixture();
+    let plan = ready_plan(&connection, key);
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let operation = journal::admit(
+        &connection,
+        &plan,
+        RestoreId::random(),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    super::paths::prepare(&connection, &operation).unwrap();
+    super::recovery::pending(&connection).unwrap();
+    let wrong = ObservedSnapshot::new(
+        plan.current.clone(),
+        SnapshotEvidence::new(
+            plan.evidence.physical(),
+            plan.evidence.root(),
+            IgnoreFingerprint::new(BlobHash::from_bytes([9; 32])),
+            Vec::new(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert!(matches!(
+        super::recovery::resolved(
+            &connection,
+            &operation,
+            &wrong,
+            CheckpointError::CaptureUnstable
+        ),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    let observed = ObservedSnapshot::new(plan.current.clone(), plan.evidence.clone()).unwrap();
+    super::recovery::resolved(
+        &connection,
+        &operation,
+        &observed,
+        CheckpointError::CaptureUnstable,
+    )
+    .unwrap();
+    // A lost final acknowledgement can retry the same recovery decision.
+    super::recovery::resolved(
+        &connection,
+        &operation,
+        &observed,
+        CheckpointError::CaptureUnstable,
+    )
+    .unwrap();
+    let result = journal::status(&connection, key.session, operation.id, plan.owner)
+        .unwrap()
+        .outcome;
+    assert_eq!(
+        result,
+        RestoreOutcome::RolledBack {
+            reason: CheckpointError::CaptureUnstable
+        }
+    );
+    assert!(matches!(
+        super::recovery::resolved(
+            &connection,
+            &operation,
+            &observed,
+            CheckpointError::StorageFull
+        ),
+        Err(Error::Refused(CheckpointError::RestoreIdConflict))
+    ));
+}
+
+#[test]
+fn checkpoint_recovery_refuses_equal_contents_on_a_replacement_inode() {
+    use vessel_proto::{
+        BlobHash,
+        checkpoint::{
+            FileFingerprint, ObjectFingerprint, ObservedEntry, ObservedPresence, ObservedSnapshot,
+            SnapshotEvidence,
+        },
+    };
+    let (connection, key) = fixture();
+    let (image, metadata) = selected_files(1);
+    let original = super::tests::observed(image.clone());
+    journal::keep_candidate(&connection, key, &original).unwrap();
+    super::publication::activate(
+        &connection,
+        key,
+        vessel_proto::checkpoint::CheckpointId::random(),
+    )
+    .unwrap();
+    let plan = Plan {
+        id: RestorePlanId::random(),
+        key,
+        owner: CheckpointOwner::LocalOwner,
+        current: image.clone(),
+        evidence: original.evidence().clone(),
+        desired: image.effective(&image, metadata).unwrap(),
+        expires: DateTime::UNIX_EPOCH
+            .checked_add_signed(
+                chrono::TimeDelta::from_std(vessel_proto::checkpoint::CHECKPOINT_PREVIEW_LIFETIME)
+                    .unwrap(),
+            )
+            .unwrap(),
+    };
+    journal::put_plan(&connection, &plan, DateTime::UNIX_EPOCH).unwrap();
+    let operation = journal::admit(
+        &connection,
+        &plan,
+        RestoreId::random(),
+        DateTime::UNIX_EPOCH,
+    )
+    .unwrap();
+    super::paths::prepare(&connection, &operation).unwrap();
+    super::recovery::pending(&connection).unwrap();
+    let path = plan.evidence.entries().first().unwrap().path.clone();
+    let evidence = SnapshotEvidence::new(
+        plan.evidence.physical(),
+        plan.evidence.root(),
+        plan.evidence.ignore(),
+        vec![ObservedEntry {
+            path,
+            presence: ObservedPresence::Present {
+                full: FileFingerprint::new(BlobHash::from_bytes([9; 32])),
+                object: ObjectFingerprint::new(BlobHash::from_bytes([9; 32])),
+            },
+        }],
+    )
+    .unwrap();
+    let replacement = ObservedSnapshot::new(image, evidence).unwrap();
+    assert!(matches!(
+        super::recovery::resolved(
+            &connection,
+            &operation,
+            &replacement,
+            CheckpointError::CaptureUnstable
+        ),
+        Err(Error::Refused(CheckpointError::RecoveryPending))
+    ));
+    assert!(matches!(
+        journal::status(&connection, key.session, operation.id, plan.owner)
+            .unwrap()
+            .outcome,
+        RestoreOutcome::RecoveryRequired { .. }
+    ));
+    super::recovery::resolved(
+        &connection,
+        &operation,
+        &original,
+        CheckpointError::CaptureUnstable,
+    )
+    .unwrap();
+}

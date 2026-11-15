@@ -581,3 +581,15 @@ physical root into RecoveryPending admission before starting agents or writers.
 Only verified physical rollback plus durable journal resolution clears that pin.
 The in-memory gate alone is not restart reconciliation or proof that all callers
 have been wired through it.
+
+Recovery resolution is a separate journal command. It requires an observed whole
+before image with the same physical root/access/ignore policy and original
+object identity for every path; equal bytes at another inode do not resolve a
+conflict. Only then may the shared FULL-sync writer atomically mark the path
+journal restored and commit RolledBack. Generic terminal updates cannot promote
+RecoveryRequired to Restored. A repeat of the same recorded rollback result is
+idempotent; a different terminal decision is refused. The root lease stays held
+through this acknowledgement, before unpinning root admission or garbage.
+Capture generations are also bounded at the exact JavaScript integer ceiling,
+which fits SQLite's signed INTEGER and prevents a protocol fence being rounded.
+Exhaustion refuses a new generation rather than reusing or wrapping a lease.

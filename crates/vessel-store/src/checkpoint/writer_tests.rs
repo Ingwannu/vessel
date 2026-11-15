@@ -98,7 +98,7 @@ async fn publish_capture(store: &Store, plan: &Plan) {
     store
         .checkpoint_write(CheckpointWrite::Candidate {
             key: plan.key,
-            snapshot: super::tests::observed(plan.desired.image().clone()),
+            snapshot: Box::new(super::tests::observed(plan.desired.image().clone())),
         })
         .await
         .unwrap();

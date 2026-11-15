@@ -27,6 +27,9 @@ pub enum Boundary {
 #[serde(try_from = "u64", into = "u64")]
 pub struct CaptureGeneration(u64);
 impl CaptureGeneration {
+    /// Exact integer ceiling shared by SQLite persistence and JavaScript peers.
+    /// Going beyond it would round a fence on the wire instead of rejecting it.
+    pub const MAX: Self = Self(9_007_199_254_740_991);
     /// Initial lease for a coordinator incarnation.
     pub const FIRST: Self = Self(1);
     /// Exhaustion refuses another capture rather than reusing a stale fence.
@@ -36,8 +39,8 @@ impl CaptureGeneration {
     pub fn next(self) -> Result<Self, CheckpointError> {
         self.0
             .checked_add(1)
-            .map(Self)
             .ok_or(CheckpointError::GenerationExhausted)
+            .and_then(Self::try_from)
     }
 }
 impl TryFrom<u64> for CaptureGeneration {
@@ -45,6 +48,8 @@ impl TryFrom<u64> for CaptureGeneration {
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         if value == 0 {
             Err(CheckpointError::StaleCapture)
+        } else if value > Self::MAX.0 {
+            Err(CheckpointError::GenerationExhausted)
         } else {
             Ok(Self(value))
         }
@@ -175,4 +180,34 @@ pub enum RestoreOutcome {
         /// Query this operation instead of retrying blindly.
         restore: RestoreId,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn checkpoint_generation_never_rounds_or_overflows_its_persistent_wire_fence() {
+        assert_eq!(
+            CaptureGeneration::try_from(0),
+            Err(CheckpointError::StaleCapture)
+        );
+        assert_eq!(
+            CaptureGeneration::MAX.next(),
+            Err(CheckpointError::GenerationExhausted)
+        );
+        let maximum = u64::from(CaptureGeneration::MAX);
+        assert_eq!(
+            CaptureGeneration::try_from(maximum),
+            Ok(CaptureGeneration::MAX)
+        );
+        assert_eq!(
+            CaptureGeneration::try_from(maximum.checked_add(1).unwrap()),
+            Err(CheckpointError::GenerationExhausted)
+        );
+        assert!(serde_json::from_str::<CaptureGeneration>(&u64::MAX.to_string()).is_err());
+        assert_eq!(
+            serde_json::from_str::<CaptureGeneration>(&maximum.to_string()).unwrap(),
+            CaptureGeneration::MAX
+        );
+    }
 }
