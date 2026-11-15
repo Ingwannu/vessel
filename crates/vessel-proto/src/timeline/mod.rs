@@ -8,6 +8,7 @@ mod identity;
 mod item;
 mod measure;
 mod permission;
+mod plan;
 mod question;
 mod question_reply;
 mod receipt;
@@ -17,8 +18,8 @@ mod scope;
 pub use detail::*;
 pub use identity::{
     ClientMessageId, ExternalAgentId, ExternalHostId, ExternalThreadId, ExternalTurnId,
-    MAX_TIMELINE_IDENTITY_BYTES, PluginItemId, PluginKind, TimelineIdentityError, TimelineName,
-    TimelinePluginId, TimelineTaskId,
+    MAX_TIMELINE_IDENTITY_BYTES, PlanProposalId, PluginItemId, PluginKind, TimelineIdentityError,
+    TimelineName, TimelinePluginId, TimelineTaskId,
 };
 pub use item::*;
 pub use measure::{DetailCount, DetailIndex, DetailOffset, ToolByteCount, ToolExitCode};
@@ -45,3 +46,5 @@ use crate::ProtocolVersion;
 pub const TIMELINE_PARITY: Option<ProtocolVersion> = None;
 
 pub use scope::ToolCallScope;
+
+pub use plan::*;

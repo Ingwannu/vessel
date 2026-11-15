@@ -189,6 +189,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("PairingLink", Alias::Secret),
     ("PermissionId", Alias::Handle),
     ("PermissionOptionId", Alias::Handle),
+    ("PlanProposalId", Alias::Handle),
+    ("PlanText", Alias::Content),
     ("PluginItemId", Alias::Handle),
     ("PluginKind", Alias::Named),
     ("PluginTimelineVersion", Alias::Quantity),

@@ -327,3 +327,27 @@ difference: preserving an update without attaching it is preferable to presentin
 it as evidence about different work. Old peers receive a readable log stand-in
 for such updates; other scope fields are removed with all optional canonical
 fields. These observations never select a permission option or authorize work.
+
+### Provider-owned plan decisions (W22 / W23 boundary)
+
+A non-wire `AgentOutput::PlanProposal` is the sole producer seam for synthetic
+plan approval. Its bounded `PlanText` (64 KiB normalized UTF-8) and exact
+`PlanProposalKey { thread, turn, source }` come from W22's actual successful root
+turn. `PlanProposalSource::CompletedItem { item }` preserves a validated native
+item id; `LegacyTurnPlan` explicitly has no native item id. Legacy fallback is
+permitted only while the provider reports plan collaboration mode. No title,
+Markdown heuristic, foreign/failed/interrupted turn or fabricated item id creates
+an approval. W23 assigns the human-facing `PermissionId` and maps only its exact
+owned offered option ids to `PlanDecision`.
+
+W22 owns collaboration mode, the actual implement/resume transition and provider
+implementation prompt. `DecidePlan` echoes the complete proposal key and an
+explicit `Dismiss`, `Implement` or `ImplementResume`. Resume is offered only from
+`PlanResumeAvailability::Available`. `PlanDecisionReply::Accepted` echoes both key
+and decision only after native acceptance. Typed pre-effect refusal preserves the
+pending state; ambiguous external effects return `OutcomeUnknown` and cannot be
+resent under that proposal. Only a matching accepted result permits W23 to emit
+and durably acknowledge permission resolution. Plan requests outlive their source
+turn, while loss of their live provider owner cannot leave an actionable card.
+This source contract does not claim that the driver or actor implementation has
+passed; their scoped tests and combined V3 review remain required.

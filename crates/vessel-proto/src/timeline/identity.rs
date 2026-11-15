@@ -120,6 +120,11 @@ identity!(
     "A provider's stable task id, independent of task text or list position."
 );
 
+identity!(
+    PlanProposalId,
+    "The actual bounded native Plan item id, never an approval capability."
+);
+
 #[cfg(test)]
 mod tests {
     use super::*;
