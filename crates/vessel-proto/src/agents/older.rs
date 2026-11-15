@@ -227,6 +227,12 @@ impl Reply {
             | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
+            // Pending CLI rows are rejected by admission before any older peer receives them.
+            | Self::ListHostRegistrations(_)
+            | Self::AddHostRegistration(_)
+            | Self::UpdateHostRegistration(_)
+            | Self::RemoveHostRegistration(_)
+            | Self::CaptureTerminal(_)
             | Self::ListScripts(_)
             | Self::RunScript(_)
             | Self::RestartScript(_)

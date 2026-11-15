@@ -283,3 +283,16 @@ aggregate metadata is capped at 16 KiB and 256 entries as a stated resource admi
 Control characters in host annotations are a stated CLI/terminal-safety refusal. Capture line
 indices accept signed 64-bit integers and reject trailing nonnumeric text (Paseo parseInt
 would accept it); this is a deliberate strict-input difference.
+
+## Capture engine handoff and first Quality B check
+
+Coordinator ADR0095 ruling assigns the sole pure root `vessel-terminal-screen` engine to C2.
+The staged vt100 adapter and tests at c0b9d71c are measurement input only; the final node
+actor must consume C2's shared core and retain only channel/PTY ordering glue. Native view,
+restore/query and CLI capture must share that one interpretation. No engine has passed the
+comparison yet. This supersedes the provisional direct session dependency described above.
+
+The first Quality B narrow check on c0b9d71c failed before downstream compilation: the
+CaptureLineCount accessor accidentally declared Option despite its total u32 value, and two
+older-peer reply projections lacked the five new pending variants. Correcting these changes
+no wire shape; pending admission still refuses the calls until integration assigns a version.

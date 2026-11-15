@@ -27,7 +27,7 @@ impl CaptureLineCount {
     }
     /// Consumers can compare counts without interpreting serialized text.
     #[must_use]
-    pub const fn get(self) -> Option<u32> {
+    pub const fn get(self) -> u32 {
         self.0
     }
 }
