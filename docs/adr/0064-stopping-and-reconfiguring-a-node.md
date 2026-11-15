@@ -795,3 +795,15 @@ not decoded into an unbounded String. A non-Unicode personal file is a
 preserved difference; the comparison can also finish against an endless
 reader. Only new validated templates are written. This changes installation
 comparison behavior; no independent reporting-only refactor is included.
+
+
+## Proposed process-mechanism ownership amendment
+
+ADR 0001's proposed node-control amendment replaces the earlier no-new-edge
+assumption for the following process-control phases only. The existing
+store-facing `NodeLock` contract stays unchanged while the generic kernel
+query moves to proc. Store-to-proc is added with that behavior-preserving
+move; CLI-to-proc is added only with the real caller. No external dependency
+or wire change is proposed. The separate descriptor/generation/namespace
+verification phase must not grant signal authority from a kernel PID alone.
+The documents-only contract adds neither an edge nor process-control code.

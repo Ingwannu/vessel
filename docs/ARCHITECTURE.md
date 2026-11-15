@@ -1352,3 +1352,21 @@ probe or automatic relay activation is performed. Existing Admin guards run
 first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
+
+
+## Planned node-control process boundary (proposed)
+
+The proposed amendment in ADR 0001 moves the generic selected-file Linux
+lock observation from store into proc. Store retains `NodeLock`, its data
+layout, record handling and caller-facing API; proc owns only OS mechanisms.
+The move adds `vessel-store -> vessel-proc` in its implementation commit.
+The later real force/restart caller adds `vessel-cli -> vessel-proc` in its
+own commit. These are planned edges: the active table above and manifests
+stay unchanged in the documents-only contract, so the boundary check still
+compares the current implementation exactly.
+
+A kernel PID is never signal authority on its own. Descriptor possession,
+process generation and namespace verification precede the separate CLI
+caller; authenticated directory binding and session consent remain in the
+CLI. ADR 0001 records rejected alternatives and the tests owed by each step;
+ADR 0064 retains the product contract and platform refusals.

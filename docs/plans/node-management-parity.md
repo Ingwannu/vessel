@@ -395,3 +395,22 @@ not decoded into an unbounded String. A non-Unicode personal file is a
 preserved difference; the comparison can also finish against an endless
 reader. Only new validated templates are written. This changes installation
 comparison behavior; no independent reporting-only refactor is included.
+
+
+## Process-mechanism ownership contract (slice 2p0)
+
+`[modify]`: reuse proc's existing OS inspection and Nix signal ownership.
+ADR 0001 and ARCHITECTURE record a proposed Store-to-Proc edge for the pure
+move and a CLI-to-Proc edge only for the eventual real caller. Active map
+rows and manifests change together at those later steps; this contract is
+papers only. ADR 0064 names the change to its earlier no-new-edge assumption.
+No proc source, PID accessor, signal, wire field or external dependency is
+added here.
+
+Review of the contract precedes any proc code. Then the move, descriptor/
+generation/namespace proof, and actual caller are separate reviewed commits
+with separate whole gates. Existing NodeLock behavior and typed causes stay;
+private assertions move with their rule rather than becoming public getters.
+The ADR lists each phase's test obligations, remaining numeric-signal race
+and platform limits. Deadline-safe local reads and service observations can
+continue independently while the contract is reviewed.
