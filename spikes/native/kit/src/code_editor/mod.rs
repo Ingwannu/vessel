@@ -179,10 +179,10 @@ impl CodeEditor {
     /// available while replacement controls must disappear.
     #[must_use]
     pub fn editability(&self, cx: &App) -> crate::Editability {
-        if self.state.read(cx).is_readonly() {
-            crate::Editability::ReadOnly
-        } else {
+        if self.state.read(cx).is_editable() {
             crate::Editability::Editable
+        } else {
+            crate::Editability::ReadOnly
         }
     }
 
