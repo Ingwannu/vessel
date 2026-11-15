@@ -25,7 +25,7 @@ struct Probe {
 impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let tokens = Tokens::of(Scheme::Dark);
-        let context = self.context;
+        let expected = self.context;
         let measured = Rc::clone(&self.body);
         let content = div()
             .w_full()
@@ -45,10 +45,10 @@ impl Render for Probe {
                     Width::new(340).unwrap(),
                 ),
                 &PopoverHandlers {
-                    state: |probe| &mut probe.state,
+                    state: |probe: &mut Self| &mut probe.state,
                     admit: Rc::new(move |probe, _lease, _, _| {
                         probe.admissions = probe.admissions.saturating_add(1);
-                        if probe.pending || probe.context != context {
+                        if probe.pending || probe.context != expected {
                             Dismissal::KeepOpen
                         } else {
                             Dismissal::Close
