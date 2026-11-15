@@ -1,5 +1,6 @@
 // Public-build cache poisoning and a history bootstrap replay, using only
 // disposable browser profiles and the test fleet.
+import { waitForTabSession } from "./tab-session";
 import { createServer } from "node:http";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -111,6 +112,8 @@ test("history retains only a consumed code; reload keeps a tab session", async (
   expect(
     await page.evaluate(() => localStorage.getItem("vessel.token") === null),
   ).toBe(true);
+  // Sidebar paint is not the verified welcome; wait for its receipt.
+  await waitForTabSession(page);
   expect(
     await page.evaluate(
       () => sessionStorage.getItem("vessel.session") !== null,
