@@ -561,9 +561,9 @@ and all original limits/results remain preserved alongside this continuation.
 ## Proposed Phase B: fixed private layout and dependency build proof
 
 Status: **V3 row221 Phase B CONTRACT PASS**, exact437739b2c..05984b9a0,
-preparation/compile-only. No Phase B extraction, dependency/lock change, Cargo
-build script, static native inspection, model/native load or distribution has
-been performed. This is a bounded next gate; it does not change the closed
+preparation/compile-only. Private selective extraction and bounded static
+inspection are now recorded below. No dependency/lock change, Cargo build
+script, model/native load or distribution has been performed on this branch. This is a bounded next gate; it does not change the closed
 Phase A policy, its preserved refusal or skipped PDB evidence.
 
 [Decision Log]
@@ -696,3 +696,53 @@ lookup/copy/download/link branch. This is source proof, not actual resolved
 Cargo features or a compiler result. DOCS_RS is not a substitute for the
 required branch. The actual lock/feature tree must be verified before its
 build script executes; no native/model API is authorized.
+
+
+### Phase B private preparation receipt, no build/runtime result
+
+The [25-file receipt](../evidence/voice-vad-phase-b/preparation.json) matches
+T's exact fixed-v1 manifest SHA256eac00e475b80f805b52b44f57fe9177344cfb87095e87965461eedfb41488fa7:
+41785720 total bytes, UID/GID1000:1000, files0600 and directories0700, no
+extra file/link. Full reviewed NOTICE.md is3211B with SHA256
+56aca735a4499d5372d9c4205a775727f33e66b953ce3ae07a0b6be3a230dfae.
+All approved input archives/model were reverified before streaming only
+selected files; full container validation/CRC completed before final rename.
+Linux aliases and every PDB/test DLL remain outside the private candidate
+root. The skipped408244224B PDB was never inflated or hashed. No binary or
+model bytes were committed to Git.
+
+[Static imports](../evidence/voice-vad-phase-b/static-imports.json) identify
+both ELF64/x86_64 and PE/AMD64. Each inspector had a whole5s deadline and
+256KiB combined-output cap enforced during reads. The initial objdump private
+headers command exceeded that cap on Windows and was refused; preserve its
+source/log/partial Linux evidence. A narrower llvm-readobj file-header/import
+inspection completed with the SAME limits; four outputs total35109bytes.
+No ldd, native constructor, upstream executable or model API ran.
+
+Linux runtime's SONAME is libonnxruntime.so.1 and RUNPATH is $ORIGIN; direct
+absolute versioned-file loading remains a candidate, with no recreated link.
+Its NEEDED entries are libdl/librt/libpthread/libstdc++/libm/libgcc_s/libc and
+ld-linux-x86-64; providers-shared imports the C/C++/math runtime set. These
+static names are not actual loader resolution/availability proof.
+
+Windows imports include KERNEL32, ADVAPI32, SETUPAPI, dbghelp, dxgi, API-set
+contracts, MSVCP140/MSVCP140_1 and VCRUNTIME140/VCRUNTIME140_1. The delay-import
+directory is zero in both candidates. The CPU archive does import dxgi;
+CPU-only inference must not be inferred from that archive name or import list.
+MSVC/system ABI availability and actual loaded dependencies remain unverified;
+no additional DLL is fetched, installed or added to the positive manifest.
+
+[Metadata](../evidence/voice-vad-phase-b/metadata.json) reports1.28.2 and source
+33ca9628233dc8f002435e868d4c2e9f82766ca1 on both platforms, preserving original
+line endings. Full retained Privacy.md explicitly states official Windows
+telemetry defaults ON. This reinforces the required disabled-telemetry/custom
+logger/offline source/runtime checkpoint; this static inspection proves none
+of those postconditions.
+
+Author-owned extraction/inspector sources and all output hashes are frozen
+privately with five synthetic guards (path traversal, source links, minimal
+child environment, output bound and whole-timeout group cleanup). The guards
+are not native/ABI/model tests. T's importer remains pending and no VM transfer
+has happened. A separate private dependency-preparation branch records only
+the exact ort DEV manifest candidate; offline lock/feature receipt and V3
+acceptance must precede any compilation/build-script execution.

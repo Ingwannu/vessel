@@ -1,0 +1,36 @@
+[
+  {
+    "path": "linux-x86_64/VERSION_NUMBER",
+    "bytes": 7,
+    "sha256": "2bde8d4531ecc681097f1e355cdfa8790c0dabb3c62d2ab54083d94f8629f2c1",
+    "text": "1.28.2"
+  },
+  {
+    "path": "linux-x86_64/GIT_COMMIT_ID",
+    "bytes": 41,
+    "sha256": "ef2aff9f0f5296a8ccb99cb86285a3ce258f5c2eda83da5f63ba69f98ee724f3",
+    "text": "33ca9628233dc8f002435e868d4c2e9f82766ca1"
+  },
+  {
+    "path": "linux-x86_64/Privacy.md",
+    "bytes": 2469,
+    "sha256": "9a15f9fd9d4c7b6dfc35f237f461863f84f8f73cf6189e330818a674d3828871"
+  },
+  {
+    "path": "windows-x86_64/VERSION_NUMBER",
+    "bytes": 8,
+    "sha256": "ec9fca2b7825a8e33f38111208aea305b6227250c328e689319b31ab81b822b2",
+    "text": "1.28.2"
+  },
+  {
+    "path": "windows-x86_64/GIT_COMMIT_ID",
+    "bytes": 43,
+    "sha256": "db6a9b7ff8688aff316b5a01af2473b3ed6c010ebebbf34f78e0ffb245393a90",
+    "text": "33ca9628233dc8f002435e868d4c2e9f82766ca1"
+  },
+  {
+    "path": "windows-x86_64/Privacy.md",
+    "bytes": 2490,
+    "sha256": "bfb7712b075f3f07e3ebee5dc2a296d1de32dbf71ad28663f73d1538cb6c3b08"
+  }
+]

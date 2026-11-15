@@ -1,0 +1,113 @@
+{
+  "scope": "static-imports-only-no-platform-availability-proof",
+  "files": [
+    {
+      "path": "linux-x86_64/lib/libonnxruntime.so.1.28.2",
+      "inspector": "readelf",
+      "file_sha256": "088f24b1fc56714d3efaaeb3ac2ee486a5d7b50ccfbb3dd26fd1a612534a05fb",
+      "output_bytes": 3133,
+      "output_sha256": "6f452302cd42578a37fb330e3c9c8c19432a18202213e18923041a8b240ccb0c",
+      "whole_deadline_seconds": 5,
+      "combined_output_cap": 262144,
+      "status": "static-only-no-library-load",
+      "architecture": "ELF64/x86_64",
+      "imports": [
+        "libdl.so.2",
+        "librt.so.1",
+        "libpthread.so.0",
+        "libstdc++.so.6",
+        "libm.so.6",
+        "libgcc_s.so.1",
+        "libc.so.6",
+        "ld-linux-x86-64.so.2"
+      ],
+      "soname": [
+        "libonnxruntime.so.1"
+      ],
+      "runpath": [
+        "$ORIGIN"
+      ]
+    },
+    {
+      "path": "linux-x86_64/lib/libonnxruntime_providers_shared.so",
+      "inspector": "readelf",
+      "file_sha256": "086ec1d5388f64153d9c63470d126693db9a182c8ce236d3a1119068471b8a0d",
+      "output_bytes": 2747,
+      "output_sha256": "fa7bdea5b5b114345588c9d43024f846e9f3a9635cd9d99a7d04512a4c33a8b0",
+      "whole_deadline_seconds": 5,
+      "combined_output_cap": 262144,
+      "status": "static-only-no-library-load",
+      "architecture": "ELF64/x86_64",
+      "imports": [
+        "libstdc++.so.6",
+        "libm.so.6",
+        "libgcc_s.so.1",
+        "libc.so.6"
+      ],
+      "soname": [
+        "libonnxruntime_providers_shared.so"
+      ],
+      "runpath": []
+    },
+    {
+      "path": "windows-x86_64/lib/onnxruntime.dll",
+      "inspector": "llvm-readobj",
+      "file_sha256": "1becbd71adbf49609d33195e29c9214969db3c3de69c81425bebe5a4b69aef97",
+      "output_bytes": 25245,
+      "output_sha256": "f33709469c49b477f75b8a30c474b8a01a7bcc578261999bfe5243f4766f3b6c",
+      "whole_deadline_seconds": 5,
+      "combined_output_cap": 262144,
+      "status": "static-only-no-library-load",
+      "architecture": "PE/AMD64",
+      "imports": [
+        "KERNEL32.dll",
+        "ADVAPI32.dll",
+        "MSVCP140.dll",
+        "MSVCP140_1.dll",
+        "api-ms-win-core-path-l1-1-0.dll",
+        "dbghelp.dll",
+        "SETUPAPI.dll",
+        "dxgi.dll",
+        "VCRUNTIME140_1.dll",
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ],
+      "delay_import_table_rva_zero": true
+    },
+    {
+      "path": "windows-x86_64/lib/onnxruntime_providers_shared.dll",
+      "inspector": "llvm-readobj",
+      "file_sha256": "2e3a2a3903f1d4b1b15cd6887593ed2f269cd2b24e3d729fead45406ec9a25ac",
+      "output_bytes": 3984,
+      "output_sha256": "c1abdc9689d81b1259b959da2d0a452117461b029013e202245281f5a81359e3",
+      "whole_deadline_seconds": 5,
+      "combined_output_cap": 262144,
+      "status": "static-only-no-library-load",
+      "architecture": "PE/AMD64",
+      "imports": [
+        "VCRUNTIME140.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "KERNEL32.dll"
+      ],
+      "delay_import_table_rva_zero": true
+    }
+  ],
+  "earlier_refusal": {
+    "inspector": "objdump --file-headers --private-headers",
+    "reason": "combined-output-cap",
+    "cap_bytes": 262144,
+    "whole_timeout_seconds": 5,
+    "preserved": true
+  },
+  "narrower_inspector": "llvm-readobj --file-headers --coff-imports",
+  "unchanged_output_cap_bytes": 262144,
+  "unchanged_whole_timeout_seconds": 5
+}

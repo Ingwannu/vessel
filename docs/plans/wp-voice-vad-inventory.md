@@ -93,15 +93,37 @@ ADR0080's Phase B proposal and `voice-vad-phase-b-layout.json` select only
 regular runtime candidates, the common opaque model and complete notices/
 metadata with exact member hashes. It requests private extraction/static import
 inspection plus a fixed node dev-dependency build proof on the VM, **no native
-or model loading**. No part has run. The fixture handoff into build labels
+or model loading**. Private preparation is now recorded below; no build/load has run. The fixture handoff into build labels
 also needs an agreed owner path because the gate has no general external
 binary fixture import API. No runtime/distribution permission is inferred
 from completed Phase A evidence or this proposed file list.
 
 V3 row221 PhaseB CONTRACT PASS accepted exact437739b2c..05984b9a0 on15:27UTC,
 including all14 platform file hashes/model/9 source notices and required full
-reviewed NOTICE.md in the future receipt. No PhaseB artifact action has run:
+reviewed NOTICE.md in the future receipt. At that checkpoint no PhaseB artifact action had run:
 the build owner requested waiting for its exact handoff JSON schema before
 actual fixture creation/transfer. Author-owned extraction/static-inspector
 sources and5 synthetic guards were prepared privately; the guards use only
 synthetic files/processes and establish no artifact, ABI or runtime result.
+
+
+## Private preparation completed; VM/compile/runtime held
+
+T supplied the exact-v1 schema before artifact creation. Selective extraction
+produced25 files/41785720B with all size/SHA/mode/UID/GID receipts, including
+full3211B reviewed NOTICE. Files0600/dirs0700 and no extras/links were checked
+as task UID/GID1000:1000; no service/account/system permission was changed.
+No archived code or model interpreter was executed. Original PhaseA refusals
+remain preserved. Public metadata-only receipts are under docs/evidence/voice-vad-phase-b.
+
+An initial bounded objdump command exceeded256KiB and was refused. The narrower
+llvm-readobj import/header inspection completed without raising that cap or
+its5s deadline. Both platforms match x86_64 and runtime version/source; actual
+system ABI availability, MSVC prerequisites, loaded dependencies, telemetry/log
+privacy and VAD compatibility are still unknown. No extra DLL/library was
+obtained. Five synthetic audit guards passed; no native/model test was run.
+
+T's importer and offline root resolve-only step are pending. The exact ort
+dev manifest is isolated from endpoint/settings code until its offline lock
+and feature receipts are reviewed. No local Cargo, direct SSH build, product
+extraction/distribution, ORT API, inference or activation occurred.
