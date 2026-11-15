@@ -10,7 +10,7 @@ use vessel_app_kit::ui::{
     Styled as _, Window, div, px, relative,
 };
 use vessel_app_kit::{FindMarks, Type, TypeExt as _};
-use vessel_app_view::timeline::{Prompt, first_reply, spans_of};
+use vessel_app_view::timeline::{Prompt, first_reply, presented_prompt, spans_of};
 
 use super::entries::{Paint, id, marked_text};
 use super::look::{AVATAR, AVATAR_GAP, BUBBLE_RADIUS, BUBBLE_SHARE, CORNER};
@@ -42,6 +42,7 @@ pub(super) fn person(
     corner: Option<String>,
 ) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
+    let text = presented_prompt(&prompt.text);
     let files = (!prompt.attachments.is_empty()).then(|| {
         div()
             .flex()
@@ -86,12 +87,12 @@ pub(super) fn person(
                 .flex_col()
                 .gap(px(6.0))
                 .children(files)
-                .when(!prompt.text.is_empty(), |bubble| {
+                .when(!text.is_empty(), |bubble| {
                     bubble.child(
                         div()
                             .type_(Type::Body)
                             .text_color(paint.tokens.neutral.foreground)
-                            .child(marked_text(paint, index, &prompt.text)),
+                            .child(marked_text(paint, index, text)),
                     )
                 }),
         )

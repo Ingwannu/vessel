@@ -1,13 +1,15 @@
 # Conversation stream parity
 
-Status: A7 source is on announced app head `c3429952` (mergedf5783cb63),
-with shared bodies, owner adapters and mounted-row text pacing implemented in
-source. Bounded prior evidence remains view1157 at9ec and App102/Kit185 atcfa;
-new pacing/kernel/base-union execution is pending its own immutable runs.
-Current full App/Kit strict is held for S2's canonical glyph inventory. W23 rich
-fields/echo/receipts, W12 live resident cutover, K syntax and B2 Markdown actions
-still await their owners' checked handoffs. A8 approvals/questions belong to W4.
-No whole gate, captures or V4 package pass. Updated 2026-11-15T15:42Z.
+Status: A7 source includes announced app base8e `82ca07a7` (mergec0d3cc052).
+Actuale879 pacing/kernel App114 + Kit208 =322 passed/0 failed/2 existing ignored;
+later Markdown helper consumption and this base merge are outside that source.
+View stricta415 passed; View tests1025/1 failed only the About registry, now fixed
+and awaiting its next immutable run. Full App/Kit strict still waits for S2's
+canonical glyph inventory in announced base9. W23 rich fields/echo/receipts,
+W12 live resident cutover, K syntax and scoped Markdown host actions remain held.
+A8 approvals/questions belong to W4. Minimal resident preparation has V1 row252
+bounded staged source/narrow PASS; its line merge9652a72b is not yet green.
+No whole gate, captures or V4 package pass. Updated 2026-11-15T16:48Z.
 
 ## Reference and asset check
 
@@ -1331,3 +1333,38 @@ Actions remains None until actual scoped host helpers/root authorization/image
 acquisition are checked; no guessed route, inferred-link authority or lightbox
 is invented here. Owner f4 standalone Kit strict is0; actual195 Kit tests belong
 to its earlier40aa source and remain prior-source evidence, not current A7 proof.
+
+Exacte879 App/Kit all-target run
+wp-timeline-state-tests-20261115T161517Z-e879b506 completed16:40 UTC with
+App114/0/2 and Kit208/0/0 (322/0/2 overall). All three pacing regressions and
+the actual proposed-body Ready/Loading facade draw passed. This is execution of
+the frame-wake correction, not a latency/capture or current whole-source proof.
+The owner additionally reports actual Kit212/0/0 atd068 with all17 f4 Markdown
+Rust blobs byte-identical; that supports the shared helper only. Its A7 call,
+scoped host/root/image authority and final UI acceptance remain separate.
+
+### Spoken user-message presentation
+
+[Decision Log — 수정 사용]
+- Purpose: match `app/src/agent-stream/presentation.ts:57-72` and its tests at
+  `presentation.test.ts:505-568`, read in full. Complete current/legacy voice
+  envelopes show only spoken words; unrelated XML and quoted/incomplete examples
+  remain literal. Assistant messages are never unwrapped.
+- Existing assets and constraints: user bubbles already receive canonical Prompt
+  text; the shared searchable extractor supplies local finder offsets, and its
+  existing is_space exactly implements the reference's ECMAScript whitespace.
+- Alternatives: rewriting Entry text would discard source content needed by
+  replay/fork/plugins. A second transcript/cache or a new regex dependency adds
+  ownership and cost to a small anchored display rule.
+- Choice: presented_prompt borrows the displayed slice with standard string
+  operations and the existing whitespace predicate. Bubble and local Prompt/Steer
+  search use this one helper; Entry text/key/revision/attachments stay intact.
+- Why: find marks index the exact words actually shown, including trimmed Unicode
+  boundaries. Closing tags embedded in examples require a valid whole suffix
+  before recognition, matching the source's anchored lazy capture.
+- Effects: no I/O, new dependency, voice-mode permission or provider parsing.
+  This does not claim to repair node global-search hits or bounded metadata
+  previews built before a complete body exists; W1 owns those projections and
+  will consume the shared helper only after a checked union. Local tests cover
+  source identity, assistant examples, hidden instruction terms, find offsets,
+  optional legacy suffix, invalid XML and exact whitespace. Execution is owed.

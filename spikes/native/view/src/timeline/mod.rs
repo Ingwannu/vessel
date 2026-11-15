@@ -54,6 +54,7 @@ mod plan;
 mod plan_card;
 mod plan_types;
 mod plan_words;
+mod prompt_presentation;
 mod question;
 mod question_step;
 mod rewind;
@@ -72,9 +73,6 @@ mod turns;
 mod usage;
 mod user_stream;
 mod window;
-
-#[cfg(test)]
-mod bounds_tests;
 
 pub use agent_message::agent_message_display;
 pub use approval::{AnswerWords, Answers, Settled, allows, answer_words, answers_of, settled};
@@ -105,6 +103,7 @@ pub use permission::{AnswerMark, CardAnswer, CardTitle, PermissionCard, permissi
 pub use plan::{PlanActivity, all_pending, plan_activities};
 pub use plan_card::{PlanDisclosures, plan_outcome, plan_text};
 pub use plan_types::{PlanExpansion, PlanOutcome};
+pub use prompt_presentation::presented_prompt;
 pub use question::{
     AnsweredLine, Draft, Drafts, Problem, Read, Step, Wrong, answer_of, answerable, answered_lines,
     read_field, refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
@@ -126,3 +125,6 @@ pub use usage::ModelUsage;
 pub use window::{
     Align, FOLLOW, INSET, MARGIN, Span, at_end, covers, guess, off_by, offsets, scroll_for, span,
 };
+
+#[cfg(test)]
+mod bounds_tests;
