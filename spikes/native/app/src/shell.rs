@@ -108,6 +108,7 @@ impl Shell {
         crate::update::start(&mut shell, cx);
         areas::settings::start(&mut shell, window, cx);
         areas::shortcuts::listen(&mut shell, cx);
+        areas::workspace::start(&mut shell, cx);
         shell.announce_update();
         routes::arrive(Route::Draft, &mut shell, window, cx);
         shell

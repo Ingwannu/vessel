@@ -7,6 +7,7 @@ use crate::routes::Route;
 use crate::shell::Shell;
 pub(super) use draw::render;
 pub(crate) use panel::render as render_panel;
+pub(crate) use panel::retirement::start;
 use vessel_app_kit::{
     TextField,
     ui::{Context, Window},
@@ -41,6 +42,7 @@ pub(super) struct Scripts {
     pub(super) model: Model,
     pub(super) host: TextField,
     polling: bool,
+    retirement_ready: bool,
     panel_keys: std::cell::RefCell<vessel_app_view::workspace::git::RequestKeys>,
     panels: std::cell::RefCell<
         std::collections::BTreeMap<
@@ -65,6 +67,7 @@ impl Scripts {
                 cx,
             ),
             polling: false,
+            retirement_ready: false,
             panel_keys: std::cell::RefCell::default(),
             panels: std::cell::RefCell::default(),
             selection: None,

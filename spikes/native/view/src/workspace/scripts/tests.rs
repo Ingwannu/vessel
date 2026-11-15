@@ -115,6 +115,37 @@ fn only_current_approved_names_run_and_duplicate_presses_send_nothing() {
     assert!(model.begin_write(action).is_none());
     assert!(matches!(model.issue, Some(Issue::Call(_))));
 }
+
+#[test]
+fn retirement_withdraws_tickets_but_retains_the_original_write_and_unknown_receipt() {
+    let (mut model, target) = ready();
+    let ticket = model.action_ticket().unwrap();
+    let action = Action::Run("dev".parse().unwrap());
+    let key = model.begin_write_at(&ticket, action.clone()).unwrap();
+    let mut retired = model.retire().unwrap();
+    assert_eq!(retired.target(), &target);
+    assert_eq!(retired.action(), &action);
+    assert!(retired.receipt().is_none());
+    assert!(model.target.is_none());
+    assert!(model.action_ticket().is_none());
+    assert!(model.begin_write_at(&ticket, action.clone()).is_none());
+    assert!(model.begin_read().is_none());
+    let mut other = target.clone();
+    other.place = ScriptPlace::Project {
+        project: ProjectId::random(),
+    };
+    assert!(!retired.accept(&other, key, Ok(None)));
+    let unknown = Err(crate::workspace::problem::Problem::Gone(
+        "unknown outcome".into(),
+    ));
+    assert!(retired.accept(&target, key, unknown.clone()));
+    assert_eq!(retired.receipt(), Some(&unknown));
+    assert!(!retired.accept(&target, key, Ok(None)));
+    model.select(Some(target.clone()));
+    assert!(model.begin_write_at(&ticket, action).is_none());
+    assert!(model.begin_read().is_some());
+    assert_eq!(retired.receipt(), Some(&unknown));
+}
 #[test]
 fn refresh_failure_and_unapproved_sets_never_authorize_a_write() {
     let (mut model, target) = ready();

@@ -1256,7 +1256,8 @@ The shared new-tab launcher opens Scripts passively in W12's registry. State is
 keyed by exact layout/tab plus an app-only reply incarnation. Legacy session
 layouts use their captured ScriptPlace::Session and filter foreign session runs.
 Their terminal reveal uses the same layout and exact TerminalId; C2 owns its
-renderer. Closing Scripts releases display state and leaves processes running.
+renderer. Closing Scripts withdraws UI admission and leaves processes running; an in-flight
+write keeps its original payload/receipt until an explicit fresh reload.
 Canonical WorkspaceId execution stays unavailable pending W11/D2 runtime APIs.
 Drawn lifecycle actions also capture their successful read, so refresh cannot
 retarget an old Run button to a changed approved command. Every node call uses
@@ -1351,3 +1352,12 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+
+The Scripts owner registers the shared synchronous retirement hook at startup.
+Its current-target query remains only an additional refusal check; the registry
+callback retires tickets before away-and-back tab changes can reuse them. Only
+local product mutation hooks are promoted; canonical preferences and resident
+minter consumers remain staged with their owners. Retained closed/uncertain
+panels are bounded and never cause a sent link task to abort or replay. This
+consumer union requires its own VM narrow and final package verification.

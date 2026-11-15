@@ -40,6 +40,7 @@ pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use scripts::render_panel as scripts_panel;
+pub(crate) use scripts::start;
 pub(crate) use sidebar::projects as sidebar_projects;
 pub(crate) use start_card::render as start_card;
 

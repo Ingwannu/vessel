@@ -381,13 +381,16 @@ approval-bearing reply. The app adds no independent version guess or bypass.
 Its full declaration renderer is prepared for the reviewed joint adoption;
 current protocol replies do not activate allocator or environment behavior.
 
-The layout owner confirmed that tab existence and visibility alone do not prove
-that a retargeted tab still hosts Scripts. Its effective focused selection is
-also insufficient for a visible background pane. Until the reviewed exact-tab
-`layout_tab_matches` producer is adopted, the Scripts panel displays unavailable
-and its owner adapter refuses reads/actions. The project-settings card uses its
-independent captured project admission. No target cache or selected-session
-fallback is introduced. The reserved adapter will call the single owner query.
+The announced base includes `layout_tab_matches`, an additional current-target
+refusal condition. It is not visit or ABA authority: Scripts → Other → Scripts
+can match again. The single registry's reviewed portable retirement producer
+`97d29b55` is adopted separately. A real Scripts startup hook withdraws the old
+model and instance synchronously after committed retarget/close/alias removal,
+before another callback can run. Only the necessary module/field/local-mutation
+staging gates are promoted. Canonical-preferences and resident-minter parent
+modules, including their canonical source/reason variants, remain test-only
+until their owners supply real callers. There is no second tab map or selected
+session fallback. This consumer union still owes its own VM checks and gate.
 
 The command renderer is split into scoped read, summary/control and complete
 review builders; the listener renderer returns the same label/action siblings,
@@ -402,3 +405,38 @@ execution. The shared renderer now has explicit grant/start entry points over
 one implementation, with complete EN/KO grant-only heading/button text. The
 start caller keeps its existing API and wording. No approval RPC or subsequent
 execution behavior changes; complete executable-field display/refusal is shared.
+
+
+## Synchronous Scripts retirement consumer
+
+[Decision Log]
+- Purpose: current-target equality cannot detect a completed away-and-back visit;
+  old UI callbacks must lose admission before the committed mutation returns.
+- Existing assets and constraints: the layout owner supplies one synchronous
+  registry callback; the link owns detached physical tasks and bounded calls.
+- Alternatives: polling, another per-feature target epoch, aborting the sent task,
+  or treating a late response as a successor response. Each loses either the
+  timing fence or the original request/outcome.
+- Choice: register Owner::Scripts once at Shell startup. Retire Model's Ready,
+  ticket and display authority immediately, retaining the exact target/key/action
+  of a sent mutation in RetiredWrite. An exact reply is stored independently,
+  including an unknown-outcome error, without polling, replay or successor apply.
+- Why: UI retirement never means the server did not execute the original command.
+  A person can reload only after its response arrives; reload creates a fresh
+  surface instance, clears the host override and obtains a fresh scoped read.
+  The last original receipt survives that reload until a new explicit mutation.
+- Effects and limits: an idle retired panel is removed immediately. A panel with
+  a sent write retains its owner record even when closed. MAX_PANEL_STATES (128)
+  bounds owner-local display/receipt retention independently of server resources;
+  exceeding it refuses a new panel without dropping existing requests. A closed
+  uncertain record has no discard UI yet. Error receipts remain uncertainty, not
+  completion or process death. Canonical Workspace execution is still unavailable
+  pending registry/generation/runtime contracts.
+
+A connection can retire before either layout mutation or the next poll. An exact
+original write receipt in that gap also withdraws the old model and is retained;
+no later admission inherits it. The consumer tests exercise real committed
+retargets twice before any poll, original command queue preservation, independent
+unknown receipts, new-instance stale-read refusal and this connection gap. These
+are scoped UI/queue cases, not a claim that a physical network write was killed
+or that a canonical workspace runtime exists.

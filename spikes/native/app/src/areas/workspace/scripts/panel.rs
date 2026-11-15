@@ -1,6 +1,7 @@
 //! Passive layout integration. Tabs own display state; the node owns resources.
 //! Exact legacy session keys use existing RPCs. Canonical workspace execution
 //! stays unavailable until its reviewed registry/runtime contract is supplied.
+pub(super) mod retirement;
 use super::draw::{Card, content};
 use crate::areas::layout::registry::PanelContext;
 use crate::shell::Shell;
@@ -19,12 +20,16 @@ pub(super) struct Controls {
     model: Model,
     host: TextField,
     surface: Surface,
+    retired: bool,
+    last_write: Option<vessel_app_view::workspace::scripts::RetiredWrite>,
 }
 impl Controls {
     fn new(surface: Surface, window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             model: Model::default(),
             surface,
+            retired: false,
+            last_write: None,
             host: TextField::new(
                 "",
                 |_shell: &mut Shell, _text, _window, cx| cx.notify(),
@@ -54,11 +59,11 @@ fn target(shell: &Shell, surface: &Surface) -> Option<Target> {
     Target::legacy_panel(context, surface.clone())
 }
 
-// The layout owner is preparing an existing-only exact-tab target query. Until
-// that checked seam is adopted, no selected/focused target can prove a visible
-// background pane's identity. This adapter therefore refuses, without a cache.
-fn target_matches(_shell: &Shell, _workspace: &LayoutKey, _tab: TabId) -> bool {
-    false
+// Current equality is only an extra refusal condition. Synchronous owner
+// retirement invalidates the old instance before an ABA target can match again.
+fn target_matches(shell: &Shell, workspace: &LayoutKey, tab: TabId) -> bool {
+    shell.areas.workspace.scripts.retirement_ready
+        && shell.layout_tab_matches(workspace, tab, &vessel_app_view::layout::Target::Scripts)
 }
 
 pub(crate) fn render(
@@ -75,8 +80,15 @@ pub(crate) fn render(
             .into_any_element();
     }
     let address = (panel.workspace.clone(), panel.tab);
+    if let Some(notice) = retirement::draw_retired(shell, &address, tokens, cx) {
+        return notice;
+    }
     let inserted = {
         let mut states = shell.areas.workspace.scripts.panels.borrow_mut();
+        if !states.contains_key(&address) && states.len() >= retirement::MAX_PANEL_STATES {
+            return super::ports::notice(shell.words.scripts().retained_limit(), tokens)
+                .into_any_element();
+        }
         if let std::collections::btree_map::Entry::Vacant(entry) = states.entry(address.clone()) {
             let Ok(instance) = shell
                 .areas
@@ -155,13 +167,6 @@ fn poll(surface: &Surface, window: &mut Window, cx: &mut Context<'_, Shell>) {
                         return false;
                     }
                     if !shell.layout_tab_exists(workspace, tab) {
-                        let _removed = shell
-                            .areas
-                            .workspace
-                            .scripts
-                            .panels
-                            .borrow_mut()
-                            .remove(&(workspace.clone(), tab));
                         return false;
                     }
                     if window.is_window_active()
@@ -196,7 +201,11 @@ impl Shell {
                 .panels
                 .borrow()
                 .get(&(workspace.clone(), tab))
-                .is_some_and(|controls| controls.model.target.as_ref() == Some(expected))
+                .is_some_and(|controls| {
+                    !controls.retired
+                        && controls.model.target.as_ref() == Some(expected)
+                        && controls.surface == expected.surface
+                })
     }
     fn script_panel_admits(&self, expected: &Target, window: &Window) -> bool {
         key(&expected.surface).is_some_and(|(workspace, tab)| {
@@ -221,10 +230,14 @@ impl Shell {
             let Some(controls) = states.get_mut(&(workspace.clone(), tab)) else {
                 return;
             };
-            if &controls.surface != surface {
+            if controls.retired || &controls.surface != surface {
                 return;
             }
             if controls.model.target != current {
+                if controls.model.writing.is_some() {
+                    retirement::withdraw(controls);
+                    return;
+                }
                 controls.host.clear(window, cx);
                 controls.model.select(current);
             }
@@ -244,6 +257,9 @@ impl Shell {
         }
     }
     pub(super) fn script_panel_answer(&mut self, answer: ScriptAnswer, cx: &mut Context<'_, Self>) {
+        if retirement::accept(self, &answer, cx) {
+            return;
+        }
         let expected = match &answer {
             ScriptAnswer::Read { target, .. } | ScriptAnswer::Written { target, .. } => target,
         };
@@ -296,7 +312,13 @@ impl Shell {
             let mut states = self.areas.workspace.scripts.panels.borrow_mut();
             states
                 .get_mut(&(workspace.clone(), tab))
-                .and_then(|controls| controls.model.begin_write_at(ticket, action.clone()))
+                .and_then(|controls| {
+                    let key = controls.model.begin_write_at(ticket, action.clone())?;
+                    // A new explicit intention supersedes the acknowledged old
+                    // receipt only after the successor obtained a fresh read.
+                    controls.last_write = None;
+                    Some(key)
+                })
         };
         if let Some(key) = request {
             self.ask(

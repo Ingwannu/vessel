@@ -166,6 +166,17 @@ pub struct Model {
 }
 
 impl Model {
+    /// Withdraw every UI admission synchronously. A sent mutation is returned
+    /// intact to its owner; retiring a screen does not cancel or replay it.
+    pub fn retire(&mut self) -> Option<super::RetiredWrite> {
+        let pending = self.writing.take().and_then(|(key, action)| {
+            self.target
+                .clone()
+                .map(|target| super::RetiredWrite::new(target, key, action))
+        });
+        self.select(None);
+        pending
+    }
     /// Change visible owner while preserving the monotonic key issuer.
     pub fn select(&mut self, target: Option<Target>) {
         self.target = target;
