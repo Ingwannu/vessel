@@ -108,6 +108,11 @@ impl StructuredActor {
                 biased;
                 step = self.life.stop.next() => {
                     self.life.apply(&mut self.agent, step);
+                    // A stop wins over queued prompts throughout the grace
+                    // period; no new turn is admitted while the group exits.
+                    self.control.close();
+                    control_open = false;
+                    let _live = self.route.send_replace(Route::Stopping);
                     // A parked session has no process to wait for: a kill
                     // or the node stopping ends it now (protocol 12).
                     if self.parking.parked.is_some() {

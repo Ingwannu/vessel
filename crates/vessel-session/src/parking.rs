@@ -61,6 +61,8 @@ pub(crate) enum Route {
     Moving,
     /// Its agent is parked: orders go to the actor, which wakes it.
     Parked,
+    /// An archive/kill has closed input permanently for this actor.
+    Stopping,
 }
 
 impl Route {
@@ -70,6 +72,7 @@ impl Route {
             Self::Live(input) => Ok(input.clone()),
             Self::Moving => Err(SessionError::Moving),
             Self::Parked => Err(SessionError::Parked),
+            Self::Stopping => Err(SessionError::Ended),
         }
     }
 }

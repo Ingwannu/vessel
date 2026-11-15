@@ -27,7 +27,6 @@ pub enum ArchiveRefusal {
 
 #[derive(Debug)]
 pub(crate) struct ArchiveOrder {
-    pub(crate) condition: ArchiveCondition,
     pub(crate) reply: oneshot::Sender<Result<(), SessionError>>,
 }
 pub(crate) enum ArchiveAdmission {
@@ -46,19 +45,20 @@ impl SessionHandle {
         &self,
         condition: ArchiveCondition,
     ) -> Result<SessionInfo, SessionError> {
-        if !self.info().status.is_live() {
+        if !self.0.info.borrow().status.is_live() {
             return Ok(self.info());
         }
+        if condition == ArchiveCondition::Force {
+            // A force request interrupts a move as ordinary kill already does;
+            // it cannot wait behind that move's actor mailbox order.
+            self.kill();
+            return Ok(self.ended().await);
+        }
         match &self.0.input {
-            Input::Terminal(_) => match condition {
-                ArchiveCondition::IfIdle => return Err(ArchiveRefusal::Terminal.into()),
-                ArchiveCondition::Force => self.kill(),
-            },
+            Input::Terminal(_) => return Err(ArchiveRefusal::Terminal.into()),
             Input::Structured(route) => {
                 let admitted = self
-                    .order(route, |reply| {
-                        Control::Archive(ArchiveOrder { condition, reply })
-                    })
+                    .order(route, |reply| Control::Archive(ArchiveOrder { reply }))
                     .await;
                 match admitted {
                     Ok(()) => {}
@@ -73,13 +73,12 @@ impl SessionHandle {
 
 impl StructuredActor {
     pub(crate) fn archive_order(&mut self, order: ArchiveOrder) -> ArchiveAdmission {
-        let refusal = match order.condition {
-            ArchiveCondition::Force => None,
-            ArchiveCondition::IfIdle if !self.ready || self.move_state.active => {
-                Some(ArchiveRefusal::NotReady)
-            }
-            ArchiveCondition::IfIdle if self.desk.running() => Some(ArchiveRefusal::TurnRunning),
-            ArchiveCondition::IfIdle => None,
+        let refusal = if !self.ready || self.move_state.active {
+            Some(ArchiveRefusal::NotReady)
+        } else if self.desk.running() {
+            Some(ArchiveRefusal::TurnRunning)
+        } else {
+            None
         };
         if let Some(refusal) = refusal {
             let _gone = order.reply.send(Err(refusal.into()));
@@ -87,7 +86,7 @@ impl StructuredActor {
         }
         // The stop token also fences after_turn's automatic queue advance. The
         // route blocks direct input and closing intake refuses future prompts.
-        let _live = self.route.send_replace(Route::Moving);
+        let _live = self.route.send_replace(Route::Stopping);
         self.control.close();
         self.life.stop.request();
         let _gone = order.reply.send(Ok(()));

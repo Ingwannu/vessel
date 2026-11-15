@@ -116,7 +116,7 @@ it does not add an MCP tool or bypass ownership.
 Existing actor assets are reused: the structured control mailbox already orders
 prompts and queue changes, and Stopper already owns graceful escalation. Archive
 IfIdle checks readiness/active turn at that actor boundary. Acceptance closes
-control intake and marks the input route Moving before acknowledging; the stop
+control intake and marks the input route Stopping before acknowledging; the stop
 token also prevents automatic queue advance. Force deliberately cancels an active
 turn. A TUI cannot prove an idle turn, so IfIdle is Unsupported there. Ended
 stored sessions are eligible; an already committed archive is an explicit Conflict.
@@ -127,3 +127,11 @@ and cancellation between stop and persistence. Conditional descendant cascade
 still awaits reviewed W2 parentage; this pending call must not be assigned a
 protocol or advertised as parity before that integration and its root gate.
 No registry/schema migration is needed for this actor admission.
+
+
+Forced stop follows the existing kill cancellation path so it can interrupt a
+profile move instead of waiting behind that move's mailbox operation. The actor
+closes its control channel and sets the explicit internal Stopping route when
+stop begins; direct inputs then return Ended throughout the grace period. IfIdle
+still checks at the prompt mailbox before any stop. Queue advance also observes
+the stop token, so an admitted archive/kill cannot start the next queued turn.

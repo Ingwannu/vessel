@@ -112,6 +112,7 @@ impl Reply {
             // Lists (filtered by `for_protocol`), and replies that name no
             // agent or only one of the four.
             Self::ListSessions(_)
+            | Self::ArchiveSession(_)
             | Self::ListHarnesses(_)
             | Self::ListProfiles(_)
             | Self::ReloadProfiles(_)
