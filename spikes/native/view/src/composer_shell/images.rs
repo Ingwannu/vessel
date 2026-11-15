@@ -154,10 +154,10 @@ impl<Key: Clone + Eq + Hash, Value> ImageCache<Key, Value> {
                 Acquisition::Start(request)
             }
         };
-        if let Some(consumer) = consumer {
-            let _old = self.consumers.insert(consumer, key.clone());
-        }
         self.touch(&key);
+        if let Some(consumer) = consumer {
+            let _old = self.consumers.insert(consumer, key);
+        }
         self.enforce_capacity();
         Ok(Acquired {
             consumer,
