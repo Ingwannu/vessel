@@ -220,3 +220,12 @@ identity, and callbacks use the existing correlated lifecycle/confirmation path
 rather than an alias-only board action. The confirmation's live warning reads
 its exact target; a failure on the Sessions route remains visible in the window
 notice. The selected session is not used to decide the history row's target.
+
+Copy link uses the retained admitted address directly, via the shared desktop
+NavigationTarget URL formatter, including while offline. It does not resolve a
+saved alias again or supersede an in-flight session-open ticket. An unbound or
+internally mismatched binding refuses without changing the clipboard; the
+read-only address accessor checks binding host/session agreement. Legacy resolved
+copy responses share the same URL/clipboard helper. A fake-shell regression
+keeps the original node despite a replaced Fleet destination and preserves the
+pending open and clipboard on a later invalid binding.

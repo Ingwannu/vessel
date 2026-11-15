@@ -26,24 +26,31 @@ impl Shell {
             cx,
         );
     }
-    /// Resolve the current saved host before generating a credential-free link.
+    /// Copy the originally admitted address, including while its host is offline.
     pub(crate) fn copy_session_link(&mut self, cx: &mut Context<'_, Self>) {
         let Some(open) = &self.areas.session.open else {
             return;
         };
-        let Ok(host) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
-            self.notice = Some(self.words.sessions().navigation_refused().to_owned());
+        let address = open
+            .binding
+            .as_ref()
+            .and_then(|binding| self.opened_session_address(&binding.host, open.session));
+        let Some(address) = address else {
+            self.notice = Some(self.words.sessions().identity_unavailable().to_owned());
             cx.notify();
             return;
         };
-        self.navigate_session(
-            NavigationTarget::Host {
-                host,
-                session: open.session,
-            },
-            NavigationPurpose::CopyLink,
-            cx,
-        );
+        self.copy_session_address(address, cx);
+        cx.notify();
+    }
+    fn copy_session_address(&mut self, address: SessionAddress, cx: &mut Context<'_, Self>) {
+        let link = vessel_app_view::desktop::NavigationTarget::Session {
+            node: address.node,
+            session: address.session,
+        }
+        .to_url();
+        cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(link));
+        self.notice = Some(self.words.sessions().link_copied().to_owned());
     }
     fn navigate_session(
         &mut self,
@@ -71,13 +78,7 @@ impl Shell {
             Ok(located) => match purpose {
                 NavigationPurpose::Open => self.areas.sessions.pending_open = Some(located),
                 NavigationPurpose::CopyLink => {
-                    let link = vessel_app_view::desktop::NavigationTarget::Session {
-                        node: located.address.node,
-                        session: located.address.session,
-                    }
-                    .to_url();
-                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(link));
-                    self.notice = Some(self.words.sessions().link_copied().to_owned());
+                    self.copy_session_address(located.address, cx);
                 }
             },
             Err(failure) => {

@@ -313,3 +313,54 @@ fn history_operation_preserves_rendered_node_and_reports_failure_on_history(
         assert!(!shell.sessions_lifecycle_busy());
     });
 }
+
+#[gpui::test]
+fn copy_link_uses_admitted_node_without_superseding_an_inflight_open(cx: &mut TestAppContext) {
+    crate::shell::language_tests::init(cx);
+    let (shell, cx) = cx.add_window_view(Shell::without_io);
+    shell.update_in(cx, |shell, _, cx| {
+        let (info, _, admitted, _) = pending_exit(shell);
+        let ticket = shell
+            .areas
+            .sessions
+            .navigation
+            .begin(vessel_app_view::sessions::NavigationPurpose::Open)
+            .unwrap();
+        shell.copy_session_link(cx);
+        let copied = cx
+            .read_from_clipboard()
+            .and_then(|item| item.text())
+            .unwrap();
+        assert_eq!(
+            vessel_app_view::desktop::NavigationTarget::parse(&copied).unwrap(),
+            vessel_app_view::desktop::NavigationTarget::Session {
+                node: admitted,
+                session: info.id
+            }
+        );
+        assert_eq!(
+            shell.areas.sessions.navigation.finish(ticket),
+            Some(vessel_app_view::sessions::NavigationPurpose::Open)
+        );
+        shell
+            .areas
+            .session
+            .open
+            .as_mut()
+            .unwrap()
+            .binding
+            .as_mut()
+            .unwrap()
+            .address
+            .session = SessionId::random();
+        shell.copy_session_link(cx);
+        assert_eq!(
+            cx.read_from_clipboard().and_then(|item| item.text()),
+            Some(copied)
+        );
+        assert_eq!(
+            shell.notice.as_deref(),
+            Some(shell.words.sessions().identity_unavailable())
+        );
+    });
+}

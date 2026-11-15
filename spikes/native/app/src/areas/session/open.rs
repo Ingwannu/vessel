@@ -51,7 +51,10 @@ impl crate::shell::Shell {
         if open.machine != host.as_str() || open.session != session {
             return None;
         }
-        open.binding.as_ref().map(|binding| binding.address)
+        open.binding
+            .as_ref()
+            .filter(|binding| binding.host == *host && binding.address.session == session)
+            .map(|binding| binding.address)
     }
     /// Show a session's conversation, following it.
     pub(super) fn follow(&mut self, open: Open, cx: &mut Context<'_, Self>) {
