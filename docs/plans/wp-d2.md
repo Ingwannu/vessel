@@ -307,3 +307,8 @@ independent processes. The session card filters foreign TerminalPlace owners and
 never adopts that refused TerminalId or reinterprets root equality as canonical
 workspace ownership. Exact WorkspaceId service lifetimes remain unsupported
 until the new runtime contract replaces that legacy reservation boundary.
+
+The staged health-tone policy now follows script-status.ts's exact running-only
+condition. Starting/backoff/ended/unknown states cannot inherit green or red
+from a previous child report. This remains a pure presentation regression, not
+a live health consumer or a service lifetime grant.

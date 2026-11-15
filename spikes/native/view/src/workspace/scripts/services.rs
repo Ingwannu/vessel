@@ -62,8 +62,10 @@ pub enum ServiceReport {
 #[must_use]
 pub fn tone(kind: ScriptKind, state: RunState, health: Option<Health>) -> Tone {
     let live = match state {
-        RunState::Starting | RunState::Running | RunState::Backoff => true,
-        RunState::Idle
+        RunState::Running => true,
+        RunState::Starting
+        | RunState::Backoff
+        | RunState::Idle
         | RunState::Exited(_)
         | RunState::Failed
         | RunState::Stopped
@@ -181,6 +183,26 @@ mod tests {
             ),
             Tone::Unhealthy
         );
+    }
+    #[test]
+    fn a_report_from_a_previous_child_cannot_colour_starting_or_backoff_as_healthy() {
+        for state in [
+            RunState::Starting,
+            RunState::Backoff,
+            RunState::Unknown,
+            RunState::Exited(Some(0)),
+            RunState::Exited(Some(7)),
+            RunState::Failed,
+        ] {
+            assert_eq!(
+                tone(ScriptKind::Service, state, Some(Health::Healthy)),
+                Tone::Idle
+            );
+            assert_eq!(
+                tone(ScriptKind::Service, state, Some(Health::Unhealthy)),
+                Tone::Idle
+            );
+        }
     }
     #[test]
     fn summary_requires_all_services_to_report_health_and_failure_dominates() {
