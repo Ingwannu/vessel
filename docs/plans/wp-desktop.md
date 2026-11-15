@@ -393,3 +393,15 @@ failure. Preferences/geometry errors do not claim the local node could not stop
 and cannot offer interruption approval. Only an actual ActiveSessions snapshot
 from the controller opens that fixed process confirmation. Update state-flush
 failure uses the same localized save/retry notice after releasing finalization.
+
+### Recovery after Keep succeeds but final state save refuses quit
+
+Surrender cannot be undone. If a later persistence/final document fence keeps the
+app open, General offers explicit Reconnect for Kept. The same public startup
+path authenticates the still-running managed home as Attached; it never rebuilds
+an Owned child from its identity. The detached direct-child reaper stays alive.
+Only Owned stop is requested when disabling automatic management; Attached,
+Kept and already stopped states persist the opt-out without a spurious NotOwned
+control failure. The portable root join will extend its existing public-API Keep
+fixture to verify reattachment and continued refusal of stop/restart authority.
+No new process-ownership proof or force API is introduced.

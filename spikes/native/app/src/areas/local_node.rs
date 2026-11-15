@@ -81,7 +81,11 @@ pub(crate) fn enable_option(shell: &Shell) -> bool {
         .is_some_and(|snapshot| {
             matches!(
                 snapshot.status,
-                Status::Paused | Status::Stopped | Status::Failed | Status::Disconnected
+                Status::Paused
+                    | Status::Stopped
+                    | Status::Failed
+                    | Status::Disconnected
+                    | Status::Kept(_)
             )
         })
 }
@@ -326,17 +330,16 @@ impl Shell {
     }
 
     pub(crate) fn manage_local_node(&mut self, enabled: bool, cx: &mut Context<'_, Self>) {
-        if self.local_node_busy(cx)
-            || self.areas.local_node.snapshot.as_ref().map_or_else(
-                || crate::local_node::unavailable_status(cx),
-                |snapshot| snapshot.status,
-            ) == Status::NotInstalled
-        {
+        let status = self.areas.local_node.snapshot.as_ref().map_or_else(
+            || crate::local_node::unavailable_status(cx),
+            |snapshot| snapshot.status,
+        );
+        if self.local_node_busy(cx) || status == Status::NotInstalled {
             return;
         }
         self.prefs.local_node.management = if enabled {
             Management::Enabled
-        } else {
+        } else if matches!(status, Status::Owned(_)) {
             Management::Paused
         };
         self.command(Command::SavePrefs(self.prefs.clone()));

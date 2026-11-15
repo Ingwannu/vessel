@@ -87,3 +87,6 @@ local-node-already-registered = 다른 관리 로컬 연결이 이미 등록되�
 local-node-identity-changed = 관리 로컬 노드의 인증된 식별자가 바뀌었습니다. 다시 연결한 뒤 계속하세요.
 # The controller withdrew its original transport; this is not proof of OS exit.
 local-node-transport-retired = 관리 로컬 연결을 더 이상 사용할 수 없습니다. 다시 연결한 뒤 계속하세요.
+
+# Explicitly authenticate reuse after ownership was surrendered; never re-own the process.
+local-node-reconnect = 로컬 노드 다시 연결

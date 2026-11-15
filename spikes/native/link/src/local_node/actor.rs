@@ -178,7 +178,7 @@ async fn start(
 ) -> Result<(), Arc<LocalNodeError>> {
     if matches!(
         node.as_ref().map(|managed| managed.node.status()),
-        Some(LocalStatus::Owned(_) | LocalStatus::Attached(_) | LocalStatus::Kept(_))
+        Some(LocalStatus::Owned(_) | LocalStatus::Attached(_))
     ) {
         return Ok(());
     }

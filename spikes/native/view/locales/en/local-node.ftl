@@ -87,3 +87,6 @@ local-node-already-registered = Another managed local connection is already regi
 local-node-identity-changed = The managed local node's authenticated identity changed. Reconnect it before continuing.
 # The controller withdrew its original transport; this is not proof of OS exit.
 local-node-transport-retired = The managed local connection is no longer available. Reconnect it before continuing.
+
+# Explicitly authenticate reuse after ownership was surrendered; never re-own the process.
+local-node-reconnect = Reconnect local node

@@ -140,14 +140,22 @@ fn controls(
     let mut controls = div().flex().flex_row().flex_wrap();
     if matches!(
         status,
-        Status::Paused | Status::Stopped | Status::Disconnected | Status::Failed
+        Status::Paused | Status::Stopped | Status::Disconnected | Status::Failed | Status::Kept(_)
     ) {
         controls = controls.child(
-            outline_button("local-node-start", words.start(), readable && idle, tokens).on_click(
-                cx.listener(|shell, _event, _window, cx| {
-                    shell.local_node_action(Action::Start, cx);
-                }),
-            ),
+            outline_button(
+                "local-node-start",
+                if matches!(status, Status::Kept(_)) {
+                    words.reconnect()
+                } else {
+                    words.start()
+                },
+                readable && idle,
+                tokens,
+            )
+            .on_click(cx.listener(|shell, _event, _window, cx| {
+                shell.local_node_action(Action::Start, cx);
+            })),
         );
     }
     if matches!(status, Status::Owned(_)) {
