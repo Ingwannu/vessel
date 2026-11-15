@@ -15,21 +15,35 @@ use vessel_proto::DeviceId;
 impl Shell {
     pub(super) fn devices_inspect(
         &mut self,
+        context: &vessel_app_view::devices::ConnectionContext,
         id: DeviceId,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if !self.devices_press(context, window) {
+            return;
+        }
         let state = &mut self.areas.settings.devices;
-        if state.page.inspect_device(id).is_err() {
+        if state.page.inspect_bound(context, id).is_err() {
             return;
         }
         state.dialog.focus(window, cx);
         cx.notify();
     }
 
-    fn devices_close_inspection(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        self.areas.settings.devices.page.close_inspection();
-        cx.notify();
+    fn devices_close_inspection(
+        &mut self,
+        context: &vessel_app_view::devices::ConnectionContext,
+        device: DeviceId,
+    ) {
+        let page = &mut self.areas.settings.devices.page;
+        if page.check_context(context).is_ok()
+            && page
+                .inspected_device()
+                .is_some_and(|selected| selected.id == device)
+        {
+            page.close_inspection();
+        }
     }
 }
 
@@ -41,15 +55,24 @@ pub(super) fn dialog(
 ) -> Option<AnyElement> {
     let state = &shell.areas.settings.devices;
     let device = state.page.inspected_device()?;
+    let context = state.page.context()?.clone();
+    let dismiss_context = context.clone();
+    let id = device.id;
     let words = shell.t.lang.devices();
     let metadata = DeviceMetadata::of(shell.t.lang, device, state.offset);
     let compact = window.viewport_size().width < px(vessel_app_kit::picker::COMPACT);
     let body = metadata_card(shell.t.lang, metadata, tokens);
-    let close = outline_button("device-details-close", words.close_details, true, tokens)
-        .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
-        .on_click(cx.listener(|shell, _event, window, cx| {
-            shell.devices_close_inspection(window, cx);
-        }));
+    let close = outline_button(
+        format!("device-details-close-{}", context.epoch()),
+        words.close_details,
+        true,
+        tokens,
+    )
+    .when(compact, |button| button.min_h(px(TOUCH_TARGET)))
+    .on_click(cx.listener(move |shell, _event, _window, cx| {
+        shell.devices_close_inspection(&context, id);
+        cx.notify();
+    }));
     Some(draw_dialog(
         &state.dialog,
         DialogContent {
@@ -61,7 +84,10 @@ pub(super) fn dialog(
         tokens,
         window,
         compact,
-        Shell::devices_close_inspection,
+        move |shell, _window, cx| {
+            shell.devices_close_inspection(&dismiss_context, id);
+            cx.notify();
+        },
         cx,
     ))
 }
