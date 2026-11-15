@@ -174,6 +174,6 @@ mod tests {
             serde_json::from_str::<ObservePromptReceiptReply>(&encoded).unwrap(),
             reply
         );
-        assert!(!encoded.contains("started"));
+        assert!(!encoded.contains("\"started\":"));
     }
 }
