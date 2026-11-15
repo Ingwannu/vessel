@@ -48,6 +48,34 @@ async fn help_version_parse_and_dependency_exits_match_the_cli_contract_without_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn ended_agents_are_not_force_archived_from_a_stale_idle_snapshot() {
+    within(async {
+        let fixture = Fixture::start().await;
+        let owner = fixture.owner().await;
+        let info = owner.create_session(SessionSpec::new(vessel_proto::HarnessKind::ClaudeCode,
+            SessionMode::Structured { model: None, resume: None, options: Vec::new() })
+            .with_cwd(fixture.cwd())).await.unwrap();
+        let mut stream = owner.follow(info.id, vessel_proto::EventSeq::ZERO).await.unwrap();
+        owner.kill(info.id).await.unwrap();
+        loop {
+            let record = stream.next().await.expect("ended status missing").unwrap();
+            if matches!(record.event, vessel_proto::SessionEvent::Status { ref status } if !status.is_live()) { break; }
+        }
+        let refused = fixture.vessel(&["archive", &info.id.to_string(), "--json"], b"").await;
+        assert_eq!(refused.status.code(), Some(1));
+        assert!(refused.stdout.is_empty());
+        let error: FailureEnvelope = serde_json::from_str(&refused.stderr).unwrap();
+        assert_eq!(error.error.code, vessel_proto::ErrorCode::Unsupported);
+        assert!(owner.session(info.id).await.unwrap().marks.archived_at.is_none());
+        // The same identity really can reopen; an ended snapshot is not a permanent fence.
+        let resumed = owner.resume_session(info.id).await.unwrap();
+        assert!(resumed.status.is_live());
+        assert!(resumed.marks.archived_at.is_none());
+        fixture.stop().await;
+    }).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn project_creation_consumes_table_headers_json_and_quiet_on_actual_acknowledgements() {
     within(async {
         let fixture = Fixture::start().await;

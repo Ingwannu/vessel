@@ -1036,3 +1036,24 @@ landing+PASS, not for the CLI renderer. C2's frozen e792 core and current captur
 Silent and unchanged. Split query, held-history/old-raw replay, empty-record sequence and
 no-stdin-key-suppression regressions are required at the actual follow-up glue integration.
 No new scanner/parser, published filter, input suppression or authority switch exists now.
+
+### No-force archive also fences reopening (2026-11-15 13:43 UTC)
+
+[Decision Log]
+- Purpose: --force must be explicit even when a session looked ended at the last read.
+- Existing constraints: CLI previously refused a live idle no-force archive but sent
+  legacy Mark::Archive for ended sessions. Node service::conversation::resume_session
+  reopens ended structured sessions; sessions/marks.rs re-finds them and mark_live
+  kills a live process. A concurrent reopen/prompt therefore defeats that snapshot.
+- Alternatives: another status read (still races), client locks (do not bind other
+  callers), or a duplicate node admission (W21 owns the atomic archive contract).
+- Choice: withhold ALL no-force archive effects until W21's reviewed atomic admission,
+  preserving the active-turn diagnostic and the explicit Force path. No Mark::Archive
+  is inferred from an ended snapshot. Tell W21 to fence stored/reopen admission too.
+- Reason/consequences: this is a temporary Unsupported boundary, not fake idle safety.
+  W21's real IfIdle call will replace it; the CLI creates no new delivery/mark method.
+
+A deterministic actual-CLI regression kills a fake structured session, waits for its
+recorded ended status, verifies no-force archive returns1/Unsupported without marking,
+then proves that exact identity can reopen unarchived. It fails under the former ended
+fallback and has not executed at the current source. Whole/changed-source tests remain owed.

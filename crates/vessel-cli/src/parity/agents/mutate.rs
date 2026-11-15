@@ -89,17 +89,19 @@ pub(super) async fn archive(
     if info.marks.archived_at.is_some() {
         return Err(CliError::Usage("agent is already archived"));
     }
-    if intent == ArchiveIntent::IfIdle && info.status.is_live() {
-        structured(&info)?;
-        if observe::snapshot(&client, info.id).await?.state() != State::Idle {
-            return Err(CliError::Usage(
-                "agent has an active turn; --force explicitly interrupts before archiving",
-            ));
+    if intent == ArchiveIntent::IfIdle {
+        if info.status.is_live() {
+            structured(&info)?;
+            if observe::snapshot(&client, info.id).await?.state() != State::Idle {
+                return Err(CliError::Usage(
+                    "agent has an active turn; --force explicitly interrupts before archiving",
+                ));
+            }
         }
-        // This preflight can race another caller's prompt. An atomic node
-        // archive-if-idle contract is required before exposing this case.
+        // Ended sessions can resume too: neither snapshot authorizes a force archive.
+        // W21's admission must fence prompts and stored-session reopening atomically.
         return Err(CliError::ParityBlocked(
-            "archiving a live idle agent without --force requires an atomic archive-if-idle node call",
+            "archive without --force requires the atomic archive-if-idle node call",
         ));
     }
     let archived = client.mark(info.id, Mark::Archive).await?;
