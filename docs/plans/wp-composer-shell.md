@@ -1,8 +1,7 @@
 # Composer shell and commands
 
 Status (2026-11-15 13:06 UTC): incomplete B2 package. App integration is source-stage;
-no whole gate, capture matrix or final reviewer approval exists. Packagebase6 and
-its exact dd13 lock correction are adopted. Node and native work remain separate.
+no whole gate, capture matrix or final reviewer approval exists. Packagebase7 d18bb794 (including the dd13 lock correction) is adopted. Node and native work remain separate.
 
 ## Decision and existing assets
 
@@ -76,7 +75,7 @@ body/default matching is unchanged: JavaScript includes BOM and excludes NEL.
 The name tie uses G3's canonical alphabetical comparator. No second helper is added.
 
 Submit factories now accept a captured immutable Fn boxed once in the existing
-Handlers. SubmitPress is available only during that field's synchronous callback,
+Handlers. Base7’s canonical Callbacks::Identified/FieldId/with_source contract remains unchanged; capture widening applies only to Callbacks::Plain. SubmitPress is available only during that field's synchronous callback,
 with nested scope restoration and clearing afterward. Buttons/asynchronous work
 must not read later global modifiers. K's Legacy/Windowed and with_events union
 must preserve this same invocation; there is no second subscription.
@@ -174,3 +173,5 @@ The additive `composer_command_menu_owns_key(DraftKey, ComposerKey, &App)` query
 Assistant file-token normalization also reuses the existing matcher’s exact JavaScript whitespace predicate (`assistant-file-links/parse.ts:58-68,106-119`). BOM is stripped as in the reference; NEL remains a control and is refused rather than erased into a valid file target. Classification and source-line path suffixes share this normalization, without introducing a second whitespace helper, parser, filesystem read or dependency. The regression covers authored/inferred paths and uppercase HTTP scheme normalization; the successor source awaits VM checks.
 
 Code copy now shares the engine’s pure `trim_code_line_breaks` helper between code-only retained selection and the existing code-copy button. It matches Paseo `assistant-selection-copy/markup.ts:12-19` and `components/highlighted-code-block.tsx:95`, removing final LF/CRLF plus following ASCII indentation while preserving the last code line’s own spaces, leading indentation, interior newlines, NBSP and lone CR. The prior query removed only CR/LF and could leave a selected newline followed by spaces. Table regressions cover those boundaries; actual existing Copy handling and the window selection aggregator are retained. New source still awaits VM checks.
+
+Base7 union preserves the shared FieldId producer and its unchanged identity regression. The one existing `Callbacks::submit` invocation is wrapped by the same field-local SubmitPress guard. Plain submit factories retain captured Fn support; identified callbacks retain their exact signatures, engine ids and source checks. No second listener is installed. Existing queued d4ca checks remain prior-source checks, and no new base7 union compilation result is claimed.

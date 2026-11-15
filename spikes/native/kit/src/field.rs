@@ -30,7 +30,9 @@ pub use submit_press::SubmitPress;
 mod editability;
 mod events;
 pub use editability::Editability;
-use events::{Handlers, listen};
+use events::{Callbacks, Handlers, listen};
+mod identity;
+pub use identity::FieldId;
 mod frame;
 mod presentation;
 mod rename;
@@ -110,29 +112,6 @@ pub struct TextField {
 }
 
 impl TextField {
-    /// A form field showing `placeholder` while empty. Enter in it calls
-    /// `on_submit` on its owner with the text it holds.
-    pub fn new<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line(placeholder, on_submit, None, window, cx)
-    }
-
-    /// The same, also calling `on_change` with the text after every edit
-    /// (to say what is wrong with it beside the field as it is typed).
-    pub fn with_change<V: 'static>(
-        placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        on_change: fn(&mut V, String, &mut Context<'_, V>),
-        window: &mut Window,
-        cx: &mut Context<'_, V>,
-    ) -> Self {
-        Self::line(placeholder, on_submit, Some(on_change), window, cx)
-    }
-
     /// A composer's text: lines that grow; the press [`SendOn`] names
     /// (Enter unless [`Self::set_send_on`] says otherwise) calls
     /// `on_submit` with the text, Shift+Enter starts a new line.
@@ -196,14 +175,15 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit: Box::new(on_submit),
-                submit_press: Rc::clone(&submit_press),
-                // A growing form changes the surrounding dialog's layout
-                // and submit availability; its owner must see each edit.
-                on_change: match style {
-                    MultilineStyle::Composer => None,
-                    MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+                callbacks: Callbacks::Plain {
+                    on_submit: Box::new(on_submit),
+                    // Growing forms update layout and submit availability.
+                    on_change: match style {
+                        MultilineStyle::Composer => None,
+                        MultilineStyle::Form => Some(|_, _, cx| cx.notify()),
+                    },
                 },
+                submit_press: Rc::clone(&submit_press),
                 focused: Rc::clone(&focused),
                 send: Some(Rc::clone(&send)),
             },
@@ -222,8 +202,7 @@ impl TextField {
 
     fn line<V: 'static>(
         placeholder: &str,
-        on_submit: impl Fn(&mut V, String, &mut Window, &mut Context<'_, V>) + 'static,
-        on_change: Option<fn(&mut V, String, &mut Context<'_, V>)>,
+        callbacks: Callbacks<V>,
         window: &mut Window,
         cx: &mut Context<'_, V>,
     ) -> Self {
@@ -234,9 +213,8 @@ impl TextField {
         listen(
             &state,
             Handlers {
-                on_submit: Box::new(on_submit),
+                callbacks,
                 submit_press: Rc::clone(&submit_press),
-                on_change,
                 focused: Rc::clone(&focused),
                 send: None,
             },
