@@ -171,6 +171,15 @@ impl Model {
         let vessel_proto::OptionKind::Select { values, .. } = &option.kind else {
             return false;
         };
+        if model.as_ref().is_some_and(|model| {
+            !values
+                .iter()
+                .any(|offered| offered.id.as_str() == model.as_str())
+        }) {
+            // ACP applies the legacy model before option choices. A later
+            // offered choice cannot make that first unavailable model valid.
+            return false;
+        }
         if let Some(choice) = chosen.iter().rev().find(|choice| choice.id == option.id) {
             return match &choice.value {
                 vessel_proto::ChoiceValue::Select { value } => {

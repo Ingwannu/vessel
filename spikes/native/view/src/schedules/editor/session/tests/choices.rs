@@ -224,6 +224,9 @@ fn save_waits_for_agent_models_and_never_substitutes_a_missing_opened_model() {
         Received::Changed
     ));
     assert!(matches!(model.prepare_save(), Err(Issue::Target)));
+    let displayed = model.controls(crate::Lang::En).unwrap().model.unwrap();
+    assert_eq!(displayed.current.as_str(), "old-model");
+    assert!(displayed.current_value().is_none());
     assert_eq!(
         model.draft().unwrap().target().unwrap().spec(),
         target().spec()

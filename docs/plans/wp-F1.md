@@ -960,3 +960,15 @@ the explicit viewer Clock and retain calendar failures instead of fabricating
 UTC or machine-zone names. Read-only is actual scope/refusal evidence, and save
 readiness uses the form owner. The cache has no controls, calls, local scheduler
 or input engine and is not an editor UI/compiled proof at this checkpoint.
+
+
+### Unavailable opened model remains visibly unavailable
+
+The stored legacy model must itself remain offered: vessel-agent/handshake.rs
+288–306 applies it before later typed option choices, so a later valid choice
+cannot rescue an unavailable first model. The form keeps that original id in
+the existing control with no current offered value, instead of silently showing
+the node's unrelated default. Its stored spec remains unchanged until an
+explicit model choice clears the legacy field through the existing transition.
+The source regression now checks both the refusal and honest control state.
+No new provider catalogue or live handshake is executed by this preparation.

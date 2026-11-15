@@ -180,11 +180,22 @@ impl Model {
             }
         }
         let offered = crate::with_picks(&options.options, &picks);
-        Some(crate::controls_of(
-            &offered,
-            &crate::agent_name(&target.spec().harness),
-            lang,
-        ))
+        let mut controls =
+            crate::controls_of(&offered, &crate::agent_name(&target.spec().harness), lang);
+        if let SessionMode::Structured {
+            model: Some(model), ..
+        } = &target.spec().mode
+            && let Some(control) = &mut controls.model
+            && !control
+                .values
+                .iter()
+                .any(|value| value.id.as_str() == model.as_str())
+        {
+            // Keep an unavailable opened selection visible as unavailable;
+            // the node's current default is not what this stored spec asks for.
+            control.current = vessel_proto::OptionValueId::new(model.as_str());
+        }
+        Some(controls)
     }
     /// Apply only a currently offered typed option, preserving every unrelated
     /// stored spec field and choice. No raw option/model id is reparsed.
