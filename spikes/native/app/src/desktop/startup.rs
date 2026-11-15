@@ -1,8 +1,10 @@
 //! Startup chooses CLI or one GUI owner before initializing any renderer.
 
+use std::cell::Cell;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::rc::Rc;
 use tokio::sync::mpsc;
 use vessel_app_kit::SchemeChoice;
 use vessel_app_link::desktop::{
@@ -91,11 +93,18 @@ fn start(
             super::windows::open_primary(None, cx);
         }
     });
+    let outcome = Rc::new(Cell::new(ExitCode::FAILURE));
+    let started = Rc::clone(&outcome);
     application.run(move |cx| {
         if let Err(error)=vessel_app_kit::init(cx,choice) {tracing::error!(%error,"the kit could not start");cx.quit();return;}
         crate::motion::follow(cx);
         if let Err(error)=super::install(store,environment,cx) {tracing::error!(%error,"desktop state could not start");cx.quit();return;}
         super::windows::open_primary(Some(launch),cx);
+        if cx.windows().is_empty() {
+            cx.quit();
+            return;
+        }
+        started.set(ExitCode::SUCCESS);
         cx.spawn(async move |cx| {
             loop {
                 tokio::select! {
@@ -107,7 +116,7 @@ fn start(
         }).detach();
     });
     drop(guard);
-    Ok(ExitCode::SUCCESS)
+    Ok(outcome.get())
 }
 
 fn passthrough(arguments: Vec<OsString>) -> Result<ExitCode, DesktopError> {

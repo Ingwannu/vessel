@@ -331,3 +331,8 @@ ReturnFocus primitive before edit dispatch. Opening another desktop menu starts
 a fresh cycle; captured old row callbacks refuse actions after replacement.
 The existing real-field Copy/Paste/SelectAll keyboard test now exercises the
 shared producer's return path. Its final combined runtime result is still owed.
+
+Startup exit reporting retains failure until kit, canonical desktop state and the
+first window actually initialize. A failed first-window open quits Explicit mode
+rather than leaving an invisible primary holding the instance lock. CLI child
+exit handling and second-instance forwarding retain their existing status paths.
