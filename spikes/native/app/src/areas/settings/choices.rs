@@ -30,6 +30,15 @@ pub(crate) enum List {
     Display,
 }
 
+/// The default send's choices in the order Paseo's list offers them
+/// (`sending-section.tsx` `SEND_BEHAVIORS`), the rows and their changes
+/// read from the same table.
+const DELIVERIES: [TurnDelivery; 3] = [
+    TurnDelivery::Interrupt,
+    TurnDelivery::Steer,
+    TurnDelivery::Queue,
+];
+
 /// The platform's main modifier, as the send key's words name it.
 pub(crate) const fn primary() -> &'static str {
     if cfg!(target_os = "macos") {
@@ -115,7 +124,7 @@ pub(crate) fn rows(list: List, shell: &Shell, tokens: &Tokens) -> Vec<ComboRow> 
                 )
             })
             .collect(),
-        List::Delivery => TurnDelivery::ALL
+        List::Delivery => DELIVERIES
             .into_iter()
             .map(|delivery| {
                 row(
@@ -159,7 +168,7 @@ pub(crate) fn change(list: List, index: usize) -> Option<PreferenceChange> {
     match list {
         List::Machine => None,
         List::Send => SendKey::ALL.get(index).copied().map(PreferenceChange::Send),
-        List::Delivery => TurnDelivery::ALL
+        List::Delivery => DELIVERIES
             .get(index)
             .copied()
             .map(PreferenceChange::Delivery),

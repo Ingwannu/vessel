@@ -92,7 +92,12 @@ impl Shell {
             return;
         };
         match ended {
-            StartEnded::Started(card) => {
+            StartEnded::Started(mut card) => {
+                // Renamed in the book while it started: the session is the
+                // machine's under its new name.
+                if card.machine != start.machine {
+                    card.machine.clone_from(&start.machine);
+                }
                 self.started(&card, cx);
                 self.command(vessel_app_link::Command::Reload);
             }

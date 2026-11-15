@@ -1,17 +1,23 @@
-//! General, as the page's (`features/settings/general.tsx`) in Paseo's
-//! layout (`screens/settings/general/sending-section.tsx`): the composer's
-//! send shortcut and default send, each a select in a settings row, the
-//! default send's row saying what the value in effect does; then where
-//! the preferences are kept.
+//! General, as Paseo's (`screens/settings-screen.tsx` `GeneralSection`
+//! and `screens/settings/general/sending-section.tsx` `SendingSection`):
+//! the "General" section (Language), the "Sending" section (the send
+//! shortcut, and the default send with a hint for the value in effect);
+//! then where the preferences are kept, which Paseo has not.
 //!
 //! [Decision Log]
-//! - Purpose: the page's General, every row of it.
-//! - Choice: Paseo's `SettingsSelect` for both (the kit's select); the
-//!   page's words. Where they are kept is a row whose words say why when
-//!   they last this launch only (the page's banner, `kept-note.tsx`, folded
-//!   into the row: Paseo has no banner on a settings page).
-//! - Differences: no lead sentence over the sections (Paseo's pages have
-//!   none).
+//! - Purpose: Paseo's General, section for section, label for label.
+//! - Choice: Paseo's two sections and `SettingsSelect` rows (the kit's
+//!   select). The send shortcut has no hint, as Paseo's; the default
+//!   send's hint is the conversation track's sentence for what the value
+//!   does in Vessel (it falls back where Paseo's alternate key and steer
+//!   differ). The default send's list is in Paseo's order (Interrupt,
+//!   Steer, Queue; `choices.rs`).
+//! - Not shown: Paseo's "Show setup again" (Vessel has no first-run
+//!   walkthrough yet) and "Open location" (no side panes).
+//! - Difference: "Kept" is Vessel's own: where the preferences are kept,
+//!   and why they last this launch only when no file can hold them (the
+//!   page's banner folded into a row; Paseo keeps its settings in the
+//!   browser's storage and says nothing).
 
 use vessel_app_kit::select;
 use vessel_app_kit::ui::{
@@ -19,7 +25,8 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, div,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, outline_button, settings};
-use vessel_app_view::prefs::{Kept, SendKey};
+use vessel_app_view::prefs::Kept;
+use vessel_app_view::settings::Section;
 
 use super::applied;
 use super::choices::{self, List};
@@ -34,16 +41,16 @@ pub(crate) fn render(
 ) -> AnyElement {
     let words = shell.t.lang.settings();
     let composer = &shell.prefs.settings.composer;
-    let send_hint = match composer.send {
-        SendKey::Enter => words.enter_sends,
-        SendKey::ModEnter => words.shortcut_sends,
-    };
-    // Each row once the composer reads its value (`super::applied`).
+    let general = settings::card(tokens).child(super::language::row(shell, tokens, compact, cx));
+    // Each row once the composer reads its value (`super::applied`). The
+    // send shortcut only where keyboard shortcuts are (Paseo's
+    // `useKeyboardShortcutsAvailable`: not on a compact layout).
+    let send_shown = applied(List::Send) && !compact;
     let sending = settings::card(tokens)
-        .when(applied(List::Send), |card| {
+        .when(send_shown, |card| {
             card.child(settings::row_at(
                 words.send_shortcut,
-                Some(send_hint.into()),
+                None,
                 None,
                 Some(select_for(List::Send, shell, compact, tokens, cx)),
                 true,
@@ -57,7 +64,7 @@ pub(crate) fn render(
                 Some(words.delivery_note(composer.delivery).into()),
                 None,
                 Some(select_for(List::Delivery, shell, compact, tokens, cx)),
-                !applied(List::Send),
+                !send_shown,
                 compact,
                 tokens,
             ))
@@ -70,7 +77,7 @@ pub(crate) fn render(
             let copied = path.clone();
             let copy = outline_button(
                 "settings-copy-prefs-path",
-                shell.t.lang.update().copy_path,
+                shell.words.update().copy_path(),
                 true,
                 tokens,
             )
@@ -103,12 +110,17 @@ pub(crate) fn render(
         compact,
         tokens,
     ));
-    let shown = applied(List::Send) || applied(List::Delivery);
+    let shown = send_shown || applied(List::Delivery);
     div()
         .flex()
         .flex_col()
+        .child(settings::section(
+            words.section(Section::General),
+            general,
+            tokens,
+        ))
         .when(shown, |page| {
-            page.child(settings::section(words.composer, sending, tokens))
+            page.child(settings::section(words.sending, sending, tokens))
         })
         .child(settings::section(words.kept, kept_card, tokens))
         .into_any_element()

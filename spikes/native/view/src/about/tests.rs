@@ -4,8 +4,11 @@
 //! Development/build declarations never initiate traversal; a name used in
 //! both roles remains required. Optional normal declarations are conservative:
 //! a shipping feature can enable them without changing this inventory test.
+//! Native members may also declare external dependencies without workspace
+//! inheritance. Those must be required too; otherwise an inline target-only
+//! dependency silently escapes the workspace-manifest order comparison.
 
-use super::BUNDLED;
+use super::{BUNDLED, Role};
 use serde::Deserialize;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -124,13 +127,39 @@ fn dependencies(manifest: &str, runtime: &BTreeSet<String>) -> Vec<String> {
     names
 }
 
+fn direct_runtime(metadata: &Metadata) -> BTreeSet<String> {
+    metadata
+        .packages
+        .iter()
+        .filter(|package| metadata.workspace_members.contains(&package.id))
+        .flat_map(|package| &package.dependencies)
+        .filter(|dependency| dependency.kind.is_none() && !dependency.name.starts_with("vessel-"))
+        .map(|dependency| dependency.name.clone())
+        .collect()
+}
+
+fn inventory_names(
+    manifest: &str,
+    runtime: &BTreeSet<String>,
+    direct: &BTreeSet<String>,
+) -> Vec<String> {
+    let mut names = dependencies(manifest, runtime);
+    let shared: BTreeSet<_> = names.iter().cloned().collect();
+    // Keep the shared manifest's existing order. Inline member declarations
+    // follow alphabetically, so metadata package traversal cannot reorder them.
+    names.extend(direct.difference(&shared).cloned());
+    names
+}
+
 #[test]
 fn name_every_dependency_in_the_manifests_order() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../Cargo.toml")
         .canonicalize()
         .unwrap();
-    let required = runtime_names(query(&manifest), query);
+    let metadata = query(&manifest);
+    let direct = direct_runtime(&metadata);
+    let required = runtime_names(metadata, query);
     let listed: Vec<_> = BUNDLED
         .iter()
         .filter(|entry| !entry.face)
@@ -138,8 +167,33 @@ fn name_every_dependency_in_the_manifests_order() {
         .collect();
     assert_eq!(
         listed,
-        dependencies(include_str!("../../../Cargo.toml"), &required),
+        inventory_names(include_str!("../../../Cargo.toml"), &required, &direct),
         "a runtime dependency is missing from BUNDLED, or out of order"
+    );
+}
+
+#[test]
+fn translation_libraries_and_uuid_describe_their_actual_roles() {
+    assert_eq!(
+        BUNDLED
+            .iter()
+            .filter(|entry| entry.role == Role::Translations)
+            .map(|entry| entry.name)
+            .collect::<Vec<_>>(),
+        [
+            "fluent-bundle",
+            "fluent-syntax",
+            "fluent-pseudo",
+            "intl-memoizer",
+            "unic-langid"
+        ]
+    );
+    assert_eq!(
+        BUNDLED
+            .iter()
+            .find(|entry| entry.name == "uuid")
+            .map(|entry| entry.role),
+        Some(Role::Identifiers)
     );
 }
 
@@ -189,6 +243,42 @@ fn missing_runtime_still_fails_and_both_kinds_are_required() {
     );
     assert_eq!(names, ["normal", "both"]);
     assert_ne!(vec!["normal"], names);
+}
+
+#[test]
+fn inline_normal_declarations_cannot_escape_and_dev_only_stays_excluded() {
+    let metadata = fixture(&[
+        ("shared", None),
+        ("inline", None),
+        ("dev-only", Some(Kind::Dev)),
+        ("both", Some(Kind::Dev)),
+        ("both", None),
+    ]);
+    let direct = direct_runtime(&metadata);
+    let runtime = runtime_names(metadata, |_| panic!("no path declaration in fixture"));
+    let manifest = "[workspace.dependencies]\nshared = \"1\"";
+    // The former comparison accepts just shared; the strengthened gate
+    // additionally requires each inline normal declaration, including both.
+    assert_eq!(dependencies(manifest, &runtime), ["shared"]);
+    assert_eq!(
+        inventory_names(manifest, &runtime, &direct),
+        ["shared", "both", "inline"]
+    );
+    assert_ne!(vec!["shared"], inventory_names(manifest, &runtime, &direct));
+}
+
+#[test]
+fn another_targets_inline_runtime_declaration_is_required() {
+    let metadata: Metadata = serde_json::from_str(r#"{
+        "workspace_members":["app"],"packages":[{"id":"app","manifest_path":"app/Cargo.toml",
+        "dependencies":[{"name":"inline-browser","kind":null,"target":"cfg(target_family = \"wasm\")","path":null}]}]}
+    "#).unwrap();
+    let direct = direct_runtime(&metadata);
+    let runtime = runtime_names(metadata, |_| panic!("no path declaration in fixture"));
+    assert_eq!(
+        inventory_names("[workspace.dependencies]", &runtime, &direct),
+        ["inline-browser"]
+    );
 }
 
 #[test]

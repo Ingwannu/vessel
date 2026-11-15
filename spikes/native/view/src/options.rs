@@ -183,13 +183,15 @@ pub fn controls_of(options: &[SessionOption], agent: &str, lang: Lang) -> Contro
     for option in options {
         match &option.kind {
             OptionKind::Unknown => {}
-            OptionKind::Toggle { on } => out.toggles.push(ToggleControl {
+            OptionKind::Toggle { on, .. } => out.toggles.push(ToggleControl {
                 id: option.id.clone(),
                 name: own_name(&option.name, agent, lang),
                 description: option.description.clone(),
                 on: *on,
             }),
-            OptionKind::Select { current, values } => {
+            OptionKind::Select {
+                current, values, ..
+            } => {
                 let control = SelectControl {
                     id: option.id.clone(),
                     name: option.name.clone(),
@@ -269,7 +271,7 @@ impl Picks {
 /// Whether the agent would take `choice` for `option`.
 fn offered(option: &SessionOption, choice: &OptionChoice) -> bool {
     match (&option.kind, &choice.value) {
-        (OptionKind::Select { values, .. }, ChoiceValue::Select { value }) => {
+        (OptionKind::Select { values, .. }, ChoiceValue::Select { value, .. }) => {
             values.iter().any(|offered| &offered.id == value)
         }
         (OptionKind::Toggle { .. }, ChoiceValue::Toggle { .. }) => true,
@@ -280,8 +282,8 @@ fn offered(option: &SessionOption, choice: &OptionChoice) -> bool {
 /// Whether `choice` is what `option` already is.
 fn already(option: &SessionOption, choice: &OptionChoice) -> bool {
     match (&option.kind, &choice.value) {
-        (OptionKind::Select { current, .. }, ChoiceValue::Select { value }) => current == value,
-        (OptionKind::Toggle { on }, ChoiceValue::Toggle { on: wanted }) => on == wanted,
+        (OptionKind::Select { current, .. }, ChoiceValue::Select { value, .. }) => current == value,
+        (OptionKind::Toggle { on }, ChoiceValue::Toggle { on: wanted, .. }) => on == wanted,
         _ => false,
     }
 }
@@ -300,10 +302,10 @@ pub fn with_picks(options: &[SessionOption], picks: &Picks) -> Vec<SessionOption
                 .filter(|choice| offered(&option, choice))
             {
                 match (&mut option.kind, &choice.value) {
-                    (OptionKind::Select { current, .. }, ChoiceValue::Select { value }) => {
+                    (OptionKind::Select { current, .. }, ChoiceValue::Select { value, .. }) => {
                         value.clone_into(current);
                     }
-                    (OptionKind::Toggle { on }, ChoiceValue::Toggle { on: wanted }) => {
+                    (OptionKind::Toggle { on }, ChoiceValue::Toggle { on: wanted, .. }) => {
                         *on = *wanted;
                     }
                     _ => {}

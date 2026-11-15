@@ -1,7 +1,7 @@
 //! The page's `data/prefs.test.ts`, `compose-keys.test.ts` and the
 //! bridge's own tests of the same document (`wire/prefs.rs`,
 //! `wire/prefs/keys.rs`, `wire/prefs/change.rs`): the same JSON, the
-//! same rules.
+//! same rules, plus the app-only language preference.
 
 use std::collections::BTreeMap;
 
@@ -10,12 +10,13 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, OptionId, OptionValueId};
 use crate::Lang;
 use crate::files::{FileFault, FileProblem};
 use crate::prefs::{
-    ActionId, AgentKind, Bindings, Choices, ContentWidth, InvalidActionId, InvalidKeyBinding, Kept,
-    KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults, Panel, PreferenceChange,
-    Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget, Theme, TurnDelivery,
+    ActionId, AgentKind, Bindings, Choices, ContentWidth, Grouping, InvalidActionId,
+    InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
+    Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
+    SidebarView, Theme, TurnDelivery,
 };
 
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"queue"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":false},"defaults":{}}"#;
 
 fn change(json: &str) -> PreferenceChange {
     serde_json::from_str(json).unwrap()
@@ -28,12 +29,56 @@ fn apply(prefs: &Preferences, json: &str) -> Preferences {
 #[test]
 fn defaults_are_the_contracts() {
     let values = Preferences::default();
-    assert_eq!(serde_json::to_string(&values).unwrap(), DEFAULT);
+    // Keep the page/bridge fixture unchanged. The native document adds two
+    // explicit fields (the language, and Appearance's Animations, word 39)
+    // and differs in one stated default: ended sessions are listed
+    // (`SidebarView::default`, 2026-11-14; the page and the bridge still
+    // write `"ended":false` until the node line's slice moves them, and
+    // then this exception goes). Every other byte of its defaults still
+    // comes from that fixture.
+    let native_default = DEFAULT
+        .replacen('{', r#"{"language":"system","#, 1)
+        .replacen(
+            r#""conversation":"full""#,
+            r#""conversation":"full","animations":"on""#,
+            1,
+        )
+        .replacen(r#""ended":false"#, r#""ended":true"#, 1);
+    assert_eq!(serde_json::to_string(&values).unwrap(), native_default);
     assert_eq!(
-        serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
+        serde_json::from_str::<Preferences>(&native_default).unwrap(),
         values
     );
+    // The page's document reads as the defaults with its own stated
+    // `"ended":false`: the one temporary difference, kept as written.
+    let page_default = Preferences {
+        sidebar: SidebarView {
+            ended: false,
+            ..values.sidebar
+        },
+        ..values.clone()
+    };
+    assert_eq!(
+        serde_json::from_str::<Preferences>(DEFAULT).unwrap(),
+        page_default
+    );
     assert_eq!(serde_json::from_str::<Preferences>("{}").unwrap(), values);
+}
+
+/// Ended sessions: a document without the field lists them (Paseo's, and
+/// 0.0.0.0.16's); one the person turned off stays off; an unreadable value
+/// lists them as a missing one does.
+#[test]
+fn ended_sessions_are_listed_unless_turned_off() {
+    let missing: Preferences =
+        serde_json::from_str(r#"{"sidebar":{"group":"status","sort":"activity"}}"#).unwrap();
+    assert!(missing.sidebar.ended);
+    assert_eq!(missing.sidebar.group, Grouping::Status);
+    let off: Preferences = serde_json::from_str(r#"{"sidebar":{"ended":false}}"#).unwrap();
+    assert!(!off.sidebar.ended);
+    let unreadable: Preferences = serde_json::from_str(r#"{"sidebar":{"ended":"yes"}}"#).unwrap();
+    assert!(unreadable.sidebar.ended);
+    assert!(Preferences::default().sidebar.ended);
 }
 
 /// "the first paint": the values written, and the defaults for the rest.
@@ -383,4 +428,24 @@ fn action_ids_are_the_pages_own_shape() {
     ] {
         assert_eq!(bad.parse::<ActionId>(), Err(InvalidActionId), "{bad:?}");
     }
+}
+
+/// Word 39: Animations is kept, changed alone, and an unknown value reads
+/// as the default (on) rather than failing the whole document.
+#[test]
+fn animations_are_kept_changed_alone_and_lenient() {
+    use crate::prefs::Animations;
+    let values = Preferences::default();
+    assert_eq!(values.appearance.animations, Animations::On);
+    let off = values
+        .changed(&PreferenceChange::Animations(Animations::Off))
+        .unwrap();
+    assert_eq!(off.appearance.animations, Animations::Off);
+    assert!(!off.appearance.animations.on());
+    assert_eq!(off.appearance.theme, values.appearance.theme);
+    let read: Preferences = serde_json::from_str(r#"{"appearance":{"animations":"off"}}"#).unwrap();
+    assert_eq!(read.appearance.animations, Animations::Off);
+    let unknown: Preferences =
+        serde_json::from_str(r#"{"appearance":{"animations":"sometimes"}}"#).unwrap();
+    assert_eq!(unknown.appearance.animations, Animations::On);
 }

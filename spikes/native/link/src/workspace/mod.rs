@@ -33,19 +33,23 @@ mod answer;
 mod ask;
 mod calls;
 mod follow;
+mod pulls;
 mod run;
 mod start;
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use tokio::sync::mpsc;
+use tokio::task::AbortHandle;
+use vessel_app_view::machine_book::Edit;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_client::NodeClient;
 use vessel_proto::ProjectId;
 
 pub use answer::{Answer, Form, GitWritten};
 pub use ask::{Ask, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, Save, WorktreeAsk};
+pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 
 use crate::Event;
@@ -54,10 +58,40 @@ use crate::Event;
 /// project is followed once however often the list is read.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct Hub {
-    following: Arc<Mutex<HashSet<(String, ProjectId)>>>,
+    /// Each clone followed, by machine and project, with its task (each
+    /// task holds a clone of the machine's client until it ends).
+    following: Arc<Mutex<HashMap<(String, ProjectId), AbortHandle>>>,
 }
 
 impl Hub {
+    /// The node book was edited (track E2's Settings › Machines, called in
+    /// the link's own task right after the book file was written): a
+    /// forgotten machine's follows are cancelled, so nothing here keeps its
+    /// connection; a renamed machine's too, as each answers under the name
+    /// it started with (the app lists the projects again under the new
+    /// name, which follows them anew). Nothing is stopped on the machine.
+    pub(crate) fn book_applied(&self, edit: &Edit) {
+        match edit {
+            Edit::Rename { from, .. } => self.stop_following(from.as_str()),
+            Edit::Forget(name) => self.stop_following(name.as_str()),
+            Edit::MakeDefault(_) => {}
+        }
+    }
+
+    /// Cancel every follow of `machine`'s.
+    fn stop_following(&self, machine: &str) {
+        let Ok(mut following) = self.following.lock() else {
+            return;
+        };
+        following.retain(|(on, _), task| {
+            let keep = on != machine;
+            if !keep {
+                task.abort();
+            }
+            keep
+        });
+    }
+
     /// Run `ask` on `machine` (its connection `client`), answering on
     /// `events`; returns at once.
     pub(crate) fn ask(
@@ -103,5 +137,90 @@ impl Reply {
                 answer,
             })
             .await;
+    }
+}
+
+#[cfg(test)]
+mod book_tests {
+    //! The book's edits reach the follows: a forget during a running
+    //! follow leaves no task and nothing it held; a rename does the same
+    //! for the old name and keeps the other machines' follows.
+
+    use std::sync::Arc;
+
+    use vessel_app_view::machine_book::{Edit, Name};
+    use vessel_proto::ProjectId;
+
+    use super::Hub;
+
+    fn project(n: u8) -> ProjectId {
+        format!("00000000-0000-4000-8000-0000000000{n:02}")
+            .parse()
+            .expect("a project id")
+    }
+
+    /// A follow that runs until cancelled, holding `held` (as a real one
+    /// holds the machine's client).
+    fn follow(
+        hub: &Hub,
+        machine: &str,
+        id: ProjectId,
+        held: &Arc<()>,
+    ) -> tokio::task::JoinHandle<()> {
+        let kept = Arc::clone(held);
+        let task = tokio::spawn(async move {
+            std::future::pending::<()>().await;
+            drop(kept);
+        });
+        let _was = hub
+            .following
+            .lock()
+            .expect("the registry")
+            .insert((machine.to_owned(), id), task.abort_handle());
+        task
+    }
+
+    #[tokio::test]
+    async fn a_forget_cancels_the_machine_s_follows_and_drops_what_they_held() {
+        let hub = Hub::default();
+        let laptop = Arc::new(());
+        let server = Arc::new(());
+        let first = follow(&hub, "laptop", project(1), &laptop);
+        let second = follow(&hub, "laptop", project(2), &laptop);
+        let other = follow(&hub, "build-server", project(3), &server);
+        hub.book_applied(&Edit::Forget(Name::parse("laptop").expect("a name")));
+        assert!(first.await.expect_err("cancelled").is_cancelled());
+        assert!(second.await.expect_err("cancelled").is_cancelled());
+        assert_eq!(Arc::strong_count(&laptop), 1, "no task holds the client");
+        let left: Vec<_> = hub
+            .following
+            .lock()
+            .expect("the registry")
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(left, vec![("build-server".to_owned(), project(3))]);
+        assert_eq!(
+            Arc::strong_count(&server),
+            2,
+            "the other machine's follow runs"
+        );
+        other.abort();
+    }
+
+    #[tokio::test]
+    async fn a_rename_cancels_the_old_name_s_follows_and_a_default_changes_nothing() {
+        let hub = Hub::default();
+        let held = Arc::new(());
+        let task = follow(&hub, "laptop", project(1), &held);
+        hub.book_applied(&Edit::MakeDefault(Name::parse("laptop").expect("a name")));
+        assert_eq!(hub.following.lock().expect("the registry").len(), 1);
+        hub.book_applied(&Edit::Rename {
+            from: Name::parse("laptop").expect("a name"),
+            to: Name::parse("work-laptop").expect("a name"),
+        });
+        assert!(task.await.expect_err("cancelled").is_cancelled());
+        assert_eq!(Arc::strong_count(&held), 1);
+        assert!(hub.following.lock().expect("the registry").is_empty());
     }
 }

@@ -92,10 +92,20 @@ fn takes_the_books_names_and_no_other() {
     assert_eq!(problem("build.server_2-a"), None);
     assert_eq!(problem("").as_deref(), Some("Give it a name."));
     for start in ["-box", "_here", "상자"] {
-        assert!(problem(start).unwrap().starts_with("Start with"), "{start}");
+        assert_eq!(
+            problem(start).as_deref(),
+            Some("Start with a letter or a digit."),
+            "{start}"
+        );
     }
-    assert!(problem("two words").unwrap().contains("no spaces"));
-    assert!(problem(&"a".repeat(65)).unwrap().starts_with("At most 64"));
+    assert_eq!(
+        problem("two words").as_deref(),
+        Some("Use letters, digits, “.”, “_” and “-” only (no spaces).")
+    );
+    assert_eq!(
+        problem(&"a".repeat(65)).as_deref(),
+        Some("At most 64 characters.")
+    );
     assert_eq!(problem(&"a".repeat(64)), None);
 }
 

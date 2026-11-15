@@ -35,3 +35,8 @@ Exact-value tests cover every kind and phase in both themes, plus a changed
 accent foreground to prevent accidentally reusing it for destructive text.
 The README lists the API. This commit changes no app caller; the schedule
 confirmation swaps its one call only after coordinator acceptance.
+
+
+Review follow-up: the redundant hover palette assignment was removed; Paseo
+sets no hover override on a filled button. The exact-value test names the
+hover case and checks the idle paint that pointer entry retains.

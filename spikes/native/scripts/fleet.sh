@@ -3,7 +3,8 @@
 # directory with the testkit's fake harnesses (`fake-acp` as the ACP
 # adapters, `fake-tui` as the CLIs), a node book naming them, and a few
 # structured sessions with a turn each. No real agent runs and nothing
-# leaves the machine: every process has a scratch home, the nodes listen
+# leaves the machine unless a person opens the public agent registry:
+# every process has a scratch home, the nodes listen
 # on loopback ports the system picks. The same setup as the page's
 # end-to-end fleet (web/e2e/fleet.ts), in shell.
 #
@@ -11,12 +12,19 @@
 #   scripts/fleet.sh start ROOT TARGET   # TARGET: the main workspace's
 #                                        # build dir with debug binaries
 #   scripts/fleet.sh stop ROOT
-# Then run the app with VESSEL_CONFIG_DIR=ROOT/config. `laptop` also
-# serves pairing (`--public`), so `ROOT/pair.sh` prints a pairing link.
+# Then run the app with VESSEL_CONFIG_DIR=ROOT/config. Every node serves
+# pairing (`--public`), and the book holds what a person's pairing grants
+# (read, operate, admin), never a node's owner token: each node is paired
+# as a person pairs, its single-use link going from `vessel node pair` to
+# `vessel nodes add NAME --pair --yes` through a pipe, never printed,
+# logged or kept (the app track's rule of 2026-11-14). `ROOT/pair.sh`
+# prints a link for laptop, for trying the pairing dialog by hand.
 #
 # Build the binaries first, in the repository root:
 #   cargo build -p vessel-cli -p vessel-node -p vessel-testkit --bins
 set -euo pipefail
+umask 077
+source "$(dirname "${BASH_SOURCE[0]}")/agent-fixtures.sh"
 
 command=${1:?start or stop}
 root=${2:?a scratch directory}
@@ -56,10 +64,12 @@ for name in laptop build-server; do
   data="$root/$name"
   home="$root/$name-home"
   mkdir -p "$home"
-  extra=()
-  if [ "$name" = laptop ]; then extra=(--public "127.0.0.1:$port"); fi
-  env -i PATH="$base_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
-    "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" "${extra[@]}" \
+  agent_fixture_bin "$root" "$target" "$name"
+  agent_fixture_config "$data"
+  node_path="$root/$name-bin:/usr/bin:/bin"
+  env -i PATH="$node_path" HOME="$home" TZ=Asia/Seoul RUST_LOG=info \
+    "$target/vesseld" --data-dir "$data" --bind "127.0.0.1:$port" --name "$name" \
+    --public "127.0.0.1:$port" \
     > "$root/$name.log" 2>&1 &
   echo $! >> "$root/pids"
   # The token is written before the node listens: wait for both.
@@ -68,8 +78,12 @@ for name in laptop build-server; do
     sleep 0.1
   done
   echo "$name 127.0.0.1:$port" >> "$root/nodes"
-  env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
-    "$target/vessel" nodes add "$name" "ws://127.0.0.1:$port" --token-file "$data/token"
+  # The node's own token makes the link (on the node's side, as its owner
+  # would); the book only ever receives the paired device's credentials.
+  env -i PATH="$base_path" HOME="$home" \
+    "$target/vessel" --data-dir "$data" --node "127.0.0.1:$port" node pair --label fleet-app \
+    | env -i PATH="$base_path" HOME="$root" VESSEL_CONFIG_DIR="$root/config" \
+      "$target/vessel" nodes add "$name" --pair --yes > /dev/null
 done
 
 python3 "$(dirname "$0")/settings-fixtures.py" seed "$root"
@@ -80,6 +94,7 @@ cli() {
 
 # The schedule preview is real node behaviour, not a client calculation.
 python3 "$(dirname "$0")/wire-gaps-fixtures.py" check "$root" "$target"
+agent_fixture_seed "$root" "$target"
 
 # A few structured sessions; the first prompt names each (a title is the
 # first line of the first prompt), one of them in Hangul.
@@ -343,6 +358,60 @@ grep -q '^\[question [^]]*\] Which approach should the fold take' <<<"$(log_of l
   exit 1
 }
 
+# Permission requests in the real adapters' shapes (fake-acp's
+# `permit plan`, `permit codex`, `permit two`): Claude Code leaving plan
+# mode with its plan and seven answers, Codex's five answers for a
+# command, two commands asking at once. All are left waiting, and checked
+# through `vessel log` (one `[permission]` line per request).
+start_session laptop permit-plan "permit plan"
+plan=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-codex "permit codex"
+codex=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+start_session laptop permit-two "permit two"
+two=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plan" "[permission]"
+wait_for laptop "$codex" "[permission]"
+for _ in $(seq 1 300); do
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -ge 2 ] && break
+  sleep 0.1
+done
+grep -q '^  7) No, keep planning' <<<"$(log_of laptop "$plan")" &&
+  grep -q "^  5) No, and tell Codex what to do differently" <<<"$(log_of laptop "$codex")" &&
+  [ "$(log_of laptop "$two" | grep -c '^\[permission\]')" -eq 2 ] || {
+  echo "fleet: the permission sessions lack their real shapes" >&2
+  exit 1
+}
+
+# How full the agent's context is (fake-acp's `usage <tokens>`, of
+# 200,000, at a cost of 0.5 USD): the context meter's room (0.6%), amber
+# (75%) and red (95%). The agent offers `/compact`. Checked through
+# `vessel log` (the turn's message chunk).
+for shape in "context-room usage" "context-low usage 150000" "context-full usage 190000"; do
+  start_session laptop "${shape%% *}" "${shape#* }"
+  wait_for laptop "$(tail -1 "$root/sessions" | cut -d' ' -f2)" "used"
+done
+# The same on a session that has ended (stopped once its turn said its
+# usage): the meter card's "Compact context" waits, saying why, and the
+# ended banner shows over the composer. Checked through `vessel log`
+# (the turn's chunk, then the stopped session's last status).
+start_session laptop context-ended "usage 120000"
+stopped=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$stopped" "[turn ended"
+cli --node laptop kill "$stopped" > /dev/null
+wait_for laptop "$stopped" "[session exited"
+
+# An agent's plan as it changes (fake-acp's `plans`, Claude Code's shape:
+# the whole list in each update): created, sent again unchanged, a step
+# started, one done as the next starts, one added. Checked through
+# `vessel log` (one `[plan]` line per update, six).
+start_session laptop plans "plans"
+plans=$(tail -1 "$root/sessions" | cut -d' ' -f2)
+wait_for laptop "$plans" "plans done"
+[ "$(log_of laptop "$plans" | grep -c '^\[plan\]')" -eq 6 ] || {
+  echo "fleet: the plans session lacks its six plan updates" >&2
+  exit 1
+}
+
 # Prompts waiting their turn (the queue above the composer): a turn that
 # runs until it is stopped (`wait`, which also takes a steer) and three
 # prompts queued behind it, one long, one Korean, one short. Checked
@@ -364,6 +433,8 @@ waiting=$(cli --node laptop session queue "$queued" | grep -cE '^ *[0-9]+  ' || 
   echo "fleet: session $queued lacks its three queued prompts (got: $waiting)" >&2
   exit 1
 }
+
+python3 "$(dirname "$0")/shell-fixtures.py" seed "$root" "$target"
 
 cat > "$root/pair.sh" <<PAIR
 #!/usr/bin/env bash

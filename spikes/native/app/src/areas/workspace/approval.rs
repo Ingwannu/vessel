@@ -11,14 +11,14 @@
 
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    Context, Div, FluentBuilder as _, ParentElement as _, StatefulInteractiveElement as _,
-    Styled as _, Window, div, px,
+    Context, Div, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, button};
 use vessel_app_view::workspace::command_changes::{
-    Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
+    ApprovalRefusal, Change, CommandLine, Compared, ListLine, Listed, ScriptLine,
 };
 use vessel_app_view::workspace::words::{Labels, Local, WorkspaceWords};
+use vessel_proto::scripts::ScriptEntryView;
 use vessel_proto::workspace::ProjectCommand;
 
 use super::widgets::{Tone, badge, banner};
@@ -124,11 +124,11 @@ pub(super) fn render(
     if !scripts.is_empty() {
         card = card.child(script_list(words, &scripts, tokens));
     }
-    // A set holding commands this card cannot draw yet (terminal commands,
-    // ADR 0066) is refused in a sentence, with no Approve: its digest
-    // covers them, so approving it here would approve unseen commands.
-    let unseen = asked.approves_unseen();
-    let buttons = buttons(id, busy, !unseen, actions, labels, tokens, cx);
+    let approval = asked.approval();
+    if let Err(ApprovalRefusal::Terminals) = approval {
+        card = card.child(banner(labels.approval_unseen, true, None, tokens));
+    }
+    let buttons = buttons(id, busy, approval, actions, labels, tokens, cx);
     card.child(banner(labels.script_warning, false, None, tokens))
         .child(
             div()
@@ -136,18 +136,14 @@ pub(super) fn render(
                 .text_color(tokens.neutral.foreground_muted)
                 .child(words.digest(asked.digest.as_str())),
         )
-        .when(unseen, |card| {
-            card.child(banner(labels.approval_unseen, true, None, tokens))
-        })
         .child(buttons)
 }
 
-/// Cancel, start without setup (when offered), approve and run (when
-/// `approvable`).
+/// Cancel, start without setup (when offered), approve and run.
 fn buttons(
     id: &str,
     busy: bool,
-    approvable: bool,
+    approval: Result<(), ApprovalRefusal>,
     actions: Actions,
     labels: &'static Labels,
     tokens: &Tokens,
@@ -179,7 +175,7 @@ fn buttons(
             .on_click(cx.listener(move |this, _event, window, cx| skip(this, window, cx))),
         );
     }
-    if !approvable {
+    if approval.is_err() {
         return buttons;
     }
     buttons = buttons.child(
@@ -329,15 +325,22 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
             .child(words.labels().scripts_and_services),
     );
     for entry in lines {
-        let script = entry.script();
+        // A new approved field must break this display until it is shown or refused.
+        let ScriptEntryView {
+            name,
+            kind,
+            command,
+            dir,
+            port,
+        } = entry.script().view();
         let (change, removed) = match entry {
             ScriptLine::Line { change, .. } => (Some(*change), *change == Change::Removed),
             ScriptLine::Changed { .. } => (None, false),
         };
-        let place = script
-            .dir
-            .as_ref()
-            .map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let place = dir.map_or_else(String::new, |dir| format!(" \u{b7} {dir}/"));
+        let declared = port.map_or_else(String::new, |port| {
+            format!(" \u{b7} {}", words.script_port(Some(port)))
+        });
         let mut text = div()
             .flex()
             .flex_col()
@@ -350,16 +353,16 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
                         div()
                             .type_(Type::Label)
                             .text_color(tokens.neutral.foreground)
-                            .child(script.name.as_str().to_owned()),
+                            .child(name.as_str().to_owned()),
                     )
                     .child(
                         div()
                             .type_(Type::Meta)
                             .text_color(tokens.neutral.foreground_muted)
-                            .child(format!("{}{place}", words.script_kind(script.kind))),
+                            .child(format!("{}{place}{declared}", words.script_kind(kind))),
                     ),
             )
-            .child(code(script.command.to_string(), removed, tokens));
+            .child(code(command.to_string(), removed, tokens));
         if let ScriptLine::Changed { script, was } = entry {
             text = text.child(
                 div()
@@ -376,3 +379,5 @@ fn script_list(words: &dyn WorkspaceWords, lines: &[ScriptLine], tokens: &Tokens
     }
     list
 }
+
+use vessel_app_kit::ui::FluentBuilder as _;

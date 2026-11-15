@@ -17,6 +17,7 @@ use std::io::{ErrorKind, Read, Write};
 use bytes::Bytes;
 use portable_pty::{Child, MasterPty};
 use tokio::sync::{mpsc, oneshot};
+use vessel_proc::ProcessLifetimeGuard;
 
 use crate::error::PtyError;
 use crate::kill::Reaper;
@@ -60,6 +61,7 @@ pub(crate) fn start(
     master: Box<dyn MasterPty + Send>,
     child: Box<dyn Child + Send + Sync>,
     waiter: Reaper,
+    lifetime: ProcessLifetimeGuard,
 ) -> Result<Threads, PtyError> {
     let attach = |error: &dyn std::fmt::Display| PtyError::Attach {
         message: error.to_string(),
@@ -77,6 +79,7 @@ pub(crate) fn start(
 
     let (exit_sender, exit) = oneshot::channel();
     spawn("vessel-pty-wait", move || {
+        let _lifetime = lifetime;
         wait_for_exit(child, &waiter, exit_sender);
     })?;
     let (control, control_receiver) = mpsc::channel(CONTROL_MESSAGES);

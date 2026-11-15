@@ -10,7 +10,9 @@ use vessel_proto::{
     ToolLocation, TurnUsage,
 };
 
-use super::entry::{Entry, EntryKey, EntryKind, Permission, Prompt, TextKind, ToolView};
+use super::entry::{
+    Entry, EntryKey, EntryKind, ParkingChange, Permission, Prompt, TextKind, ToolView,
+};
 use super::usage::ModelUsage;
 
 /// What protocol 10's events say beyond the entries, for the composer and
@@ -60,6 +62,9 @@ impl Change {
 pub struct Timeline {
     pub(super) entries: Vec<Entry>,
     pub(super) plan: Option<Vec<PlanEntry>>,
+    /// The last plan row, which an update changing nothing a person reads
+    /// refreshes in place.
+    pub(super) plan_row: Option<usize>,
     pub(super) turns: u32,
     pub(super) turn: Option<EventSeq>,
     pub(super) attention: Option<EventSeq>,
@@ -77,6 +82,8 @@ pub struct Timeline {
     /// the composer's dock asks about.
     pub(super) waiting: BTreeSet<usize>,
     pub(super) questions: HashMap<QuestionId, usize>,
+    /// Entries a rewind left behind (`rewind.rs`), as index ranges.
+    pub(super) rewound: Vec<std::ops::Range<usize>>,
     /// The batch being folded: where it began, and what it changed.
     pub(super) batch: Change,
 }
@@ -86,6 +93,7 @@ impl Default for Timeline {
         Self {
             entries: Vec::new(),
             plan: None,
+            plan_row: None,
             turns: 0,
             turn: None,
             attention: None,
@@ -101,6 +109,7 @@ impl Default for Timeline {
             permissions: HashMap::new(),
             waiting: BTreeSet::new(),
             questions: HashMap::new(),
+            rewound: Vec::new(),
             batch: Change::default(),
         }
     }
@@ -191,8 +200,37 @@ impl Timeline {
             | EntryKind::TurnFailed { .. }
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
+        }
+    }
+
+    /// How many permission requests wait (the card's "1/N").
+    #[must_use]
+    pub fn waiting_permissions(&self) -> usize {
+        self.waiting.len()
+    }
+
+    /// Whether a permission request for tool call `id` waits.
+    #[must_use]
+    pub fn asks_permission(&self, id: &ToolCallId) -> bool {
+        self.waiting.iter().any(|index| {
+            self.entries.get(*index).is_some_and(|entry| {
+                matches!(&entry.kind, EntryKind::Permission(permission) if permission.request.tool_call == *id)
+            })
+        })
+    }
+
+    /// The tool call `id`, when it was seen.
+    #[must_use]
+    pub fn tool_call(&self, id: &ToolCallId) -> Option<&ToolView> {
+        let entry = self.entries.get(*self.tools.get(id)?)?;
+        if let EntryKind::Tool(tool) = &entry.kind {
+            Some(tool)
+        } else {
+            None
         }
     }
 
@@ -269,12 +307,22 @@ impl Timeline {
             EntryKey::Tool(id) => self.tools.get(id).copied(),
             EntryKey::Permission(id) => self.permissions.get(id).copied(),
             EntryKey::Question(id) => self.questions.get(id).copied(),
+            EntryKey::Plan { seq, .. } => {
+                let first = self.entries.partition_point(|entry| entry.seq < *seq);
+                self.entries
+                    .iter()
+                    .enumerate()
+                    .skip(first)
+                    .take_while(|(_, entry)| entry.seq == *seq)
+                    .find(|(_, entry)| entry.key == *key)
+                    .map(|(index, _)| index)
+            }
         }
     }
 
     fn record(&mut self, record: &EventRecord) {
         match &record.event {
-            SessionEvent::Status { status } => {
+            SessionEvent::Status { status, .. } => {
                 self.status = Some(status.clone());
                 if !status.is_live() {
                     self.turn = None;
@@ -287,9 +335,28 @@ impl Timeline {
                     },
                 );
             }
+            // A parked session's agent stopped and started again (protocol
+            // 12, ADR 0038): a line each, as a status change is.
+            SessionEvent::Parked { reason, .. } => {
+                self.push(
+                    record,
+                    EntryKind::Parking(ParkingChange::Parked(reason.clone())),
+                );
+            }
+            SessionEvent::Woken => self.push(record, EntryKind::Parking(ParkingChange::Woken)),
+            // A rewind leaves what followed its turn's end behind
+            // (`rewind.rs`); a fork's record is its first line (`fork.rs`).
+            SessionEvent::Rewound { after, .. } => self.rewound_to(*after),
+            SessionEvent::Forked { from, after, .. } => self.push(
+                record,
+                EntryKind::Forked {
+                    from: *from,
+                    after: *after,
+                },
+            ),
             SessionEvent::Terminal(_) => {}
-            SessionEvent::Agent { event } => self.agent(record, event),
-            SessionEvent::ProfileChanged { from, to } => self.push(
+            SessionEvent::Agent { event, .. } => self.agent(record, event),
+            SessionEvent::ProfileChanged { from, to, .. } => self.push(
                 record,
                 EntryKind::Profile {
                     from: from.clone(),
@@ -301,13 +368,13 @@ impl Timeline {
                 self.push(record, EntryKind::Model(call.clone()));
             }
             // The whole set each time, so the last one is the truth.
-            SessionEvent::OptionsChanged { options } => self.options = Some(options.clone()),
-            SessionEvent::Renamed { title } => self.title = Some(title.clone()),
-            SessionEvent::QueueChanged { queue } => self.facts.queue = Some(queue.clone()),
-            SessionEvent::CommandsChanged { commands } => {
+            SessionEvent::OptionsChanged { options, .. } => self.options = Some(options.clone()),
+            SessionEvent::Renamed { title, .. } => self.title = Some(title.clone()),
+            SessionEvent::QueueChanged { queue, .. } => self.facts.queue = Some(queue.clone()),
+            SessionEvent::CommandsChanged { commands, .. } => {
                 self.facts.commands = Some(commands.clone());
             }
-            SessionEvent::UsageChanged { usage } => self.facts.context = Some(usage.clone()),
+            SessionEvent::UsageChanged { usage, .. } => self.facts.context = Some(usage.clone()),
         }
     }
 
@@ -408,6 +475,8 @@ impl Timeline {
             | EntryKind::TurnFailed { .. }
             | EntryKind::Log { .. }
             | EntryKind::Status { .. }
+            | EntryKind::Parking(_)
+            | EntryKind::Forked { .. }
             | EntryKind::Profile { .. }
             | EntryKind::Model(_) => None,
         }

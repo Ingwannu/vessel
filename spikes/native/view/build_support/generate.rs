@@ -75,12 +75,28 @@ fn plain(output: &mut String, english: &Language, contracts: &Contracts) -> Resu
         }
         writeln!(output, "}}")?;
     }
+    // One resolver per area, and one call per area here: a single
+    // function with a line per plain message of every area outgrew the
+    // workspace's function length as areas were added.
     writeln!(
         output,
         "impl Plain {{\nfn resolve(bundle: &Bundle, english: &Bundle) -> Result<Self, InitError> {{\nOk(Self {{"
     )?;
+    for area in areas.keys() {
+        writeln!(
+            output,
+            "r#{}: Plain{}::resolve(bundle, english)?,",
+            snake(area),
+            pascal(area)
+        )?;
+    }
+    writeln!(output, "}})\n}}\n}}")?;
     for (area, entries) in &areas {
-        writeln!(output, "r#{}: Plain{} {{", snake(area), pascal(area))?;
+        writeln!(
+            output,
+            "impl Plain{} {{\nfn resolve(bundle: &Bundle, english: &Bundle) -> Result<Self, InitError> {{\nOk(Self {{",
+            pascal(area)
+        )?;
         for entry in entries {
             writeln!(
                 output,
@@ -88,9 +104,8 @@ fn plain(output: &mut String, english: &Language, contracts: &Contracts) -> Resu
                 entry.local, entry.key
             )?;
         }
-        writeln!(output, "}},")?;
+        writeln!(output, "}})\n}}\n}}")?;
     }
-    writeln!(output, "}})\n}}\n}}")?;
     Ok(())
 }
 

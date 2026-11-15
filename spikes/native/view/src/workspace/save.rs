@@ -80,7 +80,9 @@ fn conflict_of(read: Result<FileRead, Problem>, mine: String) -> Saved {
             // line: a longer one's first page against the whole edit would
             // count all the rest as added.
             let disk_text = match read.content {
-                FileContent::Text { text, next: None } => Some(text),
+                FileContent::Text {
+                    text, next: None, ..
+                } => Some(text),
                 FileContent::Text { next: Some(_), .. }
                 | FileContent::Binary
                 | FileContent::Unknown => None,
@@ -202,7 +204,7 @@ mod tests {
 
         fn write(&self, expect: &WriteExpect, text: String) -> Ready<Result<FileVersion, Problem>> {
             self.writes.borrow_mut().push(expect.clone());
-            if let WriteExpect::Content { hash } = expect
+            if let WriteExpect::Content { hash, .. } = expect
                 && self.version.borrow().hash.as_ref() != Some(hash)
             {
                 return ready(Err(refused(ErrorCode::Conflict, "the file changed")));

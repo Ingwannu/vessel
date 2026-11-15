@@ -2,6 +2,7 @@
 
 mod phrases;
 mod review;
+mod rows;
 
 use chrono::{DateTime, Duration, Utc};
 use vessel_proto::DeviceInfo;

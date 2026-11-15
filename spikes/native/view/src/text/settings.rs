@@ -29,13 +29,10 @@ pub struct SettingsText {
     pub machine: &'static str,
     pub no_machines: &'static str,
     pub switch_machine: &'static str,
-    pub elsewhere: &'static str,
     // General.
     pub general_lead: &'static str,
-    pub composer: &'static str,
+    pub sending: &'static str,
     pub send_shortcut: &'static str,
-    pub enter_sends: &'static str,
-    pub shortcut_sends: &'static str,
     pub default_send: &'static str,
     pub queue: &'static str,
     pub steer: &'static str,
@@ -54,26 +51,40 @@ pub struct SettingsText {
     pub system: &'static str,
     pub light: &'static str,
     pub dark: &'static str,
-    pub typography: &'static str,
-    pub interface_font: &'static str,
-    pub interface_font_note: &'static str,
-    pub code_font: &'static str,
-    pub code_font_note: &'static str,
-    pub conversation: &'static str,
+    pub fonts: &'static str,
+    pub interface_size: &'static str,
+    pub interface_size_note: &'static str,
+    pub code_size: &'static str,
+    pub code_size_note: &'static str,
+    pub layout: &'static str,
     pub content_width: &'static str,
     pub content_width_note: &'static str,
+    pub detail_level: &'static str,
     pub comfortable: &'static str,
     pub wide: &'static str,
     pub full: &'static str,
-    pub conversation_display: &'static str,
-    pub conversation_display_note: &'static str,
+    pub chat_display: &'static str,
+    pub app_diagnostic: &'static str,
+    pub app_diagnostic_note: &'static str,
+    pub run: &'static str,
+    pub copy: &'static str,
+    pub refresh: &'static str,
+    pub diagnostic_copied: &'static str,
+    pub chat_display_note: &'static str,
     pub collapse_tools: &'static str,
     // About.
     pub about_lead: &'static str,
     pub version: &'static str,
     pub licence: &'static str,
     pub licences: &'static str,
-    pub machines_versions: &'static str,
+    pub connected_machines: &'static str,
+    pub offline: &'static str,
+    pub agents_unavailable: &'static str,
+    pub idle_release: &'static str,
+    pub idle_release_info: &'static str,
+    pub idle_too_old: &'static str,
+    pub idle_forbidden: &'static str,
+    pub idle_refused: &'static str,
 }
 
 const EN: SettingsText = SettingsText {
@@ -83,12 +94,9 @@ const EN: SettingsText = SettingsText {
     machine: "Machine",
     no_machines: "No machines yet.",
     switch_machine: "Switch machine",
-    elsewhere: "This section is drawn by another part of the app; it comes in a later build.",
     general_lead: "How the composer sends, and where Vessel keeps what you choose.",
-    composer: "Composer",
+    sending: "Sending",
     send_shortcut: "Send shortcut",
-    enter_sends: "Enter sends a prompt; Shift+Enter starts a new line.",
-    shortcut_sends: "Enter starts a new line; the shortcut sends.",
     default_send: "Default send",
     queue: "Queue",
     steer: "Steer",
@@ -106,25 +114,50 @@ const EN: SettingsText = SettingsText {
     system: "System",
     light: "Light",
     dark: "Dark",
-    typography: "Typography",
-    interface_font: "Interface font",
-    interface_font_note: "Everything outside code blocks and the terminal.",
-    code_font: "Code font",
-    code_font_note: "Code blocks, tool output and the terminal.",
-    conversation: "Conversation",
+    fonts: "Fonts",
+    interface_size: "Interface size",
+    interface_size_note: "Used for navigation, controls, and labels",
+    code_size: "Code size",
+    code_size_note: "Used for code, diffs, and terminal output",
+    layout: "Layout",
     content_width: "Content width",
-    content_width_note: "How wide the conversation and the composer grow on large screens.",
+    content_width_note: "Max width of chat and Markdown files on wide screens",
+    detail_level: "Detail level",
     comfortable: "Comfortable",
     wide: "Wide",
     full: "Full",
-    conversation_display: "Conversation display",
-    conversation_display_note: "How much of an agent's work the conversation shows.",
+    chat_display: "Chat display",
+    // Diagnostics (Paseo's `settings.diagnostics.app`); the hint names
+    // Vessel's machines and agents where Paseo's names its daemon and
+    // providers. Short labels: buttons.
+    app_diagnostic: "App diagnostic",
+    app_diagnostic_note: "Collect connection, machine, agent, and log details",
+    run: "Run",
+    copy: "Copy",
+    refresh: "Refresh",
+    diagnostic_copied: "Diagnostic copied.",
+    chat_display_note: "How much of an agent's work the chat shows",
     collapse_tools: "Collapse tool calls",
     about_lead: "This app's version and licence, and each machine's.",
     version: "Version",
     licence: "Licence",
     licences: "Licences",
-    machines_versions: "Machines",
+    // About's section of each machine's node version (Paseo's
+    // `settings.about.connectedHosts`, with Vessel's word for a host) and
+    // the value shown for one that did not answer. Short.
+    connected_machines: "Connected machines",
+    offline: "Offline",
+    // Settings › Agents (Paseo's `settings.host.agents`): the card that
+    // stands for the section while the machine is not connected; the
+    // idle-release row's title, its tooltip (two paragraphs), and what it
+    // says when the node cannot take the change. "Machine" where Paseo
+    // says "host".
+    agents_unavailable: "Connect to this machine to manage agents",
+    idle_release: "Release idle agents",
+    idle_release_info: "Stops the agent's process while keeping its conversation. Send a message to resume.\n\nActive work, pending notifications, and provider safety checks prevent cleanup.",
+    idle_too_old: "This machine's node is too old to change this from the app. Update the node to change it here.",
+    idle_forbidden: "This device may not change this machine's settings.",
+    idle_refused: "The machine did not take the change. Try again.",
 };
 
 const KO: SettingsText = SettingsText {
@@ -134,15 +167,12 @@ const KO: SettingsText = SettingsText {
     machine: "머신",
     no_machines: "아직 머신이 없습니다.",
     switch_machine: "머신 바꾸기",
-    elsewhere: "이 섹션은 앱의 다른 부분이 그립니다. 다음 빌드에서 들어옵니다.",
     general_lead: "작성창이 보내는 방식과, 고른 설정을 Vessel이 보관하는 곳.",
-    composer: "작성창",
-    send_shortcut: "보내기 단축키",
-    enter_sends: "Enter로 보내고, Shift+Enter로 줄을 바꿉니다.",
-    shortcut_sends: "Enter로 줄을 바꾸고, 단축키로 보냅니다.",
-    default_send: "기본 보내기",
+    sending: "전송",
+    send_shortcut: "전송 단축키",
+    default_send: "기본 전송",
     queue: "대기열",
-    steer: "조종",
+    steer: "지시",
     interrupt: "중단",
     kept: "보관",
     preferences: "환경설정",
@@ -157,69 +187,142 @@ const KO: SettingsText = SettingsText {
     system: "시스템",
     light: "밝게",
     dark: "어둡게",
-    typography: "글꼴",
-    interface_font: "인터페이스 글꼴",
-    interface_font_note: "코드 블록과 터미널을 뺀 모든 곳.",
-    code_font: "코드 글꼴",
-    code_font_note: "코드 블록, 도구 출력, 터미널.",
-    conversation: "대화",
-    content_width: "내용 너비",
-    content_width_note: "큰 화면에서 대화와 작성창이 넓어지는 정도.",
+    fonts: "글꼴",
+    interface_size: "인터페이스 크기",
+    interface_size_note: "탐색, 컨트롤 및 레이블에 사용됩니다",
+    code_size: "코드 크기",
+    code_size_note: "코드, diff 및 터미널 출력에 사용됩니다",
+    layout: "레이아웃",
+    content_width: "콘텐츠 너비",
+    content_width_note: "와이드 화면에서 채팅과 Markdown 파일의 최대 너비",
+    detail_level: "세부 수준",
     comfortable: "편안하게",
     wide: "넓게",
-    full: "가득",
-    conversation_display: "대화 표시",
-    conversation_display_note: "에이전트의 작업을 대화에 얼마나 보여 줄지.",
+    full: "전체",
+    chat_display: "채팅 표시",
+    app_diagnostic: "앱 진단",
+    app_diagnostic_note: "연결, 머신, 에이전트 및 로그 세부 정보를 수집합니다.",
+    run: "실행",
+    copy: "복사",
+    refresh: "새로 고침",
+    diagnostic_copied: "진단을 복사했습니다.",
+    chat_display_note: "채팅에 표시할 에이전트 작업의 양",
     collapse_tools: "도구 호출 접기",
     about_lead: "이 앱과 각 머신의 버전과 라이선스.",
     version: "버전",
     licence: "라이선스",
     licences: "라이선스",
-    machines_versions: "머신",
+    connected_machines: "연결된 머신",
+    offline: "오프라인",
+    agents_unavailable: "에이전트를 관리하려면 이 머신에 연결하세요",
+    idle_release: "유휴 에이전트 해제",
+    idle_release_info: "대화를 유지하면서 에이전트 프로세스를 중지합니다. 메시지를 보내면 다시 이어집니다.\n\n진행 중인 작업, 대기 중인 알림, 프로바이더 안전 검사가 있으면 정리하지 않습니다.",
+    idle_too_old: "이 머신의 노드가 오래되어 앱에서 바꿀 수 없습니다. 노드를 업데이트하면 여기서 바꿀 수 있습니다.",
+    idle_forbidden: "이 기기에는 이 머신의 설정을 바꿀 권한이 없습니다.",
+    idle_refused: "머신이 변경을 받지 않았습니다. 다시 시도하세요.",
 };
 
 impl SettingsText {
-    /// A section's name in the list.
+    /// The idle-release row's hint (Paseo's `idleRuntimeCleanup.hint`)
+    /// for the minutes in force: Paseo's hour as Paseo says it, other
+    /// minutes as a whole sentence with the count; `None` (off) as the
+    /// hour, Paseo's default.
+    #[must_use]
+    pub fn idle_hint(&self, minutes: Option<u16>) -> String {
+        match (self.lang, minutes) {
+            (Lang::En, None | Some(60)) => "Free up memory after an hour of inactivity.".to_owned(),
+            (Lang::En, Some(1)) => "Free up memory after a minute of inactivity.".to_owned(),
+            (Lang::En, Some(minutes)) => {
+                format!("Free up memory after {minutes} minutes of inactivity.")
+            }
+            (Lang::Ko, None | Some(60)) => {
+                "1시간 동안 활동이 없으면 메모리를 확보합니다.".to_owned()
+            }
+            (Lang::Ko, Some(minutes)) => {
+                format!("{minutes}분 동안 활동이 없으면 메모리를 확보합니다.")
+            }
+        }
+    }
+
+    /// A section's name in the list and its page's title: Paseo's
+    /// (`en.ts` `settings.sections`, `settings.hostSections`, and
+    /// `openProject.tiles.pairDevice.title` for "Pair device"; `ko.ts` the
+    /// same keys). Models and Sync are Vessel's own. Short: one line of
+    /// the list. Korean "터미널" names both Terminal (the app's) and
+    /// Terminals (the machine's), as Paseo's Korean does; they are under
+    /// different headings.
     #[must_use]
     pub const fn section(&self, section: Section) -> &'static str {
         match (self.lang, section) {
             (Lang::En, Section::General) => "General",
             (Lang::En, Section::Appearance) => "Appearance",
+            (Lang::En, Section::Sidebar) => "Sidebar",
+            (Lang::En, Section::Chat) => "Chat",
+            (Lang::En, Section::Terminal) => "Terminal",
+            (Lang::En, Section::Browser) => "Browser",
+            (Lang::En, Section::Editor) => "Editor",
+            (Lang::En, Section::Files) => "Files",
             (Lang::En, Section::Shortcuts) => "Shortcuts",
+            (Lang::En, Section::Integrations) => "Integrations",
             (Lang::En, Section::Notifications) => "Notifications",
-            (Lang::En, Section::Agents) => "Agents",
-            (Lang::En, Section::Models) => "Models",
-            (Lang::En, Section::Machines) => "Machines",
-            (Lang::En, Section::Projects) => "Projects",
-            (Lang::En, Section::Devices) => "Devices",
-            (Lang::En, Section::Sync) => "Sync",
+            (Lang::En, Section::Permissions) => "Permissions",
+            (Lang::En, Section::Diagnostics) => "Diagnostics",
             (Lang::En, Section::About) => "About",
+            (Lang::En, Section::Overview) => "Overview",
+            (Lang::En, Section::Projects) => "Projects",
+            (Lang::En, Section::Connections) => "Connections",
+            (Lang::En, Section::Devices) => "Pair device",
+            (Lang::En, Section::Agents) => "Agents",
+            (Lang::En, Section::Metadata) => "Metadata",
+            (Lang::En, Section::Voice) => "Voice",
+            (Lang::En, Section::Workspaces) => "Workspaces",
+            (Lang::En, Section::Providers) => "Providers",
+            (Lang::En, Section::Usage) => "Usage",
+            (Lang::En, Section::Terminals) => "Terminals",
+            (Lang::En, Section::Plugins) => "Plugins",
+            (Lang::En, Section::Models) => "Models",
+            (Lang::En, Section::Sync) => "Sync",
             (Lang::Ko, Section::General) => "일반",
             (Lang::Ko, Section::Appearance) => "모양",
+            (Lang::Ko, Section::Sidebar) => "사이드바",
+            (Lang::Ko, Section::Chat) => "채팅",
+            (Lang::Ko, Section::Browser) => "브라우저",
+            (Lang::Ko, Section::Editor) => "편집기",
+            (Lang::Ko, Section::Files) => "파일",
             (Lang::Ko, Section::Shortcuts) => "단축키",
+            (Lang::Ko, Section::Integrations) => "통합",
             (Lang::Ko, Section::Notifications) => "알림",
-            (Lang::Ko, Section::Agents) => "에이전트",
-            (Lang::Ko, Section::Models) => "모델",
-            (Lang::Ko, Section::Machines) => "머신",
-            (Lang::Ko, Section::Projects) => "프로젝트",
-            (Lang::Ko, Section::Devices) => "기기",
-            (Lang::Ko, Section::Sync) => "동기화",
+            (Lang::Ko, Section::Permissions) => "권한",
+            (Lang::Ko, Section::Diagnostics) => "진단",
             (Lang::Ko, Section::About) => "정보",
+            (Lang::Ko, Section::Overview) => "개요",
+            (Lang::Ko, Section::Projects) => "프로젝트",
+            (Lang::Ko, Section::Connections) => "연결",
+            (Lang::Ko, Section::Devices) => "기기 페어링",
+            (Lang::Ko, Section::Agents) => "에이전트",
+            (Lang::Ko, Section::Metadata) => "메타데이터",
+            (Lang::Ko, Section::Voice) => "음성",
+            (Lang::Ko, Section::Workspaces) => "워크스페이스",
+            (Lang::Ko, Section::Providers) => "프로바이더",
+            (Lang::Ko, Section::Usage) => "사용량",
+            // Paseo's Korean names both "터미널" (under different headings).
+            (Lang::Ko, Section::Terminal | Section::Terminals) => "터미널",
+            (Lang::Ko, Section::Plugins) => "플러그인",
+            (Lang::Ko, Section::Models) => "모델",
+            (Lang::Ko, Section::Sync) => "동기화",
         }
     }
 
-    /// A group's heading.
+    /// A group's heading (Paseo's `settings.groups`). The machine group is
+    /// Paseo's "Host" named with Vessel's word for a host, as the rest of
+    /// the app names it ("Add a machine", "Switch machine"). Short.
     #[must_use]
     pub const fn group(&self, group: Group) -> &'static str {
         match (self.lang, group) {
             (Lang::En, Group::App) => "App",
-            (Lang::En, Group::Agents) => "Agents",
-            (Lang::En, Group::Machines) => "Machines",
-            (Lang::En, Group::About) => "About",
+            (Lang::En, Group::Machine) => "Machine",
             (Lang::Ko, Group::App) => "앱",
-            (Lang::Ko, Group::Agents) => "에이전트",
-            (Lang::Ko, Group::Machines) => "머신",
-            (Lang::Ko, Group::About) => "정보",
+            (Lang::Ko, Group::Machine) => "머신",
         }
     }
 
@@ -248,19 +351,19 @@ impl SettingsText {
     pub const fn delivery_note(&self, delivery: TurnDelivery) -> &'static str {
         match (self.lang, delivery) {
             (Lang::En, TurnDelivery::Queue) => {
-                "A message sent while the agent works waits, and goes when its turn ends."
+                "A message sent while the agent works waits, and goes when its turn ends; while a permission request waits, it stops the turn instead."
             }
             (Lang::En, TurnDelivery::Steer) => {
-                "A message sent while the agent works joins its turn, where the agent can take one; it waits otherwise."
+                "A message sent while the agent works joins its turn, where the agent can take one; otherwise it stops the turn and starts the next."
             }
             (Lang::En, TurnDelivery::Interrupt) => {
                 "A message sent while the agent works stops its turn and starts the next."
             }
             (Lang::Ko, TurnDelivery::Queue) => {
-                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다."
+                "에이전트가 일하는 동안 보낸 메시지는 기다렸다가, 차례가 끝나면 갑니다. 권한 요청이 기다리는 동안에는 지금 차례를 멈추고 갑니다."
             }
             (Lang::Ko, TurnDelivery::Steer) => {
-                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 기다립니다."
+                "에이전트가 일하는 동안 보낸 메시지는, 에이전트가 받을 수 있으면 지금 차례에 합류하고 아니면 지금 차례를 멈추고 다음 차례를 시작합니다."
             }
             (Lang::Ko, TurnDelivery::Interrupt) => {
                 "에이전트가 일하는 동안 보낸 메시지는 지금 차례를 멈추고 다음 차례를 시작합니다."

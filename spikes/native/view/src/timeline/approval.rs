@@ -22,14 +22,22 @@
 //!   do differently"). Paseo shows the agent's names on ACP and its own
 //!   words (Accept, Deny) only where an agent names nothing.
 //! - Choice (the coordinator's): a "once" allow or reject the request
-//!   offers once says the app's words (Paseo's Accept and Deny). An
-//!   "always" option always keeps the agent's name: it is a grant, and
-//!   its name is the scope agreed to ("this session", "commands that
-//!   start with `git status`", "`cargo test` commands"), which the app
-//!   cannot restate. A "once" kind offered several times keeps the
-//!   agent's names too (they differ in meaning, and only the agent says
-//!   how). Two buttons never say the same: should the rule give that,
-//!   every button of the request keeps the agent's name.
+//!   offers once says the app's words (Paseo's Accept and Deny), when its
+//!   direction (allow, or reject) has at most two options. An "always"
+//!   option always keeps the agent's name: it is a grant, and its name is
+//!   the scope agreed to ("this session", "commands that start with
+//!   `git status`", "`cargo test` commands"), which the app cannot
+//!   restate. A "once" kind offered several times keeps the agent's names
+//!   too (they differ in meaning, and only the agent says how). Two
+//!   buttons never say the same: should the rule give that, every button
+//!   of the request keeps the agent's name.
+//! - Refined (the coordinator on build 0.0.0.0.8's captures): among
+//!   Claude Code's five named ways to leave plan mode a bare "수락" did not
+//!   say what it does (approve edits by hand). With three or more options
+//!   of one direction, the agent's names are the choice itself, so every
+//!   option of that direction keeps its name, as Paseo shows them. That
+//!   also gives Codex's "Yes, proceed" its own name beside its two
+//!   "always" allows; its two rejects already kept theirs.
 
 use vessel_proto::{PermissionOption, PermissionOptionKind, PermissionOutcome};
 
@@ -83,8 +91,9 @@ pub enum AnswerWords<'a> {
     /// The app's words for a "once" option's kind.
     Kind(PermissionOptionKind),
     /// The agent's own name: an "always" option (its scope), a "once"
-    /// kind offered more than once, or every option of a request whose
-    /// buttons would otherwise say the same.
+    /// kind offered more than once, any option of a direction (allow, or
+    /// reject) offered three times or more, or every option of a request
+    /// whose buttons would otherwise say the same.
     Agent(&'a str),
 }
 
@@ -108,7 +117,12 @@ pub fn answer_words<'a>(
                 .filter(|other| other.kind == option.kind)
                 .take(2)
                 .count();
-            if once && alike == 1 {
+            let direction = options
+                .iter()
+                .filter(|other| allows(other.kind) == allows(option.kind))
+                .take(3)
+                .count();
+            if once && alike == 1 && direction <= 2 {
                 AnswerWords::Kind(option.kind)
             } else {
                 AnswerWords::Agent(&option.name)
@@ -156,7 +170,7 @@ pub fn settled(options: &[PermissionOption], outcome: Option<&PermissionOutcome>
     match outcome {
         None => Settled::Pending,
         Some(PermissionOutcome::Cancelled) => Settled::Cancelled,
-        Some(PermissionOutcome::Selected { option }) => {
+        Some(PermissionOutcome::Selected { option, .. }) => {
             match options.iter().find(|offered| offered.id == *option) {
                 None => Settled::Allowed(option.to_string()),
                 Some(chosen) if allows(chosen.kind) => Settled::Allowed(chosen.name.clone()),

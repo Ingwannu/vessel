@@ -5,8 +5,9 @@ use std::time::{Duration, Instant};
 
 use vessel_app_view::timeline::{
     Entry, FindCache, Finder, Match, find_all, fold, occurrences, query_of, readable_text,
-    spans_of, step,
+    spans_of, start_at, step,
 };
+use vessel_proto::EventSeq;
 
 use crate::support::EN;
 use crate::support::make::{log, message, prompt, thought};
@@ -229,4 +230,42 @@ fn a_find_over_5000_entries_stays_well_under_a_frame_once_folded() {
         median < Duration::from_millis(200),
         "later finds took {median:?}"
     );
+}
+
+// A search hit opened from the palette: find starts at its message's
+// entry, or the next match after it; it waits while that record is not
+// read yet.
+#[test]
+fn find_starts_at_the_hits_message_or_the_next_match() {
+    let entries = [
+        prompt(1, "fold"),
+        message(4, "no"),
+        message(7, "fold"),
+        message(9, "fold"),
+    ];
+    let matches = [
+        Match { entry: 0, nth: 0 },
+        Match { entry: 2, nth: 0 },
+        Match { entry: 3, nth: 0 },
+    ];
+    let next = EventSeq::new(10);
+    assert_eq!(
+        start_at(&entries, next, &matches, EventSeq::new(7)),
+        Some(1)
+    );
+    assert_eq!(
+        start_at(&entries, next, &matches, EventSeq::new(4)),
+        Some(1),
+        "the next match after it"
+    );
+    assert_eq!(
+        start_at(&entries, next, &matches, EventSeq::new(9)),
+        Some(2)
+    );
+    assert_eq!(
+        start_at(&entries, next, &matches, EventSeq::new(12)),
+        None,
+        "not read yet"
+    );
+    assert_eq!(start_at(&entries, next, &[], EventSeq::new(4)), Some(0));
 }

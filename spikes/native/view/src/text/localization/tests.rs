@@ -315,6 +315,13 @@ fn plain_access_has_zero_allocations_after_initialization() {
                 let _name = std::hint::black_box(translator.meta().name());
                 let _language = std::hint::black_box(translator.meta().language());
                 let _system = std::hint::black_box(translator.meta().system());
+                let _pair_title = std::hint::black_box(translator.pairing().title());
+                let _pair_warning = std::hint::black_box(translator.pairing().security_warning());
+                let _confirm = std::hint::black_box(translator.pairing().confirm_description());
+                let _software = std::hint::black_box(translator.about().software());
+                for part in crate::about::BUNDLED {
+                    let _role = std::hint::black_box(translator.about().role(part.role));
+                }
                 let _cached = std::hint::black_box(Translator::get(locale));
             }
         });

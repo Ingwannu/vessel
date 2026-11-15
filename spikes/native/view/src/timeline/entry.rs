@@ -5,12 +5,15 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
+use vessel_proto::parking::ParkReason;
 use vessel_proto::{
     AttachmentRef, ContentBlock, EventSeq, HarnessSessionId, ModelCall, PermissionId,
     PermissionOutcome, PermissionRequest, PlanEntry, PlanStatus, ProfileName, Question, QuestionId,
-    QuestionOutcome, RawJson, SessionStatus, StopReason, ToolCall, ToolCallContent, ToolCallId,
-    ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnUsage,
+    QuestionOutcome, RawJson, SessionId, SessionStatus, StopReason, ToolCall, ToolCallContent,
+    ToolCallId, ToolCallStatus, ToolCallUpdate, ToolKind, ToolLocation, TurnUsage,
 };
+
+use super::plan::PlanActivity;
 
 /// What names an entry for as long as it lives: the record that made it,
 /// or, for an entry later records change in place, the protocol's id for
@@ -25,6 +28,14 @@ pub enum EntryKey {
     Permission(PermissionId),
     /// A question, by the node's id.
     Question(QuestionId),
+    /// A row of a plan update: one record can say several things changed
+    /// (a step done, the next started), each its own row.
+    Plan {
+        /// The record.
+        seq: EventSeq,
+        /// Which of its rows, from 0.
+        step: u32,
+    },
 }
 
 /// One entry of the timeline.
@@ -200,10 +211,13 @@ pub enum EntryKind {
     },
     /// A tool call.
     Tool(ToolView),
-    /// The agent's plan at that point.
+    /// The agent's plan at that point, and what changed in it (Paseo's
+    /// task activity, `plan.rs`).
     Plan {
         /// Its steps.
         entries: Vec<PlanEntry>,
+        /// What changed.
+        activity: PlanActivity,
     },
     /// A permission request.
     Permission(Permission),
@@ -213,6 +227,9 @@ pub enum EntryKind {
         reason: StopReason,
         /// Its tokens, where the agent reported them.
         usage: Option<TurnUsage>,
+        /// The agent named this turn's end (protocol 14's `point`): the
+        /// conversation can be rewound or forked here.
+        point: bool,
     },
     /// The turn failed.
     TurnFailed {
@@ -228,6 +245,18 @@ pub enum EntryKind {
     Status {
         /// To what.
         status: SessionStatus,
+    },
+    /// The session's agent was released or resumed while the session
+    /// stayed live (protocol 12, ADR 0038).
+    Parking(ParkingChange),
+    /// The session began as a fork of another (protocol 14, ADR 0052):
+    /// its first line says where it came from (`fork.rs`).
+    Forked {
+        /// The session forked.
+        from: SessionId,
+        /// The turn's end of `from` it continues from; `None`: the whole
+        /// conversation as it then stood.
+        after: Option<EventSeq>,
     },
     /// The session's profile changed (protocol 5).
     Profile {
@@ -269,6 +298,8 @@ impl EntryKind {
                 | Self::TurnFailed { .. }
                 | Self::Log { .. }
                 | Self::Status { .. }
+                | Self::Parking(_)
+                | Self::Forked { .. }
                 | Self::Profile { .. }
                 | Self::Model(_),
                 TextKind::Prompt | TextKind::Message | TextKind::Thought,
@@ -319,10 +350,10 @@ pub fn plan_progress(entries: &[PlanEntry]) -> (usize, usize) {
 #[must_use]
 pub fn block_text(block: &ContentBlock) -> String {
     match block {
-        ContentBlock::Text { text } => text.clone(),
-        ContentBlock::ResourceLink { uri, name } => format!("[{name}]({uri})"),
+        ContentBlock::Text { text, .. } => text.clone(),
+        ContentBlock::ResourceLink { uri, name, .. } => format!("[{name}]({uri})"),
         ContentBlock::Opaque { .. } => String::new(),
-        ContentBlock::Attachment { attachment } => format!("[{}]", attachment.name),
+        ContentBlock::Attachment { attachment, .. } => format!("[{}]", attachment.name),
     }
 }
 
@@ -333,11 +364,40 @@ pub fn prompt_parts(content: &[ContentBlock]) -> (String, Vec<AttachmentRef>) {
     let mut attachments = Vec::new();
     for block in content {
         match block {
-            ContentBlock::Attachment { attachment } => attachments.push(attachment.clone()),
+            ContentBlock::Attachment { attachment, .. } => attachments.push(attachment.clone()),
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
             | ContentBlock::Opaque { .. } => text.push_str(&block_text(block)),
         }
     }
     (text, attachments)
+}
+
+/// What happened to a session's agent while the session stayed live
+/// (`parked`, `woken`; protocol 12).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParkingChange {
+    /// Its process was stopped, the conversation kept; why.
+    Parked(ParkReason),
+    /// It was started again with its conversation.
+    Woken,
+}
+
+/// Whether the message at `index` is the first reply of its turn: no
+/// reply since the person's last message (the reply that carries the
+/// agent's circle beside it, slice M).
+#[must_use]
+pub fn first_reply(entries: &[Entry], index: usize) -> bool {
+    entries.get(..index).is_none_or(|before| {
+        before
+            .iter()
+            .rev()
+            .find(|entry| {
+                matches!(
+                    entry.kind,
+                    EntryKind::Message { .. } | EntryKind::Prompt(_) | EntryKind::Steer { .. }
+                )
+            })
+            .is_none_or(|entry| !matches!(entry.kind, EntryKind::Message { .. }))
+    })
 }

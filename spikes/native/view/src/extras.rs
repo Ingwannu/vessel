@@ -10,7 +10,7 @@
 //!   what remains of an agent's options sits at the top of the model's
 //!   list, and must read as the owner's language does.
 //! - Choice: a typed table by agent kind and option id, as the effort
-//!   control's (`effort::KNOWN`): Claude Code's `agent` is the answering
+//!   control's (`effort::ROLES`): Claude Code's `agent` is the answering
 //!   agent (a choice of the machine's agent definitions), Codex's
 //!   `collaboration_mode` its plan mode (a switch: `plan` on, `default`
 //!   off). Ids read off the preview node, 2026-11-13.

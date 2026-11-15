@@ -108,6 +108,7 @@ pub fn header() -> ComboHeader {
         back: false,
         search: false,
         empty: SharedString::default(),
+        note: None,
         side: Side::Below,
     }
 }

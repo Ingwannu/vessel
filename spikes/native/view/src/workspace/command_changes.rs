@@ -45,19 +45,38 @@ pub struct Listed<'a> {
     pub approved: bool,
     /// Its scripts and services, in name order.
     pub scripts: &'a [ScriptEntry],
+    /// Terminal commands covered by the digest, not yet drawn by this card.
+    pub terminals: &'a [FileTerminal],
     /// The set approved last, when the node kept it.
     pub last_approved: Option<&'a ApprovedCommands>,
-    /// Terminal commands the set also approves (ADR 0066). The app does not
-    /// draw them yet, so a set that has any is refused, not offered
-    /// (`approves_unseen`).
-    pub terminals: &'a [FileTerminal],
 }
 
 impl<'a> Listed<'a> {
+    /// Refuse a digest whose terminal commands this card cannot display.
+    ///
+    /// # Errors
+    /// Returns the unsupported approved field instead of permitting unseen work.
+    pub fn approval(&self) -> Result<(), ApprovalRefusal> {
+        if self.terminals.is_empty()
+            && self
+                .last_approved
+                .is_none_or(|last| last.commands.terminals.is_empty())
+        {
+            Ok(())
+        } else {
+            Err(ApprovalRefusal::Terminals)
+        }
+    }
+
     /// The listed set of `commands`, when it lists one.
     #[must_use]
     pub fn of(commands: &'a ProjectCommands) -> Option<Self> {
         match commands {
+            // Every field named on purpose, no `..` (unlike the other wire
+            // patterns): a person approves this set by its digest, so a
+            // field the node adds (terminals, say) must break the build
+            // here until the screen shows it or refuses it by type.
+            // Ignoring it would approve commands the screen never showed.
             ProjectCommands::Listed {
                 setup,
                 teardown,
@@ -72,22 +91,20 @@ impl<'a> Listed<'a> {
                 digest,
                 approved: *approved,
                 scripts,
-                last_approved: last_approved.as_deref(),
                 terminals,
+                last_approved: last_approved.as_deref(),
             }),
             ProjectCommands::None | ProjectCommands::Invalid { .. } => None,
         }
     }
+}
 
-    /// Whether approving this set would approve something the app cannot
-    /// show: terminal commands (ADR 0066), until a slice draws them. The
-    /// approval card refuses such a set in a plain sentence and offers no
-    /// Approve, as the page does; the digest covers them, so approving
-    /// without showing them would approve unseen commands.
-    #[must_use]
-    pub const fn approves_unseen(&self) -> bool {
-        !self.terminals.is_empty()
-    }
+/// Why this card must not approve a command digest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ApprovalRefusal {
+    /// The digest includes terminal commands the card cannot draw yet.
+    #[error("terminal commands cannot be shown by this approval card")]
+    Terminals,
 }
 
 /// How a line of one list stands against the other.
@@ -265,7 +282,7 @@ pub fn compare_commands(before: &[ProjectCommand], after: &[ProjectCommand]) -> 
 
 /// Whether two entries of one name run the same thing in the same way.
 fn same_script(one: &ScriptEntry, two: &ScriptEntry) -> bool {
-    one.kind == two.kind && one.command == two.command && one.dir == two.dir
+    one.view() == two.view()
 }
 
 /// `after`'s scripts against `before`'s, by name, in name order.

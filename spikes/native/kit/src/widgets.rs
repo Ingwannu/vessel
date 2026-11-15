@@ -47,8 +47,8 @@ pub trait TypeExt: Styled + Sized {
 
 impl<E: Styled> TypeExt for E {}
 
-/// Filled button meanings from Paseo's Button (`default`, `secondary`,
-/// `destructive`). Outline and ghost are outside this entry point.
+/// Button meanings from Paseo (`default`, `secondary`, `destructive`,
+/// `ghost`). Outline retains its existing entry point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ButtonKind {
     /// The primary action, in the app's brand accent.
@@ -57,6 +57,8 @@ pub enum ButtonKind {
     Secondary,
     /// A destructive action, with its own foreground independent of the accent.
     Destructive,
+    /// A quiet action: transparent, muted text; foreground text on hover.
+    Ghost,
 }
 
 /// Whether the caller may attach a handler. Disabled buttons keep their words
@@ -95,6 +97,15 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
         ButtonKind::Primary => (neutral.accent, neutral.accent_foreground),
         ButtonKind::Secondary => (neutral.surface3, neutral.foreground),
         ButtonKind::Destructive => (neutral.destructive, neutral.destructive_foreground),
+        ButtonKind::Ghost => (
+            gpui::transparent_black(),
+            match phase {
+                ButtonPhase::Hovered => neutral.foreground,
+                ButtonPhase::Idle | ButtonPhase::Pressed | ButtonPhase::Disabled => {
+                    neutral.foreground_muted
+                }
+            },
+        ),
     };
     ButtonPaint {
         fill,
@@ -108,7 +119,7 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
     }
 }
 
-/// A filled button, after Paseo's `button.tsx` and `control-geometry.ts`.
+/// A button, after Paseo's `button.tsx` and `control-geometry.ts`.
 ///
 /// [Decision Log]
 /// - Purpose: every delete confirmation needs the same destructive control.
@@ -116,7 +127,8 @@ fn button_paint(kind: ButtonKind, phase: ButtonPhase, tokens: &Tokens) -> Button
 ///   may change with a brand/theme and cannot stand in for destructive text.
 /// - Alternatives: screen-local red overrides; change every caller at once.
 /// - Choice: typed kind/state, the existing pill geometry and wrapping label;
-///   fill-coloured border, no hover colour change, pressed85%, disabled50%.
+///   filled kinds keep their palette on hover; ghost changes only text;
+///   pressed85%, disabled50%.
 /// - Why: one entry owns these values; the compatibility wrapper can retire
 ///   separately, without a second look for confirmations.
 /// - Cost: a disabled caller attaches no handler, like the kit's outline button.
@@ -133,7 +145,6 @@ pub fn button_with_kind(
         ButtonState::Disabled => ButtonPhase::Disabled,
     };
     let paint = button_paint(kind, phase, tokens);
-    let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
     let pressed = button_paint(kind, ButtonPhase::Pressed, tokens);
     div()
         .id(id)
@@ -156,11 +167,12 @@ pub fn button_with_kind(
         .when(state == ButtonState::Enabled, |button| {
             button
                 .cursor_pointer()
-                .hover(move |style| {
-                    style
-                        .bg(hover.fill)
-                        .text_color(hover.text)
-                        .border_color(hover.border)
+                // Paseo sets no hover style on a filled button; ghost alone
+                // changes its text. Press changes only opacity, so the two
+                // selectors compose when the pointer is also hovering.
+                .when(kind == ButtonKind::Ghost, |button| {
+                    let hover = button_paint(kind, ButtonPhase::Hovered, tokens);
+                    button.hover(move |style| style.text_color(hover.text))
                 })
                 .active(move |style| style.opacity(pressed.opacity))
         })

@@ -9,6 +9,7 @@
 //! their words are `Lang::workspace()`'s.
 
 mod approval;
+mod book;
 mod code;
 mod detail;
 mod place;
@@ -29,7 +30,9 @@ use vessel_app_link::workspace::{Answer, Ask, ProjectAsk};
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::WorkspaceWords;
 
-pub(crate) use code::{code_panel, code_toggle};
+#[expect(unused_imports, reason = "track P's seam: its first user is P's `@`")]
+pub(crate) use code::FindRefused;
+pub(crate) use code::{code_beside, code_toggle, frame_row};
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::projects as sidebar_projects;
@@ -51,6 +54,9 @@ pub(crate) struct Workspace {
     starts: u64,
     /// The code panel beside a session.
     pub(crate) code: code::CodePanel,
+    /// The sidebar's projects unfolded past their first rows ("All
+    /// projects (N)" pressed).
+    pub(crate) projects_unfolded: bool,
 }
 
 impl Workspace {
@@ -62,6 +68,7 @@ impl Workspace {
             start: None,
             starts: 0,
             code: code::CodePanel::new(window, cx),
+            projects_unfolded: false,
         }
     }
 }
@@ -106,13 +113,16 @@ impl Shell {
         }
     }
 
-    /// A machine answered a workspace ask.
+    /// A machine answered a workspace ask. Returns whether what is drawn
+    /// may have changed; `false` only for an answer that changed nothing
+    /// (track G1's refresh of an unchanged status), so the shell asks for
+    /// no frame.
     pub(crate) fn workspace_answer(
         &mut self,
         machine: &str,
         answer: Answer,
         cx: &mut Context<'_, Self>,
-    ) {
+    ) -> bool {
         match answer {
             Answer::Projects(result) => {
                 let _was = self
@@ -144,25 +154,36 @@ impl Shell {
                 self.setup_started(machine, worktree, result);
             }
             Answer::Removed { ask, result } => self.worktree_removed(machine, &ask, result),
-            Answer::Branches { root, result } => self.branches_read(machine, &root, result),
+            Answer::Branches { root, result } => {
+                self.git_branches_read(machine, &root, &result);
+                self.branches_read(machine, &root, result);
+            }
             Answer::Start { key, step } => self.start_step(key, step),
             Answer::StartEnded { key, ended } => self.start_ended(key, ended, cx),
             Answer::Session { session, result } => self.code_session_read(session, result),
             Answer::Changes { ask, result } => self.changes_read(&ask, result),
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
-            Answer::Read { ask, result } => self.file_read(&ask, result),
-            // Track G1's and the later slices' answers: nothing of this
-            // track asks them yet.
-            Answer::Status { .. }
-            | Answer::Log { .. }
-            | Answer::Stashes { .. }
-            | Answer::Git { .. }
-            | Answer::Saved { .. }
-            | Answer::Found { .. }
-            | Answer::Grepped { .. }
-            | Answer::PathChanged { .. } => {}
+            Answer::Read { ask, result } => self.file_read(&ask, result, cx),
+            Answer::Found { ask, result } => self.files_found(&ask, result),
+            Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
+            Answer::PathChanged { change, result } => self.path_changed(&change, result),
+            // Track G1's: the git toolbar's reads and writes.
+            Answer::Status { root, result } => {
+                // An unchanged status asks for no frame (track G1's
+                // five-second refresh of an idle panel draws nothing).
+                if !self.git_status_read(machine, &root, result) {
+                    return false;
+                }
+            }
+            Answer::Stashes { root, result } => self.git_stashes_read(machine, &root, result),
+            Answer::Git { write, result } => self.git_written(machine, &write, result, cx),
+            // Track G1b's: the pull request form's defaults and its calls.
+            Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
+            Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
+            Answer::Saved { root, path, saved } => self.editor_saved(&root, &path, saved, cx),
         }
         cx.notify();
+        true
     }
 }

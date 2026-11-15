@@ -76,6 +76,43 @@ impl Fleet {
         }
     }
 
+    /// The title of `session`, on whichever machine lists it (a forked
+    /// session's first line names its source); `None` when it is not
+    /// listed or has no title yet.
+    #[must_use]
+    pub fn title_of(&self, session: SessionId) -> Option<&str> {
+        self.machines
+            .iter()
+            .flat_map(|machine| machine.sessions.iter())
+            .find(|card| card.session == session)
+            .map(|card| card.title.as_str())
+            .filter(|title| !title.trim().is_empty())
+    }
+
+    /// A session just made from another on `machine` (a fork's answer):
+    /// its card in place when listed, else added to the machine's, so the
+    /// list shows it before the next read. Nothing on a machine not
+    /// listed.
+    pub fn add_session(&mut self, machine: &str, info: &SessionInfo) {
+        let card = Card::from_session(machine, info);
+        let Some(listed) = self
+            .machines
+            .iter_mut()
+            .find(|candidate| candidate.name == machine)
+        else {
+            return;
+        };
+        if let Some(slot) = listed
+            .sessions
+            .iter_mut()
+            .find(|slot| slot.session == card.session)
+        {
+            *slot = card;
+        } else {
+            listed.sessions.push(card);
+        }
+    }
+
     /// Take a deleted session's card off `machine` (the page's
     /// `dropSession`).
     pub fn drop_session(&mut self, machine: &str, session: SessionId) {

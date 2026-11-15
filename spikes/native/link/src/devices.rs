@@ -86,18 +86,26 @@ fn enqueue(
     ticket: Ticket,
     ask: Ask,
 ) -> Result<(), Problem> {
-    commands
-        .try_send(crate::Command::Devices {
+    crate::offer(
+        commands,
+        crate::Command::Devices {
             machine,
             ticket,
             ask,
-        })
-        .map_err(|error| match error {
-            tokio::sync::mpsc::error::TrySendError::Full(_) => {
-                Problem::Refused(vessel_proto::ErrorCode::Unavailable)
-            }
-            tokio::sync::mpsc::error::TrySendError::Closed(_) => Problem::Offline,
-        })
+        },
+    )
+    .map_err(|unsent| rejected(unsent.why))
+}
+
+/// What a device page says of a request the link did not take: a full
+/// queue as the node's `unavailable` (try again), a stopped link as
+/// offline.
+#[must_use]
+pub const fn rejected(why: crate::Rejected) -> Problem {
+    match why {
+        crate::Rejected::Full => Problem::Refused(vessel_proto::ErrorCode::Unavailable),
+        crate::Rejected::Closed => Problem::Offline,
+    }
 }
 
 /// Calls are bounded even while a person switches machines repeatedly.
@@ -199,8 +207,6 @@ fn problem(error: vessel_client::CallError) -> Problem {
     match error {
         vessel_client::CallError::Disconnected => Problem::Offline,
         vessel_client::CallError::Remote(error) => Problem::Refused(error.code),
-        // A feature with no protocol number yet is refused before sending,
-        // just as one this node is too old for: both read as unsupported.
         vessel_client::CallError::NotInProtocol { .. }
         | vessel_client::CallError::UnassignedProtocol { .. } => {
             Problem::Refused(vessel_proto::ErrorCode::Unsupported)
@@ -213,6 +219,15 @@ fn problem(error: vessel_client::CallError) -> Problem {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+    #[test]
+    fn an_unassigned_call_is_unsupported() {
+        assert_eq!(
+            problem(vessel_client::CallError::UnassignedProtocol {
+                method: vessel_proto::Method::NodeInfo,
+            }),
+            Problem::Refused(vessel_proto::ErrorCode::Unsupported)
+        );
+    }
     #[test]
     fn a_peer_cannot_echo_a_credential_through_an_error_or_debug() {
         let raw = "a-credential-that-a-faulty-peer-echoed";

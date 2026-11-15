@@ -2,7 +2,7 @@
 
 use super::{DevicesWords, Lang};
 use crate::devices::{
-    DeviceState, Problem,
+    DeviceBadge, Problem,
     time::{Age, exact_time},
 };
 use chrono::{DateTime, Datelike as _, FixedOffset, Utc};
@@ -10,14 +10,14 @@ use chrono::{DateTime, Datelike as _, FixedOffset, Utc};
 impl DevicesWords {
     /// A short credential-state badge, distinct from its explanation.
     #[must_use]
-    pub const fn state(&self, state: DeviceState) -> &'static str {
+    pub const fn state(&self, state: DeviceBadge) -> &'static str {
         match (self.lang, state) {
-            (Lang::En, DeviceState::Paired) => "Paired",
-            (Lang::En, DeviceState::Unseen) => "Not seen",
-            (Lang::En, DeviceState::Revoked) => "Revoked",
-            (Lang::Ko, DeviceState::Paired) => "페어링됨",
-            (Lang::Ko, DeviceState::Unseen) => "접속 전",
-            (Lang::Ko, DeviceState::Revoked) => "해제됨",
+            (Lang::En, DeviceBadge::ThisDevice) => "This device",
+            (Lang::En, DeviceBadge::Unseen) => "Not seen",
+            (Lang::En, DeviceBadge::Revoked) => "Revoked",
+            (Lang::Ko, DeviceBadge::ThisDevice) => "이 기기",
+            (Lang::Ko, DeviceBadge::Unseen) => "접속 전",
+            (Lang::Ko, DeviceBadge::Revoked) => "해제됨",
         }
     }
     /// The exact English outputs of Paseo's formatTimeAgo test cases.
@@ -51,54 +51,6 @@ impl DevicesWords {
                 Lang::Ko,
                 Age::Now | Age::Minutes(_) | Age::Hours(_) | Age::Days(_) | Age::Date(_),
             ) => self.compact_age(age),
-        }
-    }
-    /// Explanation below the device name. Counts are numeric; dates use the viewer's offset.
-    /// This has room for full words and must not use the badge's short label.
-    #[must_use]
-    pub fn last_seen(&self, age: Option<Age>) -> String {
-        match (self.lang, age) {
-            (Lang::En, None) => "No connection recorded".to_owned(),
-            (Lang::Ko, None) => "기록된 접속이 없습니다".to_owned(),
-            (Lang::En, Some(Age::Now)) => "Last seen just now".to_owned(),
-            (Lang::En, Some(Age::Minutes(1))) => "Last seen 1 minute ago".to_owned(),
-            (Lang::En, Some(Age::Minutes(n))) => format!("Last seen {n} minutes ago"),
-            (Lang::En, Some(Age::Hours(1))) => "Last seen 1 hour ago".to_owned(),
-            (Lang::En, Some(Age::Hours(n))) => format!("Last seen {n} hours ago"),
-            (Lang::En, Some(Age::Days(1))) => "Last seen 1 day ago".to_owned(),
-            (Lang::En, Some(Age::Days(n))) => format!("Last seen {n} days ago"),
-            (Lang::En, Some(Age::Date(at))) => format!("Last seen on {}", at.format("%b %-d")),
-            (Lang::Ko, Some(Age::Now)) => "마지막 접속: 방금".to_owned(),
-            (Lang::Ko, Some(Age::Minutes(n))) => format!("마지막 접속: {n}분 전"),
-            (Lang::Ko, Some(Age::Hours(n))) => format!("마지막 접속: {n}시간 전"),
-            (Lang::Ko, Some(Age::Days(n))) => format!("마지막 접속: {n}일 전"),
-            (Lang::Ko, Some(Age::Date(at))) => {
-                let (month, day) = (at.month(), at.day());
-                format!("마지막 접속: {month}월 {day}일")
-            }
-        }
-    }
-    /// Pairing history below the device name. Counts are numeric; dates use the viewer's offset.
-    /// Each arm is a complete translation unit rather than an age fragment.
-    #[must_use]
-    pub fn paired_ago(&self, age: Age) -> String {
-        match (self.lang, age) {
-            (Lang::En, Age::Now) => "Paired just now".to_owned(),
-            (Lang::En, Age::Minutes(1)) => "Paired 1 minute ago".to_owned(),
-            (Lang::En, Age::Minutes(n)) => format!("Paired {n} minutes ago"),
-            (Lang::En, Age::Hours(1)) => "Paired 1 hour ago".to_owned(),
-            (Lang::En, Age::Hours(n)) => format!("Paired {n} hours ago"),
-            (Lang::En, Age::Days(1)) => "Paired 1 day ago".to_owned(),
-            (Lang::En, Age::Days(n)) => format!("Paired {n} days ago"),
-            (Lang::En, Age::Date(at)) => format!("Paired on {}", at.format("%b %-d")),
-            (Lang::Ko, Age::Now) => "페어링: 방금".to_owned(),
-            (Lang::Ko, Age::Minutes(n)) => format!("페어링: {n}분 전"),
-            (Lang::Ko, Age::Hours(n)) => format!("페어링: {n}시간 전"),
-            (Lang::Ko, Age::Days(n)) => format!("페어링: {n}일 전"),
-            (Lang::Ko, Age::Date(at)) => {
-                let (month, day) = (at.month(), at.day());
-                format!("페어링: {month}월 {day}일")
-            }
         }
     }
     /// Hover tooltip: viewer-local instants to the second, with a named

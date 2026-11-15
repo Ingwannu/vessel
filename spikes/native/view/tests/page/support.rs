@@ -73,6 +73,8 @@ pub(crate) fn kind(entry: &Entry) -> &'static str {
         K::TurnFailed { .. } => "turn_failed",
         K::Log { .. } => "log",
         K::Status { .. } => "status",
+        K::Parking(_) => "parking",
+        K::Forked { .. } => "forked",
         K::Profile { .. } => "profile",
         K::Model(_) => "model",
     }
@@ -90,6 +92,7 @@ pub(crate) fn key(entry: &Entry) -> String {
         EntryKey::Tool(id) => format!("t{id}"),
         EntryKey::Permission(id) => format!("p{id}"),
         EntryKey::Question(id) => format!("q{id}"),
+        EntryKey::Plan { seq, step } => format!("r{seq}.{step}"),
     }
 }
 

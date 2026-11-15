@@ -31,45 +31,36 @@
 //! something, and the choices a start was made with are what the next
 //! start on that machine begins from, until the person chooses again.
 //!
-//! Differences from Paseo, each with its reason: the model pill shows a
-//! generic agent glyph where Paseo shows each provider's logo (Vessel
-//! carries no other company's marks), so when a machine has more than one
-//! agent the pill names the agent after the model; no profiles (Vessel's
+//! Official provider artwork comes through `app::agent_mark` (ADR 0048);
+//! unknown agents and marks whose brand minimum does not fit use Generic.
+//! When a machine has more than one agent the pill names the agent after
+//! the model. Differences from Paseo: no profiles (Vessel's
 //! profiles are the node's, not in this build); no attachments button
 //! yet. The choices are kept only once the agent's options are known: a
 //! start sent while they load keeps the earlier ones.
 
+mod book;
 mod density;
 mod effort_card;
 mod features;
 mod pickers;
-
-use std::collections::HashMap;
+mod probe;
 
 use vessel_app_kit::ui::{
     Context, Div, Hsla, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
     div, px,
 };
-use vessel_app_kit::{
-    ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, composer_card, send_button,
-};
+use vessel_app_kit::{ComboboxState, SendKind, TextField, Tokens, Type, TypeExt as _, send_button};
 use vessel_app_link::Command;
+use vessel_app_view::offers::Offered;
 use vessel_app_view::{
     Controls, Machine, Picks, agent_name, choices_for, controls_with_effort, with_picks,
 };
-use vessel_proto::{HarnessRef, OptionChoice, SessionOption};
+use vessel_proto::{HarnessRef, OptionChoice};
 
+use crate::areas::composer::{attach_button, draft_card};
 use crate::routes::Route;
 use crate::shell::Shell;
-
-/// What the app knows of one agent's options on one machine (the page's
-/// `OptionsState`).
-#[derive(Debug, Clone)]
-pub(crate) enum Probe {
-    Loading,
-    Ready(Vec<SessionOption>),
-    Failed(String),
-}
 
 /// What the controls show (the page's `ControlsState`; the app starts no
 /// terminals yet, so no terminal case).
@@ -117,8 +108,6 @@ pub(crate) struct Draft {
     /// (setting a field's text needs the window, which an event from the
     /// link does not have).
     restore: std::cell::RefCell<Option<String>>,
-    /// What each agent offers, by machine and agent, as last asked.
-    pub(crate) probes: HashMap<(String, HarnessRef), Probe>,
     /// The person's choices for this machine's agent, once `chosen`; until
     /// then the last start's (the page's `startingPicks`).
     picks: Picks,
@@ -126,6 +115,9 @@ pub(crate) struct Draft {
     /// The machine and agent the choices are for: another starts over.
     settled: Option<(String, HarnessRef)>,
 }
+
+/// Whose options the controls show (track P's `areas::composer`).
+pub(crate) use crate::areas::composer::ControlsTarget;
 
 impl Draft {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
@@ -161,7 +153,6 @@ impl Draft {
             error: None,
             sending: None,
             restore: std::cell::RefCell::new(None),
-            probes: HashMap::new(),
             picks: Picks::default(),
             chosen: false,
             settled: None,
@@ -184,6 +175,12 @@ pub(crate) const fn kind_of(agent: &HarnessRef) -> Option<vessel_proto::HarnessK
 pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     shell.settle_draft();
     shell.probe(true);
+    refresh_words(shell, window, cx);
+    shell.areas.draft.composer.focus(window, cx);
+}
+
+/// Refresh only the language-dependent placeholder; preserve the draft.
+pub(crate) fn refresh_words(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
     let t = shell.t;
     let draft = &shell.areas.draft;
     let placeholder = t.suggestions.get(draft.suggestion).map_or_else(
@@ -191,7 +188,6 @@ pub(crate) fn arrive(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_
         |suggestion| (*suggestion).to_owned(),
     );
     draft.composer.set_placeholder(&placeholder, window, cx);
-    draft.composer.focus(window, cx);
 }
 
 impl Shell {
@@ -242,79 +238,6 @@ impl Shell {
         self.probe(false);
     }
 
-    /// Ask the draft's machine what its agent offers: when not asked yet,
-    /// or (`again`) to refresh an answer or retry a failure.
-    pub(crate) fn probe(&mut self, again: bool) {
-        let Some(key) = self.areas.draft.settled.clone() else {
-            return;
-        };
-        self.probe_agent(key, again);
-    }
-
-    /// Ask what `key`'s agent offers on its machine.
-    pub(crate) fn probe_agent(&mut self, key: (String, HarnessRef), again: bool) {
-        let ask = match self.areas.draft.probes.get(&key) {
-            None => true,
-            Some(Probe::Loading) => false,
-            Some(Probe::Ready(_) | Probe::Failed(_)) => again,
-        };
-        if !ask {
-            return;
-        }
-        let probes = &mut self.areas.draft.probes;
-        if !matches!(probes.get(&key), Some(Probe::Ready(_))) {
-            let _earlier = probes.insert(key.clone(), Probe::Loading);
-        }
-        let (machine, harness) = key;
-        self.command(Command::Options { machine, harness });
-    }
-
-    /// An agent's options arrived. A failure to refresh keeps what was
-    /// shown.
-    pub(crate) fn options_arrived(
-        &mut self,
-        machine: String,
-        harness: HarnessRef,
-        outcome: Result<Vec<SessionOption>, String>,
-    ) {
-        let probes = &mut self.areas.draft.probes;
-        let key = (machine, harness);
-        match outcome {
-            Ok(options) => {
-                // Which ids an agent sends, for the effort table
-                // (`view::effort::KNOWN`): ids, categories and kinds only.
-                let shape: Vec<String> = options
-                    .iter()
-                    .map(|option| match &option.kind {
-                        vessel_proto::OptionKind::Select { values, .. } => format!(
-                            "{} ({:?}, select of {})",
-                            option.id.as_str(),
-                            option.category,
-                            values
-                                .iter()
-                                .map(|value| value.id.as_str())
-                                .collect::<Vec<_>>()
-                                .join("|")
-                        ),
-                        vessel_proto::OptionKind::Toggle { .. } => {
-                            format!("{} ({:?}, toggle)", option.id.as_str(), option.category)
-                        }
-                        vessel_proto::OptionKind::Unknown => {
-                            format!("{} ({:?}, unknown)", option.id.as_str(), option.category)
-                        }
-                    })
-                    .collect();
-                tracing::info!(agent = ?key.1, options = %shape.join(", "), "an agent's options");
-                let _earlier = probes.insert(key, Probe::Ready(options));
-            }
-            Err(why) => {
-                if !matches!(probes.get(&key), Some(Probe::Ready(_))) {
-                    let _earlier = probes.insert(key, Probe::Failed(why));
-                }
-            }
-        }
-    }
-
     /// The choices the draft starts with: the person's, once they chose
     /// any; until then the machine's last start of this agent's.
     pub(crate) fn effective_picks(&self) -> Picks {
@@ -330,18 +253,31 @@ impl Shell {
             .unwrap_or_default()
     }
 
-    fn probed(&self) -> Option<&Probe> {
-        let key = self.areas.draft.settled.as_ref()?;
-        self.areas.draft.probes.get(key)
+    /// The running session's options as it last reported them, laid out
+    /// as the draft's (`None` until the agent reported any).
+    pub(crate) fn session_controls(&self, agent: &HarnessRef) -> Option<Controls> {
+        let options = self.areas.conversation.timeline.options()?;
+        Some(controls_with_effort(
+            options,
+            kind_of(agent),
+            &agent_name(agent),
+            self.t.lang,
+        ))
     }
 
-    /// What the controls show for the draft's agent.
+    /// What the controls show for the draft's agent, or for the running
+    /// session on screen.
     pub(crate) fn shown(&self) -> Option<Shown> {
-        let (_, agent) = self.areas.draft.settled.as_ref()?;
-        Some(match self.probed() {
-            None | Some(Probe::Loading) => Shown::Loading,
-            Some(Probe::Failed(why)) => Shown::Failed(why.clone()),
-            Some(Probe::Ready(options)) => Shown::Ready(Box::new(controls_with_effort(
+        if let ControlsTarget::Session { agent, .. } = self.controls_target() {
+            return self
+                .session_controls(&agent)
+                .map(|controls| Shown::Ready(Box::new(controls)));
+        }
+        let (machine, agent) = self.areas.draft.settled.as_ref()?;
+        Some(match self.offered(machine, agent) {
+            Offered::Loading => Shown::Loading,
+            Offered::Failed(why) => Shown::Failed(why.to_owned()),
+            Offered::Ready { options, .. } => Shown::Ready(Box::new(controls_with_effort(
                 &with_picks(options, &self.effective_picks()),
                 kind_of(agent),
                 &agent_name(agent),
@@ -369,8 +305,19 @@ impl Shell {
         self.settle_draft();
     }
 
-    /// One of the agent's options chosen.
+    /// One of the agent's options chosen: on a running session the
+    /// session's own (track P's `change_running_option`), else a pick for
+    /// the draft's start.
     pub(crate) fn choose_option(&mut self, choice: OptionChoice) {
+        if let ControlsTarget::Session {
+            machine,
+            session,
+            agent,
+        } = self.controls_target()
+        {
+            self.change_running_option(machine, session, agent, choice);
+            return;
+        }
         let mut picks = self.effective_picks();
         picks.pick(choice);
         let draft = &mut self.areas.draft;
@@ -391,7 +338,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        if text.trim().is_empty() || self.areas.draft.sending.is_some() {
+        if (text.trim().is_empty() && !self.draft_has_files()) || self.areas.draft.sending.is_some()
+        {
             return;
         }
         self.settle_draft();
@@ -410,14 +358,13 @@ impl Shell {
             cx.notify();
             return;
         }
-        let options = match self.probed() {
-            Some(Probe::Ready(offered)) => {
-                let options = choices_for(offered, &self.effective_picks());
-                self.prefs.keep_choices(&machine, &harness, &options);
-                options
-            }
-            _ => Vec::new(),
-        };
+        let options = self
+            .offer_options(&machine, &harness)
+            .map(|offered| choices_for(offered, &self.effective_picks()));
+        if let Some(options) = &options {
+            self.prefs.keep_choices(&machine, &harness, options);
+        }
+        let options = options.unwrap_or_default();
         let folder = self.areas.draft.folder.trim().to_owned();
         self.prefs.machine = Some(machine.clone());
         self.prefs.agent = Some(harness.clone());
@@ -430,13 +377,13 @@ impl Shell {
         // In a project, track F's start (a new worktree made first, its
         // steps on the session's screen); else in the folder.
         if !self.start_in_place(&machine, &harness, &options, &text) {
-            self.command(Command::Start {
+            self.command(self.with_draft_files(Command::Start {
                 machine: machine.clone(),
                 harness: harness.clone(),
                 folder: (!folder.is_empty()).then_some(folder),
                 prompt: text.clone(),
                 options,
-            });
+            }));
         }
         let draft = &mut self.areas.draft;
         draft.error = None;
@@ -446,6 +393,7 @@ impl Shell {
         draft.chosen = false;
         draft.composer.clear(window, cx);
         self.begin_pending(machine, agent_name(&harness), text, cx);
+        self.brand.sent();
         self.route = Route::Session;
         cx.notify();
     }
@@ -490,36 +438,29 @@ pub(crate) fn render(
     let touch = compact(window);
     let neutral = tokens.neutral;
 
-    let typed = !draft.composer.text(cx).trim().is_empty();
+    let typed = !draft.composer.text(cx).trim().is_empty() || shell.draft_has_files();
     let can_send = typed && draft.agent.is_some();
-    let card = composer_card(tokens, touch)
-        .child(draft.composer.element(tokens, touch, cx))
-        .child(
-            // Paseo's button row bleeds 6 past the card's padding.
-            div()
-                .mx(px(-6.0))
-                .flex()
-                .flex_row()
-                .items_end()
-                .justify_between()
-                .gap(px(8.0))
-                .child(pickers::controls(
-                    shell,
-                    shown.as_ref(),
-                    touch,
-                    tokens,
-                    window,
-                    cx,
-                ))
-                .child(
-                    send_button("send-draft", SendKind::Send, can_send, touch, tokens).on_click(
-                        cx.listener(|this, _event, window, cx| {
-                            let text = this.areas.draft.composer.text(cx);
-                            this.send_draft(text, window, cx);
-                        }),
-                    ),
+    let attach = attach_button(true, touch, tokens, cx);
+    let card = draft_card(shell, tokens, touch, window, cx).child(
+        // Paseo's button row bleeds 6 past the card's padding.
+        div()
+            .mx(px(-6.0))
+            .flex()
+            .flex_row()
+            .items_end()
+            .justify_between()
+            .gap(px(8.0))
+            .child(attach)
+            .child(pickers::controls(shell, shown.as_ref(), touch, tokens, window, cx).flex_1())
+            .child(
+                send_button("send-draft", SendKind::Send, can_send, touch, tokens).on_click(
+                    cx.listener(|this, _event, window, cx| {
+                        let text = this.areas.draft.composer.text(cx);
+                        this.send_draft(text, window, cx);
+                    }),
                 ),
-        );
+            ),
+    );
 
     let mut column = div()
         .w_full()
@@ -527,9 +468,14 @@ pub(crate) fn render(
         .flex()
         .flex_col()
         .gap(px(12.0))
-        .child(vessel_app_kit::mark(40.0, tokens))
+        // The brand's drawing measures the heading, the card and the
+        // pickers (worker B's `brand.rs`); it is the mark, drawn large.
+        .on_children_prepainted(shell.brand.new_session(0))
         .child(
             div()
+                // As wide as its words, so the brand's drawing measures the
+                // text and not the column (worker B's `brand.rs`).
+                .self_start()
                 .type_(Type::Title)
                 .text_size(px(vessel_app_kit::fonts::ui(22.0)))
                 .line_height(px(vessel_app_kit::fonts::ui(28.0)))
@@ -537,7 +483,7 @@ pub(crate) fn render(
                 .child(t.welcome),
         )
         .child(card)
-        .child(pickers::place(shell, &online, touch, tokens, cx));
+        .child(pickers::place(shell, &online, touch, tokens, cx).self_start());
     if let Some(error) = &draft.error {
         column = column.child(note(error.clone(), neutral.destructive));
     }
@@ -576,6 +522,24 @@ pub(crate) fn render(
         ))
 }
 
+/// A running session's controls: the draft's pills on its options (the
+/// session target, `Shell::controls_target`) and what is drawn over them
+/// (the effort card, the tooltip, the open list); `None` until the
+/// session's agent reported options.
+pub(crate) fn running_controls(
+    shell: &Shell,
+    touch: bool,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<(Div, Vec<vessel_app_kit::ui::AnyElement>)> {
+    let shown = shell.shown()?;
+    let row = pickers::controls(shell, Some(&shown), touch, tokens, window, cx);
+    let online: Vec<&Machine> = shell.fleet.online().collect();
+    let over = overlays(shell, &online, Some(&shown), tokens, touch, window, cx);
+    Some((row, over))
+}
+
 /// What is drawn over the new chat: the features sheet, the composer's
 /// tooltip, and the open list.
 fn overlays(
@@ -592,7 +556,7 @@ fn overlays(
         Some(Shown::Loading | Shown::Failed(_)) | None => None,
     };
     let mut over = Vec::new();
-    over.extend(effort_card::card(shell, ready, touch, tokens, cx));
+    over.extend(effort_card::card(shell, ready, touch, tokens, window, cx));
     over.extend(shell.areas.draft.features.tips.render(tokens));
     over.extend(pickers::open_list(shell, online, shown, tokens, window, cx));
     over

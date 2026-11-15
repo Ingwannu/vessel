@@ -28,16 +28,16 @@
 //!   drawn and its buttons and drag call GPUI, but there is nothing to move
 //!   or snap.
 
+use crate::window_glyph::{WindowGlyph, window_glyph};
 use gpui::prelude::*;
 use gpui::{
     AnyElement, Bounds, Decorations, Div, MouseButton, Pixels, ResizeEdge, Stateful,
     TitlebarOptions, Window, WindowBounds, WindowControlArea, WindowDecorations, WindowOptions,
-    div, point, px, svg,
+    div, point, px,
 };
 
 use gpui_component::InteractiveElementExt as _;
 
-use crate::assets::Glyph;
 use crate::theme::Tokens;
 
 /// The bar's height.
@@ -203,10 +203,22 @@ enum Control {
 /// test: there the app acts on the click itself.
 fn control(which: Control, tokens: &Tokens) -> Stateful<Div> {
     let (id, glyph, area) = match which {
-        Control::Minimize => ("window-minimize", Glyph::Minimize, WindowControlArea::Min),
-        Control::Maximize => ("window-maximize", Glyph::Maximize, WindowControlArea::Max),
-        Control::Restore => ("window-restore", Glyph::Restore, WindowControlArea::Max),
-        Control::Close => ("window-close", Glyph::Close, WindowControlArea::Close),
+        Control::Minimize => (
+            "window-minimize",
+            WindowGlyph::Minimize,
+            WindowControlArea::Min,
+        ),
+        Control::Maximize => (
+            "window-maximize",
+            WindowGlyph::Maximize,
+            WindowControlArea::Max,
+        ),
+        Control::Restore => (
+            "window-restore",
+            WindowGlyph::Restore,
+            WindowControlArea::Max,
+        ),
+        Control::Close => ("window-close", WindowGlyph::Close, WindowControlArea::Close),
     };
     let close = which == Control::Close;
     let neutral = tokens.neutral;
@@ -220,13 +232,11 @@ fn control(which: Control, tokens: &Tokens) -> Stateful<Div> {
     };
     let ink = neutral.foreground_muted;
     let linux = cfg!(any(target_os = "linux", target_os = "freebsd"));
-    let icon = svg()
-        .path(glyph.path())
-        .size(px(10.0))
-        .text_color(ink)
-        .when(close, |icon| {
-            icon.group_hover(id, |style| style.text_color(gpui::white()))
-        });
+    // The mark's line language at 9 points, its straight strokes on the
+    // device grid (worker B's `window_glyph`; the owner's word 37). The
+    // cell, its fills and its control area are as before, so Windows'
+    // Snap Layouts over Maximise are unchanged.
+    let icon = window_glyph(glyph, ink, close.then(gpui::white), id);
     let cell = div()
         .id(id)
         .group(id)

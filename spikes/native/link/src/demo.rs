@@ -176,29 +176,21 @@ impl Demo {
                 .cloned()
                 .collect()
         };
+        // The two reachable machines differ only by name.
+        let online = |name: &str| Machine {
+            node: None,
+            name: name.to_owned(),
+            reach: Reach::Online,
+            sessions: on(name),
+            agents: agents(),
+            protocol: Some(PROTOCOL_VERSION),
+            version: None,
+        };
         Fleet {
             machines: vec![
-                Machine {
-                    name: "laptop".to_owned(),
-                    reach: Reach::Online,
-                    sessions: on("laptop"),
-                    agents: agents(),
-                    protocol: Some(PROTOCOL_VERSION),
-                },
-                Machine {
-                    name: "build-server".to_owned(),
-                    reach: Reach::Online,
-                    sessions: on("build-server"),
-                    agents: agents(),
-                    protocol: Some(PROTOCOL_VERSION),
-                },
-                Machine {
-                    name: "old-box".to_owned(),
-                    reach: Reach::Unreachable("no route: this is the browser's demo".to_owned()),
-                    sessions: Vec::new(),
-                    agents: Vec::new(),
-                    protocol: None,
-                },
+                online("laptop"),
+                online("build-server"),
+                Machine::unreachable("old-box".to_owned(), "no route: this is the browser's demo"),
             ],
             read_at: Some(now),
         }
@@ -257,6 +249,7 @@ impl Demo {
                     content: ContentBlock::Text { text: reply },
                 },
                 AgentEvent::TurnEnded {
+                    point: None,
                     reason: StopReason::EndTurn,
                     usage: None,
                 },
@@ -299,6 +292,7 @@ impl Demo {
                     },
                 },
                 AgentEvent::TurnEnded {
+                    point: None,
                     reason: StopReason::EndTurn,
                     usage: None,
                 },
@@ -505,6 +499,7 @@ fn first_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
             content: text(SUMMARY),
         },
         AgentEvent::TurnEnded {
+            point: None,
             reason: StopReason::EndTurn,
             usage: None,
         },
@@ -552,6 +547,7 @@ fn hangul_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
                 ),
             },
             AgentEvent::TurnEnded {
+                point: None,
                 reason: StopReason::EndTurn,
                 usage: None,
             },
@@ -568,6 +564,7 @@ fn long_conversation(now: DateTime<Utc>) -> Vec<EventRecord> {
             }
         } else if index % 4 == 3 {
             AgentEvent::TurnEnded {
+                point: None,
                 reason: StopReason::EndTurn,
                 usage: None,
             }

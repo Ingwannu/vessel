@@ -80,6 +80,30 @@ fn korean_must_have_every_key_and_exactly_the_source_variables() {
 }
 
 #[test]
+fn a_key_in_only_one_of_english_or_korean_fails_in_both_directions() {
+    for (en_only, expected) in [
+        (true, "ko: missing messages: meta-only"),
+        (false, "ko: unknown message meta-only"),
+    ] {
+        let mut en = english().unwrap();
+        let mut ko = korean().unwrap();
+        let extra = language("en", "# Single-language probe.\nmeta-only = Only here")
+            .unwrap()
+            .messages
+            .remove("meta-only")
+            .unwrap();
+        let destination = if en_only { &mut en } else { &mut ko };
+        assert!(
+            destination
+                .messages
+                .insert("meta-only".to_owned(), extra)
+                .is_none()
+        );
+        assert_eq!(validate(&[en, ko]).unwrap_err().to_string(), expected);
+    }
+}
+
+#[test]
 fn a_contributed_fixture_folder_supplies_two_messages_without_shipping() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/locales");
     let languages = read(&root).unwrap();

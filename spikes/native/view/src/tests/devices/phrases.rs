@@ -73,38 +73,41 @@ fn paseo_time_ago_inputs_produce_the_same_english_labels() {
 #[test]
 fn device_badges_describe_access_and_never_invent_a_live_connection() {
     let mut device = phone();
-    for (seen, revoked, state, variant, en, ko) in [
+    for (seen, revoked, state, variant, label) in [
         (
             Some(at("2026-11-11T06:57:00Z")),
             None,
             DeviceState::Paired,
             Variant::Success,
-            "Paired",
-            "페어링됨",
+            None,
         ),
         (
             None,
             None,
             DeviceState::Unseen,
             Variant::Muted,
-            "Not seen",
-            "접속 전",
+            Some(("Not seen", "접속 전")),
         ),
         (
             None,
             Some(at("2026-11-11T06:00:00Z")),
             DeviceState::Revoked,
             Variant::Error,
-            "Revoked",
-            "해제됨",
+            Some(("Revoked", "해제됨")),
         ),
     ] {
         device.last_seen = seen;
         device.revoked_at = revoked;
         assert_eq!(DeviceState::of(&device), state);
         assert_eq!(state.variant(), variant);
-        assert_eq!(Lang::En.devices().state(state), en);
-        assert_eq!(Lang::Ko.devices().state(state), ko);
+        let badge = crate::devices::DeviceBadge::of(&device, None);
+        assert_eq!(
+            badge.map(|badge| (
+                Lang::En.devices().state(badge),
+                Lang::Ko.devices().state(badge)
+            )),
+            label
+        );
     }
 }
 
@@ -113,39 +116,33 @@ fn row_sentences_and_exact_hover_instants_are_complete_in_both_languages() {
     let now = at("2026-11-11T07:00:00Z");
     assert_eq!(
         details(Lang::En, &phone(), now, offset()),
-        "Can read, run sessions\nLast seen 3 minutes ago\nPaired 2 hours ago"
+        "Run sessions · seen 3 minutes ago"
     );
     assert_eq!(
         details(Lang::Ko, &phone(), now, offset()),
-        "권한: 읽기, 세션 실행\n마지막 접속: 3분 전\n페어링: 2시간 전"
+        "세션 실행 · 3분 전 접속"
     );
     assert_eq!(
         exact(Lang::En, &phone(), offset()),
-        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: 2026-11-11 06:57:00 (UTC+0)"
+        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: 2026-11-11 06:57:00 (UTC+0)\nAccess: Read information, Run sessions"
     );
     assert_eq!(
         exact(Lang::Ko, &phone(), offset()),
-        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 2026-11-11 06:57:00 (UTC+0)"
+        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 2026-11-11 06:57:00 (UTC+0)\n권한: 정보 읽기, 세션 실행"
     );
     let unseen = vessel_proto::DeviceInfo {
         last_seen: None,
         ..phone()
     };
-    assert_eq!(
-        details(Lang::En, &unseen, now, offset()),
-        "Can read, run sessions\nNo connection recorded\nPaired 2 hours ago"
-    );
-    assert_eq!(
-        details(Lang::Ko, &unseen, now, offset()),
-        "권한: 읽기, 세션 실행\n기록된 접속이 없습니다\n페어링: 2시간 전"
-    );
+    assert_eq!(details(Lang::En, &unseen, now, offset()), "Run sessions");
+    assert_eq!(details(Lang::Ko, &unseen, now, offset()), "세션 실행");
     assert_eq!(
         exact(Lang::En, &unseen, offset()),
-        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: Never"
+        "Paired: 2026-11-11 05:00:00 (UTC+0)\nLast seen: Never\nAccess: Read information, Run sessions"
     );
     assert_eq!(
         exact(Lang::Ko, &unseen, offset()),
-        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 접속한 적 없음"
+        "페어링: 2026-11-11 05:00:00 (UTC+0)\n마지막 접속: 접속한 적 없음\n권한: 정보 읽기, 세션 실행"
     );
 }
 

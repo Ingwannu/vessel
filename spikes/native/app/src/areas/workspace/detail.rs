@@ -255,14 +255,14 @@ impl Shell {
             .map_or_else(String::new, |info| branch_name(info, labels.detached));
         let mut notice = None;
         match result {
-            Ok(RemoveWorktreeOutcome::Removed { snapshot }) => {
+            Ok(RemoveWorktreeOutcome::Removed { snapshot, .. }) => {
                 detail.removing = None;
                 let short = snapshot
                     .as_ref()
                     .map(|snapshot| snapshot.commit.as_str().chars().take(7).collect::<String>());
                 notice = Some(words.removed(&branch, short.as_deref()));
             }
-            Ok(RemoveWorktreeOutcome::Kept { reasons }) => {
+            Ok(RemoveWorktreeOutcome::Kept { reasons, .. }) => {
                 let error = match ask.if_lost {
                     IfLost::Keep => None,
                     IfLost::Snapshot => Some(labels.snapshot_refused.to_owned()),

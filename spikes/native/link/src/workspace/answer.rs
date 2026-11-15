@@ -217,6 +217,8 @@ pub enum Answer {
         /// It (boxed: a session's info is large beside the other answers).
         result: Result<Box<SessionInfo>, Problem>,
     },
+    /// A session's pull request.
+    Pull(super::PullAnswer),
 }
 
 /// Which form added a project.
@@ -228,6 +230,17 @@ pub enum Form {
     Clone,
     /// Start a new project.
     New,
+}
+
+impl Ask {
+    /// The answer this ask gets when it did not reach the machine
+    /// (`problem`: why), as each screen expects it: its key in it, so
+    /// what waits on that key settles (the app's ask the link did not
+    /// take, `Problem::Unsent`).
+    #[must_use]
+    pub fn refused(self, problem: &Problem) -> Answer {
+        refused(self, problem)
+    }
 }
 
 /// The answer an ask gets when it could not be sent at all.
@@ -245,6 +258,7 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
             session,
             result: no(problem),
         },
+        Ask::Pull(ask) => Answer::Pull(super::pulls::refused(ask, problem)),
     }
 }
 

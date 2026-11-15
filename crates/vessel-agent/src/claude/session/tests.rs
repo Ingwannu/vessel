@@ -38,6 +38,7 @@ fn setup() -> AgentSetup {
         mcp_servers: vessel_proto::ResolvedMcpServers::new(),
         handshake_timeout: Duration::from_secs(20),
         questions: false,
+        system_prompt: None,
         private_dir: None,
     }
 }

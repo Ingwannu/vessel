@@ -224,6 +224,7 @@ fn codexs_top_levels_are_its_own_steps_and_fast_mode_is_its_switch() {
         ["Low", "Medium", "High", "Extra high", "Max", "Ultra"]
     );
     assert_eq!(effort.current, Some(5));
+    assert_eq!(effort.maximum(), Some(5), "Ultra is Codex's maximum");
     assert!(effort.top.is_none());
     let fast = effort.fast.as_ref().expect("a fast switch");
     assert_eq!(fast.choose(true), set("fast-mode", "on"));
@@ -240,6 +241,34 @@ fn an_agent_the_table_does_not_know_gets_its_levels_only() {
         ["Low", "Medium", "High", "Extra high", "Max"]
     );
     assert!(effort.top.is_none() && effort.fast.is_none());
+    assert_eq!(
+        effort.maximum(),
+        Some(4),
+        "a last level named max is the maximum"
+    );
     let none = Effort::of(Some(HarnessKind::OpenCode), &[]);
     assert!(none.is_none());
+}
+
+/// The maximum is the folded top switch when there is one, else a last
+/// level the table names; an agent whose last level is neither has none.
+#[test]
+fn the_maximum_is_a_role_not_a_word() {
+    let claude =
+        Effort::of(Some(HarnessKind::ClaudeCode), &claude("high", "off", "off")).expect("levels");
+    assert_eq!(claude.maximum(), Some(5), "Ultracode, after Max");
+    let plain = Effort::of(
+        Some(HarnessKind::OpenCode),
+        &[select(
+            "effort",
+            OptionCategory::ThoughtLevel,
+            "high",
+            &[("low", "Low"), ("high", "High")],
+        )],
+    )
+    .expect("levels");
+    assert_eq!(plain.maximum(), None);
+    for known in super::ROLES {
+        assert!(!known.ids.is_empty());
+    }
 }

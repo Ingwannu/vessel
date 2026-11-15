@@ -39,6 +39,20 @@ pub enum Driver {
 }
 
 impl Driver {
+    /// Whether the corresponding harness transport can replace and restore a
+    /// transient system instruction without a user prompt or environment shim.
+    #[must_use]
+    pub const fn system_prompt_support(self) -> vessel_harness::SystemPromptSupport {
+        use vessel_harness::DirectProtocol;
+        let protocol = match self {
+            Self::Acp => None,
+            Self::CodexAppServer => Some(DirectProtocol::CodexAppServer),
+            Self::ClaudeStream => Some(DirectProtocol::ClaudeStream),
+            Self::OpencodeHttp => Some(DirectProtocol::OpencodeHttp),
+        };
+        vessel_harness::system_prompt_support(protocol)
+    }
+
     /// Whether this build runs sessions with it.
     #[must_use]
     pub const fn built(self) -> bool {
@@ -96,6 +110,7 @@ mod tests {
             mcp_servers: ResolvedMcpServers::new(),
             handshake_timeout: Duration::from_secs(1),
             questions: false,
+            system_prompt: None,
             private_dir: None,
         }
     }

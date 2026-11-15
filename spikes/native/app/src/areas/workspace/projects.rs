@@ -80,6 +80,18 @@ impl Shell {
         page.menu = true;
     }
 
+    /// Translate labels retained by an open form without changing its values.
+    pub(crate) fn refresh_project_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let page = &self.areas.workspace.page;
+        let labels = self.words().labels();
+        let placeholder = match page.adding {
+            Some(AddForm::Clone) => labels.parent_placeholder,
+            Some(AddForm::Folder | AddForm::New) | None => labels.folder_placeholder,
+        };
+        page.path.set_placeholder(placeholder, window, cx);
+        page.url.set_placeholder(labels.url_placeholder, window, cx);
+    }
+
     fn open_add(&mut self, form: AddForm, window: &mut Window, cx: &mut Context<'_, Self>) {
         let labels = self.words().labels();
         let page = &mut self.areas.workspace.page;
@@ -385,17 +397,16 @@ fn list_body(
         .and_then(ProjectsView::list)
         .map_or(&[][..], |list| list.projects.as_slice())
     {
-        if let ProjectState::CloneFailed { reason, message } = &project.state {
-            body = body.child(banner(
-                format!(
-                    "{}: {} {message}",
-                    project.name,
-                    words.clone_failure(*reason)
-                ),
-                true,
-                None,
-                tokens,
-            ));
+        if let ProjectState::CloneFailed {
+            reason, message, ..
+        } = &project.state
+        {
+            let said = format!(
+                "{}: {} {message}",
+                project.name,
+                words.clone_failure(*reason)
+            );
+            body = body.child(banner(said, true, None, tokens));
         }
     }
     if let Some(failure) = &state.failure {
@@ -599,3 +610,6 @@ fn labelled(
 }
 
 use vessel_app_kit::ui::FluentBuilder as _;
+
+#[cfg(test)]
+mod language_tests;

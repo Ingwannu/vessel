@@ -96,7 +96,8 @@ pub fn clash_of(
         })
 }
 
-fn set_keys(action: Action, bindings: &[Binding]) -> Option<ShortcutEdit> {
+/// The edit that gives `action` exactly `bindings` (none: unbound).
+pub(super) fn set_keys(action: Action, bindings: &[Binding]) -> Option<ShortcutEdit> {
     let keys: Vec<KeyBinding> = bindings
         .iter()
         .take(MAX_BINDINGS)

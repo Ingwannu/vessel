@@ -14,16 +14,18 @@
 //!   light, `surface1` dark), pressed on `surface2`. Compact: each group
 //!   an island (radius 16) of rows 52 tall on `surface1`, 16 across, a 16
 //!   label 12 after its glyph, 2 apart.
-//! - Choice: the page's groups (the same sections in the same order on
-//!   every surface, ADR 0036); Paseo's host picker (its quiet row: a dot
-//!   and the machine's name in the foreground) heads the first group about
-//!   a machine, so it governs every section listed after it, as Paseo's
-//!   heads its Host group. Without a machine its place is "Add machine",
-//!   as Paseo's "Add host".
+//! - Choice: Paseo's two groups (`SettingsSidebar`): App, then the
+//!   machine's (Paseo's Host) headed by Paseo's host picker (its quiet
+//!   row: a dot and the machine's name in the foreground), which governs
+//!   every section under it. Without a machine that group is one row
+//!   under no heading, "Add a machine", as Paseo's "Add host". Paseo's
+//!   settings list has no search, so neither has this.
 //! - Differences: the list stands on the shell, as the workspace sidebar
-//!   does, at its width (264), not on `surfaceSidebar` with an edge at
-//!   Paseo's 320: the frame beside it does not move when Settings opens.
+//!   does, at its width (dragged at the same edge, `areas::sidebar::frame`),
+//!   not on `surfaceSidebar` with an edge at Paseo's 320: the frame beside
+//!   it does not move when Settings opens.
 
+use gpui::AnimationExt as _;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
     Context, Div, ElementId, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
@@ -42,24 +44,48 @@ use crate::shell::Shell;
 /// The machine picker's list (Paseo's `desktopMinWidth`).
 pub(crate) const PICKER_WIDTH: f32 = 240.0;
 
-/// The workspace sidebar's width (`areas/sidebar.rs`).
-const WIDTH: f32 = 264.0;
-
-/// A section's glyph (Paseo's for the sections it has).
-const fn section_glyph(section: Section) -> Glyph {
+/// A section's glyph: Paseo's (`SIDEBAR_SECTION_ITEMS`,
+/// `HOST_SECTION_ITEMS`, Lucide's names in the comments) where the kit
+/// has it. Where it does not yet, the nearest kit glyph stands in, named
+/// as one; each of those is a section not drawn yet, so not listed.
+pub(crate) const fn section_glyph(section: Section) -> Glyph {
     match section {
         Section::General => Glyph::Gear,
         Section::Appearance => Glyph::Palette,
+        Section::Sidebar => Glyph::PanelLeft,
+        Section::Chat => Glyph::Message,
+        Section::Terminal | Section::Terminals => Glyph::Terminal,
         Section::Shortcuts => Glyph::Keyboard,
         Section::Notifications => Glyph::Bell,
-        Section::Agents => Glyph::Bot,
-        Section::Models => Glyph::Sparkles,
-        Section::Machines => Glyph::Server,
-        Section::Projects => Glyph::Folder,
-        Section::Devices => Glyph::Smartphone,
-        Section::Sync => Glyph::Refresh,
+        Section::Permissions => Glyph::Shield,
+        Section::Diagnostics => Glyph::Stethoscope,
         Section::About => Glyph::Info,
+        Section::Overview => Glyph::Server,
+        Section::Projects | Section::Workspaces => Glyph::FolderGit,
+        Section::Devices => Glyph::Smartphone,
+        Section::Agents => Glyph::Bot,
+        Section::Metadata | Section::Models => Glyph::Sparkles,
+        Section::Providers => Glyph::Boxes,
+        // Stand-ins: Paseo's Files, Globe (Browser), Code2 (Editor), Puzzle
+        // (Integrations), Network (Connections), Mic (Voice), Gauge
+        // (Usage), Blocks (Plugins).
+        Section::Files => Glyph::File,
+        Section::Browser
+        | Section::Editor
+        | Section::Integrations
+        | Section::Connections
+        | Section::Voice
+        | Section::Usage
+        | Section::Plugins => Glyph::Sliders,
+        // Vessel's own.
+        Section::Sync => Glyph::Refresh,
     }
+}
+
+/// Paseo's `densityIconSize(rt, "md")`: 16 from its `md` breakpoint up,
+/// 20 on a compact layout (here: the phone's list).
+const fn icon_size(compact: bool) -> f32 {
+    if compact { 20.0 } else { 16.0 }
 }
 
 /// Paseo's `surfaceSidebarHover`.
@@ -71,17 +97,40 @@ fn hover_fill(tokens: &Tokens) -> Hsla {
 }
 
 /// A row of the list: `leading`, then `label`; `shown` when it is the
-/// section on screen; `compact` on a phone.
+/// section on screen (or the list it opens is open), with the count of
+/// arrivals that made it so: above 0 its fill fades in (a selection
+/// moving, `motion::QUICK`), 0 draws it in place; `compact` on a phone.
 fn item(
     id: impl Into<ElementId>,
     leading: impl gpui::IntoElement,
     label: impl Into<gpui::SharedString>,
-    shown: bool,
+    shown: Option<u64>,
     compact: bool,
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
     let fill = hover_fill(tokens);
+    let selected = shown.map(|turn| {
+        let layer = div()
+            .absolute()
+            .top_0()
+            .left_0()
+            .size_full()
+            .when(!compact, |layer| layer.rounded(px(8.0)))
+            .bg(fill);
+        if turn == 0 {
+            layer.into_any_element()
+        } else {
+            layer
+                .with_animation(
+                    ElementId::NamedInteger("settings-nav-selected".into(), turn),
+                    vessel_app_kit::motion::transition(vessel_app_kit::motion::QUICK),
+                    gpui::Styled::opacity,
+                )
+                .into_any_element()
+        }
+    });
+    let shown = shown.is_some();
     div()
         .id(id)
         .relative()
@@ -94,10 +143,18 @@ fn item(
         .px(px(if compact { 16.0 } else { 8.0 }))
         .when(!compact, |row| row.rounded(px(8.0)))
         .when(compact, |row| row.bg(neutral.surface1))
-        .when(shown, |row| row.bg(fill))
         .hover(move |style| style.bg(fill))
         .active(|style| style.bg(neutral.surface2))
         .cursor_pointer()
+        // Under the glyph and the label, over the row's own fill.
+        .children(selected)
+        // The label takes the row's colour, so a caller can set another
+        // (the machine picker's name is in the foreground).
+        .text_color(if shown {
+            neutral.foreground
+        } else {
+            neutral.foreground_muted
+        })
         .child(leading)
         .child(
             div()
@@ -109,11 +166,6 @@ fn item(
                 .type_(Type::Body)
                 .when(compact, |label| {
                     label.text_size(px(vessel_app_kit::fonts::ui(16.0)))
-                })
-                .text_color(if shown {
-                    neutral.foreground
-                } else {
-                    neutral.foreground_muted
                 })
                 .child(label.into()),
         )
@@ -128,8 +180,9 @@ fn section_row(
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
     let words = shell.t.lang.settings();
+    let state = &shell.areas.settings;
     // On a phone no section is "shown" in the list: it is the page.
-    let shown = !compact && shell.areas.settings.section == section;
+    let shown = !compact && state.section == section;
     let color = if shown {
         tokens.neutral.foreground
     } else {
@@ -137,9 +190,9 @@ fn section_row(
     };
     item(
         ElementId::Name(format!("settings-{}", section.slug()).into()),
-        glyph(section_glyph(section), 16.0, color),
+        glyph(section_glyph(section), icon_size(compact), color),
         words.section(section),
-        shown,
+        shown.then_some(state.turn),
         compact,
         tokens,
     )
@@ -148,38 +201,51 @@ fn section_row(
     }))
 }
 
-/// The machine picker's trigger, or "Add machine" without a machine.
+/// "Add a machine", where the machine's group is while the book is
+/// empty (Paseo's "Add host").
+fn add_machine(
+    compact: bool,
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Stateful<Div> {
+    item(
+        "settings-add-machine",
+        glyph(
+            Glyph::Plus,
+            icon_size(compact),
+            tokens.neutral.foreground_muted,
+        ),
+        shell.t.add_machine,
+        None,
+        compact,
+        tokens,
+    )
+    .on_click(cx.listener(|shell, _event, window, cx| {
+        shell.go(Route::Pair, window, cx);
+    }))
+}
+
+/// The machine picker's trigger, heading the machine's group.
 fn picker(
     shell: &Shell,
+    machine: &vessel_app_view::Machine,
     compact: bool,
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Stateful<Div> {
-    let Some(machine) = choices::chosen_machine(shell) else {
-        return item(
-            "settings-add-machine",
-            glyph(Glyph::Plus, 16.0, tokens.neutral.foreground_muted),
-            shell.t.add_machine,
-            false,
-            compact,
-            tokens,
-        )
-        .on_click(cx.listener(|shell, _event, window, cx| {
-            shell.go(Route::Pair, window, cx);
-        }));
-    };
-    let open = shell.areas.settings.showing() == Some(List::Machine);
     item(
         "settings-machine",
-        // Paseo keeps the dot in the glyphs' 16 so the names line up.
+        // Paseo keeps the dot in the glyphs' box so the names line up.
         div()
-            .size(px(16.0))
+            .size(px(icon_size(compact)))
             .flex()
             .items_center()
             .justify_center()
             .child(dot(choices::reach_color(machine, tokens))),
         machine.name.clone(),
-        open,
+        // Paseo's trigger has no open fill, only hover and press.
+        None,
         compact,
         tokens,
     )
@@ -191,61 +257,68 @@ fn picker(
     }))
 }
 
-/// The groups, each a label over its rows.
+/// The groups, each a label over its rows (Paseo's `SidebarGroup`).
 fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
-    let neutral = tokens.neutral;
-    let mut groups = div().flex().flex_col();
-    let mut picked = false;
-    for group in Group::ALL {
-        // Only the sections drawn in this build (`super::drawn`); a group
-        // left with none is not shown.
-        let sections: Vec<Section> = group
-            .sections()
+    let section_rows = |group: Group, cx: &mut Context<'_, Shell>| -> Vec<Stateful<Div>> {
+        group
+            .sections(super::sections::SURFACE)
             .into_iter()
-            .filter(|section| super::drawn(*section))
-            .collect();
-        if sections.is_empty() {
-            continue;
+            .filter(|section| super::sections::drawn(*section))
+            .map(|section| section_row(section, shell, compact, tokens, cx))
+            .collect()
+    };
+    let app = section_rows(Group::App, cx);
+    let machine = match choices::chosen_machine(shell) {
+        Some(chosen) => {
+            let mut rows = vec![picker(shell, chosen, compact, tokens, cx)];
+            rows.extend(section_rows(Group::Machine, cx));
+            group(Some(words.group(Group::Machine)), rows, compact, tokens)
         }
-        let mut rows = Vec::new();
-        if !picked && sections.iter().any(|section| section.per_machine()) {
-            picked = true;
-            rows.push(picker(shell, compact, tokens, cx));
-        }
-        for section in sections {
-            rows.push(section_row(section, shell, compact, tokens, cx));
-        }
-        // An island's corners are its first and last rows' (a clip is a
-        // rectangle here, so the island cannot round them).
-        let last = rows.len().saturating_sub(1);
-        let island =
+        None => group(
+            None,
+            vec![add_machine(compact, shell, tokens, cx)],
+            compact,
+            tokens,
+        ),
+    };
+    div()
+        .flex()
+        .flex_col()
+        .children(
+            (!app.is_empty()).then(|| group(Some(words.group(Group::App)), app, compact, tokens)),
+        )
+        .child(machine)
+}
+
+/// One group: its label, if it has one, over its rows; on a phone the
+/// rows are one island.
+fn group(label: Option<&str>, rows: Vec<Stateful<Div>>, compact: bool, tokens: &Tokens) -> Div {
+    // An island's corners are its first and last rows' (a clip is a
+    // rectangle here, so the island cannot round them).
+    let last = rows.len().saturating_sub(1);
+    let island = div()
+        .flex()
+        .flex_col()
+        .gap(px(2.0))
+        .children(rows.into_iter().enumerate().map(|(index, row)| {
+            row.when(compact && index == 0, |row| row.rounded_t(px(16.0)))
+                .when(compact && index == last, |row| row.rounded_b(px(16.0)))
+        }));
+    div()
+        .flex()
+        .flex_col()
+        .p(px(8.0))
+        .gap(px(if compact { 4.0 } else { 2.0 }))
+        .children(label.map(|label| {
             div()
-                .flex()
-                .flex_col()
-                .gap(px(2.0))
-                .children(rows.into_iter().enumerate().map(|(index, row)| {
-                    row.when(compact && index == 0, |row| row.rounded_t(px(16.0)))
-                        .when(compact && index == last, |row| row.rounded_b(px(16.0)))
-                }));
-        groups = groups.child(
-            div()
-                .flex()
-                .flex_col()
-                .p(px(8.0))
-                .gap(px(if compact { 4.0 } else { 2.0 }))
-                .child(
-                    div()
-                        .px(px(if compact { 16.0 } else { 8.0 }))
-                        .py(px(4.0))
-                        .type_(Type::Body)
-                        .text_color(neutral.foreground_extra_muted)
-                        .child(words.group(group)),
-                )
-                .child(island),
-        );
-    }
-    groups
+                .px(px(if compact { 16.0 } else { 8.0 }))
+                .py(px(4.0))
+                .type_(Type::Body)
+                .text_color(tokens.neutral.foreground_extra_muted)
+                .child(label.to_owned())
+        }))
+        .child(island)
 }
 
 /// On a wide window, in the sidebar's place: the way back, then the
@@ -253,9 +326,7 @@ fn groups(shell: &Shell, compact: bool, tokens: &Tokens, cx: &mut Context<'_, Sh
 pub(crate) fn sidebar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
     let words = shell.t.lang.settings();
     div()
-        .w(px(WIDTH))
-        .flex_shrink_0()
-        .h_full()
+        .size_full()
         .flex()
         .flex_col()
         .bg(tokens.bg_shell)
@@ -263,9 +334,13 @@ pub(crate) fn sidebar(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell
             div().p(px(8.0)).child(
                 item(
                     "settings-back",
-                    glyph(Glyph::ArrowLeft, 16.0, tokens.neutral.foreground_muted),
+                    glyph(
+                        Glyph::ArrowLeft,
+                        icon_size(false),
+                        tokens.neutral.foreground_muted,
+                    ),
                     words.back,
-                    false,
+                    None,
                     false,
                     tokens,
                 )
@@ -316,6 +391,7 @@ pub(crate) fn picker_header(shell: &Shell, compact: bool) -> ComboHeader {
         back: false,
         search: false,
         empty: words.no_machines.into(),
+        note: None,
         side: Side::Below,
     }
 }

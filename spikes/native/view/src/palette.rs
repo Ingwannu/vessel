@@ -12,11 +12,22 @@
 //!   names and the kit's three choices (system, light, dark), and acts on
 //!   the target it gets back.
 
-use std::cmp::Reverse;
+mod cursor;
+mod ranking;
+mod subtitle;
 
+pub use subtitle::{DisplayPath, MarkedSubtitle, Subtitle, TextPart};
+
+pub use cursor::{Direction, PaletteCursor};
+
+use std::cmp::Reverse;
+use std::ops::Range;
+
+use chrono::{DateTime, Utc};
 use vessel_proto::SessionId;
 
 use crate::board::{Fleet, Reach};
+use crate::matcher;
 use crate::text::Lang;
 
 /// The palette's groups, in the order it lists them.
@@ -79,13 +90,16 @@ pub struct PaletteEntry<S, T> {
     /// What it says.
     pub label: String,
     /// Muted, after the label: a session's state and folder.
-    pub detail: Option<String>,
+    pub detail: Option<Subtitle>,
     /// Searched with the label, not shown (a session's full id).
     pub keywords: Option<String>,
     /// Its group.
     pub group: PaletteGroup,
     /// What choosing it does.
     pub target: PaletteTarget<S, T>,
+    /// The node's last activity time, used to rank session navigation.
+    /// Commands have no activity time.
+    pub activity_at: Option<DateTime<Utc>>,
 }
 
 impl<S, T> PaletteEntry<S, T> {
@@ -97,24 +111,24 @@ impl<S, T> PaletteEntry<S, T> {
             keywords: None,
             group,
             target,
+            activity_at: None,
         }
     }
 
-    /// Whether it answers a search for `query`: its label, detail and
-    /// keywords contain it, whatever the case.
+    /// Whether every query token matches its visible fields or keywords,
+    /// with subsequences confined to a word (Paseo's Command Center).
     #[must_use]
     pub fn found(&self, query: &str) -> bool {
-        let needle = query.trim().to_lowercase();
-        if needle.is_empty() {
-            return true;
-        }
-        let haystack = format!(
-            "{} {} {}",
-            self.label,
-            self.detail.as_deref().unwrap_or_default(),
-            self.keywords.as_deref().unwrap_or_default()
-        );
-        haystack.to_lowercase().contains(&needle)
+        self.score(&matcher::Query::new(query)).is_some()
+    }
+
+    fn score(&self, query: &matcher::Query) -> Option<matcher::Score> {
+        let detail = self
+            .detail
+            .as_ref()
+            .map(Subtitle::search_text)
+            .unwrap_or_default();
+        query.score(&[&self.label, &detail], self.keywords.as_deref())
     }
 }
 
@@ -162,13 +176,13 @@ pub fn palette_entries<S: Copy, T: Copy>(
     });
     let sidebar = lang.sidebar();
     let machines = fleet.machines.iter().map(|machine| PaletteEntry {
-        detail: Some(
+        detail: Some(Subtitle::Plain(
             match machine.reach {
                 Reach::Online => sidebar.connected,
                 Reach::Unreachable(_) => sidebar.offline,
             }
             .to_owned(),
-        ),
+        )),
         ..PaletteEntry::new(
             format!("machine-{}", machine.name),
             machine.name.clone(),
@@ -180,16 +194,17 @@ pub fn palette_entries<S: Copy, T: Copy>(
         .machines
         .iter()
         .flat_map(|machine| &machine.sessions)
+        .filter(|card| card.detail.marks.archived_at.is_none())
         .collect();
     cards.sort_by_key(|card| Reverse(card.detail.created_at));
     cards.sort_by_key(|card| !card.live);
     let text = lang.text();
     let sessions = cards.into_iter().map(|card| PaletteEntry {
-        detail: Some(format!(
-            "{} · {}",
-            text.phrase(&card.detail.process),
-            card.detail.cwd.as_deref().unwrap_or("~")
-        )),
+        activity_at: Some(card.detail.active_at),
+        detail: Some(Subtitle::StatusPath {
+            status: text.phrase(&card.detail.process),
+            path: DisplayPath::new(card.detail.cwd.as_deref().unwrap_or("~")),
+        }),
         keywords: Some(card.session.to_string()),
         ..PaletteEntry::new(
             format!("session-{}-{}", card.machine, card.session),
@@ -227,15 +242,40 @@ pub fn palette_groups<'a, S, T>(
     entries: &'a [PaletteEntry<S, T>],
     query: &str,
 ) -> Vec<(PaletteGroup, Vec<&'a PaletteEntry<S, T>>)> {
-    PaletteGroup::ALL
-        .into_iter()
-        .map(|group| {
-            let found = entries
-                .iter()
-                .filter(|entry| entry.group == group && entry.found(query))
-                .collect::<Vec<_>>();
-            (group, found)
-        })
-        .filter(|(_, found)| !found.is_empty())
-        .collect()
+    ranking::groups(entries, query)
+}
+
+/// Every matching token or subsequence run, in original UTF-8 byte ranges
+/// (Paseo's `findHighlightRanges`). Overlapping terms share one mark.
+#[must_use]
+pub fn marks(query: &str, text: &str) -> Vec<Range<usize>> {
+    matcher::Query::new(query).marks(text)
+}
+
+/// The row the keyboard makes active after a search changed the rows
+/// (Paseo's `preserveActiveResultId`): the same one while it is still
+/// listed, else the first.
+#[must_use]
+pub fn kept<'a>(active: Option<&str>, ids: &[&'a str]) -> Option<&'a str> {
+    ids.iter()
+        .copied()
+        .find(|id| Some(*id) == active)
+        .or_else(|| ids.first().copied())
+}
+
+/// The row an arrow key makes active (Paseo's `moveActiveResultId`): the
+/// next or the previous, round from the last to the first and back; from
+/// none, the first going down and the last going up.
+#[must_use]
+pub fn moved<'a>(active: Option<&str>, ids: &[&'a str], forward: bool) -> Option<&'a str> {
+    let last = ids.len().checked_sub(1)?;
+    let current = active.and_then(|active| ids.iter().position(|id| *id == active));
+    let next = match (current, forward) {
+        (None, true) => 0,
+        (None, false) => last,
+        (Some(at), true) if at >= last => 0,
+        (Some(at), true) => at.saturating_add(1),
+        (Some(at), false) => at.checked_sub(1).unwrap_or(last),
+    };
+    ids.get(next).copied()
 }

@@ -24,6 +24,7 @@
 
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::is_combining_mark;
+use vessel_proto::EventSeq;
 
 use super::entry::{Entry, EntryKind};
 
@@ -59,6 +60,8 @@ pub fn searchable(entry: &Entry) -> Option<&str> {
         | EntryKind::TurnFailed { .. }
         | EntryKind::Log { .. }
         | EntryKind::Status { .. }
+        | EntryKind::Parking(_)
+        | EntryKind::Forked { .. }
         | EntryKind::Profile { .. }
         | EntryKind::Model(_) => None,
     }
@@ -348,6 +351,8 @@ impl FindCache {
                 | EntryKind::TurnFailed { .. }
                 | EntryKind::Log { .. }
                 | EntryKind::Status { .. }
+                | EntryKind::Parking(_)
+                | EntryKind::Forked { .. }
                 | EntryKind::Profile { .. }
                 | EntryKind::Model(_) => fold(text),
             });
@@ -461,4 +466,30 @@ pub fn step(count: usize, current: usize, forward: bool) -> Stepped {
             wrapped: false,
         },
     }
+}
+
+/// Where find starts for the message at record `at` (a search hit opened
+/// from the palette): the first match in its entry or after it, the first
+/// match when none is; `None` while the session is not read that far
+/// (`next`, the record after the last read).
+#[must_use]
+pub fn start_at(
+    entries: &[Entry],
+    next: EventSeq,
+    matches: &[Match],
+    at: EventSeq,
+) -> Option<usize> {
+    if next <= at {
+        return None;
+    }
+    let entry = entries
+        .iter()
+        .rposition(|entry| entry.seq <= at)
+        .unwrap_or(0);
+    Some(
+        matches
+            .iter()
+            .position(|found| found.entry >= entry)
+            .unwrap_or(0),
+    )
 }

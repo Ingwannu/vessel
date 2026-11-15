@@ -8,6 +8,14 @@
 //! `rgb(... / 4%)` do, so one value is right on every surface.
 
 pub mod spacing;
+
+/// The desktop command panel's scrim: black at 50 % (track S3's, after
+/// Paseo's command center), as `rgba` takes it.
+pub const COMMAND_SCRIM: u32 = 0x0000_0080;
+
+/// A form summary's light fill: GOAT's zinc25 (OKLCH .992, 0, 0) at its
+/// nearest 8-bit sRGB value, as `rgb` takes it.
+pub const SUMMARY_LIGHT: u32 = 0x00fc_fcfc;
 mod status;
 pub use status::{Signal, Status};
 
@@ -57,6 +65,8 @@ pub struct Neutrals {
     pub foreground_muted: Hsla,
     /// `foregroundExtraMuted`.
     pub foreground_extra_muted: Hsla,
+    /// Command Center's sheet handle: Paseo's `palette.zinc[600]`.
+    pub sheet_handle: Hsla,
     /// `border`: a combobox's edge.
     pub border: Hsla,
     /// `borderAccent`: the composer's card, a menu's edge, a field on
@@ -88,6 +98,7 @@ impl Neutrals {
             foreground: rgb(0x001a_1a1e).into(),
             foreground_muted: rgb(0x0071_717a).into(),
             foreground_extra_muted: rgb(0x00a1_a1aa).into(),
+            sheet_handle: rgb(0x0052_525b).into(),
             border: rgb(0x00e4_e4e7).into(),
             border_accent: rgb(0x00ec_ecf1).into(),
             interaction_highlight: rgba(0x0000_000f).into(),
@@ -110,6 +121,7 @@ impl Neutrals {
             foreground: rgb(0x00fa_fafa).into(),
             foreground_muted: rgb(0x00a1_a5a4).into(),
             foreground_extra_muted: rgb(0x0071_7574).into(),
+            sheet_handle: rgb(0x0052_525b).into(),
             border: rgb(0x0025_2b2a).into(),
             border_accent: rgb(0x002f_3534).into(),
             interaction_highlight: rgba(0xffff_ff14).into(),
@@ -278,4 +290,13 @@ pub mod radius {
     pub const R4: f32 = 10.0;
     /// `--r-5`: the frame.
     pub const R5: f32 = 12.0;
+    /// Paseo's `borderRadius.md`: small icon actions and popup rows. The
+    /// page's scale has no 6; controls drawn after Paseo's use this one.
+    pub const MD: f32 = 6.0;
+}
+
+/// Paseo's icon sizes (`ICON_SIZE` in its theme), in pixels.
+pub mod icon {
+    /// `ICON_SIZE.sm`: an icon-only action's glyph.
+    pub const SM: f32 = 14.0;
 }

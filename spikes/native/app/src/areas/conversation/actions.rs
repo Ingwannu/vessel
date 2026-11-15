@@ -1,0 +1,175 @@
+//! The Session actions menu and its confirms (archive, delete, kill), the
+//! agent's log shown from it, and the acts they send to the node for the
+//! session shown.
+
+use std::rc::Rc;
+
+use vessel_app_kit::MenuHandlers;
+use vessel_app_kit::ui::Context;
+use vessel_app_link::{Act, Command};
+use vessel_app_view::session::MarkAction;
+use vessel_proto::Mark;
+
+use super::Seat;
+use crate::shell::Shell;
+
+/// A confirm the area has open.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Confirm {
+    /// Archive the session (a live one is stopped first).
+    Archive,
+    /// Delete it for good.
+    Delete,
+    /// Kill it.
+    Kill,
+}
+
+/// One row of the Session actions menu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MenuAction {
+    /// A mark or a life action.
+    Mark(MarkAction),
+    /// Copy the session's id.
+    CopyId,
+    /// Kill a live session.
+    Kill,
+    /// Show the agent's own log (its lines are not in the conversation).
+    AgentLog,
+}
+
+/// Whether the agent's own log is shown in its dialog.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AgentLog {
+    /// Not shown.
+    Hidden,
+    /// Shown over the conversation.
+    Shown,
+}
+
+impl Shell {
+    /// Ask the node to act on the session shown.
+    pub(crate) fn act(&self, act: Act) {
+        self.act_at(Seat::SESSION, act);
+    }
+
+    /// Ask the node to act on the session the conversation at `seat`
+    /// shows.
+    pub(crate) fn act_at(&self, seat: Seat, act: Act) {
+        if let Some(shown) = (seat.get)(self).and_then(|area| area.shown.as_ref()) {
+            self.command(Command::Act {
+                machine: shown.machine.clone(),
+                session: shown.session,
+                act,
+            });
+        }
+    }
+
+    /// The menu's handlers: how to reach its state, and what a row does.
+    pub(crate) fn menu_handlers() -> MenuHandlers<Self> {
+        MenuHandlers {
+            state: |shell: &mut Self| &mut shell.areas.conversation.menu,
+            chose: Rc::new(|shell: &mut Self, index, window, cx| {
+                let Some(action) = shell.areas.conversation.menu_rows.get(index).copied() else {
+                    return;
+                };
+                shell.menu_chose(action, window, cx);
+            }),
+        }
+    }
+
+    fn menu_chose(
+        &mut self,
+        action: MenuAction,
+        window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let confirm = match action {
+            MenuAction::Mark(MarkAction::Archive) => Some(Confirm::Archive),
+            MenuAction::Mark(MarkAction::Delete) => Some(Confirm::Delete),
+            MenuAction::Kill => Some(Confirm::Kill),
+            MenuAction::Mark(MarkAction::StartAgain) => {
+                self.conversation_start_again(cx);
+                None
+            }
+            MenuAction::Mark(mark) => {
+                if mark == MarkAction::MarkUnread
+                    && let Some(shown) = self.areas.conversation.shown.clone()
+                {
+                    self.conversation_marked_unread(&shown.machine, shown.session);
+                }
+                self.mark(mark);
+                None
+            }
+            MenuAction::AgentLog => {
+                self.areas.conversation.agent_log = AgentLog::Shown;
+                self.areas.conversation.dialog.focus(window, cx);
+                cx.notify();
+                None
+            }
+            MenuAction::CopyId => {
+                if let Some(shown) = &self.areas.conversation.shown {
+                    cx.write_to_clipboard(vessel_app_kit::ui::ClipboardItem::new_string(
+                        shown.session.to_string(),
+                    ));
+                    self.notice = Some(self.t.lang.conversation().copied_id().to_owned());
+                }
+                None
+            }
+        };
+        if let Some(confirm) = confirm {
+            self.areas.conversation.confirm = Some(confirm);
+            self.areas.conversation.dialog.focus(window, cx);
+        }
+        cx.notify();
+    }
+
+    /// A mark or a life action, without a confirm.
+    fn mark(&self, action: MarkAction) {
+        let act = match action {
+            MarkAction::Pin => Act::Mark(Mark::Pin),
+            MarkAction::Unpin => Act::Mark(Mark::Unpin),
+            MarkAction::MarkUnread => Act::Mark(Mark::Unread),
+            MarkAction::MarkRead => Act::Mark(Mark::Read {
+                through: self.areas.conversation.timeline.next(),
+            }),
+            MarkAction::Archive => Act::Mark(Mark::Archive),
+            MarkAction::Unarchive => Act::Mark(Mark::Unarchive),
+            MarkAction::StartAgain => Act::StartAgain,
+            MarkAction::Delete => Act::Delete,
+        };
+        self.act(act);
+    }
+
+    /// The confirm open was accepted.
+    pub(crate) fn confirmed(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(confirm) = self.areas.conversation.confirm.take() else {
+            return;
+        };
+        match confirm {
+            Confirm::Archive => self.mark(MarkAction::Archive),
+            Confirm::Delete => self.mark(MarkAction::Delete),
+            Confirm::Kill => self.act(Act::Kill),
+        }
+        cx.notify();
+    }
+
+    /// The agent's log was closed.
+    pub(crate) fn dismiss_log(
+        &mut self,
+        _window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.conversation.agent_log = AgentLog::Hidden;
+        cx.notify();
+    }
+
+    /// The confirm open was dismissed.
+    pub(crate) fn dismiss_confirm(
+        &mut self,
+        _window: &mut vessel_app_kit::ui::Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.areas.conversation.confirm = None;
+        cx.notify();
+    }
+}

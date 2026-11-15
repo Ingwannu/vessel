@@ -256,7 +256,7 @@ impl Rotating {
     /// # Errors
     /// The I/O error when the directory or the file cannot be made.
     pub fn open(dir: &Path, max: u64, keep: usize) -> std::io::Result<Self> {
-        std::fs::create_dir_all(dir)?;
+        create_dir(dir)?;
         let current = dir.join(FILE);
         if std::fs::metadata(&current).is_ok_and(|meta| meta.len() >= max) {
             rotate(dir, keep);
@@ -312,8 +312,38 @@ impl Rotating {
     }
 }
 
+/// The log's folder (and any missing parent), owner-only where it is
+/// made: the log names machines and folders, and the app's settings are
+/// owner-only too (0700; the coordinator's check of 0.0.0.0.10 found the
+/// folder 0775). Made with its mode rather than changed afterwards, so it
+/// is never open in between; a folder that already exists is left as it
+/// is.
+fn create_dir(dir: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt as _;
+        std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(dir)
+    }
+    #[cfg(not(unix))]
+    {
+        std::fs::create_dir_all(dir)
+    }
+}
+
+/// The current log file for appending, owner-only (0600) when it is made,
+/// as the settings file is (it was 0664).
 fn append(path: &Path) -> std::io::Result<File> {
-    OpenOptions::new().create(true).append(true).open(path)
+    let mut options = OpenOptions::new();
+    let _same = options.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        let _same = options.mode(0o600);
+    }
+    options.open(path)
 }
 
 /// `vessel.log` → `vessel.1.log` → … → `vessel.<keep>.log`, the oldest
@@ -341,6 +371,27 @@ mod tests {
             .collect();
         names.sort();
         names
+    }
+
+    /// The folder and every file are owner-only from the moment they are
+    /// made, the rotated one's successor too, whatever the umask leaves.
+    #[cfg(unix)]
+    #[test]
+    fn the_log_folder_and_its_files_are_made_owner_only() {
+        use std::os::unix::fs::PermissionsExt as _;
+        let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        let root = tempfile::tempdir().unwrap();
+        let dir = root.path().join("state").join("logs");
+        let log = Rotating::open(&dir, 100, 2).unwrap();
+        for n in 0..5 {
+            log.write(format!("line {n:02} of forty bytes, give or take..\n").as_bytes())
+                .unwrap();
+        }
+        assert_eq!(mode(&dir), 0o700);
+        assert_eq!(mode(&root.path().join("state")), 0o700);
+        for name in names(&dir) {
+            assert_eq!(mode(&dir.join(&name)), 0o600, "{name}");
+        }
     }
 
     #[test]

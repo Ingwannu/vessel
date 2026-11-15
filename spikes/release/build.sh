@@ -15,7 +15,8 @@
 # half-written set. The last step checks the sums again where they landed.
 # Contents:
 #   vessel-LABEL-windows-x64.zip        Vessel.exe, LICENSE.md, README.txt,
-#                                       licenses/ (the embedded fonts' OFL)
+#                                       licenses/ (the embedded fonts' OFL,
+#                                       the agents' marks' licences)
 #   vessel-LABEL-windows-x64-setup.exe  per-user installer (NSIS)
 #   vessel-LABEL-windows-x64.exe        the executable alone: the update
 #   vessel-LABEL-linux-x64.tar.gz       vessel-app, LICENSE.md, README.txt,
@@ -115,7 +116,9 @@ stage="$(mktemp -d)"
 trap 'rm -rf "$stage" "$partial"' EXIT
 
 # The app embeds its faces; they are fetched, not committed.
-if [ -x "$app_ws/scripts/fonts.sh" ] && [ ! -f "$app_ws/assets/fonts/Pretendard-Regular.otf" ]; then
+# Checked by the newest face the kit embeds (Light, 300, added 2026-11-13),
+# so a tree fetched before it fetches again.
+if [ -x "$app_ws/scripts/fonts.sh" ] && [ ! -f "$app_ws/assets/fonts/Pretendard-Light.otf" ]; then
     (cd "$app_ws" && scripts/fonts.sh "$stage/fonts")
 fi
 
@@ -135,12 +138,29 @@ else
     updates_en="This build does not update itself. Install a new build the same way; it replaces this one."
 fi
 
-# The SIL Open Font License asks that each copy of the fonts carry the
-# licence; the app embeds Geist, Geist Mono and Pretendard, so every
-# package carries their texts (fonts.sh puts them beside the fonts).
+# The licences of what the app embeds that is not Vessel's, one text per
+# file in licenses/:
+# - The SIL Open Font License asks that each copy of the fonts carry the
+#   licence; the app embeds Geist, Geist Mono and Pretendard (fonts.sh
+#   puts their texts beside the fonts).
+# - The agents' marks (docs/design/agent-marks/README.md): every text
+#   beside the marks is carried, so a mark that comes with a licence brings
+#   it without a change here. 0.0.0.0.10-0.0.0.0.14 embedded Gemini marks
+#   from Google repositories under Apache-2.0 (section 4(a): recipients of
+#   the object form get the licence), hence google-Apache-2.0.txt. The
+#   desktop track is moving Gemini to Google's own file from Google's CDN,
+#   which is not an Apache-2.0 work; once no embedded mark needs that text
+#   it can leave the folder. The folder may then hold no text at all, so
+#   the copy takes what is there and never fails on an empty match. (The
+#   restricted marks keep only path data and ship no text.)
 licenses() {
     mkdir -p "$1/licenses"
     cp "$app_ws"/assets/fonts/*-OFL.txt "$1/licenses/"
+    local text
+    for text in "$repo"/docs/design/agent-marks/*.txt; do
+        [ -e "$text" ] || continue
+        cp "$text" "$1/licenses/"
+    done
 }
 
 # Every icon, from the owner's mark (docs/design/brand/, whose README says
@@ -305,7 +325,9 @@ feed_tool() {
 }
 
 if [ -n "${VESSEL_UPDATE_SECRET:-}" ]; then
-    feed_tool sums --key "$VESSEL_UPDATE_SECRET" "$out"
+    # The label names the set in the signature's comment: the files sit in
+    # a hidden staging directory now, whose name must not be signed.
+    feed_tool sums --key "$VESSEL_UPDATE_SECRET" --label "$label" "$out"
 else
     (cd "$out" && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' ! -name '.*' -printf '%f\n' | sort |
         xargs sha256sum >SHA256SUMS)

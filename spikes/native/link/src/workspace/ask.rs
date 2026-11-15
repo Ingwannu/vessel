@@ -26,6 +26,8 @@ pub enum Ask {
     Start(Box<StartAsk>),
     /// `session.get`: where a session runs (the code panel's root).
     Session(SessionId),
+    /// A session's pull request (`pr.get`, `pr.open`).
+    Pull(super::PullAsk),
 }
 
 /// The project asks.

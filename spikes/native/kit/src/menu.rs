@@ -25,8 +25,8 @@ use std::rc::Rc;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, Context, ElementId, FocusHandle, KeyDownEvent, MouseButton, Pixels, Point,
-    SharedString, Window, anchored, deferred, div, px,
+    Anchor, AnyElement, App, Context, ElementId, FocusHandle, KeyDownEvent, MouseButton, Pixels,
+    Point, SharedString, Window, anchored, deferred, div, px,
 };
 
 use crate::fonts::Type;
@@ -190,6 +190,51 @@ pub fn menu<V: 'static>(
     narrow: bool,
     cx: &mut Context<'_, V>,
 ) -> Option<AnyElement> {
+    draw(
+        id.into(),
+        (state, Anchor::TopLeft),
+        items,
+        handlers,
+        tokens,
+        narrow,
+        cx,
+    )
+}
+
+/// The same menu aligned to its trigger's right edge. Paseo's split
+/// button opens from the caret half: aligning the menu's right edge to
+/// that half keeps the actions beside their trigger as their words grow.
+/// Existing point-opened menus keep their left-edge placement.
+pub fn menu_right<V: 'static>(
+    id: impl Into<ElementId>,
+    state: &MenuState,
+    items: &[MenuItem],
+    handlers: &MenuHandlers<V>,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, V>,
+) -> Option<AnyElement> {
+    draw(
+        id.into(),
+        (state, Anchor::TopRight),
+        items,
+        handlers,
+        tokens,
+        narrow,
+        cx,
+    )
+}
+
+fn draw<V: 'static>(
+    id: ElementId,
+    placement: (&MenuState, Anchor),
+    items: &[MenuItem],
+    handlers: &MenuHandlers<V>,
+    tokens: &Tokens,
+    narrow: bool,
+    cx: &mut Context<'_, V>,
+) -> Option<AnyElement> {
+    let (state, corner) = placement;
     let at = state.at?;
     let get = handlers.state;
     let keys_items: Rc<[MenuItem]> = items.into();
@@ -227,11 +272,13 @@ pub fn menu<V: 'static>(
     // Paseo's page: 4 above the first row and below the last, no gap
     // between rows, the rule between groups the full width.
     let mut panel = div()
-        .id(id.into())
+        .id(id.clone())
         .track_focus(&state.focus)
         .on_key_down(on_key)
         .on_mouse_down_out(on_outside)
+        // The popover takes the pointer and shows the arrow (`popup::layer`).
         .occlude()
+        .cursor_default()
         .flex()
         .flex_col()
         .min_w(px(MIN_WIDTH))
@@ -252,10 +299,17 @@ pub fn menu<V: 'static>(
     Some(
         deferred(
             anchored()
+                .anchor(corner)
                 .position(at)
                 .offset(gpui::point(px(0.0), px(OFFSET)))
                 .snap_to_window_with_margin(px(8.0))
-                .child(panel),
+                // Word 39: the menu arrives as Paseo's does (150 ms,
+                // `menu-overlay.tsx`): the kit's quick length.
+                .child(popup::appear(
+                    ElementId::NamedChild(std::sync::Arc::new(id), "appear".into()),
+                    panel,
+                    crate::motion::QUICK,
+                )),
         )
         .with_priority(1)
         .into_any_element(),
@@ -298,7 +352,6 @@ fn row<V: 'static>(
         .line_height(px(crate::fonts::ui(ROW_LINE)))
         .text_color(ink)
         .when(item.disabled, |row| row.opacity(0.5))
-        .when(highlighted && !item.disabled, |row| row.bg(wash))
         .child(item.label.clone());
     if !item.disabled {
         element = element
@@ -312,6 +365,18 @@ fn row<V: 'static>(
                 chose(view, index, window, cx);
                 cx.notify();
             }));
+    }
+    if highlighted && !item.disabled {
+        // The keyboard's row fills in as the highlight arrives (word 39).
+        return popup::fill_in(
+            ElementId::NamedInteger(
+                "menu-row-arrive".into(),
+                u64::try_from(index).unwrap_or(u64::MAX),
+            ),
+            element,
+            wash,
+        )
+        .into_any_element();
     }
     element.into_any_element()
 }

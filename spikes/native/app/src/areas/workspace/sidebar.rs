@@ -18,7 +18,15 @@
 //!   reason and what to do are; the header's plus opens Settings > Projects
 //!   with its add menu.
 //! - Cost: the section grows with the projects: past [`SHOWN`] rows the
-//!   rest are behind one row ("All projects"), which opens Settings.
+//!   rest are behind one row, "All projects (N)", which unfolds them in
+//!   place ("Show fewer" folds them back).
+//! - Why in place (2026-11-15, the coordinator's find on a fleet of two
+//!   machines): the row counted every machine's projects but opened
+//!   Settings > Projects, which shows one machine (`build-server`, "No
+//!   projects yet", while the fourteen were on `laptop`). Paseo's sidebar
+//!   lists every host's projects in the sidebar itself (its Display menu
+//!   filters them; there is no "all" screen), so the count and what the
+//!   press shows are now the same rows.
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::ui::{
@@ -140,10 +148,17 @@ pub(crate) fn projects(
                 .child(labels.no_projects),
         );
     }
-    for (index, entry) in entries.into_iter().take(SHOWN).enumerate() {
+    let unfolded = shell.areas.workspace.projects_unfolded;
+    let shown = if unfolded { total } else { SHOWN };
+    for (index, entry) in entries.into_iter().take(shown).enumerate() {
         section = section.child(project_row(index, entry, machines_with > 1, tokens, cx));
     }
     if total > SHOWN {
+        let words = if unfolded {
+            labels.fewer_projects.to_owned()
+        } else {
+            format!("{} ({total})", labels.all_projects)
+        };
         section = section.child(
             base_row("sidebar-all-projects", tokens)
                 .child(
@@ -151,10 +166,12 @@ pub(crate) fn projects(
                         .flex_1()
                         .type_(Type::Body)
                         .text_color(tokens.neutral.foreground_muted)
-                        .child(format!("{} ({total})", labels.all_projects)),
+                        .child(words),
                 )
-                .on_click(cx.listener(|this, _event, window, cx| {
-                    this.projects_page(None, false, window, cx);
+                .on_click(cx.listener(|this, _event, _window, cx| {
+                    let workspace = &mut this.areas.workspace;
+                    workspace.projects_unfolded = !workspace.projects_unfolded;
+                    cx.notify();
                 })),
         );
     }

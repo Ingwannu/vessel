@@ -97,15 +97,6 @@ pub(crate) struct Updated {
     pub(crate) notes: Option<String>,
 }
 
-/// As the desktop's.
-pub(crate) fn percent(received: u64, total: u64) -> u8 {
-    if total == 0 {
-        return 0;
-    }
-    let percent = received.saturating_mul(100).div_euclid(total);
-    u8::try_from(percent.min(100)).unwrap_or(100)
-}
-
 /// Nothing to start.
 pub(crate) const fn start(_shell: &mut Shell, _cx: &mut Context<'_, Shell>) {}
 
@@ -126,7 +117,7 @@ impl Shell {
 
     /// A page does not update itself: there is never an updater.
     pub(crate) const fn updates_on(&self) -> bool {
-        self.updates.is_some()
+        self.updates.runtime.is_some()
     }
 
     /// Nothing checks by itself.

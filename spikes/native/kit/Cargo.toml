@@ -27,3 +27,5 @@ tracing = "0.1"
 [dev-dependencies]
 # GPUI's test app and window (`chrome` tests the title bar's hit test).
 gpui = { workspace = true, features = ["test-support"] }
+# The isolated mark comparison window; no node or app runtime is started.
+gpui-platform.workspace = true

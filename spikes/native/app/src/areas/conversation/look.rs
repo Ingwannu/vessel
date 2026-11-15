@@ -21,11 +21,24 @@
 use vessel_app_kit::Tokens;
 use vessel_app_kit::ui::Hsla;
 
-/// A person's message: its widest share of the lane.
-pub(super) const BUBBLE_SHARE: f32 = 0.7;
+/// A person's message: its widest share of the lane (Paseo's: the whole
+/// column; GOAT's was 70%).
+pub(super) const BUBBLE_SHARE: f32 = 1.0;
 
 /// A person's message: its radius (GOAT's `rounded-2xl`).
 pub(super) const BUBBLE_RADIUS: f32 = 16.0;
+
+/// A bubble's corner toward its writer (Paseo's `borderRadius.sm`).
+pub(super) const CORNER: f32 = 4.0;
+
+/// The circle beside the agent's reply, and the room between them.
+pub(super) const AVATAR: f32 = 24.0;
+pub(super) const AVATAR_GAP: f32 = 8.0;
+
+/// Where the reply bubbles start: [`AVATAR`] and [`AVATAR_GAP`], kept
+/// equal to their sum by hand (no float arithmetic here). The turn's
+/// footer and a failed turn's line start there too.
+pub(super) const BUBBLE_COLUMN: f32 = 32.0;
 
 /// The work log's text: 12.5 points on a 1.625 line (GOAT's
 /// `--text-work-log`).
@@ -40,8 +53,11 @@ pub(super) const WORK_LINE: f32 = 20.0;
 /// the kit's (`chat_markdown`, `output`), on GOAT's code surface.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Look {
-    /// A person's message.
+    /// A person's message (Paseo's `UserMessage` bubble, `surface3`).
     pub(super) message: Hsla,
+    /// The agent's reply bubble (the owner's, slice M): a lighter surface
+    /// than the person's, edged with a hairline.
+    pub(super) reply: Hsla,
     /// The work log's words.
     pub(super) secondary: Hsla,
     /// A rule.
@@ -52,7 +68,8 @@ impl Look {
     pub(super) const fn of(tokens: &Tokens) -> Self {
         let neutral = &tokens.neutral;
         Self {
-            message: neutral.surface2,
+            message: neutral.surface3,
+            reply: neutral.surface1,
             secondary: neutral.foreground_muted,
             border: neutral.border,
         }

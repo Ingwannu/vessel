@@ -26,9 +26,13 @@
 mod en;
 mod ko;
 pub mod labels;
+mod labels_en;
+mod labels_ko;
+mod script_words;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, DiffScope, GitOperation, GitRefusal, GitSupport,
     KeptReason, ProjectState, RelPath, SetupFailure, SetupState, WorktreeRefusal,
@@ -153,7 +157,9 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn blocked(&self, blocked: Blocked) -> &'static str;
     /// What a script or a service is called in a sentence.
     fn script_kind(&self, kind: ScriptKind) -> &'static str;
-    /// What differs between two entries of one name.
+    /// The declared port, including an explicit absence when comparing changes.
+    fn script_port(&self, port: Option<ServicePort>) -> String;
+    /// What differs between two entries of one name, including declared ports.
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String;
     /// What the approval dialog says above the lists.
     fn compared(&self, compared: &Compared, local: &Local) -> String;
@@ -211,6 +217,21 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn approval_place(&self, project: &str, machine: &str, each: bool) -> String;
     /// The set's digest line.
     fn digest(&self, digest: &str) -> String;
+    /// The code panel's file view, its button when lines are chosen
+    /// ("Add lines 12–20 to chat"); one line when `first` is `last`.
+    fn add_lines(&self, first: usize, last: usize) -> String;
+    /// The file editor's toolbar: how many lines the file has (Paseo's
+    /// `lines`).
+    fn editor_lines(&self, count: usize) -> String;
+    /// The code panel's search by name, the line above its results: how
+    /// many files match; `searched` files were looked at, every file of
+    /// the folder when `complete`; `capped` when as many came as the
+    /// panel asks for (there may be more: the best are shown).
+    fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String;
+    /// The code panel's search in files, the line above its results: how
+    /// many lines in how many files; `more` when the machine stopped
+    /// before the last line that matches.
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String;
     /// An edited command's old text.
     fn was(&self, command: &str) -> String;
 
@@ -255,9 +276,11 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
     fn refusal<'a>(&self, refusal: &'a GitRefusal) -> RefusalWords<'a> {
         let (title, next) = self.refusal_lines(refusal);
         let (paths, output): (&[RelPath], Option<&str>) = match refusal {
-            GitRefusal::WouldOverwrite { paths } | GitRefusal::Conflicts { paths } => (paths, None),
-            GitRefusal::HookFailed { output } => (&[], Some(output)),
-            GitRefusal::RemoteFailed { message } => (&[], Some(message)),
+            GitRefusal::WouldOverwrite { paths, .. } | GitRefusal::Conflicts { paths, .. } => {
+                (paths, None)
+            }
+            GitRefusal::HookFailed { output, .. } => (&[], Some(output)),
+            GitRefusal::RemoteFailed { message, .. } => (&[], Some(message)),
             GitRefusal::NeedsCredential
             | GitRefusal::TimedOut
             | GitRefusal::NonFastForward
@@ -282,6 +305,12 @@ pub trait WorkspaceWords: Sync + std::fmt::Debug {
             output,
         }
     }
+}
+
+/// A refusal's title and what to do, from anything that becomes a string
+/// (both tables' refusal arms).
+fn lines(title: impl Into<String>, next: impl Into<String>) -> (String, String) {
+    (title.into(), next.into())
 }
 
 #[cfg(test)]

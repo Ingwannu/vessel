@@ -10,9 +10,11 @@ use crate::prefs::{
 };
 use crate::shortcuts::{
     Action, Binding, Chord, Clash, KeyPress, Matched, Platform, Refusal, SEQUENCE_MS,
-    ShortcutFilter, ShortcutGroup, assign, binding_words, chord_caps, chord_of, clash_of, matched,
-    modified_count, overlaps, refusal, remove_key, restore, shortcut_row, shortcut_rows,
+    ShortcutFilter, ShortcutGroup, assign, binding_words, chord_caps, chord_of, clash_of, code_of,
+    matched, modified_count, overlaps, refusal, remove_key, restore, shortcut_row, shortcut_rows,
 };
+
+mod capture;
 
 type Overrides = BTreeMap<ActionId, Bindings>;
 
@@ -456,4 +458,54 @@ fn every_action_and_group_has_its_words_in_both_languages() {
         Lang::Ko.shortcuts().label(Action::ToggleInspector),
         "요약 보이기·숨기기"
     );
+}
+
+// The app's own: a key as its toolkit names it, at its position, so the
+// one listener matches it as the page's matches a browser's press.
+
+#[test]
+fn reads_the_toolkits_key_names_as_positions() {
+    let cases = [
+        ("k", "KeyK"),
+        ("K", "KeyK"),
+        ("7", "Digit7"),
+        ("/", "Slash"),
+        ("?", "Slash"),
+        ("[", "BracketLeft"),
+        ("{", "BracketLeft"),
+        ("`", "Backquote"),
+        ("~", "Backquote"),
+        ("!", "Digit1"),
+        ("up", "ArrowUp"),
+        ("enter", "Enter"),
+        ("escape", "Escape"),
+        ("space", "Space"),
+        ("pagedown", "PageDown"),
+        ("f5", "F5"),
+        ("f12", "F12"),
+        ("f13", ""),
+        ("insert", ""),
+        ("ㅏ", ""),
+    ];
+    for (key, code) in cases {
+        assert_eq!(code_of(key), code, "{key}");
+    }
+}
+
+#[test]
+fn a_shifted_sign_matches_as_its_position_with_shift() {
+    let shifted = KeyPress {
+        key: "?".to_owned(),
+        code: code_of("?"),
+        shift: true,
+        ..KeyPress::default()
+    };
+    assert_eq!(chord_of(&shifted, OTHER), Some(chord("Shift+/")));
+    let palette = KeyPress {
+        key: "k".to_owned(),
+        code: code_of("k"),
+        ctrl: true,
+        ..KeyPress::default()
+    };
+    assert_eq!(chord_of(&palette, OTHER), Some(chord("Mod+K")));
 }

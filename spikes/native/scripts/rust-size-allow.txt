@@ -1,0 +1,22 @@
+# Files of product code over the 500-line budget (docs/QUALITY.md, M3) in
+# this workspace, with the lines each had when listed. Read by
+# `node ../../scripts/check-rust-size.mjs --workspace .` (scripts/ratchet.mjs):
+# a listed file may shrink (record its new size) and never grow; its line
+# goes when it is within budget or gone. Nothing is added: a new long file
+# is divided, not listed.
+#
+# <path> <lines of product code>, sorted by path. Listed 2026-11-14.
+spikes/native/app/src/areas/board/card.rs 527
+spikes/native/app/src/areas/draft/effort_card.rs 806
+spikes/native/app/src/areas/draft/mod.rs 581
+spikes/native/app/src/areas/draft/pickers.rs 1190
+spikes/native/app/src/areas/session.rs 722
+spikes/native/app/src/areas/workspace/detail.rs 718
+spikes/native/app/src/areas/workspace/projects.rs 613
+spikes/native/kit/src/field.rs 635
+spikes/native/kit/src/picker.rs 829
+spikes/native/kit/src/slider.rs 719
+spikes/native/link/src/demo.rs 583
+spikes/native/view/src/text/conversation/session.rs 555
+spikes/native/view/src/text/workspace/en.rs 702
+spikes/native/view/src/text/workspace/ko.rs 677

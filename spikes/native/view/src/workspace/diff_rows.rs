@@ -195,7 +195,7 @@ pub enum DiffBody {
 #[must_use]
 pub fn add_page(before: Option<&DiffBody>, page: &FileDiff) -> DiffBody {
     match &page.content {
-        DiffContent::Hunks { hunks } => {
+        DiffContent::Hunks { hunks, .. } => {
             let (kept, first): (&[DiffRow], u32) = match before {
                 Some(DiffBody::Rows { rows, more }) => (rows, more.unwrap_or(0)),
                 Some(_) | None => (&[], 0),
@@ -210,11 +210,11 @@ pub fn add_page(before: Option<&DiffBody>, page: &FileDiff) -> DiffBody {
             }
         }
         DiffContent::Binary => DiffBody::Binary,
-        DiffContent::Submodule { from, to } => DiffBody::Submodule {
+        DiffContent::Submodule { from, to, .. } => DiffBody::Submodule {
             from: from.as_ref().map(ToString::to_string),
             to: to.as_ref().map(ToString::to_string),
         },
-        DiffContent::TooLarge { bytes } => DiffBody::TooLarge { bytes: *bytes },
+        DiffContent::TooLarge { bytes, .. } => DiffBody::TooLarge { bytes: *bytes },
         DiffContent::Unchanged => DiffBody::Unchanged,
         DiffContent::Unknown => DiffBody::Unknown,
     }

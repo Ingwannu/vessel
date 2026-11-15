@@ -3,13 +3,14 @@
 //! formal register).
 
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, ConfigKey, DiffScope, GitOperation, GitRefusal,
     GitSupport, KeptReason, ProjectState, RepositoryConfigReason, SetupFailure, SetupState,
     WorktreeRefusal,
 };
 
-use super::{AddForm, Labels, Local, WorkspaceWords, labels};
+use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
 use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
@@ -21,10 +22,6 @@ use crate::workspace::save::SaveFailure;
 /// Korean.
 #[derive(Debug, Clone, Copy)]
 pub struct Ko;
-
-fn lines(title: impl Into<String>, next: impl Into<String>) -> (String, String) {
-    (title.into(), next.into())
-}
 
 fn config_lines(key: Option<&ConfigKey>, reason: RepositoryConfigReason) -> (String, String) {
     let named = key.map_or_else(
@@ -89,7 +86,11 @@ fn list_part(name: &str, list: &[CommandLine]) -> Option<String> {
 impl Ko {
     fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
-        let named = format!("{} {}", self.script_kind(script.kind), script.name.as_str());
+        let named = format!(
+            "{} {}",
+            self.script_kind(script.kind()),
+            script.name.as_str()
+        );
         match line {
             ScriptLine::Line {
                 change: Change::Same,
@@ -118,9 +119,7 @@ impl WorkspaceWords for Ko {
             BranchNameProblem::Reserved(name) => {
                 format!("\u{201c}{name}\u{201d}은(는) git이 받는 브랜치 이름이 아닙니다.")
             }
-            BranchNameProblem::LeadingDash => {
-                "브랜치 이름은 대시(-)로 시작할 수 없습니다.".to_owned()
-            }
+            BranchNameProblem::LeadingDash => "브랜치 이름은 대시(-)로 시작할 수 없습니다.".into(),
             BranchNameProblem::SpaceOrControl => {
                 "브랜치 이름에 공백이나 제어 문자를 넣을 수 없습니다.".to_owned()
             }
@@ -196,7 +195,7 @@ impl WorkspaceWords for Ko {
     fn project_state(&self, state: &ProjectState) -> Option<String> {
         match state {
             ProjectState::Ready => None,
-            ProjectState::Cloning { stage, percent } => Some(match percent {
+            ProjectState::Cloning { stage, percent, .. } => Some(match percent {
                 None => self.clone_stage(*stage).to_owned(),
                 Some(percent) => format!("{} \u{b7} {percent}%", self.clone_stage(*stage)),
             }),
@@ -209,7 +208,7 @@ impl WorkspaceWords for Ko {
     fn git_support(&self, git: &GitSupport) -> Option<String> {
         match git {
             GitSupport::Found { .. } | GitSupport::Unknown => None,
-            GitSupport::TooOld { version, minimum } => Some(format!(
+            GitSupport::TooOld { version, minimum, .. } => Some(format!(
                 "이 머신의 git {}.{}은(는) 너무 오래됐습니다. 프로젝트를 쓰려면 {}.{} 이상이 필요합니다.",
                 version.major, version.minor, minimum.major, minimum.minor
             )),
@@ -222,7 +221,7 @@ impl WorkspaceWords for Ko {
 
     fn setup_failure(&self, failure: &SetupFailure, commands: &[&str]) -> String {
         match failure {
-            SetupFailure::Exit { command, code } => {
+            SetupFailure::Exit { command, code, .. } => {
                 let how = code.map_or_else(
                     || "신호를 받아 멈췄습니다".to_owned(),
                     |code| format!("코드 {code}로 끝났습니다"),
@@ -254,19 +253,19 @@ impl WorkspaceWords for Ko {
 
     fn kept_reason(&self, reason: KeptReason) -> String {
         match reason {
-            KeptReason::Uncommitted { files } => {
+            KeptReason::Uncommitted { files, .. } => {
                 format!("커밋하지 않은 변경이 있는 파일 {files}개")
             }
-            KeptReason::UniqueCommits { commits } => {
+            KeptReason::UniqueCommits { commits, .. } => {
                 format!("다른 브랜치에 없는 커밋 {commits}개")
             }
-            KeptReason::Operation { operation } => format!("{} 진행 중", self.operation(operation)),
+            KeptReason::Operation { operation: op, .. } => {
+                format!("{} 진행 중", self.operation(op))
+            }
             KeptReason::Submodules => "변경을 검사하지 않는 서브모듈".to_owned(),
             KeptReason::FlaggedFiles => "git이 변경을 보여 주지 않도록 표시된 파일".to_owned(),
             KeptReason::WorktreeRefs => "이 워크트리만의 참조".to_owned(),
-            KeptReason::InUse => {
-                "실행 중인 세션, 터미널이나 서비스, 또는 셋업이 쓰는 중".to_owned()
-            }
+            KeptReason::InUse => "실행 중인 세션, 터미널이나 서비스, 또는 셋업이 쓰는 중".into(),
             KeptReason::InspectionFailed => "git이 검사하지 못함".to_owned(),
             KeptReason::Unknown => "이 앱이 모르는 이유".to_owned(),
         }
@@ -278,7 +277,7 @@ impl WorkspaceWords for Ko {
             WorktreeRefusal::NotReady => "프로젝트가 아직 준비되지 않았습니다(복제 중이거나 폴더가 없음).".to_owned(),
             WorktreeRefusal::NoCommit => "저장소에 아직 커밋이 없습니다. 먼저 폴더에서 한 번 커밋하세요.".to_owned(),
             WorktreeRefusal::BranchExists => "그 이름의 브랜치가 있습니다. 다른 이름을 고르거나 기존 브랜치에서 실행하세요.".to_owned(),
-            WorktreeRefusal::CheckedOutElsewhere { path } => format!(
+            WorktreeRefusal::CheckedOutElsewhere { path, .. } => format!(
                 "그 브랜치는 다른 워크트리({})에 체크아웃되어 있습니다.",
                 path.display()
             ),
@@ -345,7 +344,7 @@ impl WorkspaceWords for Ko {
                 "체크아웃된 브랜치가 없습니다.",
                 "먼저 브랜치로 전환하거나 새로 만드세요.",
             ),
-            GitRefusal::CheckedOutElsewhere { path } => lines(
+            GitRefusal::CheckedOutElsewhere { path, .. } => lines(
                 "그 브랜치는 다른 워크트리에 체크아웃되어 있습니다.",
                 format!(
                     "그곳({})에서 쓰거나 다른 브랜치를 고르세요.",
@@ -368,7 +367,7 @@ impl WorkspaceWords for Ko {
                 "그 이름의 브랜치, 태그, 커밋이 없습니다.",
                 "이름을 확인하거나 먼저 페치하세요.",
             ),
-            GitRefusal::Operation { operation } => lines(
+            GitRefusal::Operation { operation, .. } => lines(
                 format!("저장소가 {} 도중입니다.", self.operation(*operation)),
                 "먼저 끝내거나 중단하세요.",
             ),
@@ -376,7 +375,7 @@ impl WorkspaceWords for Ko {
                 "원격 저장소가 거부했습니다.",
                 "아래에 원격이 남긴 말이 있습니다.",
             ),
-            GitRefusal::RepositoryConfig { key, reason } => config_lines(key.as_ref(), *reason),
+            GitRefusal::RepositoryConfig { key, reason, .. } => config_lines(key.as_ref(), *reason),
             GitRefusal::Unknown => lines(
                 "git이 이 앱이 모르는 이유로 거부했습니다.",
                 "읽으려면 이 앱의 Vessel을 업데이트하세요.",
@@ -408,24 +407,15 @@ impl WorkspaceWords for Ko {
     }
 
     fn script_kind(&self, kind: ScriptKind) -> &'static str {
-        match kind {
-            ScriptKind::Script => "스크립트",
-            ScriptKind::Service => "서비스",
-        }
+        super::script_words::kind(crate::Lang::Ko, kind)
+    }
+
+    fn script_port(&self, port: Option<ServicePort>) -> String {
+        super::script_words::port(crate::Lang::Ko, port)
     }
 
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String {
-        let mut parts = Vec::with_capacity(3);
-        if was.kind != now.kind {
-            parts.push(format!("이제 {}", self.script_kind(now.kind)));
-        }
-        if was.command != now.command {
-            parts.push("명령".to_owned());
-        }
-        if was.dir != now.dir {
-            parts.push("폴더".to_owned());
-        }
-        parts.join(", ")
+        super::script_words::change(crate::Lang::Ko, was, now)
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {
@@ -470,7 +460,7 @@ impl WorkspaceWords for Ko {
             DiffScope::Uncommitted => "커밋 안 됨".to_owned(),
             DiffScope::Staged => "스테이지됨".to_owned(),
             DiffScope::Unstaged => "스테이지 안 됨".to_owned(),
-            DiffScope::Commit { id } => {
+            DiffScope::Commit { id, .. } => {
                 let short: String = id.as_str().chars().take(7).collect();
                 format!("커밋 {short}")
             }
@@ -519,6 +509,7 @@ impl WorkspaceWords for Ko {
                 "머신에 연결할 수 없습니다. 머신이 켜져 있고 노드가 실행 중인지 확인하세요."
                     .to_owned()
             }
+            Problem::Unsent => "보내지 못했습니다. 다시 시도하세요.".to_owned(),
         }
     }
 
@@ -643,6 +634,36 @@ impl WorkspaceWords for Ko {
             format!("{machine}에 있는 {project}의 새 워크트리마다")
         } else {
             format!("{machine}에 있는 {project}의 새 워크트리에서")
+        }
+    }
+
+    fn add_lines(&self, first: usize, last: usize) -> String {
+        if first == last {
+            format!("{first}번 줄 채팅에 추가")
+        } else {
+            format!("{first}\u{2013}{last}번 줄 채팅에 추가")
+        }
+    }
+
+    fn editor_lines(&self, count: usize) -> String {
+        format!("{count}줄")
+    }
+
+    fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
+        if capped {
+            format!("가장 가까운 파일 {files}개만 보입니다. 이름을 더 입력해 좁혀 보세요")
+        } else if complete {
+            format!("파일 {files}개")
+        } else {
+            format!("파일 {files}개 · 앞쪽 파일 {searched}개만 검색했습니다")
+        }
+    }
+
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String {
+        if more {
+            format!("처음 {lines}줄만 보입니다(파일 {files}개). 더 있으니 검색어를 좁혀 보세요")
+        } else {
+            format!("파일 {files}개에서 {lines}줄")
         }
     }
 

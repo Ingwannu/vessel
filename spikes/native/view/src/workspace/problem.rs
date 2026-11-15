@@ -20,6 +20,9 @@ pub enum Problem {
     Older,
     /// The machine is not connected, or the connection dropped; why.
     Gone(String),
+    /// The app's link did not take the ask (its queue full, or stopped):
+    /// nothing reached the machine; trying again may work.
+    Unsent,
 }
 
 impl Problem {
@@ -30,7 +33,7 @@ impl Problem {
     pub const fn code(&self) -> Option<ErrorCode> {
         match self {
             Self::Node { code, .. } => Some(*code),
-            Self::Older | Self::Gone(_) => None,
+            Self::Older | Self::Gone(_) | Self::Unsent => None,
         }
     }
 }

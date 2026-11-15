@@ -8,14 +8,23 @@
 
 use std::{fmt::Write as _, path::Path};
 
+use vessel_app_updater::Label;
+
 use crate::{FeedError, io, publish::hash_file, read_secret};
 
 const SUMS: &str = "SHA256SUMS";
 const SIGNATURE: &str = "SHA256SUMS.minisig";
 
 /// Write `SHA256SUMS` over every regular file in `dir` (but the two this
-/// writes), and sign it with the key at `key`.
-pub(crate) fn write(key: &Path, dir: &Path) -> Result<String, FeedError> {
+/// writes), and sign it with the key at `key`, the trusted comment naming
+/// `label`.
+///
+/// The label is given, not read from `dir`'s name: `build.sh` signs the
+/// set in its hidden staging directory before renaming it into place, and
+/// labels up to 0.0.0.0.7 carry that directory's name in their comment
+/// ("vessel-app .0.0.0.0.7.partial.<pid> SHA256SUMS"), which anyone who
+/// verifies sees. Published labels are never rebuilt, so they keep it.
+pub(crate) fn write(key: &Path, label: &Label, dir: &Path) -> Result<String, FeedError> {
     let pair = read_secret(key)?;
     let mut names = Vec::new();
     for entry in std::fs::read_dir(dir).map_err(io(format!("reading {}", dir.display())))? {
@@ -39,10 +48,6 @@ pub(crate) fn write(key: &Path, dir: &Path) -> Result<String, FeedError> {
         let (_size, digest) = hash_file(&dir.join(name))?;
         let _infallible = writeln!(sums, "{digest}  {name}");
     }
-    let label = dir
-        .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_default();
     let trusted = format!("vessel-app {label} SHA256SUMS");
     let signature = minisign::sign(
         Some(&pair.pk),
@@ -110,9 +115,10 @@ mod tests {
         std::fs::write(dir.path().join("a.exe"), b"exe").unwrap();
         std::fs::write(dir.path().join(".partial"), b"x").unwrap();
 
-        let _first = write(&secret, dir.path()).unwrap();
+        let label: Label = "0.0.0.0.8".parse().unwrap();
+        let _first = write(&secret, &label, dir.path()).unwrap();
         // Twice: the files written the first time are not summed.
-        let _second = write(&secret, dir.path()).unwrap();
+        let _second = write(&secret, &label, dir.path()).unwrap();
 
         let sums = std::fs::read_to_string(dir.path().join(SUMS)).unwrap();
         let names: Vec<_> = sums
@@ -121,6 +127,14 @@ mod tests {
             .collect();
         assert_eq!(names, ["a.exe", "b.zip"]);
         let signature = std::fs::read_to_string(dir.path().join(SIGNATURE)).unwrap();
+        // The comment names the label, never the directory the set is in
+        // (a temporary one while build.sh stages it).
+        assert!(
+            signature.contains("trusted comment: vessel-app 0.0.0.0.8 SHA256SUMS\n"),
+            "{signature}"
+        );
+        let directory = dir.path().file_name().unwrap().to_string_lossy();
+        assert!(!signature.contains(directory.as_ref()), "{signature}");
         let public = read_secret(&secret).unwrap().pk.to_base64();
         vessel_app_updater::PublicKey::from_base64(&public)
             .unwrap()

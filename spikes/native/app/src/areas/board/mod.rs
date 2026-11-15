@@ -15,7 +15,15 @@
 //!   pixel; it changes when the owner gives it a reference.
 
 mod acts;
+
+/// The board's question about a card (kill, archive, delete), for a screen
+/// that asks it while the board is not drawn (the sidebar's row menu).
+pub(crate) use acts::confirm as card_question;
 pub(crate) mod card;
+
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use chrono::Utc;
 use gpui::FontWeight;
@@ -27,18 +35,18 @@ use vessel_app_kit::ui::{
     IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
     Styled as _, Window, div, px,
 };
-use vessel_app_kit::{DialogState, TextField, Tokens, Type, TypeExt as _, button, glyph};
+use vessel_app_kit::{
+    DialogState, TextField, Tokens, Tooltips, Type, TypeExt as _, button, glyph, tooltip,
+};
 use vessel_app_view::Lane;
 use vessel_app_view::board::{ArchivePage, Board, TICK};
 
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// The least width of a lane. The page's `--lane-min-w` is 256; here
-/// 240, so that the four lanes share the board's width at the default
-/// window (1280) with the sidebar open, where the board is about 1,010
-/// wide (at 256 the fourth lane was cut at the right edge, the
-/// coordinator's capture of 0.0.0.0.8's board).
+/// The least width of a lane. The page's `--lane-min-w` is 256; here it
+/// is 240 so that the four lanes fit beside the 264 sidebar in the
+/// default 1280 window (1016 left) and share it, as the page's grid does.
 const LANE_MIN: f32 = 240.0;
 
 /// Four lanes at their least: past it the board scrolls sideways.
@@ -66,11 +74,10 @@ pub(crate) struct BoardArea {
     pub(crate) page: ArchivePage,
     /// Acts asked from a card, until the node answers.
     pub(crate) asked: Vec<acts::Asked>,
-    /// The cards' buttons' tooltips (what an icon button does).
-    pub(crate) tips: vessel_app_kit::Tooltips,
-    /// Where each card's button was drawn, by its element id.
-    pub(crate) places:
-        std::cell::RefCell<std::collections::HashMap<String, vessel_app_kit::tooltip::Place>>,
+    /// The cards' buttons' tooltips (one shown at most).
+    pub(crate) tips: Tooltips,
+    /// Where each card's button was drawn, by the button's id.
+    places: RefCell<HashMap<String, tooltip::Place>>,
 }
 
 impl BoardArea {
@@ -99,15 +106,27 @@ impl BoardArea {
             search: String::new(),
             page: ArchivePage::default(),
             asked: Vec::new(),
-            tips: vessel_app_kit::Tooltips::new(),
-            places: std::cell::RefCell::new(std::collections::HashMap::new()),
+            tips: Tooltips::new(),
+            places: RefCell::default(),
         }
+    }
+
+    /// The cell where the button `key` is drawn, kept across frames.
+    pub(crate) fn place(&self, key: &str) -> tooltip::Place {
+        let mut places = self.places.borrow_mut();
+        if let Some(place) = places.get(key) {
+            return Rc::clone(place);
+        }
+        let place = tooltip::Place::default();
+        drop(places.insert(key.to_owned(), Rc::clone(&place)));
+        place
     }
 }
 
 impl Shell {
-    /// Show one machine's sessions, or every machine's.
-    fn scope_board(&mut self, scope: Option<String>, cx: &mut Context<'_, Self>) {
+    /// Show one machine's sessions, or every machine's (the board's own
+    /// strip, and the sidebar's "N more" under a machine).
+    pub(crate) fn scope_board(&mut self, scope: Option<String>, cx: &mut Context<'_, Self>) {
         self.areas.board.scope = scope;
         cx.notify();
     }

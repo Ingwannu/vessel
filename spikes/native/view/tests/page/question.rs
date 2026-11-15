@@ -6,8 +6,9 @@ use std::collections::BTreeMap;
 
 use serde_json::{Value, json};
 use vessel_app_view::timeline::{
-    AnsweredLine, Draft, Drafts, Problem, Read, Wrong, answer_of, answered_lines, read_field,
-    refused_field, starting_drafts, step_answered, step_problem, step_ready, steps_of,
+    AnsweredLine, Draft, Drafts, Pick, Problem, Read, Wrong, answer_of, answered_lines, choices,
+    pick, picked, read_field, refused_field, starting_drafts, step_answered, step_header,
+    step_problem, step_prompt, step_ready, steps_of, text_target, typed,
 };
 use vessel_proto::conversation::{AnswerValue, FieldName, FiniteNumber, QuestionField};
 use vessel_proto::{Question, QuestionAnswer, QuestionOutcome};
@@ -292,4 +293,89 @@ fn claudes_questions_wait_for_an_answer_other_forms_for_what_they_require() {
 
 fn question_of_fields(fields: &[Value]) -> Question {
     question(3, "Anything else?", fields)
+}
+
+// The card's step rules (`question_step.rs`): Claude's single choice and
+// its "Other" replace each other; a multiple choice toggles; picking the
+// same radio again clears it.
+#[test]
+fn a_pick_and_a_custom_answer_replace_each_other_on_a_single_choice() {
+    let form = claude();
+    let steps = steps_of(&form);
+    let single = steps[0];
+    let mut drafts = starting_drafts(&form);
+    assert_eq!(
+        text_target(single).map(|field| field.name.as_str()),
+        Some("question_0_custom")
+    );
+    assert_eq!(step_header(single), "question_0");
+    assert_eq!(step_prompt(&form, single), form.message);
+    let (rows, multiple) = choices(single, ("Yes", "No"));
+    assert!(!multiple);
+    assert_eq!(
+        rows.iter()
+            .map(|row| row.value.as_str())
+            .collect::<Vec<_>>(),
+        ["a", "b"]
+    );
+    typed(single, &mut drafts, "my own".to_owned());
+    assert_eq!(
+        drafts.get(&name("question_0_custom")),
+        Some(&Draft::Text("my own".to_owned()))
+    );
+    assert_eq!(pick(single, &mut drafts, "a"), Pick::OtherCleared);
+    assert!(picked(single, &drafts, "a"));
+    assert_eq!(
+        drafts.get(&name("question_0_custom")),
+        Some(&Draft::Text(String::new()))
+    );
+    typed(single, &mut drafts, "again".to_owned());
+    assert!(!picked(single, &drafts, "a"), "typing clears the pick");
+    assert_eq!(pick(single, &mut drafts, "b"), Pick::OtherCleared);
+    assert_eq!(
+        pick(single, &mut drafts, "b"),
+        Pick::Picked,
+        "the same radio again clears it"
+    );
+    assert!(!picked(single, &drafts, "b"));
+}
+
+#[test]
+fn a_multiple_choice_toggles_and_keeps_its_other() {
+    let form = claude();
+    let steps = steps_of(&form);
+    // Claude's steps go in their numbers' order (0, 2, 10): the multiple
+    // choice is question_10, found by name.
+    let several = steps
+        .iter()
+        .copied()
+        .find(|step| step.field.name.as_str() == "question_10")
+        .expect("Claude's multiple choice");
+    let mut drafts = starting_drafts(&form);
+    typed(several, &mut drafts, "also this".to_owned());
+    assert_eq!(pick(several, &mut drafts, "a"), Pick::Picked);
+    assert_eq!(pick(several, &mut drafts, "b"), Pick::Picked);
+    assert!(picked(several, &drafts, "a") && picked(several, &drafts, "b"));
+    assert_eq!(pick(several, &mut drafts, "a"), Pick::Picked);
+    assert!(!picked(several, &drafts, "a"));
+    assert_eq!(
+        drafts.get(&name("question_10_custom")),
+        Some(&Draft::Text("also this".to_owned())),
+        "a multiple choice keeps its Other"
+    );
+}
+
+#[test]
+fn a_text_step_has_no_rows_and_ignores_a_pick() {
+    let form = question_of_fields(&[text("note")]);
+    let steps = steps_of(&form);
+    let note = steps[0];
+    let mut drafts = starting_drafts(&form);
+    assert!(choices(note, ("Yes", "No")).0.is_empty());
+    assert_eq!(pick(note, &mut drafts, "a"), Pick::Ignored);
+    typed(note, &mut drafts, "hello".to_owned());
+    assert_eq!(
+        drafts.get(&name("note")),
+        Some(&Draft::Text("hello".to_owned()))
+    );
 }

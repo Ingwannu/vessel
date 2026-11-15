@@ -1,13 +1,14 @@
 //! The workspace's words in English: the page's, word for word.
 
 use vessel_proto::scripts::{ScriptEntry, ScriptKind};
+use vessel_proto::workspace::ServicePort;
 use vessel_proto::workspace::{
     ChangeStatus, CloneFailure, CloneStage, ConfigKey, DiffScope, GitOperation, GitRefusal,
     GitSupport, KeptReason, ProjectState, RepositoryConfigReason, SetupFailure, SetupState,
     WorktreeRefusal,
 };
 
-use super::{AddForm, Labels, Local, WorkspaceWords, labels};
+use super::{AddForm, Labels, Local, WorkspaceWords, labels, lines};
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::ScopeKind;
 use crate::workspace::command_changes::{Change, CommandLine, Compared, ComparedWith, ScriptLine};
@@ -25,16 +26,17 @@ fn counted(count: u64, one: &str, many: &str) -> String {
     format!("{count} {}", if count == 1 { one } else { many })
 }
 
+/// [`counted`] for a length.
+fn counted_len(count: usize, one: &str, many: &str) -> String {
+    counted(u64::try_from(count).unwrap_or(u64::MAX), one, many)
+}
+
 /// `text` with its first letter in capitals.
 fn sentence(text: &str) -> String {
     let mut characters = text.chars();
     characters.next().map_or_else(String::new, |first| {
         first.to_uppercase().chain(characters).collect()
     })
-}
-
-fn lines(title: impl Into<String>, next: impl Into<String>) -> (String, String) {
-    (title.into(), next.into())
 }
 
 /// Why the repository's own configuration stopped a run (ADR 0030), and
@@ -105,7 +107,11 @@ impl En {
     /// "script lint added", "service web changed (its command)".
     fn script_part(self, line: &ScriptLine) -> Option<String> {
         let script = line.script();
-        let named = format!("{} {}", self.script_kind(script.kind), script.name.as_str());
+        let named = format!(
+            "{} {}",
+            self.script_kind(script.kind()),
+            script.name.as_str()
+        );
         match line {
             ScriptLine::Line {
                 change: Change::Same,
@@ -150,9 +156,7 @@ impl WorkspaceWords for En {
                     .to_owned()
             }
             BranchNameProblem::TrailingDot => "A branch name cannot end with a dot.".to_owned(),
-            BranchNameProblem::DotPart => {
-                "No part of a branch name can start with a dot.".to_owned()
-            }
+            BranchNameProblem::DotPart => "No part of a branch name can start with a dot.".into(),
             BranchNameProblem::LockPart => {
                 "No part of a branch name can end with \u{201c}.lock\u{201d}.".to_owned()
             }
@@ -216,7 +220,7 @@ impl WorkspaceWords for En {
     fn project_state(&self, state: &ProjectState) -> Option<String> {
         match state {
             ProjectState::Ready => None,
-            ProjectState::Cloning { stage, percent } => Some(match percent {
+            ProjectState::Cloning { stage, percent, .. } => Some(match percent {
                 None => self.clone_stage(*stage).to_owned(),
                 Some(percent) => format!("{} \u{b7} {percent}%", self.clone_stage(*stage)),
             }),
@@ -229,7 +233,7 @@ impl WorkspaceWords for En {
     fn git_support(&self, git: &GitSupport) -> Option<String> {
         match git {
             GitSupport::Found { .. } | GitSupport::Unknown => None,
-            GitSupport::TooOld { version, minimum } => Some(format!(
+            GitSupport::TooOld { version, minimum, .. } => Some(format!(
                 "Git {}.{} is too old on this machine; Vessel needs {}.{} or newer for projects.",
                 version.major, version.minor, minimum.major, minimum.minor
             )),
@@ -242,7 +246,7 @@ impl WorkspaceWords for En {
 
     fn setup_failure(&self, failure: &SetupFailure, commands: &[&str]) -> String {
         match failure {
-            SetupFailure::Exit { command, code } => {
+            SetupFailure::Exit { command, code, .. } => {
                 let how = code.map_or_else(
                     || "was stopped by a signal".to_owned(),
                     |code| format!("exited with {code}"),
@@ -276,15 +280,15 @@ impl WorkspaceWords for En {
 
     fn kept_reason(&self, reason: KeptReason) -> String {
         match reason {
-            KeptReason::Uncommitted { files } => format!(
+            KeptReason::Uncommitted { files, .. } => format!(
                 "{} with uncommitted changes",
                 counted(u64::from(files), "file", "files")
             ),
-            KeptReason::UniqueCommits { commits } => format!(
+            KeptReason::UniqueCommits { commits, .. } => format!(
                 "{} on no other branch",
                 counted(u64::from(commits), "commit", "commits")
             ),
-            KeptReason::Operation { operation } => {
+            KeptReason::Operation { operation, .. } => {
                 sentence(&format!("{} in progress", self.operation(operation)))
             }
             KeptReason::Submodules => "Submodules, whose changes are not inspected".to_owned(),
@@ -306,7 +310,7 @@ impl WorkspaceWords for En {
             WorktreeRefusal::NotReady => "The project is not ready yet (cloning, or its folder is missing).".to_owned(),
             WorktreeRefusal::NoCommit => "The repository has no commit yet; commit once in its folder first.".to_owned(),
             WorktreeRefusal::BranchExists => "A branch with that name exists. Choose another name, or run on the existing branch.".to_owned(),
-            WorktreeRefusal::CheckedOutElsewhere { path } => format!(
+            WorktreeRefusal::CheckedOutElsewhere { path, .. } => format!(
                 "That branch is checked out in another worktree ({}).",
                 path.display()
             ),
@@ -371,7 +375,7 @@ impl WorkspaceWords for En {
                 "No branch is checked out.",
                 "Switch to a branch or create one first.",
             ),
-            GitRefusal::CheckedOutElsewhere { path } => lines(
+            GitRefusal::CheckedOutElsewhere { path, .. } => lines(
                 "That branch is checked out in another worktree.",
                 format!(
                     "Use it there ({}), or choose another branch.",
@@ -394,7 +398,7 @@ impl WorkspaceWords for En {
                 "No branch, tag or commit has that name.",
                 "Check the name, or fetch first.",
             ),
-            GitRefusal::Operation { operation } => lines(
+            GitRefusal::Operation { operation, .. } => lines(
                 format!(
                     "The repository is in the middle of {}.",
                     self.operation(*operation)
@@ -404,7 +408,7 @@ impl WorkspaceWords for En {
             GitRefusal::RemoteFailed { .. } => {
                 lines("The remote refused it.", "Read what it said below.")
             }
-            GitRefusal::RepositoryConfig { key, reason } => config_lines(key.as_ref(), *reason),
+            GitRefusal::RepositoryConfig { key, reason, .. } => config_lines(key.as_ref(), *reason),
             GitRefusal::Unknown => lines(
                 "Git refused it for a reason this page does not know.",
                 "Update this page's Vessel to read it.",
@@ -434,24 +438,15 @@ impl WorkspaceWords for En {
     }
 
     fn script_kind(&self, kind: ScriptKind) -> &'static str {
-        match kind {
-            ScriptKind::Script => "script",
-            ScriptKind::Service => "service",
-        }
+        super::script_words::kind(crate::Lang::En, kind)
+    }
+
+    fn script_port(&self, port: Option<ServicePort>) -> String {
+        super::script_words::port(crate::Lang::En, port)
     }
 
     fn script_change(&self, was: &ScriptEntry, now: &ScriptEntry) -> String {
-        let mut parts = Vec::with_capacity(3);
-        if was.kind != now.kind {
-            parts.push(format!("now a {}", self.script_kind(now.kind)));
-        }
-        if was.command != now.command {
-            parts.push("its command".to_owned());
-        }
-        if was.dir != now.dir {
-            parts.push("its folder".to_owned());
-        }
-        parts.join(" and ")
+        super::script_words::change(crate::Lang::En, was, now)
     }
 
     fn compared(&self, compared: &Compared, local: &Local) -> String {
@@ -492,7 +487,7 @@ impl WorkspaceWords for En {
             DiffScope::Uncommitted => "Uncommitted".to_owned(),
             DiffScope::Staged => "Staged".to_owned(),
             DiffScope::Unstaged => "Unstaged".to_owned(),
-            DiffScope::Commit { id } => {
+            DiffScope::Commit { id, .. } => {
                 let short: String = id.as_str().chars().take(7).collect();
                 format!("Commit {short}")
             }
@@ -542,6 +537,7 @@ impl WorkspaceWords for En {
                 "The machine could not be reached. Check that it is on and its node is running."
                     .to_owned()
             }
+            Problem::Unsent => "Could not send. Try again.".to_owned(),
         }
     }
 
@@ -609,9 +605,7 @@ impl WorkspaceWords for En {
     fn removed(&self, branch: &str, snapshot: Option<&str>) -> String {
         match snapshot {
             None => format!("Removed {branch}"),
-            Some(commit) => {
-                format!("Removed {branch}; its work is kept in snapshot {commit}")
-            }
+            Some(commit) => format!("Removed {branch}; its work is kept in snapshot {commit}"),
         }
     }
 
@@ -662,6 +656,39 @@ impl WorkspaceWords for En {
             format!("in each new worktree of {project} on {machine}")
         } else {
             format!("in a new worktree of {project} on {machine}")
+        }
+    }
+
+    fn add_lines(&self, first: usize, last: usize) -> String {
+        if first == last {
+            format!("Add line {first} to chat")
+        } else {
+            format!("Add lines {first}\u{2013}{last} to chat")
+        }
+    }
+
+    fn editor_lines(&self, count: usize) -> String {
+        counted_len(count, "line", "lines")
+    }
+
+    fn found_count(&self, files: usize, searched: u32, complete: bool, capped: bool) -> String {
+        let found = counted_len(files, "file", "files");
+        if capped {
+            format!("The best {found}; type more of the name to narrow them.")
+        } else if complete {
+            found
+        } else {
+            format!("{found}, from the first {searched} searched")
+        }
+    }
+
+    fn grepped_count(&self, lines: usize, files: usize, more: bool) -> String {
+        let lines = counted_len(lines, "line", "lines");
+        let files = counted_len(files, "file", "files");
+        if more {
+            format!("The first {lines}, in {files}; there are more. Narrow the search to see them.")
+        } else {
+            format!("{lines} in {files}")
         }
     }
 

@@ -21,13 +21,16 @@
 use bytes::Bytes;
 use tokio::sync::mpsc;
 use vessel_app_view::terminal::Outgoing;
+use vessel_app_view::timeline::Until;
 use vessel_client::NodeClient;
-use vessel_proto::conversation::{QueueChange, SessionDeleted};
+use vessel_proto::conversation::{Conversation, QueueChange, SessionDeleted};
 use vessel_proto::{
-    ErrorCode, Mark, ProfileName, SessionId, SessionInfo, SessionInput, SessionTitle,
-    TerminalBytes, TerminalInput, TerminalSize,
+    ErrorCode, EventRecord, EventSeq, Mark, OptionChoice, ProfileName, SessionId, SessionInfo,
+    SessionInput, SessionTitle, TerminalBytes, TerminalInput, TerminalSize,
 };
-use vessel_proto::{QuestionAnswer, QuestionId};
+use vessel_proto::{
+    PermissionId, PermissionOptionId, PermissionOutcome, QuestionAnswer, QuestionId,
+};
 
 use crate::{Event, LinkError, State};
 
@@ -57,6 +60,35 @@ pub enum Act {
     /// Answer a question the agent asks (protocol 10): the form filled
     /// in, or declined. The first answer wins.
     Answer(QuestionId, QuestionAnswer),
+    /// Answer a permission request with one of its options; the act's
+    /// answer says whether it went (the card shows it being sent, or why
+    /// it could not be).
+    Permit(PermissionId, PermissionOptionId),
+    /// Read what the session holds now (`session.conversation`): the
+    /// requests and questions waiting, whatever its log still keeps.
+    Conversation,
+    /// Change one of a running session's options (`session.set_option`,
+    /// protocol 9): its model, effort, permission mode or a feature. The
+    /// options as they then stand come back as the session's own
+    /// `options_changed` record; the agent's refusal (one it cannot make
+    /// mid-turn, a value it does not take) is the act's failure.
+    SetOption(OptionChoice),
+    /// Start a parked session's agent again (`session.wake`, protocol 12):
+    /// the session as it then stands, its `parked` cleared.
+    Wake,
+    /// Take the conversation back to the end of the turn whose
+    /// `turn_ended` record is this one (`session.rewind`, protocol 14):
+    /// the session as it then stands; its `rewound` record follows in the
+    /// log.
+    Rewind(EventSeq),
+    /// A new session continuing this one's conversation from the end of
+    /// the turn whose `turn_ended` record is this one, or as it is now
+    /// (`session.fork`, protocol 14): the new session, as `session.create`
+    /// answers it; its `forked` record opens its log.
+    Fork(Option<EventSeq>),
+    /// Read its log from the start up to `Until` (`session.read`, page by
+    /// page): a fork's origin, for what the fork carries over (F1b).
+    Log(Until),
 }
 
 /// Which act an answer is for.
@@ -82,6 +114,20 @@ pub enum ActKind {
     Queue,
     /// An answer to a question.
     Answer,
+    /// An answer to a permission request.
+    Permit,
+    /// A read of what the session holds now.
+    Conversation,
+    /// A change to one of its options.
+    SetOption,
+    /// A parked agent started again.
+    Wake,
+    /// A rewind.
+    Rewind,
+    /// A fork.
+    Fork,
+    /// A read of its log.
+    Log,
 }
 
 impl Act {
@@ -99,6 +145,13 @@ impl Act {
             Self::Terminal(_) => ActKind::Terminal,
             Self::Queue(_) => ActKind::Queue,
             Self::Answer(..) => ActKind::Answer,
+            Self::Permit(..) => ActKind::Permit,
+            Self::Conversation => ActKind::Conversation,
+            Self::SetOption(_) => ActKind::SetOption,
+            Self::Wake => ActKind::Wake,
+            Self::Rewind(_) => ActKind::Rewind,
+            Self::Fork(_) => ActKind::Fork,
+            Self::Log(_) => ActKind::Log,
         }
     }
 }
@@ -113,6 +166,13 @@ pub enum Acted {
     Deleted(SessionDeleted),
     /// It was killed, or the terminal took the input.
     Done,
+    /// What the session holds now.
+    Conversation(Box<Conversation>),
+    /// The new session a fork made (not the session acted on, whose
+    /// description stands).
+    Forked(Box<SessionInfo>),
+    /// Its log's records, in order, up to where the read stopped.
+    Log(Vec<EventRecord>),
 }
 
 /// Why a session act failed: the node's code, when it answered with one,
@@ -177,6 +237,35 @@ async fn answer(events: &mpsc::Sender<Event>, answer: ActAnswer) {
     let _closed = events.send(Event::Acted(answer)).await;
 }
 
+/// Records of `session`'s log read per page.
+const PAGE: u32 = 512;
+
+/// `session`'s log from its start, page by page, up to the first record
+/// `until` does not keep (the log is in order) or its end.
+async fn read_until(
+    client: &NodeClient,
+    session: SessionId,
+    until: Until,
+) -> Result<Vec<EventRecord>, vessel_client::CallError> {
+    let mut kept = Vec::new();
+    let mut from = EventSeq::new(0);
+    loop {
+        let page = client.read(session, from, PAGE).await?;
+        // A page that does not move on is the end too (nothing past it).
+        let last = page.at_end || page.next <= from;
+        for record in page.records {
+            if !until.keeps(&record) {
+                return Ok(kept);
+            }
+            kept.push(record);
+        }
+        if last {
+            return Ok(kept);
+        }
+        from = page.next;
+    }
+}
+
 async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted, ActFailed> {
     let boxed = |info: SessionInfo| Acted::Session(Box::new(info));
     let done = match act {
@@ -184,8 +273,31 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
         Act::Rename(title) => client.rename(session, title).await.map(boxed),
         Act::Mark(mark) => client.mark(session, mark).await.map(boxed),
         Act::StartAgain => client.resume_session(session).await.map(boxed),
+        Act::Wake => client
+            .call(vessel_proto::parking::WakeSession { session })
+            .await
+            .map(boxed),
+        Act::Rewind(after) => client
+            .call(vessel_proto::forking::RewindSession { session, after })
+            .await
+            .map(boxed),
+        Act::Fork(after) => client
+            .call(vessel_proto::forking::ForkSession { session, after })
+            .await
+            .map(|info| Acted::Forked(Box::new(info))),
+        Act::Log(until) => read_until(client, session, until).await.map(Acted::Log),
         Act::Delete => client.delete_session(session).await.map(Acted::Deleted),
         Act::Kill => client.kill(session).await.map(|()| Acted::Done),
+        // The options as they now stand also arrive as the session's own
+        // `options_changed` record, which the conversation folds.
+        Act::SetOption(choice) => client
+            .set_option(session, choice)
+            .await
+            .map(|_options| Acted::Done),
+        Act::Conversation => client
+            .conversation(session)
+            .await
+            .map(|held| Acted::Conversation(Box::new(held))),
         Act::MoveProfile(profile) => client
             .move_profile(session, profile, false)
             .await
@@ -203,6 +315,17 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
             .send(session, SessionInput::AnswerQuestion { id, answer })
             .await
             .map(|()| Acted::Done),
+        // The request settles as the session's own `permission_resolved`.
+        Act::Permit(id, option) => client
+            .send(
+                session,
+                SessionInput::AnswerPermission {
+                    id,
+                    outcome: PermissionOutcome::Selected { option },
+                },
+            )
+            .await
+            .map(|()| Acted::Done),
         Act::Terminal(outgoing) => {
             let input = match outgoing {
                 Outgoing::Keys(text) => TerminalInput::Data {
@@ -218,8 +341,17 @@ async fn run(client: &NodeClient, session: SessionId, act: Act) -> Result<Acted,
                 .map(|()| Acted::Done)
         }
     };
+    // A node's refusal is its own sentence (its code is beside it), not the
+    // client's wrapping of it ("the node returned an error: Conflict: …").
     done.map_err(|error| ActFailed {
         code: error.code(),
-        message: error.to_string(),
+        message: match &error {
+            vessel_client::CallError::Remote(wire) => wire.message.clone(),
+            vessel_client::CallError::Disconnected
+            | vessel_client::CallError::UnexpectedReply(_)
+            | vessel_client::CallError::RequestIdsExhausted
+            | vessel_client::CallError::NotInProtocol { .. }
+            | vessel_client::CallError::UnassignedProtocol { .. } => error.to_string(),
+        },
     })
 }

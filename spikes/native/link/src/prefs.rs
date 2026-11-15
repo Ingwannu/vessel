@@ -107,7 +107,7 @@ const MAX_CHOICE_BYTES: usize = 64;
 fn fits(choice: &OptionChoice) -> bool {
     choice.id.as_str().len() <= MAX_CHOICE_BYTES
         && match &choice.value {
-            ChoiceValue::Select { value } => value.as_str().len() <= MAX_CHOICE_BYTES,
+            ChoiceValue::Select { value, .. } => value.as_str().len() <= MAX_CHOICE_BYTES,
             ChoiceValue::Toggle { .. } => true,
         }
 }
@@ -293,7 +293,7 @@ impl Prefs {
 /// `dir` and its missing parents, made owner-only (0700) when the app
 /// makes them; a folder that exists keeps its mode.
 #[cfg(all(unix, not(target_arch = "wasm32")))]
-fn private_dir(dir: &Path) -> std::io::Result<()> {
+pub(crate) fn private_dir(dir: &Path) -> std::io::Result<()> {
     use std::os::unix::fs::DirBuilderExt as _;
 
     std::fs::DirBuilder::new()
@@ -303,13 +303,13 @@ fn private_dir(dir: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(all(not(unix), not(target_arch = "wasm32")))]
-fn private_dir(dir: &Path) -> std::io::Result<()> {
+pub(crate) fn private_dir(dir: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)
 }
 
 /// A new file at `path`, owner-only (0600) whatever the umask.
 #[cfg(all(unix, not(target_arch = "wasm32")))]
-fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
     use std::os::unix::fs::OpenOptionsExt as _;
 
     std::fs::OpenOptions::new()
@@ -320,7 +320,7 @@ fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
 }
 
 #[cfg(all(not(unix), not(target_arch = "wasm32")))]
-fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+pub(crate) fn new_private_file(path: &Path) -> std::io::Result<std::fs::File> {
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -362,6 +362,29 @@ mod tests {
         // defaults for them.
         std::fs::write(&path, r#"{"machine":"laptop"}"#).unwrap();
         assert_eq!(Prefs::load_at(&path).settings, Preferences::default());
+        drop(std::fs::remove_dir_all(path.parent().unwrap()));
+    }
+
+    #[test]
+    fn an_unknown_language_keeps_the_file_and_its_other_preferences() {
+        use vessel_app_view::localization::LanguagePreference;
+        let path = scratch("language").unwrap();
+        std::fs::write(&path, r#"{"machine":"laptop","last_label":"previous","settings":{"language":"removed-ZZ","appearance":{"theme":"dark"},"composer":{"send":"mod_enter"}}}"#).unwrap();
+        let mut kept = Prefs::load_at(&path);
+        assert!(matches!(kept.kept, prefs::Kept::File { .. }));
+        assert_eq!(kept.machine.as_deref(), Some("laptop"));
+        assert_eq!(kept.last_label.as_deref(), Some("previous"));
+        assert_eq!(kept.settings.language, LanguagePreference::System);
+        assert_eq!(kept.settings.appearance.theme, prefs::Theme::Dark);
+        assert_eq!(kept.settings.composer.send, prefs::SendKey::ModEnter);
+        kept.prefer(&PreferenceChange::Language(LanguagePreference::from_tag(
+            "ko",
+        )))
+        .unwrap();
+        kept.save_at(&path).unwrap();
+        let read = Prefs::load_at(&path);
+        assert_eq!(read, kept);
+        assert_eq!(read.settings.language.tag(), "ko");
         drop(std::fs::remove_dir_all(path.parent().unwrap()));
     }
 

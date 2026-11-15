@@ -14,9 +14,11 @@
 //!   `AGENTS.md` section 2 asks not to write).
 //! - Choice: commands answered at once, inside [`Link::send`], with
 //!   `try_send` into the bounded channel.
-//! - Full channel: an answer that finds no room is dropped and logged, as
-//!   the desktop link drops a command; the channel holds 256 events and a
-//!   person answers one prompt at a time, so only a stuck screen fills it.
+//! - Full channel: a command is taken only while the channel has room
+//!   for its answers (two at most), else it comes back from
+//!   [`Link::submit`] as the desktop link gives back a command its queue
+//!   does not take; the channel holds 256 events and a person answers one
+//!   prompt at a time, so only a stuck screen fills it.
 
 use std::cell::RefCell;
 
@@ -25,7 +27,11 @@ use tokio::sync::mpsc;
 use vessel_proto::PairingLink;
 
 use crate::demo::Demo;
-use crate::{CHANNEL, Command, Event, LinkError};
+use crate::{CHANNEL, Command, Event, LinkError, Rejected, Unsent};
+
+/// The most events one command is answered with (a start: the fleet and
+/// the card; a prompt: the records and the delivery).
+const ANSWER_ROOM: usize = 2;
 
 /// The link: the demo fleet and the channel its answers go out on.
 #[derive(Debug)]
@@ -50,24 +56,89 @@ impl Link {
         Ok((link, outbox))
     }
 
-    /// Ask for something; answered before this returns.
+    /// Ask for something and say whether the link took it; answered
+    /// before this returns.
+    ///
+    /// # Errors
+    /// The channel has no room for the answers, or the screen stopped
+    /// reading it: the command, given back.
+    pub fn submit(&self, command: Command) -> Result<(), Unsent> {
+        if self.events.is_closed() {
+            return Err(Unsent::new(Rejected::Closed, command));
+        }
+        if self.events.capacity() < ANSWER_ROOM {
+            return Err(Unsent::new(Rejected::Full, command));
+        }
+        self.answer(command);
+        Ok(())
+    }
+
+    /// Ask for something nothing waits on (a command not taken is dropped
+    /// and logged).
     pub fn send(&self, command: Command) {
+        if let Err(unsent) = self.submit(command) {
+            tracing::warn!(why = %unsent.why, "the link is not taking commands");
+        }
+    }
+
+    fn answer(&self, command: Command) {
         let now = Utc::now();
         match command {
+            Command::Agents {
+                machine, request, ..
+            } => self.emit(Event::Agents {
+                machine,
+                request,
+                answer: Err(crate::agents::AgentsError::NoTransport),
+            }),
+
             Command::Devices { ticket, ask, .. } => self.emit(Event::Devices(ask.refused(
                 ticket,
                 vessel_app_view::devices::Problem::Refused(vessel_proto::ErrorCode::Unsupported),
+            ))),
+            Command::Machines(ask) => self.emit(Event::Machines(
+                ask.refused(vessel_app_view::machine_book::Failure::Unavailable),
+            )),
+            Command::Sync { ticket, .. } => self.emit(Event::Sync(crate::sync::Answer {
+                ticket,
+                result: Err(vessel_app_view::sync::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                )),
+            })),
+            Command::NodeSettings(ask) => self.emit(Event::NodeSettings(ask.refused(
+                vessel_app_view::idle_release::Problem::Refused(
+                    vessel_proto::ErrorCode::Unsupported,
+                ),
             ))),
             Command::Reload => self.emit(Event::Fleet(self.demo.borrow().fleet(now))),
             Command::Open { session, .. } => {
                 let records = self.demo.borrow().records(&session);
                 self.emit(Event::Records { session, records });
             }
-            Command::Prompt { session, text, .. } => {
+            Command::Prompt { session, text, .. }
+            | Command::Files(crate::attachments::Files::Prompt(crate::attachments::WithFiles {
+                session,
+                text,
+                ..
+            })) => {
                 let records = self.demo.borrow_mut().prompt(&session, &text, now);
                 self.emit(Event::Records { session, records });
                 self.emit(Event::Sent { session });
             }
+            // A browser has no files to send yet (track P's row c).
+            Command::Files(crate::attachments::Files::Send(attach)) => self.emit(Event::Upload {
+                session: attach.session,
+                key: attach.key,
+                step: crate::attachments::Step::Failed {
+                    problem: vessel_app_view::composer::tray::Problem::Node(
+                        "The browser's demo takes no files".to_owned(),
+                    ),
+                    again: vessel_app_view::composer::tray::Again::Never,
+                },
+            }),
+            Command::Files(crate::attachments::Files::Create(_)) => self.emit(Event::Failed(
+                "The browser's demo takes no files".to_owned(),
+            )),
             Command::Start {
                 machine,
                 harness,
@@ -93,8 +164,12 @@ impl Link {
                 harness,
                 outcome: Ok(crate::demo::options()),
             }),
-            // The demo's turns end as they start: nothing runs to stop.
-            Command::Stop { .. } | Command::SavePrefs(_) => {}
+            // The demo's turns end as they start: nothing runs to stop; a
+            // browser keeps no files.
+            Command::Stop { .. }
+            | Command::SavePrefs(_)
+            | Command::KeepCommands { .. }
+            | Command::SaveDrafts(_) => {}
             Command::Answer {
                 session,
                 id,
@@ -105,10 +180,19 @@ impl Link {
                 self.emit(Event::Records { session, records });
             }
             Command::Pair { .. } => self.emit(Event::PairFailed(
-                "Pairing from a browser is not built: the browser has no secure channel \
-                 to a node yet (docs/plans/backend-m12-browser.md, question 8)"
-                    .to_owned(),
+                vessel_app_view::pairing::PairProblem::Browser,
             )),
+            // The demo fleet keeps no search index: every machine finds
+            // nothing.
+            Command::Search(ask) => self.emit(Event::Searched(crate::search::Answer {
+                machine: ask.machine,
+                ticket: ask.ticket,
+                result: Ok(vessel_proto::search::SearchPage {
+                    hits: Vec::new(),
+                    next: None,
+                    reached: None,
+                }),
+            })),
         }
     }
 
@@ -138,12 +222,11 @@ pub struct Offer {
 ///
 /// # Errors
 /// The text is not a pairing link, or it does not decode.
-pub fn read_link(text: &str) -> Result<Offer, LinkError> {
+pub fn read_link(text: &str) -> Result<Offer, vessel_proto::LinkError> {
     let offer = text
         .trim()
         .parse::<PairingLink>()
-        .and_then(|link| link.decode())
-        .map_err(|error| LinkError::PairingLink(error.to_string()))?;
+        .and_then(|link| link.decode())?;
     Ok(Offer {
         key: "(not computed in the browser build)".to_owned(),
         node: offer.node.to_string(),
@@ -163,19 +246,7 @@ pub fn read_link(text: &str) -> Result<Offer, LinkError> {
 /// own parser, which lives in `vessel-client`; the browser build cannot
 /// link it yet, so "not a node name" is left to the node here. Same
 /// variants, so a screen matching them builds for both.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NameProblem {
-    /// Nothing typed.
-    Empty,
-    /// It is the node's key, typed where a name goes.
-    LooksLikeKey,
-    /// It is a pairing link.
-    LooksLikeLink,
-    /// Not a node name (never reported in a browser: see above).
-    Invalid,
-    /// The book already has a machine of that name.
-    Taken,
-}
+pub use vessel_app_view::pairing::NameProblem;
 
 /// What is wrong with `text` as a new machine's name, if anything.
 #[must_use]

@@ -4,6 +4,7 @@
 
 mod invitation;
 mod revoke;
+mod row;
 mod rows;
 
 use std::{cell::Cell, collections::HashMap, rc::Rc};

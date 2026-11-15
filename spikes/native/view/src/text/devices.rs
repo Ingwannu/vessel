@@ -2,6 +2,7 @@
 
 use super::Lang;
 mod details;
+mod row;
 
 use crate::devices::Problem;
 use crate::devices::time::Remaining;

@@ -62,17 +62,30 @@ pub(crate) fn render(
     }
 }
 
-/// What stands in the sidebar's place on a wide window beside `route`.
+/// What stands in the sidebar's place on a wide window: its content kept
+/// between frames as a region (`crate::region`), in its resizable frame.
 pub(crate) fn sidebar(
-    route: Route,
     shell: &Shell,
     tokens: &Tokens,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    match route {
+    let region = shell.areas.regions.sidebar.as_ref();
+    let inner = crate::region::place(region, sidebar_inner, shell, tokens, window, cx);
+    areas::sidebar::frame(shell, inner, tokens, window, cx).into_any_element()
+}
+
+/// The sidebar's content beside the shell's route.
+pub(crate) fn sidebar_inner(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    match shell.route {
         Route::Settings => areas::settings::sidebar(shell, tokens, cx).into_any_element(),
         Route::Draft | Route::Board | Route::Archive | Route::Session | Route::Pair => {
-            areas::sidebar::render(shell, tokens, false, cx).into_any_element()
+            areas::sidebar::render(shell, tokens, false, window, cx).into_any_element()
         }
     }
 }

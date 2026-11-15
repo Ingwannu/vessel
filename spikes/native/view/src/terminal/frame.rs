@@ -85,7 +85,11 @@ impl TerminalLog {
                 | SessionEvent::Renamed { .. }
                 | SessionEvent::QueueChanged { .. }
                 | SessionEvent::CommandsChanged { .. }
-                | SessionEvent::UsageChanged { .. } => {}
+                | SessionEvent::UsageChanged { .. }
+                | SessionEvent::Parked { .. }
+                | SessionEvent::Woken
+                | SessionEvent::Forked { .. }
+                | SessionEvent::Rewound { .. } => {}
             }
         }
         bytes

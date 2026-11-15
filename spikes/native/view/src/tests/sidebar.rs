@@ -30,6 +30,17 @@ fn state() -> Fleet {
     book(&[aaaa, running("bbbb", "2026-11-11T09:00:00Z"), cccc])
 }
 
+/// The page's default view, which hides ended sessions: these tests are
+/// the page's (`sidebar.test.ts`), written against it. The native default
+/// lists them (`SidebarView::default`, 2026-11-14); that default is pinned
+/// in `tests/prefs.rs`.
+fn hiding_ended() -> SidebarView {
+    SidebarView {
+        ended: false,
+        ..SidebarView::default()
+    }
+}
+
 fn ids(cards: &[&Card]) -> Vec<String> {
     cards.iter().map(|card| short(card, 4)).collect()
 }
@@ -37,7 +48,7 @@ fn ids(cards: &[&Card]) -> Vec<String> {
 #[test]
 fn lists_each_machine_with_its_live_sessions_newest_first_by_title() {
     let fleet = state();
-    let machines = fleet.sidebar_machines(SidebarView::default(), SIDEBAR_SESSIONS);
+    let machines = fleet.sidebar_machines(hiding_ended(), SIDEBAR_SESSIONS);
     let [laptop, gpu] = machines.as_slice() else {
         panic!("two machines");
     };
@@ -58,7 +69,7 @@ fn lists_each_machine_with_its_live_sessions_newest_first_by_title() {
 #[test]
 fn links_to_the_board_for_the_rest() {
     let fleet = state();
-    let machines = fleet.sidebar_machines(SidebarView::default(), 1);
+    let machines = fleet.sidebar_machines(hiding_ended(), 1);
     assert_eq!(machines[0].sessions.len(), 1);
     assert_eq!(machines[0].more, 1);
 }
@@ -92,7 +103,7 @@ fn groups_by_status_across_machines_leaving_empty_groups_out() {
     let fleet = state();
     let view = SidebarView {
         group: Grouping::Status,
-        ..SidebarView::default()
+        ..hiding_ended()
     };
     let groups = fleet.sidebar_statuses(view, SIDEBAR_STATUS_SESSIONS);
     let labels: Vec<&str> = groups
@@ -111,7 +122,7 @@ fn groups_by_status_across_machines_leaving_empty_groups_out() {
 #[test]
 fn walks_the_sessions_in_the_order_shown_wrapping() {
     let fleet = state();
-    let order = fleet.sidebar_order(SidebarView::default());
+    let order = fleet.sidebar_order(hiding_ended());
     assert_eq!(ids(&order), ["bbbb", "aaaa"]);
     let step = |current: Option<&str>, step| {
         step_session(&order, current.map(|short| ("laptop", id(short))), step)
@@ -137,7 +148,7 @@ fn leaves_archived_sessions_out_lists_pinned_first_says_unread() {
     dddd.marks.pinned = true;
     dddd.marks.unread = true;
     let fleet = book(&[running("aaaa", "2026-11-11T08:00:00Z"), bbbb, dddd]);
-    let machines = fleet.sidebar_machines(SidebarView::default(), SIDEBAR_SESSIONS);
+    let machines = fleet.sidebar_machines(hiding_ended(), SIDEBAR_SESSIONS);
     let rows = &machines[0].sessions;
     assert_eq!(ids(rows), ["dddd", "aaaa"]);
     assert!(rows[0].detail.marks.pinned && rows[0].detail.marks.unread);

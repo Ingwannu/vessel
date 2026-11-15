@@ -65,12 +65,7 @@ fn keeps_the_place_a_status_implies_for_a_node_that_sends_none() {
     let ended = card(SessionStatus::Exited { code: Some(0) }, None);
     assert_eq!(ended.lane, None);
     assert_eq!(t.phrase(&ended.phrase), "exited 0");
-    let failed = card(
-        SessionStatus::Failed {
-            message: "no login".to_owned(),
-        },
-        None,
-    );
+    let failed = card(SessionStatus::failed("no login"), None);
     assert_eq!(failed.lane, None);
     assert_eq!(failed.phrase, Phrase::Failed);
 }
@@ -195,11 +190,13 @@ fn deals_rows_into_lanes_the_waiting_first_then_the_most_recent() {
     ];
     let fleet = Fleet {
         machines: vec![Machine {
+            node: None,
             name: "laptop".to_owned(),
             reach: Reach::Online,
             sessions,
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -274,9 +271,7 @@ fn colours_a_status_line_by_its_lane_unless_the_phrase_says_more() {
     );
     // An ended session of an older node shows its own word; a failure
     // stays visible in the archive.
-    let failed = SessionStatus::Failed {
-        message: "no login".to_owned(),
-    };
+    let failed = SessionStatus::failed("no login");
     assert_eq!(card(failed, None).tone(), Tone::Danger);
     assert_eq!(
         card(SessionStatus::Exited { code: Some(0) }, None).tone(),
@@ -317,11 +312,13 @@ fn offers_kill_on_a_live_card_archive_on_an_ended_one_where_marks_are_kept() {
 fn reads_a_machines_protocol_only_while_it_is_connected() {
     use vessel_proto::ProtocolVersion;
     let machine = |name: &str, protocol| Machine {
+        node: None,
         name: name.to_owned(),
         reach: Reach::Online,
         sessions: Vec::new(),
         agents: Vec::new(),
         protocol,
+        version: None,
     };
     let fleet = Fleet {
         machines: vec![
@@ -342,11 +339,13 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
     let other = card(RUNNING, None);
     let mut fleet = Fleet {
         machines: vec![Machine {
+            node: None,
             name: "laptop".to_owned(),
             reach: Reach::Online,
             sessions: vec![listed, other.clone()],
             agents: Vec::new(),
             protocol: None,
+            version: None,
         }],
         read_at: None,
     };
@@ -375,6 +374,40 @@ fn puts_an_answer_in_place_of_its_card_and_drops_a_deleted_one() {
         .map(|card| card.session)
         .collect();
     assert_eq!(left, [other.session]);
+}
+
+#[test]
+fn a_fork_is_listed_on_its_machine_at_once_and_only_once() {
+    let listed = card(RUNNING, None);
+    let mut fleet = Fleet {
+        machines: vec![Machine {
+            node: None,
+            name: "laptop".to_owned(),
+            reach: Reach::Online,
+            sessions: vec![listed.clone()],
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        }],
+        read_at: None,
+    };
+    let fork = session(RUNNING, None);
+    fleet.add_session("elsewhere", &fork);
+    assert_eq!(fleet.machines[0].sessions.len(), 1, "not its machine");
+    fleet.add_session("laptop", &fork);
+    // The fleet's next read may list it before the answer is taken.
+    fleet.add_session("laptop", &fork);
+    let ids: Vec<_> = fleet.machines[0]
+        .sessions
+        .iter()
+        .map(|card| card.session)
+        .collect();
+    assert_eq!(ids, [listed.session, fork.id]);
+    // Its first line names the source by the title the list holds.
+    fleet.machines[0].sessions[0].title = "plain".to_owned();
+    assert_eq!(fleet.title_of(listed.session), Some("plain"));
+    assert_eq!(fleet.title_of(fork.id), None, "no title yet");
+    assert_eq!(fleet.title_of(SessionId::random()), None);
 }
 
 #[test]

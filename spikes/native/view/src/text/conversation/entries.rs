@@ -11,7 +11,7 @@ use super::ConversationWords;
 use super::numbers::{grouped, short_tokens};
 use super::plural;
 use crate::Lang;
-use crate::timeline::{Entry, EntryKind, plan_progress};
+use crate::timeline::{Entry, EntryKind, FailureKind, PlanActivity, plan_progress, turn_failure};
 use crate::timeline::{RunSummary, Tally};
 use crate::timeline::{Settled, settled};
 
@@ -100,7 +100,7 @@ impl ConversationWords {
             (
                 SessionStatus::Starting
                 | SessionStatus::Running
-                | SessionStatus::Exited { code: None }
+                | SessionStatus::Exited { code: None, .. }
                 | SessionStatus::Failed { .. }
                 | SessionStatus::Interrupted,
                 Lang::En | Lang::Ko,
@@ -114,6 +114,35 @@ impl ConversationWords {
         match self.lang {
             Lang::En => format!("Plan · {done} of {total} done"),
             Lang::Ko => format!("계획 · {total}개 중 {done}개 완료"),
+        }
+    }
+
+    /// A plan row's words in the timeline (Paseo's `message.todo.activity`):
+    /// "Created 4 tasks", or what happened to the step it names ("Added",
+    /// "Started", "Completed"; the step's own words follow, apart).
+    #[must_use]
+    pub fn plan_activity(&self, activity: &PlanActivity) -> String {
+        match (activity, self.lang) {
+            (PlanActivity::Created { count }, Lang::En) => format!(
+                "Created {}",
+                plural(u64::try_from(*count).unwrap_or(u64::MAX), "task", "tasks")
+            ),
+            (PlanActivity::Created { count }, Lang::Ko) => format!("작업 {count}개 생성"),
+            (PlanActivity::Added(_), Lang::En) => "Added".to_owned(),
+            (PlanActivity::Added(_), Lang::Ko) => "추가됨".to_owned(),
+            (PlanActivity::Started(_), Lang::En) => "Started".to_owned(),
+            (PlanActivity::Started(_), Lang::Ko) => "시작됨".to_owned(),
+            (PlanActivity::Completed(_), Lang::En) => "Completed".to_owned(),
+            (PlanActivity::Completed(_), Lang::Ko) => "완료됨".to_owned(),
+        }
+    }
+
+    /// An opened plan row with no steps (Paseo's `message.todo.empty`).
+    #[must_use]
+    pub const fn plan_empty(&self) -> &'static str {
+        match self.lang {
+            Lang::En => "No tasks yet.",
+            Lang::Ko => "아직 작업이 없습니다.",
         }
     }
 
@@ -152,6 +181,17 @@ impl ConversationWords {
         match usage {
             None => head,
             Some(usage) => format!("{head} · {}", self.turn_tokens(usage)),
+        }
+    }
+
+    /// A finished turn's footer: how long the turn worked (Paseo's
+    /// `message.turnFooter.workedFor`), `duration` as Paseo writes it
+    /// (14s, 2m 5s, 1h 3m).
+    #[must_use]
+    pub fn worked_for(&self, duration: &str) -> String {
+        match self.lang {
+            Lang::En => format!("Worked for {duration}"),
+            Lang::Ko => format!("작업 시간 {duration}"),
         }
     }
 
@@ -355,7 +395,7 @@ impl ConversationWords {
     /// `entry` as one line of text: what its row shows, without its
     /// markup. Said aloud when it arrives, and what a copy of it holds.
     #[must_use]
-    pub fn spoken(&self, entry: &Entry) -> String {
+    pub fn spoken(&self, entry: &Entry, catalog: &crate::localization::Translator) -> String {
         match &entry.kind {
             EntryKind::Ready { .. } => self.agent_ready().to_owned(),
             EntryKind::Prompt(prompt) => {
@@ -382,7 +422,7 @@ impl ConversationWords {
                 };
                 format!("{title} · {}", self.tool_status(tool.status))
             }
-            EntryKind::Plan { entries } => {
+            EntryKind::Plan { entries, .. } => {
                 let (done, total) = plan_progress(entries);
                 self.plan_line(done, total)
             }
@@ -393,15 +433,28 @@ impl ConversationWords {
                     .unwrap_or(self.unseen_tool_call()),
                 &settled(&permission.request.options, permission.outcome.as_ref()),
             ),
-            EntryKind::TurnEnded { reason, usage } => self.turn_ended(*reason, usage.as_ref()),
+            EntryKind::TurnEnded { reason, usage, .. } => self.turn_ended(*reason, usage.as_ref()),
+            // One sentence, without the JSON-RPC wrapper or the agent's
+            // data; a usage limit's sentence alone (`timeline::failure`).
             EntryKind::TurnFailed { message } => {
-                format!("{} · {message}", self.either("Turn failed", "턴 실패"))
+                let failure = turn_failure(message);
+                match failure.kind {
+                    FailureKind::Limit => failure.sentence,
+                    FailureKind::Other => format!(
+                        "{} · {}",
+                        self.either("Turn failed", "턴 실패"),
+                        failure.sentence
+                    ),
+                }
             }
             EntryKind::Log { line } => line.clone(),
             EntryKind::Status { status } => match self.lang {
                 Lang::En => format!("Session {}", self.state(status)),
                 Lang::Ko => format!("세션 {}", self.state(status)),
             },
+            EntryKind::Parking(change) => self.parking_line(change),
+            // The source's title is the screen's to find (the fleet's).
+            EntryKind::Forked { .. } => catalog.fork().from_other().to_owned(),
             EntryKind::Profile { from, to } => self.profile_line(from.as_ref(), to.as_ref()),
             EntryKind::Model(call) => format!(
                 "{} · {} · {}",

@@ -23,7 +23,7 @@ pub use tree::Row;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::agents::{AgentDetail, AgentInfo, InstallPart};
+use vessel_proto::agents::{AgentDetail, AgentInfo, InstallOffer, InstallPart};
 use vessel_proto::{
     DisplayStatus, Harness, HarnessKind, HarnessRef, ProtocolVersion, SessionId, StructuredSupport,
 };
@@ -63,7 +63,7 @@ impl Lane {
 }
 
 /// One session's card.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Card {
     /// The session.
     pub session: SessionId,
@@ -142,7 +142,7 @@ pub enum Via {
 }
 
 /// A machine in the sidebar.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Machine {
     /// Its name in the node book.
     pub name: String,
@@ -156,6 +156,66 @@ pub struct Machine {
     /// session (marks from 10, `session::CONVERSATION_PROTOCOL`).
     #[serde(default)]
     pub protocol: Option<ProtocolVersion>,
+    /// Its node's version, when it answered (Settings › About lists each
+    /// machine's, as Paseo's "Connected hosts").
+    #[serde(default)]
+    pub version: Option<NodeVersion>,
+    /// The node that answered under this book name, when it answered: the
+    /// stable identity a queued request or a late answer checks against,
+    /// since a book name can be renamed or reused for another node.
+    #[serde(default)]
+    pub node: Option<vessel_proto::NodeId>,
+}
+
+impl Machine {
+    /// A machine that did not answer, and why.
+    #[must_use]
+    pub fn unreachable(name: String, why: &str) -> Self {
+        Self {
+            node: None,
+            name,
+            reach: Reach::Unreachable(why.to_owned()),
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: None,
+            version: None,
+        }
+    }
+}
+
+/// A node's version as it reports it (`NodeInfo::version`, the node
+/// binary's own: "0.1.0"). Shown, never compared: the app's builds and
+/// the node's are numbered apart.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct NodeVersion(String);
+
+impl NodeVersion {
+    /// The version a node reported.
+    #[must_use]
+    pub fn new(version: impl Into<String>) -> Self {
+        Self(version.into())
+    }
+
+    /// As a badge or a value shows it (Paseo's `formatDaemonVersionBadge`):
+    /// "v" before it unless it has one; `None` when it is blank.
+    #[must_use]
+    pub fn label(&self) -> Option<String> {
+        let version = self.0.trim();
+        if version.is_empty() {
+            None
+        } else if version.starts_with('v') {
+            Some(version.to_owned())
+        } else {
+            Some(format!("v{version}"))
+        }
+    }
+}
+
+impl std::fmt::Display for NodeVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
 }
 
 /// An agent a machine can start a conversation with.
@@ -188,7 +248,7 @@ impl Agent {
                 name: agent_name(&harness.kind),
                 unavailable: match &harness.structured {
                     StructuredSupport::Available => None,
-                    StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                    StructuredSupport::Unavailable { reason, .. } => Some(reason.clone()),
                 },
                 not_installed: false,
             })
@@ -209,7 +269,7 @@ impl Agent {
             .map(|info| {
                 let installed = harnesses.iter().find(|harness| harness.kind == info.agent);
                 let name = match &info.detail {
-                    AgentDetail::Added { added } => added.label.as_ref().map_or_else(
+                    AgentDetail::Added { added, .. } => added.label.as_ref().map_or_else(
                         || agent_name(&info.agent),
                         |label| label.as_str().to_owned(),
                     ),
@@ -218,7 +278,7 @@ impl Agent {
                 let unavailable = match installed {
                     Some(harness) => match &harness.structured {
                         StructuredSupport::Available => None,
-                        StructuredSupport::Unavailable { reason } => Some(reason.clone()),
+                        StructuredSupport::Unavailable { reason, .. } => Some(reason.clone()),
                     },
                     None => Some(not_installed(&info.detail)),
                 };
@@ -252,18 +312,28 @@ fn not_installed(detail: &AgentDetail) -> String {
     match detail {
         AgentDetail::Known { installs, .. } => installs
             .iter()
-            .find(|offer| offer.part == InstallPart::Harness)
+            .find(|offer| {
+                matches!(
+                    offer,
+                    InstallOffer {
+                        part: InstallPart::Harness,
+                        command: _
+                    }
+                )
+            })
             .or_else(|| installs.first())
             .map_or_else(
                 || "not installed on this machine".to_owned(),
                 |offer| {
-                    format!(
-                        "not installed on this machine (install it with `{}`)",
-                        offer.command
-                    )
+                    // Every field named, no `..`: this sentence offers the
+                    // install, so a field the node adds must break the build
+                    // until it is shown or refused (README, "Rules every
+                    // screen follows").
+                    let InstallOffer { part: _, command } = offer;
+                    format!("not installed on this machine (install it with `{command}`)")
                 },
             ),
-        AgentDetail::Added { added } => format!(
+        AgentDetail::Added { added, .. } => format!(
             "its program `{}` is not found on this machine",
             added.program.as_str()
         ),
@@ -283,7 +353,7 @@ pub fn agent_name(agent: &HarnessRef) -> String {
 }
 
 /// Everything the screen shows.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Fleet {
     /// The machines, in the book's order.
     pub machines: Vec<Machine>,

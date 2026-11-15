@@ -1,5 +1,10 @@
 //! The page's `data/sync.test.ts`.
 
+mod failures;
+mod projection;
+mod reports;
+mod sentences;
+
 use chrono::{DateTime, Utc};
 use vessel_proto::{FleetMember, Generation, Manifest};
 

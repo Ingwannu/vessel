@@ -79,8 +79,9 @@ impl ConversationWords {
         (self.either("Yes", "예"), self.either("No", "아니요"))
     }
 
-    /// Under the question card when the node refused the answer; `why`
-    /// is the node's own message.
+    /// Under a question's or a permission's card when the answer could
+    /// not be sent (Paseo's `message.question.responseFailed`); `why` is
+    /// the node's or the link's own message.
     #[must_use]
     pub fn question_refused(&self, why: &str) -> String {
         match self.lang {
