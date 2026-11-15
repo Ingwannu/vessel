@@ -763,3 +763,17 @@ added real Cmd/Ctrl+L missing-owner cases on both legacy routes. No W12 target
 metadata, alternate getter, global New fallback or scope/IME exception is used.
 The old a675 dead-opener test proved its earlier fallback behavior, not this
 corrected owner policy; latest source checks are still owed.
+
+Exact6d739b11197c692792afa77f081a47303a8c0662 regression run
+wp-commands-20261115T142317Z-6d739b11 is GREEN:1480pass/0fail/2ignore.
+App113/0/2, Kit182/0/0, View1045/0/0 plus View integration/example suites.
+The corrected empty/BOM/NEL/nonblank Backspace at800/390 and Messages boundary,
+current shared FieldId+CodeEditor IME, canonical FileQuery and default matcher
+contract cases executed and passed. This source predates B2's FocusComposer
+withdrawal; it does not validate the newer dead-opener policy.
+
+Superseded queued App-only strict run144639-d27 was verified by exact ticket
+and submit PID141432, canceled queued-only, and observed terminal cancelled143
+before replacement. It could not check the newly agreed View/App focus policy.
+Original logs remain. Latest View/App strict and App-only regression checks now
+cover those changes; unchanged successful Kit/View suites are not repeated.
