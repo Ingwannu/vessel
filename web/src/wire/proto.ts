@@ -5083,7 +5083,8 @@ drivers?: AgentDrivers,
  */
 restart_recovery?: RestartRecovery, 
 /**
- * Generated-name routes (ADR 0062); omitted for automatic selection and older peers.
+ * Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
+ * `None` means this peer cannot generate.
  */
 metadata?: MetadataSettings, };
 

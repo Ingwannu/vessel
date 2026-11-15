@@ -887,3 +887,14 @@ None default for the added optional field, as Clippy requires. Current
 verification proceeds through changed-crate Clippy, protocol/store tests,
 actual generation tests and TypeScript regeneration in separate narrow tickets.
 No assertion, deadline or head recovery behavior changes.
+
+
+Current package narrow validation is green: changed-crate all-targets Clippy,
+287 protocol and 81 store library cases, 26 generated-title cases, the real
+RPC pending/invalid metadata no-mutation case, and four regenerated TypeScript
+cases. The metadata capability distinction is present: unsupported None versus
+supported Some(empty) Automatic. All Rust bodies match the checked commit;
+only the authorized web-race test merge followed. The generated declaration
+update follows the optional reply's docs. No whole package gate has run yet.
+The newly designated shared package base is merged next; its root additions
+and generated declarations are checked before the final package gate.

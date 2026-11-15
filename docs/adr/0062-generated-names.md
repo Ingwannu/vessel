@@ -934,3 +934,10 @@ Per-peer projection clears the option while unassigned or below the threshold;
 it never hides Automatic from a supported peer. Runtime tasks read the settings
 owner's policy directly, independently of that wire projection. The nullable
 lenient view is shared by file and reply decoding; patches remain strict.
+
+
+Generated titles retain SessionTitle's existing normalization, including
+Rust's whitespace class, after the raw UTF-16 check. Paseo trims its model
+result with JavaScript's whitespace class instead. This stated difference
+keeps one canonical title constructor for typed, provisional and generated
+origins; the source/style contracts do not claim identical Unicode trimming.
