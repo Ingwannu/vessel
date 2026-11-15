@@ -23,7 +23,6 @@ pub(super) struct Rename {
     invalid: Option<InvalidTitle>,
 }
 impl Rename {
-    #[cfg(test)]
     pub(super) const fn workspace(&self) -> &vessel_app_view::layout::LayoutKey {
         &self.workspace
     }

@@ -286,6 +286,12 @@ seeds immediately through the same apply path; its first layout baseline is the
 actual window snapshot, later ones are the Client's prior canonical snapshot.
 This consumes the already-landed layout owner rebase hook, preserving dirty and
 owner-held trees rather than keeping another cache or copying layout policy.
+Its preferences module and Rename workspace getter are promoted with the real
+canonical apply caller under W12/E3's bounded handoff. This isolated consumer
+still has no product owner-retirement registrations: those remain staged. When
+the common owner mechanism becomes product, the same union must also promote
+Before::book, postborrow layout_retired, Canonical source/reason and its dispatch
+arm together. Promoting only cache rebasing cannot stand in for owner ABA proof.
 The writer fix retains newer accepted geometry when an older captured flush is
 enqueued late, including after debounce; explicit Final still forces its supplied
 snapshot and closes before acknowledgement. The immediate App currentness fence
