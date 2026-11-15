@@ -25,9 +25,11 @@ including metadata and capture builds, runs through the remote gate only.
   Retry id lacked the debug selector used by debug_bounds. Fixedaf52 with all
   production input/layout unchanged. Red results/logs retained.
 - Ordinary SHORT schedules suite on exactaf52: run180912 strict then Kitlib
-  tests; queued at last observation. Separate exact9440 consumer View/Link/App
-  --lib tests submitted once, pre-receipt submit-lock wait at last observation.
-  Never kill/resubmit a pre-receipt wrapper. No priority or temporary labels.
+  tests; queued at last observation. The separate exact9440 View/Link/App
+  --lib submission ended helper rc3 BEFORE registration because schedules was
+  busy with180912; no run-id/compile/test result exists. Preserve its records,
+  then submit the current meaningful head once AFTER the Kit suite releases
+  the label. Never kill/resubmit a pre-receipt wrapper. No priority/new labels.
 - Separate node productd26 has V3 row260 bounded SOURCE/NARROW PASS: strict0,
   scheduler41/0/0 including all five new cases, independently verified27 files.
   Receipt059f1dab merged by integrator into batch17 trialb68ae267b; combined
@@ -376,3 +378,19 @@ repository rule. No other owner's documentation/source was rewritten.
   Ended Edit/Delete only, unknown state/reason Delete only, original revision
   and pending/current-context guards retained. Update portable state cases and
   real form/row regressions. Existing EditError words remain L-owned.
+
+
+### Later source audit corrections
+
+-845cdbc26 implements coordinatorf557 decimal-prefix Max runs parity against
+ pinned schedule-form-sheet68–71;23 portable cases compared with actual Node
+ parseInt. Positive upper-bound/representation refusal stays typed/unclamped.
+ Two feedback fixtures now use1000001 rather than malformed input. Rust tests
+ pending; this is source/runtime-reference evidence only.
+-86484208 adds a pure catalog regression for cancel/reopen: reopen reads the
+ selected provider again, refuses old browsing replies/choices, keeps metadata,
+ avoids duplicate pending reads. No actual popup first-use claim.
+-9440b963 exposes the actual guarded Save button's debug selector, correcting
+ the same id-vs-selector fixture issue without geometry/input changes.
+-S2 is assigned FooterIconButton; W12 is assigned the existing Tooltips typed
+ timing/side extension as well as its Toolbar. No G2 parallel writes.
