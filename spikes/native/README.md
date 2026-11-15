@@ -489,8 +489,8 @@ family field presentation over the existing editing engine.
 
 The kit can build `theme::Palette::{Light, Dark, Zinc, Midnight, Claude,
 Ghostty, PureBlack}` through `Tokens::palette`. `Scheme` still means only
-light or dark: status and syntax retain their existing scheme-specific
-sets. `Tokens::of(Scheme)` and both shipped token constructor bodies are
+light or dark: status retains its existing scheme-specific sets; the
+independent syntax catalogue resolves its paired variants from this scheme. `Tokens::of(Scheme)` and both shipped token constructor bodies are
 unchanged. The new dark variants share one tint-to-token mapping; their
 authored values and deliberate brand-accent substitution are in ADR 0070.
 
@@ -520,12 +520,20 @@ The text engine remains the only owner of caret, history and IME state.
 `theme::syntax` (also `kit::syntax`) owns eight syntax palettes and all twenty
 source roles without a renderer. Its catalogue resolves by light/dark only;
 Dracula is dark-only and Nord follows its actual paired source resolver.
-Syntax consumption and the Appearance preview remain separate pending work.
+The existing editor resolver, code tokens and readonly Appearance preview use
+that one catalogue. The existing workspace lexer supplies preview semantics;
+no second highlighter or span style table is introduced.
 `Tokens::contributed(Scheme, theme::palette::ContributedColors)` preserves
 validated supplied colour alpha through the named tints' one token mapper.
 It accepts no plugin ids, host ids, file paths or unparsed colour strings.
 The plugin runtime owns decoding/catalog transport; its app consumer and the
-remaining field/component projections are still pending in the F5 plan.
+remaining installed-catalog runtime projection is pending in the F5 plan.
+`set_tokens` applies a concrete contributed set through the same global and
+component path as `set_palette`. Window-aware edit/focus/blur hooks reuse one
+registered TextField subscription; typed parsed preview axes remain in view,
+while raw drafts/caret/IME/history stay in the existing editor. Family, size
+and width rows compose the generic Appearance field profiles. These staged
+controls and consumers are not a final package gate or capture approval.
 
 ### Rules every screen follows
 

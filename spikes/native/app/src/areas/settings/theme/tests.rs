@@ -68,7 +68,21 @@ fn validated_contribution_replaces_actual_colors_with_ambient_independence(
         plugin: "fixture".parse().unwrap(),
         generation: RuntimeGeneration::random(),
     };
-    let mut contribution: ThemeContribution = serde_json::from_str(r##"{"id":"night","name":"Night","appearance":"dark","colors":{"background":"#10203080","foreground":"#fefefe","raised":"#223344","control":"#334455","border":"#445566","mutedForeground":"#708090","ring":"#aabbcc60"}}"##).unwrap();
+    let mut contribution = ThemeContribution {
+        id: "night".parse().unwrap(),
+        name: "Night".parse().unwrap(),
+        appearance: PluginAppearance::Dark,
+        colors: vessel_proto::plugins::ThemeColors {
+            background: "#10203080".parse().unwrap(),
+            foreground: "#fefefe".parse().unwrap(),
+            raised: "#223344".parse().unwrap(),
+            control: "#334455".parse().unwrap(),
+            border: "#445566".parse().unwrap(),
+            accent: None,
+            muted_foreground: "#708090".parse().unwrap(),
+            ring: "#aabbcc60".parse().unwrap(),
+        },
+    };
     cx.update(|cx| {
         vessel_app_kit::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap();
         for (appearance, scheme) in [
@@ -103,5 +117,23 @@ fn validated_contribution_replaces_actual_colors_with_ambient_independence(
                 assert_eq!(actual.neutral.accent, actual.neutral.foreground);
             }
         }
+        contribution.colors.background = "#30303080".parse().unwrap();
+        contribution.colors.accent = Some("#ffcc00".parse().unwrap());
+        apply_choice(
+            Resolution::Contributed(Candidate {
+                address: &address,
+                theme: &contribution,
+            }),
+            WindowAppearance::Dark,
+            cx,
+        );
+        assert_eq!(
+            vessel_app_kit::tokens(cx).neutral.surface0,
+            gpui::rgba(0x3030_3080).into()
+        );
+        assert_eq!(
+            vessel_app_kit::tokens(cx).neutral.accent,
+            gpui::rgb(0x00ff_cc00).into()
+        );
     });
 }
