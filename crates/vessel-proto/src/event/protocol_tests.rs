@@ -6,7 +6,10 @@ use crate::agent::{
     ToolKind,
 };
 use crate::conversation::{AttachmentKind, AttachmentRef, Question};
-use crate::{AttachmentId, EventPage, HarnessSessionId, PermissionId, QuestionId, ToolCallId};
+use crate::{
+    AttachmentId, ContentBlock, EventPage, HarnessSessionId, PermissionId, QuestionId,
+    QuestionOutcome, ToolCallId,
+};
 
 fn text() -> ContentBlock {
     ContentBlock::Text {
