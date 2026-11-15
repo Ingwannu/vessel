@@ -31,6 +31,7 @@
 //! is, the last rows stay drawn while it closes, and frames are asked only
 //! while it moves; held motion (`motion::held`) is the end at once.
 
+mod admission;
 mod catalog;
 mod client;
 mod input;
@@ -186,7 +187,10 @@ impl Shell {
                 session: self.areas.session.open.as_ref()?.session,
             },
         };
-        if !self.areas.composer_shell.permits_menu(target) {
+        if self
+            .composer_surface(target, cx)
+            .is_none_or(|surface| !surface.autocomplete())
+        {
             return None;
         }
         let listed = self.slash_listed(over)?;
@@ -221,7 +225,24 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) -> KeyAnswer {
+        let target = match over {
+            Over::Draft => Some(DraftKey::New),
+            Over::Session => self
+                .areas
+                .session
+                .open
+                .as_ref()
+                .map(|open| DraftKey::Session {
+                    session: open.session,
+                }),
+        };
+        if !target.is_some_and(|target| self.composer_command_menu_owns_key(target, key, cx)) {
+            return self.key_without_menu(over, key, window, cx);
+        }
         let taken = self.slash_menu(over, cx).and_then(|menu| {
+            if !menu.takes_key(key) {
+                return None;
+            }
             let choice = menu
                 .taken(&self.slash(over).chosen)
                 .map(|command| (command.name().to_owned(), command.client()));

@@ -168,3 +168,5 @@ changes, regenerated TS committed from VM artifacts, isolated fake-fleet capture
 at1280x900/390x844 (800x600 where layout matters), dark/light EN/KO, then the agreed
 V3/V4 review. Never use live agents, live preview ports, credentials or real browser
 openers in tests. Capture and review evidence remain outstanding.
+
+The additive `composer_command_menu_owns_key(DraftKey, ComposerKey, &App)` query is a read-only local-key ownership seam for the sole shortcut interceptor. It recomputes the actual menu for the exact current field; empty results, other draft/session keys, read-only fields and covered surfaces do not claim keys. Its shared `Menu::takes_key` predicate is also used by the actual slash handler, so inline Escape passes while root-menu Escape closes the menu. It grants no active-composer identity or network authority and does not cover W6’s file menu or audio. A real GPUI regression checks repeated queries preserve text/selection and the subsequent Escape agrees with the handler. The new source remains VM-unverified; existing d4ca checks cover the preceding source only.

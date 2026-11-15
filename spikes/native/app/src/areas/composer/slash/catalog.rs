@@ -33,6 +33,18 @@ pub(super) struct Menu<'a> {
     pub(super) chosen: Option<usize>,
 }
 impl<'a> Menu<'a> {
+    /// The shared interceptor queries this same predicate before native dispatch.
+    pub(super) fn takes_key(
+        &self,
+        key: vessel_app_kit::field::composer_hooks::ComposerKey,
+    ) -> bool {
+        use vessel_app_kit::field::composer_hooks::ComposerKey;
+        !self.rows.is_empty()
+            && match key {
+                ComposerKey::Escape => self.range.start == 0,
+                ComposerKey::Up | ComposerKey::Down | ComposerKey::Enter | ComposerKey::Tab => true,
+            }
+    }
     pub(super) fn of(
         text: &str,
         caret: usize,
@@ -111,6 +123,30 @@ mod tests {
                 .rows
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn inline_menu_keeps_escape_for_the_field_but_owns_tab_and_enter() {
+        use vessel_app_kit::field::composer_hooks::ComposerKey;
+        let commands = [AgentCommand {
+            name: "review".parse().unwrap(),
+            description: String::new(),
+            hint: None,
+            kind: Some(CommandKind::Skill),
+        }];
+        let menu = Menu::of(
+            "use /rev",
+            8,
+            Target::Session,
+            Some(&commands),
+            &Chosen::default(),
+        )
+        .unwrap();
+        assert!(!menu.takes_key(ComposerKey::Escape));
+        assert!(menu.takes_key(ComposerKey::Tab));
+        assert!(menu.takes_key(ComposerKey::Enter));
+        assert!(menu.takes_key(ComposerKey::Up));
+        assert!(menu.takes_key(ComposerKey::Down));
     }
 
     #[test]
