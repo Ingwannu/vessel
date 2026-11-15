@@ -210,7 +210,7 @@ impl Shell {
             PullEntry::View { url, .. } => cx.open_url(url.as_str()),
             PullEntry::Unavailable(why) => {
                 let words = why.words(self.words).into_owned();
-                self.toast(words, ToastTone::Info, cx);
+                self.guidance_toast(words, cx);
             }
             PullEntry::Create => self.pulls_open_form(&status, window, cx),
         }
@@ -470,7 +470,7 @@ impl Shell {
             Ok(Opened::Existing(_)) => {
                 pulls.form = None;
                 let done = words.existing().to_owned();
-                self.toast(done, ToastTone::Info, cx);
+                self.guidance_toast(done, cx);
             }
             Ok(Opened::Refused(refusal)) => form.issue = Some(FormIssue::Refused(refusal)),
             Err(problem) => form.issue = Some(FormIssue::Call(problem)),

@@ -289,7 +289,7 @@ impl Shell {
         };
         if !git.writing.begin_action(key, intent) {
             let words = self.t.lang.git_labels().busy;
-            self.toast(words, ToastTone::Info, cx);
+            self.guidance_toast(words, cx);
             return;
         }
         git.issue = None;
@@ -303,7 +303,7 @@ impl Shell {
         match step {
             Step::Explain(reason) => {
                 let words = self.t.lang.git_unavailable(reason);
-                self.toast(words, ToastTone::Info, cx);
+                self.guidance_toast(words, cx);
             }
             Step::Commit => self.git_open_commit(window, cx),
             Step::Switch => self.git_open_switcher(window, cx),

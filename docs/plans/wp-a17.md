@@ -173,3 +173,16 @@ Transport tests use the real NodeClient over bounded framed memory I/O rather
 than a second inbox implementation. The pending validation checkpoint is not
 a delivered package; the whole native gate, actual captures, private D-Bus
 sound-hint proof and V4 review are still required.
+
+## A5 shared toast behavior (coordinator A8 approval, 2026-11-15)
+
+Paseo `app/src/components/toast-host.tsx:66,80-118,127` defines one current
+card, 2200ms ordinary show/copy and 3200ms error-helper duration. All variants
+pause remaining time on hover; whitespace is ignored and sticky is explicit.
+The old native stack, Ok4000ms, Error-forever and Info3200ms default assertions
+are replaced with these expectations by the coordinator's explicit A8 ruling.
+Existing stale-id and hover-replacement tests remain and cover every tone.
+Git/forge guidance uses an explicit 3200ms duration rather than changing the
+shared Info default. Existing Ok is the success semantic tone for callers.
+The kit uses the five reference looks; all areas share this timing change.
+The package report must tell the native lead about the shared timing change.

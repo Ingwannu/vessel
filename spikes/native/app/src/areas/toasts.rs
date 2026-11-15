@@ -1,7 +1,4 @@
-//! The toasts over the window (the page's `ui/toasts.tsx`, drawn as
-//! Paseo's toast host): what an action came to, when the screen it was
-//! asked from has nowhere else to say it. Each stays its life
-//! (`vessel_app_view::toasts`), an error until dismissed.
+//! One current toast above the window, with a keyed hover-paused countdown.
 
 use std::{rc::Rc, time::Instant};
 
@@ -15,34 +12,40 @@ use crate::shell::Shell;
 const GAP: f32 = 8.0;
 
 impl Shell {
-    /// Say `text` in a toast; one that is not an error leaves by itself.
+    /// Show feedback with the reference default or error-helper lifetime.
     pub(crate) fn toast(
         &mut self,
         text: impl Into<String>,
         tone: ToastTone,
         cx: &mut Context<'_, Self>,
     ) {
-        let (id, life) = self.areas.toasts.push(text, tone);
-        if tone == ToastTone::Info {
-            if let Some(wake) = self.areas.toasts.start_info(id, Instant::now()) {
-                Self::schedule_info_toast(wake, cx);
-            }
-        } else if let Some(life) = life {
-            cx.spawn(async move |this, cx| {
-                cx.background_executor().timer(life).await;
-                let _gone = this.update(cx, |shell, cx| shell.dismiss_toast(id, cx));
-            })
-            .detach();
+        let (id, _life) = self.areas.toasts.push(text, tone);
+        if let Some(wake) = self.areas.toasts.start(id, Instant::now()) {
+            Self::schedule_toast(wake, cx);
         }
         cx.notify();
     }
 
-    fn schedule_info_toast(wake: vessel_app_view::toasts::InfoWake, cx: &mut Context<'_, Self>) {
+    /// Guidance keeps the caller's explicit 3200ms reading time; generic Info
+    /// uses the ordinary 2200ms default as every other show variant does.
+    pub(crate) fn guidance_toast(&mut self, text: impl Into<String>, cx: &mut Context<'_, Self>) {
+        let (id, _life) = self.areas.toasts.push_with(
+            text,
+            ToastTone::Info,
+            vessel_app_view::toasts::Lifetime::Timed(vessel_app_view::toasts::INFO_LIFE),
+        );
+        if let Some(wake) = self.areas.toasts.start(id, Instant::now()) {
+            Self::schedule_toast(wake, cx);
+        }
+        cx.notify();
+    }
+
+    fn schedule_toast(wake: vessel_app_view::toasts::ToastWake, cx: &mut Context<'_, Self>) {
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(wake.after()).await;
             let _gone = this.update(cx, |shell, cx| {
-                if let Some(next) = shell.areas.toasts.wake_info(wake, Instant::now()) {
-                    Self::schedule_info_toast(next, cx);
+                if let Some(next) = shell.areas.toasts.wake(wake, Instant::now()) {
+                    Self::schedule_toast(next, cx);
                 }
                 cx.notify();
             });
@@ -50,7 +53,7 @@ impl Shell {
         .detach();
     }
 
-    fn hover_info_toast(
+    fn hover_toast(
         &mut self,
         id: u64,
         event: vessel_app_kit::ToastHover,
@@ -60,8 +63,8 @@ impl Shell {
             vessel_app_kit::ToastHover::Enter => vessel_app_view::toasts::ToastHover::Enter,
             vessel_app_kit::ToastHover::Leave => vessel_app_view::toasts::ToastHover::Leave,
         };
-        if let Some(wake) = self.areas.toasts.hover_info(id, hover, Instant::now()) {
-            Self::schedule_info_toast(wake, cx);
+        if let Some(wake) = self.areas.toasts.hover(id, hover, Instant::now()) {
+            Self::schedule_toast(wake, cx);
         }
     }
 
@@ -87,14 +90,16 @@ pub(crate) fn render(
         .map(|said| {
             let id = said.id;
             let look = match said.tone {
-                ToastTone::Ok => ToastLook::Plain,
+                ToastTone::Default => ToastLook::Plain,
+                ToastTone::Ok => ToastLook::Success,
+                ToastTone::Warning => ToastLook::Warning,
                 ToastTone::Info => ToastLook::Info,
                 ToastTone::Error => ToastLook::Error,
             };
-            let hover = (said.tone == ToastTone::Info).then(|| {
+            let hover = Some({
                 let handler = cx.listener(
                     move |shell: &mut Shell, event: &vessel_app_kit::ToastHover, _window, cx| {
-                        shell.hover_info_toast(id, *event, cx);
+                        shell.hover_toast(id, *event, cx);
                     },
                 );
                 let callback: vessel_app_kit::ToastHovered =
