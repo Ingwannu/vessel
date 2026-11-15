@@ -1739,9 +1739,9 @@ adds no crate edge, setting, format or wire method.
 
 `vessel-proto::diagnostics` owns the validated report, closed section states,
 process values and named collection/output bounds. The canonical RPC table
-registers `node.diagnostics` as a Read-only unary call with a pending protocol.
-Unassigned requests stop at the shared compatibility admission boundary before
-client transmission or server collection. Fleet forwarding is refused; direct
+registers `node.diagnostics` as a Read-only unary call of protocol 24.
+A request to an older peer stops at the shared compatibility admission
+boundary before client transmission or server collection. Fleet forwarding is refused; direct
 authenticated agents retain their effective Read scope.
 
 The node composes facts from their existing owners: Store aggregates, runtime

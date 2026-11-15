@@ -70,12 +70,16 @@ fn failure() -> DiagnosticFailure {
 }
 
 #[test]
-fn feature_is_unassigned_and_refused_by_protocol() {
+fn feature_is_assigned_and_required_by_protocol() {
     use crate::Request as _;
     let method = serde_json::from_str::<crate::Method>(r#""node.diagnostics""#).unwrap();
     assert_eq!(method, crate::Method::Diagnostics);
+    assert!(DIAGNOSTICS_PROTOCOL.is_some());
     assert_eq!(method.since(), DIAGNOSTICS_PROTOCOL);
-    assert_eq!(GetDiagnostics {}.into_call().required_protocol(), None);
+    assert_eq!(
+        GetDiagnostics {}.into_call().required_protocol(),
+        DIAGNOSTICS_PROTOCOL
+    );
 }
 
 #[test]

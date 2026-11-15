@@ -1,13 +1,15 @@
-//! A forced pending method is refused on the welcomed connection before dispatch.
+//! A forced call below its protocol is refused on the welcomed connection before dispatch.
 use super::*;
 use vessel_proto::diagnostics::GetDiagnostics;
 use vessel_proto::{Origin, OriginBy};
 const SAFETY: std::time::Duration = std::time::Duration::from_secs(60);
 const PHASE: std::time::Duration = std::time::Duration::from_secs(20);
 #[tokio::test]
-async fn pending_diagnostics_refuse_correlated_direct_and_nested_before_dispatch() {
+async fn diagnostics_below_their_protocol_refuse_correlated_direct_and_nested_before_dispatch() {
+    let needs = vessel_proto::diagnostics::DIAGNOSTICS_PROTOCOL.unwrap();
+    let previous = vessel_proto::ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
     vessel_testkit::within(SAFETY, async {
-        for version in [vessel_proto::MIN_PROTOCOL_VERSION, vessel_proto::PROTOCOL_VERSION] {
+        for version in [vessel_proto::MIN_PROTOCOL_VERSION, previous] {
             let (mut client, mut served, node) = tokio::time::timeout(PHASE, raw_client_with_node(version.get())).await.expect("raw diagnostic welcome");
             let origin = Origin { node, by: OriginBy::Owner, scopes: Vec::new() };
             let cases = [
@@ -23,7 +25,7 @@ async fn pending_diagnostics_refuse_correlated_direct_and_nested_before_dispatch
                 let ServerFrame::Response { id: got, outcome: Outcome::Err(error) } = frame else { panic!("expected correlated refusal") };
                 assert_eq!(got, RequestId::new(id));
                 assert_eq!(error.code, ErrorCode::Unsupported);
-                assert!(served.seen.try_recv().is_err(), "pending handler must not run");
+                assert!(served.seen.try_recv().is_err(), "a refused handler must not run");
             }
             let text = tokio::time::timeout(PHASE, call_raw(&mut client, u64::MAX, GetNode.into_call())).await.expect("supported call after refusals");
             assert!(matches!(serde_json::from_str::<ServerFrame>(&text).unwrap(), ServerFrame::Response { id, outcome: Outcome::Ok(Reply::NodeInfo(info)) } if id==RequestId::new(u64::MAX) && info.state==NodeState::Serving));

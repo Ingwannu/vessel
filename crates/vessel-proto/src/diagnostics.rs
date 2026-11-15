@@ -52,10 +52,11 @@ pub use version::{
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetDiagnostics {}
 
-/// Unassigned until the shared `required_protocol` accessor is on the node
-/// line and the node, typed client, CLI and native Diagnostics consumer all
-/// refuse an unassigned/older feature. The integrator alone assigns Some.
-pub const DIAGNOSTICS_PROTOCOL: Option<crate::ProtocolVersion> = None;
+/// Protocol 24 (2026-11-15): `node.diagnostics` is served from this version
+/// on; the node, typed client and CLI refuse it below 24 through the shared
+/// `required_protocol` accessor. The integrator alone assigns this number.
+pub const DIAGNOSTICS_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(24));
 
 #[cfg(test)]
 mod tests;

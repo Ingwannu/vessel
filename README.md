@@ -1453,7 +1453,7 @@ The shared CLI presentation boundary is described in
 default listing and accepts explicit JSON/YAML, quiet and headerless output.
 
 `vessel [--node NAME] node diagnostics [--json]` collects a bounded metadata
-report over that node's existing authenticated connection. Its feature is
-pending a protocol assignment, so this checkpoint explicitly refuses before
-sending instead of pretending a local report came from the selected node.
+report over that node's existing authenticated connection. It is served from
+protocol 24 on. Against an older peer the command refuses before sending, so no
+local report stands in for the selected node.
 The command's safe error output omits private connection/source details.

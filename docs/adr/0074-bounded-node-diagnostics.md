@@ -1,6 +1,8 @@
 # ADR 0074: Bounded typed diagnostics from one node
 
-Status: proposed, 2026-11-14.
+Status: proposed, 2026-11-14. Merged on the node line 2026-11-15 and
+assigned protocol 24 (`DIAGNOSTICS_PROTOCOL = Some(24)`); the `None` text
+below describes its review checkpoint.
 
 ## Context and reference evidence
 

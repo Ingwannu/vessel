@@ -1,4 +1,4 @@
-//! Selected-node pending diagnostics are explicit refusals, not local reports.
+//! The selected node answers diagnostics itself, without private debug output.
 use crate::support::{Fixture, within};
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn node_diagnostics_uses_the_selected_node_and_suppresses_private_debug_output() {
@@ -13,9 +13,9 @@ async fn node_diagnostics_uses_the_selected_node_and_suppresses_private_debug_ou
             vec!["node", "diagnostics", "--json"],
         ] {
             let result = fixture.vessel_debug(&args, b"").await;
-            assert!(!result.ok);
-            assert!(result.stdout.is_empty());
-            assert!(result.stderr.contains("protocol number is not assigned"));
+            assert!(result.ok, "{}", result.stderr);
+            assert!(!result.stdout.is_empty());
+            assert!(!result.stdout.contains(private));
             assert!(!result.stderr.contains(private));
             assert!(!result.stderr.contains("client connected"));
         }

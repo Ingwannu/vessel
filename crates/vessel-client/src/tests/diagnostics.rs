@@ -1,4 +1,4 @@
-//! Pending diagnostics must never send a frame, including wrapped calls.
+//! Below its protocol, diagnostics never sends a frame, including wrapped calls.
 use super::*;
 use crate::CallError;
 use futures_util::{SinkExt as _, StreamExt as _};
@@ -8,12 +8,11 @@ use vessel_proto::{Method, Origin, OriginBy, Request as _, ServerFrame, Welcome}
 const SAFETY: std::time::Duration = std::time::Duration::from_secs(60);
 const PHASE: std::time::Duration = std::time::Duration::from_secs(20);
 #[tokio::test]
-async fn diagnostics_pending_direct_self_and_every_envelope_send_no_frame() {
+async fn diagnostics_below_its_protocol_direct_self_and_every_envelope_send_no_frame() {
+    let needs = vessel_proto::diagnostics::DIAGNOSTICS_PROTOCOL.unwrap();
+    let previous = vessel_proto::ProtocolVersion::new(needs.get().checked_sub(1).unwrap());
     vessel_testkit::within(SAFETY, async {
-        for version in [
-            vessel_proto::MIN_PROTOCOL_VERSION,
-            vessel_proto::PROTOCOL_VERSION,
-        ] {
+        for version in [vessel_proto::MIN_PROTOCOL_VERSION, previous] {
             let (client_end, mut node_end) =
                 vessel_rpc::memory::pair(NonZeroUsize::new(4).unwrap());
             let info = node();
@@ -45,9 +44,11 @@ async fn diagnostics_pending_direct_self_and_every_envelope_send_no_frame() {
                 .unwrap_err();
             assert!(matches!(
                 error,
-                crate::DiagnosticError::Call(CallError::UnassignedProtocol {
-                    method: Method::Diagnostics
-                })
+                crate::DiagnosticError::Call(CallError::NotInProtocol {
+                    method: Method::Diagnostics,
+                    needs: got,
+                    negotiated,
+                }) if got == needs && negotiated == version
             ));
             let error = tokio::time::timeout(PHASE, client.call_on(id, GetDiagnostics {}))
                 .await
@@ -55,9 +56,11 @@ async fn diagnostics_pending_direct_self_and_every_envelope_send_no_frame() {
                 .unwrap_err();
             assert!(matches!(
                 error,
-                CallError::UnassignedProtocol {
-                    method: Method::Forward
-                }
+                CallError::NotInProtocol {
+                    method: Method::Forward,
+                    needs: got,
+                    negotiated,
+                } if got == needs && negotiated == version
             ));
             let origin = Origin {
                 node: id,
@@ -89,9 +92,14 @@ async fn diagnostics_pending_direct_self_and_every_envelope_send_no_frame() {
                     .await
                     .expect("diagnostic recursive admission")
                     .unwrap_err();
-                assert!(
-                    matches!(error, CallError::UnassignedProtocol { method: got } if got == method)
-                );
+                assert!(matches!(
+                    error,
+                    CallError::NotInProtocol {
+                        method: got,
+                        needs: required,
+                        negotiated,
+                    } if got == method && required == needs && negotiated == version
+                ));
             }
             drop(client);
             assert!(
