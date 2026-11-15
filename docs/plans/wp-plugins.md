@@ -344,3 +344,11 @@ No EOF/descendant-death proof is inferred from timeout, and timeout still refuse
 lifecycle acknowledgement. The guard's emergency flush is best effort only on
 already-failed/cancelled reader paths; successful EOF flushes errors normally.
 No new deadline, signal implementation or public method is introduced.
+
+The6fe strict check compiled the runtime/proto/node graph, then refused ten
+expect/panic uses in integration-test helpers: the combined crate-level cfg
+did not classify those helper functions as test context for Clippy. The fixture
+file now uses the ordinary literal cfg(test) module, retaining its separate
+fixture-feature gate and all assertions. No lint allowance or product panic is
+added. The original failed log remains evidence; changed-head strict and actual
+feature-enabled tests are still required, including the later stderr cases.
