@@ -454,3 +454,11 @@ new MCP integration helpers provider_discovery and drive_session_and_check_owner
 They now carry explicit cfg(test), preserving every shape and ownership assertion.
 Earlier seven-helper errors no longer appear. This failed run does not establish
 an overall strict PASS; latest union/flags/import checks remain owed.
+
+The exact 1b32 functional replacement reached the short lane's 600-second
+limit: completed targets report358/0/1, including node lib263 and every MCP
+integration target. Node e2e was only partway through comparison cases; the
+settings set-aside regressions and later proto/store targets did not complete
+in that run. Therefore the old two settings failures are not yet called fixed
+by execution. Remaining tests move to the ordinary lane on the latest union,
+which also includes the signal base, startup flags and positive import test.
