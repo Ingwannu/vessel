@@ -462,3 +462,32 @@ fn terminal_revisions_share_hydration_retirement_and_once_only_delivery() {
     assert!(fake.read(&mut inbox).is_empty());
     assert!(inbox.take_terminal_notices().is_empty());
 }
+
+#[test]
+fn aliases_of_one_node_keep_one_stable_read_admission_without_double_counting() {
+    let mut fake = FakeNode::new("first");
+    let second = Source::new(
+        fake.epochs
+            .admit(
+                crate::connection::MachineKey::from_book("second"),
+                fake.source.node(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let mut inbox = Inbox::default();
+    inbox.connect(fake.source.clone());
+    let sources = inbox.read_routes([second.clone(), fake.source.clone()]);
+    assert_eq!(sources, vec![fake.source.clone()]);
+    assert!(fake.read(&mut inbox).is_empty());
+    assert_eq!(inbox.counts(), fake.snapshot.counts);
+    let old_ticket = inbox.begin(fake.source.node()).unwrap().unwrap();
+    let replacement = inbox.read_routes([second.clone()]);
+    assert_eq!(replacement, vec![second.clone()]);
+    inbox.connect(second);
+    assert!(
+        !inbox
+            .receive_visible(fake.source.node(), old_ticket, Ok(fake.snapshot))
+            .0
+    );
+}

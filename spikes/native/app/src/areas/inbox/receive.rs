@@ -37,6 +37,21 @@ impl Shell {
                 }
             }
             Answer::Targets(Ok(targets)) => {
+                let sources = self
+                    .areas
+                    .inbox
+                    .store
+                    .read_routes(targets.iter().filter_map(|target| match target {
+                        Target::Online(source) => Some(source.clone()),
+                        Target::Offline(_) => None,
+                    }));
+                let targets: Vec<_> = targets
+                    .into_iter()
+                    .filter(|target| match target {
+                        Target::Online(source) => sources.contains(source),
+                        Target::Offline(_) => true,
+                    })
+                    .collect();
                 changed = self.areas.inbox.targets != targets || self.areas.inbox.problem.is_some();
                 self.inbox_targets(targets, cx);
             }

@@ -369,3 +369,10 @@ reference workspace aggregation, distinct global icon priority and per-workspace
 badge count for that future adapter. It consumes eligible workspace facts rather
 than guessing membership from a path or counting tabs. Native favicon is absent
 as in Paseo native; the existing window title remains the current count surface.
+
+Several saved aliases can authenticate as the same node. Inbox chooses one read
+admission per node and retains that exact context while available, so aliases do
+not double-count shared rows or reset hydration on every poll. This selection is
+only for new reads/presence. An already-issued mark, answer, claim or clear keeps
+its original admission and never retries through the replacement. A regression
+covers duplicate aliases and rejection of a ticket from the retired read route.
