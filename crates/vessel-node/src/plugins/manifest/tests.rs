@@ -222,3 +222,42 @@ fn duplicate_and_unknown_helper_targets_refuse_the_whole_manifest() {
         Err(ManifestError::Decode(_))
     ));
 }
+
+#[test]
+fn broader_author_targets_never_imply_release_eligibility() {
+    assert!(Target::LinuxX64.eligible());
+    assert!(Target::WindowsX64.eligible());
+    for target in [
+        Target::LinuxArm64,
+        Target::LinuxMuslX64,
+        Target::LinuxMuslArm64,
+        Target::MacX64,
+        Target::MacArm64,
+        Target::WindowsArm64,
+    ] {
+        assert!(!target.eligible());
+    }
+    let helper = r#"{"target":"x86_64-unknown-linux-musl","protocol":1,"program":"bin/helper"}"#;
+    let source = format!(
+        r#"{{"format":"vessel.plugin/v1","id":"helper","requirements":{{"node":23,"client":23}},"helpers":[{helper}]}}"#
+    );
+    let manifest = decode(&source).expect("author schema data");
+    assert!(matches!(
+        manifest.helper(Target::LinuxMuslX64),
+        Err(ManifestError::UnsupportedTarget)
+    ));
+    match env!("VESSEL_TARGET") {
+        "x86_64-unknown-linux-gnu" => assert_eq!(
+            Target::compiled().expect("compiled GNU target"),
+            Target::LinuxX64
+        ),
+        "x86_64-pc-windows-msvc" => assert_eq!(
+            Target::compiled().expect("compiled MSVC target"),
+            Target::WindowsX64
+        ),
+        _ => assert!(matches!(
+            Target::compiled(),
+            Err(ManifestError::UnsupportedTarget)
+        )),
+    }
+}

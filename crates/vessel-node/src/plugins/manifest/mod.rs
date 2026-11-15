@@ -49,6 +49,24 @@ enum Target {
     WindowsArm64,
 }
 
+impl Target {
+    // R's release contract: broader labels are author data, not a support
+    // claim. A third eligible target must first join R's qualified matrix.
+    fn eligible(self) -> bool {
+        matches!(self, Self::LinuxX64 | Self::WindowsX64)
+    }
+
+    fn compiled() -> Result<Self, ManifestError> {
+        // Node build.rs exports Cargo TARGET including libc/ABI. The updater's
+        // OS/arch-only feed Target and SSH discovery cannot establish this.
+        match env!("VESSEL_TARGET") {
+            "x86_64-unknown-linux-gnu" => Ok(Self::LinuxX64),
+            "x86_64-pc-windows-msvc" => Ok(Self::WindowsX64),
+            _unsupported_build_triple => Err(ManifestError::UnsupportedTarget),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Requirements {
@@ -186,6 +204,9 @@ impl Manifest {
     }
 
     fn helper(&self, target: Target) -> Result<&Helper, ManifestError> {
+        if !target.eligible() {
+            return Err(ManifestError::UnsupportedTarget);
+        }
         self.0
             .helpers
             .iter()
