@@ -10,6 +10,7 @@ use vessel_proto::{
     limits::{AccountLimitState, LimitFailure},
     usage_reports::SourceReportState,
 };
+const BINDING_REGRESSION_BUDGET: std::time::Duration = std::time::Duration::from_secs(20);
 struct Fake {
     current: RwLock<Binding>,
     registry: Registry,
@@ -63,7 +64,7 @@ async fn configuration_a_b_a_never_publishes_bs_values_under_as_id() {
             retry_at: None,
         },
     ] {
-        tokio::time::timeout(std::time::Duration::from_secs(20), async {
+        tokio::time::timeout(BINDING_REGRESSION_BUDGET, async {
             let root = tempfile::Builder::new()
                 .prefix("vessel-test-usage-captured-")
                 .tempdir()
