@@ -9,7 +9,8 @@ mod state;
 pub use meter::{DisplayMeter, InvalidLevel, Level, SpeechActivity, Telemetry};
 
 pub use state::{
-    Applied, Availability, Generation, Mute, Phase, StartStep, State, Target, TransitionError,
+    Applied, Availability, Generation, Mute, Overlay, Phase, StartStep, State, Target,
+    TransitionError,
 };
 
 #[cfg(test)]

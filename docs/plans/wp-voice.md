@@ -273,3 +273,11 @@ work. Dictation capture uses noise suppression/gain only; AEC requires an actual
 render reference and is not claimed for the capture-only API. No node call or
 readiness is invented by acquisition. Narrow compile/tests are owed before
 publishing a consumer-ready hash to W12b.
+
+The pure voice overlay now exposes Absent/Switching(Mute)/Active(Mute), derived
+from the existing ownership state. Stopping retains the last mute value, so an
+uncertain cleanup does not redraw a muted microphone as open or re-enable a
+handler. Switching disables both actions and replaces only Stop with the shared
+spinner, matching realtime-voice-overlay.tsx. Actual renderer consumes G2's
+reviewed exact Circle profile when available; the pending source checkpoint is
+not imported as ready.

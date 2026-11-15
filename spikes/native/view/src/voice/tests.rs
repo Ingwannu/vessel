@@ -133,3 +133,21 @@ fn rejected_transcript_does_not_start_a_turn() {
     );
     assert_eq!(state.phase(), Phase::Listening);
 }
+
+#[test]
+fn overlay_disables_both_actions_through_switching_and_keeps_the_last_mute_icon() {
+    let mut state = State::default();
+    assert_eq!(state.overlay(), Overlay::Absent);
+    let generation = state.start(target(), Availability::Ready).unwrap();
+    assert_eq!(state.overlay(), Overlay::Switching(Mute::Open));
+    assert_eq!(state.node_ready(generation).unwrap(), Applied::Current);
+    assert_eq!(state.capture_ready(generation).unwrap(), Applied::Current);
+    assert_eq!(state.overlay(), Overlay::Active(Mute::Open));
+    assert_eq!(state.toggle_mute().unwrap(), Mute::Muted);
+    assert_eq!(state.stop().unwrap(), generation);
+    assert_eq!(state.overlay(), Overlay::Switching(Mute::Muted));
+    assert_eq!(state.toggle_mute(), Err(TransitionError::Inactive));
+    assert!(!state.can_upload(generation));
+    assert_eq!(state.stopped(generation).unwrap(), Applied::Current);
+    assert_eq!(state.overlay(), Overlay::Absent);
+}

@@ -64,6 +64,17 @@ pub enum Phase {
     Stopping,
 }
 
+/// Overlay controls are derived from ownership; switching cannot attach actions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Overlay {
+    /// No overlay is drawn.
+    Absent,
+    /// Both controls disabled; Stop shows the shared spinner, mute keeps its icon.
+    Switching(Mute),
+    /// Both controls may act for this same active generation.
+    Active(Mute),
+}
+
 /// Node enable precedes capture; a device cannot start on speculative readiness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StartStep {
@@ -101,6 +112,7 @@ enum Mode {
     Stopping {
         target: Target,
         generation: Generation,
+        mute: Mute,
     },
 }
 
@@ -159,6 +171,18 @@ impl State {
                 LivePhase::Waiting => Phase::Waiting,
                 LivePhase::Playing => Phase::Playing,
             },
+        }
+    }
+
+    /// Preserve the previous mute icon through uncertain cleanup; never infer
+    /// actionable controls from a route or an independently mutable boolean.
+    #[must_use]
+    pub const fn overlay(&self) -> Overlay {
+        match self.mode {
+            Mode::Disabled => Overlay::Absent,
+            Mode::Starting { .. } => Overlay::Switching(Mute::Open),
+            Mode::Stopping { mute, .. } => Overlay::Switching(mute),
+            Mode::Live { mute, .. } => Overlay::Active(mute),
         }
     }
 
@@ -347,17 +371,24 @@ impl State {
     /// # Errors
     /// A disabled conversation has nothing to stop; repeated stop is Busy.
     pub fn stop(&mut self) -> Result<Generation, TransitionError> {
-        let (target, generation) = match self.mode {
+        let (target, generation, mute) = match self.mode {
             Mode::Starting {
                 target, generation, ..
-            }
-            | Mode::Live {
-                target, generation, ..
-            } => (target, generation),
+            } => (target, generation, Mute::Open),
+            Mode::Live {
+                target,
+                generation,
+                mute,
+                ..
+            } => (target, generation, mute),
             Mode::Stopping { .. } => return Err(TransitionError::Busy),
             Mode::Disabled => return Err(TransitionError::Inactive),
         };
-        self.mode = Mode::Stopping { target, generation };
+        self.mode = Mode::Stopping {
+            target,
+            generation,
+            mute,
+        };
         Ok(generation)
     }
 
