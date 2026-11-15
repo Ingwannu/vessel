@@ -321,3 +321,32 @@ at most one Cancel naming the original RPC id; every new input, different-id
 control frame or repeated Cancel still fails. EOF or a bounded no-frame interval
 ends the probe. Product timeout behavior is unchanged. App tests are bin targets
 and were excluded by the --lib filter; no app runtime pass is claimed.
+
+
+## Resident cutover adapter (awaiting the self-contained producer)
+
+Existing assets are the retained TextField/source callbacks, ConversationArea's
+form state, the response single-flight policy, W12's sole resident registry and
+G4's authenticated connection lease. No second session/pane identity map is
+introduced. The withdrawn1720 producer is not adopted.
+
+The intended owner adapter uses a retained question-form entity carrying the
+canonical SessionContext and emits typed form events back to Shell. Existing
+TextField::with_source can target that entity, so immutable callback function
+pointers do not need a new toolkit context/closure API or a global-selected-area
+swap. Shell must resolve and validate the canonical resident before a form event
+can affect its draft; moving/hiding the panel keeps its real input entity.
+
+Request submission must use canonical FollowBinding/OperationTicket admission
+and G4's actual connection lease; the present request registry's local correlation
+policy cannot become an independent identity or authority manager. The exact
+producer resource getters/retirement API must land before wiring this adapter.
+A retired reply can release only its own admission, never clear a new draft,
+close a pane or resend an answer.
+
+Until a concrete, safely restorable request snapshot exists, active forms, IME,
+in-flight answers and uncertain effects return the producer's typed Hold and
+block eviction. A pending node request is retained beyond the provider turn
+according to its declared lifetime. No snapshot is a clone/swap of globally
+selected conversation state, and no hidden form claims focus or read ownership.
+This section is an implementation boundary, not runtime/visibility evidence.
