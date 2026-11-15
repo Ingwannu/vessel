@@ -199,6 +199,12 @@ Notification activation can select the exact Inbox terminal row meanwhile.
 5. Whole root/native gates, assigned-wire tests, private fleet captures,
    actual D-Bus SuppressSound proof, final V4 and lead handoff.
 
+The coordinator assigned adjacent tracker618 to orchestration: W18 owns finish
+subscriptions and restart recovery through existing ADR0033 automation::notices
+and the notify watcher; W10 owns timeline notification rendering. A5 adds no
+second watcher or wire. The old restart assumption needs an ADR0033 amendment
+in that owner package; it is not an OS notification implementation here.
+
 ## Stated native differences
 
 Durable Inbox follows Vessel ADR 0040; it is not a second copy of Paseo flags.
