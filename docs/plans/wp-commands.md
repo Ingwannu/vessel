@@ -1,15 +1,12 @@
 # F4 command center and keyboard parity
 
-Status: implementation in progress on gated shared base c5263270 (merged8c69b8243;
-prior d18bb794 merged612b26df6,
-prior dd13ce378 merged5a54c0aca and18eedad4 merged7e9cc3d09),
-with exact
-canonical value prerequisite e46cd57b and portable W12 producer 9480d4d0
-(adopted as ad8f4931b). S2's exact theme/input dependency eddce254 is reviewed V1 PASS.
-Canonical defaults, dispatcher, Settings/help and source projection are written;
-combined strict checks, feature-owner integration and package verification remain open.
-No command-center or keyboard tracker row is passed. No new node RPC is needed
-for this package's mechanics; feature-owned RPC targets remain with their owners.
+Status: implementation in progress on announced base9b a7aab9d6. The latest
+checked F4 slice is exact547b2d72e (App strict0 and App139/0/2); the newer
+base9b union still requires consumer checks. Canonical defaults, dispatcher,
+Settings/help and source projection are written. Feature-owner integration and
+final package verification remain open; no command-center or keyboard tracker
+row is passed. No new node RPC is needed for the mechanics; resource and RPC
+admission stays with feature owners. Historical source/evidence is recorded below.
 
 ## Existing assets and choice
 
@@ -942,3 +939,12 @@ still required before consumer activation. Primary reference root inventory
 uses import-session rank2 (Home is rank3); an earlier coordination message
 incorrectly said rank3, corrected before any implementation. Existing owner
 modal/title/callback is reused; popup/automatic open stay parked.
+
+Announced base9b a7aab9d6 is merged only after R20/R13 completed. Architecture
+notes retain both the command-owner explanation and incoming registry/lifetime
+contracts. SearchField keeps its existing TextField factory and thus the SAME
+line composition registration; FieldId/FormMinimum and ONE multiline/editor
+registration remain. Dialog header actions retain the actual overlay marker.
+Production Window zoom availability alone does not enable F4's three extensions
+before W19's checked adapter. New node registry values are canonical data, not
+a checked native workspace navigation producer. New union checks remain owed.

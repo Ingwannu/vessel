@@ -42,7 +42,7 @@ use std::sync::Arc;
 
 use vessel_harness::Profile;
 use vessel_proto::{
-    AgentSecret, Creator, HarnessRef, McpServerName, McpTransport, NodeId, OriginBy, RemoteCreator,
+    AgentSecret, Creator, HarnessRef, McpServerName, McpTransport, OriginBy, RemoteCreator,
     ResolvedMcpServers, ResolvedValue, SecretName, SessionId, SessionInfo, SessionOrigin,
     SessionSpec,
 };
@@ -443,17 +443,6 @@ fn origin(principal: &Principal) -> Option<SessionOrigin> {
         node: origin.node,
         by,
     })
-}
-
-/// Whether `creator` is an agent session of `node`: the session, if so.
-pub(crate) fn agent_session(creator: &Creator, node: NodeId) -> Option<SessionId> {
-    match creator {
-        Creator::Agent {
-            node: agent_node,
-            session,
-        } if *agent_node == node => Some(*session),
-        Creator::Agent { .. } | Creator::Owner | Creator::Device { .. } => None,
-    }
 }
 
 #[cfg(test)]
