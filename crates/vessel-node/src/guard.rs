@@ -70,13 +70,19 @@ macro_rules! guarded {
         impl Handler for Guarded {
             type Context = Connection;
 
-            $( guarded_method!($shape, $handler, $request, $response); )*
+            $( guarded_method!($protocol, $shape, $handler, $request, $response); )*
         }
     };
 }
 
+// A staged row (`(staged FEATURE)`: values without a runtime) gets nothing
+// here: the protocol's `Handler` answers it `Unsupported` by default, and
+// no `NodeService` method exists to forward to. The package that wires it
+// turns the row into `(pending FEATURE)`, and from then on this macro
+// requires its service method like any other row's.
 macro_rules! guarded_method {
-    (envelope, $handler:ident, $request:ty, $response:ty) => {
+    ((staged $feature:path), $shape:ident, $handler:ident, $request:ty, $response:ty) => {};
+    ($protocol:tt, envelope, $handler:ident, $request:ty, $response:ty) => {
         async fn $handler(
             &self,
             connection: &Connection,
@@ -92,7 +98,7 @@ macro_rules! guarded_method {
             self.0.$handler(connection, request, self).await
         }
     };
-    ($shape:ident, $handler:ident, $request:ty, $response:ty) => {
+    ($protocol:tt, $shape:ident, $handler:ident, $request:ty, $response:ty) => {
         async fn $handler(
             &self,
             connection: &Connection,

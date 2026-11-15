@@ -1455,3 +1455,7 @@ attempt is never retried automatically. The node implementation is under
 verification. Its explicit settings read and CLI options `--resume-on-startup`
 and `--resume-prompt` remain unavailable until the feature protocol is assigned;
 ordinary settings operations retain their existing behavior.
+
+The shared CLI presentation boundary is described in
+[W17 output seam](docs/plans/wp-w17-output.md). Configured `models` preserves its
+default listing and accepts explicit JSON/YAML, quiet and headerless output.
