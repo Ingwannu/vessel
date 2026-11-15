@@ -231,3 +231,23 @@ The decision log is in `spikes/release/updater/src/stage.rs`. In short:
     `/dl/` installer when the line is slow.
   - The feed's address, token, key and schema are unchanged.
   - Between attempts, up to one set's files stay beside the app.
+- **The command line on PATH (agreed with W19, 2026-11-15).** The app's
+  "install the command line" adds exactly `<app>\bin` to the user's PATH
+  (HKCU `Environment\Path`, REG_EXPAND_SZ); there is no `vessel.cmd`
+  trampoline (cmd.exe reads batch files in the OEM code page, so a
+  non-ASCII path in one is misread).
+  - The uninstaller (`un.RemoveBinFromPath`) takes exactly that entry out
+    again, ignoring case as Windows does. It keeps every other entry
+    unexpanded and writes REG_EXPAND_SZ, deleting the value if nothing is
+    left, then broadcasts `WM_SETTINGCHANGE "Environment"`.
+  - It leaves a PATH of 1023 characters or more untouched. NSIS strings
+    stop there (`NSIS_MAX_STRLEN` 1024 in the build's makensis), and
+    writing back a cut value would lose the rest. An entry for a folder
+    that is gone does nothing.
+  - Under wine (scratch prefix, `test-path.sh`):
+    - `C:\a;<bin>;%USERPROFILE%\b` became `C:\a;%USERPROFILE%\b`
+      (REG_EXPAND_SZ).
+    - `<bin>` alone removed the value.
+    - A 1,479-character PATH stayed as it was.
+    - A PATH without the entry was untouched.
+  - Not shown on real Windows.

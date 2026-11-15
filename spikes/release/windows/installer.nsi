@@ -59,6 +59,13 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 BrandingText "${NAME} ${LABEL}"
 
 !include "MUI2.nsh"
+!include "LogicLib.nsh"
+!include "StrFunc.nsh"
+!include "WinMessages.nsh"
+; StrFunc's replace, for the uninstaller (ADR 0094: the command line's
+; folder in the user's PATH). Its comparison ignores case, as Windows'
+; paths do.
+${UnStrRep}
 
 !define MUI_ABORTWARNING
 ; The mark (docs/design/brand/): the app's icon for the installer and the
@@ -126,6 +133,42 @@ Section "Vessel"
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoRepair" 1
 SectionEnd
 
+;; The app's "install the command line" (W19) adds exactly "<app>\bin" to
+;; the user's PATH (HKCU\Environment, REG_EXPAND_SZ); its uninstaller takes
+;; exactly that entry out again, keeping every other entry and the value's
+;; type, and tells running programs the environment changed.
+;; NSIS strings hold NSIS_MAX_STRLEN - 1 characters (1023 in the build's
+;; makensis): a longer PATH would come back cut short, and writing it back
+;; would lose the rest. It is left as it is then; an entry for a folder
+;; that is gone does nothing.
+Function un.RemoveBinFromPath
+  ClearErrors
+  ReadRegStr $0 HKCU "Environment" "Path"
+  ${If} ${Errors}
+    Return
+  ${EndIf}
+  StrLen $1 $0
+  IntOp $2 ${NSIS_MAX_STRLEN} - 1
+  ${If} $1 >= $2
+    Return
+  ${EndIf}
+  ; Separators on both ends, so the entry matches whole wherever it is.
+  StrCpy $3 ";$0;"
+  ${UnStrRep} $3 $3 ";$INSTDIR\bin;" ";"
+  StrCpy $3 $3 "" 1
+  StrCpy $3 $3 -1
+  StrLen $4 $3
+  ${If} $4 == $1
+    Return
+  ${EndIf}
+  ${If} $3 == ""
+    DeleteRegValue HKCU "Environment" "Path"
+  ${Else}
+    WriteRegExpandStr HKCU "Environment" "Path" $3
+  ${EndIf}
+  SendMessage ${HWND_BROADCAST} ${WM_SETTINGCHANGE} 0 "STR:Environment" /TIMEOUT=5000
+FunctionEnd
+
 Section "Uninstall"
   Delete "$SMPROGRAMS\${NAME}.lnk"
   Delete "$INSTDIR\${EXE}"
@@ -146,6 +189,7 @@ Section "Uninstall"
   Delete "$INSTDIR\bin\vessel.exe.old-*"
   Delete "$INSTDIR\bin\vesseld.exe.old-*"
   RMDir "$INSTDIR\bin"
+  Call un.RemoveBinFromPath
   Delete "$INSTDIR\.vessel-update-*"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"
