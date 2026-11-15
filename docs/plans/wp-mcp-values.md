@@ -119,3 +119,16 @@ wire type. One corrected TS run,
 `wp-mcp-values-ts-20261115T155003Z-a1245f8e`, is queued. Generated-byte adoption,
 current-source freshness, receiving union and announced integration remain owed.
 Failed logs are retained and no earlier subset is called a whole-package pass.
+
+## Generated Skills wire received
+
+Run `wp-mcp-values-ts-20261115T155003Z-a1245f8e` executed all five selected TS
+checks successfully (proto three, web two). The step still returned rc1 solely
+because it generated one changed tracked file, `web/src/wire/proto.ts` (`ts diff:
+1 files`); this is generation, not an all-green freshness result. Its complete
+artifact manifest/source commit and all SHA256 entries were verified. Bridge
+and calls declarations are byte-identical to the current carrier. Only the
+runner's exact generated proto patch is adopted; no generated type was edited
+by hand. Rust generator inputs are unchanged since the source of that artifact
+apart from documentation. Exact committed-file freshness is checked next; the
+failed-generation receipt remains retained and no early adoption is claimed.
