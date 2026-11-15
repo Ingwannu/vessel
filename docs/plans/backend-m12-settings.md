@@ -734,3 +734,47 @@ branches); the control's caller still runs once and an outside neighbour
 still receives its click. The final kit all-targets narrow Clippy passed
 after splitting the audit parent wrapper from its row composition. Next:
 complete native gate and fresh live parent-release captures.
+
+### Rename package: completed source and gate evidence (2026-11-15)
+
+The preceding queued/resume statements are historical. The parent-release
+control is committed as `990da6dc` and passed independent V1 source/gate
+review. Run `settings2-20261115T052611Z-990da6dc` ran all six native steps
+without a skip, all exit zero: 1,170 passed, zero failed, one ignored.
+The step log SHA-256 is
+`a79854cc5735ec197af1da4ea732a9f37c9bf3593bb1d1624e1f38edb6c70ecf`.
+The actual before-change regression failed with caller one and parent
+release one; after the change it passes with caller one and parent zero.
+Disabled retains no handler and the outside neighbour remains reachable.
+
+Fresh release captures use the completed normal build of `990da6dc`, not
+the earlier executable. The `rename-release` set has 74 images: four
+window sizes, English/Korean, dark/light, plus the requested 1.25/1.5/2
+scales. All physical dimensions match; every idle/hover pair is equal.
+One English dialog title was missed by OCR; the retained original was
+opened and its title, input and footer are visible. The parent-release
+audit's two theme sets agree with the event regression. These captures
+and the long-name consumer evidence are submitted for visual review;
+the source/gate disposition alone does not approve them.
+
+The deliberately overlapping later sibling still receives a click along
+with rename in both theme audits. Its neighbour-only expectation remains
+failed. No product layout at the checked release head puts a clickable
+sibling beneath this control. This is the coordinator's deferred global
+button occlusion policy, not a claimed fix or a removed test. Select-all
+and the inherited Remove-with-glyph implementation remain outside this
+parent-isolation approval.
+
+Next: wait for the native lead's validated package base before changing
+field source. Then split field presentation and colour projection from
+state/registration/events without changing behaviour; commit the move
+separately before adding select-all. The new A14 package rule applies:
+small commits receive narrow checks, one full gate and capture submission
+at the end of the user-visible package.
+
+Diagnostics remains explicitly local app facts. N1 has approved bounded
+value types, but no public request, client call or assigned protocol yet.
+Do not register a stub or duplicate the node collector. Wire it only after
+the actual producer handoff, using the existing admitted identity and
+request-generation mechanisms. Node update awaits nodectl's ADR/call;
+Plugins belongs to its separate package owner.
