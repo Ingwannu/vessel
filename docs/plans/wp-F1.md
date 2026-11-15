@@ -1270,3 +1270,19 @@ receipt. Its inherited1450/0/2 is not this combined F1's gate. Shared field file
 remain untouched pending G3's checked SearchField baton. Temporary picker-control
 label retirement follows the checked handoff; raw logs remain local immutable
 scratch even after the VM's regenerable label cache is removed.
+
+
+### Typed form option slot, existing leading defaults preserved
+
+[Decision Log]
+- Purpose: remove the remaining16-vs18 source mismatch for Folder/Brain options.
+- Existing asset: Leading/row_leading already own every picker leading slot;
+  Source schedule-form-sheet.tsx967–1020/1066–1071 uses icon16 inside frame18.
+- Choice: add explicit Leading::FormGlyph, rendered by the same row helper,
+  and move the unchanged leading enum to its child with the original re-export.
+- Why: no area sizing wrapper/new glyph/second renderer; no existing16/14/dot/
+  mark/profile is resized. Moving the data type frees root line headroom instead
+  of raising the current615 record. E2's separate dot8 reservation is not taken.
+- Impact: literal defaults plus actual wrapper/child bounds tests in both themes
+  are authored; final F1 checks/first-use remain owed. The isolated approved99
+  source and its186 result are untouched and do not prove this new profile.

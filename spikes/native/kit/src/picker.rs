@@ -50,9 +50,11 @@ use crate::widgets::TypeExt as _;
 mod combobox;
 mod focus;
 mod keys;
+mod leading;
 mod lifecycle;
 pub use combobox::{ComboboxContent, ComboboxWidth, combobox, combobox_with};
 use keys::key_handler;
+pub use leading::Leading;
 use lifecycle::RenderLease;
 mod rows;
 mod send;
@@ -279,24 +281,6 @@ pub fn anchor_probe(cell: &Rc<Cell<Option<Bounds<Pixels>>>>) -> AnyElement {
     .left_0()
     .size_full()
     .into_any_element()
-}
-
-/// What leads a row.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Leading {
-    /// A glyph, muted.
-    Glyph(Glyph),
-    /// A glyph in the foreground: a permissions mode's mark (Paseo's
-    /// `ModeComboboxOption` draws its `DensityIcon` with `color="foreground"`).
-    Mark(Glyph),
-    /// A 14-point leading glyph, as Paseo’s branch-switcher renderOption.
-    SmallGlyph(Glyph),
-    /// An official agent mark, or the generic bot when unknown.
-    AgentMark(Option<crate::agent_mark::Artwork>),
-    /// A state's dot (a machine).
-    Dot(Hsla),
-    /// A project's mark: its initial on a tile ([`initial_tile`]).
-    Initial(SharedString),
 }
 
 /// A project's mark as Paseo draws one without an icon of its own

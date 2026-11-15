@@ -1562,3 +1562,7 @@ family; field.rs now fits the ordinary size budget. Caller still checks original
 form visit, current source id, connection and authority; FieldId alone is none
 of those capabilities. New keyboard/Unicode/readonly/minimum cases are source
 only at this checkpoint; narrow/source review and consumer proof remain owed.
+
+Form option glyphs may opt into picker::Leading::FormGlyph (glyph16/frame18),
+using the same row renderer; existing leading variants keep their dimensions.
+Leading remains re-exported from picker. No area sizing wrapper is required.

@@ -80,6 +80,7 @@ const fn leading_width(leading: &Leading) -> Option<f32> {
         Leading::Dot(_) => Some(14.0),
         Leading::SmallGlyph(_) => Some(SMALL_ROW_GLYPH),
         Leading::AgentMark(_) => None,
+        Leading::FormGlyph(_) => Some(FORM_ROW_EXTENT),
     }
 }
 
@@ -221,6 +222,17 @@ fn row_words(row: &ComboRow, tokens: &Tokens) -> Div {
 pub(super) const ROW_GLYPH: f32 = 16.0;
 /// Paseo’s branch-switcher supplies its own 14-point leading slot.
 pub(super) const SMALL_ROW_GLYPH: f32 = 14.0;
+/// Source form `optionIconBox`, containing a 16-point Folder/Brain glyph.
+const FORM_ROW_EXTENT: f32 = 18.0;
+fn form_glyph(which: Glyph, tokens: &Tokens) -> Div {
+    div()
+        .flex_none()
+        .size(px(FORM_ROW_EXTENT))
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(glyph(which, ROW_GLYPH, tokens.neutral.foreground_muted))
+}
 
 /// What leads a row.
 fn row_leading(
@@ -264,6 +276,7 @@ fn row_leading(
             .child(div().size(px(6.0)).rounded_full().bg(color))
             .into_any_element(),
         Leading::Initial(initial) => initial_tile(initial, tokens).into_any_element(),
+        Leading::FormGlyph(which) => form_glyph(which, tokens).into_any_element(),
     }
 }
 
@@ -414,3 +427,6 @@ fn enabled_row<V: 'static>(
             cx.notify();
         }))
 }
+
+#[cfg(test)]
+mod form_tests;
