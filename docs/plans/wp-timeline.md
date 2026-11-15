@@ -1,9 +1,9 @@
 # Conversation stream parity
 
-Status: A7 native rendering is being filled in on app line `9e18cf0d`
-(base5 plus W12's checked shared pane producer);
+Status: A7 native rendering is being filled in on app line `dd13ce378`
+(base6, W12 panel seam, G4 preflight, G2 modal-menu seam and lock fix);
 canonical protocol and resident-context consumption remain pending their owners'
-verified hashes. A8 approvals/questions belong to W4. Updated 2026-11-15T10:30Z.
+verified hashes. A8 approvals/questions belong to W4. Updated 2026-11-15T11:39Z.
 
 ## Reference and asset check
 
@@ -751,3 +751,26 @@ than emitting a dangling surrogate. Only the summary is shortened; the body stay
 literal/selectable. One cached enum adapter supplies complete EN/KO event labels.
 Canonical Plan detection also respects provenance priority. This is source/typed
 fixture work pending checked node fields, runtime and final native validation.
+
+
+### Latest source and verification boundaries
+
+`ba743c98` passed strict all-target app/view/kit Clippy in
+`wp-timeline-narrow-20261115T105149Z-ba743c98`; it includes the first guarded
+read-only projection adapter, but excludes later prose, canonical Plan precedence,
+open-sheet rebasing, provenance and base6 changes. Its helper was handed off as
+checked source, with GPUI/package review still explicitly pending.
+
+App base6 `18eedad4` merged as `8173f6073`; only the shared app line was imported,
+not the moving node branch. W2's strict-checked five-file canonical child identity
+values `0560af73` merged as `4dd2dd7a4`, without methods/events/runtime. Shared line
+`dd13ce378` (including its Cargo.lock correction) then merged as `94d80c9c5`.
+There are still no W10-authored node implementation changes.
+
+L accepted the exact `76fb22fa` four timeline FTL files, including corrected 추론
+and six delivery/sender keys. This is wording/data only, separate from renderer,
+authority, number formatting or gates. The current provenance Clippy and newer
+model/app/kit tests are queued on fixed commits. The old56 app/kit attempt failed
+only the missing InteractiveElement import, already fixed in629404149; it did
+not execute those tests and is not a runtime pass. The replacement uses the
+current immutable94 source. Whole gate, captures and V4 remain owed.
