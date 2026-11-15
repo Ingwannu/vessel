@@ -27,6 +27,10 @@ impl Shell {
             let book_changed = !self.areas.schedules.data.page.keys().eq(keys.iter());
             self.areas.schedules.data.page.machines(&keys);
             let admission_changed = self.areas.schedules.data.page.admissions(&self.fleet);
+            let editor_changed = self.areas.schedules.data.editor.reconcile(&self.fleet);
+            if editor_changed && self.route == Route::Schedules {
+                cx.notify();
+            }
             if book_changed || admission_changed {
                 self.schedules_due();
             }
@@ -38,7 +42,7 @@ impl Shell {
     pub(crate) fn schedules_due(&mut self) {
         if self.route == Route::Schedules {
             for request in self.areas.schedules.data.page.due(chrono::Utc::now()) {
-                self.command(Command::Schedules(request));
+                self.command(Command::Schedules(request.into()));
             }
         }
     }
@@ -47,9 +51,10 @@ impl Shell {
         message: Message,
         cx: &mut Context<'_, Self>,
     ) -> bool {
-        self.areas.schedules.data.message(message);
+        let editor_changed = self.areas.schedules.data.message(message);
         self.schedules_due();
-        self.route == Route::Schedules && self.schedules_changed(cx)
+        let list_changed = self.route == Route::Schedules && self.schedules_changed(cx);
+        (self.route == Route::Schedules && editor_changed) || list_changed
     }
     pub(crate) fn schedules_changed(&mut self, cx: &mut Context<'_, Self>) -> bool {
         let changed = self.areas.schedules.rebuild(&self.fleet, self.words);
@@ -137,7 +142,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if let Some(request) = self.areas.schedules.data.page.act_intent(intent, action) {
-            self.command(Command::Schedules(request));
+            self.command(Command::Schedules(request.into()));
             let _changed = self.schedules_changed(cx);
         }
     }

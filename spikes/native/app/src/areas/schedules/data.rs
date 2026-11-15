@@ -12,6 +12,7 @@ use vessel_app_view::schedules::{
 #[derive(Debug)]
 pub(super) struct Data {
     pub(super) page: Page,
+    pub(super) editor: vessel_app_view::schedules::editor::io::Mailbox,
     pub(super) rows: Vec<PreparedRow>,
     pub(super) host_errors: Vec<SharedString>,
     pub(super) blocking: Vec<Notice>,
@@ -23,6 +24,7 @@ impl Default for Data {
     fn default() -> Self {
         Self {
             page: Page::default(),
+            editor: vessel_app_view::schedules::editor::io::Mailbox::default(),
             rows: Vec::new(),
             host_errors: Vec::new(),
             blocking: Vec::new(),
@@ -33,10 +35,22 @@ impl Default for Data {
     }
 }
 impl Data {
-    pub(crate) fn message(&mut self, message: Message) {
+    pub(crate) fn message(&mut self, message: Message) -> bool {
         match message {
-            Message::Connected(key) => self.page.connected(&key),
-            Message::Replied(answer) => self.answered(answer),
+            Message::Connected(key) => {
+                self.page.connected(&key);
+                self.editor.connected(&key)
+            }
+            Message::Replied(answer) => {
+                self.answered(answer);
+                false
+            }
+            Message::FormReplied(answer) => {
+                let result = answer
+                    .result
+                    .map_err(|error| error.editor_failure(answer.request.operation()));
+                self.editor.settle(&answer.request, result)
+            }
         }
     }
 

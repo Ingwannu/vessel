@@ -438,8 +438,8 @@ post-merge source diff itself has no whitespace error.
   target, name or run limit. A new-chat edit retains catch-up/end time and all
   hidden SessionSpec fields instead of rebuilding a partial launch spec.
 - Reference: pinned1c00 schedule-form-sheet.tsx read whole (1088 lines),
-  inputs468–520, new-agent target selection674–814, heartbeat cadence-only
-  branch459–474, submit318–399 and footer420–455. Exact renderer work is still
+  inputs493–548, new-agent target selection704–814, heartbeat cadence-only
+  branch476–489, submit316–399 and footer409–449. Exact renderer work is still
   pending; these are View rules, not a drawn/wired form.
 - Deliberate difference: malformed nonblank Max runs is an error instead of
   reference parseInt dropping a suffix or interpreting zero as unlimited. Node
@@ -515,3 +515,41 @@ measured618, never raised. New literal/default and real existing-engine96/
 growth/cap cases cover both themes/layouts in source. They remain unexecuted
 until the changed F1 checks; source hash sent to W4 is coordination, not a
 reviewed/narrow-green consumer handoff or a focused-field/UI pass.
+
+## Editor RPC skeleton through one schedules hub
+
+[Decision Log]
+- Existing assets: the one root Schedules registration, G4 SelectedConnection
+  pre/post fence, the existing four-permit Hub, named30-second deadline, typed
+  Unary requests and original row Answer. No second actor/pool/map is added.
+- Choice: an area Request enum fans Row/Form into that same hub. A form envelope
+  privately owns original ConnectionContext/ticket/typed operation. Existing row
+  requests/answers retain their fields; callers wrap them with Into. Browser,
+  unsent, saturation and deadline paths answer the exact original family.
+- Calls: Targets reads node.info/harness.list/agent.list/project.list through
+  the selected guard; Options uses existing harness.options, Preview uses
+  schedule.preview, Save uses schedule.create/update with the opened revision.
+  They create no additional root arm or capability/version table. The dynamic
+  options call may run the node's existing bounded scratch handshake, exactly
+  as the existing composer discovery does; no live call has been made here.
+- Why: create/update and preview must not bypass physical admission, pool bounds
+  or delivery correlation merely because they are not row menu operations.
+  Create/update lost/retired/deadline replies are Unconfirmed, distinct from
+  unsent admission/queue failures. There is no automatic write replay.
+- State: View Mailbox accepts only its full expected envelope and method-shaped
+  payload; updates also check schedule id. Preview uses the SAME input validator
+  as the private preview state (no duplicate projection/validation). Reconnect
+  and canonical Fleet retirement clear old facts; pending saves remain uncertain.
+  App installs this mailbox and its reply/retirement path, but no form control
+  dispatch or create/edit button is enabled yet. Pending/uncertain/authority and
+  captured-dialog lifecycle must be wired before exposing the UI.
+- Proof limits: new pure correlation/shape/retirement and real framed actor tests
+  cover typed preview routing, original envelope, shared Row/Form saturation,
+  explicit drain/peer cleanup, contextual save uncertainty and unsent settlement.
+  Those new cases are source-only/unexecuted. Synthetic framed results do NOT
+  prove node computation, authorization, OS input or product/UI readiness.
+
+The prior remote eed5 narrow remains pinned to its earlier admission/editor
+source, not these subsequent Kit/RPC deltas. No queued job is changed/relabelled
+as later-source evidence; final changed-head checks and one F1 package gate
+remain owed. Root registration/connection fan-out remains exactly one place.

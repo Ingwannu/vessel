@@ -1,0 +1,55 @@
+//! One area command fan-in; row and editor work share the same actor/pool.
+use super::{Answer, Message, RowRequest, ScheduleError};
+use vessel_app_view::connection::ConnectionContext;
+use vessel_app_view::schedules::editor::io;
+
+/// Node-backed schedules operations; no extra root dispatcher or request pool.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Request {
+    /// Existing list/pause/resume/run/delete envelope, unchanged.
+    Row(RowRequest),
+    /// Project/model/preview/create/update from an explicit form visit.
+    Form(io::Request),
+}
+impl From<RowRequest> for Request {
+    fn from(value: RowRequest) -> Self {
+        Self::Row(value)
+    }
+}
+impl From<io::Request> for Request {
+    fn from(value: io::Request) -> Self {
+        Self::Form(value)
+    }
+}
+impl Request {
+    /// Every family is fenced by its original physical admission.
+    #[must_use]
+    pub const fn connection(&self) -> &ConnectionContext {
+        match self {
+            Self::Row(request) => request.connection(),
+            Self::Form(request) => request.connection(),
+        }
+    }
+    /// Unsent/browser/deadline refusals settle the original family and ticket.
+    #[must_use]
+    pub fn refused(self, error: ScheduleError) -> Message {
+        match self {
+            Self::Row(request) => Message::Replied(Answer {
+                request,
+                result: Err(error),
+            }),
+            Self::Form(request) => Message::FormReplied(FormAnswer {
+                request,
+                result: Err(error),
+            }),
+        }
+    }
+}
+/// Editor outcome; no protocol/client errors are erased into Display strings.
+#[derive(Debug)]
+pub struct FormAnswer {
+    /// Exact context/ticket/operation that was dispatched.
+    pub request: io::Request,
+    /// Node payload or a source-preserving closed failure.
+    pub result: Result<io::Value, ScheduleError>,
+}

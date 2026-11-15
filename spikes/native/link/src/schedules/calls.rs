@@ -1,13 +1,13 @@
 //! A permit covers the call and its bounded event delivery. It is not released
 //! early when a page invalidates its own ticket or stops drawing the row.
-use super::{Answer, ListValue, Message, ScheduleError, Value};
+use super::{Answer, FormAnswer, ListValue, Message, Request, ScheduleError, Value};
 use crate::connections::SelectedConnection;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Semaphore, mpsc};
 use vessel_app_view::schedules::{
     load::MAX_IN_FLIGHT,
-    page::{Ask, Request, WriteValue},
+    page::{Ask, WriteValue},
 };
 const REQUEST_DEADLINE: Duration = Duration::from_secs(30);
 use vessel_proto::{
@@ -26,31 +26,26 @@ impl Hub {
     pub(crate) async fn ask(
         &self,
         client: Result<SelectedConnection, ScheduleError>,
-        request: Request,
+        request: impl Into<Request>,
         events: mpsc::Sender<crate::Event>,
     ) {
+        let request = request.into();
         let Ok(permit) = Arc::clone(&self.0).try_acquire_owned() else {
             let _closed = events
-                .send(crate::Event::Schedules(Message::Replied(Answer {
-                    request,
-                    result: Err(ScheduleError::Busy),
-                })))
+                .send(crate::Event::Schedules(
+                    request.refused(ScheduleError::Busy),
+                ))
                 .await;
             return;
         };
         drop(tokio::spawn(async move {
-            let result = match client {
-                Ok(client) => tokio::time::timeout(REQUEST_DEADLINE, run(&client, request.ask))
+            let message = match client {
+                Ok(client) => tokio::time::timeout(REQUEST_DEADLINE, execute(&client, &request))
                     .await
-                    .unwrap_or(Err(ScheduleError::Deadline)),
-                Err(error) => Err(error),
+                    .unwrap_or_else(|_| request.clone().refused(ScheduleError::Deadline)),
+                Err(error) => request.refused(error),
             };
-            let _closed = events
-                .send(crate::Event::Schedules(Message::Replied(Answer {
-                    request,
-                    result,
-                })))
-                .await;
+            let _closed = events.send(crate::Event::Schedules(message)).await;
             drop(permit);
         }));
     }
@@ -138,12 +133,26 @@ async fn run(client: &SelectedConnection, ask: Ask) -> Result<Value, ScheduleErr
 }
 
 impl crate::State {
-    pub(crate) async fn schedule(&self, request: Request) {
+    pub(crate) async fn schedule(&self, request: impl Into<Request>) {
+        let request = request.into();
         let client = self
             .selected_connection(request.connection())
             .map_err(ScheduleError::NotSelected);
         self.schedule_calls
             .ask(client, request, self.events.clone())
             .await;
+    }
+}
+
+async fn execute(client: &SelectedConnection, request: &Request) -> Message {
+    match request {
+        Request::Row(request) => Message::Replied(Answer {
+            request: request.clone(),
+            result: run(client, request.ask).await,
+        }),
+        Request::Form(request) => Message::FormReplied(FormAnswer {
+            request: request.clone(),
+            result: super::form::run(client, request.operation()).await,
+        }),
     }
 }

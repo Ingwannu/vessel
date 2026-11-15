@@ -5,7 +5,11 @@ use crate::testing::{Home, peer, phase, state, within};
 use vessel_app_view::connection::{ConnectionContext, Refusal};
 use vessel_client::book::BookEntry;
 
-fn insert(state: &mut crate::State, name: &str, peer: &mut peer::Peer) -> ConnectionContext {
+pub(super) fn insert(
+    state: &mut crate::State,
+    name: &str,
+    peer: &mut peer::Peer,
+) -> ConnectionContext {
     let client = peer.client.take().unwrap();
     let binding = BookEntry {
         address: vessel_client::NodeAddress::Ws("ws://127.0.0.1:0/rpc".parse().unwrap()),

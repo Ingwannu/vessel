@@ -4,6 +4,7 @@
 pub mod cadence;
 pub mod definition;
 pub mod fields;
+pub mod io;
 pub mod preview;
 
 use thiserror::Error;

@@ -24,7 +24,7 @@ fn initial() -> Option<(Data, vessel_app_view::schedules::page::Request)> {
 fn a_returned_submission_settles_without_fabricating_node_success() {
     for why in [Rejected::Full, Rejected::Closed] {
         let (mut area, request) = initial().unwrap();
-        let returned = Unsent::new(why, Command::Schedules(request));
+        let returned = Unsent::new(why, Command::Schedules(request.into()));
         let crate::unsent::Settle::Answer(event) =
             crate::unsent::settle(returned, "unused diagnostic")
         else {
@@ -186,4 +186,34 @@ fn a_retired_physical_context_cannot_install_its_calendar_after_rebinding() {
     assert!(matches!(area.clock, Err(ViewerClockError::Unavailable)));
     assert_eq!(area.page.body(), Body::Loading);
     assert_eq!(area.page.due(chrono::DateTime::UNIX_EPOCH).len(), 1);
+}
+
+#[test]
+fn a_form_submission_refused_by_the_local_queue_settles_its_original_mailbox() {
+    use vessel_app_view::schedules::editor::io;
+    for (why, failure) in [
+        (Rejected::Full, Failure::Busy),
+        (Rejected::Closed, Failure::Offline),
+    ] {
+        let (mut data, original) = initial().unwrap();
+        let request = io::Request::on(
+            original.connection().clone(),
+            original.ticket,
+            io::Operation::Targets,
+        );
+        data.editor.begin(request.clone());
+        let returned = Unsent::new(why, Command::Schedules(request.clone().into()));
+        let crate::unsent::Settle::Answer(event) =
+            crate::unsent::settle(returned, "unused private diagnostic")
+        else {
+            panic!("not a reply")
+        };
+        let vessel_app_link::Event::Schedules(message) = *event else {
+            panic!("not schedules")
+        };
+        assert!(data.message(message));
+        assert_eq!(data.editor.request(), Some(&request));
+        assert_eq!(data.editor.failure(), Some(&failure));
+        assert!(data.editor.value().is_none());
+    }
 }

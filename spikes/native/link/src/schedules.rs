@@ -12,7 +12,9 @@
 //!   limit. Saturation returns an explicit Busy answer instead of a dead click.
 mod clock;
 pub use clock::ViewerClockError;
-pub use vessel_app_view::schedules::page::Request;
+pub use vessel_app_view::schedules::page::Request as RowRequest;
+mod request;
+pub use request::{FormAnswer, Request};
 use vessel_app_view::schedules::page::WriteValue;
 use vessel_proto::{
     automation::ScheduleInfo,
@@ -50,13 +52,15 @@ pub enum Message {
     Connected(vessel_app_view::schedules::load::MachineKey),
     /// A correlated response to a previously issued operation.
     Replied(Answer),
+    /// A typed editor read/save reply with its original form request.
+    FormReplied(FormAnswer),
 }
 
 /// Complete response, retaining every transport error until the app consumes it.
 #[derive(Debug)]
 pub struct Answer {
     /// Echoed exactly, so a stale reply cannot settle a newer operation.
-    pub request: Request,
+    pub request: RowRequest,
     /// No diagnostic Display string is used as visible copy.
     pub result: Result<Value, ScheduleError>,
 }
@@ -64,6 +68,8 @@ mod error;
 pub use error::{CallFailure, ScheduleError};
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
+#[cfg(not(target_arch = "wasm32"))]
+mod form;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use calls::Hub;
 

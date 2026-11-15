@@ -1,4 +1,5 @@
 //! Delivery classification is contextual: a lost write is never a safe retry.
+use super::RowRequest as Request;
 use super::*;
 use vessel_app_view::schedules::{
     load::{MachineKey, Tickets},
@@ -131,3 +132,5 @@ fn retained_peer_errors_do_not_disclose_their_message_in_diagnostic_chains() {
     );
 }
 mod admission;
+
+mod form;

@@ -123,6 +123,7 @@ impl State {
         self.0 = Outcome::Waiting(request);
     }
     /// Admit only the complete result for the expected immutable request.
+    #[must_use]
     pub fn settle(&mut self, request: &Request, result: Result<SchedulePreview, Failure>) -> bool {
         if !matches!(&self.0, Outcome::Waiting(expected) if expected == request) {
             return false;
@@ -179,8 +180,11 @@ impl State {
     }
 }
 fn valid(request: &Request, value: &SchedulePreview) -> bool {
-    if request.input.after != Some(value.after)
-        || u32::try_from(value.runs.len()) != Ok(request.input.count.get())
+    valid_input(request.input(), value)
+}
+pub(super) fn valid_input(input: &PreviewSchedule, value: &SchedulePreview) -> bool {
+    if input.after != Some(value.after)
+        || u32::try_from(value.runs.len()) != Ok(input.count.get())
         || value
             .runs
             .iter()
@@ -191,7 +195,7 @@ fn valid(request: &Request, value: &SchedulePreview) -> bool {
     {
         return false;
     }
-    match &request.input.cadence {
+    match &input.cadence {
         Cadence::Every {
             seconds: wanted,
             anchor,

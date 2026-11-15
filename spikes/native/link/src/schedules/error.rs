@@ -52,16 +52,44 @@ impl From<crate::connections::RequestFailure> for ScheduleError {
         }
     }
 }
-fn lost(ask: Ask) -> Failure {
-    match ask {
-        Ask::List => Failure::Offline,
-        Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => Failure::Unconfirmed,
+#[derive(Clone, Copy)]
+enum Effect {
+    Read,
+    Write,
+}
+impl Effect {
+    fn of(ask: Ask) -> Self {
+        match ask {
+            Ask::List => Self::Read,
+            Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => Self::Write,
+        }
+    }
+    fn uncertain(self, read: Failure) -> Failure {
+        match self {
+            Self::Read => read,
+            Self::Write => Failure::Unconfirmed,
+        }
     }
 }
 impl ScheduleError {
-    /// Classify once at presentation; diagnostic prose never becomes UI copy.
+    /// Existing row mapping; diagnostic prose never becomes UI copy.
     #[must_use]
     pub fn failure(&self, ask: Ask) -> Failure {
+        self.for_effect(Effect::of(ask))
+    }
+    /// Save is a write even though create/update are not row menu actions.
+    #[must_use]
+    pub fn editor_failure(
+        &self,
+        operation: &vessel_app_view::schedules::editor::io::Operation,
+    ) -> Failure {
+        use vessel_app_view::schedules::editor::io::Operation;
+        self.for_effect(match operation {
+            Operation::Save(_) => Effect::Write,
+            Operation::Targets | Operation::Options(_) | Operation::Preview(_) => Effect::Read,
+        })
+    }
+    fn for_effect(&self, effect: Effect) -> Failure {
         match self {
             #[cfg(not(target_arch = "wasm32"))]
             Self::Call(CallFailure(error)) => match error {
@@ -69,28 +97,15 @@ impl ScheduleError {
                 vessel_client::CallError::NotInProtocol { .. } => Failure::Older,
                 vessel_client::CallError::UnassignedProtocol { .. } => Failure::NotEnabled,
                 vessel_client::CallError::RequestIdsExhausted => Failure::Exhausted,
-                vessel_client::CallError::Disconnected => lost(ask),
-                vessel_client::CallError::UnexpectedReply(_) => match ask {
-                    Ask::List => Failure::Unexpected,
-                    Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => {
-                        Failure::Unconfirmed
-                    }
-                },
+                vessel_client::CallError::Disconnected => effect.uncertain(Failure::Offline),
+                vessel_client::CallError::UnexpectedReply(_) => {
+                    effect.uncertain(Failure::Unexpected)
+                }
             },
             #[cfg(target_arch = "wasm32")]
             Self::Call(_) => Failure::NoTransport,
-            Self::Retired(why) => match ask {
-                Ask::List => connection(*why),
-                Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => {
-                    Failure::Unconfirmed
-                }
-            },
-            Self::Deadline => match ask {
-                Ask::List => Failure::TimedOut,
-                Ask::Pause(_) | Ask::Resume(_) | Ask::Run(_) | Ask::Delete(_) => {
-                    Failure::Unconfirmed
-                }
-            },
+            Self::Retired(why) => effect.uncertain(connection(*why)),
+            Self::Deadline => effect.uncertain(Failure::TimedOut),
             Self::NotSelected(why) => connection(*why),
             Self::Offline => Failure::Offline,
             Self::Busy => Failure::Busy,
