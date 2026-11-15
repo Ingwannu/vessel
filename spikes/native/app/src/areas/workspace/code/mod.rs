@@ -35,6 +35,9 @@ mod editor_find;
 mod editor_io;
 mod editor_status;
 mod elsewhere;
+mod entry_forms;
+#[cfg(test)]
+mod entry_forms_tests;
 mod file_search;
 mod files;
 mod found;
@@ -363,6 +366,7 @@ impl Shell {
             return;
         }
         let panel = &mut self.areas.workspace.code;
+        panel.files.actions.invalidate();
         panel.target = Some(Target {
             machine: machine.clone(),
             session,

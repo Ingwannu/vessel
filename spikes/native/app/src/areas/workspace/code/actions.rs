@@ -14,7 +14,7 @@
 //! - Choice: Paseo's menu items that the node can do; Paseo's "Open in
 //!   editor", "Reveal in", "Download", "Duplicate" and "Open to side" are
 //!   left out (no editor or file manager on the machine is reachable
-//!   from here, and there is no second pane). "Add to chat" puts the
+//!   from here; additional file panes await shared scope admission). "Add to chat" puts the
 //!   path, as `@path`, at the end of the session's draft (Paseo attaches
 //!   a chip; the draft here is text).
 //! - Cost: a rename or a new entry is typed in the tree, so the tree's
@@ -24,9 +24,11 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
 use vessel_app_link::workspace::PathChange;
+use vessel_app_view::machine_book::Name;
+use vessel_app_view::workspace::file_ticket::FileTicket;
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
-use vessel_proto::workspace::FolderName;
+use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::workspace::{CreateDir, DeletePath, RelPath, RenamePath};
 
 use crate::shell::Shell;
@@ -44,6 +46,7 @@ pub(super) enum EditKind {
 
 /// A name being typed.
 pub(super) struct Editing {
+    pub(super) opening: EntryOpening,
     pub(super) kind: EditKind,
     pub(super) field: TextField,
 }
@@ -51,6 +54,7 @@ pub(super) struct Editing {
 /// The entry a menu was opened on.
 #[derive(Debug, Clone)]
 pub(super) struct Target {
+    pub(super) opening: EntryOpening,
     pub(super) path: RelPath,
     pub(super) folder: bool,
     pub(super) open: bool,
@@ -70,19 +74,49 @@ pub(super) enum Action {
     Delete,
 }
 
+/// A menu/form capability is tied to its original root and one opening.
+#[derive(Debug, Clone)]
+pub(super) struct EntryOpening {
+    pub(super) machine: Name,
+    pub(super) root: WorkspaceRoot,
+    pub(super) ticket: FileTicket,
+}
+impl EntryOpening {
+    pub(super) fn current(&self, panel: &super::CodePanel) -> bool {
+        panel.root() == Some((self.machine.as_str(), &self.root))
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub(super) enum RemovalDepth {
+    File,
+    DirectoryTree,
+}
+pub(super) struct DeletePrompt {
+    pub(super) opening: EntryOpening,
+    pub(super) path: RelPath,
+    pub(super) depth: RemovalDepth,
+}
+
 /// The tree's actions' state.
 pub(super) struct Actions {
     pub(super) menu: MenuState,
     pub(super) target: Option<Target>,
     pub(super) editing: Option<Editing>,
     /// A delete waiting for its confirm: the entry and whether a folder.
-    pub(super) deleting: Option<(RelPath, bool)>,
+    pub(super) deleting: Option<DeletePrompt>,
     pub(super) dialog: DialogState,
     /// Why the last change was refused (the machine's reason).
     pub(super) refused: Option<String>,
 }
 
 impl Actions {
+    pub(super) fn invalidate(&mut self) {
+        self.menu.close();
+        self.target = None;
+        self.editing = None;
+        self.deleting = None;
+    }
+
     pub(super) fn new(cx: &mut Context<'_, Shell>) -> Self {
         Self {
             menu: MenuState::new(cx),
@@ -153,6 +187,18 @@ pub(super) const fn group(action: Action) -> u8 {
 }
 
 impl Shell {
+    pub(super) fn entry_opening(&mut self) -> Option<EntryOpening> {
+        let (machine, root) = self.areas.workspace.code.root()?;
+        let (machine, root) = (Name::parse(machine).ok()?, *root);
+        Some(EntryOpening {
+            machine,
+            root,
+            ticket: self.next_file_ticket()?,
+        })
+    }
+}
+
+impl Shell {
     /// Open the menu on an entry, at the pointer.
     pub(super) fn open_file_actions(
         &mut self,
@@ -163,55 +209,57 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        let Some(opening) = self.entry_opening() else {
+            return;
+        };
         let actions = &mut self.areas.workspace.code.files.actions;
-        actions.target = Some(Target { path, folder, open });
+        actions.target = Some(Target {
+            opening,
+            path,
+            folder,
+            open,
+        });
         actions.menu.open(at, window, cx);
         cx.notify();
     }
 
     pub(super) fn file_action(
         &mut self,
+        ticket: FileTicket,
         action: Action,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        if self
+            .areas
+            .workspace
+            .code
+            .files
+            .actions
+            .target
+            .as_ref()
+            .is_none_or(|target| {
+                target.opening.ticket != ticket
+                    || !target.opening.current(&self.areas.workspace.code)
+            })
+        {
+            return;
+        }
         let Some(target) = self.areas.workspace.code.files.actions.target.take() else {
             return;
         };
         self.areas.workspace.code.files.actions.menu.close();
-        let labels = self.words().labels();
         match action {
             Action::OpenFile => self.open_file_at(target.path, None, cx),
             Action::CollapseFolder => self.toggle_folder(&target.path, cx),
-            Action::NewFile | Action::NewFolder | Action::Rename => {
-                let kind = match action {
-                    Action::NewFile => EditKind::NewFile(target.path.clone()),
-                    Action::NewFolder => EditKind::NewFolder(target.path.clone()),
-                    Action::Rename
-                    | Action::OpenFile
-                    | Action::CollapseFolder
-                    | Action::CopyPath
-                    | Action::CopyRelativePath
-                    | Action::AddToChat
-                    | Action::Delete => EditKind::Rename(target.path.clone()),
-                };
-                if !matches!(kind, EditKind::Rename(_)) && !target.open {
-                    self.toggle_folder(&target.path, cx);
-                }
-                let field = TextField::new(
-                    labels.name_placeholder,
-                    |shell: &mut Shell, text, _window, cx| shell.finish_edit(&text, cx),
-                    window,
-                    cx,
-                );
-                if let EditKind::Rename(path) = &kind {
-                    field.set_text(path.file_name().unwrap_or_default(), window, cx);
-                }
-                field.focus(window, cx);
-                let files = &mut self.areas.workspace.code.files;
-                files.actions.refused = None;
-                files.actions.editing = Some(Editing { kind, field });
-                files.relist();
+            Action::NewFile => {
+                self.start_entry_form(EditKind::NewFile(target.path.clone()), target, window, cx)
+            }
+            Action::NewFolder => {
+                self.start_entry_form(EditKind::NewFolder(target.path.clone()), target, window, cx)
+            }
+            Action::Rename => {
+                self.start_entry_form(EditKind::Rename(target.path.clone()), target, window, cx)
             }
             Action::CopyPath | Action::CopyRelativePath => {
                 let relative = target.path.as_str().to_owned();
@@ -236,84 +284,18 @@ impl Shell {
             }
             Action::Delete => {
                 let actions = &mut self.areas.workspace.code.files.actions;
-                actions.deleting = Some((target.path, target.folder));
+                actions.deleting = Some(DeletePrompt {
+                    opening: target.opening,
+                    path: target.path,
+                    depth: if target.folder {
+                        RemovalDepth::DirectoryTree
+                    } else {
+                        RemovalDepth::File
+                    },
+                });
                 actions.dialog.focus(window, cx);
             }
         }
-        cx.notify();
-    }
-
-    /// The name typed: make the entry or rename it.
-    fn finish_edit(&mut self, text: &str, cx: &mut Context<'_, Self>) {
-        let name = text.trim().parse::<FolderName>();
-        let name_refused = self.words().labels().name_refused;
-        let panel = &mut self.areas.workspace.code;
-        let Some((machine, root)) = panel
-            .root()
-            .map(|(machine, root)| (machine.to_owned(), *root))
-        else {
-            return;
-        };
-        let Some(editing) = panel.files.actions.editing.as_ref() else {
-            return;
-        };
-        let Ok(name) = name else {
-            panel.files.actions.refused = Some(name_refused.to_owned());
-            cx.notify();
-            return;
-        };
-        let target = match &editing.kind {
-            EditKind::NewFile(dir) | EditKind::NewFolder(dir) => dir.child(name.as_str()),
-            EditKind::Rename(path) => path
-                .parent()
-                .unwrap_or_else(RelPath::root)
-                .child(name.as_str()),
-        };
-        let Ok(target) = target else {
-            panel.files.actions.refused = Some(name_refused.to_owned());
-            cx.notify();
-            return;
-        };
-        let change = match &editing.kind {
-            EditKind::NewFile(_) => PathChange::CreateFile { root, path: target },
-            EditKind::NewFolder(_) => PathChange::CreateDir(CreateDir { root, path: target }),
-            EditKind::Rename(path) => PathChange::Rename(RenamePath {
-                root,
-                from: path.clone(),
-                to: target,
-            }),
-        };
-        self.begin_file_mutation(&machine, change, cx);
-        cx.notify();
-    }
-
-    pub(super) fn cancel_edit(&mut self, cx: &mut Context<'_, Self>) {
-        let files = &mut self.areas.workspace.code.files;
-        files.actions.editing = None;
-        files.relist();
-        cx.notify();
-    }
-
-    pub(super) fn confirm_delete(&mut self, cx: &mut Context<'_, Self>) {
-        let panel = &mut self.areas.workspace.code;
-        let Some((machine, root)) = panel
-            .root()
-            .map(|(machine, root)| (machine.to_owned(), *root))
-        else {
-            return;
-        };
-        let Some((path, folder)) = panel.files.actions.deleting.take() else {
-            return;
-        };
-        self.begin_file_mutation(
-            &machine,
-            PathChange::Delete(DeletePath {
-                root,
-                path,
-                recursive: folder,
-            }),
-            cx,
-        );
         cx.notify();
     }
 

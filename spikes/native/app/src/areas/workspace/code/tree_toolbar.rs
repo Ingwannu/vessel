@@ -13,12 +13,17 @@ use crate::shell::Shell;
 
 impl Shell {
     fn tree_new(&mut self, action: Action, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let Some(opening) = self.entry_opening() else {
+            return;
+        };
+        let ticket = opening.ticket;
         self.areas.workspace.code.files.actions.target = Some(Target {
+            opening,
             path: RelPath::root(),
             folder: true,
             open: true,
         });
-        self.file_action(action, window, cx);
+        self.file_action(ticket, action, window, cx);
     }
 
     fn tree_options_changed(&mut self, cx: &mut Context<'_, Self>) {

@@ -317,3 +317,18 @@ then placed on HOLD by its owner pending a self-contained shared-line successor.
 The source remains retained, no consumer-ready claim is made, and no File target
 is offered by its launcher. G4 live connection admission and the actual resident
 resource cutover remain outstanding; neither is inferred from Machine.node.
+
+### Entry action opening lifetime
+
+A menu, inline create/rename form, and Delete decision now retain an
+EntryOpening (validated book Name, authorized root snapshot and unique
+FileTicket). Enter, menu selection, confirm and cancellation check that exact
+opening; mutation construction uses its captured root. Changing the followed
+session invalidates the old action UI. An old callback cannot borrow the
+currently selected root or consume a replacement form at the same path.
+`code/entry_forms` owns submission/cancellation and `actions` owns menu/form
+state, retaining the same mutation controller and kit controls. Isolated GPUI
+regressions cover stale menu/Delete/Enter/Cancel and a valid current opening.
+These tests are source-only until the next combined narrow suite. Book Name
+still needs G4's canonical live epoch admission; this patch does not claim to
+solve alias reuse or the pending B1 composer-destination integration.

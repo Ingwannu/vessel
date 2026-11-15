@@ -13,7 +13,7 @@ use vessel_app_kit::{
     MenuHandlers, MenuItem, Tokens, Type, TypeExt as _, breakpoint, button, glyph, menu,
 };
 
-use super::actions::{Action, EditKind, group, items_for};
+use super::actions::{Action, EditKind, RemovalDepth, group, items_for};
 use crate::shell::Shell;
 
 /// The row being typed, at `depth`: the entry's glyph and the field.
@@ -26,6 +26,7 @@ pub(super) fn edit_row(
     let Some(editing) = shell.areas.workspace.code.files.actions.editing.as_ref() else {
         return div().into_any_element();
     };
+    let ticket = editing.opening.ticket;
     let neutral = tokens.neutral;
     let folder = matches!(editing.kind, EditKind::NewFolder(_));
     div()
@@ -76,7 +77,9 @@ pub(super) fn edit_row(
                 .cursor_pointer()
                 .hover(move |style| style.bg(neutral.surface2))
                 .child(glyph(Glyph::Close, 12.0, neutral.foreground_muted))
-                .on_click(cx.listener(|this, _event, _window, cx| this.cancel_edit(cx))),
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.cancel_edit(ticket, cx);
+                })),
         )
         .into_any_element()
 }
@@ -93,6 +96,7 @@ pub(super) fn overlays(
     let narrow = breakpoint::phone(window);
     let mut drawn = Vec::new();
     if let Some(target) = &actions.target {
+        let ticket = target.opening.ticket;
         let chosen = items_for(target);
         let mut last_group = None;
         let items: Vec<MenuItem> = chosen
@@ -127,7 +131,7 @@ pub(super) fn overlays(
             state: |shell: &mut Shell| &mut shell.areas.workspace.code.files.actions.menu,
             chose: std::rc::Rc::new(move |shell: &mut Shell, index, window, cx| {
                 if let Some(action) = chosen.get(index).copied() {
-                    shell.file_action(action, window, cx);
+                    shell.file_action(ticket, action, window, cx);
                 }
             }),
         };
@@ -155,10 +159,12 @@ fn delete_dialog(
 ) -> Option<AnyElement> {
     let actions = &shell.areas.workspace.code.files.actions;
     let labels = shell.words().labels();
-    let (path, folder) = actions.deleting.as_ref()?;
+    let prompt = actions.deleting.as_ref()?;
+    let path = &prompt.path;
+    let ticket = prompt.opening.ticket;
     let name = path.file_name().unwrap_or_default().to_owned();
     let content = DialogContent {
-        title: if *folder {
+        title: if matches!(prompt.depth, RemovalDepth::DirectoryTree) {
             labels.delete_folder_title
         } else {
             labels.delete_file_title
@@ -180,9 +186,8 @@ fn delete_dialog(
             .into_any_element(),
         footer: vec![
             button("code-delete-cancel", labels.cancel, false, tokens)
-                .on_click(cx.listener(|this, _event, _window, cx| {
-                    this.areas.workspace.code.files.actions.deleting = None;
-                    cx.notify();
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.cancel_delete(ticket, cx);
                 }))
                 .into_any_element(),
             vessel_app_kit::button_with_kind(
@@ -192,7 +197,9 @@ fn delete_dialog(
                 vessel_app_kit::ButtonState::Enabled,
                 tokens,
             )
-            .on_click(cx.listener(|this, _event, _window, cx| this.confirm_delete(cx)))
+            .on_click(cx.listener(move |this, _, _, cx| {
+                this.confirm_delete(ticket, cx);
+            }))
             .into_any_element(),
         ],
         size: DialogSize::Normal,
@@ -203,9 +210,8 @@ fn delete_dialog(
         tokens,
         window,
         narrow,
-        |shell: &mut Shell, _window, cx| {
-            shell.areas.workspace.code.files.actions.deleting = None;
-            cx.notify();
+        move |shell: &mut Shell, _window, cx| {
+            shell.cancel_delete(ticket, cx);
         },
         cx,
     ))
