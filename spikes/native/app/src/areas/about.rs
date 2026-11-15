@@ -129,7 +129,7 @@ pub(crate) fn content(
         "Vessel",
         Some(about.licence_note().into()),
         None,
-        Some(value(VESSEL_LICENCE.to_owned(), tokens)),
+        Some(value(VESSEL_LICENCE, tokens)),
         true,
         compact,
         tokens,
@@ -139,7 +139,7 @@ pub(crate) fn content(
             part.name,
             Some(about.role(part.role).into()),
             None,
-            Some(value(part.licence.to_owned(), tokens)),
+            Some(value(part.licence, tokens)),
             false,
             compact,
             tokens,
@@ -332,14 +332,7 @@ fn updates_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> D
         .into_any_element();
 
     // Paseo's `aboutErrorText`: why it failed, under the status.
-    let error = match state {
-        UpdateState::Failed { error } => Some(error.to_string().into()),
-        UpdateState::Idle
-        | UpdateState::Checking
-        | UpdateState::UpToDate { .. }
-        | UpdateState::Downloading { .. }
-        | UpdateState::Ready { .. } => None,
-    };
+    let error = shell.updates.problem();
     settings::row_with_error(
         words.app_updates(),
         Some(status),
@@ -376,9 +369,9 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
     let words = shell.words.update();
     let dir: Option<PathBuf> = vessel_app_log::dir();
     let has_dir = dir.is_some();
-    let hint = dir.as_ref().map_or_else(
-        || words.log_unavailable().to_owned(),
-        |dir| dir.display().to_string(),
+    let hint: vessel_app_kit::ui::SharedString = dir.as_ref().map_or_else(
+        || words.log_unavailable().into(),
+        |dir| dir.display().to_string().into(),
     );
     let mut copy = outline_button("about-copy-log-path", words.copy_path(), true, tokens);
     let mut open = outline_button("about-open-logs", words.open_logs(), dir.is_some(), tokens);
@@ -407,7 +400,7 @@ fn logs_row(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div 
         .child(open);
     settings::row(
         words.log_file(),
-        Some(hint.into()),
+        Some(hint),
         Some(actions.into_any_element()),
         false,
         tokens,

@@ -3,7 +3,19 @@
 
 use vessel_app_kit::ui::SharedString;
 use vessel_app_view::localization::{Number, Translator};
-use vessel_app_view::updates::{BuildName, PreparedUpdate, Status};
+use vessel_app_view::updates::{BuildName, PreparedUpdate, Problem, Status};
+
+#[cfg(not(target_arch = "wasm32"))]
+mod native;
+#[cfg(not(target_arch = "wasm32"))]
+use native::problem;
+
+#[cfg(target_arch = "wasm32")]
+fn problem(_error: &crate::update::Words) -> Problem {
+    // The browser never enters Failed; keep a safe classification even if a
+    // future browser adapter gains an explicit unsupported update outcome.
+    Problem::Unsupported
+}
 
 use crate::update::{UpdateState, Updated, Updates};
 
@@ -18,6 +30,11 @@ pub(crate) struct UpdateUi {
     pub(crate) asked: bool,
     pub(crate) announcement: Option<Updated>,
     words: Option<PreparedUpdate>,
+    restart_notice: Option<RestartNotice>,
+}
+
+struct RestartNotice {
+    words: std::sync::Arc<str>,
 }
 
 impl UpdateUi {
@@ -28,6 +45,7 @@ impl UpdateUi {
             asked: false,
             announcement: None,
             words: None,
+            restart_notice: None,
         };
         ui.refresh(catalog);
         ui
@@ -50,7 +68,9 @@ impl UpdateUi {
             UpdateState::Ready { label, .. } => Status::Ready {
                 build: BuildName::from(label.to_string().as_str()),
             },
-            UpdateState::Failed { .. } => Status::Failed,
+            UpdateState::Failed { error } => Status::Failed {
+                problem: problem(error),
+            },
         };
         let announced = self
             .announcement
@@ -68,6 +88,33 @@ impl UpdateUi {
                 None
             }
         };
+    }
+
+    pub(crate) fn translate(&mut self, catalog: &'static Translator, notice: &mut Option<String>) {
+        self.refresh(catalog);
+        if let Some(restart) = self.restart_notice.as_mut() {
+            let visible = notice.as_deref() == Some(restart.words.as_ref());
+            restart.words = Problem::Restart.words(catalog).into();
+            if visible {
+                *notice = Some(restart.words.to_string());
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn restart_failed(&mut self, catalog: &Translator) -> std::sync::Arc<str> {
+        let words: std::sync::Arc<str> = Problem::Restart.words(catalog).into();
+        self.restart_notice = Some(RestartNotice {
+            words: std::sync::Arc::clone(&words),
+        });
+        words
+    }
+
+    pub(crate) fn problem(&self) -> Option<SharedString> {
+        self.words
+            .as_ref()
+            .and_then(PreparedUpdate::problem)
+            .map(Into::into)
     }
 
     pub(crate) fn version(&self) -> SharedString {
@@ -128,5 +175,53 @@ mod tests {
         assert_eq!(percent(1, 3), COMPLETE_PERCENT.div_euclid(3));
         assert_eq!(percent(1, 1), COMPLETE_PERCENT);
         assert_eq!(percent(2, 1), COMPLETE_PERCENT);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn changing_language_rewords_only_the_restart_notice_it_still_owns() {
+        use super::UpdateUi;
+        use vessel_app_view::localization::{ENGLISH, Locale, Translator};
+
+        let en = Translator::get(ENGLISH).unwrap();
+        let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
+        let mut ui = UpdateUi::new(en);
+        let mut visible = Some(ui.restart_failed(en).to_string());
+        assert_eq!(
+            visible.as_deref(),
+            Some("The updated app could not be started. Vessel is still open; try restarting it.")
+        );
+        ui.translate(ko, &mut visible);
+        assert_eq!(
+            visible.as_deref(),
+            Some(
+                "업데이트된 앱을 시작하지 못했습니다. Vessel은 계속 열려 있으니 다시 시작해 보세요."
+            )
+        );
+        visible = Some("An unrelated notice".to_owned());
+        ui.translate(en, &mut visible);
+        assert_eq!(visible.as_deref(), Some("An unrelated notice"));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn starting_a_new_check_clears_the_previous_update_problem() {
+        use super::UpdateUi;
+        use crate::update::UpdateState;
+        use vessel_app_view::localization::{ENGLISH, Translator};
+
+        let catalog = Translator::get(ENGLISH).unwrap();
+        let mut ui = UpdateUi::new(catalog);
+        ui.state = UpdateState::Failed {
+            error: std::sync::Arc::new(vessel_app_updater::UpdateError::Interrupted),
+        };
+        ui.refresh(catalog);
+        assert_eq!(
+            ui.problem().as_deref(),
+            Some("The update was interrupted. Try again.")
+        );
+        ui.state = UpdateState::Checking;
+        ui.refresh(catalog);
+        assert!(ui.problem().is_none());
     }
 }

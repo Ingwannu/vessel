@@ -196,7 +196,9 @@ fn other_statuses_and_preparation_failure_have_whole_sentences() {
             "앱이 최신 상태입니다.",
         ),
         (
-            Status::Failed,
+            Status::Failed {
+                problem: Problem::Check,
+            },
             "Failed to update app.",
             "앱을 업데이트하지 못했습니다.",
         ),
@@ -227,6 +229,9 @@ fn prepared_getters_allocate_nothing_for_a_frame() {
         let build = BuildName::from("0.0.0.0.7");
         for state in [
             Status::Idle,
+            Status::Failed {
+                problem: Problem::Check,
+            },
             Status::Ready {
                 build: build.clone(),
             },
@@ -243,6 +248,7 @@ fn prepared_getters_allocate_nothing_for_a_frame() {
                     let _action = std::hint::black_box(prepared.action());
                     let _progress = std::hint::black_box(prepared.progress());
                     let _banner = std::hint::black_box(prepared.banner());
+                    let _problem = std::hint::black_box(prepared.problem());
                 }
             });
             assert_eq!(allocations.count_total, 0);

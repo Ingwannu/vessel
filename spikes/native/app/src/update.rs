@@ -249,8 +249,9 @@ impl Shell {
         match updater.restart(std::env::args_os().skip(1)) {
             Ok(()) => cx.quit(),
             Err(ApplyError::NotReady) => {}
-            Err(error) => {
-                self.notice = Some(error.to_string());
+            Err(ApplyError::Restart(error)) => {
+                tracing::warn!(error = %vessel_app_updater::chain(&error), "the updated app did not start");
+                self.notice = Some(self.updates.restart_failed(self.words).to_string());
                 cx.notify();
             }
         }

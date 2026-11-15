@@ -8,6 +8,10 @@
 //! - Cost: the host must refresh this projection after an updater event or a
 //!   language change. Its original typed updater state stays authoritative.
 
+mod problem;
+
+pub use problem::Problem;
+
 use std::sync::Arc;
 
 use crate::localization::{
@@ -103,7 +107,10 @@ pub enum Status {
         build: BuildName,
     },
     /// The last attempt failed; the host retains its diagnostic separately.
-    Failed,
+    Failed {
+        /// The safe recovery, classified by the host without its diagnostic.
+        problem: Problem,
+    },
 }
 
 /// The complete dynamic text shared by About and the title bar. Plain labels
@@ -111,10 +118,50 @@ pub enum Status {
 #[derive(Debug)]
 pub struct PreparedUpdate {
     version: Arc<str>,
+    state: StatusText,
+    banner: Option<Arc<str>>,
+}
+
+#[derive(Debug)]
+struct StatusText {
     status: Arc<str>,
     action: Arc<str>,
     progress: Option<Arc<str>>,
-    banner: Option<Arc<str>>,
+    problem: Option<Arc<str>>,
+}
+
+impl StatusText {
+    fn plain(catalog: &Translator, status: Arc<str>) -> Self {
+        Self {
+            status,
+            action: Arc::from(catalog.update().update()),
+            progress: None,
+            problem: None,
+        }
+    }
+
+    fn prepare(catalog: &Translator, status: &Status) -> Result<Self, FormatError> {
+        let words = catalog.update();
+        Ok(match status {
+            Status::Idle => Self::plain(catalog, Arc::from(words.status_idle())),
+            Status::Checking => Self::plain(catalog, Arc::from(words.status_checking())),
+            Status::Current => Self::plain(catalog, Arc::from(words.status_up_to_date())),
+            Status::Failed { problem } => Self {
+                problem: Some(Arc::from(problem.words(catalog))),
+                ..Self::plain(catalog, Arc::from(words.status_failed()))
+            },
+            Status::Downloading { build, progress } => Self {
+                progress: Some(Arc::from(words.downloading(progress.clone())?)),
+                ..Self::plain(catalog, build.downloading(catalog)?)
+            },
+            Status::Ready { build } => Self {
+                status: build.ready(catalog)?,
+                action: build.action(catalog)?,
+                progress: None,
+                problem: None,
+            },
+        })
+    }
 }
 
 impl PreparedUpdate {
@@ -127,42 +174,11 @@ impl PreparedUpdate {
         status: &Status,
         announced: Option<&BuildName>,
     ) -> Result<Self, FormatError> {
-        let words = catalog.update();
-        let (status, action, progress) = match status {
-            Status::Idle => (
-                Arc::from(words.status_idle()),
-                Arc::from(words.update()),
-                None,
-            ),
-            Status::Checking => (
-                Arc::from(words.status_checking()),
-                Arc::from(words.update()),
-                None,
-            ),
-            Status::Current => (
-                Arc::from(words.status_up_to_date()),
-                Arc::from(words.update()),
-                None,
-            ),
-            Status::Failed => (
-                Arc::from(words.status_failed()),
-                Arc::from(words.update()),
-                None,
-            ),
-            Status::Downloading { build, progress } => (
-                build.downloading(catalog)?,
-                Arc::from(words.update()),
-                Some(Arc::from(words.downloading(progress.clone())?)),
-            ),
-            Status::Ready { build } => (build.ready(catalog)?, build.action(catalog)?, None),
-        };
         Ok(Self {
             version: running.version(catalog)?,
-            status,
-            action,
-            progress,
+            state: StatusText::prepare(catalog, status)?,
             banner: announced
-                .map(|build| words.updated_to(&build.text).map(Arc::from))
+                .map(|build| catalog.update().updated_to(&build.text).map(Arc::from))
                 .transpose()?,
         })
     }
@@ -176,19 +192,25 @@ impl PreparedUpdate {
     /// About's whole current status sentence.
     #[must_use]
     pub fn status(&self) -> Arc<str> {
-        Arc::clone(&self.status)
+        Arc::clone(&self.state.status)
     }
 
     /// About's update action, naming a ready build only when one exists.
     #[must_use]
     pub fn action(&self) -> Arc<str> {
-        Arc::clone(&self.action)
+        Arc::clone(&self.state.action)
     }
 
     /// Title-bar download progress, present only during a download.
     #[must_use]
     pub fn progress(&self) -> Option<Arc<str>> {
-        self.progress.as_ref().map(Arc::clone)
+        self.state.progress.as_ref().map(Arc::clone)
+    }
+
+    /// The safe whole recovery sentence, only for a failed update.
+    #[must_use]
+    pub fn problem(&self) -> Option<Arc<str>> {
+        self.state.problem.as_ref().map(Arc::clone)
     }
 
     /// The whole updated-on-start notice, only while its typed announcement exists.
@@ -200,3 +222,6 @@ impl PreparedUpdate {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod problem_tests;

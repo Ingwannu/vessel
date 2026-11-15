@@ -125,3 +125,42 @@ update-status-ready = { $kind ->
 
 # Safe fallback only if message preparation itself fails; diagnostics stay in logs.
 update-details-unavailable = Update information is unavailable.
+
+# Update failure recovery: check. Diagnostics stay in logs.
+update-problem-check = The update check could not be completed. Try again later.
+
+# Update failure recovery: feed too large. Diagnostics stay in logs.
+update-problem-feed-too-large = The update information is too large for this app. Try again later.
+
+# Update failure recovery: feed invalid. Diagnostics stay in logs.
+update-problem-feed-invalid = The update information could not be read. Try again later.
+
+# Update failure recovery: feed unverified. Diagnostics stay in logs.
+update-problem-feed-unverified = The update information could not be verified. This app was not changed.
+
+# Update failure recovery: feed new format. Diagnostics stay in logs.
+update-problem-feed-new-format = This app cannot read the newer update format. Install the latest build manually.
+
+# Update failure recovery: no build. Diagnostics stay in logs.
+update-problem-no-build = This update has no build for this device.
+
+# Update failure recovery: download. Diagnostics stay in logs.
+update-problem-download = The update could not be downloaded. Check your connection and try again.
+
+# Update failure recovery: download write. Diagnostics stay in logs.
+update-problem-download-write = The update could not be saved beside this app. Check the app folder's write permissions and try again.
+
+# Update failure recovery: download integrity. Diagnostics stay in logs.
+update-problem-download-integrity = The download could not be verified. It was not installed. Try again.
+
+# Update failure recovery: install write. Diagnostics stay in logs.
+update-problem-install-write = The update could not replace this app. Check the app folder's write permissions and try again.
+
+# Update failure recovery: unsupported. Diagnostics stay in logs.
+update-problem-unsupported = This build cannot update itself. Install the latest build manually.
+
+# Update failure recovery: interrupted. Diagnostics stay in logs.
+update-problem-interrupted = The update was interrupted. Try again.
+
+# Update failure recovery: restart. Diagnostics stay in logs.
+update-problem-restart = The updated app could not be started. Vessel is still open; try restarting it.

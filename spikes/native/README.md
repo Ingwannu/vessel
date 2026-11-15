@@ -775,8 +775,10 @@ formats their value messages once per updater state or language event; the
 host retains the runtime and typed state together in `app/src/update_words.rs`.
 Renderers share the prepared text without formatting a version or progress
 sentence. Developer build names remain data; numbered release prefixes and
-whole status sentences live in the files. The updater's raw error diagnostics
-still await their separate typed-message correction.
+whole status sentences live in the files. Typed updater errors select complete
+recovery messages; their diagnostics stay in the state/logs. A failed restart's
+owned frame notice also rewords on a language change without replacing a later
+notice from another area. No update error's Display becomes UI text.
 General's Language row uses System first, then each embedded language's own
 name. Its typed preference goes through `Prefs::prefer`; labels, retained
 field placeholders and pairing outcomes update at once, without restarting

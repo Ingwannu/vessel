@@ -125,3 +125,42 @@ update-status-ready = { $kind ->
 
 # Safe fallback only if message preparation itself fails; diagnostics stay in logs.
 update-details-unavailable = 업데이트 정보를 표시할 수 없습니다.
+
+# Update failure recovery: check. Diagnostics stay in logs.
+update-problem-check = 업데이트 확인을 마치지 못했습니다. 나중에 다시 시도하세요.
+
+# Update failure recovery: feed too large. Diagnostics stay in logs.
+update-problem-feed-too-large = 업데이트 정보가 이 앱이 읽을 수 있는 크기보다 큽니다. 나중에 다시 시도하세요.
+
+# Update failure recovery: feed invalid. Diagnostics stay in logs.
+update-problem-feed-invalid = 업데이트 정보를 읽지 못했습니다. 나중에 다시 시도하세요.
+
+# Update failure recovery: feed unverified. Diagnostics stay in logs.
+update-problem-feed-unverified = 업데이트 정보를 검증하지 못했습니다. 이 앱은 변경되지 않았습니다.
+
+# Update failure recovery: feed new format. Diagnostics stay in logs.
+update-problem-feed-new-format = 이 앱은 새로운 업데이트 형식을 읽을 수 없습니다. 최신 빌드를 직접 설치하세요.
+
+# Update failure recovery: no build. Diagnostics stay in logs.
+update-problem-no-build = 이 기기에 맞는 업데이트 빌드가 없습니다.
+
+# Update failure recovery: download. Diagnostics stay in logs.
+update-problem-download = 업데이트를 다운로드하지 못했습니다. 연결을 확인하고 다시 시도하세요.
+
+# Update failure recovery: download write. Diagnostics stay in logs.
+update-problem-download-write = 이 앱 옆에 업데이트를 저장하지 못했습니다. 앱 폴더에 쓸 수 있는지 확인하고 다시 시도하세요.
+
+# Update failure recovery: download integrity. Diagnostics stay in logs.
+update-problem-download-integrity = 다운로드한 파일을 검증하지 못해 설치하지 않았습니다. 다시 시도하세요.
+
+# Update failure recovery: install write. Diagnostics stay in logs.
+update-problem-install-write = 업데이트로 이 앱을 교체하지 못했습니다. 앱 폴더에 쓸 수 있는지 확인하고 다시 시도하세요.
+
+# Update failure recovery: unsupported. Diagnostics stay in logs.
+update-problem-unsupported = 이 빌드는 스스로 업데이트할 수 없습니다. 최신 빌드를 직접 설치하세요.
+
+# Update failure recovery: interrupted. Diagnostics stay in logs.
+update-problem-interrupted = 업데이트가 중단되었습니다. 다시 시도하세요.
+
+# Update failure recovery: restart. Diagnostics stay in logs.
+update-problem-restart = 업데이트된 앱을 시작하지 못했습니다. Vessel은 계속 열려 있으니 다시 시작해 보세요.

@@ -1,5 +1,49 @@
 # Track L: the app's words as translation data
 
+## Source ready: typed update recovery
+
+The updater's English Display strings previously reached About directly, and
+a failed restart copied its Display into the frame notice. This correction
+projects the updater's closed typed errors into 13 safe recovery choices,
+with complete English/Korean messages in `update.ftl` (now 50 messages per
+language). Native classification matches every outer and nested error variant;
+original update errors remain in the authoritative state, and restart causes
+are logged with their source chain. No diagnostic is interpolated into UI text.
+No fetch, signature verification, installation or restart behavior changes.
+
+The pure view projection retains shared recovery text alongside status,
+action and progress; a new check clears an earlier recovery. It separates a
+small private status-text projection so constructors remain short. The
+restart notice is retained separately and retranslated only while it is still
+the notice displayed, preserving a later unrelated notice. Language changes
+refresh both paths through the existing one-purpose host method. The browser
+keeps its idle adapter; an unreachable failed-browser state has a safe
+Unsupported classification rather than a raw diagnostic.
+
+Whole-sentence tests cover all 13 recoveries in both languages, including the
+prepared error value. The allocation test now includes Failed and its recovery
+getter. Native-only synthetic error fixtures cover each update recovery
+category and constructible alternate variants without downloads or process
+launches; restart ownership and actual cached-problem clearing have their own
+host tests. The latter app tests still await execution by the native gate.
+Local all-target view Clippy and 825 library tests plus ten catalog-contract
+tests pass. Native source checks pass. Status: **source ready, gate owed**;
+app compilation, whole native tests, wasm and screens remain unverified for
+this correction. There is no installed-app preview hook or fake transport.
+
+The About renderer also now borrows static licence values and the unavailable
+log-path label through its existing SharedString value slot, avoiding a fresh
+String copy of those constants while drawing. Real filesystem-path formatting
+is unchanged. No geometry, control, theme token or allowance changes.
+
+V1 reviewed exactly `46ff1c13..7c99ae1f..73fd0c49` as SOURCE/A13 GATE PASS:
+all six native steps passed, 1,147 ordinary and two compile-fail tests passed,
+zero failed, one existing display fixture ignored. Its scope explicitly
+excludes UI approval, a complete About screen, inventory completeness,
+`75c4d8dc`'s strengthened guard, and the later updater work. The updater's first
+remote Clippy failure on `75cf3b4a` remains recorded; the test-module correction
+`bf9f5e77` passed a new remote native Clippy check. No unchanged gate is rerun.
+
 ## About inventory: member-local declarations
 
 The self-review found a pre-existing gap in the inventory guard: its normal
