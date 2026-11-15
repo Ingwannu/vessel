@@ -68,7 +68,7 @@ pub(super) async fn recovering(
                 .checkpoint_plan(operation.plan, operation.owner)
                 .await?;
             roots
-                .add(plan.evidence.physical(), plan.key.worktree)
+                .add(plan.evidence.physical(), plan.key.worktree, operation.id)
                 .map_err(|_bound| {
                     vessel_store::CheckpointStoreError::from(
                         vessel_proto::checkpoint::CheckpointError::Busy,

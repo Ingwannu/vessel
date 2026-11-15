@@ -141,9 +141,10 @@ impl WorkspaceError {
                 super::exclusion::RootRefusal::TimedOut | super::exclusion::RootRefusal::Closed,
             ) => ErrorCode::Unavailable,
             #[cfg(all(test, target_os = "linux"))]
-            Self::RootAdmission(super::exclusion::RootRefusal::NotRecovering) => {
-                ErrorCode::Conflict
-            }
+            Self::RootAdmission(
+                super::exclusion::RootRefusal::NotRecovering
+                | super::exclusion::RootRefusal::StaleLease,
+            ) => ErrorCode::Conflict,
             Self::Stopping | Self::WriteCancelled | Self::MetadataBusy => ErrorCode::Unavailable,
             Self::ReplyGone(_) | Self::Task(_) => ErrorCode::Internal,
             Self::NoGit | Self::NotGit => ErrorCode::Unsupported,

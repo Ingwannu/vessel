@@ -687,3 +687,23 @@ on E0308, the CheckpointWrite apply error conversion already corrected in69ed6d5
 The emitted inbox fixture qualification warning is now corrected too. No behavior
 test executed in this run, and the preceding node prebuild is not runtime proof.
 Current storage/FS/admission source remains ahead of that failed immutable head.
+
+
+### Recovery settlement is per operation (controller seam still staged)
+
+RecoveryRoots now retains RestoreId→WorktreeId per actual physical root. Startup
+hydrates those exact identities. Resolving one operation cannot clear another
+operation or aliased worktree's pin. The staged claim/pin/resolve controller seam
+uses an uncloneable physical lease and compares its retained token by identity;
+late callbacks from a dropped/replaced lease are refused. A recovery lease remains
+owned after settlement until its physical work/postcondition has ended and the
+holder drops it. Idempotent settlement on that same held lease reuses the result.
+Recovery claims can enter an already-counted pinned root even at the root-count
+limit, avoiding a full-registry deadlock.
+
+The old test-only raw root clear is removed. Controller-facing recovery mutation
+APIs stay cfg(test) until the real restore controller consumes them; the ordinary
+production writer/start gate and startup identity index remain active. Tests cover
+two restore pins on one physical root, wrong operation, stale token, shared root
+blocking and continued physical ownership after resolution. They are unrun, and
+provide no actual SQL/whole-filesystem recovery proof by themselves.

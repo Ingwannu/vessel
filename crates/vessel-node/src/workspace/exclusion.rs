@@ -40,48 +40,21 @@ pub(crate) enum RootRefusal {
     #[error("workspace admission owner is closed")]
     Closed,
     #[cfg(test)]
+    #[error("workspace recovery lease is stale")]
+    StaleLease,
+    #[cfg(test)]
     #[error("workspace root has no pending recovery")]
     NotRecovering,
 }
-#[derive(Debug, Default)]
-pub(crate) struct RecoveryRoots(BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>>);
-impl TryFrom<BTreeSet<PhysicalRoot>> for RecoveryRoots {
-    type Error = RootRefusal;
-    fn try_from(roots: BTreeSet<PhysicalRoot>) -> Result<Self, Self::Error> {
-        if roots.len() > ROOT_LEASES {
-            Err(RootRefusal::Busy)
-        } else {
-            Ok(Self(
-                roots
-                    .into_iter()
-                    .map(|root| (root, BTreeSet::new()))
-                    .collect(),
-            ))
-        }
-    }
-}
-impl RecoveryRoots {
-    pub(super) fn add(
-        &mut self,
-        root: PhysicalRoot,
-        worktree: WorktreeId,
-    ) -> Result<(), RootRefusal> {
-        if !self.0.contains_key(&root) && self.0.len() >= ROOT_LEASES {
-            return Err(RootRefusal::Busy);
-        }
-        let worktrees = self.0.entry(root).or_default();
-        if !worktrees.contains(&worktree) && worktrees.len() >= super::MAX_WORKTREES {
-            return Err(RootRefusal::Busy);
-        }
-        let _inserted = worktrees.insert(worktree);
-        Ok(())
-    }
-}
+mod recovery;
+#[cfg(test)]
+mod resolving;
+pub(crate) use recovery::RecoveryRoots;
 
 #[derive(Debug)]
 pub(crate) struct RootLease {
     root: PhysicalRoot,
-    release: CancellationToken,
+    release: Arc<CancellationToken>,
     notify: Arc<Notify>,
 }
 impl RootLease {
@@ -104,8 +77,26 @@ enum Request {
         reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
     },
     #[cfg(test)]
-    Recovered {
+    ClaimRecovery {
         root: PhysicalRoot,
+        restore: vessel_proto::checkpoint::RestoreId,
+        deadline: Instant,
+        reply: oneshot::Sender<Result<RootLease, RootRefusal>>,
+    },
+    #[cfg(test)]
+    PinRecovery {
+        root: PhysicalRoot,
+        worktree: WorktreeId,
+        restore: vessel_proto::checkpoint::RestoreId,
+        held: Arc<CancellationToken>,
+        deadline: Instant,
+        reply: oneshot::Sender<Result<(), RootRefusal>>,
+    },
+    #[cfg(test)]
+    ResolveRecovery {
+        root: PhysicalRoot,
+        restore: vessel_proto::checkpoint::RestoreId,
+        held: Arc<CancellationToken>,
         deadline: Instant,
         reply: oneshot::Sender<Result<(), RootRefusal>>,
     },
@@ -121,7 +112,6 @@ impl RootGate {
         recovering: RecoveryRoots,
         stop: CancellationToken,
     ) -> (Self, tokio::task::JoinHandle<()>) {
-        let recovering = recovering.0;
         let shutdown = stop.clone();
         let (requests, mut received) = mpsc::channel::<Request>(CHECKPOINT_QUEUE);
         let task = tokio::spawn(async move {
@@ -174,21 +164,6 @@ impl RootGate {
         })
         .await
     }
-    /// Called only after physical rollback and durable journal resolution verify.
-    /// This is never an RPC or an unconditional force-unlock operation.
-    #[cfg(test)]
-    pub(crate) async fn recovered(
-        &self,
-        root: PhysicalRoot,
-        deadline: Instant,
-    ) -> Result<(), RootRefusal> {
-        self.request(deadline, |reply| Request::Recovered {
-            root,
-            deadline,
-            reply,
-        })
-        .await
-    }
     async fn request<T>(
         &self,
         deadline: Instant,
@@ -215,8 +190,15 @@ impl RootGate {
 }
 #[derive(Debug)]
 struct State {
-    active: BTreeMap<PhysicalRoot, CancellationToken>,
-    recovering: BTreeMap<PhysicalRoot, BTreeSet<WorktreeId>>,
+    active: BTreeMap<PhysicalRoot, Active>,
+    recovering: RecoveryRoots,
+}
+
+#[derive(Debug)]
+struct Active {
+    release: Arc<CancellationToken>,
+    #[cfg(test)]
+    purpose: resolving::Purpose,
 }
 
 fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
@@ -241,20 +223,34 @@ fn admit(request: Request, state: &mut State, notify: &Arc<Notify>) {
         } => {
             let _gone = reply.send(claim(root, &worktrees, deadline, state, notify));
         }
-        #[cfg(test)]
-        Request::Recovered {
+        Request::ClaimRecovery {
             root,
+            restore,
             deadline,
             reply,
         } => {
-            let result = if Instant::now() >= deadline {
-                Err(RootRefusal::TimedOut)
-            } else if state.recovering.remove(&root).is_some() {
-                Ok(())
-            } else {
-                Err(RootRefusal::NotRecovering)
-            };
-            let _gone = reply.send(result);
+            let _gone = reply.send(resolving::claim(root, restore, deadline, state, notify));
+        }
+        Request::PinRecovery {
+            root,
+            worktree,
+            restore,
+            held,
+            deadline,
+            reply,
+        } => {
+            let _gone = reply.send(resolving::pin(
+                root, worktree, restore, &held, deadline, state,
+            ));
+        }
+        Request::ResolveRecovery {
+            root,
+            restore,
+            held,
+            deadline,
+            reply,
+        } => {
+            let _gone = reply.send(resolving::resolve(root, restore, &held, deadline, state));
         }
     }
 }
@@ -268,21 +264,36 @@ fn claim(
     if Instant::now() >= deadline {
         return Err(RootRefusal::TimedOut);
     }
-    if state.recovering.contains_key(&root)
-        || state
-            .recovering
-            .values()
-            .any(|pending| !pending.is_disjoint(worktrees))
-    {
+    if state.recovering.contains(&root) || state.recovering.affects(worktrees) {
         return Err(RootRefusal::RecoveryPending);
     }
+    issue(root, deadline, state, notify)
+}
+fn issue(
+    root: PhysicalRoot,
+    deadline: Instant,
+    state: &mut State,
+    notify: &Arc<Notify>,
+) -> Result<RootLease, RootRefusal> {
+    if Instant::now() >= deadline {
+        return Err(RootRefusal::TimedOut);
+    }
     if state.active.contains_key(&root)
-        || state.active.len().saturating_add(state.recovering.len()) >= ROOT_LEASES
+        || state.active.len() >= ROOT_LEASES
+        || (!state.recovering.contains(&root)
+            && state.active.len().saturating_add(state.recovering.len()) >= ROOT_LEASES)
     {
         return Err(RootRefusal::Busy);
     }
-    let release = CancellationToken::new();
-    let _previous = state.active.insert(root, release.clone());
+    let release = Arc::new(CancellationToken::new());
+    let _previous = state.active.insert(
+        root,
+        Active {
+            release: Arc::clone(&release),
+            #[cfg(test)]
+            purpose: resolving::Purpose::Writer,
+        },
+    );
     Ok(RootLease {
         root,
         release,
@@ -290,8 +301,8 @@ fn claim(
     })
 }
 
-fn prune(active: &mut BTreeMap<PhysicalRoot, CancellationToken>) {
-    active.retain(|_root, release| !release.is_cancelled());
+fn prune(active: &mut BTreeMap<PhysicalRoot, Active>) {
+    active.retain(|_root, active| !active.release.is_cancelled());
 }
 #[cfg(test)]
 mod tests;
