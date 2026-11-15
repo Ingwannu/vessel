@@ -120,7 +120,10 @@ fn validate_page(page: &FileDiff, from: GitHunkOffset) -> Result<(), ReadFailure
                 return Err(ReadFailure::TooLarge);
             }
             if let Some(more) = page.more_from {
-                let count = u32::try_from(hunks.len()).map_err(|_| ReadFailure::TooLarge)?;
+                // The named payload cap above is much smaller than the wire offset;
+                // conversion overflow still refuses rather than narrowing if that cap changes.
+                let count = u32::try_from(hunks.len())
+                    .map_err(|_out_of_bounds_hunk_count| ReadFailure::TooLarge)?;
                 if count == 0 || from.get().checked_add(count) != Some(more) {
                     return Err(ReadFailure::Page(PageMismatch::Continuation));
                 }

@@ -1062,3 +1062,14 @@ The complete-sentence recovery fixture reached102 lines after Owner was added;
 move the unchanged cases into a module constant, retaining every whole-sentence
 assertion. No test input/output is weakened. The480 ordinary runtime remains
 queued and prior source; the new page source borrows no unexecuted result.
+
+### Actualad9 page-check return
+
+The exactad9 Clippy stops in View on four diagnostics: two fixture mode literals
+need separators, the hunk-count conversion needs its ignored numeric-limit cause
+named, and the fixture's half-budget division must use checked arithmetic.
+The conversion is already below the named hunk cap; overflow still refuses as
+TooLarge instead of narrowing. No node/transport diagnostic is discarded.
+The correction changes no fixture expectation or production page semantics.
+App checking has not yet been reached in this run. The ad9 View/Link git tests
+are already running; keep their original source assignment and do not cancel.

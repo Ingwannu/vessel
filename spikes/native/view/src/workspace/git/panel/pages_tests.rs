@@ -13,8 +13,8 @@ fn page(more_from: Option<u32>) -> FileDiff {
         old_path: Some("old/file.rs".parse().unwrap()),
         status: ChangeStatus::Renamed,
         mode: Some(ModeChange {
-            old: 100644,
-            new: 100755,
+            old: 100_644,
+            new: 100_755,
         }),
         content: DiffContent::Hunks {
             hunks: vec![Hunk {
@@ -251,7 +251,7 @@ fn an_individually_bounded_page_cannot_grow_the_assembled_file_past_its_limit() 
         let DiffContent::Hunks { hunks } = &mut file.content else {
             panic!("hunks");
         };
-        hunks[0].lines[0].text = "x".repeat(MAX_FILE_TEXT_BYTES / 2);
+        hunks[0].lines[0].text = "x".repeat(MAX_FILE_TEXT_BYTES.checked_div(2).unwrap());
         file
     };
     let mut reads = reads();
