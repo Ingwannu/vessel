@@ -130,13 +130,9 @@ fn target_fields(
                 },
                 |project| kit::select::FormValue::Selected(project.name.as_str().to_owned().into()),
             );
-            let leading = project.map(|project| {
-                kit::picker::initial_tile(kit::picker::initial_of(project.name.as_str()), tokens)
-                    .into_any_element()
-            });
             body = body.child(select(
                 shell,
-                Selection::new(Picker::Project, value).leading(leading),
+                Selection::new(Picker::Project, value),
                 tokens,
                 touch,
                 cx,

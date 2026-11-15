@@ -18,9 +18,7 @@ pub(super) fn offered(shell: &Shell, picker: Picker, tokens: &Tokens) -> Offered
                                 vessel_proto::workspace::ProjectState::Ready
                             ),
                             checked: model.project_id() == Some(project.id),
-                            leading: Some(Leading::Initial(kit::picker::initial_of(
-                                project.name.as_str(),
-                            ))),
+                            leading: Some(Leading::Glyph(kit::assets::Glyph::Folder)),
                             ..ComboRow::new(project.name.as_str().to_owned())
                         },
                         Choice::Project(project.id),
@@ -134,6 +132,8 @@ fn option_rows(shell: &Shell, picker: Picker, out: &mut Offered) {
                 out.push(
                     ComboRow {
                         checked: value.id == control.current,
+                        leading: (picker == Picker::Thinking)
+                            .then_some(Leading::Glyph(kit::assets::Glyph::Brain)),
                         ..ComboRow::new(value.name.clone())
                     },
                     Choice::Option {

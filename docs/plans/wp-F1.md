@@ -1234,3 +1234,17 @@ written cron typography. The planned minimal Body/Code presentation will reuse
 that existing type on the same form engine, preserving Body defaults, constructors,
 FieldId/Callbacks/Editability/FormMinimum and G3's search profile. It is not an
 implemented or checked API yet; no area font override was added.
+
+
+### Form option glyph comparison
+
+Pinned schedule-form-sheet.tsx967–1020 uses Folder16 for project options and
+Brain16 for Thinking options, inside18-point slots. The form's Project trigger
+has no leading (selectedDisplay is label only, lines582–590/722–740). Own initial
+letter tiles were incorrect additions and are removed; the existing registered
+Folder/Brain glyphs are reused, no asset or new area drawing. Existing Glyph
+leading currently reserves16 rather than the source's18: a typed shared form-row
+slot is still required after the isolated admission handoff, not an accepted
+parity difference. Provider-error retry content and code typography also remain
+source gaps before F1's final package proof. No source-only correction is called
+native/visual approval.
