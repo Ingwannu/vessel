@@ -366,7 +366,20 @@ fn readonly_root_refresh_preserves_a_legacy_viewer_without_starting_a_flush(
         root(&mut scene, shell, session, project);
         ready(&mut scene, shell);
         let mut edit = editing::Editing::new();
+        let first = edit.model.first_read();
+        let _step = edit.model.read(
+            first,
+            vessel_app_view::workspace::editor::Read::Text(
+                String::new(),
+                vessel_proto::workspace::FileVersion {
+                    size: 0,
+                    modified: 0,
+                    hash: Some("a".repeat(64).parse().unwrap()),
+                },
+            ),
+        );
         let _step = edit.model.edit("retained draft");
+        assert!(edit.model.modified());
         shell.areas.workspace.code.files.viewer = Some(Viewer {
             path: "a.rs".parse().unwrap(),
             text: Shown::Loading,
