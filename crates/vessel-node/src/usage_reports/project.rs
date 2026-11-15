@@ -1,15 +1,13 @@
 //! A loss-aware projection of already sanitized limits; no provider schema is parsed twice.
 use vessel_proto::{
-    HarnessKind, HarnessRef,
     limits::{
         AccountLimitState, ExtraUsage, LimitName, LimitPeriod, LimitScope, LimitSnapshot,
         LimitWindow, UsageLimits,
     },
     usage_reports::{
-        AvailableUsageReport, BuiltinUsageSource, ReportLoginFailures, SourceReportEntry,
-        SourceReportState, SuccessfulUsageReport, UsageBalance, UsageBalanceUnit,
-        UsageCompleteness, UsageDetail, UsageDetailAccess, UsageProblem, UsageReportId,
-        UsageSummary, UsageWindow,
+        AvailableUsageReport, ReportLoginFailures, SourceReportEntry, SourceReportState,
+        SuccessfulUsageReport, UsageBalance, UsageBalanceUnit, UsageCompleteness, UsageDetail,
+        UsageDetailAccess, UsageProblem, UsageReportId, UsageSummary, UsageWindow,
     },
 };
 #[derive(Debug, Clone, thiserror::Error)]
@@ -21,29 +19,6 @@ pub(crate) enum ProjectionError {
     #[error("this saved login has no report source")]
     Unsupported,
 }
-/// These labels explicitly describe saved configuration, not discovered vendor accounts.
-pub(crate) fn source(
-    harness: &HarnessRef,
-) -> Option<(&'static str, &'static str, BuiltinUsageSource)> {
-    match harness.known() {
-        Some(HarnessKind::ClaudeCode) => Some((
-            "saved-claude",
-            "Claude saved accounts",
-            BuiltinUsageSource::Claude,
-        )),
-        Some(HarnessKind::Codex) => Some((
-            "saved-codex",
-            "Codex saved accounts",
-            BuiltinUsageSource::Codex,
-        )),
-        Some(HarnessKind::OpenCode) => Some((
-            "saved-opencode",
-            "OpenCode saved OpenAI accounts",
-            BuiltinUsageSource::Codex,
-        )),
-        Some(HarnessKind::Gemini) | None => None,
-    }
-}
 fn name(text: &str) -> Result<LimitName, ProjectionError> {
     text.parse().map_err(ProjectionError::Text)
 }
@@ -52,8 +27,7 @@ pub(crate) fn entry(
     label: Option<&str>,
     limits: UsageLimits,
 ) -> Result<SourceReportEntry, ProjectionError> {
-    let (_, source_label, builtin) =
-        source(&limits.account.harness).ok_or(ProjectionError::Unsupported)?;
+    let source = super::source(&limits.account.harness).ok_or(ProjectionError::Unsupported)?;
     let state = match limits.state {
         AccountLimitState::Off | AccountLimitState::NotRequested => SourceReportState::NotRequested,
         AccountLimitState::Refreshing { retained } => SourceReportState::Refreshing {
@@ -77,8 +51,8 @@ pub(crate) fn entry(
     };
     Ok(SourceReportEntry {
         id,
-        source_label: name(source_label)?,
-        builtin: Some(builtin),
+        source_label: name(source.label())?,
+        builtin: Some(source.builtin()),
         saved_login: limits.source,
         account_label: label.map(name).transpose()?,
         state,

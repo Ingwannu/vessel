@@ -3,5 +3,7 @@
 //! full source discovery plugs into the same report family rather than token accounting.
 mod project;
 mod registry;
-pub(crate) use project::{entry, source};
+mod source;
+pub(crate) use project::entry;
 pub(crate) use registry::{Binding, Registry};
+pub(crate) use source::source;

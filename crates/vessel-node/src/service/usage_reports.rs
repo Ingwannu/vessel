@@ -127,7 +127,7 @@ impl NodeService {
         policy: &Observation,
     ) -> Result<SourceReportEntry, WireError> {
         let (binding, harness) = self.report_binding(scope).await?;
-        let (source, _, _) = usage_reports::source(&harness).ok_or_else(|| {
+        let source = usage_reports::source(&harness).ok_or_else(|| {
             WireError::new(
                 ErrorCode::Unsupported,
                 "this saved login has no usage report source",
@@ -136,7 +136,7 @@ impl NodeService {
         let id = self
             .usage_reports
             .identify(
-                source.parse().map_err(|_invalid_source| changed())?,
+                source.id().map_err(|_invalid_source| changed())?,
                 binding.clone(),
                 policy,
             )
