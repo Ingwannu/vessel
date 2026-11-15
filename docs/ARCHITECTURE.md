@@ -1728,15 +1728,17 @@ TypeScript/native integration remain required before activation.
 the original actor deadline through queueing, validates session/boundary receipt
 association and distinguishes prompt sent/refused from after-turn completion.
 The node retains physical/storage ownership; a lost receipt is uncertain, never
-a successful advance. Actual actor producers and node capture assembly remain
-separate work; the prior private acknowledgement prototype was removed.
+a successful advance. Actual producers and Linux bootstrap now bind the bridge
+to the capture assembly; the prior private prototype was removed.
 
 New structured actors may receive CheckpointHooks explicitly from SessionRuntime.
 Actual new delivery emits and associates the accepted anchor; injected steers do
 not. TurnEnded requests an after-image before queue advancement, including an end
 pumped during a different delivery. Anchor admission/acknowledgement share the
-capture deadline. The node does not install this bridge yet: real SQL durability,
-physical scope and filesystem/storage assembly remain activation obligations.
+capture deadline. Linux bootstrap installs the bridge, waits for initial node
+registration and exact SQL persistence, then takes opened-root admission before
+the bounded filesystem worker. Runtime proof of this connection remains owed;
+restore/GC/recovery controllers and RPC activation remain separate obligations.
 
 The staged store quota equation also counts durable preview/restore allocations.
 They bind conservative reservations to a capture key/full human principal and
@@ -1771,8 +1773,9 @@ Capture admission checks that its exact prompt/turn boundary already exists in
 SQL. Preview publication requires pre-reserved private storage; restore admission
 reserves its private envelope and all Pending intents atomically. Fixed capture
 reservations cannot be bypassed through the test-only small accounting command.
-Actual filesystem ownership, physical GC and node controller activation remain
-separate integration work; this API does not authenticate RPC callers.
+Linux capture assembly now owns actual filesystem work through bounded workers.
+Physical GC/recovery and restore controller activation remain separate work;
+this API does not authenticate RPC callers.
 
 
 The Linux workspace checkpoint API exposes opened-FD Tree/Archive/Restore values
@@ -1813,4 +1816,5 @@ Linux Storage cleanup takes bounded FD-relative passes through the fixed typed
 private layout and acknowledges only synced absence, refusing unexpected
 objects. The staged node capture backend joins that mechanism to the existing
 writer and managed-worktree lookup. Its real-worktree fixture does not launch
-a provider; bootstrap and the actor bridge remain unwired pending validation.
+a provider. Linux bootstrap now installs the actor bridge; its real-node/fake-ACP
+fixture is unrun pending remote verification.

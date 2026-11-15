@@ -1,10 +1,12 @@
-//! ADR 0077 staged orchestration. Quality B registration/wiring removes cfg(test).
+//! ADR 0077 bounded capture orchestration; restore calls remain pending.
 //!
 //! Candidate workers cannot publish. The coordinator owns deadline fencing and
 //! keeps root/worker/quota admission until cleanup, even after the actor resumes.
 
 #[cfg(target_os = "linux")]
 pub(crate) mod backend;
+#[cfg(target_os = "linux")]
+pub(crate) mod bridge;
 mod capture;
 mod quota;
 mod runner;

@@ -5,6 +5,29 @@ use vessel_proto::checkpoint::{CaptureKey, CheckpointError, ObservedSnapshot, Ph
 use vessel_workspace::checkpoint::{IgnoreDefaults, Storage, Tree};
 
 impl Workspaces {
+    pub(crate) async fn checkpoint_admission(
+        self: &std::sync::Arc<Self>,
+        worktree: vessel_proto::WorktreeId,
+    ) -> Result<super::StartGuard, CheckpointError> {
+        let path = self
+            .state()
+            .worktrees
+            .get(&worktree)
+            .map(|entry| entry.info.path.clone())
+            .ok_or(CheckpointError::UnsupportedScope)?;
+        self.admit_start(&path).await.map_err(|error| {
+            if matches!(
+                error,
+                super::WorkspaceError::RootAdmission(
+                    super::exclusion::RootRefusal::RecoveryPending
+                )
+            ) {
+                CheckpointError::RecoveryPending
+            } else {
+                CheckpointError::Busy
+            }
+        })
+    }
     /// Synchronous actual I/O: only the checkpoint runner's retained worker calls.
     pub(crate) fn capture_checkpoint(
         &self,

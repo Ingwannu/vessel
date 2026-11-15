@@ -19,7 +19,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_rpc::Server;
 use vessel_secure::NodeKeypair;
-use vessel_session::{AttachmentLoader, RuntimeConfig, SessionRuntime};
+use vessel_session::{AttachmentLoader, SessionRuntime};
 use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
@@ -55,7 +55,7 @@ use crate::workspace::{Opening, Workspaces};
 
 mod setup;
 
-use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy};
+use self::setup::{SessionSetup, SetupDirs, model_client, model_proxy, runtime};
 
 /// A running node. Stop it with [`Node::stop`]; dropping it leaves it
 /// running until the process exits.
@@ -323,7 +323,13 @@ async fn core(
     let key = keypair.public();
     // Sessions ask the node for their prompts' attachments (protocol 10).
     let (loader, loads) = AttachmentLoader::channel(ATTACHMENT_LOADS);
-    let runtime = runtime(config, loader, setup.private_dir.clone());
+    #[cfg(target_os = "linux")]
+    let (checkpoint_hooks, checkpoint_requests) = vessel_session::CheckpointHooks::channel();
+    #[cfg(target_os = "linux")]
+    let checkpoint_hooks = Some(checkpoint_hooks);
+    #[cfg(not(target_os = "linux"))]
+    let checkpoint_hooks = None;
+    let runtime = runtime(config, loader, setup.private_dir.clone(), checkpoint_hooks);
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
     let settings = Arc::new(crate::settings::Settings::open(
@@ -418,6 +424,17 @@ async fn core(
     )
     .await
     .map_err(NodeError::Store)?;
+    #[cfg(target_os = "linux")]
+    crate::checkpoint::bridge::serve(
+        crate::checkpoint::bridge::Context {
+            sessions: Arc::clone(&sessions),
+            workspaces: Arc::clone(&workspaces),
+            store: store.clone(),
+            tasks: tasks.clone(),
+            stop: stop.clone(),
+        },
+        checkpoint_requests,
+    );
     // Worktrees whose sessions are gone are tidied at start and after
     // each prune (`tidying`); deletions tidy their own.
     // Terminals beside sessions (protocol 11, ADR 0031): the node's tasks,
@@ -525,27 +542,6 @@ async fn core(
         service,
         relays,
     })
-}
-
-/// The session runtime, whose structured sessions load their prompts'
-/// attachments through `loader` and whose direct drivers write a launch's
-/// private files only in `private_dir`.
-fn runtime(config: &Config, loader: AttachmentLoader, private_dir: PathBuf) -> Arc<SessionRuntime> {
-    Arc::new(
-        SessionRuntime::new(
-            RuntimeConfig {
-                harness_lookup: config.harness_lookup.clone(),
-                harness_env: config.harness_env.clone(),
-                ring_capacity: config.ring_capacity,
-                durable_capacity: config.durable_capacity,
-                agent_handshake_timeout: config.agent_handshake_timeout,
-                park_after: config.park_after,
-                private_dir: Some(private_dir),
-            },
-            CancellationToken::new(),
-        )
-        .with_attachments(loader),
-    )
 }
 
 /// How many prompts' attachment loads may wait for the node's loader; a

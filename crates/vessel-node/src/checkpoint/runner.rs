@@ -70,6 +70,7 @@ enum Event {
 #[derive(Debug, Clone)]
 pub(crate) struct Client {
     requests: mpsc::Sender<Request>,
+    #[cfg(test)]
     lifecycle: watch::Receiver<Lifecycle>,
     cleanup_faults: watch::Receiver<Option<CleanupFault>>,
 }
@@ -98,6 +99,7 @@ impl Client {
     pub(super) fn cleanup_faults(&self) -> watch::Receiver<Option<CleanupFault>> {
         self.cleanup_faults.clone()
     }
+    #[cfg(test)]
     pub(super) fn lifecycle(&self) -> watch::Receiver<Lifecycle> {
         self.lifecycle.clone()
     }
@@ -193,7 +195,7 @@ where
 {
     let (requests, mut receive) = mpsc::channel::<Request>(CHECKPOINT_QUEUE);
     let (events, mut completed) = mpsc::channel::<Event>(CHECKPOINT_WORKERS);
-    let (state, lifecycle) = watch::channel(Lifecycle::Accepting);
+    let (state, _lifecycle) = watch::channel(Lifecycle::Accepting);
     let (faults, cleanup_faults) = watch::channel(None);
     let read = Arc::new(read);
     let persist = Arc::new(persist);
@@ -202,11 +204,16 @@ where
         let mut captures = Captures::default();
         let mut requests_open = true;
         loop {
-            if !requests_open && captures.idle() {
+            if !requests_open && captures.drained() {
                 break;
             }
             let deadline = captures.deadline();
-            tokio::select! {
+            tokio::select! {biased;
+                ()=wait_deadline(deadline)=>captures.expire(Instant::now()),
+                event=completed.recv()=>{
+                    let Some(event)=event else {break;};
+                    completed_event(&mut captures,event,&faults);
+                }
                 request=receive.recv(), if requests_open=>{
                     let Some(request)=request else {
                         // Closing callers does not make blocked I/O disappear. Drain
@@ -228,18 +235,14 @@ where
                         }
                     }
                 }
-                event=completed.recv()=>{
-                    let Some(event)=event else {break;};
-                    completed_event(&mut captures,event,&faults);
-                }
-                ()=wait_deadline(deadline)=>captures.expire(Instant::now()),
             }
         }
     });
     (
         Client {
             requests,
-            lifecycle,
+            #[cfg(test)]
+            lifecycle: _lifecycle,
             cleanup_faults,
         },
         task,
@@ -253,7 +256,7 @@ fn completed_event(
 ) {
     match event {
         Event::CleanupFailed { key, reason } => {
-            captures.refuse(key, reason);
+            captures.cleanup_failed(key, reason);
             let _previous = faults.send_replace(Some(CleanupFault { key, reason }));
         }
         Event::Candidate { key, permit } => {

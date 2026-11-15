@@ -42,6 +42,8 @@ use crate::models::Models;
 use crate::persist::{self, Durability, Persisted};
 use crate::workspace::Occupant;
 
+#[cfg(target_os = "linux")]
+mod checkpoints;
 mod starting;
 pub(crate) use starting::Admission;
 
@@ -84,20 +86,14 @@ pub(crate) struct Sessions {
     /// listener that falls behind finds the agent gone at the schedule's
     /// next run instead.
     ended: tokio::sync::broadcast::Sender<SessionId>,
+    #[cfg(target_os = "linux")]
+    registrations: tokio::sync::Notify,
 }
 
 /// Ends a listener may fall behind by before it misses some.
 const ENDED: usize = 64;
 
 impl Sessions {
-    pub(crate) fn limit_association(&self, id: SessionId) -> vessel_session::LimitAssociation {
-        self.runtime
-            .get(id)
-            .map_or(vessel_session::LimitAssociation::Unavailable, |handle| {
-                handle.limit_association()
-            })
-    }
-
     pub(crate) fn new(
         runtime: Arc<SessionRuntime>,
         store: Store,
@@ -108,6 +104,8 @@ impl Sessions {
         Self {
             runtime,
             store,
+            #[cfg(target_os = "linux")]
+            registrations: tokio::sync::Notify::new(),
             durability: RwLock::new(HashMap::new()),
             tasks,
             agents,
@@ -196,6 +194,8 @@ impl Sessions {
             .write()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(id, watching);
+        #[cfg(target_os = "linux")]
+        self.registrations.notify_waiters();
         if previous.is_some() {
             tracing::error!(session = %id, "session id created twice");
         }

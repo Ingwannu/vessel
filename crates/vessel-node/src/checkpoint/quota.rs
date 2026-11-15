@@ -28,7 +28,7 @@ impl Quota {
     pub(super) fn reserve(&mut self, bytes: ReservedBytes) -> Result<(), CheckpointError> {
         let next = self
             .reserved
-            .checked_add(bytes.0)
+            .checked_add(bytes.get())
             .ok_or(CheckpointError::StorageFull)?;
         if next > CHECKPOINT_NODE_BYTES {
             return Err(CheckpointError::StorageFull);
@@ -39,8 +39,9 @@ impl Quota {
     pub(super) fn release(&mut self, bytes: ReservedBytes) {
         // Releases are for a removed job exactly once, so underflow is a bug,
         // but it cannot wrap a reservation into more available capacity.
-        self.reserved = self.reserved.saturating_sub(bytes.0);
+        self.reserved = self.reserved.saturating_sub(bytes.get());
     }
+    #[cfg(test)]
     pub(super) fn reserved(&self) -> u64 {
         self.reserved
     }

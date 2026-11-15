@@ -66,8 +66,8 @@ mod attachments;
 mod auth;
 mod automation;
 mod catalogue;
-// ADR 0077: staged until Quality B and the reviewed checkpoint wiring commit.
-#[cfg(test)]
+// ADR 0077 Linux capture hooks; restore RPCs remain pending and unavailable.
+#[cfg(any(test, target_os = "linux"))]
 mod checkpoint;
 pub mod cleanup;
 mod config;

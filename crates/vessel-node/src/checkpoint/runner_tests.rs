@@ -369,10 +369,10 @@ async fn failed_cleanup_cannot_return_worker_capacity_or_its_root_guard() {
         client.capture(key, ReservedBytes::new(1).unwrap()).await,
         Err(CheckpointError::Busy)
     );
-    // No real I/O is held in this failure fixture; stop its deliberately
-    // unresolved owner rather than presenting failed cleanup as completion.
-    owner.abort();
-    assert!(owner.await.unwrap_err().is_cancelled());
+    // Cleanup actually returned an error: shutdown may exit with durable
+    // recovery charges, while an active blocked worker still cannot drain.
+    drop(client);
+    owner.await.unwrap();
 }
 
 fn empty() -> Result<vessel_proto::checkpoint::ObservedSnapshot, CheckpointError> {

@@ -20,6 +20,10 @@ pub(crate) struct StartGuard {
     lease: RootLease,
 }
 impl StartGuard {
+    #[cfg(target_os = "linux")]
+    pub(crate) const fn physical(&self) -> vessel_proto::checkpoint::PhysicalRoot {
+        self.lease.root()
+    }
     pub(crate) fn folder(&self) -> &Path {
         &self.folder
     }

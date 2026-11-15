@@ -2,6 +2,8 @@
 //! cannot record one; what a session looks like once handed over.
 
 #[cfg(target_os = "linux")]
+mod checkpoint_anchor;
+#[cfg(target_os = "linux")]
 mod checkpoint_starting;
 mod handover;
 

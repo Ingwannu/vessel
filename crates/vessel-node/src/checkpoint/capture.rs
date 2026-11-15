@@ -3,14 +3,21 @@
 use super::quota::{Quota, ReservedBytes};
 use std::collections::BTreeMap;
 use tokio::{sync::oneshot, time::Instant};
-use vessel_proto::{
-    WorktreeId,
-    checkpoint::{CHECKPOINT_WORKERS, CaptureId, CaptureKey, CheckpointError, PhysicalRoot},
+#[cfg(test)]
+use vessel_proto::WorktreeId;
+use vessel_proto::checkpoint::{
+    CHECKPOINT_WORKERS, CaptureId, CaptureKey, CheckpointError, PhysicalRoot,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorkerState {
+    Running,
+    CleanupFailed,
+}
 #[derive(Debug)]
 struct Job {
     key: CaptureKey,
+    worker: WorkerState,
     physical: PhysicalRoot,
     deadline: Instant,
     bytes: ReservedBytes,
@@ -24,8 +31,20 @@ pub(super) struct Captures {
     quota: Quota,
 }
 impl Captures {
-    pub(super) fn idle(&self) -> bool {
-        self.jobs.is_empty()
+    /// Failure keeps admission while serving, but cannot hang node shutdown
+    /// after every actual I/O job returned. Durable escrow remains for startup.
+    pub(super) fn drained(&self) -> bool {
+        self.jobs
+            .values()
+            .all(|job| job.worker == WorkerState::CleanupFailed)
+    }
+    pub(super) fn cleanup_failed(&mut self, key: CaptureKey, reason: CheckpointError) {
+        self.refuse(key, reason);
+        if let Some(job) = self.jobs.get_mut(&key.capture)
+            && job.key == key
+        {
+            job.worker = WorkerState::CleanupFailed;
+        }
     }
     #[cfg(test)]
     pub(super) fn admit(
@@ -60,6 +79,7 @@ impl Captures {
             key.capture,
             Job {
                 key,
+                worker: WorkerState::Running,
                 physical,
                 deadline,
                 bytes,

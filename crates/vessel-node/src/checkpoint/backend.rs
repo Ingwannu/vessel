@@ -1,4 +1,4 @@
-//! Real SQL/filesystem assembly, still held from bootstrap pending controller checks.
+//! Real Linux capture SQL/filesystem assembly installed by the bounded actor bridge.
 //! No second writer or unbounded filesystem task is introduced here.
 use super::runner::{self, Client, Disposition, Publication};
 use crate::workspace::Workspaces;

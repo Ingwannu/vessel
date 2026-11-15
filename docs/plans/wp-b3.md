@@ -28,12 +28,13 @@ admitted-worker API it is a Linux normal dependency, with no new version. No pro
   policy, typed changes and errors, unary requests/responses. FILE_CHECKPOINTS
   remains None and PROTOCOL_VERSION is unchanged. The five canonical pending
   rows generate client/guard/envelope plumbing. No independent method table.
-- node/checkpoint: test-only bounded capture owner, worker/root/quota leases and
+- node/checkpoint: Linux bounded capture owner, worker/root/quota leases and
   deadline fencing. Timeout acknowledges without joining blocked I/O; capacity
   remains occupied until actual cleanup. Candidate persistence and durable Ready
   activation are separate phases; uncertain activation retains the archive.
-  The real store/coordinator assembly still needs connecting. Real actor
-  prompt/TurnEnded hooks exist, but the node does not install their bridge yet.
+  Linux bootstrap installs the real SQL/filesystem bridge and actual actor
+  prompt/TurnEnded hooks. Compilation/runtime verification of that connection
+  is pending; restore, expiry/GC and recovery controllers remain incomplete.
 - node/service/checkpoints: registered methods explicitly refuse as unavailable.
   Guarded authorization and agent refusal remain in front of the seam. Ordinary
   human forwarding preserves destination checks. Pending calls refuse locally
@@ -371,8 +372,8 @@ is still owed, and no node filesystem capability is activated by this bridge.
 
 ### Actual actor hook producers
 
-New actors can now receive the bridge through SessionRuntime's explicit builder;
-the node does not install it yet. Real new delivery (including queued delivery,
+New actors receive the bridge through SessionRuntime's explicit builder;
+Linux bootstrap now installs it (see the bootstrap section below). Real new delivery (including queued delivery,
 interrupt's replacement and a side turn) emits an accepted-prompt anchor after
 ordered driver readiness/idle checks, asks for its before-image, and reports
 actual provider delivery. Injected steers do not take this path. Actual provider
@@ -796,3 +797,33 @@ with no provider process: accepted delivery retains readable Ready evidence;
 refused delivery exposes Unavailable and removes the private capture. Both
 are unrun until the next remote suite. Bootstrap/turn bridge, recovery and
 restore controllers remain incomplete; FILE_CHECKPOINTS stays None.
+
+### Linux bootstrap and first-anchor durability (source; unverified remotely)
+
+Linux startup now installs CheckpointHooks and starts one bounded bridge with
+the existing sessions, workspaces, sole writer, task tracker and shutdown token.
+The original actor deadline covers registration, persistence, root metadata,
+admission and candidate acknowledgement. Initial actor hooks may precede the
+node durability table: a pre-registered Notify waiter prevents lost wakeups,
+then persist::wait_until proves the exact next sequence before filesystem work.
+Runtime visibility alone never proves a committed boundary. Registered worktree
+identity comes from the session's resolved workspace or its validated place,
+then an opened physical guard is revalidated and held through actual delivery.
+The separate capture worker retains its own root/quota permit until actual
+cleanup. Full principal authorization/restore remains in the pending handlers.
+Other platforms install no capture hooks and advertise no file checkpoint RPC.
+
+Bridge work is bounded by the existing request queue and two handlers. Shutdown
+closes admission, drains handlers and waits for actual I/O; a cleanup error
+keeps serving-time admission and durable escrow pinned, while shutdown can exit
+once the I/O returned, leaving reconciliation work persisted. A blocked syscall
+cannot use this failure path. Git's default global-ignore fallback is resolved
+once at the node environment edge; unsafe defaults refuse capture.
+
+Node runtime construction moved intact into node/setup beside its other setup
+helpers to fit the file budget; its ratchet decreases from 691 to 687. Session
+limit-association reads moved into sessions/read for the same reason. No limit
+was raised. Registration/writer barrier and real-node/fake-ACP turn fixtures
+were added, including stored image reads after node shutdown/reopen. They have
+not executed yet. Runtime Busy timing, startup GC/recovery and the full node
+gate remain owed. No runtime capability, product completion or review is claimed.
