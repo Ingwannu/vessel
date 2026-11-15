@@ -166,7 +166,11 @@ per-attempt reply fences. It contains no GPUI state or connection identity cache
 The current SessionView and ConversationArea globals remain the only live product
 owner while concrete owner adapters are prepared; the coordinated cutover must
 remove those globals and the single follow together. Pure core tests do not prove
-multiple agent panes work. Package details and evidence limits are in
+multiple agent panes work. The staged single-slot minter uses original connection
+context and authoritative ownership, plans its real tab before its resource factory,
+and refuses implicit eviction. Independent transport retirement still invalidates
+old bindings and owner tickets when a replacement is refused. It remains test-only
+until the global storage and unbound ingress are removed together. Package details and evidence limits are in
 [`wp-layout.md`](../../docs/plans/wp-layout.md).
 
 ### Adding a screen (an area)

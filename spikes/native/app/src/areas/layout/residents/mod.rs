@@ -3,6 +3,8 @@
 //! The factory is supplied by scoped owner adapters. In particular, the old
 //! selected-session composer callback is not a production resource constructor.
 mod access;
+mod opening;
+pub(crate) use opening::{SessionAdmission, SessionOpening, SessionOpeningProblem};
 #[cfg(test)]
 mod tests;
 
@@ -23,6 +25,7 @@ pub(crate) struct SessionResources {
 struct Entry {
     token: ResidentToken,
     resources: SessionResources,
+    connection: Option<vessel_app_view::connection::ConnectionContext>,
 }
 /// Metadata admission and resource storage are private parts of the same owner.
 /// All public accesses validate admission before borrowing a concrete resource.
@@ -50,7 +53,11 @@ impl SessionResidents {
         if let MapEntry::Vacant(slot) = self.entries.entry(address.session) {
             let context = self.admission.context(token, claim)?;
             let resources = build(&context);
-            let _inserted = slot.insert(Entry { token, resources });
+            let _inserted = slot.insert(Entry {
+                token,
+                resources,
+                connection: None,
+            });
         }
         Ok(token)
     }

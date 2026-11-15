@@ -1,7 +1,7 @@
 # First product session resident: one admitted slot
 
-Status: contract amendment proposed for review before implementation. The
-staged concrete resource map is not a live product admission path.
+Status: contract amendment passed review. The staged concrete resource map and
+its admission minter are not a live product path.
 
 ## Decision Log
 
@@ -132,3 +132,28 @@ their terminal owner's lifecycle; no terminal kill/archive is inferred here.
 This first step does not establish multi-session panes, final retention parity,
 OS behavior or whole-package approval. Those remain the final resource/layout
 cutover's checks and captures.
+
+## Staged admission implementation
+
+The first minter extends the same `SessionResidents` owner. `SessionOpening`
+resolves original `ConnectionContext` plus session through `WorkspaceLookup`;
+loading/unavailable ownership refuses instead of falling back to a guessed key.
+`Shell::admit_session_open` plans a real Agent tab in the existing layout book,
+claims resources before invoking the supplied scoped factory, retires the old
+attempt through concrete owner callbacks and returns `SessionAdmission` containing
+original connection, full presentation context and fresh binding. The book is
+published only after admission succeeds. No hydration, follow or operation is
+started by this minter.
+
+The initial single-slot policy is conservative: another retained resident refuses
+even when clean. An explicit all-owner snapshot/close must release it first. This
+avoids an implicit destructive transition before every concrete adapter is ready.
+A refusal leaves the previous layout, fields and still-valid tickets intact.
+Independent `connection_retired` processing matches only the stored original
+context, invalidates old binding/tickets and notifies owners despite a refused
+switch; a delayed old notice cannot retire a newer admitted connection.
+
+These methods remain inside the literal test-only resource module. Product
+conversion still owes removal of every converted global/raw ingress, actual
+scoped owner factories, guarded transport and final receive checks. Existing
+legacy constructors used in minter tests are fixtures, not approved factories.
