@@ -8,8 +8,9 @@ use vessel_app_kit::ui::{
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::workspace::git::ReadState;
-use vessel_app_view::workspace::git::panel::{PanelAddress, PanelBinding, PanelTarget, ReadIssue};
+use vessel_app_view::workspace::git::panel::{
+    Body, ComparisonMode, Demand, EmptyAction, PanelAddress, PanelBinding, PanelTarget, ReadIssue,
+};
 
 pub(crate) fn render_panel(
     shell: &Shell,
@@ -88,34 +89,30 @@ fn summary(
     let Some(reads) = &entry.reads else {
         return loading(Some(shell.words.git_panel().checking()), tokens);
     };
-    if let ReadState::Failed(why) = reads.status() {
-        return failure(shell, why, tokens, window, cx);
-    }
-    if reads.status().shown().is_none() {
-        return loading(Some(shell.words.git_panel().checking()), tokens);
-    }
-    match reads.summary() {
-        ReadState::Failed(why) => failure(shell, why, tokens, window, cx),
-        ReadState::Empty | ReadState::Loading { previous: None, .. } => loading(None, tokens),
-        ReadState::Ready(data)
-        | ReadState::Loading {
-            previous: Some(data),
-            ..
-        } => {
-            if data.files.is_empty() && !data.more {
-                return div()
-                    .size_full()
-                    .flex()
-                    .flex_col()
-                    .items_center()
-                    .justify_center()
-                    .pt(px(spacing::S16))
-                    .gap(px(spacing::S2))
-                    .type_(Type::Body)
-                    .text_color(tokens.neutral.foreground_muted)
-                    .child(shell.words.git_panel().empty().to_owned())
-                    .into_any_element();
-            }
+    match reads.body(Demand::Active) {
+        Body::Inactive => div().into_any_element(),
+        Body::Connecting => message(shell.words.git_panel().problem_connection(), tokens),
+        Body::CheckingRepository => loading(Some(shell.words.git_panel().checking()), tokens),
+        Body::RepositoryFailed(why) | Body::DiffFailed(why) => {
+            failure(shell, why, tokens, window, cx)
+        }
+        Body::NotRepository => message(shell.words.git_panel().not_repository(), tokens),
+        Body::ReadingDiff => loading(None, tokens),
+        Body::DiffTooLarge => div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_center()
+            .gap(px(spacing::S2))
+            .pt(px(spacing::S16))
+            .type_(Type::Body)
+            .text_color(tokens.neutral.foreground_muted)
+            .child(shell.words.git_panel().too_large_title().to_owned())
+            .child(shell.words.git_panel().too_large_description().to_owned())
+            .into_any_element(),
+        Body::Empty(action) => empty(shell, address, entry, action, tokens, cx),
+        Body::Files(data) => {
             let address = address.clone();
             let files = entry.files.element(cx.processor(
                 move |shell: &mut Shell, index: usize, window, cx| {
@@ -138,6 +135,68 @@ fn summary(
         }
     }
 }
+fn message(text: &str, tokens: &Tokens) -> AnyElement {
+    div()
+        .size_full()
+        .flex()
+        .flex_col()
+        .items_center()
+        .justify_center()
+        .pt(px(spacing::S16))
+        .gap(px(spacing::S2))
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(text.to_owned())
+        .into_any_element()
+}
+fn empty(
+    shell: &Shell,
+    address: &PanelAddress,
+    entry: &super::Entry,
+    action: Option<EmptyAction>,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    let captured = entry
+        .context
+        .as_ref()
+        .zip(entry.reads.as_ref())
+        .map(|(context, reads)| super::comparison::ComparisonChange {
+            address: address.clone(),
+            context: context.clone(),
+            repository: reads.repository(),
+            comparison: reads.comparison().clone(),
+        });
+    div()
+        .size_full()
+        .flex()
+        .flex_col()
+        .items_center()
+        .justify_center()
+        .pt(px(spacing::S16))
+        .gap(px(spacing::S2))
+        .type_(Type::Body)
+        .text_color(tokens.neutral.foreground_muted)
+        .child(shell.words.git_panel().empty().to_owned())
+        .children(action.zip(captured).map(|(action, captured)| {
+            let mode = match action {
+                EmptyAction::Uncommitted => ComparisonMode::Uncommitted,
+                EmptyAction::Committed => ComparisonMode::Committed,
+            };
+            vessel_app_kit::button_with_kind(
+                "git-panel-empty-mode",
+                shell.words.git_panel().empty_action(action),
+                vessel_app_kit::ButtonKind::Ghost,
+                vessel_app_kit::ButtonState::Enabled,
+                tokens,
+            )
+            .on_click(cx.listener(move |shell, _event, window, cx| {
+                shell.git_panel_compare(&captured, mode, window, cx);
+            }))
+        }))
+        .into_any_element()
+}
+
 fn file_row(
     shell: &mut Shell,
     address: &PanelAddress,

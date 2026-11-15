@@ -1,7 +1,9 @@
 //! Read identity for a pane: transport replies may outlive repository, mode,
 //! base and whitespace changes. Reuse the accepted monotonic request issuer.
 
-use super::{Comparison, PanelRead, ReadFailure, RepositoryKey};
+use super::{
+    Body, Comparison, Demand, DiffRead, PanelRead, ReadFailure, RepositoryKey, RepositoryRead, body,
+};
 use crate::workspace::git::RequestKey;
 use std::collections::HashMap;
 use vessel_proto::workspace::{DiffSummary, FileDiff, GitStatus, RelPath};
@@ -227,6 +229,31 @@ impl PanelReads {
     #[must_use]
     pub const fn summary(&self) -> &PanelRead<DiffSummary> {
         &self.summary
+    }
+
+    /// One failure/loading/empty precedence for every consumer. A retained
+    /// refresh is shown, but a failed status always hides an older diff.
+    #[must_use]
+    pub fn body(&self, demand: Demand) -> Body<'_> {
+        let repository = match &self.status {
+            PanelRead::Failed(why) => RepositoryRead::Failed(why),
+            PanelRead::Empty | PanelRead::Loading { previous: None, .. } => RepositoryRead::Waiting,
+            PanelRead::Ready(status)
+            | PanelRead::Loading {
+                previous: Some(status),
+                ..
+            } => RepositoryRead::Ready(status),
+        };
+        let diff = match &self.summary {
+            PanelRead::Failed(why) => DiffRead::Failed(why),
+            PanelRead::Empty | PanelRead::Loading { previous: None, .. } => DiffRead::Waiting,
+            PanelRead::Ready(summary)
+            | PanelRead::Loading {
+                previous: Some(summary),
+                ..
+            } => DiffRead::Ready(summary),
+        };
+        body(demand, repository, diff, &self.comparison)
     }
 
     /// No entry means not requested; it never means unchanged or empty.

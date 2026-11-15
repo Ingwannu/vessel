@@ -146,3 +146,27 @@ fn retiring_the_connection_settles_reads_and_late_answers_cannot_reauthorize_the
     ));
     assert!(reads.status().ready().is_none());
 }
+
+#[test]
+fn reader_projection_keeps_status_failure_ahead_of_a_retained_diff() {
+    let mut keys = RequestKeys::default();
+    let mut reads = PanelReads::new(repository(), Comparison::default());
+    assert_eq!(reads.body(Demand::Active), Body::CheckingRepository);
+    let first = reads.begin_status(keys.issue().unwrap());
+    assert!(reads.finish_status(first, Ok(crate::workspace::git::fixtures::status())));
+    assert_eq!(reads.body(Demand::Active), Body::ReadingDiff);
+    let ticket = reads.begin_summary(keys.issue().unwrap());
+    assert!(reads.finish_summary(&ticket, Ok(summary())));
+    assert_eq!(reads.body(Demand::Active), Body::Empty(None));
+    let next = reads.begin_summary(keys.issue().unwrap());
+    assert_eq!(reads.body(Demand::Active), Body::Empty(None));
+    let status = reads.begin_status(keys.issue().unwrap());
+    assert!(reads.finish_status(status, Err(ReadFailure::Call(Problem::Unsent))));
+    assert!(reads.finish_summary(&next, Ok(summary())));
+    assert_eq!(
+        reads.body(Demand::Active),
+        Body::RepositoryFailed(&ReadFailure::Call(Problem::Unsent))
+    );
+    assert_eq!(reads.body(Demand::Inactive), Body::Inactive);
+    assert_eq!(reads.body(Demand::Disconnected), Body::Connecting);
+}

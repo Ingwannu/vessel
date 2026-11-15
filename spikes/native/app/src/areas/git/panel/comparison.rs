@@ -1,0 +1,75 @@
+//! Empty-state navigation uses the same normalized comparison and reader.
+//! No mode is approximated on an older node; the link keeps Unsupported honest.
+use crate::shell::Shell;
+use vessel_app_kit::ui::{Context, Window};
+use vessel_app_link::git_panel::Ask;
+use vessel_app_view::workspace::git::panel::{
+    Comparison, ComparisonMode, PanelAddress, PanelTarget, ReadFailure, RepositoryKey,
+};
+
+pub(super) struct ComparisonChange {
+    pub(super) address: PanelAddress,
+    pub(super) context: vessel_app_view::connection::ConnectionContext,
+    pub(super) repository: RepositoryKey,
+    pub(super) comparison: Comparison,
+}
+
+impl Shell {
+    pub(super) fn git_panel_compare(
+        &mut self,
+        captured: &ComparisonChange,
+        mode: ComparisonMode,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let address = &captured.address;
+        if !self.layout_panel_visible(&address.workspace, address.tab, window) {
+            return;
+        }
+        let current = self.git_panel_context(address);
+        let git = &mut self.areas.git;
+        let Some(entry) = git.panels.entries.get_mut(address) else {
+            return;
+        };
+        if current.as_ref() != Some(&captured.context)
+            || entry.context.as_ref() != Some(&captured.context)
+            || !matches!(
+                entry.target,
+                PanelTarget::WorkingDiff | PanelTarget::Changes
+            )
+        {
+            return;
+        }
+        let Some(reads) = &mut entry.reads else {
+            return;
+        };
+        if reads.comparison() != &captured.comparison || reads.repository() != captured.repository {
+            return;
+        }
+        let Ok(key) = git.keys.issue() else {
+            entry.problem = Some(ReadFailure::KeysExhausted);
+            cx.notify();
+            return;
+        };
+        let Some(context) = current else {
+            return;
+        };
+        let comparison = Comparison::new(
+            mode,
+            captured.comparison.base().cloned(),
+            captured.comparison.whitespace(),
+        );
+        reads.select(comparison);
+        let ticket = reads.begin_summary(key);
+        entry.files.reset(0);
+        entry.path_places.clear();
+        entry.tips = vessel_app_kit::Tooltips::new();
+        entry.problem = None;
+        self.command(vessel_app_link::Command::GitPanel(Ask::Summary {
+            address: address.clone(),
+            context,
+            ticket,
+        }));
+        cx.notify();
+    }
+}

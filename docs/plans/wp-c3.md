@@ -641,3 +641,14 @@ All new tests are unexecuted until their immutable remote run completes.
 The ported clipboard fixtures use actual Copy shortcut input after focus/select,
 not the vendor's private copy method. This source correction was found before
 its queued test executed; that older immutable run remains prior-source only.
+
+## One body projection and empty navigation
+
+The scoped renderer now consumes PanelReads::body rather than reimplementing
+status/diff/empty precedence. The new reader fixture covers retained refresh,
+a late successful summary after status failure and inactive/disconnected demand.
+An actual empty alternative uses the shared Ghost button and rechecks visibility,
+original selected admission, branch target and complete captured comparison
+before normalizing/reissuing through the same keyed reader. Commit targets never
+inherit a mutable branch mode. Pending Committed/All remain explicitly unavailable;
+this does not grant wire support or mount the unverified document editor.
