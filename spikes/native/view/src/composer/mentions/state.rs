@@ -23,6 +23,8 @@ impl Ticket {
 /// A query belongs to one composer on one already authorized node/root.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope {
+    /// Original physical admission; cached rows cannot cross reconnects.
+    pub connection: crate::connection::ConnectionContext,
     /// The exact composer which may consume the reply.
     pub draft: DraftKey,
     /// Its validated book key.

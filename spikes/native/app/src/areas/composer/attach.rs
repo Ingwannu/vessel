@@ -93,6 +93,7 @@ pub(super) enum LocalFileProblem {
 /// A prompt waiting for its files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Waiting {
+    pub(super) connection: vessel_app_view::connection::ConnectionContext,
     pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
@@ -107,6 +108,7 @@ pub(crate) struct Waiting {
 /// A new chat started for its files, until its session exists.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Starting {
+    pub(super) connection: vessel_app_view::connection::ConnectionContext,
     pub(super) message: vessel_proto::timeline::ClientMessageId,
     pub(super) machine: vessel_app_view::machine_book::Name,
     pub(super) expected_node: vessel_proto::NodeId,
@@ -279,7 +281,7 @@ impl Shell {
         let Ok(machine) = vessel_app_view::machine_book::Name::parse(&open.machine) else {
             return true;
         };
-        let Some(expected_node) = self.attachment_node(&machine) else {
+        let Some(connection) = self.attachment_context(&machine) else {
             self.conversation_send_failed();
             self.toast(
                 self.words.composer().file_capabilities_failed(),
@@ -288,10 +290,12 @@ impl Shell {
             );
             return true;
         };
+        let expected_node = connection.node();
         let Ok(context) = self.prepare_session_context(session, cx) else {
             return true;
         };
         let waiting = Waiting {
+            connection,
             message,
             local_files: self.retained_local_files(DraftKey::Session { session }),
             phase: super::transmission::Phase::Preparing,
@@ -331,7 +335,7 @@ impl Shell {
             );
             return;
         };
-        let Some(expected_node) = self.attachment_node(&key) else {
+        let Some(connection) = self.attachment_context(&key) else {
             self.conversation_send_failed();
             self.toast(
                 self.words.composer().file_capabilities_failed(),
@@ -340,6 +344,7 @@ impl Shell {
             );
             return;
         };
+        let expected_node = connection.node();
         let Ok(context) = self.prepare_session_context(session, cx) else {
             return;
         };
@@ -347,6 +352,7 @@ impl Shell {
         drop(self.areas.composer.sends.insert(
             session,
             Waiting {
+                connection: connection.clone(),
                 message: message.clone(),
                 local_files,
                 phase: super::transmission::Phase::Preparing,
@@ -363,6 +369,7 @@ impl Shell {
         self.areas.session.resume_error = None;
         self.command(Command::Files(Files::Wake(
             vessel_app_link::attachments::Wake {
+                connection,
                 message,
                 machine: key,
                 expected_node,
@@ -449,6 +456,7 @@ impl Shell {
                 vessel_app_view::composer::context::ContextTray::captured(context);
         }
         let waiting = Waiting {
+            connection: starting.connection,
             message: starting.message,
             local_files,
             phase: super::transmission::Phase::Preparing,

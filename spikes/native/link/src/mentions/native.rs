@@ -1,12 +1,13 @@
 //! Transport and pure projection have a fakeable typed file boundary.
 use super::{Answer, Ask, Failure, Request, RootAnswer, RootAsk, Suggestion};
+use crate::connections::{RequestFailure, SelectedConnection};
 use std::{collections::VecDeque, time::Duration};
 use tokio::{sync::mpsc, task::JoinHandle};
 use vessel_app_view::composer::{
     drafts::DraftKey,
     mentions::{Query, RESULT_LIMIT, SuggestionKind},
 };
-use vessel_client::{CallError, NodeClient};
+use vessel_client::CallError;
 use vessel_proto::workspace::{DirListing, EntryKind, FindFiles, FoundFiles, ListDir, RelPath};
 
 const DEADLINE: Duration = Duration::from_secs(15);
@@ -22,7 +23,7 @@ pub(crate) struct Hub {
 impl Hub {
     pub(crate) fn root(
         &mut self,
-        client: Option<NodeClient>,
+        client: Option<SelectedConnection>,
         ask: RootAsk,
         events: mpsc::Sender<crate::Event>,
     ) {
@@ -32,7 +33,14 @@ impl Hub {
         self.root = Some(tokio::spawn(async move {
             let result = match client {
                 Some(client) => {
-                    match tokio::time::timeout(DEADLINE, client.session(ask.session)).await {
+                    match tokio::time::timeout(
+                        DEADLINE,
+                        client.call(vessel_proto::GetSession {
+                            session: ask.session,
+                        }),
+                    )
+                    .await
+                    {
                         Ok(Ok(info)) => Ok(vessel_app_view::workspace::root::session_root(&info)),
                         Ok(Err(error)) => Err(failure(&error)),
                         Err(_) => Err(Failure::TimedOut),
@@ -50,7 +58,7 @@ impl Hub {
 
     pub(crate) fn ask(
         &mut self,
-        client: Option<NodeClient>,
+        client: Option<SelectedConnection>,
         request: Request,
         events: mpsc::Sender<crate::Event>,
     ) {
@@ -89,7 +97,7 @@ trait Source: Sync {
     fn list(&self, ask: ListDir) -> impl Future<Output = Result<DirListing, Failure>> + Send;
     fn find(&self, ask: FindFiles) -> impl Future<Output = Result<FoundFiles, Failure>> + Send;
 }
-impl Source for NodeClient {
+impl Source for SelectedConnection {
     async fn list(&self, ask: ListDir) -> Result<DirListing, Failure> {
         self.call(ask).await.map_err(|error| failure(&error))
     }
@@ -97,8 +105,10 @@ impl Source for NodeClient {
         self.call(ask).await.map_err(|error| failure(&error))
     }
 }
-fn failure(error: &CallError) -> Failure {
-    tracing::debug!(?error, "composer file suggestions failed");
+fn failure(error: &RequestFailure) -> Failure {
+    let RequestFailure::Call(error) = error else {
+        return Failure::Offline;
+    };
     match error {
         CallError::Remote(wire) => Failure::Refused(wire.code),
         CallError::NotInProtocol { .. } | CallError::UnassignedProtocol { .. } => {
@@ -202,14 +212,11 @@ mod tests;
 
 impl crate::State {
     pub(crate) fn mention(&mut self, ask: Ask) {
-        let machine = match &ask {
-            Ask::Root(ask) => &ask.machine,
-            Ask::Suggestions(request) => &request.scope.machine,
+        let context = match &ask {
+            Ask::Root(ask) => &ask.connection,
+            Ask::Suggestions(request) => &request.scope.connection,
         };
-        let client = self
-            .clients
-            .get(machine.as_str())
-            .map(|connected| connected.client.clone());
+        let client = self.selected_connection(context).ok();
         match ask {
             Ask::Root(ask) => self.mentions.root(client, ask, self.events.clone()),
             Ask::Suggestions(request) => self.mentions.ask(client, request, self.events.clone()),

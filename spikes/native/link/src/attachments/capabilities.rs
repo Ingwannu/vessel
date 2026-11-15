@@ -2,16 +2,16 @@
 //! session.conversation is the existing authority for abilities and limits.
 use super::{Answer, CapabilityAsk, CapabilityFailure};
 use crate::Event;
+use crate::connections::SelectedConnection;
 use tokio::sync::mpsc;
 use vessel_app_view::composer::tray::Target;
-use vessel_client::NodeClient;
 const DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
 const HANDSHAKE_INTERVAL: std::time::Duration = std::time::Duration::from_millis(250);
 const ACTIVE: usize = 2;
 static READERS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(ACTIVE);
 
 pub(crate) fn spawn(
-    client: Result<NodeClient, CapabilityFailure>,
+    client: Result<SelectedConnection, CapabilityFailure>,
     ask: CapabilityAsk,
     events: mpsc::Sender<Event>,
 ) {
@@ -27,17 +27,21 @@ pub(crate) fn spawn(
             .await;
     }));
 }
-async fn read(client: &NodeClient, ask: &CapabilityAsk) -> Result<Target, CapabilityFailure> {
-    super::target::check(client, ask.expected_node)?;
+async fn read(
+    client: &SelectedConnection,
+    ask: &CapabilityAsk,
+) -> Result<Target, CapabilityFailure> {
     let _permit = READERS
         .acquire()
         .await
         .map_err(|_closed| CapabilityFailure::Offline)?;
     loop {
         let facts = client
-            .conversation(ask.session)
+            .call(vessel_proto::conversation::GetConversation {
+                session: ask.session,
+            })
             .await
-            .map_err(CapabilityFailure::Call)?;
+            .map_err(|error| CapabilityFailure::Call(super::selected::problem(&error)))?;
         if facts.abilities.is_some() {
             return Ok(Target {
                 abilities: facts.abilities,
@@ -52,23 +56,25 @@ async fn read(client: &NodeClient, ask: &CapabilityAsk) -> Result<Target, Capabi
 mod tests {
     use super::*;
     #[tokio::test]
-    async fn an_admitted_creation_never_reads_capabilities_from_a_replacement_node() {
+    async fn a_retired_creation_never_reads_capabilities_on_a_stale_admission() {
         let (client, peer) = crate::attachments::read::tests::peer::connect(Vec::new()).await;
-        let actual = client.node().id;
-        let expected = vessel_proto::NodeId::random();
+        let (_home, state, connection, selected) = super::super::testing::selected(client);
         let ask = CapabilityAsk {
             machine: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
-            expected_node: expected,
+            expected_node: connection.node(),
+            connection,
             session: vessel_proto::SessionId::random(),
             ticket: vessel_app_view::creation::Ticket::new(1),
         };
-        assert_eq!(
-            read(&client, &ask).await,
-            Err(CapabilityFailure::Target(
-                super::super::TargetProblem::Changed { expected, actual }
+        state.clients["fixture"].retire();
+        assert!(matches!(
+            read(&selected, &ask).await,
+            Err(CapabilityFailure::Call(
+                super::super::RequestProblem::Retired(_)
             ))
-        );
-        drop(client);
+        ));
+        drop(selected);
+        drop(state);
         assert!(peer.await.unwrap().is_empty());
     }
 }

@@ -68,9 +68,11 @@ impl State {
         match files {
             attachments::Files::Suggest(ask) => self.mention(ask),
             attachments::Files::Capabilities(ask) => {
-                let client = self
-                    .attachment_client(&ask.machine, ask.expected_node)
-                    .map_err(attachments::CapabilityFailure::Target);
+                let client = self.selected_connection(&ask.connection).map_err(|why| {
+                    attachments::CapabilityFailure::Target(attachments::TargetProblem::Admission(
+                        why,
+                    ))
+                });
                 attachments::spawn_capabilities(client, ask, self.events.clone());
             }
             attachments::Files::Send(attach) => self.attach(attach),
@@ -86,9 +88,9 @@ impl State {
             attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
             attachments::Files::Wake(wake) => self.wake_files(wake).await,
             attachments::Files::Read(sent) => {
-                let client = self
-                    .attachment_client(&sent.machine, sent.node)
-                    .map_err(LinkError::AttachmentTarget);
+                let client = self.selected_connection(&sent.connection).map_err(|why| {
+                    LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why))
+                });
                 attachments::spawn_read(client, sent, self.events.clone());
             }
         }
@@ -98,26 +100,41 @@ impl State {
     /// (`attachments::spawn`).
     fn attach(&self, attach: attachments::Attach) {
         let client = self
-            .attachment_client(&attach.machine, attach.expected_node)
-            .map_err(LinkError::AttachmentTarget);
+            .selected_connection(&attach.connection)
+            .map_err(|why| LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why)));
         attachments::spawn(client, attach, self.events.clone());
     }
 
     /// The attachment prompt follows only once capability records are read.
     async fn wake_files(&mut self, wake: attachments::Wake) {
         let result = async {
-            let client = self.attachment_client(&wake.machine, wake.expected_node)?;
-            tokio::time::timeout(WAKE_FILES_DEADLINE, client.resume_session(wake.session))
-                .await
-                .map_err(|_elapsed| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
-                .map_err(LinkError::AttachmentCall)
+            let client = self.selected_connection(&wake.connection).map_err(|why| {
+                LinkError::AttachmentTarget(attachments::TargetProblem::Admission(why))
+            })?;
+            tokio::time::timeout(
+                WAKE_FILES_DEADLINE,
+                client.call(vessel_proto::conversation::ResumeSession {
+                    session: wake.session,
+                }),
+            )
+            .await
+            .map_err(|_elapsed| LinkError::AttachmentRead(attachments::ReadProblem::TimedOut))?
+            .map_err(|error| {
+                LinkError::AttachmentRead(attachments::ReadProblem::Request(
+                    attachments::selected::problem(&error),
+                ))
+            })
         }
         .await;
         let outcome = match result {
             Ok(_) => attachments::WakeOutcome::Ready,
             Err(why) => {
                 tracing::info!(%why, session = %wake.session, "a session could not resume for attachments");
-                attachments::WakeOutcome::Refused
+                if matches!(&why, LinkError::AttachmentTarget(_)) {
+                    attachments::WakeOutcome::Refused
+                } else {
+                    attachments::WakeOutcome::Unknown
+                }
             }
         };
         self.emit(Event::Files(attachments::Answer::Woke {

@@ -78,15 +78,17 @@ mod tests {
         let (shell, cx) = cx.add_window_view(Shell::without_io);
         shell.update_in(cx, |shell, _window, cx| {
             let session = SessionId::random();
+            let node = NodeId::random();
             let target = DraftKey::Session { session };
             let message = ClientMessageId::random();
             let old = ClientMessageId::random();
             drop(shell.areas.composer.sends.insert(
                 session,
                 Waiting {
+                    connection: crate::areas::composer::prepared::tests::connection(node),
                     message: message.clone(),
                     machine: Name::parse("fixture").unwrap(),
-                    expected_node: NodeId::random(),
+                    expected_node: node,
                     text: "new input".to_owned(),
                     context: None,
                     phase: Phase::Preparing,
@@ -141,6 +143,19 @@ mod tests {
             assert!(matches!(
                 shell.areas.composer.trays.get(target).unwrap().items()[0].state,
                 ItemState::Failed { .. }
+            ));
+            shell.composer_answered(
+                vessel_app_link::attachments::Answer::Woke {
+                    message: message.clone(),
+                    session,
+                    outcome: vessel_app_link::attachments::WakeOutcome::Unknown,
+                },
+                cx,
+            );
+            shell.composer_pump(session, cx);
+            assert!(matches!(
+                shell.areas.composer.sends[&session].phase,
+                Phase::ResumeUncertain
             ));
         });
     }

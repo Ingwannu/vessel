@@ -77,11 +77,10 @@ mod tests {
             let ticket = Ticket::new(1);
             assert!(
                 shell
-                    .prepare_draft_input(
+                    .prepare_draft_input_on(
                         ticket,
                         ClientMessageId::random(),
-                        NodeId::random(),
-                        "fixture",
+                        crate::areas::composer::prepared::tests::connection(NodeId::random()),
                         ""
                     )
                     .unwrap()

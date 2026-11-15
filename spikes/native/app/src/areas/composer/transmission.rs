@@ -13,6 +13,7 @@ use vessel_proto::{Delivered, SessionId};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum Phase {
     Preparing,
+    ResumeUncertain,
     Submitting(Arc<WithFiles>),
     Retained {
         payload: Arc<WithFiles>,
@@ -47,6 +48,7 @@ impl Shell {
             .into_iter()
             .map(|(item, resume)| {
                 Command::Files(Files::Send(Attach {
+                    connection: waiting.connection.clone(),
                     message: waiting.message.clone(),
                     machine: waiting.machine.clone(),
                     expected_node: waiting.expected_node,
@@ -61,14 +63,9 @@ impl Shell {
             })
             .collect();
         if let Readiness::Ready(attachments) = tray.readiness() {
-            super::sent::seed(
-                &composer.sent,
-                waiting.machine.as_str(),
-                waiting.expected_node,
-                session,
-                tray,
-            );
+            super::sent::seed(&composer.sent, &waiting.connection, session, tray);
             let prompt = Arc::new(WithFiles {
+                connection: waiting.connection,
                 message: waiting.message,
                 machine: waiting.machine,
                 expected_node: waiting.expected_node,
@@ -180,6 +177,7 @@ pub(super) fn notice(
     let (description, variant, retry) = match &waiting.phase {
         Phase::Preparing => (words.file_submission_preparing(), Variant::Info, false),
         Phase::Submitting(_) => (words.file_submission_sending(), Variant::Info, false),
+        Phase::ResumeUncertain => (words.file_submission_retained(), Variant::Error, false),
         Phase::Retained { problem, .. } => match problem {
             SubmitFailure::NotSent | SubmitFailure::Target(_) => {
                 (words.file_submission_not_sent(), Variant::Error, true)

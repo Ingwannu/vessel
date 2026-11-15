@@ -11,7 +11,9 @@ const DEADLINE: Duration = Duration::from_secs(30);
 impl State {
     pub(crate) async fn prompt_files(&self, prompt: Arc<WithFiles>) {
         let result = async {
-            let client = self.attachment_client(&prompt.machine, prompt.expected_node)?;
+            let client = self
+                .selected_connection(&prompt.connection)
+                .map_err(|why| super::TargetProblem::Admission(why))?;
             let mut content = super::content(prompt.text.clone(), prompt.attachments.clone());
             if let Some(context) = &prompt.context {
                 content.extend(context.attachments().map(|attachment| ContentBlock::Text {
@@ -20,11 +22,16 @@ impl State {
             }
             tokio::time::timeout(
                 DEADLINE,
-                client.prompt(prompt.session, content, prompt.delivery),
+                client.call(vessel_proto::conversation::PromptSession {
+                    session: prompt.session,
+                    content,
+                    delivery: prompt.delivery,
+                    notify: false,
+                }),
             )
             .await
             .map_err(|_elapsed| SubmitFailure::TimedOut)?
-            .map_err(SubmitFailure::Uncertain)
+            .map_err(|error| SubmitFailure::Uncertain(super::selected::problem(&error)))
         }
         .await;
         self.emit(Event::Files(Answer::Submitted { prompt, result }))

@@ -8,6 +8,17 @@ use vessel_app_view::{
 };
 use vessel_proto::{AgentAbilities, AttachmentLimits, NodeId, SessionId};
 
+pub(in crate::areas::composer) fn connection(
+    node: NodeId,
+) -> vessel_app_view::connection::ConnectionContext {
+    vessel_app_view::connection::ConnectionEpochs::default()
+        .admit(
+            vessel_app_view::connection::MachineKey::from_book("fixture"),
+            node,
+        )
+        .unwrap()
+}
+
 pub(in crate::areas::composer) fn card(machine: &str) -> Card {
     Card {
         session: SessionId::random(),
@@ -31,11 +42,10 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
         let node = NodeId::random();
         assert_eq!(
             shell
-                .prepare_draft_input(
+                .prepare_draft_input_on(
                     Ticket::new(1),
                     vessel_proto::timeline::ClientMessageId::random(),
-                    node,
-                    "fixture",
+                    crate::areas::composer::prepared::tests::connection(node),
                     "text"
                 )
                 .unwrap(),
@@ -47,22 +57,20 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
             cx,
         );
         let prepared = shell
-            .prepare_draft_input(
+            .prepare_draft_input_on(
                 Ticket::new(2),
                 vessel_proto::timeline::ClientMessageId::random(),
-                node,
-                "fixture",
+                crate::areas::composer::prepared::tests::connection(node),
                 "first",
             )
             .unwrap()
             .unwrap();
         assert_eq!(prepared.ticket(), Ticket::new(2));
         assert_eq!(
-            shell.prepare_draft_input(
+            shell.prepare_draft_input_on(
                 Ticket::new(3),
                 vessel_proto::timeline::ClientMessageId::random(),
-                node,
-                "fixture",
+                crate::areas::composer::prepared::tests::connection(node),
                 "second"
             ),
             Err(PrepareProblem::Busy)
@@ -92,11 +100,10 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
             cx,
         );
         let _prepared = shell
-            .prepare_draft_input(
+            .prepare_draft_input_on(
                 ticket,
                 vessel_proto::timeline::ClientMessageId::random(),
-                node,
-                "fixture",
+                crate::areas::composer::prepared::tests::connection(node),
                 "captured",
             )
             .unwrap()
@@ -133,6 +140,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
         );
         assert!(shell.areas.composer.capabilities.blocked(card.session));
         let ask = vessel_app_link::attachments::CapabilityAsk {
+            connection: connection(node),
             ticket,
             expected_node: node,
             machine: vessel_app_view::machine_book::Name::parse("fixture").unwrap(),
@@ -159,7 +167,9 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
     });
 }
 
-pub(in crate::areas::composer) fn history(text: &str) -> vessel_app_view::composer::context::ChatHistory {
+pub(in crate::areas::composer) fn history(
+    text: &str,
+) -> vessel_app_view::composer::context::ChatHistory {
     use vessel_app_view::composer::context::{
         ChatHistory, ContextId, ContextText, ContextTitle, Payload,
     };
@@ -186,11 +196,10 @@ fn context_only_creation_freezes_history_and_rejects_only_the_matching_ticket(
         assert!(shell.draft_has_files());
         let ticket = Ticket::new(11);
         let _prepared = shell
-            .prepare_draft_input(
+            .prepare_draft_input_on(
                 ticket,
                 vessel_proto::timeline::ClientMessageId::random(),
-                NodeId::random(),
-                "fixture",
+                crate::areas::composer::prepared::tests::connection(NodeId::random()),
                 "",
             )
             .unwrap()

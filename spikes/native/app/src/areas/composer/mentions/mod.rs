@@ -99,11 +99,14 @@ impl Shell {
                     .as_ref()
                     .filter(|open| open.session == session)?;
                 let machine = Name::parse(&open.machine).ok()?;
+                let connection = self.attachment_context(&machine)?;
                 let root = self
                     .code_workspace_scope(&machine, session)
                     .or_else(|| match &*self.areas.composer.mention_root.borrow() {
                         Root::Ready(ask, Ok(Some(root)))
-                            if ask.machine == machine && ask.session == session =>
+                            if ask.machine == machine
+                                && ask.session == session
+                                && ask.connection == connection =>
                         {
                             Some(*root)
                         }
@@ -131,12 +134,18 @@ impl Shell {
         let Ok(machine) = Name::parse(&open.machine) else {
             return;
         };
+        let Some(connection) = self.attachment_context(&machine) else {
+            return;
+        };
         let mut state = self.areas.composer.mention_root.borrow_mut();
         let unchanged = match &*state {
-            Root::Reading(old) => old.machine == machine && old.session == session,
+            Root::Reading(old) => {
+                old.machine == machine && old.session == session && old.connection == connection
+            }
             Root::Ready(old, result) => {
                 old.machine == machine
                     && old.session == session
+                    && old.connection == connection
                     && (result.is_ok()
                         || self.areas.composer.mention_root_token.borrow().as_ref() == Some(token))
             }
@@ -152,6 +161,7 @@ impl Shell {
         };
         self.areas.composer.mention_root_clock.set(ticket);
         let ask = RootAsk {
+            connection,
             machine,
             session,
             ticket,
@@ -207,10 +217,14 @@ impl Shell {
         if let Some(token) = token {
             self.resolve_mention_root(target, &token);
         }
-        let scope = self.composer_context_scope(target).map(|scope| Scope {
-            draft: target,
-            machine: scope.machine,
-            root: scope.root,
+        let scope = self.composer_context_scope(target).and_then(|scope| {
+            self.attachment_context(&scope.machine)
+                .map(|connection| Scope {
+                    connection,
+                    draft: target,
+                    machine: scope.machine,
+                    root: scope.root,
+                })
         });
         let now = Duration::from_secs_f32(self.areas.composer.now());
         let owner = self.file_menu(target);
@@ -395,6 +409,11 @@ impl Shell {
         let Some((request, path)) = choice else {
             return;
         };
+        if self.attachment_context(&request.scope.machine).as_ref()
+            != Some(&request.scope.connection)
+        {
+            return;
+        }
         if self.composer_context_scope(target).is_none_or(|scope| {
             scope.machine != request.scope.machine || scope.root != request.scope.root
         }) {

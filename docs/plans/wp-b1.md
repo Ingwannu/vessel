@@ -258,10 +258,16 @@ The retained context variant now directly contains the reviewed protocol plugin 
 Tests cover static PNG byte preservation, BMP conversion, invalid/oversized input, encoder output overflow and dimension refusal. The actual clipboard regression now waits for background validation and checks Send remains blocked until intake ends. VM execution and OS clipboard/dialog/drop captures are still owed.
 
 
-### Sent preview destination pin
+### Original admission across attachment effects
 
-Sent image identity now includes the verified welcome NodeId as well as machine label/session/attachment. The existing attachment_client boundary and read collector both reject a rebound peer before issuing attachment.read; a late reply remains keyed to its old node and cannot populate the replacement node's image slot. No new registry or wire method is introduced. The in-memory peer test requires zero requests on wrong-node refusal, and a pure cache regression isolates equal label/session/attachment values across nodes. This pin does not establish the future resident connection lease or broaden the selected conversation's authority.
-
+[Decision Log]
+- Purpose: a verified node identity alone cannot distinguish a same-node reconnect or changed credentials under the same book name.
+- Existing assets: G4 owns ConnectionContext, the admission allocator, SelectedConnection and its before-poll/await/post-result fences. B1 must consume that boundary rather than add a connection registry. G4 permitted derived Hash only on the three immutable context leaves; a set regression distinguishes reconnects and aliases without assuming different numeric hashes.
+- Alternatives: re-resolve a book alias at each upload chunk, pin only NodeId, expose a raw NodeClient, or invent another epoch. Each can substitute authority after preparation.
+- Choice: Starting/Waiting, upload/final-prompt/resume/capability envelopes, sent-preview keys and file-suggestion scopes retain the original canonical ConnectionContext. Typed existing Unary requests run only through SelectedConnection. Creation can pass its already captured context through prepare_draft_input_on; the compatibility wrapper captures synchronously before freezing input. WorkspaceInput takes the same context instead of duplicate node/name inputs.
+- Why and effects: stale and same-node replacement admissions cannot issue requests or populate the replacement preview/cache slot. B1 projects RequestFailure once into a closed RequestProblem; peer diagnostics never become UI/log strings. Resume uncertainty retains the input and does not automatically repeat the effect. Capability reads and all upload chunks keep the same context instead of hydrating fresh authority on completion.
+- Limits: this is a consumer of the shared guarded Unary foundation, not a resident/follow/Delivery authority proof. The global selected timeline remains the product resource owner until the coordinated registry cutover. Legacy session.prompt remains unkeyed; uncertain final payloads stay locked, and no canonical receipt is fabricated. File/directory suggestions still use existing file.find/file.list pending the canonical directory-suggestion producer.
+- Verification owed: changed-source strict Clippy and targeted tests on the build VM, then the package whole native gate and inspected captures. Tests require zero peer frames for retired and same-node replacement admissions, preserve live transport while observing a guarded read, and check that synthetic peer diagnostics cannot escape projection. Source tests are not runtime evidence until they execute.
 
 ### Late upload/resume reply correlation
 

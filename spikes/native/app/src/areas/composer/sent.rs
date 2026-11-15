@@ -43,20 +43,13 @@ const UNDER_FILES: f32 = 2.0;
 pub(crate) struct SentFiles<'a> {
     shell: &'a Shell,
     /// The conversation's machine and session, when one is shown.
-    shown: Option<(
-        vessel_app_view::machine_book::Name,
-        vessel_proto::NodeId,
-        SessionId,
-    )>,
+    shown: Option<(vessel_app_view::connection::ConnectionContext, SessionId)>,
 }
 
 impl std::fmt::Debug for SentFiles<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SentFiles")
-            .field(
-                "session",
-                &self.shown.as_ref().map(|(_, _, session)| session),
-            )
+            .field("session", &self.shown.as_ref().map(|(_, session)| session))
             .finish_non_exhaustive()
     }
 }
@@ -70,8 +63,8 @@ impl<'a> SentFiles<'a> {
     ) -> Self {
         let shown = shown.and_then(|(machine, session)| {
             shell
-                .attachment_node(&machine)
-                .map(|node| (machine, node, session))
+                .attachment_context(&machine)
+                .map(|connection| (connection, session))
         });
         Self { shell, shown }
     }
@@ -116,9 +109,8 @@ impl<'a> SentFiles<'a> {
         cx: &mut Context<'_, Shell>,
     ) -> vessel_app_kit::ui::AnyElement {
         let frame = attachment_frame(&self.body(file), tokens);
-        let sent = self.shown.as_ref().map(|(machine, node, session)| Sent {
-            node: *node,
-            machine: machine.clone(),
+        let sent = self.shown.as_ref().map(|(node, session)| Sent {
+            connection: node.clone(),
             session: *session,
             attachment: file.id,
         });
@@ -143,13 +135,11 @@ impl<'a> SentFiles<'a> {
     /// as its name over its kind.
     pub(crate) fn body(&self, file: &AttachmentRef) -> Body {
         let shell = self.shell;
-        let Some((machine, node, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file))
-        else {
+        let Some((node, session)) = self.shown.as_ref().filter(|_| Pictures::shows(file)) else {
             return label(shell, file);
         };
         let sent = Sent {
-            node: *node,
-            machine: machine.clone(),
+            connection: node.clone(),
             session: *session,
             attachment: file.id,
         };
@@ -220,6 +210,12 @@ impl Shell {
                     return;
                 }
                 match outcome {
+                    vessel_app_link::attachments::WakeOutcome::Unknown => {
+                        if let Some(waiting) = self.areas.composer.sends.get_mut(&session) {
+                            waiting.phase = super::transmission::Phase::ResumeUncertain;
+                        }
+                        cx.notify();
+                    }
                     vessel_app_link::attachments::WakeOutcome::Ready => self.resumed(session, cx),
                     vessel_app_link::attachments::WakeOutcome::Refused => {
                         if let Some(waiting) = self.areas.composer.sends.remove(&session)
@@ -260,15 +256,10 @@ impl Shell {
 /// this device is read back as any other (the file may have changed).
 pub(super) fn seed(
     store: &RefCell<Pictures>,
-    machine: &str,
-    node: vessel_proto::NodeId,
+    connection: &vessel_app_view::connection::ConnectionContext,
     session: SessionId,
     tray: &Tray,
 ) {
-    let Ok(machine) = vessel_app_view::machine_book::Name::parse(machine) else {
-        tracing::warn!("an attachment prompt has an invalid machine key");
-        return;
-    };
     let mut pictures = store.borrow_mut();
     for item in tray.items() {
         let (ItemState::Uploaded(attachment), Origin::Pasted(bytes)) = (&item.state, &item.origin)
@@ -277,8 +268,7 @@ pub(super) fn seed(
         };
         if attachment.kind == AttachmentKind::Image {
             let sent = Sent {
-                node,
-                machine: machine.clone(),
+                connection: connection.clone(),
                 session,
                 attachment: attachment.id,
             };

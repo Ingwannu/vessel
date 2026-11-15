@@ -6,16 +6,16 @@
 //! attachment stream directly rather than pretending it is a transfer.
 
 use super::{Answer, ReadProblem};
+use crate::connections::SelectedConnection;
 use crate::{Event, LinkError};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use vessel_app_view::composer::sent::Sent;
-use vessel_client::NodeClient;
 use vessel_proto::{AttachmentLimits, BlobChunk};
 
 /// Keep reads outside the command loop so other UI operations stay live.
 pub(crate) fn spawn(
-    client: Result<NodeClient, LinkError>,
+    client: Result<SelectedConnection, LinkError>,
     sent: Sent,
     events: mpsc::Sender<Event>,
 ) {
@@ -40,20 +40,25 @@ pub(crate) fn spawn(
 /// A peer that stays connected must not hold one of the two preview slots forever.
 const READ_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
 
-async fn read(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
+async fn read(client: &SelectedConnection, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
     tokio::time::timeout(READ_DEADLINE, download(client, sent))
         .await
         .map_err(|_elapsed| LinkError::AttachmentRead(ReadProblem::TimedOut))?
 }
 
-async fn download(client: &NodeClient, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
-    super::target::check(client, sent.node)?;
+async fn download(client: &SelectedConnection, sent: &Sent) -> Result<Arc<[u8]>, LinkError> {
     let mut image = Collector::default();
     loop {
         let chunk = client
-            .read_attachment(sent.session, sent.attachment, image.offset())
+            .call(vessel_proto::conversation::ReadAttachment {
+                session: sent.session,
+                attachment: sent.attachment,
+                offset: image.offset(),
+            })
             .await
-            .map_err(LinkError::AttachmentCall)?;
+            .map_err(|error| {
+                LinkError::AttachmentRead(ReadProblem::Request(super::selected::problem(&error)))
+            })?;
         if image.take(&chunk).map_err(LinkError::AttachmentRead)? == Next::Done {
             return Ok(Arc::from(image.bytes));
         }

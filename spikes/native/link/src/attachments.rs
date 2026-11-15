@@ -39,9 +39,13 @@ pub mod local;
 #[cfg(not(target_arch = "wasm32"))]
 mod read;
 #[cfg(not(target_arch = "wasm32"))]
-mod submit;
+pub(crate) mod selected;
 #[cfg(not(target_arch = "wasm32"))]
+mod submit;
+#[cfg(all(not(target_arch = "wasm32"), test))]
 mod target;
+#[cfg(all(not(target_arch = "wasm32"), test))]
+mod testing;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use capabilities::spawn as spawn_capabilities;
 #[cfg(not(target_arch = "wasm32"))]
@@ -141,6 +145,8 @@ pub struct Create {
 /// One file to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attach {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
     /// Same local submission identity retained through upload and retry.
     pub message: vessel_proto::timeline::ClientMessageId,
     /// The machine.
@@ -183,6 +189,8 @@ pub enum Step {
 /// its text, then each file, as the CLI sends them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WithFiles {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
     /// Allocated once before preparation; retained through every upload/result.
     /// This becomes the canonical wire key only after identified RPC activation.
     pub message: vessel_proto::timeline::ClientMessageId,
@@ -217,11 +225,15 @@ pub enum ReadProblem {
     Overrun,
     /// No progress before the end of the image.
     Stopped,
+    /// Structured transport refusal without raw peer diagnostics.
+    Request(RequestProblem),
 }
 
 /// An existing session must be live before the node will accept files.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Wake {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
     /// Same local submission identity retained while resume is asynchronous.
     pub message: vessel_proto::timeline::ClientMessageId,
     /// Validated book identity, rather than a display label.
@@ -235,6 +247,8 @@ pub struct Wake {
 /// No prompt is sent during resume; a refusal leaves the tray recoverable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WakeOutcome {
+    /// Resume may have taken effect; retain input and never repeat it automatically.
+    Unknown,
     /// Resume succeeded; follow the session before validating file capabilities.
     Ready,
     /// The node or link refused the resume.
@@ -244,6 +258,8 @@ pub enum WakeOutcome {
 /// Creation correlation remains independent of the selected conversation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapabilityAsk {
+    /// Original admitted alias, node and epoch; never refreshed during completion.
+    pub connection: vessel_app_view::connection::ConnectionContext,
     /// The validated node book key.
     pub machine: Name,
     /// The immutable welcome identity admitted before preparation.
@@ -271,7 +287,30 @@ pub enum CapabilityFailure {
     /// Preserve the node/transport cause; no message-string dispatch.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
-    Call(#[from] vessel_rpc::CallError),
+    Call(RequestProblem),
+}
+
+/// Closed projection of a selected attachment RPC failure; no raw peer text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum RequestProblem {
+    /// Admission retired before the guarded result could be observed.
+    #[error(transparent)]
+    Retired(vessel_app_view::connection::Refusal),
+    /// Preserve only the peer's closed refusal code.
+    #[error("attachment request refused: {0:?}")]
+    Refused(vessel_proto::ErrorCode),
+    /// Missing/pending protocol capability sends no invented fallback.
+    #[error("attachment request is not supported")]
+    Unsupported,
+    /// A malformed response does not expose its raw payload.
+    #[error("invalid attachment response")]
+    InvalidReply,
+    /// The actor's request identity space is exhausted.
+    #[error("attachment request identities exhausted")]
+    Exhausted,
+    /// Original transport disconnected.
+    #[error("attachment connection closed")]
+    Closed,
 }
 
 /// A refused local dispatch is distinct from a call with an unknown outcome.
@@ -286,7 +325,7 @@ pub enum SubmitFailure {
     /// The call reached transport but its final result is not known.
     #[cfg(not(target_arch = "wasm32"))]
     #[error(transparent)]
-    Uncertain(#[from] vessel_rpc::CallError),
+    Uncertain(RequestProblem),
     /// A transport deadline cannot prove whether the node accepted the input.
     #[error("the attachment prompt outcome is unknown after its deadline")]
     TimedOut,
