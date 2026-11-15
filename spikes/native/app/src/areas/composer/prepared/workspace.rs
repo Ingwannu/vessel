@@ -223,6 +223,7 @@ mod tests {
             shell.fleet.machines.push(Machine {
                 name: "fixture".to_owned(),
                 node: Some(node),
+                connection_epoch: None,
                 reach: Reach::Online,
                 sessions: Vec::new(),
                 agents: Vec::new(),
@@ -246,7 +247,7 @@ mod tests {
                 );
                 assert!(
                     shell
-                        .prepare_workspace_draft_input(crate::areas::composer::WorkspaceInput {
+                        .prepare_workspace_draft_input(WorkspaceInput {
                             target,
                             ticket,
                             message: ClientMessageId::random(),
@@ -298,6 +299,7 @@ mod tests {
             shell.fleet.machines.push(Machine {
                 name: "fixture".to_owned(),
                 node: Some(node),
+                connection_epoch: None,
                 reach: Reach::Online,
                 sessions: Vec::new(),
                 agents: Vec::new(),

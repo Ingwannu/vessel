@@ -45,7 +45,7 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
                 .prepare_draft_input_on(
                     Ticket::new(1),
                     vessel_proto::timeline::ClientMessageId::random(),
-                    crate::areas::composer::prepared::tests::connection(node),
+                    connection(node),
                     "text"
                 )
                 .unwrap(),
@@ -60,7 +60,7 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
             .prepare_draft_input_on(
                 Ticket::new(2),
                 vessel_proto::timeline::ClientMessageId::random(),
-                crate::areas::composer::prepared::tests::connection(node),
+                connection(node),
                 "first",
             )
             .unwrap()
@@ -70,7 +70,7 @@ fn stale_ticket_and_wrong_machine_cannot_consume_prepared_files(cx: &mut TestApp
             shell.prepare_draft_input_on(
                 Ticket::new(3),
                 vessel_proto::timeline::ClientMessageId::random(),
-                crate::areas::composer::prepared::tests::connection(node),
+                connection(node),
                 "second"
             ),
             Err(PrepareProblem::Busy)
@@ -103,7 +103,7 @@ fn background_completion_moves_only_captured_files_and_reads_its_own_capabilitie
             .prepare_draft_input_on(
                 ticket,
                 vessel_proto::timeline::ClientMessageId::random(),
-                crate::areas::composer::prepared::tests::connection(node),
+                connection(node),
                 "captured",
             )
             .unwrap()
@@ -199,7 +199,7 @@ fn context_only_creation_freezes_history_and_rejects_only_the_matching_ticket(
             .prepare_draft_input_on(
                 ticket,
                 vessel_proto::timeline::ClientMessageId::random(),
-                crate::areas::composer::prepared::tests::connection(NodeId::random()),
+                connection(NodeId::random()),
                 "",
             )
             .unwrap()

@@ -176,11 +176,4 @@ impl Shell {
 pub(super) mod tests;
 
 mod workspace;
-#[cfg_attr(
-    not(test),
-    expect(
-        unused_imports,
-        reason = "W3 keyed creation request consumer is staged next"
-    )
-)]
 pub(crate) use workspace::WorkspaceInput;

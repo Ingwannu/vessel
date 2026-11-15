@@ -363,18 +363,18 @@ pub(super) fn tray(
         ) && matches!(key, DraftKey::Session { .. });
         let open: Option<ScopedPillClick<Shell>> = if retry {
             Some(std::rc::Rc::new(move |shell, index, _window, cx| {
-                shell.composer_retry(key, index, cx)
+                shell.composer_retry(key, index, cx);
             }))
         } else if item.kind == AttachmentKind::Image {
             Some(std::rc::Rc::new(move |shell, index, window, cx| {
-                shell.tray_image_opened(key, index, window, cx)
+                shell.tray_image_opened(key, index, window, cx);
             }))
         } else {
             None
         };
         let remove = std::rc::Rc::new(
             move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
-                shell.composer_remove(key, index, cx)
+                shell.composer_remove(key, index, cx);
             },
         );
         let body = body(shell, item);

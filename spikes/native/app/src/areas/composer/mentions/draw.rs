@@ -54,7 +54,7 @@ pub(in crate::areas::composer) fn menu(
     };
     let on_choose =
         move |shell: &mut Shell, index, window: &mut Window, cx: &mut Context<'_, Shell>| {
-            shell.choose_mention(target, index, window, cx)
+            shell.choose_mention(target, index, window, cx);
         };
     let id = match target {
         DraftKey::New => "draft-files",
