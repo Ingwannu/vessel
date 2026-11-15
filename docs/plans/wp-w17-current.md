@@ -1,6 +1,7 @@
 # W17 current invocation map
 
-Product checkpoint: `85454788d4412e17700c20a8e781133e5b6f2663`, after node head `82ae7c91`.
+Product checkpoint: `27e4267f1c18f5d9f817260341f37d8f1bd6aa1f`, after node head
+`82ae7c91` and the reviewed W7 values-only carrier `c2dcebea`.
 This is a source/ownership map, **not a passing parity checklist**. All 117 paths are
 listed; flags/defaults, reference output/exits and exact Paseo registration references
 remain in [the full inventory](wp-w17.md#complete-command-inventory-baseline).
@@ -18,7 +19,8 @@ monochrome, bounded inputs, finite waits and documented native fields are differ
 Executed evidence: exact source `0656af27` CLI units 134/0/0; original shared output source `5305e47a`
 strict 0 and 6 targeted/root/process tests passed and is integrated on `82ae7c91`. Public
 inventory dd33 strict failed one test declaration-position lint before tests; fixed
-at `85454788`. Its single changed-source strict run 134749 is queued. Full package,
+at `85454788`. Its single changed-source strict run 134749 is queued; it predates
+the source-corrected ID-first send, version alias, W7 constants and extra guard tests. Full package,
 actual public-host authorization/DTO/client tests, latest CLI processes and A12 remain owed.
 
 | Paseo path | Vessel source entry | State | Existing call / owner boundary | Limitation |
@@ -35,7 +37,7 @@ actual public-host authorization/DTO/client tests, latest CLI processes and A12 
 | `inspect <id>` | inspect | Source | session.get + bounded event/options replay | Typed known fields; unknown parent/provider/usage fields are not inferred. |
 | `wait <id>` | wait | Source | session.subscribe/read event state | Idle/permission/error/timeout receipt; finite safety ceiling documented. No process-running=busy shortcut. |
 | `archive <id>` | archive | Source Force / pending IfIdle | explicit Force: session.mark(Archive) | ALL no-force effects withheld until W21 actor+stored/reopen admission; no ended-snapshot force fallback. |
-| `hooks <agent> <event>` | hooks AGENT EVENT | Pending configured path | no new endpoint | Missing environment is silent0; configured delivery awaits W7 authenticated attribution/ingestion. |
+| `hooks <agent> <event>` | hooks AGENT EVENT | Pending configured path | no new endpoint | Canonical W7 ID/secret/socket names; missing environment is silent0. Restricted IPC SDK/producer remains pending. |
 | `onboard` | init | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `pair` | node pair | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
 | `reload` | node reload | Other owner | nodectl | No W17 implementation/readiness claim; consume that owner’s reviewed integration. |
