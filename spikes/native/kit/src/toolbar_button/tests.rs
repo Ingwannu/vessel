@@ -62,11 +62,11 @@ fn selection_and_open_keep_the_same_highlight_and_disabled_stays_at_half_opacity
                 };
                 assert_eq!(fill(config, Phase::Rest, &tokens), expected);
                 assert_eq!(
-                    config.opacity(),
+                    config.opacity().to_bits(),
                     if availability == ButtonState::Disabled {
-                        0.5
+                        0.5_f32.to_bits()
                     } else {
-                        1.0
+                        1.0_f32.to_bits()
                     }
                 );
                 for phase in [Phase::Hovered, Phase::Pressed] {
@@ -131,9 +131,9 @@ fn actual_frame_hitboxes_refuse_disabled_callbacks_and_reenable_on_owner_update(
     cx.update(|cx| {
         crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap();
     });
-    for (sizing, edge) in [
-        (ControlSizing::Pointer, 20.0_f32),
-        (ControlSizing::Touch, 32.0_f32),
+    for (sizing, edge, center, next) in [
+        (ControlSizing::Pointer, 20.0_f32, 10.0, 30.0),
+        (ControlSizing::Touch, 32.0_f32, 16.0, 48.0),
     ] {
         let (view, cx) = cx.add_window_view(move |_, _| Probe {
             sizing,
@@ -147,22 +147,22 @@ fn actual_frame_hitboxes_refuse_disabled_callbacks_and_reenable_on_owner_update(
         assert_eq!(ready.size.width, px(edge));
         assert_eq!(ready.size.height, px(edge));
         assert_eq!(guarded.size, ready.size);
-        let x = px(edge * 0.5);
-        cx.simulate_click(point(x, px(edge * 0.5)), Modifiers::none());
-        cx.simulate_click(point(x, px(edge * 1.5)), Modifiers::none());
+        let x = px(center);
+        cx.simulate_click(point(x, px(center)), Modifiers::none());
+        cx.simulate_click(point(x, px(next)), Modifiers::none());
         cx.run_until_parked();
         view.read_with(cx, |probe, _| {
-            assert_eq!((probe.ready, probe.guarded), (1, 0))
+            assert_eq!((probe.ready, probe.guarded), (1, 0));
         });
         view.update(cx, |probe, cx| {
             probe.availability = ButtonState::Enabled;
             cx.notify();
         });
         cx.run_until_parked();
-        cx.simulate_click(point(x, px(edge * 1.5)), Modifiers::none());
+        cx.simulate_click(point(x, px(next)), Modifiers::none());
         cx.run_until_parked();
         view.read_with(cx, |probe, _| {
-            assert_eq!((probe.ready, probe.guarded), (1, 1))
+            assert_eq!((probe.ready, probe.guarded), (1, 1));
         });
     }
 }
