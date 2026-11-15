@@ -28,6 +28,9 @@ pub struct PaletteWords {
     pub new_session: &'static str,
     pub add_machine: &'static str,
     pub board: &'static str,
+    /// The sidebar's row that opens the palette (Paseo's
+    /// `sidebar.sections.search`); one short word, beside a glyph.
+    pub search: &'static str,
     // The foot.
     pub move_keys: &'static str,
     pub open: &'static str,
@@ -75,6 +78,7 @@ const EN: PaletteWords = PaletteWords {
     new_session: "New session",
     add_machine: "Add a machine",
     board: "Board",
+    search: "Search",
     move_keys: "move",
     open: "open",
     close: "close",
@@ -90,6 +94,7 @@ const KO: PaletteWords = PaletteWords {
     new_session: "새 세션",
     add_machine: "머신 추가",
     board: "보드",
+    search: "검색",
     move_keys: "이동",
     open: "열기",
     close: "닫기",
