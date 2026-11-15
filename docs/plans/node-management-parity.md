@@ -6,6 +6,11 @@ slice order. The docs commit adds both and no command.
 
 ## Resume point
 
+- The combined narrow check reached a duplicate must_use attribute on the
+  validated-key iterator. Remove only that redundant attribute; the iterator
+  trait remains must_use. The initial VM-restart cancellation is separate
+  historical infrastructure evidence. No config runtime tests have run yet.
+
 - Current config tree composes the designated process/carrier/preflight head
   with the reviewed service observations. Document merge conflicts retained
   both texts, and the CLI error merge retained both additive variant groups.

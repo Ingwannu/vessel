@@ -5,7 +5,7 @@ use super::*;
 fn settings(root: &std::path::Path, flag: ParkAfter) -> Settings {
     let runtime = SessionRuntime::new(
         vessel_session::RuntimeConfig {
-            harness_lookup: vessel_harness::Lookup::new(std::iter::empty()),
+            harness_lookup: vessel_harness::Lookup::new(std::iter::empty::<std::path::PathBuf>()),
             harness_env: vessel_harness::HarnessEnv::new(root.to_owned()),
             ring_capacity: vessel_session::DEFAULT_RING_CAPACITY,
             durable_capacity: vessel_session::DEFAULT_DURABLE_CAPACITY,

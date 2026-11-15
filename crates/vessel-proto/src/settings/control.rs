@@ -246,7 +246,6 @@ impl SettingKeys {
     }
 
     /// Borrow only the already-validated keys while constructing the replacement.
-    #[must_use]
     pub fn iter(&self) -> impl Iterator<Item = NodeSettingKey> + '_ {
         self.0.iter().copied()
     }
