@@ -20,9 +20,10 @@ slice order. The docs commit adds both and no command.
 - Merged: node head `5ac9c991`, including the lost-wake repair, inbox and
   push. The next slice's gate covers this merged tree, including the
   explicit forge-fixture clippy and test steps.
-- Deferred draft: service path fidelity passed focused clippy only; no
-  service-path tests, commit or whole gate have run yet.
-- Next: service paths (2f), deadline-safe local reads, service
+- Source: 2f service path fidelity, exclusive file creation and byte-stream
+  preservation. Initial focused clippy passed; the final quoting correction,
+  focused tests and whole gate still require evidence.
+- Next: gate 2f, then deadline-safe local reads, service
   observation/finalization, force/restart and slices 3/4. Actual service
   managers and real agents remain unverified.
 
@@ -363,3 +364,34 @@ The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
 format source. No new dependency, wire call, application bound or platform
 path is added. Focused store clippy and seven lock tests pass, and the
 whole workspace gate and review passed.
+
+
+### Slice 2f: service path fidelity
+
+Modify the existing installer; reuse its renderers and the existing
+`RemoteCommand` POSIX quoting. Standard-library absolute paths avoid
+manager-cwd ambiguity without canonicalizing symlinks. The ADR records
+Unicode/control refusal and systemd data-argument dollar escaping, distinct
+from Environment quoting. There is no new dependency, crate edge, wire call
+or numeric bound. Existing service test cases remain unchanged; add unit
+cases for location/encoding/quoting and a process-level relative installation
+through the existing fake service tools. Windows still skips installation.
+
+The larger stop-time observer draft is deliberately separate: it must not
+expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
+bounded reads and loaded-manager authority validation follow in separate
+reviewable changes. Compilation and whole-gate evidence are still pending.
+
+
+Move file I/O off the async worker while preserving both platform reports.
+Exclusive file creation makes the existing no-overwrite promise hold when two initializers run concurrently; a barrier-based test
+checks that one wins and its content survives. The earlier path-only draft's
+focused clippy result predates these changes. Initial focused clippy passed. The final quoting correction and tests must
+be checked before the whole gate; no completed-gate claim is made here.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
