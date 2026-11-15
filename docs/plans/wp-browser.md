@@ -419,3 +419,31 @@ Duplex peer tests cover fragmentation/read cancellation, multiple frames, NUL
 writes, malformed UTF-8, oversize/unterminated input and the actual typed driver's
 version/reply/closure path. They are not a real runtime, OS child/descriptor or
 sandbox/profile qualification. No public pipe constructor or engine is enabled.
+
+## Child-pipe runtime diagnostic and profile initializer corrections
+
+The fixed shell descriptor control passed under uid/gid1000, including a new
+0600 file from the child-only umask. Two initial actual-Chrome launches ended
+SIGABRT before a version response; those failures are retained, not qualification.
+Using a separate short private TMPDIR then yielded the actual149 version,
+matching kernel fd3/fd4 pipe pairs, fixture title and a390x844 real PNG. Its
+strict profile audit still failed on cache/fontconfig mode0755. Precreating that
+known cache directory0700 in each fresh profile corrected the initializer rather
+than repairing a running profile with a blanket chmod. Long TMPDIR startup is
+consistent with Chromium's Unix SingletonSocket path limit, but the earlier
+stderr was discarded, so that historical cause remains an inference.
+
+Diagnostic4 now passes its own scoped checks: actual uid/gid1000, approved binary
+SHA2562d18db9d..., fixed dash launcher SHA25686d31f6f..., sandbox retained, private
+pipe kernel correspondence, actual title/PNG7855bytes at390x844, zero root-browser
+TCP listeners, normal Browser.close exit0 and zero permissive profile entries.
+The PNG was opened and inspected. Reports/scripts/images are under
+/tmp/work/wp-browser/pipe-runtime-diagnostic{,-2,-3,-4}; fd control receipt is
+/tmp/work/wp-browser/pipe-descriptor-control.json. No Chrome stderr text was kept
+by these diagnostics. This is not the Rust pipe implementation or product proxy,
+complete process-tree listener proof, cross-tab input isolation, UDP/ICE/QUIC,
+Preview/credential revocation, Windows ACL/job or distribution qualification.
+No operator/system permission or sandbox configuration changed. The engine stays
+NoEngine. The future initializer must own a short private runtime temp directory
+and cache/fontconfig0700 on every creation, and retain the profile until actual
+child/descendant cleanup is observed, including failed/aborted startup.
