@@ -12,6 +12,7 @@
 //! - Quality B must give the runtime explicit lease/cancellation ownership;
 //!   this module remains test-staged, not an admitted service or cache.
 
+use std::io::{Read as _, Write as _};
 use std::path::Path;
 
 use vessel_proto::workspace::{
@@ -19,7 +20,7 @@ use vessel_proto::workspace::{
     WorktreeBase,
 };
 
-use super::Resolved;
+use super::{MAX_FILES, Resolved};
 use crate::git::{Git, GitError};
 
 /// Bound both argv size (including worst-case quote expansion on Windows)
@@ -129,15 +130,10 @@ impl Git {
             });
         };
         let paths = self.untracked(dir, None).await?;
-        let mut entries = Vec::new();
-        for batch in batches(&paths) {
-            let output = self.command(dir).args(["ls-tree", "-r", "-z"])
-                .arg(base.as_str()).arg("--")
-                // The shared runner already sets GIT_LITERAL_PATHSPECS=1.
-                .args(batch.iter().map(|path| path.as_str()))
-                .output().await?.checked()?;
-            entries.extend(parse_entries(&output.stdout)?);
+        if paths.len() > MAX_FILES {
+            return Err(GitError::OutputLimit.into());
         }
+        let entries = self.base_entries(dir, base, &paths).await?;
         if entries.is_empty() {
             return Ok(Prepared {
                 scope,
@@ -152,30 +148,38 @@ impl Git {
             .checked()?;
         let text = String::from_utf8_lossy(&index.stdout);
         let source = dir.join(text.trim_end_matches(['\r', '\n']));
-        let directory = tokio::task::spawn_blocking(move || copy_index(&source)).await??;
+        let directory =
+            tokio::task::spawn_blocking(move || copy_index(&source, IndexCopyLimit::MAX)).await??;
         let destination = directory.path().join("index");
         let installed = self.restore_entries(dir, &destination, &entries).await;
         if let Err(error) = installed {
             // Close even when git refuses restoration. A cleanup failure must
             // retain the original git error as well; no success is reported.
-            let closed = tokio::task::spawn_blocking(move || directory.close()).await;
-            return match closed {
-                Ok(Ok(())) => Err(error.into()),
-                Ok(Err(cleanup)) => Err(IndexError::Cleanup {
-                    read: error,
-                    cleanup,
-                }),
-                Err(cleanup) => Err(IndexError::CleanupTask {
-                    read: error,
-                    cleanup,
-                }),
-            };
+            return Err(close_failed_read(directory, error).await);
         }
         scope.index = Some(destination);
         Ok(Prepared {
             scope,
             directory: Some(directory),
         })
+    }
+
+    async fn base_entries(
+        &self,
+        dir: &Path,
+        base: &CommitId,
+        paths: &[RelPath],
+    ) -> Result<Vec<Entry>, IndexError> {
+        let mut entries = Vec::new();
+        for batch in batches(paths) {
+            let output = self.command(dir).args(["ls-tree", "-r", "-z"])
+                .arg(base.as_str()).arg("--")
+                // The shared runner already sets GIT_LITERAL_PATHSPECS=1.
+                .args(batch.iter().map(RelPath::as_str))
+                .output().await?.checked()?;
+            entries.extend(parse_entries(&output.stdout)?);
+        }
+        Ok(entries)
     }
 
     async fn restore_entries(
@@ -208,15 +212,58 @@ impl Git {
     }
 }
 
-fn copy_index(source: &Path) -> Result<tempfile::TempDir, std::io::Error> {
+async fn close_failed_read(directory: tempfile::TempDir, read: GitError) -> IndexError {
+    match tokio::task::spawn_blocking(move || directory.close()).await {
+        Ok(Ok(())) => IndexError::Git(read),
+        Ok(Err(cleanup)) => IndexError::Cleanup { read, cleanup },
+        Err(cleanup) => IndexError::CleanupTask { read, cleanup },
+    }
+}
+
+/// A separate budget from a file preview: a repository index can describe
+/// many unchanged files. Bound copied bytes without trusting a pre-open stat.
+#[derive(Debug, Clone, Copy)]
+struct IndexCopyLimit(u64);
+
+impl IndexCopyLimit {
+    const MAX: Self = Self(64 * 1024 * 1024);
+}
+
+fn copy_index(source: &Path, limit: IndexCopyLimit) -> Result<tempfile::TempDir, std::io::Error> {
+    let source = match crate::regular::open(source) {
+        Ok(Some(file)) => Some(file),
+        Ok(None) => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "git index is not a regular file",
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error),
+    };
     let directory = tempfile::Builder::new()
         .prefix("vessel-git-comparison-")
         .tempdir()?;
-    let destination = directory.path().join("index");
-    match std::fs::copy(source, destination) {
-        Ok(_) => {}
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error),
+    if let Some(source) = source {
+        let mut options = std::fs::OpenOptions::new();
+        let _write = options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt as _;
+            let _mode = options.mode(0o600);
+        }
+        let mut destination = options.open(directory.path().join("index"))?;
+        let copied = std::io::copy(
+            &mut source.take(limit.0.saturating_add(1)),
+            &mut destination,
+        )?;
+        if copied > limit.0 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::FileTooLarge,
+                "git index exceeds the comparison budget",
+            ));
+        }
+        destination.flush()?;
     }
     Ok(directory)
 }

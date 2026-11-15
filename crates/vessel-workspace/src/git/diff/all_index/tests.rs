@@ -182,3 +182,50 @@ fn malformed_tree_entries_are_errors_instead_of_dropped_paths() {
         ));
     }
 }
+
+#[test]
+fn private_index_copy_enforces_its_byte_budget_and_private_mode() {
+    let sandbox = Sandbox::new();
+    let source = sandbox.path().join("index-source");
+    std::fs::write(&source, b"0123456789abcdefg").unwrap();
+    let refused = copy_index(&source, IndexCopyLimit(16)).unwrap_err();
+    assert_eq!(refused.kind(), std::io::ErrorKind::FileTooLarge);
+    let private = copy_index(&source, IndexCopyLimit(32)).unwrap();
+    assert_eq!(
+        std::fs::read(private.path().join("index")).unwrap(),
+        b"0123456789abcdefg"
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        assert_eq!(
+            std::fs::metadata(private.path())
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
+        assert_eq!(
+            std::fs::metadata(private.path().join("index"))
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+    }
+    private.close().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn private_index_copy_does_not_follow_a_source_symlink() {
+    let sandbox = Sandbox::new();
+    let source = sandbox.path().join("index-source");
+    std::fs::write(&source, b"index bytes").unwrap();
+    let link = sandbox.path().join("index-link");
+    std::os::unix::fs::symlink(&source, &link).unwrap();
+    assert!(copy_index(&link, IndexCopyLimit(32)).is_err());
+    assert_eq!(std::fs::read(source).unwrap(), b"index bytes");
+}

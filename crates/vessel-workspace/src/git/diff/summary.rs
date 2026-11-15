@@ -89,7 +89,7 @@ impl Git {
         if let Some(index) = index {
             command = command.env("GIT_INDEX_FILE", index);
         }
-        let output = command.output().await?;
+        let output = command.output().await?.checked()?;
         Ok(output
             .stdout
             .split(|byte| *byte == 0)

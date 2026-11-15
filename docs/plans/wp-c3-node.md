@@ -39,3 +39,13 @@ revision/cache/watch ownership, classified history, branch stash metadata,
 merge-to/from-base and bounded commit generation before Quality B wiring.
 No TypeScript output changes yet: the pending types are not request roots.
 Root whole gate and V3 review occur once the node package is complete.
+
+The Quality B base 29eebb8b is merged. Its post-merge narrow submit ended with
+no execution id or step log; server status lists neither own label as live.
+No check result is inferred from that lost submission. The next source also
+uses the existing regular-file opener for index copies (no FIFO or final
+symlink), an exclusive 0600 destination in the 0700 temporary directory, and
+a 64 MiB streaming byte cap. This cap is a stated safety difference from the
+reference's unbounded index copy. Tests use a small injected typed copy budget
+to prove over-limit rejection and actual modes. Clipped ls-files output or more
+than the bounded restoration set is a typed failure, never false completeness.
