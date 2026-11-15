@@ -32,7 +32,7 @@ impl NativeCommandIntent {
                 trim(command.get(at..).unwrap_or_default()),
             )
         });
-        if name != kind.name() {
+        if name != kind.root_name() {
             return Err(NativeCommandParseError::Mismatch);
         }
         Ok(match kind {
