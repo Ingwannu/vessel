@@ -17,7 +17,7 @@ use vessel_proto::{
 };
 
 const REPORT_REFRESH_BUDGET: std::time::Duration = std::time::Duration::from_secs(90);
-const SAVED_REFRESH_CONCURRENCY: usize = 2;
+const SAVED_REFRESH_CONCURRENCY: usize = 1;
 
 impl NodeService {
     pub(crate) async fn set_usage_source_lookup(
@@ -420,7 +420,7 @@ fn upsert_failure(
 mod tests;
 
 async fn refresh_within_budget<T>(
-    reading: impl std::future::Future<Output = Result<T, WireError>>,
+    reading: impl Future<Output = Result<T, WireError>>,
 ) -> Result<T, WireError> {
     tokio::time::timeout(REPORT_REFRESH_BUDGET, reading)
         .await

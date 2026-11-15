@@ -60,6 +60,7 @@ mod tests {
             vessel_harness::LimitProbe::Disabled,
             stop.clone(),
             &tasks,
+            vessel_harness::LimitContext::new(),
         )
         .await;
         let initial = limits.observation().await.unwrap();

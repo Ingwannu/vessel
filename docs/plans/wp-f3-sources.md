@@ -244,7 +244,7 @@ A service-level regression now starts an actual isolated Node with the recorded 
 A sequential machine refresh could spend one vendor deadline per configured profile
 before starting the seven additional sources, exceeding the native caller's 120-second
 budget even for normal multi-source setups. Saved-login reads now use a stable-order
-buffer of two, and the saved and additional owners start concurrently while keeping
+buffer of one, and the saved and additional owners start concurrently while keeping
 their existing actual-work admissions. A named 90-second complete-refresh budget
 refuses with safe Unavailable instead of holding a unary request across hundreds of
 profile deadlines or silently omitting accounts. Cache reads remain separate and do
@@ -282,3 +282,20 @@ without consuming them. Extracting its passive-read/consent phase preserves the
 same one-Node sequence, all assertions and the outer safety deadline; preparation
 now borrows Args inside its owned blocking closure. This is a correction pending
 the changed-source strict run, not a Clippy or package pass.
+
+### One actual per-node admission and cooldown context
+[Decision Log]
+- Purpose: adding a source owner must preserve the existing two-work limit for the entire node, including queued blocking reads and their cooldown ownership.
+- Existing defect: both actors constructed a fresh `LimitContext`, which accidentally allowed two saved-login jobs plus two additional-source jobs. Reusing the type alone did not reuse the actual admission.
+- Choice: configured assembly constructs one context and passes clones to both actors. Standalone actor fixtures explicitly supply their own isolated context. Each group schedules one read during one machine refresh, using the shared two-work floor rather than racing four immediate admissions; separately admitted concurrent RPCs still receive bounded Busy outcomes.
+- Alternatives: raising the semaphore bound would change the established resource limit; adding another scheduler/queue would duplicate ownership. Neither is needed.
+- Impact: all permit/cancellation rules remain in the existing context, and shutdown waits for actual blocking work across both owners. Two concurrent source families may take longer, so the existing complete-refresh budget remains a truthful refusal boundary.
+
+The mixed-family regression uses production `Limits::configured`, a recorded
+Copilot source and two configured Codex profiles, with only one blocking worker.
+The source callback occupies that worker; one saved-login reader can queue with
+the other permit, while the next must return Busy before the gate is released.
+With independent contexts both saved readers queue and the named safety budget
+fails. A release guard unblocks the callback even on failure. No timers coordinate
+the interleaving and no node listener, real sign-in or endpoint is started. This
+new regression and changed assembly await remote execution and review.

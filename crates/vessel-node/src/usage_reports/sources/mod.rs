@@ -26,6 +26,8 @@ use vessel_proto::{
 use vessel_store::DataDir;
 const COMMANDS: usize = 32;
 const PROBES: usize = 2;
+// The saved owner uses the other shared slot during one aggregate refresh.
+const BULK_REFRESH_CONCURRENCY: usize = 1;
 const WAITERS: usize = 32;
 const SOURCE_BUDGET: Duration = Duration::from_secs(20);
 const RESPONSE_BUDGET: Duration = Duration::from_secs(21);
@@ -98,6 +100,7 @@ impl Sources {
         config: &crate::Config,
         stop: CancellationToken,
         tasks: &TaskTracker,
+        context: LimitContext,
     ) -> Self {
         let dir = config.data_dir.clone();
         let grants = tokio::task::spawn_blocking(move || dir.read_usage_sources())
@@ -109,7 +112,7 @@ impl Sources {
         let owner = Owner {
             dir: config.data_dir.clone(),
             probe: config.usage_sources.clone(),
-            context: LimitContext::new(),
+            context,
             grants,
             entries: Vec::new(),
             jobs: JoinSet::new(),
@@ -186,7 +189,7 @@ impl Sources {
                     })
                 })
             })
-            .buffered(PROBES)
+            .buffered(BULK_REFRESH_CONCURRENCY)
             .filter_map(async move |failure| failure)
             .collect()
             .await

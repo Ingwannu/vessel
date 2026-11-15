@@ -64,14 +64,16 @@ impl Limits {
         stop: CancellationToken,
         tasks: &TaskTracker,
     ) -> Self {
+        let context = LimitContext::new();
         let mut limits = Self::start(
             config.data_dir.clone(),
             config.limits.clone(),
             stop.clone(),
             tasks,
+            context.clone(),
         )
         .await;
-        limits.sources = crate::usage_reports::Sources::start(config, stop, tasks).await;
+        limits.sources = crate::usage_reports::Sources::start(config, stop, tasks, context).await;
         limits
     }
 
@@ -80,6 +82,7 @@ impl Limits {
         probe: LimitProbe,
         stop: CancellationToken,
         tasks: &TaskTracker,
+        context: LimitContext,
     ) -> Self {
         let file = dir.clone();
         let policy = if let Ok(Ok(policy)) =
@@ -98,7 +101,7 @@ impl Limits {
             cache: Vec::new(),
             generation: CancellationToken::new(),
             jobs: JoinSet::new(),
-            context: LimitContext::new(),
+            context,
         };
         drop(tasks.spawn(owner.run(receiver, stop)));
         Self {
@@ -369,6 +372,8 @@ fn stopped() -> WireError {
     )
 }
 
+#[cfg(test)]
+mod shared_admission_tests;
 #[cfg(test)]
 mod tests;
 

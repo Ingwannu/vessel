@@ -35,7 +35,7 @@ impl Fixture {
             retry_after: None,
             format: vessel_harness::RecordedUsageFormat::Vendor,
         };
-        let sources = Sources::start(&config, stop.clone(), &tasks).await;
+        let sources = Sources::start(&config, stop.clone(), &tasks, LimitContext::new()).await;
         Self {
             sources,
             global: Observation::fixture(CancellationToken::new()),

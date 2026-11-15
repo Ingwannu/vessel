@@ -110,7 +110,14 @@ async fn a_cancelled_policy_reply_does_not_abandon_its_saved_decision() {
         let dir = DataDir::new(root.path());
         let tasks = TaskTracker::new();
         let stop = CancellationToken::new();
-        let active = Limits::start(dir.clone(), LimitProbe::Disabled, stop.clone(), &tasks).await;
+        let active = Limits::start(
+            dir.clone(),
+            LimitProbe::Disabled,
+            stop.clone(),
+            &tasks,
+            LimitContext::new(),
+        )
+        .await;
         let (reply, response) = oneshot::channel();
         active
             .commands
