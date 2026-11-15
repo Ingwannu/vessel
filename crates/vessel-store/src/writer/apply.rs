@@ -105,10 +105,10 @@ pub(super) fn apply(
             let applied = isolated(transaction, |connection| {
                 crate::registry::apply(connection, &mutation)
             });
-            if applied.is_ok() {
-                effects.registry = super::RegistryEffect::Changed;
+            if matches!(applied, Ok(crate::registry::RegistryChange::Changed)) {
+                effects.registry = crate::registry::RegistryChange::Changed;
             }
-            Answer::Done(done, applied)
+            Answer::Done(done, applied.map(drop))
         }
         Write::Workspace { write, done } => write_answer(transaction, done, |connection| {
             crate::workspace::apply(connection, &write)

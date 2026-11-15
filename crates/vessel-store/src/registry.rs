@@ -19,6 +19,14 @@ use vessel_proto::{WorkspaceId, WorktreeId};
 pub(crate) use read::{load, reservation, resource_owner, workspace};
 pub(crate) use write::apply;
 
+/// Whether a transaction changed the durable snapshot version.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RegistryChange {
+    #[default]
+    Unchanged,
+    Changed,
+}
+
 /// One snapshot read transaction returns placement and ownership together.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredRegistry {

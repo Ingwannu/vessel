@@ -1,6 +1,8 @@
 //! CAS writes and lifecycle admission share the writer's existing savepoint.
 
-use super::{RegistryRecord, RegistryReservation, RegistryWrite, ReservationStage, read};
+use super::{
+    RegistryChange, RegistryRecord, RegistryReservation, RegistryWrite, ReservationStage, read,
+};
 use crate::{
     StoreError,
     codec::{encode, time_to_sql},
@@ -33,12 +35,15 @@ fn revision(value: RegistryRevision) -> Result<i64, StoreError> {
     i64::try_from(value.get()).map_err(StoreError::RegistryRevisionRange)
 }
 
-pub(crate) fn apply(connection: &Connection, mutation: &RegistryWrite) -> Result<(), StoreError> {
+pub(crate) fn apply(
+    connection: &Connection,
+    mutation: &RegistryWrite,
+) -> Result<RegistryChange, StoreError> {
     match mutation {
         RegistryWrite::RecoverCreating => {
             let changed = connection.execute("UPDATE workspace_registry_reservations SET stage='uncertain' WHERE stage='creating'",[])?;
             if changed == 0 {
-                return Ok(());
+                return Ok(RegistryChange::Unchanged);
             }
         }
         RegistryWrite::Workspace { record, expected } => put(connection, record, *expected)?,
@@ -63,7 +68,8 @@ pub(crate) fn apply(connection: &Connection, mutation: &RegistryWrite) -> Result
             )?;
         }
     }
-    bump_revision(connection)
+    bump_revision(connection)?;
+    Ok(RegistryChange::Changed)
 }
 
 fn put(

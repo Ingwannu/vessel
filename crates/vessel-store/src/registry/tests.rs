@@ -33,7 +33,7 @@ fn record(id: WorkspaceId) -> RegistryRecord {
 }
 fn apply(db: &mut Connection, change: &RegistryWrite) -> Result<(), StoreError> {
     let transaction = db.transaction()?;
-    super::apply(&transaction, change)?;
+    let _change = super::apply(&transaction, change)?;
     transaction.commit().map_err(StoreError::from)
 }
 fn put(
@@ -316,6 +316,8 @@ async fn watchers_only_wake_after_a_committed_registry_change() {
             .unwrap()
             .store;
         let mut changes = store.registry_changes();
+        assert!(!changes.has_changed().unwrap());
+        store.recover_registry_reservations().await.unwrap();
         assert!(!changes.has_changed().unwrap());
         let record = record(WorkspaceId::random());
         store

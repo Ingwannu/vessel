@@ -201,17 +201,10 @@ fn after<T>(
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-enum RegistryEffect {
-    #[default]
-    Unchanged,
-    Changed,
-}
-
 /// What one batch changed beyond its own rows.
 #[derive(Default)]
 struct Effects {
-    registry: RegistryEffect,
+    registry: crate::registry::RegistryChange,
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
     /// A committed batch introduced attention.
@@ -345,7 +338,7 @@ fn commit(
         for &session in &effects.removed {
             attachments::remove_folder(&setup.attachments, session);
         }
-        if effects.registry == RegistryEffect::Changed {
+        if effects.registry == crate::registry::RegistryChange::Changed {
             setup.registry.send_replace(());
         }
         if effects.attention {
