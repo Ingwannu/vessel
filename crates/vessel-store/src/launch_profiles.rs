@@ -93,10 +93,15 @@ pub(crate) fn replace(
         return Ok(LaunchProfilesChange::Exhausted);
     };
     let body = serde_json::to_string(profiles).map_err(StoreError::Encode)?;
-    connection.execute(
+    let changed = connection.execute(
         "UPDATE launch_profiles SET revision = ?1, profiles = ?2 WHERE id = 1",
         params![i64::from(revision.get()), body],
     )?;
+    if changed != 1 {
+        return Err(StoreError::LaunchSnapshot(
+            LaunchSnapshotProblem::Cardinality,
+        ));
+    }
     Ok(LaunchProfilesChange::Replaced(LaunchProfilesSnapshot::new(
         revision,
         profiles.clone(),

@@ -72,6 +72,11 @@ pub enum ErrorDetail {
         /// The stable pairing setup reason.
         reason: crate::DeviceInviteError,
     },
+    /// A named launch-profile operation was refused.
+    LaunchProfile {
+        /// Stable reason; textual explanations are for people only.
+        problem: crate::launch_profiles::LaunchProfileRefusal,
+    },
     /// A reason introduced by a newer node.
     #[serde(other)]
     Unknown,

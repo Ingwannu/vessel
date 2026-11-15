@@ -42,6 +42,9 @@ const LOG_LINES: usize = 5;
 /// Why a probe found nothing.
 #[derive(Debug, thiserror::Error)]
 pub enum ProbeError {
+    /// The owner stopped this probe; its process group was cleaned up first.
+    #[error("the configuration probe was cancelled")]
+    Cancelled,
     /// The agent could not be started.
     #[error("cannot start the agent")]
     Spawn(#[source] AgentError),
@@ -92,6 +95,7 @@ pub struct Probed {
 enum Unready {
     Disconnected(Disconnect),
     TimedOut,
+    Cancelled,
 }
 
 /// Start `command` with `setup` (its `model`, `resume` and `options`
@@ -119,6 +123,21 @@ pub async fn probe_with(
     driver: Driver,
     command: &CommandSpec,
     setup: AgentSetup,
+) -> Result<Probed, ProbeError> {
+    probe_with_cancel(driver, command, setup, std::future::pending()).await
+}
+
+/// Probe a selected configuration, stopping and reaping the same process
+/// before acknowledging owner cancellation. No prompt or MCP request is sent.
+/// The owner must retain this future through cleanup even if its caller leaves.
+///
+/// # Errors
+/// As [`probe_with`], plus [`ProbeError::Cancelled`] after cleanup.
+pub async fn probe_with_cancel(
+    driver: Driver,
+    command: &CommandSpec,
+    setup: AgentSetup,
+    cancelled: impl std::future::Future<Output = ()>,
 ) -> Result<Probed, ProbeError> {
     // Never questions, whatever the caller set: nobody watches a probe,
     // and what the agent offers does not depend on it.
@@ -155,9 +174,11 @@ pub async fn probe_with(
         }
         Err(Unready::Disconnected(Disconnect::Closed))
     };
-    let outcome = tokio::time::timeout(limit, read)
-        .await
-        .unwrap_or(Err(Unready::TimedOut));
+    let outcome = tokio::select! {
+        biased;
+        () = cancelled => Err(Unready::Cancelled),
+        result = tokio::time::timeout(limit, read) => result.unwrap_or(Err(Unready::TimedOut)),
+    };
     stop(&mut agent).await;
     if outcome.is_err() {
         // The agent's stderr is read apart from its ACP stream, so the
@@ -176,6 +197,7 @@ pub async fn probe_with(
     outcome.map_err(|unready| match unready {
         Unready::Disconnected(disconnect) => ProbeError::Disconnected { disconnect, log },
         Unready::TimedOut => ProbeError::TimedOut { limit, log },
+        Unready::Cancelled => ProbeError::Cancelled,
     })
 }
 

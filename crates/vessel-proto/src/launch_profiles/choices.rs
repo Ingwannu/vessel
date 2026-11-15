@@ -1,15 +1,18 @@
 //! Immutable, bounded choices using the agent's existing option vocabulary.
 
 use super::{InvalidLaunchValue, codec};
-use crate::{ChoiceValue, OptionChoice, OptionId, OptionValueId};
+use crate::{ChoiceValue, OptionCategory, OptionChoice, OptionId, OptionValueId};
 use serde::{Deserialize, Deserializer, Serialize, de};
 use std::{collections::HashSet, sync::Arc};
 
 /// An existing choice whose opaque ids have passed launch-payload bounds.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(as = "OptionChoice"))]
-#[serde(transparent)]
-pub struct LaunchChoice(OptionChoice);
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct LaunchChoice {
+    #[serde(flatten)]
+    choice: OptionChoice,
+    category: OptionCategory,
+}
 
 impl LaunchChoice {
     /// Shared byte bound for option ids and select-value ids.
@@ -17,7 +20,19 @@ impl LaunchChoice {
     /// Borrow the agent's choice without permitting an invalid mutation.
     #[must_use]
     pub const fn as_choice(&self) -> &OptionChoice {
-        &self.0
+        &self.choice
+    }
+    /// Retain reported placement metadata; the driver's catalogue remains
+    /// authoritative when applying. Unknown provenance uses Other.
+    #[must_use]
+    pub const fn with_category(mut self, category: OptionCategory) -> Self {
+        self.category = category;
+        self
+    }
+    /// Reported category hint, never a provider policy or authority grant.
+    #[must_use]
+    pub const fn category(&self) -> OptionCategory {
+        self.category
     }
 }
 
@@ -29,11 +44,14 @@ impl TryFrom<OptionChoice> for LaunchChoice {
             ChoiceValue::Select { value } => id(value.as_str())?,
             ChoiceValue::Toggle { .. } => {}
         }
-        Ok(Self(value))
+        Ok(Self {
+            choice: value,
+            category: OptionCategory::Other,
+        })
     }
 }
 
-fn id(value: &str) -> Result<(), InvalidLaunchValue> {
+pub(super) fn id(value: &str) -> Result<(), InvalidLaunchValue> {
     if value.is_empty()
         || value.len() > LaunchChoice::MAX_ID_BYTES
         || value.chars().any(char::is_control)
@@ -47,23 +65,49 @@ fn id(value: &str) -> Result<(), InvalidLaunchValue> {
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum EncodedChoice {
-    Select { id: OptionId, value: OptionValueId },
-    Toggle { id: OptionId, on: bool },
+    Select {
+        id: OptionId,
+        value: OptionValueId,
+        #[serde(default = "uncategorized")]
+        category: OptionCategory,
+    },
+    Toggle {
+        id: OptionId,
+        on: bool,
+        #[serde(default = "uncategorized")]
+        category: OptionCategory,
+    },
 }
 impl<'de> Deserialize<'de> for LaunchChoice {
     fn deserialize<D: Deserializer<'de>>(input: D) -> Result<Self, D::Error> {
-        let value = match codec::decode(input)? {
-            EncodedChoice::Select { id, value } => OptionChoice {
+        let (value, category) = match codec::decode(input)? {
+            EncodedChoice::Select {
                 id,
-                value: ChoiceValue::Select { value },
-            },
-            EncodedChoice::Toggle { id, on } => OptionChoice {
-                id,
-                value: ChoiceValue::Toggle { on },
-            },
+                value,
+                category,
+            } => (
+                OptionChoice {
+                    id,
+                    value: ChoiceValue::Select { value },
+                },
+                category,
+            ),
+            EncodedChoice::Toggle { id, on, category } => (
+                OptionChoice {
+                    id,
+                    value: ChoiceValue::Toggle { on },
+                },
+                category,
+            ),
         };
-        Self::try_from(value).map_err(de::Error::custom)
+        Self::try_from(value)
+            .map(|choice| choice.with_category(category))
+            .map_err(de::Error::custom)
     }
+}
+
+const fn uncategorized() -> OptionCategory {
+    OptionCategory::Other
 }
 
 /// Ordered configuration choices with unique option ids; empty means defaults.
@@ -89,7 +133,7 @@ impl TryFrom<Vec<LaunchChoice>> for LaunchChoices {
             return Err(InvalidLaunchValue::Choices);
         }
         let mut seen = HashSet::new();
-        if choices.iter().any(|choice| !seen.insert(&choice.0.id)) {
+        if choices.iter().any(|choice| !seen.insert(&choice.choice.id)) {
             return Err(InvalidLaunchValue::DuplicateChoice);
         }
         Ok(Self(Arc::from(choices)))

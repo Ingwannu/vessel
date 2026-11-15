@@ -156,6 +156,30 @@ impl SessionRuntime {
         proxy: Option<ModelProxy>,
         cwd: PathBuf,
     ) -> Result<vessel_agent::Probed, SessionError> {
+        self.probe_choices(
+            harness,
+            profile,
+            proxy,
+            cwd,
+            vessel_proto::launch_profiles::LaunchChoices::default(),
+        )
+        .await
+    }
+
+    /// Probe the actual bounded selection without creating a Vessel session.
+    /// Uses the normal account/driver launch and handshake validation, then
+    /// stops the process group before returning, including on node shutdown.
+    ///
+    /// # Errors
+    /// As [`probe`](Self::probe); unsupported choices fail the handshake.
+    pub async fn probe_choices(
+        &self,
+        harness: HarnessRef,
+        profile: Option<Profile>,
+        proxy: Option<ModelProxy>,
+        cwd: PathBuf,
+        choices: vessel_proto::launch_profiles::LaunchChoices,
+    ) -> Result<vessel_agent::Probed, SessionError> {
         if self.shutdown.is_cancelled() {
             return Err(SessionError::ShuttingDown);
         }
@@ -175,8 +199,19 @@ impl SessionRuntime {
             driver,
             ..
         } = self.agent_command(spec, profile, proxy).await?;
-        let setup = probe_setup(cwd, self.config.agent_handshake_timeout);
-        Ok(vessel_agent::probe_with(driver, &command, setup).await?)
+        let mut setup = probe_setup(cwd, self.config.agent_handshake_timeout);
+        setup.options = choices
+            .as_slice()
+            .iter()
+            .map(|choice| choice.as_choice().clone())
+            .collect();
+        match vessel_agent::probe_with_cancel(driver, &command, setup, self.shutdown.cancelled())
+            .await
+        {
+            Ok(probed) => Ok(probed),
+            Err(vessel_agent::ProbeError::Cancelled) => Err(SessionError::ShuttingDown),
+            Err(error) => Err(SessionError::Probe(error)),
+        }
     }
 
     /// A page of `harness`'s own conversations (protocol 17's

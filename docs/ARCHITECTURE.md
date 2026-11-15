@@ -1593,8 +1593,16 @@ so a later increment cannot overflow the response budget. Invalid later
 entries, duplicates and unknown fields fail the whole snapshot; decoder
 errors and Debug do not echo submitted public guidance.
 
-The feature's protocol remains unassigned. There is no method, existing
-reply/event field, catalogue probe, client/CLI or MCP consumer yet.
+The feature's protocol remains unassigned. Five pending rows in the one
+method table cover list, CAS replacement, editor options, applicable presets
+and a session bundle. Every transport must refuse them while the feature
+constant is None; their presence is not an available feature. Existing
+reply/event fields remain unchanged. Client/CLI/MCP consumers are not built
+yet. The service now routes to retained metadata/probe and apply jobs,
+with separate finite admissions drained by the existing node task tracker.
+Editor probes use one retained account snapshot, actual selected handshake
+choices and real process cleanup, then check configuration identity before
+publishing. These additions still await compilation and runtime checks.
 The working package adds one SQLite singleton and CAS through the existing
 writer; its acknowledgement follows the outer commit. The bounded reader
 selects revision and body together and never substitutes empty data for a

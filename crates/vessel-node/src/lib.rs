@@ -79,6 +79,7 @@ mod identity;
 mod install;
 mod ipc;
 mod label_ingress;
+mod launch_profiles;
 mod lifecycle;
 mod limits;
 mod lsp;

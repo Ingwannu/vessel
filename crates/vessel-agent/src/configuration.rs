@@ -23,6 +23,17 @@ pub struct ConfigurationOutcome {
 }
 
 impl ConfigurationOutcome {
+    /// Consume a completed result for the node's existing error mapping.
+    #[must_use]
+    pub fn into_parts(
+        self,
+    ) -> (
+        Vec<LaunchChoice>,
+        Option<ConfigurationNotice>,
+        Option<ConfigurationFailure>,
+    ) {
+        (self.applied, self.notice, self.failure)
+    }
     /// Acknowledged choices, in order, bounded by the submitted bundle.
     #[must_use]
     pub fn applied(&self) -> &[LaunchChoice] {
@@ -52,6 +63,11 @@ pub struct ConfigurationFailure {
     error: InputError,
 }
 impl ConfigurationFailure {
+    /// Move the original cause to the session's ordinary wire boundary.
+    #[must_use]
+    pub fn into_parts(self) -> (LaunchChoice, InputError) {
+        (self.choice, self.error)
+    }
     /// The choice whose completion failed.
     #[must_use]
     pub const fn choice(&self) -> &LaunchChoice {
@@ -117,7 +133,7 @@ impl Configuration {
         self.0
             .send(Mutation::Single { choice, reply })
             .await
-            .map_err(|_| InputError::Closed)?;
+            .map_err(|_closed| InputError::Closed)?;
         result.await.unwrap_or(Err(InputError::Closed))
     }
 
@@ -129,8 +145,8 @@ impl Configuration {
         self.0
             .send(Mutation::Bundle { choices, reply })
             .await
-            .map_err(|_| InputError::Closed)?;
-        result.await.map_err(|_| InputError::Closed)
+            .map_err(|_closed| InputError::Closed)?;
+        result.await.map_err(|_closed| InputError::Closed)
     }
 }
 
@@ -164,7 +180,7 @@ async fn step(
     commands
         .send(Command::SetOption { choice, reply })
         .await
-        .map_err(|_| InputError::Closed)?;
+        .map_err(|_closed| InputError::Closed)?;
     // Closure, unlike a caller timeout, proves that the old process can no
     // longer apply changes. A hung live provider retains its own fence.
     tokio::select! {

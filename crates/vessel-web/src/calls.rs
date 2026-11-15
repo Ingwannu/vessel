@@ -91,6 +91,11 @@ const fn forwardable(method: Method) -> bool {
         | Method::GetDeviceSelf
         | Method::ListDevices
         | Method::RevokeDevice
+        | Method::ListLaunchProfiles
+        | Method::ReplaceLaunchProfiles
+        | Method::GetLaunchProfileOptions
+        | Method::GetApplicableLaunchProfiles
+        | Method::ApplySessionOptions
         | Method::ListProfiles
         | Method::ReloadProfiles
         | Method::MoveProfile

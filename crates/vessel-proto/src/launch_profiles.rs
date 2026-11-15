@@ -8,12 +8,20 @@
 //! - Constraint: these values register no call or existing reply field.
 //!   Storage, catalogue probes and transport wiring remain separate work.
 
+mod calls;
+mod catalogue;
 mod choices;
 mod codec;
 mod list;
 mod profile;
 mod text;
 
+pub use calls::{
+    ApplicableLaunchProfiles, ApplySessionOptions, ApplySessionOptionsResult,
+    GetApplicableLaunchProfiles, GetLaunchProfileOptions, LaunchConfigurationFailure,
+    LaunchProfileRefusal, ListLaunchProfiles, ReplaceLaunchProfiles,
+};
+pub use catalogue::{LaunchCatalogue, LaunchCatalogueOptions};
 pub use choices::{LaunchChoice, LaunchChoices};
 pub use codec::LaunchPayload;
 pub use list::{LaunchProfiles, LaunchProfilesSnapshot};
@@ -60,6 +68,11 @@ pub enum InvalidLaunchValue {
         LaunchChoice::MAX_ID_BYTES
     )]
     ChoiceId,
+    /// The whole reported catalogue must fit its finite control/text budgets.
+    #[error(
+        "the reported launch catalogue exceeds its supported bounds or has inconsistent controls"
+    )]
+    Catalogue,
     /// One option is applied only once.
     #[error("launch choices repeat an option id")]
     DuplicateChoice,

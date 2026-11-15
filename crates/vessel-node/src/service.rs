@@ -37,6 +37,7 @@ use crate::workspace::{Occupant, Workspaces};
 // The calls of protocols 2 to 8, by area.
 mod fleet;
 mod fleet_control;
+mod launch_profiles;
 mod profiles;
 mod sessions;
 mod transfers;
@@ -86,6 +87,7 @@ pub(crate) struct NodeService {
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
+    pub(crate) launch_profiles: crate::launch_profiles::LaunchProfileJobs,
     lookup: Lookup,
     sessions: Arc<Sessions>,
     devices: Arc<Devices>,
@@ -158,6 +160,7 @@ pub(crate) struct Parts {
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
     pub(crate) lifecycle: Lifecycle,
+    pub(crate) launch_profiles: crate::launch_profiles::LaunchProfileJobs,
     pub(crate) lookup: Lookup,
     pub(crate) sessions: Arc<Sessions>,
     pub(crate) devices: Arc<Devices>,
@@ -189,6 +192,7 @@ impl NodeService {
             lsp,
             lsp_roots,
             lifecycle,
+            launch_profiles,
             lookup,
             sessions,
             devices,
@@ -218,6 +222,7 @@ impl NodeService {
             lsp,
             lsp_roots,
             lifecycle,
+            launch_profiles,
             lookup,
             sessions,
             devices,

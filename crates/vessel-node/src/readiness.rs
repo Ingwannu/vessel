@@ -343,6 +343,7 @@ pub(crate) fn failure_of(error: &crate::error::ServiceError) -> HandshakeFailure
     };
     match probe {
         vessel_agent::ProbeError::Spawn(_) => HandshakeFailure::Spawn,
+        vessel_agent::ProbeError::Cancelled => HandshakeFailure::Exited,
         vessel_agent::ProbeError::TimedOut { limit, .. } => HandshakeFailure::TimedOut {
             after: DurationMs::from_duration(*limit),
         },

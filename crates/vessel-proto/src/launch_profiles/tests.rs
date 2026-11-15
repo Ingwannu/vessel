@@ -376,15 +376,13 @@ fn list_admission_reserves_the_maximum_revision_even_when_zero_would_fit() {
 }
 
 #[test]
-fn staged_values_leave_the_protocol_and_method_registry_unchanged() {
+fn pending_feature_is_registered_without_a_fabricated_protocol() {
+    use crate::Request as _;
     assert_eq!(NAMED_LAUNCH_PROFILES, None);
-    assert!(
-        crate::Method::ALL
-            .iter()
-            .all(|method| !method.as_str().starts_with("launch_profile."))
-    );
-    assert!(
-        serde_json::from_str::<crate::Call>(r#"{"method":"launch_profile.list","params":{}}"#)
-            .is_err()
-    );
+    let call = ListLaunchProfiles {}.into_call();
+    assert_eq!(call.required_protocol(), NAMED_LAUNCH_PROFILES);
+    let encoded = serde_json::to_string(&call).unwrap();
+    assert_eq!(serde_json::from_str::<crate::Call>(&encoded).unwrap(), call);
+    assert_eq!(call.method().scope(), Some(crate::Scope::Read));
+    assert!(call.method().forwardable());
 }

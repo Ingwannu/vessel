@@ -535,6 +535,11 @@ impl Handler for Fake {
         list_models: vessel_proto::ListModels => Vec<vessel_proto::ModelRoute>;
         harness_options: vessel_proto::GetHarnessOptions => vessel_proto::HarnessOptions;
         session_options: vessel_proto::GetSessionOptions => Vec<vessel_proto::SessionOption>;
+        list_launch_profiles: vessel_proto::launch_profiles::ListLaunchProfiles => vessel_proto::launch_profiles::LaunchProfilesSnapshot;
+        replace_launch_profiles: vessel_proto::launch_profiles::ReplaceLaunchProfiles => vessel_proto::launch_profiles::LaunchProfilesSnapshot;
+        launch_profile_options: vessel_proto::launch_profiles::GetLaunchProfileOptions => vessel_proto::launch_profiles::LaunchCatalogue;
+        applicable_launch_profiles: vessel_proto::launch_profiles::GetApplicableLaunchProfiles => vessel_proto::launch_profiles::ApplicableLaunchProfiles;
+        apply_session_options: vessel_proto::launch_profiles::ApplySessionOptions => vessel_proto::launch_profiles::ApplySessionOptionsResult;
         set_session_option: vessel_proto::SetSessionOption => Vec<vessel_proto::SessionOption>;
         rename_session: vessel_proto::RenameSession => SessionInfo;
         prompt_session: vessel_proto::conversation::PromptSession => vessel_proto::Delivered;

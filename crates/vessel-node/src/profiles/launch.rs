@@ -112,7 +112,7 @@ pub(crate) struct AgentTools {
 }
 
 /// Everything `session.create` adds to the spec.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Launcher {
     /// Owner-only, under the data directory (`DataDir::prepare_mcp_dir`).
     mcp_dir: PathBuf,

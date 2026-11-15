@@ -36,13 +36,13 @@
 
 use std::future::Future;
 
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::device::Scope;
 use crate::error::WireError;
 use crate::node::ProtocolVersion;
 
+mod binding;
 mod frames;
 mod older;
 mod requests;
@@ -51,52 +51,13 @@ pub(crate) mod samples;
 mod shape;
 mod since;
 
+pub use binding::{Request, UnexpectedReply};
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
 pub use requests::{
     Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
     ReadEvents, RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
 };
 pub use shape::MethodShape;
-
-/// A request type, bound to its response type and its method.
-pub trait Request: Serialize + DeserializeOwned + Send + 'static {
-    /// The method this request invokes.
-    const METHOD: Method;
-    /// What a successful call returns.
-    type Response: Serialize + DeserializeOwned + Send + 'static;
-
-    /// Wrap into the generic call enum for sending.
-    fn into_call(self) -> Call;
-
-    /// Extract this request's response from a generic reply.
-    ///
-    /// # Errors
-    /// Fails if the reply belongs to a different method, which means the
-    /// peer is broken.
-    fn response_from(reply: Reply) -> Result<Self::Response, UnexpectedReply>;
-}
-
-/// A reply arrived for a different method than the request.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UnexpectedReply {
-    /// Method that was called.
-    pub expected: Method,
-    /// Method the reply belongs to.
-    pub got: Method,
-}
-
-impl std::fmt::Display for UnexpectedReply {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "reply for `{}` received for a `{}` request",
-            self.got.as_str(),
-            self.expected.as_str()
-        )
-    }
-}
-
-impl std::error::Error for UnexpectedReply {}
 
 #[macro_use]
 mod methods;
@@ -166,6 +127,16 @@ macro_rules! method_table {
             ListProfiles / list_profiles / "profile.list" [Read, 5, unary]: $crate::ListProfiles => Vec<$crate::ProfileInfo>;
             /// Read `profiles.toml` again (protocol 5).
             ReloadProfiles / reload_profiles / "profile.reload" [Admin, 5, unary]: $crate::ReloadProfiles => Vec<$crate::ProfileInfo>;
+            /// Read the complete ordered host launch presets.
+            ListLaunchProfiles / list_launch_profiles / "launch_profile.list" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ListLaunchProfiles => $crate::launch_profiles::LaunchProfilesSnapshot;
+            /// Replace host launch presets with a whole-list revision CAS.
+            ReplaceLaunchProfiles / replace_launch_profiles / "launch_profile.replace" [Admin, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ReplaceLaunchProfiles => $crate::launch_profiles::LaunchProfilesSnapshot;
+            /// Probe an editor selection without sending a prompt.
+            GetLaunchProfileOptions / launch_profile_options / "launch_profile.options" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::GetLaunchProfileOptions => $crate::launch_profiles::LaunchCatalogue;
+            /// Read presets filtered by a session's actual harness/account.
+            GetApplicableLaunchProfiles / applicable_launch_profiles / "launch_profile.applicable" [Read, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::GetApplicableLaunchProfiles => $crate::launch_profiles::ApplicableLaunchProfiles;
+            /// Apply concrete choices through one process mutation owner.
+            ApplySessionOptions / apply_session_options / "session.apply_options" [Operate, (pending $crate::launch_profiles::NAMED_LAUNCH_PROFILES), unary]: $crate::launch_profiles::ApplySessionOptions => $crate::launch_profiles::ApplySessionOptionsResult;
             /// Move a structured session to another profile (protocol 5).
             MoveProfile / move_profile / "session.move_profile" [Operate, 5, unary]: $crate::MoveProfile => $crate::SessionInfo;
             /// The fleet's current bundle (protocol 5).

@@ -90,7 +90,7 @@ pub use input::{AgentInput, SteerOutcome};
 pub use introduction::{Introduction, Refusal, Refused, SPEAKS};
 pub use options::{KindName, OptionError};
 pub use output::{AgentOutput, AgentOutputs};
-pub use probe::{ProbeError, Probed, probe, probe_with};
+pub use probe::{ProbeError, Probed, probe, probe_with, probe_with_cancel};
 pub use process::AgentProcess;
 /// The command [`AgentProcess::spawn`] runs, and the signals it takes;
 /// re-exported so callers need no edge to `vessel-proc`.

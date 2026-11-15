@@ -87,6 +87,23 @@ impl Reply {
                   agent; the list is the point"
     )]
     pub fn withheld(&self, protocol: ProtocolVersion) -> Option<WireError> {
+        // No shape can cross an older envelope merely because a malformed
+        // or future peer supplied a nested reply without a matching call.
+        if matches!(
+            self,
+            Self::ListLaunchProfiles(_)
+                | Self::ReplaceLaunchProfiles(_)
+                | Self::GetLaunchProfileOptions(_)
+                | Self::GetApplicableLaunchProfiles(_)
+                | Self::ApplySessionOptions(_)
+        ) && !crate::launch_profiles::NAMED_LAUNCH_PROFILES
+            .is_some_and(|since| protocol >= since)
+        {
+            return Some(WireError::new(
+                crate::ErrorCode::Unsupported,
+                "named launch profiles are not available on this connection",
+            ));
+        }
         if protocol >= READS_ADDED_AGENTS {
             return None;
         }
@@ -160,6 +177,11 @@ impl Reply {
             | Self::ListModels(_)
             | Self::HarnessOptions(_)
             | Self::SessionOptions(_)
+            | Self::ListLaunchProfiles(_)
+            | Self::ReplaceLaunchProfiles(_)
+            | Self::GetLaunchProfileOptions(_)
+            | Self::GetApplicableLaunchProfiles(_)
+            | Self::ApplySessionOptions(_)
             | Self::SetSessionOption(_)
             | Self::PromptSession(_)
             | Self::ChangeQueue(_)

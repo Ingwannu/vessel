@@ -1,4 +1,4 @@
-//! Strict disk decoding and CAS precedence, through the real SQLite schema.
+//! Strict disk decoding and CAS precedence, through the real `SQLite` schema.
 
 use super::*;
 use vessel_proto::launch_profiles::{LaunchChoices, LaunchProfile, LaunchSelection};
@@ -39,12 +39,15 @@ fn cas_checks_stale_before_equal_and_exhaustion_after_noop() {
     assert!(
         matches!(replace(&connection, saved.revision(), &profiles).unwrap(), LaunchProfilesChange::Unchanged(current) if current == saved)
     );
-    connection
-        .execute(
-            "UPDATE launch_profiles SET revision = ?1",
-            [i64::from(u32::MAX)],
-        )
-        .unwrap();
+    assert_eq!(
+        connection
+            .execute(
+                "UPDATE launch_profiles SET revision = ?1",
+                [i64::from(u32::MAX)],
+            )
+            .unwrap(),
+        1
+    );
     assert!(matches!(
         replace(&connection, LaunchProfileRevision::MAX, &profiles).unwrap(),
         LaunchProfilesChange::Unchanged(_)
@@ -62,37 +65,49 @@ fn malformed_and_oversized_snapshots_never_become_empty_success() {
     // Unknown later record must fail the whole decode, retaining its source.
     let profiles = list("valid");
     let mut body = serde_json::to_string(&profiles).unwrap();
-    body.pop();
+    assert_eq!(body.pop(), Some(']'));
     body.push_str(", {\"unexpected_private_text\": true}]");
-    connection
-        .execute("UPDATE launch_profiles SET profiles = ?1", [&body])
-        .unwrap();
+    assert_eq!(
+        connection
+            .execute("UPDATE launch_profiles SET profiles = ?1", [&body])
+            .unwrap(),
+        1
+    );
     let error = read(&connection).unwrap_err();
     assert!(matches!(error, StoreError::LaunchDecode(_)));
     assert!(!format!("{error:?}").contains("unexpected_private_text"));
-    connection
-        .execute(
-            "UPDATE launch_profiles SET profiles = ?1",
-            ["x".repeat(LaunchPayload::MAX_BYTES + 1)],
-        )
-        .unwrap();
+    assert_eq!(
+        connection
+            .execute(
+                "UPDATE launch_profiles SET profiles = ?1",
+                ["x".repeat(LaunchPayload::MAX_BYTES + 1)],
+            )
+            .unwrap(),
+        1
+    );
     assert!(matches!(
         read(&connection),
         Err(StoreError::LaunchSnapshot(LaunchSnapshotProblem::TooLarge))
     ));
-    connection
-        .execute(
-            "UPDATE launch_profiles SET profiles = '[]', revision = -1",
-            [],
-        )
-        .unwrap();
+    assert_eq!(
+        connection
+            .execute(
+                "UPDATE launch_profiles SET profiles = '[]', revision = -1",
+                [],
+            )
+            .unwrap(),
+        1
+    );
     assert!(matches!(
         read(&connection),
         Err(StoreError::LaunchRevision { .. })
     ));
-    connection
-        .execute("DELETE FROM launch_profiles", [])
-        .unwrap();
+    assert_eq!(
+        connection
+            .execute("DELETE FROM launch_profiles", [])
+            .unwrap(),
+        1
+    );
     assert!(matches!(
         read(&connection),
         Err(StoreError::LaunchSnapshot(LaunchSnapshotProblem::Missing))
