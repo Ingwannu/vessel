@@ -113,13 +113,12 @@ async fn operation_deadline_also_leaves_physical_inspection_owned() {
         });
         let (_peer, _) = listener.accept().await.unwrap();
         rig.control.inspection.entered.notified().await;
-        tokio::time::pause();
-        tokio::time::advance(PREVIEW_OPERATION_TIMEOUT).await;
+        // A live blocking inspection inhibits Tokio's paused-clock auto-advance.
+        // Real time lets the product deadline and outer safety net both progress.
         assert!(matches!(
             task.await.unwrap(),
             Err(PreviewError::Deadline(_))
         ));
-        tokio::time::resume();
         assert_eq!(
             rig.service.runtime.preparations.available_permits(),
             MAX_PREVIEW_PREPARATIONS - 1

@@ -120,3 +120,21 @@ and four ignored safety-net Results (plus the read count already fixed).
 The current tests now require each within result to succeed, so a timeout
 fails instead of being ignored. No deadline, payload assertion, cancellation
 or cleanup requirement changed. Old run receipts remain separate evidence.
+
+### Blocking-inspection deadline regression
+
+The first executed terminal suite reported all other cases complete but did
+not finish the operation-deadline transport test. That fixture paused Tokio
+time while its real blocking inspection deliberately held a condition gate.
+Tokio inhibits paused-clock auto-advance while blocking tasks run, and timer
+deadlines round up to a timer tick. Advancing only the nominal operation
+duration can therefore leave the deadline pending; the paused outer timeout
+cannot rescue the fixture either. This was a test-clock defect, not a passing
+gate or a qualified product/ownership observation.
+
+This real-I/O test now awaits the unchanged product deadline in real time.
+The existing named `TEST_WAIT` outer `within` bound remains effective, and
+dropping the fixture releases the blocked inspection even on failure. Every
+capacity, pending-drain and deadline-result assertion is unchanged; no product
+limit or safety-net bound is extended. Synthetic observation-only tests keep
+their paused clocks because they hold no live blocking worker.
