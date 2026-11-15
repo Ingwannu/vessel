@@ -1,5 +1,7 @@
 //! Typed three-way deltas preserve stale windows' unrelated fields and map entries.
 
+mod layouts;
+
 use crate::{Kept, Prefs};
 use std::collections::{BTreeMap, BTreeSet};
 use vessel_app_view::prefs::{
@@ -63,6 +65,7 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
         last_label: _,
         update_notes: _,
         settings: _,
+        layouts: _,
         kept: _,
     } = after;
     let mut next = current.clone();
@@ -77,6 +80,7 @@ pub(super) fn apply(current: &Prefs, before: &Prefs, after: &Prefs) -> Result<Pr
         },
     );
     preferences(&mut next.settings, &before.settings, &after.settings);
+    layouts::apply(&mut next.layouts, &before.layouts, &after.layouts);
     let grew = |prior: usize, next: usize, max: usize| next > max && next > prior;
     if grew(
         current.settings.shortcuts.len(),

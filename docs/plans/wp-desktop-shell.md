@@ -373,3 +373,22 @@ choosing the active window, a visible window, then the first live window. Visibi
 is read from GPUI rather than cached in a second registry. Menus and incoming
 session navigation use this same selector; with no live target a session launch
 opens a primary window. Multiwindow screen/runtime evidence remains pending.
+
+## Package base 5 and pane persistence
+
+Merged the package line9e18cf0db (base5 + reviewed W12 producer), never a node
+head directly into this app tree. Existing E3 Windows boundary documentation and
+the line's proc/store lock documentation are both retained. Prefs.layouts is
+registered in the exhaustive canonical delta: entries merge by LayoutKey,
+including removal, while each validated tree is atomic to preserve allocator and
+reference invariants. Tests cover stale edits/removals on distinct keys and
+concurrent creation from an empty list. W12's once-initialized UI book needs an
+owned refresh/rebase hook after canonical broadcast; that integration remains
+pending and no multiwindow layout PASS is claimed.
+
+The lead explicitly reapproved shared protocol23 capture binaries from6036 on
+base5 for E3 windows, menus, changelog and session navigation. The wire-name set
+and protocol remain identical, but these older binaries do not contain base5
+service-port/allocation approval, strict decode-failure handling, session.delete
+handover waits or pending-label admission. Captures must exclude those flows;
+they do not prove a same-commit root build. No root binaries are rebuilt here.
